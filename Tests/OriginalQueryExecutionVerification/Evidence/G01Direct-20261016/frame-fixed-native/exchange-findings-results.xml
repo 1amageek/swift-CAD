@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="TestResults" errors="0" tests="2" failures="0" skipped="0" time="0.0040365">
+    <testcase classname="FocusedTests.ExchangeHostedCurveContributionTests" name="ordinaryReadsRetainTheIssuingHandleAfterExecutionLifetimeEnds()" time="0.003712792" />
+    <testcase classname="FocusedTests.IndependentGraphOwnerBindingTests" name="selectedGroupChargesIncludeTheEntireLexicalPathAtExactWorkBoundary()" time="0.003667666" />
+  </testsuite>
+</testsuites>

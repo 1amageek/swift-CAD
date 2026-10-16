@@ -10,15 +10,21 @@ import CADGeometry
 /// its face-local pcurves, so mixed line, conic, and rational B-spline profiles
 /// use one exact path without polygonalization.
 struct TranslationalPrismVolumeEvaluator {
+    func volume(of shell: Shell, in model: BRepModel, tolerance: ModelingTolerance) throws -> Double? {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try volume(of: shell, in: model, tolerance: tolerance, using: &execution)
+    }
+
     func volume(
         of shell: Shell,
         in model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Double? {
+        try execution.consumeWork(1)
         try tolerance.validate()
-        let vertices = try shellVertices(shell, model: model)
+        let vertices = try shellVertices(shell, model: model, using: &execution)
         guard vertices.count >= 4 else { return nil }
-        let planarFaces = try shell.faceIDs.compactMap { faceID -> PlanarFace? in
+        let planarFaces = try (try OriginalParameterQueryStorage.compactMap(shell.faceIDs, using: &execution) { faceID, execution -> PlanarFace? in
             guard let face = model.faces[faceID],
                   let surface = model.geometry.surfaces[face.surfaceID] else {
                 throw TopologyError.missingReference(
@@ -27,23 +33,27 @@ struct TranslationalPrismVolumeEvaluator {
             }
             guard let plane = try planeDescriptor(
                 for: surface,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             ) else {
                 return nil
             }
             return PlanarFace(id: faceID, face: face, plane: plane)
-        }
+        })
         guard planarFaces.count >= 2 else { return nil }
 
         for firstIndex in planarFaces.indices {
-            for secondIndex in planarFaces.indices where secondIndex > firstIndex {
+
+            try execution.consumeWork(1)
+            for secondIndex in planarFaces.indices {
+                try execution.consumeWork(1)
+                guard secondIndex > firstIndex else { continue }
                 if let result = try certifiedVolume(
                     firstCap: planarFaces[firstIndex],
                     secondCap: planarFaces[secondIndex],
                     shell: shell,
                     vertices: vertices,
                     model: model,
-                    tolerance: tolerance
+                    tolerance: tolerance, using: &execution
                 ) {
                     return result
                 }
@@ -58,8 +68,9 @@ struct TranslationalPrismVolumeEvaluator {
         shell: Shell,
         vertices: [VertexID: Point3D],
         model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Double? {
+        try execution.consumeWork(1)
         let normalAlignment = firstCap.plane.normal.dot(secondCap.plane.normal)
         guard abs(abs(normalAlignment) - 1.0) <= tolerance.angle else {
             return nil
@@ -71,8 +82,9 @@ struct TranslationalPrismVolumeEvaluator {
         guard normalSeparation > tolerance.distance else { return nil }
 
         var vertexSides: [VertexID: CapSide] = [:]
-        vertexSides.reserveCapacity(vertices.count)
+
         for (vertexID, point) in vertices {
+            try execution.consumeWork(1)
             let firstResidual = abs(
                 (point - firstCap.plane.origin).dot(firstCap.plane.normal)
             )
@@ -81,19 +93,20 @@ struct TranslationalPrismVolumeEvaluator {
             )
             if firstResidual <= tolerance.distance,
                secondResidual > tolerance.distance {
-                vertexSides[vertexID] = .first
+                try OriginalParameterQueryStorage.set(CapSide.first, for: vertexID, in: &vertexSides, using: &execution)
             } else if secondResidual <= tolerance.distance,
                       firstResidual > tolerance.distance {
-                vertexSides[vertexID] = .second
+                try OriginalParameterQueryStorage.set(CapSide.second, for: vertexID, in: &vertexSides, using: &execution)
             } else {
                 return nil
             }
         }
 
-        let edgeIDs = try shellEdgeIDs(shell, model: model)
+        let edgeIDs = try shellEdgeIDs(shell, model: model, using: &execution)
         var translation: Vector3D?
         var crossEdgeIDs = Set<EdgeID>()
         for edgeID in edgeIDs {
+            try execution.consumeWork(1)
             guard let edge = model.edges[edgeID],
                   let start = vertices[edge.startVertexID],
                   let end = vertices[edge.endVertexID],
@@ -105,7 +118,7 @@ struct TranslationalPrismVolumeEvaluator {
             }
             guard startSide != endSide else { continue }
             guard let curve = model.geometry.curves[edge.curveID],
-                  isLine(curve) else {
+                  try isLine(curve, using: &execution) else {
                 return nil
             }
             let candidate = startSide == .first ? end - start : start - end
@@ -117,7 +130,7 @@ struct TranslationalPrismVolumeEvaluator {
             } else {
                 translation = candidate
             }
-            crossEdgeIDs.insert(edgeID)
+            try OriginalParameterQueryStorage.insert(edgeID, in: &crossEdgeIDs, using: &execution)
         }
         guard crossEdgeIDs.count >= 2,
               let translation else {
@@ -128,8 +141,10 @@ struct TranslationalPrismVolumeEvaluator {
             return nil
         }
 
-        let capIDs = Set([firstCap.id, secondCap.id])
-        for faceID in shell.faceIDs where !capIDs.contains(faceID) {
+
+        for faceID in shell.faceIDs {
+            try execution.consumeWork(1)
+            guard faceID != firstCap.id && faceID != secondCap.id else { continue }
             guard let face = model.faces[faceID],
                   let surface = model.geometry.surfaces[face.surfaceID],
                   try faceIsTranslatedSide(
@@ -138,7 +153,7 @@ struct TranslationalPrismVolumeEvaluator {
                       translation: translation,
                       crossEdgeIDs: crossEdgeIDs,
                       model: model,
-                      tolerance: tolerance
+                      tolerance: tolerance, using: &execution
                   ) else {
                 return nil
             }
@@ -146,19 +161,19 @@ struct TranslationalPrismVolumeEvaluator {
         guard try capContainsOnlyBoundaryEdges(
             firstCap.face,
             crossEdgeIDs: crossEdgeIDs,
-            model: model
+            model: model, using: &execution
         ), try capContainsOnlyBoundaryEdges(
             secondCap.face,
             crossEdgeIDs: crossEdgeIDs,
-            model: model
+            model: model, using: &execution
         ) else {
             return nil
         }
 
-        let characteristicLength = max(
-            tolerance.distance,
-            try BoundingBox3D(points: Array(vertices.values)).size.length
-        )
+        guard let x = try OriginalParameterQueryStorage.extrema(vertices.values, using: &execution, projection: { point, execution in point.x }),
+              let y = try OriginalParameterQueryStorage.extrema(vertices.values, using: &execution, projection: { point, execution in point.y }),
+              let z = try OriginalParameterQueryStorage.extrema(vertices.values, using: &execution, projection: { point, execution in point.z }) else { return nil }
+        let characteristicLength = max(tolerance.distance, Vector3D(x: x.upper - x.lower, y: y.upper - y.lower, z: z.upper - z.lower).length)
         let requestedVolumeError = max(
             tolerance.distance * characteristicLength * characteristicLength * 0.0625,
             characteristicLength * characteristicLength * characteristicLength * 1.0e-13
@@ -171,7 +186,7 @@ struct TranslationalPrismVolumeEvaluator {
             firstCap.face,
             requestedWidth: requestedAreaWidth,
             model: model,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         ) else {
             return nil
         }
@@ -205,21 +220,25 @@ struct TranslationalPrismVolumeEvaluator {
         _ face: Face,
         requestedWidth: Double,
         model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> AreaBounds? {
-        let coedgeCount = try face.loops.reduce(into: 0) { count, loopID in
+        try execution.consumeWork(1)
+        let coedgeCount = try OriginalParameterQueryStorage.reduce(face.loops, initial: 0, using: &execution) { count, loopID, execution in
             guard let loop = model.loops[loopID] else {
                 throw TopologyError.missingReference(
                     "Translational prism cap references a missing loop."
                 )
             }
-            count += loop.coedges.count
+            let next = count.addingReportingOverflow(loop.coedges.count)
+            guard !next.overflow else { throw ExactScalarFailure.countOverflow }
+            return next.partialValue
         }
         guard coedgeCount > 0 else { return nil }
         let curveWidth = requestedWidth / Double(coedgeCount)
         let integrator = SurfaceParameterCurveAreaIntegrator()
         var result = AreaBounds.zero
         for loopID in face.loops {
+            try execution.consumeWork(1)
             guard let loop = model.loops[loopID],
                   !loop.coedges.isEmpty else {
                 throw TopologyError.missingReference(
@@ -228,6 +247,7 @@ struct TranslationalPrismVolumeEvaluator {
             }
             var signed = SurfaceParameterAreaBounds.zero
             for coedge in loop.coedges {
+                try execution.consumeWork(1)
                 guard let pcurve = coedge.surfaceParameterCurve else {
                     throw TopologyError.invalidTrim(coedge.edgeID)
                 }
@@ -235,7 +255,7 @@ struct TranslationalPrismVolumeEvaluator {
                     for: pcurve,
                     uShift: 0.0,
                     requestedWidth: curveWidth,
-                    tolerance: tolerance
+                    tolerance: tolerance, using: &execution
                 ))
             }
             let absolute: AreaBounds
@@ -274,13 +294,14 @@ struct TranslationalPrismVolumeEvaluator {
         translation: Vector3D,
         crossEdgeIDs: Set<EdgeID>,
         model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Bool {
+        try execution.consumeWork(1)
         guard face.loops.count == 1,
               let loopID = face.loops.first,
               let loop = model.loops[loopID],
               loop.role == .outer,
-              loop.coedges.filter({ crossEdgeIDs.contains($0.edgeID) }).count == 2 else {
+              (try OriginalParameterQueryStorage.filter(loop.coedges, using: &execution) { item, execution in crossEdgeIDs.contains(item.edgeID) }).count == 2 else {
             return false
         }
         let axis = try translation.normalized(tolerance: tolerance.distance)
@@ -298,10 +319,10 @@ struct TranslationalPrismVolumeEvaluator {
             let cylinderAxis = try cylinderAxisValue.normalized(tolerance: tolerance.distance)
             return abs(abs(cylinderAxis.dot(axis)) - 1.0) <= tolerance.angle
         case let .bSpline(spline):
-            return exactTranslationDirection(
+            return try exactTranslationDirection(
                 spline,
                 translation: translation,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         case .analytic, .procedural(.rollingBall), .procedural(.originalImage), .procedural(.originalRevolution), .procedural(.originalCoons), .procedural(.originalBoundaryCorrected), .procedural(.originalAngularTransport), .procedural(.originalAffineWord), .procedural(.originalPlaneDerivative), .procedural(.originalDrafted):
             return false
@@ -312,13 +333,13 @@ struct TranslationalPrismVolumeEvaluator {
                 translation: translation,
                 crossEdgeIDs: crossEdgeIDs,
                 model: model,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         case let .procedural(.ruled(ruled)):
             return try ruledBoundariesDiffer(
                 ruled,
                 by: translation,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         }
     }
@@ -326,19 +347,24 @@ struct TranslationalPrismVolumeEvaluator {
     private func ruledBoundariesDiffer(
         _ ruled: RuledSurface3D,
         by translation: Vector3D,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Bool {
+        try execution.consumeWork(1)
         guard case let .surfaceLift(start) = ruled.startBoundary,
-              case let .surfaceLift(end) = ruled.endBoundary,
-              start.parameterCurve == end.parameterCurve else {
+              case let .surfaceLift(end) = ruled.endBoundary else { return false }
+        try GeometryStructuralComparisonWork.charge(parameterCurve: start.parameterCurve, using: &execution)
+        try GeometryStructuralComparisonWork.charge(parameterCurve: end.parameterCurve, using: &execution)
+        guard start.parameterCurve == end.parameterCurve else {
             return false
         }
-        let first = offsetDescriptor(start.surface)
-        let second = offsetDescriptor(end.surface)
+        let first = try offsetDescriptor(start.surface, using: &execution)
+        let second = try offsetDescriptor(end.surface, using: &execution)
+        try GeometryStructuralComparisonWork.charge(surface: first.source, using: &execution)
+        try GeometryStructuralComparisonWork.charge(surface: second.source, using: &execution)
         guard first.source == second.source,
               let plane = try DefaultPlanarSurfaceResolver().exactPlane(
                   for: first.source,
-                  tolerance: tolerance
+                  tolerance: tolerance, using: &execution
               ) else {
             return false
         }
@@ -348,20 +374,22 @@ struct TranslationalPrismVolumeEvaluator {
     }
 
     private func offsetDescriptor(
-        _ surface: Surface3D
-    ) -> (source: Surface3D, distance: Double) {
+        _ surface: Surface3D, using execution: inout OriginalQueryExecution
+    ) throws -> (source: Surface3D, distance: Double) {
+        try execution.consumeWork(1)
         guard case let .procedural(.offset(offset)) = surface else {
             return (surface, 0.0)
         }
-        let nested = offsetDescriptor(offset.source)
+        let nested = try offsetDescriptor(offset.source, using: &execution)
         return (nested.source, nested.distance + offset.distance)
     }
 
     private func exactTranslationDirection(
         _ surface: BSplineSurface3D,
         translation: Vector3D,
-        tolerance: ModelingTolerance
-    ) -> Bool {
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+    ) throws -> Bool {
+        try execution.consumeWork(1)
         if surface.vDegree == 1,
            surface.vControlPointCount == 2,
            surface.controlPoints.count == 2,
@@ -369,7 +397,7 @@ struct TranslationalPrismVolumeEvaluator {
            surface.controlPoints[0].count == surface.controlPoints[1].count,
            surface.weights[0].count == surface.weights[1].count,
            surface.controlPoints[0].count == surface.weights[0].count {
-            return surface.controlPoints[0].indices.allSatisfy { index in
+            return (try OriginalParameterQueryStorage.allSatisfy(surface.controlPoints[0].indices, using: &execution) { index, execution in
                 translatedPairMatches(
                     surface.controlPoints[0][index],
                     surface.controlPoints[1][index],
@@ -378,14 +406,14 @@ struct TranslationalPrismVolumeEvaluator {
                     translation: translation,
                     tolerance: tolerance
                 )
-            }
+            })
         }
         if surface.uDegree == 1,
            surface.uControlPointCount == 2,
-           surface.controlPoints.allSatisfy({ $0.count == 2 }),
+           (try OriginalParameterQueryStorage.allSatisfy(surface.controlPoints, using: &execution) { item, execution in item.count == 2 }),
            surface.weights.count == surface.controlPoints.count,
-           surface.weights.allSatisfy({ $0.count == 2 }) {
-            return surface.controlPoints.indices.allSatisfy { index in
+           (try OriginalParameterQueryStorage.allSatisfy(surface.weights, using: &execution) { item, execution in item.count == 2 }) {
+            return (try OriginalParameterQueryStorage.allSatisfy(surface.controlPoints.indices, using: &execution) { index, execution in
                 translatedPairMatches(
                     surface.controlPoints[index][0],
                     surface.controlPoints[index][1],
@@ -394,7 +422,7 @@ struct TranslationalPrismVolumeEvaluator {
                     translation: translation,
                     tolerance: tolerance
                 )
-            }
+            })
         }
         return false
     }
@@ -419,15 +447,17 @@ struct TranslationalPrismVolumeEvaluator {
     private func capContainsOnlyBoundaryEdges(
         _ face: Face,
         crossEdgeIDs: Set<EdgeID>,
-        model: BRepModel
+        model: BRepModel, using execution: inout OriginalQueryExecution
     ) throws -> Bool {
+        try execution.consumeWork(1)
         for loopID in face.loops {
+            try execution.consumeWork(1)
             guard let loop = model.loops[loopID] else {
                 throw TopologyError.missingReference(
                     "Translational prism cap references a missing loop."
                 )
             }
-            if loop.coedges.contains(where: { crossEdgeIDs.contains($0.edgeID) }) {
+            if (try OriginalParameterQueryStorage.contains(loop.coedges, using: &execution) { item, execution in crossEdgeIDs.contains(item.edgeID) }) {
                 return false
             }
         }
@@ -436,10 +466,12 @@ struct TranslationalPrismVolumeEvaluator {
 
     private func shellVertices(
         _ shell: Shell,
-        model: BRepModel
+        model: BRepModel, using execution: inout OriginalQueryExecution
     ) throws -> [VertexID: Point3D] {
+        try execution.consumeWork(1)
         var result: [VertexID: Point3D] = [:]
-        for edgeID in try shellEdgeIDs(shell, model: model) {
+        for edgeID in try shellEdgeIDs(shell, model: model, using: &execution) {
+            try execution.consumeWork(1)
             guard let edge = model.edges[edgeID],
                   let start = model.vertices[edge.startVertexID]?.point,
                   let end = model.vertices[edge.endVertexID]?.point else {
@@ -447,30 +479,36 @@ struct TranslationalPrismVolumeEvaluator {
                     "Translational prism volume references missing vertices."
                 )
             }
-            result[edge.startVertexID] = start
-            result[edge.endVertexID] = end
+            try OriginalParameterQueryStorage.set(start, for: edge.startVertexID, in: &result, using: &execution)
+            try OriginalParameterQueryStorage.set(end, for: edge.endVertexID, in: &result, using: &execution)
         }
         return result
     }
 
     private func shellEdgeIDs(
         _ shell: Shell,
-        model: BRepModel
+        model: BRepModel, using execution: inout OriginalQueryExecution
     ) throws -> Set<EdgeID> {
+        try execution.consumeWork(1)
         var result = Set<EdgeID>()
         for faceID in shell.faceIDs {
+            try execution.consumeWork(1)
             guard let face = model.faces[faceID] else {
                 throw TopologyError.missingReference(
                     "Translational prism volume references a missing face."
                 )
             }
             for loopID in face.loops {
+                try execution.consumeWork(1)
                 guard let loop = model.loops[loopID] else {
                     throw TopologyError.missingReference(
                         "Translational prism volume references a missing loop."
                     )
                 }
-                result.formUnion(loop.coedges.map({ $0.edgeID }))
+                for coedge in loop.coedges {
+                    try execution.consumeWork(1)
+                    try OriginalParameterQueryStorage.insert(coedge.edgeID, in: &result, using: &execution)
+                }
             }
         }
         return result
@@ -478,8 +516,9 @@ struct TranslationalPrismVolumeEvaluator {
 
     private func planeDescriptor(
         for surface: Surface3D,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> PlaneDescriptor? {
+        try execution.consumeWork(1)
         switch surface {
         case let .plane(plane):
             return PlaneDescriptor(
@@ -498,7 +537,7 @@ struct TranslationalPrismVolumeEvaluator {
         case let .procedural(.offset(offset)):
             guard let source = try planeDescriptor(
                 for: offset.source,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             ) else {
                 return nil
             }
@@ -511,14 +550,15 @@ struct TranslationalPrismVolumeEvaluator {
         }
     }
 
-    private func isLine(_ curve: Curve3D) -> Bool {
+    private func isLine(_ curve: Curve3D, using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.consumeWork(1)
         switch curve {
         case .line, .analytic(.line):
             return true
         case let .parameterImage(image):
-            return isLine(image.source)
+            return try isLine(image.source, using: &execution)
         case let .rigidImage(image):
-            return isLine(image.source)
+            return try isLine(image.source, using: &execution)
         case .affineImage, .originalAffineWord:
             return curve.hasExactLinearParameterization
         case .circle, .analytic, .bSpline, .implicit, .surfaceLift,

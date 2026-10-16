@@ -37,7 +37,7 @@ package struct OriginalSingularResolution: Sendable {
     package let germs: [Germ]
     package let isolatedGerms: [IsolatedGerm]
 
-    package init<B: RationalAlgebraAdmitting>(original: ExactBivariatePolynomial,
+    package init<B: ExactScalarAdmission & ~Copyable>(original: ExactBivariatePolynomial,
         at station: ExactBivariateSystemRoot, maximumDepth: Int, usage: inout B) throws {
         self.original = original; originalStation = station
         let authority = try OriginalRationalZeroSetAuthority(original: original, usage: &usage)
@@ -58,7 +58,7 @@ package struct OriginalSingularResolution: Sendable {
         germs = resolved.germs; isolatedGerms = resolved.isolatedGerms
     }
 
-    static func resolve<B: RationalAlgebraAdmitting>(local: OriginalSingularFieldPlanePolynomial,
+    static func resolve<B: ExactScalarAdmission & ~Copyable>(local: OriginalSingularFieldPlanePolynomial,
         originalU mapU: OriginalSingularFieldPlanePolynomial, originalV mapV: OriginalSingularFieldPlanePolynomial,
         inheritedDepth: Int, maximumDepth: Int, usage: inout B) throws
         -> (germs: [Germ], isolatedGerms: [IsolatedGerm]) {
@@ -67,7 +67,7 @@ package struct OriginalSingularResolution: Sendable {
         var published: [Germ] = []
         var isolated: [IsolatedGerm] = []
         while let cell = pending.popLast() {
-            try usage.visitExactCell(depth: cell.depth)
+            try usage.visitCell(axis: .value, depth: cell.depth)
             let law = cell.strictTransform
             let oneU = try ExactBivariatePolynomial.Power(u: 1, v: 0)
             let oneV = try ExactBivariatePolynomial.Power(u: 0, v: 1)
@@ -113,7 +113,7 @@ package struct OriginalSingularResolution: Sendable {
         return (published, isolated)
     }
 
-    private static func child<B: RationalAlgebraAdmitting>(_ parent: Pending,
+    private static func child<B: ExactScalarAdmission & ~Copyable>(_ parent: Pending,
         first: OriginalSingularFieldPlanePolynomial, second: OriginalSingularFieldPlanePolynomial,
         direction: Step.Direction, tangentValue: OriginalSingularFieldElement?, maximumDepth: Int, usage: inout B) throws -> Pending {
         let law = try parent.strictTransform.embedded(in: first.context, maximumDepth: maximumDepth, usage: &usage)
@@ -123,7 +123,7 @@ package struct OriginalSingularResolution: Sendable {
         let depth = max(try rationalAlgebraCount(parent.depth, 1), first.context.depth)
         guard depth <= maximumDepth else { throw KernelError(phase: .geometry, code: .resourceLimitExceeded,
             tolerance: nil, message: "Original tangent extension exceeds causal caller depth.") }
-        try usage.visitExactCell(depth: depth)
+        try usage.visitCell(axis: .value, depth: depth)
         let mapU = try parent.originalU.embedded(in: first.context, maximumDepth: maximumDepth, usage: &usage)
             .composed(withU: first, v: second, maximumDepth: maximumDepth, usage: &usage)
         let mapV = try parent.originalV.embedded(in: first.context, maximumDepth: maximumDepth, usage: &usage)

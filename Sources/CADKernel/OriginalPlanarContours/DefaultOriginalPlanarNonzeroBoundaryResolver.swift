@@ -10,10 +10,8 @@ public struct DefaultOriginalPlanarNonzeroBoundaryResolver: OriginalPlanarNonzer
     }
 
     public func boundary(from source: PreparedOriginalPlanarContourContacts,
-        allowance: inout OriginalCurveContactAllowance,
-        consumeWork: @escaping @Sendable (Int) throws -> Void,
-        consumeStorage: @escaping @Sendable (Int) throws -> Void) throws -> OriginalPlanarNonzeroBoundary {
-        func step() throws { try Task.checkCancellation(); try consumeWork(1) }
+        using execution: inout OriginalQueryExecution) throws -> OriginalPlanarNonzeroBoundary {
+        func step() throws { try Task.checkCancellation(); try execution.consumeWork(1) }
         func fail(_ text: String) -> KernelError {
             KernelError(phase: .classification, code: .classificationFailure,
                 tolerance: source.tolerance, message: text)
@@ -22,10 +20,10 @@ public struct DefaultOriginalPlanarNonzeroBoundaryResolver: OriginalPlanarNonzer
             try step()
             let bytes = count.multipliedReportingOverflow(by: MemoryLayout<T>.stride)
             guard count >= 0, !bytes.overflow else { throw fail("Original nonzero boundary storage overflowed.") }
-            try consumeStorage(bytes.partialValue)
+            try execution.retainStorage(bytes: bytes.partialValue)
         }
         let incidence = try OriginalPlanarContourIncidenceBuilder(producer: producer).build(source,
-            allowance: &allowance, consumeWork: consumeWork, consumeStorage: consumeStorage)
+            using: &execution)
         // Complete contact/signed-overlap composition proves that only exact
         // constant uses or cancelled directed multiplicities remain. Closed
         // finite contours then have no material transition from winding zero.
@@ -50,7 +48,7 @@ public struct DefaultOriginalPlanarNonzeroBoundaryResolver: OriginalPlanarNonzer
         }
         guard sourceIndex == source.segments.count else { throw fail("Original contours lost a source segment.") }
         let windingSource = try producer.prepareWinding(contours: contours, on: source.plane,
-            allowance: &allowance, tolerance: source.tolerance)
+            tolerance: source.tolerance, using: &execution)
         try reserve(source.pairs.count, OriginalPlanarCurveContactPartition.self)
         var partitions: [OriginalPlanarCurveContactPartition] = []; partitions.reserveCapacity(source.pairs.count)
         for pair in source.pairs { try step(); partitions.append(pair.partition) }
@@ -61,7 +59,7 @@ public struct DefaultOriginalPlanarNonzeroBoundaryResolver: OriginalPlanarNonzer
             try step()
             let sides = try producer.sideWinding(of: edge.span, forward: true,
                 retainingSource: windingSource, retaining: partitions,
-                allowance: &allowance, tolerance: source.tolerance)
+                tolerance: source.tolerance, using: &execution)
             let difference = sides.left.winding.subtractingReportingOverflow(sides.right.winding)
             guard !difference.overflow, difference.partialValue == edge.multiplicity else {
                 throw fail("Original global sector winding conflicts with directed fragment multiplicity.")

@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 import CADIR
 import CADModeling
 import CADTopology
@@ -13,7 +14,32 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
         model: BRepModel,
         operands: BooleanOperandContext,
         tolerance: ModelingTolerance
+
     ) throws -> BooleanIntersectionRequirement {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try intersectionRequirement(operation: operation, targetBodyIDs: targetBodyIDs, toolBodyID: toolBodyID, model: model, operands: operands, tolerance: tolerance, using: &execution)
+    }
+
+    public func intersectionRequirement(
+        operation: BooleanOperation,
+        targetBodyIDs: [BodyID],
+        toolBodyID: BodyID,
+        model: BRepModel,
+        operands: BooleanOperandContext,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution
+    ) throws -> BooleanIntersectionRequirement {
+        do {
+            let result = try resolve(using: &execution)
+            execution.context = execution.context.at(stage: .publication)
+            try execution.checkpoint()
+            return result
+        } catch {
+            throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance)
+        }
+        func resolve(using execution: inout OriginalQueryExecution) throws -> BooleanIntersectionRequirement {
+        try execution.consumeWork(1)
         // The special-case plans assume two solids taken as their volumes.
         guard operands.solidities.areVolumes else { return .required }
         let operationPlan: BRepBooleanOperationPlan
@@ -24,8 +50,9 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
                 toolBodyID: toolBodyID,
                 model: model,
                 tolerance: tolerance
-            )
-        } catch let error as KernelError where error.code == .unsupportedCapability {
+            , using: &execution)
+        } catch let error where OriginalQueryFailure.classification(of: error)?.code == .unsupportedCapability {
+            guard let errorClassification = OriginalQueryFailure.classification(of: error) else { throw error }
             return .required
         }
         switch operationPlan.shape {
@@ -38,6 +65,7 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
              .convexPlanarBoolean:
             return .required
         }
+            }
     }
 
     func plan(
@@ -46,14 +74,39 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
         toolBodyID: BodyID,
         model: BRepModel,
         tolerance: ModelingTolerance
+
     ) throws -> BRepBooleanPlan {
-        try makePlan(
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try plan(operation: operation, targetBodyIDs: targetBodyIDs, toolBodyID: toolBodyID, model: model, tolerance: tolerance, using: &execution)
+    }
+
+    func plan(
+        operation: BooleanOperation,
+        targetBodyIDs: [BodyID],
+        toolBodyID: BodyID,
+        model: BRepModel,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution
+    ) throws -> BRepBooleanPlan {
+        do {
+            let result = try resolve(using: &execution)
+            execution.context = execution.context.at(stage: .publication)
+            try execution.checkpoint()
+            return result
+        } catch {
+            throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance)
+        }
+        func resolve(using execution: inout OriginalQueryExecution) throws -> BRepBooleanPlan {
+        try execution.consumeWork(1)
+        return try makePlan(
             operation: operation,
             targetBodyIDs: targetBodyIDs,
             toolBodyID: toolBodyID,
             model: model,
             tolerance: tolerance
-        ).summary
+        , using: &execution).summary
+            }
     }
 
     public func exactRegionSelection(
@@ -67,7 +120,36 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
         regionSelectionGraph: BooleanRegionSelectionGraph,
         operands: BooleanOperandContext,
         tolerance: ModelingTolerance
+
     ) throws -> BooleanExactRegionSelectionGraph {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try exactRegionSelection(operation: operation, targetBodyIDs: targetBodyIDs, toolBodyID: toolBodyID, featureID: featureID, model: model, subshapes: subshapes, uvSplitGraph: uvSplitGraph, regionSelectionGraph: regionSelectionGraph, operands: operands, tolerance: tolerance, using: &execution)
+    }
+
+    public func exactRegionSelection(
+        operation: BooleanOperation,
+        targetBodyIDs: [BodyID],
+        toolBodyID: BodyID,
+        featureID: FeatureID,
+        model: BRepModel,
+        subshapes: [SubshapeID: TopologyReference],
+        uvSplitGraph: BooleanUVSplitGraph,
+        regionSelectionGraph: BooleanRegionSelectionGraph,
+        operands: BooleanOperandContext,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution
+    ) throws -> BooleanExactRegionSelectionGraph {
+        do {
+            let result = try resolve(using: &execution)
+            execution.context = execution.context.at(stage: .publication)
+            try execution.checkpoint()
+            return result
+        } catch {
+            throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance)
+        }
+        func resolve(using execution: inout OriginalQueryExecution) throws -> BooleanExactRegionSelectionGraph {
+        try execution.consumeWork(1)
         // The general exact path: materialize the selected regions of the split faces.
         func generalSelection() throws -> BooleanExactRegionSelectionGraph {
             let request: BRepSewingRequest
@@ -82,7 +164,7 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
                     sliceRegionSelectionGraph: regionSelectionGraph,
                     operands: operands,
                     tolerance: tolerance
-                )
+                , using: &execution)
             } else {
                 request = try ExactIntersectionFacePatchMaterializer().materialize(
                     operation: operation,
@@ -95,7 +177,7 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
                     regionSelectionGraph: regionSelectionGraph,
                     operands: operands,
                     tolerance: tolerance
-                )
+                , using: &execution)
             }
             return BooleanExactRegionSelectionGraph(
                 decisions: regionSelectionGraph,
@@ -114,15 +196,16 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
                 toolBodyID: toolBodyID,
                 model: model,
                 tolerance: tolerance
-            )
-        } catch let error as KernelError where error.code == .unsupportedCapability {
+            , using: &execution)
+        } catch let error where OriginalQueryFailure.classification(of: error)?.code == .unsupportedCapability {
+            guard let errorClassification = OriginalQueryFailure.classification(of: error) else { throw error }
             return try generalSelection()
         }
         switch operationPlan.shape {
         case let .orthogonal(resultShape):
             let request = try OrthogonalBooleanFacePatchBuilder(
                 tolerance: tolerance
-            ).request(for: resultShape, featureID: featureID)
+            ).request(for: resultShape, featureID: featureID, using: &execution)
             return BooleanExactRegionSelectionGraph(
                 decisions: regionSelectionGraph,
                 sewingRequest: request
@@ -130,7 +213,7 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
         case let .revolvedBoolean(plan):
             let request = try RevolvedBooleanFacePatchBuilder(
                 tolerance: tolerance
-            ).request(for: plan, featureID: featureID)
+            ).request(for: plan, featureID: featureID, using: &execution)
             return BooleanExactRegionSelectionGraph(
                 decisions: regionSelectionGraph,
                 sewingRequest: request
@@ -144,7 +227,7 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
                 height: plan.height,
                 featureID: featureID,
                 stablePrefix: "revolved-boolean:partial:\(operation.rawValue)"
-            )
+            , using: &execution)
             return BooleanExactRegionSelectionGraph(
                 decisions: regionSelectionGraph,
                 sewingRequest: request
@@ -152,7 +235,7 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
         case let .standingRevolvedUnion(plan):
             return BooleanExactRegionSelectionGraph(
                 decisions: regionSelectionGraph,
-                sewingRequest: try plan.request(featureID: featureID, model: model, subshapes: subshapes, tolerance: tolerance)
+                sewingRequest: try plan.request(featureID: featureID, model: model, subshapes: subshapes, tolerance: tolerance, using: &execution)
             )
         case let .carriedOperand(bodyID):
             let extraction = try DefaultBRepFacePatchExtractor().extract(
@@ -172,12 +255,12 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
                 plan: plan,
                 featureID: featureID,
                 to: &sourceModel
-            )
+            , using: &execution)
             try ExactFacePcurveBuilder().populateMissingPcurves(
                 in: &sourceModel,
                 tolerance: tolerance
-            )
-            let sourceBodyID = try singleBodyID(in: sourceSubshapes)
+            , using: &execution)
+            let sourceBodyID = try singleBodyID(in: sourceSubshapes, using: &execution)
             let extraction = try DefaultBRepFacePatchExtractor().extract(
                 bodyID: sourceBodyID,
                 featureID: featureID,
@@ -206,12 +289,13 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
                 target: target,
                 tool: tool,
                 featureID: featureID
-            )
+            , using: &execution)
             return BooleanExactRegionSelectionGraph(
                 decisions: regionSelectionGraph,
                 sewingRequest: request
             )
         }
+            }
     }
 
     public func evaluate(
@@ -229,7 +313,40 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
         exactRegionSelectionGraph: BooleanExactRegionSelectionGraph,
         operands: BooleanOperandContext,
         tolerance: ModelingTolerance
+
     ) throws -> EvaluationResult {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try evaluate(operation: operation, targetBodyIDs: targetBodyIDs, toolBodyID: toolBodyID, keepTools: keepTools, featureID: featureID, model: model, subshapes: subshapes, toolSubshapes: toolSubshapes, intersectionGraph: intersectionGraph, uvSplitGraph: uvSplitGraph, classificationGraph: classificationGraph, exactRegionSelectionGraph: exactRegionSelectionGraph, operands: operands, tolerance: tolerance, using: &execution)
+    }
+
+    public func evaluate(
+        operation: BooleanOperation,
+        targetBodyIDs: [BodyID],
+        toolBodyID: BodyID,
+        keepTools: Bool,
+        featureID: FeatureID,
+        model: BRepModel,
+        subshapes: [SubshapeID: TopologyReference],
+        toolSubshapes: [SubshapeID: TopologyReference],
+        intersectionGraph: BooleanIntersectionGraph,
+        uvSplitGraph: BooleanUVSplitGraph,
+        classificationGraph: BooleanClassificationGraph,
+        exactRegionSelectionGraph: BooleanExactRegionSelectionGraph,
+        operands: BooleanOperandContext,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution
+    ) throws -> EvaluationResult {
+        do {
+            let result = try resolve(using: &execution)
+            execution.context = execution.context.at(stage: .publication)
+            try execution.checkpoint()
+            return result
+        } catch {
+            throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance)
+        }
+        func resolve(using execution: inout OriginalQueryExecution) throws -> EvaluationResult {
+        try execution.consumeWork(1)
         // BooleanPipeline owns the fixed phase order. Each phase validates its
         // output before the next phase consumes it, so repeating all geometric
         // residual checks here would repeat the full cost for every complex
@@ -239,7 +356,7 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
             featureID: featureID,
             classificationGraph: classificationGraph,
             operands: operands,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         var resultModel = model
         var removedSubshapeIDs = Set<SubshapeID>()
@@ -252,32 +369,32 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
                 existingSubshapes: subshapes,
                 featureID: featureID,
                 lineage: &retainedToolLineage
-            )
+            , using: &execution)
         } else {
             for targetBodyID in targetBodyIDs {
                 removedSubshapeIDs.formUnion(
-                    BRepBodyTopologyRemoval().subshapeIDs(
+                    try BRepBodyTopologyRemoval().subshapeIDs(
                         bodyID: targetBodyID,
                         in: resultModel,
-                        subshapes: subshapes
+                        subshapes: subshapes, using: &execution
                     )
                 )
-                try BRepBodyTopologyRemoval().remove(bodyID: targetBodyID, from: &resultModel)
+                try BRepBodyTopologyRemoval().remove(bodyID: targetBodyID, from: &resultModel, using: &execution)
             }
             removedSubshapeIDs.formUnion(
-                BRepBodyTopologyRemoval().subshapeIDs(
+                try BRepBodyTopologyRemoval().subshapeIDs(
                     bodyID: toolBodyID,
                     in: resultModel,
-                    subshapes: subshapes
+                    subshapes: subshapes, using: &execution
                 )
             )
-            try BRepBodyTopologyRemoval().remove(bodyID: toolBodyID, from: &resultModel)
+            try BRepBodyTopologyRemoval().remove(bodyID: toolBodyID, from: &resultModel, using: &execution)
         }
 
         let sewn = try DefaultBRepSewer().sew(
             exactRegionSelectionGraph.sewingRequest.namespaced(as: .booleanResult),
             tolerance: tolerance
-        )
+        , using: &execution)
         let builtSubshapes: [SubshapeID: TopologyReference]
         if exactRegionSelectionGraph.stableSubshapes.isEmpty {
             builtSubshapes = try OrthogonalBooleanFacePatchBuilder(
@@ -290,9 +407,9 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
             builtSubshapes = try remapStableSubshapes(
                 exactRegionSelectionGraph.stableSubshapes,
                 sewnStableReferences: sewn.stableReferences
-            )
+            , using: &execution)
         }
-        try BRepModelCombiner().merge(sewn.brep, into: &resultModel)
+        try BRepModelCombiner().merge(sewn.brep, into: &resultModel, using: &execution)
         for (subshapeID, reference) in builtSubshapes {
             guard resultSubshapes[subshapeID] == nil else {
                 throw FeatureEvaluationError.invalidGraph("Boolean generated subshape collision.")
@@ -309,6 +426,7 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
             evaluation.validatedBRep = sewn.validatedBRep
         }
         return evaluation
+            }
     }
 
     private func makePlan(
@@ -317,7 +435,10 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
         toolBodyID: BodyID,
         model: BRepModel,
         tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution
     ) throws -> BRepBooleanOperationPlan {
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard Set(targetBodyIDs).count == targetBodyIDs.count else {
             throw FeatureEvaluationError.invalidGraph("Boolean target body IDs must be unique.")
@@ -328,14 +449,14 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
         let targetOperands: [OrthogonalSolidOperand]
         do {
             targetOperands = try targetBodyIDs.map { bodyID in
-                try OrthogonalSolidOperand(bodyID: bodyID, in: model, tolerance: tolerance)
+                try OrthogonalSolidOperand(bodyID: bodyID, in: model, tolerance: tolerance, using: &execution)
             }
         } catch {
             // A revolved solid standing on a face of the other (a boss, a stacked cylinder) joins it.
             if operation == .union, targetBodyIDs.count == 1,
                let standing = try StandingRevolvedUnionPlan(targetBodyID: targetBodyIDs[0], toolBodyID: toolBodyID,
-                                                          model: model, tolerance: tolerance) {
-                return try standingRevolvedUnionOperationPlan(standing, model: model, tolerance: tolerance)
+                                                          model: model, tolerance: tolerance, using: &execution) {
+                return try standingRevolvedUnionOperationPlan(standing, model: model, tolerance: tolerance, using: &execution)
             }
             if supportsConvexPlanarMaterialization(operation), targetBodyIDs.count == 1 {
                 do {
@@ -345,10 +466,11 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
                         toolBodyID: toolBodyID,
                         model: model,
                         tolerance: tolerance
-                    )
-                } catch let planarError as KernelError {
+                    , using: &execution)
+                } catch let planarError {
+            guard let planarErrorClassification = OriginalQueryFailure.classification(of: planarError) else { throw planarError }
                     if supportsRevolvedBooleanMaterialization(operation),
-                       planarError.code == .unsupportedCapability {
+                       planarErrorClassification.code == .unsupportedCapability {
                         do {
                             return try revolvedBooleanOperationPlan(
                                 operation: operation,
@@ -356,14 +478,15 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
                                 toolBodyID: toolBodyID,
                                 model: model,
                                 tolerance: tolerance
-                            )
-                        } catch let revolvedError as KernelError {
-                            if operation != .union || revolvedError.code != .unsupportedCapability {
+                            , using: &execution)
+                        } catch let revolvedError {
+            guard let revolvedErrorClassification = OriginalQueryFailure.classification(of: revolvedError) else { throw revolvedError }
+                            if operation != .union || revolvedErrorClassification.code != .unsupportedCapability {
                                 throw revolvedError
                             }
                         }
                     }
-                    if operation != .union || planarError.code != .unsupportedCapability {
+                    if operation != .union || planarErrorClassification.code != .unsupportedCapability {
                         throw planarError
                     }
                 }
@@ -376,7 +499,7 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
                 toolBodyID: toolBodyID,
                 model: model,
                 tolerance: tolerance
-            )
+            , using: &execution)
             return BRepBooleanOperationPlan(
                 summary: plan.summary,
                 shape: .disjointUnion(plan)
@@ -388,7 +511,7 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
                 bodyID: toolBodyID,
                 in: model,
                 tolerance: tolerance
-            )
+            , using: &execution)
         } catch {
             if supportsConvexPlanarMaterialization(operation), targetBodyIDs.count == 1 {
                 do {
@@ -398,9 +521,10 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
                         toolBodyID: toolBodyID,
                         model: model,
                         tolerance: tolerance
-                    )
-                } catch let planarError as KernelError {
-                    if planarError.code != .unsupportedCapability {
+                    , using: &execution)
+                } catch let planarError {
+            guard let planarErrorClassification = OriginalQueryFailure.classification(of: planarError) else { throw planarError }
+                    if planarErrorClassification.code != .unsupportedCapability {
                         throw planarError
                     }
                 }
@@ -413,9 +537,10 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
                         toolBodyID: toolBodyID,
                         model: model,
                         tolerance: tolerance
-                    )
-                } catch let revolvedError as KernelError {
-                    if operation != .union || revolvedError.code != .unsupportedCapability {
+                    , using: &execution)
+                } catch let revolvedError {
+            guard let revolvedErrorClassification = OriginalQueryFailure.classification(of: revolvedError) else { throw revolvedError }
+                    if operation != .union || revolvedErrorClassification.code != .unsupportedCapability {
                         throw revolvedError
                     }
                 }
@@ -427,15 +552,15 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
             // the target joins it.
             if targetBodyIDs.count == 1,
                let standing = try StandingRevolvedUnionPlan(targetBodyID: targetBodyIDs[0], toolBodyID: toolBodyID,
-                                                          model: model, tolerance: tolerance) {
-                return try standingRevolvedUnionOperationPlan(standing, model: model, tolerance: tolerance)
+                                                          model: model, tolerance: tolerance, using: &execution) {
+                return try standingRevolvedUnionOperationPlan(standing, model: model, tolerance: tolerance, using: &execution)
             }
             let plan = try BRepDisjointUnionEvaluator().plan(
                 targetBodyIDs: targetBodyIDs,
                 toolBodyID: toolBodyID,
                 model: model,
                 tolerance: tolerance
-            )
+            , using: &execution)
             return BRepBooleanOperationPlan(
                 summary: plan.summary,
                 shape: .disjointUnion(plan)
@@ -448,13 +573,13 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
             targets: targetCells,
             tool: toolCells,
             tolerance: tolerance
-        )
+        , using: &execution)
         guard resultShape.isEmpty == false else {
             throw FeatureEvaluationError.emptyResult("Boolean operation produced no body.")
         }
         let topology = try OrthogonalBooleanFacePatchBuilder(tolerance: tolerance).topology(
             for: resultShape
-        )
+        , using: &execution)
         return BRepBooleanOperationPlan(
             summary: BRepBooleanPlan(
                 operandKind: targetOperands.allSatisfy { $0.cells.count == 1 } && toolOperand.cells.count == 1
@@ -478,17 +603,20 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
         toolBodyID: BodyID,
         model: BRepModel,
         tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution
     ) throws -> BRepBooleanOperationPlan {
+        try execution.consumeWork(1)
         let target = try ConvexPlanarSolidOperand(
             bodyID: targetBodyID,
             model: model,
             tolerance: tolerance
-        )
+        , using: &execution)
         let tool = try ConvexPlanarSolidOperand(
             bodyID: toolBodyID,
             model: model,
             tolerance: tolerance
-        )
+        , using: &execution)
         let request = try ConvexPlanarBooleanFacePatchBuilder(
             tolerance: tolerance
         ).request(
@@ -496,10 +624,10 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
             target: target,
             tool: tool,
             featureID: FeatureID()
-        )
+        , using: &execution)
         let topology = try OrthogonalBooleanFacePatchBuilder(
             tolerance: tolerance
-        ).topology(for: request)
+        ).topology(for: request, using: &execution)
         let outputKind: BooleanEvaluationCapabilities.OutputTopologyKind
         switch operation {
         case .union:
@@ -535,17 +663,20 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
         toolBodyID: BodyID,
         model: BRepModel,
         tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution
     ) throws -> BRepBooleanOperationPlan {
+        try execution.consumeWork(1)
         let target = try ConvexPlanarSolidOperand(
             bodyID: targetBodyID,
             model: model,
             tolerance: tolerance
-        )
+        , using: &execution)
         let tool = try RevolvedSolidOperand(
             bodyID: toolBodyID,
             model: model,
             tolerance: tolerance
-        )
+        , using: &execution)
         let separation = try RevolvedTargetSeparation(
             target: target,
             tool: tool,
@@ -565,7 +696,7 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
                     model: model,
                     tolerance: tolerance,
                     separation: proof
-                )
+                , using: &execution)
                 return BRepBooleanOperationPlan(
                     summary: plan.summary,
                     shape: .disjointUnion(plan)
@@ -575,7 +706,7 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
                     bodyID: targetBodyID,
                     model: model,
                     tolerance: tolerance
-                )
+                , using: &execution)
             case .intersect:
                 throw FeatureEvaluationError.emptyResult(
                     "Boolean intersection has no volume because a target supporting plane separates the revolved tool."
@@ -593,22 +724,23 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
                 // a disc reaching past the face) would leave the result non-manifold.
                 do {
                     let revolved = try RevolvedBooleanPlan(operation: operation, target: target, tool: tool, tolerance: tolerance)
-                    return try revolvedOperationPlan(revolved, tolerance: tolerance)
-                } catch let error as KernelError where error.code == .unsupportedCapability {
-                    throw KernelError(
+                    return try revolvedOperationPlan(revolved, tolerance: tolerance, using: &execution)
+                } catch let error where OriginalQueryFailure.classification(of: error)?.code == .unsupportedCapability {
+            guard let errorClassification = OriginalQueryFailure.classification(of: error) else { throw error }
+                    throw OriginalQueryFailure.contextualizing(error, classification: KernelError(
                         phase: .topology,
                         code: .nonManifoldResult,
                         residual: residual,
                         tolerance: tolerance,
                         message: "Boolean union of boundary-contacting solids would produce a non-manifold result."
-                    )
+                    ))
                 }
             case .difference:
                 return try carriedOperandPlan(
                     bodyID: targetBodyID,
                     model: model,
                     tolerance: tolerance
-                )
+                , using: &execution)
             case .intersect:
                 throw KernelError(
                     phase: .classification,
@@ -633,13 +765,13 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
                     bodyID: toolBodyID,
                     model: model,
                     tolerance: tolerance
-                )
+                , using: &execution)
             case .intersect:
                 return try carriedOperandPlan(
                     bodyID: targetBodyID,
                     model: model,
                     tolerance: tolerance
-                )
+                , using: &execution)
             case .difference:
                 throw FeatureEvaluationError.emptyResult(
                     "Boolean difference removed a target fully contained by its revolved tool."
@@ -656,29 +788,33 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
                 tool: tool,
                 tolerance: tolerance
             )
-        } catch let error as KernelError where error.code == .unsupportedCapability {
+        } catch let error where OriginalQueryFailure.classification(of: error)?.code == .unsupportedCapability {
+            guard let errorClassification = OriginalQueryFailure.classification(of: error) else { throw error }
             return try partialCylinderOperationPlan(
                 operation: operation,
                 target: target,
                 tool: tool,
                 tolerance: tolerance
-            )
+            , using: &execution)
         }
-        return try revolvedOperationPlan(revolved, tolerance: tolerance)
+        return try revolvedOperationPlan(revolved, tolerance: tolerance, using: &execution)
     }
 
     /// The plan materializing a planar target and revolved tool's Boolean.
     private func revolvedOperationPlan(
         _ revolved: RevolvedBooleanPlan,
         tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution
     ) throws -> BRepBooleanOperationPlan {
+        try execution.consumeWork(1)
         let operation = revolved.operation
         let request = try RevolvedBooleanFacePatchBuilder(
             tolerance: tolerance
-        ).request(for: revolved, featureID: FeatureID())
+        ).request(for: revolved, featureID: FeatureID(), using: &execution)
         let topology = try OrthogonalBooleanFacePatchBuilder(
             tolerance: tolerance
-        ).topology(for: request)
+        ).topology(for: request, using: &execution)
         let outputTopologyKind: BooleanEvaluationCapabilities.OutputTopologyKind
         switch operation {
         case .union:
@@ -719,7 +855,10 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
         target: ConvexPlanarSolidOperand,
         tool: RevolvedSolidOperand,
         tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution
     ) throws -> BRepBooleanOperationPlan {
+        try execution.consumeWork(1)
         let plan = try ConvexPolygonCircleBooleanPlan(
             operation: operation,
             target: target,
@@ -734,10 +873,10 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
             height: plan.height,
             featureID: FeatureID(),
             stablePrefix: "revolved-boolean:partial:\(operation.rawValue)"
-        )
+        , using: &execution)
         let topology = try OrthogonalBooleanFacePatchBuilder(
             tolerance: tolerance
-        ).topology(for: request)
+        ).topology(for: request, using: &execution)
         let outputTopologyKind: BooleanEvaluationCapabilities.OutputTopologyKind
         switch operation {
         case .union:
@@ -771,7 +910,10 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
         bodyID: BodyID,
         model: BRepModel,
         tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution
     ) throws -> BRepBooleanOperationPlan {
+        try execution.consumeWork(1)
         let extraction = try DefaultBRepFacePatchExtractor().extract(
             bodyID: bodyID,
             featureID: FeatureID(),
@@ -780,7 +922,7 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
         )
         let topology = try OrthogonalBooleanFacePatchBuilder(
             tolerance: tolerance
-        ).topology(for: extraction.request)
+        ).topology(for: extraction.request, using: &execution)
         return BRepBooleanOperationPlan(
             summary: BRepBooleanPlan(
                 operandKind: .planarAndRevolvedSolids,
@@ -804,9 +946,12 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
 
     /// The plan of a revolved solid standing on a face of the other, joined.
     private func standingRevolvedUnionOperationPlan(_ standing: StandingRevolvedUnionPlan, model: BRepModel,
-                                                    tolerance: ModelingTolerance) throws -> BRepBooleanOperationPlan {
-        let request = try standing.request(featureID: FeatureID(), model: model, subshapes: [:], tolerance: tolerance)
-        let topology = try OrthogonalBooleanFacePatchBuilder(tolerance: tolerance).topology(for: request)
+                                                    tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution
+    ) throws -> BRepBooleanOperationPlan {
+        try execution.consumeWork(1)
+        let request = try standing.request(featureID: FeatureID(), model: model, subshapes: [:], tolerance: tolerance, using: &execution)
+        let topology = try OrthogonalBooleanFacePatchBuilder(tolerance: tolerance).topology(for: request, using: &execution)
         return BRepBooleanOperationPlan(
             summary: BRepBooleanPlan(
                 operandKind: .standingRevolvedSolid,
@@ -833,21 +978,24 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
         targets: [AxisAlignedBox],
         tool: [AxisAlignedBox],
         tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution
     ) throws -> BooleanBodyShape {
-        let targetCells = try normalizedCells(targets, tolerance: tolerance)
-        let toolCells = try normalizedCells(tool, tolerance: tolerance)
+        try execution.consumeWork(1)
+        let targetCells = try normalizedCells(targets, tolerance: tolerance, using: &execution)
+        let toolCells = try normalizedCells(tool, tolerance: tolerance, using: &execution)
         switch operation {
         case .union:
-            return try compactedShape(from: targetCells + toolCells, tolerance: tolerance)
+            return try compactedShape(from: targetCells + toolCells, tolerance: tolerance, using: &execution)
         case .difference:
             if toolCells.count == 1 {
-                return try differenceBoxes(targets: targetCells, tool: toolCells[0], tolerance: tolerance)
+                return try differenceBoxes(targets: targetCells, tool: toolCells[0], tolerance: tolerance, using: &execution)
             }
-            return try differenceCells(targets: targetCells, tools: toolCells, tolerance: tolerance)
+            return try differenceCells(targets: targetCells, tools: toolCells, tolerance: tolerance, using: &execution)
         case .intersect:
-            return try intersectCells(targets: targetCells, tools: toolCells, tolerance: tolerance)
+            return try intersectCells(targets: targetCells, tools: toolCells, tolerance: tolerance, using: &execution)
         case .slice:
-            return .boxes(try sliceCells(targets: targetCells, tools: toolCells, tolerance: tolerance))
+            return .boxes(try sliceCells(targets: targetCells, tools: toolCells, tolerance: tolerance, using: &execution))
         case .region:
             throw KernelError.unsupportedEvaluation(
                 tolerance: tolerance,
@@ -859,8 +1007,11 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
     private func compactedShape(
         from boxes: [AxisAlignedBox],
         tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution
     ) throws -> BooleanBodyShape {
-        let cells = try normalizedCells(boxes, tolerance: tolerance)
+        try execution.consumeWork(1)
+        let cells = try normalizedCells(boxes, tolerance: tolerance, using: &execution)
         guard cells.isEmpty == false else {
             throw FeatureEvaluationError.emptyResult("Boolean operation produced no body.")
         }
@@ -877,7 +1028,10 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
         targets: [AxisAlignedBox],
         tool: AxisAlignedBox,
         tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution
     ) throws -> BooleanBodyShape {
+        try execution.consumeWork(1)
         var result: [AxisAlignedBox] = []
         var frames: [ZThroughBoxFrame] = []
         for target in targets {
@@ -886,12 +1040,12 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
                 continue
             }
             if let rectangularResult = rectangularUnion(of: fragments, tolerance: tolerance) {
-                result.append(rectangularResult)
+                try OriginalParameterQueryStorage.append(rectangularResult, to: &result, using: &execution)
                 continue
             }
             guard boxesAreSeparated(fragments, tolerance: tolerance) else {
                 if let frame = target.zThroughFrame(cutBy: tool, tolerance: tolerance) {
-                    frames.append(frame)
+                    try OriginalParameterQueryStorage.append(frame, to: &frames, using: &execution)
                     continue
                 }
                 // Fold connected fragments into the shared accumulator so the
@@ -899,10 +1053,10 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
                 // other target. Returning this target's cell union mid-loop
                 // silently discarded the other targets' geometry while
                 // evaluate() still removed all target bodies.
-                result.append(contentsOf: fragments)
+                try OriginalParameterQueryStorage.append(contentsOf: fragments, to: &result, using: &execution)
                 continue
             }
-            result.append(contentsOf: fragments)
+            try OriginalParameterQueryStorage.append(contentsOf: fragments, to: &result, using: &execution)
         }
         guard frames.isEmpty else {
             guard result.isEmpty, frames.count == 1 else {
@@ -916,7 +1070,7 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
             return .boxes([rectangularResult])
         }
         guard boxesAreSeparated(result, tolerance: tolerance) else {
-            return .orthogonalCellUnion(try normalizedCells(result, tolerance: tolerance))
+            return .orthogonalCellUnion(try normalizedCells(result, tolerance: tolerance, using: &execution))
         }
         return .boxes(result)
     }
@@ -925,7 +1079,10 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
         targets: [AxisAlignedBox],
         tools: [AxisAlignedBox],
         tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution
     ) throws -> BooleanBodyShape {
+        try execution.consumeWork(1)
         var fragments = targets
         for tool in tools {
             fragments = fragments.flatMap { fragment in
@@ -935,14 +1092,17 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
                 throw FeatureEvaluationError.emptyResult("Boolean difference produced no body.")
             }
         }
-        return try compactedShape(from: fragments, tolerance: tolerance)
+        return try compactedShape(from: fragments, tolerance: tolerance, using: &execution)
     }
 
     private func intersectCells(
         targets: [AxisAlignedBox],
         tools: [AxisAlignedBox],
         tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution
     ) throws -> BooleanBodyShape {
+        try execution.consumeWork(1)
         let intersections = targets.flatMap { target in
             tools.compactMap { tool in
                 target.intersection(with: tool, tolerance: tolerance)
@@ -951,14 +1111,17 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
         guard intersections.isEmpty == false else {
             throw FeatureEvaluationError.emptyResult("Boolean intersection produced no body.")
         }
-        return try compactedShape(from: intersections, tolerance: tolerance)
+        return try compactedShape(from: intersections, tolerance: tolerance, using: &execution)
     }
 
     private func sliceCells(
         targets: [AxisAlignedBox],
         tools: [AxisAlignedBox],
         tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution
     ) throws -> [AxisAlignedBox] {
+        try execution.consumeWork(1)
         var result: [AxisAlignedBox] = []
         for target in targets {
             var fragments = [target]
@@ -967,9 +1130,9 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
                     fragment.sliced(by: tool, tolerance: tolerance)
                 }
             }
-            result.append(contentsOf: fragments)
+            try OriginalParameterQueryStorage.append(contentsOf: fragments, to: &result, using: &execution)
         }
-        let cells = try normalizedCells(result, tolerance: tolerance)
+        let cells = try normalizedCells(result, tolerance: tolerance, using: &execution)
         guard cells.isEmpty == false else {
             throw FeatureEvaluationError.emptyResult("Boolean slice produced no body.")
         }
@@ -979,7 +1142,10 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
     private func normalizedCells(
         _ boxes: [AxisAlignedBox],
         tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution
     ) throws -> [AxisAlignedBox] {
+        try execution.consumeWork(1)
         guard boxes.isEmpty == false else {
             return []
         }
@@ -1013,7 +1179,7 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
                     guard boxes.contains(where: { $0.contains(center) }) else {
                         continue
                     }
-                    cells.append(try AxisAlignedBox(minimum: minimum, maximum: maximum, tolerance: tolerance))
+                    try OriginalParameterQueryStorage.append(try AxisAlignedBox(minimum: minimum, maximum: maximum, tolerance: tolerance), to: &cells, using: &execution)
                 }
             }
         }
@@ -1078,7 +1244,10 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
         existingSubshapes: [SubshapeID: TopologyReference],
         featureID: FeatureID,
         lineage: inout [SubshapeID: TopologyLineage]
+    ,
+        using execution: inout OriginalQueryExecution
     ) throws -> [SubshapeID: TopologyReference] {
+        try execution.consumeWork(1)
         let indexedReferences = Set(existingSubshapes.values)
         var remapped: [SubshapeID: TopologyReference] = [:]
         for (sourceID, reference) in subshapes {
@@ -1108,7 +1277,10 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
 
     private func singleBodyID(
         in subshapes: [SubshapeID: TopologyReference]
+    ,
+        using execution: inout OriginalQueryExecution
     ) throws -> BodyID {
+        try execution.consumeWork(1)
         let bodyIDs = Set(subshapes.values.compactMap { reference -> BodyID? in
             guard case let .body(bodyID) = reference else { return nil }
             return bodyID
@@ -1124,7 +1296,10 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
     private func remapStableSubshapes(
         _ subshapes: [SubshapeID: BRepSewingStableKey],
         sewnStableReferences: [BRepSewingStableKey: TopologyReference]
+    ,
+        using execution: inout OriginalQueryExecution
     ) throws -> [SubshapeID: TopologyReference] {
+        try execution.consumeWork(1)
         var result: [SubshapeID: TopologyReference] = [:]
         for (subshapeID, stableKey) in subshapes {
             guard let sewnReference = sewnStableReferences[stableKey] else {

@@ -2,7 +2,7 @@ import CADCore
 
 /// Physical primitive admission separated from local numerical calculation.
 package enum OriginalAffineWordPhysicalAdmission {
-    package static func sourceTolerance<B: RationalAlgebraAdmitting>(for curve: Curve3D,
+    package static func sourceTolerance<B: ExactScalarAdmission & ~Copyable>(for curve: Curve3D,
         word: PreparedOriginalAffineOperationWord, tolerance: ModelingTolerance, usage: inout B)
         throws -> ModelingTolerance {
         switch curve {
@@ -20,7 +20,7 @@ package enum OriginalAffineWordPhysicalAdmission {
         }
     }
 
-    package static func sourceTolerance<B: RationalAlgebraAdmitting>(for surface: Surface3D,
+    package static func sourceTolerance<B: ExactScalarAdmission & ~Copyable>(for surface: Surface3D,
         word: PreparedOriginalAffineOperationWord, tolerance: ModelingTolerance, usage: inout B)
         throws -> ModelingTolerance {
         switch surface {
@@ -53,7 +53,7 @@ package enum OriginalAffineWordPhysicalAdmission {
         }
     }
 
-    private static func planar<B: RationalAlgebraAdmitting>(_ first: Vector3D, _ second: Vector3D,
+    private static func planar<B: ExactScalarAdmission & ~Copyable>(_ first: Vector3D, _ second: Vector3D,
         _ firstLength: Double, _ secondLength: Double, word: PreparedOriginalAffineOperationWord,
         tolerance: ModelingTolerance, usage: inout B) throws -> ModelingTolerance {
         try tolerance.validate()
@@ -69,7 +69,7 @@ package enum OriginalAffineWordPhysicalAdmission {
         return try localTolerance(min(firstLength, secondLength), target: tolerance)
     }
 
-    private static func spatial<B: RationalAlgebraAdmitting>(_ first: Vector3D, _ second: Vector3D,
+    private static func spatial<B: ExactScalarAdmission & ~Copyable>(_ first: Vector3D, _ second: Vector3D,
         _ third: Vector3D, _ radius: Double, word: PreparedOriginalAffineOperationWord,
         tolerance: ModelingTolerance, usage: inout B) throws -> ModelingTolerance {
         try tolerance.validate()

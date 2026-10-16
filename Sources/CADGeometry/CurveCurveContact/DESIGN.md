@@ -11,30 +11,20 @@ receipts without substituting converted control points or guide parameters.
 ## Responsibilities and Boundaries
 
 Original atlas inputs additionally retain `Curve3D` and its authored closed trim.
-`OriginalCurveCurveContactClassifying` consumes a caller-owned allowance that is
-retained across guide segments and section queries. Native and analytic branches
+`OriginalCurveCurveContactClassifying` consumes the original exclusive
+`OriginalQueryExecution`; a persistent contribution on its cumulative budget
+is retained across guide segments and section queries. Native and analytic branches
 prepare the original law once; singleton and closed-span jets retain the chosen
 one-sided original chart. No converted spline is substituted for an angle,
 lift, or implicit original parameter. General implicit cross-cell and required
 differential-order coverage remains a shared lower dependency.
-Invocation-owned bounded preparation and closed-span queries now consume the
-shared Geometry callback port for native, original implicit, lifted and certified
-families. Selected span metadata and singleton values retain original one-sided
-ownership. Available caller work bounds cover storage; callback arithmetic,
-localization and retained slots debit that same cumulative ledger. Existing
-native/analytic precharges remain, while procedural metadata precharges are
-followed by lower actual-work admission. C1-only offsets and unsupported
-localizer differential orders remain explicit lower failures and do not close
-complete original-family support.
-
-An additive `OriginalCurveContactAdmission` binds this retained allowance to
-the complete caller invocation: computational work is charged as units and
-retention as bytes, with exact UInt32 words converted by checked multiplication
-by four. The historical local combined work/retention ceiling and cell/depth
-ceiling remain independent producer constraints. Local reservations precede
-the caller callback, and a failed callback cannot refund or reset either
-ledger. A parent with a combined work/storage counter charges retention once,
-through the byte callback rather than a second work callback.
+Original preparation, closed native queries, exact arithmetic, metadata scans
+and retained payloads consume that same execution directly. Work units and
+allocation bytes are distinct operations. The historical combined work plus
+rounded UInt32-word ceiling is the contribution's `uint32WordWork` policy;
+cell visits and independent local depth limits remain separate constraints.
+A failed operation cannot refund or reset any shared or contributing ledger.
+No callback admission, copied allowance, conformer or per-route budget remains.
 
 The `.line` and `.analytic(.line)` atlas representations share the same original
 origin-plus-direction-times-parameter law. Exact expansion witnesses consume
@@ -87,11 +77,11 @@ outward localization bracket. Nonrepresentable inverse cuts still require
 retained scalar-root/domain clipping and produce explicit failure until that
 closed admission is connected, never an empty result from mismatched domains.
 
-Caller metadata scans use `reserveEntries` as work-unit admission. Original
+Caller metadata scans use `execution.consumeWork` as work-unit admission. Original
 payload buffers use the distinct typed storage or canonical UInt32-word entry.
-Both debit the same allowance; buffer allocation is reserved before growth and
-copy visits are admitted independently. A word callback cannot be routed to a
-work-only callback because the parent storage owner must observe its byte cost.
+Both debit the same execution; buffer allocation is reserved before growth and
+copy visits are admitted independently. A word admission cannot be routed to a
+work-only admission because the parent storage owner must observe its byte cost.
 
 Original source descent has an independent caller capability
 `remainingSourceDepth` within the historical maximum of 32. Structural walkers,
@@ -121,9 +111,9 @@ weights and selected native span ownership. Native jet preparation belongs to
 CADGeometry's original curve encloser. This component owns pair-domain search,
 root existence/uniqueness and original three-dimensional residual admission.
 Bounded preparation and every selected closed native query forward actual
-allocation bytes to the same UInt32-word ledger using checked ceiling division
-by four. Metadata precharges remain in addition to actual lower reservations;
-no byte callback creates a new allowance. Generated endpoint connectors charge
+allocation bytes to the same cumulative owner; its allocation policy computes
+checked UInt32-word contributions. Actual metadata traversal remains separately charged; numeric forecast debits are removed when the direct lower operation owns those same visits and allocations;
+no lower operation creates a new budget. Generated endpoint connectors charge
 their construction and both retained endpoint source expressions, then consume
 their corrected one-sided owning jets without inventing cross-knot continuity.
 Converted Cartesian Bezier patches are never original source authority.
@@ -330,7 +320,7 @@ When a whole atlas rectangle does not separate a factor derivative, the same
 exact slice seed may select a smaller regular rectangle inside its original
 owning charts. Native span indices are provenance labels, not assumptions of
 the signed-factor proof. Its isolation and rectangle depth use the remaining
-caller depth allowance. A successful positive rectangle is a continuous
+caller depth ceiling. A successful positive rectangle is a continuous
 ambiguity witness; an unsuccessful seed never excludes the original cell.
 Native and transformed rational atlases use the same isolated-factor root
 authority. It proves the complete real zero cover before either consumer
@@ -390,7 +380,7 @@ the only absence authority for an unresolved rank-deficient cell.
 ## Runtime Flows
 
 Preparation charges original input scans, retained homogeneous coefficients and
-all subsequent jet work to one invocation allowance. Native span pairs enter a
+all subsequent jet work to one exclusive query execution. Native span pairs enter a
 bounded stack. Exclusion precedes original projected root certification. An
 unresolved cell splits its wider original parameter axis without resetting the
 ledger. Duplicate roots require overlapping original parameter receipts, never
@@ -405,7 +395,7 @@ No shared mutable state or target-dependent synchronization is introduced.
 
 The default envelope retains 32 subdivisions and 1,048,576 cells. Original
 coefficient preparation, retained slots and jet work share a bounded cumulative
-work allowance. Overflow, nonfinite arithmetic, cancellation, unresolved
+work ceiling. Overflow, nonfinite arithmetic, cancellation, unresolved
 original cells and exhaustion propagate typed failure without partial output.
 
 ## Verification and Change Impact
@@ -461,12 +451,9 @@ wire repair and native guide consumers. Its exact-domain completeness cannot
 replace this parent's original distance-tolerance contact semantics.
 
 Exact event ordering, outgoing-germ/circle proofs and winding scalar algebra
-have an independent caller-lowerable `maximumAlgebraicDepth` (default 32,
-valid 0...32). A lexical exact context selects that ceiling and restores the
-previous context on every return/throw. Actual curve-pair contact subdivision
+have independent caller-lowerable value and coefficient ceilings, each capped locally at 32. A lexical scalar proof scope selects the value ceiling and restores the previous scope on every return/throw. Coefficient preparation maps its actual scalar events only to the coefficient axis. Actual curve-pair contact subdivision
 retains `maximumSubdivisionDepth` and its inherited causal depth. Both contexts
-consume the same cumulative work, cell and UInt32-word counters. No context
-creates an allowance, resets counters or derives permission from the other cap.
+consume the same cumulative work, cell and UInt32-word counters. No scope creates an allowance, resets counters or derives permission from another axis.
 
 For directly retained affine construction charts, selected interval queries
 consume the prepared facade's original exact-Q native owning query. Authored
@@ -499,7 +486,7 @@ retained first parameter through the algebra component's original tower norm.
 The resulting rational annihilator and selected scalar root retain the same
 original field value, isolation and attained depth. Endpoint creation binds it
 to the original positive knot owner without rebuilding the contact system.
-Both tower and scalar work/storage use the same allowance; selected algebra
+Both tower and scalar work/storage use the same execution; selected algebra
 capability is independent of geometric pair subdivision. Angular/implicit
 native parameter endpoint carriers still require their own original source
 recipe and are not implied by this rational native endpoint capability.
@@ -527,3 +514,35 @@ Original polyline inputs retain their exact Euclidean-length clock from the
 geometry source carrier. Contact preparation charges every original point
 payload before invoking its bounded owning-jet provider. An index-uniform
 polyline spline is not substituted for that native parameter law.
+
+## Direct Execution Ownership
+
+Public original and native contact classifiers expose one direct `using:
+inout OriginalQueryExecution` body. Ordinary native convenience creates its
+root budget once and invokes that body. Source preparation, selected closed
+queries, retained parameter authorities and later endpoint/point materialization
+use the incoming execution. Retained source values and scalar roots remain
+authoritative; numerical representatives are derived candidates.
+
+The invocation owner creates any persistent lower contribution once, with the
+existing combined work/word, cell, source and depth ceilings. Each actual query
+activates that same handle. Effective value and coefficient limits are independent.
+A coefficient preparation scope routes its real coefficient decisions to the
+coefficient axis. Scalar event equality and endpoint roots retain value-axis
+decisions. Pair subdivisions record geometric depth, never scalar attained depth.
+An existing inherited pair prefix is preserved as a checked remaining local
+value-search ceiling and geometric offset; it does not manufacture scalar evidence.
+
+Contact remains this component's explicitly distance-threshold query on original
+curves; it does not establish topology identity or redefine intersection equality.
+The exact planar child retains its stronger original XYZ/plane authority.
+Failure context uses operation `curveCurveContact`, two `.curve` request slots,
+actual source/domain/relation/refinement/publication phases and final cancellation.
+
+Verification must exercise native/atlas exact authority, explicit tolerance
+contact, exact planar partitions, local independent cap exhaustion, cumulative
+contribution reuse, source parameter equality, original endpoint materialization
+and final cancellation. Source/API and syntax checks do not establish these
+behaviors or complete mandatory coverage.
+
+The retained contact algorithms independently intersect their value, coefficient, source and geometric ceilings with the historical maximum of 32. These caps constrain actual work; configured caps are never recorded as attained proof depth.

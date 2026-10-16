@@ -1,4 +1,5 @@
 import Testing
+import Synchronization
 import CADCore
 import CADGeometry
 import CADTopology
@@ -19,55 +20,62 @@ struct IndependentShapeNativeDependencyTests {
             ambientOriginalAngularSource: degree, roots: [.item(itemID)])
     }
 
-    private struct SelectionAdmission: RationalAlgebraAdmitting {
-        var work = 0
-        var storage = 0
-        var maximumStorage = Int.max
-        var cancelled = false
-        mutating func consumeExactWork(_ count: Int) throws {
-            if cancelled { throw CancellationError() }
-            work += count
-        }
-        mutating func retainExactStorage(_ count: Int) throws {
-            if cancelled { throw CancellationError() }
-            guard count <= maximumStorage - storage else {
-                throw IndependentShapeSourceError.resourceLimitExceeded("Selection test storage ceiling.")
+    private func selectionExecution(work: Int = 0, storage: Int = 0,
+        maximumStorage: Int = Int.max, cancelled: Bool = false,
+        maximumDepth: Int = 0) throws -> OriginalQueryExecution {
+        let remainingWords = Mutex(maximumStorage)
+        let budget = try OriginalQueryBudget(consumeStorageBytes: { bytes in
+            let words = bytes / 4 + (bytes % 4 == 0 ? 0 : 1)
+            try remainingWords.withLock { remaining in
+                guard words <= remaining else {
+                    throw IndependentShapeSourceError.resourceLimitExceeded("Selection test storage ceiling.")
+                }
+                remaining -= words
             }
-            storage += count
-        }
-        mutating func visitExactCell(depth: Int) throws { try consumeExactWork(1) }
+        }, checkpoint: { if cancelled { throw CancellationError() } })
+        var execution = OriginalQueryExecution(budget: budget,
+            limits: try .init(maximumValueDepth: maximumDepth, maximumCoefficientDepth: maximumDepth,
+                remainingSourceDepth: 4, maximumSubdivisionDepth: 4))
+        if work > 0 { try execution.consumeWork(work) }
+        if storage > 0 { try execution.retainStorage(bytes: storage * MemoryLayout<UInt32>.stride) }
+        return execution
+    }
+    private func originalCause(_ error: any Error) -> any Error {
+        if let failure = error as? OriginalQueryFailure { return originalCause(failure.originalError) }
+        if case ExactScalarFailure.admissionRejected(let cause) = error { return originalCause(cause) }
+        return error
     }
 
     @Test(.timeLimit(.minutes(1)))
     func canonicalSelectionBorrowsStorageAndWorkOnOriginalLedger() throws {
-        var construction = SelectionAdmission()
+        var construction = try selectionExecution(maximumDepth: 32)
         let polyline = try OriginalPolylineCurve3D(points: [.origin, .init(x: 1, y: 0, z: 0)],
             isClosed: false, tolerance: .standard, remainingSourceDepth: 4,
             maximumSubdivisionDepth: 4, maximumAlgebraicDepth: 32, usage: &construction)
         let basis = Curve3D.originalPolyline(polyline)
         let law = IndependentShapeAngularSource.CoordinateLaw.canonicalGain(.ratio(numerator: Double.pi, denominator: 180))
-        var caller = SelectionAdmission(work: 7, storage: 11)
+        var caller = try selectionExecution(work: 7, storage: 11)
         let selected = try IndependentShapeAngularCurveSelection.foreignCurve(basis: basis, law: law,
             tolerance: .standard, maximumSourceDepth: 4, maximumSubdivisionDepth: 4,
-            maximumAlgebraicDepth: 0, usage: &caller)
-        #expect(caller.work > 7 && caller.storage > 11)
+            maximumAlgebraicDepth: 0, using: &caller)
+        #expect(caller.budget.snapshot.work > 7 && caller.budget.snapshot.storageBytes / 4 > 11)
         guard case .parameterImage(let image) = selected else { Issue.record("Expected original selected chart."); return }
         #expect(image.source == basis)
         #expect(image.parameterGain == .ratio(numerator: Double.pi, denominator: 180))
 
-        var refused = SelectionAdmission(maximumStorage: 0)
-        #expect(throws: IndependentShapeSourceError.self) {
+        var refused = try selectionExecution(maximumStorage: 0)
+        #expect {
             _ = try IndependentShapeAngularCurveSelection.foreignCurve(basis: basis, law: law,
                 tolerance: .standard, maximumSourceDepth: 4, maximumSubdivisionDepth: 4,
-                maximumAlgebraicDepth: 0, usage: &refused)
-        }
-        #expect(refused.work > 0 && refused.storage == 0)
-        var cancelled = SelectionAdmission(cancelled: true)
-        #expect(throws: CancellationError.self) {
+                maximumAlgebraicDepth: 0, using: &refused)
+        } throws: { originalCause($0) is IndependentShapeSourceError }
+        #expect(refused.budget.snapshot.work > 0 && refused.budget.snapshot.storageBytes == 0)
+        var cancelled = try selectionExecution(cancelled: true)
+        #expect {
             _ = try IndependentShapeAngularCurveSelection.foreignCurve(basis: basis, law: law,
                 tolerance: .standard, maximumSourceDepth: 4, maximumSubdivisionDepth: 4,
-                maximumAlgebraicDepth: 0, usage: &cancelled)
-        }
+                maximumAlgebraicDepth: 0, using: &cancelled)
+        } throws: { originalCause($0) is CancellationError }
     }
 
     @Test(.timeLimit(.minutes(1)))

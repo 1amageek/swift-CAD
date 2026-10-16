@@ -4,7 +4,7 @@ import L0
 
 extension ExactPolynomialDomain {
     func activeVariable<A: ExactScalarAdmission & ~Copyable>(_ value: borrowing Polynomial,
-        _ usage: inout ExactPolynomialAdmission<A>) throws -> Int? {
+        _ usage: inout A) throws -> Int? {
         var result: Int? = nil
         for term in value.terms {
             try usage.consumeWork(variableCount)
@@ -13,7 +13,7 @@ extension ExactPolynomialDomain {
         return result
     }
     func coefficients<A: ExactScalarAdmission & ~Copyable>(_ value: borrowing Polynomial, _ variable: Int,
-        _ usage: inout ExactPolynomialAdmission<A>) throws -> [ExactPolynomialDegreeCoefficient<F>] {
+        _ usage: inout A) throws -> [ExactPolynomialDegreeCoefficient<F>] {
         try requireVariable(variable)
         typealias Entry = (Int, ExactPolynomialTerm<Coefficient>)
         try ExactPolynomialAccess.storage(ExactPolynomialAccess.count(value.terms.count, 3, multiply: true), Entry.self, &usage)
@@ -42,12 +42,12 @@ extension ExactPolynomialDomain {
         return result
     }
     func coefficient<A: ExactScalarAdmission & ~Copyable>(_ entries: [ExactPolynomialDegreeCoefficient<F>], _ degree: Int,
-        _ usage: inout ExactPolynomialAdmission<A>) throws -> Polynomial {
+        _ usage: inout A) throws -> Polynomial {
         for entry in entries { try usage.consumeWork(1); if entry.degree == degree { return entry.polynomial } }
         return try wrap([], &usage)
     }
     func shifted<A: ExactScalarAdmission & ~Copyable>(_ value: borrowing Polynomial, _ variable: Int, _ amount: Int,
-        _ usage: inout ExactPolynomialAdmission<A>) throws -> Polynomial {
+        _ usage: inout A) throws -> Polynomial {
         try ExactPolynomialAccess.storage(value.terms.count, ExactPolynomialTerm<Coefficient>.self, &usage)
         var terms: [ExactPolynomialTerm<Coefficient>] = []; terms.reserveCapacity(value.terms.count)
         for term in value.terms {
@@ -58,7 +58,7 @@ extension ExactPolynomialDomain {
         return try wrap(terms, &usage)
     }
     func pseudoRemainder<A: ExactScalarAdmission & ~Copyable>(_ first: borrowing Polynomial,
-        _ second: borrowing Polynomial, _ variable: Int, _ usage: inout ExactPolynomialAdmission<A>) throws -> Polynomial {
+        _ second: borrowing Polynomial, _ variable: Int, _ usage: inout A) throws -> Polynomial {
         guard let divisorDegree = try degree(second, variable, &usage) else { throw ExactPolynomialFailure.zeroDivisor }
         let divisorEntries = try coefficients(second, variable, &usage)
         let leading = try coefficient(divisorEntries, divisorDegree, &usage)

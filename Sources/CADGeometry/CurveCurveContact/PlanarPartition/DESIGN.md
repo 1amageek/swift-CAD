@@ -22,14 +22,14 @@ editing policy and final spatial/topology publication.
 
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
-| [Curve Curve Contact](../DESIGN.md) | parent | Cumulative original contact allowance | One original source owner | Exact empty is not tolerance empty |
+| [Curve Curve Contact](../DESIGN.md) | parent | Cumulative original contact execution | One original source owner | Exact empty is not tolerance empty |
 | [Rational Bivariate Algebra](../../RationalBivariateAlgebra/DESIGN.md) | depends on | Original finite systems and complete plane atlas | Sole exact polynomial authority | Retain original parameter/root depth |
 | [Original Root Span](../../OriginalRootSpan/DESIGN.md) | depends on | Retained scalar root boundary and closed native span | Original contact cuts on both sources | Never reconstruct fake plane/axis incidence |
 
 ## Architecture
 
 ```text
-original native curves + exact plane + original closed trims + caller allowance
+original native curves + exact plane + original closed trims + caller execution
     -> one preparation per positive native owner
     -> original homogeneous XYZ/W pair equations
     -> exact common component + finite quotient ideal
@@ -67,7 +67,7 @@ owner, including its original trim/native-boundary endpoints. Equal stations
 merge event indices only within the same owner; adjacent owning sides remain
 separate. Consecutive distinct cuts publish retained original root spans.
 Ordering refines the existing scalar receipts under the same cumulative
-allowance, and never sorts using interval midpoints. These spans partition the
+execution, and never sorts using interval midpoints. These spans partition the
 source parameter law; they do not by themselves classify an interval as an
 overlap or authorize a contour winding result.
 
@@ -77,7 +77,7 @@ selected owner; authored points are assigned to every incident positive native
 owner. Output cut provenance indices address the provided endpoint list. Its
 source/native/trim boundaries and all supplied stations are covered, and the
 result never claims new contact existence. All sorting and retained original
-segment preparation reuse the same contact allowance.
+segment preparation reuse the same contact execution.
 
 Outgoing sector order consumes retained original native segments at a common
 exact spatial endpoint and the complete pair partitions covering them. Every
@@ -105,7 +105,7 @@ from this directional result.
 
 `prepareWinding` retains the immutable original native coefficients and closed
 contour incidence once. Source preparation, output and all retained storage are
-prepaid in the same caller allowance. Each `sideWinding` consumes this token,
+prepaid in the same caller execution. Each `sideWinding` consumes this token,
 charges all actual query work, and never resets or discounts the parent ledger.
 The contour/plane/tolerance binding remains immutable; only the original
 coefficients and prior source admission are reused. The legacy source-taking
@@ -136,7 +136,7 @@ arrangement adjacency, but cannot generalize the receipt to another source.
 The receipt covers exact incidence only. An empty exact partition cannot
 exclude contacts admitted by the parent's unchanged distance tolerance.
 All work, exact words, native temporary bytes and actual output payloads debit
-one caller allowance before materialization. Source recursion, intrinsic
+one caller execution before materialization. Source recursion, intrinsic
 coefficient algebra and original pair/root subdivision remain distinct.
 
 ## State, Ownership, and Lifecycle
@@ -165,4 +165,14 @@ shared resource accounting. Source authoring is not behavioral evidence.
 Event merging, monotone correspondence slicing, germ sectors and winding proofs
 use the caller's independent exact algebra ceiling. The complete geometric
 pair partition still uses its original subdivision ceiling. Both paths borrow
-one allowance; lexical context restoration preserves counters on failure.
+one execution; lexical context restoration preserves counters on failure.
+
+## Direct Execution Ownership
+
+Every actual partition, cut, overlap, germ and winding producer receives the
+original exclusive execution. Original plane/source validation, exact algebra,
+root ordering, closed-span preparation and output allocation consume it directly.
+The invocation owner retains any persistent contribution; these producers never
+create or translate an allowance. Scalar event roots and coefficient preparation
+keep their independent proof axes and original source ownership. Ordinary and
+direct consumers must retain exact selected trims and final cancellation.

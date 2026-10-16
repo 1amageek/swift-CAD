@@ -15,7 +15,7 @@ struct RationalBSplineCurveIntersector2DTests {
             controlPoints: [Point2D(x: -0.001, y: 0.005), Point2D(x: 0.001, y: 0.005)])
         let roots = try RationalBSplineCurveIntersector2D().intersections(
             first: first, second: second, maximumSubdivisionDepth: 24, maximumSubdivisionCells: 4_096,
-            accepting: { $0.firstParameterEnclosure.width <= 1e-8 && $0.pointEnclosure.maximumWidth <= 1e-10 },
+            accepting: { root, _ in root.firstParameterEnclosure.width <= 1e-8 && root.pointEnclosure.maximumWidth <= 1e-10 },
             tolerance: tolerance)
         let root = try #require(roots.only)
         #expect(root.firstParameterEnclosure.contains(0.5))
@@ -47,7 +47,7 @@ struct RationalBSplineCurveIntersector2DTests {
             second: second,
             maximumSubdivisionDepth: 16,
             maximumSubdivisionCells: 4_096,
-            accepting: { $0.pointEnclosure.maximumWidth <= 1.0e-10 },
+            accepting: { root, _ in root.pointEnclosure.maximumWidth <= 1.0e-10 },
             tolerance: tolerance
         )
 
@@ -84,7 +84,7 @@ struct RationalBSplineCurveIntersector2DTests {
             second: second,
             maximumSubdivisionDepth: 16,
             maximumSubdivisionCells: 4_096,
-            accepting: { $0.pointEnclosure.maximumWidth <= 1.0e-10 },
+            accepting: { root, _ in root.pointEnclosure.maximumWidth <= 1.0e-10 },
             tolerance: tolerance
         )
 
@@ -122,7 +122,7 @@ struct RationalBSplineCurveIntersector2DTests {
             second: second,
             maximumSubdivisionDepth: 16,
             maximumSubdivisionCells: 4_096,
-            accepting: { _ in true },
+            accepting: { _, _ in true },
             tolerance: tolerance
         )
 
@@ -154,7 +154,7 @@ struct RationalBSplineCurveIntersector2DTests {
             second: line,
             maximumSubdivisionDepth: 32,
             maximumSubdivisionCells: 65_536,
-            accepting: { $0.pointEnclosure.maximumWidth <= 1.0e-10 },
+            accepting: { root, _ in root.pointEnclosure.maximumWidth <= 1.0e-10 },
             tolerance: tolerance
         )
 
@@ -174,7 +174,7 @@ struct RationalBSplineCurveIntersector2DTests {
             second: tangent,
             maximumSubdivisionDepth: 32,
             maximumSubdivisionCells: 65_536,
-            accepting: { $0.pointEnclosure.maximumWidth <= 1.0e-10 },
+            accepting: { root, _ in root.pointEnclosure.maximumWidth <= 1.0e-10 },
             tolerance: tolerance
         )
 
@@ -191,7 +191,7 @@ struct RationalBSplineCurveIntersector2DTests {
             second: BSplineCurveCurveFixture.horizontalLine(y: 0.500_001),
             maximumSubdivisionDepth: 32,
             maximumSubdivisionCells: 65_536,
-            accepting: { $0.pointEnclosure.maximumWidth <= 1.0e-10 },
+            accepting: { root, _ in root.pointEnclosure.maximumWidth <= 1.0e-10 },
             tolerance: tolerance
         )
 
@@ -224,7 +224,7 @@ struct RationalBSplineCurveIntersector2DTests {
             second: BSplineCurveCurveFixture.horizontalLine(y: 0.0),
             maximumSubdivisionDepth: 32,
             maximumSubdivisionCells: 65_536,
-            accepting: { _ in true },
+            accepting: { _, _ in true },
             tolerance: tolerance
         )
 

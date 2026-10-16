@@ -65,24 +65,27 @@ struct NativeModelingDependencyContractTests {
     @Test(.timeLimit(.minutes(1)))
     func zeroSubdivisionTrimKeepsOriginalChartAndPropagatesCallerFailure() throws {
         let source = try parameterImage()
-        let admission = try GeometryConversionAdmission(maximumSpanCount: 8,
-            maximumSubdivisionDepth: 0, remainingSourceDepth: 4,
-            consumeWork: { _ in }, consumeStorage: { _ in }, maximumAlgebraicDepth: 0)
+        var admission = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 0, maximumCoefficientDepth: 0,
+                remainingSourceDepth: 4, maximumSubdivisionDepth: 0, maximumSpans: 8))
         let output = try CurveTrimFeatureEvaluator().trimmedCurve(featureID: FeatureID(),
-            source: source, domain: .closed(0.125, 0.375), tolerance: .standard, admission: admission)
+            source: source, domain: .closed(0.125, 0.375), tolerance: .standard, using: &admission)
         #expect(output.exactCurve == source.exactCurve)
         #expect(output.exactParameterDomain == .closed(0.125, 0.375))
         #expect(output.isClosed == false)
         #expect(try #require(output.points.first).isApproximatelyEqual(
             to: Point3D(x: 0.25, y: 0, z: 1), tolerance: 1e-12))
         enum CallerFailure: Error { case exhausted }
-        let exhausted = try GeometryConversionAdmission(maximumSpanCount: 8,
-            maximumSubdivisionDepth: 0, remainingSourceDepth: 4,
-            consumeWork: { _ in throw CallerFailure.exhausted }, consumeStorage: { _ in },
-            maximumAlgebraicDepth: 0)
-        #expect(throws: CallerFailure.self) {
+        var exhausted = OriginalQueryExecution(budget: try OriginalQueryBudget(
+            consumeWorkUnits: { _ in throw CallerFailure.exhausted }),
+            limits: try .init(maximumValueDepth: 0, maximumCoefficientDepth: 0,
+                remainingSourceDepth: 4, maximumSubdivisionDepth: 0, maximumSpans: 8))
+        #expect {
             try CurveTrimFeatureEvaluator().trimmedCurve(featureID: FeatureID(), source: source,
-                domain: .closed(0.125, 0.375), tolerance: .standard, admission: exhausted)
+                domain: .closed(0.125, 0.375), tolerance: .standard, using: &exhausted)
+        } throws: { error in
+            if case ExactScalarFailure.admissionRejected(let cause) = error { return cause is CallerFailure }
+            return error is CallerFailure
         }
     }
 

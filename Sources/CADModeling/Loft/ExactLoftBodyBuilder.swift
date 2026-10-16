@@ -7,18 +7,15 @@ package struct ExactLoftBodyBuilder {
     private let featureID: FeatureID
     private let context: EvaluationContext
     private let capContactValidator: (any LoftFiniteCapContactValidating)?
-    private let conversionAdmission: GeometryConversionAdmission?
 
     package init(
         featureID: FeatureID,
         context: EvaluationContext,
-        capContactValidator: (any LoftFiniteCapContactValidating)? = nil,
-        conversionAdmission: GeometryConversionAdmission? = nil
+        capContactValidator: (any LoftFiniteCapContactValidating)? = nil
     ) {
         self.featureID = featureID
         self.context = context
         self.capContactValidator = capContactValidator
-        self.conversionAdmission = conversionAdmission
     }
 
     package func build(
@@ -32,6 +29,34 @@ package struct ExactLoftBodyBuilder {
         guideCurves: [ExactLoftGuideCurve] = [],
         faceOrientation: Orientation
     ) throws -> EvaluationResult {
+        var execution = try ordinaryExecution()
+        return try build(loft: loft, profiles: profiles, originalLoopSpans: originalLoopSpans, matchedLoopRings: matchedLoopRings, sectionSeamPointsByLoop: sectionSeamPointsByLoop, sectionTangentScales: sectionTangentScales, sectionTangentModes: sectionTangentModes, guideCurves: guideCurves, faceOrientation: faceOrientation, using: &execution)
+    }
+
+    package func build(
+        loft: LoftFeature, boundarySpans: [[ExactBSplineCurveSpan]], isClosed: Bool,
+        guideCurves: [ExactLoftGuideCurve], seamPoints: [Point3D?]
+    ) throws -> EvaluationResult {
+        var execution = try ordinaryExecution()
+        return try build(loft: loft, boundarySpans: boundarySpans, isClosed: isClosed, guideCurves: guideCurves, seamPoints: seamPoints, using: &execution)
+    }
+
+    package func boundarySpans(_ spans: [ExactBSplineCurveSpan], startingAt seam: Point3D) throws -> [ExactBSplineCurveSpan] {
+        var execution = try ordinaryExecution()
+        return try boundarySpans(spans, startingAt: seam, using: &execution)
+    }
+
+    package func build(
+        loft: LoftFeature,
+        profiles: [Profile],
+        originalLoopSpans: [[[ExactBSplineCurveSpan]]]? = nil,
+        matchedLoopRings: [[[Point3D]]],
+        sectionSeamPointsByLoop: [[Point3D?]],
+        sectionTangentScales: [Double],
+        sectionTangentModes: [LoftSectionSmoothTangentMode],
+        guideCurves: [ExactLoftGuideCurve] = [],
+        faceOrientation: Orientation
+    , using execution: inout OriginalQueryExecution) throws -> EvaluationResult {
         try context.tolerance.validate()
         guard matchedLoopRings.isEmpty == false,
               matchedLoopRings.count == sectionSeamPointsByLoop.count,
@@ -57,18 +82,18 @@ package struct ExactLoftBodyBuilder {
                 guideCurves: guideCurves.filter {
                     $0.boundaryLoopIndex == loopIndex
                 }
-            )
+            , using: &execution)
         }
         return try build(loft: loft, partitions: partitions,
             sectionTangentScales: sectionTangentScales,
             sectionTangentModes: sectionTangentModes, guideCurves: guideCurves,
-            faceOrientation: faceOrientation)
+            faceOrientation: faceOrientation, using: &execution)
     }
 
     package func build(
         loft: LoftFeature, boundarySpans: [[ExactBSplineCurveSpan]], isClosed: Bool,
         guideCurves: [ExactLoftGuideCurve], seamPoints: [Point3D?]
-    ) throws -> EvaluationResult {
+    , using execution: inout OriginalQueryExecution) throws -> EvaluationResult {
         try context.tolerance.validate()
         try loft.validate()
         guard loft.options.resultKind == .sheet,
@@ -81,20 +106,20 @@ package struct ExactLoftBodyBuilder {
         var sections = try boundarySpans.indices.map { index in
             let spans = boundarySpans[index]
             if let seam = seamPoints[index] ?? (isClosed ? guideCurves.first?.sectionPoints[index] : nil) {
-                if isClosed { return try parameterizedSpans(spansRotated(spans, toStartAt: seam)) }
+                if isClosed { return try parameterizedSpans(spansRotated(spans, toStartAt: seam, using: &execution), using: &execution) }
                 guard seam.isApproximatelyEqual(to: spans[0].startPoint, tolerance: context.tolerance.distance) else {
                     throw invalidGeometry("An open Loft boundary can start only at its retained curve endpoint.")
                 }
             }
-            return try parameterizedSpans(spans)
+            return try parameterizedSpans(spans, using: &execution)
         }
         if isClosed == false, let guide = guideCurves.first, guide.boundaryLoopIndex == 0, let first = sections.first {
             // Guide endpoints constrain correspondence without replacing authored
             // curve traversal. Automatic profile traversal may still be aligned.
             let resolution = max(context.tolerance.relative * 64, Double.ulpOfOne * 4_096)
-            let start = try boundaryProgress(of: guide.sectionPoints[0], in: first, closed: false)
+            let start = try boundaryProgress(of: guide.sectionPoints[0], in: first, closed: false, using: &execution)
             for index in sections.indices.dropFirst() where index < guide.sectionPoints.count {
-                let contact = try boundaryProgress(of: guide.sectionPoints[index], in: sections[index], closed: false)
+                let contact = try boundaryProgress(of: guide.sectionPoints[index], in: sections[index], closed: false, using: &execution)
                 let opposite = (start <= resolution && contact >= 1 - resolution) || (start >= 1 - resolution && contact <= resolution)
                 guard opposite else { continue }
                 let explicitlyDirected: Bool
@@ -109,15 +134,15 @@ package struct ExactLoftBodyBuilder {
                         message: "Loft guide endpoint correspondence at section \(index) opposes its authored traversal: first contact progress \(start), current contact progress \(contact).")
                 }
                 sections[index] = try parameterizedSpans(try boundarySpans[index].reversed().map { span in
-                    try ExactBSplineCurveSpan(curve: span.curve.reversed(tolerance: context.tolerance), tolerance: context.tolerance,
-                        originalChart: span.originalChart.reversed())
-                })
+                    try ExactBSplineCurveSpan(curve: span.curve.reversed(tolerance: context.tolerance, using: &execution), tolerance: context.tolerance,
+                        originalChart: span.originalChart.reversed(), using: &execution)
+                }, using: &execution)
             }
         }
-        let anchors = try guideAnchors(guideCurves, sections: sections, closed: isClosed)
+        let anchors = try guideAnchors(guideCurves, sections: sections, closed: isClosed, using: &execution)
         let sortedBreaks = (try sections.indices.flatMap { index in
             try sections[index].map {
-                try mappedProgress($0.lowerProgress, from: anchors[index], to: anchors[0])
+                try mappedProgress($0.lowerProgress, from: anchors[index], to: anchors[0], using: &execution)
             }
         } + anchors[0]).sorted()
         var breaks: [Double] = []
@@ -130,33 +155,33 @@ package struct ExactLoftBodyBuilder {
         let originalSpans = try sections.indices.map { sectionIndex in
             try (0..<(breaks.count - 1)).map { index in
                 try curve(from: sections[sectionIndex],
-                    lowerProgress: mappedProgress(breaks[index], from: anchors[0], to: anchors[sectionIndex]),
-                    upperProgress: mappedProgress(breaks[index + 1], from: anchors[0], to: anchors[sectionIndex]))
+                    lowerProgress: mappedProgress(breaks[index], from: anchors[0], to: anchors[sectionIndex], using: &execution),
+                    upperProgress: mappedProgress(breaks[index + 1], from: anchors[0], to: anchors[sectionIndex], using: &execution), using: &execution)
             }
         }
         let curves = originalSpans.map { $0.map(\.curve) }
         let vertices = try curves.map { spans in
-            var points = try spans.map { try $0.point(at: 0, tolerance: context.tolerance) }
+            var points = try spans.map { try $0.point(at: 0, tolerance: context.tolerance, using: &execution) }
             if !isClosed, let last = spans.last {
-                points.append(try last.point(at: 1, tolerance: context.tolerance))
+                points.append(try last.point(at: 1, tolerance: context.tolerance, using: &execution))
             }
             return points
         }
-        try validatePartition(curves: curves, rings: vertices, closed: isClosed)
+        try validatePartition(curves: curves, rings: vertices, closed: isClosed, using: &execution)
         return try build(loft: loft,
             partitions: [SectionPartition(breaks: breaks, curves: curves, originalSpans: originalSpans, rings: vertices)],
             sectionTangentScales: loft.sections.map { $0.smoothTangentScale ?? loft.options.smoothTangentScale },
             sectionTangentModes: loft.sections.map(\.smoothTangentMode),
-            guideCurves: guideCurves, faceOrientation: .forward)
+            guideCurves: guideCurves, faceOrientation: .forward, using: &execution)
     }
 
-    package func boundarySpans(_ spans: [ExactBSplineCurveSpan], startingAt seam: Point3D) throws -> [ExactBSplineCurveSpan] {
-        try spansRotated(spans, toStartAt: seam)
+    package func boundarySpans(_ spans: [ExactBSplineCurveSpan], startingAt seam: Point3D, using execution: inout OriginalQueryExecution) throws -> [ExactBSplineCurveSpan] {
+        try spansRotated(spans, toStartAt: seam, using: &execution)
     }
 
     private func guideAnchors(
         _ guides: [ExactLoftGuideCurve], sections: [[OrientedSpan]], closed: Bool
-    ) throws -> [[Double]] {
+    , using execution: inout OriginalQueryExecution) throws -> [[Double]] {
         let resolution = max(context.tolerance.relative * 64, Double.ulpOfOne * 4_096)
         var contacts = try sections.indices.map { sectionIndex in
             try guides.map { guide in
@@ -164,7 +189,7 @@ package struct ExactLoftBodyBuilder {
                     throw invalidGeometry("A boundary Loft guide must contact every section once.")
                 }
                 return try boundaryProgress(of: guide.sectionPoints[sectionIndex],
-                    in: sections[sectionIndex], closed: closed)
+                    in: sections[sectionIndex], closed: closed, using: &execution)
             }
         }
         let order = guides.indices.sorted { contacts[0][$0] < contacts[0][$1] }
@@ -191,7 +216,7 @@ package struct ExactLoftBodyBuilder {
         return anchors
     }
 
-    private func mappedProgress(_ value: Double, from source: [Double], to target: [Double]) throws -> Double {
+    private func mappedProgress(_ value: Double, from source: [Double], to target: [Double], using execution: inout OriginalQueryExecution) throws -> Double {
         guard source.count == target.count,
               let index = source.indices.dropLast().first(where: { value >= source[$0] && value <= source[$0 + 1] }),
               source[index + 1] > source[index] else {
@@ -205,37 +230,21 @@ package struct ExactLoftBodyBuilder {
         loft: LoftFeature, partitions: [SectionPartition],
         sectionTangentScales: [Double], sectionTangentModes: [LoftSectionSmoothTangentMode],
         guideCurves: [ExactLoftGuideCurve], faceOrientation: Orientation
-    ) throws -> EvaluationResult {
+    , using execution: inout OriginalQueryExecution) throws -> EvaluationResult {
         guard let outerPartition = partitions.first else {
             throw SketchError.openProfile
         }
         let limits = BSplineSurfaceEmbeddingValidator()
-        let proofAllowance = try LoftSurfacePreparationAllowance(maximum: limits.maximumPairCellCount,
-            maximumDepth: limits.maximumPairSubdivisionDepth, featureID: featureID, tolerance: context.tolerance,
-            admission: conversionAdmission)
-        func chargePreparation(_ count: Int) throws { try proofAllowance.consume(count) }
-        let nativeAdmission = NativeSurfaceEmbeddingAdmission(consumeWork: { try proofAllowance.consume($0) },
-            visitCell: { try proofAllowance.visit(depth: $0) }, retainStorage: { try proofAllowance.retain($0) })
         let separation = BSplineSurfaceEmbeddingValidator(
             maximumLocalSubdivisionDepth: min(limits.maximumLocalSubdivisionDepth,
-                conversionAdmission?.maximumSubdivisionDepth ?? limits.maximumLocalSubdivisionDepth),
+                execution.effectiveLimits.maximumSubdivisionDepth),
             maximumPairSubdivisionDepth: min(limits.maximumPairSubdivisionDepth,
-                conversionAdmission?.maximumSubdivisionDepth ?? limits.maximumPairSubdivisionDepth),
-            admission: nativeAdmission)
-        let sideAdmission = try GeometryConversionAdmission(
-            maximumSpanCount: min(separation.maximumCellCount, conversionAdmission?.maximumSpanCount ?? separation.maximumCellCount),
-            maximumSubdivisionDepth: separation.maximumPairSubdivisionDepth,
-            remainingSourceDepth: min(20, conversionAdmission?.remainingSourceDepth ?? 20),
-            consumeWork: { try proofAllowance.consume($0) }, consumeStorage: { bytes in
-                let rounded = bytes.addingReportingOverflow(MemoryLayout<UInt32>.stride - 1)
-                guard bytes >= 0, !rounded.overflow else {
-                    throw GeometryConversionError.resourceLimitExceeded("Loft final side byte reservation overflows.")
-                }
-                try proofAllowance.retain(rounded.partialValue / MemoryLayout<UInt32>.stride)
-            }, maximumAlgebraicDepth: conversionAdmission?.maximumAlgebraicDepth ?? 32)
-        var originalAllowance = try LoftOriginalSurfaceAllowance(maximumDepth: separation.maximumPairSubdivisionDepth,
-            consume: chargePreparation, retain: { try proofAllowance.retain($0) }, tolerance: context.tolerance,
-            maximumAlgebraicDepth: sideAdmission.maximumAlgebraicDepth ?? 32)
+                execution.effectiveLimits.maximumSubdivisionDepth))
+        let sideMaximumSpans = min(separation.maximumCellCount, execution.effectiveLimits.maximumSpans)
+        let sideRemainingSourceDepth = min(20, execution.effectiveLimits.remainingSourceDepth)
+        return try execution.withAllocationScope(policy: .uint32WordWork) { execution in
+        try execution.withConversionScope(maximumWorkUnits: limits.maximumPairCellCount,
+            maximumScalarCount: Int.max, maximumCertificationBoxes: Int.max) { execution in
         let originalEmbedding = DefaultOriginalSurfaceEmbeddingValidator()
         let basisResolver = DefaultBSplineCurveCommonBasisResolver()
         let partitions = try partitions.map { partition -> SectionPartition in
@@ -248,22 +257,22 @@ package struct ExactLoftBodyBuilder {
                 }) {
                     for section in curves.indices.dropFirst() {
                         basis = try basisResolver.resolve(first: basis, second: curves[section][span],
-                            tolerance: context.tolerance, consumeWork: chargePreparation).first
+                            tolerance: context.tolerance, using: &execution).first
                     }
                     for section in curves.indices {
                         curves[section][span] = try basisResolver.resolve(first: curves[section][span], second: basis,
-                            tolerance: context.tolerance, consumeWork: chargePreparation).first
+                            tolerance: context.tolerance, using: &execution).first
                     }
                 }
                 let common = try ExactRuledBSplineSurfaceBuilder().commonDenominatorBoundaries(
-                    curves.map { $0[span] }, tolerance: context.tolerance)
+                    curves.map { $0[span] }, tolerance: context.tolerance, using: &execution)
                 for section in curves.indices { curves[section][span] = common[section] }
             }
             let originalSpans = try curves.indices.map { section in
                 try curves[section].indices.map { span in
                     try ExactBSplineCurveSpan(curve: curves[section][span], tolerance: context.tolerance,
                         originalChart: partition.originalSpans[section][span].originalChart,
-                        admission: conversionAdmission)
+                        using: &execution)
                 }
             }
             return SectionPartition(breaks: partition.breaks, curves: curves,
@@ -289,14 +298,14 @@ package struct ExactLoftBodyBuilder {
                 scales: sectionTangentScales,
                 modes: sectionTangentModes,
                 enabled: loft.options.surfaceMode == .smooth
-            )
+            , using: &execution)
         }
 
         var continuitySupports: [Int: LoftSideContinuitySupport] = [:]
         let hermiteSides = try continuitySides(loft: loft, partitions: partitions, connectionCount: connectionCount,
                                                tangents: tangentsByLoop[0], connectionSpans: connectionSpans,
                                                guides: guideCurves.filter { $0.boundaryLoopIndex == 0 }, supports: &continuitySupports,
-                                               allowance: &originalAllowance)
+                                               using: &execution)
 
         var model = context.brep
         var geometry = model.geometry
@@ -311,38 +320,38 @@ package struct ExactLoftBodyBuilder {
         var originalSectionBoundaries: [[[OriginalCurveRootSpan3D]]] = []
         var originalConnectorBoundaries: [[[OriginalCurveRootSpan3D]]] = []
         var baseConnectorBoundaries: [[[OriginalCurveRootSpan3D]]] = []
-        try RationalAlgebraStorage.retain(partitions.count, of: [[OriginalCurveRootSpan3D]].self, usage: &originalAllowance)
-        try RationalAlgebraStorage.retain(partitions.count, of: [[OriginalCurveRootSpan3D]].self, usage: &originalAllowance)
+        try RationalAlgebraStorage.retain(partitions.count, of: [[OriginalCurveRootSpan3D]].self, usage: &execution)
+        try RationalAlgebraStorage.retain(partitions.count, of: [[OriginalCurveRootSpan3D]].self, usage: &execution)
         originalSectionBoundaries.reserveCapacity(partitions.count)
         originalConnectorBoundaries.reserveCapacity(partitions.count)
-        func retainBoundary(_ curve: BSplineCurve3D) throws -> OriginalCurveRootSpan3D {
+        func retainBoundary(_ curve: BSplineCurve3D, using execution: inout OriginalQueryExecution) throws -> OriginalCurveRootSpan3D {
             guard case .closed(let lower, let upper) = curve.domain else {
                 throw invalidGeometry("Original Loft boundaries require finite source parameter domains.")
             }
             return try OriginalCurveRootSpan3D(source: .bSpline(curve), start: .authored(lower), end: .authored(upper),
                 maximumParameterWidth: context.tolerance.relative,
                 maximumSubdivisionDepth: separation.maximumPairSubdivisionDepth,
-                tolerance: context.tolerance, storageByteStride: MemoryLayout<UInt32>.stride,
-                usage: &originalAllowance, maximumSpanCount: sideAdmission.maximumSpanCount, remainingSourceDepth: 0,
-                maximumAlgebraicDepth: sideAdmission.maximumAlgebraicDepth)
+                tolerance: context.tolerance,
+                usage: &execution, maximumSpanCount: sideMaximumSpans, remainingSourceDepth: 0,
+                maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth)
         }
-        func retainOriginalBoundary(_ source: Curve3D) throws -> OriginalCurveRootSpan3D {
+        func retainOriginalBoundary(_ source: Curve3D, using execution: inout OriginalQueryExecution) throws -> OriginalCurveRootSpan3D {
             return try OriginalCurveRootSpan3D(source: source, start: .authored(0), end: .authored(1),
                 maximumParameterWidth: context.tolerance.relative,
                 maximumSubdivisionDepth: separation.maximumPairSubdivisionDepth,
-                tolerance: context.tolerance, storageByteStride: MemoryLayout<UInt32>.stride,
-                usage: &originalAllowance, maximumSpanCount: sideAdmission.maximumSpanCount, remainingSourceDepth: sideAdmission.remainingSourceDepth,
-                maximumAlgebraicDepth: sideAdmission.maximumAlgebraicDepth)
+                tolerance: context.tolerance,
+                usage: &execution, maximumSpanCount: sideMaximumSpans, remainingSourceDepth: sideRemainingSourceDepth,
+                maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth)
         }
-        func planeConstraints(connection: Int, atEnd: Bool, spanIndices: [Int], expectedCount: Int)
+        func planeConstraints(connection: Int, atEnd: Bool, spanIndices: [Int], expectedCount: Int, using execution: inout OriginalQueryExecution)
             throws -> [OriginalPlaneDerivativeConstraint] {
             guard let support = continuitySupports[connection],
                 let targets = atEnd ? support.end : support.start else { return [] }
             guard targets.count == expectedCount else { throw invalidGeometry("Original plane supports must cover every section span.") }
-            try RationalAlgebraStorage.retain(spanIndices.count,of:OriginalPlaneDerivativeConstraint.self,usage:&originalAllowance)
+            try RationalAlgebraStorage.retain(spanIndices.count,of:OriginalPlaneDerivativeConstraint.self,usage:&execution)
             var result:[OriginalPlaneDerivativeConstraint] = []; result.reserveCapacity(spanIndices.count)
             for index in spanIndices {
-                try originalAllowance.consumeExactWork(1)
+                try execution.consumeWork(1)
                 guard case .plane = targets[index].face else { continue }
                 guard let original = targets[index].originalBoundary else {
                     throw invalidGeometry("Generated plane derivatives require their original support surface.")
@@ -351,21 +360,21 @@ package struct ExactLoftBodyBuilder {
             }
             return result
         }
-        try RationalAlgebraStorage.retain(partitions.count,of:[[OriginalCurveRootSpan3D]].self,usage:&originalAllowance)
+        try RationalAlgebraStorage.retain(partitions.count,of:[[OriginalCurveRootSpan3D]].self,usage:&execution)
         baseConnectorBoundaries.reserveCapacity(partitions.count)
         let publishesOriginalBoundaries = true
         for loopIndex in partitions.indices {
             let partition = partitions[loopIndex]
             try RationalAlgebraStorage.retain(partition.originalSpans.count,
-                of: [OriginalCurveRootSpan3D].self, usage: &originalAllowance)
+                of: [OriginalCurveRootSpan3D].self, usage: &execution)
             let sectionBoundaries = try partition.originalSpans.map { spans in
-                try RationalAlgebraStorage.retain(spans.count, of: OriginalCurveRootSpan3D.self, usage: &originalAllowance)
+                try RationalAlgebraStorage.retain(spans.count, of: OriginalCurveRootSpan3D.self, usage: &execution)
                 return try spans.map { span in
                     if publishesOriginalBoundaries {
                         return try retainOriginalBoundary(span.originalChart.persistentCurve(
-                            tolerance: context.tolerance, admission: sideAdmission))
+                            tolerance: context.tolerance, using: &execution), using: &execution)
                     }
-                    return try retainBoundary(span.curve)
+                    return try retainBoundary(span.curve, using: &execution)
                 }
             }
             let vertexIDs = try addSectionVertices(
@@ -373,7 +382,7 @@ package struct ExactLoftBodyBuilder {
                 ordinalOffset: vertexOrdinal,
                 to: &model,
                 generatedSubshapes: &generatedSubshapes
-            )
+            , using: &execution)
             vertexOrdinal += partition.rings.reduce(0) { $0 + $1.count }
             let ringEdgeIDs = try addSectionEdges(
                 partition.curves,
@@ -383,7 +392,7 @@ package struct ExactLoftBodyBuilder {
                 geometry: &geometry,
                 generatedSubshapes: &generatedSubshapes,
                 originalBoundaries: publishesOriginalBoundaries ? sectionBoundaries : nil,
-                allowance: &originalAllowance
+                using: &execution
             )
             edgeOrdinal += partition.curves.reduce(0) { $0 + $1.count }
             var connectorCurves = try makeConnectorCurves(
@@ -395,10 +404,10 @@ package struct ExactLoftBodyBuilder {
                 guideCurves: guideCurves.filter {
                     $0.boundaryLoopIndex == loopIndex
                 }
-            )
+            , using: &execution)
             let originalGuidedBoundaries = try originalGuideConnectors(
                 guideCurves.filter { $0.boundaryLoopIndex == loopIndex }, rings: partition.rings,
-                admission: sideAdmission, allowance: &originalAllowance)
+                using: &execution)
             // A Hermite side's connectors are its own boundary columns.
             for (connection, sides) in hermiteSides where loopIndex == 0 {
                 connectorCurves[connection] = try partition.rings[connection].indices.map { vertex in
@@ -408,39 +417,39 @@ package struct ExactLoftBodyBuilder {
                         degree: surface.vDegree, knots: surface.vKnots,
                         controlPoints: surface.controlPoints.map { isLast ? $0[$0.count - 1] : $0[0] }
                     )
-                    try curve.validate(tolerance: context.tolerance)
+                    try curve.validate(tolerance: context.tolerance, using: &execution)
                     return curve
                 }
             }
             try RationalAlgebraStorage.retain(originalGuidedBoundaries.count,
-                of: [Int: OriginalCurveRootSpan3D].self, usage: &originalAllowance)
+                of: [Int: OriginalCurveRootSpan3D].self, usage: &execution)
             var correctedGuidedBoundaries = Array(repeating: [Int: OriginalCurveRootSpan3D](),
                 count: originalGuidedBoundaries.count)
             try RationalAlgebraStorage.retain(originalGuidedBoundaries.count,
-                of: [Int: NativeCurveConversionSource].self, usage: &originalAllowance)
+                of: [Int: NativeCurveConversionSource].self, usage: &execution)
             try RationalAlgebraStorage.retain(originalGuidedBoundaries.count,
-                of: [Int: NativeCurveConversionSource].self, usage: &originalAllowance)
+                of: [Int: NativeCurveConversionSource].self, usage: &execution)
             var guideProviders = Array(repeating: [Int: NativeCurveConversionSource](), count: originalGuidedBoundaries.count)
             var correctedGuideProviders = Array(repeating: [Int: NativeCurveConversionSource](), count: originalGuidedBoundaries.count)
             for connection in originalGuidedBoundaries.indices {
                 let next = connection+1
                 for vertex in connectorCurves[connection].indices {
                     guard let guide = originalGuidedBoundaries[connection][vertex] else { continue }
-                    try originalAllowance.consumeExactWork(1)
+                    try execution.consumeWork(1)
                     let correction = try OriginalGuideEndpointConnectorCurve3D(source: guide,
                         startBoundary: sectionBoundaries[connection][vertex], startAtEnd: false,
                         endBoundary: sectionBoundaries[next][vertex], endAtEnd: false,
                         correctionBasis: hermiteSides[connection] != nil ? .quinticHermite
                             : (loft.options.surfaceMode == .ruled ? .linear : .cubicHermite),
-                        remainingSourceDepth: sideAdmission.remainingSourceDepth,
-                        tolerance: context.tolerance, usage: &originalAllowance)
+                        remainingSourceDepth: sideRemainingSourceDepth,
+                        tolerance: context.tolerance, using: &execution)
                     let corrected = Curve3D.originalGuideEndpointConnector(correction)
                     let correctedProvider = try NativeCurveConversionSource(corrected,
-                        tolerance: context.tolerance, admission: sideAdmission)
+                        tolerance: context.tolerance, using: &execution)
                     let guideProvider = try NativeCurveConversionSource(guide.source,
-                        tolerance: context.tolerance, admission: sideAdmission)
+                        tolerance: context.tolerance, using: &execution)
                     try RationalAlgebraStorage.retain(2, of: (Int, NativeCurveConversionSource).self,
-                        usage: &originalAllowance)
+                        usage: &execution)
                     guideProviders[connection][vertex] = guideProvider
                     correctedGuideProviders[connection][vertex] = correctedProvider
                     let guideRequirements = GeometryConversionRequirements(
@@ -452,17 +461,17 @@ package struct ExactLoftBodyBuilder {
                     _ = try CertifiedGeometryConverter().certifyCurveCorrespondence(
                         source: guideProvider, target: correctedProvider,
                         over: .init(lower: 0, upper: 1), requirements: guideRequirements,
-                        tolerance: context.tolerance, admission: sideAdmission)
+                        tolerance: context.tolerance, using: &execution)
                     let fitted = try CertifiedGeometryConverter().approximateCurve(
                         source: correctedProvider, over: .init(lower: 0, upper: 1),
                         requirements: .init(maximumPositionError: context.tolerance.distance*0.25,
                             maximumTangentAngle: context.tolerance.angle,
                             maximumCurvatureError: context.tolerance.distance),
-                        tolerance: context.tolerance, admission: sideAdmission)
+                        tolerance: context.tolerance, using: &execution)
                     connectorCurves[connection][vertex] = fitted.curve
                     try RationalAlgebraStorage.retain(1, of: (Int, OriginalCurveRootSpan3D).self,
-                        usage: &originalAllowance)
-                    correctedGuidedBoundaries[connection][vertex] = try retainOriginalBoundary(corrected)
+                        usage: &execution)
+                    correctedGuidedBoundaries[connection][vertex] = try retainOriginalBoundary(corrected, using: &execution)
                 }
             }
             // Both neighboring sides and the edge consume the same retained
@@ -475,7 +484,7 @@ package struct ExactLoftBodyBuilder {
                         featureID: featureID, tolerance: context.tolerance,
                         message: "Loft connector preparation metadata count overflows.")
                 }
-                try chargePreparation(metadataWork.partialValue)
+                try execution.consumeWork(metadataWork.partialValue)
                 guard let first = connectorCurves[connection].first else { continue }
                 if loft.sections.contains(where: \.hasContinuity), connectorCurves[connection].dropFirst().contains(where: {
                     $0.degree != first.degree || $0.knots != first.knots
@@ -483,23 +492,23 @@ package struct ExactLoftBodyBuilder {
                     var basis = first
                     for connector in connectorCurves[connection].dropFirst() {
                         basis = try basisResolver.resolve(first: basis, second: connector,
-                            tolerance: context.tolerance, consumeWork: chargePreparation).first
+                            tolerance: context.tolerance, using: &execution).first
                     }
                     for vertex in connectorCurves[connection].indices {
                         connectorCurves[connection][vertex] = try basisResolver.resolve(
                             first: connectorCurves[connection][vertex], second: basis,
-                            tolerance: context.tolerance, consumeWork: chargePreparation).first
+                            tolerance: context.tolerance, using: &execution).first
                     }
                 }
             }
             try RationalAlgebraStorage.retain(connectorCurves.count,
-                of: [OriginalCurveRootSpan3D].self, usage: &originalAllowance)
+                of: [OriginalCurveRootSpan3D].self, usage: &execution)
             let baseBoundaries = try connectorCurves.indices.map { connection in
                 let next = (connection + 1) % sectionBoundaries.count
                 try RationalAlgebraStorage.retain(connectorCurves[connection].count,
-                    of: OriginalCurveRootSpan3D.self, usage: &originalAllowance)
+                    of: OriginalCurveRootSpan3D.self, usage: &execution)
                 return try connectorCurves[connection].indices.map { vertex in
-                    guard publishesOriginalBoundaries else { return try retainBoundary(connectorCurves[connection][vertex]) }
+                    guard publishesOriginalBoundaries else { return try retainBoundary(connectorCurves[connection][vertex], using: &execution) }
                     if correctedGuidedBoundaries.indices.contains(connection),
                         let corrected = correctedGuidedBoundaries[connection][vertex] {
                         guard let correctedProvider = correctedGuideProviders[connection][vertex],
@@ -515,7 +524,7 @@ package struct ExactLoftBodyBuilder {
                                 maximumTangentAngle: context.tolerance.angle,
                                 maximumCurvatureError: context.tolerance.distance,
                                 maximumDegree: max(3, connectorCurves[connection][vertex].degree)),
-                            tolerance: context.tolerance, admission: sideAdmission)
+                            tolerance: context.tolerance, using: &execution)
                         _ = try CertifiedGeometryConverter().certifyCurve(
                             source: guideProvider,
                             candidate: connectorCurves[connection][vertex], over: .init(lower: 0, upper: 1),
@@ -523,7 +532,7 @@ package struct ExactLoftBodyBuilder {
                                 maximumTangentAngle: context.tolerance.angle,
                                 maximumCurvatureError: context.tolerance.distance,
                                 maximumDegree: max(3, connectorCurves[connection][vertex].degree)),
-                            tolerance: context.tolerance, admission: sideAdmission)
+                            tolerance: context.tolerance, using: &execution)
                         return corrected
                     }
                     let source = try OriginalEndpointConnectorCurve3D(
@@ -532,39 +541,39 @@ package struct ExactLoftBodyBuilder {
                         endBoundary: sectionBoundaries[next][vertex], endAtEnd: false,
                         correctionBasis: hermiteSides[connection] != nil ? .quinticHermite
                             : (loft.options.surfaceMode == .ruled ? .linear : .cubicHermite),
-                        maximumSpanCount: sideAdmission.maximumSpanCount,
+                        maximumSpanCount: sideMaximumSpans,
                         maximumSubdivisionDepth: separation.maximumPairSubdivisionDepth,
-                        tolerance: context.tolerance, usage: &originalAllowance)
-                    return try retainOriginalBoundary(.originalEndpointConnector(source))
+                        tolerance: context.tolerance, using: &execution)
+                    return try retainOriginalBoundary(.originalEndpointConnector(source), using: &execution)
                 }
             }
-            try RationalAlgebraStorage.retain(baseBoundaries.count,of:[OriginalCurveRootSpan3D].self,usage:&originalAllowance)
+            try RationalAlgebraStorage.retain(baseBoundaries.count,of:[OriginalCurveRootSpan3D].self,usage:&execution)
             let connectorBoundaries = try baseBoundaries.indices.map { connection in
                 let original = baseBoundaries[connection]
-                try RationalAlgebraStorage.retain(original.count,of:OriginalCurveRootSpan3D.self,usage:&originalAllowance)
+                try RationalAlgebraStorage.retain(original.count,of:OriginalCurveRootSpan3D.self,usage:&execution)
                 return try original.indices.map { vertex in
                     let spanCount = partition.breaks.count-1
-                    try RationalAlgebraStorage.retain(2,of:Int.self,usage:&originalAllowance)
+                    try RationalAlgebraStorage.retain(2,of:Int.self,usage:&execution)
                     var incident:[Int] = []; incident.reserveCapacity(2)
                     if vertex > 0 { incident.append(vertex-1) }
                     else if original.count == spanCount { incident.append(spanCount-1) }
                     if vertex < spanCount, !incident.contains(vertex) { incident.append(vertex) }
-                    let start = try planeConstraints(connection:connection,atEnd:false,spanIndices:incident,expectedCount:spanCount)
-                    let end = try planeConstraints(connection:connection,atEnd:true,spanIndices:incident,expectedCount:spanCount)
+                    let start = try planeConstraints(connection:connection,atEnd:false,spanIndices:incident,expectedCount:spanCount, using: &execution)
+                    let end = try planeConstraints(connection:connection,atEnd:true,spanIndices:incident,expectedCount:spanCount, using: &execution)
                     if start.isEmpty, end.isEmpty { return original[vertex] }
                     let generated = try OriginalPlaneDerivativeCurve3D(source:original[vertex],
                         startConstraints:start,endConstraints:end,tolerance:context.tolerance,
-                        usage:&originalAllowance,remainingSourceDepth:sideAdmission.remainingSourceDepth)
+                        remainingSourceDepth:sideRemainingSourceDepth,using:&execution)
                     let raw = Curve3D.originalPlaneDerivative(generated)
                     // Fresh final coefficients consume the original source law;
                     // no certificate from the unprojected connector is inherited.
                     _ = try CertifiedGeometryConverter().certifyCurve(
-                        source:NativeCurveConversionSource(raw,tolerance:context.tolerance,admission:sideAdmission),
+                        source:NativeCurveConversionSource(raw,tolerance:context.tolerance,using:&execution),
                         candidate:connectorCurves[connection][vertex],over:.init(lower:0,upper:1),
                         requirements:.init(maximumPositionError:context.tolerance.distance*0.25,
                             maximumTangentAngle:context.tolerance.angle,maximumCurvatureError:context.tolerance.distance,
                             maximumDegree:max(3,connectorCurves[connection][vertex].degree)),
-                        tolerance:context.tolerance,admission:sideAdmission)
+                        tolerance:context.tolerance,using:&execution)
                     if originalGuidedBoundaries.indices.contains(connection),
                         originalGuidedBoundaries[connection][vertex] != nil {
                         guard let guideProvider = guideProviders[connection][vertex] else {
@@ -577,14 +586,14 @@ package struct ExactLoftBodyBuilder {
                             maximumDegree: max(3, connectorCurves[connection][vertex].degree))
                         _ = try CertifiedGeometryConverter().certifyCurveCorrespondence(
                             source: guideProvider,
-                            target: NativeCurveConversionSource(raw, tolerance: context.tolerance, admission: sideAdmission),
+                            target: NativeCurveConversionSource(raw, tolerance: context.tolerance, using: &execution),
                             over: .init(lower: 0, upper: 1), requirements: requirements,
-                            tolerance: context.tolerance, admission: sideAdmission)
+                            tolerance: context.tolerance, using: &execution)
                         _ = try CertifiedGeometryConverter().certifyCurve(source: guideProvider,
                             candidate: connectorCurves[connection][vertex], over: .init(lower: 0, upper: 1),
-                            requirements: requirements, tolerance: context.tolerance, admission: sideAdmission)
+                            requirements: requirements, tolerance: context.tolerance, using: &execution)
                     }
-                    return try retainOriginalBoundary(raw)
+                    return try retainOriginalBoundary(raw, using: &execution)
                 }
             }
             baseConnectorBoundaries.append(baseBoundaries)
@@ -596,7 +605,7 @@ package struct ExactLoftBodyBuilder {
                 geometry: &geometry,
                 generatedSubshapes: &generatedSubshapes,
                 originalBoundaries: publishesOriginalBoundaries ? connectorBoundaries : nil,
-                allowance: &originalAllowance
+                using: &execution
             )
             edgeOrdinal += connectorCurves.reduce(0) { $0 + $1.count }
             // FIXME(INCOMPLETE_IMPLEMENTATION): Original Hermite boundary laws
@@ -615,7 +624,7 @@ package struct ExactLoftBodyBuilder {
         if loft.options.resultKind == .solid {
             let startNormal = try -ringWindingNormal(
                 outerPartition.rings[0]
-            )
+            , using: &execution)
             let startFaceID = addPlanarFace(
                 role: .startFace,
                 orientation: faceOrientation,
@@ -643,7 +652,7 @@ package struct ExactLoftBodyBuilder {
             let endSectionIndex = sectionCount - 1
             let endNormal = try ringWindingNormal(
                 outerPartition.rings[endSectionIndex]
-            )
+            , using: &execution)
             let endFaceID = addPlanarFace(
                 role: .endFace,
                 orientation: faceOrientation,
@@ -674,8 +683,9 @@ package struct ExactLoftBodyBuilder {
         // Complete those contracts before claiming general smooth/guided Loft;
         // structural BRep validation alone is insufficient.
         var sideFaceOrdinal = 0
-        var admittedPatches: [(source: LoftSideSurfaceSource, vertices: [VertexID: Point2D], bounds: BoundingBox3D,
-                              edges: [(id: EdgeID, boundary: SurfaceParameterBoundary)])] = []
+        typealias AdmittedPatch = (source: LoftSideSurfaceSource, vertices: [VertexID: Point2D],
+            bounds: BoundingBox3D, edges: [(id: EdgeID, boundary: SurfaceParameterBoundary)])
+        var admittedPatches: [AdmittedPatch] = []
         for loopIndex in partitions.indices {
             let partition = partitions[loopIndex]
             let boundarySpanCount = partition.breaks.count - 1
@@ -690,15 +700,15 @@ package struct ExactLoftBodyBuilder {
                             vMaximumBoundary: originalSectionBoundaries[loopIndex][nextSectionIndex][spanIndex],
                             uMinimumBoundary: baseConnectorBoundaries[loopIndex][connectionIndex][spanIndex],
                             uMaximumBoundary: baseConnectorBoundaries[loopIndex][connectionIndex][nextSpanIndex],
-                            tolerance: context.tolerance, usage: &originalAllowance)
+                            tolerance: context.tolerance, usage: &execution)
                         let original = try OriginalBoundaryCorrectedSurface3D(construction: hermite[spanIndex],
-                            boundaries: boundaries, maximumSpanCount: sideAdmission.maximumSpanCount,
+                            boundaries: boundaries, maximumSpanCount: sideMaximumSpans,
                             maximumSubdivisionDepth: separation.maximumPairSubdivisionDepth,
-                            tolerance: context.tolerance, usage: &originalAllowance)
+                            tolerance: context.tolerance, using: &execution)
                         let startPlane = try planeConstraints(connection:connectionIndex,atEnd:false,
-                            spanIndices:[spanIndex],expectedCount:boundarySpanCount)
+                            spanIndices:[spanIndex],expectedCount:boundarySpanCount, using: &execution)
                         let endPlane = try planeConstraints(connection:connectionIndex,atEnd:true,
-                            spanIndices:[spanIndex],expectedCount:boundarySpanCount)
+                            spanIndices:[spanIndex],expectedCount:boundarySpanCount, using: &execution)
                         let finalSurface: Surface3D
                         if !startPlane.isEmpty || !endPlane.isEmpty {
                             let finalBoundaries = try sideSurfaceBuilder.buildOriginal(
@@ -706,19 +716,19 @@ package struct ExactLoftBodyBuilder {
                                 vMaximumBoundary:originalSectionBoundaries[loopIndex][nextSectionIndex][spanIndex],
                                 uMinimumBoundary:originalConnectorBoundaries[loopIndex][connectionIndex][spanIndex],
                                 uMaximumBoundary:originalConnectorBoundaries[loopIndex][connectionIndex][nextSpanIndex],
-                                tolerance:context.tolerance,usage:&originalAllowance)
+                                tolerance:context.tolerance,usage:&execution)
                             let generated = try OriginalPlaneDerivativeSurface3D(construction:original,boundaries:finalBoundaries,
-                                startConstraints:startPlane,endConstraints:endPlane,remainingSourceDepth:sideAdmission.remainingSourceDepth,
-                                tolerance:context.tolerance,usage:&originalAllowance)
-                            source = try .admittingOriginalPlaneDerivative(generated, usage: &originalAllowance) { finalSurface in
+                                startConstraints:startPlane,endConstraints:endPlane,remainingSourceDepth:sideRemainingSourceDepth,
+                                tolerance:context.tolerance,using:&execution)
+                            source = try .admittingOriginalPlaneDerivative(generated, usage: &execution) { finalSurface, execution in
                                 let full = try SurfaceParameterBox(u:.init(lower:0,upper:1),v:.init(lower:0,upper:1))
                                 return try CertifiedGeometryConverter().certifySurface(
-                                    source:NativeSurfaceConversionSource(finalSurface,tolerance:context.tolerance,admission:sideAdmission),
+                                    source:NativeSurfaceConversionSource(finalSurface,tolerance:context.tolerance,using:&execution),
                                     candidate:hermite[spanIndex],over:full,
                                     requirements:.init(maximumPositionError:context.tolerance.distance*0.25,
                                         maximumTangentAngle:context.tolerance.angle,maximumCurvatureError:context.tolerance.distance,
                                         maximumDegree:max(3,max(hermite[spanIndex].uDegree,hermite[spanIndex].vDegree))),
-                                    tolerance:context.tolerance,admission:sideAdmission)
+                                    tolerance:context.tolerance,using:&execution)
                             }
                             finalSurface = source.surface
                         } else {
@@ -730,7 +740,7 @@ package struct ExactLoftBodyBuilder {
                             maximumLocalSubdivisionDepth:separation.maximumLocalSubdivisionDepth,
                             maximumLocalCellCount:separation.maximumCellCount,
                             maximumPairSubdivisionDepth:separation.maximumPairSubdivisionDepth,
-                            remainingSourceDepth:sideAdmission.remainingSourceDepth,tolerance:context.tolerance,usage:&originalAllowance)
+                            remainingSourceDepth:sideRemainingSourceDepth,tolerance:context.tolerance,using: &execution)
                         if let supports = continuitySupports[connectionIndex] {
                             if let start = supports.start {
                                 guard start.count == boundarySpanCount else {
@@ -738,7 +748,7 @@ package struct ExactLoftBodyBuilder {
                                 }
                                 try start[spanIndex].certify(surface: finalSurface, along: .v(0),
                                     originalSpan: originalSectionBoundaries[loopIndex][connectionIndex][spanIndex],
-                                    tolerance: context.tolerance, featureID: featureID, admission: sideAdmission)
+                                    tolerance: context.tolerance, featureID: featureID, using: &execution)
                             }
                             if let end = supports.end {
                                 guard end.count == boundarySpanCount else {
@@ -746,7 +756,7 @@ package struct ExactLoftBodyBuilder {
                                 }
                                 try end[spanIndex].certify(surface: finalSurface, along: .v(1),
                                     originalSpan: originalSectionBoundaries[loopIndex][nextSectionIndex][spanIndex],
-                                    tolerance: context.tolerance, featureID: featureID, admission: sideAdmission)
+                                    tolerance: context.tolerance, featureID: featureID, using: &execution)
                             }
                         }
                     } else {
@@ -755,14 +765,14 @@ package struct ExactLoftBodyBuilder {
                             vMaximumBoundary: originalSectionBoundaries[loopIndex][nextSectionIndex][spanIndex],
                             uMinimumBoundary: originalConnectorBoundaries[loopIndex][connectionIndex][spanIndex],
                             uMaximumBoundary: originalConnectorBoundaries[loopIndex][connectionIndex][nextSpanIndex],
-                            tolerance: context.tolerance, usage: &originalAllowance)
+                            tolerance: context.tolerance, usage: &execution)
                         let full = try SurfaceParameterBox(u: ScalarInterval(lower: 0, upper: 1),
                             v: ScalarInterval(lower: 0, upper: 1))
                         try originalEmbedding.validate(.procedural(.originalCoons(original)), over: full,
                             maximumLocalSubdivisionDepth: separation.maximumLocalSubdivisionDepth,
                             maximumLocalCellCount: separation.maximumCellCount,
                             maximumPairSubdivisionDepth: separation.maximumPairSubdivisionDepth,
-                            remainingSourceDepth: sideAdmission.remainingSourceDepth, tolerance: context.tolerance, usage: &originalAllowance)
+                            remainingSourceDepth: sideRemainingSourceDepth, tolerance: context.tolerance, using: &execution)
                         source = .originalCoons(original)
                     }
                     let surface = source.surface
@@ -782,7 +792,7 @@ package struct ExactLoftBodyBuilder {
                         vertices[edge.startVertexID] = Point2D(x: u0, y: index == 0 ? v0 : v1)
                         vertices[edge.endVertexID] = Point2D(x: u1, y: index == 0 ? v0 : v1)
                     }
-                    let bounds = try source.boundingBox(tolerance: context.tolerance, usage: &originalAllowance)
+                    let bounds = try source.boundingBox(tolerance: context.tolerance, usage: &execution)
                     let edges: [(id: EdgeID, boundary: SurfaceParameterBoundary)] = [
                         (boundaryEdges[0], .vLower), (boundaryEdges[1], .vUpper),
                         (connectorEdgeIDsByLoop[loopIndex][connectionIndex][spanIndex], .uLower),
@@ -790,7 +800,7 @@ package struct ExactLoftBodyBuilder {
                     ]
                     // Every pair and lower original proof consumes one body invocation allowance.
                     for previous in admittedPatches {
-                        try originalAllowance.consumeExactWork(1)
+                        try execution.consumeWork(1)
                         let commonEdges = previous.edges.compactMap { previousEdge in
                             edges.first { $0.id == previousEdge.id }.map { (previousEdge.boundary, $0.boundary) }
                         }
@@ -807,14 +817,14 @@ package struct ExactLoftBodyBuilder {
                         if case .native(let first) = previous.source, case .native(let second) = source {
                             if commonEdges.count == 1 {
                                 try separation.validateAdjacent(first: first, firstBoundary: commonEdges[0].0,
-                                    second: second, secondBoundary: commonEdges[0].1, tolerance: context.tolerance)
+                                    second: second, secondBoundary: commonEdges[0].1, tolerance: context.tolerance, using: &execution)
                             } else if commonEdges.count == 2 {
                                 try separation.validateOppositeBoundaryContacts(first: first,
                                     firstBoundaries: commonEdges.map(\.0), second: second,
-                                    secondBoundaries: commonEdges.map(\.1), tolerance: context.tolerance)
+                                    secondBoundaries: commonEdges.map(\.1), tolerance: context.tolerance, using: &execution)
                             } else if !contacts.isEmpty || bounds.intersects(previous.bounds, tolerance: context.tolerance.distance) {
                                 try separation.validateSeparation(first: first, second: second, tolerance: context.tolerance,
-                                    allowedCornerContacts: contacts)
+                                    allowedCornerContacts: contacts, using: &execution)
                             }
                             continue
                         }
@@ -823,16 +833,16 @@ package struct ExactLoftBodyBuilder {
                                 sharedBoundaries: commonEdges.map { .init(first: $0.0, second: $0.1) },
                                 allowedCorners: contacts, maximumSubdivisionDepth: separation.maximumPairSubdivisionDepth,
                                 maximumSpanCount: separation.maximumPairCellCount,
-                                remainingSourceDepth: sideAdmission.remainingSourceDepth, tolerance: context.tolerance, usage: &originalAllowance)
+                                remainingSourceDepth: sideRemainingSourceDepth, tolerance: context.tolerance, using: &execution)
                         } else if bounds.intersects(previous.bounds, tolerance: context.tolerance.distance) {
                             let full = try SurfaceParameterBox(u: ScalarInterval(lower: 0, upper: 1),
                                 v: ScalarInterval(lower: 0, upper: 1))
                             try originalEmbedding.validateSeparation(first: previous.source.surface, firstDomain: full,
                                 second: surface, secondDomain: full, maximumSubdivisionDepth: separation.maximumPairSubdivisionDepth,
-                                maximumSpanCount: separation.maximumPairCellCount, remainingSourceDepth: sideAdmission.remainingSourceDepth, tolerance: context.tolerance, usage: &originalAllowance)
+                                maximumSpanCount: separation.maximumPairCellCount, remainingSourceDepth: sideRemainingSourceDepth, tolerance: context.tolerance, using: &execution)
                         }
                     }
-                    try originalAllowance.retainExactStorage(1)
+                    try RationalAlgebraStorage.retain(1, of: AdmittedPatch.self, usage: &execution)
                     admittedPatches.append((source, vertices, bounds, edges))
                     faceIDsByLoop[loopIndex].append(try addSideFace(
                         index: sideFaceOrdinal,
@@ -845,7 +855,7 @@ package struct ExactLoftBodyBuilder {
                         to: &model,
                         geometry: &geometry,
                         generatedSubshapes: &generatedSubshapes
-                    ))
+                    , using: &execution))
                     sideFaceOrdinal += 1
                 }
             }
@@ -888,18 +898,20 @@ package struct ExactLoftBodyBuilder {
                 edgeIDs: ringEdgeIDsByLoop.flatMap { $0.flatMap { $0 } }
                     + connectorEdgeIDsByLoop.flatMap { $0.flatMap { $0 } },
                 model: model
-            )
+            , using: &execution)
         }
-        try model.validate(tolerance: context.tolerance)
+        try model.validate(tolerance: context.tolerance, using: &execution)
         return EvaluationResult(
             brep: model,
             subshapes: generatedSubshapes,
             lineage: try GeneratedTopologyLineageBuilder().build(
                 featureID: featureID,
                 subshapes: generatedSubshapes
-            )
+            , using: &execution)
         )
-    }
+            }
+        }
+}
 
     // FIXME(INCOMPLETE_IMPLEMENTATION): The production Loft builder rejects
     // discrete edge events and boundary-disjoint side intersection components.
@@ -907,11 +919,11 @@ package struct ExactLoftBodyBuilder {
     // finite-face clipping before general cap-side admission is complete.
     func validateCapContacts(
         capFaceIDs: [FaceID], sideFaceIDs: [FaceID], edgeIDs: [EdgeID], model: BRepModel
-    ) throws {
+    , using execution: inout OriginalQueryExecution) throws {
         let tolerance = context.tolerance
         if let capContactValidator {
             try capContactValidator.validate(capFaceIDs: capFaceIDs, sideFaceIDs: sideFaceIDs,
-                model: model, tolerance: tolerance)
+                model: model, tolerance: tolerance, using: &execution)
             return
         }
         // FIXME(INCOMPLETE_IMPLEMENTATION): Standalone Loft evaluation without
@@ -938,12 +950,12 @@ package struct ExactLoftBodyBuilder {
                     return curve
                 }
                 regions.append((loop.role, try CertifiedSurfaceParameterLoopPredicate(
-                    curves: curves, tolerance: tolerance)))
+                    curves: curves, tolerance: tolerance, using: &execution)))
             }
-            func isInterior(_ point: Point2D) throws -> Bool {
+            func isInterior(_ point: Point2D, using execution: inout OriginalQueryExecution) throws -> Bool {
                 var insideOuter = false
                 for region in regions {
-                    let classification = try region.predicate.classify(point, tolerance: tolerance)
+                    let classification = try region.predicate.classify(point, tolerance: tolerance, using: &execution)
                     if region.role == .outer {
                         insideOuter = insideOuter || classification == .inside
                     } else if classification != .outside {
@@ -962,8 +974,8 @@ package struct ExactLoftBodyBuilder {
                 switch curve {
                 case .bSpline(let curve): capControls.append(contentsOf: curve.controlPoints)
                 case .line:
-                    capControls.append(try curve.point(at: trim.startParameter, tolerance: tolerance))
-                    capControls.append(try curve.point(at: trim.endParameter, tolerance: tolerance))
+                    capControls.append(try curve.point(at: trim.startParameter, tolerance: tolerance, using: &execution))
+                    capControls.append(try curve.point(at: trim.endParameter, tolerance: tolerance, using: &execution))
                 default: boundedCap = false
                 }
             }
@@ -971,7 +983,7 @@ package struct ExactLoftBodyBuilder {
             var coplanarSides: Set<FaceID> = []
             var coplanarEdges: Set<EdgeID> = []
             let planeResolver = DefaultPlanarSurfaceResolver()
-            guard let capPlane = try planeResolver.exactPlane(for: surface, tolerance: tolerance) else {
+            guard let capPlane = try planeResolver.exactPlane(for: surface, tolerance: tolerance, using: &execution) else {
                 throw invalidGeometry("Loft caps require a planar support.")
             }
             for sideID in sideFaceIDs {
@@ -979,7 +991,7 @@ package struct ExactLoftBodyBuilder {
                       let sideSurface = model.geometry.surfaces[side.surfaceID] else {
                     throw TopologyError.missingReference("Loft side geometry is missing.")
                 }
-                guard let plane = try planeResolver.exactPlane(for: sideSurface, tolerance: tolerance),
+                guard let plane = try planeResolver.exactPlane(for: sideSurface, tolerance: tolerance, using: &execution),
                       plane.normal.cross(capPlane.normal).length <= tolerance.angle,
                       abs((plane.origin - capPlane.origin).dot(capPlane.normal)) <= tolerance.distance else {
                     continue
@@ -999,15 +1011,15 @@ package struct ExactLoftBodyBuilder {
                         endParameter: coedge.orientation == .forward ? trim.endParameter : trim.startParameter,
                         on: surface, tolerance: tolerance)
                 }
-                let sideRegion = try CertifiedSurfaceParameterLoopPredicate(curves: curves, tolerance: tolerance)
-                if let sides = try sharedStraightBoundarySides(cap: face, sideLoop: loop, sideCurves: curves, model: model),
+                let sideRegion = try CertifiedSurfaceParameterLoopPredicate(curves: curves, tolerance: tolerance, using: &execution)
+                if let sides = try sharedStraightBoundarySides(cap: face, sideLoop: loop, sideCurves: curves, model: model, using: &execution),
                    let second = sides.second, sides.first != second {
                     coplanarSides.insert(sideID)
                     for coedge in loop.coedges { coplanarEdges.insert(coedge.edgeID) }
                     continue
                 }
                 for region in regions {
-                    if try region.predicate.boundaryIntersectsOrTouches(sideRegion, tolerance: tolerance) {
+                    if try region.predicate.boundaryIntersectsOrTouches(sideRegion, tolerance: tolerance, using: &execution) {
                         throw KernelError(phase: .geometry, code: .classificationFailure,
                             featureID: featureID, tolerance: tolerance,
                             message: "Coplanar Loft boundary contacts require a shared-boundary arrangement.")
@@ -1017,7 +1029,7 @@ package struct ExactLoftBodyBuilder {
                     throw invalidGeometry("Coplanar Loft side boundary is empty.")
                 }
                 let anchor = try first.startParameter(tolerance: tolerance)
-                if try isInterior(Point2D(x: anchor.u, y: anchor.v)) {
+                if try isInterior(Point2D(x: anchor.u, y: anchor.v), using: &execution) {
                     throw invalidGeometry("A coplanar Loft side overlaps a cap interior.")
                 }
                 for capLoopID in face.loops {
@@ -1043,10 +1055,10 @@ package struct ExactLoftBodyBuilder {
                     options: CurveSurfaceIntersectionOptions(curveRange: ScalarInterval(
                         lower: min(trim.startParameter, trim.endParameter),
                         upper: max(trim.startParameter, trim.endParameter))),
-                    tolerance: tolerance)
+                    tolerance: tolerance, using: &execution)
                 for event in events {
                     let point = Point2D(x: event.surfaceU, y: event.surfaceV)
-                    if try isInterior(point) {
+                    if try isInterior(point, using: &execution) {
                         throw invalidGeometry("A Loft edge intersects a cap interior.")
                     }
                 }
@@ -1059,7 +1071,7 @@ package struct ExactLoftBodyBuilder {
                 if let plane = planeResolver.canonicalPlane(for: sideSurface),
                    plane.normal.cross(capPlane.normal).length > tolerance.angle,
                    side.loops.count == 1, let loopID = side.loops.first, let loop = model.loops[loopID],
-                   try sharedStraightBoundarySides(cap: face, sideLoop: loop, sideCurves: nil, model: model) != nil {
+                   try sharedStraightBoundarySides(cap: face, sideLoop: loop, sideCurves: nil, model: model, using: &execution) != nil {
                     continue
                 }
                 if case .bSpline(let spline) = sideSurface {
@@ -1077,8 +1089,8 @@ package struct ExactLoftBodyBuilder {
                     ]
                     for section in sections {
                         let events = try intersector.intersections(curve: .bSpline(section),
-                            surface: surface, options: .init(), tolerance: tolerance)
-                        for event in events where try isInterior(Point2D(x: event.surfaceU, y: event.surfaceV)) {
+                            surface: surface, options: .init(), tolerance: tolerance, using: &execution)
+                        for event in events where try isInterior(Point2D(x: event.surfaceU, y: event.surfaceV), using: &execution) {
                             throw invalidGeometry("A Loft side intersects a cap interior.")
                         }
                     }
@@ -1099,7 +1111,7 @@ package struct ExactLoftBodyBuilder {
                     }
                 }
                 let intersections = try DefaultSurfaceSurfaceIntersector().intersections(
-                    first: surface, second: sideSurface, tolerance: tolerance)
+                    first: surface, second: sideSurface, options: .init(), tolerance: tolerance, using: &execution)
                 for intersection in intersections {
                     switch intersection {
                     case .curve(let contact):
@@ -1108,15 +1120,15 @@ package struct ExactLoftBodyBuilder {
                            planeResolver.canonicalPlane(for: sideSurface) != nil,
                            case .line = contact.curve {
                             try validateNonincidentPlanarContact(cap: face, side: side,
-                                line: contact.curve, model: model)
+                                line: contact.curve, model: model, using: &execution)
                             continue
                         }
                         var shared = false
                         if case let .closed(lower, upper) = contact.curve.parameterDomain {
                             let candidate = try CurveSpanDefinition(
                                 curve: contact.curve, startParameter: lower, endParameter: upper,
-                                startPoint: contact.curve.point(at: lower, tolerance: tolerance),
-                                endPoint: contact.curve.point(at: upper, tolerance: tolerance))
+                                startPoint: contact.curve.point(at: lower, tolerance: tolerance, using: &execution),
+                                endPoint: contact.curve.point(at: upper, tolerance: tolerance, using: &execution))
                             for edgeID in commonEdges {
                                 guard let edge = model.edges[edgeID], let trim = edge.trim,
                                       let curve = model.geometry.curves[edge.curveID],
@@ -1129,16 +1141,16 @@ package struct ExactLoftBodyBuilder {
                                     startPoint: start, endPoint: end)
                                 let matcher = CurveSpanCoincidenceMatcher()
                                 shared = try matcher.matches(candidate, existing, orientation: .forward,
-                                    tolerance: tolerance) || matcher.matches(candidate, existing,
-                                        orientation: .reversed, tolerance: tolerance)
+                                    tolerance: tolerance, using: &execution) || matcher.matches(candidate, existing,
+                                        orientation: .reversed, tolerance: tolerance, using: &execution)
                                 if shared { break }
                             }
                         }
                         if shared { continue }
                         let pcurve = contact.firstSurfaceParameterCurve
-                        let trace = try CertifiedSurfaceParameterLoopPredicate(curve: pcurve, tolerance: tolerance)
+                        let trace = try CertifiedSurfaceParameterLoopPredicate(curve: pcurve, tolerance: tolerance, using: &execution)
                         for region in regions {
-                            if try region.predicate.boundaryIntersectsOrTouches(trace, tolerance: tolerance) {
+                            if try region.predicate.boundaryIntersectsOrTouches(trace, tolerance: tolerance, using: &execution) {
                                 throw KernelError(phase: .geometry, code: .classificationFailure,
                                     featureID: featureID, tolerance: tolerance,
                                     message: "Loft cap intersection requires finite trim clipping.")
@@ -1146,18 +1158,18 @@ package struct ExactLoftBodyBuilder {
                         }
                         // Classification is constant only after the complete
                         // connected trace has been separated from every trim.
-                        let point = try pcurve.parameter(atNormalizedFraction: 0.5, tolerance: tolerance)
-                        if try isInterior(Point2D(x: point.u, y: point.v)) {
+                        let point = try pcurve.parameter(atNormalizedFraction: 0.5, tolerance: tolerance, using: &execution)
+                        if try isInterior(Point2D(x: point.u, y: point.v), using: &execution) {
                             throw invalidGeometry("A Loft side intersects a cap interior.")
                         }
                     case .point(let contact):
                         let point = contact.firstSurfaceParameter
                         let uv = Point2D(x: point.u, y: point.v)
-                        if try isInterior(uv) {
+                        if try isInterior(uv, using: &execution) {
                             throw invalidGeometry("A Loft side touches a cap interior.")
                         }
                         let touchesBoundary = try regions.contains {
-                            try $0.predicate.classify(uv, tolerance: tolerance) == .boundary
+                            try $0.predicate.classify(uv, tolerance: tolerance, using: &execution) == .boundary
                         }
                         if touchesBoundary {
                             let sharedVertex = boundaryEdges.contains { edgeID in
@@ -1172,6 +1184,15 @@ package struct ExactLoftBodyBuilder {
                                 throw invalidGeometry("A Loft side touches a cap at an unrelated boundary point.")
                             }
                         }
+                    // FIXME(INCOMPLETE_IMPLEMENTATION): This legacy finite cap consumer cannot
+                    // clip retained symbolic source loci against both authored face trims. Production
+                    // standalone Loft reaches this branch; complete whole-domain finite clipping
+                    // before admitting these source families as harmless cap contacts.
+                    case .originalCoaxial, .originalBoundedSphereCone, .originalFullSphereCone,
+                         .originalFullConeCone, .originalApexSphereCone, .originalCommonApexCone,
+                         .originalCoincidentCone:
+                        throw KernelError.unsupportedEvaluation(tolerance: tolerance,
+                            message: "Loft finite cap clipping does not classify this retained symbolic source locus.")
                     case .coincident:
                         throw KernelError(phase: .geometry, code: .classificationFailure,
                             featureID: featureID, tolerance: tolerance,
@@ -1184,7 +1205,7 @@ package struct ExactLoftBodyBuilder {
 
     private func validateNonincidentPlanarContact(
         cap: Face, side: Face, line: Curve3D, model: BRepModel
-    ) throws {
+    , using execution: inout OriginalQueryExecution) throws {
         let tolerance = context.tolerance
         guard case .line(let support) = line else {
             throw invalidGeometry("Loft planar contact requires a line support.")
@@ -1223,17 +1244,17 @@ package struct ExactLoftBodyBuilder {
                     faceVertices.insert(edge.startVertexID)
                     faceVertices.insert(edge.endVertexID)
                     for parameter in [trim.startParameter, trim.endParameter] {
-                        let point = try curve.point(at: parameter, tolerance: tolerance)
+                        let point = try curve.point(at: parameter, tolerance: tolerance, using: &execution)
                         cuts.append((point - origin).dot(direction) / denominator)
                     }
                     let events = try DefaultCurveSurfaceIntersector().intersections(curve: curve,
                         surface: surfaces[1 - index], options: .init(curveRange: ScalarInterval(
                             lower: min(trim.startParameter, trim.endParameter),
-                            upper: max(trim.startParameter, trim.endParameter))), tolerance: tolerance)
+                            upper: max(trim.startParameter, trim.endParameter))), tolerance: tolerance, using: &execution)
                     for event in events { cuts.append((event.point - origin).dot(direction) / denominator) }
                 }
                 faceRegions.append((loop.role, try CertifiedSurfaceParameterLoopPredicate(
-                    curves: pcurves, tolerance: tolerance)))
+                    curves: pcurves, tolerance: tolerance, using: &execution)))
             }
             regions.append(faceRegions)
             vertices.append(faceVertices)
@@ -1243,25 +1264,25 @@ package struct ExactLoftBodyBuilder {
         }
         cuts = Array(Set(cuts)).sorted()
         let sharedVertices = vertices[0].intersection(vertices[1])
-        func contains(_ point: Point3D, index: Int) throws -> Bool {
-            let uv = try surfaces[index].parameterProjection(of: point, tolerance: tolerance)
+        func contains(_ point: Point3D, index: Int, using execution: inout OriginalQueryExecution) throws -> Bool {
+            let uv = try surfaces[index].parameterProjection(of: point, tolerance: tolerance, using: &execution)
             var outer = false
             for region in regions[index] {
-                let result = try region.predicate.classify(Point2D(x: uv.u, y: uv.v), tolerance: tolerance)
+                let result = try region.predicate.classify(Point2D(x: uv.u, y: uv.v), tolerance: tolerance, using: &execution)
                 if region.role == .outer { outer = outer || result != .outside }
                 else if result == .inside { return false }
             }
             return outer
         }
-        func check(_ parameter: Double, allowsSharedVertex: Bool) throws {
-            let point = try line.point(at: parameter, tolerance: tolerance)
-            guard try contains(point, index: 0), try contains(point, index: 1) else { return }
+        func check(_ parameter: Double, allowsSharedVertex: Bool, using execution: inout OriginalQueryExecution) throws {
+            let point = try line.point(at: parameter, tolerance: tolerance, using: &execution)
+            guard try contains(point, index: 0, using: &execution), try contains(point, index: 1, using: &execution) else { return }
             if allowsSharedVertex && sharedVertices.contains(where: {
                 model.vertices[$0]?.point.isApproximatelyEqual(to: point, tolerance: tolerance.distance) == true
             }) { return }
             throw invalidGeometry("Nonincident Loft planar faces intersect within their finite trims.")
         }
-        for cut in cuts { try check(cut, allowsSharedVertex: true) }
+        for cut in cuts { try check(cut, allowsSharedVertex: true, using: &execution) }
         // Complete boundary/plane events partition the support line into cells
         // of constant region membership. These are cell witnesses, not samples
         // used to infer separation of an unsplit intersection curve.
@@ -1272,13 +1293,13 @@ package struct ExactLoftBodyBuilder {
                     featureID: featureID, tolerance: tolerance,
                     message: "Loft planar intersection intervals exceed numeric resolution.")
             }
-            try check(middle, allowsSharedVertex: false)
+            try check(middle, allowsSharedVertex: false, using: &execution)
         }
     }
 
     private func sharedStraightBoundarySides(
         cap: Face, sideLoop: Loop, sideCurves: [SurfaceParameterCurve]?, model: BRepModel
-    ) throws -> (first: RobustSign, second: RobustSign?)? {
+    , using execution: inout OriginalQueryExecution) throws -> (first: RobustSign, second: RobustSign?)? {
         let tolerance = context.tolerance
         var capCoedges: [Coedge] = []
         for id in cap.loops {
@@ -1291,7 +1312,7 @@ package struct ExactLoftBodyBuilder {
         guard common.count == 1, let shared = common.first,
               let sharedCurve = shared.surfaceParameterCurve,
               let sharedEdge = model.edges[shared.edgeID] else { return nil }
-        func spline(_ curve: SurfaceParameterCurve) throws -> BSplineCurve2D? {
+        func spline(_ curve: SurfaceParameterCurve, using execution: inout OriginalQueryExecution) throws -> BSplineCurve2D? {
             switch curve {
             case .bSpline(let value): return value
             case .affine, .constantU, .constantV:
@@ -1302,15 +1323,15 @@ package struct ExactLoftBodyBuilder {
             default: return nil
             }
         }
-        guard let boundary = try spline(sharedCurve) else { return nil }
+        guard let boundary = try spline(sharedCurve, using: &execution) else { return nil }
         let a = try sharedCurve.startParameter(tolerance: tolerance)
         let b = try sharedCurve.endParameter(tolerance: tolerance)
         let start = Point2D(x: a.u, y: a.v), end = Point2D(x: b.u, y: b.v)
         guard start != end else { return nil }
-        func sign(_ point: Point2D) throws -> RobustSign {
+        func sign(_ point: Point2D, using execution: inout OriginalQueryExecution) throws -> RobustSign {
             try RobustPredicates.orientation2D(start, end, relativeTo: point, determinantTolerance: 0)
         }
-        guard try boundary.controlPoints.allSatisfy({ try sign($0) == .zero }) else { return nil }
+        guard try boundary.controlPoints.allSatisfy({ try sign($0, using: &execution) == .zero }) else { return nil }
         let lower = start.x != end.x ? min(start.x, end.x) : min(start.y, end.y)
         let upper = start.x != end.x ? max(start.x, end.x) : max(start.y, end.y)
         guard boundary.controlPoints.allSatisfy({ point in
@@ -1319,14 +1340,14 @@ package struct ExactLoftBodyBuilder {
         }) else { return nil }
         let startID = shared.orientation == .forward ? sharedEdge.startVertexID : sharedEdge.endVertexID
         let endID = shared.orientation == .forward ? sharedEdge.endVertexID : sharedEdge.startVertexID
-        func regionSide(_ edges: [Coedge], _ curves: [SurfaceParameterCurve]) throws -> RobustSign? {
+        func regionSide(_ edges: [Coedge], _ curves: [SurfaceParameterCurve], using execution: inout OriginalQueryExecution) throws -> RobustSign? {
             var side: RobustSign?
             for (coedge, curve) in zip(edges, curves) where coedge.edgeID != shared.edgeID {
-                guard let edge = model.edges[coedge.edgeID], let source = try spline(curve) else { return nil }
+                guard let edge = model.edges[coedge.edgeID], let source = try spline(curve, using: &execution) else { return nil }
                 for patch in try source.rationalBezierPatches(tolerance: tolerance) {
                     var strict = false
                     for point in patch.controlPoints {
-                        let value = try sign(point)
+                        let value = try sign(point, using: &execution)
                         if value == .zero {
                             let ownsStart = edge.startVertexID == startID || edge.endVertexID == startID
                             let ownsEnd = edge.startVertexID == endID || edge.endVertexID == endID
@@ -1349,8 +1370,8 @@ package struct ExactLoftBodyBuilder {
             }
             return curve
         }
-        guard let first = try regionSide(capCoedges, capCurves) else { return nil }
-        let second = try sideCurves.flatMap { try regionSide(sideLoop.coedges, $0) }
+        guard let first = try regionSide(capCoedges, capCurves, using: &execution) else { return nil }
+        let second = try sideCurves.flatMap { try regionSide(sideLoop.coedges, $0, using: &execution) }
         return (first, second)
     }
 
@@ -1374,14 +1395,14 @@ package struct ExactLoftBodyBuilder {
         matchedRings: [[Point3D]],
         sectionSeamPoints: [Point3D?],
         guideCurves: [ExactLoftGuideCurve]
-    ) throws -> SectionPartition {
+    , using execution: inout OriginalQueryExecution) throws -> SectionPartition {
         let sections = try profileLoops.indices.map { sectionIndex in
             try orientedSpans(
                 profileLoop: profileLoops[sectionIndex],
                 sourceSpans: originalSpans?[sectionIndex],
                 matchedRing: matchedRings[sectionIndex],
                 explicitSeam: sectionSeamPoints[sectionIndex]
-            )
+            , using: &execution)
         }
         guard let partitionCount = matchedRings.first?.count,
               partitionCount >= 2,
@@ -1391,13 +1412,13 @@ package struct ExactLoftBodyBuilder {
         try validateGuidePartitionContacts(
             guideCurves,
             matchedRings: matchedRings
-        )
+        , using: &execution)
         let originalSpans = try sections.indices.map { sectionIndex in
             let progresses = try matchedRings[sectionIndex].map { point in
                 try boundaryProgress(
                     of: point,
                     in: sections[sectionIndex]
-                )
+                , using: &execution)
             }
             let resolution = max(
                 context.tolerance.relative * 64.0,
@@ -1418,7 +1439,7 @@ package struct ExactLoftBodyBuilder {
                     upperProgress: index == progresses.index(before: progresses.endIndex)
                         ? 1.0
                         : progresses[index + 1]
-                )
+                , using: &execution)
             }
         }
         let curves = originalSpans.map { $0.map(\.curve) }
@@ -1429,10 +1450,10 @@ package struct ExactLoftBodyBuilder {
                         "Exact Loft section span lost its bounded parameter domain."
                     )
                 }
-                return try curve.point(at: lower, tolerance: context.tolerance)
+                return try curve.point(at: lower, tolerance: context.tolerance, using: &execution)
             }
         }
-        try validatePartition(curves: curves, rings: rings)
+        try validatePartition(curves: curves, rings: rings, using: &execution)
         return SectionPartition(
             breaks: (0...partitionCount).map { Double($0) / Double(partitionCount) },
             curves: curves,
@@ -1444,7 +1465,7 @@ package struct ExactLoftBodyBuilder {
     private func validateGuidePartitionContacts(
         _ guides: [ExactLoftGuideCurve],
         matchedRings: [[Point3D]]
-    ) throws {
+    , using execution: inout OriginalQueryExecution) throws {
         guard matchedRings.isEmpty == false else { return }
         for guide in guides {
             guard guide.sectionPoints.count == matchedRings.count,
@@ -1468,20 +1489,20 @@ package struct ExactLoftBodyBuilder {
         sourceSpans: [ExactBSplineCurveSpan]? = nil,
         matchedRing: [Point3D],
         explicitSeam: Point3D?
-    ) throws -> [OrientedSpan] {
+    , using execution: inout OriginalQueryExecution) throws -> [OrientedSpan] {
         guard matchedRing.count >= 3 else {
             throw SketchError.openProfile
         }
         let source = try sourceSpans ?? ExactBSplineCurveSpanBuilder(
-            tolerance: context.tolerance, admission: conversionAdmission
-        ).profileSpans(from: profileLoop)
+            tolerance: context.tolerance, using: &execution
+        ).profileSpans(from: profileLoop, using: &execution)
         guard let firstSourceSpan = source.first else {
             throw SketchError.openProfile
         }
         var rotated = try spansRotated(
             source,
             toStartAt: explicitSeam ?? firstSourceSpan.startPoint
-        )
+        , using: &execution)
         if explicitSeam != nil {
             let desiredDirection = matchedRing[1] - matchedRing[0]
             let forwardDirection = rotated[0].endPoint - rotated[0].startPoint
@@ -1498,17 +1519,17 @@ package struct ExactLoftBodyBuilder {
             if reverseScore > forwardScore + context.tolerance.angle {
                 rotated = try rotated.reversed().map { span in
                     try ExactBSplineCurveSpan(
-                        curve: span.curve.reversed(tolerance: context.tolerance),
-                        tolerance: context.tolerance, originalChart: span.originalChart.reversed()
+                        curve: span.curve.reversed(tolerance: context.tolerance, using: &execution),
+                        tolerance: context.tolerance, originalChart: span.originalChart.reversed(), using: &execution
                     )
                 }
             }
         }
 
-        return try parameterizedSpans(rotated)
+        return try parameterizedSpans(rotated, using: &execution)
     }
 
-    private func parameterizedSpans(_ spans: [ExactBSplineCurveSpan]) throws -> [OrientedSpan] {
+    private func parameterizedSpans(_ spans: [ExactBSplineCurveSpan], using execution: inout OriginalQueryExecution) throws -> [OrientedSpan] {
         let weights = spans.map(spanProgressWeight)
         let total = weights.reduce(0.0, +)
         guard total.isFinite, total > context.tolerance.distance else {
@@ -1522,9 +1543,9 @@ package struct ExactLoftBodyBuilder {
                 ? 1.0
                 : lower + weights[index] / total
             result.append(OrientedSpan(
-                original: try ExactBSplineCurveSpan(curve: normalized(spans[index].curve),
+                original: try ExactBSplineCurveSpan(curve: normalized(spans[index].curve, using: &execution),
                     tolerance: context.tolerance, originalChart: spans[index].originalChart,
-                    admission: conversionAdmission),
+                    using: &execution),
                 lowerProgress: lower,
                 upperProgress: upper
             ))
@@ -1536,7 +1557,7 @@ package struct ExactLoftBodyBuilder {
     private func spansRotated(
         _ spans: [ExactBSplineCurveSpan],
         toStartAt seam: Point3D
-    ) throws -> [ExactBSplineCurveSpan] {
+    , using execution: inout OriginalQueryExecution) throws -> [ExactBSplineCurveSpan] {
         for index in spans.indices {
             if spans[index].startPoint.isApproximatelyEqual(
                 to: seam,
@@ -1558,7 +1579,7 @@ package struct ExactLoftBodyBuilder {
                 let projection = try Curve3D.bSpline(spans[index].curve)
                     .parameterProjection(
                         of: seam,
-                        tolerance: context.tolerance
+                        tolerance: context.tolerance, using: &execution
                     )
                 if match.map({ projection.residual < $0.projection.residual }) ?? true {
                     match = (index, projection)
@@ -1587,21 +1608,21 @@ package struct ExactLoftBodyBuilder {
             curve: spans[match.index].curve.trimmed(
                 from: match.projection.parameter,
                 to: upper,
-                tolerance: context.tolerance
+                tolerance: context.tolerance, using: &execution
             ),
             tolerance: context.tolerance,
                 originalChart: try spans[match.index].originalChart.restricted(from: match.projection.parameter, to: upper,
-                    in: spans[match.index].curve.domain, tolerance: context.tolerance)
+                    in: spans[match.index].curve.domain, tolerance: context.tolerance, using: &execution), using: &execution
         )
         let head = try ExactBSplineCurveSpan(
             curve: spans[match.index].curve.trimmed(
                 from: lower,
                 to: match.projection.parameter,
-                tolerance: context.tolerance
+                tolerance: context.tolerance, using: &execution
             ),
             tolerance: context.tolerance,
                 originalChart: try spans[match.index].originalChart.restricted(from: lower, to: match.projection.parameter,
-                    in: spans[match.index].curve.domain, tolerance: context.tolerance)
+                    in: spans[match.index].curve.domain, tolerance: context.tolerance, using: &execution), using: &execution
         )
         var result = [tail]
         if spans.count > 1 {
@@ -1647,14 +1668,14 @@ package struct ExactLoftBodyBuilder {
         of point: Point3D,
         in spans: [OrientedSpan],
         closed: Bool = true
-    ) throws -> Double {
+    , using execution: inout OriginalQueryExecution) throws -> Double {
         var best: (progress: Double, residual: Double)?
         for span in spans {
             do {
                 let projection = try Curve3D.bSpline(span.curve)
                     .parameterProjection(
                         of: point,
-                        tolerance: context.tolerance
+                        tolerance: context.tolerance, using: &execution
                     )
                 guard case let .closed(lower, upper) = span.curve.domain,
                       upper > lower else {
@@ -1690,7 +1711,7 @@ package struct ExactLoftBodyBuilder {
         from spans: [OrientedSpan],
         lowerProgress: Double,
         upperProgress: Double
-    ) throws -> ExactBSplineCurveSpan {
+    , using execution: inout OriginalQueryExecution) throws -> ExactBSplineCurveSpan {
         let resolution = max(
             context.tolerance.relative * 16.0,
             Double.ulpOfOne * 1_024.0
@@ -1733,18 +1754,18 @@ package struct ExactLoftBodyBuilder {
             selected = try span.curve.trimmed(
                 from: start,
                 to: end,
-                tolerance: context.tolerance
+                tolerance: context.tolerance, using: &execution
             )
         }
         let chart = retainsWhole ? span.original.originalChart
             : try span.original.originalChart.restricted(from: start, to: end,
-                in: span.curve.domain, tolerance: context.tolerance)
-        return try ExactBSplineCurveSpan(curve: normalized(selected), tolerance: context.tolerance,
-            originalChart: chart, admission: conversionAdmission)
+                in: span.curve.domain, tolerance: context.tolerance, using: &execution)
+        return try ExactBSplineCurveSpan(curve: normalized(selected, using: &execution), tolerance: context.tolerance,
+            originalChart: chart, using: &execution)
     }
 
-    private func normalized(_ curve: BSplineCurve3D) throws -> BSplineCurve3D {
-        try curve.validate(tolerance: context.tolerance)
+    private func normalized(_ curve: BSplineCurve3D, using execution: inout OriginalQueryExecution) throws -> BSplineCurve3D {
+        try curve.validate(tolerance: context.tolerance, using: &execution)
         guard case let .closed(lower, upper) = curve.domain,
               upper > lower else {
             throw invalidGeometry(
@@ -1762,7 +1783,7 @@ package struct ExactLoftBodyBuilder {
             controlPoints: curve.controlPoints,
             weights: curve.weights
         )
-        try result.validate(tolerance: context.tolerance)
+        try result.validate(tolerance: context.tolerance, using: &execution)
         return result
     }
 
@@ -1770,7 +1791,7 @@ package struct ExactLoftBodyBuilder {
         curves: [[BSplineCurve3D]],
         rings: [[Point3D]],
         closed: Bool = true
-    ) throws {
+    , using execution: inout OriginalQueryExecution) throws {
         guard let spanCount = curves.first?.count,
               spanCount >= (closed ? 2 : 1),
               curves.allSatisfy({ $0.count == spanCount }),
@@ -1790,11 +1811,11 @@ package struct ExactLoftBodyBuilder {
                 }
                 let end = try curves[sectionIndex][spanIndex].point(
                     at: upper,
-                    tolerance: context.tolerance
+                    tolerance: context.tolerance, using: &execution
                 )
                 let next = try curves[sectionIndex][nextSpanIndex].point(
                     at: nextLower,
-                    tolerance: context.tolerance
+                    tolerance: context.tolerance, using: &execution
                 )
                 guard end.isApproximatelyEqual(
                     to: next,
@@ -1811,7 +1832,7 @@ package struct ExactLoftBodyBuilder {
         ordinalOffset: Int,
         to model: inout BRepModel,
         generatedSubshapes: inout [SubshapeID: TopologyReference]
-    ) throws -> [[VertexID]] {
+    , using execution: inout OriginalQueryExecution) throws -> [[VertexID]] {
         let spanCount = rings[0].count
         return try rings.indices.map { sectionIndex in
             try rings[sectionIndex].indices.map { spanIndex in
@@ -1838,7 +1859,7 @@ package struct ExactLoftBodyBuilder {
         geometry: inout GeometryStore,
         generatedSubshapes: inout [SubshapeID: TopologyReference],
         originalBoundaries: [[OriginalCurveRootSpan3D]]?,
-        allowance: inout LoftOriginalSurfaceAllowance
+        using execution: inout OriginalQueryExecution
     ) throws -> [[EdgeID]] {
         let spanCount = curves[0].count
         return try curves.indices.map { sectionIndex in
@@ -1847,7 +1868,7 @@ package struct ExactLoftBodyBuilder {
                 if let originalBoundaries {
                     edgeID = try addOriginalCurveEdge(boundary: originalBoundaries[sectionIndex][spanIndex],
                         startVertexID: vertexIDs[sectionIndex][spanIndex], endVertexID: vertexIDs[sectionIndex][(spanIndex + 1) % vertexIDs[sectionIndex].count],
-                        to: &model, geometry: &geometry, allowance: &allowance)
+                        to: &model, geometry: &geometry, using: &execution)
                 } else {
                     edgeID = try addSectionCurveEdge(
                     curve: curves[sectionIndex][spanIndex],
@@ -1855,7 +1876,7 @@ package struct ExactLoftBodyBuilder {
                     endVertexID: vertexIDs[sectionIndex][(spanIndex + 1) % vertexIDs[sectionIndex].count],
                     to: &model,
                     geometry: &geometry
-                )
+                , using: &execution)
                 }
                 generatedSubshapes[subshapeID(
                     role: .edge,
@@ -1873,7 +1894,7 @@ package struct ExactLoftBodyBuilder {
         closesSectionLoop: Bool,
         surfaceMode: LoftSurfaceMode,
         guideCurves: [ExactLoftGuideCurve]
-    ) throws -> [[BSplineCurve3D]] {
+    , using execution: inout OriginalQueryExecution) throws -> [[BSplineCurve3D]] {
         let connectionCount = rings.count - 1 + (closesSectionLoop ? 1 : 0)
         var result = try (0..<connectionCount).map { connectionIndex in
             let nextSectionIndex = (connectionIndex + 1) % rings.count
@@ -1906,7 +1927,7 @@ package struct ExactLoftBodyBuilder {
                         controlPoints: controlPoints
                     )
                 }
-                try curve.validate(tolerance: context.tolerance)
+                try curve.validate(tolerance: context.tolerance, using: &execution)
                 return curve
             }
         }
@@ -1914,7 +1935,7 @@ package struct ExactLoftBodyBuilder {
             guideCurves,
             rings: rings,
             to: &result
-        )
+        , using: &execution)
         let resolver = DefaultBSplineCurveCommonBasisResolver()
         for connection in result.indices {
             guard let first = result[connection].first else { continue }
@@ -1938,15 +1959,15 @@ package struct ExactLoftBodyBuilder {
         _ guides: [ExactLoftGuideCurve],
         rings: [[Point3D]],
         to connectorCurves: inout [[BSplineCurve3D]]
-    ) throws {
-        for (connectionIndex, curves) in try guideConnectors(guides, rings: rings).enumerated() {
+    , using execution: inout OriginalQueryExecution) throws {
+        for (connectionIndex, curves) in try guideConnectors(guides, rings: rings, using: &execution).enumerated() {
             for (vertexIndex, curve) in curves { connectorCurves[connectionIndex][vertexIndex] = curve }
         }
     }
 
     /// Per connection, the guides' pieces between its two sections by the ring vertex each guide
     /// passes through.
-    private func guideConnectors(_ guides: [ExactLoftGuideCurve], rings: [[Point3D]]) throws -> [[Int: BSplineCurve3D]] {
+    private func guideConnectors(_ guides: [ExactLoftGuideCurve], rings: [[Point3D]], using execution: inout OriginalQueryExecution) throws -> [[Int: BSplineCurve3D]] {
         var connectorCurves: [[Int: BSplineCurve3D]] = Array(repeating: [:], count: max(rings.count - 1, 0))
         guard guides.isEmpty == false else { return connectorCurves }
         var usedVertexIndexes: Set<Int> = []
@@ -1977,21 +1998,21 @@ package struct ExactLoftBodyBuilder {
             for connectionIndex in 0..<(rings.count - 1) {
                 connectorCurves[connectionIndex][vertexIndex] = try normalized(
                     guide.originalChain.connector(from: guide.sectionContacts[connectionIndex],
-                        to: guide.sectionContacts[connectionIndex + 1], tolerance: context.tolerance)
-                )
+                        to: guide.sectionContacts[connectionIndex + 1], tolerance: context.tolerance, using: &execution)
+                , using: &execution)
             }
         }
         return connectorCurves
     }
 
     private func originalGuideConnectors(_ guides: [ExactLoftGuideCurve], rings: [[Point3D]],
-        admission: GeometryConversionAdmission, allowance: inout LoftOriginalSurfaceAllowance)
+        using execution: inout OriginalQueryExecution)
         throws -> [[Int: OriginalCurveRootSpan3D]] {
         let count = max(0, rings.count-1)
-        try RationalAlgebraStorage.retain(count, of: [Int: OriginalCurveRootSpan3D].self, usage: &allowance)
+        try RationalAlgebraStorage.retain(count, of: [Int: OriginalCurveRootSpan3D].self, usage: &execution)
         var result = Array(repeating: [Int: OriginalCurveRootSpan3D](), count: count)
         guard !guides.isEmpty, let firstRing = rings.first else { return result }
-        try RationalAlgebraStorage.retain(guides.count, of: Int.self, usage: &allowance)
+        try RationalAlgebraStorage.retain(guides.count, of: Int.self, usage: &execution)
         var usedVertices: Set<Int> = []
         for guide in guides {
             guard guide.sectionContacts.count == rings.count, guide.sectionPoints.count == rings.count else {
@@ -2001,7 +2022,7 @@ package struct ExactLoftBodyBuilder {
             for vertex in firstRing.indices {
                 var matches = true
                 for section in rings.indices {
-                    try allowance.consumeExactWork(1)
+                    try execution.consumeWork(1)
                     guard rings[section].indices.contains(vertex) else { matches = false; break }
                     if !rings[section][vertex].isApproximatelyEqual(to: guide.sectionPoints[section],
                         tolerance: context.tolerance.distance) { matches = false; break }
@@ -2019,16 +2040,16 @@ package struct ExactLoftBodyBuilder {
             }
             for connection in 0..<count {
                 let chain = try guide.originalChain.originalConnector(from: guide.sectionContacts[connection],
-                    to: guide.sectionContacts[connection+1], admission: admission, usage: &allowance)
+                    to: guide.sectionContacts[connection+1], using: &execution)
                 let source = Curve3D.originalGuideTraversalChain(chain)
-                try RationalAlgebraStorage.retain(1, of: (Int, OriginalCurveRootSpan3D).self, usage: &allowance)
+                try RationalAlgebraStorage.retain(1, of: (Int, OriginalCurveRootSpan3D).self, usage: &execution)
                 result[connection][vertex] = try OriginalCurveRootSpan3D(source: source,
                     start: .authored(0), end: .authored(1), maximumParameterWidth: context.tolerance.relative,
-                    maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
-                    tolerance: context.tolerance, storageByteStride: MemoryLayout<UInt32>.stride, usage: &allowance,
-                    maximumSpanCount: admission.maximumSpanCount,
-                    remainingSourceDepth: admission.remainingSourceDepth,
-                    maximumAlgebraicDepth: admission.maximumAlgebraicDepth ?? 32)
+                    maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth,
+                    tolerance: context.tolerance, usage: &execution,
+                    maximumSpanCount: execution.effectiveLimits.maximumSpans,
+                    remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+                    maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth)
             }
         }
         return result
@@ -2042,7 +2063,7 @@ package struct ExactLoftBodyBuilder {
         geometry: inout GeometryStore,
         generatedSubshapes: inout [SubshapeID: TopologyReference],
         originalBoundaries: [[OriginalCurveRootSpan3D]]?,
-        allowance: inout LoftOriginalSurfaceAllowance
+        using execution: inout OriginalQueryExecution
     ) throws -> [[EdgeID]] {
         let spanCount = vertexIDs[0].count
         return try curves.indices.map { connectionIndex in
@@ -2052,7 +2073,7 @@ package struct ExactLoftBodyBuilder {
                 if let originalBoundaries {
                     edgeID = try addOriginalCurveEdge(boundary: originalBoundaries[connectionIndex][vertexIndex],
                         startVertexID: vertexIDs[connectionIndex][vertexIndex], endVertexID: vertexIDs[nextSectionIndex][vertexIndex],
-                        to: &model, geometry: &geometry, allowance: &allowance)
+                        to: &model, geometry: &geometry, using: &execution)
                 } else {
                     edgeID = try addCurveEdge(
                     curve: curves[connectionIndex][vertexIndex],
@@ -2060,7 +2081,7 @@ package struct ExactLoftBodyBuilder {
                     endVertexID: vertexIDs[nextSectionIndex][vertexIndex],
                     to: &model,
                     geometry: &geometry
-                )
+                , using: &execution)
                 }
                 generatedSubshapes[subshapeID(
                     role: .edge,
@@ -2074,18 +2095,20 @@ package struct ExactLoftBodyBuilder {
     private func addOriginalCurveEdge(boundary: OriginalCurveRootSpan3D,
         startVertexID: VertexID, endVertexID: VertexID,
         to model: inout BRepModel, geometry: inout GeometryStore,
-        allowance: inout LoftOriginalSurfaceAllowance) throws -> EdgeID {
+        using execution: inout OriginalQueryExecution) throws -> EdgeID {
         guard let start = model.vertices[startVertexID]?.point,
             let end = model.vertices[endVertexID]?.point else {
             throw TopologyError.missingReference("Original Loft edges require both endpoint vertices.")
         }
-        try RationalAlgebraStorage.retain(2, of: (Double, Point3D).self, usage: &allowance)
+        try RationalAlgebraStorage.retain(2, of: (Double, Point3D).self, usage: &execution)
         for (parameter, point) in [(0.0, start), (1.0, end)] {
-            try allowance.consumeExactWork(1)
+            try execution.consumeWork(1)
             let jet = try boundary.intervalTaylorJet(over: .init(lower: parameter, upper: parameter),
                 throughOrder: 0, tolerance: context.tolerance,
-                storageByteStride: MemoryLayout<UInt32>.stride, usage: &allowance,
-                maximumSpanCount: boundary.maximumSpanCount, remainingSourceDepth: boundary.remainingSourceDepth)
+                maximumSpanCount: boundary.maximumSpanCount,
+                maximumSubdivisionDepth: boundary.maximumSubdivisionDepth,
+                remainingSourceDepth: boundary.remainingSourceDepth,
+                maximumAlgebraicDepth: boundary.maximumAlgebraicDepth, using: &execution)
             let residual = try IntervalVector3DBounds(x: jet.x.coefficient(0, 0) - .exact(point.x),
                 y: jet.y.coefficient(0, 0) - .exact(point.y), z: jet.z.coefficient(0, 0) - .exact(point.z))
             guard residual.lengthUpperBound <= context.tolerance.distance else {
@@ -2093,8 +2116,8 @@ package struct ExactLoftBodyBuilder {
             }
         }
         typealias CurveRecord = (CurveID, Curve3D)
-        try RationalAlgebraStorage.retain(1, of: CurveRecord.self, usage: &allowance)
-        try RationalAlgebraStorage.retain(1, of: (EdgeID, Edge).self, usage: &allowance)
+        try RationalAlgebraStorage.retain(1, of: CurveRecord.self, usage: &execution)
+        try RationalAlgebraStorage.retain(1, of: (EdgeID, Edge).self, usage: &execution)
         let curveID = CurveID(), edgeID = EdgeID()
         geometry.curves[curveID] = boundary.source
         model.edges[edgeID] = Edge(id: edgeID, curveID: curveID,
@@ -2109,7 +2132,7 @@ package struct ExactLoftBodyBuilder {
         endVertexID: VertexID,
         to model: inout BRepModel,
         geometry: inout GeometryStore
-    ) throws -> EdgeID {
+    , using execution: inout OriginalQueryExecution) throws -> EdgeID {
         guard case let .closed(lower, upper) = curve.domain,
               let startPoint = model.vertices[startVertexID]?.point,
               let endPoint = model.vertices[endVertexID]?.point else {
@@ -2117,8 +2140,8 @@ package struct ExactLoftBodyBuilder {
                 "Exact Loft edge requires bounded geometry and both endpoint vertices."
             )
         }
-        let curveStart = try curve.point(at: lower, tolerance: context.tolerance)
-        let curveEnd = try curve.point(at: upper, tolerance: context.tolerance)
+        let curveStart = try curve.point(at: lower, tolerance: context.tolerance, using: &execution)
+        let curveEnd = try curve.point(at: upper, tolerance: context.tolerance, using: &execution)
         guard curveStart.isApproximatelyEqual(
             to: startPoint,
             tolerance: context.tolerance.distance
@@ -2149,7 +2172,7 @@ package struct ExactLoftBodyBuilder {
         endVertexID: VertexID,
         to model: inout BRepModel,
         geometry: inout GeometryStore
-    ) throws -> EdgeID {
+    , using execution: inout OriginalQueryExecution) throws -> EdgeID {
         guard curve.degree == 1,
               curve.controlPointCount == 2,
               curve.isRational == false,
@@ -2161,7 +2184,7 @@ package struct ExactLoftBodyBuilder {
                 endVertexID: endVertexID,
                 to: &model,
                 geometry: &geometry
-            )
+            , using: &execution)
         }
         let delta = end - start
         let curveID = CurveID()
@@ -2196,7 +2219,7 @@ package struct ExactLoftBodyBuilder {
         to model: inout BRepModel,
         geometry: inout GeometryStore,
         generatedSubshapes: inout [SubshapeID: TopologyReference]
-    ) throws -> FaceID {
+    , using execution: inout OriginalQueryExecution) throws -> FaceID {
         let surfaceID = SurfaceID()
         let loopID = LoopID()
         let faceID = FaceID()
@@ -2308,7 +2331,7 @@ package struct ExactLoftBodyBuilder {
     private func continuitySides(
         loft: LoftFeature, partitions: [SectionPartition], connectionCount: Int,
         tangents: [[Vector3D]], connectionSpans: [Double], guides: [ExactLoftGuideCurve],
-        supports: inout [Int: LoftSideContinuitySupport], allowance: inout LoftOriginalSurfaceAllowance
+        supports: inout [Int: LoftSideContinuitySupport], using execution: inout OriginalQueryExecution
     ) throws -> [Int: [BSplineSurface3D]] {
         guard loft.sections.contains(where: \.hasContinuity) else { return [:] }
         let tolerance = context.tolerance
@@ -2329,25 +2352,25 @@ package struct ExactLoftBodyBuilder {
             guard section.hasContinuity else { continue }
             let other = sectionIndex == 0 ? 1 : sectionCount - 2
             let toward = centroid(partition.rings[other]) - centroid(partition.rings[sectionIndex])
-            func start(of span: BSplineCurve3D) throws -> BSplineCurve3D.DifferentialGeometry {
+            func start(of span: BSplineCurve3D, using execution: inout OriginalQueryExecution) throws -> BSplineCurve3D.DifferentialGeometry {
                 guard case let .closed(lower, _) = span.domain else { throw invalidGeometry("A Loft section span is unbounded.") }
-                return try span.differentialGeometry(at: lower, tolerance: tolerance)
+                return try span.differentialGeometry(at: lower, tolerance: tolerance, using: &execution)
             }
             if let continuity = section.continuity {
-                let first = try start(of: partition.curves[sectionIndex][0])
+                let first = try start(of: partition.curves[sectionIndex][0], using: &execution)
                 let support = try ExactEdgeContinuitySupportResolver().support(
                     for: continuity, point: first.position, derivative: first.firstDerivative,
-                    toward: toward, context: context, featureID: featureID
+                    toward: toward, context: context, featureID: featureID, using: &execution
                 )
                 planes[sectionIndex] = Array(repeating: support, count: partition.curves[sectionIndex].count)
             } else if let continuity = section.faceContinuity, case let .face(face) = section.section {
                 planes[sectionIndex] = try faceSupports(
                     continuity, face: face, spans: partition.curves[sectionIndex], toward: toward, start: start
-                )
+                , using: &execution)
             }
         }
         let closed = partition.rings[0].count == partition.curves[0].count
-        let guided = try guideConnectors(guides, rings: partition.rings)
+        let guided = try guideConnectors(guides, rings: partition.rings, using: &execution)
         let builder = ExactLoftSideSurfaceBuilder()
         var result: [Int: [BSplineSurface3D]] = [:]
         for connection in Set([0, connectionCount - 1]) {
@@ -2361,9 +2384,9 @@ package struct ExactLoftBodyBuilder {
             let exact = ends.allSatisfy(\.isExact)
             var lastFailure: (any Error)?
             for level in 0...(exact ? 0 : 4) {
-                let firstCurves = try partition.curves[first].map { try refined($0, level: level) }
-                let secondCurves = try partition.curves[second].map { try refined($0, level: level) }
-                func derivatives(of section: Int, curves: [BSplineCurve3D], leaving: Bool) throws -> [[Vector3D]] {
+                let firstCurves = try partition.curves[first].map { try refined($0, level: level, using: &execution) }
+                let secondCurves = try partition.curves[second].map { try refined($0, level: level, using: &execution) }
+                func derivatives(of section: Int, curves: [BSplineCurve3D], leaving: Bool, using execution: inout OriginalQueryExecution) throws -> [[Vector3D]] {
                     guard let supports = planes[section] else {
                         return try firstCurves.indices.map { span in
                             let chord = zip(secondCurves[span].controlPoints, firstCurves[span].controlPoints).map { $0 - $1 }
@@ -2384,7 +2407,7 @@ package struct ExactLoftBodyBuilder {
                     }
                     func magnitude(_ span: Int) -> Double { supports[span].tension * scale * (leaving ? 1 : -1) }
                     var rows = try curves.indices.map { span in
-                        try supports[span].leavingDirections(along: curves[span], tolerance: tolerance).map { $0 * magnitude(span) }
+                        try supports[span].leavingDirections(along: curves[span], tolerance: tolerance, using: &execution).map { $0 * magnitude(span) }
                     }
                     // Neighbouring spans share their vertex's row, so the section must not turn a
                     // corner there.
@@ -2400,27 +2423,27 @@ package struct ExactLoftBodyBuilder {
                     }
                     return rows
                 }
-                let leaving = try derivatives(of: first, curves: firstCurves, leaving: true)
-                let arriving = try derivatives(of: second, curves: secondCurves, leaving: false)
+                let leaving = try derivatives(of: first, curves: firstCurves, leaving: true, using: &execution)
+                let arriving = try derivatives(of: second, curves: secondCurves, leaving: false, using: &execution)
                 // Curvature ends take the face's normal curvature across the edge.
-                func seconds(of section: Int, curves: [BSplineCurve3D], rows: [[Vector3D]]) throws -> [[Vector3D]]? {
+                func seconds(of section: Int, curves: [BSplineCurve3D], rows: [[Vector3D]], using execution: inout OriginalQueryExecution) throws -> [[Vector3D]]? {
                     guard let supports = planes[section], supports.contains(where: { $0.order == .curvature }) else { return nil }
-                    return try curves.indices.map { try supports[$0].curvatureRows(along: curves[$0], rows: rows[$0], tolerance: tolerance) }
+                    return try curves.indices.map { try supports[$0].curvatureRows(along: curves[$0], rows: rows[$0], tolerance: tolerance, using: &execution) }
                 }
-                let leavingSeconds = try seconds(of: first, curves: firstCurves, rows: leaving)
-                let arrivingSeconds = try seconds(of: second, curves: secondCurves, rows: arriving)
+                let leavingSeconds = try seconds(of: first, curves: firstCurves, rows: leaving, using: &execution)
+                let arrivingSeconds = try seconds(of: second, curves: secondCurves, rows: arriving, using: &execution)
                 let surfaces = try firstCurves.indices.map { span in
                     try builder.buildHermite(
                         start: firstCurves[span], startDerivatives: leaving[span],
                         end: secondCurves[span], endDerivatives: arriving[span],
                         degree: degree, startSecondDerivatives: leavingSeconds?[span], endSecondDerivatives: arrivingSeconds?[span],
                         tolerance: tolerance
-                    )
+                    , using: &execution)
                 }
                 do {
                     for (span, surface) in surfaces.enumerated() {
-                        try planes[first]?[span].certify(surface, boundaryV: 0, span: firstCurves[span], tolerance: tolerance, featureID: featureID)
-                        try planes[second]?[span].certify(surface, boundaryV: 1, span: secondCurves[span], tolerance: tolerance, featureID: featureID)
+                        try planes[first]?[span].certify(surface, boundaryV: 0, span: firstCurves[span], tolerance: tolerance, featureID: featureID, using: &execution)
+                        try planes[second]?[span].certify(surface, boundaryV: 1, span: secondCurves[span], tolerance: tolerance, featureID: featureID, using: &execution)
                     }
                     result[connection] = surfaces
                     lastFailure = nil
@@ -2433,13 +2456,13 @@ package struct ExactLoftBodyBuilder {
                 throw KernelError(phase: .evaluation, code: .classificationFailure, featureID: featureID, tolerance: tolerance,
                                   message: "A Loft could not meet a curved face within its angular allowance: \(lastFailure)")
             }
-            try RationalAlgebraStorage.retain(1, of: LoftSideContinuitySupport.self, usage: &allowance)
+            try RationalAlgebraStorage.retain(1, of: LoftSideContinuitySupport.self, usage: &execution)
             supports[connection] = LoftSideContinuitySupport(start: planes[first], end: planes[second])
             guard guided[connection].isEmpty == false, var sides = result[connection] else { continue }
-            func column(_ surface: BSplineSurface3D, last: Bool) throws -> BSplineCurve3D {
+            func column(_ surface: BSplineSurface3D, last: Bool, using execution: inout OriginalQueryExecution) throws -> BSplineCurve3D {
                 let curve = BSplineCurve3D(degree: surface.vDegree, knots: surface.vKnots,
                                            controlPoints: surface.controlPoints.map { last ? $0[$0.count - 1] : $0[0] })
-                try curve.validate(tolerance: tolerance)
+                try curve.validate(tolerance: tolerance, using: &execution)
                 return curve
             }
             let vertexCount = partition.rings[first].count
@@ -2449,10 +2472,10 @@ package struct ExactLoftBodyBuilder {
                 guard guided[connection][span] != nil || guided[connection][next] != nil else { continue }
                 sides[span] = try ExactHermiteCoonsSurfaceBuilder(tolerance: tolerance).build(
                     bottom: partition.curves[first][span], top: partition.curves[second][span],
-                    left: try guided[connection][span] ?? column(hermite[span], last: false),
-                    right: try guided[connection][next] ?? column(hermite[span], last: true),
+                    left: try guided[connection][span] ?? column(hermite[span], last: false, using: &execution),
+                    right: try guided[connection][next] ?? column(hermite[span], last: true, using: &execution),
                     bottomPlane: planes[first]?[span], topPlane: planes[second]?[span], featureID: featureID
-                )
+                , using: &execution)
             }
             result[connection] = sides
         }
@@ -2463,8 +2486,8 @@ package struct ExactLoftBodyBuilder {
     /// each span runs along (found through the span's middle), with the face beside that edge.
     private func faceSupports(
         _ continuity: LoftFaceContinuity, face: FaceSectionReference, spans: [BSplineCurve3D], toward: Vector3D,
-        start: (BSplineCurve3D) throws -> BSplineCurve3D.DifferentialGeometry
-    ) throws -> [ExactEdgeContinuitySupport] {
+        start: (BSplineCurve3D, inout OriginalQueryExecution) throws -> BSplineCurve3D.DifferentialGeometry
+    , using execution: inout OriginalQueryExecution) throws -> [ExactEdgeContinuitySupport] {
         let tolerance = context.tolerance
         let model = context.brep
         let scope = try BodyTopologyScope(bodyID: try context.bodyID(generatedBy: face.featureID), model: model)
@@ -2478,31 +2501,31 @@ package struct ExactLoftBodyBuilder {
         let solver = BRepSurfaceMeetingSolver(tolerance: tolerance)
         return try spans.map { span in
             guard case let .closed(lower, upper) = span.domain else { throw invalidGeometry("A Loft section span is unbounded.") }
-            let middle = try span.point(at: (lower + upper) / 2, tolerance: tolerance)
+            let middle = try span.point(at: (lower + upper) / 2, tolerance: tolerance, using: &execution)
             guard let edgeID = try boundary.first(where: { edgeID in
                 guard let edge = model.edges[edgeID], let curve = model.geometry.curves[edge.curveID] else { return false }
-                return (try solver.closest(to: middle, on: curve).point - middle).length <= tolerance.distance * 8
+                return (try solver.closest(to: middle, on: curve, using: &execution).point - middle).length <= tolerance.distance * 8
             }) else {
                 throw KernelError(phase: .evaluation, code: .invalidInput, featureID: featureID, tolerance: tolerance,
                                   message: "A Loft face section's span runs along none of the face's edges.")
             }
-            let first = try start(span)
+            let first = try start(span, &execution)
             return try ExactEdgeContinuitySupportResolver().support(
                 across: edgeID, in: scope, excluding: faceID, order: continuity.order, tension: continuity.tension,
                 angularAllowance: continuity.angularAllowance, curvatureAllowance: continuity.curvatureAllowance,
-                point: first.position, derivative: first.firstDerivative, toward: toward, context: context, featureID: featureID
+                point: first.position, derivative: first.firstDerivative, toward: toward, context: context, featureID: featureID, using: &execution
             )
         }
     }
 
     /// `curve` with the midpoint of every knot span inserted `level` times over.
-    private func refined(_ curve: BSplineCurve3D, level: Int) throws -> BSplineCurve3D {
+    private func refined(_ curve: BSplineCurve3D, level: Int, using execution: inout OriginalQueryExecution) throws -> BSplineCurve3D {
         var result = curve
         for _ in 0..<level {
             var distinct: [Double] = []
             for knot in result.knots where distinct.last.map({ knot > $0 }) ?? true { distinct.append(knot) }
             for (lower, upper) in zip(distinct, distinct.dropFirst()) {
-                result = try result.insertingKnot(0.5 * (lower + upper), tolerance: context.tolerance)
+                result = try result.insertingKnot(0.5 * (lower + upper), tolerance: context.tolerance, using: &execution)
             }
         }
         return result
@@ -2548,7 +2571,7 @@ package struct ExactLoftBodyBuilder {
         scales: [Double],
         modes: [LoftSectionSmoothTangentMode],
         enabled: Bool
-    ) throws -> [[Vector3D]] {
+    , using execution: inout OriginalQueryExecution) throws -> [[Vector3D]] {
         guard enabled else {
             return rings.map { ring in
                 Array(repeating: .zero, count: ring.count)
@@ -2635,7 +2658,7 @@ package struct ExactLoftBodyBuilder {
         } / Double(first.count)
     }
 
-    private func ringWindingNormal(_ ring: [Point3D]) throws -> Vector3D {
+    private func ringWindingNormal(_ ring: [Point3D], using execution: inout OriginalQueryExecution) throws -> Vector3D {
         guard ring.count >= 3 else {
             throw SketchError.degenerateProfile
         }
@@ -2669,4 +2692,11 @@ package struct ExactLoftBodyBuilder {
             message: message
         )
     }
+    private func ordinaryExecution() throws -> OriginalQueryExecution {
+        OriginalQueryExecution(budget: try OriginalQueryBudget(workLimit: 262_144,
+            storageByteLimit: 1_048_576, allocationPolicy: .uint32WordWork),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32,
+                remainingSourceDepth: 20, maximumSubdivisionDepth: 20, maximumSpans: 4096))
+    }
+
 }

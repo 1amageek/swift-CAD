@@ -15,7 +15,7 @@ public struct OriginalCurveRootBoundary: Hashable, Sendable {
     private let root: ExactAlgebraicRealRoot
     package var retainedRootEndpoint: ExactMonotoneGraphEndpoint { .algebraic(root) }
 
-    public init<B: RationalAlgebraAdmitting>(source: BSplineCurve3D, spanIndex: Int,
+    public init<B: ExactScalarAdmission & ~Copyable>(source: BSplineCurve3D, spanIndex: Int,
         constraint: OriginalCurveIncidenceConstraint, isolation: ExactUnivariateRootIsolator.Root,
         maximumSubdivisionDepth: Int, tolerance: ModelingTolerance, usage: inout B) throws {
         try self.init(source: source, spanIndex: spanIndex, constraint: constraint,
@@ -26,7 +26,7 @@ public struct OriginalCurveRootBoundary: Hashable, Sendable {
             tolerance: tolerance, usage: &usage)
     }
 
-    public init<B: RationalAlgebraAdmitting>(source: BSplineCurve3D, spanIndex: Int,
+    public init<B: ExactScalarAdmission & ~Copyable>(source: BSplineCurve3D, spanIndex: Int,
         constraint: OriginalCurveIncidenceConstraint, isolation: ScalarInterval,
         maximumSubdivisionDepth: Int, tolerance: ModelingTolerance, usage: inout B) throws {
         let lower = try ExactRationalCoefficient.originalDouble(isolation.lower, usage: &usage)
@@ -36,7 +36,7 @@ public struct OriginalCurveRootBoundary: Hashable, Sendable {
             maximumSubdivisionDepth: maximumSubdivisionDepth, tolerance: tolerance, usage: &usage)
     }
 
-    public init<B: RationalAlgebraAdmitting>(source: BSplineCurve3D, spanIndex: Int,
+    public init<B: ExactScalarAdmission & ~Copyable>(source: BSplineCurve3D, spanIndex: Int,
         constraint: OriginalCurveIncidenceConstraint, isolationLower lower: ExactRationalCoefficient,
         isolationUpper upper: ExactRationalCoefficient, excludesLowerEndpoint: Bool = false,
         excludesUpperEndpoint: Bool = false, isolationDepth: Int = 0, maximumSubdivisionDepth: Int,
@@ -77,7 +77,7 @@ public struct OriginalCurveRootBoundary: Hashable, Sendable {
     }
 
     /// Retains an already admitted unique native parameter root without rebuilding it.
-    package static func retaining<B: RationalAlgebraAdmitting>(source: BSplineCurve3D,
+    package static func retaining<B: ExactScalarAdmission & ~Copyable>(source: BSplineCurve3D,
         spanIndex: Int, coordinate: ExactAlgebraicRealRoot, maximumSubdivisionDepth: Int,
         tolerance: ModelingTolerance, usage: inout B, maximumAlgebraicDepth: Int = 32) throws -> Self {
         let original = try OriginalRationalCurvePolynomial(source: source,
@@ -87,7 +87,7 @@ public struct OriginalCurveRootBoundary: Hashable, Sendable {
             usage: &usage, maximumAlgebraicDepth: maximumAlgebraicDepth)
     }
 
-    package static func retaining<B: RationalAlgebraAdmitting>(
+    package static func retaining<B: ExactScalarAdmission & ~Copyable>(
         prepared original: OriginalRationalCurvePolynomial, coordinate: ExactAlgebraicRealRoot,
         maximumSubdivisionDepth: Int, tolerance: ModelingTolerance, usage: inout B,
         maximumAlgebraicDepth: Int = 32) throws -> Self {
@@ -102,7 +102,7 @@ public struct OriginalCurveRootBoundary: Hashable, Sendable {
             !(try original.upperParameter.subtracting(isolation.upper, usage: &usage)).isNegative else {
             throw GeometryConversionError.invalidInput("Retained parameter root extends beyond its original native owner.")
         }
-        try usage.consumeExactWork(1)
+        try usage.consumeWork(1)
         try RationalAlgebraStorage.retain(1, of: Self.self, usage: &usage)
         return Self(source: original.source, spanIndex: original.spanIndex, coordinate: coordinate,
             polynomial: original, tolerance: tolerance)
@@ -136,7 +136,7 @@ public struct OriginalCurveRootBoundary: Hashable, Sendable {
     }
 
     /// Refines only derived isolating state; original source fields stay unchanged.
-    func refinedIsolation<B: RationalAlgebraAdmitting>(maximumWidth: Double,
+    func refinedIsolation<B: ExactScalarAdmission & ~Copyable>(maximumWidth: Double,
         maximumSubdivisionDepth: Int, usage: inout B) throws -> ExactUnivariateRootIsolator.Root {
         guard maximumWidth.isFinite, maximumWidth > 0 else {
             throw GeometryConversionError.invalidInput("Original root refinement requires a finite positive width.")
@@ -146,7 +146,7 @@ public struct OriginalCurveRootBoundary: Hashable, Sendable {
     }
 
     /// Refines the original unique root, never treating a candidate midpoint as incidence.
-    package func parameterBounds<B: RationalAlgebraAdmitting>(maximumWidth: Double,
+    package func parameterBounds<B: ExactScalarAdmission & ~Copyable>(maximumWidth: Double,
         maximumSubdivisionDepth: Int, usage: inout B) throws -> ScalarInterval {
         let refined = try refinedIsolation(maximumWidth: maximumWidth,
             maximumSubdivisionDepth: maximumSubdivisionDepth, usage: &usage)
@@ -155,7 +155,7 @@ public struct OriginalCurveRootBoundary: Hashable, Sendable {
         return try .init(lower: lower.lower, upper: upper.upper)
     }
 
-    package func positionBounds<B: RationalAlgebraAdmitting>(maximumParameterWidth: Double,
+    package func positionBounds<B: ExactScalarAdmission & ~Copyable>(maximumParameterWidth: Double,
         maximumSubdivisionDepth: Int, usage: inout B) throws -> IntervalVector3DBounds {
         let isolation = try refinedIsolation(maximumWidth: maximumParameterWidth,
             maximumSubdivisionDepth: maximumSubdivisionDepth, usage: &usage)
@@ -172,7 +172,7 @@ public struct OriginalCurveRootBoundary: Hashable, Sendable {
         return .init(x: x, y: y, z: z)
     }
 
-    package func sign<B:RationalAlgebraAdmitting>(of expression:ExactBivariatePolynomial,
+    package func sign<B:ExactScalarAdmission & ~Copyable>(of expression:ExactBivariatePolynomial,
         maximumSubdivisionDepth:Int,usage:inout B) throws -> ExactAlgebraicRealRoot.Sign {
         try root.sign(of:expression,maximumDepth:maximumSubdivisionDepth,usage:&usage)
     }
@@ -193,7 +193,7 @@ extension OriginalCurveRootBoundary: Codable {
         try c.validateOnlyExpectedKeys([.source, .spanIndex, .constraint, .isolationLower, .isolationUpper,
             .excludesLowerEndpoint, .excludesUpperEndpoint, .isolationDepth, .certificationTolerance], in: decoder)
         if #available(macOS 15, iOS 18, visionOS 2, watchOS 11, tvOS 18, *) {
-            var usage = try NativeRationalSourceDecodingContext.allowance(from: decoder)
+            var usage = try NativeRationalSourceDecodingContext.execution(from: decoder)
             try self.init(source: c.decode(BSplineCurve3D.self, forKey: .source),
                 spanIndex: c.decode(Int.self, forKey: .spanIndex),
                 constraint: c.decode(OriginalCurveIncidenceConstraint.self, forKey: .constraint),
@@ -202,7 +202,7 @@ extension OriginalCurveRootBoundary: Codable {
                 excludesLowerEndpoint: c.decode(Bool.self, forKey: .excludesLowerEndpoint),
                 excludesUpperEndpoint: c.decode(Bool.self, forKey: .excludesUpperEndpoint),
                 isolationDepth: c.decode(Int.self, forKey: .isolationDepth),
-                maximumSubdivisionDepth: usage.maximumDepth,
+                maximumSubdivisionDepth: usage.limits.maximumValueDepth,
                 tolerance: c.decode(ModelingTolerance.self, forKey: .certificationTolerance), usage: &usage)
         } else {
             throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable

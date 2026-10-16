@@ -6,11 +6,11 @@ import Testing
 @Suite("Public original native curve-surface whole relations", .serialized)
 struct NativeCurveSurfaceRelationTests {
     private let tolerance = ModelingTolerance.standard
-    private func usage() -> OriginalRelationUsage {
-        .init(consumeWork: { _ in }, retainStorage: { _ in }, visitCell: { _ in }, visitCoefficientCell: { _ in })
+    private func usage() throws -> OriginalQueryExecution {
+        try .independentGeometry()
     }
     private func number(_ value: Double) throws -> ExactRationalCoefficient {
-        var admission = usage(); return try .originalDouble(value, usage: &admission)
+        var admission = try usage(); return try .originalDouble(value, usage: &admission)
     }
     private func curve(constant: Bool = false) -> BSplineCurve3D {
         .init(degree: 1, knots: [0,0,1,1], controlPoints: [
@@ -23,6 +23,7 @@ struct NativeCurveSurfaceRelationTests {
     }
     @Test(.timeLimit(.minutes(2)))
     func completeGraphProjectionMembershipAndDiscreteFailure() throws {
+        var readerExecution = try usage()
         let solver = DefaultCurveSurfaceIntersector(), c = curve(), s = plane()
         let result = try solver.intersectionResult(curve: .bSpline(c),surface: .bSpline(s),tolerance: tolerance)
         let relation = try #require(result.originalNativeRelations)
@@ -31,23 +32,24 @@ struct NativeCurveSurfaceRelationTests {
         #expect(relation.components[0].imageDimension == 1)
         let projection = try #require(relation.components[0].curveParameterProjections.first)
         #expect(projection.includesLower && projection.includesUpper)
-        #expect(try projection.lower.enclosed(maximumDepth: 32,maximumCoefficientDepth: 0,usage: usage()).lower == number(0))
-        #expect(try projection.upper.enclosed(maximumDepth: 32,maximumCoefficientDepth: 0,usage: usage()).upper == number(1))
-        #expect(try relation.contains(rationalParameters: [number(0.25),number(0.25),number(0.5)],maximumDepth: 32,usage: usage()))
-        #expect(try !relation.contains(rationalParameters: [number(0.25),number(0.5),number(0.5)],maximumDepth: 32,usage: usage()))
-        let fiber = try relation.surfaceParameterFiber(at: .rational(number(0.25),usage: usage()),
-            maximumDepth: 32,maximumCoefficientDepth: 0,usage: usage())
+        #expect(try projection.lower.enclosed(maximumDepth: 32,maximumCoefficientDepth: 0,usage: &readerExecution).lower == number(0))
+        #expect(try projection.upper.enclosed(maximumDepth: 32,maximumCoefficientDepth: 0,usage: &readerExecution).upper == number(1))
+        #expect(try relation.contains(rationalParameters: [number(0.25),number(0.25),number(0.5)],maximumDepth: 32,usage: &readerExecution))
+        #expect(try !relation.contains(rationalParameters: [number(0.25),number(0.5),number(0.5)],maximumDepth: 32,usage: &readerExecution))
+        let fiber = try relation.surfaceParameterFiber(at: .rational(number(0.25),usage: &readerExecution),
+            maximumDepth: 32,maximumCoefficientDepth: 0,usage: &readerExecution)
         #expect(fiber.cells.count == 1 && fiber.components.count == 1 && fiber.cells[0].dimension == 0)
-        #expect(try fiber.contains(rationalPoint: [number(0.25),number(0.5)],maximumDepth: 32,maximumCoefficientDepth: 0,usage: usage()))
-        #expect(throws: KernelError.self) { try solver.intersections(curve: .bSpline(c),surface: .bSpline(s),options: .init(),tolerance: tolerance) }
+        #expect(try fiber.contains(rationalPoint: [number(0.25),number(0.5)],maximumDepth: 32,maximumCoefficientDepth: 0,usage: &readerExecution))
+        geometryTestExpectFailure({ geometryTestKernelFailure($0) != nil }) { try solver.intersections(curve: .bSpline(c),surface: .bSpline(s),options: .init(),tolerance: tolerance) }
         let foreign = try #require(solver.intersectionResult(curve: .bSpline(c),surface: .bSpline(s),tolerance: tolerance).originalNativeRelations)
         #expect(throws: GeometryConversionError.self) {
             try relation.contains(rationalParameters: [number(0),number(0),number(0.5)],
-                inCell: foreign.cells[0].identifier,maximumDepth: 32,usage: usage())
+                inCell: foreign.cells[0].identifier,maximumDepth: 32,usage: &readerExecution)
         }
     }
     @Test(.timeLimit(.minutes(2)))
     func collapsedImageAndSurfaceFibersKeepDifferentDimensions() throws {
+        var readerExecution = try usage()
         let solver = DefaultCurveSurfaceIntersector()
         let constant = try #require(solver.intersectionResult(curve: .bSpline(curve(constant: true)),
             surface: .bSpline(plane()),tolerance: tolerance).originalNativeRelations)
@@ -58,14 +60,15 @@ struct NativeCurveSurfaceRelationTests {
             surface: .bSpline(plane(collapsed: true)),tolerance: tolerance).originalNativeRelations)
         #expect(collapsed.components[0].parameterDimension == 2 && collapsed.components[0].imageDimension == 1)
         #expect(collapsed.cells.contains { $0.parameterDimension == 2 && $0.surfaceParameterFiberDimension == 1 })
-        let fiber = try collapsed.surfaceParameterFiber(at: .rational(number(0.5),usage: usage()),
-            maximumDepth: 32,maximumCoefficientDepth: 0,usage: usage())
+        let fiber = try collapsed.surfaceParameterFiber(at: .rational(number(0.5),usage: &readerExecution),
+            maximumDepth: 32,maximumCoefficientDepth: 0,usage: &readerExecution)
         #expect(fiber.components.count == 1 && fiber.components[0].dimension == 1)
-        #expect(try fiber.contains(rationalPoint: [number(0.5),number(0)],maximumDepth: 32,maximumCoefficientDepth: 0,usage: usage()))
-        #expect(try fiber.contains(rationalPoint: [number(0.5),number(1)],maximumDepth: 32,maximumCoefficientDepth: 0,usage: usage()))
+        #expect(try fiber.contains(rationalPoint: [number(0.5),number(0)],maximumDepth: 32,maximumCoefficientDepth: 0,usage: &readerExecution))
+        #expect(try fiber.contains(rationalPoint: [number(0.5),number(1)],maximumDepth: 32,maximumCoefficientDepth: 0,usage: &readerExecution))
     }
     @Test(.timeLimit(.minutes(1)))
     func fullCollapsedProductRetainsThreeParameterDimensions() throws {
+        var readerExecution = try usage()
         let c = BSplineCurve3D(degree: 1,knots: [0,0,1,1],controlPoints: [
             .init(x: 0,y: 0,z: 0),.init(x: 0,y: 0,z: 0)])
         let s = BSplineSurface3D(uDegree: 1,vDegree: 1,uKnots: [0,0,1,1],vKnots: [0,0,1,1],controlPoints: [
@@ -76,12 +79,12 @@ struct NativeCurveSurfaceRelationTests {
         #expect(result.points.isEmpty && relation.components.count == 1)
         #expect(relation.components[0].parameterDimension == 3 && relation.components[0].imageDimension == 0)
         #expect(relation.cells.contains { $0.parameterDimension == 3 && $0.surfaceParameterFiberDimension == 2 && $0.imageFiberDimension == 3 })
-        let fiber = try relation.surfaceParameterFiber(at: .rational(number(0.5),usage: usage()),
-            maximumDepth: 32,maximumCoefficientDepth: 0,usage: usage())
+        let fiber = try relation.surfaceParameterFiber(at: .rational(number(0.5),usage: &readerExecution),
+            maximumDepth: 32,maximumCoefficientDepth: 0,usage: &readerExecution)
         #expect(fiber.components.count == 1 && fiber.components[0].dimension == 2)
         for u in [0.0,1.0] {
             for v in [0.0,1.0] {
-                #expect(try fiber.contains(rationalPoint: [number(u),number(v)],maximumDepth: 32,maximumCoefficientDepth: 0,usage: usage()))
+                #expect(try fiber.contains(rationalPoint: [number(u),number(v)],maximumDepth: 32,maximumCoefficientDepth: 0,usage: &readerExecution))
             }
         }
     }
@@ -102,6 +105,7 @@ struct NativeCurveSurfaceRelationTests {
     }
     @Test(.timeLimit(.minutes(2)))
     func multivaluedConstantSourceFiberRetainsEveryPreimage() throws {
+        var readerExecution = try usage()
         let c = BSplineCurve3D(degree: 1,knots: [0,0,1,1],controlPoints: [
             .init(x: 0.25,y: 0.5,z: 0),.init(x: 0.25,y: 0.5,z: 0)])
         let s = BSplineSurface3D(uDegree: 2,vDegree: 1,uKnots: [-1,-1,-1,1,1,1],vKnots: [0,0,1,1],controlPoints: [
@@ -110,15 +114,16 @@ struct NativeCurveSurfaceRelationTests {
         let relation = try #require(DefaultCurveSurfaceIntersector().intersectionResult(curve: .bSpline(c),
             surface: .bSpline(s),tolerance: tolerance).originalNativeRelations)
         #expect(relation.components.count == 2 && relation.components.allSatisfy { $0.imageDimension == 0 })
-        let fiber = try relation.surfaceParameterFiber(at: .rational(number(0.25),usage: usage()),
-            maximumDepth: 32,maximumCoefficientDepth: 0,usage: usage())
+        let fiber = try relation.surfaceParameterFiber(at: .rational(number(0.25),usage: &readerExecution),
+            maximumDepth: 32,maximumCoefficientDepth: 0,usage: &readerExecution)
         #expect(fiber.cells.count == 2 && fiber.components.count == 2)
         for u in [-0.5,0.5] {
-            #expect(try fiber.contains(rationalPoint: [number(u),number(0.5)],maximumDepth: 32,maximumCoefficientDepth: 0,usage: usage()))
+            #expect(try fiber.contains(rationalPoint: [number(u),number(0.5)],maximumDepth: 32,maximumCoefficientDepth: 0,usage: &readerExecution))
         }
     }
     @Test(.timeLimit(.minutes(2)))
     func exactAlgebraicStationRetainsItsSourceScalar() throws {
+        var readerExecution = try usage()
         let source = BSplineCurve3D(degree: 2,knots: [0,0,0,1,1,1],controlPoints: [
             .init(x: 0.5,y: 0.5,z: -1),.init(x: 0.5,y: 0.5,z: -1),.init(x: 0.5,y: 0.5,z: 1)])
         let solver = DefaultCurveSurfaceIntersector()
@@ -127,13 +132,13 @@ struct NativeCurveSurfaceRelationTests {
         let station = try pointReceipt.point(at: 0).parameter(axis: 0,in: pointReceipt)
         let relation = try #require(solver.intersectionResult(curve: .bSpline(curve()),surface: .bSpline(plane()),
             tolerance: tolerance).originalNativeRelations)
-        let fiber = try relation.surfaceParameterFiber(at: station,maximumDepth: 32,maximumCoefficientDepth: 32,usage: usage())
+        let fiber = try relation.surfaceParameterFiber(at: station,maximumDepth: 32,maximumCoefficientDepth: 32,usage: &readerExecution)
         #expect(fiber.cells.count == 1 && fiber.components[0].dimension == 0)
-        let value = try fiber.cells[0].sample[0].enclosed(maximumDepth: 32,maximumCoefficientDepth: 32,usage: usage())
-        let originalDepth = try station.enclosed(maximumDepth: 32,maximumCoefficientDepth: 0,usage: usage()).sourceDepth
+        let value = try fiber.cells[0].sample[0].enclosed(maximumDepth: 32,maximumCoefficientDepth: 32,usage: &readerExecution)
+        let originalDepth = try station.enclosed(maximumDepth: 32,maximumCoefficientDepth: 0,usage: &readerExecution).sourceDepth
         #expect(value.sourceDepth >= originalDepth)
         #expect(throws: (any Error).self) {
-            try relation.surfaceParameterFiber(at: station,maximumDepth: 0,maximumCoefficientDepth: 0,usage: usage())
+            try relation.surfaceParameterFiber(at: station,maximumDepth: 0,maximumCoefficientDepth: 0,usage: &readerExecution)
         }
     }
     @Test(.timeLimit(.minutes(2)))
@@ -147,31 +152,33 @@ struct NativeCurveSurfaceRelationTests {
             options: .init(curveRange: .init(lower: 0,upper: 0)),tolerance: tolerance)
         #expect(singleton.points.count == 1 && !singleton.hasPositiveDimensionalSolutions)
         #expect(singleton.originalNativeRelations?.components.count == 1)
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestKernelFailure($0) != nil }) {
             try solver.intersectionResult(curve: .bSpline(curve()),surface: .bSpline(plane()),
                 options: .init(maximumCandidateCount: 1),tolerance: tolerance)
         }
     }
     @Test(.timeLimit(.minutes(2)))
     func multivaluedFoldFiberAndExactOutsideExclusion() throws {
+        var readerExecution = try usage()
         let surface = BSplineSurface3D(uDegree: 2,vDegree: 1,uKnots: [-1,-1,-1,1,1,1],vKnots: [0,0,1,1],controlPoints: [
             [.init(x: 1,y: 0,z: 0),.init(x: -1,y: 0,z: 0),.init(x: 1,y: 0,z: 0)],
             [.init(x: 1,y: 1,z: 0),.init(x: -1,y: 1,z: 0),.init(x: 1,y: 1,z: 0)]])
         let relation = try #require(DefaultCurveSurfaceIntersector().intersectionResult(curve: .bSpline(curve()),
             surface: .bSpline(surface),tolerance: tolerance).originalNativeRelations)
         #expect(relation.components.count == 1)
-        let fiber = try relation.surfaceParameterFiber(at: .rational(number(0.25),usage: usage()),
-            maximumDepth: 32,maximumCoefficientDepth: 0,usage: usage())
+        let fiber = try relation.surfaceParameterFiber(at: .rational(number(0.25),usage: &readerExecution),
+            maximumDepth: 32,maximumCoefficientDepth: 0,usage: &readerExecution)
         #expect(fiber.cells.count == 2 && fiber.components.count == 2)
         for u in [-0.5,0.5] {
-            #expect(try fiber.contains(rationalPoint: [number(u),number(0.5)],maximumDepth: 32,maximumCoefficientDepth: 0,usage: usage()))
+            #expect(try fiber.contains(rationalPoint: [number(u),number(0.5)],maximumDepth: 32,maximumCoefficientDepth: 0,usage: &readerExecution))
         }
-        let outside = try relation.surfaceParameterFiber(at: .rational(number(2),usage: usage()),
-            maximumDepth: 32,maximumCoefficientDepth: 0,usage: usage())
+        let outside = try relation.surfaceParameterFiber(at: .rational(number(2),usage: &readerExecution),
+            maximumDepth: 32,maximumCoefficientDepth: 0,usage: &readerExecution)
         #expect(outside.cells.isEmpty && outside.components.isEmpty)
     }
     @Test(.timeLimit(.minutes(2)), arguments: [0,1,2])
     func singularCrossingContactAndCuspAttachments(mode: Int) throws {
+        var readerExecution = try usage()
         let c: BSplineCurve3D, s: BSplineSurface3D
         if mode < 2 {
             let degree = mode == 0 ? 2 : 4
@@ -194,7 +201,7 @@ struct NativeCurveSurfaceRelationTests {
         let singular = try relation.cells.filter { cell in
             guard cell.parameterDimension == 0 else { return false }
             return try relation.contains(rationalParameters: [number(0),number(0),number(mode == 2 ? 0 : 0.5)],
-                inCell: cell.identifier,maximumDepth: 32,usage: usage())
+                inCell: cell.identifier,maximumDepth: 32,usage: &readerExecution)
         }
         let junction = try #require(singular.first)
         #expect(junction.originalJacobianRank < 2)
@@ -205,6 +212,7 @@ struct NativeCurveSurfaceRelationTests {
     }
     @Test(.timeLimit(.minutes(1)))
     func retainedSourceAndFiberSurviveInputMutationAndRelease() throws {
+        var readerExecution = try usage()
         var retained: OriginalNativeCurveSurfaceRelation?
         do {
             var source = curve(), target = plane()
@@ -217,23 +225,31 @@ struct NativeCurveSurfaceRelationTests {
         let fiber: OriginalRealRelation
         do {
             let receipt = try #require(retained)
-            #expect(try receipt.contains(rationalParameters: [number(0.25),number(0.25),number(0.5)],maximumDepth: 32,usage: usage()))
-            fiber = try receipt.surfaceParameterFiber(at: .rational(number(0.25),usage: usage()),
-                maximumDepth: 32,maximumCoefficientDepth: 0,usage: usage())
+            #expect(try receipt.contains(rationalParameters: [number(0.25),number(0.25),number(0.5)],maximumDepth: 32,usage: &readerExecution))
+            fiber = try receipt.surfaceParameterFiber(at: .rational(number(0.25),usage: &readerExecution),
+                maximumDepth: 32,maximumCoefficientDepth: 0,usage: &readerExecution)
         }
         retained = nil
         #expect(fiber.cells.count == 1 && fiber.components[0].dimension == 0)
-        #expect(try fiber.contains(rationalPoint: [number(0.25),number(0.5)],maximumDepth: 32,maximumCoefficientDepth: 0,usage: usage()))
-        #expect(try !fiber.contains(rationalPoint: [number(0.5),number(0.5)],maximumDepth: 32,maximumCoefficientDepth: 0,usage: usage()))
+        #expect(try fiber.contains(rationalPoint: [number(0.25),number(0.5)],maximumDepth: 32,maximumCoefficientDepth: 0,usage: &readerExecution))
+        #expect(try !fiber.contains(rationalPoint: [number(0.5),number(0.5)],maximumDepth: 32,maximumCoefficientDepth: 0,usage: &readerExecution))
     }
     @Test(.timeLimit(.minutes(1)))
     func cancellationAtFinalPositiveRelationAdmissionIsAtomic() async throws {
         let solver = DefaultCurveSurfaceIntersector(), c = Curve3D.bSpline(curve()), s = Surface3D.bSpline(plane())
         let tolerance = tolerance
         @Sendable func query(_ storage: @escaping @Sendable (Int) throws -> Void) throws -> CurveSurfaceIntersectionResult {
-            try solver.intersectionResult(curve: c,surface: s,tolerance: tolerance,
-                maximumSpanCount: 1,maximumSubdivisionDepth: 0,remainingSourceDepth: 1,
-                consumeWork: { _ in },consumeStorage: storage,maximumAlgebraicDepth: 32)
+            try geometryTestWithQuery(maximumSpanCount: 1,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            maximumAlgebraicDepth: 32,
+            consumeWorkUnits: { _ in },
+            consumeStorageBytes: storage) { queryExecution in
+            try solver.intersectionResult(curve: c,
+            surface: s,
+            tolerance: tolerance,
+            using: &queryExecution)
+        }
         }
         let calls = Mutex(0)
         let complete = try query { _ in calls.withLock { $0 += 1 } }
@@ -250,28 +266,48 @@ struct NativeCurveSurfaceRelationTests {
         do {
             _ = try await operation.value
             Issue.record("Cancellation at final positive-dimensional relation admission published success.")
-        } catch is CancellationError {
+        } catch where geometryTestIsCancelled(error) {
             #expect(visits.withLock { $0 } == finalCall)
         }
     }
     @Test(.timeLimit(.minutes(2)))
     func admittedRichRelationAndIndependentFailureAreAtomic() throws {
         let solver = DefaultCurveSurfaceIntersector(), work = Mutex(0), bytes = Mutex(0)
-        let result = try solver.intersectionResult(curve: .bSpline(curve()),surface: .bSpline(plane()),tolerance: tolerance,
-            maximumSpanCount: 1,maximumSubdivisionDepth: 0,remainingSourceDepth: 1,
-            consumeWork: { _ in work.withLock { $0 += 1 } },
-            consumeStorage: { count in bytes.withLock { $0 += count } },maximumAlgebraicDepth: 32)
+        let result = try geometryTestWithQuery(maximumSpanCount: 1,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            maximumAlgebraicDepth: 32,
+            consumeWorkUnits: { _ in work.withLock { $0 += 1 } },
+            consumeStorageBytes: { count in bytes.withLock { $0 += count } }) { queryExecution in
+            try solver.intersectionResult(curve: .bSpline(curve()),
+            surface: .bSpline(plane()),
+            tolerance: tolerance,
+            using: &queryExecution)
+        }
         #expect(result.originalNativeRelations?.components.count == 1)
         #expect(work.withLock { $0 } > 0 && bytes.withLock { $0 } > 0)
-        #expect(throws: KernelError.self) {
-            try solver.intersectionResult(curve: .bSpline(curve()),surface: .bSpline(plane()),tolerance: tolerance,
-                maximumSpanCount: 1,maximumSubdivisionDepth: 0,remainingSourceDepth: 1,
-                consumeWork: { _ in throw KernelError(phase: .geometry,code: .resourceLimitExceeded,tolerance: nil,message: "Independent work refusal.") })
+        geometryTestExpectFailure({ geometryTestKernelFailure($0) != nil }) {
+            try geometryTestWithQuery(maximumSpanCount: 1,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            consumeWorkUnits: { _ in throw KernelError(phase: .geometry,code: .resourceLimitExceeded,tolerance: nil,message: "Independent work refusal.") }) { queryExecution in
+            try solver.intersectionResult(curve: .bSpline(curve()),
+            surface: .bSpline(plane()),
+            tolerance: tolerance,
+            using: &queryExecution)
         }
-        #expect(throws: KernelError.self) {
-            try solver.intersectionResult(curve: .bSpline(curve()),surface: .bSpline(plane()),tolerance: tolerance,
-                maximumSpanCount: 1,maximumSubdivisionDepth: 0,remainingSourceDepth: 1,
-                consumeWork: { _ in },consumeStorage: { _ in throw KernelError(phase: .geometry,code: .resourceLimitExceeded,tolerance: nil,message: "Independent storage refusal.") })
+        }
+        geometryTestExpectFailure({ geometryTestKernelFailure($0) != nil }) {
+            try geometryTestWithQuery(maximumSpanCount: 1,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            consumeWorkUnits: { _ in },
+            consumeStorageBytes: { _ in throw KernelError(phase: .geometry,code: .resourceLimitExceeded,tolerance: nil,message: "Independent storage refusal.") }) { queryExecution in
+            try solver.intersectionResult(curve: .bSpline(curve()),
+            surface: .bSpline(plane()),
+            tolerance: tolerance,
+            using: &queryExecution)
+        }
         }
     }
 }

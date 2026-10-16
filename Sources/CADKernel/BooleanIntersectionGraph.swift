@@ -19,14 +19,20 @@ public struct BooleanIntersectionGraph: Hashable, Sendable {
         self.faceIntersections = faceIntersections
     }
 
+    public func validate(in model: BRepModel, tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        try validate(in: model, tolerance: tolerance, using: &execution)
+    }
+
     public func validate(in model: BRepModel, tolerance: ModelingTolerance,
-        consumeWork: (@Sendable (Int) throws -> Void)? = nil) throws {
-        try consumeWork?(0)
+        using execution: inout OriginalQueryExecution) throws {
+      do {
+        try execution.consumeWork(1)
         try tolerance.validate()
         var candidates: Set<BooleanFacePairCandidate> = []
         for pair in facePairs {
-            try consumeWork?(0)
-            guard candidates.insert(pair).inserted else {
+            try execution.consumeWork(1)
+            guard try OriginalParameterQueryStorage.insert(pair, in: &candidates, using: &execution) else {
             throw KernelError(
                 phase: .geometry,
                 code: .invalidInput,
@@ -36,7 +42,7 @@ public struct BooleanIntersectionGraph: Hashable, Sendable {
             }
         }
         for intersection in faceIntersections {
-            try consumeWork?(0)
+            try execution.consumeWork(1)
             guard candidates.contains(intersection.facePair),
                   model.faces[intersection.facePair.targetFaceID] != nil,
                   model.faces[intersection.facePair.toolFaceID] != nil else {
@@ -48,7 +54,7 @@ public struct BooleanIntersectionGraph: Hashable, Sendable {
                 )
             }
             let residual: Double
-            try consumeWork?(0)
+            try execution.consumeWork(1)
             switch intersection.geometry {
             case let .curve(value):
                 residual = value.maximumResidual
@@ -75,7 +81,7 @@ public struct BooleanIntersectionGraph: Hashable, Sendable {
             }
         }
         for contact in boundaryContacts {
-            try consumeWork?(0)
+            try execution.consumeWork(1)
             guard model.edges[contact.edgeID] != nil,
                   model.faces[contact.curveFaceID] != nil,
                   model.faces[contact.surfaceFaceID] != nil else {
@@ -107,7 +113,7 @@ public struct BooleanIntersectionGraph: Hashable, Sendable {
                 contains: contact.edgeID,
                 in: model,
                 tolerance: tolerance,
-                consumeWork: consumeWork
+                using: &execution
             ) else {
                 throw KernelError(
                     phase: .geometry,
@@ -120,7 +126,7 @@ public struct BooleanIntersectionGraph: Hashable, Sendable {
                 var valid = intersections.isEmpty == false
                 var maximumResidual: Double?
                 for intersection in intersections {
-                    try consumeWork?(0)
+                    try execution.consumeWork(1)
                     valid = valid && intersection.residual <= tolerance.distance
                     maximumResidual = max(maximumResidual ?? intersection.residual,
                         intersection.residual)
@@ -136,6 +142,8 @@ public struct BooleanIntersectionGraph: Hashable, Sendable {
                 }
             }
         }
+
+      } catch { throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance) }
     }
 
     private func face(
@@ -143,11 +151,11 @@ public struct BooleanIntersectionGraph: Hashable, Sendable {
         contains edgeID: EdgeID,
         in model: BRepModel,
         tolerance: ModelingTolerance,
-        consumeWork: (@Sendable (Int) throws -> Void)?
+        using execution: inout OriginalQueryExecution
     ) throws -> Bool {
         guard let face = model.faces[faceID] else { return false }
         for loopID in face.loops {
-            try consumeWork?(0)
+            try execution.consumeWork(1)
             guard let loop = model.loops[loopID] else {
                 throw KernelError(
                     phase: .topology,
@@ -157,7 +165,7 @@ public struct BooleanIntersectionGraph: Hashable, Sendable {
                 )
             }
             for coedge in loop.coedges {
-                try consumeWork?(0)
+                try execution.consumeWork(1)
                 if coedge.edgeID == edgeID { return true }
             }
         }

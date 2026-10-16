@@ -22,7 +22,7 @@ public struct DefaultOriginalAngularPlaneRelationCompiler<S: OriginalAnalyticCoo
         plane: Result.PlaneCover,maximumPairs: Int,maximumExtensionLevel: Int,
         limits: OriginalDomainIdentityLimits,cellLimits: ExactRealCellLimits,
         topologyLimits: ExactRealTopologyLimits,using a: inout A) throws -> Result {
-        try OriginalSourceProofAdmission<A>.withBorrow(&a) { tracked in
+        try a.withProofScope() { tracked in
             try resolveTracked(curve:curve,plane:plane,maximumPairs:maximumPairs,
                 maximumExtensionLevel:maximumExtensionLevel,limits:limits,
                 cellLimits:cellLimits,topologyLimits:topologyLimits,using:&tracked)
@@ -31,7 +31,7 @@ public struct DefaultOriginalAngularPlaneRelationCompiler<S: OriginalAnalyticCoo
     private func resolveTracked<A: ExactScalarAdmission & ~Copyable>(curve: Result.CurveCover,
         plane: Result.PlaneCover,maximumPairs: Int,maximumExtensionLevel: Int,
         limits: OriginalDomainIdentityLimits,cellLimits: ExactRealCellLimits,
-        topologyLimits: ExactRealTopologyLimits,using a: inout OriginalSourceProofAdmission<A>) throws -> Result {
+        topologyLimits: ExactRealTopologyLimits,using a: inout A) throws -> Result {
         try a.checkpoint()
         guard maximumPairs >= 0 else { throw NativeExactRelationFailure.invalidDomain }
         let zeros=try DefaultOriginalAnalyticCosineZeroIssuer<S,Base>()

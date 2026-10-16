@@ -5,28 +5,11 @@ import CADIR
 /// Proves strict plane continuity of the actual residual-corrected side.
 package struct OriginalPlanarEdgeContinuityCertifier {
     private struct Cell { let lower: Double; let upper: Double; let depth: Int }
-    private struct Usage: RationalAlgebraAdmitting {
-        let admission: GeometryConversionAdmission
-        mutating func visitExactCell(depth: Int) throws {
-            guard depth >= 0, depth <= min(32, admission.maximumAlgebraicDepth ?? 32) else {
-                throw GeometryConversionError.resourceLimitExceeded("Final plane identity exhausted its intrinsic algebra depth.")
-            }
-            try admission.chargeWork()
-        }
-        mutating func consumeExactWork(_ count: Int) throws { try admission.chargeWork(count) }
-        mutating func retainExactStorage(_ count: Int) throws {
-            let bytes = count.multipliedReportingOverflow(by: MemoryLayout<UInt32>.stride)
-            guard count >= 0, !bytes.overflow else {
-                throw GeometryConversionError.resourceLimitExceeded("Final plane exact storage overflows.")
-            }
-            try admission.chargeStorage(bytes: bytes.partialValue)
-        }
-    }
     private typealias Plane = OriginalSupportingPlaneEquation
     package func certify(surface: Surface3D, along boundary: ExactEdgeContinuitySupport.Boundary,
         originalSpan: OriginalCurveRootSpan3D, support: ExactEdgeContinuitySupport.OriginalBoundary,
         order: SurfaceEdgeContinuity.Order, tolerance: ModelingTolerance, featureID: FeatureID,
-        admission: GeometryConversionAdmission) throws {
+        using execution: inout OriginalQueryExecution) throws {
         let corrected: OriginalBoundaryCorrectedSurface3D
         let boundaries: OriginalCoonsSurface3D
         let projected: OriginalPlaneDerivativeSurface3D?
@@ -41,9 +24,8 @@ package struct OriginalPlanarEdgeContinuityCertifier {
             // identity receipt; a native candidate certificate cannot stand in for that law.
             throw failure(.unsupportedCapability, featureID, tolerance, "Final plane continuity requires its original residual-corrected surface receipt.")
         }
-        var usage = Usage(admission: admission)
         let plane = try OriginalSupportingPlaneEquation.prepared(source: support.surface,
-            tolerance: tolerance, remainingSourceDepth: admission.remainingSourceDepth, usage: &usage)
+            tolerance: tolerance, remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth, usage: &execution)
         let retained: OriginalCurveRootSpan3D
         let station: Double
         let restrictU: Bool
@@ -60,70 +42,70 @@ package struct OriginalPlanarEdgeContinuityCertifier {
             throw failure(.unsupportedCapability, featureID, tolerance, "Original U-side continuity requires its full residual derivative identity.")
         }
         guard try retained.hasSameOriginalTraversal(as: originalSpan,
-            consumeWork: { try admission.chargeWork($0) }) else {
+            using: &execution) else {
             throw failure(.invalidInput, featureID, tolerance, "Final plane boundary is not the supplied original traversal.")
         }
         if let nativeIndex = originalSpan.nativeSpanIndex, case .bSpline(let curve) = originalSpan.source {
             // A retained algebraic endpoint may restrict this original owner,
             // but cannot change an identically zero homogeneous plane law.
             let polynomial = try OriginalRationalCurvePolynomial(source: curve,
-                spanIndex: nativeIndex, tolerance: tolerance, usage: &usage)
-            guard try plane.polynomial(polynomial.homogeneous, includeOffset: true, usage: &usage).isZero else {
+                spanIndex: nativeIndex, tolerance: tolerance, usage: &execution)
+            guard try plane.polynomial(polynomial.homogeneous, includeOffset: true, usage: &execution).isZero else {
                 throw failure(.classificationFailure, featureID, tolerance, "Original selected curve owner leaves the exact support plane.")
             }
-        } else if try OriginalSplineTraversalPolynomialPiece.supports(originalSpan, usage: &usage) {
-            let pieces = try OriginalSplineTraversalPolynomialPiece.pieces(originalSpan, usage: &usage)
+        } else if try OriginalSplineTraversalPolynomialPiece.supports(originalSpan, usage: &execution) {
+            let pieces = try OriginalSplineTraversalPolynomialPiece.pieces(originalSpan, usage: &execution)
             guard !pieces.isEmpty else { throw failure(.invalidInput, featureID, tolerance, "Original plane section has no owning polynomial.") }
             for piece in pieces {
-                try usage.consumeExactWork(1)
-                guard try plane.polynomial(piece.homogeneous, includeOffset: true, usage: &usage).isZero else {
+                try execution.consumeWork(1)
+                guard try plane.polynomial(piece.homogeneous, includeOffset: true, usage: &execution).isZero else {
                     throw failure(.classificationFailure, featureID, tolerance, "Original section leaves the exact support plane.")
                 }
             }
         } else {
             guard try containsEntireCurve(originalSpan.source, in: plane, depth: 0,
-                capability: min(originalSpan.remainingSourceDepth, admission.remainingSourceDepth), usage: &usage) else {
+                capability: min(originalSpan.remainingSourceDepth, execution.effectiveLimits.remainingSourceDepth), usage: &execution) else {
                 throw failure(.classificationFailure, featureID, tolerance, "Original section does not have the required exact plane identity.")
             }
         }
         if let projected {
             guard try projected.hasExactTransversePlaneConstraint(surface: support.surface,
-                order: .tangent, atEnd: station == 1, usage: &usage) else {
+                order: .tangent, atEnd: station == 1, using: &execution) else {
                 throw failure(.classificationFailure, featureID, tolerance,
                     "Final original surface lacks its exact transverse tangent-plane constraint.")
             }
             if order == .curvature {
                 guard try projected.hasExactTransversePlaneConstraint(surface: support.surface,
-                    order: .curvature, atEnd: station == 1, usage: &usage) else {
+                    order: .curvature, atEnd: station == 1, using: &execution) else {
                     throw failure(.classificationFailure, featureID, tolerance,
                         "Final original surface lacks its exact transverse curvature-plane constraint.")
                 }
             }
         } else {
-            let exactStation = try ExactRationalCoefficient.originalDouble(station, usage: &usage)
+            let exactStation = try ExactRationalCoefficient.originalDouble(station, usage: &execution)
             var ownerCount = 0
             for native in corrected.retainedNativeOwners {
-                try usage.consumeExactWork(1)
+                try execution.consumeWork(1)
                 let range = restrictU ? native.uBounds : native.vBounds
                 guard range.lower <= station, range.upper >= station else { continue }
                 ownerCount += 1
-                guard ownerCount <= min(4096, admission.maximumSpanCount) else {
+                guard ownerCount <= min(4096, execution.effectiveLimits.maximumSpans) else {
                     throw failure(.resourceLimitExceeded, featureID, tolerance, "Final plane derivative cover exceeds its original span ceiling.")
                 }
                 let domain = try SurfaceParameterBox(u: native.uBounds, v: native.vBounds)
                 let original = try OriginalRationalSurfacePolynomial(source: corrected.construction,
-                    native: native, domain: domain, view: .unitZ, tolerance: tolerance, usage: &usage)
+                    native: native, domain: domain, view: .unitZ, tolerance: tolerance, usage: &execution)
                 let derivatives = try OriginalRationalSurfaceDerivativeLaw(original: original,
-                    throughOrder: order == .curvature ? 2 : 1, usage: &usage)
+                    throughOrder: order == .curvature ? 2 : 1, usage: &execution)
                 var proved = 0
                 for partial in derivatives.partials {
-                    try usage.consumeExactWork(1)
+                    try execution.consumeWork(1)
                     let derivativeOrder = restrictU ? partial.uOrder : partial.vOrder
                     let otherOrder = restrictU ? partial.vOrder : partial.uOrder
                     guard otherOrder == 0, derivativeOrder > 0,
                         derivativeOrder <= (order == .curvature ? 2 : 1) else { continue }
-                    let numerator = try plane.polynomial(partial.numerators, includeOffset: false, usage: &usage)
-                    guard try numerator.restricted(alongU: restrictU, station: exactStation, usage: &usage).isZero else {
+                    let numerator = try plane.polynomial(partial.numerators, includeOffset: false, usage: &execution)
+                    guard try numerator.restricted(alongU: restrictU, station: exactStation, usage: &execution).isZero else {
                         throw failure(.classificationFailure, featureID, tolerance, "Final original transverse derivative violates exact plane continuity.")
                     }
                     proved += 1
@@ -134,14 +116,14 @@ package struct OriginalPlanarEdgeContinuityCertifier {
             }
             guard ownerCount > 0 else { throw failure(.invalidInput, featureID, tolerance, "Final plane boundary has no original native tensor owner.") }
         }
-        let maxDepth = min(24, admission.maximumSubdivisionDepth)
+        let maxDepth = min(24, execution.effectiveLimits.maximumSubdivisionDepth)
         let capacity = maxDepth + 1
-        try admission.chargeStorage(bytes: capacity * MemoryLayout<Cell>.stride)
+        try execution.retainStorage(bytes: capacity * MemoryLayout<Cell>.stride)
         var pending: [Cell] = []
         pending.reserveCapacity(capacity); pending.append(.init(lower: 0, upper: 1, depth: 0))
         var visited = 0
         while let cell = pending.popLast() {
-            try admission.visit(depth: cell.depth)
+            try execution.visitGeometricCell(depth: cell.depth)
             guard visited < 4096 else { throw failure(.resourceLimitExceeded, featureID, tolerance, "Final plane continuity exhausted its whole boundary cells.") }
             visited += 1
             let interval = try ScalarInterval(lower: cell.lower, upper: cell.upper)
@@ -150,16 +132,16 @@ package struct OriginalPlanarEdgeContinuityCertifier {
             let q: OriginalSurfaceFirstOrderEnclosure
             if let projected {
                 q = try projected.preparedFirstOrder(over: box,
-                    maximumSpanCount: min(4096, admission.maximumSpanCount),
+                    maximumSpanCount: min(4096, execution.effectiveLimits.maximumSpans),
                     maximumSubdivisionDepth: maxDepth - cell.depth,
-                    remainingSourceDepth: admission.remainingSourceDepth, tolerance: tolerance,
-                    consumeWork: { try admission.chargeWork() }, consumeStorage: { try admission.chargeStorage(bytes: $0) })
+                    remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth, tolerance: tolerance,
+                    using: &execution)
             } else {
                 q = try corrected.preparedFirstOrder(over: box,
-                    maximumSpanCount: min(4096, admission.maximumSpanCount),
+                    maximumSpanCount: min(4096, execution.effectiveLimits.maximumSpans),
                     maximumSubdivisionDepth: maxDepth - cell.depth,
-                    remainingSourceDepth: admission.remainingSourceDepth, tolerance: tolerance,
-                    consumeWork: { try admission.chargeWork() }, consumeStorage: { try admission.chargeStorage(bytes: $0) })
+                    remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth, tolerance: tolerance,
+                    using: &execution)
             }
             let u = IntervalVector3DBounds(x: q.x.derivativeU, y: q.y.derivativeU, z: q.z.derivativeU)
             let v = IntervalVector3DBounds(x: q.x.derivativeV, y: q.y.derivativeV, z: q.z.derivativeV)
@@ -178,8 +160,8 @@ package struct OriginalPlanarEdgeContinuityCertifier {
     }
 
     private func containsEntireCurve(_ source: Curve3D, in plane: Plane, depth: Int,
-        capability: Int, usage: inout Usage) throws -> Bool {
-        try usage.consumeExactWork(1)
+        capability: Int, usage: inout OriginalQueryExecution) throws -> Bool {
+        try usage.consumeWork(1)
         guard depth <= capability else { throw GeometryConversionError.resourceLimitExceeded("Original plane section exhausted source nesting.") }
         switch source {
         case .circle(let circle):

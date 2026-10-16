@@ -41,19 +41,21 @@ public final class OriginalClippedNativeParameters: Sendable {
     private let relation: OriginalRealRelation
     private let baseline: OriginalBoundaryAdmission
 
-    init(boundary: OriginalNativeBoundaryDomain, selection: OriginalNativeBoundaryDomain.Selection,
+    init<A: ExactScalarAdmission & ~Copyable>(boundary: OriginalNativeBoundaryDomain, selection: OriginalNativeBoundaryDomain.Selection,
         relation: OriginalRealRelation, source: OriginalBoundarySourceCover, rawNodes: [Int],
         compiler: OriginalBoundaryBooleanCompiler, baseline: OriginalBoundaryAdmission,
-        usage: inout OriginalRelationUsage) throws {
+        usage: inout A) throws {
         try intersectionAlgebraStep(&usage)
         try RationalAlgebraStorage.retain(2, of: UInt.self, usage: &usage)
         let identity = Identity()
         try RationalAlgebraStorage.retain(relation.cells.count, of: Cell.self, usage: &usage)
         var cells: [Cell] = []; cells.reserveCapacity(relation.cells.count)
         for (ordinal, cell) in relation.cells.enumerated() {
+            try intersectionAlgebraStep(&usage)
             let values = try compiler.values(signs: cell.sourceSigns, usage: &usage)
             var rawOwner: Int?
             for index in rawNodes.indices {
+                try intersectionAlgebraStep(&usage)
                 if values[rawNodes[index]] {
                     guard rawOwner == nil else { throw rationalAlgebraFailure("A refined boundary cell has multiple original raw owners.") }
                     rawOwner = index
@@ -67,6 +69,7 @@ public final class OriginalClippedNativeParameters: Sendable {
             }
             var spans: [OriginalNativeBoundaryDomain.SpanReference] = []
             for index in compiler.boundaryNodes.indices {
+                try intersectionAlgebraStep(&usage)
                 if values[compiler.boundaryNodes[index]] {
                     try RationalAlgebraStorage.retain(1, of: OriginalNativeBoundaryDomain.SpanReference.self, usage: &usage)
                     spans.append(compiler.references[index])
@@ -75,6 +78,7 @@ public final class OriginalClippedNativeParameters: Sendable {
             try RationalAlgebraStorage.retain(cell.sample.count, of: OriginalAlgebraicCoordinate.self, usage: &usage)
             var sample: [OriginalAlgebraicCoordinate] = []; sample.reserveCapacity(cell.sample.count)
             for value in cell.sample {
+                try intersectionAlgebraStep(&usage)
                 sample.append(.init(original: value.original,
                     inheritedDepth: try rationalAlgebraCount(baseline.parameterDepth, value.inheritedDepth),
                     inheritedCoefficientDepth: try rationalAlgebraCount(baseline.coefficientDepth, value.inheritedCoefficientDepth)))
@@ -86,13 +90,20 @@ public final class OriginalClippedNativeParameters: Sendable {
         }
         try RationalAlgebraStorage.retain(relation.components.count, of: Component.self, usage: &usage)
         var components: [Component] = []; components.reserveCapacity(relation.components.count)
+        func matchingCell(_ predicate: (OriginalRealRelation.Cell) -> Bool) throws -> Int? {
+            for (index, cell) in relation.cells.enumerated() {
+                try intersectionAlgebraStep(&usage)
+                if predicate(cell) { return index }
+            }
+            return nil
+        }
         for component in relation.components {
+            try intersectionAlgebraStep(&usage)
             try RationalAlgebraStorage.retain(component.cellIdentifiers.count, of: CellIdentifier.self, usage: &usage)
             var identifiers: [CellIdentifier] = []; identifiers.reserveCapacity(component.cellIdentifiers.count)
             for original in component.cellIdentifiers {
                 try intersectionAlgebraStep(&usage)
-                try usage.consumeExactWork(relation.cells.count)
-                guard let ordinal = relation.cells.firstIndex(where: { $0.identifier == original }) else {
+                guard let ordinal = try matchingCell({ $0.identifier == original }) else {
                     throw rationalAlgebraFailure("Boundary component lost its complete selected cell owner.")
                 }
                 identifiers.append(.init(owner: identity, ordinal: ordinal))
@@ -103,9 +114,8 @@ public final class OriginalClippedNativeParameters: Sendable {
         var attachments: [Attachment] = []; attachments.reserveCapacity(relation.incidence.attachments.count)
         for link in relation.incidence.attachments {
             try intersectionAlgebraStep(&usage)
-            try usage.consumeExactWork(try rationalAlgebraCount(relation.cells.count, 2, multiply: true))
-            guard let from = relation.cells.firstIndex(where: { $0.identifier.ordinal == link.sourceCellIndex }),
-                let to = relation.cells.firstIndex(where: { $0.identifier.ordinal == link.targetCellIndex }) else {
+            guard let from = try matchingCell({ $0.identifier.ordinal == link.sourceCellIndex }),
+                let to = try matchingCell({ $0.identifier.ordinal == link.targetCellIndex }) else {
                 throw rationalAlgebraFailure("Boundary incidence lost its complete selected cell owners.")
             }
             let dimension = relation.incidence.closures[link.closureIndex].freePartition.cells[link.refinedTargetCellIndex].dimension
@@ -123,20 +133,20 @@ public final class OriginalClippedNativeParameters: Sendable {
         self.identity = identity; self.cells = cells; self.components = components; self.attachments = attachments
     }
     public func contains(rationalParameters: [ExactRationalCoefficient], inCell identifier: CellIdentifier? = nil,
-        maximumDepth: Int, maximumCoefficientDepth: Int, usage: OriginalRelationUsage) throws -> Bool {
-        var original = usage
+        maximumDepth: Int, maximumCoefficientDepth: Int, using original: inout OriginalQueryExecution) throws -> Bool {
         try intersectionAlgebraStep(&original)
         if let identifier {
             guard identifier.owner === identity, relation.cells.indices.contains(identifier.ordinal) else {
                 throw GeometryConversionError.invalidInput("Boundary membership has a foreign parameter cell owner.")
             }
         }
-        let descendant = try baseline.borrowing(original, maximumDepth: maximumDepth,
-            maximumCoefficientDepth: maximumCoefficientDepth)
-        let value = try relation.contains(rationalPoint: rationalParameters,
-            inCell: identifier.map { relation.cells[$0.ordinal].identifier },
-            maximumDepth: maximumDepth - baseline.parameterDepth,
-            maximumCoefficientDepth: maximumCoefficientDepth - baseline.coefficientDepth, usage: descendant)
+        let value = try baseline.withScope(maximumDepth: maximumDepth,
+            maximumCoefficientDepth: maximumCoefficientDepth, usage: &original) { admission in
+            try relation.contains(rationalPoint: rationalParameters,
+                inCell: identifier.map { relation.cells[$0.ordinal].identifier },
+                maximumDepth: maximumDepth - baseline.parameterDepth,
+                maximumCoefficientDepth: maximumCoefficientDepth - baseline.coefficientDepth, usage: &admission)
+        }
         try CurrentTaskCancellationChecker().checkCancellation()
         return value
     }

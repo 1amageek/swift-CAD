@@ -10,4 +10,7 @@ public protocol OrthographicEdgeProjecting: Sendable {
         onto frame: OrthographicProjectionFrame,
         tolerance: ModelingTolerance
     ) throws -> OrthographicProjectedEdge
+    func project(edgeID: EdgeID, in model: BRepModel, orientation: Orientation,
+        onto frame: OrthographicProjectionFrame, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> OrthographicProjectedEdge
 }

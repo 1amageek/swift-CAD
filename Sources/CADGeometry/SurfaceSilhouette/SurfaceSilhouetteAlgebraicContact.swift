@@ -16,9 +16,10 @@ public struct SurfaceSilhouetteAlgebraicContact: Sendable {
     }
     private let originalRoot: RootAuthority
     private let field: OriginalSurfaceSilhouetteField
+    var queryContext: SurfaceSilhouetteQueryContext { field.queryContext }
 
     init(field: OriginalSurfaceSilhouetteField, originalRoot: ExactBivariateCriticalPoint,
-         certifiedDomain: SurfaceParameterBox, usage: inout SurfaceSilhouetteUsage) throws {
+         certifiedDomain: SurfaceParameterBox, usage: inout OriginalQueryExecution) throws {
         self.originalRoot = .critical(originalRoot); self.field = field; surface = field.surface; view = field.view
         self.certifiedDomain = certifiedDomain; tolerance = field.tolerance
         parameterEnclosure = try originalRoot.enclosure(usage: &usage)
@@ -38,7 +39,7 @@ public struct SurfaceSilhouetteAlgebraicContact: Sendable {
     }
 
     init(field: OriginalSurfaceSilhouetteField, originalRoot: ExactBivariateSystemRoot,
-        certifiedDomain: SurfaceParameterBox, usage: inout SurfaceSilhouetteUsage) throws {
+        certifiedDomain: SurfaceParameterBox, usage: inout OriginalQueryExecution) throws {
         self.originalRoot = .boundary(originalRoot); self.field = field; surface = field.surface; view = field.view
         self.certifiedDomain = certifiedDomain; tolerance = field.tolerance
         parameterEnclosure = try originalRoot.enclosure(usage: &usage)
@@ -58,7 +59,7 @@ public struct SurfaceSilhouetteAlgebraicContact: Sendable {
     }
 
     init(field: OriginalSurfaceSilhouetteField, originalRoot: ExactPolynomialParameterPoint,
-        certifiedDomain: SurfaceParameterBox, usage: inout SurfaceSilhouetteUsage) throws {
+        certifiedDomain: SurfaceParameterBox, usage: inout OriginalQueryExecution) throws {
         self.originalRoot = .polynomial(originalRoot); self.field = field
         surface = field.surface; view = field.view; self.certifiedDomain = certifiedDomain; tolerance = field.tolerance
         parameterEnclosure = try originalRoot.enclosure(usage: &usage)
@@ -71,7 +72,7 @@ public struct SurfaceSilhouetteAlgebraicContact: Sendable {
     }
 
     init(field: OriginalSurfaceSilhouetteField, originalRoot: OriginalSingularFieldSystemRoot,
-        certifiedDomain: SurfaceParameterBox, usage: inout SurfaceSilhouetteUsage) throws {
+        certifiedDomain: SurfaceParameterBox, usage: inout OriginalQueryExecution) throws {
         self.originalRoot = .field(originalRoot); self.field = field
         surface = field.surface; view = field.view; self.certifiedDomain = certifiedDomain; tolerance = field.tolerance
         parameterEnclosure = try originalRoot.enclosure(usage: &usage)
@@ -91,7 +92,8 @@ public struct SurfaceSilhouetteAlgebraicContact: Sendable {
 
     /// Refines the retained original pair under the same cumulative caller ledger.
     public func refined(maximumUWidth: Double, maximumVWidth: Double,
-        usage: inout SurfaceSilhouetteUsage) throws -> Self {
+        using execution: inout OriginalQueryExecution) throws -> Self {
+        return try field.queryContext.withExecution(using: &execution) { execution in
         guard maximumUWidth.isFinite, maximumVWidth.isFinite,
               maximumUWidth > 0, maximumVWidth > 0 else {
             throw rationalAlgebraFailure("Original silhouette contact refinement needs finite positive native widths.")
@@ -99,33 +101,38 @@ public struct SurfaceSilhouetteAlgebraicContact: Sendable {
         switch originalRoot {
         case .field(let root):
             return try Self(field: field, originalRoot: root.refined(
-                maximumUWidth: .originalDouble(maximumUWidth, usage: &usage),
-                maximumVWidth: .originalDouble(maximumVWidth, usage: &usage),
-                maximumDepth: usage.maximumDepth, usage: &usage), certifiedDomain: certifiedDomain, usage: &usage)
+                maximumUWidth: .originalDouble(maximumUWidth, usage: &execution),
+                maximumVWidth: .originalDouble(maximumVWidth, usage: &execution),
+                maximumDepth: execution.effectiveLimits.maximumSubdivisionDepth, usage: &execution), certifiedDomain: certifiedDomain, usage: &execution)
         case .polynomial(let root):
             return try Self(field: field, originalRoot: root.refined(maximumUWidth: maximumUWidth,
-                maximumVWidth: maximumVWidth, maximumDepth: usage.maximumDepth, usage: &usage),
-                certifiedDomain: certifiedDomain, usage: &usage)
+                maximumVWidth: maximumVWidth, maximumDepth: execution.effectiveLimits.maximumSubdivisionDepth, usage: &execution),
+                certifiedDomain: certifiedDomain, usage: &execution)
         case .critical(let root):
             return try Self(field: field, originalRoot: root.refined(maximumUWidth: maximumUWidth,
-                maximumVWidth: maximumVWidth, maximumDepth: usage.maximumDepth, usage: &usage),
-                certifiedDomain: certifiedDomain, usage: &usage)
+                maximumVWidth: maximumVWidth, maximumDepth: execution.effectiveLimits.maximumSubdivisionDepth, usage: &execution),
+                certifiedDomain: certifiedDomain, usage: &execution)
         case .boundary(let root):
             return try Self(field: field, originalRoot: root.refined(
-                maximumUWidth: .originalDouble(maximumUWidth, usage: &usage),
-                maximumVWidth: .originalDouble(maximumVWidth, usage: &usage),
-                maximumDepth: usage.maximumDepth, usage: &usage),
-                certifiedDomain: certifiedDomain, usage: &usage)
+                maximumUWidth: .originalDouble(maximumUWidth, usage: &execution),
+                maximumVWidth: .originalDouble(maximumVWidth, usage: &execution),
+                maximumDepth: execution.effectiveLimits.maximumSubdivisionDepth, usage: &execution),
+                certifiedDomain: certifiedDomain, usage: &execution)
+        }
+    
         }
     }
 
     public func writeOriginalProvenance(to sink: any SurfaceSilhouetteProvenanceWriting,
-        usage: inout SurfaceSilhouetteUsage) throws {
+        using execution: inout OriginalQueryExecution) throws {
+        try field.queryContext.withExecution(using: &execution) { execution in
         var emitter = SurfaceSilhouetteProvenanceEmitter(sink: sink)
-        try writeOriginalProvenance(to: &emitter, usage: &usage)
+        try writeOriginalProvenance(to: &emitter, usage: &execution)
+    
+        }
     }
     func writeOriginalProvenance(to emitter: inout SurfaceSilhouetteProvenanceEmitter,
-        usage: inout SurfaceSilhouetteUsage) throws {
+        usage: inout OriginalQueryExecution) throws {
         try emitter.emit(.beginRecord(type: "original-silhouette-algebraic-contact-v1"), usage: &usage)
         try emitter.field("field", usage: &usage); try field.writeOriginalProvenance(to: &emitter, usage: &usage)
         try emitter.field("certifiedDomain", usage: &usage); try emitter.write(certifiedDomain, usage: &usage)

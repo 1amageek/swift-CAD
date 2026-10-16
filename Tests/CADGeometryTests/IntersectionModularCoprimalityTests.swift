@@ -5,7 +5,8 @@ import Testing
 @Suite("Exact modular specialization coprimality", .timeLimit(.minutes(1)))
 struct IntersectionModularCoprimalityTests {
     private enum AdmissionFailure: Error, Equatable { case work, storage }
-    private struct Admission: RationalAlgebraAdmitting {
+    private struct Admission: ~Copyable, GeometryScalarTestAdmission {
+        var proofScopes = ExactScalarProofScopes()
         var maximumWork = Int.max
         var maximumStorage = Int.max
         var work = 0
@@ -13,18 +14,49 @@ struct IntersectionModularCoprimalityTests {
         var cancelAtWork: Int?
         var cancelAtStorage: Int?
         var requests: [Int]?
-        mutating func consumeExactWork(_ count: Int) throws {
+        mutating func consumeWork(_ count: Int) throws(ExactScalarFailure) {
+            try checkpoint()
+            try proofScopes.checkWork(count)
+            do {
             guard count >= 0, count <= maximumWork - work else { throw AdmissionFailure.work }
             work += count
             if work == cancelAtWork { withUnsafeCurrentTask { $0?.cancel() } }
+        
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            proofScopes.recordWork(count)
+            try checkpoint()
         }
-        mutating func retainExactStorage(_ count: Int) throws {
+        mutating func retainStorage(bytes: Int) throws(ExactScalarFailure) {
+            try checkpoint()
+            let count = try geometryTestStorageWords(bytes)
+            do {
             guard count >= 0, count <= maximumStorage - storage else { throw AdmissionFailure.storage }
             storage += count
             if storage == cancelAtStorage { withUnsafeCurrentTask { $0?.cancel() } }
             requests?.append(count)
+        
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            try checkpoint()
         }
-        mutating func visitExactCell(depth: Int) throws { }
+        
+            mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
+            try admitDepth(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+            let mapped = try proofScopes.mapped(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+            do {
+                switch (axis == .coefficient || proofScopes.exactDepthResource == .coefficientDepth) ? ExactScalarRootAxis.coefficient : .value {
+                case .value:
+                    let depth = mapped.value
+ 
+                case .coefficient:
+                    let depth = mapped.coefficient
+ throw ExactScalarFailure.resourceLimit(.coefficientDepth) 
+                }
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            try checkpoint()
+        }
     }
 
     private func rational(_ numerator: Int, _ denominator: Int = 1,
@@ -390,14 +422,14 @@ struct IntersectionModularCoprimalityTests {
         #expect(measured.requests == [fullBuffer, fullBuffer, fullBuffer, fullBuffer, probeWords])
         for allowance in [0, measured.work - 1] {
             var limited = Admission(); limited.maximumWork = allowance
-            #expect(throws: AdmissionFailure.work) {
+            geometryTestExpectFailure({ if case .work? = geometryTestOriginalFailure($0) as? AdmissionFailure { true } else { false } }) {
                 try ExactIntersectionModularCoprimality.certifies(first, second, usage: &limited)
             }
             #expect(limited.work <= allowance)
         }
         for allowance in [0, 2 * fullBuffer + fullBuffer - 1, measured.storage - 1] {
             var limited = Admission(); limited.maximumStorage = allowance
-            #expect(throws: AdmissionFailure.storage) {
+            geometryTestExpectFailure({ if case .storage? = geometryTestOriginalFailure($0) as? AdmissionFailure { true } else { false } }) {
                 try ExactIntersectionModularCoprimality.certifies(first, second, usage: &limited)
             }
             #expect(limited.storage <= allowance)
@@ -419,7 +451,7 @@ struct IntersectionModularCoprimalityTests {
                 _ = try ExactIntersectionModularCoprimality.certifies(first, second, usage: &usage)
                 Issue.record("A cancelled modular probe published a result.")
                 return false
-            } catch is CancellationError { return usage.work == finalWork }
+            } catch let error where geometryTestIsCancelled(error) { return usage.work == finalWork }
         }.value
         #expect(cancelled)
     }
@@ -431,7 +463,7 @@ struct IntersectionModularCoprimalityTests {
             do {
                 _ = try ExactIntersectionModularCoprimality.certifies([.one], [.one], usage: &usage)
                 Issue.record("A precancelled modular probe published a result.")
-            } catch is CancellationError { }
+            } catch let error where geometryTestIsCancelled(error) { }
             return (usage.work, usage.storage)
         }.value
         #expect(charges.0 == 0 && charges.1 == 0)
@@ -455,9 +487,9 @@ struct IntersectionModularCoprimalityTests {
             + [rational(-10, usage: &preparation), .one]
         let expected = try polynomial(expectedCoefficients, variableCount: 7, axis: 0, usage: &preparation)
         var usage = Admission(); usage.maximumWork = 80_000_000; usage.maximumStorage = 268_435_456
-        let probe = try #require(ExactIntersectionModularCoprimality.prepare(pair.first, pair.second, usage: &usage))
+        let probe = try geometryTestRequire(ExactIntersectionModularCoprimality.prepare(pair.first, pair.second, usage: &usage))
         #expect(probe.degree == 10)
-        let receipt = try #require(ExactIntersectionModularCoprimality.factorReceipt(probe,
+        let receipt = try geometryTestRequire(ExactIntersectionModularCoprimality.factorReceipt(probe,
             first: pair.first, second: pair.second, denominatorBound: 16, usage: &usage))
         #expect(receipt.coefficients == expectedCoefficients)
         let firstQuotient = try polynomial(receipt.firstQuotient, variableCount: 7, axis: 0, usage: &usage)
@@ -477,13 +509,13 @@ struct IntersectionModularCoprimalityTests {
             [.one, .zero, .one], usage: &usage)?.degree == nil)
         let first: [ExactRationalCoefficient] = [.one, .zero, .one]
         let second: [ExactRationalCoefficient] = [try p.adding(.one, usage: &usage), .zero, .one]
-        let falseProbe = try #require(ExactIntersectionModularCoprimality.prepare(first, second, usage: &usage))
+        let falseProbe = try geometryTestRequire(ExactIntersectionModularCoprimality.prepare(first, second, usage: &usage))
         #expect(falseProbe.degree == 2)
         #expect(try ExactIntersectionModularCoprimality.factorReceipt(falseProbe,
             first: first, second: second, denominatorBound: 1, usage: &usage)?.coefficients.count == nil)
         let coefficient = try rational(3_000, usage: &usage)
         let missed: [ExactRationalCoefficient] = [coefficient, .zero, .one]
-        let missedProbe = try #require(ExactIntersectionModularCoprimality.prepare(missed, missed, usage: &usage))
+        let missedProbe = try geometryTestRequire(ExactIntersectionModularCoprimality.prepare(missed, missed, usage: &usage))
         // This box cannot reconstruct residue 3000: the Euclidean candidate
         // has denominator 22, beyond D=16. A proposal refusal is explicit.
         #expect(try ExactIntersectionModularCoprimality.factorReceipt(missedProbe,
@@ -496,13 +528,13 @@ struct IntersectionModularCoprimalityTests {
         let four = try rational(4, usage: &preparation)
         let first: [ExactRationalCoefficient] = [two, .zero, three, .zero, .one]
         let second: [ExactRationalCoefficient] = [three, .zero, four, .zero, .one]
-        let probe = try #require(ExactIntersectionModularCoprimality.prepare(first, second, usage: &preparation))
+        let probe = try geometryTestRequire(ExactIntersectionModularCoprimality.prepare(first, second, usage: &preparation))
         var measured = Admission()
         #expect(try ExactIntersectionModularCoprimality.factorReceipt(probe,
             first: first, second: second, denominatorBound: 1, usage: &measured)?.coefficients.count == 3)
         for allowance in [0, measured.work - 1] {
             var limited = Admission(); limited.maximumWork = allowance
-            #expect(throws: AdmissionFailure.work) {
+            geometryTestExpectFailure({ if case .work? = geometryTestOriginalFailure($0) as? AdmissionFailure { true } else { false } }) {
                 try ExactIntersectionModularCoprimality.factorReceipt(probe,
                     first: first, second: second, denominatorBound: 1, usage: &limited)
             }
@@ -510,7 +542,7 @@ struct IntersectionModularCoprimalityTests {
         }
         for allowance in [0, measured.storage - 1] {
             var limited = Admission(); limited.maximumStorage = allowance
-            #expect(throws: AdmissionFailure.storage) {
+            geometryTestExpectFailure({ if case .storage? = geometryTestOriginalFailure($0) as? AdmissionFailure { true } else { false } }) {
                 try ExactIntersectionModularCoprimality.factorReceipt(probe,
                     first: first, second: second, denominatorBound: 1, usage: &limited)
             }
@@ -524,7 +556,7 @@ struct IntersectionModularCoprimalityTests {
                     first: first, second: second, denominatorBound: 1, usage: &limited)
                 Issue.record("A final factor receipt callback cancelled the task but a result was published.")
                 return false
-            } catch is CancellationError { return limited.storage == finalStorage }
+            } catch let error where geometryTestIsCancelled(error) { return limited.storage == finalStorage }
         }.value
         #expect(cancelled)
     }
@@ -556,11 +588,11 @@ struct IntersectionModularCoprimalityTests {
         #expect(try gcd.matches(.constant(variableCount: 7, value: .one, usage: &usage), usage: &usage))
         #expect(usage.work > 0 && usage.work <= 80_000_000 && usage.storage <= 268_435_456)
         var noWork = Admission(); noWork.maximumWork = 0
-        #expect(throws: AdmissionFailure.work) {
+        geometryTestExpectFailure({ if case .work? = geometryTestOriginalFailure($0) as? AdmissionFailure { true } else { false } }) {
             try ExactIntersectionPolynomialGCD.gcd(pair.first, pair.second, usage: &noWork)
         }
         var noStorage = Admission(); noStorage.maximumStorage = 0
-        #expect(throws: AdmissionFailure.storage) {
+        geometryTestExpectFailure({ if case .storage? = geometryTestOriginalFailure($0) as? AdmissionFailure { true } else { false } }) {
             try ExactIntersectionPolynomialGCD.gcd(pair.first, pair.second, usage: &noStorage)
         }
     }
@@ -588,12 +620,12 @@ struct IntersectionModularCoprimalityTests {
         #expect(try result.matches(content, usage: &preparation))
         #expect(measured.work > 0 && measured.work <= 80_000_000 && measured.storage <= 268_435_456)
         var noFinalWork = Admission(); noFinalWork.maximumWork = measured.work - 1
-        #expect(throws: AdmissionFailure.work) {
+        geometryTestExpectFailure({ if case .work? = geometryTestOriginalFailure($0) as? AdmissionFailure { true } else { false } }) {
             try ExactIntersectionPolynomialGCD.gcd(first, second, usage: &noFinalWork)
         }
         #expect(noFinalWork.work == measured.work - 1)
         var noFinalStorage = Admission(); noFinalStorage.maximumStorage = measured.storage - 1
-        #expect(throws: AdmissionFailure.storage) {
+        geometryTestExpectFailure({ if case .storage? = geometryTestOriginalFailure($0) as? AdmissionFailure { true } else { false } }) {
             try ExactIntersectionPolynomialGCD.gcd(first, second, usage: &noFinalStorage)
         }
         #expect(noFinalStorage.storage <= noFinalStorage.maximumStorage)
@@ -604,7 +636,7 @@ struct IntersectionModularCoprimalityTests {
                 _ = try ExactIntersectionPolynomialGCD.gcd(first, second, usage: &usage)
                 Issue.record("The terminal primitive unit admission cancelled the task but published a GCD.")
                 return false
-            } catch is CancellationError { return usage.work == finalWork }
+            } catch let error where geometryTestIsCancelled(error) { return usage.work == finalWork }
         }.value
         #expect(cancelled)
     }

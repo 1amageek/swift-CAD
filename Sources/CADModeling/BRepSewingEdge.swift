@@ -53,11 +53,10 @@ public struct BRepSewingEdge: Sendable {
     parentSubshapeIDs: [SubshapeID] = [],
     startVertexParentSubshapeIDs: [SubshapeID] = [],
     endVertexParentSubshapeIDs: [SubshapeID] = [],
-    consumeWork: @Sendable (Int) throws -> Void,
-    consumeStorage: (@Sendable (Int) throws -> Void)?
+    using execution: inout OriginalQueryExecution
   ) throws {
     try CurrentTaskCancellationChecker().checkCancellation()
-    try consumeWork(0)
+    try execution.consumeWork(1)
     self.stableID = stableID
     self.curve = curve
     self.startParameter = startParameter
@@ -66,18 +65,35 @@ public struct BRepSewingEdge: Sendable {
     self.endPoint = endPoint
     self.surfaceParameterCurve = surfaceParameterCurve
     self.parentSubshapeIDs = try AdmittedSewingProvenance.canonical(parentSubshapeIDs,
-      consumeWork: consumeWork, consumeStorage: consumeStorage)
+      using: &execution)
     self.startVertexParentSubshapeIDs = try AdmittedSewingProvenance.canonical(startVertexParentSubshapeIDs,
-      consumeWork: consumeWork, consumeStorage: consumeStorage)
+      using: &execution)
     self.endVertexParentSubshapeIDs = try AdmittedSewingProvenance.canonical(endVertexParentSubshapeIDs,
-      consumeWork: consumeWork, consumeStorage: consumeStorage)
+      using: &execution)
   }
+
 
   public func validate(
     on surface: Surface3D,
     tolerance: ModelingTolerance
   ) throws {
+
+      var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
+
+      return try validate(on: surface, tolerance: tolerance, using: &execution)
+
+  }
+
+  public func validate(
+    on surface: Surface3D,
+    tolerance: ModelingTolerance
+  , using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
     try tolerance.validate()
+    try execution.consumeWork(parentSubshapeIDs.count)
+    try execution.consumeWork(startVertexParentSubshapeIDs.count)
+    try execution.consumeWork(endVertexParentSubshapeIDs.count)
     guard stableID.isEmpty == false,
       startParameter.isFinite,
       endParameter.isFinite,
@@ -94,7 +110,7 @@ public struct BRepSewingEdge: Sendable {
       )
     }
     let kind = try BRepEdgeGeometryClassifier().kind(
-      curve: curve, from: startParameter, to: endParameter, tolerance: tolerance)
+      curve: curve, from: startParameter, to: endParameter, tolerance: tolerance, using: &execution)
     if startPoint.isApproximatelyEqual(to: endPoint, tolerance: tolerance.distance), kind == .open {
       throw KernelError(phase: .topology, code: .topologyFailure, tolerance: tolerance,
         message: "A sewing boundary may have coincident endpoints only for a proved closed or singular original span.")
@@ -102,7 +118,7 @@ public struct BRepSewingEdge: Sendable {
     let validatedCurve = try ValidatedCurve3D(
       curve,
       tolerance: tolerance
-    )
+    , using: &execution)
     guard
       try validatedCurve.parameterDomain.containsSpan(
         from: startParameter,
@@ -117,8 +133,8 @@ public struct BRepSewingEdge: Sendable {
         message: "Sewing edge trim lies outside its exact curve domain."
       )
     }
-    let exactStart = try validatedCurve.point(at: startParameter)
-    let exactEnd = try validatedCurve.point(at: endParameter)
+    let exactStart = try validatedCurve.point(at: startParameter, using: &execution)
+    let exactEnd = try validatedCurve.point(at: endParameter, using: &execution)
     // Topological identity is supplied by loop adjacency and shared-span
     // proof. Coordinates only validate that the realized vertex remains
     // inside the caller's declared distance contract.
@@ -132,10 +148,10 @@ public struct BRepSewingEdge: Sendable {
         message: "Sewing edge endpoints do not match its exact curve trim."
       )
     }
-    try surfaceParameterCurve.validate(on: surface, tolerance: tolerance)
+    try surfaceParameterCurve.validate(on: surface, tolerance: tolerance, using: &execution)
     let surfaceLift = SurfaceLiftCurve3D(surface: surface, parameterCurve: surfaceParameterCurve)
-    let surfaceStart = try surfaceLift.point(atNormalizedFraction: 0, tolerance: tolerance)
-    let surfaceEnd = try surfaceLift.point(atNormalizedFraction: 1, tolerance: tolerance)
+    let surfaceStart = try surfaceLift.point(atNormalizedFraction: 0, tolerance: tolerance, using: &execution)
+    let surfaceEnd = try surfaceLift.point(atNormalizedFraction: 1, tolerance: tolerance, using: &execution)
     guard surfaceStart.isApproximatelyEqual(to: startPoint, tolerance: tolerance.distance),
       surfaceEnd.isApproximatelyEqual(to: endPoint, tolerance: tolerance.distance)
     else {

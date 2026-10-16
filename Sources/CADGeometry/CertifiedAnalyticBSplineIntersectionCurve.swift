@@ -41,13 +41,21 @@ public struct CertifiedAnalyticBSplineIntersectionCurve: Hashable, Sendable {
       ))
   }
 
+  public init(implicitCurve: CertifiedImplicitIntersectionCurve, analyticSurface: Surface3D,
+    analyticIsFirst: Bool, periodicSeamOffset: Double, tolerance: ModelingTolerance) throws {
+    var execution = try OriginalQueryExecution.independentGeometry()
+    try self.init(implicitCurve: implicitCurve, analyticSurface: analyticSurface,
+      analyticIsFirst: analyticIsFirst, periodicSeamOffset: periodicSeamOffset,
+      tolerance: tolerance, using: &execution)
+  }
+
   public init(
     implicitCurve: CertifiedImplicitIntersectionCurve,
     analyticSurface: Surface3D,
     analyticIsFirst: Bool,
     periodicSeamOffset: Double,
     tolerance: ModelingTolerance
-  ) throws {
+  , using execution: inout OriginalQueryExecution) throws {
     let boundedRepresentation =
       analyticIsFirst
       ? implicitCurve.secondSurface
@@ -65,13 +73,19 @@ public struct CertifiedAnalyticBSplineIntersectionCurve: Hashable, Sendable {
     self.analyticIsFirst = analyticIsFirst
     self.periodicSeamOffset = periodicSeamOffset
     self.boundedSurface = boundedSurface
-    try validate(tolerance: tolerance)
+    try validate(tolerance: tolerance, using: &execution)
   }
 
   public func validate(tolerance: ModelingTolerance) throws {
+    var execution = try OriginalQueryExecution.independentGeometry()
+    try validate(tolerance: tolerance, using: &execution)
+  }
+
+  public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+    try execution.consumeWork(1)
     try tolerance.validate()
-    try implicitCurve.validate(tolerance: tolerance)
-    try analyticSurface.validate(tolerance: tolerance)
+    try implicitCurve.validate(tolerance: tolerance, using: &execution)
+    try analyticSurface.validate(tolerance: tolerance, using: &execution)
     guard periodicSeamOffset.isFinite else {
       throw KernelError(
         phase: .geometry,
@@ -96,12 +110,15 @@ public struct CertifiedAnalyticBSplineIntersectionCurve: Hashable, Sendable {
       for: canonical,
       boundedBy: boundedSurface,
       periodicSeamOffset: periodicSeamOffset,
-      tolerance: implicitCurve.certificationTolerance
+      tolerance: implicitCurve.certificationTolerance,
+      using: &execution
     )
     let storedAnalytic =
       analyticIsFirst
       ? implicitCurve.firstSurface
       : implicitCurve.secondSurface
+    try GeometryStructuralComparisonWork.charge(surface: .bSpline(rebuilt), using: &execution)
+    try GeometryStructuralComparisonWork.charge(surface: storedAnalytic, using: &execution)
     guard Surface3D.bSpline(rebuilt) == storedAnalytic else {
       throw KernelError(
         phase: .geometry,
@@ -124,6 +141,7 @@ public struct CertifiedAnalyticBSplineIntersectionCurve: Hashable, Sendable {
 
 #if !hasFeature(Embedded)
   public init(from decoder: Decoder) throws {
+    var execution = try NativeRationalSourceDecodingContext.validationExecution(from: decoder)
     let container = try decoder.container(keyedBy: CodingKeys.self)
     try container.validateOnlyExpectedKeys(
       [.implicitCurve, .analyticSurface, .analyticIsFirst, .periodicSeamOffset],
@@ -138,14 +156,15 @@ public struct CertifiedAnalyticBSplineIntersectionCurve: Hashable, Sendable {
       analyticSurface: container.decode(Surface3D.self, forKey: .analyticSurface),
       analyticIsFirst: container.decode(Bool.self, forKey: .analyticIsFirst),
       periodicSeamOffset: container.decode(Double.self, forKey: .periodicSeamOffset),
-      tolerance: implicitCurve.certificationTolerance
+      tolerance: implicitCurve.certificationTolerance, using: &execution
     )
   }
 #endif
 
 #if !hasFeature(Embedded)
   public func encode(to encoder: Encoder) throws {
-    try validate(tolerance: implicitCurve.certificationTolerance)
+        var execution = try NativeOriginalSourceEncodingContext.execution(from: encoder)
+    try validate(tolerance: implicitCurve.certificationTolerance, using: &execution)
     var container = encoder.container(keyedBy: CodingKeys.self)
     try container.encode(implicitCurve, forKey: .implicitCurve)
     try container.encode(analyticSurface, forKey: .analyticSurface)

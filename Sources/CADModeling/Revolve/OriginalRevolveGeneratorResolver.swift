@@ -33,15 +33,15 @@ package struct OriginalRevolveGeneratorResolver: Sendable {
     package init() {}
 
     /// Preserves the exact negation law used by authored reversed section references.
-    package func resolve<B: RationalAlgebraAdmitting>(source: Curve3D,
+    package func resolve(source: Curve3D,
         over parameters: ScalarInterval, origin: Point3D, direction: Vector3D,
         maximumParameterWidth: Double, maximumSubdivisionDepth: Int,
-        maximumSpanCount: Int, tolerance: ModelingTolerance, usage: inout B) throws -> [Span] {
+        maximumSpanCount: Int, tolerance: ModelingTolerance, usage: inout OriginalQueryExecution) throws -> [Span] {
         var original = source
         var nativeParameters = parameters
         var reversesTraversal = false
         while case let .parameterImage(image) = original {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             guard image.parameterGain == .binary(-1), image.offset == 0 else {
                 // FIXME(INCOMPLETE_IMPLEMENTATION): Public Revolve requires an
                 // original endpoint chart for general parameter ratios and
@@ -70,18 +70,18 @@ package struct OriginalRevolveGeneratorResolver: Sendable {
         if !reversesTraversal { return spans }
         var reversed: [Span] = []
         for span in spans.reversed() {
-            try usage.consumeExactWork(1)
-            try usage.retainExactStorage(1)
+            try usage.consumeWork(1)
+            try RationalAlgebraStorage.retain(1, of: Span.self, usage: &usage)
             reversed.append(span.reversed())
         }
         return reversed
     }
 
     /// Retains the original native coefficients, all incidence roots and owning sides.
-    package func resolve<B: RationalAlgebraAdmitting>(source: BSplineCurve3D,
+    package func resolve(source: BSplineCurve3D,
         over parameters: ScalarInterval, origin: Point3D, direction: Vector3D,
         maximumParameterWidth: Double, maximumSubdivisionDepth: Int,
-        maximumSpanCount: Int, tolerance: ModelingTolerance, usage: inout B) throws -> [Span] {
+        maximumSpanCount: Int, tolerance: ModelingTolerance, usage: inout OriginalQueryExecution) throws -> [Span] {
         try source.validate(tolerance: tolerance)
         try origin.validate()
         try direction.validate()
@@ -114,18 +114,18 @@ package struct OriginalRevolveGeneratorResolver: Sendable {
         }
         var rootsBySpan: [Int: [OriginalCurveRootBoundary]] = [:]
         for root in classified.isolated {
-            try usage.consumeExactWork(1)
-            try usage.retainExactStorage(1)
+            try usage.consumeWork(1)
+            try RationalAlgebraStorage.retain(1, of: OriginalCurveRootBoundary.self, usage: &usage)
             rootsBySpan[root.spanIndex, default: []].append(root)
         }
-        try usage.retainExactStorage(classified.coincidentSpans.count)
+        try RationalAlgebraStorage.retain(classified.coincidentSpans.count, of: ScalarInterval.self, usage: &usage)
         let wholeAxisIntervals = Set(classified.coincidentSpans)
         var output: [Span] = []
         for spanIndex in source.degree..<source.controlPoints.count {
             let lower = max(parameters.lower, source.knots[spanIndex])
             let upper = min(parameters.upper, source.knots[spanIndex + 1])
             guard lower < upper else { continue }
-            try usage.visitExactCell(depth: 0)
+            try usage.visitCell(axis: .value, depth: 0)
             let interval = try ScalarInterval(lower: lower, upper: upper)
             let exactLower = try ExactRationalCoefficient.originalDouble(lower, usage: &usage)
             let exactUpper = try ExactRationalCoefficient.originalDouble(upper, usage: &usage)
@@ -133,7 +133,7 @@ package struct OriginalRevolveGeneratorResolver: Sendable {
             var last = OriginalCurveRootEndpoint.authored(upper)
             var interior: [OriginalCurveRootBoundary] = []
             for boundary in rootsBySpan[spanIndex] ?? [] {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 let isRationalStation = boundary.isolationLower == boundary.isolationUpper
                 if isRationalStation, boundary.isolationLower == exactLower {
                     first = .algebraic(boundary)
@@ -143,11 +143,11 @@ package struct OriginalRevolveGeneratorResolver: Sendable {
                     guard interior.count < maximumSpanCount else {
                         throw GeometryConversionError.resourceLimitExceeded("Original revolution exhausted its root boundary count admission.")
                     }
-                    try usage.retainExactStorage(1)
+                    try RationalAlgebraStorage.retain(1, of: OriginalCurveRootBoundary.self, usage: &usage)
                     interior.append(boundary)
                 }
             }
-            try usage.retainExactStorage(interior.count)
+            try RationalAlgebraStorage.retain(interior.count, of: OriginalCurveRootBoundary.self, usage: &usage)
             interior = try interior.sorted { a, b in
                 let difference = try a.isolationLower.subtracting(b.isolationLower, usage: &usage)
                 if !difference.isZero { return difference.isNegative }
@@ -155,9 +155,11 @@ package struct OriginalRevolveGeneratorResolver: Sendable {
                 // that same lower station. No floating root estimate orders them.
                 return !a.excludesLowerEndpoint && b.excludesLowerEndpoint
             }
-            try usage.retainExactStorage(interior.count + 2)
+            let endpointCount = interior.count.addingReportingOverflow(2)
+            guard !endpointCount.overflow else { throw ExactScalarFailure.countOverflow }
+            try RationalAlgebraStorage.retain(endpointCount.partialValue, of: OriginalCurveRootEndpoint.self, usage: &usage)
             var endpoints: [OriginalCurveRootEndpoint] = []
-            endpoints.reserveCapacity(interior.count + 2)
+            endpoints.reserveCapacity(endpointCount.partialValue)
             endpoints.append(first)
             for boundary in interior { endpoints.append(.algebraic(boundary)) }
             endpoints.append(last)
@@ -165,7 +167,7 @@ package struct OriginalRevolveGeneratorResolver: Sendable {
                 guard output.count < maximumSpanCount else {
                     throw GeometryConversionError.resourceLimitExceeded("Original revolution exhausted its chart count admission.")
                 }
-                try usage.retainExactStorage(1)
+                try RationalAlgebraStorage.retain(1, of: Span.self, usage: &usage)
                 let chart = try OriginalCurveRootSpan3D(source: .bSpline(source),
                     start: endpoints[index], end: endpoints[index + 1], nativeSpanIndex: spanIndex,
                     maximumParameterWidth: maximumParameterWidth,

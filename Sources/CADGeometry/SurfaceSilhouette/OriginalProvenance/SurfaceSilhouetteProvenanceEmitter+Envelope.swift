@@ -1,7 +1,7 @@
 import CADCore
 
 extension SurfaceSilhouetteProvenanceEmitter {
-    mutating func write(_ value: SurfaceParameter, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: SurfaceParameter, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "SurfaceParameter"), usage: &usage)
         try field("u", usage: &usage)
         try write(value.u, usage: &usage)
@@ -9,7 +9,7 @@ extension SurfaceSilhouetteProvenanceEmitter {
         try write(value.v, usage: &usage)
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: CoordinateEnclosure3D, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: CoordinateEnclosure3D, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "CoordinateEnclosure3D"), usage: &usage)
         try field("x", usage: &usage)
         try write(value.x, usage: &usage)
@@ -19,7 +19,7 @@ extension SurfaceSilhouetteProvenanceEmitter {
         try write(value.z, usage: &usage)
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: ExactAlgebraicParameterPair, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: ExactAlgebraicParameterPair, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "ExactAlgebraicParameterPair"), usage: &usage)
         try field("projectionRoot", usage: &usage)
         try write(value.projectionRoot, usage: &usage)
@@ -30,7 +30,7 @@ extension SurfaceSilhouetteProvenanceEmitter {
         try field("fiber", usage: &usage); try write(value.fiber, usage: &usage)
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: ExactPolynomialParameterPoint, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: ExactPolynomialParameterPoint, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "ExactPolynomialParameterPoint"), usage: &usage)
         try field("u", usage: &usage)
         try write(value.u, usage: &usage)
@@ -42,7 +42,7 @@ extension SurfaceSilhouetteProvenanceEmitter {
         try write(value.originalDomain, usage: &usage)
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: SurfaceSilhouetteSingularStation, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: SurfaceSilhouetteSingularStation, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "SurfaceSilhouetteSingularStation"), usage: &usage)
         try field("branchMultiplicity", usage: &usage)
         try write(value.branchMultiplicity, usage: &usage)
@@ -68,7 +68,7 @@ extension SurfaceSilhouetteProvenanceEmitter {
         try value.originalCurve.writeOriginalProvenance(to: &self, usage: &usage)
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: SurfaceSilhouettePlaneAtlas, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: SurfaceSilhouettePlaneAtlas, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "SurfaceSilhouettePlaneAtlas"), usage: &usage)
         try field("surface", usage: &usage)
         try write(value.surface, usage: &usage)
@@ -86,7 +86,7 @@ extension SurfaceSilhouetteProvenanceEmitter {
         try emit(.endArray, usage: &usage)
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: SurfaceSilhouettePlaneAtlas.Station, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: SurfaceSilhouettePlaneAtlas.Station, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "SurfaceSilhouettePlaneAtlas.Station"), usage: &usage)
         try field("originalContact", usage: &usage)
         try value.originalContact.writeOriginalProvenance(to: &self, usage: &usage)
@@ -106,7 +106,7 @@ extension SurfaceSilhouetteProvenanceEmitter {
         try write(value.sourceDepth, usage: &usage)
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: SurfaceSilhouetteComponent, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: SurfaceSilhouetteComponent, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "SurfaceSilhouetteComponent"), usage: &usage)
         try field("curveIndices", usage: &usage)
         try emit(.beginArray(count: value.curveIndices.count), usage: &usage)
@@ -120,7 +120,7 @@ extension SurfaceSilhouetteProvenanceEmitter {
         try write(value.isClosed, usage: &usage)
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: SurfaceSilhouetteComponent.Join, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: SurfaceSilhouetteComponent.Join, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "SurfaceSilhouetteComponent.Join"), usage: &usage)
         try field("kind", usage: &usage)
         switch value.kind {
@@ -148,13 +148,13 @@ extension SurfaceSilhouetteProvenanceEmitter {
         else { try emit(.null, usage: &usage) }
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: ExactBivariateCriticalPoint, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: ExactBivariateCriticalPoint, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "originalCriticalPoint"), usage: &usage)
         try field("original", usage: &usage); try write(value.original, usage: &usage)
         try field("parameters", usage: &usage); try write(value.retainedOriginalParameters, usage: &usage)
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: ExactAlgebraicFiberPolynomial, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: ExactAlgebraicFiberPolynomial, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "originalAlgebraicFiber"), usage: &usage)
         try field("root", usage: &usage); try write(value.root, usage: &usage)
         let count = value.coefficients.count

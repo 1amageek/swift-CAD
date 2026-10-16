@@ -30,6 +30,14 @@ public struct Parabola3D: Hashable, Sendable {
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate<A: ExactScalarAdmission & ~Copyable>(
+        tolerance: ModelingTolerance, using execution: inout A
+    ) throws {
+        try execution.consumeWork(1)
         try tolerance.validate()
         try vertex.validate()
         try normal.validateUnitLength(tolerance: tolerance)
@@ -47,10 +55,18 @@ public struct Parabola3D: Hashable, Sendable {
     }
 
     public func differentialGeometry(
-        at parameter: Double,
-        tolerance: ModelingTolerance
+        at parameter: Double, tolerance: ModelingTolerance
     ) throws -> AnalyticCurve3D.DifferentialGeometry {
-        try validate(tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try differentialGeometry(at: parameter, tolerance: tolerance, using: &execution)
+    }
+
+    public func differentialGeometry<A: ExactScalarAdmission & ~Copyable>(
+        at parameter: Double,
+        tolerance: ModelingTolerance, using execution: inout A
+    ) throws -> AnalyticCurve3D.DifferentialGeometry {
+        try execution.consumeWork(1)
+        try validate(tolerance: tolerance, using: &execution)
         guard parameter.isFinite else {
             throw GeometryError.invalidDistance(parameter)
         }
@@ -76,11 +92,17 @@ public struct Parabola3D: Hashable, Sendable {
         )
     }
 
-    public func parameter(
+    public func parameter(for point: Point3D, tolerance: ModelingTolerance) throws -> Double {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try parameter(for: point, tolerance: tolerance, using: &execution)
+    }
+
+    public func parameter<A: ExactScalarAdmission & ~Copyable>(
         for point: Point3D,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout A
     ) throws -> Double {
-        try validate(tolerance: tolerance)
+        try execution.consumeWork(1)
+        try validate(tolerance: tolerance, using: &execution)
         try point.validate()
         let transverseAxis = try normal.cross(axis).normalized(
             tolerance: tolerance.distance

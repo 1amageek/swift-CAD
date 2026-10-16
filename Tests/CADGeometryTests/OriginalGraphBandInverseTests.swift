@@ -6,6 +6,12 @@ import Testing
 struct OriginalGraphBandInverseTests {
     private let tolerance = ModelingTolerance.standard
 
+    private func execution(maximumCells: Int = 262_144) throws -> OriginalQueryExecution {
+        OriginalQueryExecution(budget: try OriginalQueryBudget(workLimit: 262_144, cellLimit: maximumCells),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32,
+                maximumCells: maximumCells, remainingSourceDepth: 16, maximumSubdivisionDepth: 32))
+    }
+
     @Test(.timeLimit(.minutes(1)), arguments: [2, 4], [false, true])
     func originalAffineCoordinatesRetainClosedInverseWithBoundedWork(
         degree: Int, reversed: Bool
@@ -16,12 +22,12 @@ struct OriginalGraphBandInverseTests {
         }
         for weight in [1.0, 7.0] {
             let source = try piece(points: points, weights: Array(repeating: weight, count: points.count))
-            var usage = OriginalTessellationProofUsage()
-            let inverse = try source.inverse(u: 0.317, tolerance: tolerance, proofUsage: &usage)
+            var usage = try execution()
+            let inverse = try source.inverse(u: 0.317, tolerance: tolerance, using: &usage)
             let expected = reversed ? 1 - 0.317 : 0.317
             #expect(inverse.contains(expected))
             #expect(inverse.upper - inverse.lower < 1e-12)
-            #expect(usage.usedCellCount <= 4)
+            #expect(usage.visitedCells <= 4)
             #expect(source.points == points)
         }
     }
@@ -30,14 +36,14 @@ struct OriginalGraphBandInverseTests {
     func varyingWeightsKeepOriginalNonaffineInverseAuthority() throws {
         let points = [Point2D(x: 0, y: 0), Point2D(x: 0.5, y: 0.25), Point2D(x: 1, y: 1)]
         let source = try piece(points: points, weights: [1, 2, 1])
-        var usage = OriginalTessellationProofUsage()
-        let inverse = try source.inverse(u: 0.5, tolerance: tolerance, proofUsage: &usage)
+        var usage = try execution()
+        let inverse = try source.inverse(u: 0.5, tolerance: tolerance, using: &usage)
         // The original unequal-weight law is U(t)=(2t-t^2)/(1+2t-2t^2).
         // Its unique inverse at U=1/2 is exactly t=1/2.
         #expect(inverse.contains(0.5))
         #expect(inverse.upper - inverse.lower < 1e-12)
         #expect(source.endpointAffineResidualUpperBound > 0.1)
-        #expect(usage.usedCellCount > 0)
+        #expect(usage.visitedCells > 0)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -45,8 +51,8 @@ struct OriginalGraphBandInverseTests {
         let middle = 0.5.nextUp
         let source = try piece(points: [Point2D(x: 0, y: 0), Point2D(x: middle, y: 0),
                                        Point2D(x: 1, y: 0)], weights: [1, 1, 1])
-        var usage = OriginalTessellationProofUsage()
-        let inverse = try source.inverse(u: 0.5, tolerance: tolerance, proofUsage: &usage)
+        var usage = try execution()
+        let inverse = try source.inverse(u: 0.5, tolerance: tolerance, using: &usage)
         // U(t)=t+2*(middle-1/2)*t*(1-t); its t at U=1/2 is strictly below 1/2.
         #expect(source.endpointAffineResidualUpperBound >= (middle - 0.5) * 0.5)
         #expect(inverse.lower <= 0.5.nextDown)
@@ -57,17 +63,19 @@ struct OriginalGraphBandInverseTests {
     @Test(.timeLimit(.minutes(1)))
     func exhaustedOriginalUsageRefusesBothEndpointAndInteriorInverses() throws {
         let source = try piece(points: [Point2D(x: 0, y: 0), Point2D(x: 1, y: 1)], weights: [1, 1])
-        var usage = try OriginalTessellationProofUsage(maximumCellCount: 1, tolerance: tolerance)
-        try usage.consume(depth: 0, tolerance: tolerance)
+        var usage = try execution(maximumCells: 1)
+        try usage.visitGeometricCell(depth: 0)
         for u in [0.0, 0.5, 1.0] {
             do {
-                _ = try source.inverse(u: u, tolerance: tolerance, proofUsage: &usage)
+                _ = try source.inverse(u: u, tolerance: tolerance, using: &usage)
                 Issue.record("Exhausted original inverse work must refuse.")
-            } catch let error as KernelError {
-                #expect(error.code == .resourceLimitExceeded)
+            } catch {
+                let published = OriginalQueryFailure.published(error, context: .unspecified, tolerance: tolerance)
+                let failure = try #require(OriginalQueryFailure.classification(of: published))
+                #expect(failure.code == .resourceLimitExceeded)
             }
         }
-        #expect(usage.usedCellCount == 1)
+        #expect(usage.visitedCells == 1)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -75,20 +83,23 @@ struct OriginalGraphBandInverseTests {
         let source = try piece(points: [Point2D(x: 0, y: 0), Point2D(x: 1, y: 1)], weights: [1, 1])
         let task = Task {
             withUnsafeCurrentTask { $0?.cancel() }
-            var usage = OriginalTessellationProofUsage()
-            return try source.inverse(u: 0.5, tolerance: tolerance, proofUsage: &usage)
+            var usage = try execution()
+            return try source.inverse(u: 0.5, tolerance: tolerance, using: &usage)
         }
         do {
             _ = try await task.value
             Issue.record("Cancelled original inverse work must refuse.")
-        } catch is CancellationError {
-            // The original invocation cancellation contract propagates unchanged.
+        } catch where geometryTestIsCancelled(error) {
+            // Cancellation retains its public task identity.
+        } catch let failure as ExactScalarFailure {
+            guard case .cancelled = failure else { throw failure }
         }
     }
 
     private func piece(points: [Point2D], weights: [Double]) throws -> OriginalGraphBandRationalPiece {
-        try OriginalGraphBandRationalPiece(boundaryIndex: 0, nativeIndex: 0,
+        var admission = try execution()
+        return try OriginalGraphBandRationalPiece(boundaryIndex: 0, nativeIndex: 0,
             nativeParameters: ScalarInterval(lower: 0, upper: 1), points: points,
-            weights: weights, tolerance: tolerance)
+            weights: weights, tolerance: tolerance, using: &admission)
     }
 }

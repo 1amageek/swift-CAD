@@ -1,0 +1,9 @@
+{
+  "scope": "Add independent original source/span/range/silhouette/frame reader assertions within the same six original-word projected endpoint partitions; seven output groups and source construction unchanged. Native/WASM/Embedded use same immutable getter contract.",
+  "beforeSHA256": "430702f2f97872c1d9ac5924bb1e506a6919788a0b560771fa03720fca9362ec",
+  "afterSHA256": "6dc36928fc163cab2f4a8f3605fa212fefd8e8560b5999f80dee797fa267c98b",
+  "roots": [
+    "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD/Tests/OriginalQueryExecutionVerification/SurfaceSilhouetteCurrentPortable.swift",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalQueryExecutionVerification/SurfaceSilhouetteCurrentPortable.swift"
+  ]
+}

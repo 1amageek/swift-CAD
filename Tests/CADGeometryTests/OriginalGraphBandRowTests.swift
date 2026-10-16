@@ -9,19 +9,25 @@ struct OriginalGraphBandRowTests {
     private let fidelity = OriginalGraphBandInput.Fidelity(
         linearTolerance: 0.01, angularTolerance: 0.03, maximumEdgeLength: 2)
 
+    private func execution(maximumCells: Int = 262_144) throws -> OriginalQueryExecution {
+        OriginalQueryExecution(budget: try OriginalQueryBudget(workLimit: 262_144, cellLimit: maximumCells),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32,
+                maximumCells: maximumCells, remainingSourceDepth: 16, maximumSubdivisionDepth: 32))
+    }
+
     @Test(.timeLimit(.minutes(1)))
     func oneOriginalRowRetainsLiteralPointsNormalsAndPaidInverseReuse() throws {
-        var usage = OriginalTessellationProofUsage()
+        var usage = try execution()
         let receipt = try certifier.certify(input: literalLens(), fidelity: fidelity,
-                                          tolerance: tolerance, proofUsage: &usage)
+                                          tolerance: tolerance, using: &usage)
         let index = try #require(receipt.referenceCells.firstIndex { $0.u.contains(0.5) })
-        let beforeRow = usage.usedCellCount
-        let row = try receipt.stationRow(cellIndex: index, u: 0.5, proofUsage: &usage)
-        let rowWork = usage.usedCellCount - beforeRow
+        let beforeRow = usage.visitedCells
+        let row = try receipt.stationRow(cellIndex: index, u: 0.5, using: &usage)
+        let rowWork = usage.visitedCells - beforeRow
         #expect(rowWork > 1)
         for w in [0.0, 0.25, 0.5, 1.0] {
-            let beforeStation = usage.usedCellCount
-            let station = try receipt.station(row: row, w: w, proofUsage: &usage)
+            let beforeStation = usage.visitedCells
+            let station = try receipt.station(row: row, w: w, using: &usage)
             // Original literal laws are S(u,v)=(u,v,0), L(u)=-u(1-u), H(u)=0.
             // At u=1/2, F(1/2,w)=(1/2,-(1-w)/4,0) and its normal is +Z.
             let expected = Point3D(x: 0.5, y: -(1 - w) / 4, z: 0)
@@ -31,64 +37,64 @@ struct OriginalGraphBandRowTests {
             #expect(abs(station.normal.z - 1) < 1e-10)
             #expect(station.normalErrorUpperBound <= fidelity.angularTolerance)
             // Each W still pays surface materialization; none repeats the row inverses.
-            #expect(usage.usedCellCount - beforeStation == 1)
+            #expect(usage.visitedCells - beforeStation == 1)
         }
-        #expect(usage.usedCellCount - beforeRow == rowWork + 4)
+        #expect(usage.visitedCells - beforeRow == rowWork + 4)
     }
 
     @Test(.timeLimit(.minutes(1)))
     func foreignReceiptRowsAndInvalidClosedStationsRefuse() throws {
-        var usage = OriginalTessellationProofUsage()
+        var usage = try execution()
         let input = literalLens()
         let a = try certifier.certify(input: input, fidelity: fidelity,
-                                     tolerance: tolerance, proofUsage: &usage)
+                                     tolerance: tolerance, using: &usage)
         let b = try certifier.certify(input: input, fidelity: fidelity,
-                                     tolerance: tolerance, proofUsage: &usage)
+                                     tolerance: tolerance, using: &usage)
         let index = try #require(a.referenceCells.firstIndex { $0.u.contains(0.5) })
-        let row = try a.stationRow(cellIndex: index, u: 0.5, proofUsage: &usage)
+        let row = try a.stationRow(cellIndex: index, u: 0.5, using: &usage)
         try expectFailure(.invalidInput) {
-            _ = try b.station(row: row, w: 0.5, proofUsage: &usage)
+            _ = try b.station(row: row, w: 0.5, using: &usage)
         }
         try expectFailure(.invalidInput) {
-            _ = try a.station(row: row, w: .nan, proofUsage: &usage)
+            _ = try a.station(row: row, w: .nan, using: &usage)
         }
         try expectFailure(.invalidInput) {
-            _ = try a.station(row: row, w: 1.0.nextUp, proofUsage: &usage)
+            _ = try a.station(row: row, w: 1.0.nextUp, using: &usage)
         }
         try expectFailure(.invalidInput) {
-            _ = try a.stationRow(cellIndex: index, u: .infinity, proofUsage: &usage)
+            _ = try a.stationRow(cellIndex: index, u: .infinity, using: &usage)
         }
         try expectFailure(.invalidInput) {
             _ = try a.stationRow(cellIndex: index,
-                u: a.referenceCells[index].u.lower.nextDown, proofUsage: &usage)
+                u: a.referenceCells[index].u.lower.nextDown, using: &usage)
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func aPreparedRowDoesNotBypassExhaustedMaterializationUsage() throws {
-        var usage = try OriginalTessellationProofUsage(maximumCellCount: 10_000, tolerance: tolerance)
+        var usage = try execution(maximumCells: 10_000)
         let receipt = try certifier.certify(input: literalLens(), fidelity: fidelity,
-                                          tolerance: tolerance, proofUsage: &usage)
+                                          tolerance: tolerance, using: &usage)
         let index = try #require(receipt.referenceCells.firstIndex { $0.u.contains(0.5) })
-        let row = try receipt.stationRow(cellIndex: index, u: 0.5, proofUsage: &usage)
-        while usage.remainingCellCount > 0 { try usage.consume(depth: 0, tolerance: tolerance) }
+        let row = try receipt.stationRow(cellIndex: index, u: 0.5, using: &usage)
+        while usage.visitedCells < usage.effectiveLimits.maximumCells { try usage.visitGeometricCell(depth: 0) }
         try expectFailure(.resourceLimitExceeded) {
-            _ = try receipt.station(row: row, w: 0.5, proofUsage: &usage)
+            _ = try receipt.station(row: row, w: 0.5, using: &usage)
         }
-        #expect(usage.usedCellCount == usage.maximumCellCount)
+        #expect(usage.visitedCells == usage.effectiveLimits.maximumCells)
     }
 
     @Test(.timeLimit(.minutes(1)))
     func c0RowsKeepIndependentClosedSideNormalsAndStationEvidence() throws {
-        var usage = OriginalTessellationProofUsage()
+        var usage = try execution()
         let receipt = try certifier.certify(input: literalLens(crease: true), fidelity: fidelity,
-                                          tolerance: tolerance, proofUsage: &usage)
+                                          tolerance: tolerance, using: &usage)
         let left = try #require(receipt.referenceCells.firstIndex { $0.u.upper == 0.5 })
         let right = try #require(receipt.referenceCells.firstIndex { $0.u.lower == 0.5 })
-        let leftRow = try receipt.stationRow(cellIndex: left, u: 0.5, proofUsage: &usage)
-        let rightRow = try receipt.stationRow(cellIndex: right, u: 0.5, proofUsage: &usage)
-        let a = try receipt.station(row: leftRow, w: 0.5, proofUsage: &usage)
-        let b = try receipt.station(row: rightRow, w: 0.5, pointCandidate: a.point, proofUsage: &usage)
+        let leftRow = try receipt.stationRow(cellIndex: left, u: 0.5, using: &usage)
+        let rightRow = try receipt.stationRow(cellIndex: right, u: 0.5, using: &usage)
+        let a = try receipt.station(row: leftRow, w: 0.5, using: &usage)
+        let b = try receipt.station(row: rightRow, w: 0.5, pointCandidate: a.point, using: &usage)
         let expected = Point3D(x: 0.5, y: -0.125, z: 0)
         #expect((a.point - expected).length <= a.positionErrorUpperBound)
         #expect((b.point - expected).length <= b.positionErrorUpperBound)
@@ -101,7 +107,7 @@ struct OriginalGraphBandRowTests {
         try expectFailure(.invalidInput) {
             try receipt.admitReferenceFacet(cellIndex: left, stations: [a, a, b],
                 positions: [a.point, a.point, b.point], normals: [a.normal, a.normal, b.normal],
-                proofUsage: &usage)
+                using: &usage)
         }
     }
 
@@ -124,8 +130,10 @@ struct OriginalGraphBandRowTests {
         do {
             try body()
             Issue.record("Expected typed original graph-band row refusal.")
-        } catch let error as KernelError {
-            #expect(error.code == code)
+        } catch {
+            let published = OriginalQueryFailure.published(error, context: .unspecified, tolerance: tolerance)
+            let failure = try #require(OriginalQueryFailure.classification(of: published))
+            #expect(failure.code == code)
         }
     }
 }

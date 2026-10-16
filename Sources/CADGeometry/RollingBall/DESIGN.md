@@ -214,11 +214,40 @@ These checks establish only the local section contract. Integration requires
 curved-edge helical-part machining, complete trimmed B-rep validity, atomic
 failure, Undo/Redo, source round-trip and native presentation.
 
-Caller-admitted closed rail composition accepts the same work and optional byte
-callbacks as the owning rail queries. Composition uses fixed jet fields for
-normalization, circular blending and finite-output checks; it allocates no
-axis, cross-component or derivative-check arrays. Work visits cover each fixed
-composition stage and every output derivative bound. Optional bytes remain
-unchanged at the boundary; no estimated scratch reservation stands in for the
-fixed-field implementation. Source rail continuity and whole-box regularity
-remain separate caller premises.
+### Direct evaluation execution
+
+All fallible section and blend query entries receive the caller's exclusive
+`OriginalQueryExecution`. Ordinary entries create one independent execution and
+call the same direct body. The section evaluator retains immutable geometry,
+construction tolerance and the injected correspondence service; it never stores
+an execution or a callback budget. Preparation and every retained rail query use
+the same caller execution and the lower owner's preparation receipts.
+
+```text
+Caller execution -> offset/intersection correspondence -> retained contact rails
+                 -> point / named Taylor algebra / fixed interval composition
+                 -> local contact-side cells and certified sign
+```
+
+Taylor coefficient allocation and COW detachment use the named Taylor operations
+on that execution. Constant-size section controls, knots, weights and derivative
+scratch admit their actual element strides before allocation. Fixed interval
+composition charges its work stages and output visits without fabricated dynamic
+scratch bytes. Contact-side subdivision keeps its explicit local depth and cell
+ceilings, observes geometric depth through the common execution, and charges
+stack allocation before growth. Exhaustion and cancellation propagate without
+becoming inconclusive geometry or successful absence. Existing singular interval
+refinement remains a geometry-only decision; it must not absorb resource failure.
+
+Verification must compare ordinary and direct point/section/Taylor/interval and
+contact-side results, reject work/storage/depth exhaustion and cancellation, and
+retain the existing invalid-radius/correspondence/minor-arc refusals. These local
+results do not complete the marked general fillet feature.
+
+Original correspondence validation and paired evaluation receive the same exclusive
+`OriginalQueryExecution` as the rolling-ball section. The complete intersection
+truth and derived certificate are validated before section construction. Paired
+implicit refinement is performed once, then both original surfaces and the spatial
+curve are evaluated on that same correspondence. Ordinary correspondence entries
+create one root and use the direct implementation; no callback or child ledger
+supplies the result.

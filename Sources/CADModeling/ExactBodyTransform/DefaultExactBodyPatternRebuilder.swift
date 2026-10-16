@@ -146,7 +146,7 @@ package struct DefaultExactBodyPatternRebuilder: ExactBodyPatternRebuilding {
                 voidShellStableIDs: voids.map(\.stableID)
             )]),
             shells: [outer] + voids,
-            bodyParentSubshapeIDs: subshapeIDs(for: .body(sourceBodyID), context: context)
+            bodyParentSubshapeIDs: try subshapeIDs(for: .body(sourceBodyID), context: context)
         )
         let sewn = try sewer.sew(request, tolerance: tolerance)
         let replacementBodyIDs = Set(sewn.subshapes.values.compactMap { reference -> BodyID? in
@@ -254,7 +254,7 @@ package struct DefaultExactBodyPatternRebuilder: ExactBodyPatternRebuilding {
             featureID: featureID,
             bodyTopology: .sheet(shellStableIDs: patchesByShell.map(\.stableID)),
             shells: patchesByShell,
-            bodyParentSubshapeIDs: subshapeIDs(for: .body(sourceBodyID), context: context)
+            bodyParentSubshapeIDs: try subshapeIDs(for: .body(sourceBodyID), context: context)
         )
         let sewn = try sewer.sew(request, tolerance: tolerance)
         let replacementBodyIDs = Set(sewn.subshapes.values.compactMap { reference -> BodyID? in
@@ -463,7 +463,7 @@ package struct DefaultExactBodyPatternRebuilder: ExactBodyPatternRebuilding {
                 featureID: featureID,
                 bodyTopology: .sheet(shellStableIDs: sewingShells.map(\.stableID)),
                 shells: sewingShells,
-                bodyParentSubshapeIDs: subshapeIDs(for: .body(bodyID), context: context)
+                bodyParentSubshapeIDs: try subshapeIDs(for: .body(bodyID), context: context)
             )
         }
         guard let sourceComponents = body.solidComponents else {
@@ -512,7 +512,7 @@ package struct DefaultExactBodyPatternRebuilder: ExactBodyPatternRebuilding {
             featureID: featureID,
             bodyTopology: .solid(components: components),
             shells: sewingShells,
-            bodyParentSubshapeIDs: subshapeIDs(for: .body(bodyID), context: context)
+            bodyParentSubshapeIDs: try subshapeIDs(for: .body(bodyID), context: context)
         )
     }
 
@@ -569,7 +569,7 @@ package struct DefaultExactBodyPatternRebuilder: ExactBodyPatternRebuilding {
             surface: surface,
             orientation: orientation,
             loops: loops,
-            parentSubshapeIDs: subshapeIDs(for: .face(faceID), context: context)
+            parentSubshapeIDs: try subshapeIDs(for: .face(faceID), context: context)
         )
     }
 
@@ -624,9 +624,9 @@ package struct DefaultExactBodyPatternRebuilder: ExactBodyPatternRebuilding {
             startPoint: start,
             endPoint: end,
             surfaceParameterCurve: targetParameterCurve,
-            parentSubshapeIDs: subshapeIDs(for: .edge(sourceEdge.id), context: context),
-            startVertexParentSubshapeIDs: subshapeIDs(for: .vertex(sourceStartID), context: context),
-            endVertexParentSubshapeIDs: subshapeIDs(for: .vertex(sourceEndID), context: context)
+            parentSubshapeIDs: try subshapeIDs(for: .edge(sourceEdge.id), context: context),
+            startVertexParentSubshapeIDs: try subshapeIDs(for: .vertex(sourceStartID), context: context),
+            endVertexParentSubshapeIDs: try subshapeIDs(for: .vertex(sourceEndID), context: context)
         )
     }
 
@@ -644,8 +644,8 @@ package struct DefaultExactBodyPatternRebuilder: ExactBodyPatternRebuilding {
     private func subshapeIDs(
         for reference: TopologyReference,
         context: EvaluationContext
-    ) -> [SubshapeID] {
-        context.subshapeIDs(for: reference)
+    ) throws -> [SubshapeID] {
+        try context.subshapeIDs(for: reference)
     }
 
     private func error(

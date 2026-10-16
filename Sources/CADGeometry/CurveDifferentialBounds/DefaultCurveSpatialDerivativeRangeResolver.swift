@@ -1,0 +1,472 @@
+import CADCore
+
+struct DefaultCurveSpatialDerivativeRangeResolver:
+  CurveSpatialDerivativeRangeResolving
+{
+  func derivativeRange(curve: Curve3D, interval: ScalarInterval, tolerance: ModelingTolerance)
+    throws -> CurveSpatialDerivativeRange?
+  {
+    var execution = try OriginalQueryExecution.independentGeometry()
+    return try derivativeRange(
+      curve: curve, interval: interval, tolerance: tolerance, using: &execution)
+  }
+
+  func derivativeRange(
+    curve: Curve3D,
+    interval: ScalarInterval,
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+  ) throws -> CurveSpatialDerivativeRange? {
+    let result = try derivativeRangeBody(
+      curve: curve, interval: interval, tolerance: tolerance, using: &execution)
+    try execution.checkpoint()
+    return result
+  }
+
+
+
+  private func derivativeRangeBody(
+    curve: Curve3D,
+    interval: ScalarInterval,
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+  ) throws -> CurveSpatialDerivativeRange? {
+    switch curve {
+    case .certifiedIntersection(let certifiedCurve):
+      let bounds = try certifiedCurve.spatialDifferentialMagnitudeBounds(
+        fromNormalizedFraction: interval.lower,
+        toNormalizedFraction: interval.upper,
+        tolerance: tolerance, using: &execution)
+      return try derivativeRange(
+        curve: curve,
+        interval: interval,
+        secondDerivativeBound: bounds.second,
+        tolerance: tolerance, using: &execution)
+    case .implicit(let implicitCurve):
+      return try implicitDerivativeRange(
+        curve: implicitCurve,
+        interval: interval,
+        tolerance: tolerance, using: &execution)
+    case .surfaceLift(let lift):
+      if let jet = try DefaultCurveDifferentialEncloser().directJet(
+        curve, parameters: interval, tolerance: tolerance, using: &execution)
+      {
+        return try CurveSpatialDerivativeRange(
+          x: ScalarInterval(lower: jet.x.derivativeU.lower, upper: jet.x.derivativeU.upper),
+          y: ScalarInterval(lower: jet.y.derivativeU.lower, upper: jet.y.derivativeU.upper),
+          z: ScalarInterval(lower: jet.z.derivativeU.lower, upper: jet.z.derivativeU.upper))
+      }
+      guard
+        let secondDerivativeBound =
+          try SurfaceLiftDifferentialBounder()
+          .secondDerivativeMagnitude(
+            lift: lift,
+            interval: interval,
+            tolerance: tolerance, using: &execution)
+      else {
+        return nil
+      }
+      return try derivativeRange(
+        curve: curve,
+        interval: interval,
+        secondDerivativeBound: secondDerivativeBound,
+        tolerance: tolerance, using: &execution)
+    case .rigidImage(let image):
+      guard
+        let source = try derivativeRange(
+          curve: image.source,
+          interval: interval,
+          tolerance: tolerance, using: &execution)
+      else {
+        return nil
+      }
+      return try CurveSpatialDerivativeRange(
+        x: transformedComponent(
+          source,
+          x: image.transform.basisX.x,
+          y: image.transform.basisY.x,
+          z: image.transform.basisZ.x
+        ),
+        y: transformedComponent(
+          source,
+          x: image.transform.basisX.y,
+          y: image.transform.basisY.y,
+          z: image.transform.basisZ.y
+        ),
+        z: transformedComponent(
+          source,
+          x: image.transform.basisX.z,
+          y: image.transform.basisY.z,
+          z: image.transform.basisZ.z
+        )
+      )
+    case .affineImage(let image):
+      guard
+        let source = try derivativeRange(
+          curve: image.source,
+          interval: interval,
+          tolerance: tolerance, using: &execution)
+      else {
+        return nil
+      }
+      return try CurveSpatialDerivativeRange(
+        x: transformedComponent(
+          source,
+          x: image.transform.basisX.x,
+          y: image.transform.basisY.x,
+          z: image.transform.basisZ.x
+        ),
+        y: transformedComponent(
+          source,
+          x: image.transform.basisX.y,
+          y: image.transform.basisY.y,
+          z: image.transform.basisZ.y
+        ),
+        z: transformedComponent(
+          source,
+          x: image.transform.basisX.z,
+          y: image.transform.basisY.z,
+          z: image.transform.basisZ.z
+        )
+      )
+    case .originalConstructionChart, .originalEndpointConnector, .originalPlaneDerivative,
+      .originalGuideTraversalChain, .originalPolyline, .originalGuideEndpointConnector,
+      .originalDrafted, .originalAngularTransport, .line, .circle, .analytic, .bSpline,
+      .parameterImage, .originalAffineWord:
+      let enclosure = try DefaultCurveDifferentialEncloser().enclosure(
+        of: curve,
+        over: interval,
+        tolerance: tolerance, using: &execution)
+      return CurveSpatialDerivativeRange(
+        x: enclosure.firstDerivative.x,
+        y: enclosure.firstDerivative.y,
+        z: enclosure.firstDerivative.z
+      )
+    }
+  }
+
+  private func transformedComponent(
+    _ source: CurveSpatialDerivativeRange,
+    x: Double,
+    y: Double,
+    z: Double
+  ) throws -> ScalarInterval {
+    try added(
+      added(
+        scaled(source.x, by: x),
+        scaled(source.y, by: y)
+      ),
+      scaled(source.z, by: z)
+    )
+  }
+
+  private func derivativeRange(
+    curve: Curve3D,
+    interval: ScalarInterval,
+    secondDerivativeBound: Double,
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+  ) throws -> CurveSpatialDerivativeRange {
+    let derivative = try curve.differentialGeometry(
+      at: interval.midpoint,
+      tolerance: tolerance, using: &execution
+    ).firstDerivative
+    let radius = (secondDerivativeBound * interval.width * 0.5).nextUp
+    guard radius.isFinite, radius >= 0.0 else {
+      throw arithmeticFailure()
+    }
+    return try CurveSpatialDerivativeRange(
+      x: outwardInterval(
+        derivative.x - radius,
+        derivative.x + radius),
+      y: outwardInterval(
+        derivative.y - radius,
+        derivative.y + radius),
+      z: outwardInterval(
+        derivative.z - radius,
+        derivative.z + radius)
+    )
+  }
+
+  private func implicitDerivativeRange(
+    curve: CertifiedImplicitIntersectionCurve,
+    interval: ScalarInterval,
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+  ) throws -> CurveSpatialDerivativeRange {
+    let cellCount = curve.cells.count
+    guard cellCount > 0 else {
+      throw KernelError(
+        phase: .geometry,
+        code: .invalidInput,
+        tolerance: tolerance,
+        message: "An implicit curve derivative range requires at least one certified graph cell."
+      )
+    }
+    let preparedSurface = try PreparedSurfaceDifferentialEncloser(
+      surface: curve.firstSurface,
+      tolerance: tolerance, using: &execution)
+    let count = Double(cellCount)
+    var result: CurveSpatialDerivativeRange?
+    for index in curve.cells.indices {
+      try execution.consumeWork(1)
+      let globalLower = Double(index) / count
+      let globalUpper = Double(index + 1) / count
+      let overlapLower = max(interval.lower, globalLower)
+      let overlapUpper = min(interval.upper, globalUpper)
+      guard overlapLower <= overlapUpper else { continue }
+
+      let localLower = max(
+        0.0,
+        min(1.0, overlapLower * count - Double(index))
+      )
+      let localUpper = max(
+        0.0,
+        min(1.0, overlapUpper * count - Double(index))
+      )
+      let cell = curve.cells[index]
+      let parameterBox: SurfaceIntersectionParameterBox
+      if localUpper - localLower > tolerance.relative {
+        parameterBox = try cell.restrictedBounds(
+          fromNormalizedFraction: localLower,
+          toNormalizedFraction: localUpper,
+          firstSurface: curve.firstSurface,
+          secondSurface: curve.secondSurface,
+          tolerance: tolerance, using: &execution
+        ).parameterBox
+      } else {
+        parameterBox = cell.parameterBox
+      }
+      let localParameterDerivatives = try cell.parameterDerivativeBounds(
+        firstSurface: curve.firstSurface,
+        secondSurface: curve.secondSurface,
+        tolerance: tolerance, using: &execution)
+      let globalParameterDerivatives = try OriginalCoefficientAllocation.map(
+        elements: localParameterDerivatives, using: &execution
+      ) { value, execution in
+        try scaled(value, by: count)
+      }
+      let surfaceTangents = try surfaceTangentRanges(
+        surface: curve.firstSurface,
+        prepared: preparedSurface,
+        uInterval: parameterBox.firstU,
+        vInterval: parameterBox.firstV,
+        tolerance: tolerance, using: &execution)
+      let cellRange = try CurveSpatialDerivativeRange(
+        x: added(
+          multiplied(
+            surfaceTangents.u.x,
+            globalParameterDerivatives[0]
+          ),
+          multiplied(
+            surfaceTangents.v.x,
+            globalParameterDerivatives[1]
+          )
+        ),
+        y: added(
+          multiplied(
+            surfaceTangents.u.y,
+            globalParameterDerivatives[0]
+          ),
+          multiplied(
+            surfaceTangents.v.y,
+            globalParameterDerivatives[1]
+          )
+        ),
+        z: added(
+          multiplied(
+            surfaceTangents.u.z,
+            globalParameterDerivatives[0]
+          ),
+          multiplied(
+            surfaceTangents.v.z,
+            globalParameterDerivatives[1]
+          )
+        )
+      )
+      if let current = result {
+        result = try CurveSpatialDerivativeRange(
+          x: union(current.x, cellRange.x),
+          y: union(current.y, cellRange.y),
+          z: union(current.z, cellRange.z)
+        )
+      } else {
+        result = cellRange
+      }
+    }
+    guard let result else {
+      throw KernelError(
+        phase: .geometry,
+        code: .intersectionFailure,
+        tolerance: tolerance,
+        message: "An implicit curve interval did not overlap a certified graph cell."
+      )
+    }
+    return result
+  }
+
+  private func surfaceTangentRanges(
+    surface: Surface3D,
+    prepared: PreparedSurfaceDifferentialEncloser,
+    uInterval: ScalarInterval,
+    vInterval: ScalarInterval,
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+  ) throws -> (
+    u: CurveSpatialDerivativeRange,
+    v: CurveSpatialDerivativeRange
+  ) {
+    let boundedU = try nondegenerateInterval(
+      uInterval,
+      domain: surface.uDomain,
+      tolerance: tolerance
+    )
+    let boundedV = try nondegenerateInterval(
+      vInterval,
+      domain: surface.vDomain,
+      tolerance: tolerance
+    )
+    let enclosure = try prepared.enclosure(
+      over: SurfaceParameterBox(u: boundedU, v: boundedV),
+      tolerance: tolerance, using: &execution)
+    return (
+      u: CurveSpatialDerivativeRange(
+        x: enclosure.tangentU.x,
+        y: enclosure.tangentU.y,
+        z: enclosure.tangentU.z
+      ),
+      v: CurveSpatialDerivativeRange(
+        x: enclosure.tangentV.x,
+        y: enclosure.tangentV.y,
+        z: enclosure.tangentV.z
+      )
+    )
+  }
+
+  private func nondegenerateInterval(
+    _ interval: ScalarInterval,
+    domain: ParameterDomain,
+    tolerance: ModelingTolerance
+  ) throws -> ScalarInterval {
+    guard case .closed(let domainLower, let domainUpper) = domain else {
+      throw KernelError(
+        phase: .geometry,
+        code: .invalidInput,
+        tolerance: tolerance,
+        message: "A bounded surface derivative range requires a closed parameter domain."
+      )
+    }
+    let minimumWidth = max(
+      (tolerance.relative * 4.0).nextUp,
+      Double.ulpOfOne * 4_096.0
+    )
+    guard interval.width <= minimumWidth else { return interval }
+    let midpoint = interval.midpoint
+    let halfWidth = minimumWidth * 0.5
+    var lower = max(domainLower, midpoint - halfWidth)
+    var upper = min(domainUpper, midpoint + halfWidth)
+    if upper - lower < minimumWidth {
+      if lower == domainLower {
+        upper = min(domainUpper, domainLower + minimumWidth)
+      } else {
+        lower = max(domainLower, domainUpper - minimumWidth)
+      }
+    }
+    guard lower <= interval.lower,
+      upper >= interval.upper,
+      upper - lower > tolerance.relative
+    else {
+      throw KernelError(
+        phase: .geometry,
+        code: .resourceLimitExceeded,
+        residual: upper - lower,
+        tolerance: tolerance,
+        message:
+          "A surface derivative enclosure could not construct a representable containing parameter interval."
+      )
+    }
+    return try ScalarInterval(lower: lower, upper: upper)
+  }
+
+  private func vectorRange(
+    center: Vector3D,
+    radius: Double
+  ) throws -> CurveSpatialDerivativeRange {
+    guard radius.isFinite, radius >= 0.0 else {
+      throw arithmeticFailure()
+    }
+    return try CurveSpatialDerivativeRange(
+      x: outwardInterval(center.x - radius, center.x + radius),
+      y: outwardInterval(center.y - radius, center.y + radius),
+      z: outwardInterval(center.z - radius, center.z + radius)
+    )
+  }
+
+  private func union(
+    _ first: ScalarInterval,
+    _ second: ScalarInterval
+  ) throws -> ScalarInterval {
+    try ScalarInterval(
+      lower: min(first.lower, second.lower),
+      upper: max(first.upper, second.upper)
+    )
+  }
+
+  private func added(
+    _ first: ScalarInterval,
+    _ second: ScalarInterval
+  ) throws -> ScalarInterval {
+    try outwardInterval(
+      first.lower + second.lower,
+      first.upper + second.upper)
+  }
+
+  private func multiplied(
+    _ first: ScalarInterval,
+    _ second: ScalarInterval
+  ) throws -> ScalarInterval {
+    try outwardInterval(
+      first.lower * second.lower,
+      first.lower * second.upper,
+      first.upper * second.lower,
+      first.upper * second.upper)
+  }
+
+  private func scaled(
+    _ interval: ScalarInterval,
+    by scale: Double
+  ) throws -> ScalarInterval {
+    try outwardInterval(
+      interval.lower * scale,
+      interval.upper * scale)
+  }
+
+  private func outwardInterval(
+    _ first: Double, _ second: Double
+  ) throws -> ScalarInterval {
+    let lower = min(first, second)
+    let upper = max(first, second)
+    guard lower.isFinite,
+      upper.isFinite
+    else {
+      throw arithmeticFailure()
+    }
+    return try ScalarInterval(
+      lower: lower.nextDown,
+      upper: upper.nextUp
+    )
+  }
+
+  private func outwardInterval(_ first: Double, _ second: Double, _ third: Double, _ fourth: Double)
+    throws -> ScalarInterval
+  {
+    let lower = min(min(min(first, second), third), fourth)
+    let upper = max(max(max(first, second), third), fourth)
+    guard lower.isFinite, upper.isFinite else { throw arithmeticFailure() }
+    return try ScalarInterval(lower: lower.nextDown, upper: upper.nextUp)
+  }
+
+  private func arithmeticFailure() -> KernelError {
+    KernelError(
+      phase: .geometry,
+      code: .resourceLimitExceeded,
+      tolerance: nil,
+      message: "A curve spatial derivative enclosure exceeded finite interval arithmetic."
+    )
+  }
+}

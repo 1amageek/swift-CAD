@@ -46,3 +46,13 @@ Finite original parameter extent accepts the caller's optional byte callback and
 Additive original body/face bounds carry independent source and algebra ceilings and optional bytes. Original extent, prepared support and closed position query forward the same callback. The four-way DFS reserves at most three times depth plus one retained cells before allocation; each four-cell subdivision scratch is separately admitted. Existing work-only entries preserve their original source-depth policy.
 
 Additional original derivative, guide-chain, polyline, connector and drafted curve families use the same complete original closed position encloser over their retained directed trim or declared finite native domain. Optional rectangular extraction remains conservative when an exact word pcurve has no direct constant-coordinate witness; absence of this specialization is not empty spatial bounds.
+
+## Canonical bounds caller binding
+
+Removed Geometry callback preparation signatures are rebound to the original
+concrete execution in face/body bounds, finite trim extent and closed position
+queries. Existing ordinary analytical/control-net branches and strict original
+finite-enclosure branches remain explicit APIs. Boolean graph construction uses
+the strict finite enclosure on both entry contexts with local source/geometric/
+scalar caps intersected independently with caller limits; diagnostic entry never
+selects geometric policy. Existing cell/span/DFS limits and formulas remain.

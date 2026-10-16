@@ -1,0 +1,205 @@
+--- a/Sources/CADGeometry/SurfaceSilhouette/OriginalSurfaceSilhouetteCurve.swift
++++ b/Sources/CADGeometry/SurfaceSilhouette/OriginalSurfaceSilhouetteCurve.swift
+@@ -303,74 +303,10 @@
+         try GeometryStructuralComparisonWork.charge(surface: other.surface, using: &usage)
+         guard surface == other.surface, view == other.view else { return false }
+         if !periodic, fieldAtlasStart != nil || other.fieldAtlasStart != nil {
+-            let first = atUpperEnd ? fieldAtlasEnd : fieldAtlasStart
+-            let second = otherAtUpperEnd ? other.fieldAtlasEnd : other.fieldAtlasStart
+-            let admitted: SurfaceSilhouetteFieldAtlasEndpoint
+-            if let first, let second {
+-                guard try first.hasSameValue(as: second, usage: &usage) else { return false }
+-                admitted = first
+-            } else if let first, let rational = otherAtUpperEnd ? other.atlasEnd : other.atlasStart {
+-                guard try first.hasSameValue(as: rational, usage: &usage) else { return false }
+-                admitted = first
+-            } else if let second, let rational = atUpperEnd ? atlasEnd : atlasStart {
+-                guard try second.hasSameValue(as: rational, usage: &usage) else { return false }
+-                admitted = second
+-            } else {
+-                // FIXME(INCOMPLETE_IMPLEMENTATION): Generic non-atlas endpoint
+-                // joins need original coordinate transport before drawing assembly.
+-                throw failure(.intersectionFailure, "Original field atlas endpoint lacks compatible source incidence.")
+-            }
+-            if field.domain != other.field.domain {
+-                guard let differences = try field.originalFirstPartialEquality(with: other.field, usage: &usage) else {
+-                    throw failure(.intersectionFailure, "Original field atlas seam lacks source partial equality.")
+-                }
+-                for difference in differences {
+-                    guard case .zero = try admitted.sign(of: difference, usage: &usage) else {
+-                        throw failure(.intersectionFailure, "Original field atlas seam has unequal source partials.")
+-                    }
+-                }
+-            }
+-            return true
++            return try fieldAtlasBoundaryIsSame(as: other, atUpperEnd: atUpperEnd, otherAtUpperEnd: otherAtUpperEnd, firstPoint: firstPoint, secondPoint: secondPoint, usage: &usage)
+         }
+         if !periodic, usesOriginalAtlas || other.usesOriginalAtlas {
+-            let first = atUpperEnd ? atlasEnd : atlasStart
+-            let second = otherAtUpperEnd ? other.atlasEnd : other.atlasStart
+-            let admitted: SurfaceSilhouetteAtlasEndpoint
+-            if let first, let second {
+-                guard try first.hasSameValue(as: second, usage: &usage) else { return false }
+-                admitted = first
+-            } else if let first, let secondPoint {
+-                guard try first.hasSameValue(as: secondPoint, usage: &usage) else { return false }
+-                admitted = first
+-            } else if let second, let firstPoint {
+-                guard try second.hasSameValue(as: firstPoint, usage: &usage) else { return false }
+-                admitted = second
+-            } else if let first, let point = try other.polynomialPoint(atUpperEnd: otherAtUpperEnd, usage: &usage) {
+-                guard try first.hasSameValue(as: point, usage: &usage) else { return false }
+-                admitted = first
+-            } else if let second, let point = try polynomialPoint(atUpperEnd: atUpperEnd, usage: &usage) {
+-                guard try second.hasSameValue(as: point, usage: &usage) else { return false }
+-                admitted = second
+-            } else {
+-                // FIXME(INCOMPLETE_IMPLEMENTATION): Mixed polynomial or
+-                // periodic atlas endpoint joins require their exact original
+-                // source incidence before the drawing envelope can publish.
+-                throw failure(.intersectionFailure, "Original atlas endpoint lacks compatible source incidence.")
+-            }
+-            if field.domain != other.field.domain {
+-                guard let differences = try field.originalFirstPartialEquality(with: other.field, usage: &usage) else {
+-                    throw failure(.intersectionFailure, "Original atlas seam lacks one-sided source partials.")
+-                }
+-                for difference in differences {
+-                    guard case .zero = try admitted.sign(of: difference, usage: &usage) else {
+-                        throw failure(.intersectionFailure, "Original atlas seam has unequal one-sided source partials.")
+-                    }
+-                }
+-                try certifyOffsetNormal(with: other, sign: { polynomial, usage in
+-                    try admitted.sign(of: polynomial, usage: &usage)
+-                }, usage: &usage)
+-            }
+-            return true
++            return try rationalAtlasBoundaryIsSame(as: other, atUpperEnd: atUpperEnd, otherAtUpperEnd: otherAtUpperEnd, firstPoint: firstPoint, secondPoint: secondPoint, usage: &usage)
+         }
+         if ramifiedImage != nil || other.ramifiedImage != nil {
+             // FIXME(INCOMPLETE_IMPLEMENTATION): The public envelope assembler
+@@ -382,6 +318,101 @@
+             return try polynomialBoundaryIsSame(as: other, atUpperEnd: atUpperEnd,
+                 otherAtUpperEnd: otherAtUpperEnd, firstPoint: firstPoint, secondPoint: secondPoint, usage: &usage)
+         }
++        return try regularBoundaryIsSame(as: other, atUpperEnd: atUpperEnd,
++            otherAtUpperEnd: otherAtUpperEnd, periodic: periodic,
++            firstPoint: firstPoint, secondPoint: secondPoint, usage: &usage)
++    }
++
++    @inline(never)
++    private func fieldAtlasBoundaryIsSame(
++        as other: Self, atUpperEnd: Bool, otherAtUpperEnd: Bool,
++        firstPoint: ExactMonotoneGraphPoint?, secondPoint: ExactMonotoneGraphPoint?,
++        usage: inout OriginalQueryExecution
++    ) throws -> Bool {
++
++        let first = atUpperEnd ? fieldAtlasEnd : fieldAtlasStart
++        let second = otherAtUpperEnd ? other.fieldAtlasEnd : other.fieldAtlasStart
++        let admitted: SurfaceSilhouetteFieldAtlasEndpoint
++        if let first, let second {
++            guard try first.hasSameValue(as: second, usage: &usage) else { return false }
++            admitted = first
++        } else if let first, let rational = otherAtUpperEnd ? other.atlasEnd : other.atlasStart {
++            guard try first.hasSameValue(as: rational, usage: &usage) else { return false }
++            admitted = first
++        } else if let second, let rational = atUpperEnd ? atlasEnd : atlasStart {
++            guard try second.hasSameValue(as: rational, usage: &usage) else { return false }
++            admitted = second
++        } else {
++            // FIXME(INCOMPLETE_IMPLEMENTATION): Generic non-atlas endpoint
++            // joins need original coordinate transport before drawing assembly.
++            throw failure(.intersectionFailure, "Original field atlas endpoint lacks compatible source incidence.")
++        }
++        if field.domain != other.field.domain {
++            guard let differences = try field.originalFirstPartialEquality(with: other.field, usage: &usage) else {
++                throw failure(.intersectionFailure, "Original field atlas seam lacks source partial equality.")
++            }
++            for difference in differences {
++                guard case .zero = try admitted.sign(of: difference, usage: &usage) else {
++                    throw failure(.intersectionFailure, "Original field atlas seam has unequal source partials.")
++                }
++            }
++        }
++        return true
++    }
++
++    @inline(never)
++    private func rationalAtlasBoundaryIsSame(
++        as other: Self, atUpperEnd: Bool, otherAtUpperEnd: Bool,
++        firstPoint: ExactMonotoneGraphPoint?, secondPoint: ExactMonotoneGraphPoint?,
++        usage: inout OriginalQueryExecution
++    ) throws -> Bool {
++
++        let first = atUpperEnd ? atlasEnd : atlasStart
++        let second = otherAtUpperEnd ? other.atlasEnd : other.atlasStart
++        let admitted: SurfaceSilhouetteAtlasEndpoint
++        if let first, let second {
++            guard try first.hasSameValue(as: second, usage: &usage) else { return false }
++            admitted = first
++        } else if let first, let secondPoint {
++            guard try first.hasSameValue(as: secondPoint, usage: &usage) else { return false }
++            admitted = first
++        } else if let second, let firstPoint {
++            guard try second.hasSameValue(as: firstPoint, usage: &usage) else { return false }
++            admitted = second
++        } else if let first, let point = try other.polynomialPoint(atUpperEnd: otherAtUpperEnd, usage: &usage) {
++            guard try first.hasSameValue(as: point, usage: &usage) else { return false }
++            admitted = first
++        } else if let second, let point = try polynomialPoint(atUpperEnd: atUpperEnd, usage: &usage) {
++            guard try second.hasSameValue(as: point, usage: &usage) else { return false }
++            admitted = second
++        } else {
++            // FIXME(INCOMPLETE_IMPLEMENTATION): Mixed polynomial or
++            // periodic atlas endpoint joins require their exact original
++            // source incidence before the drawing envelope can publish.
++            throw failure(.intersectionFailure, "Original atlas endpoint lacks compatible source incidence.")
++        }
++        if field.domain != other.field.domain {
++            guard let differences = try field.originalFirstPartialEquality(with: other.field, usage: &usage) else {
++                throw failure(.intersectionFailure, "Original atlas seam lacks one-sided source partials.")
++            }
++            for difference in differences {
++                guard case .zero = try admitted.sign(of: difference, usage: &usage) else {
++                    throw failure(.intersectionFailure, "Original atlas seam has unequal one-sided source partials.")
++                }
++            }
++            try certifyOffsetNormal(with: other, sign: { polynomial, usage in
++                try admitted.sign(of: polynomial, usage: &usage)
++            }, usage: &usage)
++        }
++        return true
++    }
++
++    @inline(never)
++    private func regularBoundaryIsSame(
++        as other: Self, atUpperEnd: Bool, otherAtUpperEnd: Bool,
++        periodic: Bool, firstPoint: ExactMonotoneGraphPoint?, secondPoint: ExactMonotoneGraphPoint?,
++        usage: inout OriginalQueryExecution
++    ) throws -> Bool {
+         if freeCoordinate != other.freeCoordinate {
+             guard !periodic, let firstPoint, let secondPoint else { return false }
+             guard try firstPoint.coordinateIs(secondPoint.freeEndpoint,
+@@ -441,6 +472,7 @@
+         }
+         return true
+     }
++
+ 
+     func boundaryAtlasStationIsCertified(as other: Self, atUpperEnd: Bool,
+         otherAtUpperEnd: Bool, usage: inout OriginalQueryExecution) throws -> Bool {
+--- a/Sources/CADGeometry/SurfaceSilhouette/DESIGN.md
++++ b/Sources/CADGeometry/SurfaceSilhouette/DESIGN.md
+@@ -783,3 +783,13 @@
+ unused stage frame. No result is published before all original stages complete.
+ The rational-atlas overload is unchanged. Actual native prologues and the same
+ Drawing worker input verify this measured field-atlas publication frame change.
++
++Endpoint root identity dispatch retains its paid full surface/view preflight and
++original branch order. Private non-inlined scopes own the existing ordered-field
++atlas, rational atlas and regular graph equality local frames. Each scope uses
++the same execution and retained endpoints, proves the same complete original UV
++identity and, where required, one-sided spatial partial/normal continuity. The
++regular graph path retains free and dependent coordinate tests, periodic guards
++and whole-edge authority. No self-identity, sampled XYZ, overlapping bounds or
++new result bypass substitutes for those proofs. Actual worker Drawing component
++assembly and native prologues verify the measured endpoint frame adjustment.

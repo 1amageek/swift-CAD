@@ -14,10 +14,10 @@ public struct IndependentShapeAngularSource: Equatable, Sendable {
     private enum CodingKeys: String, CodingKey { case id, law }
     public init(from decoder: Decoder) throws {
         guard #available(macOS 15.0, iOS 18.0, visionOS 2.0, watchOS 11.0, tvOS 18.0, *) else { throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable }
-        let allowance = try NativeRationalSourceDecodingContext.allowance(from: decoder)
+        var allowance = try NativeRationalSourceDecodingContext.execution(from: decoder)
         try OriginalAffineWordDecodingContext.validateSourceNesting(from: decoder)
-        try allowance.visitExactCell(depth: 0)
-        try allowance.consumeExactWork(8)
+        try allowance.visitCell(axis: .value, depth: 0)
+        try allowance.consumeWork(8)
         let c = try decoder.container(keyedBy: CodingKeys.self)
         try c.validateOnlyExpectedKeys([.id, .law], in: decoder)
         id = try c.decode(IndependentShapeAngularUnitID.self, forKey: .id); law = try c.decode(Law.self, forKey: .law)
@@ -30,10 +30,10 @@ extension IndependentShapeAngularSource.Law: Codable {
     private enum CodingKeys: String, CodingKey { case kind, prefix, conversion }
     public init(from decoder: Decoder) throws {
         guard #available(macOS 15.0, iOS 18.0, visionOS 2.0, watchOS 11.0, tvOS 18.0, *) else { throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable }
-        let allowance = try NativeRationalSourceDecodingContext.allowance(from: decoder)
+        var allowance = try NativeRationalSourceDecodingContext.execution(from: decoder)
         try OriginalAffineWordDecodingContext.validateSourceNesting(from: decoder)
-        try allowance.visitExactCell(depth: 0)
-        try allowance.consumeExactWork(8)
+        try allowance.visitCell(axis: .value, depth: 0)
+        try allowance.consumeWork(8)
         let c = try decoder.container(keyedBy: CodingKeys.self)
         switch try c.decode(String.self, forKey: .kind) {
         case "radian":

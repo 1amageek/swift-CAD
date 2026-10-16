@@ -1,6 +1,6 @@
 /// Exact full polynomial weighted-square identity and original finite zero cover.
 package struct OriginalRationalSumOfSquaresIsolatedPointCertifier {
-    package static func provesOnlyZero<B: RationalAlgebraAdmitting>(at root: ExactBivariateCriticalPoint,
+    package static func provesOnlyZero<B: ExactScalarAdmission & ~Copyable>(at root: ExactBivariateCriticalPoint,
         maximumDepth: Int, usage: inout B) throws -> Bool {
         guard let originalLeading = root.original.leading else { return false }
         let normalized = originalLeading.value.isPositive ? root.original
@@ -10,12 +10,12 @@ package struct OriginalRationalSumOfSquaresIsolatedPointCertifier {
         var identity = ExactBivariatePolynomial.zero
         let two = try ExactRationalCoefficient.natural(2, usage: &usage)
         while let leading = pending.leading {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             guard leading.value.isPositive, leading.key.u % 2 == 0, leading.key.v % 2 == 0,
                 leading.key.u > 0 || leading.key.v > 0 else { return false }
             let originalPending = pending
             let power = try ExactBivariatePolynomial.Power(u: leading.key.u / 2, v: leading.key.v / 2)
-            try usage.retainExactStorage(1)
+            try RationalAlgebraStorage.retain(1, of: (ExactBivariatePolynomial.Power, ExactRationalCoefficient).self, usage: &usage)
             var factor = ExactBivariatePolynomial([power: .one])
             var square = try factor.multiplied(by: factor, usage: &usage)
                 .scaled(by: leading.value, usage: &usage)
@@ -27,7 +27,7 @@ package struct OriginalRationalSumOfSquaresIsolatedPointCertifier {
                     throw rationalAlgebraFailure("Original weighted-square completion failed to lower its factor leading monomial.")
                 }
                 let coefficient = try term.value.divided(by: twice, usage: &usage)
-                try usage.retainExactStorage(1)
+                try RationalAlgebraStorage.retain(1, of: (ExactBivariatePolynomial.Power, ExactRationalCoefficient).self, usage: &usage)
                 factor = try factor.adding(ExactBivariatePolynomial([nextPower: coefficient]), usage: &usage)
                 square = try factor.multiplied(by: factor, usage: &usage)
                     .scaled(by: leading.value, usage: &usage)
@@ -43,7 +43,7 @@ package struct OriginalRationalSumOfSquaresIsolatedPointCertifier {
             guard case .zero = try root.sign(of: factor, maximumDepth: maximumDepth, usage: &usage) else {
                 return false
             }
-            try usage.retainExactStorage(1); factors.append(factor)
+            try RationalAlgebraStorage.retain(1, of: ExactBivariatePolynomial.self, usage: &usage); factors.append(factor)
             identity = try identity.adding(square, usage: &usage)
             pending = remainder
         }

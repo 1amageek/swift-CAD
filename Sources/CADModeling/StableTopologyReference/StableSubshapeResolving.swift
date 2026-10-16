@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 import CADIR
 import CADTopology
 
@@ -11,4 +12,8 @@ public protocol StableSubshapeResolving: Sendable {
         lineage: [SubshapeID: TopologyLineage],
         tolerance: ModelingTolerance
     ) throws -> TopologyReference
+    func topologyReference(for reference: StableSubshapeReference, model: BRepModel,
+        subshapes: SubshapeIndex, lineage: [SubshapeID: TopologyLineage],
+        tolerance: ModelingTolerance, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
+        maximumAlgebraicDepth: Int?, using execution: inout OriginalQueryExecution) throws -> TopologyReference
 }

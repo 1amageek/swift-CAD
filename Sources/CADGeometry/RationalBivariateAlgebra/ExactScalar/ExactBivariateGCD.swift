@@ -2,7 +2,7 @@
 public struct ExactBivariateGCD: ExactBivariateGCDProducing, Sendable {
     public init() {}
 
-    public func greatestCommonDivisor<B: RationalAlgebraAdmitting>(
+    public func greatestCommonDivisor<B: ExactScalarAdmission & ~Copyable>(
         _ first: ExactBivariatePolynomial, _ second: ExactBivariatePolynomial,
         usage: inout B) throws -> ExactBivariatePolynomial {
         if first.isZero { return try second.normalized(usage: &usage) }
@@ -14,7 +14,7 @@ public struct ExactBivariateGCD: ExactBivariateGCDProducing, Sendable {
         var b = try divideCoefficients(second, by: secondContent, usage: &usage)
         if a.vDegree < b.vDegree { swap(&a, &b) }
         while !b.isZero {
-            try exactScalarTaskCheckpoint()
+            try usage.checkpoint()
             let remainder = try pseudoRemainder(a, b, usage: &usage)
             a = b
             if remainder.isZero { b = .zero }
@@ -23,7 +23,7 @@ public struct ExactBivariateGCD: ExactBivariateGCDProducing, Sendable {
         return try a.multiplied(by: sharedContent, usage: &usage).normalized(usage: &usage)
     }
 
-    func univariateDivision<B: RationalAlgebraAdmitting>(_ numerator: ExactBivariatePolynomial,
+    func univariateDivision<B: ExactScalarAdmission & ~Copyable>(_ numerator: ExactBivariatePolynomial,
         _ divisor: ExactBivariatePolynomial, usage: inout B)
         throws -> (quotient: ExactBivariatePolynomial, remainder: ExactBivariatePolynomial) {
         guard numerator.vDegree <= 0, divisor.vDegree == 0, !divisor.isZero else {
@@ -32,7 +32,7 @@ public struct ExactBivariateGCD: ExactBivariateGCDProducing, Sendable {
         var remainder = numerator, quotient = ExactBivariatePolynomial.zero
         guard let divisorLead = divisor.leading else { throw exactScalarBackendFailure("Missing exact divisor coefficient.") }
         while let lead = remainder.leading, lead.key.u >= divisorLead.key.u {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             try RationalAlgebraStorage.retain(1,
                 of: (ExactBivariatePolynomial.Power, ExactRationalCoefficient).self, usage: &usage)
             let power = try ExactBivariatePolynomial.Power(u: lead.key.u - divisorLead.key.u, v: 0)
@@ -48,7 +48,7 @@ public struct ExactBivariateGCD: ExactBivariateGCDProducing, Sendable {
         return (quotient, remainder)
     }
 
-    func univariateGCD<B: RationalAlgebraAdmitting>(_ first: ExactBivariatePolynomial,
+    func univariateGCD<B: ExactScalarAdmission & ~Copyable>(_ first: ExactBivariatePolynomial,
         _ second: ExactBivariatePolynomial, usage: inout B) throws -> ExactBivariatePolynomial {
         var a = first, b = second
         while !b.isZero {
@@ -58,7 +58,7 @@ public struct ExactBivariateGCD: ExactBivariateGCDProducing, Sendable {
         return try a.normalized(usage: &usage)
     }
 
-    func content<B: RationalAlgebraAdmitting>(_ source: ExactBivariatePolynomial,
+    func content<B: ExactScalarAdmission & ~Copyable>(_ source: ExactBivariatePolynomial,
         usage: inout B) throws -> ExactBivariatePolynomial {
         if source.isZero { return .zero }
         var result = ExactBivariatePolynomial.zero
@@ -70,7 +70,7 @@ public struct ExactBivariateGCD: ExactBivariateGCDProducing, Sendable {
         return result
     }
 
-    func divideCoefficients<B: RationalAlgebraAdmitting>(_ source: ExactBivariatePolynomial,
+    func divideCoefficients<B: ExactScalarAdmission & ~Copyable>(_ source: ExactBivariatePolynomial,
         by divisor: ExactBivariatePolynomial, usage: inout B) throws -> ExactBivariatePolynomial {
         if source.isZero { return .zero }
         var result = ExactBivariatePolynomial.zero
@@ -84,7 +84,7 @@ public struct ExactBivariateGCD: ExactBivariateGCDProducing, Sendable {
         return result
     }
 
-    func pseudoRemainder<B: RationalAlgebraAdmitting>(_ numerator: ExactBivariatePolynomial,
+    func pseudoRemainder<B: ExactScalarAdmission & ~Copyable>(_ numerator: ExactBivariatePolynomial,
         _ divisor: ExactBivariatePolynomial, usage: inout B) throws -> ExactBivariatePolynomial {
         guard !divisor.isZero else { throw exactScalarBackendFailure("Exact pseudo-remainder division by zero.") }
         let divisorDegree = divisor.vDegree

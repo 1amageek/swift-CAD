@@ -14,6 +14,28 @@ import CADCore
 struct PlaneCylinderSurfaceIntersector {
     private let verifier = SurfaceSurfaceIntersectionVerifier()
 
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Ordinary SSI dispatch reaches this direct entry.
+    // The former numerical/tolerance branches did not establish original common-set
+    // authority. U4 must supply complete original source/UV coverage before success.
+    func intersections(
+        plane: CanonicalAnalyticSurface.Plane,
+        cylinder: CanonicalAnalyticSurface.Cylinder,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution
+    ) throws -> [SurfaceSurfaceIntersection] {
+        execution.context = execution.context.at(stage: .relation)
+        do {
+            try execution.checkpoint()
+            throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+                message: "PlaneCylinderSurfaceIntersector requires complete original source relation authority.")
+        } catch { throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance) }
+    }
+
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Existing candidate/source helper methods call
+    // this ordinary publication entry. It performs no numeric solve or fallback;
+    // U4 must provide source-bound relation proof and direct execution before success.
     func intersections(
         plane: CanonicalAnalyticSurface.Plane,
         cylinder: CanonicalAnalyticSurface.Cylinder,
@@ -21,51 +43,9 @@ struct PlaneCylinderSurfaceIntersector {
         secondSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws -> [SurfaceSurfaceIntersection] {
-        try plane.requireLegacyUnitNormal(tolerance: tolerance)
-        let axialProjection = plane.normal.dot(cylinder.axis)
-        if abs(axialProjection) <= tolerance.angle {
-            return try axialLines(
-                plane: plane,
-                cylinder: cylinder,
-                firstSurface: firstSurface,
-                secondSurface: secondSurface,
-                tolerance: tolerance
-            )
-        }
-
-        let axisParameter = -((cylinder.origin - plane.origin).dot(plane.normal)) / axialProjection
-        let center = cylinder.origin + cylinder.axis * axisParameter
-        let majorRadius = cylinder.radius / abs(axialProjection)
-        let curve: Curve3D
-        if abs(majorRadius - cylinder.radius) <= tolerance.distance {
-            curve = .circle(Circle3D(
-                center: center,
-                normal: plane.normal,
-                radius: cylinder.radius
-            ))
-        } else {
-            let minorAxis = try cylinder.axis.cross(plane.normal).normalized(
-                tolerance: tolerance.angle
-            )
-            let majorAxis = try plane.normal.cross(minorAxis).normalized(
-                tolerance: tolerance.angle
-            )
-            curve = .analytic(.ellipse(
-                center: center,
-                normal: plane.normal,
-                majorAxis: majorAxis,
-                majorRadius: majorRadius,
-                minorRadius: cylinder.radius
-            ))
-        }
-        return [try verifier.curve(
-            curve,
-            kind: .transverse,
-            firstSurface: firstSurface,
-            secondSurface: secondSurface,
-            sampleParameters: SurfaceSurfaceIntersectionVerifier.closedCurveSamples,
-            tolerance: tolerance
-        )]
+        try CurrentTaskCancellationChecker().checkCancellation()
+        throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+            message: "PlaneCylinderSurfaceIntersector has no ordinary original-proof publication.")
     }
 
     private func axialLines(

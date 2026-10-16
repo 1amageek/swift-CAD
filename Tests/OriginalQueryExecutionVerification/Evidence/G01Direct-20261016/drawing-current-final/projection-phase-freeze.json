@@ -1,0 +1,55 @@
+{
+  "scope": "Only projected pair construction/post-pair stack phase boundary. No compiler/runtime claim.",
+  "sourcePath": "Sources/CADGeometry/SurfaceSilhouette/OriginalProjectedCurveContacts/OriginalNativeSilhouetteProjectedContactProducer.swift",
+  "roots": [
+    "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD"
+  ],
+  "oldSHA256": "025b2c96ca6d75e41407365bef53286f4bb1b5516707cc4a64ad3f9fba17a051",
+  "newSHA256": "f099f5f7bff20bd17392bc9f868ab8933cbd04d2af60f406850ef8b0506cc5d8",
+  "postPairBodySHA256": "f9e6c9c22d3adcb84c585031e2fb808065879354e52d0f48880e714c554e9675",
+  "designSHA256": {
+    "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD": "2cb2927646b65e73a558b9fc1f491c02b2dee0f7d563099efd3e5fe0d63bfed0",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD": "2cb2927646b65e73a558b9fc1f491c02b2dee0f7d563099efd3e5fe0d63bfed0"
+  },
+  "patchSHA256": "f5a376b6dd01a3cfa1b23223f6918ca37d9171808f622166eb84ee0fa63126e1",
+  "inverseProof": "Remove only new post-pair call/helper signature/function boundary, extract the actual helper body and stitch it after the original pair construction: entire old producer recovered byte-for-byte, including both public query-context closures, all source expressions/debits/failures and unchanged helpers.",
+  "synchronizationReview": {
+    "before": {
+      "#if hasFeature(Embedded)": 0,
+      "canImport(Synchronization)": 0,
+      "Mutex": 0,
+      "nonisolated(unsafe)": 0,
+      "@unchecked Sendable": 0
+    },
+    "after": {
+      "#if hasFeature(Embedded)": 0,
+      "canImport(Synchronization)": 0,
+      "Mutex": 0,
+      "nonisolated(unsafe)": 0,
+      "@unchecked Sendable": 0
+    },
+    "mutableState": "Only existing function-local equations/contacts/cuts/sectors arrays, wholeRange, insert index; no stored mutable property in stateless producer. All local mutation remains in identical original helper body.",
+    "targetMatrix": {
+      "Native": {
+        "storage": "Stateless public struct; immutable pair and source value owners, existing local arrays",
+        "isolation": "Exclusive same inout OriginalQueryExecution within unchanged queryContext.withExecution",
+        "readWrite": "No shared producer state; unchanged ordered local array mutation and owner methods",
+        "lifetime": "Original pair lives across post-pair helper and is retained by resulting partition; same scope/cancellation/typed failures, no callback or cycle"
+      },
+      "WASM": {
+        "storage": "Stateless public struct; immutable pair and source value owners, existing local arrays",
+        "isolation": "Exclusive same inout OriginalQueryExecution within unchanged queryContext.withExecution",
+        "readWrite": "No shared producer state; unchanged ordered local array mutation and owner methods",
+        "lifetime": "Original pair lives across post-pair helper and is retained by resulting partition; same scope/cancellation/typed failures, no callback or cycle"
+      },
+      "Embedded": {
+        "storage": "Stateless public struct; immutable pair and source value owners, existing local arrays",
+        "isolation": "Exclusive same inout OriginalQueryExecution within unchanged queryContext.withExecution",
+        "readWrite": "No shared producer state; unchanged ordered local array mutation and owner methods",
+        "lifetime": "Original pair lives across post-pair helper and is retained by resulting partition; same scope/cancellation/typed failures, no callback or cycle"
+      }
+    }
+  },
+  "runtime": "Root owns new Native prologue and actual Drawing/resource/cancellation verification; not run here."
+}

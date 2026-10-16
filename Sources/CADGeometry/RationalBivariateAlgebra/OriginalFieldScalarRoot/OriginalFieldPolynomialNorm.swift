@@ -1,10 +1,10 @@
 /// Successive ORIGINAL defining-relation norms, preserving the selected real embedding.
 struct OriginalFieldPolynomialNorm {
-    static func rationalNorm<B: RationalAlgebraAdmitting>(_ original: OriginalSingularFieldPolynomial,
+    static func rationalNorm<B: ExactScalarAdmission & ~Copyable>(_ original: OriginalSingularFieldPolynomial,
         maximumDepth: Int, usage: inout B) throws -> ExactBivariatePolynomial {
         var polynomial = original
         while true {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             guard !polynomial.isZero else { throw rationalAlgebraFailure("Original field norm is identically zero.") }
             switch polynomial.context.source {
             case .rational:
@@ -27,7 +27,7 @@ struct OriginalFieldPolynomialNorm {
         }
     }
 
-    private static func descending<B: RationalAlgebraAdmitting>(_ original: OriginalSingularFieldPolynomial,
+    private static func descending<B: ExactScalarAdmission & ~Copyable>(_ original: OriginalSingularFieldPolynomial,
         through root: OriginalSingularFieldRoot, maximumDepth: Int, usage: inout B)
         throws -> OriginalSingularFieldPolynomial {
         let parent = root.polynomial.context
@@ -73,7 +73,7 @@ struct OriginalFieldPolynomialNorm {
                 cleared = try cleared.multiplied(by: denominator, maximumDepth: maximumDepth, usage: &usage)
             }
             for power in cleared.coefficients.indices {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 try RationalAlgebraStorage.retain(1,
                     of: (ExactBivariatePolynomial.Power, OriginalSingularFieldElement).self, usage: &usage)
                 values[try .init(u: index, v: power)] = cleared.coefficients[power]

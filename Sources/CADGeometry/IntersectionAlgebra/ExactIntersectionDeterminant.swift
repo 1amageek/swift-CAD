@@ -3,7 +3,7 @@ import CADCore
 /// Fraction-free exact determinant over one original rational polynomial ring.
 package enum ExactIntersectionDeterminant {
     private typealias Polynomial = ExactIntersectionPolynomial
-    package static func evaluate<B: RationalAlgebraAdmitting>(_ matrix: inout [ExactIntersectionPolynomial],
+    package static func evaluate<B: ExactScalarAdmission & ~Copyable>(_ matrix: inout [ExactIntersectionPolynomial],
         size: Int, variableCount: Int, usage: inout B) throws -> ExactIntersectionPolynomial {
         guard size >= 0, (1...ExactIntersectionPolynomial.maximumVariableCount).contains(variableCount),
               matrix.count == (try rationalAlgebraCount(size, size, multiply: true)) else {

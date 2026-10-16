@@ -1,0 +1,90 @@
+{
+  "scope": "Focused endpoint exact-payload equality and Native boundary correspondence behavior only; no whole-G01/U1 claim.",
+  "family": "endpoint",
+  "lane": "wasm",
+  "status": "passed",
+  "receipt": {
+    "original": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/endpoint-portable-wasm-r1/receipt.json",
+    "sha256": "dab51f7a1e652a25a91c5144c6fe8f55ac504ce03f30ea462b835135a2e047ff"
+  },
+  "nativeSourceAuthority": {
+    "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-production-r1/receipt.json",
+    "sha256": "7432d8f66382f64727a09d00855477623f40099f337b0b8992e37995365b4041"
+  },
+  "sourceCount": {
+    "CADCore": 65,
+    "CADGeometry": 2170
+  },
+  "fixture": {
+    "path": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalQueryExecutionVerification/OriginalNativeEndpointPositionPortable.swift",
+    "sha256": "426e6319bc2c77057bde29ff878c60172cc9067abe536e55ba0c9636339cbea4",
+    "expectedOutputLines": [
+      "PASS Native endpoint exact positions and lifetime",
+      "PASS Native endpoint exact source and cumulative work",
+      "PASS Native endpoint cancellation"
+    ]
+  },
+  "matchedOracleLines": [
+    "PASS Native endpoint exact positions and lifetime",
+    "PASS Native endpoint exact source and cumulative work",
+    "PASS Native endpoint cancellation"
+  ],
+  "bounds": {
+    "compileLinkSecondsPerLane": 1200,
+    "runtimeSeconds": 120,
+    "aggregateRSSBytes": 10737418240,
+    "compilerProcessesAtOnce": 1
+  },
+  "elapsedSeconds": 187.8612144170038,
+  "phases": [
+    {
+      "name": "wasm-compile",
+      "exitCode": 0,
+      "elapsedSeconds": 172.72581774999708,
+      "peakRSSBytes": 5425790976,
+      "stopReason": null,
+      "wallLimitSeconds": 1199.9999947500037
+    },
+    {
+      "name": "wasm-link",
+      "exitCode": 0,
+      "elapsedSeconds": 4.9299948749976465,
+      "peakRSSBytes": 817643520,
+      "stopReason": null,
+      "wallLimitSeconds": 1025.421943292
+    },
+    {
+      "name": "wasm-runtime",
+      "exitCode": 0,
+      "elapsedSeconds": 0.8346555410025758,
+      "peakRSSBytes": 445251584,
+      "stopReason": null,
+      "wallLimitSeconds": 120
+    }
+  ],
+  "geometryReuse": null,
+  "logs": {
+    "wasm-compile.log": {
+      "original": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/endpoint-portable-wasm-r1/wasm-compile.log",
+      "sha256": "f4eb5f82c93550bb6f566f1b1f84a3ac29143feae76e59850d7bc71b0096c8ec"
+    },
+    "wasm-link.log": {
+      "original": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/endpoint-portable-wasm-r1/wasm-link.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "wasm-runtime.log": {
+      "original": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/endpoint-portable-wasm-r1/wasm-runtime.log",
+      "sha256": "7c2e48148d1728d5c98fc68f2b5735576bdb50fa18b4a9c218056e46c744b651"
+    }
+  },
+  "productSHA256": {
+    "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/endpoint-portable-wasm-r1/wasm/CADGeometry.swiftmodule": "cb3eeaea9481a67eca9b5aa71ac2a6a1b8b5aa93f8bf2b551c584850e9622c1d",
+    "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/endpoint-portable-wasm-r1/wasm/CADGeometry.code.o": "d3266152fabcc7554d8bd7d981b3979d5021ad6fb712e9e3d9de9348094c1099"
+  },
+  "executableSHA256": "1e4518416c76e102cb49c9e3f1e8ca4b4606d6f9cb863b6908a7cff82a4a8ac6",
+  "terminalDrift": {
+    "currentDrift": [],
+    "snapshotDrift": [],
+    "productDrift": []
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "scope": "Kernel-only native original-parameter sampling caller repair",
+  "sourceRoot": "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD",
+  "files": {
+    "Sources/CADKernel/BRepFaceInteriorPointSampler.swift": "162defae35fd5308ce094126b8aaf5ca94f744ca92e0ef807f32a90a30c6ca06",
+    "Sources/CADKernel/SharedBoundaryFaceRebuild/FaceRebuildFeatureEvaluator.swift": "9631a1b2e9a00af7619127f59c2e984b87a8e53dfb7d0bc67a834086fd244ff5",
+    "Sources/CADKernel/SharedBoundaryFaceRebuild/DESIGN.md": "f386df27b917606f29b3dbc8a5a6c9d0d8ea1388a26ef46a04c7dc07996d7ea9",
+    "Sources/CADKernel/DESIGN.md": "1947946be037cb658b9108c348cdce6775218e039d33fd806520bc43ba4c76e4"
+  },
+  "fixtureSHA256": "aa3710912c433e9bd17fa4490127f265c47a681b6912969b7e9698aade5700bd",
+  "baselineProductionReceiptSHA256": "affad1199d94af15a11e554e947ca7a7c636c5587c1d5915c6390c14edfae9ce",
+  "mathPreservation": {
+    "samplerDerivativeOffsetCandidateBodyByteEqual": true,
+    "bodySHA256": "ee28c4da15bb840c7675f7e729be046b46b37f0e11248cbb0af3297b778793c8",
+    "fractions": [
+      0.5,
+      0.25,
+      0.75
+    ],
+    "multipliers": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32
+    ],
+    "signs": [
+      1,
+      -1
+    ]
+  },
+  "contracts": [
+    "Complete Native representation equality after both structural work charges; no tolerance/point identity",
+    "Original face/model prepared parameter session; same incoming execution through all reads and final checkpoint",
+    "One shared sampler traversal with explicit membership kind; existing injected/spatial branch preserved",
+    "Missing parameter witness typed unsupported, no spatial fallback",
+    "Existing whole native boundary proof/final model validation remains required"
+  ],
+  "requiredFocusedFilters": [
+    "FaceRebuildDirectExecutionTests",
+    "NonlinearBooleanOpenFaceArrangementTests/interiorSamplerEndpointsConsumeTheSameExactWorkAllowance"
+  ],
+  "compilerStarted": false,
+  "geometryChanged": false
+}

@@ -3,7 +3,7 @@
 import L1
 @testable import L2
 #elseif L2_ISOLATED_VERIFICATION
-import L0
+@testable import L0
 import L1
 #endif
 

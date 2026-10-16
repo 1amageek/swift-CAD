@@ -1,0 +1,101 @@
+􀟈  Test run started.
+􀄵  Swift Standard Library Version: 6.4
+􀄵  Swift Compiler Version: 6.4
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀄵  OS Version: 27.0.1 (26A434)
+􀟈  Suite "Document drawing canonical admission" (aka 'DocumentDrawingCanonicalAdmissionTests') started.
+􀟈  Test planarWholeExclusionUsesTheRealDrawingWitnesses() started.
+􀟈  Test drawingWitnessesPreserveTheCallerCancellationCause() started.
+􀟈  Test originalArchAndProjectedEndpointContactsShareExactResourceBoundaries() started.
+DRAWING_STAGE curved=true main=false test.begin
+DRAWING_STAGE curved=false main=false test.begin
+DRAWING_STAGE curved=false main=false test.begin
+DRAWING_STAGE curved=false main=true source.builder.begin
+DRAWING_STAGE curved=false main=true source.builder.end
+DRAWING_STAGE curved=false main=true source.bSplineSurface.begin
+DRAWING_STAGE curved=false main=true source.bSplineSurface.end
+DRAWING_STAGE curved=false main=true source.build.begin
+DRAWING_STAGE curved=false main=true source.build.end
+DRAWING_STAGE curved=false main=true source.evaluateExact.begin
+DRAWING_STAGE curved=false main=true source.evaluateExact.end
+DRAWING_STAGE curved=false main=true source.builder.begin
+DRAWING_STAGE curved=false main=false query.projectEdges.begin
+DRAWING_STAGE curved=false main=true source.builder.end
+DRAWING_STAGE curved=false main=true source.bSplineSurface.begin
+DRAWING_STAGE curved=false main=true source.bSplineSurface.end
+DRAWING_STAGE curved=false main=true source.build.begin
+DRAWING_STAGE curved=false main=true source.build.end
+DRAWING_STAGE curved=false main=true source.evaluateExact.begin
+DRAWING_STAGE curved=false main=false query.projectEdges.end
+DRAWING_STAGE curved=false main=false query.place.begin
+DRAWING_STAGE curved=false main=false query.place.end
+DRAWING_STAGE curved=false main=false query.unplacedSilhouettes.begin
+DRAWING_STAGE curved=false main=false query.unplacedSilhouettes.end
+DRAWING_STAGE curved=false main=false query.placedSilhouettes.begin
+DRAWING_STAGE curved=false main=true source.evaluateExact.end
+DRAWING_STAGE curved=true main=true source.builder.begin
+DRAWING_STAGE curved=false main=false query.projectEdges.begin
+DRAWING_STAGE curved=true main=true source.builder.end
+DRAWING_STAGE curved=true main=true source.bSplineSurface.begin
+DRAWING_STAGE curved=true main=true source.bSplineSurface.end
+DRAWING_STAGE curved=true main=true source.build.begin
+DRAWING_STAGE curved=true main=true source.build.end
+DRAWING_STAGE curved=true main=true source.evaluateExact.begin
+DRAWING_STAGE curved=false main=false query.projectEdges.end
+DRAWING_STAGE curved=false main=false query.place.begin
+DRAWING_STAGE curved=false main=false query.place.end
+DRAWING_STAGE curved=false main=false query.unplacedSilhouettes.begin
+DRAWING_STAGE curved=false main=false query.unplacedSilhouettes.end
+DRAWING_STAGE curved=false main=false query.placedSilhouettes.begin
+DRAWING_STAGE curved=true main=true source.evaluateExact.end
+DRAWING_STAGE curved=true main=false query.projectEdges.begin
+DRAWING_STAGE curved=true main=false query.projectEdges.end
+DRAWING_STAGE curved=true main=false query.place.begin
+DRAWING_STAGE curved=true main=false query.place.end
+DRAWING_STAGE curved=true main=false query.unplacedSilhouettes.begin
+DRAWING_STAGE curved=true main=false query.unplacedSilhouettes.end
+DRAWING_STAGE curved=true main=false query.placedSilhouettes.begin
+DRAWING_STAGE curved=false main=false query.placedSilhouettes.end
+DRAWING_STAGE curved=false main=false query.silhouetteReaders.begin
+DRAWING_STAGE curved=false main=false query.silhouetteReaders.end
+DRAWING_STAGE curved=false main=false query.contacts.prepare.begin
+DRAWING_STAGE curved=false main=false query.contacts.prepare.end
+DRAWING_STAGE curved=false main=false query.contactReaders.begin
+DRAWING_STAGE curved=false main=false query.contactReaders.end
+􁁛  Test planarWholeExclusionUsesTheRealDrawingWitnesses() passed after 0.476 seconds.
+DRAWING_STAGE curved=false main=false query.placedSilhouettes.end
+DRAWING_STAGE curved=false main=false query.silhouetteReaders.begin
+DRAWING_STAGE curved=false main=false query.silhouetteReaders.end
+DRAWING_STAGE curved=false main=false query.contacts.prepare.begin
+DRAWING_STAGE curved=false main=false query.contacts.prepare.end
+DRAWING_STAGE curved=false main=false query.contactReaders.begin
+DRAWING_STAGE curved=false main=false query.contactReaders.end
+􁁛  Test drawingWitnessesPreserveTheCallerCancellationCause() passed after 0.553 seconds.
+DRAWING_STAGE curved=true main=false query.placedSilhouettes.end
+DRAWING_STAGE curved=true main=false query.silhouetteReaders.begin
+DRAWING_STAGE curved=true main=false query.silhouetteReaders.end
+DRAWING_STAGE curved=true main=false query.contacts.prepare.begin
+DRAWING_STAGE curved=true main=false query.contacts.prepare.end
+DRAWING_STAGE curved=true main=false query.contactReaders.begin
+DRAWING_STAGE curved=true main=false query.contactReaders.end
+DRAWING_ARCH faces=1 spans=1 uses=4 pairs=4 contacts=2 work=986866 bytes=5407650
+DRAWING_STAGE curved=true main=false query.contacts.prepare.begin
+DRAWING_STAGE curved=true main=false query.contacts.prepare.end
+DRAWING_STAGE curved=true main=false query.contactReaders.begin
+DRAWING_STAGE curved=true main=false query.contactReaders.end
+DRAWING_STAGE curved=true main=false query.contacts.prepare.begin
+DRAWING_STAGE curved=true main=false query.contacts.prepare.end
+DRAWING_STAGE curved=true main=false query.contactReaders.begin
+DRAWING_STAGE curved=true main=false query.contactReaders.end
+DRAWING_STAGE curved=true main=false query.contacts.prepare.begin
+DRAWING_STAGE curved=true main=false query.contacts.prepare.end
+DRAWING_STAGE curved=true main=false query.contactReaders.begin
+DRAWING_STAGE curved=true main=false query.contacts.prepare.begin
+DRAWING_STAGE curved=true main=false query.contacts.prepare.end
+DRAWING_STAGE curved=true main=false query.contactReaders.begin
+DRAWING_STAGE curved=true main=false query.projectEdges.begin
+DRAWING_STAGE curved=true main=false query.projectEdges.begin
+􁁛  Test originalArchAndProjectedEndpointContactsShareExactResourceBoundaries() passed after 1.993 seconds.
+􁁛  Suite "Document drawing canonical admission" (aka 'DocumentDrawingCanonicalAdmissionTests') passed after 1.994 seconds.
+􁁛  Test run with 3 tests in 1 suite passed after 1.994 seconds.

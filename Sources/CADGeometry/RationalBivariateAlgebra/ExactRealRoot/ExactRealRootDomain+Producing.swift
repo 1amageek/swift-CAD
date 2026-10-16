@@ -4,8 +4,8 @@ import L1
 #endif
 
 extension ExactRealRootDomain {
-    func counted(_ source: ExactRealRootSource<F>, _ domain: ExactRealRootInterval<F.Value>,
-        _ a: inout ExactRootBorrowedAdmission) throws -> ExactRealRootCount<F> {
+    func counted<A: ExactScalarAdmission & ~Copyable>(_ source: ExactRealRootSource<F>, _ domain: ExactRealRootInterval<F.Value>,
+        _ a: inout A) throws -> ExactRealRootCount<F> {
         try require(source, &a); try ExactRootAccess.admit(domain.depth, &a)
         // Revalidate endpoints in this field even when another issuer created the domain.
         if case .finite(let bound) = domain.lower { _ = try context.field.sign(of: bound, using: &a) }
@@ -15,7 +15,7 @@ extension ExactRealRootDomain {
         if domain.isEmpty || zero {
             return ExactRealRootCount(source: source, domain: domain,
                 classification: domain.isEmpty ? .finite(distinct: 0, totalMultiplicity: 0) : .wholeDomain,
-                factors: [], depth: a.depth)
+                factors: [], depth: (try a.depth))
         }
         if source.law.variableCount == 1, source.law.termCount == 2 {
             let leading=source.law.terms[0],constant=source.law.terms[1]
@@ -27,11 +27,11 @@ extension ExactRealRootDomain {
                 let one=try context.univariate.constant(context.field.integer(1,using:&a),using:&a)
                 try ExactRootAccess.storage(3,ExactPolynomial<F>.self,&a)
                 try ExactRootAccess.owner((ExactPolynomial<F>,[ExactPolynomial<F>],ExactScalarDepth).self,&a)
-                let proof=ExactRootSturm(polynomial:source.law,chain:[source.law,x,one],depth:a.depth)
+                let proof=ExactRootSturm(polynomial:source.law,chain:[source.law,x,one],depth:(try a.depth))
                 let n=try roots(proof,domain,&a)
                 try ExactRootAccess.storage(1,(proof:ExactRootSturm<F>,multiplicity:Int).self,&a)
                 return ExactRealRootCount(source:source,domain:domain,classification:.finite(distinct:n,totalMultiplicity:n),
-                    factors:[(proof,1)],depth:a.depth)
+                    factors:[(proof,1)],depth:(try a.depth))
             }
         }
         let decomposition = try context.univariate.squareFreeDecomposition(source.law, using: &a)
@@ -48,7 +48,7 @@ extension ExactRealRootDomain {
             factors.append((proof, factor.multiplicity))
         }
         return ExactRealRootCount(source: source, domain: domain,
-            classification: .finite(distinct: distinct, totalMultiplicity: total), factors: factors, depth: a.depth)
+            classification: .finite(distinct: distinct, totalMultiplicity: total), factors: factors, depth: (try a.depth))
     }
     public func count<A: ExactScalarAdmission & ~Copyable>(_ source: borrowing ExactRealRootSource<F>,
         in domain: ExactRealRootInterval<F.Value>, using admission: inout A
@@ -72,8 +72,8 @@ extension ExactRealRootDomain {
             return try isolated(count, limits: limits, &a)
         }
     }
-    func factorRoots(_ count: ExactRealRootCount<F>, in domain: ExactRealRootInterval<F.Value>,
-        _ a: inout ExactRootBorrowedAdmission) throws -> Int {
+    func factorRoots<A: ExactScalarAdmission & ~Copyable>(_ count: ExactRealRootCount<F>, in domain: ExactRealRootInterval<F.Value>,
+        _ a: inout A) throws -> Int {
         var result = 0
         for entry in count.factors {
             try a.consumeWork(1)
@@ -81,20 +81,20 @@ extension ExactRealRootDomain {
         }
         return result
     }
-    func isolated(_ count: ExactRealRootCount<F>, limits: ExactRealRootLimits,
-        _ a: inout ExactRootBorrowedAdmission) throws -> ExactRealRootSet<F> {
+    func isolated<A: ExactScalarAdmission & ~Copyable>(_ count: ExactRealRootCount<F>, limits: ExactRealRootLimits,
+        _ a: inout A) throws -> ExactRealRootSet<F> {
         let source = count.source, domain = count.domain
         try require(source, &a); try ExactRootAccess.admit(count.depth, &a)
         try ExactRootAccess.admit(domain.depth, &a)
         if !domain.isEmpty { _ = try interval(domain.lower, domain.upper, domain.includesLower, domain.includesUpper, &a) }
         for entry in count.factors { try ExactRootAccess.admit(entry.proof.depth, &a) }
         guard case .finite(let expected, let total) = count.classification else {
-            return ExactRealRootSet(count: count, roots: [], depth: a.depth)
+            return ExactRealRootSet(count: count, roots: [], depth: (try a.depth))
         }
         guard expected <= limits.maximumRoots else { throw ExactRealRootFailure.resultLimit }
         try ExactRootAccess.storage(expected, ExactRealRoot<F>.self, &a)
         var result: [ExactRealRoot<F>] = []; result.reserveCapacity(expected)
-        if expected == 0 { return ExactRealRootSet(count: count, roots: result, depth: a.depth) }
+        if expected == 0 { return ExactRealRootSet(count: count, roots: result, depth: (try a.depth)) }
         if expected == 1,count.factors.count == 1 {
             let entry=count.factors[0]
             guard total == entry.multiplicity else { throw ExactRealRootFailure.invalidEvidence }
@@ -103,8 +103,8 @@ extension ExactRealRootDomain {
             let before=try interval(.negativeInfinity,isolated.lower,false,!isolated.includesLower,&a)
             let ordinal=try factorRoots(count,in:before,&a)
             result.append(.init(source:source,multiplicity:entry.multiplicity,ordinal:ordinal,
-                isolation:isolated,proof:entry.proof,depth:a.depth))
-            return ExactRealRootSet(count:count,roots:result,depth:a.depth)
+                isolation:isolated,proof:entry.proof,depth:(try a.depth)))
+            return ExactRealRootSet(count:count,roots:result,depth:(try a.depth))
         }
         for entry in count.factors {
             let initial = try finite(domain, proof: entry.proof, &a)
@@ -125,7 +125,7 @@ extension ExactRealRootDomain {
                     let ordinal = try factorRoots(count, in: before, &a)
                     guard result.count < expected else { throw ExactRealRootFailure.invalidEvidence }
                     result.append(.init(source: source, multiplicity: entry.multiplicity, ordinal: ordinal,
-                        isolation: isolated, proof: entry.proof, depth: a.depth))
+                        isolation: isolated, proof: entry.proof, depth: (try a.depth)))
                 } else {
                     let cells = try split(cell, axis: source.refinementAxis, &a)
                     try ExactRootAccess.storage(2, ExactRealRootInterval<F.Value>.self, &a)
@@ -142,10 +142,10 @@ extension ExactRealRootDomain {
             observed = try ExactRootAccess.add(observed, root.multiplicity); previous = root.ordinal
         }
         guard result.count == expected, observed == total else { throw ExactRealRootFailure.invalidEvidence }
-        return ExactRealRootSet(count: count, roots: result, depth: a.depth)
+        return ExactRealRootSet(count: count, roots: result, depth: (try a.depth))
     }
-    func contracted(_ proof: ExactRootSturm<F>, _ cell: ExactRealRootInterval<F.Value>, axis: ExactScalarRootAxis,
-        _ a: inout ExactRootBorrowedAdmission) throws -> ExactRealRootInterval<F.Value> {
+    func contracted<A: ExactScalarAdmission & ~Copyable>(_ proof: ExactRootSturm<F>, _ cell: ExactRealRootInterval<F.Value>, axis: ExactScalarRootAxis,
+        _ a: inout A) throws -> ExactRealRootInterval<F.Value> {
         try ExactRootAccess.visit(cell.depth, axis: axis, &a)
         let pair = try split(cell, axis: axis, &a)
         let left = try roots(proof, pair.0, &a)

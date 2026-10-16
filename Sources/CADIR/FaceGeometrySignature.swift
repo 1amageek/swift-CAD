@@ -18,9 +18,15 @@ public struct FaceGeometrySignature: Hashable, Sendable {
     }
 
     public func validate() throws {
-        try surface.validate(tolerance: GeometrySignatureValidation.tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try surface.validate(tolerance: GeometrySignatureValidation.tolerance, using: &execution)
         for loop in loops {
-            try loop.validate(on: surface)
+            try loop.validate(on: surface, using: &execution)
         }
     }
 

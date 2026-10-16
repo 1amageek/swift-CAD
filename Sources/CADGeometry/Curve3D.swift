@@ -58,50 +58,14 @@ public enum Curve3D: Sendable, Hashable {
     indirect case parameterImage(ParameterImageCurve3D)
 
     public func validate(tolerance: ModelingTolerance) throws {
-        try tolerance.validate()
-        switch self {
-        case let .line(line):
-            try line.validate(tolerance: tolerance)
-        case let .circle(circle):
-            try circle.validate(tolerance: tolerance)
-        case let .analytic(curve):
-            try curve.validate(tolerance: tolerance)
-        case let .bSpline(curve):
-            try curve.validate(tolerance: tolerance)
-        case let .implicit(curve):
-            // Construction and decoding already prove this immutable graph.
-            // Replaying it here recursively revalidates the supports of blends
-            // whenever a numerical consumer prepares or samples this curve.
-            try curve.validateCertificationContract(tolerance: tolerance)
-        case let .surfaceLift(curve):
-            try curve.validate(tolerance: tolerance)
-        case let .certifiedIntersection(curve):
-            try curve.validate(tolerance: tolerance)
-        case let .rigidImage(curve):
-            try curve.validate(tolerance: tolerance)
-        case let .parameterImage(curve):
-            try curve.validate(tolerance: tolerance)
-        case let .originalConstructionChart(curve):
-            try curve.validate(tolerance: tolerance)
-        case let .originalEndpointConnector(curve):
-            try curve.validate(tolerance: tolerance)
-        case let .originalPlaneDerivative(curve):
-            try curve.validate(tolerance: tolerance)
-        case let .originalGuideTraversalChain(curve):
-            try curve.validate(tolerance: tolerance)
-        case let .originalPolyline(curve):
-            try curve.validate(tolerance: tolerance)
-        case let .originalGuideEndpointConnector(curve):
-            try curve.validate(tolerance: tolerance)
-        case let .originalDrafted(curve):
-            try curve.validate(tolerance: tolerance)
-        case let .originalAngularTransport(curve):
-            try curve.validate(tolerance: tolerance)
-        case let .originalAffineWord(curve):
-            try curve.validate(tolerance: tolerance)
-        case let .affineImage(curve):
-            try curve.validate(tolerance: tolerance)
-        }
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try validateOriginalSource(tolerance: tolerance,
+            remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+            maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth, using: &execution)
     }
 
     public var parameterDomain: ParameterDomain {
@@ -131,13 +95,37 @@ public enum Curve3D: Sendable, Hashable {
     }
 
     public func point(at parameter: Double, tolerance: ModelingTolerance) throws -> Point3D {
-        try ValidatedCurve3D(self, tolerance: tolerance).point(at: parameter)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try point(at: parameter, tolerance: tolerance, using: &execution)
+    }
+
+    public func point(at parameter: Double, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> Point3D {
+        try validate(tolerance: tolerance, using: &execution)
+        guard try parameterDomain.contains(parameter, tolerance: tolerance) else {
+            throw GeometryError.invalidDistance(parameter)
+        }
+        let result = try pointAssumingValid(at: parameter, tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+    package func pointAssumingValid(at parameter: Double, tolerance: ModelingTolerance) throws -> Point3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try pointAssumingValid(at: parameter, tolerance: tolerance, using: &execution)
+    }
+
+    package func differentialGeometryAssumingValid(at parameter: Double, tolerance: ModelingTolerance)
+        throws -> DifferentialGeometry {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try differentialGeometryAssumingValid(at: parameter, tolerance: tolerance, using: &execution)
     }
 
     package func pointAssumingValid(
         at parameter: Double,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Point3D {
+        try execution.consumeWork(1)
         switch self {
         case let .line(line):
             return line.origin + line.direction * parameter
@@ -147,78 +135,89 @@ public enum Curve3D: Sendable, Hashable {
                 tolerance: tolerance
             )
             return circle.center
-                + (u * (circle.radius * CanonicalSphereAngularPhase.candidate(at: parameter, cosine: true)))
-                + (v * (circle.radius * CanonicalSphereAngularPhase.candidate(at: parameter, cosine: false)))
+                + (u * (circle.radius * (try CanonicalSphereAngularPhase.candidate(at: parameter, cosine: true, using: &execution))))
+                + (v * (circle.radius * (try CanonicalSphereAngularPhase.candidate(at: parameter, cosine: false, using: &execution))))
         case let .analytic(curve):
             return try curve.differentialGeometryAssumingValid(
                 at: parameter,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             ).position
         case let .bSpline(curve):
             return try curve.pointAssumingValid(
                 at: parameter,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         case let .implicit(curve):
             return try curve.point(
                 atNormalizedFraction: parameter,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         case let .surfaceLift(curve):
             return try curve.pointAssumingValid(
                 atNormalizedFraction: parameter,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         case let .certifiedIntersection(curve):
             return try curve.point(
                 atNormalizedFraction: parameter,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         case let .rigidImage(curve):
             return try curve.pointAssumingValid(
                 at: parameter,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         case let .parameterImage(curve):
-            return try curve.pointAssumingValid(at: parameter, tolerance: tolerance)
+            return try curve.pointAssumingValid(at: parameter, tolerance: tolerance, using: &execution)
         case let .originalConstructionChart(curve):
-            return try curve.point(at: parameter, tolerance: tolerance)
+            return try curve.point(at: parameter, tolerance: tolerance, using: &execution)
         case let .originalEndpointConnector(curve):
-            return try curve.point(at: parameter, tolerance: tolerance)
+            return try curve.point(at: parameter, tolerance: tolerance, using: &execution)
         case let .originalPlaneDerivative(curve):
-            return try curve.point(at: parameter, tolerance: tolerance)
+            return try curve.point(at: parameter, tolerance: tolerance, using: &execution)
         case let .originalGuideTraversalChain(curve):
-            return try curve.point(at: parameter, tolerance: tolerance)
+            return try curve.point(at: parameter, tolerance: tolerance, using: &execution)
         case let .originalPolyline(curve):
-            return try curve.point(at: parameter, tolerance: tolerance)
+            return try curve.point(at: parameter, tolerance: tolerance, using: &execution)
         case let .originalGuideEndpointConnector(curve):
-            return try curve.point(at: parameter, tolerance: tolerance)
+            return try curve.point(at: parameter, tolerance: tolerance, using: &execution)
         case let .originalDrafted(curve):
-            return try curve.point(at: parameter, tolerance: tolerance)
+            return try curve.point(at: parameter, tolerance: tolerance, using: &execution)
         case let .originalAngularTransport(curve):
-            return try curve.point(at: parameter, tolerance: tolerance)
+            return try curve.point(at: parameter, tolerance: tolerance, using: &execution)
         case let .originalAffineWord(curve):
-            return try curve.point(at: parameter, tolerance: tolerance)
+            return try curve.point(at: parameter, tolerance: tolerance, using: &execution)
         case let .affineImage(curve):
             return try curve.pointAssumingValid(
                 at: parameter,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         }
     }
 
-    public func differentialGeometry(
-        at parameter: Double,
-        tolerance: ModelingTolerance
-    ) throws -> DifferentialGeometry {
-        try ValidatedCurve3D(self, tolerance: tolerance)
-            .differentialGeometry(at: parameter)
+    public func differentialGeometry(at parameter: Double, tolerance: ModelingTolerance)
+        throws -> DifferentialGeometry {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try differentialGeometry(at: parameter, tolerance: tolerance, using: &execution)
+    }
+
+    public func differentialGeometry(at parameter: Double, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> DifferentialGeometry {
+        try validate(tolerance: tolerance, using: &execution)
+        guard try parameterDomain.contains(parameter, tolerance: tolerance) else {
+            throw GeometryError.invalidDistance(parameter)
+        }
+        let result = try differentialGeometryAssumingValid(at: parameter,
+            tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
     }
 
     package func differentialGeometryAssumingValid(
         at parameter: Double,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> DifferentialGeometry {
+        try execution.consumeWork(1)
         switch self {
         case let .line(line):
             let firstDerivative = line.direction
@@ -236,8 +235,8 @@ public enum Curve3D: Sendable, Hashable {
                 circle.normal,
                 tolerance: tolerance
             )
-            let sine = CanonicalSphereAngularPhase.candidate(at: parameter, cosine: false)
-            let cosine = CanonicalSphereAngularPhase.candidate(at: parameter, cosine: true)
+            let sine = (try CanonicalSphereAngularPhase.candidate(at: parameter, cosine: false, using: &execution))
+            let cosine = (try CanonicalSphereAngularPhase.candidate(at: parameter, cosine: true, using: &execution))
             let scale = CanonicalSphereAngularPhase.scaleBounds.midpoint
             let firstDerivative = ((u * (-circle.radius * sine)) +
                 (v * (circle.radius * cosine))) * scale
@@ -245,27 +244,25 @@ public enum Curve3D: Sendable, Hashable {
                 (v * (-circle.radius * sine))) * (scale * scale)
             return try Self.differentialGeometry(
                 position: circle.center
-                    + (u * (circle.radius * CanonicalSphereAngularPhase.candidate(at: parameter, cosine: true)))
-                    + (v * (circle.radius * CanonicalSphereAngularPhase.candidate(at: parameter, cosine: false))),
+                    + (u * (circle.radius * (try CanonicalSphereAngularPhase.candidate(at: parameter, cosine: true, using: &execution))))
+                    + (v * (circle.radius * (try CanonicalSphereAngularPhase.candidate(at: parameter, cosine: false, using: &execution)))),
                 firstDerivative: firstDerivative,
                 secondDerivative: secondDerivative,
-                tolerance: tolerance
-            )
+                tolerance: tolerance)
         case let .analytic(curve):
             let geometry = try curve.differentialGeometryAssumingValid(
                 at: parameter,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
             return try Self.differentialGeometry(
                 position: geometry.position,
                 firstDerivative: geometry.firstDerivative,
                 secondDerivative: geometry.secondDerivative,
-                tolerance: tolerance
-            )
+                tolerance: tolerance)
         case let .bSpline(curve):
             let geometry = try curve.differentialGeometryAssumingValid(
                 at: parameter,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
             return DifferentialGeometry(
                 position: geometry.position,
@@ -278,50 +275,47 @@ public enum Curve3D: Sendable, Hashable {
         case let .implicit(curve):
             let geometry = try curve.secondOrderDifferential(
                 atNormalizedFraction: parameter,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
             return try Self.differentialGeometry(
                 position: geometry.position,
                 firstDerivative: geometry.firstDerivative,
                 secondDerivative: geometry.secondDerivative,
-                tolerance: tolerance
-            )
+                tolerance: tolerance)
         case let .surfaceLift(curve):
             let geometry = try curve.differentialGeometryAssumingValid(
                 atNormalizedFraction: parameter,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
             return try Self.differentialGeometry(
                 position: geometry.position,
                 firstDerivative: geometry.firstDerivative,
                 secondDerivative: geometry.secondDerivative,
-                tolerance: tolerance
-            )
+                tolerance: tolerance)
         case let .certifiedIntersection(curve):
             let geometry = try curve.differential(
                 atNormalizedFraction: parameter,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
             return try Self.differentialGeometry(
                 position: geometry.position,
                 firstDerivative: geometry.firstDerivative,
                 secondDerivative: geometry.secondDerivative,
-                tolerance: tolerance
-            )
+                tolerance: tolerance)
         case let .rigidImage(curve):
             return try curve.differentialGeometryAssumingValid(
                 at: parameter,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         case let .parameterImage(curve):
-            return try curve.differentialGeometryAssumingValid(at: parameter, tolerance: tolerance)
+            return try curve.differentialGeometryAssumingValid(at: parameter, tolerance: tolerance, using: &execution)
         case let .originalConstructionChart(curve):
             let jet = try curve.intervalTaylorJet(over: .init(lower: parameter, upper: parameter), throughOrder: 2,
                 tolerance: tolerance, maximumSpanCount: curve.maximumSpanCount,
                 maximumSubdivisionDepth: curve.maximumSubdivisionDepth,
                 remainingSourceDepth: curve.remainingSourceDepth == Int.max ? Int.max : curve.remainingSourceDepth + 1,
-                consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
-            return try Self.differentialGeometry(position: curve.point(at: parameter, tolerance: tolerance),
+                using: &execution)
+            return try Self.differentialGeometry(position: curve.point(at: parameter, tolerance: tolerance, using: &execution),
                 firstDerivative: .init(x: try jet.x.coefficient(1, 0).midpoint, y: try jet.y.coefficient(1, 0).midpoint, z: try jet.z.coefficient(1, 0).midpoint),
                 secondDerivative: .init(x: try (jet.x.coefficient(2, 0) * .exact(2)).midpoint, y: try (jet.y.coefficient(2, 0) * .exact(2)).midpoint, z: try (jet.z.coefficient(2, 0) * .exact(2)).midpoint),
                 tolerance: tolerance)
@@ -329,8 +323,8 @@ public enum Curve3D: Sendable, Hashable {
             let q = try curve.derivatives(over: .init(lower: parameter, upper: parameter),
                 throughOrder: 2, tolerance: tolerance, maximumSpanCount: curve.maximumSpanCount,
                 maximumSubdivisionDepth: curve.maximumSubdivisionDepth, remainingSourceDepth: 0,
-                consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
-            return try Self.differentialGeometry(position: curve.point(at: parameter, tolerance: tolerance),
+                using: &execution)
+            return try Self.differentialGeometry(position: curve.point(at: parameter, tolerance: tolerance, using: &execution),
                 firstDerivative: .init(x: q.x.derivatives[1].midpoint, y: q.y.derivatives[1].midpoint, z: q.z.derivatives[1].midpoint),
                 secondDerivative: .init(x: q.x.derivatives[2].midpoint, y: q.y.derivatives[2].midpoint, z: q.z.derivatives[2].midpoint),
                 tolerance: tolerance)
@@ -338,8 +332,8 @@ public enum Curve3D: Sendable, Hashable {
             let q = try curve.derivatives(over: .init(lower: parameter, upper: parameter),
                 throughOrder: 2, tolerance: tolerance, maximumSpanCount: curve.maximumSpanCount,
                 maximumSubdivisionDepth: curve.maximumSubdivisionDepth, remainingSourceDepth: curve.remainingSourceDepth,
-                consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
-            return try Self.differentialGeometry(position: curve.point(at: parameter, tolerance: tolerance),
+                using: &execution)
+            return try Self.differentialGeometry(position: curve.point(at: parameter, tolerance: tolerance, using: &execution),
                 firstDerivative: .init(x: q.x.derivatives[1].midpoint, y: q.y.derivatives[1].midpoint, z: q.z.derivatives[1].midpoint),
                 secondDerivative: .init(x: q.x.derivatives[2].midpoint, y: q.y.derivatives[2].midpoint, z: q.z.derivatives[2].midpoint),
                 tolerance: tolerance)
@@ -347,8 +341,8 @@ public enum Curve3D: Sendable, Hashable {
             let q = try curve.derivatives(over: .init(lower: parameter, upper: parameter),
                 throughOrder: 2, tolerance: tolerance, maximumSpanCount: curve.maximumSpanCount,
                 maximumSubdivisionDepth: curve.maximumSubdivisionDepth, remainingSourceDepth: curve.remainingSourceDepth,
-                consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
-            return try Self.differentialGeometry(position: curve.point(at: parameter, tolerance: tolerance),
+                using: &execution)
+            return try Self.differentialGeometry(position: curve.point(at: parameter, tolerance: tolerance, using: &execution),
                 firstDerivative: .init(x: q.x.derivatives[1].midpoint, y: q.y.derivatives[1].midpoint, z: q.z.derivatives[1].midpoint),
                 secondDerivative: .init(x: q.x.derivatives[2].midpoint, y: q.y.derivatives[2].midpoint, z: q.z.derivatives[2].midpoint),
                 tolerance: tolerance)
@@ -356,8 +350,8 @@ public enum Curve3D: Sendable, Hashable {
             let q = try curve.derivatives(over: .init(lower: parameter, upper: parameter),
                 throughOrder: 2, tolerance: tolerance, maximumSpanCount: curve.maximumSpanCount,
                 maximumSubdivisionDepth: curve.maximumSubdivisionDepth, remainingSourceDepth: curve.remainingSourceDepth,
-                consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
-            return try Self.differentialGeometry(position: curve.point(at: parameter, tolerance: tolerance),
+                using: &execution)
+            return try Self.differentialGeometry(position: curve.point(at: parameter, tolerance: tolerance, using: &execution),
                 firstDerivative: .init(x: q.x.derivatives[1].midpoint, y: q.y.derivatives[1].midpoint, z: q.z.derivatives[1].midpoint),
                 secondDerivative: .init(x: q.x.derivatives[2].midpoint, y: q.y.derivatives[2].midpoint, z: q.z.derivatives[2].midpoint),
                 tolerance: tolerance)
@@ -365,26 +359,26 @@ public enum Curve3D: Sendable, Hashable {
             let q = try curve.derivatives(over: .init(lower: parameter, upper: parameter),
                 throughOrder: 2, tolerance: tolerance, maximumSpanCount: curve.maximumSpanCount,
                 maximumSubdivisionDepth: curve.maximumSubdivisionDepth, remainingSourceDepth: curve.remainingSourceDepth,
-                consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
-            return try Self.differentialGeometry(position: curve.point(at: parameter, tolerance: tolerance),
+                using: &execution)
+            return try Self.differentialGeometry(position: curve.point(at: parameter, tolerance: tolerance, using: &execution),
                 firstDerivative: .init(x: q.x.derivatives[1].midpoint, y: q.y.derivatives[1].midpoint, z: q.z.derivatives[1].midpoint),
                 secondDerivative: .init(x: q.x.derivatives[2].midpoint, y: q.y.derivatives[2].midpoint, z: q.z.derivatives[2].midpoint),
                 tolerance: tolerance)
         case let .originalDrafted(curve):
             let q = try curve.derivatives(over: .init(lower: parameter, upper: parameter),
-                throughOrder: 2, tolerance: tolerance)
-            return try Self.differentialGeometry(position: curve.point(at: parameter, tolerance: tolerance),
+                throughOrder: 2, tolerance: tolerance, using: &execution)
+            return try Self.differentialGeometry(position: curve.point(at: parameter, tolerance: tolerance, using: &execution),
                 firstDerivative: .init(x: q.x.derivatives[1].midpoint, y: q.y.derivatives[1].midpoint, z: q.z.derivatives[1].midpoint),
                 secondDerivative: .init(x: q.x.derivatives[2].midpoint, y: q.y.derivatives[2].midpoint, z: q.z.derivatives[2].midpoint),
                 tolerance: tolerance)
         case let .originalAngularTransport(curve):
-            return try curve.differentialGeometry(at: parameter, tolerance: tolerance)
+            return try curve.differentialGeometry(at: parameter, tolerance: tolerance, using: &execution)
         case let .originalAffineWord(curve):
-            return try curve.differentialGeometry(at: parameter, tolerance: tolerance)
+            return try curve.differentialGeometry(at: parameter, tolerance: tolerance, using: &execution)
         case let .affineImage(curve):
             return try curve.differentialGeometryAssumingValid(
                 at: parameter,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         }
     }

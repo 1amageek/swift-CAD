@@ -21,7 +21,7 @@ public struct OriginalCoaxialSurfacePairSnapshotProvider: OriginalSourceSnapshot
         throws(OriginalSourceIssuanceFailure) -> OriginalSourceSnapshot<OriginalCoaxialSurfacePairSnapshot> {
         let input = copy input
         do {
-            return try OriginalSourceProofAdmission<A>.withBorrow(&a) { a in
+            return try a.withProofScope { a in
                 try a.checkpoint(); try a.consumeWork(1)
                 guard limits.remainingSourceDepth >= 1 else { throw OriginalSourceIssuanceFailure.sourceDepthLimit }
                 guard let pair = Self.coneAndCylinder(input), case .analytic(.cone(let apex, _, let angle)) = pair.cone,

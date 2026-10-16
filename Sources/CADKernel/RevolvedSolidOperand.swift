@@ -20,7 +20,8 @@ struct RevolvedSolidOperand: Sendable {
         bodyID: BodyID,
         model: BRepModel,
         tolerance: ModelingTolerance
-    ) throws {
+    , using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard let body = model.bodies[bodyID],
               body.kind == .solid,
@@ -35,6 +36,7 @@ struct RevolvedSolidOperand: Sendable {
         var capNormals: [Vector3D] = []
         var vertexIDs = Set<VertexID>()
         for faceID in shell.faceIDs {
+            try execution.consumeWork(1)
             guard let face = model.faces[faceID],
                   let surface = model.geometry.surfaces[face.surfaceID] else {
                 throw KernelError(
@@ -48,33 +50,34 @@ struct RevolvedSolidOperand: Sendable {
             if case let .procedural(.offset(offset)) = surface {
                 classifiedSurface = try offset.exactChartPreservingSurface(
                     tolerance: tolerance
-                ) ?? surface
+                , using: &execution) ?? surface
             } else {
                 classifiedSurface = surface
             }
             switch classifiedSurface {
             case let .cylinder(cylinder):
-                cylinders.append((cylinder.origin, cylinder.axis, cylinder.radius))
+                try OriginalParameterQueryStorage.append((cylinder.origin, cylinder.axis, cylinder.radius), to: &cylinders, using: &execution)
             case let .analytic(.cylinder(origin, axis, radius)):
-                cylinders.append((origin, axis, radius))
+                try OriginalParameterQueryStorage.append((origin, axis, radius), to: &cylinders, using: &execution)
             case let .analytic(.cone(apex, axis, halfAngle)):
-                cones.append((apex, axis, halfAngle))
+                try OriginalParameterQueryStorage.append((apex, axis, halfAngle), to: &cones, using: &execution)
             case let .plane(plane):
-                capNormals.append(plane.normal)
+                try OriginalParameterQueryStorage.append(plane.normal, to: &capNormals, using: &execution)
             case let .analytic(.plane(_, normal)):
-                capNormals.append(normal)
+                try OriginalParameterQueryStorage.append(normal, to: &capNormals, using: &execution)
             case .analytic, .procedural:
                 throw Self.unsupported(tolerance)
             case .bSpline:
                 guard let plane = try DefaultPlanarSurfaceResolver().exactPlane(
                     for: classifiedSurface,
                     tolerance: tolerance
-                ) else {
+                , using: &execution) else {
                     throw Self.unsupported(tolerance)
                 }
-                capNormals.append(plane.normal)
+                try OriginalParameterQueryStorage.append(plane.normal, to: &capNormals, using: &execution)
             }
             for loopID in face.loops {
+            try execution.consumeWork(1)
                 guard let loop = model.loops[loopID] else {
                     throw KernelError(
                         phase: .topology,
@@ -84,6 +87,7 @@ struct RevolvedSolidOperand: Sendable {
                     )
                 }
                 for coedge in loop.coedges {
+            try execution.consumeWork(1)
                     guard let edge = model.edges[coedge.edgeID] else {
                         throw KernelError(
                             phase: .topology,
@@ -92,8 +96,8 @@ struct RevolvedSolidOperand: Sendable {
                             message: "Revolved operand references a missing edge."
                         )
                     }
-                    vertexIDs.insert(edge.startVertexID)
-                    vertexIDs.insert(edge.endVertexID)
+                    try OriginalParameterQueryStorage.insert(edge.startVertexID, in: &vertexIDs, using: &execution)
+                    try OriginalParameterQueryStorage.insert(edge.endVertexID, in: &vertexIDs, using: &execution)
                 }
             }
         }
@@ -104,6 +108,7 @@ struct RevolvedSolidOperand: Sendable {
             let normalized = try reference.axis.normalized(tolerance: tolerance.distance)
             referenceAxis = Self.canonicalized(normalized, tolerance: tolerance)
             for cylinder in cylinders {
+            try execution.consumeWork(1)
                 let candidateAxis = try cylinder.axis.normalized(tolerance: tolerance.distance)
                 let offset = cylinder.origin - reference.origin
                 let radialOffset = offset - referenceAxis * offset.dot(referenceAxis)
@@ -118,6 +123,7 @@ struct RevolvedSolidOperand: Sendable {
             let normalized = try reference.axis.normalized(tolerance: tolerance.distance)
             referenceAxis = Self.canonicalized(normalized, tolerance: tolerance)
             for cone in cones {
+            try execution.consumeWork(1)
                 let candidateAxis = try cone.axis.normalized(tolerance: tolerance.distance)
                 let apexOffset = cone.apex - reference.apex
                 guard abs(abs(candidateAxis.dot(referenceAxis)) - 1.0) <= tolerance.angle,
@@ -131,6 +137,7 @@ struct RevolvedSolidOperand: Sendable {
             throw Self.unsupported(tolerance)
         }
 
+        try execution.retainKernelValues(count: capNormals.count, stride: MemoryLayout<Double>.stride)
         let capAlignments = try capNormals.map {
             try $0.normalized(tolerance: tolerance.distance).dot(referenceAxis)
         }
@@ -141,7 +148,9 @@ struct RevolvedSolidOperand: Sendable {
             throw Self.unsupported(tolerance)
         }
 
+        try execution.retainKernelValues(count: vertexIDs.count, stride: MemoryLayout<Double>.stride)
         let axialCoordinates = try vertexIDs.map { vertexID -> Double in
+            try execution.consumeWork(1)
             guard let point = model.vertices[vertexID]?.point else {
                 throw KernelError(
                     phase: .topology,

@@ -29,9 +29,23 @@ package struct OriginalAffineWordHarmonicSurfaceCoefficients: Sendable {
             uTransport, vTransport, gaugeWord)
     }
 
-    package static func prepare<B: RationalAlgebraAdmitting>(source: Surface3D,
+    @inline(never)
+    package static func prepare<B: ExactScalarAdmission & ~Copyable>(source: Surface3D,
         word: PreparedOriginalAffineOperationWord, tolerance: ModelingTolerance,
         usage: inout B, admitPhysicalMetric: Bool = true) throws -> Self? {
+        if case .bSpline = source {
+            try OriginalAngularParameterTransport.intrinsic.validate(usage: &usage)
+            try OriginalAngularParameterTransport.intrinsic.validate(usage: &usage)
+            return nil
+        }
+        return try prepareNonNative(source: source, word: word, tolerance: tolerance,
+            usage: &usage, admitPhysicalMetric: admitPhysicalMetric)
+    }
+
+    @inline(never)
+    private static func prepareNonNative<B: ExactScalarAdmission & ~Copyable>(source: Surface3D,
+        word: PreparedOriginalAffineOperationWord, tolerance: ModelingTolerance,
+        usage: inout B, admitPhysicalMetric: Bool) throws -> Self? {
         if case .procedural(.originalImage(let image)) = source,
             image.uParameterGain == .binary(1), image.vParameterGain == .binary(1),
             image.uOffset == 0, image.vOffset == 0, !image.swapAxes {
@@ -48,7 +62,7 @@ package struct OriginalAffineWordHarmonicSurfaceCoefficients: Sendable {
                 var factors: [OriginalAffineOperation] = []
                 factors.reserveCapacity(count.partialValue)
                 factors.append(.forward(image.transform))
-                for factor in word.source.factors { try usage.consumeExactWork(1); factors.append(factor) }
+                for factor in word.source.factors { try usage.consumeWork(1); factors.append(factor) }
                 let effective = try OriginalAffineOperationWord(factors: factors, tolerance: tolerance,
                     maximumDepth: word.source.maximumDepth, usage: &usage).prepared(usage: &usage)
                 return try prepare(source: image.source, word: effective, tolerance: tolerance,
@@ -94,7 +108,7 @@ package struct OriginalAffineWordHarmonicSurfaceCoefficients: Sendable {
             first = basis.u; second = basis.v; major = outer; minor = tube; halfAngle = 0
         default: return nil
         }
-        try usage.consumeExactWork(1)
+        try usage.consumeWork(1)
         guard major.isFinite, minor.isFinite,
             kind == .sphere ? minor > 0 : major > 0,
             kind != .torus || minor > 0 && major > minor else {
@@ -161,11 +175,11 @@ package struct OriginalAffineWordHarmonicSurfaceCoefficients: Sendable {
     }
 
     /// Removes only the original positive primitive scalar factors.
-    package func normalField<B: RationalAlgebraAdmitting>(over box: SurfaceParameterBox,
+    package func normalField<B: ExactScalarAdmission & ~Copyable>(over box: SurfaceParameterBox,
         word: PreparedOriginalAffineOperationWord, usage: inout B) throws -> IntervalVector3DBounds {
-        try usage.consumeExactWork(1)
-        let cu = try uTransport.harmonic(over: box.u, cosine: true, consumeWork: { try usage.consumeExactWork(1) }).value
-        let su = try uTransport.harmonic(over: box.u, cosine: false, consumeWork: { try usage.consumeExactWork(1) }).value
+        try usage.consumeWork(1)
+        let cu = try uTransport.harmonic(over: box.u, cosine: true, using: &usage).value
+        let su = try uTransport.harmonic(over: box.u, cosine: false, using: &usage).value
         func raw(_ value: Vector3D) -> IntervalVector3DBounds {
             .init(x: .exact(value.x), y: .exact(value.y), z: .exact(value.z))
         }
@@ -173,20 +187,20 @@ package struct OriginalAffineWordHarmonicSurfaceCoefficients: Sendable {
         let radial = first * cu + second * su
         let field: IntervalVector3DBounds
         if kind == .sphere {
-            try vTransport.requireSphereLatitude(over:box.v,consumeWork:{ try usage.consumeExactWork(1) })
-            let cv = try vTransport.harmonic(over: box.v, cosine: true, consumeWork: { try usage.consumeExactWork(1) }).value
-            let sv = try vTransport.harmonic(over: box.v, cosine: false, consumeWork: { try usage.consumeExactWork(1) }).value
+            try vTransport.requireSphereLatitude(over:box.v,using:&usage)
+            let cv = try vTransport.harmonic(over: box.v, cosine: true, using: &usage).value
+            let sv = try vTransport.harmonic(over: box.v, cosine: false, using: &usage).value
             field = radial * cv + axis * sv
         } else {
             let tangent = first * (-su) + second * cu
             if kind == .cylinder { field = tangent.cross(axis) }
             else if kind == .cone {
-                let slope = try physicalConeSlope(consumeWork:{ try usage.consumeExactWork(1) })
+                let slope = try physicalConeSlope(using:&usage)
                 field = tangent.cross(radial * slope.sine + axis * slope.cosine)
                     * .init(lower:box.v.lower,upper:box.v.upper)
             } else {
-                let cv = try vTransport.harmonic(over: box.v, cosine: true, consumeWork: { try usage.consumeExactWork(1) }).value
-                let sv = try vTransport.harmonic(over: box.v, cosine: false, consumeWork: { try usage.consumeExactWork(1) }).value
+                let cv = try vTransport.harmonic(over: box.v, cosine: true, using: &usage).value
+                let sv = try vTransport.harmonic(over: box.v, cosine: false, using: &usage).value
                 field = tangent.cross(radial * (-sv) + axis * cv)
             }
         }
@@ -198,26 +212,25 @@ package struct OriginalAffineWordHarmonicSurfaceCoefficients: Sendable {
             y: .init(lower: result.y.lower, upper: result.y.upper), z: .init(lower: result.z.lower, upper: result.z.upper))
     }
 
-    package func intervalTaylorJet(over box: SurfaceParameterBox, throughOrder order: Int,
-        tolerance: ModelingTolerance, consumeWork: () throws -> Void,
-        consumeStorage: ((Int) throws -> Void)? = nil) throws -> SurfaceAreaIntervalTaylorVectorJet {
+    package func intervalTaylorJet<A: ExactScalarAdmission & ~Copyable>(over box: SurfaceParameterBox, throughOrder order: Int,
+        tolerance: ModelingTolerance, using execution: inout A) throws -> SurfaceAreaIntervalTaylorVectorJet {
         guard order >= 0, box.u.lower.isFinite, box.u.upper.isFinite,
             box.v.lower.isFinite, box.v.upper.isFinite else {
             throw GeometryConversionError.invalidInput("Original harmonic world query needs finite parameter bounds.")
         }
         if kind == .sphere {
-            try vTransport.requireSphereLatitude(over:box.v,consumeWork:consumeWork,consumeStorage:consumeStorage)
+            try vTransport.requireSphereLatitude(over:box.v,using: &execution)
         }
         func harmonic(_ range: ScalarInterval, alongU: Bool, cosine: Bool) throws -> SurfaceAreaIntervalTaylorScalarJet {
             let transport = alongU ? uTransport : vTransport
-            let cosineField = try transport.harmonic(over: range, cosine: true, consumeWork: consumeWork, consumeStorage: consumeStorage)
+            let cosineField = try transport.harmonic(over: range, cosine: true, using: &execution)
             let c = cosineField.value
-            let s = try transport.harmonic(over: range, cosine: false, consumeWork: consumeWork, consumeStorage: consumeStorage).value
+            let s = try transport.harmonic(over: range, cosine: false, using: &execution).value
             var result = try SurfaceAreaIntervalTaylorScalarJet(order: order, axis: alongU ? .u : .v,
-                tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage)
+                tolerance: tolerance, using: &execution)
             var gain = OutwardScalarInterval.exact(1), factorial = OutwardScalarInterval.exact(1)
             for k in 0...order {
-                try consumeWork()
+                try execution.consumeWork(1)
                 if k > 0 { gain = gain * cosineField.gain; factorial = factorial * .exact(Double(k)) }
                 let value: OutwardScalarInterval
                 switch (k + (cosine ? 0 : 3)) % 4 {
@@ -241,39 +254,39 @@ package struct OriginalAffineWordHarmonicSurfaceCoefficients: Sendable {
             _ largeS: OutwardScalarInterval, _ smallC: OutwardScalarInterval,
             _ smallS: OutwardScalarInterval, _ axis: OutwardScalarInterval) throws -> SurfaceAreaIntervalTaylorScalarJet {
             var result = try SurfaceAreaIntervalTaylorScalarJet.constant(point, order: order,
-                tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage)
+                tolerance: tolerance, using: &execution)
             if kind == .cone {
-                let slope = try physicalConeSlope(consumeWork:consumeWork)
-                var height = try SurfaceAreaIntervalTaylorScalarJet(order:order,axis:.v,tolerance:tolerance,consumeWork:consumeWork,consumeStorage:consumeStorage)
+                let slope = try physicalConeSlope(using: &execution)
+                var height = try SurfaceAreaIntervalTaylorScalarJet(order:order,axis:.v,tolerance:tolerance,using: &execution)
                 try height.set(.init(lower:box.v.lower,upper:box.v.upper),0,0)
                 if order > 0 { try height.set(.exact(1),0,1) }
-                let radial = try cu.scaled(by:largeC,consumeWork:consumeWork,consumeStorage:consumeStorage)
-                    .adding(su.scaled(by:largeS,consumeWork:consumeWork,consumeStorage:consumeStorage),consumeWork:consumeWork,consumeStorage:consumeStorage)
-                    .scaled(by:slope.sine,consumeWork:consumeWork,consumeStorage:consumeStorage)
-                    .adding(SurfaceAreaIntervalTaylorScalarJet.constant(axis * slope.cosine,order:order,tolerance:tolerance,consumeWork:consumeWork,consumeStorage:consumeStorage),consumeWork:consumeWork,consumeStorage:consumeStorage)
-                return try result.adding(radial.multiplied(by:height,consumeWork:consumeWork,consumeStorage:consumeStorage),consumeWork:consumeWork,consumeStorage:consumeStorage)
+                let radial = try cu.scaled(by:largeC,using: &execution)
+                    .adding(su.scaled(by:largeS,using: &execution),using: &execution)
+                    .scaled(by:slope.sine,using: &execution)
+                    .adding(SurfaceAreaIntervalTaylorScalarJet.constant(axis * slope.cosine,order:order,tolerance:tolerance,using: &execution),using: &execution)
+                return try result.adding(radial.multiplied(by:height,using: &execution),using: &execution)
             }
             if kind != .sphere {
-                let radial = try cu.scaled(by: largeC, consumeWork: consumeWork, consumeStorage: consumeStorage)
-                    .adding(su.scaled(by: largeS, consumeWork: consumeWork, consumeStorage: consumeStorage),
-                        consumeWork: consumeWork, consumeStorage: consumeStorage)
-                result = try result.adding(radial, consumeWork: consumeWork, consumeStorage: consumeStorage)
+                let radial = try cu.scaled(by: largeC, using: &execution)
+                    .adding(su.scaled(by: largeS, using: &execution),
+                        using: &execution)
+                result = try result.adding(radial, using: &execution)
             }
             if let cv, let sv {
-                let radial = try cu.scaled(by: smallC, consumeWork: consumeWork, consumeStorage: consumeStorage)
-                    .adding(su.scaled(by: smallS, consumeWork: consumeWork, consumeStorage: consumeStorage),
-                        consumeWork: consumeWork, consumeStorage: consumeStorage)
-                result = try result.adding(radial.multiplied(by: cv, consumeWork: consumeWork, consumeStorage: consumeStorage),
-                    consumeWork: consumeWork, consumeStorage: consumeStorage)
-                    .adding(sv.scaled(by: axis, consumeWork: consumeWork, consumeStorage: consumeStorage),
-                        consumeWork: consumeWork, consumeStorage: consumeStorage)
+                let radial = try cu.scaled(by: smallC, using: &execution)
+                    .adding(su.scaled(by: smallS, using: &execution),
+                        using: &execution)
+                result = try result.adding(radial.multiplied(by: cv, using: &execution),
+                    using: &execution)
+                    .adding(sv.scaled(by: axis, using: &execution),
+                        using: &execution)
             } else {
                 var height = try SurfaceAreaIntervalTaylorScalarJet(order: order, axis: .v,
-                    tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage)
+                    tolerance: tolerance, using: &execution)
                 try height.set(.init(lower: box.v.lower, upper: box.v.upper), 0, 0)
                 if order > 0 { try height.set(.exact(1), 0, 1) }
-                result = try result.adding(height.scaled(by: axis, consumeWork: consumeWork, consumeStorage: consumeStorage),
-                    consumeWork: consumeWork, consumeStorage: consumeStorage)
+                result = try result.adding(height.scaled(by: axis, using: &execution),
+                    using: &execution)
             }
             return result
         }
@@ -281,12 +294,12 @@ package struct OriginalAffineWordHarmonicSurfaceCoefficients: Sendable {
             y: field(center.y, majorCosine.y, majorSine.y, minorCosine.y, minorSine.y, axial.y),
             z: field(center.z, majorCosine.z, majorSine.z, minorCosine.z, minorSine.z, axial.z))
     }
-    private func physicalConeSlope(consumeWork: () throws -> Void) throws -> (sine: OutwardScalarInterval,cosine: OutwardScalarInterval) {
+    private func physicalConeSlope<A: ExactScalarAdmission & ~Copyable>(using execution: inout A) throws -> (sine: OutwardScalarInterval,cosine: OutwardScalarInterval) {
         let argument = SurfaceIntervalJet(value:.exact(coneHalfAngle),derivativeU:.exact(0),derivativeV:.exact(0),
             secondDerivativeUU:.exact(0),secondDerivativeUV:.exact(0),secondDerivativeVV:.exact(0),
             thirdDerivativeUUU:.exact(0),thirdDerivativeUUV:.exact(0),thirdDerivativeUVV:.exact(0),thirdDerivativeVVV:.exact(0))
-        return try (SurfaceIntervalJet.sine(of:argument,consumeWork:consumeWork).value,
-            SurfaceIntervalJet.cosine(of:argument,consumeWork:consumeWork).value)
+        return try (SurfaceIntervalJet.sine(of:argument,using: &execution).value,
+            SurfaceIntervalJet.cosine(of:argument,using: &execution).value)
     }
 
 }

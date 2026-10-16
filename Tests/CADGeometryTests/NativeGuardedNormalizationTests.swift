@@ -6,8 +6,8 @@ import Testing
 struct NativeGuardedNormalizationTests {
     @Test(.timeLimit(.minutes(1)))
     func retainedDivisionsExcludeOnlyGuardZeroAndPreserveOriginalRank() throws {
-        var usage = OriginalRelationUsage(consumeWork: { _ in }, retainStorage: { _ in },
-            visitCell: { _ in }, visitCoefficientCell: { _ in })
+        var usage = GeometryTestScalarRecorder(observeWork: { _ in }, observeStorageWords: { _ in },
+            observeValueCell: { _ in }, observeCoefficientCell: { _ in })
         let one = try ExactIntersectionPolynomial.constant(variableCount: 3, value: .one, usage: &usage)
         let half = try one.scaled(by: .originalDouble(0.5, usage: &usage), usage: &usage)
         let t = try ExactIntersectionPolynomial.coordinate(variableCount: 3, at: 0, usage: &usage)

@@ -5,98 +5,127 @@ public struct AffineImageCurve3D: Hashable, Sendable {
     public let source: Curve3D
     public let transform: AffineTransform3D
 
-    public init(
-        source: Curve3D,
-        transform: AffineTransform3D,
-        tolerance: ModelingTolerance
-    ) throws {
-        self.source = source
-        self.transform = transform
-        try validate(tolerance: tolerance)
+    public init(source: Curve3D, transform: AffineTransform3D,
+        tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try self.init(source: source, transform: transform, tolerance: tolerance,
+            using: &execution)
     }
 
-    /// Retains the original affine law while admitting source visits to one caller.
+    public init(source: Curve3D, transform: AffineTransform3D,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        let limits = execution.effectiveLimits
+        try self.init(source: source, transform: transform, tolerance: tolerance,
+            remainingSourceDepth: limits.remainingSourceDepth,
+            maximumSubdivisionDepth: limits.maximumSubdivisionDepth, using: &execution)
+    }
+
+    /// Constructs the original image with the composing caller's execution.
     public init(source: Curve3D, transform: AffineTransform3D,
         tolerance: ModelingTolerance, remainingSourceDepth: Int,
-        maximumSubdivisionDepth: Int, consumeWork: () throws -> Void,
-        consumeStorage: ((Int) throws -> Void)? = nil, maximumAlgebraicDepth: Int? = nil) throws {
-        self.source = source; self.transform = transform
+        maximumSubdivisionDepth: Int, maximumAlgebraicDepth: Int? = nil,
+        using execution: inout OriginalQueryExecution) throws {
+        self.source = source
+        self.transform = transform
         try Curve3D.affineImage(self).validateOriginalSource(tolerance: tolerance,
-            remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth,
-            consumeWork: { _ in try consumeWork() }, consumeStorage: consumeStorage,
-            maximumAlgebraicDepth: maximumAlgebraicDepth)
+            remainingSourceDepth: remainingSourceDepth,
+            maximumSubdivisionDepth: maximumSubdivisionDepth,
+            maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
+        try execution.checkpoint()
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
-        try tolerance.validate()
-        try transform.validate()
-        try source.validate(tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
     }
 
-    public var parameterDomain: ParameterDomain {
-        source.parameterDomain
+    public func validate(tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws {
+        let limits = execution.effectiveLimits
+        try Curve3D.affineImage(self).validateOriginalSource(tolerance: tolerance,
+            remainingSourceDepth: limits.remainingSourceDepth,
+            maximumSubdivisionDepth: limits.maximumSubdivisionDepth, using: &execution)
+        try execution.checkpoint()
     }
 
-    public func point(
-        at parameter: Double,
-        tolerance: ModelingTolerance
-    ) throws -> Point3D {
-        try validate(tolerance: tolerance)
-        return try pointAssumingValid(at: parameter, tolerance: tolerance)
+    public var parameterDomain: ParameterDomain { source.parameterDomain }
+
+    public func point(at parameter: Double, tolerance: ModelingTolerance) throws -> Point3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try point(at: parameter, tolerance: tolerance, using: &execution)
     }
 
-    package func pointAssumingValid(
-        at parameter: Double,
-        tolerance: ModelingTolerance
-    ) throws -> Point3D {
-        transform.applying(to: try source.pointAssumingValid(
-            at: parameter,
-            tolerance: tolerance
-        ))
+    public func point(at parameter: Double, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> Point3D {
+        try validate(tolerance: tolerance, using: &execution)
+        return try pointAssumingValid(at: parameter, tolerance: tolerance, using: &execution)
     }
 
-    public func differentialGeometry(
-        at parameter: Double,
-        tolerance: ModelingTolerance
-    ) throws -> Curve3D.DifferentialGeometry {
-        try validate(tolerance: tolerance)
-        return try differentialGeometryAssumingValid(
-            at: parameter,
-            tolerance: tolerance
-        )
+    package func pointAssumingValid(at parameter: Double,
+        tolerance: ModelingTolerance) throws -> Point3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try pointAssumingValid(at: parameter, tolerance: tolerance, using: &execution)
     }
 
-    package func differentialGeometryAssumingValid(
-        at parameter: Double,
-        tolerance: ModelingTolerance
-    ) throws -> Curve3D.DifferentialGeometry {
-        let sourceGeometry = try source.differentialGeometryAssumingValid(
-            at: parameter,
-            tolerance: tolerance
-        )
+    package func pointAssumingValid(at parameter: Double, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> Point3D {
+        try execution.consumeWork(1)
+        let sourcePoint = try execution.withSourceDepthOffset(1) { execution in
+            try source.pointAssumingValid(at: parameter, tolerance: tolerance, using: &execution)
+        }
+        let result = transform.applying(to: sourcePoint)
+        try execution.checkpoint()
+        return result
+    }
+
+    public func differentialGeometry(at parameter: Double,
+        tolerance: ModelingTolerance) throws -> Curve3D.DifferentialGeometry {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try differentialGeometry(at: parameter, tolerance: tolerance, using: &execution)
+    }
+
+    public func differentialGeometry(at parameter: Double, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> Curve3D.DifferentialGeometry {
+        try validate(tolerance: tolerance, using: &execution)
+        return try differentialGeometryAssumingValid(at: parameter,
+            tolerance: tolerance, using: &execution)
+    }
+
+    package func differentialGeometryAssumingValid(at parameter: Double,
+        tolerance: ModelingTolerance) throws -> Curve3D.DifferentialGeometry {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try differentialGeometryAssumingValid(at: parameter,
+            tolerance: tolerance, using: &execution)
+    }
+
+    package func differentialGeometryAssumingValid(at parameter: Double,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution)
+        throws -> Curve3D.DifferentialGeometry {
+        try execution.consumeWork(1)
+        let sourceGeometry = try execution.withSourceDepthOffset(1) { execution in
+            try source.differentialGeometryAssumingValid(at: parameter,
+                tolerance: tolerance, using: &execution)
+        }
         let firstDerivative = transform.applying(to: sourceGeometry.firstDerivative)
         let secondDerivative = transform.applying(to: sourceGeometry.secondDerivative)
         let speed = firstDerivative.length
         guard speed > tolerance.distance else {
-            throw KernelError(
-                phase: .geometry,
-                code: .singularGeometry,
-                residual: speed,
-                tolerance: tolerance,
-                message: "An affine curve image is singular at the requested parameter."
-            )
+            throw KernelError(phase: .geometry, code: .singularGeometry,
+                residual: speed, tolerance: tolerance,
+                message: "An affine curve image is singular at the requested parameter.")
         }
         let tangent = firstDerivative / speed
         let tangentialAcceleration = tangent * secondDerivative.dot(tangent)
         let curvatureVector = (secondDerivative - tangentialAcceleration) / (speed * speed)
-        return Curve3D.DifferentialGeometry(
+        let result = Curve3D.DifferentialGeometry(
             position: transform.applying(to: sourceGeometry.position),
             firstDerivative: firstDerivative,
             secondDerivative: secondDerivative,
             tangent: tangent,
             curvatureVector: curvatureVector,
-            curvature: curvatureVector.length
-        )
+            curvature: curvatureVector.length)
+        try execution.checkpoint()
+        return result
     }
 }
 

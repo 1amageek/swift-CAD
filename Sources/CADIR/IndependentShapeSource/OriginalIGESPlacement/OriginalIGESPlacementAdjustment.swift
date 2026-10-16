@@ -6,18 +6,18 @@ public struct OriginalIGESPlacementAdjustment: Equatable, Sendable {
     public let displacement: Vector3D
     public let conjugates: Bool
     public init(displacement: Vector3D, conjugates: Bool) { self.displacement = displacement; self.conjugates = conjugates }
-    package func applying<B: RationalAlgebraAdmitting>(to word: OriginalAffineOperationWord,
-        tolerance: ModelingTolerance, maximumAlgebraicDepth: Int, usage: inout B) throws -> OriginalAffineOperationWord {
+    package func applying(to word: OriginalAffineOperationWord,
+        tolerance: ModelingTolerance, maximumAlgebraicDepth: Int, using execution: inout OriginalQueryExecution) throws -> OriginalAffineOperationWord {
         try displacement.validate()
         let action = try AffineTransform3D(basisX: .unitX, basisY: .unitY, basisZ: .unitZ, translation: displacement)
-        if !conjugates { return try word.appending(.forward(action), tolerance: tolerance, usage: &usage) }
+        if !conjugates { return try word.appending(.forward(action), tolerance: tolerance, usage: &execution) }
         let count = word.factors.count.addingReportingOverflow(2)
         guard !count.overflow else { throw IndependentShapeSourceError.resourceLimitExceeded("Original IGES adjustment factor count overflows.") }
-        try RationalAlgebraStorage.retain(count.partialValue, of: OriginalAffineOperation.self, usage: &usage)
+        try RationalAlgebraStorage.retain(count.partialValue, of: OriginalAffineOperation.self, usage: &execution)
         var factors: [OriginalAffineOperation] = []; factors.reserveCapacity(count.partialValue)
         factors.append(.inverse(action)); factors.append(contentsOf: word.factors); factors.append(.forward(action))
         return try OriginalAffineOperationWord(factors: factors, tolerance: tolerance,
-            maximumDepth: maximumAlgebraicDepth, usage: &usage)
+            maximumDepth: maximumAlgebraicDepth, usage: &execution)
     }
 }
 

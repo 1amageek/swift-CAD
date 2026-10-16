@@ -1,14 +1,16 @@
 import CADCore
+import CADGeometry
 
 extension BRepDrawingExchange {
     public func write(_ page: DrawingExchangePage, as format: ExchangeFileFormat,
-                      outputUnit: LengthUnit = .millimeter, usage: inout DrawingExchangeUsage,
+                      outputUnit: LengthUnit = .millimeter, usage: DrawingExchangeOwner, using execution: inout OriginalQueryExecution,
                       to sink: any ByteSink) throws {
         guard usage.resources.format == format, [.dxf, .svg, .pdf].contains(format),
               page.width.isFinite, page.height.isFinite, page.width > 0, page.height > 0,
               page.maximumGlyphDeviation.isFinite, page.maximumGlyphDeviation > 0 else {
             throw ExportError.invalidMesh("Invalid page format, physical size, glyph allowance or shared drawing ledger.")
         }
+        try usage.validateExecution(execution)
         try usage.check()
         for style in page.styles.strokes { try usage.charge(work: style.dashPattern.count + 1) }
         try page.styles.validate()
@@ -35,22 +37,22 @@ extension BRepDrawingExchange {
                     path.originalParameters == nil else {
                     throw ExportError.invalidMesh("Radial dimension stroke differs from its original annotation source or invocation.")
                 }
-                let data = try NativeBoundedJSONEncoder().encode(DrawingOriginalRadialDimensionDescriptor(original), resources: usage.resources)
+                let data = try NativeBoundedJSONEncoder().encode(DrawingOriginalRadialDimensionDescriptor(original), resources: usage.resources, using: &execution)
                 guard let text = String(data: data, encoding: .utf8) else {
                     throw ExportError.invalidMesh("Original radial dimension descriptor is not UTF-8.")
                 }
                 annotationDescriptor = text
             }
             if let original = path.originalSilhouettePoint {
-                guard original.admission.belongsToSameInvocation(as: usage, silhouetteUsage: original.silhouetteOwner),
+                guard original.admission.belongsToSameInvocation(as: usage, silhouetteContext: original.silhouetteOwner),
                     path.originalParameters == nil, path.points.count == 1, path.points.first == original.point else {
                     throw ExportError.invalidMesh("Page silhouette point differs from its complete original source receipt.")
                 }
-                silhouetteDescriptor = try DrawingOriginalSilhouettePointDescriptor.complete(original, usage: &usage)
+                silhouetteDescriptor = try DrawingOriginalSilhouettePointDescriptor.complete(original, usage: usage, using: &execution)
             }
             if let original = path.originalSilhouettePath {
                 try usage.charge(work: original.samples.count)
-                guard original.admission.belongsToSameInvocation(as: usage, silhouetteUsage: original.silhouetteOwner),
+                guard original.admission.belongsToSameInvocation(as: usage, silhouetteContext: original.silhouetteOwner),
                     path.originalParameters == nil, path.points.count == original.samples.count else {
                     throw ExportError.invalidMesh("Page silhouette must retain its original invocation without invented native endpoint stations.")
                 }
@@ -59,7 +61,7 @@ extension BRepDrawingExchange {
                         throw ExportError.invalidMesh("Page silhouette points differ from their original chord receipt.")
                     }
                 }
-                silhouetteDescriptor = try DrawingOriginalSilhouetteDescriptor.complete(original, usage: &usage)
+                silhouetteDescriptor = try DrawingOriginalSilhouetteDescriptor.complete(original, usage: usage, using: &execution)
             }
             if let original = path.originalRootSpanPath {
                 try usage.charge(work: original.samples.count)
@@ -73,7 +75,7 @@ extension BRepDrawingExchange {
                 }
                 let descriptor = DrawingOriginalRootSpanDescriptor(span: original.span, operationWord: original.operationWord,
                     maximumDeviationPaperPoints: original.maximumDeviation)
-                let data = try NativeBoundedJSONEncoder().encode(descriptor, resources: usage.resources)
+                let data = try NativeBoundedJSONEncoder().encode(descriptor, resources: usage.resources, using: &execution)
                 guard let text = String(data: data, encoding: .utf8) else { throw ExportError.invalidMesh("Original span descriptor is not valid UTF-8.") }
                 originalDescriptor = text
             }
@@ -123,7 +125,7 @@ extension BRepDrawingExchange {
         }
         var matchedBoundaryCount = 0
         for glyph in page.glyphs {
-            try validateGlyph(glyph, resources: &usage.resources)
+            try validateGlyph(glyph, resources: usage.resources)
             if let receipt = boundaries[glyph.identity] {
                 guard try receipt.matches(glyph, resources: usage.resources) else { throw ExportError.invalidMesh("Page glyph boundary belongs to a different shaped source.") }
                 matchedBoundaryCount += 1
@@ -134,14 +136,14 @@ extension BRepDrawingExchange {
             let bytes = try PDFDocumentEncoder().encodeDrawing(paths: paths, regions: regions, glyphs: page.glyphs,
                 pageWidth: page.width, pageHeight: page.height, styles: page.styles,
                 maximumBytes: usage.resources.limits.maximumBytes,
-                maximumGlyphDeviation: page.maximumGlyphDeviation, resources: &usage.resources)
+                maximumGlyphDeviation: page.maximumGlyphDeviation, resources: usage.resources, using: &execution)
             let output = DataByteSink()
             let bounded = try ExchangeBoundedByteSink(downstream: output, limits: usage.resources.limits, format: format)
             try bounded.write(bytes); try usage.check(); try sink.write(output.bytes)
         } else {
             try publish(paths, regions: regions, glyphs: page.glyphs,
                 resolvedGlyphBoundaries: boundaries, maximumGlyphDeviation: page.maximumGlyphDeviation, as: format,
-                options: options, resources: &usage.resources, to: sink)
+                options: options, resources: usage.resources, to: sink, using: &execution)
         }
     }
 

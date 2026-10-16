@@ -38,19 +38,21 @@ Deferred checks cover reversed native trims, both face orientations, rational pl
 
 Offset-chain periodic subdivision is admitted only by BRepEdgeGeometryClassifier's original closed-law receipt. Numerically close endpoints do not prove a periodic traversal. The midpoint splits an already proved closed original law; a singular curve remains governed by the offset regularity producer and is not inferred from endpoint proximity.
 
-The additive offset entry accepts one optional `GeometryConversionAdmission` from its composing invocation and forwards that identical immutable admission through all original planar offset basis/candidate certificates. Supplied admission uses the original Curve3D and retained directed trim, never a converted candidate as source; absence preserves historical per-proof behavior. This conversion port does not certify the complete copy/join/contact/imprint ledger; those lower dependencies remain explicit. Native endpoint continuation remains supported by its historical producer and requires its dedicated bounded endpoint admission before the selected bounded route may publish beyond native support.
-
-`EdgeOffsetConversionLimits` is an additive public caller-selected policy: native span, source recursion, subdivision and algebraic depth are independent explicit selections; optional cumulative work/BYTES ceilings add no hidden defaults. Nil policy preserves legacy conversion behavior. The feature evaluator creates one `EdgeOffsetConversionInvocation` per evaluation and shares its `GeometryConversionAdmission` across every group and segment. Counters check overflow even when their optional ceiling is absent. The same admission reaches actual source-patch copy/provenance visits, original finite face bounds and original spatial-curve/support correspondence before candidate construction. Correspondence retains its historical depth32/cell65536 ceilings and tightens them by smaller caller selections. Source and algebra capabilities remain independent. Copy dictionary metadata, pcurve construction, chain joins and downstream imprint still need their producer admission; these connected phases do not issue a whole-feature bounded receipt.
-
-| Logical state | Native / WASM / Embedded storage | Read / mutation | Release |
-|---|---|---|---|
-| Conversion work and bytes | Same immutable owner of `Mutex<State>` | Short arithmetic admission under `withLock`; no external callback or await under lock | Invocation owner release |
-| Policy and source caps | Immutable Sendable value | Same scalar validation on all targets | Value lifetime |
-
-Recheck selected cumulative exhaustion across multiple groups/segments, counter overflow, cancellation and independent concurrent invocations during deferred target verification. No target-specific raw-state branch is permitted.
+`EdgeOffsetConversionLimits` remains the explicit caller selection of native
+span, source recursion, subdivision and algebraic depth plus optional cumulative
+work/BYTE ceilings. The canonical execution owns that selection across every
+group and segment. Correspondence preserves its depth32/cell65536 ceiling and
+tightens it by smaller caller selections; source and scalar depth stay independent.
 
 Selected planar offset candidate pcurves consume the caller-admitted direct-plane native-spline builder. Complete raw candidate coefficients and original directed endpoints remain bound through the Geometry continuation carrier; its whole correspondence proof uses the same conversion admission. Candidate pcurve construction no longer invokes unmetered Boehm trim/reversal or the legacy correspondence facade. Chain joins, numeric endpoint proposal queries, metadata storage and imprint retain their separately tracked lower dependencies.
 
 Selected candidate endpoint proposals prepare one retained NativeCurveConversionSource for the completed spatial candidate and reuse it for both original native singleton queries. The same live admission owns preparation and query work/BYTES. A finite numerical midpoint is admitted only when the complete original singleton position box lies within the requested distance of it; that representative never changes the stored curve or native endpoints. Failure to prove the original box radius propagates instead of invoking the legacy point evaluator.
 
-The source-patch adapter uses explicitly typed optional Sendable depth and byte callbacks that borrow the existing GeometryConversionAdmission. Unselected admission remains nil and cannot create a bounded receipt.
+## Canonical Conversion Binding
+The feature imprint operation creates one OriginalQueryExecution with the
+existing optional EdgeOffsetConversionLimits. Every original source, candidate,
+pcurve, continuation and imprint caller borrows it. Limits remain an explicit
+mathematical selection; callback presence and execution entry context cannot
+select a source algorithm. The original planar/unsupported family branches and
+chain/loop collection algorithms are preserved. The former conversion Mutex
+ledger and GeometryConversionAdmission adapter are removed.

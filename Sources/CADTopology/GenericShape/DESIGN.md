@@ -194,3 +194,12 @@ This component consumes the unchanged current-task cancellation and direct
 collection import contracts owned by [CADTopology](../DESIGN.md#m6-portable-validation-wiring).
 Its algorithms, budgets, immutable source owners and existing isolation remain
 unchanged on Native, ordinary WASM and Embedded.
+
+### Canonical original image API binding
+
+Original affine-word construction and image consumers borrow the composing
+[execution](../../CADGeometry/OriginalQueryExecution/DESIGN.md) through actual
+scalar transport and retained curve/surface/pcurve constructors. The word remains
+the source authority; orientation and topology identity rules are unchanged.
+The removed ShapeAffineWordAdmission adapter is replaced by the real same-owner
+implementation, without another ledger or callback allowance.

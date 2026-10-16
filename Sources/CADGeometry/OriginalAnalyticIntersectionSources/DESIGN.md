@@ -103,7 +103,7 @@ the caller releases its input variables. No cache or independent allowance exist
 
 ## Failure, Concurrency, and Constraints
 
-The composing `RationalAlgebraAdmitting` pays every traversal, polynomial operation,
+The composing `ExactScalarAdmission` pays every traversal, polynomial operation,
 retained payload and relation-adapter term/power buffer before growth. Degree and
 allocation arithmetic is checked. Preparation does not visit parameter or
 coefficient root cells. Source validation failures, unsupported source kind,
@@ -137,3 +137,13 @@ unchanged sphere suite passed together: 18 test declarations in two suites
 (22 new argument cases and eight sphere cases), 0.346 seconds runtime and
 56.554 seconds including compilation. This is Native source preparation and
 existing relation-resolver evidence, not a portable or public UV proof.
+
+## Direct Execution Admission
+
+Source arithmetic borrows `A: ExactScalarAdmission & ~Copyable`; composed query
+operations borrow `inout OriginalQueryExecution`. Source validation, native span
+validation, structural comparisons and exact refinement receive that same admission.
+The [execution owner](../OriginalQueryExecution/DESIGN.md) defines cumulative
+work and actual byte accounting, independent depth axes, cancellation and lexical
+proof scopes. Retained geometry and relation evidence stay immutable; no callback
+adapter, copied counter or second allowance supplies arithmetic authority.

@@ -1,0 +1,21 @@
+{
+  "scope": "One diagnostic debugger launch only; not behavioral acceptance or a repeated timeout run.",
+  "monitorSHA256": "9a290a4391c71a3308753fbefb116d6fb8ed73ba6af679e1ec5d6822cbeab3c6",
+  "preparationSHA256": "bab8210730dabcdec331a601bb97f67a143c53fedde8bb82c4de8086f32051d2",
+  "commandsSHA256": "1e96314d7729325b73d8e85ffed2d733dbf1ea32d9c3989e8ed6477e32071a24",
+  "step": {
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/lldb",
+      "--batch",
+      "--source",
+      "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-debug-unlock-r1/commands.lldb"
+    ],
+    "exitCode": 1,
+    "elapsedSeconds": 1.0656449169982807,
+    "peakRSSBytes": 637960192,
+    "rssAccounting": "tracked PPID descendants including separate process groups",
+    "maximumObservedProcessCount": 1,
+    "stopReason": null,
+    "logSHA256": "c002905e8024b8517b886c0480e00d46a591196b4d7971112c7edc1e4ff3ba8c"
+  }
+}

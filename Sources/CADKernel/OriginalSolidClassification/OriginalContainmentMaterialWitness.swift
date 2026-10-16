@@ -14,15 +14,15 @@ struct OriginalContainmentMaterialWitness: Sendable {
     // required before this route can establish whole-query resource completion.
     func witness(in pair: PreparedSolidClassificationPair,
         maximumSubdivisionDepth: Int,
-        consumeWork: @escaping @Sendable (Int) throws -> Void,
-        consumeStorage: (@Sendable (Int) throws -> Void)?) throws -> Point3D? {
+        using execution: inout OriginalQueryExecution) throws -> Point3D? {
         let tolerance = pair.validatedModel.tolerance
-        let admission = try OriginalSolidClassificationAdmission(
-            maximumSubdivisionDepth: maximumSubdivisionDepth,
-            consumeWork: consumeWork, tolerance: tolerance)
-        try admission.consume()
-        guard let first = try pair.firstClassification.originalSpatialBounds(),
-              let second = try pair.secondClassification.originalSpatialBounds() else {
+        guard (0...32).contains(maximumSubdivisionDepth) else {
+            throw KernelError(phase: .classification, code: .invalidInput, tolerance: tolerance,
+                message: "Original material search requires its supported independent depth.")
+        }
+        try execution.consumeWork(1)
+        guard let first = try pair.firstClassification.originalSpatialBounds(using: &execution),
+              let second = try pair.secondClassification.originalSpatialBounds(using: &execution) else {
             throw KernelError(phase: .classification, code: .unsupportedCapability,
                 tolerance: tolerance,
                 message: "The injected original material sessions expose no retained spatial-bound receipt.")
@@ -38,19 +38,19 @@ struct OriginalContainmentMaterialWitness: Sendable {
             throw KernelError(phase: .classification, code: .resourceLimitExceeded,
                 tolerance: tolerance, message: "Original material candidate storage overflowed.")
         }
-        try admission.consume()
-        try consumeStorage?(bytes.partialValue)
+        try execution.consumeWork(1)
+        try execution.retainStorage(bytes: bytes.partialValue)
         var frontier: [Cell] = []
         frontier.reserveCapacity(capacity)
         frontier.append(Cell(bounds: try BoundingBox3D(minimum: low, maximum: high), depth: 0))
         while let cell = frontier.popLast() {
-            try admission.consume(cell.depth)
+            try execution.visitGeometricCell(depth: cell.depth)
             let a = cell.bounds.minimum, b = cell.bounds.maximum
             let candidate = Point3D(x: a.x * 0.5 + b.x * 0.5,
                 y: a.y * 0.5 + b.y * 0.5, z: a.z * 0.5 + b.z * 0.5)
             try candidate.validate()
-            if try pair.firstClassification.classify(candidate) == .inside,
-               try pair.secondClassification.classify(candidate) == .inside {
+            if try pair.firstClassification.classify(candidate, using: &execution) == .inside,
+               try pair.secondClassification.classify(candidate, using: &execution) == .inside {
                 try Task.checkCancellation()
                 return candidate
             }
@@ -74,7 +74,7 @@ struct OriginalContainmentMaterialWitness: Sendable {
                 firstHigh = Point3D(x: b.x, y: b.y, z: candidate.z)
                 secondLow = Point3D(x: a.x, y: a.y, z: candidate.z)
             }
-            try admission.consume(cell.depth)
+            try execution.admitGeometricDepth(cell.depth); try execution.consumeWork(1)
             guard frontier.count + 2 <= capacity else {
                 throw KernelError(phase: .classification, code: .resourceLimitExceeded,
                     tolerance: tolerance, message: "Original material DFS exceeded its admitted depth frontier.")

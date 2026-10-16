@@ -15,7 +15,7 @@ public struct DefaultOriginalPolynomialSurfaceLiftGraphReducer<S: OriginalLiftGr
         throws(OriginalSourceIssuanceFailure) -> Reduction {
         let original = copy graph
         do {
-            return try OriginalSourceProofAdmission<A>.withBorrow(&admission) { a in
+            return try admission.withProofScope { a in
                 try a.checkpoint(); try original.source.require(limits)
                 try a.admitDepth(value:original.proofDepth.value,coefficient:original.proofDepth.coefficient)
                 guard original.layout.variableCount == 3,original.layout.parameters == [0],

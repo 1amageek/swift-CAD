@@ -18,9 +18,10 @@ package struct AnalyticCurveBSplineBuilder {
         curve: Curve3D,
         interval: ScalarInterval,
         maximumSpanCount: Int,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> BSplineCurve3D? {
-        try curve.validate(tolerance: tolerance)
+        try execution.consumeWork(1)
+        try curve.validate(tolerance: tolerance, using: &execution)
         guard maximumSpanCount > 0 else {
             throw KernelError(
                 phase: .geometry,
@@ -48,7 +49,7 @@ package struct AnalyticCurveBSplineBuilder {
                 origin: line.origin,
                 direction: line.direction,
                 interval: interval,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         case let .circle(circle):
             let normal = try circle.normal.normalized(tolerance: tolerance.distance)
@@ -62,7 +63,7 @@ package struct AnalyticCurveBSplineBuilder {
                 sine: normal.cross(cosineAxis) * circle.radius,
                 interval: interval,
                 maximumSpanCount: maximumSpanCount,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         case let .analytic(analytic):
             switch analytic {
@@ -71,7 +72,7 @@ package struct AnalyticCurveBSplineBuilder {
                     origin: origin,
                     direction: direction,
                     interval: interval,
-                    tolerance: tolerance
+                    tolerance: tolerance, using: &execution
                 )
             case let .circle(center, normal, radius),
                  let .arc(center, normal, radius, _, _):
@@ -85,7 +86,7 @@ package struct AnalyticCurveBSplineBuilder {
                     sine: basis.v * radius,
                     interval: interval,
                     maximumSpanCount: maximumSpanCount,
-                    tolerance: tolerance
+                    tolerance: tolerance, using: &execution
                 )
             case let .ellipse(
                 center,
@@ -103,20 +104,20 @@ package struct AnalyticCurveBSplineBuilder {
                     sine: minorAxis * minorRadius,
                     interval: interval,
                     maximumSpanCount: maximumSpanCount,
-                    tolerance: tolerance
+                    tolerance: tolerance, using: &execution
                 )
             case let .hyperbola(curve):
                 return try hyperbolaCurve(
                     curve,
                     interval: interval,
                     maximumSpanCount: maximumSpanCount,
-                    tolerance: tolerance
+                    tolerance: tolerance, using: &execution
                 )
             case let .parabola(curve):
                 return try parabolaCurve(
                     curve,
                     interval: interval,
-                    tolerance: tolerance
+                    tolerance: tolerance, using: &execution
                 )
             case .planeTorus:
                 return nil
@@ -126,7 +127,7 @@ package struct AnalyticCurveBSplineBuilder {
                 lift,
                 interval: interval,
                 maximumSpanCount: maximumSpanCount,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         case .originalAffineWord, .originalEndpointConnector, .originalConstructionChart, .originalAngularTransport, .originalPlaneDerivative, .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline, .originalDrafted:
             // A rounded control image is only a candidate and has no retained
@@ -137,46 +138,57 @@ package struct AnalyticCurveBSplineBuilder {
                 curve: image.source,
                 interval: interval,
                 maximumSpanCount: maximumSpanCount,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             ) else {
                 return nil
             }
             return try image.transform.applying(
                 to: source,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         case let .affineImage(image):
             guard let source = try boundedCurve(
                 curve: image.source,
                 interval: interval,
                 maximumSpanCount: maximumSpanCount,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             ) else {
                 return nil
             }
             return try image.transform.applying(
                 to: source,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         case let .parameterImage(image):
             guard let native = try boundedCurve(curve: image.source,
-                interval: image.originalInterval(interval), maximumSpanCount: maximumSpanCount,
-                tolerance: tolerance) else { return nil }
+                interval: image.originalInterval(interval, using: &execution), maximumSpanCount: maximumSpanCount,
+                tolerance: tolerance, using: &execution) else { return nil }
             let positive = image.gain > 0
-            let knots = native.knots.map { ($0 - image.offset) / image.gain }
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: native.knots.count, of: Double.self))
+            let knots = try native.knots.map {
+                try execution.consumeWork(1)
+                return ($0 - image.offset) / image.gain
+            }
+            if !positive {
+                try execution.retainStorage(bytes: exactScalarPayloadBytes(count: knots.count, of: Double.self))
+                try execution.retainStorage(bytes: exactScalarPayloadBytes(count: native.controlPoints.count, of: Point3D.self))
+                try execution.retainStorage(bytes: exactScalarPayloadBytes(count: native.weights.count, of: Double.self))
+                for _ in native.controlPoints { try execution.consumeWork(1) }
+                for _ in native.weights { try execution.consumeWork(1) }
+            }
             let candidate = BSplineCurve3D(degree: native.degree,
                 knots: positive ? knots : Array(knots.reversed()),
                 controlPoints: positive ? native.controlPoints : Array(native.controlPoints.reversed()),
                 weights: positive ? native.weights : Array(native.weights.reversed()),
                 isPeriodic: native.isPeriodic,
                 periodicOrigin: native.periodicOrigin.map { ($0 - image.offset) / image.gain })
-            try candidate.validate(tolerance: tolerance)
+            try candidate.validate(tolerance: tolerance, using: &execution)
             return candidate
         case let .bSpline(spline):
             return try spline.trimmed(
                 from: interval.lower,
                 to: interval.upper,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         case .implicit, .certifiedIntersection:
             return nil
@@ -187,8 +199,9 @@ package struct AnalyticCurveBSplineBuilder {
         _ lift: SurfaceLiftCurve3D,
         interval: ScalarInterval,
         maximumSpanCount: Int,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> BSplineCurve3D? {
+        try execution.consumeWork(1)
         if case let .sphericalGreatCircle(cosine, sine, start, end) = lift.parameterCurve,
            case let .sphere(sphere) = CanonicalAnalyticSurface(lift.surface) {
             return try conicCurve(
@@ -199,20 +212,20 @@ package struct AnalyticCurveBSplineBuilder {
                 angleOffset: start,
                 angleScale: end - start,
                 maximumSpanCount: maximumSpanCount,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         }
-        guard let law = linearParameterLaw(lift.parameterCurve) else {
+        guard let law = try linearParameterLaw(lift.parameterCurve, using: &execution) else {
             return nil
         }
         if case let .procedural(.rollingBall(blend)) = lift.surface,
            law.uScale == 0,
            (law.vOffset == 0 && law.vScale == 1
             || law.vOffset == 1 && law.vScale == -1) {
-            let section = try blend.rationalSection(atU: law.uOffset)
-            let oriented = try law.vScale > 0 ? section : section.reversed(tolerance: tolerance)
+            let section = try blend.rationalSection(atU: law.uOffset, using: &execution)
+            let oriented = try law.vScale > 0 ? section : section.reversed(tolerance: tolerance, using: &execution)
             return try oriented.trimmed(
-                from: interval.lower, to: interval.upper, tolerance: tolerance
+                from: interval.lower, to: interval.upper, tolerance: tolerance, using: &execution
             )
         }
         let canonical = CanonicalAnalyticSurface(lift.surface)
@@ -221,14 +234,14 @@ package struct AnalyticCurveBSplineBuilder {
             return try linearLiftCurve(
                 lift,
                 interval: interval,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         case let .cylinder(cylinder):
             if law.uScale == 0.0 {
                 return try linearLiftCurve(
                     lift,
                     interval: interval,
-                    tolerance: tolerance
+                    tolerance: tolerance, using: &execution
                 )
             }
             guard law.vScale == 0.0 else { return nil }
@@ -244,14 +257,14 @@ package struct AnalyticCurveBSplineBuilder {
                 angleOffset: law.uOffset,
                 angleScale: law.uScale,
                 maximumSpanCount: maximumSpanCount,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         case let .cone(cone):
             if law.uScale == 0.0 {
                 return try linearLiftCurve(
                     lift,
                     interval: interval,
-                    tolerance: tolerance
+                    tolerance: tolerance, using: &execution
                 )
             }
             guard law.vScale == 0.0 else { return nil }
@@ -277,7 +290,7 @@ package struct AnalyticCurveBSplineBuilder {
                 angleOffset: law.uOffset,
                 angleScale: law.uScale,
                 maximumSpanCount: maximumSpanCount,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         case let .sphere(sphere):
             let basis = try analyticOrthonormalBasis(.unitZ, tolerance: tolerance)
@@ -301,7 +314,7 @@ package struct AnalyticCurveBSplineBuilder {
                     angleOffset: law.uOffset,
                     angleScale: law.uScale,
                     maximumSpanCount: maximumSpanCount,
-                    tolerance: tolerance
+                    tolerance: tolerance, using: &execution
                 )
             }
             guard law.uScale == 0.0 else { return nil }
@@ -314,7 +327,7 @@ package struct AnalyticCurveBSplineBuilder {
                 angleOffset: law.vOffset,
                 angleScale: law.vScale,
                 maximumSpanCount: maximumSpanCount,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         case let .torus(torus):
             let basis = try analyticOrthonormalBasis(
@@ -333,7 +346,7 @@ package struct AnalyticCurveBSplineBuilder {
                     angleOffset: law.uOffset,
                     angleScale: law.uScale,
                     maximumSpanCount: maximumSpanCount,
-                    tolerance: tolerance
+                    tolerance: tolerance, using: &execution
                 )
             }
             guard law.uScale == 0.0 else { return nil }
@@ -346,7 +359,7 @@ package struct AnalyticCurveBSplineBuilder {
                 angleOffset: law.vOffset,
                 angleScale: law.vScale,
                 maximumSpanCount: maximumSpanCount,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         case .unsupported:
             return nil
@@ -356,27 +369,29 @@ package struct AnalyticCurveBSplineBuilder {
     private func linearLiftCurve(
         _ lift: SurfaceLiftCurve3D,
         interval: ScalarInterval,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> BSplineCurve3D {
+        try execution.consumeWork(1)
         let origin = try lift.point(
             atNormalizedFraction: 0.0,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         let end = try lift.point(
             atNormalizedFraction: 1.0,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         return try lineCurve(
             origin: origin,
             direction: end - origin,
             interval: interval,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
     }
 
     private func linearParameterLaw(
-        _ curve: SurfaceParameterCurve
-    ) -> (uOffset: Double, uScale: Double, vOffset: Double, vScale: Double)? {
+        _ curve: SurfaceParameterCurve, using execution: inout OriginalQueryExecution
+    ) throws -> (uOffset: Double, uScale: Double, vOffset: Double, vScale: Double)? {
+        try execution.consumeWork(1)
         switch curve {
         case let .affine(origin, direction, start, end):
             let span = end - start
@@ -395,9 +410,9 @@ package struct AnalyticCurveBSplineBuilder {
              .projectedAnalytic, .originalAffineWord, .originalImage, .rigidImage:
             return nil
         case let .offsetSurfaceImage(image):
-            return linearParameterLaw(image.source)
+            return try linearParameterLaw(image.source, using: &execution)
         case let .periodicTranslation(base, uShift, vShift):
-            guard let law = linearParameterLaw(base) else { return nil }
+            guard let law = try linearParameterLaw(base, using: &execution) else { return nil }
             return (
                 law.uOffset + uShift,
                 law.uScale,
@@ -411,8 +426,11 @@ package struct AnalyticCurveBSplineBuilder {
         origin: Point3D,
         direction: Vector3D,
         interval: ScalarInterval,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> BSplineCurve3D {
+        try execution.consumeWork(1)
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 6, of: Double.self))
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 2, of: Point3D.self))
         let result = BSplineCurve3D(
             degree: 1,
             knots: [interval.lower, interval.lower, interval.upper, interval.upper],
@@ -422,7 +440,7 @@ package struct AnalyticCurveBSplineBuilder {
             ],
             weights: [1.0, 1.0]
         )
-        try result.validate(tolerance: tolerance)
+        try result.validate(tolerance: tolerance, using: &execution)
         return result
     }
 
@@ -434,15 +452,16 @@ package struct AnalyticCurveBSplineBuilder {
         angleOffset: Double = 0.0,
         angleScale: Double = 1.0,
         maximumSpanCount: Int,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> BSplineCurve3D {
+        try execution.consumeWork(1)
         let maximumAnglePerSpan = Double.pi * 0.5
         let rawSpanCount = ceil(
             abs(angleScale) * interval.width / maximumAnglePerSpan
         )
         guard rawSpanCount.isFinite,
-              rawSpanCount <= Double(maximumSpanCount),
-              rawSpanCount <= Double(Int.max) else {
+              rawSpanCount <= Double(min(maximumSpanCount, execution.limits.maximumSpans)),
+              Int(exactly: rawSpanCount) != nil else {
             throw KernelError(
                 phase: .geometry,
                 code: .resourceLimitExceeded,
@@ -451,15 +470,18 @@ package struct AnalyticCurveBSplineBuilder {
                 message: "Exact conic conversion exceeded its rational span budget."
             )
         }
-        let spanCount = max(1, Int(rawSpanCount))
+        guard let integerSpanCount = Int(exactly: rawSpanCount) else { throw ExactScalarFailure.countOverflow }
+        let spanCount = max(1, integerSpanCount)
+        let storageCounts = try reserveSpanStorage(spanCount, using: &execution)
         var controlPoints: [Point3D] = []
         var weights: [Double] = []
         var knots = Array(repeating: interval.lower, count: 3)
-        controlPoints.reserveCapacity(spanCount * 2 + 1)
-        weights.reserveCapacity(spanCount * 2 + 1)
-        knots.reserveCapacity(spanCount * 2 + 4)
+        controlPoints.reserveCapacity(storageCounts.controls)
+        weights.reserveCapacity(storageCounts.controls)
+        knots.reserveCapacity(storageCounts.knots)
 
         for spanIndex in 0..<spanCount {
+            try execution.consumeWork(1)
             let lowerFraction = Double(spanIndex) / Double(spanCount)
             let upperFraction = Double(spanIndex + 1) / Double(spanCount)
             let lower = interval.lower + interval.width * lowerFraction
@@ -480,43 +502,44 @@ package struct AnalyticCurveBSplineBuilder {
                 )
             }
             if spanIndex == 0 {
-                controlPoints.append(point(
+                controlPoints.append(try point(
                     center: center,
                     cosine: cosine,
                     sine: sine,
                     angle: lowerAngle,
-                    radialScale: 1.0
+                    radialScale: 1.0, using: &execution
                 ))
                 weights.append(1.0)
             }
-            controlPoints.append(point(
+            controlPoints.append(try point(
                 center: center,
                 cosine: cosine,
                 sine: sine,
                 angle: middleAngle,
-                radialScale: 1.0 / middleWeight
+                radialScale: 1.0 / middleWeight, using: &execution
             ))
             weights.append(middleWeight)
-            controlPoints.append(point(
+            controlPoints.append(try point(
                 center: center,
                 cosine: cosine,
                 sine: sine,
                 angle: upperAngle,
-                radialScale: 1.0
+                radialScale: 1.0, using: &execution
             ))
             weights.append(1.0)
             if spanIndex + 1 < spanCount {
-                knots.append(contentsOf: [upper, upper])
+                knots.append(upper)
+                knots.append(upper)
             }
         }
-        knots.append(contentsOf: Array(repeating: interval.upper, count: 3))
+        for _ in 0..<3 { knots.append(interval.upper) }
         let result = BSplineCurve3D(
             degree: 2,
             knots: knots,
             controlPoints: controlPoints,
             weights: weights
         )
-        try result.validate(tolerance: tolerance)
+        try result.validate(tolerance: tolerance, using: &execution)
         try verifyLocus(
             result,
             center: center,
@@ -524,7 +547,7 @@ package struct AnalyticCurveBSplineBuilder {
             sine: sine,
             interval: interval,
             spanCount: spanCount,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         return result
     }
@@ -533,12 +556,13 @@ package struct AnalyticCurveBSplineBuilder {
         _ curve: Hyperbola3D,
         interval: ScalarInterval,
         maximumSpanCount: Int,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> BSplineCurve3D {
+        try execution.consumeWork(1)
         let rawSpanCount = ceil(interval.width)
         guard rawSpanCount.isFinite,
-              rawSpanCount <= Double(maximumSpanCount),
-              rawSpanCount <= Double(Int.max) else {
+              rawSpanCount <= Double(min(maximumSpanCount, execution.limits.maximumSpans)),
+              Int(exactly: rawSpanCount) != nil else {
             throw KernelError(
                 phase: .geometry,
                 code: .resourceLimitExceeded,
@@ -547,7 +571,9 @@ package struct AnalyticCurveBSplineBuilder {
                 message: "Exact hyperbola conversion exceeded its rational span budget."
             )
         }
-        let spanCount = max(1, Int(rawSpanCount))
+        guard let integerSpanCount = Int(exactly: rawSpanCount) else { throw ExactScalarFailure.countOverflow }
+        let spanCount = max(1, integerSpanCount)
+        let storageCounts = try reserveSpanStorage(spanCount, using: &execution)
         let conjugateAxis = try curve.normal.cross(curve.transverseAxis).normalized(
             tolerance: tolerance.distance
         )
@@ -556,11 +582,12 @@ package struct AnalyticCurveBSplineBuilder {
         var controlPoints: [Point3D] = []
         var weights: [Double] = []
         var knots = Array(repeating: interval.lower, count: 3)
-        controlPoints.reserveCapacity(spanCount * 2 + 1)
-        weights.reserveCapacity(spanCount * 2 + 1)
-        knots.reserveCapacity(spanCount * 2 + 4)
+        controlPoints.reserveCapacity(storageCounts.controls)
+        weights.reserveCapacity(storageCounts.controls)
+        knots.reserveCapacity(storageCounts.knots)
 
         for spanIndex in 0..<spanCount {
+            try execution.consumeWork(1)
             let lower = interval.lower
                 + interval.width * Double(spanIndex) / Double(spanCount)
             let upper = interval.lower
@@ -577,49 +604,50 @@ package struct AnalyticCurveBSplineBuilder {
                 )
             }
             if spanIndex == 0 {
-                controlPoints.append(hyperbolaPoint(
+                controlPoints.append(try hyperbolaPoint(
                     center: curve.center,
                     cosine: cosine,
                     sine: sine,
                     parameter: lower,
-                    radialScale: 1.0
+                    radialScale: 1.0, using: &execution
                 ))
                 weights.append(1.0)
             }
-            controlPoints.append(hyperbolaPoint(
+            controlPoints.append(try hyperbolaPoint(
                 center: curve.center,
                 cosine: cosine,
                 sine: sine,
                 parameter: middle,
-                radialScale: 1.0 / middleWeight
+                radialScale: 1.0 / middleWeight, using: &execution
             ))
             weights.append(middleWeight)
-            controlPoints.append(hyperbolaPoint(
+            controlPoints.append(try hyperbolaPoint(
                 center: curve.center,
                 cosine: cosine,
                 sine: sine,
                 parameter: upper,
-                radialScale: 1.0
+                radialScale: 1.0, using: &execution
             ))
             weights.append(1.0)
             if spanIndex + 1 < spanCount {
-                knots.append(contentsOf: [upper, upper])
+                knots.append(upper)
+                knots.append(upper)
             }
         }
-        knots.append(contentsOf: Array(repeating: interval.upper, count: 3))
+        for _ in 0..<3 { knots.append(interval.upper) }
         let result = BSplineCurve3D(
             degree: 2,
             knots: knots,
             controlPoints: controlPoints,
             weights: weights
         )
-        try result.validate(tolerance: tolerance)
+        try result.validate(tolerance: tolerance, using: &execution)
         try verifyHyperbolaLocus(
             result,
             curve: curve,
             interval: interval,
             spanCount: spanCount,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         return result
     }
@@ -627,16 +655,19 @@ package struct AnalyticCurveBSplineBuilder {
     private func parabolaCurve(
         _ curve: Parabola3D,
         interval: ScalarInterval,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> BSplineCurve3D {
+        try execution.consumeWork(1)
         let start = try curve.differentialGeometry(
             at: interval.lower,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         let end = try curve.differentialGeometry(
             at: interval.upper,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 9, of: Double.self))
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 3, of: Point3D.self))
         let result = BSplineCurve3D(
             degree: 2,
             knots: [
@@ -655,7 +686,7 @@ package struct AnalyticCurveBSplineBuilder {
             ],
             weights: [1.0, 1.0, 1.0]
         )
-        try result.validate(tolerance: tolerance)
+        try result.validate(tolerance: tolerance, using: &execution)
         return result
     }
 
@@ -664,8 +695,9 @@ package struct AnalyticCurveBSplineBuilder {
         curve source: Hyperbola3D,
         interval: ScalarInterval,
         spanCount: Int,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws {
+        try execution.consumeWork(1)
         let conjugateAxis = try source.normal.cross(source.transverseAxis).normalized(
             tolerance: tolerance.distance
         )
@@ -676,13 +708,16 @@ package struct AnalyticCurveBSplineBuilder {
         )
         var maximumResidual = 0.0
         for spanIndex in 0..<spanCount {
+            try execution.consumeWork(1)
             let lower = interval.lower
                 + interval.width * Double(spanIndex) / Double(spanCount)
             let upper = interval.lower
                 + interval.width * Double(spanIndex + 1) / Double(spanCount)
-            for fraction in [0.0, 0.25, 0.5, 0.75, 1.0] {
+            for fractionIndex in 0..<5 {
+                try execution.consumeWork(1)
+                let fraction = Double(fractionIndex) * 0.25
                 let parameter = lower + (upper - lower) * fraction
-                let point = try curve.point(at: parameter, tolerance: tolerance)
+                let point = try curve.point(at: parameter, tolerance: tolerance, using: &execution)
                 let offset = point - source.center
                 let transverse = offset.dot(source.transverseAxis)
                     / source.transverseRadius
@@ -711,9 +746,10 @@ package struct AnalyticCurveBSplineBuilder {
         cosine: Vector3D,
         sine: Vector3D,
         parameter: Double,
-        radialScale: Double
-    ) -> Point3D {
-        center
+        radialScale: Double, using execution: inout OriginalQueryExecution
+    ) throws -> Point3D {
+        try execution.consumeWork(1)
+        return center
             + cosine * (cosh(parameter) * radialScale)
             + sine * (sinh(parameter) * radialScale)
     }
@@ -725,8 +761,9 @@ package struct AnalyticCurveBSplineBuilder {
         sine: Vector3D,
         interval: ScalarInterval,
         spanCount: Int,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws {
+        try execution.consumeWork(1)
         let cosineSquared = cosine.dot(cosine)
         let sineSquared = sine.dot(sine)
         let normal = try cosine.cross(sine).normalized(
@@ -735,13 +772,16 @@ package struct AnalyticCurveBSplineBuilder {
         let modelScale = max(1.0, sqrt(cosineSquared), sqrt(sineSquared))
         var maximumResidual = 0.0
         for spanIndex in 0..<spanCount {
+            try execution.consumeWork(1)
             let lower = interval.lower
                 + interval.width * Double(spanIndex) / Double(spanCount)
             let upper = interval.lower
                 + interval.width * Double(spanIndex + 1) / Double(spanCount)
-            for fraction in [0.0, 0.25, 0.5, 0.75, 1.0] {
+            for fractionIndex in 0..<5 {
+                try execution.consumeWork(1)
+                let fraction = Double(fractionIndex) * 0.25
                 let parameter = lower + (upper - lower) * fraction
-                let actual = try curve.point(at: parameter, tolerance: tolerance)
+                let actual = try curve.point(at: parameter, tolerance: tolerance, using: &execution)
                 let relative = actual - center
                 let cosineCoordinate = relative.dot(cosine) / cosineSquared
                 let sineCoordinate = relative.dot(sine) / sineSquared
@@ -775,14 +815,26 @@ package struct AnalyticCurveBSplineBuilder {
         }
     }
 
+    private func reserveSpanStorage(_ spanCount: Int, using execution: inout OriginalQueryExecution) throws -> (controls: Int, knots: Int) {
+        let twice = spanCount.multipliedReportingOverflow(by: 2)
+        let controls = twice.partialValue.addingReportingOverflow(1)
+        let knots = twice.partialValue.addingReportingOverflow(4)
+        guard spanCount > 0, !twice.overflow, !controls.overflow, !knots.overflow else { throw ExactScalarFailure.countOverflow }
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: controls.partialValue, of: Point3D.self))
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: controls.partialValue, of: Double.self))
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: knots.partialValue, of: Double.self))
+        return (controls.partialValue, knots.partialValue)
+    }
+
     private func point(
         center: Point3D,
         cosine: Vector3D,
         sine: Vector3D,
         angle: Double,
-        radialScale: Double
-    ) -> Point3D {
-        center
+        radialScale: Double, using execution: inout OriginalQueryExecution
+    ) throws -> Point3D {
+        try execution.consumeWork(1)
+        return center
             + cosine * (cos(angle) * radialScale)
             + sine * (sin(angle) * radialScale)
     }

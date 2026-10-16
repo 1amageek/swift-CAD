@@ -68,7 +68,7 @@ returns only after all reductions and final original-source certification.
 
 ## State, Ownership, and Lifecycle
 
-Only operation-local value buffers and budget counters exist. Inputs are value
+Only operation-local value buffers and caller-owned execution scopes exist. Inputs are value
 borrows, outputs own arrays, and no cache, shared state or target-specific
 isolation is introduced.
 
@@ -97,3 +97,28 @@ requests, sharp-knot tolerance refusal and independent budget exhaustion.
 Public operations execute QR construction and independent interval admission.
 Downstream topology changes are outside this component. Normal WASM and
 Embedded runtime evidence is owned by the package integration task.
+
+
+### Direct Construction and Certification Execution
+
+The existing public 2D/3D/tensor operations each create one original execution
+and forward to a package-level direct core. The public supported geometry scope
+is unchanged. Construction, Boehm/cyclic refinement, Householder QR, source
+validation and full-domain interval certification borrow that same execution.
+
+```text
+public ordinary entry -> original execution -> options conversion scope
+    -> candidate construction / QR -> original interval certificate -> result
+```
+
+The options' positive scalar-slot and work ceilings select one conversion scope;
+there is no independent decrementing counter or fresh numerical root below it.
+Historical conservative scalar/work charges remain before their loops, while
+actual nested operations and typed retained arrays debit the same ancestor.
+The scalar allowance remains separate from actual retained bytes. Exact knot
+identity, source immutability, periodic chart retention, positive weights and
+complete interval acceptance remain unchanged. Ordinary option exhaustion keeps
+`BSplineKnotRemovalError.resourceLimitExceeded`; the package direct core preserves
+original ancestor/source/cancellation causes without converting them to numerical
+rank failure. Focused direct tests compare real QR/certificate results and exercise
+ancestor work/storage exhaustion and cancellation.

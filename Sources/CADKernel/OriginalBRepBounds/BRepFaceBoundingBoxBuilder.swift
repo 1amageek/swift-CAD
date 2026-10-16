@@ -19,11 +19,27 @@ struct BRepFaceBoundingBoxBuilder: FaceSpatialBoundsResolving, Sendable {
     self.parameterBoundsResolver = parameterBoundsResolver
   }
 
+  func bounds(for faceID: FaceID, in model: BRepModel,
+    tolerance: ModelingTolerance) throws -> BoundingBox3D {
+    var execution = try OriginalQueryExecution.kernelOriginal()
+    return try bounds(for: faceID, in: model, tolerance: tolerance, using: &execution)
+  }
+
   func bounds(for faceID: FaceID, in model: BRepModel, tolerance: ModelingTolerance,
     maximumSubdivisionDepth: Int, remainingSourceDepth: Int, maximumAlgebraicDepth: Int,
-    consumeWork: @escaping @Sendable (Int) throws -> Void,
-    consumeStorage: (@Sendable (Int) throws -> Void)?) throws -> BoundingBox3D {
-    try Task.checkCancellation(); try consumeWork(0)
+    using execution: inout OriginalQueryExecution) throws -> BoundingBox3D {
+    do {
+      execution.context = execution.context.at(stage: .source)
+      try execution.checkpoint()
+      let result = try resolvedBounds(using: &execution)
+      execution.context = execution.context.at(stage: .publication)
+      try execution.checkpoint()
+      return result
+    } catch {
+      throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance)
+    }
+    func resolvedBounds(using execution: inout OriginalQueryExecution) throws -> BoundingBox3D {
+    try Task.checkCancellation(); try execution.consumeWork(1)
     guard (0...32).contains(maximumSubdivisionDepth), remainingSourceDepth >= 0,
           (0...32).contains(maximumAlgebraicDepth),
           let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID] else {
@@ -32,42 +48,31 @@ struct BRepFaceBoundingBoxBuilder: FaceSpatialBoundsResolving, Sendable {
     }
     let parameters = try OriginalFaceParameterBounds.resolve(for: faceID, surface: surface,
       model: model, tolerance: tolerance, maximumSubdivisionDepth: maximumSubdivisionDepth,
-      consumeWork: consumeWork, consumeStorage: consumeStorage,
-      remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth)
+      remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
     return try originalPositionBounds(surface: surface, parameters: parameters,
       tolerance: tolerance, maximumSubdivisionDepth: maximumSubdivisionDepth,
-      consumeWork: consumeWork, consumeStorage: consumeStorage,
-      remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth)
-  }
-
-  func bounds(
-    for faceID: FaceID,
-    in model: BRepModel,
-    tolerance: ModelingTolerance,
-    maximumSubdivisionDepth: Int,
-    consumeWork: @escaping @Sendable (_ depth: Int) throws -> Void
-  ) throws -> BoundingBox3D {
-    try Task.checkCancellation()
-    try consumeWork(0)
-    guard maximumSubdivisionDepth >= 0, maximumSubdivisionDepth <= 32 else {
-      throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
-        message: "Original face bounds require a caller subdivision ceiling between zero and 32.")
-    }
-    guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID] else {
-      throw TopologyError.missingReference("Original finite face bounds require actual source support.")
-    }
-    let parameters = try OriginalFaceParameterBounds.resolve(for: faceID, surface: surface,
-      model: model, tolerance: tolerance, maximumSubdivisionDepth: maximumSubdivisionDepth,
-      consumeWork: consumeWork)
-    return try originalPositionBounds(surface: surface, parameters: parameters,
-      tolerance: tolerance, maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: consumeWork)
+      remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
+      }
   }
 
   func bounds(
     for faceID: FaceID,
     in model: BRepModel,
     tolerance: ModelingTolerance
+  ,
+    using execution: inout OriginalQueryExecution
   ) throws -> BoundingBox3D {
+    do {
+      execution.context = execution.context.at(stage: .source)
+      try execution.checkpoint()
+      let result = try resolvedBounds(using: &execution)
+      execution.context = execution.context.at(stage: .publication)
+      try execution.checkpoint()
+      return result
+    } catch {
+      throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance)
+    }
+    func resolvedBounds(using execution: inout OriginalQueryExecution) throws -> BoundingBox3D {
     try tolerance.validate()
     guard let face = model.faces[faceID],
       let surface = model.geometry.surfaces[face.surfaceID]
@@ -83,7 +88,7 @@ struct BRepFaceBoundingBoxBuilder: FaceSpatialBoundsResolving, Sendable {
       for: face,
       in: model,
       tolerance: tolerance
-    )
+    , using: &execution)
     guard boundaryPoints.isEmpty == false else {
       throw KernelError(
         phase: .topology,
@@ -126,7 +131,7 @@ struct BRepFaceBoundingBoxBuilder: FaceSpatialBoundsResolving, Sendable {
         for: face,
         in: model,
         tolerance: tolerance
-      ) {
+      , using: &execution) {
         return try torusBounds(
           center: center,
           axis: axis,
@@ -139,42 +144,43 @@ struct BRepFaceBoundingBoxBuilder: FaceSpatialBoundsResolving, Sendable {
       }
       return try radialBounds(center: center, radius: majorRadius + minorRadius)
     case .bSpline(let surface):
-      return try BoundingBox3D(points: surface.controlPoints.flatMap { $0 })
+      var result: BoundingBox3D?
+      for row in surface.controlPoints {
+        try execution.consumeWork(row.count)
+        guard !row.isEmpty else { continue }
+        let next = try BoundingBox3D(points: row)
+        result = try result.map { try $0.union(next) } ?? next
+      }
+      guard let result else { return try BoundingBox3D(points: []) }
+      return result
     case .procedural:
       let parameters = try parameterBoundsResolver.bounds(
         for: faceID,
         in: model,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
       return try proceduralBounds(
         surface: surface,
         parameters: parameters,
         tolerance: tolerance
-      )
+      , using: &execution)
     }
+      }
   }
 
-  private func proceduralBounds(
-    surface: Surface3D,
-    parameters: SurfaceParameterBox,
-    tolerance: ModelingTolerance
-  ) throws -> BoundingBox3D {
-    try originalPositionBounds(surface: surface, parameters: parameters, tolerance: tolerance,
-      maximumSubdivisionDepth: 32, usesBoundedPreparation: false, consumeWork: { _ in })
+  private func proceduralBounds(surface: Surface3D, parameters: SurfaceParameterBox,
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> BoundingBox3D {
+    try execution.consumeWork(1)
+    return try originalPositionBounds(surface: surface, parameters: parameters, tolerance: tolerance,
+      maximumSubdivisionDepth: 32, usesBoundedPreparation: false,
+      remainingSourceDepth: 16, maximumAlgebraicDepth: 32, using: &execution)
   }
 
   /// The supplied finite box must cover the caller's complete original trim extent.
-  func originalPositionBounds(
-    surface: Surface3D,
-    parameters: SurfaceParameterBox,
-    tolerance: ModelingTolerance,
-    maximumSubdivisionDepth: Int,
-    usesBoundedPreparation: Bool = true,
-    consumeWork: @Sendable (_ depth: Int) throws -> Void,
-    consumeStorage: (@Sendable (Int) throws -> Void)? = nil,
-    remainingSourceDepth: Int? = nil,
-    maximumAlgebraicDepth: Int? = nil
-  ) throws -> BoundingBox3D {
+  func originalPositionBounds(surface: Surface3D, parameters: SurfaceParameterBox,
+    tolerance: ModelingTolerance, maximumSubdivisionDepth: Int,
+    usesBoundedPreparation: Bool = true, remainingSourceDepth: Int,
+    maximumAlgebraicDepth: Int, using execution: inout OriginalQueryExecution) throws -> BoundingBox3D {
     guard maximumSubdivisionDepth >= 0, maximumSubdivisionDepth <= 32 else {
       throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
         message: "Original face bounds require a caller subdivision ceiling between zero and 32.")
@@ -196,24 +202,21 @@ struct BRepFaceBoundingBoxBuilder: FaceSpatialBoundsResolving, Sendable {
       throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
         message: "Original face bound stack byte count overflowed.")
     }
-    try consumeStorage?(stackBytes.partialValue)
+    try execution.retainStorage(bytes: stackBytes.partialValue)
     var stack: [ProceduralBoundsCell] = []
     stack.reserveCapacity(capacity)
     stack.append(ProceduralBoundsCell(parameters: parameters, depth: 0))
-    let encloser: PreparedSurfaceDifferentialEncloser
-    if usesBoundedPreparation {
-      encloser = try PreparedSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance,
-        remainingSourceDepth: remainingSourceDepth ?? maximumSubdivisionDepth,
-        maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: { try consumeWork(0) },
-        consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
-    } else {
-      encloser = try PreparedSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance,
-        consumeWork: { try consumeWork(0) })
-    }
+    execution.context = execution.context.at(stage: .source)
+    let encloser = try PreparedSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance,
+      remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth,
+      maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
     while let cell = stack.popLast() {
+      execution.context = execution.context.at(stage: .refinement)
       try Task.checkCancellation()
-      try consumeWork(cell.depth)
+      try execution.visitGeometricCell(depth: cell.depth)
       guard remainingCells > 0 else {
+        execution.context = execution.context.recording(resource: .init(axis: .cells,
+          used: .known(1_048_576), limit: .known(1_048_576), requested: .known(1)))
         throw KernelError(
           phase: .geometry,
           code: .resourceLimitExceeded,
@@ -223,15 +226,13 @@ struct BRepFaceBoundingBoxBuilder: FaceSpatialBoundsResolving, Sendable {
       }
       remainingCells -= 1
       do {
-        let enclosure = try encloser.positionBounds(
-          over: cell.parameters,
-          tolerance: tolerance,
-          maximumSpanCount: 262_144,
-          maximumSubdivisionDepth: usesBoundedPreparation
-            ? maximumSubdivisionDepth - cell.depth : maximumSubdivisionDepth,
-          remainingSourceDepth: remainingSourceDepth ?? (maximumSubdivisionDepth - cell.depth),
-          consumeWork: { try consumeWork(cell.depth) }, consumeStorage: consumeStorage
-        )
+        let enclosure = try execution.withGeometricDepthOffset(cell.depth) { execution in
+          try encloser.positionBounds(over: cell.parameters, tolerance: tolerance,
+            maximumSpanCount: 262_144,
+            maximumSubdivisionDepth: usesBoundedPreparation
+              ? maximumSubdivisionDepth - cell.depth : maximumSubdivisionDepth,
+            remainingSourceDepth: remainingSourceDepth, using: &execution)
+        }
         minimum = Point3D(
           x: min(minimum.x, enclosure.x.lower),
           y: min(minimum.y, enclosure.y.lower),
@@ -242,7 +243,8 @@ struct BRepFaceBoundingBoxBuilder: FaceSpatialBoundsResolving, Sendable {
           y: max(maximum.y, enclosure.y.upper),
           z: max(maximum.z, enclosure.z.upper)
         )
-      } catch let error as KernelError where error.code == .singularSystem {
+      } catch let error where OriginalQueryFailure.classification(of: error)?.code == .singularSystem {
+            guard let errorClassification = OriginalQueryFailure.classification(of: error) else { throw error }
         guard cell.depth < maximumSubdivisionDepth else {
           throw KernelError(
             phase: .geometry,
@@ -254,7 +256,7 @@ struct BRepFaceBoundingBoxBuilder: FaceSpatialBoundsResolving, Sendable {
         stack.append(
           contentsOf: try subdivided(
             cell.parameters,
-            depth: cell.depth + 1, consumeStorage: consumeStorage
+            depth: cell.depth + 1, using: &execution
           ).reversed())
       }
     }
@@ -278,9 +280,9 @@ struct BRepFaceBoundingBoxBuilder: FaceSpatialBoundsResolving, Sendable {
   private func subdivided(
     _ parameters: SurfaceParameterBox,
     depth: Int,
-    consumeStorage: (@Sendable (Int) throws -> Void)? = nil
+    using execution: inout OriginalQueryExecution
   ) throws -> [ProceduralBoundsCell] {
-    try consumeStorage?(4 * MemoryLayout<ProceduralBoundsCell>.stride)
+    try execution.retainStorage(bytes: 4 * MemoryLayout<ProceduralBoundsCell>.stride)
     let middleU = parameters.u.midpoint
     let middleV = parameters.v.midpoint
     guard middleU > parameters.u.lower,
@@ -335,9 +337,13 @@ struct BRepFaceBoundingBoxBuilder: FaceSpatialBoundsResolving, Sendable {
     for face: Face,
     in model: BRepModel,
     tolerance: ModelingTolerance
+  ,
+    using execution: inout OriginalQueryExecution
   ) throws -> [Point3D] {
+    try execution.consumeWork(1)
     var points: [Point3D] = []
     for loopID in face.loops {
+      try execution.consumeWork(1)
       guard let loop = model.loops[loopID] else {
         throw KernelError(
           phase: .topology,
@@ -347,6 +353,7 @@ struct BRepFaceBoundingBoxBuilder: FaceSpatialBoundsResolving, Sendable {
         )
       }
       for coedge in loop.coedges {
+        try execution.consumeWork(1)
         guard let edge = model.edges[coedge.edgeID],
           let start = model.vertices[edge.startVertexID]?.point,
           let end = model.vertices[edge.endVertexID]?.point,
@@ -359,13 +366,16 @@ struct BRepFaceBoundingBoxBuilder: FaceSpatialBoundsResolving, Sendable {
             message: "Face bounds reference missing edge geometry."
           )
         }
-        points.append(contentsOf: [start, end])
-        points.append(
-          contentsOf: try curveSupportPoints(
+        try execution.retainKernelValues(count: 2, stride: MemoryLayout<Point3D>.stride)
+        points.append(start)
+        points.append(end)
+        let support = try curveSupportPoints(
             curve,
             trim: edge.trim,
             tolerance: tolerance
-          ))
+          , using: &execution)
+        try execution.retainKernelValues(count: support.count, stride: MemoryLayout<Point3D>.stride)
+        points.append(contentsOf: support)
       }
     }
     return points
@@ -375,7 +385,10 @@ struct BRepFaceBoundingBoxBuilder: FaceSpatialBoundsResolving, Sendable {
     _ curve: Curve3D,
     trim: CurveTrim?,
     tolerance: ModelingTolerance
+  ,
+    using execution: inout OriginalQueryExecution
   ) throws -> [Point3D] {
+    try execution.consumeWork(1)
     switch curve {
     case .line, .analytic(.line):
       return []
@@ -418,7 +431,7 @@ struct BRepFaceBoundingBoxBuilder: FaceSpatialBoundsResolving, Sendable {
         curve,
         trim: trim,
         tolerance: tolerance
-      )
+      , using: &execution)
     case .analytic(.parabola(let curve)):
       guard let trim else {
         throw KernelError(
@@ -432,9 +445,9 @@ struct BRepFaceBoundingBoxBuilder: FaceSpatialBoundsResolving, Sendable {
         curve,
         trim: trim,
         tolerance: tolerance
-      )
+      , using: &execution)
     case .analytic(.planeTorus(let curve)):
-      let bounds = try curve.boundingBox(tolerance: tolerance)
+      let bounds = try curve.boundingBox(tolerance: tolerance, using: &execution)
       return [bounds.minimum, bounds.maximum]
     case .bSpline(let curve):
       return curve.controlPoints
@@ -442,7 +455,8 @@ struct BRepFaceBoundingBoxBuilder: FaceSpatialBoundsResolving, Sendable {
       let bounds = try curve.boundingBox(
         fromNormalizedFraction: 0.0,
         toNormalizedFraction: 1.0,
-        tolerance: tolerance
+        tolerance: tolerance, maximumSpanCount: 262_144, maximumSubdivisionDepth: 32,
+        remainingSourceDepth: 16, maximumAlgebraicDepth: 32, using: &execution
       )
       return [bounds.minimum, bounds.maximum]
     case .surfaceLift(let curve):
@@ -457,18 +471,18 @@ struct BRepFaceBoundingBoxBuilder: FaceSpatialBoundsResolving, Sendable {
       }
       let bounds = try curve.boundingBox(
         over: interval,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
       return [bounds.minimum, bounds.maximum]
     case .certifiedIntersection(let curve):
-      let bounds = try curve.boundingBox(tolerance: tolerance)
+      let bounds = try curve.boundingBox(tolerance: tolerance, using: &execution)
       return [bounds.minimum, bounds.maximum]
     case .rigidImage(let image):
       return try curveSupportPoints(
         image.source,
         trim: trim,
         tolerance: tolerance
-      ).map(image.transform.applying(to:))
+      , using: &execution).map(image.transform.applying(to:))
     case .affineImage, .parameterImage, .originalAffineWord, .originalEndpointConnector, .originalConstructionChart, .originalAngularTransport, .originalPlaneDerivative, .originalGuideTraversalChain, .originalPolyline, .originalGuideEndpointConnector, .originalDrafted:
       let interval: ScalarInterval
       if let trim {
@@ -495,7 +509,7 @@ struct BRepFaceBoundingBoxBuilder: FaceSpatialBoundsResolving, Sendable {
       let enclosure = try DefaultCurvePositionEncloser().enclosure(
         of: curve,
         over: interval,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
       return [
         Point3D(
@@ -516,7 +530,10 @@ struct BRepFaceBoundingBoxBuilder: FaceSpatialBoundsResolving, Sendable {
     _ curve: Hyperbola3D,
     trim: CurveTrim,
     tolerance: ModelingTolerance
+  ,
+    using execution: inout OriginalQueryExecution
   ) throws -> [Point3D] {
+    try execution.consumeWork(1)
     let exactCurve = Curve3D.analytic(.hyperbola(curve))
     let lower = min(trim.startParameter, trim.endParameter)
     let upper = max(trim.startParameter, trim.endParameter)
@@ -525,6 +542,7 @@ struct BRepFaceBoundingBoxBuilder: FaceSpatialBoundsResolving, Sendable {
     )
     let first = curve.transverseAxis * curve.transverseRadius
     let second = conjugateAxis * curve.conjugateRadius
+    try execution.retainKernelValues(count: 5, stride: MemoryLayout<Double>.stride)
     var parameters = [lower, upper]
     for components in [
       (first.x, second.x),
@@ -541,6 +559,7 @@ struct BRepFaceBoundingBoxBuilder: FaceSpatialBoundsResolving, Sendable {
         parameters.append(parameter)
       }
     }
+    try execution.retainKernelValues(count: parameters.count, stride: MemoryLayout<Point3D>.stride)
     return try parameters.map {
       try exactCurve.point(at: $0, tolerance: tolerance)
     }
@@ -550,13 +569,17 @@ struct BRepFaceBoundingBoxBuilder: FaceSpatialBoundsResolving, Sendable {
     _ curve: Parabola3D,
     trim: CurveTrim,
     tolerance: ModelingTolerance
+  ,
+    using execution: inout OriginalQueryExecution
   ) throws -> [Point3D] {
+    try execution.consumeWork(1)
     let exactCurve = Curve3D.analytic(.parabola(curve))
     let lower = min(trim.startParameter, trim.endParameter)
     let upper = max(trim.startParameter, trim.endParameter)
     let transverseAxis = try curve.normal.cross(curve.axis).normalized(
       tolerance: tolerance.distance
     )
+    try execution.retainKernelValues(count: 5, stride: MemoryLayout<Double>.stride)
     var parameters = [lower, upper]
     for components in [
       (transverseAxis.x, curve.axis.x),
@@ -571,6 +594,7 @@ struct BRepFaceBoundingBoxBuilder: FaceSpatialBoundsResolving, Sendable {
         parameters.append(parameter)
       }
     }
+    try execution.retainKernelValues(count: parameters.count, stride: MemoryLayout<Point3D>.stride)
     return try parameters.map {
       try exactCurve.point(at: $0, tolerance: tolerance)
     }
@@ -595,10 +619,14 @@ struct BRepFaceBoundingBoxBuilder: FaceSpatialBoundsResolving, Sendable {
     for face: Face,
     in model: BRepModel,
     tolerance: ModelingTolerance
+  ,
+    using execution: inout OriginalQueryExecution
   ) throws -> (u: ScalarInterval, v: ScalarInterval)? {
+    try execution.consumeWork(1)
     var uValues: [Double] = []
     var vValues: [Double] = []
     for loopID in face.loops {
+      try execution.consumeWork(1)
       guard let loop = model.loops[loopID] else {
         throw KernelError(
           phase: .topology,
@@ -608,12 +636,15 @@ struct BRepFaceBoundingBoxBuilder: FaceSpatialBoundsResolving, Sendable {
         )
       }
       for coedge in loop.coedges {
+        try execution.consumeWork(1)
         guard let parameterCurve = coedge.surfaceParameterCurve else {
           return nil
         }
-        guard let values = rectangularBoundaryValues(parameterCurve) else {
+        guard let values = try rectangularBoundaryValues(parameterCurve, using: &execution) else {
           return nil
         }
+        try execution.retainKernelValues(count: values.u.count, stride: MemoryLayout<Double>.stride)
+        try execution.retainKernelValues(count: values.v.count, stride: MemoryLayout<Double>.stride)
         uValues.append(contentsOf: values.u)
         vValues.append(contentsOf: values.v)
       }
@@ -637,20 +668,24 @@ struct BRepFaceBoundingBoxBuilder: FaceSpatialBoundsResolving, Sendable {
 
   private func rectangularBoundaryValues(
     _ curve: SurfaceParameterCurve
-  ) -> (u: [Double], v: [Double])? {
+  ,
+    using execution: inout OriginalQueryExecution
+  ) throws -> (u: [Double], v: [Double])? {
+    try execution.consumeWork(1)
+    try execution.retainKernelValues(count: 3, stride: MemoryLayout<Double>.stride)
     switch curve {
     case .constantU(let u, let vStart, let vEnd):
       return ([u], [vStart, vEnd])
     case .constantV(let v, let uStart, let uEnd):
       return ([uStart, uEnd], [v])
     case .periodicTranslation(let base, let uShift, let vShift):
-      guard let values = rectangularBoundaryValues(base) else { return nil }
+      guard let values = try rectangularBoundaryValues(base, using: &execution) else { return nil }
       return (
         values.u.map { $0 + uShift },
         values.v.map { $0 + vShift }
       )
     case .offsetSurfaceImage(let image):
-      return rectangularBoundaryValues(image.source)
+      return try rectangularBoundaryValues(image.source, using: &execution)
     case .affine, .harmonic, .sphericalGreatCircle, .polyline, .bSpline, .originalBSplineContinuation, .originalImage, .originalAffineWord,
       .certifiedImplicit, .certifiedAnalyticImplicit,
       .certifiedAnalyticPair, .projectedAnalytic, .rigidImage:

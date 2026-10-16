@@ -25,38 +25,52 @@ struct UntrimFaceFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating
     }
 
     func evaluateValidated(feature: FeatureNode, context: EvaluationContext) throws -> ValidatedFeatureEvaluation {
-        try FeatureEvaluationBoundary.evaluateValidated(featureID: feature.id, tolerance: context.tolerance) {
-            try untrim(feature: feature, context: context)
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try evaluateValidated(feature: feature, context: context, using: &execution)
+    }
+
+    func evaluate(feature: FeatureNode, context: EvaluationContext,
+        using execution: inout OriginalQueryExecution) throws -> EvaluationResult {
+        try evaluateValidated(feature: feature, context: context, using: &execution).result
+    }
+
+    func evaluateValidated(feature: FeatureNode, context: EvaluationContext,
+        using execution: inout OriginalQueryExecution) throws -> ValidatedFeatureEvaluation {
+        try FeatureEvaluationBoundary.evaluateValidated(featureID: feature.id,
+            tolerance: context.tolerance, using: &execution) { execution in
+            try untrim(feature: feature, context: context, using: &execution)
         }
     }
 
-    private func untrim(feature: FeatureNode, context: EvaluationContext) throws -> EvaluationResult {
+    private func untrim(feature: FeatureNode, context: EvaluationContext, using execution: inout OriginalQueryExecution) throws -> EvaluationResult {
         guard case let .untrimFace(untrim) = feature.operation else {
             throw failure(.invalidInput, feature.id, context, "Untrim evaluator requires an untrimFace feature.")
         }
-        try FeatureEvaluationBoundary.validateRequest(featureID: feature.id, tolerance: context.tolerance) {
+        try FeatureEvaluationBoundary.validateRequest(featureID: feature.id, tolerance: context.tolerance, using: &execution) {
             try untrim.validate()
         }
-        try FeatureEvaluationBoundary.validateExactInput(context, featureID: feature.id, tolerance: context.tolerance)
+        try FeatureEvaluationBoundary.validateExactInput(context, featureID: feature.id, tolerance: context.tolerance, using: &execution)
         let tolerance = context.tolerance
         let subshapes = context.subshapes.entries
         let targetBodyID = try context.bodyID(generatedBy: untrim.target.featureID)
         let targetScope = try BodyTopologyScope(bodyID: targetBodyID, model: context.brep)
         guard case let .face(faceID) = try subshapeResolver.topologyReference(
-            for: untrim.face, model: context.brep, subshapes: context.subshapes, lineage: context.lineage, tolerance: tolerance
-        ), let face = context.brep.faces[faceID], let surface = context.brep.geometry.surfaces[face.surfaceID] else {
+            for: untrim.face, model: context.brep, subshapes: context.subshapes, lineage: context.lineage, tolerance: tolerance, maximumSubdivisionDepth: 32,
+            remainingSourceDepth: 16, maximumAlgebraicDepth: 32, using: &execution), let face = context.brep.faces[faceID], let surface = context.brep.geometry.surfaces[face.surfaceID] else {
             throw failure(.missingReference, feature.id, context, "Untrim's face is not a face of its body.")
         }
         guard targetScope.references.contains(.face(faceID)) else {
             throw failure(.missingReference, feature.id, context, "Untrim's selected face belongs to a different target body.")
         }
-        let extent = try FaceParameterExtentResolver().bounds(for: faceID, in: context.brep, tolerance: tolerance)
-        let parameterLoops = try untrimmedParameterLoops(on: surface, extent: SurfaceParameterBox(u: extent.u, v: extent.v), tolerance: tolerance)
-        let parents = context.subshapeIDs(for: .face(faceID))
+        let extent = try FaceParameterExtentResolver().bounds(for: faceID, in: context.brep, tolerance: tolerance, using: &execution)
+        let parameterLoops = try untrimmedParameterLoops(on: surface, extent: SurfaceParameterBox(u: extent.u, v: extent.v), tolerance: tolerance, using: &execution)
+        let parents = try context.subshapeIDs(for: .face(faceID), using: &execution)
+        try execution.retainKernelValues(count: parameterLoops.count, stride: MemoryLayout<BRepSewingShell>.stride)
         let shells = try parameterLoops.enumerated().map { patchOrdinal, sides -> BRepSewingShell in
             let prefix = parameterLoops.count == 1 ? "untrim" : "untrim:patch:\(patchOrdinal)"
+            try execution.retainKernelValues(count: sides.count, stride: MemoryLayout<BRepSewingEdge>.stride)
             let edges = try sides.enumerated().map { index, side in
-                try BRepFaceCurveClipper.edge(side, on: surface, stableID: "\(prefix):edge:\(index)", parentSubshapeIDs: parents, tolerance: tolerance)
+                try BRepFaceCurveClipper.edge(side, on: surface, stableID: "\(prefix):edge:\(index)", parentSubshapeIDs: parents, tolerance: tolerance, using: &execution)
             }
             // Coincident endpoints are admitted by exact sewing only when the original
             // iso law proves a complete closed span or a singular pole/apex boundary.
@@ -67,15 +81,15 @@ struct UntrimFaceFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating
                 loops: [BRepSewingLoop(stableID: "\(prefix):loop", role: .outer, edges: edges)],
                 parentSubshapeIDs: parents
             )
-            let patch = try BRepSewingPatchOrientationAdapter().reorient(forward, to: face.orientation, tolerance: tolerance)
+            let patch = try BRepSewingPatchOrientationAdapter().reorient(forward, to: face.orientation, tolerance: tolerance, using: &execution)
             return BRepSewingShell(stableID: "\(prefix):shell", patches: [patch])
         }
         let sewn = try sewer.sew(
             BRepSewingRequest(featureID: feature.id, bodyKind: .sheet, shells: shells, bodyParentSubshapeIDs: parents),
             tolerance: tolerance
-        )
+        , using: &execution)
         var model = context.brep
-        try BRepModelCombiner().merge(sewn.brep, into: &model)
+        try BRepModelCombiner().merge(sewn.brep, into: &model, using: &execution)
         guard untrim.keepsEdges else {
             return EvaluationResult(brep: model, subshapes: sewn.subshapes, lineage: sewn.lineage)
         }
@@ -97,7 +111,7 @@ struct UntrimFaceFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating
         }
         let boundary = try SourceBRepFacePatchBuilder().build(
             faceID: faceID, stableID: "untrim:source", from: context.brep, sourceSubshapes: subshapes, tolerance: tolerance
-        ).patch.loops.flatMap(\.edges)
+        , using: &execution).patch.loops.flatMap(\.edges)
         var curves: [BRepFaceImprinter.Curve] = []
         for (patchOrdinal, sheetFaceID) in sheetFaceIDs.enumerated() {
             let prefix = parameterLoops.count == 1 ? "untrim" : "untrim:patch:\(patchOrdinal)"
@@ -106,13 +120,13 @@ struct UntrimFaceFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating
                     edge.surfaceParameterCurve, to: sheetFaceID,
                     stableID: "\(prefix):kept:\(index)", parentSubshapeIDs: edge.parentSubshapeIDs,
                     model: model, sourceSubshapes: sheetContext.subshapes.entries, alongEdge: .yieldNothing, tolerance: tolerance
-                ).map { BRepFaceImprinter.Curve(faceID: sheetFaceID, edge: $0) }
+                , using: &execution).map { BRepFaceImprinter.Curve(faceID: sheetFaceID, edge: $0) }
             }
         }
         guard curves.isEmpty == false else {
             return EvaluationResult(brep: model, subshapes: sewn.subshapes, lineage: sewn.lineage)
         }
-        let imprinted = try BRepFaceImprinter(sewer: sewer).imprint(curves, on: sewn.bodyID, featureID: feature.id, context: sheetContext)
+        let imprinted = try BRepFaceImprinter(sewer: sewer).imprint(curves, on: sewn.bodyID, featureID: feature.id, context: sheetContext, using: &execution)
         // The bare sheet is never published, so what the imprint traces to it traces on to the
         // face it was untrimmed from.
         let lineage = imprinted.lineage.mapValues { entry in
@@ -132,30 +146,36 @@ struct UntrimFaceFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating
 
     /// Construct boundaries in their original chart before retaining each foreign image.
     private func untrimmedParameterLoops(on surface: Surface3D, extent: SurfaceParameterBox,
-        tolerance: ModelingTolerance) throws -> [[SurfaceParameterCurve]] {
-        try Task.checkCancellation()
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> [[SurfaceParameterCurve]] {
+        try execution.checkpoint(); try execution.admitSourceDepth(0); try execution.consumeWork(1)
         if case let .procedural(.originalAffineWord(image)) = surface {
-            let originalLoops = try untrimmedParameterLoops(on: image.source, extent: extent,
-                tolerance: tolerance)
+            let originalLoops = try execution.withSourceDepthOffset(1) { execution in
+                try untrimmedParameterLoops(on: image.source, extent: extent, tolerance: tolerance, using: &execution)
+            }
             return try originalLoops.map { originalSides in
                 try originalSides.map { side in
                     .originalAffineWord(try OriginalAffineWordSurfaceParameterCurve(
                         source: SurfaceLiftCurve3D(surface: image.source, parameterCurve: side),
-                        target: image, tolerance: tolerance))
+                        target: image, tolerance: tolerance,
+                        remainingSourceDepth: min(16, execution.effectiveLimits.remainingSourceDepth),
+                        maximumSubdivisionDepth: min(32, execution.effectiveLimits.maximumSubdivisionDepth),
+                        usage: &execution))
                 }
             }
         }
         if case let .procedural(.originalImage(image)) = surface {
-            let originalExtent = try image.sourceParameterBounds(over: extent, tolerance: tolerance)
-            let originalLoops = try untrimmedParameterLoops(on: image.source, extent: originalExtent, tolerance: tolerance)
+            let originalExtent = try image.sourceParameterBounds(over: extent, tolerance: tolerance, using: &execution)
+            let originalLoops = try execution.withSourceDepthOffset(1) { execution in
+                try untrimmedParameterLoops(on: image.source, extent: originalExtent, tolerance: tolerance, using: &execution)
+            }
             let reversesChart = ((image.uGain < 0) != (image.vGain < 0)) != image.swapAxes
             return try originalLoops.map { originalSides in
                 let sides = try originalSides.map { side -> SurfaceParameterCurve in
                     .originalImage(try OriginalImageSurfaceParameterCurve(
                         source: SurfaceLiftCurve3D(surface: image.source, parameterCurve: side),
-                        targetImage: image, tolerance: tolerance))
+                        targetImage: image, tolerance: tolerance, using: &execution))
                 }
-                return reversesChart ? try sides.reversed().map { try $0.reversed(tolerance: tolerance) } : sides
+                return reversesChart ? try sides.reversed().map { try $0.reversed(tolerance: tolerance, using: &execution) } : sides
             }
         }
         let u = untrimmed(extent.u.lower...extent.u.upper, within: surface.uDomain, tolerance: tolerance)

@@ -10,16 +10,15 @@ import CADTopology
 package struct CurveSpanCoincidenceMatcher: Sendable {
     package init() {}
 
-    /// Uses one caller allowance for original preparation and every complete span cell.
-    package func matches(_ candidate: CurveSpanDefinition, _ existing: CurveSpanDefinition,
-        orientation: Orientation, tolerance: ModelingTolerance,
-        admission: GeometryConversionAdmission) throws -> Bool {
-        try admission.chargeWork()
-        guard endpointsMatch(candidate, existing, orientation: orientation, tolerance: tolerance) else {
-            return false
-        }
-        return try OriginalCurveSpanCoincidenceCertifier().matches(candidate, existing,
-            orientation: orientation, tolerance: tolerance, admission: admission)
+    package func matches(
+        _ candidate: CurveSpanDefinition,
+        _ existing: CurveSpanDefinition,
+        orientation: Orientation,
+        tolerance: ModelingTolerance
+    ) throws -> Bool {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
+        return try matches(candidate, existing, orientation: orientation, tolerance: tolerance, using: &execution)
     }
 
     package func matches(
@@ -27,7 +26,8 @@ package struct CurveSpanCoincidenceMatcher: Sendable {
         _ existing: CurveSpanDefinition,
         orientation: Orientation,
         tolerance: ModelingTolerance
-    ) throws -> Bool {
+    , using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.consumeWork(1)
         guard endpointsMatch(
             candidate,
             existing,
@@ -39,40 +39,40 @@ package struct CurveSpanCoincidenceMatcher: Sendable {
         let originalStart = orientation == .forward ? existing.startParameter : existing.endParameter
         let originalEnd = orientation == .forward ? existing.endParameter : existing.startParameter
         if candidate.startParameter == originalStart, candidate.endParameter == originalEnd,
-           hasSameProceduralDefinition(candidate.curve, existing.curve) {
+           try hasSameProceduralDefinition(candidate.curve, existing.curve, using: &execution) {
             return true
         }
         if let candidateCurve = try exactRationalCurve(
             for: candidate,
             tolerance: tolerance
-        ), let existingCurve = try exactRationalCurve(
+        , using: &execution), let existingCurve = try exactRationalCurve(
             for: existing,
             tolerance: tolerance
-        ) {
+        , using: &execution) {
             guard try bSplineSpansMatch(candidateCurve, candidate: candidate,
                 existingCurve, existing: existing, orientation: orientation,
-                tolerance: tolerance) else { return false }
+                tolerance: tolerance, using: &execution) else { return false }
             // Rounded normalization is a correspondence proposal, never original equality.
             return try OriginalCurveSpanCoincidenceCertifier().matches(candidate, existing,
-                orientation: orientation, tolerance: tolerance)
+                orientation: orientation, tolerance: tolerance, using: &execution)
         }
         if case let .implicit(candidateCurve) = candidate.curve,
            case let .implicit(existingCurve) = existing.curve,
            try candidateCurve.certifiesSameComponent(
                as: existingCurve,
                tolerance: tolerance
-           ) {
+           , using: &execution) {
             guard try implicitSpansMatch(candidate, existing, orientation: orientation,
-                tolerance: tolerance) else { return false }
+                tolerance: tolerance, using: &execution) else { return false }
             return try OriginalCurveSpanCoincidenceCertifier().matches(candidate, existing,
-                orientation: orientation, tolerance: tolerance)
+                orientation: orientation, tolerance: tolerance, using: &execution)
         }
-        guard hasSameProceduralDefinition(
+        guard try hasSameProceduralDefinition(
             candidate.curve,
             existing.curve
-        ) else {
+        , using: &execution) else {
             return try OriginalCurveSpanCoincidenceCertifier().matches(candidate, existing,
-                orientation: orientation, tolerance: tolerance)
+                orientation: orientation, tolerance: tolerance, using: &execution)
         }
         let expectedStart: Double
         let expectedSpan: Double
@@ -99,12 +99,12 @@ package struct CurveSpanCoincidenceMatcher: Sendable {
             )
             guard min(abs(remainder), abs(period - abs(remainder))) <= tolerance.angle else { return false }
             return try OriginalCurveSpanCoincidenceCertifier().matches(candidate, existing,
-                orientation: orientation, tolerance: tolerance)
+                orientation: orientation, tolerance: tolerance, using: &execution)
         case .closed, .unbounded:
             guard approximatelyEqual(candidate.startParameter, expectedStart,
                 tolerance: tolerance.relative) else { return false }
             return try OriginalCurveSpanCoincidenceCertifier().matches(candidate, existing,
-                orientation: orientation, tolerance: tolerance)
+                orientation: orientation, tolerance: tolerance, using: &execution)
         }
     }
 
@@ -113,11 +113,12 @@ package struct CurveSpanCoincidenceMatcher: Sendable {
         _ existing: CurveSpanDefinition,
         orientation: Orientation,
         tolerance: ModelingTolerance
-    ) throws -> Bool {
+    , using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.consumeWork(1)
         let candidateGeometry = try candidate.curve.differentialGeometry(
             at: candidate.startParameter,
             tolerance: tolerance
-        )
+        , using: &execution)
         let existingParameter: Double
         let existingSpan: Double
         switch orientation {
@@ -131,7 +132,7 @@ package struct CurveSpanCoincidenceMatcher: Sendable {
         let existingGeometry = try existing.curve.differentialGeometry(
             at: existingParameter,
             tolerance: tolerance
-        )
+        , using: &execution)
         let candidateSpan = candidate.endParameter - candidate.startParameter
         let candidateTangent = try (
             candidateGeometry.firstDerivative
@@ -149,7 +150,8 @@ package struct CurveSpanCoincidenceMatcher: Sendable {
     private func hasSameProceduralDefinition(
         _ first: Curve3D,
         _ second: Curve3D
-    ) -> Bool {
+    , using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.consumeWork(1)
         if first == second {
             return true
         }
@@ -169,14 +171,15 @@ package struct CurveSpanCoincidenceMatcher: Sendable {
                 && firstCurve.cells == secondCurve.cells
                 && firstCurve.isClosed == secondCurve.isClosed
         case let (.surfaceLift(firstCurve), .surfaceLift(secondCurve)):
-            return hasSameOriginalSupportLaw(firstCurve.surface, secondCurve.surface)
+            return try hasSameOriginalSupportLaw(firstCurve.surface, secondCurve.surface, using: &execution)
                 && firstCurve.parameterCurve == secondCurve.parameterCurve
         default:
             return false
         }
     }
 
-    private func hasSameOriginalSupportLaw(_ first: Surface3D, _ second: Surface3D) -> Bool {
+    private func hasSameOriginalSupportLaw(_ first: Surface3D, _ second: Surface3D, using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.consumeWork(1)
         if first == second { return true }
         guard case let .procedural(.originalRevolution(a)) = first,
               case let .procedural(.originalRevolution(b)) = second else { return false }
@@ -187,7 +190,8 @@ package struct CurveSpanCoincidenceMatcher: Sendable {
     private func exactRationalCurve(
         for span: CurveSpanDefinition,
         tolerance: ModelingTolerance
-    ) throws -> BSplineCurve3D? {
+    , using execution: inout OriginalQueryExecution) throws -> BSplineCurve3D? {
+        try execution.consumeWork(1)
         if case let .bSpline(curve) = span.curve {
             return curve
         }
@@ -211,7 +215,7 @@ package struct CurveSpanCoincidenceMatcher: Sendable {
         let lower = min(span.startParameter, span.endParameter)
         let upper = max(span.startParameter, span.endParameter)
         let interval = try ScalarInterval(lower: lower, upper: upper)
-        if requiresAngularSubdivision(span.curve) {
+        if try requiresAngularSubdivision(span.curve, using: &execution) {
             let angularSpanCount = (
                 interval.width / (Double.pi * 0.5)
             ).rounded(.up)
@@ -231,10 +235,11 @@ package struct CurveSpanCoincidenceMatcher: Sendable {
             interval: interval,
             maximumSpanCount: 4_096,
             tolerance: tolerance
-        )
+        , using: &execution)
     }
 
-    private func requiresAngularSubdivision(_ curve: Curve3D) -> Bool {
+    private func requiresAngularSubdivision(_ curve: Curve3D, using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.consumeWork(1)
         switch curve {
         case .circle,
              .analytic(.circle),
@@ -242,13 +247,13 @@ package struct CurveSpanCoincidenceMatcher: Sendable {
              .analytic(.ellipse):
             return true
         case let .rigidImage(image):
-            return requiresAngularSubdivision(image.source)
+            return try requiresAngularSubdivision(image.source, using: &execution)
         case let .affineImage(image):
-            return requiresAngularSubdivision(image.source)
+            return try requiresAngularSubdivision(image.source, using: &execution)
         case let .parameterImage(image):
-            return requiresAngularSubdivision(image.source)
+            return try requiresAngularSubdivision(image.source, using: &execution)
         case let .originalAffineWord(image):
-            return requiresAngularSubdivision(image.source)
+            return try requiresAngularSubdivision(image.source, using: &execution)
         case .line,
              .bSpline,
              .implicit,
@@ -271,58 +276,60 @@ package struct CurveSpanCoincidenceMatcher: Sendable {
         existing: CurveSpanDefinition,
         orientation: Orientation,
         tolerance: ModelingTolerance
-    ) throws -> Bool {
+    , using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.consumeWork(1)
         let candidateSpan = try normalizedBSplineSpan(
             candidateCurve,
             startParameter: candidate.startParameter,
             endParameter: candidate.endParameter,
             reversesTraversal: orientation == .reversed,
             tolerance: tolerance
-        )
+        , using: &execution)
         let existingSpan = try normalizedBSplineSpan(
             existingCurve,
             startParameter: existing.startParameter,
             endParameter: existing.endParameter,
             reversesTraversal: false,
             tolerance: tolerance
-        )
+        , using: &execution)
         if try parameterizedBSplineSpansMatch(
             candidateSpan,
             existingSpan,
             tolerance: tolerance
-        ) {
+        , using: &execution) {
             return true
         }
         return try certifiedNonAffineBSplineSpansMatch(
             candidateSpan,
             existingSpan,
             tolerance: tolerance
-        )
+        , using: &execution)
     }
 
     private func parameterizedBSplineSpansMatch(
         _ first: BSplineCurve3D,
         _ second: BSplineCurve3D,
         tolerance: ModelingTolerance
-    ) throws -> Bool {
+    , using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.consumeWork(1)
         if first.degree != second.degree {
             return try degreeElevatedBezierSpansMatch(
                 first,
                 second,
                 tolerance: tolerance
-            )
+            , using: &execution)
         }
         guard let unified = try unifiedKnotPartitions(
-            mobiusCanonicalized(first),
-            mobiusCanonicalized(second),
+            try mobiusCanonicalized(first, using: &execution),
+            try mobiusCanonicalized(second, using: &execution),
             tolerance: tolerance
-        ) else {
+        , using: &execution) else {
             return false
         }
-        return homogeneousDistanceBound(
+        return try homogeneousDistanceBound(
             unified.first,
             unified.second
-        ) <= tolerance.distance
+        , using: &execution) <= tolerance.distance
     }
 
     /// A Moebius reparameterization of a single-span rational Bezier curve
@@ -332,7 +339,8 @@ package struct CurveSpanCoincidenceMatcher: Sendable {
     /// Canonicalization rescales the weights so the first and last weights
     /// are both one; multi-span curves pass through unchanged and reach a
     /// single-span comparison through subdivision.
-    private func mobiusCanonicalized(_ curve: BSplineCurve3D) -> BSplineCurve3D {
+    private func mobiusCanonicalized(_ curve: BSplineCurve3D, using execution: inout OriginalQueryExecution) throws -> BSplineCurve3D {
+        try execution.consumeWork(1)
         let degree = curve.degree
         guard degree >= 1,
               curve.controlPoints.count == degree + 1,
@@ -345,15 +353,18 @@ package struct CurveSpanCoincidenceMatcher: Sendable {
             1.0 / Double(degree)
         )
         guard lambda.isFinite, lambda > 0.0 else { return curve }
+        try execution.retainStorage(count: curve.weights.count, stride: MemoryLayout<Double>.stride)
         var canonical = curve.weights
         var factor = 1.0
         for index in canonical.indices {
+            try execution.consumeWork(1)
             canonical[index] *= factor
             factor *= lambda
         }
         let scale = canonical[0]
         guard scale.isFinite, scale > 0.0 else { return curve }
         for index in canonical.indices {
+            try execution.consumeWork(1)
             canonical[index] /= scale
         }
         return BSplineCurve3D(
@@ -368,7 +379,9 @@ package struct CurveSpanCoincidenceMatcher: Sendable {
         _ first: BSplineCurve3D,
         _ second: BSplineCurve3D,
         tolerance: ModelingTolerance
-    ) throws -> Bool {
+    , using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.consumeWork(1)
+        try execution.retainStorage(count: 1, stride: MemoryLayout<BSplineCoincidenceCell>.stride)
         var cells = [BSplineCoincidenceCell(
             firstLower: 0.0,
             firstUpper: 1.0,
@@ -378,6 +391,8 @@ package struct CurveSpanCoincidenceMatcher: Sendable {
         )]
         var remainingCells = 131_072
         while let cell = cells.popLast() {
+            try execution.consumeWork(1)
+            try execution.visitGeometricCell(depth: cell.depth)
             guard remainingCells > 0 else {
                 throw KernelError(
                     phase: .topology,
@@ -393,19 +408,19 @@ package struct CurveSpanCoincidenceMatcher: Sendable {
                 endParameter: cell.firstUpper,
                 reversesTraversal: false,
                 tolerance: tolerance
-            )
+            , using: &execution)
             let secondSpan = try normalizedBSplineSpan(
                 second,
                 startParameter: cell.secondLower,
                 endParameter: cell.secondUpper,
                 reversesTraversal: false,
                 tolerance: tolerance
-            )
+            , using: &execution)
             if try parameterizedBSplineSpansMatch(
                 firstSpan,
                 secondSpan,
                 tolerance: tolerance
-            ) {
+            , using: &execution) {
                 continue
             }
             guard cell.depth < 24 else {
@@ -421,7 +436,7 @@ package struct CurveSpanCoincidenceMatcher: Sendable {
             let point = try first.point(
                 at: firstMidpoint,
                 tolerance: tolerance
-            )
+            , using: &execution)
             let secondInterval = try ScalarInterval(
                 lower: cell.secondLower,
                 upper: cell.secondUpper
@@ -439,7 +454,7 @@ package struct CurveSpanCoincidenceMatcher: Sendable {
                         maximumCandidateCount: 4_096
                     ),
                     tolerance: tolerance
-                ).parameter
+                , using: &execution).parameter
             } catch let error as KernelError where error.code == .intersectionFailure {
                 return false
             }
@@ -456,6 +471,7 @@ package struct CurveSpanCoincidenceMatcher: Sendable {
                 return false
             }
             let nextDepth = cell.depth + 1
+            try execution.retainStorage(count: 1, stride: MemoryLayout<BSplineCoincidenceCell>.stride)
             cells.append(BSplineCoincidenceCell(
                 firstLower: firstMidpoint,
                 firstUpper: cell.firstUpper,
@@ -463,6 +479,7 @@ package struct CurveSpanCoincidenceMatcher: Sendable {
                 secondUpper: cell.secondUpper,
                 depth: nextDepth
             ))
+            try execution.retainStorage(count: 1, stride: MemoryLayout<BSplineCoincidenceCell>.stride)
             cells.append(BSplineCoincidenceCell(
                 firstLower: cell.firstLower,
                 firstUpper: firstMidpoint,
@@ -478,7 +495,11 @@ package struct CurveSpanCoincidenceMatcher: Sendable {
         _ first: BSplineCurve3D,
         _ second: BSplineCurve3D,
         tolerance: ModelingTolerance
-    ) throws -> Bool {
+    , using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.consumeWork(1)
+        for count in [first.knots.count, second.knots.count] {
+            for _ in 0..<4 { try execution.retainStorage(count: count, stride: MemoryLayout<Double>.stride) }
+        }
         let breakpoints = Array(Set(
             (first.knots + second.knots).filter { $0 > 0.0 && $0 < 1.0 }
         )).sorted()
@@ -486,27 +507,28 @@ package struct CurveSpanCoincidenceMatcher: Sendable {
             first,
             breakpoints: breakpoints,
             tolerance: tolerance
-        ), let secondPatches = try bezierPatches(
+        , using: &execution), let secondPatches = try bezierPatches(
             second,
             breakpoints: breakpoints,
             tolerance: tolerance
-        ), firstPatches.count == secondPatches.count else {
+        , using: &execution), firstPatches.count == secondPatches.count else {
             return false
         }
         let targetDegree = max(first.degree, second.degree)
         for index in firstPatches.indices {
-            let firstControls = elevated(
+            try execution.consumeWork(1)
+            let firstControls = try elevated(
                 firstPatches[index],
                 toDegree: targetDegree
-            )
-            let secondControls = elevated(
+            , using: &execution)
+            let secondControls = try elevated(
                 secondPatches[index],
                 toDegree: targetDegree
-            )
-            guard homogeneousDistanceBound(
+            , using: &execution)
+            guard try homogeneousDistanceBound(
                 firstControls,
                 secondControls
-            ) <= tolerance.distance else {
+            , using: &execution) <= tolerance.distance else {
                 return false
             }
         }
@@ -517,17 +539,20 @@ package struct CurveSpanCoincidenceMatcher: Sendable {
         _ source: BSplineCurve3D,
         breakpoints: [Double],
         tolerance: ModelingTolerance
-    ) throws -> [[HomogeneousControlPoint]]? {
+    , using execution: inout OriginalQueryExecution) throws -> [[HomogeneousControlPoint]]? {
+        try execution.consumeWork(1)
         var curve = source
         for breakpoint in breakpoints {
-            while exactMultiplicity(of: breakpoint, in: curve.knots) < curve.degree {
+            try execution.consumeWork(1)
+            while try exactMultiplicity(of: breakpoint, in: curve.knots, using: &execution) < curve.degree {
                 let previousCount = curve.knots.count
-                curve = try curve.insertingKnot(breakpoint, tolerance: tolerance)
+                curve = try curve.insertingKnot(breakpoint, tolerance: tolerance, using: &execution)
                 guard curve.knots.count == previousCount + 1 else {
                     return nil
                 }
             }
         }
+        for _ in 0..<4 { try execution.retainStorage(count: curve.knots.count, stride: MemoryLayout<Double>.stride) }
         let actualBreakpoints = Array(Set(
             curve.knots.filter { $0 > 0.0 && $0 < 1.0 }
         )).sorted()
@@ -538,7 +563,10 @@ package struct CurveSpanCoincidenceMatcher: Sendable {
         guard curve.controlPoints.count == spanCount * curve.degree + 1 else {
             return nil
         }
-        return (0..<spanCount).map { spanIndex in
+        try execution.retainStorage(count: spanCount, stride: MemoryLayout<[HomogeneousControlPoint]>.stride)
+        return try (0..<spanCount).map { spanIndex in
+            try execution.consumeWork(curve.degree + 1)
+            try execution.retainStorage(count: curve.degree + 1, stride: MemoryLayout<HomogeneousControlPoint>.stride)
             let start = spanIndex * curve.degree
             return (start...(start + curve.degree)).map { controlIndex in
                 HomogeneousControlPoint(
@@ -552,10 +580,12 @@ package struct CurveSpanCoincidenceMatcher: Sendable {
     private func elevated(
         _ controls: [HomogeneousControlPoint],
         toDegree targetDegree: Int
-    ) -> [HomogeneousControlPoint] {
+    , using execution: inout OriginalQueryExecution) throws -> [HomogeneousControlPoint] {
+        try execution.consumeWork(1)
         var result = controls
         while result.count - 1 < targetDegree {
             let nextDegree = result.count
+            try execution.retainStorage(count: result.count + 1, stride: MemoryLayout<HomogeneousControlPoint>.stride)
             var elevated = Array(
                 repeating: HomogeneousControlPoint.zero,
                 count: result.count + 1
@@ -564,6 +594,7 @@ package struct CurveSpanCoincidenceMatcher: Sendable {
             elevated[elevated.count - 1] = result[result.count - 1]
             if result.count > 1 {
                 for index in 1..<result.count {
+                    try execution.consumeWork(1)
                     let alpha = Double(index) / Double(nextDegree)
                     elevated[index] = result[index - 1].scaled(by: alpha)
                         .adding(result[index].scaled(by: 1.0 - alpha))
@@ -580,31 +611,34 @@ package struct CurveSpanCoincidenceMatcher: Sendable {
         endParameter: Double,
         reversesTraversal: Bool,
         tolerance: ModelingTolerance
-    ) throws -> BSplineCurve3D {
+    , using execution: inout OriginalQueryExecution) throws -> BSplineCurve3D {
+        try execution.consumeWork(1)
         let lower = min(startParameter, endParameter)
         let upper = max(startParameter, endParameter)
         var span = try curve.trimmed(
             from: lower,
             to: upper,
             tolerance: tolerance
-        )
+        , using: &execution)
         if startParameter > endParameter {
-            span = try span.reversed(tolerance: tolerance)
+            span = try span.reversed(tolerance: tolerance, using: &execution)
         }
         if reversesTraversal {
-            span = try span.reversed(tolerance: tolerance)
+            span = try span.reversed(tolerance: tolerance, using: &execution)
         }
         guard case let .closed(domainLower, domainUpper) = span.domain else {
             throw GeometryError.invalidDistance(0.0)
         }
         let domainLength = domainUpper - domainLower
+        try execution.consumeWork(span.knots.count)
+        try execution.retainStorage(count: span.knots.count, stride: MemoryLayout<Double>.stride)
         let normalized = BSplineCurve3D(
             degree: span.degree,
             knots: span.knots.map { ($0 - domainLower) / domainLength },
             controlPoints: span.controlPoints,
             weights: span.weights
         )
-        try normalized.validate(tolerance: tolerance)
+        try normalized.validate(tolerance: tolerance, using: &execution)
         return normalized
     }
 
@@ -612,24 +646,25 @@ package struct CurveSpanCoincidenceMatcher: Sendable {
         _ first: BSplineCurve3D,
         _ second: BSplineCurve3D,
         tolerance: ModelingTolerance
-    ) throws -> (first: BSplineCurve3D, second: BSplineCurve3D)? {
+    , using execution: inout OriginalQueryExecution) throws -> (first: BSplineCurve3D, second: BSplineCurve3D)? {
+        try execution.consumeWork(1)
         var first = first
         var second = second
         let knotTolerance = max(tolerance.relative, Double.ulpOfOne * 256.0)
-        let interiorKnots = canonicalInteriorKnots(
+        let interiorKnots = try canonicalInteriorKnots(
             first.knots + second.knots,
             tolerance: knotTolerance
-        )
+        , using: &execution)
         for knot in interiorKnots {
             let targetMultiplicity = max(
-                multiplicity(of: knot, in: first.knots, tolerance: knotTolerance),
-                multiplicity(of: knot, in: second.knots, tolerance: knotTolerance)
+                try multiplicity(of: knot, in: first.knots, tolerance: knotTolerance, using: &execution),
+                try multiplicity(of: knot, in: second.knots, tolerance: knotTolerance, using: &execution)
             )
-            while multiplicity(of: knot, in: first.knots, tolerance: knotTolerance) < targetMultiplicity {
-                first = try first.insertingKnot(knot, tolerance: tolerance)
+            while try multiplicity(of: knot, in: first.knots, tolerance: knotTolerance, using: &execution) < targetMultiplicity {
+                first = try first.insertingKnot(knot, tolerance: tolerance, using: &execution)
             }
-            while multiplicity(of: knot, in: second.knots, tolerance: knotTolerance) < targetMultiplicity {
-                second = try second.insertingKnot(knot, tolerance: tolerance)
+            while try multiplicity(of: knot, in: second.knots, tolerance: knotTolerance, using: &execution) < targetMultiplicity {
+                second = try second.insertingKnot(knot, tolerance: tolerance, using: &execution)
             }
         }
         guard first.knots.count == second.knots.count,
@@ -643,7 +678,10 @@ package struct CurveSpanCoincidenceMatcher: Sendable {
     private func canonicalInteriorKnots(
         _ knots: [Double],
         tolerance: Double
-    ) -> [Double] {
+    , using execution: inout OriginalQueryExecution) throws -> [Double] {
+        try execution.consumeWork(1)
+        try execution.retainStorage(count: knots.count, stride: MemoryLayout<Double>.stride)
+        try execution.retainStorage(count: knots.count, stride: MemoryLayout<Double>.stride)
         var result: [Double] = []
         for knot in knots.sorted() where knot > tolerance && knot < 1.0 - tolerance {
             if let last = result.last, abs(last - knot) <= tolerance {
@@ -658,22 +696,29 @@ package struct CurveSpanCoincidenceMatcher: Sendable {
         of knot: Double,
         in knots: [Double],
         tolerance: Double
-    ) -> Int {
-        knots.filter { abs($0 - knot) <= tolerance }.count
+    , using execution: inout OriginalQueryExecution) throws -> Int {
+        try execution.consumeWork(1)
+        try execution.retainStorage(count: knots.count, stride: MemoryLayout<Double>.stride)
+        return try knots.filter { try execution.consumeWork(1); return abs($0 - knot) <= tolerance }.count
     }
 
     private func exactMultiplicity(
         of knot: Double,
         in knots: [Double]
-    ) -> Int {
-        knots.filter { $0 == knot }.count
+    , using execution: inout OriginalQueryExecution) throws -> Int {
+        try execution.consumeWork(1)
+        try execution.retainStorage(count: knots.count, stride: MemoryLayout<Double>.stride)
+        return try knots.filter { try execution.consumeWork(1); return $0 == knot }.count
     }
 
     private func homogeneousDistanceBound(
         _ first: BSplineCurve3D,
         _ second: BSplineCurve3D
-    ) -> Double {
-        homogeneousDistanceBound(
+    , using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
+        try execution.retainStorage(count: first.controlPoints.count, stride: MemoryLayout<HomogeneousControlPoint>.stride)
+        try execution.retainStorage(count: second.controlPoints.count, stride: MemoryLayout<HomogeneousControlPoint>.stride)
+        return try homogeneousDistanceBound(
             first.controlPoints.indices.map {
                 HomogeneousControlPoint(
                     point: first.controlPoints[$0],
@@ -686,13 +731,14 @@ package struct CurveSpanCoincidenceMatcher: Sendable {
                     weight: second.weights[$0]
                 )
             }
-        )
+        , using: &execution)
     }
 
     private func homogeneousDistanceBound(
         _ first: [HomogeneousControlPoint],
         _ second: [HomogeneousControlPoint]
-    ) -> Double {
+    , using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
         guard first.count == second.count,
               first.isEmpty == false,
               let firstScale = first.first?.weight,
@@ -701,6 +747,10 @@ package struct CurveSpanCoincidenceMatcher: Sendable {
               secondScale > 0.0 else {
             return .infinity
         }
+        try execution.retainStorage(count: first.count, stride: MemoryLayout<Double>.stride)
+        try execution.retainStorage(count: second.count, stride: MemoryLayout<Double>.stride)
+        try execution.consumeWork(first.count)
+        try execution.consumeWork(second.count)
         let firstWeights = first.map { $0.weight / firstScale }
         let secondWeights = second.map { $0.weight / secondScale }
         let minimumFirstWeight = firstWeights.min() ?? 0.0
@@ -712,6 +762,7 @@ package struct CurveSpanCoincidenceMatcher: Sendable {
         var maximumWeightDifference = 0.0
         var maximumSecondWeightedPointLength = 0.0
         for index in first.indices {
+            try execution.consumeWork(1)
             let firstWeighted = first[index].weightedPoint / firstScale
             let secondWeighted = second[index].weightedPoint / secondScale
             maximumWeightedPointDifference = max(

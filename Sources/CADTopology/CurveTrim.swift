@@ -39,12 +39,23 @@ public struct CurveTrim: Hashable, Sendable {
     #endif
 
     public func validate(on curve: Curve3D, edgeID: EdgeID, tolerance: ModelingTolerance,
+        remainingSourceDepth: Int = 16, maximumAlgebraicDepth: Int = 32,
+        maximumSubdivisionDepth: Int = 32) throws {
+        let budget = try OriginalQueryBudget()
+        var execution = OriginalQueryExecution(budget: budget,
+            limits: try .init(maximumValueDepth: maximumAlgebraicDepth, maximumCoefficientDepth: maximumAlgebraicDepth,
+                remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth))
+        try validate(on: curve, edgeID: edgeID, tolerance: tolerance,
+            remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth,
+            maximumSubdivisionDepth: maximumSubdivisionDepth, using: &execution)
+    }
+
+    public func validate(on curve: Curve3D, edgeID: EdgeID, tolerance: ModelingTolerance,
         remainingSourceDepth: Int = 16,
-        consumeWork: (@Sendable (Int) throws -> Void)? = nil,
-        consumeStorage: (@Sendable (Int) throws -> Void)? = nil,
-        maximumAlgebraicDepth: Int = 32, maximumSubdivisionDepth: Int = 32) throws {
+        maximumAlgebraicDepth: Int = 32, maximumSubdivisionDepth: Int = 32,
+        using execution: inout OriginalQueryExecution) throws {
         try CurrentTaskCancellationChecker().checkCancellation()
-        try consumeWork?(0)
+        try execution.consumeWork(1)
         guard remainingSourceDepth >= 0, (0...32).contains(maximumAlgebraicDepth),
             (0...32).contains(maximumSubdivisionDepth) else {
             throw KernelError(phase: .topology, code: .resourceLimitExceeded, tolerance: tolerance,
@@ -109,37 +120,35 @@ public struct CurveTrim: Hashable, Sendable {
             _ = try image.sourceParameterBounds(over: ScalarInterval(lower: min(startParameter,endParameter),
                 upper: max(startParameter,endParameter)), tolerance: tolerance,
                 remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth,
-                consumeWork: { try consumeWork?($0) }, consumeStorage: consumeStorage,
-                maximumAlgebraicDepth: maximumAlgebraicDepth)
+                maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
             try validateOriginalImageSpan(on: curve, edgeID: edgeID, tolerance: tolerance,
-                remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork,
-                consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+                remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth,
+                using: &execution)
         case let .rigidImage(image):
             try validate(
                 on: image.source,
                 edgeID: edgeID,
                 tolerance: tolerance, remainingSourceDepth: remainingSourceDepth - 1,
-                consumeWork: consumeWork, consumeStorage: consumeStorage,
-                maximumAlgebraicDepth: maximumAlgebraicDepth, maximumSubdivisionDepth: maximumSubdivisionDepth
+                maximumAlgebraicDepth: maximumAlgebraicDepth, maximumSubdivisionDepth: maximumSubdivisionDepth,
+                using: &execution
             )
         case let .affineImage(image):
             try validate(
                 on: image.source,
                 edgeID: edgeID,
                 tolerance: tolerance, remainingSourceDepth: remainingSourceDepth - 1,
-                consumeWork: consumeWork, consumeStorage: consumeStorage,
-                maximumAlgebraicDepth: maximumAlgebraicDepth, maximumSubdivisionDepth: maximumSubdivisionDepth
+                maximumAlgebraicDepth: maximumAlgebraicDepth, maximumSubdivisionDepth: maximumSubdivisionDepth,
+                using: &execution
             )
         case let .originalAffineWord(image):
             try validate(on: image.source, edgeID: edgeID, tolerance: tolerance,
-                remainingSourceDepth: remainingSourceDepth - 1, consumeWork: consumeWork,
-                consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth,
-                maximumSubdivisionDepth: maximumSubdivisionDepth)
+                remainingSourceDepth: remainingSourceDepth - 1, maximumAlgebraicDepth: maximumAlgebraicDepth,
+                maximumSubdivisionDepth: maximumSubdivisionDepth, using: &execution)
         }
     }
 
     private func originalParameterSpan(on curve: Curve3D, remainingSourceDepth: Int,
-        usage: inout OriginalSourceProofAdmission) throws
+        usage: inout OriginalQueryExecution) throws
         -> (source: Curve3D, magnitude: ExactRationalCoefficient) {
         var source = curve
         var span = try ExactRationalCoefficient.originalDouble(endParameter, usage: &usage)
@@ -150,7 +159,7 @@ public struct CurveTrim: Hashable, Sendable {
                 throw GeometryError.invalidDistance(abs(endParameter-startParameter))
             }
             depth += 1
-            try usage.visitExactCell(depth: 0)
+            try usage.consumeWork(1)
             switch source {
             case .parameterImage(let image):
                 span = try span.multiplied(by: image.parameterGain.exactCoefficient(usage: &usage), usage: &usage)
@@ -164,30 +173,24 @@ public struct CurveTrim: Hashable, Sendable {
     }
 
     package func coversOriginalCurvePeriod(on curve: Curve3D,
-        consumeWork: (@Sendable (Int) throws -> Void)? = nil,
         remainingSourceDepth: Int = 16,
-        consumeStorage: (@Sendable (Int) throws -> Void)? = nil,
-        maximumAlgebraicDepth: Int = 32) throws -> Bool {
+        maximumAlgebraicDepth: Int = 32, using execution: inout OriginalQueryExecution) throws -> Bool {
         guard (0...32).contains(maximumAlgebraicDepth) else {
             throw GeometryConversionError.invalidInput("Original trim algebra policy is outside its independent envelope.")
         }
-        var usage = OriginalSourceProofAdmission(consumeWork: consumeWork, consumeStorage: consumeStorage,
-            maximumAlgebraicDepth: maximumAlgebraicDepth)
-        let span = try originalParameterSpan(on: curve, remainingSourceDepth: remainingSourceDepth, usage: &usage)
+        let span = try originalParameterSpan(on: curve, remainingSourceDepth: remainingSourceDepth, usage: &execution)
         guard case .periodic(let period) = span.source.parameterDomain else { return false }
-        return try span.magnitude.subtracting(.originalDouble(period, usage: &usage), usage: &usage).isZero
+        return try span.magnitude.subtracting(.originalDouble(period, usage: &execution), usage: &execution).isZero
     }
 
     private func validateOriginalImageSpan(on curve: Curve3D, edgeID: EdgeID,
         tolerance: ModelingTolerance,
-        remainingSourceDepth: Int, consumeWork: (@Sendable (Int) throws -> Void)?,
-        consumeStorage: (@Sendable (Int) throws -> Void)?, maximumAlgebraicDepth: Int) throws {
+        remainingSourceDepth: Int, maximumAlgebraicDepth: Int,
+        using execution: inout OriginalQueryExecution) throws {
         guard (0...32).contains(maximumAlgebraicDepth) else {
             throw GeometryConversionError.invalidInput("Original trim algebra policy is outside its independent envelope.")
         }
-        var usage = OriginalSourceProofAdmission(consumeWork: consumeWork, consumeStorage: consumeStorage,
-            maximumAlgebraicDepth: maximumAlgebraicDepth)
-        let span = try originalParameterSpan(on: curve, remainingSourceDepth: remainingSourceDepth, usage: &usage)
+        let span = try originalParameterSpan(on: curve, remainingSourceDepth: remainingSourceDepth, usage: &execution)
         let minimum: Double, maximum: Double?
         switch span.source {
         case .line, .bSpline: minimum = tolerance.distance; maximum = nil
@@ -204,10 +207,10 @@ public struct CurveTrim: Hashable, Sendable {
         case .rigidImage, .affineImage, .parameterImage, .originalAffineWord:
             throw TopologyError.invalidTrim(edgeID)
         }
-        let lowerDifference = try span.magnitude.subtracting(.originalDouble(minimum, usage: &usage), usage: &usage)
+        let lowerDifference = try span.magnitude.subtracting(.originalDouble(minimum, usage: &execution), usage: &execution)
         guard lowerDifference.isPositive else { throw TopologyError.invalidTrim(edgeID) }
         if let maximum {
-            let upperDifference = try span.magnitude.subtracting(.originalDouble(maximum, usage: &usage), usage: &usage)
+            let upperDifference = try span.magnitude.subtracting(.originalDouble(maximum, usage: &execution), usage: &execution)
             guard !upperDifference.isPositive else { throw TopologyError.invalidTrim(edgeID) }
         }
     }

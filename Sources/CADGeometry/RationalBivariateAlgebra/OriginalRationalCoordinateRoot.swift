@@ -4,18 +4,18 @@ package struct OriginalRationalCoordinateRoot {
         let lower: ExactRationalCoefficient
         let upper: ExactRationalCoefficient
 
-        func adding<B: RationalAlgebraAdmitting>(_ value: ExactRationalCoefficient,
+        func adding<B: ExactScalarAdmission & ~Copyable>(_ value: ExactRationalCoefficient,
             usage: inout B) throws -> Self {
             try .init(lower: lower.adding(value, usage: &usage), upper: upper.adding(value, usage: &usage))
         }
-        func divided<B: RationalAlgebraAdmitting>(by other: Self, usage: inout B) throws -> Self? {
+        func divided<B: ExactScalarAdmission & ~Copyable>(by other: Self, usage: inout B) throws -> Self? {
             guard other.lower.isPositive || other.upper.isNegative else { return nil }
             let reciprocal = try Interval(lower: .one.divided(by: other.upper, usage: &usage),
                 upper: .one.divided(by: other.lower, usage: &usage))
             return try multiplied(by: reciprocal, usage: &usage)
         }
-        func multiplied<B: RationalAlgebraAdmitting>(by other: Self, usage: inout B) throws -> Self {
-            try usage.retainExactStorage(4)
+        func multiplied<B: ExactScalarAdmission & ~Copyable>(by other: Self, usage: inout B) throws -> Self {
+            try RationalAlgebraStorage.retain(4, of: ExactRationalCoefficient.self, usage: &usage)
             let values = try [lower.multiplied(by: other.lower, usage: &usage),
                 lower.multiplied(by: other.upper, usage: &usage),
                 upper.multiplied(by: other.lower, usage: &usage), upper.multiplied(by: other.upper, usage: &usage)]
@@ -27,18 +27,7 @@ package struct OriginalRationalCoordinateRoot {
             return .init(lower: low, upper: high)
         }
     }
-    private struct DepthOffset<B: RationalAlgebraAdmitting>: RationalAlgebraAdmitting {
-        var base: B
-        let offset: Int
-        mutating func visitExactCell(depth: Int) throws {
-            try base.visitExactCell(depth: rationalAlgebraCount(offset, depth))
-        }
-        mutating func visitCoefficientCell(depth: Int) throws { try base.visitCoefficientCell(depth: depth) }
-        mutating func consumeExactWork(_ count: Int) throws { try base.consumeExactWork(count) }
-        mutating func retainExactStorage(_ count: Int) throws { try base.retainExactStorage(count) }
-    }
-
-    package static func coordinate<B: RationalAlgebraAdmitting>(numerator: ExactBivariatePolynomial,
+    package static func coordinate<B: ExactScalarAdmission & ~Copyable>(numerator: ExactBivariatePolynomial,
         denominator: ExactBivariatePolynomial, at endpoint: ExactMonotoneGraphEndpoint,
         maximumDepth: Int, usage: inout B) throws -> ExactMonotoneGraphEndpoint {
         guard numerator.vDegree <= 0, denominator.vDegree <= 0, !denominator.isZero,
@@ -84,12 +73,10 @@ package struct OriginalRationalCoordinateRoot {
                     guard maximumDepth >= current.depth else {
                         throw rationalAlgebraFailure("Original coordinate transport exceeded its retained source depth.")
                     }
-                    let roots: [ExactUnivariateRootIsolator.Root]
-                    do {
-                        var offset = DepthOffset(base: usage, offset: current.depth)
-                        defer { usage = offset.base }
-                        roots = try ExactUnivariateRootIsolator().isolate(projected, lower: range.lower,
-                            upper: range.upper, maximumDepth: maximumDepth - current.depth, usage: &offset)
+                    let roots = try usage.withProofScope(original: .init(value: 0, coefficient: 0),
+                        inherited: .init(value: current.depth, coefficient: 0)) { usage in
+                        try ExactUnivariateRootIsolator().isolate(projected, lower: range.lower,
+                            upper: range.upper, maximumDepth: maximumDepth - current.depth, usage: &usage)
                     }
                     guard !roots.isEmpty else {
                         throw rationalAlgebraFailure("Original coordinate resultant contradicts retained parameter existence.")
@@ -100,7 +87,7 @@ package struct OriginalRationalCoordinateRoot {
                             isRationalStation: source.isRationalStation,
                             isolationDepth: rationalAlgebraCount(current.depth, source.isolationDepth),
                             excludesLowerEndpoint: source.excludesLowerEndpoint, excludesUpperEndpoint: source.excludesUpperEndpoint)
-                        try usage.visitExactCell(depth: retained.isolationDepth)
+                        try usage.visitCell(axis: .value, depth: retained.isolationDepth)
                         return try .algebraic(ExactAlgebraicRealRoot(polynomial: projected, isolation: retained, usage: &usage))
                     }
                 }
@@ -114,7 +101,7 @@ package struct OriginalRationalCoordinateRoot {
         }
     }
 
-    private static func image<B: RationalAlgebraAdmitting>(_ polynomial: ExactBivariatePolynomial,
+    private static func image<B: ExactScalarAdmission & ~Copyable>(_ polynomial: ExactBivariatePolynomial,
         lower: ExactRationalCoefficient, upper: ExactRationalCoefficient,
         usage: inout B) throws -> Interval {
         let terms = try polynomial.orderedTerms(usage: &usage)
@@ -122,7 +109,7 @@ package struct OriginalRationalCoordinateRoot {
         let variable = Interval(lower: lower, upper: upper)
         var degree = max(0, polynomial.uDegree)
         while true {
-            try usage.consumeExactWork(max(1, terms.count))
+            try usage.consumeWork(max(1, terms.count))
             let coefficient = terms.first(where: { $0.0.u == degree && $0.0.v == 0 })?.1 ?? .zero
             value = try value.adding(coefficient, usage: &usage)
             if degree == 0 { return value }

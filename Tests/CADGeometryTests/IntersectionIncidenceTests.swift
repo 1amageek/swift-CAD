@@ -5,24 +5,56 @@ import Testing
 @Suite("Original quantified intersection incidence")
 struct IntersectionIncidenceTests {
     private typealias Polynomial = ExactIntersectionPolynomial
-    private struct Admission: RationalAlgebraAdmitting {
+    private struct Admission: ~Copyable, GeometryScalarTestAdmission {
+        var proofScopes = ExactScalarProofScopes()
         var work = 0, storage = 0, cells = 0
         var maximumWork = 10_000_000, maximumStorage = 10_000_000
-        mutating func consumeExactWork(_ count: Int) throws {
+        mutating func consumeWork(_ count: Int) throws(ExactScalarFailure) {
+            try checkpoint()
+            try proofScopes.checkWork(count)
+            do {
             guard count >= 0, count <= maximumWork - work else { throw exhausted("work") }; work += count
+        
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            proofScopes.recordWork(count)
+            try checkpoint()
         }
-        mutating func retainExactStorage(_ count: Int) throws {
+        mutating func retainStorage(bytes: Int) throws(ExactScalarFailure) {
+            try checkpoint()
+            let count = try geometryTestStorageWords(bytes)
+            do {
             guard count >= 0, count <= maximumStorage - storage else { throw exhausted("storage") }; storage += count
+        
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            try checkpoint()
         }
-        mutating func visitExactCell(depth: Int) throws {
-            guard depth >= 0, depth <= 24, cells < 100_000 else { throw exhausted("cells/depth") }; cells += 1
-        }
-        mutating func visitCoefficientCell(depth: Int) throws {
-            throw rationalAlgebraFailure("Rational incidence may not invent coefficient roots.")
-        }
+        
+        
         private func exhausted(_ reason: String) -> KernelError {
             .init(phase: .geometry, code: .resourceLimitExceeded, tolerance: nil,
                   message: "The original incidence caller exhausted \(reason): work=\(work), storage=\(storage), cells=\(cells).")
+        }
+            mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
+            try admitDepth(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+            let mapped = try proofScopes.mapped(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+            do {
+                switch (axis == .coefficient || proofScopes.exactDepthResource == .coefficientDepth) ? ExactScalarRootAxis.coefficient : .value {
+                case .value:
+                    let depth = mapped.value
+
+            guard depth >= 0, depth <= 24, cells < 100_000 else { throw exhausted("cells/depth") }; cells += 1
+        
+                case .coefficient:
+                    let depth = mapped.coefficient
+
+            throw rationalAlgebraFailure("Rational incidence may not invent coefficient roots.")
+        
+                }
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            try checkpoint()
         }
     }
 
@@ -40,11 +72,11 @@ struct IntersectionIncidenceTests {
         let coefficients = try mapped.axisCoefficients(at: 8, usage: &usage)
         #expect(coefficients.count == 3 && coefficients[0].isZero && coefficients[1].isZero)
         #expect(try coefficients[2].evaluated(at: values, usage: &usage) == .natural(3, usage: &usage))
-        #expect(throws: KernelError.self) { try original.remapped(to: 9, coordinates: [8, 8], usage: &usage) }
-        #expect(throws: KernelError.self) { try original.remapped(to: 9, coordinates: [8, 9], usage: &usage) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try original.remapped(to: 9, coordinates: [8, 8], usage: &usage) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try original.remapped(to: 9, coordinates: [8, 9], usage: &usage) }
         #expect(try Polynomial.zero(variableCount: 10).variableCount == 10)
-        #expect(throws: KernelError.self) { try Polynomial.zero(variableCount: 0) }
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try Polynomial.zero(variableCount: 0) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try Polynomial.monomial(variableCount: 9, powers: (0,0,0,0,0,0,0,0,Int.max), coefficient: .one, usage: &usage)
                 .multiplied(by: .coordinate(variableCount: 9, at: 8, usage: &usage), usage: &usage)
         }
@@ -58,7 +90,7 @@ struct IntersectionIncidenceTests {
             .subtracting(.constant(variableCount: 1, value: .one, usage: &usage), usage: &usage)
         let original = try OriginalRationalIntersectionCells.prepare(equations: [equation], variableCount: 1,
             domains: [nil], maximumDepth: 24, usage: &usage)
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try OriginalIntersectionCellCondition(partition: original, cellIndex: original.solutionCells[0], usage: &usage)
         }
         let partition = try OriginalRationalIntersectionCells.prepare(equations: [equation], variableCount: 1,
@@ -177,22 +209,22 @@ struct IntersectionIncidenceTests {
     @Test(.timeLimit(.minutes(1)))
     func malformedProgramsAndIndependentCallerLimitsFail() throws {
         var usage = Admission()
-        #expect(throws: KernelError.self) { try ExactIntersectionBooleanProgram(polynomialCount: 1, instructions: [.atom(1, .zero)], usage: &usage) }
-        #expect(throws: KernelError.self) { try ExactIntersectionBooleanProgram(polynomialCount: 0, instructions: [.and], usage: &usage) }
-        #expect(throws: KernelError.self) { try ExactIntersectionBooleanProgram(polynomialCount: 0, instructions: [.literal(true), .literal(false)], usage: &usage) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try ExactIntersectionBooleanProgram(polynomialCount: 1, instructions: [.atom(1, .zero)], usage: &usage) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try ExactIntersectionBooleanProgram(polynomialCount: 0, instructions: [.and], usage: &usage) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try ExactIntersectionBooleanProgram(polynomialCount: 0, instructions: [.literal(true), .literal(false)], usage: &usage) }
         let polynomial = try Polynomial.coordinate(variableCount: 1, at: 0, usage: &usage)
         let program = try ExactIntersectionBooleanProgram(polynomialCount: 1, instructions: [.atom(0, .zero)], usage: &usage)
         var noWork = Admission(); noWork.maximumWork = 0
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try ExactIntersectionQuantifiedCells.prepare(polynomials: [polynomial], program: program, variableCount: 1,
                 freeVariableCount: 0, quantifiers: [.exists], maximumDepth: 24, usage: &noWork)
         }
         var noStorage = Admission(); noStorage.maximumStorage = 0
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try ExactIntersectionQuantifiedCells.prepare(polynomials: [polynomial], program: program, variableCount: 1,
                 freeVariableCount: 0, quantifiers: [.exists], maximumDepth: 24, usage: &noStorage)
         }
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try ExactIntersectionQuantifiedCells.prepare(polynomials: [polynomial], program: program, variableCount: 1,
                 freeVariableCount: 0, quantifiers: [], maximumDepth: 24, usage: &usage)
         }
@@ -232,13 +264,13 @@ struct IntersectionIncidenceTests {
         #expect(try a.divided(by: a, maximumDepth: 24, usage: &usage).rationalValue(usage: &usage) == .one)
         let invalid = try OriginalSingularFieldElement(context: context,
             storage: .original(.constant(.zero, usage: &usage), .constant(.zero, usage: &usage)))
-        #expect(throws: KernelError.self) { try invalid.sign(maximumDepth: 24, usage: &usage) }
-        #expect(throws: KernelError.self) { try invalid.rationalValue(usage: &usage) }
-        #expect(throws: KernelError.self) { try invalid.adding(b, maximumDepth: 24, usage: &usage) }
-        #expect(throws: KernelError.self) { try invalid.multiplied(by: b, maximumDepth: 24, usage: &usage) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try invalid.sign(maximumDepth: 24, usage: &usage) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try invalid.rationalValue(usage: &usage) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try invalid.adding(b, maximumDepth: 24, usage: &usage) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try invalid.multiplied(by: b, maximumDepth: 24, usage: &usage) }
         let foreign = try OriginalSingularFieldContext(usage: &usage)
         let foreignValue = try OriginalSingularFieldElement.constant(.one, in: foreign, maximumDepth: 24, usage: &usage)
-        #expect(throws: KernelError.self) { try a.adding(foreignValue, maximumDepth: 24, usage: &usage) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try a.adding(foreignValue, maximumDepth: 24, usage: &usage) }
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -274,7 +306,7 @@ struct IntersectionIncidenceTests {
             do {
                 _ = try OriginalRationalIntersectionIncidence.prepare(partition: partition, maximumDepth: 24, usage: &usage)
                 Issue.record("Cancelled incidence cannot publish any closure.")
-            } catch is CancellationError { return usage.work - previous }
+            } catch let error where geometryTestIsCancelled(error) { return usage.work - previous }
             return -1
         }.value
         #expect(charged == 0)
@@ -292,7 +324,7 @@ struct IntersectionIncidenceTests {
         let partition = try OriginalRationalIntersectionCells.prepare(equations: [law, z], variableCount: 3,
             domains: [try .init(lower: 0, upper: 1), try .init(lower: -1, upper: 1), nil],
             thomEncoding: true, maximumDepth: 24, usage: &usage)
-        let origin = try #require(try partition.solutionCells.first { index in
+        let origin = try geometryTestRequire(try partition.solutionCells.first { index in
             let cell = partition.cells[index]
             if cell.dimension != 0 { return false }
             return try cell.coordinates[0].rationalValue(usage: &usage) == .zero
@@ -329,7 +361,7 @@ struct IntersectionIncidenceTests {
         let projection = try ExactIntersectionProjection.prepare(sources: [repeated, a, b], variableCount: 3,
             axis: 2, usage: &usage)
         #expect(projection.sources == [repeated, a, b])
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try ExactIntersectionPolynomialGCD.gcd(a, .coordinate(variableCount: 2, at: 1, usage: &usage), usage: &usage)
         }
     }
@@ -404,9 +436,9 @@ struct IntersectionIncidenceTests {
             }
         }
         var noWork = Admission(); noWork.maximumWork = 0
-        #expect(throws: KernelError.self) { try incidence.connectedComponents(usage: &noWork) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try incidence.connectedComponents(usage: &noWork) }
         var noStorage = Admission(); noStorage.maximumStorage = 0
-        #expect(throws: KernelError.self) { try incidence.connectedComponents(usage: &noStorage) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try incidence.connectedComponents(usage: &noStorage) }
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -424,7 +456,7 @@ struct IntersectionIncidenceTests {
         let allExcluded = try OriginalRationalIntersectionCells.prepare(equations: [y, z], variableCount: 3,
             domains: [nil, nil, nil], nonzeroPolynomials: [y], thomEncoding: true, maximumDepth: 24, usage: &usage)
         #expect(allExcluded.solutionCells.isEmpty && !allExcluded.cells.isEmpty)
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try OriginalRationalIntersectionCells.prepare(equations: [y, z], variableCount: 3,
                 domains: [nil, nil, nil], nonzeroPolynomials: [.coordinate(variableCount: 2, at: 0, usage: &usage)],
                 thomEncoding: true, maximumDepth: 24, usage: &usage)
@@ -454,7 +486,7 @@ struct IntersectionIncidenceTests {
         #expect(components.components.count == 2)
         for component in components.components {
             let first = try #require(component.cellIndexes.first)
-            let height = try #require(try partition.cells[first].coordinates[1].rationalValue(usage: &usage))
+            let height = try geometryTestRequire(try partition.cells[first].coordinates[1].rationalValue(usage: &usage))
             #expect(height == lower || height == upper)
             for index in component.cellIndexes {
                 #expect(try partition.cells[index].coordinates[1].rationalValue(usage: &usage) == height)
@@ -473,7 +505,7 @@ struct IntersectionIncidenceTests {
         let partition = try OriginalRationalIntersectionCells.prepare(equations: [], variableCount: 1,
             domains: [nil], thomEncoding: true, maximumDepth: 24, usage: &usage)
         for index in [-1, partition.cells.count] {
-            #expect(throws: KernelError.self) {
+            geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
                 try OriginalFiniteBranchClosure.prepare(partition: partition, cellIndex: index, maximumDepth: 24, usage: &usage)
             }
         }
@@ -486,9 +518,9 @@ struct IntersectionIncidenceTests {
             withUnsafeCurrentTask { $0?.cancel() }
             var failures = 0
             do { _ = try OriginalRationalIntersectionIncidence.prepare(partition: empty, maximumDepth: 24, usage: &admission) }
-            catch is CancellationError { failures += 1 }
+            catch let error where geometryTestIsCancelled(error) { failures += 1 }
             do { _ = try incidence.connectedComponents(usage: &admission) }
-            catch is CancellationError { failures += 1 }
+            catch let error where geometryTestIsCancelled(error) { failures += 1 }
             return failures == 2
         }.value
         #expect(cancelled)
@@ -512,7 +544,7 @@ struct IntersectionIncidenceTests {
             domains: [nil, try .init(lower: 0, upper: 1)], thomEncoding: true, maximumDepth: 24, usage: &usage)
         let source = try #require(tower.solutionCells.first { tower.cells[$0].dimension == 1 })
         #expect(tower.cells[source].admissionDepth > 0)
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try OriginalIntersectionCellClosure.prepare(partition: tower, cellIndex: source, maximumDepth: 0, usage: &usage)
         }
     }

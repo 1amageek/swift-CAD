@@ -6,19 +6,23 @@ import CADTopology
 /// Composes original graph receipts into a checked, non-fallback mesh recipe.
 struct OriginalGraphBandMeshAssembler {
     typealias Counts = (SurfaceTessellationDifferentialBounds, (Double, Double),
-                        TessellationOptions, (Int, Int)) throws -> (u: Int, v: Int)
+                        TessellationOptions, (Int, Int), inout OriginalQueryExecution) throws -> (u: Int, v: Int)
     typealias Triangle = (UInt32, UInt32, UInt32, [Point3D], [Vector3D],
-                         inout [UInt32], inout TessellationBudget) throws -> Bool
+                         inout [UInt32], inout TessellationBudget, inout OriginalQueryExecution) throws -> Bool
 
     func prepare(face: Face, loop: Loop, surface: BSplineSurface3D, model: BRepModel,
                  options: TessellationOptions, tolerance: ModelingTolerance,
-                 proofBudget: TessellationProofBudget,
+                 using execution: inout OriginalQueryExecution,
                  preferredCounts: Counts) throws -> OriginalGraphBandMeshPlan? {
         // Rectangles and other surface families retain their existing explicit route.
         guard loop.coedges.contains(where: {
             if case .bSpline? = $0.surfaceParameterCurve { return true }
             return false
         }) else { return nil }
+        let contribution = try execution.makeContributionHandle(workLimit: 262_144, cellLimit: 262_144,
+            allocationPolicy: execution.effectiveAllocationPolicy, executionLimits: try .init(maximumValueDepth: Int.max, maximumCoefficientDepth: Int.max,
+                maximumCells: 262_144, maximumSubdivisionDepth: 32))
+        return try execution.withContributionScope(contribution) { execution in
         let request = min(tolerance.distance, options.linearTolerance / 4)
         guard request.isFinite, request > 0 else {
             throw failure(.invalidInput, tolerance, "Graph mesh correspondence needs a representable positive allowance.")
@@ -31,7 +35,7 @@ struct OriginalGraphBandMeshAssembler {
         var directedIDs: [(VertexID, VertexID)] = []
         var deviation = 0.0
         for coedge in loop.coedges {
-            try Task.checkCancellation()
+            try execution.checkpoint()
             guard let edge = model.edges[coedge.edgeID],
                   let curve = model.geometry.curves[edge.curveID],
                   let start = model.vertices[edge.startVertexID],
@@ -53,13 +57,13 @@ struct OriginalGraphBandMeshAssembler {
             vertices.append(forward ? start.point : end.point)
             pcurves.append(pcurve)
             // FIXME(INCOMPLETE_IMPLEMENTATION): Public graph mesh preflight
-            // still uses the legacy original correspondence certificate producer
-            // with its local allowance. Complete invocation work/storage bounds
-            // require its actual caller-ledger port before this branch can claim
-            // full M2/M3 accounting; an outer phase debit is not that proof.
+            // now calls the original correspondence producer on the same execution.
+            // This compile-binding batch does not establish complete public packet
+            // work/storage behavior; actual graph preparation and facet emission
+            // must pass unchanged M2/M3 oracles before full accounting is claimed.
             let certificate = try OriginalCurveSurfaceCorrespondenceCertifier().certify(
                 curve: curve, from: from, to: to, surface: .bSpline(surface), parameterCurve: pcurve,
-                options: correspondenceOptions, tolerance: tolerance)
+                options: correspondenceOptions, tolerance: tolerance, using: &execution)
             deviation = max(deviation, certificate.achievedUpperBound)
             uses.append(.init(coedge: coedge, edge: edge, curve: curve,
                 startVertex: start, endVertex: end, from: from, to: to,
@@ -73,25 +77,23 @@ struct OriginalGraphBandMeshAssembler {
                 throw failure(.invalidInput, tolerance, "Original graph coedge vertex identities do not close in use order.")
             }
         }
-        let chains = try candidates(pcurves, tolerance: tolerance, proofBudget: proofBudget)
+        let chains = try candidates(pcurves, tolerance: tolerance, using: &execution)
         let remainder = (OutwardScalarInterval.exact(options.linearTolerance) - .exact(deviation)).lower
         guard remainder.isFinite, remainder > 0 else {
             throw failure(.unsupportedCapability, tolerance, "Original spatial correspondence consumes the graph mesh allowance.")
         }
-        var usage = try OriginalTessellationProofUsage(maximumCellCount: proofBudget.remaining,
-            tolerance: tolerance, consumeWork: { _ in try proofBudget.charge() })
         let receipt = try DefaultOriginalRationalGraphBandCertifier().certify(
             input: .init(surface: surface, boundaries: pcurves, sharedVertices: vertices,
                          lowerChain: chains.lower, upperChain: chains.upper),
             fidelity: .init(linearTolerance: remainder,
                 angularTolerance: min(options.angularTolerance, Double.pi),
                 maximumEdgeLength: options.maxEdgeLength ?? Double.greatestFiniteMagnitude),
-            tolerance: tolerance, proofUsage: &usage)
+            tolerance: tolerance, contribution: contribution, using: &execution)
         var cellOptions: [TessellationOptions] = []
         var preliminary: [(u: Int, v: Int)] = []
         var wSteps = 1
         for cell in receipt.referenceCells {
-            try usage.consume(depth: 0, tolerance: tolerance)
+            try execution.visitGeometricCell(depth: 0)
             let linear = (OutwardScalarInterval.exact(remainder)
                 - .exact(cell.boundaryUncertaintyUpperBound)).lower
             let angular = (OutwardScalarInterval.exact(receipt.fidelity.angularTolerance)
@@ -102,16 +104,16 @@ struct OriginalGraphBandMeshAssembler {
             let proofOptions = TessellationOptions(linearTolerance: linear,
                 angularTolerance: angular, maxEdgeLength: options.maxEdgeLength)
             cellOptions.append(proofOptions)
-            let counts = try preferredCounts(cell.bounds, (cell.u.lower, cell.u.upper), proofOptions, (1, 1))
+            let counts = try preferredCounts(cell.bounds, (cell.u.lower, cell.u.upper), proofOptions, (1, 1), &execution)
             preliminary.append(counts)
             wSteps = max(wSteps, counts.v)
         }
         var grids: [OriginalGraphBandMeshPlan.Grid] = []
         var vertexCount = 0, indexCount = 0
         for (index, cell) in receipt.referenceCells.enumerated() {
-            try usage.consume(depth: 0, tolerance: tolerance)
+            try execution.visitGeometricCell(depth: 0)
             let counts = try preferredCounts(cell.bounds, (cell.u.lower, cell.u.upper),
-                cellOptions[index], (preliminary[index].u, wSteps))
+                cellOptions[index], (preliminary[index].u, wSteps), &execution)
             guard counts.v == wSteps else {
                 throw failure(.resourceLimitExceeded, tolerance, "Original graph grids did not retain compatible vertical stations.")
             }
@@ -120,16 +122,17 @@ struct OriginalGraphBandMeshAssembler {
             indexCount = try sum(indexCount, product(product(counts.u, wSteps, tolerance), 6, tolerance), tolerance)
             grids.append(.init(cellIndex: index, uSteps: counts.u))
         }
-        let tips = try capPlans(receipt, tolerance: tolerance)
+        let tips = try capPlans(receipt, tolerance: tolerance, using: &execution)
         vertexCount = try sum(vertexCount, tips.count, tolerance)
         indexCount = try sum(indexCount, product(product(tips.count, wSteps, tolerance), 3, tolerance), tolerance)
         guard vertexCount <= Int(UInt32.max) else {
             throw failure(.resourceLimitExceeded, tolerance, "Original graph mesh vertices exceed representable indices.")
         }
-        try Task.checkCancellation()
+        try execution.checkpoint()
         return OriginalGraphBandMeshPlan(face: face, loop: loop, options: options, tolerance: tolerance,
             correspondenceOptions: correspondenceOptions, uses: uses, receipt: receipt, grids: grids,
-            wSteps: wSteps, tips: tips, vertexCount: vertexCount, indexCount: indexCount, proofUsage: usage)
+            wSteps: wSteps, tips: tips, vertexCount: vertexCount, indexCount: indexCount, proofContribution: contribution)
+        }
     }
 
     // FIXME(INCOMPLETE_IMPLEMENTATION): Original interior-control statistics only label
@@ -137,25 +140,25 @@ struct OriginalGraphBandMeshAssembler {
     // original coefficient authority; a failed whole graph receipt must never be retried
     // with a swapped assignment, sampled trim or fresh proof allowance.
     private func candidates(_ curves: [SurfaceParameterCurve], tolerance: ModelingTolerance,
-        proofBudget: TessellationProofBudget)
+        using execution: inout OriginalQueryExecution)
       throws -> (lower: [OriginalGraphBandInput.Use], upper: [OriginalGraphBandInput.Use]) {
         var increasing: [Bool] = []
         var statistics: [(sum: Double, count: Int)] = []
         for curve in curves {
-            try proofBudget.charge()
+           try execution.consumeWork(1)
             let start: Double, end: Double
             var total = 0.0, count = 0
             switch curve {
             case let .constantV(v, uStart, uEnd):
                 start = uStart; end = uEnd; total = v; count = 1
             case let .bSpline(spline):
-                try spline.validate(tolerance: tolerance, consumeWork: { try proofBudget.charge() })
+                try spline.validate(tolerance: tolerance, using: &execution)
                 guard let first = spline.controlPoints.first, let last = spline.controlPoints.last else {
                     throw failure(.invalidInput, tolerance, "Original graph candidate controls are empty.")
                 }
                 start = first.x; end = last.x
                 for point in spline.controlPoints.dropFirst().dropLast() {
-                    try proofBudget.charge(); total += point.y; count += 1
+                   try execution.consumeWork(1); total += point.y; count += 1
                 }
                 if count == 0 { total = first.y * 0.5 + last.y * 0.5; count = 1 }
             default:
@@ -195,12 +198,12 @@ struct OriginalGraphBandMeshAssembler {
         guard positiveMean != negativeMean else {
             throw failure(.unsupportedCapability, tolerance, "Original graph candidates have no distinct control-statistic label.")
         }
-        let a = positive.map { OriginalGraphBandInput.Use(boundaryIndex: $0) }
-        let b = negative.reversed().map { OriginalGraphBandInput.Use(boundaryIndex: $0, reversed: true) }
+        let a = positive.map { index in OriginalGraphBandInput.Use(boundaryIndex: index) }
+        let b = negative.reversed().map { index in OriginalGraphBandInput.Use(boundaryIndex: index, reversed: true) }
         return positiveMean < negativeMean ? (a, b) : (b, a)
     }
 
-    private func capPlans(_ receipt: OriginalGraphBandReceipt, tolerance: ModelingTolerance)
+    private func capPlans(_ receipt: OriginalGraphBandReceipt, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution)
       throws -> [OriginalGraphBandMeshPlan.Tip] {
         guard let first = receipt.referenceCells.first, let last = receipt.referenceCells.last else {
             throw failure(.unsupportedCapability, tolerance, "Original graph caps require a complete nonempty reference strip.")
@@ -237,8 +240,9 @@ struct OriginalGraphBandMeshAssembler {
                 positions: inout [Point3D], normals: inout [Vector3D],
                 indices: inout [UInt32], budget: inout TessellationBudget,
                 parameter: (Double, Double, Int, Int) -> Double,
-                appendTriangle: Triangle) throws {
-        try plan.validateBinding(model: model, faceID: faceID, options: options, tolerance: tolerance)
+                appendTriangle: Triangle, using execution: inout OriginalQueryExecution) throws {
+        try execution.withContributionScope(plan.proofContribution) { execution in
+        try plan.validateBinding(model: model, faceID: faceID, options: options, tolerance: tolerance, using: &execution)
         let total = positions.count.addingReportingOverflow(plan.vertexCount)
         guard !total.overflow, total.partialValue <= Int(UInt32.max) else {
             throw failure(.resourceLimitExceeded, tolerance, "Original graph emission exceeds representable vertex indices.")
@@ -249,13 +253,13 @@ struct OriginalGraphBandMeshAssembler {
         let initialVertices = positions.count, initialIndices = indices.count
         let receipt = plan.receipt
         var facet = try OriginalGraphBandMeshPlan.FacetScratch(
-            proofUsage: &plan.proofUsage, tolerance: tolerance)
+            using: &execution, tolerance: tolerance)
         let reversed = (plan.face.orientation == .reversed) != (shellOrientation == .reversed)
         var previous: [OriginalGraphBandReceipt.Station]? = nil
         var first: [OriginalGraphBandReceipt.Station] = []
         var firstBase: UInt32 = 0, lastBase: UInt32 = 0
         for grid in plan.grids {
-            try Task.checkCancellation()
+            try execution.checkpoint()
             let cell = receipt.referenceCells[grid.cellIndex]
             var row: [OriginalGraphBandReceipt.Station] = []
             var rowBase: UInt32 = 0
@@ -264,7 +268,7 @@ struct OriginalGraphBandMeshAssembler {
                 let nextBase = UInt32(positions.count)
                 let next = try materializeRow(receipt: receipt, cellIndex: grid.cellIndex,
                     u: u, wSteps: plan.wSteps, candidates: uIndex == 0 ? previous : nil,
-                    reversed: reversed, proofUsage: &plan.proofUsage,
+                    reversed: reversed, using: &execution,
                     positions: &positions, normals: &normals, parameter: parameter)
                 if grid.cellIndex == 0, uIndex == 0 { first = next; firstBase = nextBase }
                 if uIndex > 0 {
@@ -275,14 +279,14 @@ struct OriginalGraphBandMeshAssembler {
                                             ids: (a, b, c), positions: positions)
                         try referenceTriangle(receipt: receipt, cellIndex: grid.cellIndex, faceID: faceID,
                             facet: facet,
-                            reversed: reversed, proofUsage: &plan.proofUsage,
+                            reversed: reversed, using: &execution,
                             positions: positions, normals: normals, indices: &indices,
                             budget: &budget, appendTriangle: appendTriangle)
                         facet.bindReference(row[w], next[w + 1], row[w + 1],
                                             ids: (a, c, d), positions: positions)
                         try referenceTriangle(receipt: receipt, cellIndex: grid.cellIndex, faceID: faceID,
                             facet: facet,
-                            reversed: reversed, proofUsage: &plan.proofUsage,
+                            reversed: reversed, using: &execution,
                             positions: positions, normals: normals, indices: &indices,
                             budget: &budget, appendTriangle: appendTriangle)
                     }
@@ -309,11 +313,11 @@ struct OriginalGraphBandMeshAssembler {
                 facet.bindFacet(ids: (apex, base + UInt32(w), base + UInt32(w + 1)),
                     normals: (rawNormal, row[w].normal, row[w + 1].normal), positions: positions)
                 try validateSignedNormals(ids: facet.ids, raw: facet.normals, reversed: reversed,
-                                          actual: normals, tolerance: tolerance)
+                                          actual: normals, tolerance: tolerance, using: &execution)
                 try receipt.admitJoinFacet(joinIndex: tip.joinIndex, panelIndex: tip.panelIndex,
-                    positions: facet.positions, normals: facet.normals, proofUsage: &plan.proofUsage)
+                    positions: facet.positions, normals: facet.normals, using: &execution)
                 guard try appendTriangle(facet.ids[0], facet.ids[1], facet.ids[2],
-                                         positions, normals, &indices, &budget) else {
+                                         positions, normals, &indices, &budget, &execution) else {
                     throw TessellationError.degenerateFace(faceID)
                 }
             }
@@ -322,22 +326,23 @@ struct OriginalGraphBandMeshAssembler {
               indices.count - initialIndices == plan.indexCount else {
             throw failure(.resourceLimitExceeded, tolerance, "Original graph emission differs from its retained preflight counts.")
         }
-        try Task.checkCancellation()
+        try execution.checkpoint()
+        }
     }
 
     private func materializeRow(receipt: OriginalGraphBandReceipt, cellIndex: Int,
                                 u: Double, wSteps: Int,
                                 candidates: [OriginalGraphBandReceipt.Station]?, reversed: Bool,
-                                proofUsage: inout OriginalTessellationProofUsage,
+                                using execution: inout OriginalQueryExecution,
                                 positions: inout [Point3D], normals: inout [Vector3D],
                                 parameter: (Double, Double, Int, Int) -> Double)
       throws -> [OriginalGraphBandReceipt.Station] {
-        let row = try receipt.stationRow(cellIndex: cellIndex, u: u, proofUsage: &proofUsage)
+        let row = try receipt.stationRow(cellIndex: cellIndex, u: u, using: &execution)
         var result: [OriginalGraphBandReceipt.Station] = []
         for index in 0...wSteps {
             let w = parameter(0, 1, index, wSteps)
             let station = try receipt.station(row: row, w: w,
-                pointCandidate: candidates?[index].point, proofUsage: &proofUsage)
+                pointCandidate: candidates?[index].point, using: &execution)
             result.append(station)
             positions.append(station.point)
             normals.append(reversed ? -station.normal : station.normal)
@@ -347,22 +352,22 @@ struct OriginalGraphBandMeshAssembler {
 
     private func referenceTriangle(receipt: OriginalGraphBandReceipt, cellIndex: Int, faceID: FaceID,
                                    facet: OriginalGraphBandMeshPlan.FacetScratch,
-                                   reversed: Bool, proofUsage: inout OriginalTessellationProofUsage,
+                                   reversed: Bool, using execution: inout OriginalQueryExecution,
                                    positions: [Point3D], normals: [Vector3D],
                                    indices: inout [UInt32], budget: inout TessellationBudget,
                                    appendTriangle: Triangle) throws {
         try validateSignedNormals(ids: facet.ids, raw: facet.normals, reversed: reversed,
-                                  actual: normals, tolerance: receipt.tolerance)
+                                  actual: normals, tolerance: receipt.tolerance, using: &execution)
         try receipt.admitReferenceFacet(cellIndex: cellIndex, stations: facet.stations,
-            positions: facet.positions, normals: facet.normals, proofUsage: &proofUsage)
+            positions: facet.positions, normals: facet.normals, using: &execution)
         guard try appendTriangle(facet.ids[0], facet.ids[1], facet.ids[2],
-                                 positions, normals, &indices, &budget) else {
+                                 positions, normals, &indices, &budget, &execution) else {
             throw TessellationError.degenerateFace(faceID)
         }
     }
 
     private func validateSignedNormals(ids: [UInt32], raw: [Vector3D], reversed: Bool,
-                                       actual: [Vector3D], tolerance: ModelingTolerance) throws {
+                                       actual: [Vector3D], tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
         guard ids.indices.allSatisfy({ actual[Int(ids[$0])] == (reversed ? -raw[$0] : raw[$0]) }) else {
             throw failure(.invalidInput, tolerance, "Published graph normals differ from the admitted original orientation transform.")
         }

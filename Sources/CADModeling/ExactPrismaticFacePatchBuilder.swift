@@ -26,17 +26,8 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
         sideOrientation: Orientation = .forward,
         capNormal: Vector3D? = nil
     ) throws -> BRepSewingRequest {
-        try request(
-            boundaries: [boundary],
-            axis: axis,
-            height: height,
-            featureID: featureID,
-            stablePrefix: stablePrefix,
-            bodyKind: bodyKind,
-            includesCaps: includesCaps,
-            sideOrientation: sideOrientation,
-            capNormal: capNormal
-        )
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try request(boundary: boundary, axis: axis, height: height, featureID: featureID, stablePrefix: stablePrefix, bodyKind: bodyKind, includesCaps: includesCaps, sideOrientation: sideOrientation, capNormal: capNormal, using: &execution)
     }
 
     package func request(
@@ -50,6 +41,75 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
         sideOrientation: Orientation = .forward,
         capNormal: Vector3D? = nil
     ) throws -> BRepSewingRequest {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try request(boundaries: boundaries, axis: axis, height: height, featureID: featureID, stablePrefix: stablePrefix, bodyKind: bodyKind, includesCaps: includesCaps, sideOrientation: sideOrientation, capNormal: capNormal, using: &execution)
+    }
+
+    package func request(
+        outerBoundary: [ExactPrismaticBoundarySegment],
+        innerBoundaries: [[ExactPrismaticBoundarySegment]],
+        axis: Vector3D,
+        height: Double,
+        featureID: FeatureID,
+        stablePrefix: String,
+        bodyKind: BodyKind = .solid,
+        includesCaps: Bool = true,
+        sideOrientation: Orientation = .forward,
+        capNormal: Vector3D? = nil
+    ) throws -> BRepSewingRequest {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try request(outerBoundary: outerBoundary, innerBoundaries: innerBoundaries, axis: axis, height: height, featureID: featureID, stablePrefix: stablePrefix, bodyKind: bodyKind, includesCaps: includesCaps, sideOrientation: sideOrientation, capNormal: capNormal, using: &execution)
+    }
+
+    package func request(
+        bottom: [[ExactPrismaticBoundarySegment]],
+        top: [[ExactPrismaticBoundarySegment]],
+        featureID: FeatureID,
+        stablePrefix: String,
+        bodyKind: BodyKind = .solid,
+        includesCaps: Bool = true,
+        sideOrientation: Orientation = .forward,
+        capNormal: Vector3D
+    ) throws -> BRepSewingRequest {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try request(bottom: bottom, top: top, featureID: featureID, stablePrefix: stablePrefix, bodyKind: bodyKind, includesCaps: includesCaps, sideOrientation: sideOrientation, capNormal: capNormal, using: &execution)
+    }
+
+    package func request(
+        boundary: [ExactPrismaticBoundarySegment],
+        axis: Vector3D,
+        height: Double,
+        featureID: FeatureID,
+        stablePrefix: String,
+        bodyKind: BodyKind = .solid,
+        includesCaps: Bool = true,
+        sideOrientation: Orientation = .forward,
+        capNormal: Vector3D? = nil
+    , using execution: inout OriginalQueryExecution) throws -> BRepSewingRequest {
+        try request(
+            boundaries: [boundary],
+            axis: axis,
+            height: height,
+            featureID: featureID,
+            stablePrefix: stablePrefix,
+            bodyKind: bodyKind,
+            includesCaps: includesCaps,
+            sideOrientation: sideOrientation,
+            capNormal: capNormal
+        , using: &execution)
+    }
+
+    package func request(
+        boundaries: [[ExactPrismaticBoundarySegment]],
+        axis: Vector3D,
+        height: Double,
+        featureID: FeatureID,
+        stablePrefix: String,
+        bodyKind: BodyKind = .solid,
+        includesCaps: Bool = true,
+        sideOrientation: Orientation = .forward,
+        capNormal: Vector3D? = nil
+    , using execution: inout OriginalQueryExecution) throws -> BRepSewingRequest {
         try tolerance.validate()
         let axis = try axis.normalized(tolerance: tolerance.distance)
         let capNormal = try (capNormal ?? axis).normalized(
@@ -68,7 +128,7 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
             )
         }
         for boundary in boundaries {
-            try validateClosure(boundary)
+            try validateClosure(boundary, using: &execution)
         }
         let shells = try boundaries.enumerated().map { index, boundary in
             let componentPrefix = boundaries.count == 1
@@ -83,7 +143,7 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
                 includesCaps: includesCaps,
                 sideOrientation: sideOrientation,
                 capNormal: capNormal
-            )
+            , using: &execution)
         }
         return BRepSewingRequest(
             featureID: featureID,
@@ -103,7 +163,7 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
         includesCaps: Bool = true,
         sideOrientation: Orientation = .forward,
         capNormal: Vector3D? = nil
-    ) throws -> BRepSewingRequest {
+    , using execution: inout OriginalQueryExecution) throws -> BRepSewingRequest {
         try tolerance.validate()
         let axis = try axis.normalized(tolerance: tolerance.distance)
         let capNormal = try (capNormal ?? axis).normalized(
@@ -123,7 +183,7 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
             )
         }
         for boundary in boundaries {
-            try validateClosure(boundary)
+            try validateClosure(boundary, using: &execution)
         }
         return BRepSewingRequest(
             featureID: featureID,
@@ -137,7 +197,7 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
                 includesCaps: includesCaps,
                 sideOrientation: sideOrientation,
                 capNormal: capNormal
-            )]
+            , using: &execution)]
         )
     }
 
@@ -154,7 +214,7 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
         includesCaps: Bool = true,
         sideOrientation: Orientation = .forward,
         capNormal: Vector3D
-    ) throws -> BRepSewingRequest {
+    , using execution: inout OriginalQueryExecution) throws -> BRepSewingRequest {
         try tolerance.validate()
         let capNormal = try capNormal.normalized(tolerance: tolerance.distance)
         guard bottom.isEmpty == false, bottom.count == top.count,
@@ -163,17 +223,17 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
             throw KernelError(phase: .topology, code: .invalidInput, tolerance: tolerance,
                               message: "A drafted prism needs corresponding closed bottom and top boundaries.")
         }
-        for boundary in bottom + top { try validateClosure(boundary) }
+        for boundary in bottom + top { try validateClosure(boundary, using: &execution) }
         var patches: [BRepSewingFacePatch] = []
         if includesCaps {
             patches.append(try capPatch(
                 outerBoundary: bottom[0], innerBoundaries: Array(bottom.dropFirst()), capNormal: capNormal,
                 offset: .zero, isTop: false, stableID: "\(stablePrefix):cap:lower"
-            ))
+            , using: &execution))
             patches.append(try capPatch(
                 outerBoundary: top[0], innerBoundaries: Array(top.dropFirst()), capNormal: capNormal,
                 offset: .zero, isTop: true, stableID: "\(stablePrefix):cap:upper"
-            ))
+            , using: &execution))
         }
         // With caps, one shell whose holes are inner loops; without, one shell per loop, named as a
         // component when there are several.
@@ -189,7 +249,7 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
                 sides.append(try taperedSidePatch(
                     bottom: segments.0, top: segments.1, stableID: "\(loopPrefix):side:\(index)",
                     requestedOrientation: sideOrientation
-                ))
+                , using: &execution))
             }
             if includesCaps {
                 patches.append(contentsOf: sides)
@@ -208,7 +268,7 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
         top: ExactPrismaticBoundarySegment,
         stableID: String,
         requestedOrientation: Orientation
-    ) throws -> BRepSewingFacePatch {
+    , using execution: inout OriginalQueryExecution) throws -> BRepSewingFacePatch {
         let surface: Surface3D
         var ruled: (lower: Double, upper: Double)?
         var naturalOrientation = Orientation.forward
@@ -235,9 +295,9 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
                 uDegree: lower.degree, vDegree: 1, uKnots: lower.knots, vKnots: [0, 0, 1, 1],
                 controlPoints: [lower.controlPoints, upper.controlPoints], weights: [lower.weights, upper.weights]
             )
-            try ruledSurface.validate(tolerance: tolerance)
+            try ruledSurface.validate(tolerance: tolerance, using: &execution)
             surface = .bSpline(ruledSurface)
-            ruled = try ruledSurfaceParameters(for: bottom)
+            ruled = try ruledSurfaceParameters(for: bottom, using: &execution)
         case let (.circularArc(lower, start, end), .circularArc(upper, _, _)):
             // Two coaxial arcs: the cylinder or cone through both, its apex where the radius
             // running from one to the other reaches the axis.
@@ -260,10 +320,10 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
             }
             // The wall's normal as its loop runs (along the bottom arc, then up), against the surface's own.
             let middle = 0.5 * (start + end)
-            let at = try Curve3D.circle(lower).point(at: middle, tolerance: tolerance)
-            let along = try Curve3D.circle(lower).point(at: middle + 0.01 * (end - start), tolerance: tolerance) - at
-            let up = (try Curve3D.circle(upper).point(at: middle, tolerance: tolerance)) - at
-            let parameters = try surface.parameterProjection(of: at, tolerance: tolerance)
+            let at = try Curve3D.circle(lower).point(at: middle, tolerance: tolerance, using: &execution)
+            let along = try Curve3D.circle(lower).point(at: middle + 0.01 * (end - start), tolerance: tolerance, using: &execution) - at
+            let up = (try Curve3D.circle(upper).point(at: middle, tolerance: tolerance, using: &execution)) - at
+            let parameters = try surface.parameterProjection(of: at, tolerance: tolerance, using: &execution)
             if try surface.normal(u: parameters.u, v: parameters.v, tolerance: tolerance).dot(along.cross(up)) < 0 {
                 naturalOrientation = .reversed
             }
@@ -274,21 +334,21 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
         let bottomEdge = try boundaryEdge(
             bottom, offset: .zero, reversed: false, surface: surface,
             ruledSurfaceV: ruled == nil ? nil : 0.0, stableID: "\(stableID):bottom"
-        )
+        , using: &execution)
         let endEdge = try lineEdge(
             from: bottom.endPoint, to: top.endPoint, surface: surface,
             surfaceParameterCurve: ruled.map { .constantU(u: $0.upper, vStart: 0.0, vEnd: 1.0) },
             stableID: "\(stableID):end"
-        )
+        , using: &execution)
         let topEdge = try boundaryEdge(
             top, offset: .zero, reversed: true, surface: surface,
             ruledSurfaceV: ruled == nil ? nil : 1.0, stableID: "\(stableID):top"
-        )
+        , using: &execution)
         let startEdge = try lineEdge(
             from: top.startPoint, to: bottom.startPoint, surface: surface,
             surfaceParameterCurve: ruled.map { .constantU(u: $0.lower, vStart: 1.0, vEnd: 0.0) },
             stableID: "\(stableID):start"
-        )
+        , using: &execution)
         return BRepSewingFacePatch(
             stableID: stableID,
             surface: surface,
@@ -306,7 +366,7 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
         includesCaps: Bool,
         sideOrientation: Orientation,
         capNormal: Vector3D
-    ) throws -> BRepSewingShell {
+    , using execution: inout OriginalQueryExecution) throws -> BRepSewingShell {
         let topOffset = axis * height
         var patches: [BRepSewingFacePatch] = []
         if includesCaps {
@@ -317,7 +377,7 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
                 offset: .zero,
                 isTop: false,
                 stableID: "\(stablePrefix):cap:lower"
-            ))
+            , using: &execution))
             patches.append(try capPatch(
                 outerBoundary: outerBoundary,
                 innerBoundaries: innerBoundaries,
@@ -325,7 +385,7 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
                 offset: topOffset,
                 isTop: true,
                 stableID: "\(stablePrefix):cap:upper"
-            ))
+            , using: &execution))
         }
         for (loopIndex, boundary) in ([outerBoundary] + innerBoundaries).enumerated() {
             let loopPrefix = loopIndex == 0
@@ -339,7 +399,7 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
                     height: height,
                     stableID: "\(loopPrefix):side:\(index)",
                     requestedOrientation: sideOrientation
-                )
+                , using: &execution)
             })
         }
         return BRepSewingShell(
@@ -350,7 +410,7 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
 
     private func validateClosure(
         _ boundary: [ExactPrismaticBoundarySegment]
-    ) throws {
+    , using execution: inout OriginalQueryExecution) throws {
         for index in boundary.indices {
             let next = boundary[(index + 1) % boundary.count]
             guard boundary[index].endPoint.isApproximatelyEqual(
@@ -374,7 +434,7 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
         offset: Vector3D,
         isTop: Bool,
         stableID: String
-    ) throws -> BRepSewingFacePatch {
+    , using execution: inout OriginalQueryExecution) throws -> BRepSewingFacePatch {
         guard let first = outerBoundary.first else {
             throw FeatureEvaluationError.emptyResult(
                 "Exact prismatic cap has no boundary."
@@ -398,7 +458,7 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
                     reversed: isTop == false,
                     surface: surface,
                     stableID: "\(loopPrefix):edge:\(index)"
-                )
+                , using: &execution)
             }
             return BRepSewingLoop(
                 stableID: "\(loopPrefix):loop",
@@ -421,7 +481,7 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
         height: Double,
         stableID: String,
         requestedOrientation: Orientation
-    ) throws -> BRepSewingFacePatch {
+    , using execution: inout OriginalQueryExecution) throws -> BRepSewingFacePatch {
         let topOffset = axis * height
         let surface: Surface3D
         let orientation: Orientation
@@ -449,11 +509,11 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
                 curve: curve,
                 axis: axis,
                 height: height
-            ))
+            , using: &execution))
             orientation = .forward
         }
 
-        let ruledParameters = try ruledSurfaceParameters(for: segment)
+        let ruledParameters = try ruledSurfaceParameters(for: segment, using: &execution)
         let bottom = try boundaryEdge(
             segment,
             offset: .zero,
@@ -461,7 +521,7 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
             surface: surface,
             ruledSurfaceV: ruledParameters == nil ? nil : 0.0,
             stableID: "\(stableID):bottom"
-        )
+        , using: &execution)
         let end = try lineEdge(
             from: segment.endPoint,
             to: segment.endPoint + topOffset,
@@ -470,7 +530,7 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
                 .constantU(u: $0.upper, vStart: 0.0, vEnd: 1.0)
             },
             stableID: "\(stableID):end"
-        )
+        , using: &execution)
         let top = try boundaryEdge(
             segment,
             offset: topOffset,
@@ -478,7 +538,7 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
             surface: surface,
             ruledSurfaceV: ruledParameters == nil ? nil : 1.0,
             stableID: "\(stableID):top"
-        )
+        , using: &execution)
         let start = try lineEdge(
             from: segment.startPoint + topOffset,
             to: segment.startPoint,
@@ -487,7 +547,7 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
                 .constantU(u: $0.lower, vStart: 1.0, vEnd: 0.0)
             },
             stableID: "\(stableID):start"
-        )
+        , using: &execution)
         return BRepSewingFacePatch(
             stableID: stableID,
             surface: surface,
@@ -510,7 +570,7 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
         surface: Surface3D,
         ruledSurfaceV: Double? = nil,
         stableID: String
-    ) throws -> BRepSewingEdge {
+    , using execution: inout OriginalQueryExecution) throws -> BRepSewingEdge {
         switch segment.geometry {
         case .line:
             let start = (reversed ? segment.endPoint : segment.startPoint) + offset
@@ -520,7 +580,7 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
                 to: end,
                 surface: surface,
                 stableID: stableID
-            )
+            , using: &execution)
         case let .circularArc(circle, startParameter, endParameter):
             let shifted = Circle3D(
                 center: circle.center + offset,
@@ -535,17 +595,17 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
                 curve: curve,
                 startParameter: start,
                 endParameter: end,
-                startPoint: try curve.point(at: start, tolerance: tolerance),
-                endPoint: try curve.point(at: end, tolerance: tolerance),
+                startPoint: try curve.point(at: start, tolerance: tolerance, using: &execution),
+                endPoint: try curve.point(at: end, tolerance: tolerance, using: &execution),
                 surfaceParameterCurve: try circularPcurve(
                     circle: shifted,
                     startParameter: start,
                     endParameter: end,
                     surface: surface
-                )
+                , using: &execution)
             )
         case let .bSpline(source):
-            let curve = try translated(source, by: offset)
+            let curve = try translated(source, by: offset, using: &execution)
             guard case let .closed(lower, upper) = curve.domain else {
                 throw KernelError(
                     phase: .geometry,
@@ -570,15 +630,15 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
                     curve: curve,
                     reversed: reversed,
                     surface: surface
-                )
+                , using: &execution)
             }
             return BRepSewingEdge(
                 stableID: stableID,
                 curve: exactCurve,
                 startParameter: start,
                 endParameter: end,
-                startPoint: try exactCurve.point(at: start, tolerance: tolerance),
-                endPoint: try exactCurve.point(at: end, tolerance: tolerance),
+                startPoint: try exactCurve.point(at: start, tolerance: tolerance, using: &execution),
+                endPoint: try exactCurve.point(at: end, tolerance: tolerance, using: &execution),
                 surfaceParameterCurve: pcurve
             )
         }
@@ -590,7 +650,7 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
         surface: Surface3D,
         surfaceParameterCurve: SurfaceParameterCurve? = nil,
         stableID: String
-    ) throws -> BRepSewingEdge {
+    , using execution: inout OriginalQueryExecution) throws -> BRepSewingEdge {
         let delta = end - start
         let length = delta.length
         let curve = Curve3D.line(Line3D(
@@ -599,16 +659,16 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
         ))
         let pcurve: SurfaceParameterCurve
         if let surfaceParameterCurve {
-            try surfaceParameterCurve.validate(on: surface, tolerance: tolerance)
+            try surfaceParameterCurve.validate(on: surface, tolerance: tolerance, using: &execution)
             pcurve = surfaceParameterCurve
         } else {
-            let startUV = try surface.parameterProjection(of: start, tolerance: tolerance)
-            let endUV = try surface.parameterProjection(of: end, tolerance: tolerance)
+            let startUV = try surface.parameterProjection(of: start, tolerance: tolerance, using: &execution)
+            let endUV = try surface.parameterProjection(of: end, tolerance: tolerance, using: &execution)
             let unwrappedEndU = unwrappedPeriodicParameter(
                 endUV.u,
                 nearest: startUV.u
             )
-            if try isCylindrical(surface) || isConical(surface),
+            if try isCylindrical(surface, using: &execution) || isConical(surface),
                abs(startUV.u - unwrappedEndU) <= tolerance.angle {
                 pcurve = .constantU(
                     u: startUV.u,
@@ -638,24 +698,24 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
         startParameter: Double,
         endParameter: Double,
         surface: Surface3D
-    ) throws -> SurfaceParameterCurve {
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceParameterCurve {
         let curve = Curve3D.circle(circle)
-        if try isCylindrical(surface) || isConical(surface) {
+        if try isCylindrical(surface, using: &execution) || isConical(surface) {
             let start = try surface.parameterProjection(
-                of: curve.point(at: startParameter, tolerance: tolerance),
+                of: curve.point(at: startParameter, tolerance: tolerance, using: &execution),
                 tolerance: tolerance
-            )
+            , using: &execution)
             let middle = try surface.parameterProjection(
                 of: curve.point(
                     at: 0.5 * (startParameter + endParameter),
                     tolerance: tolerance
-                ),
+                , using: &execution),
                 tolerance: tolerance
-            )
+            , using: &execution)
             let end = try surface.parameterProjection(
-                of: curve.point(at: endParameter, tolerance: tolerance),
+                of: curve.point(at: endParameter, tolerance: tolerance, using: &execution),
                 tolerance: tolerance
-            )
+            , using: &execution)
             let unwrappedMiddle = unwrappedPeriodicParameter(
                 middle.u,
                 nearest: start.u
@@ -670,15 +730,15 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
                 uEnd: unwrappedEnd
             )
         }
-        let center = try surface.parameterProjection(of: circle.center, tolerance: tolerance)
+        let center = try surface.parameterProjection(of: circle.center, tolerance: tolerance, using: &execution)
         let cosine = try surface.parameterProjection(
-            of: curve.point(at: 0.0, tolerance: tolerance),
+            of: curve.point(at: 0.0, tolerance: tolerance, using: &execution),
             tolerance: tolerance
-        )
+        , using: &execution)
         let sine = try surface.parameterProjection(
-            of: curve.point(at: Double.pi / 2.0, tolerance: tolerance),
+            of: curve.point(at: Double.pi / 2.0, tolerance: tolerance, using: &execution),
             tolerance: tolerance
-        )
+        , using: &execution)
         return .harmonic(
             center: Point2D(x: center.u, y: center.v),
             cosine: Point2D(x: cosine.u - center.u, y: cosine.v - center.v),
@@ -692,7 +752,7 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
         curve: BSplineCurve3D,
         axis: Vector3D,
         height: Double
-    ) throws -> BSplineSurface3D {
+    , using execution: inout OriginalQueryExecution) throws -> BSplineSurface3D {
         let topOffset = axis * height
         let surface = BSplineSurface3D(
             uDegree: curve.degree,
@@ -705,21 +765,21 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
             ],
             weights: [curve.weights, curve.weights]
         )
-        try surface.validate(tolerance: tolerance)
+        try surface.validate(tolerance: tolerance, using: &execution)
         return surface
     }
 
     private func translated(
         _ curve: BSplineCurve3D,
         by offset: Vector3D
-    ) throws -> BSplineCurve3D {
+    , using execution: inout OriginalQueryExecution) throws -> BSplineCurve3D {
         let translated = BSplineCurve3D(
             degree: curve.degree,
             knots: curve.knots,
             controlPoints: curve.controlPoints.map { $0 + offset },
             weights: curve.weights
         )
-        try translated.validate(tolerance: tolerance)
+        try translated.validate(tolerance: tolerance, using: &execution)
         return translated
     }
 
@@ -727,8 +787,8 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
         curve: BSplineCurve3D,
         reversed: Bool,
         surface: Surface3D
-    ) throws -> SurfaceParameterCurve {
-        guard isPlanar(surface) else {
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceParameterCurve {
+        guard try isPlanar(surface, using: &execution) else {
             throw KernelError(
                 phase: .topology,
                 code: .unsupportedCapability,
@@ -743,21 +803,21 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
                 let parameter = try surface.parameterProjection(
                     of: point,
                     tolerance: tolerance
-                )
+                , using: &execution)
                 return Point2D(x: parameter.u, y: parameter.v)
             },
             weights: curve.weights
         )
         if reversed {
-            projected = try projected.reversed(tolerance: tolerance)
+            projected = try projected.reversed(tolerance: tolerance, using: &execution)
         }
-        try projected.validate(tolerance: tolerance)
+        try projected.validate(tolerance: tolerance, using: &execution)
         return .bSpline(projected)
     }
 
     private func ruledSurfaceParameters(
         for segment: ExactPrismaticBoundarySegment
-    ) throws -> (lower: Double, upper: Double)? {
+    , using execution: inout OriginalQueryExecution) throws -> (lower: Double, upper: Double)? {
         guard case let .bSpline(curve) = segment.geometry else {
             return nil
         }
@@ -780,8 +840,8 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
         lhs == rhs ? .forward : .reversed
     }
 
-    private func isPlanar(_ surface: Surface3D) -> Bool {
-        surface.hasExactAffineParameterization
+    private func isPlanar(_ surface: Surface3D, using execution: inout OriginalQueryExecution) throws -> Bool {
+        try surface.hasExactAffineParameterization(using: &execution)
     }
 
     private func isConical(_ surface: Surface3D) -> Bool {
@@ -789,7 +849,7 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
         return false
     }
 
-    private func isCylindrical(_ surface: Surface3D) throws -> Bool {
+    private func isCylindrical(_ surface: Surface3D, using execution: inout OriginalQueryExecution) throws -> Bool {
         let classified: Surface3D
         if case let .procedural(.offset(offset)) = surface {
             classified = try offset.exactChartPreservingSurface(

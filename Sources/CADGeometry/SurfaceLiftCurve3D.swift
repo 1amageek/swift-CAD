@@ -23,16 +23,23 @@ public struct SurfaceLiftCurve3D: Hashable, Sendable {
         exactDerivativeCertificate = nil
     }
 
+    package init(surface: Surface3D, parameterCurve: SurfaceParameterCurve,
+        exactBSplineImage: BSplineCurve3D) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try self.init(surface: surface, parameterCurve: parameterCurve,
+            exactBSplineImage: exactBSplineImage, using: &execution)
+    }
+
     package init(
         surface: Surface3D,
         parameterCurve: SurfaceParameterCurve,
-        exactBSplineImage: BSplineCurve3D
-    ) {
+        exactBSplineImage: BSplineCurve3D, using execution: inout OriginalQueryExecution
+    ) throws {
         self.surface = surface
         self.parameterCurve = parameterCurve
         self.exactBSplineImage = exactBSplineImage
-        exactDerivativeCertificate = RationalBezierCurveDerivativeCertificate(
-            curve: exactBSplineImage
+        exactDerivativeCertificate = try RationalBezierCurveDerivativeCertificate(
+            curve: exactBSplineImage, using: &execution
         )
     }
 
@@ -68,12 +75,50 @@ public struct SurfaceLiftCurve3D: Hashable, Sendable {
     }
 #endif
 
+    public func point(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Point3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try point(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+    package func pointAssumingValid(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Point3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try pointAssumingValid(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+    public func differentialGeometry(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> DifferentialGeometry {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try differentialGeometry(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+    package func differentialGeometryAssumingValid(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> DifferentialGeometry {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try differentialGeometryAssumingValid(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
     public func validate(tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try tolerance.validate()
-        try surface.validate(tolerance: tolerance)
-        try parameterCurve.validate(on: surface, tolerance: tolerance)
+        try surface.validate(tolerance: tolerance, using: &execution)
+        try parameterCurve.validate(on: surface, tolerance: tolerance, using: &execution)
         if let exactBSplineImage {
-            try exactBSplineImage.validate(tolerance: tolerance)
+            try exactBSplineImage.validate(tolerance: tolerance, using: &execution)
             guard case let .closed(lower, upper) = exactBSplineImage.domain,
                   abs(lower) <= tolerance.relative,
                   abs(upper - 1.0) <= tolerance.relative else {
@@ -90,42 +135,44 @@ public struct SurfaceLiftCurve3D: Hashable, Sendable {
     public func point(
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
-    ) throws -> Point3D {
-        try validateFraction(fraction, tolerance: tolerance)
+    , using execution: inout OriginalQueryExecution) throws -> Point3D {
+        try execution.consumeWork(1)
+        try validateFraction(fraction, tolerance: tolerance, using: &execution)
         return try pointAssumingValid(
             atNormalizedFraction: fraction,
             tolerance: tolerance
-        )
+        , using: &execution)
     }
 
     package func pointAssumingValid(
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
-    ) throws -> Point3D {
+    , using execution: inout OriginalQueryExecution) throws -> Point3D {
+        try execution.consumeWork(1)
         try validateFractionAssumingValid(fraction, tolerance: tolerance)
         if let exactBSplineImage {
             return try exactBSplineImage.pointAssumingValid(
                 at: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         }
         if case let .certifiedAnalyticPair(curve) = parameterCurve {
             return try curve.modelSpaceDifferential(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            ).position
+            , using: &execution).position
         }
         if case let .originalAffineWord(curve) = parameterCurve {
-            return try curve.modelSpaceDifferential(atNormalizedFraction: fraction, tolerance: tolerance).position
+            return try curve.modelSpaceDifferential(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution).position
         }
         if case let .originalImage(curve) = parameterCurve {
-            return try curve.modelSpaceDifferential(atNormalizedFraction: fraction, tolerance: tolerance).position
+            return try curve.modelSpaceDifferential(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution).position
         }
         if case let .rigidImage(curve) = parameterCurve {
             return try curve.modelSpaceDifferential(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            ).position
+            , using: &execution).position
         }
         let parameter: SurfaceParameter
         if case let .bSpline(curve) = parameterCurve,
@@ -134,41 +181,43 @@ public struct SurfaceLiftCurve3D: Hashable, Sendable {
             let point = try curve.pointAssumingValid(
                 at: curveParameter,
                 tolerance: tolerance
-            )
+            , using: &execution)
             parameter = SurfaceParameter(u: point.x, v: point.y)
         } else {
             parameter = try parameterCurve.parameter(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         }
         return try surface.pointAssumingValid(
             u: parameter.u,
             v: parameter.v,
             tolerance: tolerance
-        )
+        , using: &execution)
     }
 
     public func differentialGeometry(
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
-    ) throws -> DifferentialGeometry {
-        try validateFraction(fraction, tolerance: tolerance)
+    , using execution: inout OriginalQueryExecution) throws -> DifferentialGeometry {
+        try execution.consumeWork(1)
+        try validateFraction(fraction, tolerance: tolerance, using: &execution)
         return try differentialGeometryAssumingValid(
             atNormalizedFraction: fraction,
             tolerance: tolerance
-        )
+        , using: &execution)
     }
 
     package func differentialGeometryAssumingValid(
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
-    ) throws -> DifferentialGeometry {
+    , using execution: inout OriginalQueryExecution) throws -> DifferentialGeometry {
+        try execution.consumeWork(1)
         if let exactBSplineImage {
             let geometry = try exactBSplineImage.differentialGeometryAssumingValid(
                 at: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
             return DifferentialGeometry(
                 position: geometry.position,
                 firstDerivative: geometry.firstDerivative,
@@ -179,7 +228,7 @@ public struct SurfaceLiftCurve3D: Hashable, Sendable {
             let source = try curve.modelSpaceDifferential(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
             return DifferentialGeometry(
                 position: source.position,
                 firstDerivative: source.firstDerivative,
@@ -187,16 +236,16 @@ public struct SurfaceLiftCurve3D: Hashable, Sendable {
             )
         }
         if case let .originalAffineWord(curve) = parameterCurve {
-            return try curve.modelSpaceDifferential(atNormalizedFraction: fraction, tolerance: tolerance)
+            return try curve.modelSpaceDifferential(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
         }
         if case let .originalImage(curve) = parameterCurve {
-            return try curve.modelSpaceDifferential(atNormalizedFraction: fraction, tolerance: tolerance)
+            return try curve.modelSpaceDifferential(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
         }
         if case let .rigidImage(curve) = parameterCurve {
             return try curve.modelSpaceDifferential(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         }
         let parameter: SurfaceParameterCurveDifferential
         if case let .bSpline(curve) = parameterCurve,
@@ -206,7 +255,7 @@ public struct SurfaceLiftCurve3D: Hashable, Sendable {
             let geometry = try curve.differentialGeometryAssumingValid(
                 at: curveParameter,
                 tolerance: tolerance
-            )
+            , using: &execution)
             parameter = SurfaceParameterCurveDifferential(
                 parameter: SurfaceParameter(
                     u: geometry.position.x,
@@ -225,13 +274,13 @@ public struct SurfaceLiftCurve3D: Hashable, Sendable {
             parameter = try parameterCurve.differentialGeometry(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         }
         let geometry = try surface.parameterDerivativesAssumingValid(
             u: parameter.parameter.u,
             v: parameter.parameter.v,
             tolerance: tolerance
-        )
+        , using: &execution)
         let firstU = parameter.firstDerivative.x
         let firstV = parameter.firstDerivative.y
         let secondU = parameter.secondDerivative.x
@@ -253,8 +302,9 @@ public struct SurfaceLiftCurve3D: Hashable, Sendable {
     private func validateFraction(
         _ fraction: Double,
         tolerance: ModelingTolerance
-    ) throws {
-        try validate(tolerance: tolerance)
+    , using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try validate(tolerance: tolerance, using: &execution)
         try validateFractionAssumingValid(fraction, tolerance: tolerance)
     }
 

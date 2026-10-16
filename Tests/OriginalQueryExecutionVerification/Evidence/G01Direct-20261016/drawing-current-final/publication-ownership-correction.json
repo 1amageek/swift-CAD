@@ -1,0 +1,12 @@
+{
+  "scope": "Single compiler-proven helper parameter ownership correction; computed pair views and consuming Partition initializer retained.",
+  "diagnostic": "Native r8 CADGeometry: pair consumed more than once at repeated OriginalProjectedNativeFiber(original: pair) and final result initializer.",
+  "oldProducerSHA256": "44c729bfad137833e704dc12c0d524fcef62a4b004826d96c8e381d42cdc1402",
+  "newProducerSHA256": "604b97fbb189ec67d9be2740d6c1e15a3f285820ca32e6abe906c7b343394b32",
+  "partitionSHA256": "279f41629412b7bdb4122ec8994cd1a103975a20966a812ea4c066c06e8b1e9b",
+  "designSHA256": "8dfa46ebdb3d476963ed45c0335c4eb9b6d023d506e9fb07454873e51550f7db",
+  "patchSHA256": "d6927fcb5265a2a45da11b0e9f9aac97c660ab3af1bb1e42f2e99c5ae77d2b5a",
+  "inverseProof": "Restoring exactly one consuming keyword reconstructs the entire r1 producer byte-for-byte; all expressions, call order, fees, arrays, source values and solver code unchanged.",
+  "ownership": "Post-pair helper restores original ordinary Copyable argument contract for repeated fiber reads; Partition initializer remains consuming at publication. No Fiber edits or new copy/move expressions, no new allocation or budget.",
+  "verification": "Compiler not run by Source owner; Root owns r9 Native build/runtime."
+}

@@ -9,6 +9,7 @@ public struct SurfaceSilhouetteProjectedContact: Sendable {
     public let projectionMultiplicity: Int
     public let fiberMultiplicity: Int
     public let coversWholeEdgeRange: Bool
+    private let queryContext: SurfaceSilhouetteQueryContext
     private let depthDifference: OriginalSingularFieldElement?
     private let originalUV: ExactBivariateSystemRoot
     private let originalFiber: OriginalProjectedNativeFiber
@@ -16,6 +17,7 @@ public struct SurfaceSilhouetteProjectedContact: Sendable {
     init(edgeParameter: SurfaceSilhouetteTrimEndpoint?, silhouetteParameter: SurfaceSilhouetteTrimEndpoint,
         edgeMultiplicity: Int, wholeRange: Bool, originalUV: ExactBivariateSystemRoot,
         originalFiber: OriginalProjectedNativeFiber, depthDifference: OriginalSingularFieldElement?) {
+        queryContext = silhouetteParameter.queryContext
         self.edgeParameter = edgeParameter; self.silhouetteParameter = silhouetteParameter
         self.edgeMultiplicity = edgeMultiplicity; coversWholeEdgeRange = wholeRange
         projectionMultiplicity = originalUV.projectionMultiplicity
@@ -24,32 +26,41 @@ public struct SurfaceSilhouetteProjectedContact: Sendable {
     }
 
     /// Original edge-minus-silhouette depth; this is not a foreground-face visibility classification.
-    public func depthDifferenceSign(usage: inout SurfaceSilhouetteUsage) throws -> DepthDifferenceSign {
+    public func depthDifferenceSign(using execution: inout OriginalQueryExecution) throws -> DepthDifferenceSign {
+        return try queryContext.withExecution(using: &execution) { execution in
         guard let depthDifference else { return .wholeEdgeFiber }
-        switch try depthDifference.sign(maximumDepth: usage.maximumDepth, usage: &usage) {
+        switch try depthDifference.sign(maximumDepth: execution.effectiveLimits.maximumSubdivisionDepth, usage: &execution) {
         case .negative: return .negative
         case .zero: return .zero
         case .positive: return .positive
+        }
+    
         }
     }
 
     /// Retains achieved proof depth for subsequent enclosure queries under the same live allowance.
     public func refined(maximumWidth: ExactRationalCoefficient,
-        usage: inout SurfaceSilhouetteUsage) throws -> Self {
+        using execution: inout OriginalQueryExecution) throws -> Self {
+        return try queryContext.withExecution(using: &execution) { execution in
         let point = try originalUV.refined(maximumUWidth: maximumWidth, maximumVWidth: maximumWidth,
-            maximumDepth: usage.maximumDepth, usage: &usage)
-        let edge = try edgeParameter?.refined(maximumWidth: maximumWidth, usage: &usage)
-        let silhouette = try silhouetteParameter.refined(maximumWidth: maximumWidth, usage: &usage)
-        try RationalAlgebraStorage.retain(1, of: Self.self, usage: &usage)
+            maximumDepth: execution.effectiveLimits.maximumSubdivisionDepth, usage: &execution)
+        let edge = try edgeParameter?.refined(maximumWidth: maximumWidth, using: &execution)
+        let silhouette = try silhouetteParameter.refined(maximumWidth: maximumWidth, using: &execution)
+        try RationalAlgebraStorage.retain(1, of: Self.self, usage: &execution)
         return .init(edgeParameter: edge, silhouetteParameter: silhouette,
             edgeMultiplicity: edgeMultiplicity, wholeRange: coversWholeEdgeRange,
             originalUV: point, originalFiber: originalFiber, depthDifference: depthDifference)
+    
+        }
     }
 
     /// Queries retained UV isolation; callers retain `refined` results when increasing precision.
     public func parameterEnclosure(maximumWidth: ExactRationalCoefficient,
-        usage: inout SurfaceSilhouetteUsage) throws -> SurfaceParameterBox {
+        using execution: inout OriginalQueryExecution) throws -> SurfaceParameterBox {
+        return try queryContext.withExecution(using: &execution) { execution in
         try originalUV.refined(maximumUWidth: maximumWidth, maximumVWidth: maximumWidth,
-            maximumDepth: usage.maximumDepth, usage: &usage).enclosure(usage: &usage)
+            maximumDepth: execution.effectiveLimits.maximumSubdivisionDepth, usage: &execution).enclosure(usage: &execution)
+    
+        }
     }
 }

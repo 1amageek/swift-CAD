@@ -2,7 +2,7 @@ import CADCore
 
 extension ExactMonotoneRectangleGraph {
     /// Original closed-rectangle-only roots, retaining the existing projection station.
-    package func isolatedRoots<B: RationalAlgebraAdmitting>(maximumDepth: Int,
+    package func isolatedRoots<B: ExactScalarAdmission & ~Copyable>(maximumDepth: Int,
         usage: inout B) throws -> [ExactBivariateSystemRoot] {
         let source = freeAlongU ? original : try original.exchangedAxes(usage: &usage)
         let transverse = freeAlongU ? sourceDomain.v : sourceDomain.u
@@ -70,7 +70,8 @@ extension ExactMonotoneRectangleGraph {
                 fiberMultiplicity = try endpointMultiplicity(edge, root: freeRoot,
                     maximumDepth: maximumDepth, usage: &usage)
             }
-            try usage.retainExactStorage(3)
+            try RationalAlgebraStorage.retain(1, of: ExactBivariateSystemRoot.self, usage: &usage)
+            try RationalAlgebraStorage.retain(2, of: ExactBivariatePolynomial.self, usage: &usage)
             result.append(ExactBivariateSystemRoot(equations: [original, originalFixedLaw],
                 projectionRoot: projectionRoot, fiber: fiber, fiberRoot: fiberRoot,
                 sourceDomain: sourceDomain, projectionMultiplicity: projectionMultiplicity,
@@ -78,7 +79,7 @@ extension ExactMonotoneRectangleGraph {
         }
         return result
     }
-    private func endpointMultiplicity<B: RationalAlgebraAdmitting>(_ edge: ExactBivariatePolynomial,
+    private func endpointMultiplicity<B: ExactScalarAdmission & ~Copyable>(_ edge: ExactBivariatePolynomial,
         root: ExactAlgebraicRealRoot, maximumDepth: Int, usage: inout B) throws -> Int {
         guard !edge.isZero else {
             throw rationalAlgebraFailure("A complete boundary graph cannot be an isolated projection station.")

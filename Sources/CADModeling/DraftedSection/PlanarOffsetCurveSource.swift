@@ -10,42 +10,46 @@ package struct PlanarOffsetCurveSource: GeometryCurveConversionSource {
     private let originalNormal: IntervalVector3DBounds
     private let shift: Double
     private let prepared: OriginalSource
+    private let budget: OriginalQueryBudget
+    private let limits: OriginalQueryExecutionLimits
+    private let contributions: [OriginalQueryContributionHandle]
     private let tolerance: ModelingTolerance
 
-    package init(curve: BSplineCurve3D, normal: Vector3D, shift: Double,
-                 tolerance: ModelingTolerance) throws {
-        try self.init(normal: normal, shift: shift, tolerance: tolerance) {
-            var work = 0
-            return .continuation(try OriginalBSplineCurve3DContinuationSource(
-                curve: curve, tolerance: tolerance) {
-                try CurrentTaskCancellationChecker().checkCancellation()
-                work += 1
-                guard work <= 65_536 else {
-                    throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
-                        message: "Planar offset derivative preparation exhausted its original-span budget.")
-                }
-            })
-        }
+    package init(curve: BSplineCurve3D, normal: Vector3D, shift: Double, tolerance: ModelingTolerance) throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32,
+                remainingSourceDepth: 32, maximumSubdivisionDepth: 32, maximumSpans: 4096))
+        try self.init(curve: curve, normal: normal, shift: shift, tolerance: tolerance, using: &execution)
+    }
+    package init(curve: Curve3D, normal: Vector3D, shift: Double, tolerance: ModelingTolerance) throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32,
+                remainingSourceDepth: 32, maximumSubdivisionDepth: 32, maximumSpans: 4096))
+        try self.init(curve: curve, normal: normal, shift: shift, tolerance: tolerance, using: &execution)
     }
 
-    package init(curve: Curve3D, normal: Vector3D, shift: Double,
-                 tolerance: ModelingTolerance) throws {
-        try self.init(normal: normal, shift: shift, tolerance: tolerance) {
-            var work = 0
-            return .native(try PreparedCurveDifferentialEncloser(curve: curve,
-                tolerance: tolerance, remainingSourceDepth: 32, maximumSubdivisionDepth: 32) {
-                try CurrentTaskCancellationChecker().checkCancellation()
-                work += 1
-                guard work <= 65_536 else {
-                    throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
-                        message: "Planar offset preparation exhausted its original closed-curve budget.")
-                }
-            })
+    package init(curve: BSplineCurve3D, normal: Vector3D, shift: Double,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        let prepared = try execution.withConversionScope(maximumWorkUnits: 65_536,
+            maximumScalarCount: Int.max, maximumCertificationBoxes: Int.max) { execution in
+            try OriginalBSplineCurve3DContinuationSource(curve: curve, tolerance: tolerance, using: &execution)
         }
+        try self.init(normal: normal, shift: shift, tolerance: tolerance,
+            prepared: .continuation(prepared), using: &execution)
+    }
+    package init(curve: Curve3D, normal: Vector3D, shift: Double,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        let prepared = try execution.withConversionScope(maximumWorkUnits: 65_536,
+            maximumScalarCount: Int.max, maximumCertificationBoxes: Int.max) { execution in
+            try PreparedCurveDifferentialEncloser(curve: curve, tolerance: tolerance,
+                remainingSourceDepth: 32, maximumSubdivisionDepth: 32, using: &execution)
+        }
+        try self.init(normal: normal, shift: shift, tolerance: tolerance,
+            prepared: .native(prepared), using: &execution)
     }
 
     private init(normal: Vector3D, shift: Double, tolerance: ModelingTolerance,
-        prepare: () throws -> OriginalSource) throws {
+        prepared: OriginalSource, using execution: inout OriginalQueryExecution) throws {
         try tolerance.validate()
         guard shift.isFinite else {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
@@ -76,11 +80,11 @@ package struct PlanarOffsetCurveSource: GeometryCurveConversionSource {
         }
         self.normal = candidate / candidate.length
         self.shift = shift
-        self.tolerance = tolerance
-        prepared = try prepare()
+        self.tolerance = tolerance; budget = execution.budget; limits = execution.effectiveLimits; contributions = try execution.retainActiveContributionHandles()
+        self.prepared = prepared
     }
 
-    package func validate(over parameters: ScalarInterval, tolerance: ModelingTolerance) throws {
+    package func validate(over parameters: ScalarInterval, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
         guard tolerance == self.tolerance, parameters.width.isFinite, parameters.width > 0 else {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
                 message: "Planar offset conversion requires a finite original-law interval and its retained tolerance.")
@@ -93,12 +97,16 @@ package struct PlanarOffsetCurveSource: GeometryCurveConversionSource {
         }
     }
 
-    package func pointAndDerivative(at parameter: Double, tolerance: ModelingTolerance) throws -> (point: Point3D, derivative: Vector3D) {
+    package func pointAndDerivative(at parameter: Double, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> (point: Point3D, derivative: Vector3D) {
         guard tolerance == self.tolerance else {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
                 message: "Planar offset changed its original preparation tolerance.")
         }
-        let jet = try originalJet(over: ScalarInterval(lower: parameter, upper: parameter), tolerance: tolerance)
+        let jet = try execution.withConversionScope(maximumWorkUnits: 65_536,
+            maximumScalarCount: Int.max, maximumCertificationBoxes: Int.max) { execution in
+            try originalJet(over: ScalarInterval(lower: parameter, upper: parameter),
+                tolerance: tolerance, depth: 0, using: &execution)
+        }
         func vector(_ order: Int) -> Vector3D {
             let values = jet.derivative(order)
             return Vector3D(x: values[0].midpoint, y: values[1].midpoint, z: values[2].midpoint)
@@ -114,33 +122,21 @@ package struct PlanarOffsetCurveSource: GeometryCurveConversionSource {
         return (Point3D.origin + position + unit.cross(normal) * shift, first + turning.cross(normal) * shift)
     }
 
-    private func originalJet(over parameters: ScalarInterval, tolerance: ModelingTolerance) throws -> IntervalVectorDerivativeJet {
-        var work = 0
-        return try originalJet(over: parameters, tolerance: tolerance, depth: 0) {
-            try CurrentTaskCancellationChecker().checkCancellation()
-            work += 1
-            guard work <= 65_536 else {
-                throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
-                    message: "Original offset continuation exhausted its native interval budget.")
-            }
-        }
-    }
-
     private func originalJet(over parameters: ScalarInterval, tolerance: ModelingTolerance,
-        depth: Int, consumeWork: () throws -> Void) throws -> IntervalVectorDerivativeJet {
+        depth: Int, using execution: inout OriginalQueryExecution) throws -> IntervalVectorDerivativeJet {
         switch prepared {
         case .continuation(let original):
             return try original.derivatives(over: parameters, tolerance: tolerance,
-                consumeWork: consumeWork)
+                using: &execution)
         case .native(let original):
             let closed = try original.closedNativeJets(over: parameters, tolerance: tolerance,
                 maximumSpanCount: 4_096, maximumSubdivisionDepth: 32,
-                remainingSourceDepth: 32 - depth, consumeWork: consumeWork)
+                remainingSourceDepth: 32 - depth, using: &execution)
             func coordinate(_ key: (SurfaceIntervalVectorJet) -> SurfaceIntervalJet)
                 throws -> IntervalDerivativeJet {
                 var result: [OutwardScalarInterval]?
                 for span in closed.spans {
-                    try consumeWork()
+                    try execution.consumeWork(1)
                     let jet = key(span.jet)
                     let fields = [jet.value, jet.derivativeU, jet.secondDerivativeUU, jet.thirdDerivativeUUU]
                     if let old = result {
@@ -157,23 +153,16 @@ package struct PlanarOffsetCurveSource: GeometryCurveConversionSource {
         }
     }
 
-    package func enclosure(over parameters: ScalarInterval, tolerance: ModelingTolerance) throws -> CurveDifferentialEnclosure {
-        try validate(over: parameters, tolerance: tolerance)
-        var work = 0
-        func consume() throws {
-            try CurrentTaskCancellationChecker().checkCancellation()
-            work += 1
-            guard work <= 65_536 else {
-                throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
-                    message: "Original planar offset proof exhausted its native whole-query work budget.")
-            }
-        }
+    package func enclosure(over parameters: ScalarInterval, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> CurveDifferentialEnclosure {
+        try validate(over: parameters, tolerance: tolerance, using: &execution)
+        return try execution.withConversionScope(maximumWorkUnits: 65_536,
+            maximumScalarCount: Int.max, maximumCertificationBoxes: Int.max) { execution in
         var pending: [(parameters: ScalarInterval, depth: Int)] = [(parameters, 0)]
         var hull: [[OutwardScalarInterval]]?
         while let cell = pending.popLast() {
-            try consume()
+            try execution.consumeWork(1)
             let original = try originalJet(over: cell.parameters, tolerance: tolerance,
-                depth: cell.depth, consumeWork: consume)
+                depth: cell.depth, using: &execution)
             func admittedJet() throws -> IntervalVectorDerivativeJet? {
                 guard let velocity = original.differentiated(),
                       let speed = velocity.dot(velocity).squareRoot(),
@@ -220,5 +209,19 @@ package struct PlanarOffsetCurveSource: GeometryCurveConversionSource {
                 z: ScalarInterval(lower: values[2].lower, upper: values[2].upper))
         }
         return try CurveDifferentialEnclosure(position: coordinates(0), firstDerivative: coordinates(1), secondDerivative: coordinates(2))
+        }
     }
+    package func validate(over parameters: ScalarInterval, tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution(budget: budget, limits: limits, contributions: contributions)
+        try validate(over: parameters, tolerance: tolerance, using: &execution)
+    }
+    package func pointAndDerivative(at parameter: Double, tolerance: ModelingTolerance) throws -> (point: Point3D, derivative: Vector3D) {
+        var execution = try OriginalQueryExecution(budget: budget, limits: limits, contributions: contributions)
+        return try pointAndDerivative(at: parameter, tolerance: tolerance, using: &execution)
+    }
+    package func enclosure(over parameters: ScalarInterval, tolerance: ModelingTolerance) throws -> CurveDifferentialEnclosure {
+        var execution = try OriginalQueryExecution(budget: budget, limits: limits, contributions: contributions)
+        return try enclosure(over: parameters, tolerance: tolerance, using: &execution)
+    }
+
 }

@@ -1,0 +1,39 @@
+{
+  "status": "candidate-source-ready-frozen-no-compiler",
+  "sourceRoot": "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD",
+  "originalGeometryMirror": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD",
+  "originalKernelMirror": "preserved old beforeoutline3686efa1; no whole earlier callercomposition copied",
+  "files": {
+    "Sources/CADGeometry/SurfaceSilhouette/OriginalSurfaceSilhouetteTrimPartitionProducer.swift": "095f7be42ff6fa4754f1e6cafd4f4dd69b87e24546acee3083b07a2a7e11eadd",
+    "Sources/CADKernel/BRepDrawing/BRepDrawingSilhouetteProducer.swift": "3c94059c9d29f92a048a7b8236f9da1b6e50810ee3d39de4f06dfe7190fcdcb7",
+    "Sources/CADGeometry/SurfaceSilhouette/DESIGN.md": "9afe3974c1453cd5d706af89f021fcdf48669bb2e3c9dbadd7d4e60450985271",
+    "Sources/CADKernel/BRepDrawing/DESIGN.md": "1ec14327f8661e4797bcb6b6a726ceb4e4f7cb95c33aff617aa552a2cdd10b6e"
+  },
+  "geometryWholeBodyInverseSHA256": "a15c58f60294d1b769631eab0c1072d0fc3c0d34c9ef6b79f38f12a394829944",
+  "geometryActualWholeOriginalBodyEqualsHelperInverseIgnoringWhitespace": true,
+  "kernelActualWholeOriginalBodyEqualsHelperInverseIgnoringWhitespace": true,
+  "sourcePatchSHA256": "29f90231fd5a7f555f605317ffef208f8e48125bc0fd942e4e39c8bee2cd2157",
+  "actualBefore": {
+    "trimClosureSPBytes": 226496,
+    "kernelAppendExactTrimmedSPBytes": 283008,
+    "actualOwnBinaryChainBytes": 713456
+  },
+  "changes": [
+    "existing traversal transport localframe",
+    "same per-span context/events/overlaps/nativeCuts processing",
+    "existing original equation/cuts/preimage/admitted/queryframes",
+    "same final sectors atomicpublication",
+    "Kernel post-partition exactsector loop isolated from partitionpreparation"
+  ],
+  "preserved": [
+    "same complete sourceguard and contribution scope",
+    "all original mathematical statements/conditions/ordering",
+    "sameoriginal field/nativepcurve roots and arrays",
+    "same work/storage/depth/cancel calls",
+    "no new solver/cap/retry/copyroot/fixture"
+  ],
+  "pending": [
+    "actual Native semantic/object/frame gate",
+    "same Drawing3 actualworker runtime"
+  ]
+}

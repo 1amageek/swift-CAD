@@ -38,7 +38,7 @@ package struct PreparedOriginalNativeAxisInverse: Sendable {
         package let fixedCoordinate: ExactRationalCoefficient
     }
 
-    package init<B: RationalAlgebraAdmitting>(source: BSplineCurve2D, alongU: Bool,
+    package init<B: ExactScalarAdmission & ~Copyable>(source: BSplineCurve2D, alongU: Bool,
         tolerance: ModelingTolerance, remainingSourceDepth: Int, maximumSpanCount: Int,
         maximumSubdivisionDepth: Int, maximumAlgebraicDepth: Int,
         usage: inout B) throws {
@@ -46,7 +46,7 @@ package struct PreparedOriginalNativeAxisInverse: Sendable {
               maximumSubdivisionDepth >= 0, (0...32).contains(maximumAlgebraicDepth) else {
             throw rationalAlgebraFailure("Original native inverse requires an explicit valid caller policy.")
         }
-        try source.validate(tolerance: tolerance, consumeWork: { try usage.consumeExactWork(1) })
+        try source.validate(tolerance: tolerance, using: &usage)
         let lower = try ExactRationalCoefficient.originalDouble(source.knots[source.degree], usage: &usage)
         let upper = try ExactRationalCoefficient.originalDouble(source.knots[source.controlPoints.count], usage: &usage)
         let width = try upper.subtracting(lower, usage: &usage)
@@ -57,7 +57,7 @@ package struct PreparedOriginalNativeAxisInverse: Sendable {
         var previousCoordinate: ExactRationalCoefficient?
         for span in source.degree..<source.controlPoints.count {
             try CurrentTaskCancellationChecker().checkCancellation()
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             if source.knots[span] == source.knots[span + 1] { continue }
             guard prepared.count < maximumSpanCount else {
                 throw GeometryConversionError.resourceLimitExceeded("Original native inverse exhausted caller span count.")
@@ -68,7 +68,7 @@ package struct PreparedOriginalNativeAxisInverse: Sendable {
             var other = ExactBivariatePolynomial.zero
             var weight = ExactBivariatePolynomial.zero
             for index in (span - source.degree)...span {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 guard let originalBasis = basis[index] else {
                     throw rationalAlgebraFailure("Original native inverse basis omitted an owning control.")
                 }
@@ -121,7 +121,7 @@ package struct PreparedOriginalNativeAxisInverse: Sendable {
     }
 
     /// The target is an original native UV coefficient, not a rounded source fraction.
-    package func station<B: RationalAlgebraAdmitting>(at target: ExactRationalCoefficient,
+    package func station<B: ExactScalarAdmission & ~Copyable>(at target: ExactRationalCoefficient,
         maximumNormalizedParameterWidth: Double, maximumAlgebraicDepth: Int,
         usage: inout B) throws -> Station? {
         guard maximumNormalizedParameterWidth.isFinite, maximumNormalizedParameterWidth > 0,
@@ -138,7 +138,7 @@ package struct PreparedOriginalNativeAxisInverse: Sendable {
         var sharedStation: ExactRationalCoefficient?
         for owner in owners {
             try CurrentTaskCancellationChecker().checkCancellation()
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             let a = try target.subtracting(owner.firstCoordinate, usage: &usage)
             let b = try owner.lastCoordinate.subtracting(target, usage: &usage)
             if orientation > 0 ? (a.isNegative || b.isNegative) : (a.isPositive || b.isPositive) { continue }
@@ -186,7 +186,7 @@ package struct PreparedOriginalNativeAxisInverse: Sendable {
             orientation: orientation, fixedCoordinate: fixedCoordinate)
     }
 
-    private static func monotoneSign<B: RationalAlgebraAdmitting>(_ numerator: ExactBivariatePolynomial,
+    private static func monotoneSign<B: ExactScalarAdmission & ~Copyable>(_ numerator: ExactBivariatePolynomial,
         lower: ExactRationalCoefficient, upper: ExactRationalCoefficient,
         maximumAlgebraicDepth: Int, usage: inout B) throws -> Int {
         guard !numerator.isZero else {
@@ -199,7 +199,7 @@ package struct PreparedOriginalNativeAxisInverse: Sendable {
         var odd = try ExactBivariatePolynomial.constant(.one, usage: &usage)
         var multiplicity = 1
         while residual.uDegree > 0 {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             let common = try gcd.univariateGCD(residual, repeated, usage: &usage)
             let factor = try residual.dividedExactly(by: common, usage: &usage)
             if multiplicity & 1 == 1 { odd = try odd.multiplied(by: factor, usage: &usage) }
@@ -214,7 +214,7 @@ package struct PreparedOriginalNativeAxisInverse: Sendable {
             let roots = try ExactUnivariateRootIsolator().isolate(odd, lower: lower, upper: upper,
                 maximumDepth: maximumAlgebraicDepth, usage: &usage)
             for root in roots {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 guard root.isRationalStation, root.lower == lower || root.lower == upper else {
                     throw rationalAlgebraFailure("Original native axis derivative changes sign inside an owner.")
                 }
@@ -227,7 +227,7 @@ package struct PreparedOriginalNativeAxisInverse: Sendable {
         let divisor = try ExactRationalCoefficient.natural(rationalAlgebraCount(count, 1), usage: &usage)
         let width = try upper.subtracting(lower, usage: &usage)
         for index in 1...count {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             let fraction = try ExactRationalCoefficient.natural(index, usage: &usage).divided(by: divisor, usage: &usage)
             let station = try lower.adding(width.multiplied(by: fraction, usage: &usage), usage: &usage)
             let value = try numerator.evaluated(atU: station, v: .zero, usage: &usage)

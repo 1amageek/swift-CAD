@@ -34,12 +34,14 @@ struct DefaultFaceQueryDomainResolver: FaceQueryDomainResolving {
     func makeContainmentSession(
         for faceID: FaceID,
         in model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution
     ) throws -> any FaceParameterContainmentSession {
-        try containment.makeParameterContainmentSession(
+        try execution.retainKernelValues(count: 1, stride: MemoryLayout<FaceID>.stride)
+        return try containment.makeParameterContainmentSession(
             for: [faceID],
             in: model,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
     }
 
@@ -50,8 +52,10 @@ struct DefaultFaceQueryDomainResolver: FaceQueryDomainResolving {
         surface: Surface3D,
         in model: BRepModel,
         maximumIterations: Int,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution
     ) throws -> FaceTrimBoundaryProjection {
+        try execution.consumeWork(1)
         guard let face = model.faces[faceID] else {
             throw FeatureEvaluationError.missingInput(
                 "Surface closest-point query references a missing face."
@@ -60,7 +64,7 @@ struct DefaultFaceQueryDomainResolver: FaceQueryDomainResolving {
         if let rectangle = try rectangularDomainResolver.resolve(
             face: face,
             model: model,
-            tolerance: tolerance
+            tolerance: tolerance, maximumSubdivisionDepth: 32, remainingSourceDepth: 16, using: &execution
         ) {
             return try closestRectangularBoundaryProjection(
                 to: point,
@@ -68,7 +72,7 @@ struct DefaultFaceQueryDomainResolver: FaceQueryDomainResolving {
                 domain: rectangle,
                 surface: surface,
                 maximumIterations: maximumIterations,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         }
         return try closestGeneralBoundaryProjection(
@@ -77,7 +81,7 @@ struct DefaultFaceQueryDomainResolver: FaceQueryDomainResolving {
             surface: surface,
             model: model,
             maximumIterations: maximumIterations,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
     }
 
@@ -88,21 +92,41 @@ struct DefaultFaceQueryDomainResolver: FaceQueryDomainResolving {
         in model: BRepModel,
         tolerance: ModelingTolerance
     ) throws -> FaceDirectionalSearchDomain {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try directionalSearchDomain(from: origin, direction: direction, on: faceID,
+            in: model, tolerance: tolerance, using: &execution)
+    }
+
+    func directionalSearchDomain(
+        from origin: Point3D,
+        direction: Vector3D,
+        on faceID: FaceID,
+        in model: BRepModel,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+    ) throws -> FaceDirectionalSearchDomain {
+        try execution.consumeWork(1)
         let parameterBounds = try parameterBoundsResolver.bounds(
             for: faceID,
             in: model,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         let bounds = try spatialBoundsResolver.bounds(
             for: faceID,
             in: model,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
-        let parameters = corners(of: bounds).map {
-            ($0 - origin).dot(direction)
+        try execution.retainKernelValues(count: 8, stride: MemoryLayout<Point3D>.stride)
+        try execution.retainKernelValues(count: 8, stride: MemoryLayout<Double>.stride)
+        let parameters = try corners(of: bounds).map { corner in
+            try execution.consumeWork(1)
+            return (corner - origin).dot(direction)
         }
-        guard let lower = parameters.min(),
-              let upper = parameters.max() else {
+        guard let lower = try parameters.min(by: { first, second in
+                  try execution.consumeWork(1); return first < second
+              }),
+              let upper = try parameters.max(by: { first, second in
+                  try execution.consumeWork(1); return first < second
+              }) else {
             throw KernelError(
                 phase: .geometry,
                 code: .emptyResult,
@@ -131,8 +155,11 @@ struct DefaultFaceQueryDomainResolver: FaceQueryDomainResolving {
         domain: ExactRectangularPcurveDomain,
         surface: Surface3D,
         maximumIterations: Int,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution
     ) throws -> FaceTrimBoundaryProjection {
+        try execution.consumeWork(1)
+        try execution.retainKernelValues(count: 4, stride: MemoryLayout<RectangularBoundarySide>.stride)
         let sides = [
             RectangularBoundarySide(
                 fixedDirection: .u,
@@ -165,12 +192,13 @@ struct DefaultFaceQueryDomainResolver: FaceQueryDomainResolving {
         ]
         var best: FaceTrimBoundaryProjection?
         for side in sides {
+            try execution.consumeWork(1)
             let candidate = try closestProjection(
                 to: point,
                 on: side,
                 surface: surface,
                 maximumIterations: maximumIterations,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
             if let current = best {
                 if candidate.residual < current.residual
@@ -187,6 +215,7 @@ struct DefaultFaceQueryDomainResolver: FaceQueryDomainResolving {
                 "Rectangular face boundary projection produced no candidate."
             )
         }
+        try execution.checkpoint()
         return best
     }
 
@@ -195,13 +224,16 @@ struct DefaultFaceQueryDomainResolver: FaceQueryDomainResolving {
         on side: RectangularBoundarySide,
         surface: Surface3D,
         maximumIterations: Int,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution
     ) throws -> FaceTrimBoundaryProjection {
+        try execution.consumeWork(1)
         let fullInterval = try ScalarInterval(
             lower: side.variableLower,
             upper: side.variableUpper
         )
         var best: FaceTrimBoundaryProjection?
+        try execution.retainKernelValues(count: 4, stride: MemoryLayout<Double>.stride)
         let initialVariables = [
             side.clamped(side.initialVariable),
             fullInterval.lower,
@@ -209,6 +241,7 @@ struct DefaultFaceQueryDomainResolver: FaceQueryDomainResolving {
             fullInterval.upper,
         ]
         for initial in initialVariables {
+            try execution.consumeWork(1)
             let candidate = try refinedProjection(
                 to: point,
                 on: side,
@@ -216,7 +249,7 @@ struct DefaultFaceQueryDomainResolver: FaceQueryDomainResolving {
                 initialVariable: initial,
                 variableInterval: fullInterval,
                 maximumIterations: maximumIterations,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
             best = preferredProjection(candidate, over: best)
         }
@@ -229,10 +262,11 @@ struct DefaultFaceQueryDomainResolver: FaceQueryDomainResolving {
         let maximumSubdivisionDepth = 48
         var remainingCells = 1_048_576
         var certifiedBest = best
-        var stack = [BoundaryProjectionCell(
-            variableInterval: fullInterval,
-            depth: 0
-        )]
+        var stackCapacity = 1
+        try execution.retainKernelValues(count: stackCapacity, stride: MemoryLayout<BoundaryProjectionCell>.stride)
+        var stack: [BoundaryProjectionCell] = []
+        stack.reserveCapacity(stackCapacity)
+        stack.append(BoundaryProjectionCell(variableInterval: fullInterval, depth: 0))
         while let cell = stack.popLast() {
             guard remainingCells > 0 else {
                 throw KernelError(
@@ -243,12 +277,13 @@ struct DefaultFaceQueryDomainResolver: FaceQueryDomainResolving {
                 )
             }
             remainingCells -= 1
+            try execution.visitGeometricCell(depth: cell.depth)
 
             let enclosure = try boundaryPositionEnclosure(
                 on: side,
                 over: cell.variableInterval,
                 surface: surface,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
             let lowerBound = distanceLowerBound(
                 from: point,
@@ -265,7 +300,7 @@ struct DefaultFaceQueryDomainResolver: FaceQueryDomainResolving {
                 initialVariable: cell.variableInterval.midpoint,
                 variableInterval: cell.variableInterval,
                 maximumIterations: maximumIterations,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
             certifiedBest = preferredProjection(candidate, over: certifiedBest)
             if lowerBound + tolerance.distance >= certifiedBest.residual {
@@ -283,6 +318,16 @@ struct DefaultFaceQueryDomainResolver: FaceQueryDomainResolving {
                     message: "Rectangular boundary projection could not close its global distance bound."
                 )
             }
+            let required = stack.count.addingReportingOverflow(2)
+            guard !required.overflow else { throw ExactScalarFailure.countOverflow }
+            if required.partialValue > stackCapacity {
+                let doubled = stackCapacity.multipliedReportingOverflow(by: 2)
+                guard !doubled.overflow else { throw ExactScalarFailure.countOverflow }
+                let capacity = max(required.partialValue, doubled.partialValue)
+                try execution.retainKernelValues(count: capacity, stride: MemoryLayout<BoundaryProjectionCell>.stride)
+                stack.reserveCapacity(capacity)
+                stackCapacity = capacity
+            }
             stack.append(BoundaryProjectionCell(
                 variableInterval: try ScalarInterval(
                     lower: midpoint,
@@ -298,6 +343,7 @@ struct DefaultFaceQueryDomainResolver: FaceQueryDomainResolving {
                 depth: cell.depth + 1
             ))
         }
+        try execution.checkpoint()
         return certifiedBest
     }
 
@@ -308,20 +354,23 @@ struct DefaultFaceQueryDomainResolver: FaceQueryDomainResolving {
         initialVariable: Double,
         variableInterval: ScalarInterval,
         maximumIterations: Int,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution
     ) throws -> FaceTrimBoundaryProjection {
+        try execution.checkpoint()
         var variable = min(
             max(initialVariable, variableInterval.lower),
             variableInterval.upper
         )
         var completedIterations = 0
         for iteration in 0..<maximumIterations {
+            try execution.consumeWork(1)
             completedIterations = iteration + 1
             let parameter = side.parameter(variable: variable)
             let geometry = try surface.differentialGeometry(
                 u: parameter.u,
                 v: parameter.v,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
             let derivative: Vector3D
             let secondDerivative: Vector3D
@@ -364,7 +413,7 @@ struct DefaultFaceQueryDomainResolver: FaceQueryDomainResolving {
             let nextPoint = try surface.point(
                 u: nextParameter.u,
                 v: nextParameter.v,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
             if (nextPoint - point).length <= residual.length {
                 variable = next
@@ -376,8 +425,9 @@ struct DefaultFaceQueryDomainResolver: FaceQueryDomainResolving {
         let projectedPoint = try surface.point(
             u: parameter.u,
             v: parameter.v,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
+        try execution.checkpoint()
         return FaceTrimBoundaryProjection(
             parameter: parameter,
             point: projectedPoint,
@@ -390,7 +440,8 @@ struct DefaultFaceQueryDomainResolver: FaceQueryDomainResolving {
         on side: RectangularBoundarySide,
         over variableInterval: ScalarInterval,
         surface: Surface3D,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution
     ) throws -> CoordinateEnclosure3D {
         let fixedInterval = try enclosingInterval(
             side.fixedValue,
@@ -413,7 +464,7 @@ struct DefaultFaceQueryDomainResolver: FaceQueryDomainResolving {
         return try surfaceDifferentialEncloser.enclosure(
             of: surface,
             over: parameters,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         ).position
     }
 
@@ -519,16 +570,20 @@ struct DefaultFaceQueryDomainResolver: FaceQueryDomainResolving {
         surface: Surface3D,
         model: BRepModel,
         maximumIterations: Int,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution
     ) throws -> FaceTrimBoundaryProjection {
+        try execution.consumeWork(1)
         var best: FaceTrimBoundaryProjection?
         for loopID in face.loops {
+            try execution.consumeWork(1)
             guard let loop = model.loops[loopID] else {
                 throw FeatureEvaluationError.missingInput(
                     "Surface closest-point query references a missing trim loop."
                 )
             }
             for coedge in loop.coedges {
+                try execution.consumeWork(1)
                 guard let edge = model.edges[coedge.edgeID],
                       let curve = model.geometry.curves[edge.curveID],
                       let pcurve = coedge.surfaceParameterCurve,
@@ -551,7 +606,7 @@ struct DefaultFaceQueryDomainResolver: FaceQueryDomainResolving {
                         maximumSubdivisionCells: 1_048_576,
                         maximumCandidateCount: 4_096
                     ),
-                    tolerance: tolerance
+                    tolerance: tolerance, using: &execution
                 )
                 let canonicalFraction = (
                     projection.parameter - trim.startParameter
@@ -561,12 +616,12 @@ struct DefaultFaceQueryDomainResolver: FaceQueryDomainResolving {
                     : 1.0 - canonicalFraction
                 let parameter = try pcurve.parameter(
                     atNormalizedFraction: min(max(orientedFraction, 0.0), 1.0),
-                    tolerance: tolerance
+                    tolerance: tolerance, using: &execution
                 )
                 let surfacePoint = try surface.point(
                     u: parameter.u,
                     v: parameter.v,
-                    tolerance: tolerance
+                    tolerance: tolerance, using: &execution
                 )
                 guard surfacePoint.isApproximatelyEqual(
                     to: projection.point,
@@ -598,6 +653,7 @@ struct DefaultFaceQueryDomainResolver: FaceQueryDomainResolving {
                 "Surface closest-point query found no trim boundary."
             )
         }
+        try execution.checkpoint()
         return best
     }
 

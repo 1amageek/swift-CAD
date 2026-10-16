@@ -8,12 +8,12 @@ package struct OriginalRationalBinomialBranches: Sendable {
     package let centerU: ExactRationalCoefficient
     package let centerV: ExactRationalCoefficient
 
-    package static func proven<B: RationalAlgebraAdmitting>(original: ExactBivariatePolynomial,
+    package static func proven<B: ExactScalarAdmission & ~Copyable>(original: ExactBivariatePolynomial,
         usage: inout B) throws -> Self? {
         if let native = try axisAligned(original: original, usage: &usage) { return native }
         for chart in try OriginalRationalBinomialChart.candidates(original: original, usage: &usage) {
             guard let inner = try axisAligned(original: chart.transformed, usage: &usage) else { continue }
-            try usage.retainExactStorage(inner.factors.count)
+            try RationalAlgebraStorage.retain(inner.factors.count, of: ExactBivariatePolynomial.self, usage: &usage)
             var factors: [ExactBivariatePolynomial] = []
             for factor in inner.factors {
                 let pulledBack = try factor.composed(withU: chart.chartU, v: chart.chartV, usage: &usage)
@@ -28,12 +28,12 @@ package struct OriginalRationalBinomialBranches: Sendable {
         return nil
     }
 
-    private static func axisAligned<B: RationalAlgebraAdmitting>(original: ExactBivariatePolynomial,
+    private static func axisAligned<B: ExactScalarAdmission & ~Copyable>(original: ExactBivariatePolynomial,
         usage: inout B) throws -> Self? {
         if let native = try separated(original: original, usage: &usage) { return native }
         for chart in try OriginalRationalPolynomialShearChart.candidates(original: original, usage: &usage) {
             guard let inner = try separated(original: chart.transformed, usage: &usage) else { continue }
-            try usage.retainExactStorage(inner.factors.count)
+            try RationalAlgebraStorage.retain(inner.factors.count, of: ExactBivariatePolynomial.self, usage: &usage)
             var factors: [ExactBivariatePolynomial] = []
             for factor in inner.factors {
                 let pulledBack = try factor.composed(withU: chart.chartU, v: chart.chartV, usage: &usage)
@@ -48,13 +48,13 @@ package struct OriginalRationalBinomialBranches: Sendable {
         return nil
     }
 
-    private static func separated<B: RationalAlgebraAdmitting>(original: ExactBivariatePolynomial,
+    private static func separated<B: ExactScalarAdmission & ~Copyable>(original: ExactBivariatePolynomial,
         usage: inout B) throws -> Self? {
         let m = original.uDegree, n = original.vDegree
         guard m >= 2, n >= 2 else { return nil }
         var k = m, remainder = n
         while remainder != 0 {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             let next = k % remainder; k = remainder; remainder = next
         }
         guard k > 1 else { return nil }
@@ -76,7 +76,7 @@ package struct OriginalRationalBinomialBranches: Sendable {
             .subtracting(.constant(d, usage: &usage), usage: &usage)
         func power(_ source: ExactBivariatePolynomial, _ degree: Int,
             usage: inout B) throws -> ExactBivariatePolynomial {
-            try usage.retainExactStorage(1)
+            try RationalAlgebraStorage.retain(1, of: (ExactBivariatePolynomial.Power, ExactRationalCoefficient).self, usage: &usage)
             return try ExactBivariatePolynomial([.init(u: degree, v: 0): .one])
                 .composed(withU: source, v: .zero, usage: &usage)
         }
@@ -87,11 +87,11 @@ package struct OriginalRationalBinomialBranches: Sendable {
         let q = try power(y, n / k, usage: &usage).scaled(by: h, usage: &usage)
         let first = try p.subtracting(q, usage: &usage)
         _ = try original.dividedExactly(by: first, usage: &usage)
-        try usage.retainExactStorage(1); var factors = [first]
+        try RationalAlgebraStorage.retain(1, of: ExactBivariatePolynomial.self, usage: &usage); var factors = [first]
         if k % 2 == 0 {
             let second = try p.adding(q, usage: &usage)
             _ = try original.dividedExactly(by: second, usage: &usage)
-            try usage.retainExactStorage(1); factors.append(second)
+            try RationalAlgebraStorage.retain(1, of: ExactBivariatePolynomial.self, usage: &usage); factors.append(second)
         }
         return Self(original: original, factors: factors, originalPower: k,
             reducedUDegree: m / k, reducedVDegree: n / k, centerU: c, centerV: d)

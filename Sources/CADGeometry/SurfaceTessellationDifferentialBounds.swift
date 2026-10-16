@@ -44,13 +44,23 @@ extension DefaultSurfaceDifferentialEncloser {
   /// Approximate source periodicity is not a seam certificate. Existing validation
   /// owns positive weights and every exact repeated control/weight tail, including corners.
   package func originalDoublePeriodicTessellationBounds(
-    of surface: BSplineSurface3D,
-    over parameters: SurfaceParameterBox,
+    of surface: BSplineSurface3D, over parameters: SurfaceParameterBox,
     tolerance: ModelingTolerance
   ) throws -> SurfaceTessellationDifferentialBounds {
+    var execution = try OriginalQueryExecution.independentGeometry()
+    return try originalDoublePeriodicTessellationBounds(of: surface,
+      over: parameters, tolerance: tolerance, using: &execution)
+  }
+
+  package func originalDoublePeriodicTessellationBounds(
+    of surface: BSplineSurface3D,
+    over parameters: SurfaceParameterBox,
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+  ) throws -> SurfaceTessellationDifferentialBounds {
+    try execution.consumeWork(1)
     try tolerance.validate()
     try CurrentTaskCancellationChecker().checkCancellation()
-    try surface.validate(tolerance: tolerance)
+    try surface.validate(tolerance: tolerance, using: &execution)
     func refusal() -> KernelError {
       KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
                   message: "Double-periodic tessellation requires exact original translated knots and C1 seams on both axes.")
@@ -63,8 +73,8 @@ extension DefaultSurfaceDifferentialEncloser {
       let lowerRoundoff = virtualLower - lower
       let upperRoundoff = upper - virtualUpper
       let tail = upperRoundoff + lowerRoundoff
-      guard [head, virtualLower, virtualUpper, lowerRoundoff, upperRoundoff, tail]
-        .allSatisfy({ $0.isFinite }) else {
+      guard head.isFinite, virtualLower.isFinite, virtualUpper.isFinite,
+        lowerRoundoff.isFinite, upperRoundoff.isFinite, tail.isFinite else {
         throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
                           message: "Double-periodic continuity exceeded finite exact knot-difference arithmetic.")
       }
@@ -75,15 +85,17 @@ extension DefaultSurfaceDifferentialEncloser {
       let period = try exactDifference(knots[storedCount], knots[degree])
       guard period.head > 0, period.tail == 0 else { throw refusal() }
       for index in 0..<(knots.count - cycleCount) {
+        try execution.consumeWork(1)
         if index & 0xFF == 0 { try CurrentTaskCancellationChecker().checkCancellation() }
         let difference = try exactDifference(knots[index + cycleCount], knots[index])
         guard difference.head == period.head, difference.tail == 0 else { throw refusal() }
       }
       var index = 0
       while index < knots.count {
+        try execution.consumeWork(1)
         if index & 0xFF == 0 { try CurrentTaskCancellationChecker().checkCancellation() }
         var end = index + 1
-        while end < knots.count, knots[end] == knots[index] { end += 1 }
+        while end < knots.count, knots[end] == knots[index] { try execution.consumeWork(1); end += 1 }
         guard end - index <= degree - 1 else { throw refusal() }
         index = end
       }
@@ -93,201 +105,184 @@ extension DefaultSurfaceDifferentialEncloser {
     try CurrentTaskCancellationChecker().checkCancellation()
     // One existing whole-domain traversal retains the original shared cell/depth budget.
     // No selected periodic side, extracted Cartesian support, or sampled seam is minted.
-    return try tessellationBounds(of: .bSpline(surface), over: parameters, tolerance: tolerance)
+    return try tessellationBounds(of: .bSpline(surface), over: parameters, tolerance: tolerance, using: &execution)
   }
 
   package func tessellationBounds(
-    of surface: Surface3D,
-    over parameters: SurfaceParameterBox,
+    of surface: Surface3D, over parameters: SurfaceParameterBox,
     tolerance: ModelingTolerance
   ) throws -> SurfaceTessellationDifferentialBounds {
-    var remainingCells = 262_144
+    var execution = try OriginalQueryExecution.independentGeometry()
     return try tessellationBounds(of: surface, over: parameters,
-      tolerance: tolerance, remainingCells: &remainingCells)
+      tolerance: tolerance, using: &execution)
   }
 
-  /// Every caller-owned triangle/face debits the same invocation's cell count.
   package func tessellationBounds(
-    of surface: Surface3D,
-    over parameters: SurfaceParameterBox,
-    tolerance: ModelingTolerance,
-    remainingCells: inout Int
+    of surface: Surface3D, over parameters: SurfaceParameterBox,
+    tolerance: ModelingTolerance, remainingCells: inout Int
+  ) throws -> SurfaceTessellationDifferentialBounds {
+    var execution = try OriginalQueryExecution.independentGeometry()
+    return try tessellationBounds(of: surface, over: parameters,
+      tolerance: tolerance, remainingCells: &remainingCells, using: &execution)
+  }
+
+  package func tessellationBounds(
+    of surface: Surface3D, over parameters: SurfaceParameterBox,
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+  ) throws -> SurfaceTessellationDifferentialBounds {
+    var remaining = 262_144
+    return try tessellationBounds(of: surface, over: parameters,
+      tolerance: tolerance, remainingCells: &remaining, using: &execution)
+  }
+
+  package func tessellationBounds(
+    of surface: Surface3D, over parameters: SurfaceParameterBox,
+    tolerance: ModelingTolerance, remainingCells: inout Int,
+    using execution: inout OriginalQueryExecution
   ) throws -> SurfaceTessellationDifferentialBounds {
     guard remainingCells > 0 else {
-      throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
-        message: "Surface tessellation exhausted its shared certified cell budget.")
+      throw GeometryConversionError.resourceLimitExceeded("Surface tessellation exhausted its certified proof allowance.")
     }
+    let limit = min(262_144, remainingCells)
+    let limits = try OriginalQueryExecutionLimits(maximumValueDepth: Int.max,
+      maximumCoefficientDepth: Int.max, maximumCells: limit, maximumSubdivisionDepth: 32)
+    let contribution = try execution.makeContributionHandle(workLimit: limit, cellLimit: limit,
+      allocationPolicy: .uint32WordWork, executionLimits: limits)
+    defer { remainingCells -= contribution.snapshot.work }
+    return try execution.withContributionScope(contribution) { execution in
+      let result = try tessellationBoundsCore(of: surface, over: parameters,
+        tolerance: tolerance, using: &execution)
+      try execution.checkpoint()
+      return result
+    }
+  }
+
+  private func tessellationBoundsCore(
+    of surface: Surface3D, over parameters: SurfaceParameterBox,
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+  ) throws -> SurfaceTessellationDifferentialBounds {
+    try execution.consumeWork(1)
     try tolerance.validate()
-    try parameters.validate(for: surface, tolerance: tolerance)
+    try parameters.validate(for: surface, tolerance: tolerance, using: &execution)
     if case .procedural(.originalAffineWord(let image)) = surface {
-      let proof = try OriginalTessellationProofUsage(maximumCellCount: remainingCells, tolerance: tolerance)
-      var usage = OriginalPoleExactProofUsage(proofUsage: proof, depth: 0, tolerance: tolerance)
-      let transport: OriginalAffineWordDifferentialTransport
-      do {
-        transport = try .init(image: image, usage: &usage)
-      } catch {
-        remainingCells -= usage.proofUsage.usedCellCount
-        throw error
+      let transport = try OriginalAffineWordDifferentialTransport(image: image, usage: &execution)
+      let original = try execution.withSourceDepthOffset(1) { execution in
+        try tessellationBoundsCore(of: image.source, over: parameters,
+          tolerance: tolerance, using: &execution)
       }
-      remainingCells -= usage.proofUsage.usedCellCount
-      let original = try tessellationBounds(of: image.source, over: parameters,
-        tolerance: tolerance, remainingCells: &remainingCells)
-      guard remainingCells >= 7 else {
-        throw GeometryConversionError.resourceLimitExceeded("Original word differential action exhausted the shared visit allowance.")
-      }
-      return try transport.bounds(original, consumeWork: { remainingCells -= 1 })
+      return try transport.bounds(original, using: &execution)
     }
     if case .procedural(.originalImage(let image)) = surface {
-      remainingCells -= 1
-      let native = try image.sourceParameterBounds(over: parameters, tolerance: tolerance)
-      let original = try tessellationBounds(of: image.source, over: native,
-        tolerance: tolerance, remainingCells: &remainingCells)
+      let native = try image.sourceParameterBounds(over: parameters, tolerance: tolerance, using: &execution)
+      let original = try execution.withSourceDepthOffset(1) { execution in
+        try tessellationBoundsCore(of: image.source, over: native,
+          tolerance: tolerance, using: &execution)
+      }
       return try OriginalImagePoleNormalTransport().differentialBounds(original,
-        through: image, consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
+        through: image, using: &execution)
     }
     if case .analytic(let analytic) = surface {
       switch analytic {
       case .sphere, .cone:
-        remainingCells -= 1
-        if let bounds = try OriginalAnalyticPoleNormal().tessellationBounds(of:surface,over:parameters,
-          tolerance:tolerance,consumeWork:{ try CurrentTaskCancellationChecker().checkCancellation() }) { return bounds }
+        if let bounds = try OriginalAnalyticPoleNormal().tessellationBounds(of: surface,
+          over: parameters, tolerance: tolerance, using: &execution) { return bounds }
       default: break
       }
     }
     if case .bSpline(let native) = surface {
-      var usage = try OriginalTessellationProofUsage(maximumCellCount: remainingCells, tolerance: tolerance)
-      defer { remainingCells -= usage.usedCellCount }
-      let panels = try originalNativeSpanTessellationBounds(of: native, over: parameters,
-        tolerance: tolerance, proofUsage: &usage)
-      guard let first = panels.first else {
-        throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
-          message: "Original tessellation native panel cover is empty.")
+      let panels = try originalNativeSpanTessellationBounds(of: native,
+        over: parameters, tolerance: tolerance, using: &execution)
+      guard var aggregate = panels.first?.bounds else {
+        throw GeometryConversionError.invalidInput("Original tessellation native panel cover is empty.")
       }
-      return panels.dropFirst().reduce(first.bounds) { union($0, $1.bounds) }
+      for panel in panels.dropFirst() {
+        try execution.consumeWork(1)
+        aggregate = union(aggregate, panel.bounds)
+      }
+      return aggregate
     }
     if case .procedural(.originalRevolution(let original)) = surface,
-       original.hasOriginalAxisEndpoint(atEnd:false) || original.hasOriginalAxisEndpoint(atEnd:true) {
-      return try originalRevolutionPoleTessellationBounds(original,over:parameters,
-        tolerance:tolerance,remainingCells:&remainingCells)
+       original.hasOriginalAxisEndpoint(atEnd: false) || original.hasOriginalAxisEndpoint(atEnd: true) {
+      return try originalRevolutionPoleTessellationBounds(original, over: parameters,
+        tolerance: tolerance, using: &execution)
     }
-    let prepared = try PreparedSurfaceDifferentialEncloser(
-      surface: surface,
-      tolerance: tolerance
-    )
-
-    struct Cell {
-      let parameters: SurfaceParameterBox
-      let depth: Int
-    }
-
-    let maximumDepth = 32
+    let prepared = try PreparedSurfaceDifferentialEncloser(surface: surface,
+      tolerance: tolerance, using: &execution)
+    struct Cell { let parameters: SurfaceParameterBox; let depth: Int }
+    try execution.retainStorage(count: 1, stride: MemoryLayout<Cell>.stride)
     var pending = [Cell(parameters: parameters, depth: 0)]
+    var pendingCapacity = 1
     var aggregate: SurfaceTessellationDifferentialBounds?
-
     while let cell = pending.popLast() {
-      guard remainingCells > 0 else {
-        throw KernelError(
-          phase: .geometry,
-          code: .resourceLimitExceeded,
-          tolerance: tolerance,
-          message: "Surface tessellation bounds exhausted their certified cell budget."
-        )
+      try execution.visitCertificationCell(depth: cell.depth)
+      let local = try execution.withGeometricDepthOffset(cell.depth) { execution -> SurfaceTessellationDifferentialBounds? in
+        try certifiedTessellationBounds(prepared: prepared, over: cell.parameters,
+          tolerance: tolerance, using: &execution)
       }
-      remainingCells -= 1
-
-      if let local = try certifiedTessellationBounds(
-        prepared: prepared,
-        over: cell.parameters,
-        tolerance: tolerance
-      ) {
-        aggregate = aggregate.map { union($0, local) } ?? local
-        continue
-      }
-
-      let differential = try surface.parameterDerivatives(
-        u: cell.parameters.u.midpoint,
-        v: cell.parameters.v.midpoint,
-        tolerance: tolerance
-      )
+      if let local { aggregate = aggregate.map { union($0, local) } ?? local; continue }
+      let differential = try surface.parameterDerivatives(u: cell.parameters.u.midpoint,
+        v: cell.parameters.v.midpoint, tolerance: tolerance, using: &execution)
       guard isRegular(differential, tolerance: tolerance) else {
-        throw KernelError(
-          phase: .geometry,
-          code: .singularGeometry,
-          tolerance: tolerance,
-          message: "Surface tessellation encountered a singular tangent frame."
-        )
+        throw KernelError(phase: .geometry, code: .singularGeometry, tolerance: tolerance,
+          message: "Surface tessellation encountered a singular tangent frame.")
       }
-      guard cell.depth < maximumDepth else {
-        let diagnostic = tessellationCertificationDiagnostic(
-          of: surface,
-          prepared: prepared,
-          over: cell.parameters,
-          tolerance: tolerance
-        )
-        throw KernelError(
-          phase: .geometry,
-          code: .resourceLimitExceeded,
-          residual: max(
-            cell.parameters.u.width,
-            cell.parameters.v.width
-          ),
-          tolerance: tolerance,
-          message:
-            "Surface tessellation of \(tessellationSurfaceKind(surface)) could not certify differential bounds at U [\(cell.parameters.u.lower), \(cell.parameters.u.upper)] and V [\(cell.parameters.v.lower), \(cell.parameters.v.upper)] within the subdivision limit. \(diagnostic)"
-        )
+      guard cell.depth < 32 else {
+        throw KernelError(phase: .geometry, code: .resourceLimitExceeded,
+          residual: max(cell.parameters.u.width, cell.parameters.v.width), tolerance: tolerance,
+          message: "Surface tessellation could not certify differential bounds within its subdivision limit.")
       }
-      let children = try subdivided(
-        cell.parameters,
-        surface: surface,
-        depth: cell.depth + 1
-      )
-      pending.append(
-        contentsOf: children.reversed().map {
-          Cell(parameters: $0, depth: cell.depth + 1)
-        })
+      let children = try subdivided(cell.parameters, surface: surface,
+        depth: cell.depth + 1, using: &execution)
+      for child in children.reversed() {
+        try execution.consumeWork(1)
+        try OriginalCoefficientAllocation.reserveAppend(to: &pending,
+          capacity: &pendingCapacity, using: &execution)
+        pending.append(Cell(parameters: child, depth: cell.depth + 1))
+      }
     }
-
-    guard let aggregate else {
-      throw KernelError(
-        phase: .geometry,
-        code: .invalidInput,
-        tolerance: tolerance,
-        message: "Surface tessellation requires a nonempty parameter region."
-      )
-    }
+    guard let aggregate else { throw GeometryConversionError.invalidInput("Surface tessellation requires a nonempty parameter region.") }
     return aggregate
   }
 
-  private func originalRevolutionPoleTessellationBounds(_ source:OriginalRevolutionSurface3D,
-    over parameters:SurfaceParameterBox,tolerance:ModelingTolerance,remainingCells:inout Int) throws -> SurfaceTessellationDifferentialBounds {
-    let proof = try OriginalTessellationProofUsage(maximumCellCount:remainingCells,tolerance:tolerance)
-    var usage = OriginalPoleExactProofUsage(proofUsage:proof,depth:0,tolerance:tolerance)
-    defer { remainingCells -= usage.proofUsage.usedCellCount }
-    let lower = source.hasOriginalAxisEndpoint(atEnd:false)
-      ? try OriginalRevolutionPoleNormal(surface:source,atEnd:false,maximumSubdivisionDepth:32,tolerance:tolerance,usage:&usage) : nil
-    let upper = source.hasOriginalAxisEndpoint(atEnd:true)
-      ? try OriginalRevolutionPoleNormal(surface:source,atEnd:true,maximumSubdivisionDepth:32,tolerance:tolerance,usage:&usage) : nil
-    struct Cell { let box:SurfaceParameterBox;let depth:Int }
-    var pending = [Cell(box:parameters,depth:0)]
-    var aggregate:SurfaceTessellationDifferentialBounds?
+  private func originalRevolutionPoleTessellationBounds(
+    _ source: OriginalRevolutionSurface3D, over parameters: SurfaceParameterBox,
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+  ) throws -> SurfaceTessellationDifferentialBounds {
+    let lower = source.hasOriginalAxisEndpoint(atEnd: false)
+      ? try OriginalRevolutionPoleNormal(surface: source, atEnd: false,
+          maximumSubdivisionDepth: 32, tolerance: tolerance, using: &execution) : nil
+    let upper = source.hasOriginalAxisEndpoint(atEnd: true)
+      ? try OriginalRevolutionPoleNormal(surface: source, atEnd: true,
+          maximumSubdivisionDepth: 32, tolerance: tolerance, using: &execution) : nil
+    struct Cell { let box: SurfaceParameterBox; let depth: Int }
+    try execution.retainStorage(count: 1, stride: MemoryLayout<Cell>.stride)
+    var pending = [Cell(box: parameters, depth: 0)]
+    var pendingCapacity = 1
+    var aggregate: SurfaceTessellationDifferentialBounds?
     while let cell = pending.popLast() {
-      try usage.proofUsage.consume(depth:cell.depth,tolerance:tolerance)
+      try execution.visitCertificationCell(depth: cell.depth)
       let pole = cell.box.v.lower == 0 ? lower : cell.box.v.upper == 1 ? upper : nil
-      var local:SurfaceTessellationDifferentialBounds?
-      if let pole {
-        do { local = try pole.panelBounds(over:cell.box,tolerance:tolerance,storageByteStride:OriginalPoleExactProofUsage.storageByteStride,usage:&usage).differentialBounds }
-        catch let error as KernelError where error.code == .singularSystem { local = nil }
-      } else {
-        let jet = try source.intervalJet(over:cell.box,tolerance:tolerance,consumeWork:{ try usage.consumeExactWork(1) })
-        local = try certifiedTessellationBounds(jet:jet,tolerance:tolerance)
+      let local = try execution.withGeometricDepthOffset(cell.depth) { execution -> SurfaceTessellationDifferentialBounds? in
+        if let pole {
+          do { return try pole.panelBounds(over: cell.box, tolerance: tolerance, using: &execution).differentialBounds }
+          catch let error as KernelError where error.code == .singularSystem { return nil }
+        }
+        let jet = try source.intervalJet(over: cell.box, tolerance: tolerance, using: &execution)
+        return try certifiedTessellationBounds(jet: jet, tolerance: tolerance, using: &execution)
       }
-      if let local { aggregate = aggregate.map { union($0,local) } ?? local;continue }
+      if let local { aggregate = aggregate.map { union($0, local) } ?? local; continue }
       guard cell.depth < 32 else {
-        throw KernelError(phase:.geometry,code:.resourceLimitExceeded,tolerance:tolerance,
-          message:"Original factored revolution normal could not close its whole-panel bound.")
+        throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
+          message: "Original factored revolution normal could not close its whole-panel bound.")
       }
-      let children = try subdivided(cell.box,surface:.procedural(.originalRevolution(source)),depth:cell.depth+1)
-      pending.append(contentsOf:children.reversed().map { Cell(box:$0,depth:cell.depth+1) })
+      let children = try subdivided(cell.box, surface: .procedural(.originalRevolution(source)),
+        depth: cell.depth + 1, using: &execution)
+      for child in children.reversed() {
+        try execution.consumeWork(1)
+        try OriginalCoefficientAllocation.reserveAppend(to: &pending,
+          capacity: &pendingCapacity, using: &execution)
+        pending.append(Cell(box: child, depth: cell.depth + 1))
+      }
     }
     guard let aggregate else { throw GeometryConversionError.invalidInput("Original revolution normal cover is empty.") }
     return aggregate
@@ -296,24 +291,26 @@ extension DefaultSurfaceDifferentialEncloser {
   private func certifiedTessellationBounds(
     prepared: PreparedSurfaceDifferentialEncloser,
     over parameters: SurfaceParameterBox,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> SurfaceTessellationDifferentialBounds? {
+    try execution.consumeWork(1)
     let jet: SurfaceIntervalVectorJet
     do {
       jet = try prepared.intervalJet(
-        over: parameters,
-        tolerance: tolerance
+        overClosedBox: parameters,
+        tolerance: tolerance, using: &execution
       )
     } catch let error as KernelError where error.code == .singularSystem {
       return nil
     }
-    return try certifiedTessellationBounds(jet: jet, tolerance: tolerance)
+    return try certifiedTessellationBounds(jet: jet, tolerance: tolerance, using: &execution)
   }
 
   func certifiedTessellationBounds(
     jet: SurfaceIntervalVectorJet,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> SurfaceTessellationDifferentialBounds? {
+    try execution.consumeWork(1)
     let tangentU = jet.differentiatedUThroughSecondOrder()
     let tangentV = jet.differentiatedVThroughSecondOrder()
     let normal = tangentU.cross(tangentV)
@@ -359,16 +356,13 @@ extension DefaultSurfaceDifferentialEncloser {
       unitNormalDerivativeVMagnitudeUpperBound: (magnitudeUpper(normalDerivativeV) / normalLower)
         .nextUp
     )
-    guard
-      [
-        bounds.tangentUMagnitudeUpperBound,
-        bounds.tangentVMagnitudeUpperBound,
-        bounds.secondDerivativeUUMagnitudeUpperBound,
-        bounds.secondDerivativeUVMagnitudeUpperBound,
-        bounds.secondDerivativeVVMagnitudeUpperBound,
-        bounds.unitNormalDerivativeUMagnitudeUpperBound,
-        bounds.unitNormalDerivativeVMagnitudeUpperBound,
-      ].allSatisfy({ $0.isFinite && $0 >= 0.0 })
+    guard bounds.tangentUMagnitudeUpperBound.isFinite, bounds.tangentUMagnitudeUpperBound >= 0,
+      bounds.tangentVMagnitudeUpperBound.isFinite, bounds.tangentVMagnitudeUpperBound >= 0,
+      bounds.secondDerivativeUUMagnitudeUpperBound.isFinite, bounds.secondDerivativeUUMagnitudeUpperBound >= 0,
+      bounds.secondDerivativeUVMagnitudeUpperBound.isFinite, bounds.secondDerivativeUVMagnitudeUpperBound >= 0,
+      bounds.secondDerivativeVVMagnitudeUpperBound.isFinite, bounds.secondDerivativeVVMagnitudeUpperBound >= 0,
+      bounds.unitNormalDerivativeUMagnitudeUpperBound.isFinite, bounds.unitNormalDerivativeUMagnitudeUpperBound >= 0,
+      bounds.unitNormalDerivativeVMagnitudeUpperBound.isFinite, bounds.unitNormalDerivativeVMagnitudeUpperBound >= 0
     else {
       throw KernelError(
         phase: .geometry,
@@ -378,60 +372,6 @@ extension DefaultSurfaceDifferentialEncloser {
       )
     }
     return bounds
-  }
-
-  private func tessellationCertificationDiagnostic(
-    of surface: Surface3D,
-    prepared: PreparedSurfaceDifferentialEncloser,
-    over parameters: SurfaceParameterBox,
-    tolerance: ModelingTolerance
-  ) -> String {
-    do {
-      let jet = try prepared.intervalJet(
-        over: parameters,
-        tolerance: tolerance
-      )
-      let tangentU = jet.differentiatedUThroughSecondOrder()
-      let tangentV = jet.differentiatedVThroughSecondOrder()
-      let tangentUSquared = squaredMagnitudeBounds(tangentU)
-      let tangentVSquared = squaredMagnitudeBounds(tangentV)
-      let normalSquared = squaredMagnitudeBounds(tangentU.cross(tangentV))
-      let sineTolerance = max(
-        sin(min(tolerance.angle, Double.pi * 0.5)),
-        tolerance.relative,
-        Double.ulpOfOne * 256.0
-      )
-      let minimumNormalSquared =
-        (sineTolerance * sineTolerance
-        * tangentUSquared.upper * tangentVSquared.upper).nextUp
-      var sourceDetail = ""
-      if case .procedural(.offset(let offset)) = surface {
-        let preparedSource = try PreparedSurfaceDifferentialEncloser(
-          surface: offset.source,
-          tolerance: tolerance
-        )
-        let source = try preparedSource.intervalJet(
-          over: parameters,
-          tolerance: tolerance
-        )
-        let sourceU = source.differentiatedUThroughSecondOrder()
-        let sourceV = source.differentiatedVThroughSecondOrder()
-        let rawNormal = sourceU.cross(sourceV)
-        if let unitNormal = rawNormal.normalized() {
-          sourceDetail =
-            " Source U tangent X is \(source.x.derivativeU); raw-normal squared and raw-normal U derivative X are \(rawNormal.dot(rawNormal).value) and \(rawNormal.x.derivativeU); unit-normal U derivative X is \(unitNormal.x.derivativeU); offset distance is \(offset.distance)."
-        }
-      }
-      return
-        "Squared tangent/normal lower bounds are \(tangentUSquared.lower), \(tangentVSquared.lower), and \(normalSquared.lower); the normal threshold is \(minimumNormalSquared).\(sourceDetail)"
-    } catch {
-#if hasFeature(Embedded)
-      let sourceMessage = KernelError.wrapping(error, phase: .geometry, tolerance: tolerance).message
-      return "Interval-jet certification failed with \(sourceMessage)."
-#else
-      return "Interval-jet certification failed with \(error)."
-#endif
-    }
   }
 
   private func tessellationSurfaceKind(_ surface: Surface3D) -> String {
@@ -538,8 +478,10 @@ extension DefaultSurfaceDifferentialEncloser {
   func subdivided(
     _ parameters: SurfaceParameterBox,
     surface: Surface3D,
-    depth: Int
+    depth: Int, using execution: inout OriginalQueryExecution
   ) throws -> [SurfaceParameterBox] {
+    try execution.consumeWork(1)
+    try execution.retainStorage(count: 2, stride: MemoryLayout<SurfaceParameterBox>.stride)
     let u = parameters.u
     let v = parameters.v
     let middleU = u.midpoint

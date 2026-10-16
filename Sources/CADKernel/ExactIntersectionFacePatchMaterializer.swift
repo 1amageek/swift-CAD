@@ -16,14 +16,17 @@ struct ExactIntersectionFacePatchMaterializer {
         regionSelectionGraph: BooleanRegionSelectionGraph,
         operands: BooleanOperandContext,
         tolerance: ModelingTolerance
-    ) throws -> BRepSewingRequest {
+    , using execution: inout OriginalQueryExecution) throws -> BRepSewingRequest {
+        try execution.consumeWork(1)
         var hasOpenComponent = false
         var hasClosedComponent = false
         var requiresPeriodicArrangement = false
         var hasCoincidentComponent = false
         var hasBoundaryContact = false
         for split in uvSplitGraph.splits {
+            try execution.consumeWork(1)
             for component in split.components {
+            try execution.consumeWork(1)
                 switch component.geometry {
                 case .transverseSegment, .trimmedCurve:
                     hasOpenComponent = true
@@ -34,7 +37,7 @@ struct ExactIntersectionFacePatchMaterializer {
                         facePair: split.facePair,
                         model: model,
                         tolerance: tolerance
-                    ) {
+                    , using: &execution) {
                         requiresPeriodicArrangement = true
                     }
                 case .tangent:
@@ -54,7 +57,7 @@ struct ExactIntersectionFacePatchMaterializer {
                     model: model,
                     operands: operands,
                     tolerance: tolerance
-                )
+                , using: &execution)
             } catch {
                 throw contextualized(
                     error,
@@ -77,7 +80,7 @@ struct ExactIntersectionFacePatchMaterializer {
                 sourceSubshapes: sourceSubshapes,
                 operands: operands,
                 tolerance: tolerance
-            )
+            , using: &execution)
         } catch {
             throw contextualized(
                 error,
@@ -87,6 +90,7 @@ struct ExactIntersectionFacePatchMaterializer {
         }
         var coincidentFaceActions = coincidenceResolution.forcedActions
         for (faceID, action) in coincidentArrangement.constantActions {
+            try execution.consumeWork(1)
             guard coincidentFaceActions[faceID].map({ $0 != action }) != true else {
                 throw KernelError(
                     phase: .classification,
@@ -95,7 +99,7 @@ struct ExactIntersectionFacePatchMaterializer {
                     message: "Coincident Boolean ownership assigned conflicting actions to one face."
                 )
             }
-            coincidentFaceActions[faceID] = action
+            try OriginalParameterQueryStorage.set(action, for: faceID, in: &coincidentFaceActions, using: &execution)
         }
         let hasCoincidentArrangement = coincidentArrangement.boundaries.contains(where: \.isPartitioning)
         let hasCoincidentFaceSelection = !coincidentFaceActions.isEmpty
@@ -111,7 +115,7 @@ struct ExactIntersectionFacePatchMaterializer {
                 hasBoundaryContact: hasBoundaryContact,
                 operands: operands,
                 tolerance: tolerance
-            )
+            , using: &execution)
         }
         // Component topology selects the exact partitioning strategy. Closed
         // loops use a containment tree so implicit intersection curves are not
@@ -133,7 +137,7 @@ struct ExactIntersectionFacePatchMaterializer {
                 coincidentFaceActions: coincidentFaceActions,
                 operands: operands,
                 tolerance: tolerance
-            )
+            , using: &execution)
         }
         return try ClosedIntersectionFacePatchMaterializer().materialize(
             operation: operation,
@@ -147,7 +151,7 @@ struct ExactIntersectionFacePatchMaterializer {
             coincidentFaceActions: coincidentFaceActions,
             operands: operands,
             tolerance: tolerance
-        )
+        , using: &execution)
     }
 
     private func isNonContractible(
@@ -155,7 +159,8 @@ struct ExactIntersectionFacePatchMaterializer {
         facePair: BooleanFacePairCandidate,
         model: BRepModel,
         tolerance: ModelingTolerance
-    ) throws -> Bool {
+    , using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.consumeWork(1)
         guard let targetFace = model.faces[facePair.targetFaceID],
               let toolFace = model.faces[facePair.toolFaceID],
               let targetSurface = model.geometry.surfaces[targetFace.surfaceID],
@@ -168,28 +173,28 @@ struct ExactIntersectionFacePatchMaterializer {
             )
         }
         let targetLift = try SurfaceParameterLoopLift(
-            samples: intersection.samples.map {
+            samples: try OriginalParameterQueryStorage.map(intersection.samples, using: &execution) { sample, execution in
                 SurfaceParameter(
-                    u: $0.uvPoint.targetU,
-                    v: $0.uvPoint.targetV
+                    u: sample.uvPoint.targetU,
+                    v: sample.uvPoint.targetV
                 )
             },
             surface: targetSurface,
             tolerance: tolerance
-        )
+        , using: &execution)
         if targetLift.isContractible == false {
             return true
         }
         let toolLift = try SurfaceParameterLoopLift(
-            samples: intersection.samples.map {
+            samples: try OriginalParameterQueryStorage.map(intersection.samples, using: &execution) { sample, execution in
                 SurfaceParameter(
-                    u: $0.uvPoint.toolU,
-                    v: $0.uvPoint.toolV
+                    u: sample.uvPoint.toolU,
+                    v: sample.uvPoint.toolV
                 )
             },
             surface: toolSurface,
             tolerance: tolerance
-        )
+        , using: &execution)
         return toolLift.isContractible == false
     }
 
@@ -197,13 +202,9 @@ struct ExactIntersectionFacePatchMaterializer {
         _ error: any Error,
         stage: String,
         tolerance: ModelingTolerance
-    ) -> KernelError {
-        let wrapped = KernelError.wrapping(
-            error,
-            phase: .topology,
-            tolerance: tolerance
-        )
-        return KernelError(
+    ) -> any Error {
+        let wrapped = KernelError.wrapping(error, phase: .topology, tolerance: tolerance)
+        let classification = KernelError(
             phase: wrapped.phase,
             code: wrapped.code,
             featureID: wrapped.featureID,
@@ -212,5 +213,6 @@ struct ExactIntersectionFacePatchMaterializer {
             tolerance: wrapped.tolerance ?? tolerance,
             message: "Exact Boolean region materialization \(stage) failed: \(wrapped.message)"
         )
+        return OriginalQueryFailure.contextualizing(error, classification: classification)
     }
 }

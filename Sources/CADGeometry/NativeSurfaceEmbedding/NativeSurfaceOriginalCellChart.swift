@@ -47,19 +47,19 @@ struct NativeSurfaceOriginalCellChart: Sendable {
             v: interval(working.v, nativeDomain.v, workingDomain.v, reverse: reversesV))
     }
 
-    func positionBounds(over working: SurfaceParameterBox,
-        admission: NativeSurfaceEmbeddingAdmission) throws -> BoundingBox3D {
+    func positionBounds<A: ExactScalarAdmission & ~Copyable>(over working: SurfaceParameterBox,
+        using execution: inout A) throws -> BoundingBox3D {
         let jet = try law.native.intervalJet(overClosedBox: nativeBox(over: working), on: law.source,
-            tolerance: law.tolerance, consumeWork: { try admission.work(1) }, consumeStorage: { try admission.storageBytes($0) })
+            tolerance: law.tolerance, using: &execution)
         return try BoundingBox3D(minimum: .init(x: jet.x.value.lower, y: jet.y.value.lower, z: jet.z.value.lower),
             maximum: .init(x: jet.x.value.upper, y: jet.y.value.upper, z: jet.z.value.upper))
     }
 
-    func fields(over working: SurfaceParameterBox, stationary: Set<SurfaceParameterBoundary>,
-        admission: NativeSurfaceEmbeddingAdmission) throws
+    func fields<A: ExactScalarAdmission & ~Copyable>(over working: SurfaceParameterBox, stationary: Set<SurfaceParameterBoundary>,
+        using execution: inout A) throws
         -> (RationalBezierSurfaceDifferentialBounds, BoundingBox3D) {
         let box = try nativeBox(over: working)
-        try admission.storage(stationary.count)
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: stationary.count, of: SurfaceParameterBoundary.self))
         var nativeStationary: Set<SurfaceParameterBoundary> = []
         for side in stationary {
             let workingU = side == .uLower || side == .uUpper
@@ -67,14 +67,14 @@ struct NativeSurfaceOriginalCellChart: Sendable {
             let nativeU = workingU != swapsAxes
             nativeStationary.insert(nativeU ? (upper ? .uUpper : .uLower) : (upper ? .vUpper : .vLower))
         }
-        return try fields(overNative: box, nativeStationary: nativeStationary, admission: admission)
+        return try fields(overNative: box, nativeStationary: nativeStationary, using: &execution)
     }
 
     /// Query owners stay native; derivative gains belong to the retained whole chart frame.
-    func fields(overNative box: SurfaceParameterBox, nativeStationary: Set<SurfaceParameterBoundary>,
-        admission: NativeSurfaceEmbeddingAdmission) throws
+    func fields<A: ExactScalarAdmission & ~Copyable>(overNative box: SurfaceParameterBox, nativeStationary: Set<SurfaceParameterBoundary>,
+        using execution: inout A) throws
         -> (RationalBezierSurfaceDifferentialBounds, BoundingBox3D) {
-        let original = try law.fields(over: box, stationary: nativeStationary, admission: admission)
+        let original = try law.fields(over: box, stationary: nativeStationary, using: &execution)
         func gain(_ source: ScalarInterval, _ target: ScalarInterval) throws -> OutwardScalarInterval {
             guard let value = (OutwardScalarInterval.exact(source.upper) - .exact(source.lower))
                 .divided(by: .exact(target.upper) - .exact(target.lower)), value.lower > 0 else {

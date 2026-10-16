@@ -2,7 +2,7 @@ import CADCore
 
 /// Whole original rational coefficient bound on a finite native rectangle.
 extension ExactBivariatePolynomial {
-    package func exactAbsoluteBound<B: RationalAlgebraAdmitting>(over box: SurfaceParameterBox,
+    package func exactAbsoluteBound<B: ExactScalarAdmission & ~Copyable>(over box: SurfaceParameterBox,
         usage: inout B) throws -> ExactRationalCoefficient {
         if isZero { return .zero }
         func magnitude(_ value: ExactRationalCoefficient) -> ExactRationalCoefficient {
@@ -13,7 +13,7 @@ extension ExactBivariatePolynomial {
             let high = try magnitude(.originalDouble(range.upper, usage: &usage))
             let bound = try high.subtracting(low, usage: &usage).isPositive ? high : low
             let count = try rationalAlgebraCount(max(0, degree), 1)
-            try usage.retainExactStorage(count)
+            try RationalAlgebraStorage.retain(count, of: ExactRationalCoefficient.self, usage: &usage)
             var values: [ExactRationalCoefficient] = [.one]
             if degree > 0 { for _ in 0..<degree {
                 values.append(try values[values.count - 1].multiplied(by: bound, usage: &usage))

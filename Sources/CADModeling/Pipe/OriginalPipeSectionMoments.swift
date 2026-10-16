@@ -31,7 +31,7 @@ package struct OriginalPipeSectionMoments: Sendable {
     }
 
     package func centroid(loops: [[ExactBSplineCurveSpan]], plane: Plane3D,
-        tolerance: ModelingTolerance, admission: GeometryConversionAdmission) throws -> Point3D {
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Point3D {
         guard !loops.isEmpty, loops.allSatisfy({ !$0.isEmpty }) else {
             throw failure(tolerance, "Original section moments require complete boundary loops.")
         }
@@ -60,51 +60,49 @@ package struct OriginalPipeSectionMoments: Sendable {
         let spanCount = loops.reduce(0) { $0 + $1.count }
         let limits = GeometryConversionRequirements(maximumPositionError: tolerance.distance,
             maximumTangentAngle: tolerance.angle, maximumCurvatureError: tolerance.distance)
-        guard spanCount <= admission.maximumSpanCount, spanCount <= limits.maximumCertificationBoxes else {
+        guard spanCount <= execution.effectiveLimits.maximumSpans, spanCount <= limits.maximumCertificationBoxes else {
             throw failure(tolerance, "Original section moments exceed existing source cell admission.")
         }
         var remainingCells = limits.maximumCertificationBoxes - spanCount
-        try retain(spanCount, of: (any CurveArcLengthParameterization).self, admission: admission, tolerance: tolerance)
+        try retain(spanCount, of: (any CurveArcLengthParameterization).self, using: &execution, tolerance: tolerance)
         var sources: [any CurveArcLengthParameterization] = []
         sources.reserveCapacity(spanCount)
-        try retain(spanCount, of: Cell.self, admission: admission, tolerance: tolerance)
+        try retain(spanCount, of: Cell.self, using: &execution, tolerance: tolerance)
         var cells: [Cell] = []
         cells.reserveCapacity(spanCount)
         let whole = try ScalarInterval(lower: 0, upper: 1)
         for (loopIndex, loop) in loops.enumerated() {
             for span in loop {
-                try admission.chargeWork()
-                let original = try span.originalChart.persistentCurve(tolerance: tolerance, admission: admission)
+                try execution.consumeWork(1)
+                let original = try span.originalChart.persistentCurve(tolerance: tolerance, using: &execution)
                 let source = try arcLength.parameterization(of: original, over: whole,
                     options: CurveArcLengthOptions(absoluteAccuracy: tolerance.distance, relativeAccuracy: 0),
-                    tolerance: tolerance, maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
-                    remainingSourceDepth: admission.remainingSourceDepth,
-                    maximumAlgebraicDepth: admission.maximumAlgebraicDepth,
-                    consumeWork: { try admission.visit(depth: $0) },
-                    consumeStorage: { try admission.chargeStorage(bytes: $0) })
+                    tolerance: tolerance, maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth,
+                    remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+                    maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth, using: &execution)
                 let index = sources.count
                 sources.append(source)
                 cells.append(Cell(loop: loopIndex, source: index, interval: whole, depth: 0,
                     moment: try integrate(source, over: whole, origin: plane.origin, u: u, v: v,
-                        tolerance: tolerance, admission: admission)))
+                        tolerance: tolerance, using: &execution)))
             }
         }
         var capacity = spanCount
-        try retain(loops.count, of: Moment.self, admission: admission, tolerance: tolerance)
+        try retain(loops.count, of: Moment.self, using: &execution, tolerance: tolerance)
         var sums = Array(repeating: Moment.zero, count: loops.count)
         while true {
-            try admission.chargeWork()
-            for index in sums.indices { try admission.chargeWork(); sums[index] = .zero }
+            try execution.consumeWork(1)
+            for index in sums.indices { try execution.consumeWork(1); sums[index] = .zero }
             var largest = 0
             for index in cells.indices {
-                try admission.chargeWork()
+                try execution.consumeWork(1)
                 sums[cells[index].loop] = sums[cells[index].loop] + cells[index].moment
                 if cells[index].moment.uncertainty > cells[largest].moment.uncertainty { largest = index }
             }
             var total = Moment.zero
             var oriented = true
             for index in sums.indices {
-                try admission.chargeWork()
+                try execution.consumeWork(1)
                 let sum = sums[index]
                 let sign: Double
                 if sum.area.lower > 0 { sign = index == 0 ? 1 : -1 }
@@ -131,7 +129,7 @@ package struct OriginalPipeSectionMoments: Sendable {
             }
             remainingCells -= 2
             let middle = old.interval.lower + old.interval.width * 0.5
-            guard old.depth < admission.maximumSubdivisionDepth,
+            guard old.depth < execution.effectiveLimits.maximumSubdivisionDepth,
                   middle > old.interval.lower, middle < old.interval.upper else {
                 throw failure(tolerance, "Original section moments exhausted their retained refinement depth.")
             }
@@ -139,27 +137,27 @@ package struct OriginalPipeSectionMoments: Sendable {
                 let next = capacity.multipliedReportingOverflow(by: 2)
                 guard !next.overflow else { throw failure(tolerance, "Original moment cell capacity overflowed.") }
                 let admittedCapacity = min(next.partialValue, limits.maximumCertificationBoxes)
-                try retain(admittedCapacity, of: Cell.self, admission: admission, tolerance: tolerance)
+                try retain(admittedCapacity, of: Cell.self, using: &execution, tolerance: tolerance)
                 cells.reserveCapacity(admittedCapacity)
                 capacity = admittedCapacity
             }
             let left = try ScalarInterval(lower: old.interval.lower, upper: middle)
             let right = try ScalarInterval(lower: middle, upper: old.interval.upper)
-            try admission.visit(depth: old.depth + 1)
+            try execution.visitGeometricCell(depth: old.depth + 1)
             cells[largest] = Cell(loop: old.loop, source: old.source, interval: left, depth: old.depth + 1,
                 moment: try integrate(sources[old.source], over: left, origin: plane.origin, u: u, v: v,
-                    tolerance: tolerance, admission: admission))
-            try admission.visit(depth: old.depth + 1)
+                    tolerance: tolerance, using: &execution))
+            try execution.visitGeometricCell(depth: old.depth + 1)
             cells.append(Cell(loop: old.loop, source: old.source, interval: right, depth: old.depth + 1,
                 moment: try integrate(sources[old.source], over: right, origin: plane.origin, u: u, v: v,
-                    tolerance: tolerance, admission: admission)))
+                    tolerance: tolerance, using: &execution)))
         }
     }
 
     private func integrate(_ source: any CurveArcLengthParameterization,
         over interval: ScalarInterval, origin: Point3D, u: Vector3D, v: Vector3D,
-        tolerance: ModelingTolerance, admission: GeometryConversionAdmission) throws -> Moment {
-        try admission.chargeWork()
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Moment {
+        try execution.consumeWork(1)
         func projected(_ p: CoordinateEnclosure3D, _ direction: Vector3D, position: Bool) -> I {
             let x = I(lower: p.x.lower, upper: p.x.upper) - .exact(position ? origin.x : 0)
             let y = I(lower: p.y.lower, upper: p.y.upper) - .exact(position ? origin.y : 0)
@@ -175,15 +173,15 @@ package struct OriginalPipeSectionMoments: Sendable {
                     x: .exact(2) * x * dx * dy + x * x * ddy,
                     y: .exact(2) * y * dy * dx + y * y * ddx))
         }
-        let whole = fields(try source.differentialEnclosure(over: interval))
+        let whole = fields(try source.differentialEnclosure(over: interval, using: &execution))
         let width = I.exact(interval.upper) - .exact(interval.lower)
-        guard try source.hasSmoothNativeInterval(over: interval) else {
+        guard try source.hasSmoothNativeInterval(over: interval, using: &execution) else {
             return Moment(area: whole.value.area * width, x: whole.value.x * width, y: whole.value.y * width)
         }
         let middle = interval.lower + interval.width * 0.5
         // The actual representable station need not be the exact mathematical midpoint.
         // Integrate the chosen constant derivative analytically over both sides.
-        let point = fields(try source.differentialEnclosure(over: ScalarInterval(lower: middle, upper: middle))).value
+        let point = fields(try source.differentialEnclosure(over: ScalarInterval(lower: middle, upper: middle), using: &execution)).value
         let left = I.exact(middle) - .exact(interval.lower), right = I.exact(interval.upper) - .exact(middle)
         func integral(_ value: I, _ derivative: I) -> I {
             let slope = derivative.midpoint
@@ -196,11 +194,11 @@ package struct OriginalPipeSectionMoments: Sendable {
             x: integral(point.x, whole.derivative.x), y: integral(point.y, whole.derivative.y))
     }
 
-    private func retain<T>(_ count: Int, of: T.Type, admission: GeometryConversionAdmission,
+    private func retain<T>(_ count: Int, of: T.Type, using execution: inout OriginalQueryExecution,
         tolerance: ModelingTolerance) throws {
         let bytes = count.multipliedReportingOverflow(by: MemoryLayout<T>.stride)
         guard count >= 0, !bytes.overflow else { throw failure(tolerance, "Original moment storage overflowed.") }
-        try admission.chargeStorage(bytes: bytes.partialValue)
+        try execution.retainStorage(bytes: bytes.partialValue)
     }
 
     private func failure(_ tolerance: ModelingTolerance, _ message: String) -> KernelError {

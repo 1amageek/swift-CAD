@@ -70,3 +70,10 @@ tangents retain zero-containing bounds. Visibility and curve intersection
 consumers therefore receive complete screen intervals without tessellation.
 
 The projected source exposes its immutable certificationTolerance alongside its retained original curve. Caller-owned conversion queries use that exact preparation tolerance and their existing invocation admission; the accessor creates no source preparation or allowance.
+
+Caller-admitted projection construction passes the original execution to the
+existing `ValidatedCurve3D` preparation. Projected point, differential and
+enclosure queries consume that same execution and preserve retained source
+contributions. Ordinary queries obtain the source's existing receipt execution
+and enter the same bodies. The frame map adds only fixed scalar arithmetic;
+complete enclosures retain the original lower encloser and its failure contract.

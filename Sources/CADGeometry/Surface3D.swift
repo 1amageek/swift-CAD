@@ -71,35 +71,76 @@ public enum Surface3D: Sendable, Hashable {
     indirect case procedural(ProceduralSurface3D)
 
     public func validate(tolerance: ModelingTolerance) throws {
-        try tolerance.validate()
-        switch self {
-        case let .plane(plane):
-            try plane.validate(tolerance: tolerance)
-        case let .cylinder(cylinder):
-            try cylinder.validate(tolerance: tolerance)
-        case let .analytic(surface):
-            try surface.validate(tolerance: tolerance)
-        case let .bSpline(surface):
-            try surface.validate(tolerance: tolerance)
-        case let .procedural(surface):
-            try surface.validate(tolerance: tolerance)
-        }
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try validateOriginalSource(tolerance: tolerance,
+            remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+            maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth, using: &execution)
+    }
+
+    public func point(u: Double, v: Double, tolerance: ModelingTolerance) throws -> Point3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try point(u: u, v: v, tolerance: tolerance, using: &execution)
+    }
+
+    package func pointAssumingValid(u: Double, v: Double, tolerance: ModelingTolerance) throws -> Point3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try pointAssumingValid(u: u, v: v, tolerance: tolerance, using: &execution)
+    }
+
+    public func parameterProjection(of point: Point3D, options: SurfaceParameterProjectionOptions = .init(),
+        tolerance: ModelingTolerance) throws -> SurfaceParameterProjection {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try parameterProjection(of: point, options: options, tolerance: tolerance, using: &execution)
+    }
+
+    public func parameterProjectionResult(of point: Point3D, options: SurfaceParameterProjectionOptions = .init(),
+        tolerance: ModelingTolerance) throws -> SurfaceParameterProjectionResult {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try parameterProjectionResult(of: point, options: options, tolerance: tolerance, using: &execution)
+    }
+
+    public func normal(u: Double, v: Double, tolerance: ModelingTolerance) throws -> Vector3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try normal(u: u, v: v, tolerance: tolerance, using: &execution)
+    }
+
+    public func differentialGeometry(u: Double, v: Double, tolerance: ModelingTolerance) throws -> DifferentialGeometry {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try differentialGeometry(u: u, v: v, tolerance: tolerance, using: &execution)
+    }
+
+    public func differentialGeometry(u: Double, v: Double, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> DifferentialGeometry {
+        try validate(tolerance: tolerance, using: &execution)
+        let result = try differentialGeometryAssumingValid(u: u, v: v, tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+    public func uvnFrame(u: Double, v: Double, tolerance: ModelingTolerance) throws -> UVNFrame {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try uvnFrame(u: u, v: v, tolerance: tolerance, using: &execution)
     }
 
     public func point(
         u: Double,
         v: Double,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Point3D {
-        try validate(tolerance: tolerance)
-        return try pointAssumingValid(u: u, v: v, tolerance: tolerance)
+        try validate(tolerance: tolerance, using: &execution)
+        return try pointAssumingValid(u: u, v: v, tolerance: tolerance, using: &execution)
     }
 
     package func pointAssumingValid(
         u: Double,
         v: Double,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Point3D {
+        try execution.consumeWork(1)
         guard try uDomain.contains(u, tolerance: tolerance),
               try vDomain.contains(v, tolerance: tolerance) else {
             throw GeometryError.invalidDistance(0.0)
@@ -110,30 +151,30 @@ public enum Surface3D: Sendable, Hashable {
             return plane.origin + basisU * u + basisV * v
         case let .cylinder(cylinder):
             let (radialU, radialV) = try cylinderBasis(for: cylinder, tolerance: tolerance)
-            let radial = radialU * CanonicalSphereAngularPhase.candidate(at: u, cosine: true) + radialV * CanonicalSphereAngularPhase.candidate(at: u, cosine: false)
+            let radial = radialU * (try CanonicalSphereAngularPhase.candidate(at: u, cosine: true, using: &execution)) + radialV * (try CanonicalSphereAngularPhase.candidate(at: u, cosine: false, using: &execution))
             return cylinder.origin + radial * cylinder.radius + cylinder.axis * v
         case let .analytic(surface):
-            return try surface.point(u: u, v: v, tolerance: tolerance)
+            return try surface.point(u: u, v: v, tolerance: tolerance, using: &execution)
         case let .bSpline(surface):
             return try surface.pointAssumingValid(
                 u: u,
                 v: v,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         case let .procedural(surface):
-            return try surface.point(u: u, v: v, tolerance: tolerance)
+            return try surface.point(u: u, v: v, tolerance: tolerance, using: &execution)
         }
     }
 
     public func parameterProjection(
         of point: Point3D,
         options: SurfaceParameterProjectionOptions = .init(),
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> SurfaceParameterProjection {
         switch try parameterProjectionResult(
             of: point,
             options: options,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         ) {
         case let .projected(projection):
             return projection
@@ -153,10 +194,10 @@ public enum Surface3D: Sendable, Hashable {
     public func parameterProjectionResult(
         of point: Point3D,
         options: SurfaceParameterProjectionOptions = .init(),
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> SurfaceParameterProjectionResult {
         try options.validate(tolerance: tolerance)
-        try validate(tolerance: tolerance)
+        try validate(tolerance: tolerance, using: &execution)
         try point.validate()
         let parameters: (u: Double, v: Double)
         switch self {
@@ -176,16 +217,16 @@ public enum Surface3D: Sendable, Hashable {
             return try surface.parameterProjectionResult(
                 of: point,
                 options: options,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         case let .procedural(surface):
             return try surface.parameterProjectionResult(
                 of: point,
                 options: options,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         }
-        let projectedPoint = try self.point(u: parameters.u, v: parameters.v, tolerance: tolerance)
+        let projectedPoint = try self.pointAssumingValid(u: parameters.u, v: parameters.v, tolerance: tolerance, using: &execution)
         let residual = (point - projectedPoint).length
         guard residual <= tolerance.distance else {
             return .outsideTolerance(residual: residual)
@@ -201,29 +242,29 @@ public enum Surface3D: Sendable, Hashable {
     public func normal(
         u: Double,
         v: Double,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Vector3D {
-        try validate(tolerance: tolerance)
+        try validate(tolerance: tolerance, using: &execution)
         guard try uDomain.contains(u, tolerance: tolerance),
               try vDomain.contains(v, tolerance: tolerance) else {
             throw GeometryError.invalidDistance(0.0)
         }
-        let point = try point(u: u, v: v, tolerance: tolerance)
+        let point = try pointAssumingValid(u: u, v: v, tolerance: tolerance, using: &execution)
         return try DefaultSurfaceNormalResolver().normal(
             at: point,
             on: self,
             u: u,
             v: v,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
     }
 
-    public func differentialGeometry(
+    package func differentialGeometryAssumingValid(
         u: Double,
         v: Double,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> DifferentialGeometry {
-        try validate(tolerance: tolerance)
+        try execution.consumeWork(1)
         guard try uDomain.contains(u, tolerance: tolerance),
               try vDomain.contains(v, tolerance: tolerance) else {
             throw GeometryError.invalidDistance(0.0)
@@ -250,10 +291,10 @@ public enum Surface3D: Sendable, Hashable {
             )
         case let .cylinder(cylinder):
             let (radialU, radialV) = try cylinderBasis(for: cylinder, tolerance: tolerance)
-            let radial = radialU * CanonicalSphereAngularPhase.candidate(at: u, cosine: true) + radialV * CanonicalSphereAngularPhase.candidate(at: u, cosine: false)
+            let radial = radialU * (try CanonicalSphereAngularPhase.candidate(at: u, cosine: true, using: &execution)) + radialV * (try CanonicalSphereAngularPhase.candidate(at: u, cosine: false, using: &execution))
             let angularScale = CanonicalSphereAngularPhase.scaleBounds.midpoint
-            let tangentU = (radialU * (-cylinder.radius * CanonicalSphereAngularPhase.candidate(at: u, cosine: false)) +
-                radialV * (cylinder.radius * CanonicalSphereAngularPhase.candidate(at: u, cosine: true))) * angularScale
+            let tangentU = (radialU * (-cylinder.radius * (try CanonicalSphereAngularPhase.candidate(at: u, cosine: false, using: &execution))) +
+                radialV * (cylinder.radius * (try CanonicalSphereAngularPhase.candidate(at: u, cosine: true, using: &execution)))) * angularScale
             let tangentV = cylinder.axis
             let secondDerivativeUU = radial * (-cylinder.radius * angularScale * angularScale)
             let normal = try radial.normalized(tolerance: tolerance.distance)
@@ -276,7 +317,7 @@ public enum Surface3D: Sendable, Hashable {
                 maximumPrincipalDirection: tangentV
             )
         case let .analytic(surface):
-            let geometry = try surface.differentialGeometry(u: u, v: v, tolerance: tolerance)
+            let geometry = try surface.differentialGeometry(u: u, v: v, tolerance: tolerance, using: &execution)
             return DifferentialGeometry(
                 position: geometry.position,
                 tangentU: geometry.tangentU,
@@ -295,7 +336,7 @@ public enum Surface3D: Sendable, Hashable {
                 maximumPrincipalDirection: geometry.maximumPrincipalDirection
             )
         case let .bSpline(surface):
-            let geometry = try surface.differentialGeometry(u: u, v: v, tolerance: tolerance)
+            let geometry = try surface.differentialGeometry(u: u, v: v, tolerance: tolerance, using: &execution)
             return DifferentialGeometry(
                 position: geometry.position,
                 tangentU: geometry.tangentU,
@@ -317,21 +358,20 @@ public enum Surface3D: Sendable, Hashable {
             let derivatives = try surface.parameterDerivatives(
                 u: u,
                 v: v,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
             return try SurfaceDifferentialGeometryBuilder().differentialGeometry(
                 derivatives: derivatives,
-                tolerance: tolerance
-            )
+                tolerance: tolerance)
         }
     }
 
     public func uvnFrame(
         u: Double,
         v: Double,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> UVNFrame {
-        let differential = try differentialGeometry(u: u, v: v, tolerance: tolerance)
+        let differential = try differentialGeometry(u: u, v: v, tolerance: tolerance, using: &execution)
         let tangentU = try differential.tangentU.normalized(tolerance: tolerance.distance)
         let normal = try differential.normal.normalized(tolerance: tolerance.distance)
         let tangentV = try normal.cross(tangentU).normalized(tolerance: tolerance.distance)

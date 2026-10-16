@@ -11,16 +11,16 @@ struct OriginalBoundedCurveSurfaceCorrespondence {
     // FIXME(INCOMPLETE_IMPLEMENTATION): Bounded manual BRep and transformed
     // coedge validation consume this original fixed-fraction/structural proof.
     // Nonlinear correspondence and critical/global branch coverage, along with
-    // lower closed-jet temporary byte callbacks, must close before full-family
+    // required nonlinear source laws, must close before full-family
     // accounting or correspondence completeness can be reported.
+    @inline(never)
     static func deviationBound(curve: Curve3D, from start: Double, to end: Double,
         surface: Surface3D, parameterCurve: SurfaceParameterCurve,
         options: CurveSurfaceCorrespondenceValidationOptions, tolerance: ModelingTolerance,
         maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
-        consumeWork: () throws -> Void, consumeStorage: (@Sendable (Int) throws -> Void)? = nil,
-        maximumAlgebraicDepth: Int? = nil)
+        maximumAlgebraicDepth: Int? = nil, using execution: inout OriginalQueryExecution)
         throws -> Double {
-        try consumeWork(); try CurrentTaskCancellationChecker().checkCancellation(); try options.validate(tolerance: tolerance)
+        try execution.consumeWork(1); try execution.checkpoint(); try options.validate(tolerance: tolerance)
         guard start.isFinite, end.isFinite, start != end, maximumSpanCount > 0,
               maximumSubdivisionDepth >= 0, remainingSourceDepth >= 0,
               maximumAlgebraicDepth.map({ (0...32).contains($0) }) ?? true else {
@@ -29,53 +29,75 @@ struct OriginalBoundedCurveSurfaceCorrespondence {
         let depthLimit = min(options.maximumSubdivisionDepth, maximumSubdivisionDepth)
         let acceptance = options.maximumDeviation ?? tolerance.distance
         try curve.validateOriginalSource(tolerance: tolerance, remainingSourceDepth: remainingSourceDepth,
-            maximumSubdivisionDepth: depthLimit, consumeWork: { _ in try consumeWork() },
-            consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+            maximumSubdivisionDepth: depthLimit, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
         try surface.validateOriginalSource(tolerance: tolerance, remainingSourceDepth: remainingSourceDepth,
-            maximumSubdivisionDepth: depthLimit, consumeWork: { _ in try consumeWork() },
-            consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+            maximumSubdivisionDepth: depthLimit, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
         try parameterCurve.validateOriginalSource(on: surface, tolerance: tolerance,
             remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: depthLimit,
-            consumeWork: { _ in try consumeWork() }, consumeStorage: consumeStorage,
-            maximumAlgebraicDepth: maximumAlgebraicDepth)
-        func charge(_ count: Int) throws {
-            for _ in 0..<count { try consumeWork() }
+            maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
+        if let bound = try exactSourceBound(curve: curve, from: start, to: end,
+            surface: surface, parameterCurve: parameterCurve, using: &execution) { return bound }
+        if let bound = try wordTransportBound(curve: curve, from: start, to: end,
+            surface: surface, parameterCurve: parameterCurve, options: options, tolerance: tolerance,
+            maximumSpanCount: maximumSpanCount, depthLimit: depthLimit, remainingSourceDepth: remainingSourceDepth,
+            maximumAlgebraicDepth: maximumAlgebraicDepth, acceptance: acceptance, using: &execution) { return bound }
+        if let bound = try affineTransportBound(curve: curve, from: start, to: end,
+            surface: surface, parameterCurve: parameterCurve, options: options, tolerance: tolerance,
+            maximumSpanCount: maximumSpanCount, depthLimit: depthLimit, remainingSourceDepth: remainingSourceDepth,
+            maximumAlgebraicDepth: maximumAlgebraicDepth, acceptance: acceptance, using: &execution) { return bound }
+        return try residualBound(curve: curve, from: start, to: end,
+            surface: surface, parameterCurve: parameterCurve, options: options, tolerance: tolerance,
+            maximumSpanCount: maximumSpanCount, depthLimit: depthLimit, remainingSourceDepth: remainingSourceDepth,
+            maximumAlgebraicDepth: maximumAlgebraicDepth, acceptance: acceptance, using: &execution)
+    }
+
+    @inline(never)
+    private static func exactSourceBound(curve: Curve3D, from start: Double, to end: Double,
+        surface: Surface3D, parameterCurve: SurfaceParameterCurve,
+        using execution: inout OriginalQueryExecution) throws -> Double? {
+        if case .bSpline(let nativeCurve) = curve,
+           case .bSpline(let nativeSurface) = surface,
+           try hasExactUnitNativeBoundaryLaw(curve: nativeCurve, from: start, to: end,
+               surface: nativeSurface, parameterCurve: parameterCurve, using: &execution) {
+            try execution.checkpoint()
+            return 0
         }
         if case .surfaceLift(let hosted) = curve, start == 0, end == 1 {
-            try GeometryStructuralComparisonWork.charge(surface: hosted.surface, using: charge)
-            try GeometryStructuralComparisonWork.charge(surface: surface, using: charge)
-            try GeometryStructuralComparisonWork.charge(parameterCurve: hosted.parameterCurve, using: charge)
-            try GeometryStructuralComparisonWork.charge(parameterCurve: parameterCurve, using: charge)
+            try GeometryStructuralComparisonWork.charge(surface: hosted.surface, using: &execution)
+            try GeometryStructuralComparisonWork.charge(surface: surface, using: &execution)
+            try GeometryStructuralComparisonWork.charge(parameterCurve: hosted.parameterCurve, using: &execution)
+            try GeometryStructuralComparisonWork.charge(parameterCurve: parameterCurve, using: &execution)
             if hosted.surface == surface, hosted.parameterCurve == parameterCurve { return 0 }
         }
+        return nil
+    }
+
+    @inline(never)
+    private static func wordTransportBound(curve: Curve3D, from start: Double, to end: Double,
+        surface: Surface3D, parameterCurve: SurfaceParameterCurve,
+        options: CurveSurfaceCorrespondenceValidationOptions, tolerance: ModelingTolerance,
+        maximumSpanCount: Int, depthLimit: Int, remainingSourceDepth: Int,
+        maximumAlgebraicDepth: Int?, acceptance: Double, using execution: inout OriginalQueryExecution)
+        throws -> Double? {
         if case .originalAffineWord(let spatial) = curve,
            case .procedural(.originalAffineWord(let support)) = surface,
            case .originalAffineWord(let chart) = parameterCurve,
            chart.startFraction == 0, chart.endFraction == 1 {
-            try GeometryStructuralComparisonWork.charge(curve: curve, using: charge)
-            try GeometryStructuralComparisonWork.charge(surface: surface, using: charge)
-            try GeometryStructuralComparisonWork.charge(parameterCurve: parameterCurve, using: charge)
+            try GeometryStructuralComparisonWork.charge(curve: curve, using: &execution)
+            try GeometryStructuralComparisonWork.charge(surface: surface, using: &execution)
+            try GeometryStructuralComparisonWork.charge(parameterCurve: parameterCurve, using: &execution)
             if chart.target == support, chart.source.surface == support.source,
                spatial.operationWord == support.operationWord {
                 guard remainingSourceDepth > 0 else {
                     throw GeometryConversionError.resourceLimitExceeded("Original word correspondence exhausted caller source depth.")
                 }
                 if case .surfaceLift(let hosted) = spatial.source, start == 0, end == 1 {
-                    try GeometryStructuralComparisonWork.charge(surface: hosted.surface, using: charge)
-                    try GeometryStructuralComparisonWork.charge(parameterCurve: hosted.parameterCurve, using: charge)
+                    try GeometryStructuralComparisonWork.charge(surface: hosted.surface, using: &execution)
+                    try GeometryStructuralComparisonWork.charge(parameterCurve: hosted.parameterCurve, using: &execution)
                     if hosted == chart.source { return 0 }
                 }
-                // FIXME(INCOMPLETE_IMPLEMENTATION): Original word correspondence
-                // reaches this path from manual BRep/coedge validation. Without
-                // caller storage admission, its temporary norm proof is not paid;
-                // refuse until that caller supplies the original byte ledger.
-                guard let consumeStorage else {
-                    throw KernelError(phase: .geometry, code: .unsupportedCapability,
-                        tolerance: tolerance,
-                        message: "Original word correspondence requires caller storage admission for its norm proof.")
-                }
                 let norm = try OriginalAffineWordJetTransport.linearNormUpper(support.preparedWord,
-                    consumeWork: consumeWork, consumeStorage: consumeStorage)
+                    using: &execution)
                 guard norm.isFinite, norm > 0,
                       let sourceAcceptance = OutwardScalarInterval.exact(acceptance).divided(by: .exact(norm)),
                       sourceAcceptance.lower > 0 else {
@@ -87,7 +109,7 @@ struct OriginalBoundedCurveSurfaceCorrespondence {
                         maximumCellCount: options.maximumCellCount, maximumDeviation: sourceAcceptance.lower),
                     tolerance: tolerance, maximumSpanCount: maximumSpanCount,
                     maximumSubdivisionDepth: depthLimit, remainingSourceDepth: remainingSourceDepth - 1,
-                    consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+                    maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
                 let transported = original == 0 ? 0 : (OutwardScalarInterval.exact(original) * .exact(norm)).upper
                 guard transported <= acceptance else {
                     throw KernelError(phase: .validation, code: .topologyFailure, residual: transported,
@@ -96,13 +118,23 @@ struct OriginalBoundedCurveSurfaceCorrespondence {
                 return transported
             }
         }
+        return nil
+    }
+
+    @inline(never)
+    private static func affineTransportBound(curve: Curve3D, from start: Double, to end: Double,
+        surface: Surface3D, parameterCurve: SurfaceParameterCurve,
+        options: CurveSurfaceCorrespondenceValidationOptions, tolerance: ModelingTolerance,
+        maximumSpanCount: Int, depthLimit: Int, remainingSourceDepth: Int,
+        maximumAlgebraicDepth: Int?, acceptance: Double, using execution: inout OriginalQueryExecution)
+        throws -> Double? {
         if case .affineImage(let spatial) = curve,
            case .procedural(.originalImage(let support)) = surface,
            case .originalImage(let chart) = parameterCurve,
            chart.startFraction == 0, chart.endFraction == 1 {
-            try GeometryStructuralComparisonWork.charge(surface: surface, using: charge)
-            try GeometryStructuralComparisonWork.charge(parameterCurve: parameterCurve, using: charge)
-            try charge(24)
+            try GeometryStructuralComparisonWork.charge(surface: surface, using: &execution)
+            try GeometryStructuralComparisonWork.charge(parameterCurve: parameterCurve, using: &execution)
+            try execution.consumeWork(24)
             if chart.targetImage == support, chart.source.surface == support.source,
                spatial.transform == support.transform {
                 guard remainingSourceDepth > 0 else {
@@ -125,7 +157,7 @@ struct OriginalBoundedCurveSurfaceCorrespondence {
                         maximumCellCount: options.maximumCellCount, maximumDeviation: sourceAcceptance.lower),
                     tolerance: tolerance, maximumSpanCount: maximumSpanCount,
                     maximumSubdivisionDepth: depthLimit, remainingSourceDepth: remainingSourceDepth - 1,
-                    consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+                    maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
                 let transported = (OutwardScalarInterval.exact(original) * .exact(norm.upper)).upper
                 guard transported <= acceptance else {
                     throw KernelError(phase: .validation, code: .topologyFailure, residual: transported,
@@ -134,23 +166,31 @@ struct OriginalBoundedCurveSurfaceCorrespondence {
                 return transported
             }
         }
+        return nil
+    }
+
+    @inline(never)
+    private static func residualBound(curve: Curve3D, from start: Double, to end: Double,
+        surface: Surface3D, parameterCurve: SurfaceParameterCurve,
+        options: CurveSurfaceCorrespondenceValidationOptions, tolerance: ModelingTolerance,
+        maximumSpanCount: Int, depthLimit: Int, remainingSourceDepth: Int,
+        maximumAlgebraicDepth: Int?, acceptance: Double, using execution: inout OriginalQueryExecution)
+        throws -> Double {
         guard remainingSourceDepth > 0 else {
             throw GeometryConversionError.resourceLimitExceeded("Original correspondence lift exhausted source depth.")
         }
         let source = try PreparedCurveDifferentialEncloser(curve: curve, tolerance: tolerance,
             remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: depthLimit,
-            consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+            maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
         let liftedCurve = Curve3D.surfaceLift(.init(surface: surface, parameterCurve: parameterCurve))
         let lift = try PreparedCurveDifferentialEncloser(curve: liftedCurve, tolerance: tolerance,
             remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: depthLimit,
-            consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+            maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
         let smooth = try (admittedContinuity(source, over: .init(lower: min(start,end), upper: max(start,end)),
             maximumSubdivisionDepth: depthLimit, remainingSourceDepth: remainingSourceDepth,
-            tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage,
-            maximumAlgebraicDepth: maximumAlgebraicDepth)
+            tolerance: tolerance, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
             && admittedContinuity(lift, over: .init(lower:0,upper:1), maximumSubdivisionDepth: depthLimit,
-                remainingSourceDepth: remainingSourceDepth, tolerance: tolerance, consumeWork: consumeWork,
-                consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth))
+                remainingSourceDepth: remainingSourceDepth, tolerance: tolerance, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution))
         let slope = OutwardScalarInterval.exact(end) - .exact(start)
         func native(_ fraction: ScalarInterval) throws -> ScalarInterval {
             let image = .exact(start) + slope * OutwardScalarInterval(lower: fraction.lower, upper: fraction.upper)
@@ -163,17 +203,16 @@ struct OriginalBoundedCurveSurfaceCorrespondence {
             _ depth: Int) throws -> IntervalVector3DBounds {
             try prepared.positionBounds(over: range, tolerance: tolerance, maximumSpanCount: maximumSpanCount,
                 maximumSubdivisionDepth: depthLimit - depth, remainingSourceDepth: remainingSourceDepth,
-                consumeWork: consumeWork, consumeStorage: consumeStorage)
+                using: &execution)
         }
         func derivative(_ prepared: PreparedCurveDifferentialEncloser, _ range: ScalarInterval,
             _ depth: Int) throws -> IntervalVector3DBounds {
             let receipt = try prepared.closedNativeJets(over: range, tolerance: tolerance,
                 maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: depthLimit - depth,
-                remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork,
-                consumeStorage: consumeStorage)
+                remainingSourceDepth: remainingSourceDepth, using: &execution)
             var result: IntervalVector3DBounds?
             for owner in receipt.spans {
-                try consumeWork()
+                try execution.consumeWork(1)
                 let next = IntervalVector3DBounds(x: owner.jet.x.derivativeU,
                     y: owner.jet.y.derivativeU, z: owner.jet.z.derivativeU)
                 if let old = result {
@@ -187,13 +226,14 @@ struct OriginalBoundedCurveSurfaceCorrespondence {
         }
         let capacity = depthLimit.addingReportingOverflow(2)
         guard !capacity.overflow else { throw GeometryConversionError.resourceLimitExceeded("Original correspondence stack capacity overflowed.") }
-        try OriginalCoefficientAllocation.reserve(count: capacity.partialValue, of: Cell.self, consumeStorage: consumeStorage)
+        try OriginalCoefficientAllocation.reserve(count: capacity.partialValue, of: Cell.self, using: &execution)
         var stack: [Cell] = []
         stack.reserveCapacity(capacity.partialValue)
         stack.append(.init(lower: 0, upper: 1, depth: 0))
         var visited = 0, result = 0.0
         while let cell = stack.popLast() {
-            try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
+            try execution.visitGeometricCell(depth: cell.depth)
+            try execution.checkpoint(); try execution.consumeWork(1)
             guard visited < options.maximumCellCount else {
                 throw GeometryConversionError.resourceLimitExceeded("Original correspondence exhausted the requested cell count.")
             }
@@ -219,48 +259,98 @@ struct OriginalBoundedCurveSurfaceCorrespondence {
             guard cell.depth < depthLimit, midpoint > cell.lower, midpoint < cell.upper else {
                 throw GeometryConversionError.resourceLimitExceeded("Original correspondence has unresolved complete residual coverage.")
             }
-            try consumeWork()
+            try execution.consumeWork(1)
             stack.append(.init(lower: midpoint, upper: cell.upper, depth: cell.depth + 1))
             stack.append(.init(lower: cell.lower, upper: midpoint, depth: cell.depth + 1))
         }
         return result
     }
 
-    private struct ContinuityAdmission: RationalAlgebraAdmitting {
-        let work: () throws -> Void
-        let storage: (@Sendable (Int) throws -> Void)?
-        let maximumAlgebraicDepth: Int?
-        mutating func consumeExactWork(_ count: Int) throws {
-            guard count >= 0 else { throw GeometryConversionError.invalidInput("Original correspondence work count is invalid.") }
-            for _ in 0..<count { try CurrentTaskCancellationChecker().checkCancellation(); try work() }
+    /// Source validation and independent depth admission precede this private law check.
+    @inline(never)
+    private static func hasExactUnitNativeBoundaryLaw(curve: BSplineCurve3D,
+        from start: Double, to end: Double, surface: BSplineSurface3D,
+        parameterCurve: SurfaceParameterCurve, using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.consumeWork(1)
+        guard (surface.uDegree == 1 || surface.uDegree == 2), surface.vDegree == 1,
+              !surface.isUPeriodic, !surface.isVPeriodic,
+              surface.uPeriodicOrigin == nil, surface.vPeriodicOrigin == nil,
+              !curve.isPeriodic, curve.periodicOrigin == nil,
+              (start == 0 && end == 1) || (start == 1 && end == 0) else { return false }
+        try execution.consumeWork(1)
+        guard surface.uControlPointCount == surface.uDegree + 1,
+              surface.vControlPointCount == 2,
+              surface.uKnots.count == 2 * (surface.uDegree + 1), surface.vKnots.count == 4,
+              surface.uDomain == .closed(0, 1), surface.vDomain == .closed(0, 1),
+              curve.domain == .closed(0, 1) else { return false }
+        for index in surface.uKnots.indices {
+            try execution.consumeWork(1)
+            guard surface.uKnots[index] == (index <= surface.uDegree ? 0 : 1) else { return false }
         }
-        mutating func retainExactStorage(_ count: Int) throws {
-            let bytes = count.multipliedReportingOverflow(by: MemoryLayout<UInt32>.stride)
-            guard count >= 0, !bytes.overflow else {
-                throw GeometryConversionError.resourceLimitExceeded("Original correspondence exact storage overflows.")
+        for index in surface.vKnots.indices {
+            try execution.consumeWork(1)
+            guard surface.vKnots[index] == (index <= surface.vDegree ? 0 : 1) else { return false }
+        }
+        for row in surface.weights.indices {
+            for column in surface.weights[row].indices {
+                try execution.consumeWork(1)
+                guard surface.weights[row][column] == 1 else { return false }
             }
-            try storage?(bytes.partialValue)
-            try consumeExactWork(count)
         }
-        mutating func visitExactCell(depth: Int) throws {
-            guard depth >= 0, maximumAlgebraicDepth.map({ depth <= $0 }) ?? true else {
-                throw GeometryConversionError.resourceLimitExceeded("Original correspondence exhausted caller algebra depth.")
-            }
-            try consumeExactWork(1)
+        let varyingU: Bool
+        let boundary: Int
+        let chartStart: Double
+        let chartEnd: Double
+        try execution.consumeWork(1)
+        switch parameterCurve {
+        case .constantV(let v, let uStart, let uEnd):
+            guard v == 0 || v == 1 else { return false }
+            varyingU = true
+            boundary = v == 0 ? 0 : surface.vControlPointCount - 1
+            chartStart = uStart; chartEnd = uEnd
+        case .constantU(let u, let vStart, let vEnd):
+            guard u == 0 || u == 1 else { return false }
+            varyingU = false
+            boundary = u == 0 ? 0 : surface.uControlPointCount - 1
+            chartStart = vStart; chartEnd = vEnd
+        default: return false
         }
-        mutating func visitCoefficientCell(depth: Int) throws { try visitExactCell(depth: depth) }
+        let count = varyingU ? surface.uControlPointCount : surface.vControlPointCount
+        let degree = varyingU ? surface.uDegree : surface.vDegree
+        try execution.consumeWork(1)
+        guard curve.degree == degree, curve.controlPointCount == count,
+              curve.weights.count == count, curve.knots.count == count + degree + 1,
+              (chartStart == 0 && chartEnd == 1) || (chartStart == 1 && chartEnd == 0) else { return false }
+        for index in curve.knots.indices {
+            try execution.consumeWork(1)
+            let knot = varyingU ? surface.uKnots[index] : surface.vKnots[index]
+            guard curve.knots[index] == knot else { return false }
+        }
+        var forward = true, reversed = true
+        for index in 0..<count {
+            // One weight and both three-coordinate comparisons share the caller work owner.
+            try execution.consumeWork(7)
+            guard curve.weights[index] == 1 else { return false }
+            let first = varyingU ? surface.controlPoints[boundary][index] : surface.controlPoints[index][boundary]
+            let last = varyingU ? surface.controlPoints[boundary][count - index - 1] : surface.controlPoints[count - index - 1][boundary]
+            let matchesForward = curve.controlPoints[index] == first
+            let matchesReversed = curve.controlPoints[index] == last
+            forward = forward && matchesForward
+            reversed = reversed && matchesReversed
+        }
+        return (forward && chartStart == start && chartEnd == end)
+            || (reversed && chartStart == end && chartEnd == start)
     }
 
     private static func admittedContinuity(_ prepared: PreparedCurveDifferentialEncloser,
         over range: ScalarInterval, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
-        tolerance: ModelingTolerance, consumeWork: () throws -> Void,
-        consumeStorage: (@Sendable (Int) throws -> Void)?, maximumAlgebraicDepth: Int?) throws -> Bool {
-        try withoutActuallyEscaping(consumeWork) { work in
-            var usage = ContinuityAdmission(work: work, storage: consumeStorage,
-                maximumAlgebraicDepth: maximumAlgebraicDepth)
-            return try prepared.admittingContinuousFirstOrder(over: range, tolerance: tolerance,
+        tolerance: ModelingTolerance, maximumAlgebraicDepth: Int?,
+        using execution: inout OriginalQueryExecution) throws -> Bool {
+        let maximum = try maximumAlgebraicDepth.map { try ExactScalarDepth(value: $0, coefficient: $0) }
+        return try execution.withProofScope(maximum: maximum) { execution in
+            try prepared.admittingContinuousFirstOrder(over: range, tolerance: tolerance,
                 maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
-                usage: &usage) != nil
+                using: &execution) != nil
         }
     }
 }

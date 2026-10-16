@@ -13,7 +13,7 @@ public struct DefaultOriginalFiniteImplicitCurveGraphPreparer: OriginalCompleteC
         throws(OriginalSourceIssuanceFailure) -> OriginalCompleteCurveGraphs<Source,Evidence,Coverage> {
         let retained = copy source
         do {
-            return try OriginalSourceProofAdmission<A>.withBorrow(&admission) { a in
+            return try admission.withProofScope { a in
                 try a.checkpoint(); try retained.require(limits)
                 guard maximumCharts >= 0 else { throw OriginalSourceIssuanceFailure.invalidChart }
                 guard maximumCharts >= retained.original.original.cells.count else { throw OriginalSourceIssuanceFailure.chartLimit }

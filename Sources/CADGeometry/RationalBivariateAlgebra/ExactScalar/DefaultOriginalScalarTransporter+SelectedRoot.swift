@@ -29,7 +29,7 @@ extension DefaultOriginalScalarTransporter {
                 of: OriginalSingularFieldElement.self, usage: &usage)
             var raw: [OriginalSingularFieldElement] = []; raw.reserveCapacity(coefficients.count)
             for index in coefficients.indices {
-                try usage.consumeExactWork(1); raw.append(coefficients[index].original)
+                try usage.consumeWork(1); raw.append(coefficients[index].original)
             }
             let limit = axis == .value ? parent.maximumValueDepth : parent.maximumCoefficientDepth
             let polynomial = try OriginalSingularFieldPolynomial(context: parent.context,

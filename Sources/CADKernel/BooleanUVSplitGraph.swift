@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 import CADIR
 import CADTopology
 
@@ -11,33 +12,33 @@ public struct BooleanUVSplitGraph: Hashable, Sendable {
 
     public func validate(intersectionGraph: BooleanIntersectionGraph,
         model: BRepModel, tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution.kernelOriginal()
         try validate(intersectionGraph: intersectionGraph, model: model,
-            tolerance: tolerance, consumeWork: nil)
+            tolerance: tolerance, using: &execution)
     }
 
     /// Charges actual graph structure and retained residual visits before use.
     public func validate(intersectionGraph: BooleanIntersectionGraph,
         validatedModel: ValidatedBRepModel,
-        consumeWork: @escaping @Sendable (Int) throws -> Void) throws {
-        try Task.checkCancellation(); try consumeWork(0)
+        using execution: inout OriginalQueryExecution) throws {
+        try Task.checkCancellation(); try execution.consumeWork(1)
         guard validatedModel.validationLevel != .modeling else {
             throw KernelError(phase: .validation, code: .invalidInput,
                 tolerance: validatedModel.tolerance,
                 message: "UV publication validation requires its exact immutable source receipt.")
         }
         try validate(intersectionGraph: intersectionGraph, model: validatedModel.model,
-            tolerance: validatedModel.tolerance, consumeWork: consumeWork)
+            tolerance: validatedModel.tolerance, using: &execution)
     }
 
     public func validate(intersectionGraph: BooleanIntersectionGraph,
         model: BRepModel, tolerance: ModelingTolerance,
-        consumeWork: (@Sendable (Int) throws -> Void)?) throws {
-        func step() throws { try Task.checkCancellation(); try consumeWork?(0) }
-        try step(); try tolerance.validate()
+        using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1); try tolerance.validate()
         for index in splits.indices {
-            try step()
+            try execution.consumeWork(1)
             for previous in 0..<index {
-                try step()
+                try execution.consumeWork(1)
                 guard splits[index].facePair != splits[previous].facePair else {
                     throw KernelError(phase: .topology, code: .invalidInput,
                         tolerance: tolerance,
@@ -46,10 +47,10 @@ public struct BooleanUVSplitGraph: Hashable, Sendable {
             }
         }
         for split in splits {
-            try step()
+            try execution.consumeWork(1)
             var candidate = false
             for pair in intersectionGraph.facePairs {
-                try step()
+                try execution.consumeWork(1)
                 if pair == split.facePair { candidate = true; break }
             }
             guard candidate, model.faces[split.facePair.targetFaceID] != nil,
@@ -59,7 +60,7 @@ public struct BooleanUVSplitGraph: Hashable, Sendable {
                     message: "Boolean UV split graph references a missing broad-phase face pair.")
             }
             for (ordinal, component) in split.components.enumerated() {
-                try step()
+                try execution.consumeWork(1)
                 guard component.id == BooleanFaceSplitComponentID(ordinal: ordinal) else {
                     throw KernelError(phase: .topology, code: .invalidInput,
                         tolerance: tolerance,
@@ -67,20 +68,19 @@ public struct BooleanUVSplitGraph: Hashable, Sendable {
                 }
             }
             for component in split.components {
-                try step(); try component.id.validate(tolerance: tolerance)
-                try validate(component: component, tolerance: tolerance, consumeWork: consumeWork)
+                try execution.consumeWork(1); try component.id.validate(tolerance: tolerance)
+                try validate(component: component, tolerance: tolerance, using: &execution)
             }
         }
         try Task.checkCancellation()
     }
 
     private func validate(component: BooleanFaceSplitComponent,
-        tolerance: ModelingTolerance, consumeWork: (@Sendable (Int) throws -> Void)?) throws {
-        func step() throws { try Task.checkCancellation(); try consumeWork?(0) }
-        try step()
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         switch component.geometry {
         case let .transverseSegment(start, end):
-            try step()
+            try execution.consumeWork(1)
             guard (start.point - end.point).length > tolerance.distance,
                   start.residual <= tolerance.distance, end.residual <= tolerance.distance else {
                 throw KernelError(phase: .topology, code: .topologyFailure,
@@ -90,11 +90,11 @@ public struct BooleanUVSplitGraph: Hashable, Sendable {
         case let .closedCurve(closed):
             var samplesAdmitted = closed.samples.count >= 8, maximumResidual = 0.0
             for sample in closed.samples {
-                try step()
+                try execution.consumeWork(1)
                 maximumResidual = max(maximumResidual, sample.uvPoint.residual)
                 if !(sample.uvPoint.residual <= tolerance.distance) { samplesAdmitted = false }
             }
-            try step()
+            try execution.consumeWork(1)
             guard samplesAdmitted, closed.intersection.maximumResidual <= tolerance.distance else {
                 throw KernelError(phase: .topology, code: .topologyFailure,
                     residual: max(maximumResidual, closed.intersection.maximumResidual),
@@ -107,7 +107,7 @@ public struct BooleanUVSplitGraph: Hashable, Sendable {
                     message: "Boolean trimmed-curve UV split is empty, degenerate, or exceeds tolerance.")
             }
             for curve in chain.segments {
-                try step()
+                try execution.consumeWork(1)
                 // Retain the established canonical-junction residual contract.
                 guard curve.start.residual <= tolerance.distance * 8.0,
                       curve.end.residual <= tolerance.distance * 8.0,
@@ -119,7 +119,7 @@ public struct BooleanUVSplitGraph: Hashable, Sendable {
                 }
             }
         case let .tangent(point):
-            try step()
+            try execution.consumeWork(1)
             guard point.residual <= tolerance.distance else {
                 throw KernelError(phase: .topology, code: .topologyFailure,
                     residual: point.residual, tolerance: tolerance,

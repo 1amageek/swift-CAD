@@ -6,6 +6,17 @@ extension CertifiedIntersectionCurve3D {
         toNormalizedFraction upper: Double,
         tolerance: ModelingTolerance
     ) throws -> SpatialDifferentialMagnitudeBounds {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try spatialDifferentialMagnitudeBounds(fromNormalizedFraction: lower, toNormalizedFraction: upper, tolerance: tolerance, using: &execution)
+    }
+
+    func spatialDifferentialMagnitudeBounds(
+        fromNormalizedFraction lower: Double,
+        toNormalizedFraction upper: Double,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> SpatialDifferentialMagnitudeBounds {
+        try execution.consumeWork(1)
         switch self {
         case let .sphereCone(curve):
             switch curve.componentKind {

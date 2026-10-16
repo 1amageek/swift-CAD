@@ -15,9 +15,16 @@ public struct NativePackageStore: Sendable {
     public func writePackage(for document: CADDocument, to sink: any ByteSink) throws {
         try limits.validate()
         let budget = ExchangeProcessingBudget(maximumDuration: limits.maximumProcessingDuration)
-        let validation = try validateSource(document, budget: budget)
         let resources = try SharedExchangeResourceAccountant(limits: limits, format: .swiftCAD, processingBudget: budget)
-        if let validation { try resources.charge(entities: validation.consumedRecords, work: validation.consumedWork) }
+        var execution = OriginalQueryExecution(budget: resources.originalBudget,
+            limits: try originalExecutionLimits())
+        try writePackage(for: document, to: sink, resources: resources, using: &execution)
+    }
+
+    private func writePackage(for document: CADDocument, to sink: any ByteSink,
+        resources: SharedExchangeResourceAccountant, using execution: inout OriginalQueryExecution) throws {
+        let budget = resources.budget
+        _ = try validateSource(document, using: &execution)
         let encoder = NativeBoundedJSONEncoder()
 
         let manifest = NativePackageManifest(
@@ -28,8 +35,8 @@ public struct NativePackageStore: Sendable {
             updatedAt: document.metadata.updatedAt
         )
 
-        let manifestData = try encoder.encode(manifest, resources: resources)
-        let documentData = try encoder.encode(document, canonicalDocument: true, resources: resources)
+        let manifestData = try encoder.encode(manifest, resources: resources, using: &execution)
+        let documentData = try encoder.encode(document, canonicalDocument: true, resources: resources, using: &execution)
         let bytes = manifestData.count.addingReportingOverflow(documentData.count)
         guard !bytes.overflow, bytes.partialValue <= limits.maximumBytes else {
             throw KernelError(phase: .exchange, code: .resourceLimitExceeded, tolerance: tolerance,
@@ -50,7 +57,14 @@ public struct NativePackageStore: Sendable {
     public func loadDocument(from source: any ByteSource) throws -> CADDocument {
         try limits.validate()
         let budget = ExchangeProcessingBudget(maximumDuration: limits.maximumProcessingDuration)
-        let resources = try SharedExchangeResourceAccountant(limits: limits, format: .swiftCAD, processingBudget: budget)
+        let resources = try SharedExchangeResourceAccountant(limits: limits, format: .swiftCAD, processingBudget: budget, cellVisitRecords: 0, nativeDecodingStorage: true)
+        var execution = OriginalQueryExecution(budget: resources.originalBudget,
+            limits: try originalExecutionLimits())
+        return try loadDocument(from: source, budget: budget, resources: resources, using: &execution)
+    }
+
+    private func loadDocument(from source: any ByteSource, budget: ExchangeProcessingBudget,
+        resources: SharedExchangeResourceAccountant, using execution: inout OriginalQueryExecution) throws -> CADDocument {
         try budget.check(format: .swiftCAD)
         guard source.count >= 0, source.count <= limits.maximumBytes else {
             throw KernelError(phase: .exchange, code: .resourceLimitExceeded, tolerance: tolerance,
@@ -60,7 +74,7 @@ public struct NativePackageStore: Sendable {
             return try StoredZipArchive.withBorrowedEntries(from: source,
                 maximumEntryCount: limits.maximumEntities,
                 maximumTotalUncompressedBytes: limits.maximumBytes, consumeWork: { try resources.recordIterations($0) }) { entries in
-                try loadDocument(fromPackageEntries: entries, budget: budget, resources: resources)
+                try loadDocument(fromPackageEntries: entries, budget: budget, resources: resources, using: &execution)
             }
         } catch let error as ZipArchiveError {
             throw SchemaError.invalidPackage("Invalid native ZIP package: \(error).")
@@ -69,7 +83,7 @@ public struct NativePackageStore: Sendable {
         }
     }
 
-    private func loadDocument(fromPackageEntries entries: [String: Data], budget: ExchangeProcessingBudget, resources: SharedExchangeResourceAccountant) throws -> CADDocument {
+    private func loadDocument(fromPackageEntries entries: [String: Data], budget: ExchangeProcessingBudget, resources: SharedExchangeResourceAccountant, using execution: inout OriginalQueryExecution) throws -> CADDocument {
         try budget.check(format: .swiftCAD)
         try limits.validate()
         try validateNativePackageEntries(entries)
@@ -84,7 +98,7 @@ public struct NativePackageStore: Sendable {
         }
         try budget.check(format: .swiftCAD)
         try validateNativePackageJSONShape(manifestData: manifestData, documentData: documentData, resources: resources)
-        let decoder = try nativePackageJSONDecoder(limits: limits, budget: budget, tolerance: tolerance, resources: resources)
+        let decoder = try nativePackageJSONDecoder(limits: limits, budget: budget, tolerance: tolerance, resources: resources, using: &execution)
         let manifest: NativePackageManifest
         do {
             manifest = try decoder.decode(NativePackageManifest.self, from: manifestData)
@@ -107,6 +121,10 @@ public struct NativePackageStore: Sendable {
             throw error
         } catch let error as NativeRationalSourceDecodingError {
             throw error
+        } catch let error as OriginalQueryFailure {
+            throw error
+        } catch let error as ExactScalarFailure {
+            throw error
         } catch {
             throw SchemaError.invalidPackage("Document JSON is invalid: \(error).")
         }
@@ -123,30 +141,35 @@ public struct NativePackageStore: Sendable {
         budget: ExchangeProcessingBudget) throws {
         // Decoder and its nested values have finished their invocation; ownership
         // passes once to complete source validation before publication.
-        if #available(macOS 15.0, iOS 18.0, visionOS 2.0, watchOS 11.0, tvOS 18.0, *),
-           let allowance = decoder.userInfo[NativeRationalSourceDecodingContext.key] as? NativeRationalSourceAllowance {
-            let paid = try allowance.snapshot()
-            let bytes = paid.storage.multipliedReportingOverflow(by: MemoryLayout<UInt32>.stride)
-            guard !bytes.overflow, bytes.partialValue <= limits.maximumBytes else {
+        if let allowance = decoder.userInfo[NativeRationalSourceDecodingContext.key] as? NativeRationalSourceDecodingContext {
+            let paid = allowance.budget.snapshot
+            guard paid.storageBytes <= limits.maximumBytes else {
                 throw KernelError(phase: .exchange, code: .resourceLimitExceeded, tolerance: tolerance,
                     message: "Native exact source storage exceeds the original caller byte allowance.")
             }
-            let remaining = IndependentShapeSourceLimits(maximumRecords: paid.remainingCells,
-                maximumTextBytes: limits.maximumBytes - bytes.partialValue, maximumDepth: limits.maximumNesting,
-                maximumWork: paid.remainingWork, maximumCurveSubdivisionDepth: limits.maximumCurveSubdivisionDepth, maximumAlgebraicDepth: limits.maximumAlgebraicDepth)
-            _ = try document.validate(tolerance: tolerance, independentShapeLimits: remaining,
-                check: { try budget.check(format: .swiftCAD) })
+            let remaining = IndependentShapeSourceLimits(maximumRecords: allowance.maximumCells - paid.cellVisits,
+                maximumTextBytes: limits.maximumBytes - paid.sourceTextBytes, maximumDepth: limits.maximumNesting,
+                maximumWork: allowance.maximumWork - paid.work, maximumCurveSubdivisionDepth: limits.maximumCurveSubdivisionDepth, maximumAlgebraicDepth: limits.maximumAlgebraicDepth)
+            var execution = try allowance.sourceExecution()
+            _ = try document.validate(tolerance: tolerance, independentShapeLimits: remaining, using: &execution)
             return
         }
-        _ = try validateSource(document, budget: budget)
+        throw NativeRationalSourceDecodingError.invalidCallerContext
     }
 
-    private func validateSource(_ document: CADDocument, budget: ExchangeProcessingBudget) throws -> IndependentShapeSourceValidation? {
+    private func originalExecutionLimits() throws -> OriginalQueryExecutionLimits {
+        try .init(maximumValueDepth: limits.maximumAlgebraicDepth,
+            maximumCoefficientDepth: limits.maximumAlgebraicDepth,
+            remainingSourceDepth: limits.maximumNesting, maximumSubdivisionDepth: limits.maximumCurveSubdivisionDepth)
+    }
+
+    private func validateSource(_ document: CADDocument,
+        using execution: inout OriginalQueryExecution) throws -> IndependentShapeSourceValidation? {
         let sourceLimits = IndependentShapeSourceLimits(maximumRecords: limits.maximumEntities,
             maximumTextBytes: limits.maximumBytes, maximumDepth: limits.maximumNesting,
-            maximumWork: limits.maximumIterations, maximumCurveSubdivisionDepth: limits.maximumCurveSubdivisionDepth, maximumAlgebraicDepth: limits.maximumAlgebraicDepth)
-        return try document.validate(tolerance: tolerance, independentShapeLimits: sourceLimits,
-            check: { try budget.check(format: .swiftCAD) })
+            maximumWork: limits.maximumIterations, maximumCurveSubdivisionDepth: limits.maximumCurveSubdivisionDepth,
+            maximumAlgebraicDepth: limits.maximumAlgebraicDepth)
+        return try document.validate(tolerance: tolerance, independentShapeLimits: sourceLimits, using: &execution)
     }
 
     public func save(_ document: CADDocument, to url: URL) throws {
@@ -178,19 +201,17 @@ private struct NativePackageManifest: Codable, Sendable {
     var updatedAt: Date
 }
 
-private func nativePackageJSONDecoder(limits: ExchangeResourceLimits, budget: ExchangeProcessingBudget, tolerance: ModelingTolerance, resources: SharedExchangeResourceAccountant) throws -> JSONDecoder {
+private func nativePackageJSONDecoder(limits: ExchangeResourceLimits, budget: ExchangeProcessingBudget, tolerance: ModelingTolerance, resources: SharedExchangeResourceAccountant, using execution: inout OriginalQueryExecution) throws -> JSONDecoder {
     let decoder = JSONDecoder()
     decoder.userInfo[OriginalAffineWordDecodingContext.toleranceKey] = tolerance
     decoder.userInfo[OriginalAffineWordDecodingContext.maximumCurveSubdivisionDepthKey] = limits.maximumCurveSubdivisionDepth
     decoder.userInfo[OriginalAffineWordDecodingContext.maximumAlgebraicDepthKey] = limits.maximumAlgebraicDepth
     decoder.userInfo[OriginalAffineWordDecodingContext.maximumSourceDepthKey] = limits.maximumNesting
-    if #available(macOS 15.0, iOS 18.0, visionOS 2.0, watchOS 11.0, tvOS 18.0, *) {
-        decoder.userInfo[NativeRationalSourceDecodingContext.key] = try NativeRationalSourceAllowance(
+    do {
+        decoder.userInfo[NativeRationalSourceDecodingContext.key] = try NativeRationalSourceDecodingContext(
             maximumWork: limits.maximumIterations - resources.iterationCount, maximumCells: limits.maximumEntities - resources.entityCount,
             maximumStorage: limits.maximumBytes / MemoryLayout<UInt32>.stride,
-            maximumDepth: limits.maximumAlgebraicDepth, operationCheck: {
-                try budget.check(format: .swiftCAD)
-            })
+            maximumDepth: limits.maximumAlgebraicDepth, using: &execution)
     }
     decoder.dateDecodingStrategy = .custom { decoder in
         try decodeNativePackageDate(from: decoder)

@@ -8,13 +8,13 @@ extension OriginalAffineWordPoint3D: Codable {
         try c.validateOnlyExpectedKeys([.point, .word], in: decoder)
         if #available(macOS 15, iOS 18, visionOS 2, watchOS 11, tvOS 18, *) {
             try OriginalAffineWordDecodingContext.validateSourceNesting(from: decoder)
-            var usage = try NativeRationalSourceDecodingContext.allowance(from: decoder)
+            var usage = try NativeRationalSourceDecodingContext.execution(from: decoder)
             let remaining = try OriginalAffineWordDecodingContext.maximumSourceDepth(from: decoder) - decoder.codingPath.count
             try self.init(point: c.decode(Point3D.self, forKey: .point),
                 word: c.decode(OriginalAffineOperationWord.self, forKey: .word),
                 tolerance: OriginalAffineWordDecodingContext.tolerance(from: decoder),
                 remainingSourceDepth: remaining, maximumSubdivisionDepth: 0,
-                maximumAlgebraicDepth: usage.maximumDepth, usage: &usage)
+                maximumAlgebraicDepth: usage.limits.maximumValueDepth, usage: &usage)
         } else { throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable }
     }
     public func encode(to encoder: Encoder) throws {

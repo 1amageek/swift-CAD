@@ -26,17 +26,16 @@ package struct PipeCustomSectionPlacement: Sendable {
         angle: Double,
         wall: Double?,
         originalCentroid: Point3D? = nil,
-        admission suppliedAdmission: GeometryConversionAdmission? = nil
+        using execution: inout OriginalQueryExecution
     ) throws -> [Profile] {
         let normal = try ExactSweepSectionPlane(source.plane, tolerance: tolerance).plane.normal
-        let admission = try suppliedAdmission ?? CurvedSweepSourceBudget(tolerance: tolerance).conversionAdmission()
         let centroid: Point3D
         if let originalCentroid { centroid = originalCentroid }
         else {
-            let loops = try ExactBSplineCurveSpanBuilder(tolerance: tolerance, admission: admission).profileLoopSpans(from: source)
+            let loops = try ExactBSplineCurveSpanBuilder(tolerance: tolerance, using: &execution).profileLoopSpans(from: source, using: &execution)
             centroid = try OriginalPipeSectionMoments().centroid(loops: loops,
                 plane: originalPlane(source.plane),
-                tolerance: tolerance, admission: admission)
+                tolerance: tolerance, using: &execution)
         }
         let placement = try RigidTransform3D.followingPath(
             anchor: centroid, referenceDirection: normal.dot(tangent) >= 0 ? normal : normal * -1,
@@ -60,7 +59,7 @@ package struct PipeCustomSectionPlacement: Sendable {
                         degree: spline.curve.degree, knots: spline.curve.knots,
                         controlPoints: spline.curve.controlPoints.map(point), weights: spline.curve.weights
                     )
-                    try curve.validate(tolerance: tolerance)
+                    try curve.validate(tolerance: tolerance, using: &execution)
                     return .spline(ProfileSplineSegment(curve: curve))
                 }
             })
@@ -76,12 +75,19 @@ package struct PipeCustomSectionPlacement: Sendable {
         // Each loop walls into a ring of its own: a positive wall away from the region (the outline
         // out, each hole in), a negative one into it.
         let rings = try ExactDraftedProfileBoundaryBuilder(tolerance: tolerance)
-            .wallProfiles(from: placed, planeNormal: placedNormal, thickness: abs(wall), outward: wall > 0)
+            .wallProfiles(from: placed, planeNormal: placedNormal, thickness: abs(wall), outward: wall > 0, using: &execution)
         guard rings.isEmpty == false else {
             throw KernelError(phase: .evaluation, code: .invalidInput, featureID: featureID, tolerance: tolerance,
                               message: "A hollow pipe's custom section makes no ring.")
         }
         return rings
+    }
+
+    package func placed(_ source: Profile, featureID: FeatureID, origin: Point3D,
+        tangent: Vector3D, angle: Double, wall: Double?, originalCentroid: Point3D? = nil) throws -> [Profile] {
+        var execution = try CurvedSweepSourceBudget(tolerance: tolerance).execution()
+        return try placed(source, featureID: featureID, origin: origin, tangent: tangent,
+            angle: angle, wall: wall, originalCentroid: originalCentroid, using: &execution)
     }
 
     private func originalPlane(_ plane: SketchPlane) throws -> Plane3D {
@@ -98,7 +104,7 @@ package struct PipeCustomSectionPlacement: Sendable {
 
     package func placedRegion(_ source: ResolvedModelingSection, featureID: FeatureID,
         origin: Point3D, tangent: Vector3D, angle: Double,
-        admission: GeometryConversionAdmission) throws -> ResolvedBoundaryRegion {
+        using execution: inout OriginalQueryExecution) throws -> ResolvedBoundaryRegion {
         let provenance: ResolvedBoundaryRegion.Source
         switch source {
         case .profile(let profile, .profile(let reference)): provenance = .profile(profile, reference)
@@ -108,9 +114,9 @@ package struct PipeCustomSectionPlacement: Sendable {
                 message: "A placed original region requires its actual Profile or Face reference.")
         }
         let plane = try originalPlane(source.plane())
-        let spanLoops = try ExactBSplineCurveSpanBuilder(tolerance: tolerance, admission: admission).loopSpans(from: source)
+        let spanLoops = try ExactBSplineCurveSpanBuilder(tolerance: tolerance, using: &execution).loopSpans(from: source, using: &execution)
         let centroid = try OriginalPipeSectionMoments().centroid(loops: spanLoops,
-            plane: plane, tolerance: tolerance, admission: admission)
+            plane: plane, tolerance: tolerance, using: &execution)
         let placement = try RigidTransform3D.followingPath(anchor: centroid,
             referenceDirection: plane.normal.dot(tangent) >= 0 ? plane.normal : plane.normal * -1,
             pathPoint: origin, pathTangent: tangent, tolerance: tolerance)
@@ -118,35 +124,31 @@ package struct PipeCustomSectionPlacement: Sendable {
             angle: angle, tolerance: tolerance)
         let facade = try placed(source.profileFacade(), featureID: featureID, origin: origin,
             tangent: tangent, angle: angle, wall: nil, originalCentroid: centroid,
-            admission: admission)[0]
-        try admission.chargeStorage(bytes: spanLoops.count * MemoryLayout<[OriginalCurveSpanParameterChart]>.stride)
+            using: &execution)[0]
+        try execution.retainStorage(bytes: spanLoops.count * MemoryLayout<[OriginalCurveSpanParameterChart]>.stride)
         var loops: [[OriginalCurveSpanParameterChart]] = []
         loops.reserveCapacity(spanLoops.count)
         for spans in spanLoops {
-            try admission.chargeStorage(bytes: spans.count * MemoryLayout<OriginalCurveSpanParameterChart>.stride)
+            try execution.retainStorage(bytes: spans.count * MemoryLayout<OriginalCurveSpanParameterChart>.stride)
             var charts: [OriginalCurveSpanParameterChart] = []
             charts.reserveCapacity(spans.count)
             for span in spans {
-                try admission.chargeWork()
+                try execution.consumeWork(1)
                 let moved = Curve3D.rigidImage(try RigidImageCurve3D(source: span.originalChart.curve,
                     transform: placement, tolerance: tolerance,
-                    remainingSourceDepth: admission.remainingSourceDepth,
-                    maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
-                    consumeWork: { try admission.chargeWork() },
-                    consumeStorage: { try admission.chargeStorage(bytes: $0) }))
+                    remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+                    maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth, using: &execution))
                 let rotated = Curve3D.rigidImage(try RigidImageCurve3D(source: moved,
                     transform: turn, tolerance: tolerance,
-                    remainingSourceDepth: admission.remainingSourceDepth,
-                    maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
-                    consumeWork: { try admission.chargeWork() },
-                    consumeStorage: { try admission.chargeStorage(bytes: $0) }))
-                let owner = try OriginalCurveSpanSource(curve: rotated, tolerance: tolerance, admission: admission)
-                charts.append(span.originalChart.replacingSource(owner)
-                    .admittingConstruction(admission))
+                    remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+                    maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth, using: &execution))
+                let owner = try OriginalCurveSpanSource(curve: rotated, tolerance: tolerance, using: &execution)
+                try charts.append(span.originalChart.replacingSource(owner)
+                    .admittingConstruction(using: &execution))
             }
             loops.append(charts)
         }
-        try admission.chargeStorage(bytes: 2 * MemoryLayout<RigidTransform3D>.stride)
+        try execution.retainStorage(bytes: 2 * MemoryLayout<RigidTransform3D>.stride)
         return ResolvedBoundaryRegion(source: provenance, profile: facade,
             loops: loops, placement: [placement, turn])
     }

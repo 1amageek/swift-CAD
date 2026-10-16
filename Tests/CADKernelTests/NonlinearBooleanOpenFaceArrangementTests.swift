@@ -12,7 +12,78 @@ struct NonlinearBooleanOpenFaceArrangementTests {
     private let tolerance = ModelingTolerance.standard
 
     @Test(.timeLimit(.minutes(1)))
+    func interiorSamplerEndpointsConsumeTheSameExactWorkAllowance() throws {
+        let surface = Surface3D.plane(Plane3D(origin: .origin, normal: .unitZ))
+        let pcurve = SurfaceParameterCurve.constantV(v: 0, uStart: 0, uEnd: 1)
+        let expectedParameter = SurfaceParameter(u: 0.5, v: 0.0025)
+        func execution(work: Int) throws -> OriginalQueryExecution {
+            OriginalQueryExecution(budget: try OriginalQueryBudget(workLimit: work),
+                limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32,
+                    remainingSourceDepth: 1, maximumSubdivisionDepth: 8))
+        }
+        // Measure the actual source reads independently of the sampler. Its two
+        // entry visits are the only non-geometric work before containment.
+        var sourceReads = try execution(work: 1_000)
+        for fraction in [0.5, 0.5 - 1.0e-4, 0.5 + 1.0e-4] {
+            _ = try pcurve.parameter(atNormalizedFraction: fraction,
+                tolerance: tolerance, using: &sourceReads)
+        }
+        _ = try pcurve.startParameter(tolerance: tolerance, using: &sourceReads)
+        _ = try pcurve.endParameter(tolerance: tolerance, using: &sourceReads)
+        let expectedPoint = try surface.point(u: expectedParameter.u, v: expectedParameter.v,
+            tolerance: tolerance, using: &sourceReads)
+        let requiredWork = sourceReads.localWork + 2
+
+        let surfaceID = SurfaceID(PortableIdentity128(high: 1, low: 1))
+        let faceID = FaceID(PortableIdentity128(high: 2, low: 1))
+        let loopID = LoopID(PortableIdentity128(high: 3, low: 1))
+        let edgeID = EdgeID(PortableIdentity128(high: 4, low: 1))
+        var model = BRepModel()
+        model.geometry.surfaces[surfaceID] = surface
+        model.faces[faceID] = Face(id: faceID, surfaceID: surfaceID, loops: [loopID])
+        model.loops[loopID] = Loop(id: loopID,
+            coedges: [Coedge(edgeID: edgeID, surfaceParameterCurve: pcurve)])
+        let sampler = BRepFaceInteriorPointSampler(
+            containmentTester: ExpectedSampleContainment(expectedPoint: expectedPoint))
+        var exact = try execution(work: requiredWork)
+        let sample = try sampler.sample(on: faceID, in: model,
+            tolerance: tolerance, using: &exact)
+        #expect(sample.point == expectedPoint)
+        #expect(sample.parameter == expectedParameter)
+        #expect(exact.localWork == requiredWork)
+
+        var short = try execution(work: requiredWork - 1)
+        do {
+            _ = try sampler.sample(on: faceID, in: model, tolerance: tolerance, using: &short)
+            Issue.record("Sampling omitted a source endpoint debit and escaped N-minus-one admission.")
+        } catch {
+            let published = OriginalQueryFailure.published(error,
+                context: short.context, tolerance: tolerance)
+            #expect(OriginalQueryFailure.classification(of: published)?.code == .resourceLimitExceeded)
+        }
+    }
+
+    private struct ExpectedSampleContainment: FacePointContainmentTesting {
+        let expectedPoint: Point3D
+
+        func contains(_ point: Point3D, on faceID: FaceID, in model: BRepModel,
+            tolerance: ModelingTolerance) throws -> Bool {
+            throw KernelError(phase: .classification, code: .unsupportedCapability,
+                tolerance: tolerance, message: "This sampler fixture requires its direct containment witness.")
+        }
+
+        func contains(_ point: Point3D, on faceID: FaceID, in model: BRepModel,
+            tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Bool {
+            try execution.checkpoint()
+            return point == expectedPoint
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func exactSurfaceLiftPcurvesIntersectWithoutRationalModelCurveFallback() throws {
+        var execution = OriginalQueryExecution(budget: try .init(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32,
+                remainingSourceDepth: 16, maximumSubdivisionDepth: 32))
         let surface = Surface3D.plane(Plane3D(origin: .origin, normal: .unitZ))
         let horizontal = BSplineCurve2D(
             degree: 2,
@@ -48,7 +119,7 @@ struct NonlinearBooleanOpenFaceArrangementTests {
         let result = try ExactTrimEdgeIntersector().intersections(
             first,
             second,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         guard case let .subdivisionPoints(points) = result else {
             Issue.record("Transverse surface-lift pcurves must not be classified as coincident.")
@@ -61,6 +132,9 @@ struct NonlinearBooleanOpenFaceArrangementTests {
 
     @Test(.timeLimit(.minutes(1)))
     func certifiedNonRationalTrimCurvesIntersectThroughExactSupportSurfaces() throws {
+        var execution = OriginalQueryExecution(budget: try .init(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32,
+                remainingSourceDepth: 16, maximumSubdivisionDepth: 32))
         let sphere = Surface3D.analytic(.sphere(
             center: .origin,
             radius: 3.0
@@ -97,7 +171,7 @@ struct NonlinearBooleanOpenFaceArrangementTests {
             first,
             second,
             sharedSurface: sphere,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
 
         guard case let .subdivisionPoints(points) = result else {
@@ -123,6 +197,9 @@ struct NonlinearBooleanOpenFaceArrangementTests {
 
     @Test(.timeLimit(.minutes(1)))
     func nonRationalSharedSurfacePcurvesIntersectWithoutRetainedSecondSupports() throws {
+        var execution = OriginalQueryExecution(budget: try .init(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32,
+                remainingSourceDepth: 16, maximumSubdivisionDepth: 32))
         let sphere = Surface3D.analytic(.sphere(
             center: .origin,
             radius: 3.0
@@ -144,7 +221,7 @@ struct NonlinearBooleanOpenFaceArrangementTests {
             first,
             second,
             sharedSurface: sphere,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
 
         guard case let .subdivisionPoints(points) = result else {
@@ -161,6 +238,9 @@ struct NonlinearBooleanOpenFaceArrangementTests {
 
     @Test(.timeLimit(.minutes(1)))
     func rigidImagePcurvesOnProceduralSurfaceIntersectWithoutRationalFallback() throws {
+        var execution = OriginalQueryExecution(budget: try .init(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32,
+                remainingSourceDepth: 16, maximumSubdivisionDepth: 32))
         let sourceSurface = Surface3D.procedural(.ruled(RuledSurface3D(
             startBoundary: .bSpline(curvedBoundary(y: 0.0)),
             endBoundary: .bSpline(curvedBoundary(y: 1.0))
@@ -214,7 +294,7 @@ struct NonlinearBooleanOpenFaceArrangementTests {
             first,
             second,
             sharedSurface: targetSurface,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
 
         guard case let .subdivisionPoints(points) = result else {
@@ -235,6 +315,9 @@ struct NonlinearBooleanOpenFaceArrangementTests {
 
     @Test(.timeLimit(.minutes(1)))
     func coplanarCircularSpansUseTheirExactPlanarIntersections() throws {
+        var execution = OriginalQueryExecution(budget: try .init(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32,
+                remainingSourceDepth: 16, maximumSubdivisionDepth: 32))
         let first = try circularEdge(
             stableID: "coplanar-circle:first",
             center: .origin,
@@ -253,7 +336,7 @@ struct NonlinearBooleanOpenFaceArrangementTests {
         let result = try ExactTrimEdgeIntersector().intersections(
             first,
             second,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
 
         guard case let .subdivisionPoints(points) = result else {
@@ -270,6 +353,9 @@ struct NonlinearBooleanOpenFaceArrangementTests {
 
     @Test(.timeLimit(.minutes(1)))
     func disjointConcentricCircularSpansDoNotEnterRuledSurfaceSearch() throws {
+        var execution = OriginalQueryExecution(budget: try .init(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32,
+                remainingSourceDepth: 16, maximumSubdivisionDepth: 32))
         let first = try circularEdge(
             stableID: "concentric-circle:first",
             center: .origin,
@@ -288,7 +374,7 @@ struct NonlinearBooleanOpenFaceArrangementTests {
         let result = try ExactTrimEdgeIntersector().intersections(
             first,
             second,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
 
         guard case let .subdivisionPoints(points) = result else {
@@ -400,12 +486,15 @@ struct NonlinearBooleanOpenFaceArrangementTests {
         fixture: Fixture,
         boundaries: [BooleanFaceArrangementBoundary]
     ) throws -> BooleanOpenFaceArrangementBuilder.Result {
-        try BooleanOpenFaceArrangementBuilder().build(
+        var execution = OriginalQueryExecution(budget: try .init(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32,
+                remainingSourceDepth: 16, maximumSubdivisionDepth: 32))
+        return try BooleanOpenFaceArrangementBuilder().build(
             faceID: fixture.face.id,
             boundaries: boundaries,
             model: fixture.source.brep,
             sourceSubshapes: fixture.source.subshapes.entries,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
     }
 

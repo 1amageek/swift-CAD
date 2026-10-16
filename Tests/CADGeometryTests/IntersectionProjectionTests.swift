@@ -5,26 +5,58 @@ import Testing
 @Suite("Full original rational projection")
 struct IntersectionProjectionTests {
     private typealias Polynomial = ExactIntersectionPolynomial
-    private struct Admission: RationalAlgebraAdmitting {
+    private struct Admission: ~Copyable, GeometryScalarTestAdmission {
+        var proofScopes = ExactScalarProofScopes()
         var work = 0, storage = 0
         var maximumWork = 10_000_000, maximumStorage = 10_000_000
-        mutating func consumeExactWork(_ count: Int) throws {
+        mutating func consumeWork(_ count: Int) throws(ExactScalarFailure) {
+            try checkpoint()
+            try proofScopes.checkWork(count)
+            do {
             guard count >= 0, count <= maximumWork - work else { throw exhausted() }
             work += count
+        
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            proofScopes.recordWork(count)
+            try checkpoint()
         }
-        mutating func retainExactStorage(_ count: Int) throws {
+        mutating func retainStorage(bytes: Int) throws(ExactScalarFailure) {
+            try checkpoint()
+            let count = try geometryTestStorageWords(bytes)
+            do {
             guard count >= 0, count <= maximumStorage - storage else { throw exhausted() }
             storage += count
+        
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            try checkpoint()
         }
-        mutating func visitExactCell(depth: Int) throws {
-            throw rationalAlgebraFailure("Projection cannot invent geometric roots.")
-        }
-        mutating func visitCoefficientCell(depth: Int) throws {
-            throw rationalAlgebraFailure("Rational projection cannot invent coefficient roots.")
-        }
+        
+        
         private func exhausted() -> KernelError {
             .init(phase: .geometry, code: .resourceLimitExceeded, tolerance: nil,
                   message: "Projection test caller exhausted its independent admission.")
+        }
+            mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
+            try admitDepth(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+            let mapped = try proofScopes.mapped(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+            do {
+                switch (axis == .coefficient || proofScopes.exactDepthResource == .coefficientDepth) ? ExactScalarRootAxis.coefficient : .value {
+                case .value:
+                    let depth = mapped.value
+
+            throw rationalAlgebraFailure("Projection cannot invent geometric roots.")
+        
+                case .coefficient:
+                    let depth = mapped.coefficient
+
+            throw rationalAlgebraFailure("Rational projection cannot invent coefficient roots.")
+        
+                }
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            try checkpoint()
         }
     }
 
@@ -145,8 +177,8 @@ struct IntersectionProjectionTests {
             _ = try ExactIntersectionProjection.prepare(sources: sources,
                 variableCount: 3, axis: 2, usage: &work)
             Issue.record("Insufficient caller work cannot publish a shared-factor projection.")
-        } catch let error as KernelError {
-            #expect(error.code == .resourceLimitExceeded)
+        } catch {
+            #expect(OriginalQueryFailure.classification(of: error)?.code == .resourceLimitExceeded)
         }
         #expect(work.work <= work.maximumWork && work.storage <= work.maximumStorage)
         var storage = Admission(maximumWork: usage.work, maximumStorage: usage.storage - 1)
@@ -154,8 +186,8 @@ struct IntersectionProjectionTests {
             _ = try ExactIntersectionProjection.prepare(sources: sources,
                 variableCount: 3, axis: 2, usage: &storage)
             Issue.record("Insufficient caller storage cannot publish a shared-factor projection.")
-        } catch let error as KernelError {
-            #expect(error.code == .resourceLimitExceeded)
+        } catch {
+            #expect(OriginalQueryFailure.classification(of: error)?.code == .resourceLimitExceeded)
         }
         #expect(storage.work <= storage.maximumWork && storage.storage <= storage.maximumStorage)
     }
@@ -170,8 +202,8 @@ struct IntersectionProjectionTests {
         let expected = try z.adding(x.multiplied(by: y, usage: &usage), usage: &usage)
         let product = try divisor.multiplied(by: expected, usage: &usage)
         #expect(try product.dividedExactly(by: divisor, usage: &usage) == expected)
-        #expect(throws: KernelError.self) { _ = try z.dividedExactly(by: divisor, usage: &usage) }
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { _ = try z.dividedExactly(by: divisor, usage: &usage) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             _ = try product.dividedExactly(by: .zero(variableCount: 3), usage: &usage)
         }
         #expect(try Polynomial.zero(variableCount: 3).axisCoefficients(at: 2, usage: &usage).isEmpty)
@@ -210,10 +242,10 @@ struct IntersectionProjectionTests {
         var usage = Admission()
         let huge = try Polynomial.monomial(variableCount: 2, powers: (0, Int.max, 0, 0, 0),
             coefficient: .one, usage: &usage)
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             _ = try huge.axisCoefficients(at: 1, usage: &usage)
         }
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             _ = try ExactIntersectionProjectionTower.prepare(sources: [huge], variableCount: 2, usage: &usage)
         }
     }
@@ -224,31 +256,38 @@ struct IntersectionProjectionTests {
         let x = try Polynomial.coordinate(variableCount: 2, at: 0, usage: &usage)
         let y = try Polynomial.coordinate(variableCount: 2, at: 1, usage: &usage)
         let p = try y.multiplied(by: y, usage: &usage).subtracting(x, usage: &usage)
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             _ = try ExactIntersectionProjection.prepare(sources: [p], variableCount: 2, axis: 2, usage: &usage)
         }
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             _ = try ExactIntersectionSubresultants.principal(p, .zero(variableCount: 3), axis: 1, usage: &usage)
         }
-        var work = usage; work.maximumWork = work.work
-        #expect(throws: KernelError.self) {
+        // Each refusal owns fresh proof scopes and retains the observed cumulative counters.
+        let observed = (work: usage.work, storage: usage.storage,
+            maximumWork: usage.maximumWork, maximumStorage: usage.maximumStorage)
+        var work = Admission(work: observed.work, storage: observed.storage,
+            maximumWork: observed.work, maximumStorage: observed.maximumStorage)
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             _ = try ExactIntersectionProjection.prepare(sources: [p], variableCount: 2, axis: 1, usage: &work)
         }
-        var storage = usage; storage.maximumStorage = storage.storage
-        #expect(throws: KernelError.self) {
+        var storage = Admission(work: observed.work, storage: observed.storage,
+            maximumWork: observed.maximumWork, maximumStorage: observed.storage)
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             _ = try ExactIntersectionProjection.prepare(sources: [p], variableCount: 2, axis: 1, usage: &storage)
         }
-        #expect(storage.storage == usage.storage)
-        var laterWork = usage; laterWork.maximumWork = laterWork.work + 20
-        #expect(throws: KernelError.self) {
+        #expect(storage.storage == observed.storage)
+        var laterWork = Admission(work: observed.work, storage: observed.storage,
+            maximumWork: observed.work + 20, maximumStorage: observed.maximumStorage)
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             _ = try ExactIntersectionProjection.prepare(sources: [p], variableCount: 2, axis: 1, usage: &laterWork)
         }
-        #expect(laterWork.work > usage.work && laterWork.storage > usage.storage)
-        var laterStorage = usage; laterStorage.maximumStorage = laterStorage.storage + 60
-        #expect(throws: KernelError.self) {
+        #expect(laterWork.work > observed.work && laterWork.storage > observed.storage)
+        var laterStorage = Admission(work: observed.work, storage: observed.storage,
+            maximumWork: observed.maximumWork, maximumStorage: observed.storage + 60)
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             _ = try ExactIntersectionProjection.prepare(sources: [p], variableCount: 2, axis: 1, usage: &laterStorage)
         }
-        #expect(laterStorage.work > usage.work && laterStorage.storage > usage.storage)
+        #expect(laterStorage.work > observed.work && laterStorage.storage > observed.storage)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -261,7 +300,7 @@ struct IntersectionProjectionTests {
             do {
                 _ = try ExactIntersectionProjection.prepare(sources: [source], variableCount: 2, axis: 1, usage: &usage)
                 Issue.record("Cancelled projection cannot publish its set.")
-            } catch is CancellationError { return usage.work - previous }
+            } catch let error where geometryTestIsCancelled(error) { return usage.work - previous }
             return -1
         }.value
         #expect(result == 0)

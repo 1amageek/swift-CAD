@@ -59,14 +59,18 @@ public struct SelectionMeasurementEvaluator: Sendable {
             options: BRepDistanceOptions(absoluteAccuracy: tolerance.distance))
     }
 
+    public func distance(from first: SelectionReference, to second: SelectionReference,
+        in document: EvaluatedDocument, options: BRepDistanceOptions) throws -> SelectionDistanceMeasurement {
+        var execution = try DefaultBRepDistanceQuery.originalExecution(options: options)
+        return try distance(from: first, to: second, in: document, options: options, using: &execution)
+    }
+
     public func distance(
         from first: SelectionReference, to second: SelectionReference,
-        in document: EvaluatedDocument, options: BRepDistanceOptions,
-        consumeWork: (@Sendable (Int) throws -> Void)? = nil,
-        consumeStorage: (@Sendable (Int) throws -> Void)? = nil
-    ) throws -> SelectionDistanceMeasurement {
+        in document: EvaluatedDocument, options: BRepDistanceOptions
+    , using execution: inout OriginalQueryExecution) throws -> SelectionDistanceMeasurement {
         let overview = try distanceOverview(from: first, to: second, in: document,
-            options: options, consumeWork: consumeWork, consumeStorage: consumeStorage)
+            options: options, using: &execution)
         let result = overview.minimum
         guard let witness = result.witnesses.first else {
             throw KernelError(phase: .geometry, code: .emptyResult, tolerance: tolerance,
@@ -100,20 +104,29 @@ public struct SelectionMeasurementEvaluator: Sendable {
     }
 
     public func distanceOverview(from first: SelectionReference, to second: SelectionReference,
-        in document: EvaluatedDocument, options: BRepDistanceOptions,
-        consumeWork: (@Sendable (Int) throws -> Void)? = nil,
-        consumeStorage: (@Sendable (Int) throws -> Void)? = nil) throws -> SelectionDistanceOverview {
+        in document: EvaluatedDocument, options: BRepDistanceOptions) throws -> SelectionDistanceOverview {
+        var execution = try DefaultBRepDistanceQuery.originalExecution(options: options)
+        return try distanceOverview(from: first, to: second, in: document, options: options, using: &execution)
+    }
+
+    public func distanceOverview(from first: SelectionReference, to second: SelectionReference,
+        in document: EvaluatedDocument, options: BRepDistanceOptions, using execution: inout OriginalQueryExecution) throws -> SelectionDistanceOverview {
+        try options.validate(); try tolerance.validate()
+        let request = try execution.makeContributionHandle(workLimit: options.maximumWork,
+            storageByteLimit: options.maximumCumulativeStorageBytes,
+            allocationPolicy: execution.effectiveAllocationPolicy,
+            executionLimits: .init(maximumValueDepth: options.maximumAlgebraicDepth,
+                maximumCoefficientDepth: options.maximumAlgebraicDepth,
+                remainingSourceDepth: options.maximumSourceDepth,
+                maximumSubdivisionDepth: options.maximumSubdivisionDepth, maximumSpans: 262_144))
+        do {
+            return try execution.withContributionScope(request) { execution in
         try options.validate()
         try tolerance.validate()
-        let proofBudget = BRepDistanceProofBudget(tolerance: tolerance, maximumWork: options.maximumWork,
-            maximumDepth: options.maximumSubdivisionDepth,
-            maximumCumulativeStorageBytes: options.maximumCumulativeStorageBytes,
-            maximumSourceDepth: options.maximumSourceDepth, maximumAlgebraicDepth: options.maximumAlgebraicDepth,
-            consumeWork: consumeWork, consumeStorage: consumeStorage)
-        try proofBudget.charge()
-        let a=try distanceSelection(first,in:document,budget:proofBudget)
-        try proofBudget.charge()
-        let b=try distanceSelection(second,in:document,budget:proofBudget)
+        try execution.consumeWork(1)
+        let a=try distanceSelection(first,in:document,using: &execution)
+        try execution.consumeWork(1)
+        let b=try distanceSelection(second,in:document,using: &execution)
         let certificate: ValidatedBRepModel
         if let original = document.validatedBRep {
             guard original.tolerance == tolerance, original.validationLevel != .modeling else {
@@ -124,15 +137,14 @@ public struct SelectionMeasurementEvaluator: Sendable {
         } else {
             certificate = try ValidatedBRepModel(document.brep, tolerance: tolerance,
                 validationLevel: .exact, maximumSubdivisionDepth: options.maximumSubdivisionDepth,
-                remainingSourceDepth: proofBudget.maximumSourceDepth, consumeWork: { try proofBudget.charge() },
-                consumeStorage: proofBudget.storageAdmission, maximumAlgebraicDepth: proofBudget.maximumAlgebraicDepth)
+                remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth, maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth, using: &execution)
         }
         let boundary = try DefaultBRepDistanceQuery().distance(from: a, to: b,
-            validatedModel: certificate, options: options, budget: proofBudget)
+            validatedModel: certificate, options: options, using: &execution)
         func currentBoundary() -> BRepDistanceQueryResult {
             BRepDistanceQueryResult(lowerBound: boundary.lowerBound, upperBound: boundary.upperBound,
                 witnesses: boundary.witnesses, minimumRegions: boundary.minimumRegions,
-                requestedOptions: options, consumedWork: proofBudget.consumedWork)
+                requestedOptions: options, consumedWork: request.snapshot.work)
         }
         guard case .body(let firstBody)=a,case .body(let secondBody)=b,
             document.brep.bodies[firstBody]?.kind == .solid,document.brep.bodies[secondBody]?.kind == .solid else{
@@ -142,34 +154,30 @@ public struct SelectionMeasurementEvaluator: Sendable {
         }
         let classifier=DefaultBRepSolidPointClassifier()
         let classifications = try PreparedSolidClassificationPair(firstBodyID: firstBody,
-            secondBodyID: secondBody, validatedModel: certificate, classifier: classifier,
-            maximumSubdivisionDepth: options.maximumSubdivisionDepth,
-            remainingSourceDepth: proofBudget.maximumSourceDepth, maximumAlgebraicDepth: proofBudget.maximumAlgebraicDepth,
-            consumeWork: { try proofBudget.charge(depth: $0) },
-            consumeStorage: proofBudget.storageAdmission)
+            secondBodyID: secondBody, validatedModel: certificate, classifier: classifier, using: &execution)
         let firstSession = classifications.firstClassification
         let secondSession = classifications.secondClassification
         if firstBody == secondBody {
-            guard let contact = try finiteBodyContact(classifications: classifications, budget: proofBudget),
+            guard let contact = try finiteBodyContact(classifications: classifications, using: &execution),
                 let point = contact.interiorPoint else {
                 throw KernelError(phase: .classification, code: .classificationFailure, tolerance: tolerance,
                     message: "Identical original solids have no admitted common interior witness.")
             }
             let witness = BRepDistanceWitness(firstSupport: a, secondSupport: b,
                 firstPoint: point, secondPoint: point, firstParameters: [], secondParameters: [])
-            try DistanceQueryStorage.charge(1, of: BRepDistanceWitness.self, budget: proofBudget)
+            try DistanceQueryStorage.charge(1, of: BRepDistanceWitness.self, using: &execution)
             return SelectionDistanceOverview(modelLengthUnit: document.document.units.length,
                 minimum: BRepDistanceQueryResult(lowerBound: 0, upperBound: 0, witnesses: [witness],
-                    requestedOptions: options, consumedWork: proofBudget.consumedWork),
+                    requestedOptions: options, consumedWork: request.snapshot.work),
                 boundarySeparation: currentBoundary(), relationship: contact.relationship)
         }
-        func classify(_ point: Point3D, in body: BodyID) throws -> SolidPointClassification {
-            try proofBudget.charge()
-            if body == firstBody { return try firstSession.classify(point) }
+        func classify(_ point: Point3D, in body: BodyID, using execution: inout OriginalQueryExecution) throws -> SolidPointClassification {
+            try execution.consumeWork(1)
+            if body == firstBody { return try firstSession.classify(point, using: &execution) }
             guard body == secondBody else { throw TopologyError.missingReference("Foreign body in original distance classification.") }
-            return try secondSession.classify(point)
+            return try secondSession.classify(point, using: &execution)
         }
-        func points(_ id: BodyID) throws -> [Point3D] {
+        func points(_ id: BodyID, using execution: inout OriginalQueryExecution) throws -> [Point3D] {
             guard let body = document.brep.bodies[id] else {
                 throw TopologyError.missingReference("Missing relationship body.")
             }
@@ -179,8 +187,8 @@ public struct SelectionMeasurementEvaluator: Sendable {
                     message: "Original boundary localization cannot represent its distance allocation.")
             }
             var result: [Point3D] = []
-            func admit(_ position: IntervalVector3DBounds) throws {
-                try proofBudget.charge()
+            func admit(_ position: IntervalVector3DBounds, using execution: inout OriginalQueryExecution) throws {
+                try execution.consumeWork(1)
                 let point = Point3D(x: position.x.midpoint, y: position.y.midpoint, z: position.z.midpoint)
                 let x = (position.x - .exact(point.x)).absoluteUpperBound
                 let y = (position.y - .exact(point.y)).absoluteUpperBound
@@ -192,17 +200,17 @@ public struct SelectionMeasurementEvaluator: Sendable {
                         message: "Original boundary station cannot attain the relationship localization allocation.")
                 }
                 try point.validate()
-                try DistanceQueryStorage.reserveForAppend(&result, budget: proofBudget)
+                try DistanceQueryStorage.reserveForAppend(&result, using: &execution)
                 result.append(point)
             }
             var edgeIDs: [EdgeID] = []
             for shellID in body.shellIDs {
-                try proofBudget.charge()
+                try execution.consumeWork(1)
                 guard let shell = document.brep.shells[shellID] else {
                     throw TopologyError.missingReference("Missing original relationship shell.")
                 }
                 for faceID in shell.faceIDs {
-                    try proofBudget.charge()
+                    try execution.consumeWork(1)
                     guard let face = document.brep.faces[faceID] else {
                         throw TopologyError.missingReference("Missing original relationship face.")
                     }
@@ -211,38 +219,35 @@ public struct SelectionMeasurementEvaluator: Sendable {
                             throw TopologyError.missingReference("Missing original loop-free relationship support.")
                         }
                         let extent = try FaceParameterExtentResolver(maximumSubdivisionDepth: options.maximumSubdivisionDepth,
-                            consumeWork: { try proofBudget.charge(depth: $0) }, consumeStorage: proofBudget.storageAdmission,
-                            remainingSourceDepth: proofBudget.maximumSourceDepth,
-                            maximumAlgebraicDepth: proofBudget.maximumAlgebraicDepth)
-                            .bounds(for: faceID, in: document.brep, tolerance: tolerance)
+                            remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+                            maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth)
+                            .bounds(for: faceID, in: document.brep, tolerance: tolerance, using: &execution)
                         let station = SurfaceParameterBox(u: try .init(lower: extent.u.midpoint, upper: extent.u.midpoint),
                             v: try .init(lower: extent.v.midpoint, upper: extent.v.midpoint))
                         let prepared = try PreparedSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance,
-                            remainingSourceDepth: proofBudget.maximumSourceDepth,
+                            remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
                             maximumSubdivisionDepth: options.maximumSubdivisionDepth,
-                            consumeWork: { try proofBudget.charge() }, consumeStorage: proofBudget.storageAdmission,
-                            maximumAlgebraicDepth: proofBudget.maximumAlgebraicDepth)
+                            maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth, using: &execution)
                         try admit(prepared.positionBounds(over: station, tolerance: tolerance,
                             maximumSpanCount: 262_144, maximumSubdivisionDepth: options.maximumSubdivisionDepth,
-                            remainingSourceDepth: proofBudget.maximumSourceDepth,
-                            consumeWork: { try proofBudget.charge() }, consumeStorage: proofBudget.storageAdmission))
+                            remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth, using: &execution), using: &execution)
                     }
                     for loopID in face.loops {
-                        try proofBudget.charge()
+                        try execution.consumeWork(1)
                         guard let loop = document.brep.loops[loopID] else {
                             throw TopologyError.missingReference("Missing original relationship loop.")
                         }
                         for use in loop.coedges {
-                            try proofBudget.charge()
-                            try DistanceQueryStorage.reserveForAppend(&edgeIDs, budget: proofBudget)
+                            try execution.consumeWork(1)
+                            try DistanceQueryStorage.reserveForAppend(&edgeIDs, using: &execution)
                             edgeIDs.append(use.edgeID)
                         }
                     }
                 }
             }
-            try DistanceQueryStorage.orderAndDeduplicate(&edgeIDs, budget: proofBudget)
+            try DistanceQueryStorage.orderAndDeduplicate(&edgeIDs, using: &execution)
             for edgeID in edgeIDs {
-                try proofBudget.charge()
+                try execution.consumeWork(1)
                 guard let edge = document.brep.edges[edgeID],
                     let curve = document.brep.geometry.curves[edge.curveID] else {
                     throw TopologyError.missingReference("Missing original relationship edge curve.")
@@ -254,51 +259,44 @@ public struct SelectionMeasurementEvaluator: Sendable {
                 // can be certified; no legacy numeric projection is replayed here.
                 let original = try edgeQueryEvaluator.originalGeometry(of: edgeID, in: document,
                     maximumSubdivisionDepth: options.maximumSubdivisionDepth,
-                    remainingSourceDepth: proofBudget.maximumSourceDepth,
-                    consumeWork: { try proofBudget.charge(depth: $0) }, consumeStorage: proofBudget.storageAdmission,
-                    maximumAlgebraicDepth: proofBudget.maximumAlgebraicDepth)
+                    remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+                    maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth, using: &execution)
                 guard original.curveID == edge.curveID else {
                     throw TopologyError.missingReference("Original relationship edge preparation changed its source identity.")
                 }
                 let parameters = (first: original.startParameter, last: original.endParameter)
                 let prepared = try PreparedCurveDifferentialEncloser(curve: curve, tolerance: tolerance,
-                    remainingSourceDepth: proofBudget.maximumSourceDepth, maximumSubdivisionDepth: options.maximumSubdivisionDepth,
-                    consumeWork: { try proofBudget.charge() },
-                    consumeStorage: proofBudget.storageAdmission, maximumAlgebraicDepth: proofBudget.maximumAlgebraicDepth)
+                    remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth, maximumSubdivisionDepth: options.maximumSubdivisionDepth, maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth, using: &execution)
                 for endpoint in 0..<2 {
                     let parameter = endpoint == 0 ? parameters.first : parameters.last
-                    try proofBudget.charge()
+                    try execution.consumeWork(1)
                     let position = try prepared.positionBounds(over: ScalarInterval(lower: parameter, upper: parameter),
                         tolerance: tolerance, maximumSpanCount: 262_144,
-                        maximumSubdivisionDepth: options.maximumSubdivisionDepth, remainingSourceDepth: proofBudget.maximumSourceDepth,
-                        consumeWork: { try proofBudget.charge() },
-                        consumeStorage: proofBudget.storageAdmission)
-                    try admit(position)
+                        maximumSubdivisionDepth: options.maximumSubdivisionDepth, remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth, using: &execution)
+                    try admit(position, using: &execution)
                 }
             }
             return result
         }
-        let firstPoints=try points(firstBody),secondPoints=try points(secondBody)
-        func classificationSummary(_ points: [Point3D], in body: BodyID)
+        let firstPoints=try points(firstBody, using: &execution),secondPoints=try points(secondBody, using: &execution)
+        func classificationSummary(_ points: [Point3D], in body: BodyID, using execution: inout OriginalQueryExecution)
             throws -> (anyInside: Bool, allInside: Bool) {
             var anyInside = false, allInside = !points.isEmpty
             for point in points {
-                let inside = try classify(point, in: body) == .inside
+                let inside = try classify(point, in: body, using: &execution) == .inside
                 anyInside = anyInside || inside; allInside = allInside && inside
             }
             return (anyInside, allInside)
         }
-        let firstClasses = try classificationSummary(firstPoints, in: secondBody)
-        let secondClasses = try classificationSummary(secondPoints, in: firstBody)
+        let firstClasses = try classificationSummary(firstPoints, in: secondBody, using: &execution)
+        let secondClasses = try classificationSummary(secondPoints, in: firstBody, using: &execution)
         if firstClasses.anyInside || secondClasses.anyInside {
             // FIXME(INCOMPLETE_IMPLEMENTATION): This original common-interior
             // producer supplies actual both-inside witnesses under the same query
             // ledger. Classifier lower allocation and combined search/source-depth
             // admission remain required for whole-query resource completion.
             guard let point = try OriginalTransverseMaterialOverlap().interiorWitness(
-                in: classifications, maximumSubdivisionDepth: proofBudget.maximumDepth,
-                consumeWork: { try proofBudget.charge(depth: $0) },
-                consumeStorage: proofBudget.storageAdmission) else {
+                in: classifications, maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth, using: &execution) else {
                 throw KernelError(phase: .classification, code: .classificationFailure,
                     tolerance: tolerance,
                     message: "Original containment evidence has no proved common interior witness within the request limits.")
@@ -311,13 +309,13 @@ public struct SelectionMeasurementEvaluator: Sendable {
                 secondContained ? .secondContainedInFirst:boundary.lowerBound>tolerance.distance ? .mixedComponents:.intersecting
             let witness=BRepDistanceWitness(firstSupport:a,secondSupport:b,firstPoint:point,secondPoint:point,
                 firstParameters:[],secondParameters:[])
-            try DistanceQueryStorage.charge(1, of: BRepDistanceWitness.self, budget: proofBudget)
+            try DistanceQueryStorage.charge(1, of: BRepDistanceWitness.self, using: &execution)
             return SelectionDistanceOverview(modelLengthUnit: document.document.units.length, minimum:BRepDistanceQueryResult(lowerBound:0,upperBound:0,witnesses:[witness],
-                    requestedOptions: options, consumedWork: proofBudget.consumedWork),
+                    requestedOptions: options, consumedWork: request.snapshot.work),
                 boundarySeparation:currentBoundary(),relationship:relationship)
         }
         if boundary.lowerBound <= tolerance.distance {
-            let contact = try finiteBodyContact(classifications: classifications, budget: proofBudget)
+            let contact = try finiteBodyContact(classifications: classifications, using: &execution)
             if let contact {
                 // The original supports retain their actual floating-point locations.
                 // A trim-intersection certificate establishes a zero lower bound,
@@ -326,9 +324,9 @@ public struct SelectionMeasurementEvaluator: Sendable {
                 if let point = contact.interiorPoint {
                     let witness = BRepDistanceWitness(firstSupport: a, secondSupport: b,
                         firstPoint: point, secondPoint: point, firstParameters: [], secondParameters: [])
-                    try DistanceQueryStorage.charge(1, of: BRepDistanceWitness.self, budget: proofBudget)
+                    try DistanceQueryStorage.charge(1, of: BRepDistanceWitness.self, using: &execution)
                     minimum = BRepDistanceQueryResult(lowerBound: 0, upperBound: 0, witnesses: [witness],
-                        requestedOptions: options, consumedWork: proofBudget.consumedWork)
+                        requestedOptions: options, consumedWork: request.snapshot.work)
                 } else { minimum = currentBoundary() }
                 return SelectionDistanceOverview(modelLengthUnit: document.document.units.length, minimum: minimum,
                     boundarySeparation: currentBoundary(), relationship: contact.relationship)
@@ -343,11 +341,14 @@ public struct SelectionMeasurementEvaluator: Sendable {
                 message: "Finite boundaries have no contact, but the minimum enclosure cannot yet prove strict separation.")
         }
         return SelectionDistanceOverview(modelLengthUnit: document.document.units.length, minimum:currentBoundary(),boundarySeparation:currentBoundary(),relationship:.separated)
-    }
+                }
+        } catch {
+            throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance)
+        }
+}
 
     private func finiteBodyContact(classifications: PreparedSolidClassificationPair,
-        budget: BRepDistanceProofBudget
-    ) throws -> (relationship: SelectionDistanceRelationship, interiorPoint: Point3D?)? {
+        using execution: inout OriginalQueryExecution) throws -> (relationship: SelectionDistanceRelationship, interiorPoint: Point3D?)? {
         let validatedModel = classifications.validatedModel
         let firstBody = classifications.firstBodyID, secondBody = classifications.secondBodyID
         let firstSession = classifications.firstClassification, secondSession = classifications.secondClassification
@@ -358,35 +359,33 @@ public struct SelectionMeasurementEvaluator: Sendable {
             // BYTES and combined source/search depth still prevent a whole-query
             // resource-completion claim on the production distance path.
             guard let point = try OriginalTransverseMaterialOverlap().interiorWitness(
-                in: classifications, maximumSubdivisionDepth: budget.maximumDepth,
-                consumeWork: { try budget.charge(depth: $0) },
-                consumeStorage: budget.storageAdmission) else {
+                in: classifications, maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth, using: &execution) else {
                 throw KernelError(phase: .classification, code: .classificationFailure,
                     tolerance: tolerance,
                     message: "Identical solids have no proved common interior witness within the request limits.")
             }
             return (.intersecting, point)
         }
-        func faces(_ id: BodyID) throws -> [FaceID] {
+        func faces(_ id: BodyID, using execution: inout OriginalQueryExecution) throws -> [FaceID] {
             guard let body = model.bodies[id] else {
                 throw TopologyError.missingReference("Missing original contact body.")
             }
             var result: [FaceID] = []
             for shellID in body.shellIDs {
-                try budget.charge()
+                try execution.consumeWork(1)
                 guard let shell = model.shells[shellID] else {
                     throw TopologyError.missingReference("Missing original contact shell.")
                 }
                 for faceID in shell.faceIDs {
-                    try budget.charge()
-                    try DistanceQueryStorage.reserveForAppend(&result, budget: budget)
+                    try execution.consumeWork(1)
+                    try DistanceQueryStorage.reserveForAppend(&result, using: &execution)
                     result.append(faceID)
                 }
             }
-            try DistanceQueryStorage.orderAndDeduplicate(&result, budget: budget)
+            try DistanceQueryStorage.orderAndDeduplicate(&result, using: &execution)
             return result
         }
-        let firstFaces = try faces(firstBody), secondFaces = try faces(secondBody)
+        let firstFaces = try faces(firstBody, using: &execution), secondFaces = try faces(secondBody, using: &execution)
         guard firstFaces.count <= 262144,
             secondFaces.count <= 262144 / max(1, firstFaces.count) else {
             throw KernelError(phase: .classification, code: .resourceLimitExceeded,
@@ -395,8 +394,8 @@ public struct SelectionMeasurementEvaluator: Sendable {
         var pairs: [BooleanFacePairCandidate] = []
         for first in firstFaces {
             for second in secondFaces where first != second {
-                try budget.charge()
-                try DistanceQueryStorage.reserveForAppend(&pairs, budget: budget)
+                try execution.consumeWork(1)
+                try DistanceQueryStorage.reserveForAppend(&pairs, using: &execution)
                 pairs.append(BooleanFacePairCandidate(targetFaceID: first, toolFaceID: second))
             }
         }
@@ -406,24 +405,20 @@ public struct SelectionMeasurementEvaluator: Sendable {
         // overlap and remaining SSI/trim temporary allocations still need their
         // bounded lower ports before complete invocation admission can be claimed.
         let prepared = try pipeline.prepareIntersectionGraph(facePairs: pairs,
-            classifications: classifications, maximumSpanCount: 262_144,
-            maximumSubdivisionDepth: budget.maximumDepth, remainingSourceDepth: budget.maximumSourceDepth,
-            consumeWork: { try budget.charge(depth: $0) },
-            consumeStorage: budget.storageAdmission, maximumAlgebraicDepth: budget.maximumAlgebraicDepth)
+            classifications: classifications, using: &execution)
         if let originalInterior = try OriginalTransverseMaterialOverlap().interiorWitness(in: prepared,
-            maximumSpanCount: 262_144, maximumSubdivisionDepth: budget.maximumDepth,
-            remainingSourceDepth: budget.maximumSourceDepth, consumeWork: { try budget.charge(depth: $0) },
-            consumeStorage: budget.storageAdmission, maximumAlgebraicDepth: budget.maximumAlgebraicDepth) {
+            maximumSpanCount: 262_144, maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth,
+            remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth, maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth, using: &execution) {
             return (.intersecting, originalInterior)
         }
         let graph = prepared.intersectionGraph
-        try budget.charge()
-        let splits = try pipeline.uvSplitGraph(intersectionGraph: graph, model: model, tolerance: tolerance)
+        try execution.consumeWork(1)
+        let splits = try pipeline.uvSplitGraph(intersectionGraph: graph, model: model, tolerance: tolerance, using: &execution)
         let overlap = CoincidentFaceOverlapTester(facePointContainment: DefaultFacePointContainmentTester())
         var foundContact = false
         for split in splits.splits {
             for component in split.components {
-                try budget.charge()
+                try execution.consumeWork(1)
                 let point: Point3D?
                 switch component.geometry {
                 case .transverseSegment(let start, _): point = start.point
@@ -432,7 +427,7 @@ public struct SelectionMeasurementEvaluator: Sendable {
                 case .tangent(let tangent): point = tangent.point
                 case .coincident:
                     point = try overlap.overlapWitness(split.facePair.targetFaceID,
-                        split.facePair.toolFaceID, in: model, tolerance: tolerance)
+                        split.facePair.toolFaceID, in: model, tolerance: tolerance, using: &execution)
                 }
                 guard let point else { continue }
                 foundContact = true
@@ -442,12 +437,12 @@ public struct SelectionMeasurementEvaluator: Sendable {
                 for x in -1...1 {
                     for y in -1...1 {
                         for z in -1...1 where x != 0 || y != 0 || z != 0 {
-                            try budget.charge()
-                            try budget.charge()
+                            try execution.consumeWork(1)
+                            try execution.consumeWork(1)
                             let candidate = point + Vector3D(x: Double(x)*distance,
                                 y: Double(y)*distance, z: Double(z)*distance)
-                            if try firstSession.classify(candidate) == .inside,
-                                try secondSession.classify(candidate) == .inside {
+                            if try firstSession.classify(candidate, using: &execution) == .inside,
+                                try secondSession.classify(candidate, using: &execution) == .inside {
                                 return (.intersecting, candidate)
                             }
                         }
@@ -467,7 +462,7 @@ public struct SelectionMeasurementEvaluator: Sendable {
     }
 
     private func distanceSelection(_ selection: SelectionReference,
-        in document: EvaluatedDocument, budget: BRepDistanceProofBudget) throws -> BRepDistanceSelection {
+        in document: EvaluatedDocument, using execution: inout OriginalQueryExecution) throws -> BRepDistanceSelection {
         try selection.validate()
         let stable: StableSubshapeReference?
         switch selection {
@@ -476,59 +471,52 @@ public struct SelectionMeasurementEvaluator: Sendable {
         case .surface(.whole(let reference)): stable = reference.subshape
         case .edge(.parameter(let reference)):
             let source = try edgeQueryEvaluator.resolveOriginalGeometry(reference.edge, in: document,
-                maximumSubdivisionDepth: budget.maximumDepth, remainingSourceDepth: budget.maximumSourceDepth,
-                consumeWork: { try budget.charge(depth: $0) }, consumeStorage: budget.storageAdmission,
-                maximumAlgebraicDepth: budget.maximumAlgebraicDepth)
+                maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth, remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+                maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth, using: &execution)
             guard try source.contains(parameter: reference.parameter, tolerance: tolerance) else {
                 throw GeometryError.invalidDistance(reference.parameter)
             }
             return .curve(source.curve, from: reference.parameter, to: reference.parameter)
         case .curve(.parameter(let reference)):
             let source = try curveQueryEvaluator.resolveOriginalGeometry(reference.curve, in: document,
-                maximumSubdivisionDepth: budget.maximumDepth, remainingSourceDepth: budget.maximumSourceDepth,
-                consumeWork: { try budget.charge(depth: $0) }, consumeStorage: budget.storageAdmission,
-                maximumAlgebraicDepth: budget.maximumAlgebraicDepth)
+                maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth, remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+                maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth, using: &execution)
             guard try source.parameterDomain.contains(reference.parameter, tolerance: tolerance) else {
                 throw GeometryError.invalidDistance(reference.parameter)
             }
             return .curve(source.curve, from: reference.parameter, to: reference.parameter)
         case .curve(.knot(let reference)):
             let source = try curveQueryEvaluator.resolveOriginalGeometry(reference.curve, in: document,
-                maximumSubdivisionDepth: budget.maximumDepth, remainingSourceDepth: budget.maximumSourceDepth,
-                consumeWork: { try budget.charge(depth: $0) }, consumeStorage: budget.storageAdmission,
-                maximumAlgebraicDepth: budget.maximumAlgebraicDepth)
+                maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth, remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+                maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth, using: &execution)
             let knot = try curveQueryEvaluator.knotOriginal(reference, source: source,
-                remainingSourceDepth: budget.maximumSourceDepth, consumeWork: { try budget.charge(depth: $0) })
+                remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth, using: &execution)
             guard try source.parameterDomain.contains(knot, tolerance: tolerance) else {
                 throw GeometryError.invalidDistance(knot)
             }
             return .curve(source.curve, from: knot, to: knot)
         case .curve(.span(let reference)):
             let source = try curveQueryEvaluator.resolveOriginalGeometry(reference.curve, in: document,
-                maximumSubdivisionDepth: budget.maximumDepth, remainingSourceDepth: budget.maximumSourceDepth,
-                consumeWork: { try budget.charge(depth: $0) }, consumeStorage: budget.storageAdmission,
-                maximumAlgebraicDepth: budget.maximumAlgebraicDepth)
+                maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth, remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+                maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth, using: &execution)
             let span = try curveQueryEvaluator.spanOriginal(reference, source: source,
-                remainingSourceDepth: budget.maximumSourceDepth, consumeWork: { try budget.charge(depth: $0) })
+                remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth, using: &execution)
             return .curve(source.curve, from: span.lowerParameter, to: span.upperParameter)
         case .surface(.parameter(let reference)):
             let source = try surfaceQueryEvaluator.resolveOriginalGeometry(reference.surface, in: document,
-                maximumSubdivisionDepth: budget.maximumDepth, remainingSourceDepth: budget.maximumSourceDepth,
-                consumeWork: { try budget.charge(depth: $0) }, consumeStorage: budget.storageAdmission,
-                maximumAlgebraicDepth: budget.maximumAlgebraicDepth)
+                maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth, remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+                maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth, using: &execution)
             return .surfaceStation(source.surface, SurfaceParameter(u: reference.u, v: reference.v))
         case .surface(.knot(let reference)):
             let source = try surfaceQueryEvaluator.resolveOriginalGeometry(reference.surface, in: document,
-                maximumSubdivisionDepth: budget.maximumDepth, remainingSourceDepth: budget.maximumSourceDepth,
-                consumeWork: { try budget.charge(depth: $0) }, consumeStorage: budget.storageAdmission,
-                maximumAlgebraicDepth: budget.maximumAlgebraicDepth)
+                maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth, remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+                maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth, using: &execution)
             let knot = try surfaceQueryEvaluator.knotOriginal(reference, source: source,
-                remainingSourceDepth: budget.maximumSourceDepth, consumeWork: { try budget.charge(depth: $0) })
-            let original = try DefaultFaceParameterBoundsResolver(maximumSubdivisionDepth: budget.maximumDepth,
-                consumeWork: { try budget.charge(depth: $0) }, consumeStorage: budget.storageAdmission,
-                remainingSourceDepth: budget.maximumSourceDepth, maximumAlgebraicDepth: budget.maximumAlgebraicDepth)
+                remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth, using: &execution)
+            let original = try DefaultFaceParameterBoundsResolver(maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth,
+                remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth, maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth)
                 .bounds(for: source.faceID,
-                in: document.brep, tolerance: tolerance)
+                in: document.brep, tolerance: tolerance, using: &execution)
             let axis = try ScalarInterval(lower: knot, upper: knot)
             let region: SurfaceParameterBox
             switch reference.direction {
@@ -538,16 +526,14 @@ public struct SelectionMeasurementEvaluator: Sendable {
             return .faceRegion(source.faceID, region)
         case .surface(.span(let reference)):
             let source = try surfaceQueryEvaluator.resolveOriginalGeometry(reference.surface, in: document,
-                maximumSubdivisionDepth: budget.maximumDepth, remainingSourceDepth: budget.maximumSourceDepth,
-                consumeWork: { try budget.charge(depth: $0) }, consumeStorage: budget.storageAdmission,
-                maximumAlgebraicDepth: budget.maximumAlgebraicDepth)
+                maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth, remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+                maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth, using: &execution)
             let span = try surfaceQueryEvaluator.spanOriginal(reference, source: source,
-                remainingSourceDepth: budget.maximumSourceDepth, consumeWork: { try budget.charge(depth: $0) })
-            let original = try DefaultFaceParameterBoundsResolver(maximumSubdivisionDepth: budget.maximumDepth,
-                consumeWork: { try budget.charge(depth: $0) }, consumeStorage: budget.storageAdmission,
-                remainingSourceDepth: budget.maximumSourceDepth, maximumAlgebraicDepth: budget.maximumAlgebraicDepth)
+                remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth, using: &execution)
+            let original = try DefaultFaceParameterBoundsResolver(maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth,
+                remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth, maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth)
                 .bounds(for: source.faceID,
-                in: document.brep, tolerance: tolerance)
+                in: document.brep, tolerance: tolerance, using: &execution)
             let axis = try ScalarInterval(lower: span.lowerParameter, upper: span.upperParameter)
             let region: SurfaceParameterBox
             switch reference.direction {
@@ -557,54 +543,52 @@ public struct SelectionMeasurementEvaluator: Sendable {
             return .faceRegion(source.faceID, region)
         case .surface(.trim(let reference)):
             let trim = try surfaceQueryEvaluator.trimOriginal(reference, in: document,
-                maximumSubdivisionDepth: budget.maximumDepth, remainingSourceDepth: budget.maximumSourceDepth,
-                consumeWork: { try budget.charge(depth: $0) }, consumeStorage: budget.storageAdmission,
-                maximumAlgebraicDepth: budget.maximumAlgebraicDepth)
+                maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth, remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+                maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth, using: &execution)
             return .curve(trim.liftedCurve, from: 0, to: 1)
         case .surface(.trimSpan(let reference)):
             let trim = try surfaceQueryEvaluator.trimOriginal(reference.trim, in: document,
-                maximumSubdivisionDepth: budget.maximumDepth, remainingSourceDepth: budget.maximumSourceDepth,
-                consumeWork: { try budget.charge(depth: $0) }, consumeStorage: budget.storageAdmission,
-                maximumAlgebraicDepth: budget.maximumAlgebraicDepth)
-            let span = try surfaceQueryEvaluator.trimSpanOriginal(reference, source: trim,
-                consumeWork: { try budget.charge(depth: $0) })
+                maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth, remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+                maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth, using: &execution)
+            let span = try surfaceQueryEvaluator.trimSpanOriginal(reference, source: trim, using: &execution)
             let source = try OriginalTrimSpanParameterResolver.curve(trim.liftedCurve,
                 from: span.lowerParameter, to: span.upperParameter, in: span.nativeDomain,
-                tolerance: tolerance, budget: budget)
+                tolerance: tolerance, using: &execution)
             return .curve(source, from: 0, to: 1)
         case .surface(.trimKnot(let reference)):
             let trim = try surfaceQueryEvaluator.trimOriginal(reference.trim, in: document,
-                maximumSubdivisionDepth: budget.maximumDepth, remainingSourceDepth: budget.maximumSourceDepth,
-                consumeWork: { try budget.charge(depth: $0) }, consumeStorage: budget.storageAdmission,
-                maximumAlgebraicDepth: budget.maximumAlgebraicDepth)
+                maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth, remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+                maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth, using: &execution)
             guard case .bSpline(let curve) = trim.parameterCurve,
                 curve.knots.indices.contains(reference.knotIndex) else {
                 throw FeatureEvaluationError.missingInput("Original trim knot could not be resolved.")
             }
-            try budget.charge()
+            try execution.consumeWork(1)
             let knot = curve.knots[reference.knotIndex]
             let station = try OriginalTrimSpanParameterResolver.fraction(at: knot,
-                in: curve.domain, tolerance: tolerance, budget: budget)
+                in: curve.domain, tolerance: tolerance, using: &execution)
             return .curve(trim.liftedCurve, from: station, to: station)
         case .curve(.whole(let reference)):
             let source = try curveQueryEvaluator.resolveOriginalGeometry(reference, in: document,
-                maximumSubdivisionDepth: budget.maximumDepth, remainingSourceDepth: budget.maximumSourceDepth,
-                consumeWork: { try budget.charge(depth: $0) }, consumeStorage: budget.storageAdmission,
-                maximumAlgebraicDepth: budget.maximumAlgebraicDepth)
+                maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth, remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+                maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth, using: &execution)
             return .curve(source.curve, from: source.startParameter, to: source.endParameter)
         default: stable = nil
         }
         if let stable {
             switch try document.originalTopologyReference(for: stable, tolerance: tolerance,
-                maximumSubdivisionDepth: budget.maximumDepth, remainingSourceDepth: budget.maximumSourceDepth,
-                consumeWork: { try budget.charge(depth: $0) }, consumeStorage: budget.storageAdmission,
-                maximumAlgebraicDepth: budget.maximumAlgebraicDepth) {
+                maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth, remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+                maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth, using: &execution) {
             case .body(let id): return .body(id)
             case .face(let id): return .face(id)
             case .edge(let id): return .edge(id)
             case .vertex(let id): return .vertex(id)
             }
         }
+        // FIXME(INCOMPLETE_IMPLEMENTATION): General sketch/control-point distance
+        // selectors still consume the existing ordinary point provider here.
+        // Production distanceSelection preserves that selector's behavior, but
+        // full cumulative query accounting requires its genuine direct witness.
         return .point(try point(for: selection, in: document).point)
     }
 
@@ -613,139 +597,160 @@ public struct SelectionMeasurementEvaluator: Sendable {
         and second: SelectionReference,
         in document: EvaluatedDocument
     ) throws -> SelectionAngleMeasurement {
-        let a = try originalAngleDirection(for: first, in: document)
-        let b = try originalAngleDirection(for: second, in: document)
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try angle(between: first, and: second, in: document, using: &execution)
+    }
+
+    public func angle(
+        between first: SelectionReference,
+        and second: SelectionReference,
+        in document: EvaluatedDocument
+    , using execution: inout OriginalQueryExecution) throws -> SelectionAngleMeasurement {
+        let a = try originalAngleDirection(for: first, in: document, using: &execution)
+        let b = try originalAngleDirection(for: second, in: document, using: &execution)
         return try SelectionAngleMeasurement(first: a.point, second: b.point,
-            firstDirectionBounds: a.bounds, secondDirectionBounds: b.bounds, tolerance: tolerance)
+            firstDirectionBounds: a.bounds, secondDirectionBounds: b.bounds, tolerance: tolerance, using: &execution)
     }
 
     public func angle(between first: SelectionReference, and second: SelectionReference,
         in document: EvaluatedDocument, maximumSubdivisionDepth: Int,
         remainingSourceDepth: Int, maximumAlgebraicDepth: Int,
-        consumeWork: @escaping @Sendable (Int) throws -> Void,
-        consumeStorage: (@Sendable (Int) throws -> Void)? = nil) throws -> SelectionAngleMeasurement {
+        using execution: inout OriginalQueryExecution) throws -> SelectionAngleMeasurement {
+        let selected = try execution.makeContributionHandle(
+            allocationPolicy: execution.effectiveAllocationPolicy,
+            executionLimits: .init(maximumValueDepth: maximumAlgebraicDepth,
+                maximumCoefficientDepth: maximumAlgebraicDepth,
+                remainingSourceDepth: remainingSourceDepth,
+                maximumSubdivisionDepth: maximumSubdivisionDepth))
+        return try execution.withContributionScope(selected) { execution in
         let resolver = OriginalBoundedSelectionAngleResolver(tolerance: tolerance,
             maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
-            maximumAlgebraicDepth: maximumAlgebraicDepth, consumeWork: consumeWork, consumeStorage: consumeStorage)
-        let a = try resolver.resolve(first, in: document)
-        let b = try resolver.resolve(second, in: document)
+            maximumAlgebraicDepth: maximumAlgebraicDepth)
+        let a = try resolver.resolve(first, in: document, using: &execution)
+        let b = try resolver.resolve(second, in: document, using: &execution)
         return try SelectionAngleMeasurement(first: a.point, second: b.point,
             firstDirectionBounds: a.bounds, secondDirectionBounds: b.bounds, tolerance: tolerance,
-            consumeWork: { try consumeWork(0) })
+            using: &execution)
+        }
     }
 
-    // FIXME(INCOMPLETE_IMPLEMENTATION): Original selection angle now consumes
-    // certified direction boxes, but public station-resolution/projection
-    // preparations still have opaque legacy accounting. Complete query work
-    // publication requires their bounded original callback adapters as well.
-    private func originalAngleDirection(for selection: SelectionReference, in document: EvaluatedDocument)
+    // FIXME(INCOMPLETE_IMPLEMENTATION): The public ordinary angle route retains
+    // legacy representative-station and numeric trim-selector semantics. Its
+    // direct source/projection and owning-jet path still needs integrated success,
+    // failure and budget verification before complete query accounting is claimed.
+    private func originalAngleDirection(for selection: SelectionReference, in document: EvaluatedDocument, using execution: inout OriginalQueryExecution)
         throws -> (point: SelectionMeasurementPoint, bounds: CoordinateEnclosure3D) {
-        try selection.validate(); try Task.checkCancellation()
+        try execution.checkpoint(); try execution.consumeWork(1)
         switch selection {
         case .subshape(let stable):
             let resolved: SelectionReference
-            switch try document.topologyReference(for: stable) {
+            switch try document.originalTopologyReference(for: stable, tolerance: tolerance, maximumSubdivisionDepth: 32, remainingSourceDepth: 16, maximumAlgebraicDepth: 32, using: &execution) {
             case .edge: resolved = .edge(.whole(EdgeReference(subshape: stable)))
             case .face: resolved = .surface(.whole(SurfaceReference(subshape: stable)))
             case .body, .vertex: throw angleDirectionFailure()
             }
-            var result = try originalAngleDirection(for: resolved, in: document)
+            var result = try originalAngleDirection(for: resolved, in: document, using: &execution)
             result.point.selection = selection
             return result
         case .edge(let reference):
             let frame: EdgeQueryFrame
             switch reference {
-            case .whole(let edge): frame = try edgeQueryEvaluator.midpoint(of: edge, in: document)
-            case .parameter(let parameter): frame = try edgeQueryEvaluator.frame(at: parameter, in: document)
+            case .whole(let edge): frame = try edgeQueryEvaluator.midpoint(of: edge, in: document, using: &execution)
+            case .parameter(let parameter): frame = try edgeQueryEvaluator.frame(at: parameter, in: document, using: &execution)
             }
-            let resolved = try edgeQueryEvaluator.resolve(frame.reference.edge, in: document)
+            let resolved = try edgeQueryEvaluator.resolve(frame.reference.edge, in: document, using: &execution)
             let range = try ScalarInterval(lower: frame.reference.parameter, upper: frame.reference.parameter)
-            let derivative = try originalAngleCurveDerivative(resolved.curve, over: range)
+            let derivative = try originalAngleCurveDerivative(resolved.curve, over: range, using: &execution)
             let bounds = try OriginalSelectionAngleBounds.scaled(derivative,
-                sign: resolved.endParameter < resolved.startParameter ? -1 : 1)
+                sign: resolved.endParameter < resolved.startParameter ? -1 : 1, using: &execution)
             return (SelectionMeasurementPoint(selection: selection, point: frame.point,
-                tangent: try OriginalSelectionAngleBounds.representative(bounds, tolerance: tolerance)), bounds)
+                tangent: try OriginalSelectionAngleBounds.representative(bounds, tolerance: tolerance, using: &execution)), bounds)
         case .curve(let reference):
             let query: CurveQueryPoint
             switch reference {
-            case .whole(let curve): query = try curveQueryEvaluator.midpoint(of: curve, in: document)
-            case .parameter(let parameter): query = try curveQueryEvaluator.point(at: parameter, in: document)
+            case .whole(let curve): query = try curveQueryEvaluator.midpoint(of: curve, in: document, using: &execution)
+            case .parameter(let parameter): query = try curveQueryEvaluator.point(at: parameter, in: document, using: &execution)
             case .span(let span):
-                let domain = try curveQueryEvaluator.span(span, in: document)
+                let domain = try curveQueryEvaluator.span(span, in: document, using: &execution)
                 query = try curveQueryEvaluator.point(at: .init(curve: span.curve,
-                    parameter: (domain.lowerParameter+domain.upperParameter)*0.5), in: document)
+                    parameter: (domain.lowerParameter+domain.upperParameter)*0.5), in: document, using: &execution)
             case .knot(let knot):
                 query = try curveQueryEvaluator.point(at: .init(curve: knot.curve,
-                    parameter: curveQueryEvaluator.knot(knot, in: document)), in: document)
+                    parameter: curveQueryEvaluator.knot(knot, in: document, using: &execution)), in: document, using: &execution)
             case .center, .controlPoint: throw angleDirectionFailure()
             }
-            let original = try curveQueryEvaluator.resolve(query.reference.curve, in: document)
+            let original = try curveQueryEvaluator.resolve(query.reference.curve, in: document, using: &execution)
             let bounds: CoordinateEnclosure3D
             if let exact = original.exactCurve {
                 bounds = try originalAngleCurveDerivative(exact,
-                    over: ScalarInterval(lower: query.reference.parameter, upper: query.reference.parameter))
+                    over: ScalarInterval(lower: query.reference.parameter, upper: query.reference.parameter), using: &execution)
             } else {
-                bounds = try originalPolylineAngleDirection(original.points, fraction: query.reference.parameter)
+                bounds = try originalPolylineAngleDirection(original.points, fraction: query.reference.parameter, using: &execution)
             }
             return (SelectionMeasurementPoint(selection: selection, point: query.point,
-                tangent: try OriginalSelectionAngleBounds.representative(bounds, tolerance: tolerance)), bounds)
+                tangent: try OriginalSelectionAngleBounds.representative(bounds, tolerance: tolerance, using: &execution)), bounds)
         case .surface(let reference):
             let parameterReference: SurfaceParameterReference
             switch reference {
-            case .whole(let surface): parameterReference = try representativeFrame(for: surface, in: document).reference
+            case .whole(let surface): parameterReference = try angleRepresentativeFrame(for: surface, in: document, using: &execution).reference
             case .parameter(let parameter):
-                try parameter.validate()
+                guard parameter.u.isFinite else { throw GeometryError.invalidCoordinate(parameter.u) }
+                guard parameter.v.isFinite else { throw GeometryError.invalidCoordinate(parameter.v) }
                 parameterReference = parameter
             case .span(let span):
-                let representative = try representativeFrame(for: span.surface, in: document)
-                let domain = try surfaceQueryEvaluator.span(span, in: document)
+                let representative = try angleRepresentativeFrame(for: span.surface, in: document, using: &execution)
+                let domain = try surfaceQueryEvaluator.span(span, in: document, using: &execution)
                 let middle = (domain.lowerParameter+domain.upperParameter)*0.5
                 parameterReference = .init(surface: span.surface,
                     u: span.direction == .u ? middle : representative.reference.u,
                     v: span.direction == .v ? middle : representative.reference.v)
             case .knot(let knot):
-                let representative = try representativeFrame(for: knot.surface, in: document)
-                let parameter = try surfaceQueryEvaluator.knot(knot, in: document)
+                let representative = try angleRepresentativeFrame(for: knot.surface, in: document, using: &execution)
+                let parameter = try surfaceQueryEvaluator.knot(knot, in: document, using: &execution)
                 parameterReference = .init(surface: knot.surface,
                     u: knot.direction == .u ? parameter : representative.reference.u,
                     v: knot.direction == .v ? parameter : representative.reference.v)
-            case .trim(let trim): return try originalTrimAngleDirection(trim, station: nil, selection: selection, in: document)
+            case .trim(let trim): return try originalTrimAngleDirection(trim, station: nil, selection: selection, in: document, using: &execution)
             case .trimSpan(let span):
-                let result = try surfaceQueryEvaluator.trimCurve(span.trim, in: document)
+                let result = try surfaceQueryEvaluator.trimCurve(span.trim, in: document, using: &execution)
                 guard case .bSpline(let curve) = result.parameterCurve else { throw angleDirectionFailure() }
                 return try originalTrimAngleDirection(span.trim,
-                    station: trimSpanParameter(span.spanIndex, on: curve), selection: selection, in: document)
+                    station: angleTrimSpanParameter(span.spanIndex, on: curve, using: &execution), selection: selection, in: document, using: &execution)
             case .trimKnot(let knot):
-                let result = try surfaceQueryEvaluator.trimCurve(knot.trim, in: document)
+                let result = try surfaceQueryEvaluator.trimCurve(knot.trim, in: document, using: &execution)
                 guard case .bSpline(let curve) = result.parameterCurve, curve.knots.indices.contains(knot.knotIndex) else {
                     throw angleDirectionFailure()
                 }
                 return try originalTrimAngleDirection(knot.trim,
-                    station: curve.knots[knot.knotIndex], selection: selection, in: document)
+                    station: curve.knots[knot.knotIndex], selection: selection, in: document, using: &execution)
             case .controlPoint: throw angleDirectionFailure()
             }
-            let resolved = try surfaceQueryEvaluator.resolve(parameterReference.surface, in: document)
+            let resolved = try surfaceQueryEvaluator.resolve(parameterReference.surface, in: document, using: &execution)
             let box = SurfaceParameterBox(u: try .init(lower: parameterReference.u, upper: parameterReference.u),
                 v: try .init(lower: parameterReference.v, upper: parameterReference.v))
             let prepared = try PreparedSurfaceDifferentialEncloser(surface: resolved.surface,
                 tolerance: tolerance, remainingSourceDepth: 16, maximumSubdivisionDepth: 32,
-                consumeWork: { try Task.checkCancellation() }, maximumAlgebraicDepth: 32)
+                maximumAlgebraicDepth: 32, using: &execution)
             var support = resolved.surface
             var nativeStation = box
             var chartImages: [OriginalImageSurface3D] = []
+            try execution.retainStorage(count: 16, stride: MemoryLayout<OriginalImageSurface3D>.stride)
+            chartImages.reserveCapacity(16)
             var sourceDepth = 0
             while true {
-                try Task.checkCancellation()
+                try execution.checkpoint(); try execution.consumeWork(1)
                 switch support {
                 case .procedural(.originalImage(let image)):
                     guard sourceDepth < 16 else { throw angleDirectionFailure() }
                     sourceDepth += 1
+                    try execution.admitSourceDepth(sourceDepth)
                     nativeStation = try image.sourceParameterBounds(over: nativeStation, tolerance: tolerance,
-                        consumeWork: { try Task.checkCancellation() })
+                        using: &execution)
                     chartImages.append(image); support = image.source
                 case .procedural(.originalAffineWord(let image)):
                     guard sourceDepth < 16 else { throw angleDirectionFailure() }
-                    sourceDepth += 1; support = image.source
+                    sourceDepth += 1
+                    try execution.admitSourceDepth(sourceDepth); support = image.source
                 default: break
                 }
                 if case .procedural(.originalImage) = support { continue }
@@ -755,43 +760,42 @@ public struct SelectionMeasurementEvaluator: Sendable {
             var coneNappe: OriginalAnalyticPoleNormal.ConeNappe?
             if case .analytic(.cone) = support, nativeStation.v.lower == 0, nativeStation.v.upper == 0 {
                 var extent = try FaceParameterExtentResolver(maximumSubdivisionDepth: 32,
-                    consumeWork: { _ in try Task.checkCancellation() }).bounds(
-                        for: resolved.faceID, in: document.brep, tolerance: tolerance)
+                    remainingSourceDepth: 16, maximumAlgebraicDepth: 32).bounds(
+                        for: resolved.faceID, in: document.brep, tolerance: tolerance, using: &execution)
                 for image in chartImages {
                     extent = try image.sourceParameterBounds(over: extent, tolerance: tolerance,
-                        consumeWork: { try Task.checkCancellation() })
+                        using: &execution)
                 }
                 if extent.v.lower >= 0, extent.v.upper > 0 { coneNappe = .positive }
                 else if extent.v.upper <= 0, extent.v.lower < 0 { coneNappe = .negative }
                 else { throw angleDirectionFailure() }
             }
-            var usage = OriginalSourceProofAdmission(consumeWork: { _ in try Task.checkCancellation() })
             let field = try prepared.unitNormalBounds(over: box, tolerance: tolerance,
                 maximumSpanCount: 262_144, maximumSubdivisionDepth: 32, remainingSourceDepth: 16,
-                coneNappe: coneNappe, storageByteStride: MemoryLayout<UInt32>.stride, usage: &usage)
+                coneNappe: coneNappe, storageByteStride: MemoryLayout<UInt32>.stride, using: &execution)
             let bounds = CoordinateEnclosure3D(x: try .init(lower: field.x.lower, upper: field.x.upper),
                 y: try .init(lower: field.y.lower, upper: field.y.upper),
                 z: try .init(lower: field.z.lower, upper: field.z.upper))
             let position = try prepared.positionBounds(over: box, tolerance: tolerance,
                 maximumSpanCount: 262_144, maximumSubdivisionDepth: 32, remainingSourceDepth: 16,
-                consumeWork: { try Task.checkCancellation() })
+                using: &execution)
             let point = Point3D(x: position.x.midpoint, y: position.y.midpoint, z: position.z.midpoint)
             try point.validate()
             return (SelectionMeasurementPoint(selection: selection, point: point,
-                normal: try OriginalSelectionAngleBounds.representative(bounds, tolerance: tolerance)), bounds)
+                normal: try OriginalSelectionAngleBounds.representative(bounds, tolerance: tolerance, using: &execution)), bounds)
         case .sketchPoint: throw angleDirectionFailure()
         }
     }
 
-    private func originalAngleCurveDerivative(_ curve: Curve3D, over range: ScalarInterval) throws -> CoordinateEnclosure3D {
+    private func originalAngleCurveDerivative(_ curve: Curve3D, over range: ScalarInterval, using execution: inout OriginalQueryExecution) throws -> CoordinateEnclosure3D {
         let prepared = try PreparedCurveDifferentialEncloser(curve: curve, tolerance: tolerance,
-            remainingSourceDepth: 16, maximumSubdivisionDepth: 32, consumeWork: { try Task.checkCancellation() }, maximumAlgebraicDepth: 32)
+            remainingSourceDepth: 16, maximumSubdivisionDepth: 32, maximumAlgebraicDepth: 32, using: &execution)
         let original = try prepared.closedNativeJets(over: range, tolerance: tolerance,
             maximumSpanCount: 1_048_576, maximumSubdivisionDepth: 32, remainingSourceDepth: 16,
-            consumeWork: { try Task.checkCancellation() })
+            using: &execution)
         var x: OutwardScalarInterval?, y: OutwardScalarInterval?, z: OutwardScalarInterval?
         for owner in original.spans {
-            try Task.checkCancellation()
+            try execution.checkpoint(); try execution.consumeWork(1)
             x = x.map { $0.union(owner.jet.x.derivativeU) } ?? owner.jet.x.derivativeU
             y = y.map { $0.union(owner.jet.y.derivativeU) } ?? owner.jet.y.derivativeU
             z = z.map { $0.union(owner.jet.z.derivativeU) } ?? owner.jet.z.derivativeU
@@ -802,10 +806,10 @@ public struct SelectionMeasurementEvaluator: Sendable {
     }
 
     private func originalTrimAngleDirection(_ trim: SurfaceTrimReference, station: Double?,
-        selection: SelectionReference, in document: EvaluatedDocument)
+        selection: SelectionReference, in document: EvaluatedDocument, using execution: inout OriginalQueryExecution)
         throws -> (point: SelectionMeasurementPoint, bounds: CoordinateEnclosure3D) {
-        let result = try surfaceQueryEvaluator.trimCurve(trim, in: document)
-        let surface = try surfaceQueryEvaluator.resolve(trim.surface, in: document).surface
+        let result = try surfaceQueryEvaluator.trimCurve(trim, in: document, using: &execution)
+        let surface = try surfaceQueryEvaluator.resolve(trim.surface, in: document, using: &execution).surface
         let fraction: ScalarInterval
         if let station {
             guard case .bSpline(let curve) = result.parameterCurve,
@@ -821,27 +825,27 @@ public struct SelectionMeasurementEvaluator: Sendable {
             }
         } else { fraction = try .init(lower: 0.5, upper: 0.5) }
         let lift = SurfaceLiftCurve3D(surface: surface, parameterCurve: result.parameterCurve)
-        let bounds = try originalAngleCurveDerivative(.surfaceLift(lift), over: fraction)
-        let point = try lift.point(atNormalizedFraction: fraction.midpoint, tolerance: tolerance)
+        let bounds = try originalAngleCurveDerivative(.surfaceLift(lift), over: fraction, using: &execution)
+        let point = try lift.point(atNormalizedFraction: fraction.midpoint, tolerance: tolerance, using: &execution)
         return (SelectionMeasurementPoint(selection: selection, point: point,
-            tangent: try OriginalSelectionAngleBounds.representative(bounds, tolerance: tolerance)), bounds)
+            tangent: try OriginalSelectionAngleBounds.representative(bounds, tolerance: tolerance, using: &execution)), bounds)
     }
 
-    private func originalPolylineAngleDirection(_ points: [Point3D], fraction: Double) throws -> CoordinateEnclosure3D {
+    private func originalPolylineAngleDirection(_ points: [Point3D], fraction: Double, using execution: inout OriginalQueryExecution) throws -> CoordinateEnclosure3D {
         guard points.count >= 2 else { throw angleDirectionFailure() }
         var length = 0.0
         for index in 0..<(points.count-1) {
-            try Task.checkCancellation(); length += (points[index+1]-points[index]).length
+            try execution.checkpoint(); try execution.consumeWork(1); length += (points[index+1]-points[index]).length
         }
         guard length.isFinite, length > tolerance.distance else { throw angleDirectionFailure() }
         let target = length*fraction
         var traversed = 0.0
         for index in 0..<(points.count-1) {
-            try Task.checkCancellation()
+            try execution.checkpoint(); try execution.consumeWork(1)
             let segmentLength = (points[index+1]-points[index]).length
             guard segmentLength > tolerance.distance else { continue }
             if target <= traversed+segmentLength || index == points.count-2 {
-                return try OriginalSelectionAngleBounds.difference(points[index+1], points[index])
+                return try OriginalSelectionAngleBounds.difference(points[index+1], points[index], using: &execution)
             }
             traversed += segmentLength
         }
@@ -1165,6 +1169,28 @@ public struct SelectionMeasurementEvaluator: Sendable {
         )
     }
 
+    private func angleTrimSpanParameter(_ spanIndex: Int, on curve: BSplineCurve2D, using execution: inout OriginalQueryExecution) throws -> Double {
+        try angleTrimSpanBounds(spanIndex, on: curve, using: &execution).midpoint
+    }
+
+    private func angleTrimSpanBounds(_ spanIndex: Int, on curve: BSplineCurve2D, using execution: inout OriginalQueryExecution) throws -> ScalarInterval {
+        try curve.validate(tolerance: tolerance, using: &execution)
+        let lowerIndex = curve.degree
+        let upperIndex = curve.knots.count - curve.degree - 1
+        guard lowerIndex < upperIndex else {
+            throw FeatureEvaluationError.emptyResult("Surface trim pcurve has no queryable knot spans.")
+        }
+        var ordinal = 0
+        for index in lowerIndex..<upperIndex {
+            try execution.consumeWork(1)
+            let lower = curve.knots[index], upper = curve.knots[index + 1]
+            guard upper - lower > tolerance.distance else { continue }
+            if ordinal == spanIndex { return try ScalarInterval(lower: lower, upper: upper) }
+            ordinal += 1
+        }
+        throw FeatureEvaluationError.missingInput("Surface trim pcurve span index could not be resolved.")
+    }
+
     private func trimSpanParameter(_ spanIndex: Int, on curve: BSplineCurve2D) throws -> Double {
         try trimSpanBounds(spanIndex, on: curve).midpoint
     }
@@ -1214,6 +1240,54 @@ public struct SelectionMeasurementEvaluator: Sendable {
             return nil
         }
         return tangent / length
+    }
+
+    private func angleRepresentativeFrame(
+        for reference: SurfaceReference,
+        in document: EvaluatedDocument, using execution: inout OriginalQueryExecution
+    ) throws -> SurfaceQueryFrame {
+        let resolved = try surfaceQueryEvaluator.resolve(reference, in: document, using: &execution)
+        if let centroid = try angleCentroidOfFace(resolved.faceID, in: document, using: &execution) {
+            return try surfaceQueryEvaluator.closestPoint(
+                to: centroid,
+                on: reference,
+                in: document, using: &execution
+            ).frame
+        }
+        let parameter = try midpointParameter(on: resolved.surface, reference: reference)
+        return try surfaceQueryEvaluator.frame(at: parameter, in: document, using: &execution)
+    }
+
+    private func angleCentroidOfFace(_ faceID: FaceID, in document: EvaluatedDocument, using execution: inout OriginalQueryExecution) throws -> Point3D? {
+        guard let face = document.brep.faces[faceID] else {
+            return nil
+        }
+        var count = 0
+        var sum = (x: 0.0, y: 0.0, z: 0.0)
+        for loopID in face.loops {
+            try execution.consumeWork(1)
+            guard let loop = document.brep.loops[loopID] else {
+                continue
+            }
+            for orientedEdge in loop.edges {
+                try execution.consumeWork(1)
+                guard let edge = document.brep.edges[orientedEdge.edgeID] else {
+                    continue
+                }
+                let vertexID = startVertexID(for: orientedEdge, edge: edge)
+                guard let vertex = document.brep.vertices[vertexID] else {
+                    continue
+                }
+                let next = count.addingReportingOverflow(1)
+                guard !next.overflow else { throw ExactScalarFailure.countOverflow }
+                count = next.partialValue
+                try execution.consumeWork(1)
+                sum.x += vertex.point.x; sum.y += vertex.point.y; sum.z += vertex.point.z
+            }
+        }
+        guard count > 0 else { return nil }
+        let scale = 1.0 / Double(count)
+        return Point3D(x: sum.x * scale, y: sum.y * scale, z: sum.z * scale)
     }
 
     private func representativeFrame(

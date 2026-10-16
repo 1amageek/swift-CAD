@@ -55,9 +55,9 @@ isolation or Sendable. No production target or external dependency is added.
 
 The mathematical capabilities and immutable result types stay fixed. L1 uses
 Swift Array/COW for sparse terms, an immutable ARC context for domain identity,
-borrowing operands and a noncopyable, invocation-local observation handle. Work
-and storage belong to the caller's one L0 admission; the observer retains only
-attained depth and borrows that admission. It does not allocate a second budget.
+borrowing operands and the original noncopyable inout admission. Work and storage
+belong to that one L0 admission, whose local proof scopes retain attained decision
+depths without a forwarding handle or a second budget.
 
 Payload-byte sizing is consumed from L0's exactScalarPayloadBytes free
 function, whose authority is [ExactScalar's resource contract](../ExactScalar/DESIGN.md#resource-semantics-and-lifecycle).
@@ -118,11 +118,9 @@ Contexts and stored polynomial terms are immutable and Sendable. Values retain
 context, coefficient/root owners and attained depth after source variables and
 operation-owner variables leave scope. Internal scratch arrays are invocation
 local. No mutable shared cache or platform-specific raw state is introduced.
-The observer borrows an initialized inout ledger via one scoped pointer: no
-allocation, rebind, offsets, manual deallocation, escaping handles or cross-task
-transfer. Existing generic coefficient operations cannot receive an inout ledger
-and simultaneously expose its depth notifications without this scoped observer.
-The pointer lifetime is owned by the enclosing operation; Native ASAN verifies it.
+The admission's exclusively owned local proof scope records numeric and decision
+depths while the same native inout value reaches every operation. No caller
+pointer or forwarding admission is stored or returned.
 
 ## Failure, Concurrency, and Constraints
 
@@ -281,9 +279,9 @@ sort. This is complete preselection, not recovery from an exhausted algorithm.
 
 ## Caller Cell Visit Forwarding
 
-The scoped ExactPolynomialAdmission forwards every L0 `visitCell(axis:depth:)`
-to the same caller and retains attained depth. It neither issues a second depth
-mapping nor resets the cumulative visit count. See [L0 authority](../ExactScalar/DESIGN.md#caller-cell-visits).
+The original inout admission receives every L0 `visitCell(axis:depth:)`
+and its operation-local proof scope retains attained depth. The polynomial owner
+neither issues a second depth mapping nor resets the cumulative visit count. See [L0 authority](../ExactScalar/DESIGN.md#caller-cell-visits).
 
 ### Univariate field GCD remainder control
 
@@ -298,3 +296,14 @@ switch algorithms or reset allowances. The weighted quadratic Native CS witness
 exhausted 16,777,216 work in L2 square-free decomposition of a degree-nine root
 union before any Sturm chain. That fixed input and the independent L1 GCD and
 L2 multiplicity fixtures must pass under the original limits.
+
+
+### Direct Admission Execution
+
+Operations pass the original `inout A: ExactScalarAdmission & ~Copyable` directly
+into arithmetic, polynomial, root and cell owners. Local observation scopes belong
+to that admission and retain decision-only and inherited depths. No caller pointer,
+fixed forwarding admission or invocation callback owner remains. Generic recursion
+retains the same admission type rather than introducing a new nested handle type.
+Resource/cell limits and exact source/root authority are unchanged. Full target
+compile and behavioral acceptance are required to establish this migration.

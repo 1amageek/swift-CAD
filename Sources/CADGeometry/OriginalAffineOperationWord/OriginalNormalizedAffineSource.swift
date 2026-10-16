@@ -20,12 +20,12 @@ public struct OriginalNormalizedAffineSource: Hashable, Sendable {
         self.axis2 = axis2; self.axis3 = axis3; self.scale = scale
         self.lengthGain = lengthGain; self.adjustments = adjustments; self.linearGain = linearGain
     }
-    func prepared<B: RationalAlgebraAdmitting>(in context: OriginalSingularFieldContext,
+    func prepared<B: ExactScalarAdmission & ~Copyable>(in context: OriginalSingularFieldContext,
         tolerance: ModelingTolerance, maximumDepth: Int, usage: inout B) throws -> OriginalRationalNormalizedFrame {
         if family == .axis2, axis2 != nil || scale != nil {
             throw rationalAlgebraFailure("An original axis placement cannot contain Cartesian scale or second-axis fields.")
         }
-        try usage.consumeExactWork(adjustments.count)
+        try usage.consumeWork(adjustments.count)
         try OriginalAffineRationalMatrix.retain(adjustments.count,
             of: (displacement: Vector3D, conjugates: Bool).self, usage: &usage)
         var retained: [(displacement: Vector3D, conjugates: Bool)] = []

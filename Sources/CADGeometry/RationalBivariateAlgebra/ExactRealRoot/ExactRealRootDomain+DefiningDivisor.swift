@@ -22,7 +22,7 @@ extension ExactRealRootDomain {
                 throw ExactRealRootFailure.invalidEvidence
             }
             return .init(source: root.source, multiplicity: root.multiplicity, ordinal: root.ordinal,
-                isolation: root.isolation, proof: proof, depth: a.depth)
+                isolation: root.isolation, proof: proof, depth: (try a.depth))
         }
     }
 
@@ -43,7 +43,7 @@ extension ExactRealRootDomain {
             let proof = try sturm(divisor.law, &a)
             guard try roots(proof, root.isolation, &a) == 1 else { throw ExactRealRootFailure.invalidEvidence }
             return .init(source: root.source, multiplicity: root.multiplicity, ordinal: root.ordinal,
-                isolation: root.isolation, proof: proof, depth: a.depth)
+                isolation: root.isolation, proof: proof, depth: (try a.depth))
         }
     }
 }

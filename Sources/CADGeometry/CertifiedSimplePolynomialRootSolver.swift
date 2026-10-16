@@ -39,13 +39,11 @@ struct CertifiedSimplePolynomialRootSolver {
         }
 
         func multiplied(by other: Interval) -> Interval {
-            let values = [
-                lower * other.lower,
-                lower * other.upper,
-                upper * other.lower,
-                upper * other.upper,
-            ]
-            return Interval(values.min() ?? -.infinity, values.max() ?? .infinity)
+            let first = lower * other.lower
+            let second = lower * other.upper
+            let third = upper * other.lower
+            let fourth = upper * other.upper
+            return Interval(min(first, second, third, fourth), max(first, second, third, fourth))
         }
     }
 
@@ -80,6 +78,14 @@ struct CertifiedSimplePolynomialRootSolver {
     }
 
     func roots(coefficients: [Double]) throws -> [Root] {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try roots(coefficients: coefficients, using: &execution)
+    }
+
+    func roots(coefficients: [Double],
+        using execution: inout OriginalQueryExecution) throws -> [Root] {
+        try execution.consumeWork(1)
+        for _ in coefficients { try execution.consumeWork(1) }
         guard coefficients.isEmpty == false,
               coefficients.allSatisfy({ $0.isFinite }) else {
             throw KernelError(
@@ -89,73 +95,86 @@ struct CertifiedSimplePolynomialRootSolver {
                 message: "A certified polynomial requires finite coefficients."
             )
         }
-        let polynomial = normalizedDegree(coefficients)
-        return try isolatedRoots(polynomial)
+        let polynomial = try normalizedDegree(coefficients, using: &execution)
+        return try isolatedRoots(polynomial, using: &execution)
     }
 
-    private func isolatedRoots(_ coefficients: [Double]) throws -> [Root] {
-        let polynomial = normalizedDegree(coefficients)
+
+
+    private func isolatedRoots(_ coefficients: [Double],
+        using execution: inout OriginalQueryExecution) throws -> [Root] {
+        try execution.consumeWork(1)
+        let polynomial = try normalizedDegree(coefficients, using: &execution)
         let degree = polynomial.count - 1
         guard degree > 0 else { return [] }
         if degree == 1 {
-            return [try linearRoot(polynomial)]
+            try execution.retainStorage(count: 1, stride: MemoryLayout<Root>.stride)
+            return [try linearRoot(polynomial, using: &execution)]
         }
 
-        let derivative = (1...degree).map {
-            polynomial[$0] * Double($0)
+        let derivative = try CertifiedAnalyticCurveEvaluation.map((1...degree), using: &execution) {element, execution in
+            polynomial[element] * Double(element)
         }
-        var criticalRoots = try isolatedRoots(derivative)
-        let bound = cauchyBound(polynomial)
-        criticalRoots = try criticalRoots.compactMap { root in
-            guard root.upper >= -bound, root.lower <= bound else { return nil }
-            return try refineCriticalRoot(
-                root,
-                derivative: derivative,
-                polynomial: polynomial
-            )
-        }.sorted { $0.lower < $1.lower }
-        try validateDisjoint(criticalRoots)
+        var criticalRoots = try isolatedRoots(derivative, using: &execution)
+        let bound = try cauchyBound(polynomial, using: &execution)
+        var selectedRoots: [Root] = []
+        var selectedRootsCapacity = selectedRoots.count
+        for root in criticalRoots {
+            try execution.consumeWork(1)
+            guard root.upper >= -bound, root.lower <= bound else { continue }
+            let refined = try refineCriticalRoot(root, derivative: derivative,
+                polynomial: polynomial, using: &execution)
+            try CertifiedAnalyticCurveEvaluation.append(refined, to: &selectedRoots, using: &execution, capacity: &selectedRootsCapacity)
+        }
+        criticalRoots = try CertifiedAnalyticCurveEvaluation.sorted(selectedRoots, using: &execution) {
+            $0.lower < $1.lower
+        }
+        try validateDisjoint(criticalRoots, using: &execution)
 
         var partitionIntervals: [(lower: Double, upper: Double)] = []
+        var partitionIntervalsCapacity = partitionIntervals.count
         var lower = -bound
         for root in criticalRoots {
+            try execution.consumeWork(1)
             guard root.lower > lower else {
                 throw unresolvedMultiplicity(degree: degree)
             }
-            partitionIntervals.append((lower, root.lower))
+            try CertifiedAnalyticCurveEvaluation.append((lower, root.lower), to: &partitionIntervals, using: &execution, capacity: &partitionIntervalsCapacity)
             lower = root.upper
         }
         if lower < bound {
-            partitionIntervals.append((lower, bound))
+            try CertifiedAnalyticCurveEvaluation.append((lower, bound), to: &partitionIntervals, using: &execution, capacity: &partitionIntervalsCapacity)
         }
 
         var roots: [Root] = []
+        var rootsCapacity = roots.count
         for interval in partitionIntervals {
-            let lowerSign = exactSign(polynomial, at: interval.lower)
-            let upperSign = exactSign(polynomial, at: interval.upper)
+            try execution.consumeWork(1)
+            let lowerSign = try exactSign(polynomial, at: interval.lower, using: &execution)
+            let upperSign = try exactSign(polynomial, at: interval.upper, using: &execution)
             if lowerSign == 0 {
-                roots.append(try exactRoot(
+                try CertifiedAnalyticCurveEvaluation.append(try exactRoot(
                     interval.lower,
                     coefficients: polynomial
-                ))
+                , using: &execution), to: &roots, using: &execution, capacity: &rootsCapacity)
             }
             if lowerSign * upperSign < 0 {
-                roots.append(try isolateSignChangingRoot(
+                try CertifiedAnalyticCurveEvaluation.append(try isolateSignChangingRoot(
                     coefficients: polynomial,
                     lower: interval.lower,
                     upper: interval.upper,
                     lowerSign: lowerSign,
                     upperSign: upperSign
-                ))
+                , using: &execution), to: &roots, using: &execution, capacity: &rootsCapacity)
             }
             if upperSign == 0 {
-                roots.append(try exactRoot(
+                try CertifiedAnalyticCurveEvaluation.append(try exactRoot(
                     interval.upper,
                     coefficients: polynomial
-                ))
+                , using: &execution), to: &roots, using: &execution, capacity: &rootsCapacity)
             }
         }
-        let consolidated = try consolidatedRoots(roots)
+        let consolidated = try consolidatedRoots(roots, using: &execution)
         guard consolidated.count <= degree else {
             throw KernelError(
                 phase: .geometry,
@@ -168,24 +187,29 @@ struct CertifiedSimplePolynomialRootSolver {
         return consolidated
     }
 
+
+
     private func refineCriticalRoot(
         _ initial: Root,
         derivative: [Double],
         polynomial: [Double]
-    ) throws -> Root {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Root {
+        try execution.consumeWork(1)
         var root = initial
         for _ in 0..<maximumRefinementIterations {
-            let polynomialRange = intervalValue(
+            try execution.consumeWork(1)
+            let polynomialRange = try intervalValue(
                 polynomial,
                 interval: Interval(root.lower, root.upper)
-            )
+            , using: &execution)
             if polynomialRange.containsZero == false {
                 return root
             }
             root = try refineSignChangingRoot(
                 root,
                 coefficients: derivative
-            )
+            , using: &execution)
         }
         throw KernelError(
             phase: .geometry,
@@ -196,22 +220,26 @@ struct CertifiedSimplePolynomialRootSolver {
         )
     }
 
+
+
     private func refineSignChangingRoot(
         _ root: Root,
         coefficients: [Double]
-    ) throws -> Root {
-        let lowerSign = exactSign(coefficients, at: root.lower)
-        let upperSign = exactSign(coefficients, at: root.upper)
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Root {
+        try execution.consumeWork(1)
+        let lowerSign = try exactSign(coefficients, at: root.lower, using: &execution)
+        let upperSign = try exactSign(coefficients, at: root.upper, using: &execution)
         guard lowerSign * upperSign < 0 else {
             throw unresolvedMultiplicity(degree: coefficients.count - 1)
         }
         let midpoint = root.value
-        let midpointSign = exactSign(coefficients, at: midpoint)
+        let midpointSign = try exactSign(coefficients, at: midpoint, using: &execution)
         if midpointSign == 0 {
             return try exactRoot(
                 midpoint,
                 coefficients: coefficients
-            )
+            , using: &execution)
         }
         if lowerSign * midpointSign < 0 {
             return Root(lower: root.lower, upper: midpoint)
@@ -219,13 +247,17 @@ struct CertifiedSimplePolynomialRootSolver {
         return Root(lower: midpoint, upper: root.upper)
     }
 
+
+
     private func isolateSignChangingRoot(
         coefficients: [Double],
         lower: Double,
         upper: Double,
         lowerSign: Int,
         upperSign: Int
-    ) throws -> Root {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Root {
+        try execution.consumeWork(1)
         guard lowerSign * upperSign < 0 else {
             throw KernelError(
                 phase: .geometry,
@@ -236,10 +268,11 @@ struct CertifiedSimplePolynomialRootSolver {
         }
         var root = Root(lower: lower, upper: upper)
         for _ in 0..<maximumRefinementIterations {
+            try execution.consumeWork(1)
             if root.upper - root.lower <= rootTolerance {
                 return root
             }
-            root = try refineSignChangingRoot(root, coefficients: coefficients)
+            root = try refineSignChangingRoot(root, coefficients: coefficients, using: &execution)
         }
         guard root.upper - root.lower <= rootTolerance else {
             throw KernelError(
@@ -253,7 +286,11 @@ struct CertifiedSimplePolynomialRootSolver {
         return root
     }
 
-    private func linearRoot(_ coefficients: [Double]) throws -> Root {
+
+
+    private func linearRoot(_ coefficients: [Double],
+        using execution: inout OriginalQueryExecution) throws -> Root {
+        try execution.consumeWork(1)
         let value = -coefficients[0] / coefficients[1]
         guard value.isFinite else {
             throw KernelError(
@@ -266,18 +303,23 @@ struct CertifiedSimplePolynomialRootSolver {
         return try exactRoot(
             value,
             coefficients: coefficients
-        )
+        , using: &execution)
     }
+
+
 
     private func exactRoot(
         _ value: Double,
         coefficients: [Double]
-    ) throws -> Root {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Root {
+        try execution.consumeWork(1)
         var lower = value.nextDown
         var upper = value.nextUp
         for _ in 0..<64 {
-            let lowerSign = exactSign(coefficients, at: lower)
-            let upperSign = exactSign(coefficients, at: upper)
+            try execution.consumeWork(1)
+            let lowerSign = try exactSign(coefficients, at: lower, using: &execution)
+            let upperSign = try exactSign(coefficients, at: upper, using: &execution)
             if lowerSign * upperSign < 0 {
                 return Root(lower: lower, upper: upper)
             }
@@ -287,9 +329,15 @@ struct CertifiedSimplePolynomialRootSolver {
         throw unresolvedMultiplicity(degree: coefficients.count - 1)
     }
 
-    private func validateDisjoint(_ roots: [Root]) throws {
+
+
+    private func validateDisjoint(_ roots: [Root],
+        using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         guard roots.count >= 2 else { return }
-        for index in 1..<roots.count where roots[index - 1].upper >= roots[index].lower {
+        for index in 1..<roots.count {
+            try execution.consumeWork(1)
+            guard roots[index - 1].upper >= roots[index].lower else { continue }
             throw KernelError(
                 phase: .geometry,
                 code: .singularSystem,
@@ -300,10 +348,15 @@ struct CertifiedSimplePolynomialRootSolver {
         }
     }
 
-    private func consolidatedRoots(_ roots: [Root]) throws -> [Root] {
-        let sorted = roots.sorted { $0.lower < $1.lower }
+
+
+    private func consolidatedRoots(_ roots: [Root],
+        using execution: inout OriginalQueryExecution) throws -> [Root] {
+        try execution.consumeWork(1)
+        let sorted = try CertifiedAnalyticCurveEvaluation.sorted(roots, using: &execution) { $0.lower < $1.lower }
         guard sorted.count >= 2 else { return sorted }
         for index in 1..<sorted.count {
+            try execution.consumeWork(1)
             let separation = sorted[index].lower - sorted[index - 1].upper
             guard separation > rootTolerance else {
                 throw KernelError(
@@ -318,32 +371,53 @@ struct CertifiedSimplePolynomialRootSolver {
         return sorted
     }
 
-    private func normalizedDegree(_ coefficients: [Double]) -> [Double] {
-        let scale = max(coefficients.map(abs).max() ?? 0.0, 1.0)
+
+
+    private func normalizedDegree(_ coefficients: [Double],
+        using execution: inout OriginalQueryExecution) throws -> [Double] {
+        try execution.consumeWork(1)
+        var scale = 1.0
+        for coefficient in coefficients {
+            try execution.consumeWork(1)
+            scale = max(scale, abs(coefficient)) }
+        try execution.retainStorage(count: coefficients.count, stride: MemoryLayout<Double>.stride)
         var result = coefficients
         while result.count > 1,
               abs(result[result.count - 1]) <= coefficientTolerance * scale {
+            try execution.consumeWork(1)
             result.removeLast()
         }
         return result
     }
 
-    private func cauchyBound(_ coefficients: [Double]) -> Double {
+
+
+    private func cauchyBound(_ coefficients: [Double],
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
         let leading = abs(coefficients.last ?? 1.0)
-        let ratio = coefficients.dropLast().map { abs($0) / leading }.max() ?? 0.0
+        var ratio = 0.0
+        for coefficient in coefficients.dropLast() {
+            try execution.consumeWork(1)
+            ratio = max(ratio, abs(coefficient) / leading) }
         return (1.0 + ratio).nextUp
     }
 
-    private func exactSign(_ coefficients: [Double], at value: Double) -> Int {
-        if let enclosedSign = enclosedHornerSign(
+
+
+    private func exactSign(_ coefficients: [Double], at value: Double,
+        using execution: inout OriginalQueryExecution) throws -> Int {
+        try execution.consumeWork(1)
+        if let enclosedSign = try enclosedHornerSign(
             coefficients,
             at: value
-        ) {
+        , using: &execution) {
             return enclosedSign
         }
-        switch FloatingPointExpansion.hornerSign(
+        switch try FloatingPointExpansion.hornerSign(
             coefficients: coefficients,
-            at: value
+            at: value,
+            using: &execution
         ) {
         case .negative:
             return -1
@@ -354,10 +428,14 @@ struct CertifiedSimplePolynomialRootSolver {
         }
     }
 
+
+
     private func enclosedHornerSign(
         _ coefficients: [Double],
         at value: Double
-    ) -> Int? {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Int? {
+        try execution.consumeWork(1)
         guard let leading = coefficients.last,
               leading.isFinite,
               value.isFinite else {
@@ -366,6 +444,7 @@ struct CertifiedSimplePolynomialRootSolver {
         var lower = leading
         var upper = leading
         for coefficient in coefficients.dropLast().reversed() {
+            try execution.consumeWork(1)
             let productLower: Double
             let productUpper: Double
             if value >= 0.0 {
@@ -386,14 +465,20 @@ struct CertifiedSimplePolynomialRootSolver {
         return nil
     }
 
+
+
     private func intervalValue(
         _ coefficients: [Double],
         interval: Interval
-    ) -> Interval {
-        coefficients.reversed().reduce(Interval(0.0, 0.0)) { result, coefficient in
-            result.multiplied(by: interval)
-                .adding(Interval(coefficient, coefficient))
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Interval {
+        try execution.consumeWork(1)
+        var result = Interval(0.0, 0.0)
+        for coefficient in coefficients.reversed() {
+            try execution.consumeWork(1)
+            result = result.multiplied(by: interval).adding(Interval(coefficient, coefficient))
         }
+        return result
     }
 
     private func unresolvedMultiplicity(degree: Int) -> KernelError {

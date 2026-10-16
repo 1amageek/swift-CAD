@@ -5,6 +5,7 @@ import Testing
 struct BoundedSurfaceParameterDomainMapTests {
     @Test
     func planarSearchContainsTheOffsetControlHullInBothOrders() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
         let tolerance = ModelingTolerance.standard
         let patch = BSplineSurface3D.bilinearPatch(
             bottomLeft: Point3D(x: -1, y: -2, z: 0),
@@ -15,13 +16,13 @@ struct BoundedSurfaceParameterDomainMapTests {
         let plane = Surface3D.procedural(.offset(.init(
             source: .plane(Plane3D(origin: Point3D(x: 7, y: 8, z: 9), normal: .unitZ)),
             distance: 0.2)))
-        try finite.validate(tolerance: tolerance)
-        try plane.validate(tolerance: tolerance)
-        let frame = try plane.parameterDerivatives(u: 0, v: 0, tolerance: tolerance)
+        try finite.validate(tolerance: tolerance, using: &execution)
+        try plane.validate(tolerance: tolerance, using: &execution)
+        let frame = try plane.parameterDerivatives(u: 0, v: 0, tolerance: tolerance, using: &execution)
         for reversed in [false, true] {
             let map = try BoundedSurfaceParameterDomainMap(
                 first: reversed ? plane : finite, second: reversed ? finite : plane,
-                tolerance: tolerance)
+                tolerance: tolerance, using: &execution)
             let u = reversed ? map.firstU : map.secondU
             let v = reversed ? map.firstV : map.secondV
             for x in [-1.1, 2.1] {
@@ -41,7 +42,7 @@ struct BoundedSurfaceParameterDomainMapTests {
             #expect(finiteV.lower == 0 && finiteV.upper == 1)
         }
         #expect(throws: KernelError.self) {
-            try BoundedSurfaceParameterDomainMap(first: plane, second: plane, tolerance: tolerance)
+            try BoundedSurfaceParameterDomainMap(first: plane, second: plane, tolerance: tolerance, using: &execution)
         }
     }
 }

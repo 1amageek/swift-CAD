@@ -430,3 +430,8 @@ When composed by certified exchange, the writer borrows the original conversion 
 ### Independent caller depth authorities
 
 STEP assembly composition forwards maximumNesting to structural AssemblyResourceLimits.maximumDepth and ProductAttributeLimits.maximumDepth. The independent maximumAlgebraicDepth is forwarded separately to AssemblyResourceLimits.maximumAlgebraicDepth and exact original-word operations. A caller algebra ceiling of zero does not make a nonempty structural graph invalid; source recursion, curve subdivision and exact field ancestry never substitute for each other. Reader and writer use the same explicit caller values.
+
+
+## Canonical Entity and String Admission Binding
+
+The existing entity table and STEP source-identity writers borrow one canonical execution through assembly publication. `STEPStringEncoder.encode(...using:)` charges the actual lexical traversal and retained output to that same execution while preserving its original quoting, Unicode escape grammar and local input/output/work ceilings. Ordinary encoding creates one execution and delegates. No STEP record family or assembly semantics is added by this binding. See [exchange accounting](../ExchangeResourceAccounting/DESIGN.md).

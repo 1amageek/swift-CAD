@@ -17,36 +17,44 @@ struct NativeSurfaceSurfaceRelationTests {
     private func plane() -> BSplineSurface3D {
         surface { u,v in .init(x: u == 0 ? -1 : 1, y: v == 0 ? -1 : 1,z: 0) }
     }
-    private func usage() -> OriginalRelationUsage {
-        .init(consumeWork: { _ in }, retainStorage: { _ in }, visitCell: { _ in }, visitCoefficientCell: { _ in })
+    private func usage() throws -> OriginalQueryExecution {
+        try .independentGeometry()
     }
-    private func finiteUsage(workLimit: Int = 80_000_000) -> OriginalRelationUsage {
+    private func finiteUsage(workLimit: Int = 80_000_000) -> GeometryTestScalarRecorder {
         let work = Mutex(workLimit), bytes = Mutex(1_073_741_824), cells = Mutex(262_144)
-        return .init(consumeWork: { count in try work.withLock { remaining in
+        return .init(observeWork: { count in try work.withLock { remaining in
             guard count <= remaining else { throw GeometryConversionError.resourceLimitExceeded("SSI fiber work exhausted.") }
             remaining -= count
-        } }, retainStorage: { words in try bytes.withLock { remaining in
+        } }, observeStorageWords: { words in try bytes.withLock { remaining in
             guard words <= remaining / 4 else { throw GeometryConversionError.resourceLimitExceeded("SSI fiber bytes exhausted.") }
             remaining -= words * 4
-        } }, visitCell: { _ in try cells.withLock { remaining in
+        } }, observeValueCell: { _ in try cells.withLock { remaining in
             guard remaining > 0 else { throw GeometryConversionError.resourceLimitExceeded("SSI fiber cells exhausted.") }
             remaining -= 1
-        } }, visitCoefficientCell: { _ in try cells.withLock { remaining in
+        } }, observeCoefficientCell: { _ in try cells.withLock { remaining in
             guard remaining > 0 else { throw GeometryConversionError.resourceLimitExceeded("SSI fiber coefficient cells exhausted.") }
             remaining -= 1
         } })
     }
     private func rich(_ first: BSplineSurface3D, _ second: BSplineSurface3D) throws -> SurfaceSurfaceIntersectionResult {
         let work = Mutex(80_000_000), bytes = Mutex(1_073_741_824)
-        let result = try DefaultSurfaceSurfaceIntersector().intersectionResult(first: .bSpline(first), second: .bSpline(second),
-            tolerance: tolerance, maximumSpanCount: 1, maximumSubdivisionDepth: 0, remainingSourceDepth: 1,
-            consumeWork: { try work.withLock { remaining in
+        let result = try geometryTestWithQuery(maximumSpanCount: 1,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            maximumAlgebraicDepth: 32,
+            consumeWorkUnits: { units in for _ in 0..<units { try work.withLock { remaining in
                 guard remaining > 0 else { throw GeometryConversionError.resourceLimitExceeded("SSI relation caller work exhausted.") }
                 remaining -= 1
-            } }, consumeStorage: { count in try bytes.withLock { remaining in
+            } } },
+            consumeStorageBytes: { count in try bytes.withLock { remaining in
                 guard count <= remaining else { throw GeometryConversionError.resourceLimitExceeded("SSI relation caller storage exhausted.") }
                 remaining -= count
-            } }, maximumAlgebraicDepth: 32)
+            } }) { queryExecution in
+            try DefaultSurfaceSurfaceIntersector().intersectionResult(first: .bSpline(first),
+            second: .bSpline(second),
+            tolerance: tolerance,
+            using: &queryExecution)
+        }
         return result
     }
     private func dimensions(_ receipt: OriginalNativeSurfaceSurfaceRelations) throws -> [(Int,Int)] {
@@ -64,7 +72,7 @@ struct NativeSurfaceSurfaceRelationTests {
         let component = try receipt.component(at: 0)
         #expect(receipt.componentCount == 1 && component.parameterDimension == 1 && component.imageDimension == 1)
         #expect(receipt.attachmentCount > 0 && receipt.nativeDomains.count == 4)
-        var budget = usage()
+        var budget = try usage()
         #expect(try receipt.contains(parameters: [.zero,.zero,.zero,.zero], maximumAlgebraicDepth: 32, usage: &budget))
         #expect(try receipt.contains(parameters: [.one,.zero,.one,.zero], maximumAlgebraicDepth: 32, usage: &budget))
         #expect(!(try receipt.contains(parameters: [.zero,.one,.zero,.zero], maximumAlgebraicDepth: 32, usage: &budget)))
@@ -72,19 +80,42 @@ struct NativeSurfaceSurfaceRelationTests {
         let ordinary = try solver.intersectionResult(first: .bSpline(first), second: .bSpline(second), options: .init(), tolerance: tolerance)
         #expect(ordinary.originalNativeRelations?.componentCount == 1)
         let box = SurfaceParameterBox(u: try .init(lower: -0.5,upper: 0.5), v: try .init(lower: -0.5,upper: 0.5))
-        let domain = try solver.intersectionResult(first: .bSpline(first), over: box, second: .bSpline(second), over: box,
-            options: .init(), tolerance: tolerance, maximumSpanCount: 1, maximumSubdivisionDepth: 0,
-            remainingSourceDepth: 1, consumeWork: {}, consumeStorage: { _ in }, maximumAlgebraicDepth: 32)
+        let domain = try geometryTestWithQuery(maximumSpanCount: 1,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            maximumAlgebraicDepth: 32,
+            consumeWorkUnits: { units in for _ in 0..<units {  } },
+            consumeStorageBytes: { _ in }) { queryExecution in
+            try solver.intersectionResult(first: .bSpline(first),
+            over: box,
+            second: .bSpline(second),
+            over: box,
+            options: .init(),
+            tolerance: tolerance,
+            using: &queryExecution)
+        }
         #expect(domain.originalNativeRelations?.componentCount == 1)
-        let session = try solver.prepareOriginalPair(first: .bSpline(first), second: .bSpline(second), tolerance: tolerance,
-            maximumSpanCount: 1, maximumSubdivisionDepth: 0, remainingSourceDepth: 1,
-            consumeWork: {}, consumeStorage: { _ in }, maximumAlgebraicDepth: 32)
+        let session = try geometryTestWithQuery(maximumSpanCount: 1,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            maximumAlgebraicDepth: 32,
+            consumeWorkUnits: { units in for _ in 0..<units {  } },
+            consumeStorageBytes: { _ in }) { queryExecution in
+            try solver.prepareOriginalPair(first: .bSpline(first),
+            second: .bSpline(second),
+            tolerance: tolerance,
+            using: &queryExecution)
+        }
         let prepared = try session.intersectionResult(firstBox: box, secondBox: box, options: .init())
         #expect(prepared.originalNativeRelations?.componentCount == 1)
         do { _ = try session.intersections(firstBox: box, secondBox: box, options: .init()); Issue.record("Legacy session exposed a non-discrete subset.") }
-        catch let error as KernelError { #expect(error.code == .nonDiscreteIntersection) }
+        catch let caught where geometryTestKernelFailure(caught) != nil {
+            let error = geometryTestKernelFailure(caught)!
+            #expect(error.code == .nonDiscreteIntersection) }
         do { _ = try solver.intersections(first: .bSpline(first), second: .bSpline(second), options: .init(), tolerance: tolerance); Issue.record("Legacy array exposed a curve as empty.") }
-        catch let error as KernelError { #expect(error.code == .nonDiscreteIntersection) }
+        catch let caught where geometryTestKernelFailure(caught) != nil {
+            let error = geometryTestKernelFailure(caught)!
+            #expect(error.code == .nonDiscreteIntersection) }
         let foreign = try #require(try rich(first,second).originalNativeRelations)
         do { _ = try receipt.contains(parameters: [.zero,.zero,.zero,.zero], inCell: foreign.cell(at: 0).identifier,
             maximumAlgebraicDepth: 32, usage: &budget); Issue.record("Foreign SSI cell was accepted.") }
@@ -110,7 +141,7 @@ struct NativeSurfaceSurfaceRelationTests {
         let branch = try #require(try rich(first,crossing).originalNativeRelations)
         #expect(branch.componentCount == 1)
         #expect(try branch.component(at: 0).imageDimension == 1)
-        var budget = usage()
+        var budget = try usage()
         #expect(try branch.contains(parameters: [.zero,.one,.zero,.one], maximumAlgebraicDepth: 32, usage: &budget))
         #expect(try branch.contains(parameters: [.one,.zero,.one,.zero], maximumAlgebraicDepth: 32, usage: &budget))
         #expect(!(try branch.contains(parameters: [.one,.one,.one,.one], maximumAlgebraicDepth: 32, usage: &budget)))
@@ -135,7 +166,7 @@ struct NativeSurfaceSurfaceRelationTests {
         }
         let relation = try #require(try rich(first,folded).originalNativeRelations)
         #expect(try relation.component(at: 0).imageDimension == 2)
-        var budget = usage()
+        var budget = try usage()
         let quarter = try ExactRationalCoefficient.originalDouble(0.25, usage: &budget)
         let half = try ExactRationalCoefficient.originalDouble(0.5, usage: &budget)
         let fiber = try relation.fiber(surface: 0,u: quarter,v: .zero,maximumAlgebraicDepth: 32,usage: &budget)
@@ -150,6 +181,7 @@ struct NativeSurfaceSurfaceRelationTests {
 
     @Test(.timeLimit(.minutes(2)))
     func collapsedImageRetainsParameterProductAndExceptionalFibers() throws {
+        var readerExecution = try usage()
         let constant = surface { _,_ in .init(x: 0,y: 0,z: 0) }
         let receipt = try #require(try rich(constant,constant).originalNativeRelations)
         let component = try receipt.component(at: 0)
@@ -165,7 +197,7 @@ struct NativeSurfaceSurfaceRelationTests {
         let ownedCell = try receipt.cell(at: 0), stratum = try #require(ownedCell.imageStrata.first)
         var parameters: [ExactRationalCoefficient] = []
         for coordinate in ownedCell.parameterSample {
-            let enclosure = try coordinate.enclosed(maximumDepth: 32,maximumCoefficientDepth: 0,usage: usage())
+            let enclosure = try coordinate.enclosed(maximumDepth: 32,maximumCoefficientDepth: 0,usage: &readerExecution)
             #expect(enclosure.lower == enclosure.upper)
             parameters.append(enclosure.lower)
         }
@@ -174,7 +206,7 @@ struct NativeSurfaceSurfaceRelationTests {
         #expect(!(try receipt.contains(position: [.one,.zero,.zero],parameters: parameters,inCell: ownedCell.identifier,
             imageStratumOrdinal: stratum.ordinal,maximumAlgebraicDepth: 32,usage: &graphBudget)))
         #expect(maximumFiber == 4)
-        var budget = usage()
+        var budget = try usage()
         let fiber = try receipt.fiber(surface: 0,u: .zero,v: .zero,maximumAlgebraicDepth: 32,usage: &budget)
         #expect(fiber.componentCount == 1)
         #expect(try fiber.component(at: 0).parameterDimension == 2)
@@ -194,7 +226,7 @@ struct NativeSurfaceSurfaceRelationTests {
         let classified = try dimensions(receipt)
         #expect(classified.contains { $0.0 == 1 && $0.1 == 1 })
         #expect(classified.contains { $0.0 == 0 && $0.1 == 0 })
-        var budget = usage()
+        var budget = try usage()
         let half = try ExactRationalCoefficient.originalDouble(0.5,usage: &budget)
         #expect(try receipt.contains(parameters: [.zero,half,.zero,half],maximumAlgebraicDepth: 32,usage: &budget))
         #expect(try receipt.contains(parameters: [.one,.zero,.one,.zero],maximumAlgebraicDepth: 32,usage: &budget))
@@ -203,6 +235,8 @@ struct NativeSurfaceSurfaceRelationTests {
 
     @Test(.timeLimit(.minutes(3)))
     func retainedAlgebraicStationKeepsWholeOppositeFiber() throws {
+        var readerExecution = try usage()
+        var finiteReaderExecution = finiteUsage()
         let folded = surface(uDegree: 2,vDegree: 1) { u,v in
             .init(x: u == 1 ? -1 : 1,y: v == 0 ? -1 : 1,z: 0)
         }
@@ -214,14 +248,14 @@ struct NativeSurfaceSurfaceRelationTests {
         let station = try points.point(at: 1).parameter(axis: 0,in: points)
         let constant = surface { _,_ in .init(x: 0,y: 0,z: 0) }
         let receipt = try #require(try rich(constant,constant).originalNativeRelations)
-        let zero = try OriginalAlgebraicCoordinate.rational(.zero,usage: usage())
+        let zero = try OriginalAlgebraicCoordinate.rational(.zero,usage: &readerExecution)
         let fiber = try receipt.fiber(surface: 0,u: station,v: zero,maximumAlgebraicDepth: 32,
-            maximumCoefficientDepth: 32,usage: finiteUsage())
+            maximumCoefficientDepth: 32,usage: &finiteReaderExecution)
         #expect(fiber.source === receipt && fiber.surfaceRole == 0 && fiber.imageDimension == 0)
         #expect(fiber.relation.components.count == 1 && fiber.relation.components[0].dimension == 2)
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestKernelFailure($0) != nil }) {
             try receipt.fiber(surface: 0,u: station,v: zero,maximumAlgebraicDepth: 32,
-                maximumCoefficientDepth: 0,usage: usage())
+                maximumCoefficientDepth: 0,usage: &readerExecution)
         }
     }
 
@@ -231,34 +265,66 @@ struct NativeSurfaceSurfaceRelationTests {
         let second = Surface3D.bSpline(surface { u,v in .init(x: u == 0 ? -1 : 1,y: 0,z: v == 0 ? -1 : 1) })
         let solver = DefaultSurfaceSurfaceIntersector()
         #expect(throws: GeometryConversionError.self) {
-            try solver.intersectionResult(first: first,second: second,tolerance: tolerance,maximumSpanCount: 1,
-                maximumSubdivisionDepth: 0,remainingSourceDepth: 1,
-                consumeWork: { throw GeometryConversionError.resourceLimitExceeded("Denied SSI work.") },
-                consumeStorage: { _ in },maximumAlgebraicDepth: 32)
+            try geometryTestWithQuery(maximumSpanCount: 1,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            maximumAlgebraicDepth: 32,
+            consumeWorkUnits: { units in for _ in 0..<units { throw GeometryConversionError.resourceLimitExceeded("Denied SSI work.") } },
+            consumeStorageBytes: { _ in }) { queryExecution in
+            try solver.intersectionResult(first: first,
+            second: second,
+            tolerance: tolerance,
+            using: &queryExecution)
+        }
         }
         #expect(throws: GeometryConversionError.self) {
-            try solver.intersectionResult(first: first,second: second,tolerance: tolerance,maximumSpanCount: 1,
-                maximumSubdivisionDepth: 0,remainingSourceDepth: 1,consumeWork: {},
-                consumeStorage: { _ in throw GeometryConversionError.resourceLimitExceeded("Denied SSI bytes.") },maximumAlgebraicDepth: 32)
+            try geometryTestWithQuery(maximumSpanCount: 1,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            maximumAlgebraicDepth: 32,
+            consumeWorkUnits: { units in for _ in 0..<units {  } },
+            consumeStorageBytes: { _ in throw GeometryConversionError.resourceLimitExceeded("Denied SSI bytes.") }) { queryExecution in
+            try solver.intersectionResult(first: first,
+            second: second,
+            tolerance: tolerance,
+            using: &queryExecution)
         }
-        #expect(throws: KernelError.self) {
+        }
+        geometryTestExpectFailure({ geometryTestKernelFailure($0) != nil }) {
             try solver.intersectionResult(first: first,second: second,options: .init(maximumSubdivisionCells: 1),tolerance: tolerance)
         }
         let calls = Mutex(0), finalStorage = Mutex(0)
-        let retained = try solver.intersectionResult(first: first,second: second,tolerance: tolerance,maximumSpanCount: 1,
-            maximumSubdivisionDepth: 0,remainingSourceDepth: 1,consumeWork: {},
-            consumeStorage: { count in calls.withLock { $0 += 1 }; finalStorage.withLock { $0 = count } },maximumAlgebraicDepth: 32)
+        let retained = try geometryTestWithQuery(maximumSpanCount: 1,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            maximumAlgebraicDepth: 32,
+            consumeWorkUnits: { units in for _ in 0..<units {  } },
+            consumeStorageBytes: { count in calls.withLock { $0 += 1 }; finalStorage.withLock { $0 = count } }) { queryExecution in
+            try solver.intersectionResult(first: first,
+            second: second,
+            tolerance: tolerance,
+            using: &queryExecution)
+        }
         let final = calls.withLock { $0 }, current = Mutex(0)
         let refused = Mutex(false), storageCalls = Mutex(0)
         do {
-            _ = try solver.intersectionResult(first: first,second: second,tolerance: tolerance,maximumSpanCount: 1,
-                maximumSubdivisionDepth: 0,remainingSourceDepth: 1,consumeWork: {},consumeStorage: { count in
+            _ = try geometryTestWithQuery(maximumSpanCount: 1,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            maximumAlgebraicDepth: 32,
+            consumeWorkUnits: { units in for _ in 0..<units {  } },
+            consumeStorageBytes: { count in
                     if storageCalls.withLock({ $0 += 1; return $0 }) == final {
                         #expect(count == finalStorage.withLock { $0 } && count > 0)
                         refused.withLock { $0 = true }
                         throw GeometryConversionError.resourceLimitExceeded("Denied final SSI publication storage.")
                     }
-                },maximumAlgebraicDepth: 32)
+                }) { queryExecution in
+            try solver.intersectionResult(first: first,
+            second: second,
+            tolerance: tolerance,
+            using: &queryExecution)
+        }
             Issue.record("Storage refusal at final publication exposed a partial result.")
         } catch let error as GeometryConversionError {
             guard case .resourceLimitExceeded = error else { throw error }
@@ -268,13 +334,22 @@ struct NativeSurfaceSurfaceRelationTests {
         #expect(try #require(retained.originalNativeRelations).contains(parameters: [.zero,.zero,.zero,.zero],
             maximumAlgebraicDepth: 32,usage: &retainedBudget))
         let task = Task {
-            try solver.intersectionResult(first: first,second: second,tolerance: tolerance,maximumSpanCount: 1,
-                maximumSubdivisionDepth: 0,remainingSourceDepth: 1,consumeWork: {},consumeStorage: { _ in
+            try geometryTestWithQuery(maximumSpanCount: 1,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            maximumAlgebraicDepth: 32,
+            consumeWorkUnits: { units in for _ in 0..<units {  } },
+            consumeStorageBytes: { _ in
                     if current.withLock({ $0 += 1; return $0 }) == final { withUnsafeCurrentTask { $0?.cancel() } }
-                },maximumAlgebraicDepth: 32)
+                }) { queryExecution in
+            try solver.intersectionResult(first: first,
+            second: second,
+            tolerance: tolerance,
+            using: &queryExecution)
+        }
         }
         do { _ = try await task.value; Issue.record("Cancellation after final relation storage exposed a partial result.") }
-        catch is CancellationError {}
+        catch where geometryTestIsCancelled(error) {}
         let near = plane()
         let offset = surface { u,v in .init(x: u == 0 ? -1 : 1,y: v == 0 ? -1 : 1,z: 1.0 / 1_048_576) }
         let absence = try rich(near,offset)

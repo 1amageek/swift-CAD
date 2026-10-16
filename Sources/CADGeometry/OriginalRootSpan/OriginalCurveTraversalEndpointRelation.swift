@@ -2,29 +2,29 @@ import CADCore
 
 /// Admits original endpoint equality without tolerance-based corner snapping.
 package struct OriginalCurveTraversalEndpointRelation {
-    package func proves<B: RationalAlgebraAdmitting>(first: OriginalCurveRootSpan3D, firstAtEnd: Bool,
+    package func proves(first: OriginalCurveRootSpan3D, firstAtEnd: Bool,
         second: OriginalCurveRootSpan3D, secondAtEnd: Bool,
         remainingSourceDepth: Int = Int.max, maximumSubdivisionDepth: Int = Int.max,
-        storageByteStride: Int = MemoryLayout<UInt32>.stride, usage: inout B,
+        usage: inout OriginalQueryExecution,
         maximumAlgebraicDepth: Int? = nil) throws -> Bool {
         try proves(first: first, firstAtEnd: firstAtEnd,
             firstRemainingSourceDepth: min(remainingSourceDepth, first.remainingSourceDepth),
             second: second, secondAtEnd: secondAtEnd,
             secondRemainingSourceDepth: min(remainingSourceDepth, second.remainingSourceDepth),
-            maximumSubdivisionDepth: maximumSubdivisionDepth, storageByteStride: storageByteStride, usage: &usage,
+            maximumSubdivisionDepth: maximumSubdivisionDepth, usage: &usage,
             maximumAlgebraicDepth: maximumAlgebraicDepth)
     }
 
-    private func proves<B: RationalAlgebraAdmitting>(first: OriginalCurveRootSpan3D,
+    private func proves(first: OriginalCurveRootSpan3D,
         firstAtEnd: Bool, firstRemainingSourceDepth: Int,
         second: OriginalCurveRootSpan3D, secondAtEnd: Bool,
-        secondRemainingSourceDepth: Int, maximumSubdivisionDepth: Int, storageByteStride: Int, usage: inout B, maximumAlgebraicDepth: Int?) throws -> Bool {
+        secondRemainingSourceDepth: Int, maximumSubdivisionDepth: Int, usage: inout OriginalQueryExecution, maximumAlgebraicDepth: Int?) throws -> Bool {
         guard first.certificationTolerance == second.certificationTolerance,
             firstRemainingSourceDepth >= 0, secondRemainingSourceDepth >= 0,
             maximumSubdivisionDepth >= 0, maximumAlgebraicDepth.map({ (0...32).contains($0) }) ?? true else {
             throw GeometryConversionError.invalidInput("Original endpoint relation requires matching source tolerance and nonnegative caller capabilities.")
         }
-        try usage.consumeExactWork(1)
+        try usage.consumeWork(1)
         let a = firstAtEnd ? first.end : first.start
         let b = secondAtEnd ? second.end : second.start
         if case .authored(let parameter) = a,
@@ -36,7 +36,7 @@ package struct OriginalCurveTraversalEndpointRelation {
                     retained.boundary.remainingSourceDepth),
                 second: second, secondAtEnd: secondAtEnd,
                 secondRemainingSourceDepth: secondRemainingSourceDepth,
-                maximumSubdivisionDepth: maximumSubdivisionDepth, storageByteStride: storageByteStride, usage: &usage,
+                maximumSubdivisionDepth: maximumSubdivisionDepth, usage: &usage,
                 maximumAlgebraicDepth: maximumAlgebraicDepth)
         }
         if case .authored(let parameter) = b,
@@ -48,7 +48,7 @@ package struct OriginalCurveTraversalEndpointRelation {
                 second: retained.boundary, secondAtEnd: retained.atEnd,
                 secondRemainingSourceDepth: min(secondRemainingSourceDepth - 1,
                     retained.boundary.remainingSourceDepth),
-                maximumSubdivisionDepth: maximumSubdivisionDepth, storageByteStride: storageByteStride, usage: &usage,
+                maximumSubdivisionDepth: maximumSubdivisionDepth, usage: &usage,
                 maximumAlgebraicDepth: maximumAlgebraicDepth)
         }
         if case .authored(let ap) = a, case .authored(let bp) = b {
@@ -61,19 +61,19 @@ package struct OriginalCurveTraversalEndpointRelation {
                 secondNativeSpanIndex: second.nativeSpanIndex,
                 remainingSourceDepth: min(firstRemainingSourceDepth, secondRemainingSourceDepth),
                 maximumSubdivisionDepth: min(maximumSubdivisionDepth, first.maximumSubdivisionDepth, second.maximumSubdivisionDepth),
-                tolerance: first.certificationTolerance, storageByteStride: storageByteStride, usage: &usage,
+                tolerance: first.certificationTolerance, usage: &usage,
                 maximumAlgebraicDepth: maximumAlgebraicDepth.map { min($0, first.maximumAlgebraicDepth, second.maximumAlgebraicDepth) }) != nil
         }
         func algebraicEqualsRational(_ algebraicSpan: OriginalCurveRootSpan3D,
             _ endpoint: OriginalCurveRootEndpoint, _ rationalSpan: OriginalCurveRootSpan3D,
             _ rationalEndpoint: OriginalCurveRootEndpoint, rationalRemainingSourceDepth: Int,
-            usage: inout B) throws -> Bool? {
+            usage: inout OriginalQueryExecution) throws -> Bool? {
             guard case .algebraic(let root) = endpoint,
                   case .authored(let station) = rationalEndpoint else { return nil }
             let rational = try OriginalCurveEndpointPositionRelation.coordinates(rationalSpan.source,
                 at: .originalDouble(station, usage: &usage), owningSpanIndex: rationalSpan.nativeSpanIndex,
                 remainingSourceDepth: rationalRemainingSourceDepth,
-                tolerance: rationalSpan.certificationTolerance, storageByteStride: storageByteStride, usage: &usage)
+                tolerance: rationalSpan.certificationTolerance, usage: &usage)
             let original = try OriginalRationalCurvePolynomial(source: root.source,
                 spanIndex: root.spanIndex, tolerance: algebraicSpan.certificationTolerance, usage: &usage)
             for axis in 0..<3 {

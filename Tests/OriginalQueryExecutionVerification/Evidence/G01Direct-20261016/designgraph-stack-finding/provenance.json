@@ -1,0 +1,45 @@
+{
+  "scope": "Concrete Drawing normal-worker operation-contract stack finding only; failed run remains failed.",
+  "files": [
+    {
+      "copy": "case-comparison.json",
+      "original": "/tmp/g01-designgraph-operation-contract-case-comparison.json",
+      "sha256": "0e205bd93ddfa4a8898fb0169edfaded64cc91517e503337e8821b1754468d65"
+    },
+    {
+      "copy": "failed-drawing-receipt.json",
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-drawing-public-caller-native-after-proofreuse-20261016-r1/receipt.json",
+      "sha256": "698cc83efc2fdf9e321d5af76d4041c0bfabf4aeefb5d308a536d41587932ae2"
+    },
+    {
+      "copy": "failed-drawing-runtime.log",
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-drawing-public-caller-native-after-proofreuse-20261016-r1/test-runtime.log",
+      "sha256": "30d07a3c044ef1a1b787af650aad1dfa17fb5839aba9a5adefc310a863879c23"
+    },
+    {
+      "copy": "failed-drawing-stages.log",
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-drawing-public-caller-native-after-proofreuse-20261016-r1-stages.log",
+      "sha256": "f97640eed4031170ef5c21fe3a0deef127228a118ab946198c37b11bff01b478"
+    },
+    {
+      "copy": "before-dispatch-disassembly.txt",
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-drawing-public-caller-native-after-proofreuse-20261016-r1/DesignGraph-validateOperationContract.disassembly.txt",
+      "sha256": "8e4d18e1d6b9801f3082fae4d38983f33cc77fa500d5f4b6a520588aa5e3414a"
+    },
+    {
+      "copy": "before-frame-finding.json",
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-drawing-public-caller-native-after-proofreuse-20261016-r1/DesignGraph-stack-finding-before.json",
+      "sha256": "2d21fd7fcaa615d00e81e2741d1a6a7c5c04ca938ba5727e39a9f8d03438b8be"
+    },
+    {
+      "copy": "after-dispatch-disassembly.txt",
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-native-designgraph-stack-fixed-upper-20261016-r1/DesignGraph-validateOperationContract-after.disassembly.txt",
+      "sha256": "ddb8724781543df7167a62d53ca3e251a3cb710d3607a8029f82b08e3c645c75"
+    },
+    {
+      "copy": "upper-fixed-receipt.json",
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-native-designgraph-stack-fixed-upper-20261016-r1/receipt.json",
+      "sha256": "498fa8d82014fa1f6054612e165a5ebfbc712d25038e393daf7da0c5046f8a16"
+    }
+  ]
+}

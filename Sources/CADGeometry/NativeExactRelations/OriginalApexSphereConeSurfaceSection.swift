@@ -16,7 +16,7 @@ public struct OriginalApexSphereConeSurfaceSection: Sendable {
     }
     static func issue<A: ExactScalarAdmission & ~Copyable>(relation: OriginalApexSphereConeSurfaceRelation,
         chart: Int, halfAngle: Field.Value, using a: inout A) throws -> Self {
-        try OriginalSourceProofAdmission<A>.withBorrow(&a) { a in
+        try a.withProofScope() { a in
         let values = try relation.source.original.sectionValues(chart: chart, halfAngle: halfAngle, using: &a)
         try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: Self.self))
         let result = Self(relation: relation, chart: chart, halfAngle: halfAngle, sourceValues: values, proofDepth: try a.depth)
@@ -40,7 +40,7 @@ public struct OriginalApexSphereConeSurfaceSection: Sendable {
     public func member<A: ExactScalarAdmission & ~Copyable>(coneCycle: OriginalParameterCycle,
         sphereCycle: OriginalParameterCycle, limits: OriginalDomainIdentityLimits,
         using a: inout A) throws -> OriginalApexSphereConeSurfaceMember {
-        try OriginalSourceProofAdmission<A>.withBorrow(&a) { a in
+        try a.withProofScope() { a in
         try relation.admitProof(limits: limits, using: &a)
         try a.admitDepth(value: proofDepth.value, coefficient: proofDepth.coefficient)
         let f = field, period = relation.source.original.labelPeriod

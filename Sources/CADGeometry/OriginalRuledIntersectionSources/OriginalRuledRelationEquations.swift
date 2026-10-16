@@ -2,7 +2,7 @@ import CADCore
 
 /// Exact ring embedding and equality assembly; it performs no root search.
 package enum OriginalRuledRelationEquations {
-    static func requireContained<B: RationalAlgebraAdmitting>(_ requested: OriginalRationalParameterDomain,
+    static func requireContained<B: ExactScalarAdmission & ~Copyable>(_ requested: OriginalRationalParameterDomain,
         in original: OriginalRationalParameterDomain, tolerance: ModelingTolerance?, usage: inout B) throws {
         try intersectionAlgebraStep(&usage)
         guard let a = requested.lower, let b = requested.upper,
@@ -14,7 +14,7 @@ package enum OriginalRuledRelationEquations {
         }
     }
 
-    static func lift<B: RationalAlgebraAdmitting>(_ source: ExactBivariatePolynomial,
+    static func lift<B: ExactScalarAdmission & ~Copyable>(_ source: ExactBivariatePolynomial,
         variableCount: Int, uAxis: Int, vAxis: Int?, usage: inout B) throws -> OriginalRationalPolynomial {
         let ordered = try source.orderedTerms(usage: &usage)
         try RationalAlgebraStorage.retain(ordered.count, of: OriginalRationalPolynomial.Term.self, usage: &usage)
@@ -33,7 +33,7 @@ package enum OriginalRuledRelationEquations {
         return try .init(variableCount: variableCount, terms: terms, usage: &usage)
     }
 
-    static func relation<B: RationalAlgebraAdmitting>(first: [ExactBivariatePolynomial],
+    static func relation<B: ExactScalarAdmission & ~Copyable>(first: [ExactBivariatePolynomial],
         second: [ExactBivariatePolynomial], variableCount: Int, firstU: Int, firstV: Int?,
         secondU: Int, secondV: Int?, domains: [OriginalRationalParameterDomain],
         usage: inout B) throws -> OriginalPolynomialRelation {
@@ -67,7 +67,7 @@ package enum OriginalRuledRelationEquations {
 
 extension OriginalRuledSurfacePolynomial {
     /// CS variable order is (native curve t, original ruled u, original ruled v).
-    package func curveRelation<B: RationalAlgebraAdmitting>(curve: OriginalRationalCurvePolynomial,
+    package func curveRelation<B: ExactScalarAdmission & ~Copyable>(curve: OriginalRationalCurvePolynomial,
         curveDomain: OriginalRationalParameterDomain, usage: inout B) throws -> OriginalRuledIntersectionRelation {
         let native = try OriginalRationalParameterDomain(lower: curve.lowerParameter,
             upper: curve.upperParameter, usage: &usage)
@@ -82,7 +82,7 @@ extension OriginalRuledSurfacePolynomial {
     }
 
     /// SSI variable order is (original ruled u/v, native surface s/t).
-    package func surfaceRelation<B: RationalAlgebraAdmitting>(surface: OriginalRationalSurfacePolynomial,
+    package func surfaceRelation<B: ExactScalarAdmission & ~Copyable>(surface: OriginalRationalSurfacePolynomial,
         usage: inout B) throws -> OriginalRuledIntersectionRelation {
         let s = try OriginalRationalParameterDomain(surface.domain.u, usage: &usage)
         let t = try OriginalRationalParameterDomain(surface.domain.v, usage: &usage)

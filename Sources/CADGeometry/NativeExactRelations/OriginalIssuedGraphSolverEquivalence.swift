@@ -33,7 +33,7 @@ public struct OriginalIssuedGraphSolverEquivalence: Sendable {
         throws(NativeExactRelationFailure) -> Self? {
         let first=copy first,second=copy second
         do {
-            return try OriginalSourceProofAdmission.withBorrow(&admission) { a in
+            return try admission.withProofScope() { a -> Self? in
                 try a.checkpoint();try a.consumeWork(1)
                 let left=first.graph,right=second.graph
                 let ll=first.original.graph.layout,rl=second.original.graph.layout

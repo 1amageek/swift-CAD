@@ -5,7 +5,8 @@ import Testing
 @Suite("Guarded pure even-power real zero certificates", .timeLimit(.minutes(1)))
 struct GuardedEvenPowerZeroSetTests {
     private enum AdmissionFailure: Error { case work, storage }
-    private struct Admission: RationalAlgebraAdmitting {
+    private struct Admission: ~Copyable, GeometryScalarTestAdmission {
+        var proofScopes = ExactScalarProofScopes()
         var maximumWork = 2_000_000
         var maximumStorage = 2_000_000
         var work = 0
@@ -13,19 +14,50 @@ struct GuardedEvenPowerZeroSetTests {
         var cancelAtStorage: Int?
         var storageRequests: [Int]?
         var lastStorageRequest = 0
-        mutating func consumeExactWork(_ count: Int) throws {
+        mutating func consumeWork(_ count: Int) throws(ExactScalarFailure) {
+            try checkpoint()
+            try proofScopes.checkWork(count)
+            do {
             guard count >= 0, count <= maximumWork - work else { throw AdmissionFailure.work }
             work += count
+        
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            proofScopes.recordWork(count)
+            try checkpoint()
         }
-        mutating func retainExactStorage(_ count: Int) throws {
+        mutating func retainStorage(bytes: Int) throws(ExactScalarFailure) {
+            try checkpoint()
+            let count = try geometryTestStorageWords(bytes)
+            do {
             lastStorageRequest = count
             storageRequests?.append(count)
             guard count >= 0, count <= maximumStorage - storage else { throw AdmissionFailure.storage }
             storage += count
             if storage == cancelAtStorage { withUnsafeCurrentTask { $0?.cancel() } }
+        
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            try checkpoint()
         }
-        mutating func visitExactCell(depth: Int) throws {
+        
+            mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
+            try admitDepth(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+            let mapped = try proofScopes.mapped(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+            do {
+                switch (axis == .coefficient || proofScopes.exactDepthResource == .coefficientDepth) ? ExactScalarRootAxis.coefficient : .value {
+                case .value:
+                    let depth = mapped.value
+
             guard (0...24).contains(depth) else { throw AdmissionFailure.work }
+        
+                case .coefficient:
+                    let depth = mapped.coefficient
+ throw ExactScalarFailure.resourceLimit(.coefficientDepth) 
+                }
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            try checkpoint()
         }
     }
 
@@ -44,7 +76,7 @@ struct GuardedEvenPowerZeroSetTests {
         let equation = try term(0, exponent: 2, coefficient: sign, usage: &usage)
             .adding(term(0, exponent: 6, coefficient: weighted, usage: &usage), usage: &usage)
             .adding(term(1, exponent: 4, coefficient: weighted, usage: &usage), usage: &usage)
-        let proof = try #require(OriginalEvenPowerEquationZeroSet.prepare(equation, equationIndex: 7, usage: &usage))
+        let proof = try geometryTestRequire(OriginalEvenPowerEquationZeroSet.prepare(equation, equationIndex: 7, usage: &usage))
         #expect(proof.equationIndex == 7 && proof.guardedEquation == equation)
         #expect(proof.coefficientSign == (negative ? -1 : 1))
         #expect(proof.terms.count == 3 && proof.coordinates.count == 2)
@@ -161,7 +193,7 @@ struct GuardedEvenPowerZeroSetTests {
         #expect(measured.work > 0 && measured.storage > 0)
         for allowance in [0, measured.work / 2, measured.work - 1] {
             var limited = Admission(); limited.maximumWork = allowance
-            #expect(throws: AdmissionFailure.self) {
+            geometryTestExpectFailure({ geometryTestOriginalFailure($0) is AdmissionFailure }) {
                 try OriginalGuardedIntersectionEquations.prepare(equations: [equation], denominatorGuards: [],
                     variableCount: 3, reducePureEvenPowerZeroSets: true, usage: &limited)
             }
@@ -169,7 +201,7 @@ struct GuardedEvenPowerZeroSetTests {
         }
         for allowance in [0, measured.storage / 2, measured.storage - 1] {
             var limited = Admission(); limited.maximumStorage = allowance
-            #expect(throws: AdmissionFailure.self) {
+            geometryTestExpectFailure({ geometryTestOriginalFailure($0) is AdmissionFailure }) {
                 try OriginalGuardedIntersectionEquations.prepare(equations: [equation], denominatorGuards: [],
                     variableCount: 3, reducePureEvenPowerZeroSets: true, usage: &limited)
             }
@@ -191,7 +223,7 @@ struct GuardedEvenPowerZeroSetTests {
         let fullProofBufferWords = (2 * MemoryLayout<OriginalEvenPowerEquationZeroSet>.stride + wordStride - 1) / wordStride
         let fullEquationBufferWords = (4 * MemoryLayout<ExactIntersectionPolynomial>.stride + wordStride - 1) / wordStride
         let receiptWords = (MemoryLayout<OriginalGuardedIntersectionEquations>.stride + wordStride - 1) / wordStride
-        let requests = try #require(measured.storageRequests)
+        let requests = try geometryTestRequire(measured.storageRequests)
         // After the final certificate's own retention, both previously nonempty
         // collections must admit full replacement buffers before the receipt.
         #expect(Array(requests.suffix(4)) == [proofWords, fullProofBufferWords, fullEquationBufferWords, receiptWords])
@@ -199,7 +231,7 @@ struct GuardedEvenPowerZeroSetTests {
             let index = requests.count - offset
             let precedingWords = requests[..<index].reduce(0, +)
             var limited = Admission(); limited.maximumStorage = precedingWords + requests[index] - 1
-            #expect(throws: AdmissionFailure.self) {
+            geometryTestExpectFailure({ geometryTestOriginalFailure($0) is AdmissionFailure }) {
                 try OriginalGuardedIntersectionEquations.prepare(equations: [first, second],
                     denominatorGuards: [], variableCount: 3, reducePureEvenPowerZeroSets: true, usage: &limited)
             }
@@ -211,7 +243,7 @@ struct GuardedEvenPowerZeroSetTests {
         var usage = Admission()
         let equation = try term(10, exponent: 2, variableCount: 12, usage: &usage)
             .adding(term(11, exponent: 4, variableCount: 12, usage: &usage), usage: &usage)
-        let proof = try #require(OriginalEvenPowerEquationZeroSet.prepare(equation, equationIndex: 0, usage: &usage))
+        let proof = try geometryTestRequire(OriginalEvenPowerEquationZeroSet.prepare(equation, equationIndex: 0, usage: &usage))
         #expect(Set(proof.coordinates) == [10, 11])
         #expect(try proof.reconstruction.matches(equation, usage: &usage))
         for (index, coordinate) in proof.coordinates.enumerated() {
@@ -243,7 +275,7 @@ struct GuardedEvenPowerZeroSetTests {
                 }
                 Issue.record("A final retention callback cancelled the task but successful proof was published.")
                 return false
-            } catch is CancellationError { return usage.storage == finalStorage }
+            } catch let error where geometryTestIsCancelled(error) { return usage.storage == finalStorage }
         }.value
         #expect(cancelled)
     }
@@ -257,12 +289,12 @@ struct GuardedEvenPowerZeroSetTests {
             do {
                 _ = try OriginalEvenPowerEquationZeroSet.prepare(equation, equationIndex: 0, usage: &usage)
                 Issue.record("Cancelled real-zero proof was published.")
-            } catch is CancellationError { }
+            } catch let error where geometryTestIsCancelled(error) { }
             do {
                 _ = try OriginalGuardedIntersectionEquations.prepare(equations: [equation], denominatorGuards: [],
                     variableCount: 3, reducePureEvenPowerZeroSets: true, usage: &usage)
                 Issue.record("Cancelled guarded real-zero normalization was published.")
-            } catch is CancellationError { }
+            } catch let error where geometryTestIsCancelled(error) { }
             return (usage.work, usage.storage)
         }.value
         #expect(charges.0 == 0 && charges.1 == 0)

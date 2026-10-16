@@ -14,11 +14,22 @@ package struct DraftedSectionCurveSource: GeometryCurveConversionSource {
     private let height: Double
     private let sineSquared: Interval
     private let branch: Double
+    private let budget: OriginalQueryBudget
+    private let limits: OriginalQueryExecutionLimits
+    private let contributions: [OriginalQueryContributionHandle]
     private let tolerance: ModelingTolerance
 
     package init(curve: Curve3D, normal: Vector3D, axis: Vector3D,
+        pull: Vector3D, height: Double, angle: Double, tolerance: ModelingTolerance) throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
+        try self.init(curve: curve, normal: normal, axis: axis, pull: pull, height: height,
+            angle: angle, tolerance: tolerance, using: &execution)
+    }
+
+    package init(curve: Curve3D, normal: Vector3D, axis: Vector3D,
                  pull: Vector3D, height: Double, angle: Double,
-                 tolerance: ModelingTolerance) throws {
+                 tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
         try tolerance.validate()
         guard height.isFinite, angle.isFinite, abs(angle) < Double.pi * 0.5 else {
             throw Self.failure(.invalidInput, "Draft height and angle must be finite and below a right angle.", tolerance)
@@ -28,20 +39,18 @@ package struct DraftedSectionCurveSource: GeometryCurveConversionSource {
         self.axis = try Self.originalUnit(axis, tolerance: tolerance)
         self.pull = try Self.originalUnit(pull, tolerance: tolerance)
         self.height = height
-        self.tolerance = tolerance
-        let sine = try CertifiedRotationTrigonometry.evaluate(.exact(angle), tolerance: tolerance).sine
+        self.tolerance = tolerance; budget = execution.budget; limits = execution.effectiveLimits; contributions = try execution.retainActiveContributionHandles()
+        let sine = try CertifiedRotationTrigonometry.evaluate(.exact(angle), tolerance: tolerance, using: &execution).sine
         sineSquared = sine * sine
         branch = angle >= 0 ? -1 : 1
-        var preparationWork = 0
-        derivatives = try NativeCurveDerivativeEncloser(curve: curve, tolerance: tolerance) {
-            preparationWork += 1
-            guard preparationWork <= 65_536 else {
-                throw Self.failure(.resourceLimitExceeded, "Draft derivative preparation exceeded its work allowance.", tolerance)
-            }
+        derivatives = try execution.withConversionScope(maximumWorkUnits: 65_536,
+            maximumScalarCount: Int.max, maximumCertificationBoxes: Int.max) { execution in
+            try NativeCurveDerivativeEncloser(curve: curve, tolerance: tolerance, using: &execution)
         }
     }
 
-    package func validate(over parameters: ScalarInterval, tolerance: ModelingTolerance) throws {
+    package func validate(over parameters: ScalarInterval, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         guard tolerance == self.tolerance, parameters.width > 0,
               try curve.parameterDomain.containsSpan(from: parameters.lower, to: parameters.upper, tolerance: tolerance) else {
             throw Self.failure(.invalidInput, "Draft conversion requires its original finite boundary trim and tolerance.", tolerance)
@@ -85,11 +94,11 @@ package struct DraftedSectionCurveSource: GeometryCurveConversionSource {
         return position + (a + across.scaled(by: k)).scaled(by: .constant(.exact(height), order: order))
     }
 
-    package func pointAndDerivative(at parameter: Double, tolerance: ModelingTolerance) throws -> (point: Point3D, derivative: Vector3D) {
+    package func pointAndDerivative(at parameter: Double, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> (point: Point3D, derivative: Vector3D) {
         guard tolerance == self.tolerance else {
             throw Self.failure(.invalidInput, "Draft evaluation changed its preparation tolerance.", tolerance)
         }
-        let value = try curve.differentialGeometry(at: parameter, tolerance: tolerance)
+        let value = try curve.differentialGeometry(at: parameter, tolerance: tolerance, using: &execution)
         func component(_ point: Double, _ first: Double, _ second: Double) -> ScalarJet {
             ScalarJet(derivatives: [.exact(point), .exact(first), .exact(second)])
         }
@@ -102,9 +111,9 @@ package struct DraftedSectionCurveSource: GeometryCurveConversionSource {
                 Vector3D(x: first[0].midpoint, y: first[1].midpoint, z: first[2].midpoint))
     }
 
-    package func enclosure(over parameters: ScalarInterval, tolerance: ModelingTolerance) throws -> CurveDifferentialEnclosure {
-        try validate(over: parameters, tolerance: tolerance)
-        let result = try moved(derivatives.derivatives(over: parameters, tolerance: tolerance))
+    package func enclosure(over parameters: ScalarInterval, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> CurveDifferentialEnclosure {
+        try validate(over: parameters, tolerance: tolerance, using: &execution)
+        let result = try moved(derivatives.derivatives(over: parameters, tolerance: tolerance, using: &execution))
         func enclosure(_ order: Int) throws -> CoordinateEnclosure3D {
             let values = result.derivative(order)
             return try CoordinateEnclosure3D(
@@ -138,4 +147,17 @@ package struct DraftedSectionCurveSource: GeometryCurveConversionSource {
     private static func failure(_ code: KernelErrorCode, _ message: String, _ tolerance: ModelingTolerance) -> KernelError {
         KernelError(phase: .geometry, code: code, tolerance: tolerance, message: message)
     }
+    package func validate(over parameters: ScalarInterval, tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution(budget: budget, limits: limits, contributions: contributions)
+        try validate(over: parameters, tolerance: tolerance, using: &execution)
+    }
+    package func pointAndDerivative(at parameter: Double, tolerance: ModelingTolerance) throws -> (point: Point3D, derivative: Vector3D) {
+        var execution = try OriginalQueryExecution(budget: budget, limits: limits, contributions: contributions)
+        return try pointAndDerivative(at: parameter, tolerance: tolerance, using: &execution)
+    }
+    package func enclosure(over parameters: ScalarInterval, tolerance: ModelingTolerance) throws -> CurveDifferentialEnclosure {
+        var execution = try OriginalQueryExecution(budget: budget, limits: limits, contributions: contributions)
+        return try enclosure(over: parameters, tolerance: tolerance, using: &execution)
+    }
+
 }

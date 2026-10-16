@@ -14,6 +14,39 @@ import CADCore
 struct CoaxialConeConeSurfaceIntersector {
     private let verifier = SurfaceSurfaceIntersectionVerifier()
 
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Ordinary SSI dispatch reaches this direct entry.
+    // The former numerical/tolerance branches did not establish original common-set
+    // authority. U4 must supply complete original source/UV coverage before success.
+    func intersections(
+        first: CanonicalAnalyticSurface.Cone,
+        second: CanonicalAnalyticSurface.Cone,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution
+    ) throws -> [SurfaceSurfaceIntersection] {
+        execution.context = execution.context.at(stage: .relation)
+        do {
+            try execution.checkpoint()
+            try execution.consumeWork(1)
+            if case .analytic = firstSurface, case .analytic = secondSurface,
+                firstSurface == secondSurface {
+                try firstSurface.validateOriginalSource(tolerance: tolerance,
+                    remainingSourceDepth: execution.limits.remainingSourceDepth,
+                    maximumSubdivisionDepth: execution.limits.maximumSubdivisionDepth, using: &execution)
+                try execution.retainStorage(bytes: MemoryLayout<SurfaceSurfaceIntersection>.stride)
+                let result: [SurfaceSurfaceIntersection] = [.coincident(try .init(residual: 0, tolerance: tolerance))]
+                try execution.checkpoint()
+                return result
+            }
+            throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+                message: "CoaxialConeConeSurfaceIntersector requires complete original source relation authority.")
+        } catch { throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance) }
+    }
+
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Existing candidate/source helper methods call
+    // this ordinary publication entry. It performs no numeric solve or fallback;
+    // U4 must provide source-bound relation proof and direct execution before success.
     func intersections(
         first: CanonicalAnalyticSurface.Cone,
         second: CanonicalAnalyticSurface.Cone,
@@ -21,98 +54,9 @@ struct CoaxialConeConeSurfaceIntersector {
         secondSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws -> [SurfaceSurfaceIntersection] {
-        let axisResidual = first.axis.cross(second.axis).length
-        guard axisResidual <= tolerance.angle else {
-            throw unsupported(
-                residual: axisResidual,
-                tolerance: tolerance,
-                message: "Cone-cone intersection requires parallel axes."
-            )
-        }
-        let apexOffset = second.apex - first.apex
-        let axialDistance = apexOffset.dot(first.axis)
-        let radialOffset = apexOffset - first.axis * axialDistance
-        guard radialOffset.length <= tolerance.distance else {
-            throw unsupported(
-                residual: radialOffset.length,
-                tolerance: tolerance,
-                message: "Cone-cone intersection requires a common axis."
-            )
-        }
-
-        let angleResidual = abs(first.halfAngle - second.halfAngle)
-        if apexOffset.length <= tolerance.distance,
-           angleResidual <= tolerance.angle {
-            return [.coincident(try SurfaceSurfaceCoincidence(
-                residual: apexOffset.length,
-                tolerance: tolerance
-            ))]
-        }
-        if apexOffset.length == 0.0 {
-            return [try verifier.point(
-                first.apex,
-                firstSurface: firstSurface,
-                secondSurface: secondSurface,
-                tolerance: tolerance
-            )]
-        }
-
-        let firstSlope = 1.0 / tan(first.halfAngle)
-        let secondSlope = 1.0 / tan(second.halfAngle)
-        let denominatorTolerance = tolerance.angle * max(
-            1.0,
-            max(
-                1.0 + firstSlope * firstSlope,
-                1.0 + secondSlope * secondSlope
-            )
-        )
-        var candidates: [(radius: Double, axis: Double)] = []
-        for firstNappe in [-1.0, 1.0] {
-            for secondNappe in [-1.0, 1.0] {
-                let denominator = firstNappe * firstSlope
-                    - secondNappe * secondSlope
-                guard abs(denominator) > denominatorTolerance else {
-                    continue
-                }
-                let radius = axialDistance / denominator
-                guard radius >= -tolerance.distance else {
-                    continue
-                }
-                appendCandidate(
-                    radius: max(0.0, radius),
-                    axis: firstNappe * radius * firstSlope,
-                    to: &candidates,
-                    tolerance: tolerance
-                )
-            }
-        }
-
-        var results: [SurfaceSurfaceIntersection] = []
-        for candidate in candidates.sorted(by: candidateOrder) {
-            let center = first.apex + first.axis * candidate.axis
-            if candidate.radius <= tolerance.distance {
-                results.append(try verifier.point(
-                    center,
-                    firstSurface: firstSurface,
-                    secondSurface: secondSurface,
-                    tolerance: tolerance
-                ))
-                continue
-            }
-            results.append(try verifier.curve(
-                .circle(Circle3D(
-                    center: center,
-                    normal: first.axis,
-                    radius: candidate.radius
-                )),
-                kind: .transverse,
-                firstSurface: firstSurface,
-                secondSurface: secondSurface,
-                sampleParameters: SurfaceSurfaceIntersectionVerifier.closedCurveSamples,
-                tolerance: tolerance
-            ))
-        }
-        return results
+        try CurrentTaskCancellationChecker().checkCancellation()
+        throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+            message: "CoaxialConeConeSurfaceIntersector has no ordinary original-proof publication.")
     }
 
     private func appendCandidate(

@@ -56,6 +56,16 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         feature: FeatureNode,
         context: EvaluationContext
     ) throws -> ValidatedFeatureEvaluation {
+        var execution = try CurvedSweepSourceBudget(tolerance: context.tolerance).execution()
+        return try evaluateValidated(feature: feature, context: context, using: &execution)
+    }
+
+    // FIXME(INCOMPLETE_IMPLEMENTATION): The feature dispatcher uses this entry
+    // for the selected original source construction. Existing request/expression
+    // or staged feature branches still need their own direct contract; this
+    // binding must not be counted as complete whole-feature U1 accounting.
+    package func evaluateValidated(feature: FeatureNode, context: EvaluationContext,
+        using execution: inout OriginalQueryExecution) throws -> ValidatedFeatureEvaluation {
         try context.tolerance.validate()
         guard case let .extrude(extrude) = feature.operation else {
             throw KernelError.unsupportedEvaluation(
@@ -64,8 +74,6 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             )
         }
         try extrude.validate()
-        let sourceBudget = try CurvedSweepSourceBudget(tolerance: context.tolerance)
-        let sourceAdmission = try sourceBudget.conversionAdmission()
         let range = try extrude.resolvedAxialRange(tolerance: context.tolerance) {
             try resolver.evaluate($0, parameters: context.parameters, variables: [:])
         }
@@ -103,8 +111,7 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         var faceSection: ResolvedFaceSection?
         if case let .face(reference) = extrude.section {
             faceSection = try FaceSectionProfileResolver().resolve(for: reference,
-                context: context, featureID: feature.id, sourceBudget: sourceBudget,
-                admission: sourceAdmission)
+                context: context, featureID: feature.id, using: &execution)
         }
         let context = stages.context
         var result: EvaluationResult
@@ -125,12 +132,12 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
                     throw FeatureEvaluationError.missingInput("An original sheet section was not read.")
                 }
                 let loops = try ExactBSplineCurveSpanBuilder(tolerance: context.tolerance,
-                    admission: sourceAdmission).loopSpans(from: section)
+                    using: &execution).loopSpans(from: section, using: &execution)
                 result = try originalRegionSheet(loops: loops, plane: plane,
                     direction: extrude.direction,
                     lowerHeight: extrude.direction == .symmetric ? -0.5 * span : range.lowerBound,
                     distance: span, pull: extrude.draftDirection, angle: sourceDraftAngle,
-                    featureID: feature.id, admission: sourceAdmission, context: context)
+                    featureID: feature.id, using: &execution, context: context)
                 break
             }
             if let faceSection, draftTangent == 0, extrude.draftDirection == nil, wallThickness == 0 {
@@ -141,10 +148,10 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
                 case .vector(let direction): axis = try direction.normalized(tolerance: context.tolerance.distance)
                 }
                 result = try ExactLinearSectionSweepBodyBuilder(featureID: feature.id,
-                    context: context, sewer: sewer, admission: sourceAdmission)
+                    context: context, sewer: sewer)
                     .buildTranslatedFace(faceSection, axis: axis,
                         lowerHeight: extrude.direction == .symmetric ? -0.5 * span : range.lowerBound,
-                        distance: span, resultKind: extrude.resultKind == .solid ? .solid : .sheet)
+                        distance: span, resultKind: extrude.resultKind == .solid ? .solid : .sheet, using: &execution)
                 break
             }
             let profile: Profile
@@ -158,8 +165,7 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             result = try ExactProfileExtrudeBodyBuilder(
                 featureID: feature.id,
                 context: context,
-                sewer: sewer,
-                admission: sourceAdmission
+                sewer: sewer
             ).build(
                 from: profile,
                 direction: extrude.direction,
@@ -172,43 +178,43 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
                 wallThickness: wallThickness,
                 sourceDraftAngle: sourceDraftAngle,
                 originalFaceSection: faceSection
-            )
+            , using: &execution)
         case .curve(let reference):
             let curve = try ResolvedModelingSection.resolveCurve(
                 reference, from: context.curves[reference.featureID], tolerance: context.tolerance,
-                admission: sourceAdmission
+                using: &execution
             )
             // A closed curve drafted or thin is its region's drafted wall or thin ring.
             if curve.isClosed, draftTangent != 0 || extrude.draftDirection != nil || wallThickness > 0 {
                 let region = try closedCurveProfile(curve, featureID: feature.id,
-                    tolerance: context.tolerance, admission: sourceAdmission)
+                    tolerance: context.tolerance, using: &execution)
                 if wallThickness == 0 {
                     result = try originalClosedCurveSheet(curve: curve, spans: region.originalSpans,
                         direction: extrude.direction, lowerHeight: extrude.direction == .symmetric ? -0.5 * span : range.lowerBound,
                         distance: span, pull: extrude.draftDirection, angle: sourceDraftAngle,
-                        featureID: feature.id, admission: sourceAdmission, context: context)
+                        featureID: feature.id, using: &execution, context: context)
                     break
                 }
                 result = try ExactProfileExtrudeBodyBuilder(featureID: feature.id, context: context,
-                    sewer: sewer, admission: sourceAdmission).build(
+                    sewer: sewer).build(
                     from: region.profile, direction: extrude.direction,
                     distance: span, startOffset: range.lowerBound, bodyKind: wallThickness > 0 ? .solid : .sheet,
                     includesCaps: wallThickness > 0, draftTangent: draftTangent,
                     draftDirection: extrude.draftDirection, wallThickness: wallThickness,
                     sourceDraftAngle: sourceDraftAngle,
                     originalCurveSpans: region.originalSpans
-                )
+                , using: &execution)
                 break
             }
             if draftTangent != 0 || extrude.draftDirection != nil {
                 result = try draftedCurveSheet(curve, feature: feature, direction: extrude.direction, distance: span,
                                                startOffset: range.lowerBound, tangent: draftTangent,
                                                draftDirection: extrude.draftDirection, sourceDraftAngle: sourceDraftAngle,
-                                               admission: sourceAdmission, context: context)
+                                               using: &execution, context: context)
             } else {
                 result = try evaluateCurveSheet(
                     curve, featureID: feature.id, direction: extrude.direction,
-                    distance: span, startOffset: range.lowerBound, admission: sourceAdmission, context: context
+                    distance: span, startOffset: range.lowerBound, using: &execution, context: context
                 )
             }
             if wallThickness > 0 {
@@ -238,7 +244,7 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         }
         return try ValidatedFeatureEvaluation(
             planarExtrusion: result,
-            tolerance: context.tolerance
+            tolerance: context.tolerance, using: &execution
         )
     }
 
@@ -248,69 +254,62 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
     // directly; final wall source and thin original offset/joint publication
     // remain necessary before general closed-curve extrusion is complete.
     private func closedCurveProfile(_ curve: EvaluatedCurve, featureID: FeatureID,
-        tolerance: ModelingTolerance, admission: GeometryConversionAdmission) throws
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws
         -> (profile: Profile, originalSpans: [ExactBSplineCurveSpan]) {
         guard let plane = curve.plane else {
             throw KernelError(phase: .geometry, code: .invalidInput, featureID: featureID,
                 tolerance: tolerance, message: "A closed drafted or thin curve requires its original section plane.")
         }
-        let selected = try curve.validateOriginalGeometry(tolerance: tolerance,
-            maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
-            remainingSourceDepth: admission.remainingSourceDepth,
-            consumeWork: { try admission.visit(depth: $0) },
-            consumeStorage: { try admission.chargeStorage(bytes: $0) },
-            maximumAlgebraicDepth: admission.maximumAlgebraicDepth)
+        let selected = try curve.validateOriginalGeometry(tolerance: tolerance, using: &execution)
         let lower = selected.startParameter, upper = selected.endParameter
         guard lower.isFinite, upper.isFinite, lower < upper,
-            try BRepEdgeGeometryClassifier(maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
-                remainingSourceDepth: admission.remainingSourceDepth,
-                consumeWork: { try admission.visit(depth: $0) },
-                consumeStorage: { try admission.chargeStorage(bytes: $0) },
-                maximumAlgebraicDepth: admission.maximumAlgebraicDepth)
-                .kind(curve: selected.curve, from: lower, to: upper, tolerance: tolerance) == .closed else {
+            try BRepEdgeGeometryClassifier(maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth,
+                remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+                maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth)
+                .kind(curve: selected.curve, from: lower, to: upper, tolerance: tolerance, using: &execution) == .closed else {
             throw KernelError(phase: .geometry, code: .topologyFailure, featureID: featureID,
                 tolerance: tolerance, message: "A closed draft region requires original endpoint or periodic closure authority.")
         }
         let originalPlane = try ExactSweepSectionPlane(plane, tolerance: tolerance).plane
-        let source = try OriginalCurveSpanSource(curve: selected.curve, tolerance: tolerance, admission: admission)
+        let source = try OriginalCurveSpanSource(curve: selected.curve, tolerance: tolerance, using: &execution)
         let counterclockwise = try OriginalPlanarLoopOrientation().counterclockwise(source: source,
             startParameter: lower, endParameter: upper, origin: originalPlane.origin,
-            normal: originalPlane.normal, tolerance: tolerance, admission: admission)
+            normal: originalPlane.normal, tolerance: tolerance, using: &execution)
         let middle = lower * 0.5 + upper * 0.5
         guard middle > lower, middle < upper else {
             throw GeometryConversionError.resourceLimitExceeded("Original closed region has no representable interior split station.")
         }
-        let builder = ExactBSplineCurveSpanBuilder(tolerance: tolerance, admission: admission)
-        let first = try builder.sectionSpans(sourceOwner: source, lower: lower, upper: middle)
-        let second = try builder.sectionSpans(sourceOwner: source, lower: middle, upper: upper)
+        let builder = try ExactBSplineCurveSpanBuilder(tolerance: tolerance, using: &execution)
+        let first = try builder.sectionSpans(sourceOwner: source, lower: lower, upper: middle, using: &execution)
+        let second = try builder.sectionSpans(sourceOwner: source, lower: middle, upper: upper, using: &execution)
         let count = first.count.addingReportingOverflow(second.count)
         let payload = count.partialValue.multipliedReportingOverflow(by: MemoryLayout<ExactBSplineCurveSpan>.stride)
         guard !count.overflow, !payload.overflow else {
             throw GeometryConversionError.resourceLimitExceeded("Original closed-region span payload overflows.")
         }
-        try admission.chargeStorage(bytes: payload.partialValue)
+        try execution.retainStorage(bytes: payload.partialValue)
         var spans: [ExactBSplineCurveSpan] = []
         spans.reserveCapacity(count.partialValue)
         if counterclockwise {
-            for span in first { try admission.chargeWork(); spans.append(span) }
-            for span in second { try admission.chargeWork(); spans.append(span) }
+            for span in first { try execution.consumeWork(1); spans.append(span) }
+            for span in second { try execution.consumeWork(1); spans.append(span) }
         } else {
             for span in second.reversed() {
-                try admission.chargeWork()
-                spans.append(try builder.normalizedConstructionSpan(from: span.originalChart.reversed()))
+                try execution.consumeWork(1)
+                spans.append(try builder.normalizedConstructionSpan(from: span.originalChart.reversed(), using: &execution))
             }
             for span in first.reversed() {
-                try admission.chargeWork()
-                spans.append(try builder.normalizedConstructionSpan(from: span.originalChart.reversed()))
+                try execution.consumeWork(1)
+                spans.append(try builder.normalizedConstructionSpan(from: span.originalChart.reversed(), using: &execution))
             }
         }
         let display = try CurveTrimFeatureEvaluator().trimmedCurve(featureID: curve.sourceFeatureID,
-            source: curve, domain: .closed(lower, upper), tolerance: tolerance, admission: admission)
-        try admission.chargeStorage(bytes: (display.points.count - 1) * MemoryLayout<Point3D>.stride)
+            source: curve, domain: .closed(lower, upper), tolerance: tolerance, using: &execution)
+        try execution.retainStorage(bytes: (display.points.count - 1) * MemoryLayout<Point3D>.stride)
         var vertices: [Point3D] = []
         vertices.reserveCapacity(display.points.count - 1)
         for index in 0..<(display.points.count - 1) {
-            try admission.chargeWork()
+            try execution.consumeWork(1)
             vertices.append(display.points[counterclockwise || index == 0 ? index
                 : display.points.count - 1 - index])
         }
@@ -325,17 +324,17 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         if let circle, let start = display.points.first {
             // Preserve the ideal circular facade for the existing thin-circle
             // route. Non-thin draft still consumes the retained raw spans.
-            try admission.chargeStorage(bytes: 2 * MemoryLayout<ProfileBoundarySegment>.stride)
-            try admission.chargeWork(2)
+            try execution.retainStorage(bytes: 2 * MemoryLayout<ProfileBoundarySegment>.stride)
+            try execution.consumeWork(2)
             let opposite = circle.center + (circle.center - start)
             boundaries = [.circularArc(.init(center: circle.center, normal: originalPlane.normal,
                 radius: circle.radius, start: start, end: opposite, sweepAngle: Double.pi)),
                 .circularArc(.init(center: circle.center, normal: originalPlane.normal,
                 radius: circle.radius, start: opposite, end: start, sweepAngle: Double.pi))]
         } else {
-            try admission.chargeStorage(bytes: spans.count * MemoryLayout<ProfileBoundarySegment>.stride)
+            try execution.retainStorage(bytes: spans.count * MemoryLayout<ProfileBoundarySegment>.stride)
             boundaries = try spans.map { span -> ProfileBoundarySegment in
-                try admission.chargeWork()
+                try execution.consumeWork(1)
                 return .spline(ProfileSplineSegment(curve: span.curve))
             }
         }
@@ -349,7 +348,7 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
     /// ruled between them.
     private func draftedCurveSheet(_ curve: EvaluatedCurve, feature: FeatureNode, direction: ExtrudeDirection, distance: Double,
                                    startOffset: Double, tangent: Double, draftDirection: Vector3D?,
-                                   sourceDraftAngle: Double, admission: GeometryConversionAdmission,
+                                   sourceDraftAngle: Double, using execution: inout OriginalQueryExecution,
                                    context: EvaluationContext) throws -> EvaluationResult {
         let tolerance = context.tolerance
         guard let plane = curve.plane else {
@@ -375,15 +374,15 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
                 parameters: ScalarInterval(lower: a, upper: b), normal: originalDirections.normal,
                 axis: originalDirections.axis, pull: originalDirections.pull, lowerHeight: lower,
                 upperHeight: lower + distance, angle: sourceDraftAngle,
-                tolerance: tolerance, admission: admission)
+                tolerance: tolerance, using: &execution)
             return try originalCurveSheet(walls: walls, featureID: feature.id,
-                draftedRoles: true, admission: admission, context: context)
+                draftedRoles: true, using: &execution, context: context)
         }
         let reach = max(abs(lower * tangent), abs((lower + distance) * tangent))
         let builder = ExactDraftedProfileBoundaryBuilder(tolerance: tolerance, splineReach: reach)
         func joined(_ height: Double) throws -> BSplineCurve3D {
             let spans = try builder.openCurve(curve, planeNormal: axis, axis: axis, height: height, tangent: tangent)
-            return spans.count == 1 ? spans[0] : try ExactCompositeBSplineCurveBuilder().build(spans: spans, tolerance: tolerance)
+            return spans.count == 1 ? spans[0] : try ExactCompositeBSplineCurveBuilder().build(spans: spans, tolerance: tolerance, using: &execution)
         }
         let (bottom, top) = (try joined(lower), try joined(lower + distance))
         guard bottom.degree == top.degree, bottom.knots == top.knots, bottom.weights == top.weights else {
@@ -448,23 +447,23 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
     }
 
     private func originalCurveSheet(walls: [OriginalDraftedRuledSurface3D], featureID: FeatureID,
-        draftedRoles: Bool, admission: GeometryConversionAdmission,
+        draftedRoles: Bool, using execution: inout OriginalQueryExecution,
         materialRegion: Bool = false, orientation: Orientation = .forward,
         loopWallCounts: [Int]? = nil, context: EvaluationContext) throws -> EvaluationResult {
         let tolerance = context.tolerance
         let request = try OriginalDraftedSheetRequestBuilder().request(walls: walls,
-            featureID: featureID, tolerance: tolerance, admission: admission,
+            featureID: featureID, tolerance: tolerance, using: &execution,
             orientation: orientation, loopWallCounts: loopWallCounts)
         let sewn = try sewer.sew(request, tolerance: tolerance)
         if let generatedResultValidator {
             try generatedResultValidator.validate(bodyID: sewn.bodyID,
-                validatedModel: sewn.validatedBRep, admission: admission)
+                validatedModel: sewn.validatedBRep, using: &execution)
         } else if let wall = walls.first, walls.count == 1 {
             let embedding = try DefaultOriginalSurfaceEmbeddingPreparer().prepare(
                 surface: .procedural(.originalDrafted(wall)),
                 over: .init(u: .init(lower: 0, upper: 1), v: .init(lower: 0, upper: 1)),
-                options: .init(maximumSubdivisionDepth: min(14, admission.maximumSubdivisionDepth),
-                    maximumSubdivisionCells: 65_536), tolerance: tolerance, admission: admission)
+                options: .init(maximumSubdivisionDepth: min(14, execution.effectiveLimits.maximumSubdivisionDepth),
+                    maximumSubdivisionCells: 65_536), tolerance: tolerance, using: &execution)
             try embedding.certify()
         } else {
             // FIXME(INCOMPLETE_IMPLEMENTATION): Standalone multi-wall sheet
@@ -479,7 +478,7 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             .init(featureID: featureID, role: GeneratedSubshapeRole.body.rawValue, ordinal: 0): .body(sewn.bodyID)
         ]
         func retain(_ role: String, key: BRepSewingStableKey) throws {
-            try admission.chargeWork()
+            try execution.consumeWork(1)
             guard let reference = sewn.stableReferences[key] else {
                 throw TopologyError.missingReference("Original drafted sheet lost its retained semantic boundary.")
             }
@@ -489,7 +488,7 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         }
         if draftedRoles {
             for index in walls.indices {
-                try admission.chargeWork()
+                try execution.consumeWork(1)
                 let prefix = "extrude:curve:patch:\(index)"
                 try retain("patch:\(index):face", key: .face(prefix))
                 for role in ["vMin", "uMax", "vMax", "uMin"] {
@@ -502,7 +501,7 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             }
         } else {
             for index in walls.indices {
-                try admission.chargeWork()
+                try execution.consumeWork(1)
                 guard let face = sewn.stableReferences[.face("extrude:curve:patch:\(index)")] else {
                     throw TopologyError.missingReference("Original translated sheet lost its side face.")
                 }
@@ -510,45 +509,45 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             }
             if materialRegion {
                 try retainMaterialRegionTopology(wallCount: walls.count, sewn: sewn,
-                    featureID: featureID, admission: admission,
+                    featureID: featureID, using: &execution,
                     loopWallCounts: loopWallCounts, subshapes: &subshapes)
             } else {
-                try admission.chargeStorage(bytes: sewn.brep.edges.count * MemoryLayout<EdgeID>.stride)
+                try execution.retainStorage(bytes: sewn.brep.edges.count * MemoryLayout<EdgeID>.stride)
                 let edges = try sewn.brep.edges.keys.sorted {
-                    try admission.chargeWork(); return $0.description < $1.description
+                    try execution.consumeWork(1); return $0.description < $1.description
                 }
                 for (ordinal, edge) in edges.enumerated() {
-                    try admission.chargeWork()
+                    try execution.consumeWork(1)
                     subshapes[.init(featureID: featureID, role: GeneratedSubshapeRole.edge.rawValue, ordinal: ordinal)] = .edge(edge)
                 }
-                try admission.chargeStorage(bytes: sewn.brep.vertices.count * MemoryLayout<VertexID>.stride)
+                try execution.retainStorage(bytes: sewn.brep.vertices.count * MemoryLayout<VertexID>.stride)
                 let vertices = try sewn.brep.vertices.keys.sorted {
-                    try admission.chargeWork(); return $0.description < $1.description
+                    try execution.consumeWork(1); return $0.description < $1.description
                 }
                 for (ordinal, vertex) in vertices.enumerated() {
-                    try admission.chargeWork()
+                    try execution.consumeWork(1)
                     subshapes[.init(featureID: featureID, role: GeneratedSubshapeRole.vertex.rawValue, ordinal: ordinal)] = .vertex(vertex)
                 }
             }
         }
         return EvaluationResult(brep: combined, subshapes: subshapes,
-            lineage: try GeneratedTopologyLineageBuilder().build(featureID: featureID, subshapes: subshapes))
+            lineage: try GeneratedTopologyLineageBuilder().build(featureID: featureID, subshapes: subshapes, using: &execution))
     }
 
     private func retainMaterialRegionTopology(wallCount: Int, sewn: BRepSewingResult,
-        featureID: FeatureID, admission: GeometryConversionAdmission,
+        featureID: FeatureID, using execution: inout OriginalQueryExecution,
         loopWallCounts: [Int]?,
         subshapes: inout [SubshapeID: TopologyReference]) throws {
-        try admission.chargeStorage(bytes: sewn.brep.edges.count * MemoryLayout<EdgeID>.stride
+        try execution.retainStorage(bytes: sewn.brep.edges.count * MemoryLayout<EdgeID>.stride
             + sewn.brep.vertices.count * MemoryLayout<VertexID>.stride)
         var edges: [EdgeID] = []; edges.reserveCapacity(sewn.brep.edges.count)
         var vertices: [VertexID] = []; vertices.reserveCapacity(sewn.brep.vertices.count)
         func append(_ wall: Int, _ role: String) throws {
-                try admission.chargeWork()
+                try execution.consumeWork(1)
                 guard case .edge(let edge)? = sewn.stableReferences[.edge("extrude:curve:patch:\(wall):edge:\(role)")] else {
                     throw TopologyError.missingReference("Original closed sheet lost its retained material boundary edge.")
                 }
-                if try !edges.contains(where: { try admission.chargeWork(); return $0 == edge }) { edges.append(edge) }
+                if try !edges.contains(where: { try execution.consumeWork(1); return $0 == edge }) { edges.append(edge) }
         }
         if let loopWallCounts {
             var first = 0
@@ -568,39 +567,39 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             throw TopologyError.missingReference("Original material ordering does not cover every sewn physical edge.")
         }
         for (ordinal, edgeID) in edges.enumerated() {
-            try admission.chargeWork()
+            try execution.consumeWork(1)
             subshapes[.init(featureID: featureID, role: GeneratedSubshapeRole.edge.rawValue, ordinal: ordinal)] = .edge(edgeID)
             guard let edge = sewn.brep.edges[edgeID] else { throw TopologyError.missingReference("Original material edge is absent.") }
             for vertex in [edge.startVertexID, edge.endVertexID] {
-                if try !vertices.contains(where: { try admission.chargeWork(); return $0 == vertex }) { vertices.append(vertex) }
+                if try !vertices.contains(where: { try execution.consumeWork(1); return $0 == vertex }) { vertices.append(vertex) }
             }
         }
         guard vertices.count == sewn.brep.vertices.count else {
             throw TopologyError.missingReference("Original material ordering does not cover every sewn vertex.")
         }
         for (ordinal, vertex) in vertices.enumerated() {
-            try admission.chargeWork()
+            try execution.consumeWork(1)
             subshapes[.init(featureID: featureID, role: GeneratedSubshapeRole.vertex.rawValue, ordinal: ordinal)] = .vertex(vertex)
         }
     }
 
     private func originalClosedCurveSheet(curve: EvaluatedCurve, spans: [ExactBSplineCurveSpan],
         direction: ExtrudeDirection, lowerHeight: Double, distance: Double, pull: Vector3D?,
-        angle: Double, featureID: FeatureID, admission: GeometryConversionAdmission,
+        angle: Double, featureID: FeatureID, using execution: inout OriginalQueryExecution,
         context: EvaluationContext) throws -> EvaluationResult {
         guard let plane = curve.plane else {
             throw KernelError(phase: .geometry, code: .invalidInput, featureID: featureID,
                 tolerance: context.tolerance, message: "A closed drafted region requires its original plane.")
         }
-        try admission.chargeStorage(bytes: MemoryLayout<[ExactBSplineCurveSpan]>.stride)
+        try execution.retainStorage(bytes: MemoryLayout<[ExactBSplineCurveSpan]>.stride)
         return try originalRegionSheet(loops: [spans], plane: plane, direction: direction,
             lowerHeight: lowerHeight, distance: distance, pull: pull, angle: angle,
-            featureID: featureID, admission: admission, context: context)
+            featureID: featureID, using: &execution, context: context)
     }
 
     private func originalRegionSheet(loops: [[ExactBSplineCurveSpan]], plane: SketchPlane,
         direction: ExtrudeDirection, lowerHeight: Double, distance: Double, pull: Vector3D?,
-        angle: Double, featureID: FeatureID, admission: GeometryConversionAdmission,
+        angle: Double, featureID: FeatureID, using execution: inout OriginalQueryExecution,
         context: EvaluationContext) throws -> EvaluationResult {
         guard !loops.isEmpty else {
             throw GeometryConversionError.invalidInput("An original material sheet requires retained boundary loops.")
@@ -613,55 +612,54 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         case .zx: sourcePlane = .init(origin: .origin, normal: .unitY)
         case .plane(let original): sourcePlane = original
         }
-        var usage = OriginalDraftedConstructionAdmission(admission)
-        let originalNormal = try OriginalSupportingPlaneEquation.Vector.original(directions.normal, usage: &usage)
-        let originalAxis = try OriginalSupportingPlaneEquation.Vector.original(directions.axis, usage: &usage)
-        let signedNormalComponent = try originalNormal.dot(originalAxis, usage: &usage)
+        let originalNormal = try OriginalSupportingPlaneEquation.Vector.original(directions.normal, usage: &execution)
+        let originalAxis = try OriginalSupportingPlaneEquation.Vector.original(directions.axis, usage: &execution)
+        let signedNormalComponent = try originalNormal.dot(originalAxis, usage: &execution)
         guard !signedNormalComponent.isZero else { throw FeatureEvaluationError.invalidDirection(directions.axis) }
         let orientation: Orientation = signedNormalComponent.isPositive ? .forward : .reversed
         var wallCount = 0
         for loop in loops {
-            try admission.chargeWork()
+            try execution.consumeWork(1)
             let next = wallCount.addingReportingOverflow(loop.count)
-            guard !loop.isEmpty, !next.overflow, next.partialValue <= admission.maximumSpanCount else {
+            guard !loop.isEmpty, !next.overflow, next.partialValue <= execution.effectiveLimits.maximumSpans else {
                 throw GeometryConversionError.resourceLimitExceeded("Original region walls exceed the retained source-span allowance.")
             }
             wallCount = next.partialValue
         }
         let bytes = wallCount.multipliedReportingOverflow(by: MemoryLayout<OriginalDraftedRuledSurface3D>.stride)
         guard !bytes.overflow else { throw GeometryConversionError.resourceLimitExceeded("Original region wall storage overflows.") }
-        try admission.chargeStorage(bytes: bytes.partialValue)
-        try admission.chargeStorage(bytes: loops.count * MemoryLayout<Int>.stride)
+        try execution.retainStorage(bytes: bytes.partialValue)
+        try execution.retainStorage(bytes: loops.count * MemoryLayout<Int>.stride)
         var walls: [OriginalDraftedRuledSurface3D] = []; walls.reserveCapacity(wallCount)
         var counts: [Int] = []; counts.reserveCapacity(loops.count)
         for (loopIndex, loop) in loops.enumerated() {
           counts.append(loop.count)
-          try admission.chargeStorage(bytes: loop.count * MemoryLayout<OriginalCurveSpanParameterChart>.stride)
-          let charts = try loop.map { span in try admission.chargeWork(); return span.originalChart }
+          try execution.retainStorage(bytes: loop.count * MemoryLayout<OriginalCurveSpanParameterChart>.stride)
+          let charts = try loop.map { span in try execution.consumeWork(1); return span.originalChart }
           let ccw = try OriginalPlanarLoopOrientation().counterclockwise(charts: charts,
               origin: sourcePlane.origin, normal: directions.normal,
-              tolerance: context.tolerance, admission: admission)
+              tolerance: context.tolerance, using: &execution)
           let reverse = ccw != (loopIndex == 0)
           for offset in loop.indices {
-            try admission.chargeWork()
+            try execution.consumeWork(1)
             let index = reverse ? loop.count - 1 - offset : offset
             let chart = reverse ? loop[index].originalChart.reversed() : loop[index].originalChart
-            let raw = try chart.persistentCurve(tolerance: context.tolerance, admission: admission)
+            let raw = try chart.persistentCurve(tolerance: context.tolerance, using: &execution)
             let retained = try OriginalDraftedWallPartition().walls(curve: raw,
                 parameters: .init(lower: 0, upper: 1), normal: directions.normal,
                 axis: directions.axis, pull: directions.pull, lowerHeight: lowerHeight,
                 upperHeight: lowerHeight + distance, angle: angle,
-                tolerance: context.tolerance, admission: admission)
+                tolerance: context.tolerance, using: &execution)
             guard retained.count == 1, let wall = retained.first else {
                 throw GeometryConversionError.invalidInput("An original closed-region span must retain its one complete construction chart.")
             }
             try OriginalDraftedBoundaryPlanarity().validate(wall.start.generator,
-                on: sourcePlane, tolerance: context.tolerance, admission: admission)
+                on: sourcePlane, tolerance: context.tolerance, using: &execution)
             walls.append(wall)
           }
         }
         return try originalCurveSheet(walls: walls, featureID: featureID, draftedRoles: false,
-            admission: admission, materialRegion: true, orientation: orientation,
+            using: &execution, materialRegion: true, orientation: orientation,
             loopWallCounts: counts, context: context)
     }
 
@@ -671,7 +669,7 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         direction: ExtrudeDirection,
         distance: Double,
         startOffset: Double,
-        admission: GeometryConversionAdmission,
+        using execution: inout OriginalQueryExecution,
         context: EvaluationContext
     ) throws -> EvaluationResult {
         let rawAxis: Vector3D
@@ -684,12 +682,7 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             rawAxis = OriginalDraftDirectionInputs.normal(of: plane)
         case .vector(let vector): rawAxis = vector
         }
-        let selected = try curve.validateOriginalGeometry(tolerance: context.tolerance,
-            maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
-            remainingSourceDepth: admission.remainingSourceDepth,
-            consumeWork: { try admission.visit(depth: $0) },
-            consumeStorage: { try admission.chargeStorage(bytes: $0) },
-            maximumAlgebraicDepth: admission.maximumAlgebraicDepth)
+        let selected = try curve.validateOriginalGeometry(tolerance: context.tolerance, using: &execution)
         let first = selected.startParameter, last = selected.endParameter
         guard first.isFinite, last.isFinite, first != last else {
             throw KernelError(phase: .geometry, code: .invalidInput, featureID: featureID,
@@ -699,9 +692,9 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         let walls = try OriginalDraftedWallPartition().walls(curve: selected.curve,
             parameters: .init(lower: min(first,last), upper: max(first,last)), normal: rawAxis, axis: rawAxis, pull: rawAxis,
             lowerHeight: lower, upperHeight: lower + distance, angle: 0,
-            tolerance: context.tolerance, admission: admission, reversedTraversal: first > last)
+            tolerance: context.tolerance, using: &execution, reversedTraversal: first > last)
         return try originalCurveSheet(walls: walls, featureID: featureID,
-            draftedRoles: false, admission: admission, context: context)
+            draftedRoles: false, using: &execution, context: context)
     }
 
     /// A curve extrusion's unit direction: its source plane's normal, or the explicit vector.
@@ -722,13 +715,20 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         return axis
     }
 
+    package func evaluateSheet(from profile: Profile, featureID: FeatureID,
+        direction: ExtrudeDirection, distance: Double, context: EvaluationContext) throws -> EvaluationResult {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try evaluateSheet(from: profile, featureID: featureID, direction: direction,
+            distance: distance, context: context, using: &execution)
+    }
+
     package func evaluateSheet(
         from profile: Profile,
         featureID: FeatureID,
         direction: ExtrudeDirection,
         distance: Double,
         context: EvaluationContext
-    ) throws -> EvaluationResult {
+    , using execution: inout OriginalQueryExecution) throws -> EvaluationResult {
         try ExactProfileExtrudeBodyBuilder(
             featureID: featureID,
             context: context,
@@ -739,7 +739,7 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             distance: distance,
             bodyKind: .sheet,
             includesCaps: false
-        )
+        , using: &execution)
     }
 
 }

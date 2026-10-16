@@ -11,7 +11,7 @@ public struct DefaultOriginalFiniteNativeOffsetLawPreparer<S:OriginalOffsetSourc
         using a:inout A) throws(OriginalSourceIssuanceFailure) -> OriginalFiniteNativeOffsetLawFamily<S> {
         let source=copy source,child=copy child
         do {
-            return try OriginalSourceProofAdmission<A>.withBorrow(&a) { a in
+            return try a.withProofScope { a in
                 try a.checkpoint();try source.require(limits)
                 guard source.original.originalChild.owner === child.source.owner else { throw OriginalSourceIssuanceFailure.foreignBinding }
                 guard child.support.count==2,child.source.original.parameterCount==2,!child.laws.isEmpty else { throw OriginalSourceIssuanceFailure.invalidChart }

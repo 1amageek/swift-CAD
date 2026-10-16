@@ -40,3 +40,13 @@ Deferred source-phase verification must translate an actual parsed STEP/IGES sou
 World-space dependent placements are conjugated by translation: their linear map is retained and the translation column becomes `t + v - L(v)`. Rotation/scale origins move by `v`; explicit given Rebuild surfaces move with the original source. References and graph identities remain unchanged, so reevaluation regenerates geometry and lineage from the translated source graph.
 
 Default sketch planes are promoted to an explicit translated Plane3D with their original native U direction, preserving all local coordinate expressions and constraints. Arbitrary translation never rotates or rewrites the sketch's authored coordinate system. Dependent Join, Extrude, Align and Wrap placements follow the same translation conjugation law as Boolean, Match, Imprint and Bridge placements.
+
+## Canonical Admission Binding
+
+The required source caller passes the borrowed `OriginalQueryExecution` into the
+existing placement validation, retained source adjustment, or imported image body.
+The authored transform, inversion, adjustment order, source units, and exact model
+validation remain the authorities defined above. Ordinary entry points create one
+execution and use that body. This binding follows the
+[Geometry execution contract](../../CADGeometry/OriginalQueryExecution/DESIGN.md)
+and does not change Document evaluation or source laws.

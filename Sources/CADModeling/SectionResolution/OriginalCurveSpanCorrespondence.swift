@@ -11,7 +11,7 @@ package struct OriginalCurveSpanCorrespondence: Sendable {
     package let isExactIdentity: Bool
 
     package init(candidate: BSplineCurve3D, chart: OriginalCurveSpanParameterChart,
-        tolerance: ModelingTolerance, admission: GeometryConversionAdmission? = nil) throws {
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
         guard case let .closed(lower, upper) = candidate.domain else {
             throw GeometryConversionError.invalidInput("Original span correspondence requires a closed candidate domain.")
         }
@@ -21,24 +21,15 @@ package struct OriginalCurveSpanCorrespondence: Sendable {
             maximumTangentAngle: tolerance.angle, maximumCurvatureError: tolerance.distance,
             maximumDegree: max(3, candidate.degree))
         if case .affine = chart.mapping, chart.curve == .bSpline(candidate),
-           try chart.authoredEndpointParameter(atEnd: false, tolerance: tolerance) == lower,
-           try chart.authoredEndpointParameter(atEnd: true, tolerance: tolerance) == upper {
+           try chart.authoredEndpointParameter(atEnd: false, tolerance: tolerance, using: &execution) == lower,
+           try chart.authoredEndpointParameter(atEnd: true, tolerance: tolerance, using: &execution) == upper {
             isExactIdentity = true; guarantee = nil
             return
         }
         isExactIdentity = false
-        let selectedAdmission: GeometryConversionAdmission
-        if let admission = admission ?? chart.constructionAdmission { selectedAdmission = admission }
-        else {
-            let budget = try CurvedSweepSourceBudget(tolerance: tolerance)
-            selectedAdmission = try GeometryConversionAdmission(maximumSpanCount: budget.maximumSpanCount,
-                maximumSubdivisionDepth: budget.maximumDepth, remainingSourceDepth: budget.maximumDepth,
-                consumeWork: { try budget.consumeExactWork($0) },
-                consumeStorage: { try budget.retainBytes($0) })
-        }
         let source = try OriginalCurveConstructionSource(chart: chart, domain: parameters,
-            tolerance: tolerance, admission: selectedAdmission)
+            tolerance: tolerance, using: &execution)
         guarantee = try CertifiedGeometryConverter().certifyCurve(source: source,
-            candidate: candidate, over: parameters, requirements: requirements, tolerance: tolerance, admission: selectedAdmission)
+            candidate: candidate, over: parameters, requirements: requirements, tolerance: tolerance, using: &execution)
     }
 }

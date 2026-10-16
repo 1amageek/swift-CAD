@@ -14,7 +14,7 @@ package struct OriginalCurvedSweepArcLengthLaw: Sendable {
 
     package init(spans: [ExactBSplineCurveSpan], tolerance: ModelingTolerance,
                  budget: CurvedSweepSourceBudget,
-                 resolver: any CurveArcLengthResolving = DefaultCurveArcLengthResolver()) throws {
+                 resolver: any CurveArcLengthResolving = DefaultCurveArcLengthResolver(), using execution: inout OriginalQueryExecution) throws {
         guard !spans.isEmpty else {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
                 message: "An original sweep arc-length law needs retained native spans.")
@@ -30,7 +30,7 @@ package struct OriginalCurvedSweepArcLengthLaw: Sendable {
             throw KernelError(phase: .geometry, code: .resourceLimitExceeded,
                 tolerance: tolerance, message: "Original arc-length span storage overflowed.")
         }
-        try budget.retainBytes(storage.partialValue)
+        try execution.retainStorage(bytes:storage.partialValue)
         var starts: [OutwardScalarInterval] = [], lengths: [OutwardScalarInterval] = []
         var preparations: [any CurveArcLengthParameterization] = []
         var endpoints: [(first: OutwardScalarInterval, last: OutwardScalarInterval)] = []
@@ -44,13 +44,11 @@ package struct OriginalCurvedSweepArcLengthLaw: Sendable {
         groupIndices.reserveCapacity(spans.count)
         var total = OutwardScalarInterval.exact(0)
         for span in spans {
-            try budget.consume(depth: 0)
+            try budget.consume(depth: 0, using: &execution)
             let first = try span.originalChart.parameterBounds(atNormalizedFraction: 0,
-                tolerance: tolerance, consumeWork: { try budget.consume(depth: 0) },
-                consumeStorage: { try budget.retainBytes($0) })
+                tolerance: tolerance, using: &execution)
             let last = try span.originalChart.parameterBounds(atNormalizedFraction: 1,
-                tolerance: tolerance, consumeWork: { try budget.consume(depth: 0) },
-                consumeStorage: { try budget.retainBytes($0) })
+                tolerance: tolerance, using: &execution)
             guard first.isFinite, last.isFinite,
                   last.lower > first.upper || first.lower > last.upper else {
                 throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
@@ -61,7 +59,7 @@ package struct OriginalCurvedSweepArcLengthLaw: Sendable {
             let source = span.originalChart.source
             var matchedGroup: Int?
             for index in groups.indices {
-                try budget.consume(depth: 0)
+                try budget.consume(depth: 0, using: &execution)
                 if groups[index].source === source { matchedGroup = index; break }
             }
             if let index = matchedGroup {
@@ -76,24 +74,22 @@ package struct OriginalCurvedSweepArcLengthLaw: Sendable {
         }
         var groupPreparations: [any CurveArcLengthParameterization] = []
         groupPreparations.reserveCapacity(groups.count)
-        let admission = try budget.conversionAdmission()
+        let limits = budget.limits
         for group in groups {
-            try budget.consume(depth: 0)
+            try budget.consume(depth: 0, using: &execution)
             groupPreparations.append(try resolver.parameterization(of: group.source.curve,
                 over: ScalarInterval(lower: group.lower, upper: group.upper), options: CurveArcLengthOptions(),
                 tolerance: tolerance, maximumSubdivisionDepth: budget.maximumDepth,
-                remainingSourceDepth: admission.remainingSourceDepth,
-                maximumAlgebraicDepth: admission.maximumAlgebraicDepth,
-                consumeWork: { try budget.consume(depth: $0) },
-                consumeStorage: { try budget.retainBytes($0) }))
+                remainingSourceDepth: limits.remainingSourceDepth,
+                maximumAlgebraicDepth: limits.maximumValueDepth, using: &execution))
         }
         for index in spans.indices {
-            try budget.consume(depth: 0)
+            try budget.consume(depth: 0, using: &execution)
             let (first, last) = endpoints[index]
             let native = try ScalarInterval(lower: min(first.lower, last.lower),
                 upper: max(first.upper, last.upper))
             let preparation = groupPreparations[groupIndices[index]]
-            guard try preparation.hasSmoothNativeInterval(over: native) else {
+            guard try preparation.hasSmoothNativeInterval(over: native, using: &execution) else {
                 // FIXME(INCOMPLETE_IMPLEMENTATION): Original affine implicit/lifted
                 // path charts need retained owning join continuity before the
                 // original arc-length interpolation remainder may authorize twist.
@@ -102,8 +98,8 @@ package struct OriginalCurvedSweepArcLengthLaw: Sendable {
                     tolerance: tolerance, message: "Original sweep fraction needs a smooth native chart or a certified source join.")
             }
             let inner = try preparation.enclosure(over: ScalarInterval(
-                lower: min(first.upper, last.upper), upper: max(first.lower, last.lower)))
-            let outer = try preparation.enclosure(over: native)
+                lower: min(first.upper, last.upper), upper: max(first.lower, last.lower)), using: &execution)
+            let outer = try preparation.enclosure(over: native, using: &execution)
             let enclosed = OutwardScalarInterval(lower: inner.lowerBound,
                 upper: outer.upperBound)
             preparations.append(preparation)
@@ -125,8 +121,8 @@ package struct OriginalCurvedSweepArcLengthLaw: Sendable {
         self.budget = budget
     }
 
-    package func fraction(span: Int, at normalizedParameter: Double) throws -> OutwardScalarInterval {
-        try budget.consume(depth: 0)
+    package func fraction(span: Int, at normalizedParameter: Double, using execution: inout OriginalQueryExecution) throws -> OutwardScalarInterval {
+        try budget.consume(depth: 0, using: &execution)
         guard charts.indices.contains(span), normalizedParameter.isFinite,
               normalizedParameter >= 0, normalizedParameter <= 1 else {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
@@ -143,8 +139,7 @@ package struct OriginalCurvedSweepArcLengthLaw: Sendable {
             // Preserve the authored native affine chart before outward conversion.
             // A rounded native station cannot replace its original image interval.
             let station = try charts[span].parameterBounds(
-                atNormalizedFraction: normalizedParameter, tolerance: tolerance,
-                consumeWork: { try budget.consume(depth: 0) }, consumeStorage: { try budget.retainBytes($0) })
+                atNormalizedFraction: normalizedParameter, tolerance: tolerance, using: &execution)
             let first = endpoints[span].first
             let forward = endpoints[span].last.lower > first.upper
             let nativeLower = min(first.lower, endpoints[span].last.lower)
@@ -154,13 +149,13 @@ package struct OriginalCurvedSweepArcLengthLaw: Sendable {
             let outerLower = min(first.lower, boundedStation.lower)
             let outerUpper = max(first.upper, boundedStation.upper)
             let upper = try preparations[span].enclosure(over: ScalarInterval(
-                lower: outerLower, upper: outerUpper)).upperBound
+                lower: outerLower, upper: outerUpper), using: &execution).upperBound
             let innerLower = forward ? first.upper : boundedStation.upper
             let innerUpper = forward ? boundedStation.lower : first.lower
             let lower: Double
             if innerLower < innerUpper {
                 lower = try preparations[span].enclosure(over: ScalarInterval(
-                    lower: innerLower, upper: innerUpper)).lowerBound
+                    lower: innerLower, upper: innerUpper), using: &execution).lowerBound
             } else { lower = 0 }
             prefix = .init(lower: lower, upper: upper)
         }
@@ -173,25 +168,22 @@ package struct OriginalCurvedSweepArcLengthLaw: Sendable {
     }
 
     package func fractionInterpolationError(span: Int, from lower: Double, to upper: Double,
-        depth: Int) throws -> OutwardScalarInterval {
-        try budget.consume(depth: depth)
+        depth: Int, using execution: inout OriginalQueryExecution) throws -> OutwardScalarInterval {
+        try budget.consume(depth: depth, using: &execution)
         guard charts.indices.contains(span), lower >= 0, lower < upper, upper <= 1 else {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
                 message: "Original fraction interpolation needs one retained normalized source cell.")
         }
         let chart = charts[span]
         let labels = try chart.parameterJet(overNormalizedFraction: ScalarInterval(lower: lower, upper: upper),
-            throughOrder: 2, tolerance: tolerance, consumeWork: { try budget.consume(depth: depth) },
-            consumeStorage: { try budget.retainBytes($0) })
-        let first = try chart.parameterBounds(atNormalizedFraction: lower, tolerance: tolerance,
-            consumeWork: { try budget.consume(depth: depth) }, consumeStorage: { try budget.retainBytes($0) })
-        let last = try chart.parameterBounds(atNormalizedFraction: upper, tolerance: tolerance,
-            consumeWork: { try budget.consume(depth: depth) }, consumeStorage: { try budget.retainBytes($0) })
+            throughOrder: 2, tolerance: tolerance, using: &execution)
+        let first = try chart.parameterBounds(atNormalizedFraction: lower, tolerance: tolerance, using: &execution)
+        let last = try chart.parameterBounds(atNormalizedFraction: upper, tolerance: tolerance, using: &execution)
         let nativeLower = min(endpoints[span].first.lower, endpoints[span].last.lower)
         let nativeUpper = max(endpoints[span].first.upper, endpoints[span].last.upper)
         let jet = try preparations[span].differentialEnclosure(over: ScalarInterval(
             lower: max(nativeLower, min(first.lower, last.lower)),
-            upper: min(nativeUpper, max(first.upper, last.upper))))
+            upper: min(nativeUpper, max(first.upper, last.upper))), using: &execution)
         // Original composition acceleration is C''(label) label'^2 +
         // C'(label) label''. Child normalization contributes width squared;
         // circular construction fractions are not linear native angles.

@@ -13,7 +13,7 @@ package struct ExactIntersectionBooleanProgram: Sendable {
     package let instructions: [Instruction]
     package let maximumStackCount: Int
 
-    package init<B: RationalAlgebraAdmitting>(polynomialCount: Int,
+    package init<B: ExactScalarAdmission & ~Copyable>(polynomialCount: Int,
         instructions: [Instruction], usage: inout B) throws {
         guard polynomialCount >= 0 else { throw rationalAlgebraFailure("A sign program requires a bound source list.") }
         var depth = 0, maximum = 0
@@ -42,7 +42,7 @@ package struct ExactIntersectionBooleanProgram: Sendable {
     }
 
     /// Scratch is owned and admitted once by the composing truth traversal.
-    package func evaluate<B: RationalAlgebraAdmitting>(signs: [ExactAlgebraicRealRoot.Sign],
+    package func evaluate<B: ExactScalarAdmission & ~Copyable>(signs: [ExactAlgebraicRealRoot.Sign],
         scratch: inout [Bool], usage: inout B) throws -> Bool {
         guard signs.count >= polynomialCount, scratch.capacity >= maximumStackCount else {
             throw rationalAlgebraFailure("Sign evaluation lost original sources or admitted scratch.")
@@ -69,7 +69,7 @@ package struct ExactIntersectionBooleanProgram: Sendable {
     }
 
     /// Unknown atoms remain unknown; only Boolean consequences may close a suffix.
-    package func partialValue<B: RationalAlgebraAdmitting>(signs: [ExactAlgebraicRealRoot.Sign?],
+    package func partialValue<B: ExactScalarAdmission & ~Copyable>(signs: [ExactAlgebraicRealRoot.Sign?],
         scratch: inout [Bool?], usage: inout B) throws -> Bool? {
         guard signs.count == polynomialCount, scratch.capacity >= maximumStackCount else {
             throw rationalAlgebraFailure("Partial sign evaluation lost its original atoms or admitted scratch.")

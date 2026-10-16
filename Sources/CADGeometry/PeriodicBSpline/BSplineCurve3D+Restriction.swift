@@ -12,27 +12,29 @@ import WASILibc
 #endif
 
 extension BSplineCurve3D {
-    func periodicRestriction(
+    func periodicRestriction<A: ExactScalarAdmission & ~Copyable>(
         from lower: Double, to upper: Double,
-        options: PeriodicBSplineExpansionOptions, tolerance: ModelingTolerance
+        options: PeriodicBSplineExpansionOptions, tolerance: ModelingTolerance, using execution: inout A
     ) throws -> BSplineCurve3D {
+        try execution.consumeWork(1)
         let plan = try PeriodicBSplineEditPlan.restriction(degree: degree, knots: knots,
             controlPointCount: controlPointCount, periodic: true,
             lower: lower, upper: upper, tolerance: tolerance)
         try plan.admit(options, tolerance: tolerance)
         let expanded = try periodicWindow(firstCycle: plan.firstCycle, cycleCount: plan.cycleCount,
-            reservedControlPoints: plan.reservedControlPoints, options: options, tolerance: tolerance)
+            reservedControlPoints: plan.reservedControlPoints, options: options, tolerance: tolerance, using: &execution)
         guard expanded.knots[degree] < lower, expanded.knots[expanded.controlPointCount] > upper else {
             throw expansionFailure(tolerance)
         }
         return try BSplineCurveSegmentExtractor().segment(
-            of: expanded, from: lower, to: upper, tolerance: tolerance)
+            of: expanded, from: lower, to: upper, tolerance: tolerance, using: &execution)
     }
 
-    func periodicWindow(
+    func periodicWindow<A: ExactScalarAdmission & ~Copyable>(
         firstCycle: Double, cycleCount: Int, reservedControlPoints: Int,
-        options: PeriodicBSplineExpansionOptions, tolerance: ModelingTolerance
+        options: PeriodicBSplineExpansionOptions, tolerance: ModelingTolerance, using execution: inout A
     ) throws -> BSplineCurve3D {
+        try execution.consumeWork(1)
         let count = controlPointCount - degree
         let (independentCount, countOverflow) = cycleCount.multipliedReportingOverflow(by: count)
         let (expandedCount, degreeOverflow) = independentCount.addingReportingOverflow(degree)
@@ -41,21 +43,25 @@ extension BSplineCurve3D {
               !workspaceOverflow, workspaceCount <= options.maximumControlPointCount else {
             throw expansionFailure(tolerance)
         }
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: count, of: Double.self))
         let expandedKnots = try Self.translatedPeriodicKnots(degree: degree,
             cycleKnots: Array(knots[degree..<(degree + count)]),
             period: knots[controlPointCount] - knots[degree],
-            independentControlCount: independentCount, firstCycle: firstCycle, tolerance: tolerance)
+            independentControlCount: independentCount, firstCycle: firstCycle, tolerance: tolerance, using: &execution)
         var points: [Point3D] = []
         var expandedWeights: [Double] = []
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: expandedCount, of: Point3D.self))
         points.reserveCapacity(expandedCount)
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: expandedCount, of: Double.self))
         expandedWeights.reserveCapacity(expandedCount)
         for index in 0..<expandedCount {
+            try execution.consumeWork(1)
             points.append(controlPoints[index % count])
             expandedWeights.append(weights[index % count])
         }
         let expanded = BSplineCurve3D(degree: degree, knots: expandedKnots,
             controlPoints: points, weights: expandedWeights)
-        try expanded.validate(tolerance: tolerance)
+        try expanded.validate(tolerance: tolerance, using: &execution)
         return expanded
     }
 
@@ -64,28 +70,61 @@ extension BSplineCurve3D {
             message: "The periodic edit exceeds its storage, insertion-work or finite knot resolution budget.")
     }
 
-    /// A finite second-derivative bound requires a C1 certificate at every interior knot.
     func validatePeriodicDerivativeCertificate(
         over interval: ScalarInterval, tolerance: ModelingTolerance
     ) throws {
-        guard isPeriodic else { return }
-        try Self.validatePeriodicDerivativeCertificate(degree: degree, knots: knots,
-            controlPointCount: controlPointCount, over: interval, tolerance: tolerance)
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try OriginalQueryExecutionLimits(maximumValueDepth: 32, maximumCoefficientDepth: 32))
+        try validatePeriodicDerivativeCertificate(over: interval, tolerance: tolerance, using: &execution)
     }
 
     static func validatePeriodicDerivativeCertificate(
         degree: Int, knots: [Double], controlPointCount: Int,
         over interval: ScalarInterval, tolerance: ModelingTolerance
     ) throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try OriginalQueryExecutionLimits(maximumValueDepth: 32, maximumCoefficientDepth: 32))
+        try validatePeriodicDerivativeCertificate(degree: degree, knots: knots, controlPointCount: controlPointCount,
+            over: interval, tolerance: tolerance, using: &execution)
+    }
+
+    /// A finite second-derivative bound requires a C1 certificate at every interior knot.
+    func validatePeriodicDerivativeCertificate<A: ExactScalarAdmission & ~Copyable>(
+        over interval: ScalarInterval, tolerance: ModelingTolerance, using execution: inout A
+    ) throws {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
+        guard isPeriodic else { return }
+        try Self.validatePeriodicDerivativeCertificate(degree: degree, knots: knots,
+            controlPointCount: controlPointCount, over: interval, tolerance: tolerance, using: &execution)
+    }
+
+    static func validatePeriodicDerivativeCertificate<A: ExactScalarAdmission & ~Copyable>(
+        degree: Int, knots: [Double], controlPointCount: Int,
+        over interval: ScalarInterval, tolerance: ModelingTolerance, using execution: inout A
+    ) throws {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let period = knots[controlPointCount] - knots[degree]
         var index = degree
         while index < controlPointCount {
+            try execution.consumeWork(1)
             let knot = knots[index]
             var first = index
-            while first > 0, knots[first - 1] == knot { first -= 1 }
+            while first > 0 {
+                try execution.consumeWork(1)
+                guard knots[first - 1] == knot else { break }
+                first -= 1
+            }
             var next = index + 1
-            while next < knots.count, knots[next] == knot { next += 1 }
+            while next < knots.count {
+                try execution.consumeWork(1)
+                guard knots[next] == knot else { break }
+                next += 1
+            }
+            try execution.consumeWork(1)
             if next - first >= degree {
+                try execution.consumeWork(1)
                 let cycle = floor((interval.lower - knot) / period) + 1
                 let interior = knot + cycle * period
                 guard interior.isFinite, interior > interval.lower else {

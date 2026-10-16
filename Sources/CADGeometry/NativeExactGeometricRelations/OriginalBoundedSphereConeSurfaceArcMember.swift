@@ -11,17 +11,17 @@ public struct OriginalBoundedSphereConeSurfaceArcMember: Sendable {
     init(relation: OriginalBoundedSphereConeSurfaceRelation, position: OriginalBoundedSphereConeSurfaceFiniteArcPosition) {
         self.relation = relation; self.position = position
     }
-    public func firstUV<A: ExactScalarAdmission & ~Copyable>(limits: OriginalDomainIdentityLimits, using a: inout A)
+    public func firstUV(limits: OriginalDomainIdentityLimits, using a: inout OriginalQueryExecution)
         throws -> OriginalBoundedSphereConeSurfaceFiniteArcUV {
         try admitProof(limits: limits, using: &a)
         return position.firstUV
     }
-    public func secondUV<A: ExactScalarAdmission & ~Copyable>(limits: OriginalDomainIdentityLimits, using a: inout A)
+    public func secondUV(limits: OriginalDomainIdentityLimits, using a: inout OriginalQueryExecution)
         throws -> OriginalBoundedSphereConeSurfaceFiniteArcUV {
         try admitProof(limits: limits, using: &a)
         return position.secondUV
     }
-    public func admitProof<A: ExactScalarAdmission & ~Copyable>(limits: OriginalDomainIdentityLimits, using a: inout A) throws {
+    public func admitProof(limits: OriginalDomainIdentityLimits, using a: inout OriginalQueryExecution) throws {
         try relation.admitProof(limits: limits, using: &a)
         try a.admitDepth(value: proofDepth.value, coefficient: proofDepth.coefficient)
         try a.checkpoint()

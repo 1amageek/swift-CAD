@@ -1,14 +1,15 @@
 import CADCore
+
 #if !hasFeature(Embedded)
-import Foundation
+  import Foundation
 #elseif canImport(Darwin)
-import Darwin
+  import Darwin
 #elseif canImport(Glibc)
-import Glibc
+  import Glibc
 #elseif canImport(WASILibc)
-import WASILibc
+  import WASILibc
 #else
-#error("CADGeometry numeric algorithms require the target C math module.")
+  #error("CADGeometry numeric algorithms require the target C math module.")
 #endif
 
 /// Coordinates representation-independent intersection services for finite
@@ -22,50 +23,75 @@ struct BoundedParametricSurfaceIntersector: Sendable {
     second: Surface3D,
     options: SurfaceSurfaceIntersectionOptions,
     tolerance: ModelingTolerance,
-    admission: SurfaceSurfaceQueryAdmission = .legacy
+    using execution: inout OriginalQueryExecution
   ) throws -> [SurfaceSurfaceIntersection] {
     try options.validate(tolerance: tolerance)
-    try admission.step()
-    let preparedFirstSurface = try admission.prepare(first, tolerance: tolerance)
-    let preparedSecondSurface = try admission.prepare(second, tolerance: tolerance)
-    let domains = try BoundedSurfaceParameterDomainMap(first: first, second: second,
-      tolerance: tolerance, admission: admission,
+    try execution.consumeWork(1)
+    execution.context = execution.context.at(stage: .source)
+    let preparedFirstSurface = try PreparedSurfaceDifferentialEncloser(
+      surface: first, tolerance: tolerance, using: &execution)
+    let preparedSecondSurface = try PreparedSurfaceDifferentialEncloser(
+      surface: second, tolerance: tolerance, using: &execution)
+    execution.context = execution.context.at(stage: .domain)
+    let domains = try BoundedSurfaceParameterDomainMap(
+      first: first, second: second,
+      tolerance: tolerance, using: &execution,
       preparedFirstSurface: preparedFirstSurface, preparedSecondSurface: preparedSecondSurface)
-    return try intersections(first: preparedFirstSurface, second: preparedSecondSurface,
-      domains: domains, options: options, tolerance: tolerance, admission: admission)
+    return try intersections(
+      first: preparedFirstSurface, second: preparedSecondSurface,
+      domains: domains, options: options, tolerance: tolerance, using: &execution)
   }
 
-  func intersections(first: Surface3D, over firstBox: SurfaceParameterBox,
+  func intersections(
+    first: Surface3D, over firstBox: SurfaceParameterBox,
     second: Surface3D, over secondBox: SurfaceParameterBox,
     options: SurfaceSurfaceIntersectionOptions, tolerance: ModelingTolerance,
-    admission: SurfaceSurfaceQueryAdmission) throws -> [SurfaceSurfaceIntersection] {
-    try options.validate(tolerance: tolerance); try admission.step()
-    let domains = try BoundedSurfaceParameterDomainMap(first: first, over: firstBox,
-      second: second, over: secondBox, tolerance: tolerance, admission: admission)
-    let preparedFirst = try admission.prepare(first, tolerance: tolerance)
-    let preparedSecond = try admission.prepare(second, tolerance: tolerance)
-    return try intersections(first: preparedFirst, second: preparedSecond,
-      domains: domains, options: options, tolerance: tolerance, admission: admission)
+    using execution: inout OriginalQueryExecution
+  ) throws -> [SurfaceSurfaceIntersection] {
+    try options.validate(tolerance: tolerance)
+    try execution.consumeWork(1)
+    execution.context = execution.context.at(stage: .domain)
+    let domains = try BoundedSurfaceParameterDomainMap(
+      first: first, over: firstBox,
+      second: second, over: secondBox, tolerance: tolerance, using: &execution)
+    execution.context = execution.context.at(stage: .source)
+    let preparedFirst = try PreparedSurfaceDifferentialEncloser(
+      surface: first, tolerance: tolerance, using: &execution)
+    let preparedSecond = try PreparedSurfaceDifferentialEncloser(
+      surface: second, tolerance: tolerance, using: &execution)
+    return try intersections(
+      first: preparedFirst, second: preparedSecond,
+      domains: domains, options: options, tolerance: tolerance, using: &execution)
   }
 
-  func intersections(first: PreparedSurfaceDifferentialEncloser, over firstBox: SurfaceParameterBox,
+  func intersections(
+    first: PreparedSurfaceDifferentialEncloser, over firstBox: SurfaceParameterBox,
     second: PreparedSurfaceDifferentialEncloser, over secondBox: SurfaceParameterBox,
     options: SurfaceSurfaceIntersectionOptions, tolerance: ModelingTolerance,
-    admission: SurfaceSurfaceQueryAdmission) throws -> [SurfaceSurfaceIntersection] {
-    try options.validate(tolerance: tolerance); try admission.step()
+    using execution: inout OriginalQueryExecution
+  ) throws -> [SurfaceSurfaceIntersection] {
+    try options.validate(tolerance: tolerance)
+    try execution.consumeWork(1)
     try first.validatePreparationTolerance(tolerance)
     try second.validatePreparationTolerance(tolerance)
-    let domains = try BoundedSurfaceParameterDomainMap(first: first.surface, over: firstBox,
-      second: second.surface, over: secondBox, tolerance: tolerance, admission: admission)
-    return try intersections(first: first, second: second, domains: domains,
-      options: options, tolerance: tolerance, admission: admission)
+    execution.context = execution.context.at(stage: .domain)
+    let domains = try BoundedSurfaceParameterDomainMap(
+      first: first.surface, over: firstBox,
+      second: second.surface, over: secondBox, tolerance: tolerance, using: &execution)
+    return try intersections(
+      first: first, second: second, domains: domains,
+      options: options, tolerance: tolerance, using: &execution)
   }
 
-  private func intersections(first preparedFirstSurface: PreparedSurfaceDifferentialEncloser,
+  private func intersections(
+    first preparedFirstSurface: PreparedSurfaceDifferentialEncloser,
     second preparedSecondSurface: PreparedSurfaceDifferentialEncloser,
     domains: BoundedSurfaceParameterDomainMap, options: SurfaceSurfaceIntersectionOptions,
-    tolerance: ModelingTolerance, admission: SurfaceSurfaceQueryAdmission) throws -> [SurfaceSurfaceIntersection] {
-    let first = preparedFirstSurface.surface, second = preparedSecondSurface.surface
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+  ) throws -> [SurfaceSurfaceIntersection] {
+    execution.context = execution.context.at(stage: .relation)
+    let first = preparedFirstSurface.surface
+    let second = preparedSecondSurface.surface
     var remainingCells = options.maximumSubdivisionCells
     var remainingRootAttempts = options.maximumRootAttempts
     var remainingAtlasCells = options.maximumBoundarySubdivisionCells
@@ -77,14 +103,14 @@ struct BoundedParametricSurfaceIntersector: Sendable {
       second: preparedSecondSurface,
       domains: domains,
       options: options,
-      tolerance: tolerance, admission: admission
+      tolerance: tolerance, using: &execution
     )
     let tracer = ParametricSurfaceIntersectionComponentTracer(
       first: first,
       second: second,
       domains: domains,
       options: options,
-      tolerance: tolerance, admission: admission,
+      tolerance: tolerance,
       preparedFirstSurface: preparedFirstSurface, preparedSecondSurface: preparedSecondSurface
     )
     let atlasBuilder = try ParametricSurfaceIntersectionGraphAtlasBuilder(
@@ -92,30 +118,36 @@ struct BoundedParametricSurfaceIntersector: Sendable {
       second: preparedSecondSurface,
       domains: domains,
       options: options,
-      tolerance: tolerance, admission: admission
+      tolerance: tolerance
     )
     while true {
-      try admission.step()
+      try execution.consumeWork(1)
       var existingRecords: [ParametricSurfaceIntersectionGraphCellRecord] = []
       for atlas in atlases {
-        try admission.step()
+        try execution.consumeWork(1)
         for entry in atlas {
-          try admission.reserve(count: entry.coverageRecords.count, stride: MemoryLayout<ParametricSurfaceIntersectionGraphCellRecord>.stride)
-          for record in entry.coverageRecords { try admission.step(); existingRecords.append(record) }
+          try execution.consumeWork(1)
+          try execution.retainStorage(
+            count: entry.coverageRecords.count,
+            stride: MemoryLayout<ParametricSurfaceIntersectionGraphCellRecord>.stride)
+          for record in entry.coverageRecords {
+            try execution.consumeWork(1)
+            existingRecords.append(record)
+          }
         }
       }
       switch try verifier.firstUncoveredSeed(
         atlas: existingRecords,
         remainingCells: &remainingCells,
-        remainingRootAttempts: &remainingRootAttempts
-      ) {
+        remainingRootAttempts: &remainingRootAttempts, using: &execution)
+      {
       case .complete:
         return try certifiedIntersections(
           components: components,
           atlases: atlases,
           first: preparedFirstSurface,
           second: preparedSecondSurface,
-          tolerance: tolerance, admission: admission
+          tolerance: tolerance, using: &execution
         )
       case .uncoveredSeed(let seed):
         guard components.count < options.maximumSeedCount else {
@@ -130,7 +162,7 @@ struct BoundedParametricSurfaceIntersector: Sendable {
           try represents(
             seed,
             components: components,
-            tolerance: tolerance, admission: admission
+            tolerance: tolerance, using: &execution
           ) == false
         else {
           throw KernelError(
@@ -143,15 +175,16 @@ struct BoundedParametricSurfaceIntersector: Sendable {
         }
         let component = try tracer.traceComponent(
           from: seed,
-          remainingPointCount: &remainingPointCount
-        )
+          remainingPointCount: &remainingPointCount, using: &execution)
         let atlas = try atlasBuilder.build(
           covering: component.samples,
           remainingRootAttempts: &remainingRootAttempts,
-          remainingCellAttempts: &remainingAtlasCells
-        )
-        try admission.reserve(count: 1, stride: MemoryLayout<ParametricSurfaceIntersectionTracedComponent>.stride
-          + MemoryLayout<[ParametricSurfaceIntersectionGraphAtlasBuilder.Entry]>.stride)
+          remainingCellAttempts: &remainingAtlasCells, using: &execution)
+        try execution.consumeWork(1)
+        try execution.retainStorage(
+          count: 1,
+          stride: MemoryLayout<ParametricSurfaceIntersectionTracedComponent>.stride
+            + MemoryLayout<[ParametricSurfaceIntersectionGraphAtlasBuilder.Entry]>.stride)
         components.append(component)
         atlases.append(atlas)
       case .unresolved(let reason):
@@ -172,21 +205,34 @@ struct BoundedParametricSurfaceIntersector: Sendable {
     first preparedFirstSurface: PreparedSurfaceDifferentialEncloser,
     second preparedSecondSurface: PreparedSurfaceDifferentialEncloser,
     tolerance: ModelingTolerance,
-    admission: SurfaceSurfaceQueryAdmission
+    using execution: inout OriginalQueryExecution
   ) throws -> [SurfaceSurfaceIntersection] {
-    guard components.count == atlases.count else {
-      throw GeometryConversionError.invalidInput("Original SSI publication requires one complete atlas per component.")
+    execution.context = execution.context.at(stage: .publication)
+    guard components.count <= execution.limits.maximumResults else {
+      throw GeometryConversionError.resourceLimitExceeded(
+        "Original SSI publication exhausted its local result ceiling.")
     }
-    try admission.reserve(count: components.count, stride: MemoryLayout<SurfaceSurfaceIntersection>.stride)
+    guard components.count == atlases.count else {
+      throw GeometryConversionError.invalidInput(
+        "Original SSI publication requires one complete atlas per component.")
+    }
+    try execution.consumeWork(1)
+    try execution.retainStorage(
+      count: components.count, stride: MemoryLayout<SurfaceSurfaceIntersection>.stride)
     return try zip(components, atlases).map { component, atlas in
-      try admission.reserve(count: atlas.count, stride: MemoryLayout<CertifiedImplicitIntersectionGraphCell>.stride)
-      let cells = try atlas.map { entry in try admission.step(); return entry.cell }
+      try execution.consumeWork(1)
+      try execution.retainStorage(
+        count: atlas.count, stride: MemoryLayout<CertifiedImplicitIntersectionGraphCell>.stride)
+      let cells = try atlas.map { entry in
+        try execution.consumeWork(1)
+        return entry.cell
+      }
       return try intersection(
         cells: cells,
         isClosed: component.isClosed,
         first: preparedFirstSurface,
         second: preparedSecondSurface,
-        tolerance: tolerance, admission: admission
+        tolerance: tolerance, using: &execution
       )
     }
   }
@@ -197,10 +243,11 @@ struct BoundedParametricSurfaceIntersector: Sendable {
     first preparedFirstSurface: PreparedSurfaceDifferentialEncloser,
     second preparedSecondSurface: PreparedSurfaceDifferentialEncloser,
     tolerance: ModelingTolerance,
-    admission: SurfaceSurfaceQueryAdmission
+    using execution: inout OriginalQueryExecution
   ) throws -> SurfaceSurfaceIntersection {
     let first = preparedFirstSurface.surface
     let second = preparedSecondSurface.surface
+    execution.context = execution.context.at(stage: .publication)
     let implicit: CertifiedImplicitIntersectionCurve
     do {
       implicit = try CertifiedImplicitIntersectionCurve(
@@ -208,18 +255,12 @@ struct BoundedParametricSurfaceIntersector: Sendable {
         secondSurface: preparedSecondSurface,
         validatedCells: cells,
         isClosed: isClosed,
-        tolerance: tolerance, admission: admission
+        tolerance: tolerance, using: &execution
       )
-    } catch let error as KernelError {
-      throw KernelError(
-        phase: error.phase,
-        code: error.code,
-        residual: error.residual,
-        tolerance: tolerance,
-        message:
-          "Certified graph-atlas assembly failed for cell widths \(cells.map { $0.parameterBox.intervals.map({ $0.width }) }). \(error.message)"
-      )
+    } catch {
+      throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance)
     }
+
     let firstPcurve = SurfaceParameterCurve.certifiedImplicit(
       CertifiedImplicitSurfaceParameterCurve(
         validatedIntersection: implicit,
@@ -240,8 +281,12 @@ struct BoundedParametricSurfaceIntersector: Sendable {
       tolerance: tolerance
     )
     let anchor = cells[0].startAnchor
-    let firstPoint = try admission.numericalSample(preparedFirstSurface, at: anchor.first, tolerance: tolerance).position
-    let secondPoint = try admission.numericalSample(preparedSecondSurface, at: anchor.second, tolerance: tolerance).position
+    let firstPoint = try (preparedFirstSurface).numericalSample(
+      at: anchor.first, tolerance: tolerance, using: &execution
+    ).position
+    let secondPoint = try (preparedSecondSurface).numericalSample(
+      at: anchor.second, tolerance: tolerance, using: &execution
+    ).position
     let residual = (firstPoint - secondPoint).length * 0.5
     return .curve(
       try SurfaceSurfaceIntersectionCurve(
@@ -267,13 +312,13 @@ struct BoundedParametricSurfaceIntersector: Sendable {
   private func represents(
     _ seed: PairSample,
     components: [ParametricSurfaceIntersectionTracedComponent],
-    tolerance: ModelingTolerance, admission: SurfaceSurfaceQueryAdmission
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> Bool {
     try components.contains { component in
       guard component.samples.count >= 2 else { return false }
-      try admission.step()
+      try execution.consumeWork(1)
       return try (1..<component.samples.count).contains { index in
-        try admission.step()
+        try execution.consumeWork(1)
         return pointSegmentDistance(
           seed.point,
           component.samples[index - 1].point,

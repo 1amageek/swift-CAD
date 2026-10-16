@@ -216,7 +216,7 @@ package struct CapLoopBlendBuilder {
                 return try n.cross(tangent).normalized(tolerance: tolerance.distance) * loop.inwardSense
             }
             for (index, segment) in loop.segments.enumerated() {
-                let parents = selectedParent[segment.edgeID].map { [$0] } ?? context.subshapeIDs(for: .edge(segment.edgeID))
+                let parents = try selectedParent[segment.edgeID].map { [$0] } ?? context.subshapeIDs(for: .edge(segment.edgeID))
                 let stableID = "loop:\(loopIndex):\(index)"
                 let (mStart, mEnd) = (try inward(segment, at: segment.start), try inward(segment, at: segment.end))
                 let capSegment: Segment
@@ -278,12 +278,12 @@ package struct CapLoopBlendBuilder {
                                              mitres: (segment.arc == nil ? mitre(at: segment.start) : nil,
                                                       segment.arc == nil ? mitre(at: segment.end) : nil),
                                              normal: n, rise: loop.rise, parents: parents,
-                                             faceParents: [loop.capFaceID, segment.wallFaceID].flatMap { context.subshapeIDs(for: .face($0)) }))
+                                             faceParents: try [loop.capFaceID, segment.wallFaceID].flatMap { try context.subshapeIDs(for: .face($0)) }))
             }
             for (endIndex, end) in loop.ends.enumerated() where mitre(at: end.vertex) == nil {
                 let m = try inward(end.segment, at: end.vertex)
                 let (capPoint, wallPoint) = (end.vertex + m * dc, end.vertex + wall * dw)
-                let parents = selectedParent[end.segment.edgeID].map { [$0] } ?? context.subshapeIDs(for: .edge(end.segment.edgeID))
+                let parents = try selectedParent[end.segment.edgeID].map { [$0] } ?? context.subshapeIDs(for: .edge(end.segment.edgeID))
                 let curve = try section(shape, at: end.vertex, inward: m, wallDirection: wall,
                                         tangent: try segmentTangent(end.segment, at: end.vertex), from: capPoint, to: wallPoint)
                 let edge = BRepSewingEdge(stableID: "loop:\(loopIndex):end:\(endIndex)", curve: curve.curve,
@@ -313,7 +313,7 @@ package struct CapLoopBlendBuilder {
                 }
                 patches.append(BRepSewingFacePatch(stableID: "loop:\(loopIndex):closure:\(endIndex)", surface: plane, orientation: .forward,
                     loops: [BRepSewingLoop(stableID: "loop:\(loopIndex):closure:\(endIndex):outer", role: .outer, edges: closure)],
-                    parentSubshapeIDs: [loop.capFaceID, end.segment.wallFaceID].flatMap { context.subshapeIDs(for: .face($0)) }))
+                    parentSubshapeIDs: try [loop.capFaceID, end.segment.wallFaceID].flatMap { try context.subshapeIDs(for: .face($0)) }))
             }
         }
         // Every face beside a loop with its loop edges moved and the straight edges reaching them
@@ -474,7 +474,7 @@ package struct CapLoopBlendBuilder {
         }
         return BRepSewingRequest(featureID: featureID, bodyKind: .solid,
                                  shells: [BRepSewingShell(stableID: "shell:0", patches: patches)],
-                                 bodyParentSubshapeIDs: context.subshapeIDs(for: .body(bodyID)))
+                                 bodyParentSubshapeIDs: try context.subshapeIDs(for: .body(bodyID)))
     }
 
     // MARK: - The band

@@ -17,17 +17,18 @@ struct BSplineCurveAnalyticSurfaceIntersector {
         surface: Surface3D,
         canonicalSurface: CanonicalAnalyticSurface,
         options: CurveSurfaceIntersectionOptions,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> [CurveSurfaceIntersection] {
-        try curve.validate(tolerance: tolerance)
-        try surface.validate(tolerance: tolerance)
-        let curveParameterTolerance = parameterTolerance(
+        try execution.consumeWork(1)
+        try curve.validate(tolerance: tolerance, using: &execution)
+        try surface.validate(tolerance: tolerance, using: &execution)
+        let curveParameterTolerance = try parameterTolerance(
             for: curve.domain,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         let polynomialDegree = try implicitPolynomialDegree(
             curveDegree: curve.degree,
-            surface: canonicalSurface
+            surface: canonicalSurface, using: &execution
         )
         guard polynomialDegree <= options.maximumPolynomialDegree else {
             throw KernelError(
@@ -40,23 +41,28 @@ struct BSplineCurveAnalyticSurfaceIntersector {
         }
         let spans = try BSplineCurveBezierDecomposer().curvePatches(
             curve: curve,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         var intersections: [CurveSurfaceIntersection] = []
         for span in spans {
-            guard overlaps(
+            try execution.consumeWork(1)
+            guard try overlaps(
                 lower: span.lower,
                 upper: span.upper,
                 range: options.curveRange,
-                tolerance: curveParameterTolerance
+                tolerance: curveParameterTolerance, using: &execution
             ) else {
                 continue
             }
             let implicit = try implicitPolynomial(
                 span: span,
-                surface: canonicalSurface
+                surface: canonicalSurface, using: &execution
             )
-            let coefficientMagnitude = implicit.coefficients.map(abs).max() ?? 0.0
+            var coefficientMagnitude = 0.0
+            for coefficient in implicit.coefficients {
+                try execution.consumeWork(1)
+                coefficientMagnitude = max(coefficientMagnitude, abs(coefficient))
+            }
             let coincidenceTolerance = implicit.referenceScale * max(
                 tolerance.relative,
                 Double.ulpOfOne * 512.0
@@ -86,8 +92,10 @@ struct BSplineCurveAnalyticSurfaceIntersector {
             var rootCoefficients = implicit.coefficients
             var endpointRoots: [Double] = []
             if case .plane(let plane) = canonicalSurface {
-                let coefficients = span.controlPoints.indices.map {
-                    (span.controlPoints[$0] - plane.origin).dot(plane.normal) * span.weights[$0]
+                try execution.retainStorage(bytes: exactScalarPayloadBytes(count: span.controlPoints.count, of: Double.self))
+                let coefficients = try span.controlPoints.indices.map {
+                    try execution.consumeWork(1)
+                    return (span.controlPoints[$0] - plane.origin).dot(plane.normal) * span.weights[$0]
                 }
                 if let first = coefficients.firstIndex(where: { $0 != 0 }),
                    let last = coefficients.lastIndex(where: { $0 != 0 }) {
@@ -95,42 +103,52 @@ struct BSplineCurveAnalyticSurfaceIntersector {
                     // power conversion can split a multiple endpoint root.
                     let degree = coefficients.count - 1
                     let reducedDegree = last - first
+                    try execution.retainStorage(bytes: exactScalarPayloadBytes(count: reducedDegree + 1, of: Double.self))
                     var reduced: [Double] = []
+                    reduced.reserveCapacity(reducedDegree + 1)
                     for index in first...last {
                         reduced.append(try coefficients[index]
-                            * binomialCoefficient(degree, index)
-                            / binomialCoefficient(reducedDegree, index - first))
+                            * binomialCoefficient(degree, index, using: &execution)
+                            / binomialCoefficient(reducedDegree, index - first, using: &execution))
                     }
-                    rootCoefficients = try bernsteinToPower(reduced)
-                    if first > 0 { endpointRoots.append(0) }
-                    if last < degree { endpointRoots.append(1) }
+                    rootCoefficients = try bernsteinToPower(reduced, using: &execution)
+                    if first > 0 {
+                        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: Double.self))
+                        endpointRoots.append(0)
+                    }
+                    if last < degree {
+                        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: Double.self))
+                        endpointRoots.append(1)
+                    }
                 }
             }
-            let roots = try solver.realRoots(coefficients: rootCoefficients)
+            let roots = try solver.realRoots(coefficients: rootCoefficients, using: &execution)
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: try checkedCount(roots.count, endpointRoots.count), of: Double.self))
             for localRoot in roots + endpointRoots {
+                try execution.consumeWork(1)
                 guard localRoot >= -localRootTolerance,
                       localRoot <= 1.0 + localRootTolerance else {
                     continue
                 }
                 let refinement = endpointRoots.contains(localRoot)
-                    ? RefinedRoot(value: localRoot, iterations: 0) : refinedLocalRoot(
+                    ? RefinedRoot(value: localRoot, iterations: 0) : try refinedLocalRoot(
                     localRoot,
                     coefficients: rootCoefficients,
-                    maximumIterations: options.maximumIterations
+                    maximumIterations: options.maximumIterations, using: &execution
                 )
                 let boundedRoot = min(max(refinement.value, 0.0), 1.0)
                 let parameter = span.lower
                     + (span.upper - span.lower) * boundedRoot
-                guard contains(
+                guard try contains(
                     parameter,
                     range: options.curveRange,
-                    tolerance: curveParameterTolerance
+                    tolerance: curveParameterTolerance, using: &execution
                 ) else {
                     continue
                 }
                 let geometry = try curve.parameterDerivatives(
                     at: parameter,
-                    tolerance: tolerance
+                    tolerance: tolerance, using: &execution
                 )
                 var direction = geometry.firstDerivative
                 if direction.length == 0, boundedRoot == 0 || boundedRoot == 1 {
@@ -139,6 +157,7 @@ struct BSplineCurveAnalyticSurfaceIntersector {
                     let controls = span.controlPoints
                     let endpoint = boundedRoot == 0 ? controls[0] : controls[controls.count - 1]
                     for offset in controls.indices {
+                        try execution.consumeWork(1)
                         let index = boundedRoot == 0 ? offset : controls.count - 1 - offset
                         guard controls[index] != endpoint else { continue }
                         direction = boundedRoot == 0
@@ -155,7 +174,7 @@ struct BSplineCurveAnalyticSurfaceIntersector {
                 let tangent = direction / speed
                 let projection = try surface.parameterProjection(
                     of: geometry.position,
-                    tolerance: tolerance
+                    tolerance: tolerance, using: &execution
                 )
                 let rangeResolver = SurfaceParameterRangeResolver()
                 guard let surfaceU = rangeResolver.resolvedParameter(
@@ -185,8 +204,9 @@ struct BSplineCurveAnalyticSurfaceIntersector {
                 let surfaceNormal = try implicitNormal(
                     at: geometry.position,
                     surface: canonicalSurface,
-                    tolerance: tolerance
+                    tolerance: tolerance, using: &execution
                 )
+                try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: CurveSurfaceIntersection.self))
                 intersections.append(try CurveSurfaceIntersection(
                     point: geometry.position,
                     curveParameter: parameter,
@@ -200,91 +220,97 @@ struct BSplineCurveAnalyticSurfaceIntersector {
                 ))
             }
         }
-        return deduplicated(
+        return try deduplicated(
             intersections,
             curveParameterTolerance: curveParameterTolerance,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
     }
 
     private func implicitPolynomial(
         span: RationalBezierCurvePatch3D,
-        surface: CanonicalAnalyticSurface
+        surface: CanonicalAnalyticSurface, using execution: inout OriginalQueryExecution
     ) throws -> ImplicitPolynomial {
-        let curve = try homogeneousCurve(span)
-        let weightSquared = multiplied(curve.weight, curve.weight)
+        try execution.consumeWork(1)
+        let curve = try homogeneousCurve(span, using: &execution)
+        let weightSquared = try multiplied(curve.weight, curve.weight, using: &execution)
         let coefficients: [Double]
         let referenceTerms: [[Double]]
         switch surface {
         case let .plane(plane):
-            let relative = relativeCurve(curve, to: plane.origin)
-            coefficients = dot(relative, plane.normal)
+            let relative = try relativeCurve(curve, to: plane.origin, using: &execution)
+            coefficients = try dot(relative, plane.normal, using: &execution)
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 2, of: [Double].self))
             referenceTerms = [coefficients, curve.weight]
         case let .cylinder(cylinder):
-            let relative = relativeCurve(curve, to: cylinder.origin)
-            let axial = dot(relative, cylinder.axis)
-            let radial = subtracting(
+            let relative = try relativeCurve(curve, to: cylinder.origin, using: &execution)
+            let axial = try dot(relative, cylinder.axis, using: &execution)
+            let radial = try subtracting(
                 relative,
-                polynomialVector(direction: cylinder.axis, scale: axial)
+                try polynomialVector(direction: cylinder.axis, scale: axial, using: &execution), using: &execution
             )
-            let radialSquared = dot(radial, radial)
-            let radiusSquared = scaled(
+            let radialSquared = try dot(radial, radial, using: &execution)
+            let radiusSquared = try scaled(
                 weightSquared,
-                by: cylinder.radius * cylinder.radius
+                by: cylinder.radius * cylinder.radius, using: &execution
             )
-            coefficients = subtracting(radialSquared, radiusSquared)
+            coefficients = try subtracting(radialSquared, radiusSquared, using: &execution)
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 2, of: [Double].self))
             referenceTerms = [radialSquared, radiusSquared]
         case let .cone(cone):
-            let relative = relativeCurve(curve, to: cone.apex)
-            let axial = dot(relative, cone.axis)
-            let radial = subtracting(
+            let relative = try relativeCurve(curve, to: cone.apex, using: &execution)
+            let axial = try dot(relative, cone.axis, using: &execution)
+            let radial = try subtracting(
                 relative,
-                polynomialVector(direction: cone.axis, scale: axial)
+                try polynomialVector(direction: cone.axis, scale: axial, using: &execution), using: &execution
             )
-            let axialSquared = multiplied(axial, axial)
-            let radialSquared = dot(radial, radial)
-            let coneSquared = scaled(
+            let axialSquared = try multiplied(axial, axial, using: &execution)
+            let radialSquared = try dot(radial, radial, using: &execution)
+            let coneSquared = try scaled(
                 axialSquared,
-                by: pow(tan(cone.halfAngle), 2.0)
+                by: pow(tan(cone.halfAngle), 2.0), using: &execution
             )
-            coefficients = subtracting(radialSquared, coneSquared)
+            coefficients = try subtracting(radialSquared, coneSquared, using: &execution)
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 2, of: [Double].self))
             referenceTerms = [radialSquared, coneSquared]
         case let .sphere(sphere):
-            let relative = relativeCurve(curve, to: sphere.center)
-            let squaredDistance = dot(relative, relative)
-            let radiusSquared = scaled(
+            let relative = try relativeCurve(curve, to: sphere.center, using: &execution)
+            let squaredDistance = try dot(relative, relative, using: &execution)
+            let radiusSquared = try scaled(
                 weightSquared,
-                by: sphere.radius * sphere.radius
+                by: sphere.radius * sphere.radius, using: &execution
             )
-            coefficients = subtracting(squaredDistance, radiusSquared)
+            coefficients = try subtracting(squaredDistance, radiusSquared, using: &execution)
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 2, of: [Double].self))
             referenceTerms = [squaredDistance, radiusSquared]
         case let .torus(torus):
-            let relative = relativeCurve(curve, to: torus.center)
-            let axial = dot(relative, torus.axis)
-            let axialSquared = multiplied(axial, axial)
-            let radial = subtracting(
+            let relative = try relativeCurve(curve, to: torus.center, using: &execution)
+            let axial = try dot(relative, torus.axis, using: &execution)
+            let axialSquared = try multiplied(axial, axial, using: &execution)
+            let radial = try subtracting(
                 relative,
-                polynomialVector(direction: torus.axis, scale: axial)
+                try polynomialVector(direction: torus.axis, scale: axial, using: &execution), using: &execution
             )
-            let radialSquared = dot(radial, radial)
-            let squaredDistance = adding(radialSquared, axialSquared)
-            let implicitQuadratic = adding(
+            let radialSquared = try dot(radial, radial, using: &execution)
+            let squaredDistance = try adding(radialSquared, axialSquared, using: &execution)
+            let implicitQuadratic = try adding(
                 squaredDistance,
-                scaled(
+                try scaled(
                     weightSquared,
                     by: torus.majorRadius * torus.majorRadius
-                        - torus.minorRadius * torus.minorRadius
-                )
+                        - torus.minorRadius * torus.minorRadius, using: &execution
+                ), using: &execution
             )
-            let firstTerm = multiplied(
+            let firstTerm = try multiplied(
                 implicitQuadratic,
-                implicitQuadratic
+                implicitQuadratic, using: &execution
             )
-            let secondTerm = scaled(
-                multiplied(radialSquared, weightSquared),
-                by: 4.0 * torus.majorRadius * torus.majorRadius
+            let secondTerm = try scaled(
+                try multiplied(radialSquared, weightSquared, using: &execution),
+                by: 4.0 * torus.majorRadius * torus.majorRadius, using: &execution
             )
-            coefficients = subtracting(firstTerm, secondTerm)
+            coefficients = try subtracting(firstTerm, secondTerm, using: &execution)
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 2, of: [Double].self))
             referenceTerms = [firstTerm, secondTerm]
         case .unsupported:
             throw KernelError(
@@ -303,96 +329,108 @@ struct BSplineCurveAnalyticSurfaceIntersector {
                 message: "B-spline implicit polynomial exceeded finite arithmetic."
             )
         }
-        return ImplicitPolynomial(
-            coefficients: coefficients,
-            referenceScale: max(
-                referenceTerms.flatMap { $0 }.map(abs).max() ?? 0.0,
-                1.0
-            )
-        )
+        var referenceScale = 0.0
+        for term in referenceTerms {
+            for coefficient in term {
+                try execution.consumeWork(1)
+                referenceScale = max(referenceScale, abs(coefficient))
+            }
+        }
+        return ImplicitPolynomial(coefficients: coefficients, referenceScale: max(referenceScale, 1.0))
     }
 
     private func homogeneousCurve(
-        _ span: RationalBezierCurvePatch3D
+        _ span: RationalBezierCurvePatch3D, using execution: inout OriginalQueryExecution
     ) throws -> HomogeneousCurve {
-        try HomogeneousCurve(
-            x: bernsteinToPower(span.controlPoints.indices.map {
-                span.controlPoints[$0].x * span.weights[$0]
-            }),
-            y: bernsteinToPower(span.controlPoints.indices.map {
-                span.controlPoints[$0].y * span.weights[$0]
-            }),
-            z: bernsteinToPower(span.controlPoints.indices.map {
-                span.controlPoints[$0].z * span.weights[$0]
-            }),
-            weight: bernsteinToPower(span.weights)
+        try execution.consumeWork(1)
+        for _ in 0..<3 { try execution.retainStorage(bytes: exactScalarPayloadBytes(count: span.controlPoints.count, of: Double.self)) }
+        return try HomogeneousCurve(
+            x: try bernsteinToPower(span.controlPoints.indices.map {
+                try execution.consumeWork(1)
+                return span.controlPoints[$0].x * span.weights[$0]
+            }, using: &execution),
+            y: try bernsteinToPower(span.controlPoints.indices.map {
+                try execution.consumeWork(1)
+                return span.controlPoints[$0].y * span.weights[$0]
+            }, using: &execution),
+            z: try bernsteinToPower(span.controlPoints.indices.map {
+                try execution.consumeWork(1)
+                return span.controlPoints[$0].z * span.weights[$0]
+            }, using: &execution),
+            weight: try bernsteinToPower(span.weights, using: &execution)
         )
     }
 
     private func relativeCurve(
         _ curve: HomogeneousCurve,
-        to origin: Point3D
-    ) -> PolynomialVector3 {
-        PolynomialVector3(
-            x: subtracting(curve.x, scaled(curve.weight, by: origin.x)),
-            y: subtracting(curve.y, scaled(curve.weight, by: origin.y)),
-            z: subtracting(curve.z, scaled(curve.weight, by: origin.z))
+        to origin: Point3D, using execution: inout OriginalQueryExecution
+    ) throws -> PolynomialVector3 {
+        try execution.consumeWork(1)
+        return PolynomialVector3(
+            x: try subtracting(curve.x, try scaled(curve.weight, by: origin.x, using: &execution), using: &execution),
+            y: try subtracting(curve.y, try scaled(curve.weight, by: origin.y, using: &execution), using: &execution),
+            z: try subtracting(curve.z, try scaled(curve.weight, by: origin.z, using: &execution), using: &execution)
         )
     }
 
     private func dot(
         _ lhs: PolynomialVector3,
-        _ rhs: PolynomialVector3
-    ) -> [Double] {
-        adding(
-            adding(
-                multiplied(lhs.x, rhs.x),
-                multiplied(lhs.y, rhs.y)
+        _ rhs: PolynomialVector3, using execution: inout OriginalQueryExecution
+    ) throws -> [Double] {
+        try execution.consumeWork(1)
+        return try adding(
+            try adding(
+                try multiplied(lhs.x, rhs.x, using: &execution),
+                try multiplied(lhs.y, rhs.y, using: &execution), using: &execution
             ),
-            multiplied(lhs.z, rhs.z)
+            try multiplied(lhs.z, rhs.z, using: &execution), using: &execution
         )
     }
 
     private func dot(
         _ value: PolynomialVector3,
-        _ direction: Vector3D
-    ) -> [Double] {
-        adding(
-            adding(
-                scaled(value.x, by: direction.x),
-                scaled(value.y, by: direction.y)
+        _ direction: Vector3D, using execution: inout OriginalQueryExecution
+    ) throws -> [Double] {
+        try execution.consumeWork(1)
+        return try adding(
+            try adding(
+                try scaled(value.x, by: direction.x, using: &execution),
+                try scaled(value.y, by: direction.y, using: &execution), using: &execution
             ),
-            scaled(value.z, by: direction.z)
+            try scaled(value.z, by: direction.z, using: &execution), using: &execution
         )
     }
 
     private func polynomialVector(
         direction: Vector3D,
-        scale: [Double]
-    ) -> PolynomialVector3 {
-        PolynomialVector3(
-            x: scaled(scale, by: direction.x),
-            y: scaled(scale, by: direction.y),
-            z: scaled(scale, by: direction.z)
+        scale: [Double], using execution: inout OriginalQueryExecution
+    ) throws -> PolynomialVector3 {
+        try execution.consumeWork(1)
+        return PolynomialVector3(
+            x: try scaled(scale, by: direction.x, using: &execution),
+            y: try scaled(scale, by: direction.y, using: &execution),
+            z: try scaled(scale, by: direction.z, using: &execution)
         )
     }
 
     private func subtracting(
         _ lhs: PolynomialVector3,
-        _ rhs: PolynomialVector3
-    ) -> PolynomialVector3 {
-        PolynomialVector3(
-            x: subtracting(lhs.x, rhs.x),
-            y: subtracting(lhs.y, rhs.y),
-            z: subtracting(lhs.z, rhs.z)
+        _ rhs: PolynomialVector3, using execution: inout OriginalQueryExecution
+    ) throws -> PolynomialVector3 {
+        try execution.consumeWork(1)
+        return PolynomialVector3(
+            x: try subtracting(lhs.x, rhs.x, using: &execution),
+            y: try subtracting(lhs.y, rhs.y, using: &execution),
+            z: try subtracting(lhs.z, rhs.z, using: &execution)
         )
     }
 
     private func implicitNormal(
         at point: Point3D,
         surface: CanonicalAnalyticSurface,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Vector3D {
+        try execution.consumeWork(1)
         let gradient: Vector3D
         switch surface {
         case let .plane(plane):
@@ -441,8 +479,9 @@ struct BSplineCurveAnalyticSurfaceIntersector {
 
     private func implicitPolynomialDegree(
         curveDegree: Int,
-        surface: CanonicalAnalyticSurface
+        surface: CanonicalAnalyticSurface, using execution: inout OriginalQueryExecution
     ) throws -> Int {
+        try execution.consumeWork(1)
         let multiplier: Int
         switch surface {
         case .plane:
@@ -471,48 +510,66 @@ struct BSplineCurveAnalyticSurfaceIntersector {
         return result.partialValue
     }
 
-    private func multiplied(_ lhs: [Double], _ rhs: [Double]) -> [Double] {
-        var result = Array(repeating: 0.0, count: lhs.count + rhs.count - 1)
+    private func multiplied(_ lhs: [Double], _ rhs: [Double], using execution: inout OriginalQueryExecution) throws -> [Double] {
+        let sum = lhs.count.addingReportingOverflow(rhs.count)
+        guard !sum.overflow, sum.partialValue > 0 else { throw ExactScalarFailure.countOverflow }
+        let count = sum.partialValue - 1
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: count, of: Double.self))
+        var result = Array(repeating: 0.0, count: count)
         for lhsIndex in lhs.indices {
             for rhsIndex in rhs.indices {
+                try execution.consumeWork(1)
                 result[lhsIndex + rhsIndex] += lhs[lhsIndex] * rhs[rhsIndex]
             }
         }
         return result
     }
 
-    private func adding(_ lhs: [Double], _ rhs: [Double]) -> [Double] {
+    private func adding(_ lhs: [Double], _ rhs: [Double], using execution: inout OriginalQueryExecution) throws -> [Double] {
         let count = max(lhs.count, rhs.count)
-        return (0..<count).map {
-            ($0 < lhs.count ? lhs[$0] : 0.0)
-                + ($0 < rhs.count ? rhs[$0] : 0.0)
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: count, of: Double.self))
+        return try (0..<count).map {
+            try execution.consumeWork(1)
+            return ($0 < lhs.count ? lhs[$0] : 0.0) + ($0 < rhs.count ? rhs[$0] : 0.0)
         }
     }
 
-    private func subtracting(_ lhs: [Double], _ rhs: [Double]) -> [Double] {
-        adding(lhs, scaled(rhs, by: -1.0))
+    private func subtracting(_ lhs: [Double], _ rhs: [Double], using execution: inout OriginalQueryExecution) throws -> [Double] {
+        try adding(lhs, scaled(rhs, by: -1.0, using: &execution), using: &execution)
     }
 
-    private func scaled(_ polynomial: [Double], by scale: Double) -> [Double] {
-        polynomial.map { $0 * scale }
+    private func scaled(_ polynomial: [Double], by scale: Double, using execution: inout OriginalQueryExecution) throws -> [Double] {
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: polynomial.count, of: Double.self))
+        return try polynomial.map {
+            try execution.consumeWork(1)
+            return $0 * scale
+        }
     }
 
     private func refinedLocalRoot(
         _ initial: Double,
         coefficients: [Double],
-        maximumIterations: Int
-    ) -> RefinedRoot {
-        let derivative = coefficients.indices.dropFirst().map { index in
-            coefficients[index] * Double(index)
+        maximumIterations: Int, using execution: inout OriginalQueryExecution
+    ) throws -> RefinedRoot {
+        try execution.consumeWork(1)
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: max(0, coefficients.count - 1), of: Double.self))
+        let derivative = try coefficients.indices.dropFirst().map { index in
+            try execution.consumeWork(1)
+            return coefficients[index] * Double(index)
         }
-        let coefficientScale = max(coefficients.map(abs).max() ?? 0.0, 1.0)
+        var coefficientScale = 0.0
+        for coefficient in coefficients {
+            try execution.consumeWork(1)
+            coefficientScale = max(coefficientScale, abs(coefficient))
+        }
+        coefficientScale = max(coefficientScale, 1.0)
         let arithmeticTolerance = coefficientScale * Double.ulpOfOne * 256.0
         var value = min(max(initial, 0.0), 1.0)
         var iterationCount = 0
         for iteration in 0..<maximumIterations {
-            let residual = evaluate(coefficients, at: value)
+            let residual = try evaluate(coefficients, at: value, using: &execution)
             guard abs(residual) > arithmeticTolerance else { break }
-            let slope = evaluate(derivative, at: value)
+            let slope = try evaluate(derivative, at: value, using: &execution)
             guard abs(slope) > arithmeticTolerance else { break }
             let candidate = value - residual / slope
             guard candidate.isFinite else { break }
@@ -524,16 +581,20 @@ struct BSplineCurveAnalyticSurfaceIntersector {
         return RefinedRoot(value: value, iterations: iterationCount)
     }
 
-    private func evaluate(_ coefficients: [Double], at value: Double) -> Double {
-        coefficients.reversed().reduce(0.0) { partial, coefficient in
-            partial * value + coefficient
+    private func evaluate(_ coefficients: [Double], at value: Double, using execution: inout OriginalQueryExecution) throws -> Double {
+        var partial = 0.0
+        for coefficient in coefficients.reversed() {
+            try execution.consumeWork(1)
+            partial = partial * value + coefficient
         }
+        return partial
     }
 
     private func parameterTolerance(
         for domain: ParameterDomain,
-        tolerance: ModelingTolerance
-    ) -> Double {
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+    ) throws -> Double {
+        try execution.consumeWork(1)
         let machineFloor = Double.ulpOfOne * 128.0
         switch domain {
         case .unbounded:
@@ -555,8 +616,9 @@ struct BSplineCurveAnalyticSurfaceIntersector {
     private func contains(
         _ value: Double,
         range: ScalarInterval?,
-        tolerance: Double
-    ) -> Bool {
+        tolerance: Double, using execution: inout OriginalQueryExecution
+    ) throws -> Bool {
+        try execution.consumeWork(1)
         guard let range else { return true }
         return value >= range.lower - tolerance
             && value <= range.upper + tolerance
@@ -566,14 +628,16 @@ struct BSplineCurveAnalyticSurfaceIntersector {
         lower: Double,
         upper: Double,
         range: ScalarInterval?,
-        tolerance: Double
-    ) -> Bool {
+        tolerance: Double, using execution: inout OriginalQueryExecution
+    ) throws -> Bool {
+        try execution.consumeWork(1)
         guard let range else { return true }
         return lower <= range.upper + tolerance
             && range.lower <= upper + tolerance
     }
 
-    private func bernsteinToPower(_ coefficients: [Double]) throws -> [Double] {
+    private func bernsteinToPower(_ coefficients: [Double], using execution: inout OriginalQueryExecution) throws -> [Double] {
+        try execution.consumeWork(1)
         guard coefficients.isEmpty == false,
               coefficients.allSatisfy({ $0.isFinite }) else {
             throw KernelError(
@@ -584,12 +648,13 @@ struct BSplineCurveAnalyticSurfaceIntersector {
             )
         }
         let degree = coefficients.count - 1
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: coefficients.count, of: Double.self))
         var result = Array(repeating: 0.0, count: coefficients.count)
         for power in 0...degree {
-            let outer = try binomialCoefficient(degree, power)
+            let outer = try binomialCoefficient(degree, power, using: &execution)
             var sum = 0.0
             for index in 0...power {
-                let inner = try binomialCoefficient(power, index)
+                let inner = try binomialCoefficient(power, index, using: &execution)
                 let sign = (power - index).isMultiple(of: 2) ? 1.0 : -1.0
                 sum += sign * inner * coefficients[index]
             }
@@ -606,13 +671,15 @@ struct BSplineCurveAnalyticSurfaceIntersector {
         return result
     }
 
-    private func binomialCoefficient(_ n: Int, _ k: Int) throws -> Double {
+    private func binomialCoefficient(_ n: Int, _ k: Int, using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
         let count = min(k, n - k)
         guard count > 0 else {
             return 1.0
         }
         var result = 1.0
         for index in 1...count {
+            try execution.consumeWork(1)
             result *= Double(n - count + index) / Double(index)
             guard result.isFinite else {
                 throw KernelError(
@@ -629,15 +696,19 @@ struct BSplineCurveAnalyticSurfaceIntersector {
     private func deduplicated(
         _ intersections: [CurveSurfaceIntersection],
         curveParameterTolerance: Double,
-        tolerance: ModelingTolerance
-    ) -> [CurveSurfaceIntersection] {
-        let sorted = intersections.sorted {
-            $0.curveParameter < $1.curveParameter
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+    ) throws -> [CurveSurfaceIntersection] {
+        try execution.consumeWork(1)
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: intersections.count, of: CurveSurfaceIntersection.self))
+        let sorted = try intersections.sorted {
+            try execution.consumeWork(1)
+            return $0.curveParameter < $1.curveParameter
         }
         var result: [CurveSurfaceIntersection] = []
         for intersection in sorted {
-            if let index = result.firstIndex(where: {
-                abs($0.curveParameter - intersection.curveParameter)
+            if let index = try result.firstIndex(where: {
+                try execution.consumeWork(1)
+                return abs($0.curveParameter - intersection.curveParameter)
                     <= curveParameterTolerance
                     && ($0.point - intersection.point).length <= tolerance.distance
             }) {
@@ -645,10 +716,17 @@ struct BSplineCurveAnalyticSurfaceIntersector {
                     result[index] = intersection
                 }
             } else {
+                try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: CurveSurfaceIntersection.self))
                 result.append(intersection)
             }
         }
         return result
+    }
+
+    private func checkedCount(_ lhs: Int, _ rhs: Int) throws -> Int {
+        let count = lhs.addingReportingOverflow(rhs)
+        guard !count.overflow else { throw ExactScalarFailure.countOverflow }
+        return count.partialValue
     }
 
     private struct HomogeneousCurve {

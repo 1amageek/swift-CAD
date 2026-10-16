@@ -20,52 +20,52 @@ package struct OriginalPlanarLoopOrientation: Sendable {
 
     package func counterclockwise(source: OriginalCurveSpanSource,
         startParameter: Double, endParameter: Double, origin: Point3D, normal: Vector3D,
-        tolerance: ModelingTolerance, admission: GeometryConversionAdmission) throws -> Bool {
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Bool {
         guard startParameter.isFinite, endParameter.isFinite, startParameter != endParameter else {
             throw failure("Original closed curve winding requires distinct finite authored endpoints.", tolerance)
         }
-        try admission.chargeStorage(bytes: MemoryLayout<Boundary>.stride)
+        try execution.retainStorage(bytes: MemoryLayout<Boundary>.stride)
         return try counterclockwise([Boundary(source: source, startParameter: startParameter,
             endParameter: endParameter)], origin: origin, normal: normal,
-            tolerance: tolerance, admission: admission)
+            tolerance: tolerance, using: &execution)
     }
 
     package func counterclockwise(_ segments: [OriginalFaceSectionSegment],
         origin: Point3D, normal: Vector3D, tolerance: ModelingTolerance,
-        admission: GeometryConversionAdmission) throws -> Bool {
-        try admission.chargeStorage(bytes: segments.count * MemoryLayout<Boundary>.stride)
+        using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.retainStorage(bytes: segments.count * MemoryLayout<Boundary>.stride)
         let boundaries = try segments.map { segment in
-            try admission.chargeWork()
+            try execution.consumeWork(1)
             return Boundary(source: segment.source, startParameter: segment.startParameter,
                 endParameter: segment.endParameter)
         }
         return try counterclockwise(boundaries, origin: origin, normal: normal,
-            tolerance: tolerance, admission: admission)
+            tolerance: tolerance, using: &execution)
     }
 
     package func counterclockwise(charts: [OriginalCurveSpanParameterChart],
         origin: Point3D, normal: Vector3D, tolerance: ModelingTolerance,
-        admission: GeometryConversionAdmission) throws -> Bool {
-        try admission.chargeStorage(bytes: charts.count * MemoryLayout<Boundary>.stride)
+        using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.retainStorage(bytes: charts.count * MemoryLayout<Boundary>.stride)
         let boundaries = try charts.map { chart in
-            try admission.chargeWork()
-            let curve = try chart.persistentCurve(tolerance: tolerance, admission: admission)
+            try execution.consumeWork(1)
+            let curve = try chart.persistentCurve(tolerance: tolerance, using: &execution)
             return Boundary(source: try OriginalCurveSpanSource(curve: curve,
-                tolerance: tolerance, admission: admission), startParameter: 0, endParameter: 1)
+                tolerance: tolerance, using: &execution), startParameter: 0, endParameter: 1)
         }
         return try counterclockwise(boundaries, origin: origin, normal: normal,
-            tolerance: tolerance, admission: admission)
+            tolerance: tolerance, using: &execution)
     }
 
     private func counterclockwise(_ segments: [Boundary],
         origin: Point3D, normal: Vector3D, tolerance: ModelingTolerance,
-        admission: GeometryConversionAdmission) throws -> Bool {
+        using execution: inout OriginalQueryExecution) throws -> Bool {
         let limits = GeometryConversionRequirements(maximumPositionError: tolerance.distance,
             maximumTangentAngle: tolerance.angle, maximumCurvatureError: tolerance.distance)
         guard !segments.isEmpty, segments.count <= limits.maximumControlPointCount else {
             throw failure("Original face winding has no admitted complete boundary.", tolerance)
         }
-        try admission.chargeStorage(bytes: segments.count * MemoryLayout<PreparedCurveDifferentialEncloser>.stride)
+        try execution.retainStorage(bytes: segments.count * MemoryLayout<PreparedCurveDifferentialEncloser>.stride)
         var sources: [PreparedCurveDifferentialEncloser] = []
         sources.reserveCapacity(segments.count)
         for segment in segments {
@@ -73,11 +73,9 @@ package struct OriginalPlanarLoopOrientation: Sendable {
                 sources.append(prepared)
             } else {
                 sources.append(try PreparedCurveDifferentialEncloser(curve: segment.source.curve,
-                    tolerance: tolerance, remainingSourceDepth: admission.remainingSourceDepth,
-                    maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
-                    consumeWork: { try admission.chargeWork() },
-                    consumeStorage: { try admission.chargeStorage(bytes: $0) },
-                    maximumAlgebraicDepth: admission.maximumAlgebraicDepth))
+                    tolerance: tolerance, remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+                    maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth,
+                    maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth, using: &execution))
             }
         }
         var cells: [Cell] = []
@@ -86,17 +84,16 @@ package struct OriginalPlanarLoopOrientation: Sendable {
         func cell(segment index: Int, lower: Double, upper: Double, depth: Int) throws -> Cell {
             guard remaining > 0 else { throw failure("Original face winding exhausted its cell allowance.", tolerance) }
             remaining -= 1
-            try admission.visit(depth: depth)
+            try execution.visitGeometricCell(depth: depth)
             let receipt = try sources[index].closedNativeJets(
                 over: ScalarInterval(lower: lower, upper: upper), tolerance: tolerance,
                 maximumSpanCount: limits.maximumControlPointCount,
-                maximumSubdivisionDepth: admission.maximumSubdivisionDepth - depth,
-                remainingSourceDepth: admission.remainingSourceDepth,
-                consumeWork: { try admission.visit(depth: depth) },
-                consumeStorage: { try admission.chargeStorage(bytes: $0) })
+                maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth - depth,
+                remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+                using: &execution)
             var bound: OutwardScalarInterval?
             for owner in receipt.spans {
-                try admission.visit(depth: depth)
+                try execution.visitGeometricCell(depth: depth)
                 let jet = owner.jet
                 let x = jet.x.value - .exact(origin.x)
                 let y = jet.y.value - .exact(origin.y)
@@ -116,7 +113,7 @@ package struct OriginalPlanarLoopOrientation: Sendable {
             guard count <= limits.maximumCertificationBoxes else { throw failure("Original face winding exhausted retained cells.", tolerance) }
             if count > capacity {
                 let next = min(limits.maximumCertificationBoxes, max(count, max(8, capacity * 2)))
-                try admission.chargeStorage(bytes: next * MemoryLayout<Cell>.stride)
+                try execution.retainStorage(bytes: next * MemoryLayout<Cell>.stride)
                 cells.reserveCapacity(next); capacity = next
             }
         }
@@ -131,7 +128,7 @@ package struct OriginalPlanarLoopOrientation: Sendable {
             var selected = 0
             var width = -Double.infinity
             for index in cells.indices {
-                try admission.visit(depth: cells[index].depth)
+                try execution.visitGeometricCell(depth: cells[index].depth)
                 integral = integral + cells[index].integral
                 let uncertainty = cells[index].integral.upper - cells[index].integral.lower
                 if uncertainty > width { selected = index; width = uncertainty }
@@ -139,7 +136,7 @@ package struct OriginalPlanarLoopOrientation: Sendable {
             if integral.lower > 0 { return true }
             if integral.upper < 0 { return false }
             let current = cells[selected]
-            guard current.depth < admission.maximumSubdivisionDepth else {
+            guard current.depth < execution.effectiveLimits.maximumSubdivisionDepth else {
                 throw failure("Original face winding cannot prove a nonzero oriented area within its depth.", tolerance)
             }
             let middle = current.lower + (current.upper - current.lower) * 0.5

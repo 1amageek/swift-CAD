@@ -1,6 +1,6 @@
 /// Equality of retained original pairs by common selected source roots.
 extension ExactBivariateSystemRoot {
-    package func hasSameValue<B: RationalAlgebraAdmitting>(as other: Self,
+    package func hasSameValue<B: ExactScalarAdmission & ~Copyable>(as other: Self,
         maximumDepth: Int, usage: inout B) throws -> Bool {
         guard try ExactMonotoneGraphEndpoint.algebraic(projectionRoot).hasSameValue(
             as: .algebraic(other.projectionRoot), maximumDepth: maximumDepth, usage: &usage) else { return false }

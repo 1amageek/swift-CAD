@@ -5,27 +5,59 @@ import Testing
 @Suite("Original native CS and SSI parameter decomposition")
 struct NativeIntersectionDecompositionTests {
     private typealias Domain = OriginalRationalParameterDomain
-    private struct Admission: RationalAlgebraAdmitting {
+    private struct Admission: ~Copyable, GeometryScalarTestAdmission {
+        var proofScopes = ExactScalarProofScopes()
         var work = 0, storage = 0, cells = 0
         var maximumWork = 10_000_000, maximumStorage = 10_000_000
-        mutating func consumeExactWork(_ count: Int) throws {
+        mutating func consumeWork(_ count: Int) throws(ExactScalarFailure) {
+            try checkpoint()
+            try proofScopes.checkWork(count)
+            do {
             guard count >= 0, count <= maximumWork - work else { throw exhausted("work") }
             work += count
+        
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            proofScopes.recordWork(count)
+            try checkpoint()
         }
-        mutating func retainExactStorage(_ count: Int) throws {
+        mutating func retainStorage(bytes: Int) throws(ExactScalarFailure) {
+            try checkpoint()
+            let count = try geometryTestStorageWords(bytes)
+            do {
             guard count >= 0, count <= maximumStorage - storage else { throw exhausted("storage") }
             storage += count
+        
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            try checkpoint()
         }
-        mutating func visitExactCell(depth: Int) throws {
-            guard depth >= 0, depth <= 24, cells < 100_000 else { throw exhausted("cells/depth") }
-            cells += 1
-        }
-        mutating func visitCoefficientCell(depth: Int) throws {
-            throw rationalAlgebraFailure("A rational native chart cannot invent coefficient roots.")
-        }
+        
+        
         private func exhausted(_ reason: String) -> KernelError {
             .init(phase: .geometry, code: .resourceLimitExceeded, tolerance: nil,
                 message: "Native intersection exhausted \(reason): work=\(work), storage=\(storage), cells=\(cells).")
+        }
+            mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
+            try admitDepth(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+            let mapped = try proofScopes.mapped(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+            do {
+                switch (axis == .coefficient || proofScopes.exactDepthResource == .coefficientDepth) ? ExactScalarRootAxis.coefficient : .value {
+                case .value:
+                    let depth = mapped.value
+
+            guard depth >= 0, depth <= 24, cells < 100_000 else { throw exhausted("cells/depth") }
+            cells += 1
+        
+                case .coefficient:
+                    let depth = mapped.coefficient
+
+            throw rationalAlgebraFailure("A rational native chart cannot invent coefficient roots.")
+        
+                }
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            try checkpoint()
         }
     }
 
@@ -50,7 +82,7 @@ struct NativeIntersectionDecompositionTests {
             exactDomains: [right], maximumDepth: 24, usage: &usage)
         #expect(halfLine.solutionCells.count == 2)
         #expect(halfLine.solutionCells.contains { halfLine.cells[$0].dimension == 1 })
-        #expect(throws: KernelError.self) { try Domain(lower: .one, upper: .zero, usage: &usage) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try Domain(lower: .one, upper: .zero, usage: &usage) }
     }
 
     @Test(.timeLimit(.minutes(1)), arguments: [false, true], [false, true])
@@ -181,10 +213,10 @@ struct NativeIntersectionDecompositionTests {
         }
         #expect(axis == 0 && result.effectiveDomains == nil)
         var work = Admission(); work.maximumWork = 0
-        #expect(throws: KernelError.self) { try OriginalRationalIntersectionDecomposition.prepare(system: system, maximumDepth: 24, usage: &work) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try OriginalRationalIntersectionDecomposition.prepare(system: system, maximumDepth: 24, usage: &work) }
         var storage = Admission(); storage.maximumStorage = 0
-        #expect(throws: KernelError.self) { try OriginalRationalIntersectionDecomposition.prepare(system: system, maximumDepth: 24, usage: &storage) }
-        #expect(throws: KernelError.self) { try OriginalRationalIntersectionDecomposition.prepare(system: system,
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try OriginalRationalIntersectionDecomposition.prepare(system: system, maximumDepth: 24, usage: &storage) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try OriginalRationalIntersectionDecomposition.prepare(system: system,
             requestedDomains: [], maximumDepth: 24, usage: &usage) }
         let cancelled = await Task {
             withUnsafeCurrentTask { $0?.cancel() }
@@ -193,7 +225,7 @@ struct NativeIntersectionDecompositionTests {
                 _ = try OriginalRationalIntersectionDecomposition.prepare(system: system,
                     requestedDomains: request, maximumDepth: 24, usage: &admission)
                 return false
-            } catch is CancellationError { return admission.work == 0 && admission.storage == 0 }
+            } catch let error where geometryTestIsCancelled(error) { return admission.work == 0 && admission.storage == 0 }
             catch { return false }
         }.value
         #expect(cancelled)
@@ -225,7 +257,7 @@ struct NativeIntersectionDecompositionTests {
         let source = try OriginalIntersectionCellCondition(partition: partition, cellIndex: interior, usage: &usage)
         let foreign = try OriginalRationalIntersectionCells.prepare(equations: [], variableCount: 1,
             exactDomains: [bounded], thomEncoding: true, maximumDepth: 24, usage: &usage)
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try OriginalAffineCellClosure.prepare(partition: foreign, source: source, maximumDepth: 24, usage: &usage)
         }
     }
@@ -325,12 +357,10 @@ struct NativeIntersectionDecompositionTests {
     private func law(_ source: BSplineSurface3D, lowerU: Double = 0,
         usage: inout Admission) throws -> OriginalRationalSurfacePolynomial {
         let domain = SurfaceParameterBox(u: try .init(lower: lowerU, upper: 1), v: try .init(lower: 0, upper: 1))
-        func work() throws { try usage.consumeExactWork(1) }
-        func storage(_ count: Int) throws { try usage.retainExactStorage(count) }
         let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: source, tolerance: .standard,
-            consumeWork: work, consumeStorage: storage)
+            using: &usage)
         let spans = try prepared.originalNativeSpans(over: domain, tolerance: .standard, maximumSpanCount: 1,
-            consumeWork: work, consumeStorage: storage)
+            using: &usage)
         let native = try #require(spans.first)
         return try OriginalRationalSurfacePolynomial(source: source, native: native, domain: domain,
             view: .init(x: 0,y: 0,z: 1), tolerance: .standard, usage: &usage)

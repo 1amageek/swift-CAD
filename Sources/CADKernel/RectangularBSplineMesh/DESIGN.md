@@ -133,3 +133,16 @@ authority to share the endpoint affine clock, including zero-length duplicate
 stations in the unchanged source list. They consume the same native iso pieces
 and physical source-position checks as literal constant-axis charts. This
 equivalence does not apply to nonlinear native B-spline clocks.
+
+
+### Candidate direct basis admission
+
+The actual Mesh caller passes its existing inout OriginalQueryExecution into
+requiresNativePanels, containsC0Knots and the nonclamped-axis helper. Original
+source validation and periodic-seam proofs use that same execution with the
+existing source16/subdivision32/algebra32 ceilings. Each former zero-depth
+callback visit keeps its one invocation work unit. Knot multiplicity, clamping,
+seam thresholds and the basis predicate remain unchanged. Unused callback-free
+duplicate helpers are removed after confirming the Mesh direct calls are the
+only production/test callers. This signature binding creates no budget or
+geometry-selection alternative; root owns aggregate compiler evidence.

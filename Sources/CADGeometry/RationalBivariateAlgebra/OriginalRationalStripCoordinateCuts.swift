@@ -17,7 +17,7 @@ package struct OriginalRationalStripCoordinateCuts: Sendable {
     package let points: [Point]
     package let coincident: [Coincident]
 
-    package init<B: RationalAlgebraAdmitting>(retaining atlas: OriginalRationalPlaneCurveAtlas,
+    package init<B: ExactScalarAdmission & ~Copyable>(retaining atlas: OriginalRationalPlaneCurveAtlas,
         uCuts: [ExactMonotoneGraphEndpoint], vCuts: [ExactMonotoneGraphEndpoint],
         maximumDepth: Int, usage: inout B) throws {
         let projection = atlas.projection
@@ -91,7 +91,7 @@ package struct OriginalRationalStripCoordinateCuts: Sendable {
         originalAtlas = atlas; points = retained; coincident = overlaps
     }
 
-    private static func fiber<B: RationalAlgebraAdmitting>(_ original: ExactBivariatePolynomial,
+    private static func fiber<B: ExactScalarAdmission & ~Copyable>(_ original: ExactBivariatePolynomial,
         fixedAlongU: Bool, at fixed: OriginalSingularFieldElement, maximumDepth: Int,
         usage: inout B) throws -> OriginalSingularFieldPolynomial {
         let count = try rationalAlgebraCount(max(0, fixedAlongU ? original.vDegree : original.uDegree), 1)
@@ -110,7 +110,7 @@ package struct OriginalRationalStripCoordinateCuts: Sendable {
         return try .init(context: fixed.context, coefficients: values, maximumDepth: maximumDepth, usage: &usage)
     }
 
-    private static func inside<B: RationalAlgebraAdmitting>(_ value: OriginalSingularFieldElement,
+    private static func inside<B: ExactScalarAdmission & ~Copyable>(_ value: OriginalSingularFieldElement,
         interval: ScalarInterval, maximumDepth: Int, usage: inout B) throws -> Bool {
         let low = try OriginalSingularFieldElement.constant(.originalDouble(interval.lower, usage: &usage),
             in: value.context, maximumDepth: maximumDepth, usage: &usage)
@@ -123,7 +123,7 @@ package struct OriginalRationalStripCoordinateCuts: Sendable {
         return true
     }
 
-    private static func inside<B: RationalAlgebraAdmitting>(_ value: OriginalSingularFieldElement,
+    private static func inside<B: ExactScalarAdmission & ~Copyable>(_ value: OriginalSingularFieldElement,
         sector: OriginalRationalPlaneCurveProjection.Sector, projection: OriginalRationalPlaneCurveProjection,
         maximumDepth: Int, usage: inout B) throws -> Bool {
         let transport = OriginalSingularFieldTransport()
@@ -139,7 +139,7 @@ package struct OriginalRationalStripCoordinateCuts: Sendable {
         return true
     }
 
-    package static func rank<B: RationalAlgebraAdmitting>(of value: OriginalSingularFieldElement,
+    package static func rank<B: ExactScalarAdmission & ~Copyable>(of value: OriginalSingularFieldElement,
         in fiber: OriginalSingularFieldPolynomial, lower: Double, maximumDepth: Int, usage: inout B) throws -> Int {
         guard case .zero = try fiber.evaluated(at: value, maximumDepth: maximumDepth, usage: &usage)
             .sign(maximumDepth: maximumDepth, usage: &usage) else {

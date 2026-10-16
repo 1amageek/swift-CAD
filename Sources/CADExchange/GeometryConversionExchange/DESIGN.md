@@ -35,7 +35,7 @@ Original affine-word surfaces require conversion as a complete retained law, inc
 
 The additive writeConverting boundary publishes curve and surface receipts together. Each curve receipt retains the original CurveID, item or edge identity, complete original curve and directed start/end parameters. Legacy surface-only APIs refuse conversions that would require an unreportable curve receipt. Body fitting uses position allowance min(caller maximum, original document distance tolerance), leaves caller allocation/work caps unchanged, replaces clamped candidate endpoint controls with the actual directed original B-rep vertices and certifies the final modified curve for all three bounds. Surface conversion first retains the unchanged original UV chart. Each edge on a converted face is converted and its final candidate is directly certified against the lift on the final candidate face with that same original pcurve; a rectangular surface certificate alone does not prove incidence. Native unbounded edges without an authored directed trim require an original endpoint chart producer and retain an explicit incomplete branch.
 
-Conversion callbacks borrow the [shared resource owner](../ExchangeResourceAccounting/DESIGN.md). The ledger creates one immutable GeometryConversionAdmission; every planner, source and final certificate receives copies of that same admission. Work, allocation and source preparation debit the same caller counts and original deadline; writer allowance is the remaining receipt, not a new conversion budget.
+Conversion borrows the [shared resource owner](../ExchangeResourceAccounting/DESIGN.md). The ledger creates one canonical execution; every planner, source and final certificate consumes that same exclusive execution. Work, allocation and source preparation debit the same caller counts and original deadline; writer allowance is the remaining receipt, not a new conversion budget.
 
 Final Body edge certification additionally requires the unchanged original hosted pcurve relation. Original B-rep admission may allow nonzero edge/lift residual; adding an independently certified edge approximation can exceed that boundary allowance. The writer therefore does not publish converted Body edges until final candidate-versus-every-hosted-lift certification consumes the exact directed native-to-coedge chart. The independent source route has no Body incidence premise.
 
@@ -57,3 +57,22 @@ construction nets never replace the original chain during neutral publication.
 Original guide endpoint connectors retain their guide RootSpan, both original section endpoint expressions and authored correction basis. The certified route consumes that complete corrected law under the same admission; the uncorrected guide or a construction spline cannot substitute for it. Exact neutral transport and drawing owning-cut admission remain governed by their actual lower producers.
 
 Original Euclidean-clock polylines consume [Original Polyline](../../CADGeometry/OriginalPolyline/DESIGN.md) through the caller-admitted Native curve source. Adjacent original points, closure flag and exact owning stations remain the source law; neither a fitted spline nor a uniform per-segment clock substitutes for it. Exact neutral and legacy support-transfer selectors refuse an unavailable faithful clock producer. Conversion publication retains the original curve and complete directed certificate under the existing invocation. Owning-cut limitations propagate from Geometry instead of smoothing a corner silently.
+
+
+## Canonical Conversion Caller Binding
+
+`GeometryConversionAdmission` is removed by the lower conversion contract. The existing conversion ledger issues the invocation's concrete execution, and planners, hosted charts, validation, enclosure and certification borrow it sequentially. Exact hosted-chart rational calculations consume that same execution; they do not retain a callback admission or recreate a private allowance. Directed edge charts, endpoint correction, approximation criteria and existing failure branches remain unchanged. The relevant dependency is [Geometry execution](../../CADGeometry/OriginalQueryExecution/DESIGN.md); integration verification owns the extracted caller chain, not new conversion algorithms.
+
+The hosted curve source retains a paid immutable copy of every active issuing
+contribution handle together with its original budget, limits, and context.
+Ordinary reads seed those retained handles on the existing budget. Direct reads
+check the existing owner/policy contract, then attach those handles around the
+entire normalized-chart arithmetic, native source read, derivative scaling, and
+final cancellation checkpoint. Leaving the issuing scope does not release its
+work ceiling or reset its counts. No mutable execution is retained in the source.
+
+`ExchangeHostedCurveContributionTests` uses an actual plane/constant-V lift,
+leaves its issuing scope, and checks ordinary/direct retained reads debit the
+same selected contribution. An independent baseline derives the exact total
+selected work N; N succeeds and N−1 refuses without a result. These controls do
+not claim broader source-family or whole-conversion completion.

@@ -99,3 +99,21 @@ one stable source batch and its shared-port patch; P alone verifies complete
 Core/Geometry compilation, linking and focused runtime on its fixed warm path.
 Issuer, algebra or shared publisher changes require corresponding assumption
 rechecks; whole SC/seven acceptance and parent indexing remain root-owned.
+
+### Direct Source Descent Ceiling
+
+The existing procedural point issuer admits one surface-to-direct-native boundary
+or descendant step. Its local source ceiling remains one and is intersected with
+the caller execution ceiling; direct migration does not expand admitted source
+families. Successful construction records that actual one-step descent on the
+same execution. A caller ceiling of zero fails before source construction.
+
+## Direct Execution Admission
+
+Source arithmetic borrows `A: ExactScalarAdmission & ~Copyable`; composed query
+operations borrow `inout OriginalQueryExecution`. Source validation, native span
+validation, structural comparisons and exact refinement receive that same admission.
+The [execution owner](../OriginalQueryExecution/DESIGN.md) defines cumulative
+work and actual byte accounting, independent depth axes, cancellation and lexical
+proof scopes. Retained geometry and relation evidence stay immutable; no callback
+adapter, copied counter or second allowance supplies arithmetic authority.

@@ -10,7 +10,7 @@ public struct DefaultOriginalPolynomialNativeLiftChartIssuer: OriginalPolynomial
         OriginalNativeSurfaceLiftSnapshot, OriginalPolynomialNativeLiftChart, OriginalExactScalarDomain> {
         let family = copy family
         do {
-            return try OriginalSourceProofAdmission<A>.withBorrow(&admission) { a in
+            return try admission.withProofScope { a in
                 try a.checkpoint()
                 try family.admitProof(limits: limits, using: &a)
                 let native = family.source.original.originalSurface.original

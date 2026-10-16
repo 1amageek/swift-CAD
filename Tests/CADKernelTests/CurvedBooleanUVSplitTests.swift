@@ -282,6 +282,7 @@ struct CurvedBooleanUVSplitTests {
 
   @Test(.timeLimit(.minutes(3)))
   func generalProceduralImplicitLoopReachesBooleanSplitAndExactSewing() throws {
+    var execution = try OriginalQueryExecution.kernelOriginal()
     let (planarSurface, graphSurface) = proceduralCircularIntersectionSurfaces()
     let intersections = try DefaultSurfaceSurfaceIntersector().intersections(
       first: planarSurface,
@@ -331,7 +332,8 @@ struct CurvedBooleanUVSplitTests {
         ]
       ),
       model: model,
-      tolerance: tolerance
+      tolerance: tolerance,
+        using: &execution
     )
 
     #expect(splitGraph.splits.count == 1)
@@ -356,7 +358,8 @@ struct CurvedBooleanUVSplitTests {
       for: closedCurve,
       firstStableID: "procedural-plane-loop",
       secondStableID: "procedural-graph-loop",
-      tolerance: tolerance
+      tolerance: tolerance,
+        using: &execution
     )
     let sewingResult = try DefaultBRepSewer().sew(
       BRepSewingRequest(
@@ -382,7 +385,8 @@ struct CurvedBooleanUVSplitTests {
           )
         ]
       ),
-      tolerance: tolerance
+      tolerance: tolerance,
+        using: &execution
     )
     #expect(sewingResult.validatedBRep.validationLevel == .exact)
     #expect(sewingResult.brep.faces.count == 2)
@@ -556,6 +560,12 @@ struct CurvedBooleanUVSplitTests {
       try tolerance.validate()
       return true
     }
+
+    func contains(_ point: Point3D, on faceID: FaceID, in model: BRepModel,
+      tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Bool {
+      try execution.consumeWork(1)
+      return try contains(point, on: faceID, in: model, tolerance: tolerance)
+    }
   }
 
   private struct BoundaryBandSolidPointClassifier: SolidPointClassifying {
@@ -570,6 +580,21 @@ struct CurvedBooleanUVSplitTests {
       _ = model
       try tolerance.validate()
       return abs(point.y) <= tolerance.distance * 24.0 ? .boundary : .outside
+    }
+
+    func classify(_ point: Point3D, in bodyID: BodyID, model: BRepModel,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution)
+        throws -> SolidPointClassification {
+        try execution.consumeWork(1)
+        return try classify(point, in: bodyID, model: model, tolerance: tolerance)
+    }
+
+    func preparedClassificationSession(in bodyID: BodyID, model: BRepModel,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution)
+        throws -> any SolidPointClassificationSession {
+        try execution.checkpoint()
+        return ControlledClassificationSession(classifier: self, bodyID: bodyID,
+            model: model, tolerance: tolerance)
     }
   }
 
@@ -586,6 +611,21 @@ struct CurvedBooleanUVSplitTests {
       try tolerance.validate()
       return .boundary
     }
+
+    func classify(_ point: Point3D, in bodyID: BodyID, model: BRepModel,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution)
+        throws -> SolidPointClassification {
+        try execution.consumeWork(1)
+        return try classify(point, in: bodyID, model: model, tolerance: tolerance)
+    }
+
+    func preparedClassificationSession(in bodyID: BodyID, model: BRepModel,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution)
+        throws -> any SolidPointClassificationSession {
+        try execution.checkpoint()
+        return ControlledClassificationSession(classifier: self, bodyID: bodyID,
+            model: model, tolerance: tolerance)
+    }
   }
 
   private struct FaceFixture {
@@ -595,5 +635,23 @@ struct CurvedBooleanUVSplitTests {
     let curves: [CurveID: Curve3D]
     let vertices: [VertexID: Vertex]
     let edgeIDs: [EdgeID]
+  }
+
+  private struct ControlledClassificationSession<Classifier: SolidPointClassifying>:
+      SolidPointClassificationSession {
+      let classifier: Classifier
+      let bodyID: BodyID
+      let model: BRepModel
+      let tolerance: ModelingTolerance
+
+      func classify(_ point: Point3D) throws -> SolidPointClassification {
+          try classifier.classify(point, in: bodyID, model: model, tolerance: tolerance)
+      }
+
+      func classify(_ point: Point3D, using execution: inout OriginalQueryExecution)
+          throws -> SolidPointClassification {
+          try classifier.classify(point, in: bodyID, model: model,
+              tolerance: tolerance, using: &execution)
+      }
   }
 }

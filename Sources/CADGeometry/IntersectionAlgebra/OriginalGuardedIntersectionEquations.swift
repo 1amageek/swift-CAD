@@ -36,7 +36,7 @@ package struct OriginalGuardedIntersectionEquations: Sendable {
     package let zeroSetEquivalences: [ZeroSetEquivalence]
     package let evenPowerZeroSets: [OriginalEvenPowerEquationZeroSet]
 
-    package static func prepare<B: RationalAlgebraAdmitting>(equations: [ExactIntersectionPolynomial],
+    package static func prepare<B: ExactScalarAdmission & ~Copyable>(equations: [ExactIntersectionPolynomial],
         denominatorGuards: [ExactIntersectionPolynomial], variableCount: Int,
         squareFreeRepeatedFactors: Bool = false, reducePureEvenPowerZeroSets: Bool = false,
         usage: inout B) throws -> Self {
@@ -104,7 +104,7 @@ package struct OriginalGuardedIntersectionEquations: Sendable {
             zeroSetEquivalences: equivalences, evenPowerZeroSets: evenPowerZeroSets)
     }
 
-    private static func appendAdmitted<Element, B: RationalAlgebraAdmitting>(_ element: Element,
+    private static func appendAdmitted<Element, B: ExactScalarAdmission & ~Copyable>(_ element: Element,
         to values: inout [Element], capacity: inout Int, usage: inout B) throws {
         if values.count == capacity {
             try intersectionAlgebraStep(&usage)
@@ -120,7 +120,7 @@ package struct OriginalGuardedIntersectionEquations: Sendable {
         values.append(element)
     }
 
-    private static func squareFreeEquivalence<B: RationalAlgebraAdmitting>(_ equation: ExactIntersectionPolynomial,
+    private static func squareFreeEquivalence<B: ExactScalarAdmission & ~Copyable>(_ equation: ExactIntersectionPolynomial,
         equationIndex: Int, usage: inout B) throws -> ZeroSetEquivalence? {
         try intersectionAlgebraStep(&usage)
         if equation.isZero || equation.isConstant { return nil }
@@ -163,7 +163,7 @@ package struct OriginalGuardedIntersectionEquations: Sendable {
             originalQuotient: originalQuotient, divisions: divisions, terminalCofactor: current)
     }
 
-    private static func totalDegree<B: RationalAlgebraAdmitting>(_ polynomial: ExactIntersectionPolynomial,
+    private static func totalDegree<B: ExactScalarAdmission & ~Copyable>(_ polynomial: ExactIntersectionPolynomial,
         usage: inout B) throws -> Int {
         var result = 0
         for term in try polynomial.orderedTerms(usage: &usage) {

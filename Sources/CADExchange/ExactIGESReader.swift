@@ -47,14 +47,15 @@ struct ExactIGESReader: Sendable {
             }
             return ImportedExchangeModel(format:.iges,brep:model,units:.init(length:lengthUnit,angle:.radian))
         }
-        var usage = try IndependentShapeExchangeUsage(limits:resourceLimits,format:.iges,processing:processingBudget,
+        var usage = try IndependentShapeExchangeOwner(limits:resourceLimits,format:.iges,processing:processingBudget,
             consumedEntities:entities.count,consumedWork:text.unicodeScalars.count,consumedBytes:text.utf8.count)
+        var execution = try usage.execution()
         var selected = Set<Int>(), dependent = Set<Int>()
         for e in entities.values {
-            try usage.charge(entities:1,work:e.parameters.reduce(e.label.utf8.count+1) { $0+$1.utf8.count })
+            try usage.charge(entities:1,work:e.parameters.reduce(e.label.utf8.count+1) { $0+$1.utf8.count }, using: &execution)
             if [100,104,110,112,124,126,128,140,190,192,194,196,198].contains(e.type) { selected.insert(e.pointer) }
-            if e.transformationPointer != 0 { try usage.charge(entities:1,work:1); dependent.insert(e.transformationPointer) }
-            if e.type == 140, e.parameters.count == 6, let p = Int(e.parameters[5]) { try usage.charge(entities:1,work:1); dependent.insert(p) }
+            if e.transformationPointer != 0 { try usage.charge(entities:1,work:1, using: &execution); dependent.insert(e.transformationPointer) }
+            if e.type == 140, e.parameters.count == 6, let p = Int(e.parameters[5]) { try usage.charge(entities:1,work:1, using: &execution); dependent.insert(p) }
         }
         var producer: any IndependentIGESGeometryReading = IndependentProducer(builder:.init(entities:entities,
             lengthUnit:lengthUnit,processingBudget:processingBudget,tolerance:tolerance))
@@ -62,9 +63,9 @@ struct ExactIGESReader: Sendable {
         let roots = selected.filter { !dependent.contains($0) }
         if let source = try DefaultIndependentIGESGraphReader().read(entityPointers:Array(entities.keys),
             standaloneItemPointers:roots.sorted(),fields:fields,units:.init(length:lengthUnit,angle:.radian),
-            tolerance:tolerance,producer:&producer,usage:&usage) {
+            tolerance:tolerance,producer:&producer,usage:usage, using: &execution) {
             let units = UnitSystem(length:lengthUnit,angle:.radian), document = CADDocument(units:units,independentShapes:source)
-            try usage.validateDocument(document,tolerance:tolerance)
+            try usage.validateDocument(document,tolerance:tolerance, using: &execution)
             return ImportedExchangeModel(format:.iges,document:document,units:units)
         }
         throw ImportError.invalidData("IGES contains no original independent shapes or exact body.")
@@ -110,16 +111,16 @@ extension ExactIGESReader {
         var builder: Builder
         var paid = Set<Int>()
         var activeSurfaces = Set<Int>()
-        mutating func pay(_ pointer:Int,usage:inout IndependentShapeExchangeUsage) throws -> Entity {
+        mutating func pay(_ pointer:Int,usage: IndependentShapeExchangeOwner, using execution: inout OriginalQueryExecution) throws -> Entity {
             guard let entity = builder.entities[pointer] else { throw ImportError.missingRequiredEntity("IGES #\(pointer)") }
             if !paid.contains(pointer) {
-                try usage.charge(entities:entity.parameters.count+1,work:entity.parameters.reduce(1) { $0+$1.utf8.count })
+                try usage.charge(entities:entity.parameters.count+1,work:entity.parameters.reduce(1) { $0+$1.utf8.count }, using: &execution)
                 paid.insert(pointer)
-            } else { try usage.charge(work:1) }
+            } else { try usage.charge(work:1, using: &execution) }
             return entity
         }
-        mutating func curve(entityPointer pointer:Int,units:UnitSystem,tolerance:ModelingTolerance,usage:inout IndependentShapeExchangeUsage) throws -> IndependentExchangeReadCurve {
-            let entity = try pay(pointer,usage:&usage)
+        mutating func curve(entityPointer pointer:Int,units:UnitSystem,tolerance:ModelingTolerance,usage: IndependentShapeExchangeOwner, using execution: inout OriginalQueryExecution) throws -> IndependentExchangeReadCurve {
+            let entity = try pay(pointer,usage:usage, using: &execution)
             let id:CurveID = builder.taggedID(namespace:0x494745535F435256,pointer:pointer)
             let curve:Curve3D, trim:CurveTrim?
             if entity.type == 110 {
@@ -161,22 +162,22 @@ extension ExactIGESReader {
             // The matrix's actual coefficients, not its directory label, own the affine image.
             let output:Curve3D
             if entity.transformationPointer != 0 {
-                let source = try originalTransformation(entityPointer: entity.transformationPointer, units: units, usage: &usage)
+                let source = try originalTransformation(entityPointer: entity.transformationPointer, units: units, usage: usage, using: &execution)
                 let word = try source.originalOperationWord(tolerance: tolerance,
-                    maximumAlgebraicDepth: usage.limits.maximumAlgebraicDepth, usage: &usage)
+                    maximumAlgebraicDepth: usage.limits.maximumAlgebraicDepth, using: &execution)
                 output = .originalAffineWord(try OriginalAffineWordCurve3D(source: curve, operationWord: word,
                     tolerance: tolerance, remainingSourceDepth: usage.limits.maximumNesting,
                     maximumSubdivisionDepth: usage.limits.maximumCurveSubdivisionDepth,
-                    maximumAlgebraicDepth: usage.limits.maximumAlgebraicDepth, usage: &usage))
+                    maximumAlgebraicDepth: usage.limits.maximumAlgebraicDepth, usage: &execution))
             } else { output = curve }
             return .init(id:id,curve:output,trim:trim,basisEntityID:pointer,basisName:entity.label)
         }
-        mutating func surface(entityPointer pointer:Int,units:UnitSystem,tolerance:ModelingTolerance,usage:inout IndependentShapeExchangeUsage) throws -> IndependentExchangeReadSurface {
+        mutating func surface(entityPointer pointer:Int,units:UnitSystem,tolerance:ModelingTolerance,usage: IndependentShapeExchangeOwner, using execution: inout OriginalQueryExecution) throws -> IndependentExchangeReadSurface {
             guard activeSurfaces.count < usage.limits.maximumNesting, activeSurfaces.insert(pointer).inserted else {
                 throw IndependentShapeExchangeError.invalidAssociation("Cyclic or over-depth original IGES surface graph.")
             }
             defer { activeSurfaces.remove(pointer) }
-            let e = try pay(pointer,usage:&usage)
+            let e = try pay(pointer,usage:usage, using: &execution)
             let id:SurfaceID = builder.taggedID(namespace:0x494745535F535246,pointer:pointer)
             let original: Surface3D
             if [190,192,194,196,198].contains(e.type) {
@@ -188,7 +189,7 @@ extension ExactIGESReader {
                 let referenceIndex = expected - 1
                 let axisPointer = try fields.integer(e.parameters[axisIndex])
                 let referencePointer = try fields.integer(e.parameters[referenceIndex])
-                _ = try pay(point,usage:&usage); _ = try pay(axisPointer,usage:&usage); _ = try pay(referencePointer,usage:&usage)
+                _ = try pay(point,usage:usage, using: &execution); _ = try pay(axisPointer,usage:usage, using: &execution); _ = try pay(referencePointer,usage:usage, using: &execution)
                 let origin = try builder.pointEntity(point), z = try builder.directionEntity(axisPointer), x = try builder.directionEntity(referencePointer)
                 guard abs(x.dot(z)) <= tolerance.angle else { throw ImportError.invalidData("Original IGES analytic reference is not perpendicular to its axis.") }
                 if e.type == 190 {
@@ -223,7 +224,7 @@ extension ExactIGESReader {
             } else if e.type == 140 {
                 guard e.form == 0, e.parameters.count == 6 else { throw ImportError.invalidData("Malformed original IGES offset surface.") }
                 let fields = IndependentFields(entities:builder.entities)
-                let source = try surface(entityPointer:fields.integer(e.parameters[5]),units:units,tolerance:tolerance,usage:&usage).surface
+                let source = try surface(entityPointer:fields.integer(e.parameters[5]),units:units,tolerance:tolerance,usage:usage, using: &execution).surface
                 let indicator = try Vector3D(x:fields.number(e.parameters[1]),y:fields.number(e.parameters[2]),z:fields.number(e.parameters[3])).normalized(tolerance:tolerance.distance)
                 let u: Double, v: Double
                 if case .closed(let lower, let upper) = source.uDomain { u = lower + (upper-lower)/2 } else { u = 0 }
@@ -239,40 +240,40 @@ extension ExactIGESReader {
             }
             let surface: Surface3D
             if e.transformationPointer != 0 {
-                let source = try originalTransformation(entityPointer: e.transformationPointer, units: units, usage: &usage)
+                let source = try originalTransformation(entityPointer: e.transformationPointer, units: units, usage: usage, using: &execution)
                 let word = try source.originalOperationWord(tolerance: tolerance,
-                    maximumAlgebraicDepth: usage.limits.maximumAlgebraicDepth, usage: &usage)
+                    maximumAlgebraicDepth: usage.limits.maximumAlgebraicDepth, using: &execution)
                 surface = .procedural(.originalAffineWord(try OriginalAffineWordSurface3D(source: original,
                     operationWord: word, tolerance: tolerance, remainingSourceDepth: usage.limits.maximumNesting,
                     maximumSubdivisionDepth: usage.limits.maximumCurveSubdivisionDepth,
-                    maximumAlgebraicDepth: usage.limits.maximumAlgebraicDepth, usage: &usage)))
+                    maximumAlgebraicDepth: usage.limits.maximumAlgebraicDepth, usage: &execution)))
             } else { surface = original }
             try surface.validate(tolerance:tolerance)
             builder.geometry.surfaces[id] = surface
             return .init(id:id,surface:surface,basisName:e.label)
         }
         mutating func originalTransformation(entityPointer pointer: Int, units: UnitSystem,
-            usage: inout IndependentShapeExchangeUsage) throws -> OriginalIGESMatrixSource {
-            let entity = try pay(pointer, usage: &usage)
+            usage: IndependentShapeExchangeOwner, using execution: inout OriginalQueryExecution) throws -> OriginalIGESMatrixSource {
+            let entity = try pay(pointer, usage: usage, using: &execution)
             guard entity.type == 124, entity.form == 0 || entity.form == 1,
                 entity.transformationPointer == 0, entity.parameters.count == 13 else {
                 throw IndependentShapeExchangeError.invalidAssociation("Original IGES124 requires its legal form and twelve nonnested coefficients.")
             }
-            try usage.charge(bytes: 12 * MemoryLayout<String>.stride)
+            try usage.charge(bytes: 12 * MemoryLayout<String>.stride, using: &execution)
             return .init(coefficients: Array(entity.parameters.dropFirst()), form: entity.form, lengthUnit: units.length)
         }
-        mutating func transformation(entityPointer pointer:Int,units:UnitSystem,usage:inout IndependentShapeExchangeUsage) throws -> AffineTransform3D {
-            let source = try originalTransformation(entityPointer: pointer, units: units, usage: &usage)
+        mutating func transformation(entityPointer pointer:Int,units:UnitSystem,usage: IndependentShapeExchangeOwner, using execution: inout OriginalQueryExecution) throws -> AffineTransform3D {
+            let source = try originalTransformation(entityPointer: pointer, units: units, usage: usage, using: &execution)
             return try source.derivedAffineTransform(tolerance: builder.tolerance,
-                maximumAlgebraicDepth: usage.limits.maximumAlgebraicDepth, usage: &usage)
+                maximumAlgebraicDepth: usage.limits.maximumAlgebraicDepth, using: &execution)
         }
-        mutating func instancePlacement(entityPointer pointer:Int,units:UnitSystem,usage:inout IndependentShapeExchangeUsage) throws -> AffineTransform3D {
-            let e = try pay(pointer,usage:&usage), f = IndependentFields(entities:builder.entities), p = e.parameters
+        mutating func instancePlacement(entityPointer pointer:Int,units:UnitSystem,usage: IndependentShapeExchangeOwner, using execution: inout OriginalQueryExecution) throws -> AffineTransform3D {
+            let e = try pay(pointer,usage:usage, using: &execution), f = IndependentFields(entities:builder.entities), p = e.parameters
             guard e.type == 408, p.count == 6 else { throw ImportError.invalidData("Malformed IGES408.") }
             let scale = try f.number(p[5])
             guard scale > 0 else { throw ImportError.invalidData("IGES408 scale must be positive.") }
             let matrix = e.transformationPointer == 0 ? try AffineTransform3D(basisX:.unitX,basisY:.unitY,basisZ:.unitZ,translation:.zero)
-                : try transformation(entityPointer:e.transformationPointer,units:units,usage:&usage)
+                : try transformation(entityPointer:e.transformationPointer,units:units,usage:usage, using: &execution)
             let translation = try Vector3D(x:units.length.toInternal(f.number(p[2])),y:units.length.toInternal(f.number(p[3])),z:units.length.toInternal(f.number(p[4])))
             return try .init(basisX:matrix.basisX*scale,basisY:matrix.basisY*scale,basisZ:matrix.basisZ*scale,translation:matrix.translation+translation)
         }

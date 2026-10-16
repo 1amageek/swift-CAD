@@ -583,3 +583,25 @@ catch; and BoundedBRepRepairEngine's signed-shell orientation catch. Each retain
 its prior diagnostic and cancellation control flow. The earlier five-site
 summary omitted the two validator catches and the final compiler-exposed repair
 catch; this list is the complete verified scope.
+
+### Canonical admission delivery binding
+
+This integration selects the existing Geometry direct APIs documented by
+[Original Query Execution](../CADGeometry/OriginalQueryExecution/DESIGN.md).
+Topology replaces removed admission declarations and callback-shaped calls with
+one original inout execution through the existing validation, trim, area and
+image algorithms. Ordinary entry points create one execution and enter the same
+body. Scalar/coefficient, source and subdivision limits remain independent;
+existing formulas, supported branches, orientation and refusal guards remain
+authoritative. This binding does not include independent feature or repair fixes.
+Selected child contracts own their direct invocation details. Actual target
+compilation and focused behavior remain required evidence.
+
+```text
+ordinary root / composing caller -> OriginalQueryExecution -> original Geometry API
+```
+
+The selected body shell-ID helper visits the original component/void ownership
+order under the same execution before producing its array. Validation requests
+expose a direct witness preserving their unique, nonempty scope predicate. These
+are required callee bindings for receipt/validator consumers, not topology edits.

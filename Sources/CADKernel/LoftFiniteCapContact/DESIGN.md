@@ -29,3 +29,11 @@ Cancellation is checked before preparation, between pairs and before returning. 
 
 ## Verification and Change Impact
 Deferred behavioral evidence covers curved finite disjoint supports, holes, shared edge and vertex incidence, nonincident tangency, partial shared-edge spans, material-interior crossings, coplanar contacts, cancellation and budget failure through both Loft builders. Source construction is not verification evidence.
+
+The native Kernel binding gate requires the existing actual consumer body to
+borrow OriginalQueryExecution through changed containment, arrangement, source
+validation and scalar readers. Ordinary operation entries root once. Pure
+structural/interpolation helpers keep their existing signatures; throwing
+topology getters propagate failure. Existing formulas, ordering, selected domains
+and independent local ceilings remain authoritative. This is API/caller repair,
+not new feature or whole-resource completion evidence.

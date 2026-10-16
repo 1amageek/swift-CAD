@@ -11,114 +11,127 @@ package struct ExactBSplineCurveSpanBuilder: Sendable {
     private let tolerance: ModelingTolerance
     private let owner: OriginalSpanConstructionOwner
 
-    package init(tolerance: ModelingTolerance, admission: GeometryConversionAdmission? = nil) {
+    package init(tolerance: ModelingTolerance) {
         self.tolerance = tolerance
-        owner = OriginalSpanConstructionOwner(tolerance: tolerance, admission: admission)
+        owner = OriginalSpanConstructionOwner(tolerance: tolerance)
+    }
+    package init(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        self.tolerance = tolerance
+        owner = try OriginalSpanConstructionOwner(tolerance: tolerance, using: &execution)
     }
 
-    private func originalSource(_ curve: Curve3D) throws -> OriginalCurveSpanSource {
-        let selected = try owner.admission()
-        return try OriginalCurveSpanSource(curve: curve, tolerance: tolerance, admission: selected)
+    private func originalSource(_ curve: Curve3D, using execution: inout OriginalQueryExecution) throws -> OriginalCurveSpanSource {
+        return try OriginalCurveSpanSource(curve: curve, tolerance: tolerance, using: &execution)
     }
 
     private func constructionSpan(curve: BSplineCurve3D, tolerance: ModelingTolerance,
-        originalChart: OriginalCurveSpanParameterChart? = nil) throws -> ExactBSplineCurveSpan {
+        originalChart: OriginalCurveSpanParameterChart? = nil, using execution: inout OriginalQueryExecution) throws -> ExactBSplineCurveSpan {
         try ExactBSplineCurveSpan(curve: curve, tolerance: tolerance,
-            originalChart: originalChart, admission: owner.admission())
+            originalChart: originalChart, using: &execution)
     }
 
     private func originalGeometry(_ curve: EvaluatedCurve,
-        admission: GeometryConversionAdmission) throws -> OriginalEvaluatedCurveGeometry {
-        try curve.validateOriginalGeometry(tolerance: tolerance,
-            maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
-            remainingSourceDepth: admission.remainingSourceDepth,
-            consumeWork: { try admission.visit(depth: $0) },
-            consumeStorage: { try admission.chargeStorage(bytes: $0) },
-            maximumAlgebraicDepth: admission.maximumAlgebraicDepth)
+        using execution: inout OriginalQueryExecution) throws -> OriginalEvaluatedCurveGeometry {
+        try curve.validateOriginalGeometry(tolerance: tolerance, using: &execution)
     }
 
     private func reversedConstructionSpan(_ span: ExactBSplineCurveSpan,
-        admission: GeometryConversionAdmission) throws -> ExactBSplineCurveSpan {
+        using execution: inout OriginalQueryExecution) throws -> ExactBSplineCurveSpan {
         func retain<Value>(_ count: Int, of: Value.Type) throws {
             let bytes = count.multipliedReportingOverflow(by: MemoryLayout<Value>.stride)
             guard count >= 0, !bytes.overflow else {
                 throw GeometryConversionError.resourceLimitExceeded("Directed span reversal payload overflows.")
             }
-            try admission.chargeStorage(bytes: bytes.partialValue)
+            try execution.retainStorage(bytes: bytes.partialValue)
         }
         try retain(span.curve.knots.count, of: Double.self)
         try retain(span.curve.controlPoints.count, of: Point3D.self)
         try retain(span.curve.weights.count, of: Double.self)
         let knots = try span.curve.knots.reversed().map { knot in
-            try admission.chargeWork(); return -knot
+            try execution.consumeWork(1); return -knot
         }
-        try admission.chargeWork(span.curve.controlPoints.count)
-        try admission.chargeWork(span.curve.weights.count)
+        try execution.consumeWork(span.curve.controlPoints.count)
+        try execution.consumeWork(span.curve.weights.count)
         let reversed = BSplineCurve3D(degree: span.curve.degree, knots: knots,
             controlPoints: Array(span.curve.controlPoints.reversed()),
             weights: Array(span.curve.weights.reversed()))
         return try constructionSpan(curve: reversed, tolerance: tolerance,
-            originalChart: span.originalChart.reversed())
+            originalChart: span.originalChart.reversed(), using: &execution)
     }
 
     private func reverseConstructionSpans(_ spans: inout [ExactBSplineCurveSpan],
-        admission: GeometryConversionAdmission) throws {
+        using execution: inout OriginalQueryExecution) throws {
         for index in 0..<((spans.count + 1) / 2) {
             let other = spans.count - 1 - index
             let first = spans[index]
             let second = spans[other]
-            spans[index] = try reversedConstructionSpan(second, admission: admission)
-            if index != other { spans[other] = try reversedConstructionSpan(first, admission: admission) }
+            spans[index] = try reversedConstructionSpan(second, using: &execution)
+            if index != other { spans[other] = try reversedConstructionSpan(first, using: &execution) }
         }
     }
 
     package func normalizedConstructionSpan(
         from chart: OriginalCurveSpanParameterChart
     ) throws -> ExactBSplineCurveSpan {
-        let admission = try owner.admission()
-        let chart = chart.admittingConstruction(admission)
+        var execution = try owner.execution()
+        return try normalizedConstructionSpan(from: chart, using: &execution)
+    }
+
+    package func normalizedConstructionSpan(
+        from chart: OriginalCurveSpanParameterChart, using execution: inout OriginalQueryExecution) throws -> ExactBSplineCurveSpan {
+        let chart = try chart.admittingConstruction(using: &execution)
         let domain = try ScalarInterval(lower: 0, upper: 1)
         let source = try OriginalCurveConstructionSource(chart: chart, domain: domain,
-            tolerance: tolerance, admission: admission)
+            tolerance: tolerance, using: &execution)
         let result = try CertifiedGeometryConverter().approximateCurve(source: source,
             over: domain, requirements: GeometryConversionRequirements(
                 maximumPositionError: tolerance.distance * 0.25,
                 maximumTangentAngle: tolerance.angle,
                 maximumCurvatureError: tolerance.distance),
-            tolerance: tolerance, admission: admission)
-        return try constructionSpan(curve: result.curve, tolerance: tolerance, originalChart: chart)
+            tolerance: tolerance, using: &execution)
+        return try constructionSpan(curve: result.curve, tolerance: tolerance, originalChart: chart, using: &execution)
     }
 
     package func profileLoopSpans(
         from profile: Profile
     ) throws -> [[ExactBSplineCurveSpan]] {
+        var execution = try owner.execution()
+        return try profileLoopSpans(from: profile, using: &execution)
+    }
+
+    package func profileLoopSpans(
+        from profile: Profile, using execution: inout OriginalQueryExecution) throws -> [[ExactBSplineCurveSpan]] {
         try profile.boundaryLoops.map { loop in
-            try profileSpans(from: loop)
+            try profileSpans(from: loop, using: &execution)
         }
     }
 
     /// Constructs from the retained original face edges, never its Profile image.
     package func faceLoopSpans(from section: ResolvedFaceSection) throws -> [[ExactBSplineCurveSpan]] {
-        let admission = try owner.admission()
+        var execution = try owner.execution()
+        return try faceLoopSpans(from: section, using: &execution)
+    }
+
+    package func faceLoopSpans(from section: ResolvedFaceSection, using execution: inout OriginalQueryExecution) throws -> [[ExactBSplineCurveSpan]] {
         func retain<Value>(_ count: Int, of: Value.Type) throws {
             let bytes = count.multipliedReportingOverflow(by: MemoryLayout<Value>.stride)
             guard count >= 0, !bytes.overflow else { throw GeometryConversionError.resourceLimitExceeded("Original face span payload overflows.") }
-            try admission.chargeStorage(bytes: bytes.partialValue)
+            try execution.retainStorage(bytes: bytes.partialValue)
         }
         try retain(section.loops.count, of: [ExactBSplineCurveSpan].self)
         var loops: [[ExactBSplineCurveSpan]] = []
         loops.reserveCapacity(section.loops.count)
         for loop in section.loops {
-            try admission.chargeWork()
+            try execution.consumeWork(1)
             var result: [ExactBSplineCurveSpan] = []
             var capacity = 0
             for segment in loop.segments {
-                try admission.chargeWork()
+                try execution.consumeWork(1)
                 var pieces = try spans(curve: segment.source.curve,
                     lower: min(segment.startParameter, segment.endParameter),
-                    upper: max(segment.startParameter, segment.endParameter), sourceOwner: segment.source)
+                    upper: max(segment.startParameter, segment.endParameter), sourceOwner: segment.source, using: &execution)
                 if segment.endParameter < segment.startParameter {
-                    try reverseConstructionSpans(&pieces, admission: admission)
+                    try reverseConstructionSpans(&pieces, using: &execution)
                 }
                 let needed = result.count.addingReportingOverflow(pieces.count)
                 guard !needed.overflow else { throw GeometryConversionError.resourceLimitExceeded("Original face span count overflows.") }
@@ -126,48 +139,63 @@ package struct ExactBSplineCurveSpanBuilder: Sendable {
                     let growth = capacity.multipliedReportingOverflow(by: 2)
                     let next = max(needed.partialValue, growth.overflow ? needed.partialValue : growth.partialValue)
                     try retain(next, of: ExactBSplineCurveSpan.self)
-                    try admission.chargeWork(result.count)
+                    try execution.consumeWork(result.count)
                     result.reserveCapacity(next); capacity = next
                 }
-                for piece in pieces { try admission.chargeWork(); result.append(piece) }
+                for piece in pieces { try execution.consumeWork(1); result.append(piece) }
             }
-            try validateClosure(result)
+            try validateClosure(result, using: &execution)
             loops.append(result)
         }
         return loops
     }
 
     package func constructedRegionLoopSpans(from region: ResolvedBoundaryRegion) throws -> [[ExactBSplineCurveSpan]] {
-        let admission = try owner.admission()
-        try admission.chargeStorage(bytes: region.loops.count * MemoryLayout<[ExactBSplineCurveSpan]>.stride)
+        var execution = try owner.execution()
+        return try constructedRegionLoopSpans(from: region, using: &execution)
+    }
+
+    package func constructedRegionLoopSpans(from region: ResolvedBoundaryRegion, using execution: inout OriginalQueryExecution) throws -> [[ExactBSplineCurveSpan]] {
+        try execution.retainStorage(bytes: region.loops.count * MemoryLayout<[ExactBSplineCurveSpan]>.stride)
         var result: [[ExactBSplineCurveSpan]] = []
         result.reserveCapacity(region.loops.count)
         for charts in region.loops {
-            try admission.chargeStorage(bytes: charts.count * MemoryLayout<ExactBSplineCurveSpan>.stride)
+            try execution.retainStorage(bytes: charts.count * MemoryLayout<ExactBSplineCurveSpan>.stride)
             var loop: [ExactBSplineCurveSpan] = []
             loop.reserveCapacity(charts.count)
             for chart in charts {
-                try admission.chargeWork()
-                loop.append(try normalizedConstructionSpan(from: chart))
+                try execution.consumeWork(1)
+                loop.append(try normalizedConstructionSpan(from: chart, using: &execution))
             }
-            try validateClosure(loop)
+            try validateClosure(loop, using: &execution)
             result.append(loop)
         }
         return result
     }
 
     package func loopSpans(from section: ResolvedModelingSection) throws -> [[ExactBSplineCurveSpan]] {
+        var execution = try owner.execution()
+        return try loopSpans(from: section, using: &execution)
+    }
+
+    package func loopSpans(from section: ResolvedModelingSection, using execution: inout OriginalQueryExecution) throws -> [[ExactBSplineCurveSpan]] {
         switch section {
-        case .profile(let profile, _): return try profileLoopSpans(from: profile)
-        case .face(let face, _): return try faceLoopSpans(from: face)
-        case .constructedRegion(let region): return try constructedRegionLoopSpans(from: region)
-        case .curve(let curve): return [try sectionSpans(from: curve)]
+        case .profile(let profile, _): return try profileLoopSpans(from: profile, using: &execution)
+        case .face(let face, _): return try faceLoopSpans(from: face, using: &execution)
+        case .constructedRegion(let region): return try constructedRegionLoopSpans(from: region, using: &execution)
+        case .curve(let curve): return [try sectionSpans(from: curve, using: &execution)]
         }
     }
 
     package func profileSpans(
         from loop: ProfileLoop
     ) throws -> [ExactBSplineCurveSpan] {
+        var execution = try owner.execution()
+        return try profileSpans(from: loop, using: &execution)
+    }
+
+    package func profileSpans(
+        from loop: ProfileLoop, using execution: inout OriginalQueryExecution) throws -> [ExactBSplineCurveSpan] {
         try tolerance.validate()
         var result: [ExactBSplineCurveSpan] = []
         for boundary in loop.boundarySegments {
@@ -176,7 +204,7 @@ package struct ExactBSplineCurveSpanBuilder: Sendable {
                 result.append(try lineSpan(
                     from: line.start,
                     to: line.end
-                ))
+                , using: &execution))
             case let .circularArc(arc):
                 let circle = Circle3D(
                     center: arc.center,
@@ -193,18 +221,18 @@ package struct ExactBSplineCurveSpanBuilder: Sendable {
                     center: circle.center,
                     lower: start,
                     sweep: arc.sweepAngle
-                ))
+                , using: &execution))
             case let .spline(spline):
                 result.append(contentsOf: try bSplineSpans(
                     spline.curve,
                     requestedDomain: spline.curve.domain
-                ))
+                , using: &execution))
             }
         }
         guard result.count >= 2 else {
             throw SketchError.openProfile
         }
-        try validateClosure(result)
+        try validateClosure(result, using: &execution)
         return result
     }
 
@@ -215,6 +243,14 @@ package struct ExactBSplineCurveSpanBuilder: Sendable {
         endingAt requestedEndPoint: Point3D? = nil,
         allowsClosed: Bool = false
     ) throws -> [ExactBSplineCurveSpan] {
+        var execution = try owner.execution()
+        return try pathSpans(from: segments, endingAt: requestedEndPoint, allowsClosed: allowsClosed, using: &execution)
+    }
+
+    package func pathSpans(
+        from segments: [EvaluatedCurvePathSegment],
+        endingAt requestedEndPoint: Point3D? = nil,
+        allowsClosed: Bool = false, using execution: inout OriginalQueryExecution) throws -> [ExactBSplineCurveSpan] {
         try tolerance.validate()
         guard segments.isEmpty == false else {
             throw FeatureEvaluationError.missingInput(
@@ -222,11 +258,10 @@ package struct ExactBSplineCurveSpanBuilder: Sendable {
             )
         }
         var result: [ExactBSplineCurveSpan] = []
-        let admission = try owner.admission()
         var capacity = 0
         for segment in segments {
-            try admission.chargeWork()
-            let original = try originalGeometry(segment.curve, admission: admission)
+            try execution.consumeWork(1)
+            let original = try originalGeometry(segment.curve, using: &execution)
             let curve = original.curve
             let bounds: (lower: Double, upper: Double)
             switch original.parameterDomain {
@@ -247,10 +282,10 @@ package struct ExactBSplineCurveSpanBuilder: Sendable {
                 curve: curve,
                 lower: bounds.lower,
                 upper: bounds.upper,
-                sourceOwner: originalSource(curve)
-            )
+                sourceOwner: originalSource(curve, using: &execution)
+            , using: &execution)
             if segment.isReversed {
-                try reverseConstructionSpans(&spans, admission: admission)
+                try reverseConstructionSpans(&spans, using: &execution)
             }
             let needed = result.count.addingReportingOverflow(spans.count)
             guard !needed.overflow else { throw GeometryConversionError.resourceLimitExceeded("Original path span count overflows.") }
@@ -259,18 +294,18 @@ package struct ExactBSplineCurveSpanBuilder: Sendable {
                 let next = max(needed.partialValue, growth.overflow ? needed.partialValue : growth.partialValue)
                 let bytes = next.multipliedReportingOverflow(by: MemoryLayout<ExactBSplineCurveSpan>.stride)
                 guard !bytes.overflow else { throw GeometryConversionError.resourceLimitExceeded("Original path span payload overflows.") }
-                try admission.chargeStorage(bytes: bytes.partialValue)
-                try admission.chargeWork(result.count)
+                try execution.retainStorage(bytes: bytes.partialValue)
+                try execution.consumeWork(result.count)
                 result.reserveCapacity(next); capacity = next
             }
-            for span in spans { try admission.chargeWork(); result.append(span) }
+            for span in spans { try execution.consumeWork(1); result.append(span) }
         }
-        try validatePathContinuity(result)
+        try validatePathContinuity(result, using: &execution)
         if let requestedEndPoint {
             result = try prefix(
                 of: result,
                 endingAt: requestedEndPoint
-            )
+            , using: &execution)
         }
         guard let first = result.first,
               let last = result.last,
@@ -290,26 +325,36 @@ package struct ExactBSplineCurveSpanBuilder: Sendable {
 
     package func sectionSpans(sourceOwner: OriginalCurveSpanSource,
         lower: Double, upper: Double) throws -> [ExactBSplineCurveSpan] {
-        let admission = try owner.admission()
-        try admission.chargeWork()
+        var execution = try owner.execution()
+        return try sectionSpans(sourceOwner: sourceOwner, lower: lower, upper: upper, using: &execution)
+    }
+
+    package func sectionSpans(sourceOwner: OriginalCurveSpanSource,
+        lower: Double, upper: Double, using execution: inout OriginalQueryExecution) throws -> [ExactBSplineCurveSpan] {
+        try execution.consumeWork(1)
         guard sourceOwner.prepared != nil, sourceOwner.preparationTolerance == tolerance,
-              sourceOwner.admission != nil, lower.isFinite, upper.isFinite, lower < upper,
+              sourceOwner.budget != nil, lower.isFinite, upper.isFinite, lower < upper,
               try sourceOwner.curve.parameterDomain.containsSpan(from: lower, to: upper,
                 tolerance: tolerance) else {
             throw GeometryConversionError.invalidInput("Original section spans require one prepared owner and its contained authored native trim.")
         }
         let result = try spans(curve: sourceOwner.curve, lower: lower, upper: upper,
-            sourceOwner: sourceOwner)
-        try validatePathContinuity(result)
+            sourceOwner: sourceOwner, using: &execution)
+        try validatePathContinuity(result, using: &execution)
         return result
     }
 
     package func sectionSpans(
         from section: EvaluatedCurve
     ) throws -> [ExactBSplineCurveSpan] {
+        var execution = try owner.execution()
+        return try sectionSpans(from: section, using: &execution)
+    }
+
+    package func sectionSpans(
+        from section: EvaluatedCurve, using execution: inout OriginalQueryExecution) throws -> [ExactBSplineCurveSpan] {
         try tolerance.validate()
-        let admission = try owner.admission()
-        let original = try originalGeometry(section, admission: admission)
+        let original = try originalGeometry(section, using: &execution)
         let curve = original.curve
         let bounds: (lower: Double, upper: Double)
         switch original.parameterDomain {
@@ -337,9 +382,9 @@ package struct ExactBSplineCurveSpanBuilder: Sendable {
             curve: curve,
             lower: bounds.lower,
             upper: bounds.upper,
-            sourceOwner: originalSource(curve)
-        )
-        try validatePathContinuity(result)
+            sourceOwner: originalSource(curve, using: &execution)
+        , using: &execution)
+        try validatePathContinuity(result, using: &execution)
         if original.isClosed {
             guard let first = result.first,
                   let last = result.last,
@@ -360,8 +405,7 @@ package struct ExactBSplineCurveSpanBuilder: Sendable {
     // establish general original-law clipping or complete the Sweep contract.
     private func prefix(
         of spans: [ExactBSplineCurveSpan],
-        endingAt requestedEndPoint: Point3D
-    ) throws -> [ExactBSplineCurveSpan] {
+        endingAt requestedEndPoint: Point3D, using execution: inout OriginalQueryExecution) throws -> [ExactBSplineCurveSpan] {
         try requestedEndPoint.validate()
         var result: [ExactBSplineCurveSpan] = []
         for span in spans {
@@ -417,8 +461,8 @@ package struct ExactBSplineCurveSpanBuilder: Sendable {
                 curve: trimmed,
                 tolerance: tolerance,
                 originalChart: span.originalChart.restricted(from: lower, to: parameter,
-                    in: span.curve.domain, tolerance: tolerance)
-            ))
+                    in: span.curve.domain, tolerance: tolerance, using: &execution)
+            , using: &execution))
             guard result.last?.endPoint.isApproximatelyEqual(
                 to: requestedEndPoint,
                 tolerance: tolerance.distance
@@ -447,8 +491,7 @@ package struct ExactBSplineCurveSpanBuilder: Sendable {
         curve: Curve3D,
         lower: Double,
         upper: Double,
-        sourceOwner: OriginalCurveSpanSource? = nil
-    ) throws -> [ExactBSplineCurveSpan] {
+        sourceOwner: OriginalCurveSpanSource? = nil, using execution: inout OriginalQueryExecution) throws -> [ExactBSplineCurveSpan] {
         guard lower.isFinite,
               upper.isFinite,
               (upper - lower).isFinite, upper > lower else {
@@ -457,16 +500,16 @@ package struct ExactBSplineCurveSpanBuilder: Sendable {
         switch curve {
         case .line, .analytic(.line):
             let candidate = try lineSpan(from: curve.point(at: lower, tolerance: tolerance),
-                to: curve.point(at: upper, tolerance: tolerance))
+                to: curve.point(at: upper, tolerance: tolerance), using: &execution)
             return [try constructionSpan(curve: candidate.curve, tolerance: tolerance,
-                originalChart: .init(source: try sourceOwner ?? originalSource(curve), startParameter: lower, endParameter: upper))]
+                originalChart: .init(source: try sourceOwner ?? originalSource(curve, using: &execution), startParameter: lower, endParameter: upper), using: &execution)]
         case let .circle(circle):
             return try conicSpans(
                 curve: curve,
                 center: circle.center,
                 lower: lower,
                 sweep: upper - lower, sourceOwner: sourceOwner, terminalParameter: upper
-            )
+            , using: &execution)
         case let .analytic(analytic):
             let center: Point3D
             switch analytic {
@@ -479,13 +522,13 @@ package struct ExactBSplineCurveSpanBuilder: Sendable {
                     curve: curve,
                     lower: lower,
                     upper: upper
-                )
+                , using: &execution)
             case let .parabola(curve):
                 return [try parabolaSpan(
                     curve: curve,
                     lower: lower,
                     upper: upper
-                )]
+                , using: &execution)]
             case .line:
                 throw KernelError(
                     phase: .geometry,
@@ -494,60 +537,58 @@ package struct ExactBSplineCurveSpanBuilder: Sendable {
                     message: "Exact line path dispatch is inconsistent."
                 )
             case .planeTorus:
-                return try certifiedNativeSpans(curve: curve, lower: lower, upper: upper, sourceOwner: sourceOwner)
+                return try certifiedNativeSpans(curve: curve, lower: lower, upper: upper, sourceOwner: sourceOwner, using: &execution)
             }
             return try conicSpans(
                 curve: curve,
                 center: center,
                 lower: lower,
                 sweep: upper - lower, sourceOwner: sourceOwner, terminalParameter: upper
-            )
+            , using: &execution)
         case let .bSpline(spline):
             return try bSplineSpans(
                 spline,
                 requestedDomain: .closed(lower, upper), sourceOwner: sourceOwner
-            )
+            , using: &execution)
         case .rigidImage, .affineImage, .originalAffineWord:
             // Certify the transformed original law; the previous candidate's
             // allowance does not survive rounding or affine amplification.
-            return try certifiedNativeSpans(curve: curve, lower: lower, upper: upper, sourceOwner: sourceOwner)
+            return try certifiedNativeSpans(curve: curve, lower: lower, upper: upper, sourceOwner: sourceOwner, using: &execution)
         case let .parameterImage(image):
             if image.offset == 0, case let .binary(gain) = image.parameterGain, gain == -1 {
-                return try spans(curve: image.source, lower: -upper, upper: -lower)
+                return try spans(curve: image.source, lower: -upper, upper: -lower, using: &execution)
                     .reversed().map { span in
                         try constructionSpan(curve: span.curve.reversed(tolerance: tolerance),
-                            tolerance: tolerance, originalChart: span.originalChart.reversed())
+                            tolerance: tolerance, originalChart: span.originalChart.reversed(), using: &execution)
                     }
             }
-            return try certifiedNativeSpans(curve: curve, lower: lower, upper: upper, sourceOwner: sourceOwner)
+            return try certifiedNativeSpans(curve: curve, lower: lower, upper: upper, sourceOwner: sourceOwner, using: &execution)
         case .implicit, .surfaceLift, .certifiedIntersection, .originalEndpointConnector,
              .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline,
              .originalConstructionChart, .originalAngularTransport, .originalPlaneDerivative, .originalDrafted:
-            return try certifiedNativeSpans(curve: curve, lower: lower, upper: upper, sourceOwner: sourceOwner)
+            return try certifiedNativeSpans(curve: curve, lower: lower, upper: upper, sourceOwner: sourceOwner, using: &execution)
         }
     }
 
     private func certifiedNativeSpans(curve: Curve3D, lower: Double, upper: Double,
-        sourceOwner: OriginalCurveSpanSource? = nil) throws -> [ExactBSplineCurveSpan] {
-        let original = try sourceOwner ?? originalSource(curve)
-        let admission = try owner.admission()
+        sourceOwner: OriginalCurveSpanSource? = nil, using execution: inout OriginalQueryExecution) throws -> [ExactBSplineCurveSpan] {
+        let original = try sourceOwner ?? originalSource(curve, using: &execution)
         let parameters = try ScalarInterval(lower: lower, upper: upper)
         let source = try OriginalCurveConstructionSource(chart: .init(source: original,
             startParameter: lower, endParameter: upper), domain: parameters,
-            tolerance: tolerance, admission: admission)
+            tolerance: tolerance, using: &execution)
         let converted = try CertifiedGeometryConverter().approximateCurve(
             source: source, over: parameters,
             requirements: GeometryConversionRequirements(maximumPositionError: tolerance.distance * 0.25,
                 maximumTangentAngle: tolerance.angle, maximumCurvatureError: tolerance.distance),
-            tolerance: tolerance, admission: admission)
+            tolerance: tolerance, using: &execution)
         return try bSplineSpans(converted.curve, requestedDomain: .closed(lower, upper),
-            originalCurve: curve, sourceOwner: original)
+            originalCurve: curve, sourceOwner: original, using: &execution)
     }
 
     private func lineSpan(
         from start: Point3D,
-        to end: Point3D
-    ) throws -> ExactBSplineCurveSpan {
+        to end: Point3D, using execution: inout OriginalQueryExecution) throws -> ExactBSplineCurveSpan {
         try constructionSpan(
             curve: BSplineCurve3D(
                 degree: 1,
@@ -555,7 +596,7 @@ package struct ExactBSplineCurveSpanBuilder: Sendable {
                 controlPoints: [start, end]
             ),
             tolerance: tolerance
-        )
+        , using: &execution)
     }
 
     private func conicSpans(
@@ -564,14 +605,13 @@ package struct ExactBSplineCurveSpanBuilder: Sendable {
         lower: Double,
         sweep: Double,
         sourceOwner: OriginalCurveSpanSource? = nil,
-        terminalParameter: Double? = nil
-    ) throws -> [ExactBSplineCurveSpan] {
+        terminalParameter: Double? = nil, using execution: inout OriginalQueryExecution) throws -> [ExactBSplineCurveSpan] {
         guard lower.isFinite, sweep.isFinite, abs(sweep) > 0, abs(sweep) <= 2 * Double.pi else {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
                 message: "Conic spans require a finite nonzero sweep covering at most one turn.")
         }
         let count = Int(ceil(abs(sweep) / (0.5 * Double.pi)))
-        let originalSource = try sourceOwner ?? originalSource(curve)
+        let originalSource = try sourceOwner ?? originalSource(curve, using: &execution)
         let firstPoint = try curve.point(at: lower, tolerance: tolerance)
         let closesPeriod: Bool
         if case let .periodic(period) = curve.parameterDomain {
@@ -585,7 +625,7 @@ package struct ExactBSplineCurveSpanBuilder: Sendable {
                 : lower + sweep * Double(index + 1) / Double(count)
             let middle = 0.5 * (start + end)
             let halfAngle = 0.5 * (end - start)
-            let weight = CanonicalSphereAngularPhase.candidate(at: halfAngle, cosine: true)
+            let weight = try CanonicalSphereAngularPhase.candidate(at: halfAngle, cosine: true, using: &execution)
             guard weight > Double.ulpOfOne else {
                 throw KernelError(
                     phase: .geometry,
@@ -613,17 +653,16 @@ package struct ExactBSplineCurveSpanBuilder: Sendable {
                 tolerance: tolerance,
                 originalChart: .init(source: originalSource, startParameter: start,
                     endParameter: end, mapping: .circularRational)
-            )
+            , using: &execution)
         }
     }
 
     private func hyperbolaSpans(
         curve: Hyperbola3D,
         lower: Double,
-        upper: Double
-    ) throws -> [ExactBSplineCurveSpan] {
+        upper: Double, using execution: inout OriginalQueryExecution) throws -> [ExactBSplineCurveSpan] {
         let exactCurve = Curve3D.analytic(.hyperbola(curve))
-        let originalSource = try originalSource(exactCurve)
+        let originalSource = try originalSource(exactCurve, using: &execution)
         let span = upper - lower
         let count = max(1, Int(ceil(abs(span))))
         return try (0..<count).map { index in
@@ -655,15 +694,14 @@ package struct ExactBSplineCurveSpanBuilder: Sendable {
                 tolerance: tolerance,
                 originalChart: .init(source: originalSource, startParameter: start,
                     endParameter: end, mapping: .hyperbolicRational)
-            )
+            , using: &execution)
         }
     }
 
     private func parabolaSpan(
         curve: Parabola3D,
         lower: Double,
-        upper: Double
-    ) throws -> ExactBSplineCurveSpan {
+        upper: Double, using execution: inout OriginalQueryExecution) throws -> ExactBSplineCurveSpan {
         let exactCurve = Curve3D.analytic(.parabola(curve))
         let start = try curve.differentialGeometry(
             at: lower,
@@ -682,15 +720,14 @@ package struct ExactBSplineCurveSpanBuilder: Sendable {
             ),
             tolerance: tolerance,
             originalChart: .init(curve: exactCurve, startParameter: lower, endParameter: upper)
-        )
+        , using: &execution)
     }
 
     private func bSplineSpans(
         _ source: BSplineCurve3D,
         requestedDomain: ParameterDomain,
         originalCurve: Curve3D? = nil,
-        sourceOwner: OriginalCurveSpanSource? = nil
-    ) throws -> [ExactBSplineCurveSpan] {
+        sourceOwner: OriginalCurveSpanSource? = nil, using execution: inout OriginalQueryExecution) throws -> [ExactBSplineCurveSpan] {
         try source.validate(tolerance: tolerance)
         guard case let .closed(lower, upper) = requestedDomain else {
             throw KernelError(
@@ -709,7 +746,7 @@ package struct ExactBSplineCurveSpanBuilder: Sendable {
         breaks.append(upper)
         let start = try source.point(at: lower, tolerance: tolerance)
         let end = try source.point(at: upper, tolerance: tolerance)
-        let originalSource = try sourceOwner ?? originalSource(originalCurve ?? .bSpline(source))
+        let originalSource = try sourceOwner ?? originalSource(originalCurve ?? .bSpline(source), using: &execution)
         if breaks.count == 2,
            start.isApproximatelyEqual(to: end, tolerance: tolerance.distance) {
             breaks.insert(0.5 * (lower + upper), at: 1)
@@ -724,13 +761,12 @@ package struct ExactBSplineCurveSpanBuilder: Sendable {
                 tolerance: tolerance,
                 originalChart: .init(source: originalSource,
                     startParameter: breaks[index], endParameter: breaks[index + 1])
-            )
+            , using: &execution)
         }
     }
 
     private func validateClosure(
-        _ spans: [ExactBSplineCurveSpan]
-    ) throws {
+        _ spans: [ExactBSplineCurveSpan], using execution: inout OriginalQueryExecution) throws {
         for index in spans.indices {
             let next = spans[(index + 1) % spans.count]
             guard spans[index].endPoint.isApproximatelyEqual(
@@ -743,8 +779,7 @@ package struct ExactBSplineCurveSpanBuilder: Sendable {
     }
 
     private func validatePathContinuity(
-        _ spans: [ExactBSplineCurveSpan]
-    ) throws {
+        _ spans: [ExactBSplineCurveSpan], using execution: inout OriginalQueryExecution) throws {
         guard spans.isEmpty == false else {
             throw FeatureEvaluationError.emptyResult(
                 "Exact sweep path has no non-degenerate spans."

@@ -12,15 +12,16 @@ struct OriginalCorrespondenceParameterCurve {
     private let end: Double
 
     init(source: SurfaceParameterCurve, support: OriginalCorrespondenceSupport,
-         budget: inout OriginalCorrespondenceBudget) throws {
+         policy: OriginalCorrespondencePolicy, using execution: inout OriginalQueryExecution) throws {
         var controls: [Point2D] = []
         switch source {
         case let .bSpline(value):
-            guard (1...4).contains(value.degree) else { throw budget.unsupported() }
+            guard (1...4).contains(value.degree) else { throw policy.unsupported() }
             // This exact numeric embedding retains the original 2D coefficients and knots.
+            try OriginalCoefficientAllocation.reserve(count: value.controlPoints.count, of: Point3D.self, using: &execution)
             let spatial = BSplineCurve3D(degree: value.degree, knots: value.knots,
                 controlPoints: value.controlPoints.map { Point3D(x: $0.x, y: $0.y, z: 0) }, weights: value.weights)
-            let prepared = try OriginalCorrespondenceNativeCurve(source: spatial, maximumDegree: 4, budget: &budget)
+            let prepared = try OriginalCorrespondenceNativeCurve(source: spatial, maximumDegree: 4, policy: policy, using: &execution)
             native = prepared; nativeLower = prepared.lower; nativeUpper = prepared.upper
             uOrigin = .constant(0); vOrigin = .constant(0)
             uDirection = .constant(0); vDirection = .constant(0); start = 0; end = 1
@@ -28,32 +29,32 @@ struct OriginalCorrespondenceParameterCurve {
         case let .affine(origin, direction, lower, upper):
             guard [origin.x, origin.y, direction.x, direction.y, lower, upper].allSatisfy({ $0.isFinite }),
                   lower != upper, direction.x != 0 || direction.y != 0 else {
-                throw OriginalCorrespondenceBudget.failure(.invalidInput, budget.tolerance, "Invalid original affine chart.")
+                throw OriginalCorrespondencePolicy.failure(.invalidInput, policy.tolerance, "Invalid original affine chart.")
             }
             native = nil; nativeLower = 0; nativeUpper = 1
             uOrigin = .constant(origin.x); vOrigin = .constant(origin.y)
             uDirection = .constant(direction.x); vDirection = .constant(direction.y); start = lower; end = upper
         case let .constantU(u, lower, upper):
             guard [u, lower, upper].allSatisfy({ $0.isFinite }), lower != upper else {
-                throw OriginalCorrespondenceBudget.failure(.invalidInput, budget.tolerance, "Invalid original constant-U chart.")
+                throw OriginalCorrespondencePolicy.failure(.invalidInput, policy.tolerance, "Invalid original constant-U chart.")
             }
             native = nil; nativeLower = 0; nativeUpper = 1
             uOrigin = .constant(u); vOrigin = .constant(0)
             uDirection = .constant(0); vDirection = .constant(1); start = lower; end = upper
         case let .constantV(v, lower, upper):
             guard [v, lower, upper].allSatisfy({ $0.isFinite }), lower != upper else {
-                throw OriginalCorrespondenceBudget.failure(.invalidInput, budget.tolerance, "Invalid original constant-V chart.")
+                throw OriginalCorrespondencePolicy.failure(.invalidInput, policy.tolerance, "Invalid original constant-V chart.")
             }
             native = nil; nativeLower = 0; nativeUpper = 1
             uOrigin = .constant(0); vOrigin = .constant(v)
             uDirection = .constant(1); vDirection = .constant(0); start = lower; end = upper
-        default: throw budget.unsupported()
+        default: throw policy.unsupported()
         }
         if native != nil {
             // Positive rational weights prove the entire image lies in the original control hull.
             for point in controls {
-                if let domain = support.uDomain, !domain.contains(point.x) { throw outside(budget) }
-                if let domain = support.vDomain, !domain.contains(point.y) { throw outside(budget) }
+                if let domain = support.uDomain, !domain.contains(point.x) { throw outside(policy) }
+                if let domain = support.vDomain, !domain.contains(point.y) { throw outside(policy) }
             }
         } else {
             let a = uOrigin + uDirection * .constant(start)
@@ -62,26 +63,26 @@ struct OriginalCorrespondenceParameterCurve {
             let d = vOrigin + vDirection * .constant(end)
             for (value, domain) in [(a.value.union(b.value), support.uDomain),
                                     (c.value.union(d.value), support.vDomain)] {
-                if let domain, value.lower < domain.lower || value.upper > domain.upper { throw outside(budget) }
+                if let domain, value.lower < domain.lower || value.upper > domain.upper { throw outside(policy) }
             }
         }
     }
 
-    func enclose(fraction: OriginalCorrespondenceScalarJet, budget: inout OriginalCorrespondenceBudget) throws
+    func enclose(fraction: OriginalCorrespondenceScalarJet, policy: OriginalCorrespondencePolicy, using execution: inout OriginalQueryExecution) throws
         -> (u: OriginalCorrespondenceScalarJet, v: OriginalCorrespondenceScalarJet) {
         if let native {
             let time = OriginalCorrespondenceScalarJet.constant(nativeLower)
                 + (.constant(nativeUpper) - .constant(nativeLower)) * fraction
-            let jets = try native.enclose(parameter: time, budget: &budget)
+            let jets = try native.enclose(parameter: time, policy: policy, using: &execution)
             return (jets[0], jets[1])
         }
-        try budget.charge()
+        try policy.charge(using: &execution)
         let time = OriginalCorrespondenceScalarJet.constant(start) + (.constant(end) - .constant(start)) * fraction
         return (uOrigin + uDirection * time, vOrigin + vDirection * time)
     }
 
-    private func outside(_ budget: OriginalCorrespondenceBudget) -> KernelError {
-        OriginalCorrespondenceBudget.failure(.invalidInput, budget.tolerance,
+    private func outside(_ policy: OriginalCorrespondencePolicy) -> KernelError {
+        OriginalCorrespondencePolicy.failure(.invalidInput, policy.tolerance,
             "The entire original pcurve control/affine hull must belong to its support domain without clipping.")
     }
 }

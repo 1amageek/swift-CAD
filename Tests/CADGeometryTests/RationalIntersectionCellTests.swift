@@ -5,28 +5,60 @@ import Testing
 @Suite("Complete rational real intersection cells")
 struct RationalIntersectionCellTests {
     private typealias Polynomial = ExactIntersectionPolynomial
-    private struct Admission: RationalAlgebraAdmitting {
+    private struct Admission: ~Copyable, GeometryScalarTestAdmission {
+        var proofScopes = ExactScalarProofScopes()
         var work = 0, storage = 0, cells = 0
         var maximumWork = 10_000_000, maximumStorage = 10_000_000
         var maximumCells = 100_000, maximumDepth = 24
         var cancelAtFirstCell = false
-        mutating func consumeExactWork(_ count: Int) throws {
+        mutating func consumeWork(_ count: Int) throws(ExactScalarFailure) {
+            try checkpoint()
+            try proofScopes.checkWork(count)
+            do {
             guard count >= 0, count <= maximumWork - work else { throw exhausted() }; work += count
+        
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            proofScopes.recordWork(count)
+            try checkpoint()
         }
-        mutating func retainExactStorage(_ count: Int) throws {
+        mutating func retainStorage(bytes: Int) throws(ExactScalarFailure) {
+            try checkpoint()
+            let count = try geometryTestStorageWords(bytes)
+            do {
             guard count >= 0, count <= maximumStorage - storage else { throw exhausted() }; storage += count
+        
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            try checkpoint()
         }
-        mutating func visitExactCell(depth: Int) throws {
-            guard depth >= 0, depth <= maximumDepth, cells < maximumCells else { throw exhausted() }
-            cells += 1
-            if cancelAtFirstCell { withUnsafeCurrentTask { $0?.cancel() } }
-        }
-        mutating func visitCoefficientCell(depth: Int) throws {
-            throw rationalAlgebraFailure("Original rational cells cannot invent coefficient extensions.")
-        }
+        
+        
         private func exhausted() -> KernelError {
             .init(phase: .geometry, code: .resourceLimitExceeded, tolerance: nil,
                   message: "Real-cell test allowance exhausted: work=\(work), storage=\(storage), cells=\(cells).")
+        }
+            mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
+            try admitDepth(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+            let mapped = try proofScopes.mapped(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+            do {
+                switch (axis == .coefficient || proofScopes.exactDepthResource == .coefficientDepth) ? ExactScalarRootAxis.coefficient : .value {
+                case .value:
+                    let depth = mapped.value
+
+            guard depth >= 0, depth <= maximumDepth, cells < maximumCells else { throw exhausted() }
+            cells += 1
+            if cancelAtFirstCell { withUnsafeCurrentTask { $0?.cancel() } }
+        
+                case .coefficient:
+                    let depth = mapped.coefficient
+
+            throw rationalAlgebraFailure("Original rational cells cannot invent coefficient extensions.")
+        
+                }
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            try checkpoint()
         }
     }
 
@@ -85,7 +117,7 @@ struct RationalIntersectionCellTests {
             domains: [nil, nil], maximumDepth: 24, usage: &usage)
         #expect(axes.solutionCells.count == 3)
         #expect(axes.solutionCells.allSatisfy { axes.cells[$0].dimension == 1 })
-        let nullified = try #require(axes.stacks.first { $0.axis == 1 && $0.sourceDegrees == [-1] })
+        let nullified = try geometryTestRequire(axes.stacks.first { $0.axis == 1 && $0.sourceDegrees == [-1] })
         #expect(nullified.roots.isEmpty && nullified.children.count == 1)
         let square = try y.multiplied(by: y, usage: &usage)
         let repeated = try OriginalRationalIntersectionCells.prepare(equations: [square], variableCount: 2,
@@ -204,11 +236,11 @@ struct RationalIntersectionCellTests {
         let coordinate = try OriginalSingularFieldElement.constant(.zero, in: first,
             maximumDepth: 24, usage: &usage)
         let zero = try Polynomial.zero(variableCount: 1)
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             _ = try OriginalIntersectionFieldEvaluation.evaluated(zero, context: second,
                 coordinates: [coordinate], maximumDepth: 24, usage: &usage)
         }
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             _ = try OriginalIntersectionFieldEvaluation.power(coordinate, exponent: -1,
                 maximumDepth: 24, usage: &usage)
         }
@@ -218,26 +250,43 @@ struct RationalIntersectionCellTests {
     func cellWorkStorageAndDepthFailuresCannotPublishPartialCoverage() throws {
         var usage = Admission()
         let source = try Polynomial.coordinate(variableCount: 1, at: 0, usage: &usage)
-        var cells = usage; cells.maximumCells = 0
-        #expect(throws: KernelError.self) {
+        // Independent refusals retain observed counters, not another admission's proof scopes.
+        let observed = (work: usage.work, storage: usage.storage, cells: usage.cells,
+            maximumWork: usage.maximumWork, maximumStorage: usage.maximumStorage,
+            maximumCells: usage.maximumCells, maximumDepth: usage.maximumDepth,
+            cancelAtFirstCell: usage.cancelAtFirstCell)
+        var cells = Admission(work: observed.work, storage: observed.storage, cells: observed.cells,
+            maximumWork: observed.maximumWork, maximumStorage: observed.maximumStorage,
+            maximumCells: 0, maximumDepth: observed.maximumDepth,
+            cancelAtFirstCell: observed.cancelAtFirstCell)
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             _ = try OriginalRationalIntersectionCells.prepare(equations: [], variableCount: 1,
                 domains: [nil], maximumDepth: 24, usage: &cells)
         }
-        #expect(cells.work > usage.work && cells.cells == 0)
-        var work = usage; work.maximumWork = work.work
-        #expect(throws: KernelError.self) {
+        #expect(cells.work > observed.work && cells.cells == 0)
+        var work = Admission(work: observed.work, storage: observed.storage, cells: observed.cells,
+            maximumWork: observed.work, maximumStorage: observed.maximumStorage,
+            maximumCells: observed.maximumCells, maximumDepth: observed.maximumDepth,
+            cancelAtFirstCell: observed.cancelAtFirstCell)
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             _ = try OriginalRationalIntersectionCells.prepare(equations: [source], variableCount: 1,
                 domains: [nil], maximumDepth: 24, usage: &work)
         }
-        var storage = usage; storage.maximumStorage = storage.storage
-        #expect(throws: KernelError.self) {
+        var storage = Admission(work: observed.work, storage: observed.storage, cells: observed.cells,
+            maximumWork: observed.maximumWork, maximumStorage: observed.storage,
+            maximumCells: observed.maximumCells, maximumDepth: observed.maximumDepth,
+            cancelAtFirstCell: observed.cancelAtFirstCell)
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             _ = try OriginalRationalIntersectionCells.prepare(equations: [source], variableCount: 1,
                 domains: [nil], maximumDepth: 24, usage: &storage)
         }
-        var depth = usage; depth.maximumDepth = 0
+        var depth = Admission(work: observed.work, storage: observed.storage, cells: observed.cells,
+            maximumWork: observed.maximumWork, maximumStorage: observed.maximumStorage,
+            maximumCells: observed.maximumCells, maximumDepth: 0,
+            cancelAtFirstCell: observed.cancelAtFirstCell)
         let one = try Polynomial.constant(variableCount: 1, value: .one, usage: &depth)
         let twoRoots = try source.multiplied(by: source, usage: &depth).subtracting(one, usage: &depth)
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             _ = try OriginalRationalIntersectionCells.prepare(equations: [twoRoots], variableCount: 1,
                 domains: [nil], maximumDepth: 0, usage: &depth)
         }
@@ -251,7 +300,7 @@ struct RationalIntersectionCellTests {
                 _ = try OriginalRationalIntersectionCells.prepare(equations: [], variableCount: 1,
                     domains: [nil], maximumDepth: 24, usage: &usage)
                 Issue.record("Cancelled real-cell lifting cannot return a complete cover.")
-            } catch is CancellationError { return usage.cells }
+            } catch let error where geometryTestIsCancelled(error) { return usage.cells }
             return -1
         }.value
         #expect(visits == 1)

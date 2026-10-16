@@ -159,4 +159,22 @@ propagated evaluator failures. The line-search formulation follows the
 [NTNU SQP notes](https://wiki.math.ntnu.no/_media/tma4180/2019v/sqp.pdf);
 the local quadratic model uses the least-squares Jacobian rather than BFGS.
 
-Bounded SurfaceFittingQR initialization retains an optional GeometryConversionAdmission through factorization, Q formation and solve. It admits concrete normalized matrix, permutation, reflector, Q and least-squares buffers before allocation and charges actual norm, pivot, reflector, substitution and coefficient scans. The rank rule, relative tolerance, maximumElements and algorithm stay unchanged; nil preserves the legacy invocation.
+Direct point interpolation, constrained least squares and QR receive the same
+`inout OriginalQueryExecution` for factorization, Q formation and solve. QR
+retains immutable factors and the cumulative budget/policy for later ordinary
+queries; query-local scopes remain exclusive. Ordinary conveniences create one
+explicit execution before entering the same metered implementation. Concrete
+normalized matrix, permutation, reflector, Q and solve buffers are admitted
+before allocation; norm, pivot, reflector, substitution and coefficient scans
+charge the actual caller. Rank rules, tolerances and maximumElements retain
+their independent numerical and structural meanings.
+
+```text
+point interpolation -> constrained least squares -> immutable QR factors
+                    -> same exclusive execution -> cumulative work/bytes
+```
+
+Direct conversion verification must execute the actual interpolation path,
+including inconsistent constraints, storage/work refusal and cancellation.
+Legacy nonlinear/trust-region callers retain their ordinary boundary until
+their own direct public entry is migrated; they cannot establish U1 completion.

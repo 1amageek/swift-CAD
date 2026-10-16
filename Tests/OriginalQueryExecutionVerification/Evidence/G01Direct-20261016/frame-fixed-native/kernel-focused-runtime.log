@@ -1,0 +1,21 @@
+􀟈  Test run started.
+􀄵  Swift Standard Library Version: 6.4
+􀄵  Swift Compiler Version: 6.4
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀄵  OS Version: 27.0.1 (26A434)
+􀟈  Suite "Nonlinear Boolean open-face arrangement" (aka 'NonlinearBooleanOpenFaceArrangementTests') started.
+􀟈  Suite "Face Rebuild direct execution" (aka 'FaceRebuildDirectExecutionTests') started.
+􀟈  Test interiorSamplerEndpointsConsumeTheSameExactWorkAllowance() started.
+􀟈  Test nativeGivenKeepsItsEdgesUnderTheIncomingExecution() started.
+􀟈  Test squareRequiredProducerRefusesWithoutPublishing() started.
+􀟈  Test nativeGivenPreservesCallerCancellation() started.
+􀟈  Test givenMethodValidationRequiresEveryNativeSourceDebit() started.
+􁁛  Test givenMethodValidationRequiresEveryNativeSourceDebit() passed after 0.001 seconds.
+􁁛  Test interiorSamplerEndpointsConsumeTheSameExactWorkAllowance() passed after 0.002 seconds.
+􁁛  Suite "Nonlinear Boolean open-face arrangement" (aka 'NonlinearBooleanOpenFaceArrangementTests') passed after 0.002 seconds.
+􁁛  Test nativeGivenPreservesCallerCancellation() passed after 0.003 seconds.
+􁁛  Test squareRequiredProducerRefusesWithoutPublishing() passed after 0.040 seconds.
+􁁛  Test nativeGivenKeepsItsEdgesUnderTheIncomingExecution() passed after 0.244 seconds.
+􁁛  Suite "Face Rebuild direct execution" (aka 'FaceRebuildDirectExecutionTests') passed after 0.244 seconds.
+􁁛  Test run with 5 tests in 2 suites passed after 0.244 seconds.

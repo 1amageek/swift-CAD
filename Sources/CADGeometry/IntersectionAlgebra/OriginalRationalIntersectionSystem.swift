@@ -12,7 +12,7 @@ package struct OriginalRationalIntersectionSystem: Sendable {
     package let equations: [ExactIntersectionPolynomial]
     package let denominatorGuards: [ExactIntersectionPolynomial]
 
-    package init<B: RationalAlgebraAdmitting>(curve: OriginalRationalCurvePolynomial,
+    package init<B: ExactScalarAdmission & ~Copyable>(curve: OriginalRationalCurvePolynomial,
         surface: OriginalRationalSurfacePolynomial, usage: inout B) throws {
         guard curve.homogeneous.count == 4, surface.homogeneous.count == 4,
               curve.homogeneous.allSatisfy({ $0.vDegree <= 0 }) else {
@@ -29,7 +29,7 @@ package struct OriginalRationalIntersectionSystem: Sendable {
         denominatorGuards = [first[3], second[3]]
     }
 
-    package init<B: RationalAlgebraAdmitting>(first: OriginalRationalSurfacePolynomial,
+    package init<B: ExactScalarAdmission & ~Copyable>(first: OriginalRationalSurfacePolynomial,
         second: OriginalRationalSurfacePolynomial, usage: inout B) throws {
         guard first.homogeneous.count == 4, second.homogeneous.count == 4 else {
             throw rationalAlgebraFailure("SSI equations require both original homogeneous surface laws.")
@@ -64,7 +64,7 @@ package struct OriginalRationalIntersectionSystem: Sendable {
 
     /// A fresh inverse coordinate excludes both denominator-zero loci exactly.
     /// This prepares an ideal; complete real lifting remains a separate obligation.
-    package func saturatedIdeal<B: RationalAlgebraAdmitting>(usage: inout B) throws -> ExactIntersectionIdeal {
+    package func saturatedIdeal<B: ExactScalarAdmission & ~Copyable>(usage: inout B) throws -> ExactIntersectionIdeal {
         try intersectionAlgebraStep(&usage)
         let count = try rationalAlgebraCount(variableCount, 1)
         try RationalAlgebraStorage.retain(4, of: ExactIntersectionPolynomial.self, usage: &usage)
@@ -80,7 +80,7 @@ package struct OriginalRationalIntersectionSystem: Sendable {
         return try ExactIntersectionIdeal.prepare(equations: generators, variableCount: count, usage: &usage)
     }
 
-    private static func embedding<B: RationalAlgebraAdmitting>(_ source: [ExactBivariatePolynomial],
+    private static func embedding<B: ExactScalarAdmission & ~Copyable>(_ source: [ExactBivariatePolynomial],
         variableCount: Int, uCoordinate: Int, vCoordinate: Int, usage: inout B)
         throws -> [ExactIntersectionPolynomial] {
         try RationalAlgebraStorage.retain(4, of: ExactIntersectionPolynomial.self, usage: &usage)
@@ -93,7 +93,7 @@ package struct OriginalRationalIntersectionSystem: Sendable {
         return result
     }
 
-    private static func coincidenceEquations<B: RationalAlgebraAdmitting>(
+    private static func coincidenceEquations<B: ExactScalarAdmission & ~Copyable>(
         _ first: [ExactIntersectionPolynomial], _ second: [ExactIntersectionPolynomial],
         usage: inout B) throws -> [ExactIntersectionPolynomial] {
         try RationalAlgebraStorage.retain(3, of: ExactIntersectionPolynomial.self, usage: &usage)

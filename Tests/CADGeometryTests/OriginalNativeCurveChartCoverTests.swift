@@ -5,24 +5,56 @@ import Testing
 @Suite("Finite original-native curve chart cover", .timeLimit(.minutes(1)))
 struct OriginalNativeCurveChartCoverTests {
     private enum AdmissionFailure: Error { case work, storage }
-    private struct Admission: RationalAlgebraAdmitting {
+    private struct Admission: ~Copyable, GeometryScalarTestAdmission {
+        var proofScopes = ExactScalarProofScopes()
         var work = 0, storage = 0, storageCalls = 0
         var maximumWork = Int.max, maximumStorage = Int.max
         var cancelAtWork: Int? = nil
         var cancelAtStorageCall: Int? = nil
-        mutating func consumeExactWork(_ count: Int) throws {
+        mutating func consumeWork(_ count: Int) throws(ExactScalarFailure) {
+            try checkpoint()
+            try proofScopes.checkWork(count)
+            do {
             guard count >= 0, count <= maximumWork - work else { throw AdmissionFailure.work }
             work += count
             if let cancelAtWork, work >= cancelAtWork { withUnsafeCurrentTask { $0?.cancel() } }
+        
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            proofScopes.recordWork(count)
+            try checkpoint()
         }
-        mutating func retainExactStorage(_ count: Int) throws {
+        mutating func retainStorage(bytes: Int) throws(ExactScalarFailure) {
+            try checkpoint()
+            let count = try geometryTestStorageWords(bytes)
+            do {
             guard count >= 0, count <= maximumStorage - storage else { throw AdmissionFailure.storage }
             storage += count; storageCalls += 1
             if storageCalls == cancelAtStorageCall { withUnsafeCurrentTask { $0?.cancel() } }
+        
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            try checkpoint()
         }
-        mutating func visitExactCell(depth: Int) throws {
+        
+            mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
+            try admitDepth(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+            let mapped = try proofScopes.mapped(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+            do {
+                switch (axis == .coefficient || proofScopes.exactDepthResource == .coefficientDepth) ? ExactScalarRootAxis.coefficient : .value {
+                case .value:
+                    let depth = mapped.value
+
             Issue.record("Curve chart issuance must not invoke a root solver.")
             throw AdmissionFailure.work
+        
+                case .coefficient:
+                    let depth = mapped.coefficient
+ throw ExactScalarFailure.resourceLimit(.coefficientDepth) 
+                }
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            try checkpoint()
         }
     }
 
@@ -141,12 +173,12 @@ struct OriginalNativeCurveChartCoverTests {
         #expect(try OriginalNativeCurveChartCover(source: source, over: query, tolerance: .standard,
             maximumSpanCount: cover.spans.count, usage: &exact).spans.count == cover.spans.count)
         var work = Admission(maximumWork: completeUsage.work - 1)
-        #expect(throws: AdmissionFailure.work) {
+        geometryTestExpectFailure({ if case .work? = geometryTestOriginalFailure($0) as? AdmissionFailure { true } else { false } }) {
             _ = try OriginalNativeCurveChartCover(source: source, over: query, tolerance: .standard,
                 maximumSpanCount: Int.max, usage: &work)
         }
         var storage = Admission(maximumStorage: completeUsage.storage - 1)
-        #expect(throws: AdmissionFailure.storage) {
+        geometryTestExpectFailure({ if case .storage? = geometryTestOriginalFailure($0) as? AdmissionFailure { true } else { false } }) {
             _ = try OriginalNativeCurveChartCover(source: source, over: query, tolerance: .standard,
                 maximumSpanCount: Int.max, usage: &storage)
         }
@@ -206,7 +238,7 @@ struct OriginalNativeCurveChartCoverTests {
             return try OriginalNativeCurveChartCover(source: source, over: query, tolerance: .standard,
                 maximumSpanCount: 1, usage: &usage)
         }
-        await #expect(throws: CancellationError.self) { _ = try await task.value }
+        await geometryTestExpectFailure({ geometryTestIsCancelled($0) }) { _ = try await task.value }
     }
 
     private func fixture(weighted: Bool = false) throws -> BSplineCurve3D {
@@ -223,7 +255,6 @@ struct OriginalNativeCurveChartCoverTests {
     }
     private func expectCode(_ code: KernelErrorCode, _ operation: () throws -> Void) {
         do { try operation(); Issue.record("Incomplete curve chart coverage was admitted.") }
-        catch let error as KernelError { #expect(error.code == code) }
-        catch { Issue.record("Unexpected curve chart error: \(error)") }
+        catch { #expect(OriginalQueryFailure.classification(of: error)?.code == code) }
     }
 }

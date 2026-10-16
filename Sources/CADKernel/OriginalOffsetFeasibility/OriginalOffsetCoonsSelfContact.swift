@@ -19,8 +19,8 @@ enum OriginalOffsetCoonsSelfContact {
     }
 
     static func validate(surface: OriginalCoonsSurface3D, tolerance: ModelingTolerance,
-        limits: OffsetFeasibilityLimits, invocation: OffsetFeasibilityInvocation) throws {
-        let options = limits.surfaceIntersectionOptions, count = invocation.maximumSpanCount
+        limits: OffsetFeasibilityLimits, using execution: inout OriginalQueryExecution) throws {
+        let options = limits.surfaceIntersectionOptions, count = min(execution.effectiveLimits.maximumSpans, limits.surfaceIntersectionOptions.maximumSubdivisionCells)
         let domain = try OriginalDomainIdentityLimits(source:.init(remainingSourceDepth:limits.remainingSourceDepth),
             maximumTransportDepth:limits.maximumAlgebraicDepth,maximumCharts:count,
             maximumFamilies:count,maximumIdentityProofs:count)
@@ -29,12 +29,11 @@ enum OriginalOffsetCoonsSelfContact {
         let topology = try ExactRealTopologyLimits(maximumGeneratedCells:options.maximumSubdivisionCells,
             maximumRootsPerStack:options.maximumRootAttempts,maximumClosures:options.maximumSubdivisionCells,
             maximumAttachmentPieces:options.maximumContinuationPointCount,maximumComponents:options.maximumSeedCount)
-        var a = OffsetExactScalarAdmission(invocation:invocation,maximumDepth:limits.maximumAlgebraicDepth)
         let contacts = try prepare(surface:surface,tolerance:tolerance,limits:domain,
-            maximumPairs:options.maximumSubdivisionCells,cellLimits:cells,topologyLimits:topology,using:&a)
+            maximumPairs:options.maximumSubdivisionCells,cellLimits:cells,topologyLimits:topology,using:&execution)
         for refinement in contacts.refinements {
             for included in refinement.pullback.region.included {
-                try a.consumeWork(1)
+                try execution.consumeWork(1)
                 // FIXME(INCOMPLETE_IMPLEMENTATION): Actual generated Coons result
                 // callers still need both exact material predicates for a nonempty
                 // global residual before contact or exclusion can be certified.
@@ -44,6 +43,6 @@ enum OriginalOffsetCoonsSelfContact {
                 }
             }
         }
-        try a.checkpoint()
+        try execution.checkpoint()
     }
 }

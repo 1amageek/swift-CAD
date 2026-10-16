@@ -5,7 +5,7 @@ package struct OriginalFieldSingularResolution: Sendable {
     package let germs: [OriginalSingularResolution.Germ]
     package let isolatedGerms: [OriginalSingularResolution.IsolatedGerm]
 
-    package init<B: RationalAlgebraAdmitting>(original: OriginalSingularFieldPlanePolynomial,
+    package init<B: ExactScalarAdmission & ~Copyable>(original: OriginalSingularFieldPlanePolynomial,
         at station: OriginalSingularFieldSystemRoot, maximumDepth: Int, usage: inout B) throws {
         guard case .zero = try station.sign(of: original, maximumDepth: maximumDepth, usage: &usage) else {
             throw rationalAlgebraFailure("Original field singular resolution requires a proved source zero.")

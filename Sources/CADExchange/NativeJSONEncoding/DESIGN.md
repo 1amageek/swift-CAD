@@ -33,7 +33,12 @@ After source implementation, compare original Native roundtrips, canonical dynam
 
 The encoder consumes a non-generic internal accounting contract. Native packages
 use their existing shared resource owner. Original silhouette source descriptors
-use an adapter to the live SurfaceSilhouetteUsage, forwarding work and retained
+use the immutable SurfaceSilhouetteContext and borrowed execution, forwarding work and retained
 bytes to its admission and drawing owner exactly once. JSON structural depth is
 checked separately from semantic surface source, subdivision and algebra depth.
 The adapter never creates an allowance or transfers counters.
+
+
+## Borrowed Canonical Admission
+
+When a native descriptor is serialized as part of a drawing/silhouette invocation, scalar/source validation and output buffers use that invocation's borrowed `OriginalQueryExecution`. Existing JSON tokens, escaping, schema and format ceilings stay unchanged. Native input/output contexts consume the actual owner instead of removed callback initializers; format-owned independent wire contributions remain distinct from scalar allocation. See [exchange accounting](../ExchangeResourceAccounting/DESIGN.md).

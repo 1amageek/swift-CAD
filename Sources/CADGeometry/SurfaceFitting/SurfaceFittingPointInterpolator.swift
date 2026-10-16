@@ -31,6 +31,21 @@ package enum SurfaceFittingPointInterpolator {
         positionTolerance: Double, relativeRankTolerance: Double,
         maximumElements: Int, tolerance: ModelingTolerance
     ) throws -> BSplineSurface3D {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try OriginalQueryExecutionLimits(maximumValueDepth: 32, maximumCoefficientDepth: 32))
+        return try interpolate(template: template, constraints: constraints, referenceWeight: referenceWeight,
+            controlNetFairnessWeight: controlNetFairnessWeight, positionTolerance: positionTolerance,
+            relativeRankTolerance: relativeRankTolerance, maximumElements: maximumElements,
+            tolerance: tolerance, using: &execution)
+    }
+
+    package static func interpolate(
+        template: BSplineSurface3D, constraints: [Constraint],
+        referenceWeight: Double, controlNetFairnessWeight: Double,
+        positionTolerance: Double, relativeRankTolerance: Double,
+        maximumElements: Int, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution
+    ) throws -> BSplineSurface3D {
         let nu = template.uControlPointCount
         let nv = template.vControlPointCount
         guard template.uDegree >= 1, template.uDegree < nu,
@@ -59,6 +74,7 @@ package enum SurfaceFittingPointInterpolator {
                 throw failure(.resourceLimitExceeded, "Point interpolation exceeded its matrix element budget.")
             }
             remaining -= rows * columns
+            try OriginalCoefficientAllocation.reserve(count: rows * columns, of: Double.self, using: &execution)
         }
         let fairnessRows = controlNetFairnessWeight > 0 ? (nu - 2) * nv + (nv - 2) * nu : 0
         let rows = columns.addingReportingOverflow(fairnessRows)
@@ -70,8 +86,9 @@ package enum SurfaceFittingPointInterpolator {
         try charge(rows.partialValue, 3)
         try charge(constraints.count, 3)
         try charge(columns, 3)
-        try template.validate(tolerance: tolerance)
+        try template.validate(tolerance: tolerance, using: &execution)
         for constraint in constraints {
+                try execution.consumeWork(1)
             guard constraint.u.isFinite, constraint.v.isFinite, constraint.point.isFinite,
                   constraint.u >= template.uKnots[template.uDegree], constraint.u <= template.uKnots[nu],
                   constraint.v >= template.vKnots[template.vDegree], constraint.v <= template.vKnots[nv] else {
@@ -83,10 +100,14 @@ package enum SurfaceFittingPointInterpolator {
         let weightScale = sqrt(max(referenceWeight, controlNetFairnessWeight))
         let referenceScale = sqrt(referenceWeight) / weightScale
         let fairnessScale = sqrt(controlNetFairnessWeight) / weightScale
+        try OriginalCoefficientAllocation.reserve(count: 3, of: [Double].self, using: &execution)
+        try OriginalCoefficientAllocation.reserve(count: 3, of: [Double].self, using: &execution)
         var objective = Array(repeating: 0.0, count: rows.partialValue * columns)
         var targets = Array(repeating: Array(repeating: 0.0, count: rows.partialValue), count: 3)
         for v in 0..<nv {
+                try execution.consumeWork(1)
             for u in 0..<nu {
+                try execution.consumeWork(1)
                 let index = v * nu + u
                 objective[index * columns + index] = referenceScale
                 let delta = template.controlPoints[v][u] - anchor
@@ -98,7 +119,9 @@ package enum SurfaceFittingPointInterpolator {
         var row = columns
         if controlNetFairnessWeight > 0 {
             for v in 0..<nv {
+                try execution.consumeWork(1)
                 for u in 0..<(nu - 2) {
+                try execution.consumeWork(1)
                     let index = v * nu + u
                     objective[row * columns + index] = fairnessScale
                     objective[row * columns + index + 1] = -2 * fairnessScale
@@ -107,7 +130,9 @@ package enum SurfaceFittingPointInterpolator {
                 }
             }
             for v in 0..<(nv - 2) {
+                try execution.consumeWork(1)
                 for u in 0..<nu {
+                try execution.consumeWork(1)
                     let index = v * nu + u
                     objective[row * columns + index] = fairnessScale
                     objective[row * columns + index + nu] = -2 * fairnessScale
@@ -122,13 +147,16 @@ package enum SurfaceFittingPointInterpolator {
         var equality = Array(repeating: 0.0, count: constraints.count * columns)
         var values = Array(repeating: Array(repeating: 0.0, count: constraints.count), count: 3)
         for (index, constraint) in constraints.enumerated() {
-            let ub = BSplineBasis.nonzeroValues(parameter: constraint.u, degree: template.uDegree,
-                knots: template.uKnots, count: nu)
-            let vb = BSplineBasis.nonzeroValues(parameter: constraint.v, degree: template.vDegree,
-                knots: template.vKnots, count: nv)
+                try execution.consumeWork(1)
+            let ub = try BSplineBasis.nonzeroValues(parameter: constraint.u, degree: template.uDegree,
+                knots: template.uKnots, count: nu, using: &execution)
+            let vb = try BSplineBasis.nonzeroValues(parameter: constraint.v, degree: template.vDegree,
+                knots: template.vKnots, count: nv, using: &execution)
             var denominator = 0.0
             for v in vb.values.indices {
+                try execution.consumeWork(1)
                 for u in ub.values.indices {
+                try execution.consumeWork(1)
                     let ui = ub.startIndex + u
                     let vi = vb.startIndex + v
                     let coefficient = ub.values[u] * vb.values[v] * (template.weights[vi][ui] / maximumWeight)
@@ -139,7 +167,8 @@ package enum SurfaceFittingPointInterpolator {
             guard denominator.isFinite, denominator > 0 else {
                 throw failure(.resourceLimitExceeded, "Point interpolation cannot normalize its rational basis.")
             }
-            for column in 0..<columns { equality[index * columns + column] /= denominator }
+            for column in 0..<columns {
+                try execution.consumeWork(1); equality[index * columns + column] /= denominator }
             let delta = constraint.point - anchor
             values[0][index] = delta.x
             values[1][index] = delta.y
@@ -148,23 +177,29 @@ package enum SurfaceFittingPointInterpolator {
         let coordinates = try SurfaceFittingLeastSquares.solve(
             objective: objective, targets: targets, constraints: equality, values: values,
             columns: columns, relativeRankTolerance: relativeRankTolerance,
-            constraintTolerance: positionTolerance / sqrt(3), maximumElements: maximumElements)
+            constraintTolerance: positionTolerance / sqrt(3), maximumElements: maximumElements, using: &execution)
+        try OriginalCoefficientAllocation.reserve(count: nv, of: [Point3D].self, using: &execution)
+        try OriginalCoefficientAllocation.reserve(count: columns, of: Point3D.self, using: &execution)
         var result = template
         for v in 0..<nv {
+                try execution.consumeWork(1)
             for u in 0..<nu {
+                try execution.consumeWork(1)
                 let index = v * nu + u
                 result.controlPoints[v][u] = anchor + Vector3D(
                     x: coordinates[0][index], y: coordinates[1][index], z: coordinates[2][index])
             }
         }
-        try result.validate(tolerance: tolerance)
+        try result.validate(tolerance: tolerance, using: &execution)
         for constraint in constraints {
-            let point = try result.pointAssumingValid(u: constraint.u, v: constraint.v, tolerance: tolerance)
+                try execution.consumeWork(1)
+            let point = try result.pointAssumingValid(u: constraint.u, v: constraint.v, tolerance: tolerance, using: &execution)
             let residual = (point - constraint.point).length
             guard residual.isFinite, residual <= positionTolerance else {
                 throw failure(.conflictingConstraints, "The fitted surface does not satisfy its positional tolerance.")
             }
         }
+        try execution.checkpoint()
         return result
     }
 

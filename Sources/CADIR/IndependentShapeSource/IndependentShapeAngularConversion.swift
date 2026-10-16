@@ -30,10 +30,10 @@ public struct IndependentShapeAngularConversion: Equatable, Sendable {
     private enum CodingKeys: String, CodingKey { case name, factor, interpretation, dimensionsID, dimensions, measureID, measureKind, base }
     public init(from decoder: Decoder) throws {
         guard #available(macOS 15.0, iOS 18.0, visionOS 2.0, watchOS 11.0, tvOS 18.0, *) else { throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable }
-        let allowance = try NativeRationalSourceDecodingContext.allowance(from: decoder)
+        var allowance = try NativeRationalSourceDecodingContext.execution(from: decoder)
         try OriginalAffineWordDecodingContext.validateSourceNesting(from: decoder)
-        try allowance.visitExactCell(depth: 0)
-        try allowance.consumeExactWork(8)
+        try allowance.visitCell(axis: .value, depth: 0)
+        try allowance.consumeWork(8)
         let c = try decoder.container(keyedBy: CodingKeys.self)
         try c.validateOnlyExpectedKeys([.name, .factor, .interpretation, .dimensionsID, .dimensions, .measureID, .measureKind, .base], in: decoder)
         name = try c.decode(String.self, forKey: .name); factor = try c.decode(Double.self, forKey: .factor)
@@ -41,7 +41,7 @@ public struct IndependentShapeAngularConversion: Equatable, Sendable {
         dimensionsID = try c.decode(IndependentShapeAngularDimensionsID.self, forKey: .dimensionsID)
         var values = try c.nestedUnkeyedContainer(forKey: .dimensions)
         guard values.count == 7 else { throw IndependentShapeSourceError.invalidSource("Original angular dimensions require exactly seven exponents.") }
-        try allowance.consumeExactWork(7); try allowance.retainExactStorage(7)
+        try allowance.consumeWork(7); try RationalAlgebraStorage.retain(7, of: UInt32.self, usage: &allowance)
         var originalDimensions: [Double] = []; originalDimensions.reserveCapacity(7)
         while !values.isAtEnd { originalDimensions.append(try values.decode(Double.self)) }
         dimensions = originalDimensions

@@ -17,12 +17,14 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
         sourceSubshapes: [SubshapeID: TopologyReference],
         operands: BooleanOperandContext,
         tolerance: ModelingTolerance
-    ) throws -> Result {
+    , using execution: inout OriginalQueryExecution) throws -> Result {
+        try execution.consumeWork(1)
         try tolerance.validate()
         var boundaries: [BooleanFaceArrangementBoundary] = []
         var constantCandidates: [FaceID: [BooleanRegionSelectionAction]] = [:]
         var globalConstantCandidates: [FaceID: [BooleanRegionSelectionAction]] = [:]
         for pair in pairs.sorted(by: ordered) {
+            try execution.consumeWork(1)
             let split = pair.split
             guard split.components.count == 1,
                   let component = split.components.first,
@@ -42,12 +44,12 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
                 split.facePair.targetFaceID,
                 model: model,
                 tolerance: tolerance
-            )
+            , using: &execution)
             let tool = try face(
                 split.facePair.toolFaceID,
                 model: model,
                 tolerance: tolerance
-            )
+            , using: &execution)
             let targetActions = oriented(regionActions(
                 operation: operation,
                 sourceIsToolFace: false,
@@ -66,7 +68,7 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
                 model: model,
                 sourceSubshapes: sourceSubshapes,
                 tolerance: tolerance
-            )
+            , using: &execution)
             let toolProjection = try projectedBoundaries(
                 reference: reference,
                 sourceFace: tool,
@@ -75,9 +77,9 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
                 model: model,
                 sourceSubshapes: sourceSubshapes,
                 tolerance: tolerance
-            )
-            boundaries.append(contentsOf: targetProjection.boundaries)
-            boundaries.append(contentsOf: toolProjection.boundaries)
+            , using: &execution)
+            try OriginalParameterQueryStorage.append(contentsOf: targetProjection.boundaries, to: &boundaries, using: &execution)
+            try OriginalParameterQueryStorage.append(contentsOf: toolProjection.boundaries, to: &boundaries, using: &execution)
             if let action = targetProjection.constantAction {
                 if targetProjection.isGlobalConstant {
                     globalConstantCandidates[target.id, default: []].append(action)
@@ -98,6 +100,7 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
         })
         var constantActions: [FaceID: BooleanRegionSelectionAction] = [:]
         for faceID in globalConstantCandidates.keys.sorted() {
+            try execution.consumeWork(1)
             guard let candidates = globalConstantCandidates[faceID],
                   Set(candidates).count == 1,
                   let action = candidates.first else {
@@ -113,6 +116,7 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
         for faceID in constantCandidates.keys.sorted()
             where partitionedFaceIDs.contains(faceID) == false
                 && constantActions[faceID] == nil {
+            try execution.consumeWork(1)
             guard let candidates = constantCandidates[faceID],
                   Set(candidates).count == 1,
                   let action = candidates.first else {
@@ -135,25 +139,27 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
     func outlineEdges(of opposingFaceID: FaceID, onto sourceFaceID: FaceID,
                       reference: BooleanFaceSplitComponentReference, model: BRepModel,
                       sourceSubshapes: [SubshapeID: TopologyReference],
-                      tolerance: ModelingTolerance) throws -> [BRepSewingEdge] {
-        let sourceFace = try face(sourceFaceID, model: model, tolerance: tolerance)
+                      tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> [BRepSewingEdge] {
+        try execution.consumeWork(1)
+        let sourceFace = try face(sourceFaceID, model: model, tolerance: tolerance, using: &execution)
         guard let sourceSurface = model.geometry.surfaces[sourceFace.surfaceID] else {
             throw missingReference(tolerance: tolerance)
         }
         let sourcePatch = try SourceBRepFacePatchBuilder().build(faceID: sourceFaceID,
             stableID: "coincident-outline:target:\(sourceFaceID)", from: model,
-            sourceSubshapes: sourceSubshapes, tolerance: tolerance).patch
+            sourceSubshapes: sourceSubshapes, tolerance: tolerance, using: &execution).patch
         let opposingPatch = try SourceBRepFacePatchBuilder().build(faceID: opposingFaceID,
             stableID: "coincident-outline:tool:\(opposingFaceID)", from: model,
-            sourceSubshapes: sourceSubshapes, tolerance: tolerance).patch
+            sourceSubshapes: sourceSubshapes, tolerance: tolerance, using: &execution).patch
         var cache = FacePointContainmentPreparationCache()
         var result: [BRepSewingEdge] = []
         for (ordinal, loop) in opposingPatch.loops.enumerated() {
+            try execution.consumeWork(1)
             result += try clippedProjectedEdges(loop.edges, loopIndex: ordinal, reference: reference,
                 sourceFace: sourceFace, sourcePatch: sourcePatch, sourceSurface: sourceSurface,
                 faceParents: parentSubshapeIDs(for: [.face(sourceFaceID), .face(opposingFaceID)],
                                              in: sourceSubshapes), model: model,
-                containmentCache: &cache, tolerance: tolerance)
+                containmentCache: &cache, tolerance: tolerance, using: &execution)
         }
         return result
     }
@@ -166,7 +172,8 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
         model: BRepModel,
         sourceSubshapes: [SubshapeID: TopologyReference],
         tolerance: ModelingTolerance
-    ) throws -> ProjectedBoundaryResult {
+    , using execution: inout OriginalQueryExecution) throws -> ProjectedBoundaryResult {
+        try execution.consumeWork(1)
         guard let sourceSurface = model.geometry.surfaces[sourceFace.surfaceID] else {
             throw missingReference(tolerance: tolerance)
         }
@@ -176,14 +183,14 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
             from: model,
             sourceSubshapes: sourceSubshapes,
             tolerance: tolerance
-        ).patch
+        , using: &execution).patch
         let sourcePatch = try SourceBRepFacePatchBuilder().build(
             faceID: sourceFace.id,
             stableID: "coincident-arrangement:domain:\(sourceFace.id)",
             from: model,
             sourceSubshapes: sourceSubshapes,
             tolerance: tolerance
-        ).patch
+        , using: &execution).patch
         let faceParents = parentSubshapeIDs(
             for: [.face(sourceFace.id), .face(opposingFace.id)],
             in: sourceSubshapes
@@ -195,17 +202,18 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
             opposingSurface: opposingPatch.surface,
             model: model,
             tolerance: tolerance
-        )
+        , using: &execution)
         var result: [BooleanFaceArrangementBoundary] = []
         var allProjectedEdges: [BRepSewingEdge] = []
         var containmentCache = FacePointContainmentPreparationCache()
         var segmentOrdinal = 0
         for (loopIndex, loop) in opposingPatch.loops.enumerated() {
+            try execution.consumeWork(1)
             let opposingInteriorIsLeft = try polygonInteriorIsLeft(
                 loop.edges,
                 on: opposingPatch.surface,
                 tolerance: tolerance
-            )
+            , using: &execution)
             let interiorIsLeft = preservesParameterOrientation
                 ? opposingInteriorIsLeft
                 : !opposingInteriorIsLeft
@@ -220,18 +228,19 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
                 model: model,
                 containmentCache: &containmentCache,
                 tolerance: tolerance
-            )
-            allProjectedEdges.append(contentsOf: projectedEdges)
+            , using: &execution)
+            try OriginalParameterQueryStorage.append(contentsOf: projectedEdges, to: &allProjectedEdges, using: &execution)
             let materialIsLeft = interiorIsLeft == (loop.role == .outer)
             for edge in projectedEdges {
-                result.append(BooleanFaceArrangementBoundary(
+            try execution.consumeWork(1)
+                try OriginalParameterQueryStorage.append(BooleanFaceArrangementBoundary(
                     reference: reference,
                     segmentOrdinal: segmentOrdinal,
                     faceID: sourceFace.id,
                     edge: edge,
                     forwardLeftAction: materialIsLeft ? actions.inside : actions.outside,
                     forwardRightAction: materialIsLeft ? actions.outside : actions.inside
-                ))
+                ), to: &result, using: &execution)
                 segmentOrdinal += 1
             }
         }
@@ -246,18 +255,18 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
             sourcePatch.loops.flatMap(\.edges),
             allProjectedEdges,
             tolerance: tolerance
-        ) {
+        , using: &execution) {
             let sourcePoint = try BRepFaceInteriorPointSampler().point(
                 on: sourceFace.id,
                 in: model,
                 tolerance: tolerance
-            )
+            , using: &execution)
             if try DefaultFacePointContainmentTester().contains(
                 sourcePoint,
                 on: opposingFace.id,
                 in: model,
                 tolerance: tolerance
-            ) {
+            , using: &execution) {
                 return ProjectedBoundaryResult(
                     boundaries: [],
                     constantAction: actions.inside,
@@ -268,13 +277,13 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
                 on: opposingFace.id,
                 in: model,
                 tolerance: tolerance
-            )
+            , using: &execution)
             if try DefaultFacePointContainmentTester().contains(
                 opposingPoint,
                 on: sourceFace.id,
                 in: model,
                 tolerance: tolerance
-            ) == false {
+            , using: &execution) == false {
                 return ProjectedBoundaryResult(
                     boundaries: [],
                     constantAction: actions.outside,
@@ -300,47 +309,51 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
         model: BRepModel,
         containmentCache: inout FacePointContainmentPreparationCache,
         tolerance: ModelingTolerance
-    ) throws -> [BRepSewingEdge] {
+    , using execution: inout OriginalQueryExecution) throws -> [BRepSewingEdge] {
+        try execution.consumeWork(1)
         let sourceEdges = sourcePatch.loops.flatMap(\.edges)
         let intersector = ExactTrimEdgeIntersector()
         let subdivider = BRepSewingEdgeSubdivider()
         let containment = DefaultFacePointContainmentTester()
         var result: [BRepSewingEdge] = []
         for (edgeIndex, opposingEdge) in opposingEdges.enumerated() {
+            try execution.consumeWork(1)
             var subdivisionPoints: [Point3D] = []
             for sourceEdge in sourceEdges {
+            try execution.consumeWork(1)
                 switch try intersector.intersections(
                     opposingEdge,
                     sourceEdge,
                     tolerance: tolerance
-                ) {
+                , using: &execution) {
                 case .coincident:
-                    subdivisionPoints.append(sourceEdge.startPoint)
-                    subdivisionPoints.append(sourceEdge.endPoint)
+                    try OriginalParameterQueryStorage.append(sourceEdge.startPoint, to: &subdivisionPoints, using: &execution)
+                    try OriginalParameterQueryStorage.append(sourceEdge.endPoint, to: &subdivisionPoints, using: &execution)
                 case let .subdivisionPoints(points):
-                    subdivisionPoints.append(contentsOf: points)
+                    try OriginalParameterQueryStorage.append(contentsOf: points, to: &subdivisionPoints, using: &execution)
                 }
             }
             let segments = try subdivider.subdivide(
                 opposingEdge,
                 at: subdivisionPoints,
                 tolerance: tolerance
-            )
+            , using: &execution)
             for (segmentIndex, segment) in segments.enumerated() {
+            try execution.consumeWork(1)
                 let midpoint = try segment.curve.point(
                     at: 0.5 * (segment.startParameter + segment.endParameter),
                     tolerance: tolerance
-                )
+                , using: &execution)
                 guard try containment.contains(
                     midpoint,
                     on: sourceFace.id,
                     in: model,
                     preparationCache: &containmentCache,
                     tolerance: tolerance
-                ) else {
+                , using: &execution) else {
                     continue
                 }
-                result.append(BRepSewingEdge(
+                try OriginalParameterQueryStorage.append(BRepSewingEdge(
                     stableID: "coincident-arrangement:\(reference.facePair.targetFaceID):\(reference.facePair.toolFaceID):face:\(sourceFace.id):loop:\(loopIndex):edge:\(edgeIndex):segment:\(segmentIndex)",
                     curve: segment.curve,
                     startParameter: segment.startParameter,
@@ -353,11 +366,11 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
                         endParameter: segment.endParameter,
                         on: sourceSurface,
                         tolerance: tolerance
-                    ),
+                    , using: &execution),
                     parentSubshapeIDs: segment.parentSubshapeIDs + faceParents,
                     startVertexParentSubshapeIDs: segment.startVertexParentSubshapeIDs,
                     endVertexParentSubshapeIDs: segment.endVertexParentSubshapeIDs
-                ))
+                ), to: &result, using: &execution)
             }
         }
         return result
@@ -370,7 +383,8 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
         opposingSurface: Surface3D,
         model: BRepModel,
         tolerance: ModelingTolerance
-    ) throws -> Bool {
+    , using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.consumeWork(1)
         guard let witness = try CoincidentFaceOverlapTester(
             facePointContainment: DefaultFacePointContainmentTester()
         ).overlapWitness(
@@ -378,7 +392,7 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
             opposingFace.id,
             in: model,
             tolerance: tolerance
-        ) else {
+        , using: &execution) else {
             throw KernelError(
                 phase: .classification,
                 code: .classificationFailure,
@@ -389,21 +403,21 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
         let sourceParameter = try sourceSurface.parameterProjection(
             of: witness,
             tolerance: tolerance
-        )
+        , using: &execution)
         let opposingParameter = try opposingSurface.parameterProjection(
             of: witness,
             tolerance: tolerance
-        )
+        , using: &execution)
         let sourceNormal = try sourceSurface.normal(
             u: sourceParameter.u,
             v: sourceParameter.v,
             tolerance: tolerance
-        )
+        , using: &execution)
         let opposingNormal = try opposingSurface.normal(
             u: opposingParameter.u,
             v: opposingParameter.v,
             tolerance: tolerance
-        )
+        , using: &execution)
         let alignment = sourceNormal.dot(opposingNormal)
         guard abs(abs(alignment) - 1.0) <= tolerance.angle else {
             throw KernelError(
@@ -421,7 +435,8 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
         _ sourceEdges: [BRepSewingEdge],
         _ opposingEdges: [BRepSewingEdge],
         tolerance: ModelingTolerance
-    ) throws -> Bool {
+    , using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.consumeWork(1)
         let sourceSegments = sourceEdges.compactMap(linearSegment)
         let opposingSegments = opposingEdges.compactMap(linearSegment)
         guard sourceSegments.count == sourceEdges.count,
@@ -430,13 +445,15 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
         }
         let predicates = AdaptivePlanarPredicateEvaluator()
         for source in sourceSegments {
+            try execution.consumeWork(1)
             for opposing in opposingSegments where try predicates.segmentsIntersectOrTouch(
                 source.start,
                 source.end,
                 opposing.start,
                 opposing.end,
                 tolerance: tolerance
-            ) {
+            , using: &execution) {
+            try execution.consumeWork(1)
                 return false
             }
         }
@@ -503,7 +520,8 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
         _ edges: [BRepSewingEdge],
         on surface: Surface3D,
         tolerance: ModelingTolerance
-    ) throws -> Bool {
+    , using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.consumeWork(1)
         guard edges.count >= 2 else {
             throw KernelError(
                 phase: .topology,
@@ -524,7 +542,8 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
         var previousEnd: SurfaceParameter?
         var firstStart: SurfaceParameter?
         for edge in edges {
-            var start = try edge.surfaceParameterCurve.startParameter(tolerance: tolerance)
+            try execution.consumeWork(1)
+            var start = try edge.surfaceParameterCurve.startParameter(tolerance: tolerance, using: &execution)
             let uShift: Double
             let vShift: Double
             if let previousEnd {
@@ -551,10 +570,10 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
                 uShift: uShift,
                 requestedWidth: requestedWidth,
                 tolerance: tolerance
-            )
+            , using: &execution)
             lower = (lower + bounds.lower).nextDown
             upper = (upper + bounds.upper).nextUp
-            var end = try edge.surfaceParameterCurve.endParameter(tolerance: tolerance)
+            var end = try edge.surfaceParameterCurve.endParameter(tolerance: tolerance, using: &execution)
             end.u += uShift
             end.v += vShift
             previousEnd = end
@@ -637,7 +656,8 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
         _ faceID: FaceID,
         model: BRepModel,
         tolerance: ModelingTolerance
-    ) throws -> Face {
+    , using execution: inout OriginalQueryExecution) throws -> Face {
+        try execution.consumeWork(1)
         guard let face = model.faces[faceID],
               model.geometry.surfaces[face.surfaceID] != nil else {
             throw missingReference(tolerance: tolerance)

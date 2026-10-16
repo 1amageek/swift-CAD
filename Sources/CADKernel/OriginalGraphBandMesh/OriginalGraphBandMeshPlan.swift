@@ -36,10 +36,10 @@ struct OriginalGraphBandMeshPlan: Sendable {
         private(set) var positions: [Point3D] = []
         private(set) var normals: [Vector3D] = []
 
-        init(proofUsage: inout OriginalTessellationProofUsage,
+        init(using execution: inout OriginalQueryExecution,
              tolerance: ModelingTolerance) throws {
             // All four three-slot buffers are admitted before allocating storage.
-            for _ in 0..<12 { try proofUsage.consume(depth: 0, tolerance: tolerance) }
+            for _ in 0..<12 { try execution.visitGeometricCell(depth: 0) }
             stations.reserveCapacity(3)
             ids.reserveCapacity(3)
             positions.reserveCapacity(3)
@@ -92,10 +92,10 @@ struct OriginalGraphBandMeshPlan: Sendable {
     let tips: [Tip]
     let vertexCount: Int
     let indexCount: Int
-    var proofUsage: OriginalTessellationProofUsage
+    let proofContribution: OriginalQueryContributionHandle
 
     func validateBinding(model: BRepModel, faceID: FaceID,
-                         options: TessellationOptions, tolerance: ModelingTolerance) throws {
+                         options: TessellationOptions, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
         guard self.options == options, self.tolerance == tolerance,
               face.id == faceID, model.faces[faceID] == face,
               model.loops[loop.id] == loop,
@@ -104,7 +104,7 @@ struct OriginalGraphBandMeshPlan: Sendable {
                               message: "A retained graph mesh plan requires its exact original face and options.")
         }
         for use in uses {
-            try Task.checkCancellation()
+            try execution.checkpoint()
             guard model.edges[use.edge.id] == use.edge,
                   model.geometry.curves[use.edge.curveID] == use.curve,
                   model.vertices[use.startVertex.id] == use.startVertex,
@@ -114,7 +114,7 @@ struct OriginalGraphBandMeshPlan: Sendable {
             }
             try use.certificate.validateBinding(curve: use.curve, from: use.from, to: use.to,
                 surface: .bSpline(receipt.input.surface), parameterCurve: use.pcurve,
-                options: correspondenceOptions, tolerance: tolerance)
+                options: correspondenceOptions, tolerance: tolerance, using: &execution)
         }
     }
 }

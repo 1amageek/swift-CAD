@@ -25,14 +25,14 @@ package struct OriginalRationalPlaneCurveAtlas: Sendable {
     package let stations: [Station]
     package let incidences: [Incidence]
 
-    package init<B: RationalAlgebraAdmitting>(original: OriginalRationalZeroSetAuthority,
+    package init<B: ExactScalarAdmission & ~Copyable>(original: OriginalRationalZeroSetAuthority,
         over domain: SurfaceParameterBox, maximumDepth: Int, usage: inout B) throws {
         let projection = try OriginalRationalPlaneCurveProjection(original: original, over: domain,
             maximumDepth: maximumDepth, usage: &usage)
         self = try Self(retaining: projection, maximumDepth: maximumDepth, usage: &usage)
     }
 
-    package init<B: RationalAlgebraAdmitting>(retaining projection: OriginalRationalPlaneCurveProjection,
+    package init<B: ExactScalarAdmission & ~Copyable>(retaining projection: OriginalRationalPlaneCurveProjection,
         maximumDepth: Int, usage: inout B) throws {
         let domain = projection.domain
         let sourceIncidence = try OriginalRationalPlaneCurveIncidence(projection: projection,

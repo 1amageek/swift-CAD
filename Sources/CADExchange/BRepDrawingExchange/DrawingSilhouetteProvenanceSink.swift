@@ -13,24 +13,23 @@ final class DrawingSilhouetteProvenanceSink: SurfaceSilhouetteProvenanceWriting,
         var finished = false
     }
     private let state = Mutex(State())
-    private let drawing: DrawingExchangeUsage
-    private let originalUsage: SurfaceSilhouetteUsage
+    private let drawing: DrawingExchangeOwner
+    private let originalContext: SurfaceSilhouetteContext
     private let tolerance: ModelingTolerance
 
-    init(drawing: DrawingExchangeUsage, silhouetteUsage: SurfaceSilhouetteUsage, tolerance: ModelingTolerance) {
-        self.drawing = drawing; originalUsage = silhouetteUsage; self.tolerance = tolerance
+    init(drawing: DrawingExchangeOwner, silhouetteContext: SurfaceSilhouetteContext, tolerance: ModelingTolerance) {
+        self.drawing = drawing; originalContext = silhouetteContext; self.tolerance = tolerance
     }
-    func write(_ event: SurfaceSilhouetteProvenanceEvent, usage: inout SurfaceSilhouetteUsage) throws {
-        guard usage.sharesAccountingOwner(with: originalUsage) else { throw ExportError.invalidMesh("Foreign silhouette provenance accounting owner.") }
-        let accounting = DrawingSilhouetteJSONAccounting(drawing: drawing, silhouette: usage)
+    func write(_ event: SurfaceSilhouetteProvenanceEvent, using execution: inout OriginalQueryExecution) throws {
+        try originalContext.withExecution(using: &execution) { execution in
+        guard execution.budget === originalContext.budget else { throw ExportError.invalidMesh("Foreign silhouette provenance accounting owner.") }
+        let accounting = DrawingSilhouetteJSONAccounting(drawing: drawing, silhouette: originalContext)
         try accounting.checkTime()
         if case .surface(let surface) = event {
-            try surface.validateOriginalSource(tolerance: tolerance, remainingSourceDepth: usage.maximumSourceDepth,
-                maximumSubdivisionDepth: usage.maximumDepth, consumeWork: { _ in try accounting.recordIterations(1) },
-                consumeStorage: { try accounting.recordBytes($0, label: "original surface") },
-                maximumAlgebraicDepth: usage.maximumAlgebraicDepth)
+            try surface.validateOriginalSource(tolerance: tolerance, remainingSourceDepth: originalContext.maximumSourceDepth,
+                maximumSubdivisionDepth: originalContext.maximumDepth, maximumAlgebraicDepth: originalContext.maximumAlgebraicDepth, using: &execution)
         }
-        let fragment = try NativeBoundedJSONEncoder().encode(DrawingSilhouetteProvenanceEventValue(event: event), resources: accounting)
+        let fragment = try NativeBoundedJSONEncoder().encode(DrawingSilhouetteProvenanceEventValue(event: event), resources: accounting, using: &execution)
         let existing = state.withLock { ($0.count, $0.stack.count, $0.finished) }
         guard !existing.2 else { throw ExportError.invalidMesh("Silhouette provenance stream already completed.") }
         try accounting.recordBytes(1, label: "event separator")
@@ -38,7 +37,7 @@ final class DrawingSilhouetteProvenanceSink: SurfaceSilhouetteProvenanceWriting,
         case .beginRecord, .beginArray:
             try drawing.resources.validateNestingDepth(existing.1 + 1)
             try accounting.recordIterations(1)
-            try usage.preparationStorageCallback(MemoryLayout<Frame>.stride)
+            try execution.retainStorage(bytes: MemoryLayout<Frame>.stride)
         default: break
         }
         try state.withLock { value in
@@ -58,10 +57,13 @@ final class DrawingSilhouetteProvenanceSink: SurfaceSilhouetteProvenanceWriting,
             value.bytes.append(value.count == 0 ? 0x5b : 0x2c)
             value.bytes.append(fragment); value.count += 1
         }
+
+        }
     }
-    func complete(usage: inout SurfaceSilhouetteUsage) throws -> Data {
-        guard usage.sharesAccountingOwner(with: originalUsage) else { throw ExportError.invalidMesh("Foreign provenance completion owner.") }
-        try drawing.check(); try usage.preparationStorageCallback(1)
+    func complete(using execution: inout OriginalQueryExecution) throws -> Data {
+        guard execution.budget === originalContext.budget else { throw ExportError.invalidMesh("Foreign provenance completion owner.") }
+        let accounting = DrawingSilhouetteJSONAccounting(drawing: drawing, silhouette: originalContext)
+        try drawing.check(); try accounting.recordBytes(1, label: "source framing")
         return try state.withLock { value in
             guard !value.finished, value.count > 0, value.stack.isEmpty else { throw ExportError.invalidMesh("Incomplete original silhouette provenance stream.") }
             value.bytes.append(0x5d); value.finished = true

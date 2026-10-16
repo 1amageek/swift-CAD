@@ -5,10 +5,10 @@ import CADKernel
 extension BRepDrawingExchange {
     func writeDXFResolvedGlyph(_ receipt: DrawingResolvedGlyphBoundary, maximumDeviation: Double,
                               options: DrawingExchangeOptions, to sink: any ByteSink,
-                              resources: inout SharedExchangeResourceAccountant) throws {
+                              resources: SharedExchangeResourceAccountant, using execution: inout OriginalQueryExecution) throws {
         let glyph = receipt.original
         let loops = try ResolvedGlyphBoundaryLinearizer().linearize(receipt.boundary,
-            maximumDeviation: maximumDeviation, resources: resources)
+            maximumDeviation: maximumDeviation, resources: resources, using: &execution)
         if loops.isEmpty {
             // Exact winding cancellation has no visible material. Retain its source on a whitespace text entity.
             try sink.writeUTF8("0\nTEXT\n100\nAcDbEntity\n8\nAnnotation\n100\nAcDbText\n10\n0\n20\n0\n40\n\(stepNumber(try options.outputLength(paperPoints: glyph.fontSize)))\n1\n \n")
@@ -29,7 +29,7 @@ extension BRepDrawingExchange {
             }
             try sink.writeUTF8("75\n0\n76\n1\n98\n0\n")
         }
-        try writeDXFGlyphProvenance(glyph, to: sink, resources: &resources)
+        try writeDXFGlyphProvenance(glyph, to: sink, resources: resources)
         try sink.writeUTF8("1000\nresolvedOriginalNonzeroBoundary\n1000\nmaximumGlyphDeviationPaperPoints\n1040\n\(stepNumber(maximumDeviation))\n")
         for loop in receipt.boundary.loops {
             for use in loop.uses {

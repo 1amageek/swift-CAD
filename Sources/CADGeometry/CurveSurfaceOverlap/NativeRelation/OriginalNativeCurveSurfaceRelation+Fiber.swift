@@ -3,21 +3,21 @@ import CADCore
 extension OriginalNativeCurveSurfaceRelation {
     /// Every UV cell over the exact station, including multiple preimages and collapsed fibers.
     /// The returned relation retains this station's original field and causal depths.
-    public func surfaceParameterFiber(at station: OriginalAlgebraicCoordinate,
+    public func surfaceParameterFiber<A: ExactScalarAdmission & ~Copyable>(at station: OriginalAlgebraicCoordinate,
         maximumDepth: Int, maximumCoefficientDepth: Int,
-        usage: OriginalRelationUsage) throws -> OriginalRealRelation {
+        usage: inout A) throws -> OriginalRealRelation {
         guard maximumDepth >= 0, (0...32).contains(maximumCoefficientDepth),
             station.inheritedDepth <= maximumDepth,
             station.inheritedCoefficientDepth <= maximumCoefficientDepth else {
             throw rationalAlgebraFailure("Native fiber cannot reset its exact station admission depths.")
         }
         let context = station.original.context
-        var admission = OriginalSourceScalarAdmission(base: usage, maximumDepth: maximumDepth,
-            maximumCoefficientDepth: maximumCoefficientDepth, originalParameterDepth: context.depth,
+        let composed = try intersectionSourceCalculation(originalParameterDepth: context.depth,
             originalCoefficientDepth: context.coefficientDepth,
             inheritedParameterDepth: station.inheritedDepth,
             inheritedCoefficientDepth: station.inheritedCoefficientDepth,
-            parameterDepth: station.inheritedDepth, coefficientDepth: station.inheritedCoefficientDepth)
+            maximumDepth: maximumDepth, maximumCoefficientDepth: maximumCoefficientDepth,
+            usage: &usage) { admission in
         let available = try rationalAlgebraCount(context.depth, maximumDepth - station.inheritedDepth)
         try intersectionAlgebraStep(&admission)
         var included = effectiveDomains != nil
@@ -52,8 +52,8 @@ extension OriginalNativeCurveSurfaceRelation {
                 }
                 let uv = try ExactIntersectionPolynomial.Power((power.b, power.c, 0, 0, 0), variableCount: 2)
                 terms.append(.init(power: uv, coefficient: scalar,
-                    inheritedParameterDepth: admission.parameterDepth,
-                    inheritedCoefficientDepth: admission.coefficientDepth))
+                    inheritedParameterDepth: (try admission.depth).value,
+                    inheritedCoefficientDepth: (try admission.depth).coefficient))
             }
             return try .init(original: .init(variableCount: 2, terms: terms,
                 maximumDepth: maximumDepth, maximumCoefficientDepth: maximumCoefficientDepth, usage: &admission))
@@ -105,7 +105,9 @@ extension OriginalNativeCurveSurfaceRelation {
         let domains = Array((effectiveDomains ?? requestedDomains)[1...2])
         let relation = try OriginalPolynomialRelation(variableCount: 2, orderedPolynomials: laws,
             predicate: predicate, domains: domains, usage: &admission)
-        return try DefaultOriginalPolynomialRelationResolver().decompose(relation,
-            maximumDepth: maximumDepth, maximumCoefficientDepth: maximumCoefficientDepth, usage: admission.base)
+        return relation
+        }
+        return try DefaultOriginalPolynomialRelationResolver().decompose(composed.value,
+            maximumDepth: maximumDepth, maximumCoefficientDepth: maximumCoefficientDepth, usage: &usage)
     }
 }

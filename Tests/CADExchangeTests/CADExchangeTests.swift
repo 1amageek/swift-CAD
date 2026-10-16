@@ -1613,7 +1613,7 @@ struct CADExchangeTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func officialStandardMeshFormatsUseURLAndAtomicFailurePaths() throws {
+    func officialStandardMeshFormatsPreserveExistingURLOnAtomicFailure() throws {
         let evaluated = try makeEvaluatedDocument()
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("standard-format-facade-\(UUID().uuidString)")

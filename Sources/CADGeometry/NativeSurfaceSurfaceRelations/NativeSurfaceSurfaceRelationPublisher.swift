@@ -6,7 +6,7 @@ package struct NativeSurfaceSurfaceRelationPublisher {
         let partition: OriginalRationalIntersectionCells
         let ideal: ExactIntersectionIdeal
     }
-    package static func publish<B: RationalAlgebraAdmitting>(first: BSplineSurface3D,
+    package static func publish<B: ExactScalarAdmission & ~Copyable>(first: BSplineSurface3D,
         second: BSplineSurface3D, tolerance: ModelingTolerance,
         decomposition: OriginalRationalIntersectionDecomposition, maximumDepth: Int,
         inheritedParameterDepth: Int = 0, parentRelation: OriginalNativeSurfaceSurfaceRelations? = nil, usage: inout B) throws -> OriginalNativeSurfaceSurfaceRelations {
@@ -15,7 +15,7 @@ package struct NativeSurfaceSurfaceRelationPublisher {
             parentRelation: parentRelation, usage: &usage)
     }
 
-    package static func publish<B: RationalAlgebraAdmitting>(first: BSplineSurface3D,
+    package static func publish<B: ExactScalarAdmission & ~Copyable>(first: BSplineSurface3D,
         second: BSplineSurface3D, tolerance: ModelingTolerance,
         coverage: NativeSurfaceSurfaceCoverage, maximumDepth: Int,
         inheritedParameterDepth: Int = 0, parentRelation: OriginalNativeSurfaceSurfaceRelations? = nil,
@@ -68,16 +68,14 @@ package struct NativeSurfaceSurfaceRelationPublisher {
                     let source = partition.cells[conditions[ordinal].cellIndex]
                     let inherited = max(source.admissionDepth, cell.admissionDepth)
                     guard inherited <= maximumDepth else { throw rationalAlgebraFailure("SSI graph mapping cannot reset original cell depth.") }
-                    var admission = OriginalSourceScalarAdmission(base: usage, maximumDepth: maximumDepth,
-                        maximumCoefficientDepth: 0, originalParameterDepth: cell.context.depth,
-                        originalCoefficientDepth: 0, inheritedParameterDepth: inherited,
-                        inheritedCoefficientDepth: 0, parameterDepth: inherited, coefficientDepth: 0)
                     let available = try rationalAlgebraCount(cell.context.depth, maximumDepth - inherited)
-                    let included: Bool
-                    do { included = try conditions[ordinal].contains(context: cell.context,
-                        coordinates: parameters, maximumDepth: available, usage: &admission) }
-                    catch { usage = admission.base; throw error }
-                    usage = admission.base
+                    let included = try intersectionSourceCalculation(originalParameterDepth: cell.context.depth,
+                        originalCoefficientDepth: 0, inheritedParameterDepth: inherited,
+                        inheritedCoefficientDepth: 0, maximumDepth: maximumDepth,
+                        maximumCoefficientDepth: 0, usage: &usage) { admission in
+                        try conditions[ordinal].contains(context: cell.context,
+                            coordinates: parameters, maximumDepth: available, usage: &admission)
+                    }.value
                     if included {
                         guard selected == nil else { throw rationalAlgebraFailure("An SSI graph cell belongs to two original UV cells.") }
                         selected = ordinal
@@ -153,7 +151,7 @@ package struct NativeSurfaceSurfaceRelationPublisher {
         return result
     }
 
-    private static func prepareGraph<B: RationalAlgebraAdmitting>(decomposition: OriginalRationalIntersectionDecomposition,
+    private static func prepareGraph<B: ExactScalarAdmission & ~Copyable>(decomposition: OriginalRationalIntersectionDecomposition,
         conditions: [OriginalIntersectionCellCondition], maximumDepth: Int, usage: inout B) throws -> PreparedGraph {
         guard let effective = decomposition.effectiveDomains else { throw rationalAlgebraFailure("SSI graph requires the complete effective original product.") }
         let system = decomposition.system, source = system.firstSurfaceSource
@@ -210,14 +208,14 @@ package struct NativeSurfaceSurfaceRelationPublisher {
         return .init(partition: partition,ideal: ideal)
     }
 
-    private static func value<B: RationalAlgebraAdmitting>(_ polynomial: ExactBivariatePolynomial,
+    private static func value<B: ExactScalarAdmission & ~Copyable>(_ polynomial: ExactBivariatePolynomial,
         cell: OriginalRationalIntersectionCells.Cell, maximumDepth: Int, usage: inout B) throws -> OriginalSingularFieldElement {
         let embedded = try ExactIntersectionPolynomial.embedding(polynomial, variableCount: 4,
             uCoordinate: 0, vCoordinate: 1, usage: &usage)
         return try OriginalIntersectionFieldEvaluation.evaluated(embedded, context: cell.context,
             coordinates: cell.coordinates, maximumDepth: maximumDepth, usage: &usage)
     }
-    private static func retainOwner<B: RationalAlgebraAdmitting>(usage: inout B) throws {
+    private static func retainOwner<B: ExactScalarAdmission & ~Copyable>(usage: inout B) throws {
         try RationalAlgebraStorage.retainBytes(MemoryLayout<OriginalNativeSurfaceSurfaceRelations>.stride
             + 2 * MemoryLayout<BSplineSurface3D>.stride + MemoryLayout<ModelingTolerance>.stride
             + MemoryLayout<NativeSurfaceSurfaceCoverage>.stride

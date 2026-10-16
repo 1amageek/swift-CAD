@@ -1,3 +1,4 @@
+import CADCore
 /// Separates standard tails only after proving the selected family's specified extent.
 struct IGESAssociationParameterReader {
     struct Result {

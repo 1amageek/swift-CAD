@@ -45,7 +45,7 @@ public struct OriginalBoundedSphereConeSurfaceSnapshotProvider: OriginalSourceSn
         throws(OriginalSourceIssuanceFailure) -> OriginalSourceSnapshot<OriginalBoundedSphereConeSurfaceSnapshot> {
         let input=copy input
         do {
-            return try OriginalSourceProofAdmission<A>.withBorrow(&admission) { a in
+            return try admission.withProofScope { a in
                 try a.checkpoint();try a.consumeWork(1)
                 guard limits.remainingSourceDepth>=1 else { throw OriginalSourceIssuanceFailure.sourceDepthLimit }
                 guard let pair=Self.pair(input),case .analytic(.sphere(let center,let radius))=pair.sphere,

@@ -57,3 +57,20 @@ This component consumes the unchanged current-task cancellation and direct
 collection import contracts owned by [CADTopology](../DESIGN.md#m6-portable-validation-wiring).
 Its algorithms, budgets, immutable source owners and existing isolation remain
 unchanged on Native, ordinary WASM and Embedded.
+
+### Canonical loop discovery execution
+
+All four ordinary discovery APIs are throwing operation entries: each creates
+one original execution and delegates to its actual direct body. Composing
+callers pass the same inout execution through body shell enumeration, face-use
+incidence, adjacency, component discovery, degree-two checks and ordered traversal.
+Typed storage and work consume that owner. Missing references retain their
+existing omission rules; invalid components still yield nil or no returned loop.
+Stored direction, graph predicates, ordering and component-count termination
+remain unchanged. Resource, cancellation and checked count overflow propagate;
+no legacy unmetered body or silent-failure ordinary facade remains.
+
+```text
+ordinary entry -> one execution -> direct graph discovery
+Bridge execution -------------> same direct graph discovery
+```

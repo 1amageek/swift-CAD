@@ -5,14 +5,14 @@ package struct OriginalRationalSurfaceDerivativeLaw: Sendable {
     package var partials: [Partial] { vector.partials }
     private let vector: OriginalRationalVectorDerivativeLaw
 
-    package init<B: RationalAlgebraAdmitting>(original: OriginalRationalSurfacePolynomial,
+    package init<B: ExactScalarAdmission & ~Copyable>(original: OriginalRationalSurfacePolynomial,
         throughOrder: Int, usage: inout B) throws {
         self.original = original
         vector = try OriginalRationalVectorDerivativeLaw(homogeneous: original.homogeneous,
             throughOrder: throughOrder, usage: &usage)
     }
 
-    package func equalityNumerators<B: RationalAlgebraAdmitting>(with other: Self,
+    package func equalityNumerators<B: ExactScalarAdmission & ~Copyable>(with other: Self,
         secondTranslation: (alongU: Bool, amount: ExactRationalCoefficient)? = nil,
         requiredPartials: [(uOrder: Int, vOrder: Int)]? = nil,
         usage: inout B) throws -> [ExactBivariatePolynomial] {

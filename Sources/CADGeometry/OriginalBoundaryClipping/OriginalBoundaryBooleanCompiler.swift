@@ -13,30 +13,30 @@ struct OriginalBoundaryBooleanCompiler {
     var boundaryNodes: [Int] = []
     var references: [OriginalNativeBoundaryDomain.SpanReference] = []
 
-    mutating func node(_ node: Node, usage: inout OriginalRelationUsage) throws -> Int {
+    mutating func node<A: ExactScalarAdmission & ~Copyable>(_ node: Node, usage: inout A) throws -> Int {
         try intersectionAlgebraStep(&usage)
         try RationalAlgebraStorage.retain(1, of: Node.self, usage: &usage)
         let index = nodes.count; _ = try rationalAlgebraCount(index, 1)
         nodes.append(node); return index
     }
-    mutating func conjunction(_ a: Int, _ b: Int, usage: inout OriginalRelationUsage) throws -> Int {
+    mutating func conjunction<A: ExactScalarAdmission & ~Copyable>(_ a: Int, _ b: Int, usage: inout A) throws -> Int {
         if a == b { return a }
         if case .literal(let value) = nodes[a] { return value ? b : a }
         if case .literal(let value) = nodes[b] { return value ? a : b }
         return try node(.and(a, b), usage: &usage)
     }
-    mutating func disjunction(_ a: Int, _ b: Int, usage: inout OriginalRelationUsage) throws -> Int {
+    mutating func disjunction<A: ExactScalarAdmission & ~Copyable>(_ a: Int, _ b: Int, usage: inout A) throws -> Int {
         if a == b { return a }
         if case .literal(let value) = nodes[a] { return value ? a : b }
         if case .literal(let value) = nodes[b] { return value ? b : a }
         return try node(.or(a, b), usage: &usage)
     }
-    mutating func negation(_ a: Int, usage: inout OriginalRelationUsage) throws -> Int {
+    mutating func negation<A: ExactScalarAdmission & ~Copyable>(_ a: Int, usage: inout A) throws -> Int {
         if case .literal(let value) = nodes[a] { return try node(.literal(!value), usage: &usage) }
         return try node(.not(a), usage: &usage)
     }
-    mutating func atom(_ law: ExactIntersectionPolynomial, _ sign: OriginalPolynomialPredicate.Sign,
-        usage: inout OriginalRelationUsage) throws -> Int {
+    mutating func atom<A: ExactScalarAdmission & ~Copyable>(_ law: ExactIntersectionPolynomial, _ sign: OriginalPolynomialPredicate.Sign,
+        usage: inout A) throws -> Int {
         for (index, original) in laws.enumerated() {
             try intersectionAlgebraStep(&usage)
             if try original.matches(law, usage: &usage) { return try node(.sign(index, sign), usage: &usage) }
@@ -45,10 +45,11 @@ struct OriginalBoundaryBooleanCompiler {
         let ordinal = laws.count; _ = try rationalAlgebraCount(ordinal, 1)
         laws.append(law); return try node(.sign(ordinal, sign), usage: &usage)
     }
-    mutating func condition(_ condition: OriginalIntersectionCellCondition,
-        usage: inout OriginalRelationUsage) throws -> Int {
+    mutating func condition<A: ExactScalarAdmission & ~Copyable>(_ condition: OriginalIntersectionCellCondition,
+        usage: inout A) throws -> Int {
         var result = try node(.literal(true), usage: &usage)
         for index in condition.polynomials.indices {
+            try intersectionAlgebraStep(&usage)
             let sign: OriginalPolynomialPredicate.Sign
             switch condition.signs[index] { case .negative: sign = .negative; case .zero: sign = .zero; case .positive: sign = .positive }
             let value = try atom(condition.polynomials[index], sign, usage: &usage)
@@ -56,21 +57,23 @@ struct OriginalBoundaryBooleanCompiler {
         }
         return result
     }
-    mutating func sourceSystem(_ system: OriginalRationalIntersectionSystem, usage: inout OriginalRelationUsage) throws -> Int {
+    mutating func sourceSystem<A: ExactScalarAdmission & ~Copyable>(_ system: OriginalRationalIntersectionSystem, usage: inout A) throws -> Int {
         var result = try node(.literal(true), usage: &usage)
         for law in system.equations {
+            try intersectionAlgebraStep(&usage)
             let zero = try atom(law, .zero, usage: &usage)
             result = try conjunction(result, zero, usage: &usage)
         }
         for law in system.denominatorGuards {
+            try intersectionAlgebraStep(&usage)
             let zero = try atom(law, .zero, usage: &usage)
             let nonzero = try negation(zero, usage: &usage)
             result = try conjunction(result, nonzero, usage: &usage)
         }
         return result
     }
-    mutating func boundary(_ domain: OriginalNativeBoundaryDomain,
-        selection: OriginalNativeBoundaryDomain.Selection, usage: inout OriginalRelationUsage) throws -> Int {
+    mutating func boundary<A: ExactScalarAdmission & ~Copyable>(_ domain: OriginalNativeBoundaryDomain,
+        selection: OriginalNativeBoundaryDomain.Selection, usage: inout A) throws -> Int {
         let count = domain.source.variableCount, axis = domain.source.uAxis
         let u = try ExactIntersectionPolynomial.coordinate(variableCount: count, at: axis, usage: &usage)
         let v = try ExactIntersectionPolynomial.coordinate(variableCount: count, at: axis + 1, usage: &usage)
@@ -78,6 +81,7 @@ struct OriginalBoundaryBooleanCompiler {
         var inner = try node(.literal(false), usage: &usage)
         var anyBoundary = try node(.literal(false), usage: &usage)
         for (ordinal, loop) in domain.loops.enumerated() {
+            try intersectionAlgebraStep(&usage)
             let segments = try Self.segments(loop, ordinal: ordinal, source: domain.source, usage: &usage)
             var crossings: [(node: Int, delta: Int)] = []
             try RationalAlgebraStorage.retain(segments.count, of: (Int, Int).self, usage: &usage)
@@ -128,20 +132,25 @@ struct OriginalBoundaryBooleanCompiler {
         case .boundary: return try conjunction(closed, anyBoundary, usage: &usage)
         }
     }
-    private mutating func nonzeroWinding(_ crossings: [(node: Int, delta: Int)],
-        usage: inout OriginalRelationUsage) throws -> Int {
+    private mutating func nonzeroWinding<A: ExactScalarAdmission & ~Copyable>(_ crossings: [(node: Int, delta: Int)],
+        usage: inout A) throws -> Int {
         let count = crossings.count
         let capacity = try rationalAlgebraCount(try rationalAlgebraCount(count, 2, multiply: true), 1)
         try RationalAlgebraStorage.retain(capacity, of: Int.self, usage: &usage)
         var next: [Int] = []; next.reserveCapacity(capacity)
-        for sum in -count...count { next.append(try node(.literal(sum != 0), usage: &usage)) }
+        for sum in -count...count {
+            try intersectionAlgebraStep(&usage)
+            next.append(try node(.literal(sum != 0), usage: &usage))
+        }
         if count == 0 { return next[0] }
         for index in crossings.indices.reversed() {
+            try intersectionAlgebraStep(&usage)
             let size = try rationalAlgebraCount(try rationalAlgebraCount(index, 2, multiply: true), 1)
             try RationalAlgebraStorage.retain(size, of: Int.self, usage: &usage)
             var current: [Int] = []; current.reserveCapacity(size)
             let crossing = crossings[index], inverse = try negation(crossing.node, usage: &usage)
             for sum in -index...index {
+            try intersectionAlgebraStep(&usage)
                 let offset = index + 1
                 let yes = next[sum + crossing.delta + offset], no = next[sum + offset]
                 let selected = try conjunction(crossing.node, yes, usage: &usage)
@@ -152,7 +161,7 @@ struct OriginalBoundaryBooleanCompiler {
         }
         return next[0]
     }
-    func values(signs: [OriginalPolynomialPredicate.Sign], usage: inout OriginalRelationUsage) throws -> [Bool] {
+    func values<A: ExactScalarAdmission & ~Copyable>(signs: [OriginalPolynomialPredicate.Sign], usage: inout A) throws -> [Bool] {
         guard signs.count == laws.count else { throw rationalAlgebraFailure("Boundary selection lost its complete original law binding.") }
         try RationalAlgebraStorage.retain(nodes.count, of: Bool.self, usage: &usage)
         var values: [Bool] = []; values.reserveCapacity(nodes.count)
@@ -170,7 +179,7 @@ struct OriginalBoundaryBooleanCompiler {
         }
         return values
     }
-    func instructions(_ root: Int, usage: inout OriginalRelationUsage) throws -> [OriginalPolynomialPredicate.Instruction] {
+    func instructions<A: ExactScalarAdmission & ~Copyable>(_ root: Int, usage: inout A) throws -> [OriginalPolynomialPredicate.Instruction] {
         let capacity = try rationalAlgebraCount(nodes.count, 3, multiply: true)
         try RationalAlgebraStorage.retain(capacity, of: (Int, Bool).self, usage: &usage)
         var pending: [(index: Int, finished: Bool)] = [(root, false)]; pending.reserveCapacity(capacity)
@@ -199,8 +208,8 @@ struct OriginalBoundaryBooleanCompiler {
         }
         return result
     }
-    private static func segments(_ loop: OriginalNativeBoundaryDomain.Loop, ordinal: Int,
-        source: OriginalNativeBoundaryDomain.Source, usage: inout OriginalRelationUsage) throws -> [Segment] {
+    private static func segments<A: ExactScalarAdmission & ~Copyable>(_ loop: OriginalNativeBoundaryDomain.Loop, ordinal: Int,
+        source: OriginalNativeBoundaryDomain.Source, usage: inout A) throws -> [Segment] {
         var result: [Segment] = []
         func point(_ u: Double, _ v: Double) throws -> (ExactRationalCoefficient, ExactRationalCoefficient) {
             (try .originalDouble(u, usage: &usage), try .originalDouble(v, usage: &usage))

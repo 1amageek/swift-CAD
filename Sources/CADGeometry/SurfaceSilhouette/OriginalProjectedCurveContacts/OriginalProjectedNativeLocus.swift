@@ -15,7 +15,7 @@ struct OriginalProjectedNativeLocus: Sendable {
     let remainingIsolatedUV: [ExactBivariateSystemRoot]
 
     init(original: OriginalProjectedNativePolynomialPair,
-        domain: SurfaceParameterBox, usage: inout SurfaceSilhouetteUsage) throws {
+        domain: SurfaceParameterBox, usage: inout OriginalQueryExecution) throws {
         var shared = original.zeroLaw
         let gcd = ExactBivariateGCD()
         if let eliminated = original.eliminated {
@@ -65,7 +65,7 @@ struct OriginalProjectedNativeLocus: Sendable {
             case .coordinateSystem(let locus, let common):
                 try RationalAlgebraStorage.retain(2, of: ExactBivariatePolynomial.self, usage: &usage)
                 for station in try ExactBivariateSystemSolver.isolatedRoots(of: [locus, common],
-                    over: parameterDomain, maximumDepth: usage.maximumDepth, usage: &usage) {
+                    over: parameterDomain, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage) {
                     let fiber = try OriginalProjectedNativeSectionFiber(original: original,
                         locus: parameter.component.originalLocus, at: station, usage: &usage)
                     try RationalAlgebraStorage.retain(1, of: OriginalProjectedNativeSectionFiber.self, usage: &usage)
@@ -80,13 +80,13 @@ struct OriginalProjectedNativeLocus: Sendable {
                 }
                 let zero = try OriginalRationalZeroSetAuthority(original: polynomial, usage: &usage)
                 let projection = try OriginalRationalPlaneCurveProjection(original: zero,
-                    over: parameterDomain, maximumDepth: usage.maximumDepth, usage: &usage)
+                    over: parameterDomain, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
                 try RationalAlgebraStorage.retain(1, of: OriginalRationalPlaneCurveProjection.self, usage: &usage)
                 planeProjections.append(projection)
                 if events.freeAlongU, events.projection.uDegree > 0 {
                     try RationalAlgebraStorage.retain(2, of: ExactBivariatePolynomial.self, usage: &usage)
                     for station in try ExactBivariateSystemSolver.isolatedRoots(of: [polynomial, events.projection],
-                        over: parameterDomain, maximumDepth: usage.maximumDepth, usage: &usage) {
+                        over: parameterDomain, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage) {
                         let fiber = try OriginalProjectedNativeSectionFiber(original: original,
                             locus: parameter.component.originalLocus, at: station, usage: &usage)
                         try RationalAlgebraStorage.retain(1, of: OriginalProjectedNativeSectionFiber.self, usage: &usage)
@@ -113,11 +113,11 @@ struct OriginalProjectedNativeLocus: Sendable {
             let parameter = parameters[parameterIndex]
             let events = branchEvents[parameterIndex]
                     try RationalAlgebraStorage.retain(2, of: SurfaceSilhouetteTrimEndpoint.self, usage: &usage)
-                    let edge = SurfaceSilhouetteTrimEndpoint(point.originalEdgeParameter,
-                        depth: point.originalEdgeParameter.context.depth)
-                    let silhouette = SurfaceSilhouetteTrimEndpoint(parameter, depth: parameter.context.depth)
-                    if try silhouette.compare(to: original.silhouette.lower, usage: &usage) < 0 { continue }
-                    if try silhouette.compare(to: original.silhouette.upper, usage: &usage) > 0 { continue }
+                    let edge = try SurfaceSilhouetteTrimEndpoint(point.originalEdgeParameter,
+                        depth: point.originalEdgeParameter.context.depth, using: &usage)
+                    let silhouette = try SurfaceSilhouetteTrimEndpoint(parameter, depth: parameter.context.depth, using: &usage)
+                    if try silhouette.compare(to: original.silhouette.lower, using: &usage) < 0 { continue }
+                    if try silhouette.compare(to: original.silhouette.upper, using: &usage) > 0 { continue }
                     try RationalAlgebraStorage.retain(1, of: OriginalProjectedNativeSectionContact.self, usage: &usage)
                     selected.append(.init(edgeParameter: edge, silhouetteParameter: silhouette,
                         originalPoint: point, originalProjection: fiber.sourceProjection))
@@ -132,7 +132,7 @@ struct OriginalProjectedNativeLocus: Sendable {
                 try RationalAlgebraStorage.retain(2, of: ExactBivariatePolynomial.self, usage: &usage)
                 for station in try ExactBivariateSystemSolver.isolatedRoots(
                     of: [component.originalLocus, exception], over: domain,
-                    maximumDepth: usage.maximumDepth, usage: &usage) {
+                    maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage) {
                     let fiber = try OriginalProjectedNativeFiber(original: original, at: station, usage: &usage)
                     try RationalAlgebraStorage.retain(1, of: OriginalProjectedNativeFiber.self, usage: &usage)
                     exceptionFibers.append(fiber)
@@ -142,13 +142,13 @@ struct OriginalProjectedNativeLocus: Sendable {
         exceptionalUVFibers = exceptionFibers
         let authority = try OriginalRationalZeroSetAuthority(original: shared, usage: &usage)
         projection = try .init(original: authority, over: domain,
-            maximumDepth: usage.maximumDepth, usage: &usage)
+            maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
         if let eliminated = original.eliminated, !eliminated.isZero {
             let first = try original.zeroLaw.dividedExactly(by: shared, usage: &usage)
             let second = try eliminated.dividedExactly(by: shared, usage: &usage)
             try RationalAlgebraStorage.retain(2, of: ExactBivariatePolynomial.self, usage: &usage)
             remainingIsolatedUV = try ExactBivariateSystemSolver.isolatedRoots(of: [first, second],
-                over: domain, maximumDepth: usage.maximumDepth, usage: &usage)
+                over: domain, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
         } else { remainingIsolatedUV = [] }
     }
 }

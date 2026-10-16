@@ -123,6 +123,9 @@ struct InvoluteGearProfileTests {
     }
 
     @Test func nativeHelicalToothCapAdmitsRollingBallContacts() throws {
+        var execution = OriginalQueryExecution(budget: try .init(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32,
+                remainingSourceDepth: 16, maximumSubdivisionDepth: 32))
         let result = try DocumentEvaluator(tolerance: tolerance).evaluateExact(nativeGearDocument())
         let model = result.brep
         let shell = try #require(model.shells.values.first)
@@ -167,7 +170,7 @@ struct InvoluteGearProfileTests {
             try BooleanOpenFaceArrangementBuilder(sourceContactTolerance: .init(
                 distance: tolerance.distance / 2, angle: tolerance.angle, relative: tolerance.relative))
                 .build(faceID: flank.id, boundaries: [], model: model,
-                       sourceSubshapes: result.subshapes.entries, tolerance: tolerance)
+                       sourceSubshapes: result.subshapes.entries, tolerance: tolerance, using: &execution)
         }
         let removedOnLeft = try blend.crossSectionLiesOnLeft(of: .first,
             maximumSubdivisionDepth: 20, maximumCellCount: 65_536)
@@ -180,7 +183,7 @@ struct InvoluteGearProfileTests {
                 forwardLeftAction: removedOnLeft ? .discard : .keep,
                 forwardRightAction: removedOnLeft ? .keep : .discard)],
             model: model, sourceSubshapes: result.subshapes.entries,
-            tolerance: tolerance)
+            tolerance: tolerance, using: &execution)
         #expect(partition.isPartitioned)
         let patch = try #require(partition.patches.first)
         #expect(partition.patches.count == 1)
@@ -281,7 +284,7 @@ struct InvoluteGearProfileTests {
                     segmentOrdinal: 0, faceID: endFaceID, edge: nextContact,
                     forwardLeftAction: nextRemovedOnLeft ? .discard : .keep,
                     forwardRightAction: nextRemovedOnLeft ? .keep : .discard)],
-                model: model, sourceSubshapes: result.subshapes.entries, tolerance: tolerance)
+                model: model, sourceSubshapes: result.subshapes.entries, tolerance: tolerance, using: &execution)
             #expect(nextPartition.isPartitioned)
             #expect(nextPartition.patches.count == 1)
             let retainedNeighbor = try #require(nextPartition.patches.first)
@@ -538,6 +541,9 @@ struct InvoluteGearProfileTests {
     }
 
     private func verifyNativeTerminal(index: Int) throws {
+        var execution = OriginalQueryExecution(budget: try .init(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32,
+                remainingSourceDepth: 16, maximumSubdivisionDepth: 32))
         let result = try DocumentEvaluator(tolerance: tolerance).evaluateExact(nativeGearDocument())
         let model = result.brep
         let shell = try #require(model.shells.values.first)
@@ -658,7 +664,7 @@ struct InvoluteGearProfileTests {
                     facePair: .init(targetFaceID: neighborID, toolFaceID: cap.id), componentID: .init(ordinal: 0)),
                     segmentOrdinal: 0, faceID: neighborID, edge: terminalEdge,
                     forwardLeftAction: .keep, forwardRightAction: .keep, forcedPartitioning: true)],
-                model: model, sourceSubshapes: result.subshapes.entries, tolerance: tolerance)
+                model: model, sourceSubshapes: result.subshapes.entries, tolerance: tolerance, using: &execution)
             #expect(partition.isPartitioned)
             #expect(partition.patches.count == 2)
             let corner = try #require(model.vertices[vertexID]).point

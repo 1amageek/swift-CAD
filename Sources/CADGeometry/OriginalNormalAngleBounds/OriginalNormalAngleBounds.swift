@@ -2,7 +2,7 @@ import CADCore
 
 /// Physical normal-angle bounds; intrinsic parameter labels are not used here.
 package enum OriginalNormalAngleBounds {
-    package static func safeChordLimit<B: RationalAlgebraAdmitting>(angle: Double,
+    package static func safeChordLimit<B: ExactScalarAdmission & ~Copyable>(angle: Double,
         usage: inout B) throws -> Double {
         guard angle.isFinite, angle > 0 else {
             throw GeometryConversionError.invalidInput("Normal angle tolerance must be finite and positive.")
@@ -15,7 +15,7 @@ package enum OriginalNormalAngleBounds {
         return min(2, result.lower)
     }
 
-    package static func upperAngle<B: RationalAlgebraAdmitting>(chord: Double,
+    package static func upperAngle<B: ExactScalarAdmission & ~Copyable>(chord: Double,
         usage: inout B) throws -> Double {
         guard chord.isFinite, chord >= 0, chord <= 2 else {
             throw GeometryConversionError.invalidInput("Unit-normal chord must be finite and within zero through two.")
@@ -24,7 +24,7 @@ package enum OriginalNormalAngleBounds {
         var lower = 0.0, upper = CanonicalSphereAngularPhase.piBounds.upper
         if chord == 2 { return upper }
         while true {
-            try usage.consumeExactWork(1); try CurrentTaskCancellationChecker().checkCancellation()
+            try usage.consumeWork(1); try CurrentTaskCancellationChecker().checkCancellation()
             let middle = lower + (upper - lower) * 0.5
             guard middle > lower, middle < upper else { return upper }
             // Every representable interior station is below mathematical pi:
@@ -36,7 +36,7 @@ package enum OriginalNormalAngleBounds {
         }
     }
 
-    private static func chordBounds<B: RationalAlgebraAdmitting>(angle: Double,
+    private static func chordBounds<B: ExactScalarAdmission & ~Copyable>(angle: Double,
         usage: inout B) throws -> OutwardScalarInterval {
         guard angle.isFinite, angle >= 0, angle <= CanonicalSphereAngularPhase.piBounds.upper else {
             throw GeometryConversionError.invalidInput("Physical chord proof requires a finite angle in the original half-turn.")
@@ -47,7 +47,7 @@ package enum OriginalNormalAngleBounds {
         let squared = try x.multiplied(by: x, usage: &usage)
         var sum = x, term = x, order = 0
         while true {
-            try usage.consumeExactWork(1); try CurrentTaskCancellationChecker().checkCancellation()
+            try usage.consumeWork(1); try CurrentTaskCancellationChecker().checkCancellation()
             let twice = try rationalAlgebraCount(order, 2, multiply: true)
             let a = try rationalAlgebraCount(twice, 2)
             let b = try rationalAlgebraCount(twice, 3)

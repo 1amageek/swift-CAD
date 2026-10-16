@@ -24,7 +24,7 @@ public struct ExactAlgebraicScalarDomain<Base: ExactScalarArithmetic & ExactScal
             _ = try field.integer(0, using: &a)
             try ExactRootAccess.owner((Base, ExactAlgebraicContext<Base>?, ExactRealRoot<Self>?, Int, Int, ExactScalarDepth).self, &a)
             return Self(context: ExactAlgebraicContext(base: field, parent: nil, root: nil,
-                level: 0, maximumExtensionLevel: maximumExtensionLevel, depth: a.depth))
+                level: 0, maximumExtensionLevel: maximumExtensionLevel, depth: (try a.depth)))
         }
     }
     public func adjoin<A: ExactScalarAdmission & ~Copyable>(_ root: borrowing ExactRealRoot<Self>,
@@ -39,7 +39,7 @@ public struct ExactAlgebraicScalarDomain<Base: ExactScalarArithmetic & ExactScal
             try issuer.admitted(root, &a)
             try ExactRootAccess.owner((Base, ExactAlgebraicContext<Base>?, ExactRealRoot<Self>?, Int, Int, ExactScalarDepth).self, &a)
             let child = Self(context: ExactAlgebraicContext(base: context.base, parent: context, root: root,
-                level: level, maximumExtensionLevel: context.maximumExtensionLevel, depth: a.depth))
+                level: level, maximumExtensionLevel: context.maximumExtensionLevel, depth: (try a.depth)))
             let p = root.source.context.univariate
             let n = try p.variable(0, using: &a), d = try p.constant(integer(1, using: &a), using: &a)
             let generator = try child.fraction(n, d, &a)
@@ -48,7 +48,7 @@ public struct ExactAlgebraicScalarDomain<Base: ExactScalarArithmetic & ExactScal
         }
     }
     func scalarQuery<A: ExactScalarAdmission & ~Copyable, R>(_ admission: inout A,
-        _ body: (inout ExactRootBorrowedAdmission) throws -> R) throws(ExactScalarFailure) -> R {
+        _ body: (inout A) throws -> R) throws(ExactScalarFailure) -> R {
         do { return try ExactRootAccess.run(&admission, inherited: context.depth, body) }
         catch {
             switch error {
@@ -71,7 +71,7 @@ public struct ExactAlgebraicScalarDomain<Base: ExactScalarArithmetic & ExactScal
             var base = context
             while let parent = base.parent { try a.consumeWork(1); base = parent }
             let retained = try base.base.importing(value, using: &a)
-            let source = Value(context: base, storage: .base(retained), depth: a.depth)
+            let source = Value(context: base, storage: .base(retained), depth: (try a.depth))
             return try embedded(source, &a)
         }
     }
@@ -80,7 +80,7 @@ public struct ExactAlgebraicScalarDomain<Base: ExactScalarArithmetic & ExactScal
         let source = copy source
         return try scalarQuery(&admission) { try embedded(source, &$0) }
     }
-    func embedded(_ source: Value, _ a: inout ExactRootBorrowedAdmission) throws -> Value {
+    func embedded<A: ExactScalarAdmission & ~Copyable>(_ source: Value, _ a: inout A) throws -> Value {
         try ExactRootAccess.admit(source.depth, &a)
         var target = context
         var path: [ExactAlgebraicContext<Base>] = []
@@ -100,15 +100,15 @@ public struct ExactAlgebraicScalarDomain<Base: ExactScalarArithmetic & ExactScal
             let d = try p.constant(parent.integer(1, using: &a), using: &a)
             value = try Self(context: child).fraction(n, d, &a)
         }
-        return Value(context: context, storage: value.storage, depth: a.depth, calculation: value.calculation)
+        return Value(context: context, storage: value.storage, depth: (try a.depth), calculation: value.calculation)
     }
-    func polynomialSource(_ polynomial: ExactPolynomial<Self>, root: ExactRealRoot<Self>,
-        _ a: inout ExactRootBorrowedAdmission) throws -> ExactRealRootSource<Self> {
+    func polynomialSource<A: ExactScalarAdmission & ~Copyable>(_ polynomial: ExactPolynomial<Self>, root: ExactRealRoot<Self>,
+        _ a: inout A) throws -> ExactRealRootSource<Self> {
         return try ExactRealRootDomain<Self>(context: root.source.context).sourceForLaw(polynomial,
             variable: root.source.variable, axis: root.source.refinementAxis, &a)
     }
 
-    func polynomialSign(_ polynomial: ExactPolynomial<Self>, at selected: ExactRealRoot<Self>? = nil, _ a: inout ExactRootBorrowedAdmission) throws -> ExactSign {
+    func polynomialSign<A: ExactScalarAdmission & ~Copyable>(_ polynomial: ExactPolynomial<Self>, at selected: ExactRealRoot<Self>? = nil, _ a: inout A) throws -> ExactSign {
         guard let root = selected ?? context.root else { throw ExactScalarFailure.invalidEvidence }
         try ExactRootAccess.admit(root.depth, &a)
         let p = root.source.context.univariate
@@ -122,8 +122,8 @@ public struct ExactAlgebraicScalarDomain<Base: ExactScalarArithmetic & ExactScal
         let source = try polynomialSource(polynomial, root: root, &a)
         return try ExactRealRootDomain<Self>(context: root.source.context).sign(of: source, at: root, using: &a)
     }
-    private func linearSquareRootSign(_ polynomial:ExactPolynomial<Self>,root:ExactRealRoot<Self>,
-        _ a:inout ExactRootBorrowedAdmission) throws -> ExactSign? {
+    private func linearSquareRootSign<A: ExactScalarAdmission & ~Copyable>(_ polynomial:ExactPolynomial<Self>,root:ExactRealRoot<Self>,
+        _ a:inout A) throws -> ExactSign? {
         let law=root.proof.polynomial,parent=root.source.context.field
         _=try root.source.context.univariate.degree(of:law,in:0,using:&a)
         guard law.variableCount==1,law.termCount==2,law.terms[0].powers[0]==2,law.terms[1].powers[0]==0,
@@ -148,13 +148,13 @@ public struct ExactAlgebraicScalarDomain<Base: ExactScalarArithmetic & ExactScal
         let sign=try parent.sign(of:difference,using:&a)
         return sign == .zero ? .zero:sign == .positive ? b:c
     }
-    func calculation(_ selected: ExactRealRoot<Self>, _ a: inout ExactRootBorrowedAdmission) throws -> ExactAlgebraicCalculation<Base> {
+    func calculation<A: ExactScalarAdmission & ~Copyable>(_ selected: ExactRealRoot<Self>, _ a: inout A) throws -> ExactAlgebraicCalculation<Base> {
         guard let original = context.root else { throw ExactScalarFailure.invalidEvidence }
         let defining = try polynomialSource(selected.proof.polynomial, root: original, &a)
         try ExactRootAccess.owner((ExactRealRoot<Self>, ExactRealRoot<Self>, ExactRealRootSource<Self>, ExactScalarDepth).self, &a)
-        return .init(originalRoot: original, selectedRoot: selected, definingSource: defining, depth: a.depth)
+        return .init(originalRoot: original, selectedRoot: selected, definingSource: defining, depth: (try a.depth))
     }
-    func commonCalculation(_ lhs: Value, _ rhs: Value, _ a: inout ExactRootBorrowedAdmission) throws -> ExactAlgebraicCalculation<Base>? {
+    func commonCalculation<A: ExactScalarAdmission & ~Copyable>(_ lhs: Value, _ rhs: Value, _ a: inout A) throws -> ExactAlgebraicCalculation<Base>? {
         guard let l = lhs.calculation else { return rhs.calculation }
         guard let r = rhs.calculation else { return l }
         try ExactRootAccess.admit(l.depth, &a); try ExactRootAccess.admit(r.depth, &a)
@@ -168,9 +168,9 @@ public struct ExactAlgebraicScalarDomain<Base: ExactScalarArithmetic & ExactScal
             usingDefiningDivisor: source, using: &a)
         return try calculation(root, &a)
     }
-    func fraction(_ numerator: ExactPolynomial<Self>, _ denominator: ExactPolynomial<Self>,
+    func fraction<A: ExactScalarAdmission & ~Copyable>(_ numerator: ExactPolynomial<Self>, _ denominator: ExactPolynomial<Self>,
         calculation inherited: ExactAlgebraicCalculation<Base>? = nil,
-        _ a: inout ExactRootBorrowedAdmission) throws -> Value {
+        _ a: inout A) throws -> Value {
         guard let original = context.root else { throw ExactScalarFailure.invalidEvidence }
         if let inherited { try ExactRootAccess.admit(inherited.depth, &a) }
         var selected = inherited?.selectedRoot ?? original, receipt = inherited
@@ -208,7 +208,7 @@ public struct ExactAlgebraicScalarDomain<Base: ExactScalarArithmetic & ExactScal
             let inverse = try parent.dividing(one, leading.coefficient, using: &a)
             n = try p.scaled(n, by: inverse, using: &a); d = try p.scaled(d, by: inverse, using: &a)
         }
-        return Value(context: context, storage: .fraction(n, d), depth: a.depth, calculation: receipt)
+        return Value(context: context, storage: .fraction(n, d), depth: (try a.depth), calculation: receipt)
     }
     public func integer<I: BinaryInteger, A: ExactScalarAdmission & ~Copyable>(_ source: I,
         using admission: inout A) throws(ExactScalarFailure) -> Value {
@@ -216,7 +216,7 @@ public struct ExactAlgebraicScalarDomain<Base: ExactScalarArithmetic & ExactScal
             var base = context
             while let parent = base.parent { try a.consumeWork(1); base = parent }
             let value = try base.base.integer(source, using: &a)
-            return try embedded(Value(context: base, storage: .base(value), depth: a.depth), &a)
+            return try embedded(Value(context: base, storage: .base(value), depth: (try a.depth)), &a)
         }
     }
     public func binary64<A: ExactScalarAdmission & ~Copyable>(exactly source: Double,
@@ -225,7 +225,7 @@ public struct ExactAlgebraicScalarDomain<Base: ExactScalarArithmetic & ExactScal
             var base = context
             while let parent = base.parent { try a.consumeWork(1); base = parent }
             let value = try base.base.binary64(exactly: source, using: &a)
-            return try embedded(Value(context: base, storage: .base(value), depth: a.depth), &a)
+            return try embedded(Value(context: base, storage: .base(value), depth: (try a.depth)), &a)
         }
     }
 }

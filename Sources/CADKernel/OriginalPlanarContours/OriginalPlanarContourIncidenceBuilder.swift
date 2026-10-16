@@ -24,11 +24,9 @@ struct OriginalPlanarContourIncidenceBuilder: Sendable {
     }
 
     func build(_ source: PreparedOriginalPlanarContourContacts,
-        allowance: inout OriginalCurveContactAllowance,
-        consumeWork: @escaping @Sendable (Int) throws -> Void,
-        consumeStorage: @escaping @Sendable (Int) throws -> Void) throws -> OriginalPlanarContourIncidence {
+        using execution: inout OriginalQueryExecution) throws -> OriginalPlanarContourIncidence {
         let tolerance = source.tolerance
-        func step() throws { try Task.checkCancellation(); try consumeWork(1) }
+        func step() throws { try Task.checkCancellation(); try execution.consumeWork(1) }
         func fail(_ text: String) -> KernelError {
             KernelError(phase: .classification, code: .classificationFailure, tolerance: tolerance, message: text)
         }
@@ -36,7 +34,7 @@ struct OriginalPlanarContourIncidenceBuilder: Sendable {
             try step()
             let bytes = count.multipliedReportingOverflow(by: MemoryLayout<T>.stride)
             guard count >= 0, !bytes.overflow else { throw fail("Original contour incidence storage overflowed.") }
-            try consumeStorage(bytes.partialValue)
+            try execution.retainStorage(bytes: bytes.partialValue)
         }
         func add(_ a: Int, _ b: Int) throws -> Int {
             try step()
@@ -166,7 +164,7 @@ struct OriginalPlanarContourIncidenceBuilder: Sendable {
         for pair in source.pairs {
             let overlaps = try producer.monotoneOverlaps(retaining: pair.partition,
                 firstMerged: source.sourcePartitions[pair.firstSegmentIndex],
-                secondMerged: source.sourcePartitions[pair.secondSegmentIndex], allowance: &allowance, tolerance: tolerance)
+                secondMerged: source.sourcePartitions[pair.secondSegmentIndex], tolerance: tolerance, using: &execution)
             for overlap in overlaps {
                 try step()
                 guard source.sourcePartitions[pair.firstSegmentIndex].segments.indices.contains(overlap.firstSegmentIndex),
@@ -226,7 +224,7 @@ struct OriginalPlanarContourIncidenceBuilder: Sendable {
                 if edge.endVertex == vertex { ends.append(.init(edgeIndex: index, atStart: false)); germs.append(.init(span: edge.span, atStart: false)) }
             }
             let order = try producer.orderOutgoingGerms(germs, on: source.plane, retaining: retained,
-                allowance: &allowance, tolerance: tolerance)
+                tolerance: tolerance, using: &execution)
             orderedVertices.append(.init(identity: vertex, ends: ends, order: order))
         }
         try Task.checkCancellation()

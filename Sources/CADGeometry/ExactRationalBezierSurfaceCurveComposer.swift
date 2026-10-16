@@ -35,9 +35,19 @@ package struct ExactRationalBezierSurfaceCurveComposer: Sendable {
         parameterCurve: BSplineCurve2D,
         tolerance: ModelingTolerance
     ) throws -> BSplineCurve3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try compose(surface: surface, parameterCurve: parameterCurve, tolerance: tolerance, using: &execution)
+    }
+
+    package func compose(
+        surface: BSplineSurface3D,
+        parameterCurve: BSplineCurve2D,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> BSplineCurve3D {
+        try execution.consumeWork(1)
         try tolerance.validate()
-        try surface.validate(tolerance: tolerance)
-        try parameterCurve.validate(tolerance: tolerance)
+        try surface.validate(tolerance: tolerance, using: &execution)
+        try parameterCurve.validate(tolerance: tolerance, using: &execution)
         guard isSingleBezierSurface(surface),
               isSingleBezierCurve(parameterCurve) else {
             throw KernelError(
@@ -49,6 +59,8 @@ package struct ExactRationalBezierSurfaceCurveComposer: Sendable {
         }
 
         let parameterDegree = parameterCurve.degree
+        for _ in 0..<4 {
+            try execution.consumeWork(1); try execution.retainStorage(count: parameterCurve.controlPoints.count, stride: MemoryLayout<Double>.stride) }
         let weightedU = zip(parameterCurve.controlPoints, parameterCurve.weights).map {
             $0.x * $1
         }
@@ -68,27 +80,33 @@ package struct ExactRationalBezierSurfaceCurveComposer: Sendable {
             complement: weightedOneMinusU,
             sourceDegree: parameterDegree,
             tolerance: tolerance
-        )
+        , using: &execution)
         let vBasis = try rationalBernsteinBasis(
             degree: surface.vDegree,
             numerator: weightedV,
             complement: weightedOneMinusV,
             sourceDegree: parameterDegree,
             tolerance: tolerance
-        )
-        let resultDegree = parameterDegree * (surface.uDegree + surface.vDegree)
+        , using: &execution)
+        let surfaceOrder = surface.uDegree.addingReportingOverflow(surface.vDegree)
+        let degreeProduct = parameterDegree.multipliedReportingOverflow(by: surfaceOrder.partialValue)
+        guard !surfaceOrder.overflow, !degreeProduct.overflow else { throw ExactScalarFailure.countOverflow }
+        let resultDegree = degreeProduct.partialValue
+        try execution.retainStorage(count: resultDegree + 1, stride: MemoryLayout<HomogeneousPoint4>.stride)
         var homogeneousControls = Array(
             repeating: HomogeneousPoint4.zero,
             count: resultDegree + 1
         )
         for vIndex in 0...surface.vDegree {
+            try execution.consumeWork(1);
             for uIndex in 0...surface.uDegree {
-                let scalarControls = multiply(
+            try execution.consumeWork(1);
+                let scalarControls = try multiply(
                     uBasis[uIndex],
                     degree: parameterDegree * surface.uDegree,
                     by: vBasis[vIndex],
                     degree: parameterDegree * surface.vDegree
-                )
+                , using: &execution)
                 let point = surface.controlPoints[vIndex][uIndex]
                 let weight = surface.weights[vIndex][uIndex]
                 let source = HomogeneousPoint4(
@@ -98,17 +116,23 @@ package struct ExactRationalBezierSurfaceCurveComposer: Sendable {
                     weight: weight
                 )
                 for index in scalarControls.indices {
+            try execution.consumeWork(1);
                     homogeneousControls[index] = homogeneousControls[index]
                         + source * scalarControls[index]
                 }
             }
         }
 
+        try execution.retainStorage(count: homogeneousControls.count, stride: MemoryLayout<Point3D>.stride)
+        try execution.retainStorage(count: homogeneousControls.count, stride: MemoryLayout<Double>.stride)
+        for _ in 0..<4 {
+            try execution.consumeWork(1); try execution.retainStorage(count: resultDegree + 1, stride: MemoryLayout<Double>.stride) }
         var points: [Point3D] = []
         var weights: [Double] = []
         points.reserveCapacity(homogeneousControls.count)
         weights.reserveCapacity(homogeneousControls.count)
         for control in homogeneousControls {
+            try execution.consumeWork(1);
             guard control.x.isFinite,
                   control.y.isFinite,
                   control.z.isFinite,
@@ -135,7 +159,7 @@ package struct ExactRationalBezierSurfaceCurveComposer: Sendable {
             controlPoints: points,
             weights: weights
         )
-        try curve.validate(tolerance: tolerance)
+        try curve.validate(tolerance: tolerance, using: &execution)
         return curve
     }
 
@@ -145,7 +169,8 @@ package struct ExactRationalBezierSurfaceCurveComposer: Sendable {
         complement: [Double],
         sourceDegree: Int,
         tolerance: ModelingTolerance
-    ) throws -> [[Double]] {
+    , using execution: inout OriginalQueryExecution) throws -> [[Double]] {
+        try execution.consumeWork(1)
         guard numerator.count == sourceDegree + 1,
               complement.count == sourceDegree + 1 else {
             throw KernelError(
@@ -155,23 +180,24 @@ package struct ExactRationalBezierSurfaceCurveComposer: Sendable {
                 message: "Exact surface-curve composition received inconsistent parameter control counts."
             )
         }
-        return (0...degree).map { index in
-            let numeratorPower = power(
+        try execution.retainStorage(count: degree + 1, stride: MemoryLayout<[Double]>.stride)
+        return try (0...degree).map { index in
+            let numeratorPower = try power(
                 numerator,
                 degree: sourceDegree,
                 exponent: index
-            )
-            let complementPower = power(
+            , using: &execution)
+            let complementPower = try power(
                 complement,
                 degree: sourceDegree,
                 exponent: degree - index
-            )
-            return multiply(
+            , using: &execution)
+            return try multiply(
                 numeratorPower,
                 degree: sourceDegree * index,
                 by: complementPower,
                 degree: sourceDegree * (degree - index)
-            ).map { $0 * binomial(degree, index) }
+            , using: &execution).map { try execution.consumeWork(1); return $0 * (try binomial(degree, index, using: &execution)) }
         }
     }
 
@@ -179,18 +205,20 @@ package struct ExactRationalBezierSurfaceCurveComposer: Sendable {
         _ controls: [Double],
         degree: Int,
         exponent: Int
-    ) -> [Double] {
-        guard exponent > 0 else { return [1.0] }
+    , using execution: inout OriginalQueryExecution) throws -> [Double] {
+        try execution.consumeWork(1)
+        guard exponent > 0 else { try execution.retainStorage(count: 1, stride: MemoryLayout<Double>.stride); return [1.0] }
         var result = controls
         var resultDegree = degree
         if exponent > 1 {
             for _ in 1..<exponent {
-                result = multiply(
+            try execution.consumeWork(1);
+                result = try multiply(
                     result,
                     degree: resultDegree,
                     by: controls,
                     degree: degree
-                )
+                , using: &execution)
                 resultDegree += degree
             }
         }
@@ -202,27 +230,33 @@ package struct ExactRationalBezierSurfaceCurveComposer: Sendable {
         degree firstDegree: Int,
         by second: [Double],
         degree secondDegree: Int
-    ) -> [Double] {
+    , using execution: inout OriginalQueryExecution) throws -> [Double] {
+        try execution.consumeWork(1)
         let resultDegree = firstDegree + secondDegree
+        try execution.retainStorage(count: resultDegree + 1, stride: MemoryLayout<Double>.stride)
         var result = Array(repeating: 0.0, count: resultDegree + 1)
         for firstIndex in first.indices {
+            try execution.consumeWork(1);
             for secondIndex in second.indices {
+            try execution.consumeWork(1);
                 let resultIndex = firstIndex + secondIndex
-                let scale = binomial(firstDegree, firstIndex)
-                    * binomial(secondDegree, secondIndex)
-                    / binomial(resultDegree, resultIndex)
+                let scale = try binomial(firstDegree, firstIndex, using: &execution)
+                    * binomial(secondDegree, secondIndex, using: &execution)
+                    / binomial(resultDegree, resultIndex, using: &execution)
                 result[resultIndex] += first[firstIndex] * second[secondIndex] * scale
             }
         }
         return result
     }
 
-    private func binomial(_ n: Int, _ k: Int) -> Double {
+    private func binomial(_ n: Int, _ k: Int, using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
         guard k >= 0, k <= n else { return 0.0 }
         let reduced = min(k, n - k)
         guard reduced > 0 else { return 1.0 }
         var result = 1.0
         for index in 1...reduced {
+            try execution.consumeWork(1);
             result *= Double(n - reduced + index) / Double(index)
         }
         return result

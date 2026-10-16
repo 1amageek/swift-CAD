@@ -189,8 +189,17 @@ public struct EdgeQueryEvaluator: Sendable {
         _ reference: EdgeReference,
         in document: EvaluatedDocument
     ) throws -> ResolvedEdge {
-        try reference.validate()
-        let topologyReference = try document.topologyReference(for: reference.subshape)
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try resolve(reference, in: document, using: &execution)
+    }
+
+    public func resolve(
+        _ reference: EdgeReference,
+        in document: EvaluatedDocument
+    , using execution: inout OriginalQueryExecution) throws -> ResolvedEdge {
+        try execution.consumeWork(1)
+        
+        let topologyReference = try document.originalTopologyReference(for: reference.subshape, tolerance: tolerance, maximumSubdivisionDepth: 32, remainingSourceDepth: 16, maximumAlgebraicDepth: 32, using: &execution)
         guard case let .edge(edgeID) = topologyReference else {
             throw KernelError(
                 phase: .evaluation,
@@ -210,8 +219,8 @@ public struct EdgeQueryEvaluator: Sendable {
               let endPoint = document.brep.vertices[edge.endVertexID]?.point else {
             throw FeatureEvaluationError.missingInput("Edge query references a missing vertex.")
         }
-        try curve.validate(tolerance: tolerance)
-        let range = try edgeParameterRange(edge: edge, curve: curve, startPoint: startPoint, endPoint: endPoint)
+        try curve.validate(tolerance: tolerance, using: &execution)
+        let range = try edgeParameterRange(edge: edge, curve: curve, startPoint: startPoint, endPoint: endPoint, using: &execution)
         return ResolvedEdge(
             reference: reference,
             edgeID: edgeID,
@@ -241,23 +250,41 @@ public struct EdgeQueryEvaluator: Sendable {
         of reference: EdgeReference,
         in document: EvaluatedDocument
     ) throws -> EdgeQueryFrame {
-        let resolved = try resolve(reference, in: document)
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try midpoint(of: reference, in: document, using: &execution)
+    }
+
+    public func midpoint(
+        of reference: EdgeReference,
+        in document: EvaluatedDocument
+    , using execution: inout OriginalQueryExecution) throws -> EdgeQueryFrame {
+        try execution.consumeWork(1)
+        let resolved = try resolve(reference, in: document, using: &execution)
         let range = EdgeParameterRange(start: resolved.startParameter, end: resolved.endParameter)
         return try frame(
             at: EdgeParameterReference(edge: reference, parameter: range.midpoint),
             resolved: resolved,
             range: range
-        )
+        , using: &execution)
     }
 
     public func frame(
         at reference: EdgeParameterReference,
         in document: EvaluatedDocument
     ) throws -> EdgeQueryFrame {
-        try reference.validate()
-        let resolved = try resolve(reference.edge, in: document)
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try frame(at: reference, in: document, using: &execution)
+    }
+
+    public func frame(
+        at reference: EdgeParameterReference,
+        in document: EvaluatedDocument
+    , using execution: inout OriginalQueryExecution) throws -> EdgeQueryFrame {
+        try execution.consumeWork(1)
+        guard reference.parameter.isFinite else { throw GeometryError.invalidCoordinate(reference.parameter) }
+        let resolved = try resolve(reference.edge, in: document, using: &execution)
         let range = EdgeParameterRange(start: resolved.startParameter, end: resolved.endParameter)
-        return try frame(at: reference, resolved: resolved, range: range)
+        return try frame(at: reference, resolved: resolved, range: range, using: &execution)
     }
 
     public func closestPoint(
@@ -353,14 +380,24 @@ public struct EdgeQueryEvaluator: Sendable {
         resolved: ResolvedEdge,
         range: EdgeParameterRange
     ) throws -> EdgeQueryFrame {
-        try reference.validate()
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try frame(at: reference, resolved: resolved, range: range, using: &execution)
+    }
+
+    private func frame(
+        at reference: EdgeParameterReference,
+        resolved: ResolvedEdge,
+        range: EdgeParameterRange
+    , using execution: inout OriginalQueryExecution) throws -> EdgeQueryFrame {
+        try execution.consumeWork(1)
+        guard reference.parameter.isFinite else { throw GeometryError.invalidCoordinate(reference.parameter) }
         guard range.contains(reference.parameter, tolerance: tolerance) else {
             throw GeometryError.invalidDistance(reference.parameter)
         }
         let geometry = try resolved.curve.differentialGeometry(
             at: reference.parameter,
             tolerance: tolerance
-        )
+        , using: &execution)
         return EdgeQueryFrame(
             reference: reference,
             point: geometry.position,
@@ -467,8 +504,20 @@ public struct EdgeQueryEvaluator: Sendable {
         startPoint: Point3D,
         endPoint: Point3D
     ) throws -> EdgeParameterRange {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try edgeParameterRange(edge: edge, curve: curve, startPoint: startPoint, endPoint: endPoint, using: &execution)
+    }
+
+    private func edgeParameterRange(
+        edge: Edge,
+        curve: Curve3D,
+        startPoint: Point3D,
+        endPoint: Point3D
+    , using execution: inout OriginalQueryExecution) throws -> EdgeParameterRange {
+        try execution.consumeWork(1)
+        try execution.admitSourceDepth(0)
         if let trim = edge.trim {
-            try trim.validate(on: curve, edgeID: edge.id, tolerance: tolerance)
+            try trim.validate(on: curve, edgeID: edge.id, tolerance: tolerance, remainingSourceDepth: 16, maximumAlgebraicDepth: 32, maximumSubdivisionDepth: 32, using: &execution)
             return EdgeParameterRange(
                 start: trim.startParameter,
                 end: trim.endParameter
@@ -503,12 +552,11 @@ public struct EdgeQueryEvaluator: Sendable {
             throw missingNonlinearEdgeTrimError(edgeID: edge.id)
         case let .rigidImage(image):
             let inverse = image.transform.inverted()
-            return try edgeParameterRange(
-                edge: edge,
-                curve: image.source,
-                startPoint: inverse.applying(to: startPoint),
-                endPoint: inverse.applying(to: endPoint)
-            )
+            return try execution.withSourceDepthOffset(1) { execution in
+                try edgeParameterRange(edge: edge, curve: image.source,
+                    startPoint: inverse.applying(to: startPoint), endPoint: inverse.applying(to: endPoint),
+                    using: &execution)
+            }
         case .originalAffineWord:
             // FIXME(INCOMPLETE_IMPLEMENTATION): Legacy untrimmed word-image edges
             // need retained exact original native endpoint projection. Public edge
@@ -518,7 +566,7 @@ public struct EdgeQueryEvaluator: Sendable {
             if case let .closed(lower, upper) = curve.parameterDomain {
                 return EdgeParameterRange(start: lower, end: upper)
             }
-            guard let line = curve.exactLinearLocus else {
+            guard let line = try curve.exactLinearLocus(using: &execution) else {
                 throw KernelError(
                     phase: .topology,
                     code: .topologyFailure,

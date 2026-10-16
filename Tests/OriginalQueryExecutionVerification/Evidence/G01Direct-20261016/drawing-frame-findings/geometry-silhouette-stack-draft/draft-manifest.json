@@ -1,0 +1,98 @@
+{
+  "status": "DRAFT ONLY - NOT APPLIED - NO COMPILER",
+  "sourceRoot": "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD",
+  "originalFiles": {
+    "Sources/CADGeometry/SurfaceSilhouette/DefaultSurfaceSilhouetteProducer.swift": "83d30f5a3e58c65f2bf119d00225b44fcb2c123442e73b413e5c96422616849a",
+    "Sources/CADGeometry/SurfaceSilhouette/DESIGN.md": "4ebc809c4930f8a13ff117d895652072e32d5ad3fe71e8a28c77108edbf7b0e3"
+  },
+  "draftFiles": {
+    "DefaultSurfaceSilhouetteProducer.swift": "3865a56dc120c28019ee49cf7a2c116c756cb1ffa309f0c4992742b86b2cb633",
+    "DESIGN.md": "2e91da04632038504cb8bf3fd98be9424140d0e512342896667844059d3dd561",
+    "draft.patch": "1c1542504f5058cf78e946b0789f26a855aa021fdd95869f1cec9b721c904b30"
+  },
+  "publicPreflightEarlyZeroExactTextEqual": true,
+  "allResourceAndPublicationOccurrenceCountsEqual": true,
+  "explicitCopyCountUnchanged": true,
+  "processCellHasNoLoopContinueLeft": true,
+  "bodies": [
+    {
+      "name": "subdivision",
+      "originalBodySHA256": "86d725950c216396b7391125bbace29c99c6540faab09a579eb8b3d9e243bb27",
+      "draftBodySHA256": "86d725950c216396b7391125bbace29c99c6540faab09a579eb8b3d9e243bb27",
+      "changes": [],
+      "equalIgnoringWhitespace": true
+    },
+    {
+      "name": "preparedCover",
+      "originalBodySHA256": "c01c913866c7a7aefad7fc34f9d548ddd74d0e74b70a34c2aee1e85bdb8a75e6",
+      "draftBodySHA256": "c01c913866c7a7aefad7fc34f9d548ddd74d0e74b70a34c2aee1e85bdb8a75e6",
+      "changes": [],
+      "equalIgnoringWhitespace": true
+    },
+    {
+      "name": "fieldAtlas",
+      "originalBodySHA256": "ad2ee6946704d7b0cbd0660f4e03bac67afa5100e195fab6d813f1e4efcdb9cb",
+      "draftBodySHA256": "d7c0d20096c1ef8b530a675e4de0d34429779b340a3165cec3073519a8c5c035",
+      "changes": [
+        "outer-cell continue becomes true continuation; no branch match returns false",
+        "subdivision tolerance capture becomes explicit when present"
+      ]
+    },
+    {
+      "name": "rationalAtlas",
+      "originalBodySHA256": "4f8c1b036c6fde298a906d38fbd332af3a00d50870303abbfe1a12585a75e0de",
+      "draftBodySHA256": "c4c8f4203fb23334887d14e89b89f6a20dcd2cfef6c9872888c8cdeb628bfd22",
+      "changes": [
+        "outer-cell continue becomes true continuation; no branch match returns false",
+        "subdivision tolerance capture becomes explicit when present"
+      ]
+    },
+    {
+      "name": "cusp",
+      "originalBodySHA256": "f654ef90aa48eb6c53a9293d5831b4325e0fdc3de15dcc074f5f802dbdf28077",
+      "draftBodySHA256": "d1305ca46029384a57d7b5b86402013564e75ddecaf9b45a2be43a176b1ffb12",
+      "changes": [
+        "outer-cell continue becomes true continuation; no branch match returns false",
+        "subdivision tolerance capture becomes explicit when present"
+      ]
+    },
+    {
+      "name": "finiteRealLocus",
+      "originalBodySHA256": "37a3b04426e485177f6d8b28fdf9612241c2ba2382a23b6bdee61f8db487b0eb",
+      "draftBodySHA256": "10307eb7ae449fba7f333521d711599807558ee60677cb8cce6b1851bf4ae867",
+      "changes": [
+        "outer-cell continue becomes true continuation; no branch match returns false",
+        "subdivision tolerance capture becomes explicit when present"
+      ]
+    },
+    {
+      "name": "criticalPoints",
+      "changes": [
+        "only issued outer-cell continue becomes true continuation",
+        "no issuance returns false"
+      ],
+      "originalBodySHA256": "5ff0dd56735ee41b3513d0ad5776cdeb170ce57627527d042006ebc87e8d08f7"
+    },
+    {
+      "name": "monotoneGraph",
+      "changes": [
+        "only accepted outer-cell continue becomes true continuation",
+        "no accepted direction returns false"
+      ],
+      "originalBodySHA256": "c4a529c053f5e4a2e9e804541b92daf10740beafff046d7fc7ada946e6fa2299"
+    }
+  ],
+  "mechanicalChanges": [
+    "local types and subdivision capture promoted to private unchanged representation",
+    "prepared cover body moved unchanged with returned existing pending array",
+    "large branch bodies extracted; only outer cell continue becomes true return",
+    "dispatcher calls same branches in same order; inner loops untouched",
+    "while let cell becomes var for noncopying inout helper borrow",
+    "no application until parent releases source snapshot"
+  ],
+  "pendingEvidence": [
+    "Native semantic compile",
+    "actual frame prologues",
+    "same Drawing3 runtime"
+  ]
+}

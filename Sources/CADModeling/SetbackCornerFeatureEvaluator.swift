@@ -59,7 +59,7 @@ public struct SetbackCornerFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             featureID: feature.id,
             context: context
         )
-        let replacedSubshapeIDs = bodyScope.subshapeIDs(in: context.subshapes)
+        let replacedSubshapeIDs = try bodyScope.subshapeIDs(in: context.subshapes)
         let request = try request(
             featureID: feature.id,
             bodyID: bodyID,
@@ -185,8 +185,8 @@ public struct SetbackCornerFeatureEvaluator: FeatureEvaluating, ValidatedFeature
                 farPoint: farPoint,
                 direction: try vector.normalized(tolerance: context.tolerance.distance),
                 length: vector.length,
-                parentSubshapeIDs: subshapeIDs(for: .edge(edge.id), context: context),
-                farVertexParentSubshapeIDs: subshapeIDs(for: .vertex(farVertexID), context: context)
+                parentSubshapeIDs: try subshapeIDs(for: .edge(edge.id), context: context),
+                farVertexParentSubshapeIDs: try subshapeIDs(for: .vertex(farVertexID), context: context)
             )
         }
         let edgeGeometry = canonicalEdgeGeometry(unorderedEdgeGeometry)
@@ -308,9 +308,9 @@ public struct SetbackCornerFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             ))
         }
         for (index, plan) in plans.enumerated() {
-            let incidentParents = incidentFaceIDs.filter {
+            let incidentParents = try incidentFaceIDs.filter {
                 faceUses(edgeID: plan.geometry.edgeID, faceID: $0, model: model)
-            }.flatMap { subshapeIDs(for: .face($0), context: context) }
+            }.flatMap { try subshapeIDs(for: .face($0), context: context) }
             patches.append(try cylinderPatch(
                 stableID: "setback:cylinder:\(index)",
                 plan: plan,
@@ -330,7 +330,7 @@ public struct SetbackCornerFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             featureID: featureID,
             bodyKind: .solid,
             shells: [BRepSewingShell(stableID: "setback:shell", patches: patches)],
-            bodyParentSubshapeIDs: subshapeIDs(for: .body(bodyID), context: context)
+            bodyParentSubshapeIDs: try subshapeIDs(for: .body(bodyID), context: context)
         )
     }
 
@@ -357,7 +357,7 @@ public struct SetbackCornerFeatureEvaluator: FeatureEvaluating, ValidatedFeature
                 start: start,
                 end: end,
                 surface: surface,
-                edgeParents: sourceEdgeParents(
+                edgeParents: try sourceEdgeParents(
                     start: start,
                     end: end,
                     selectedEdges: selectedEdges,
@@ -365,13 +365,13 @@ public struct SetbackCornerFeatureEvaluator: FeatureEvaluating, ValidatedFeature
                     model: model,
                     context: context
                 ),
-                startVertexParents: sourceVertexParents(
+                startVertexParents: try sourceVertexParents(
                     start,
                     sourceVertexIDs: sourceVertexIDs,
                     model: model,
                     context: context
                 ),
-                endVertexParents: sourceVertexParents(
+                endVertexParents: try sourceVertexParents(
                     end,
                     sourceVertexIDs: sourceVertexIDs,
                     model: model,
@@ -385,7 +385,7 @@ public struct SetbackCornerFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             surface: surface,
             orientation: face.orientation,
             loops: [BRepSewingLoop(stableID: "\(stableID):outer", role: .outer, edges: edges)],
-            parentSubshapeIDs: subshapeIDs(for: .face(faceID), context: context)
+            parentSubshapeIDs: try subshapeIDs(for: .face(faceID), context: context)
         )
     }
 
@@ -429,7 +429,7 @@ public struct SetbackCornerFeatureEvaluator: FeatureEvaluating, ValidatedFeature
                 start: boundary[index],
                 end: boundary[index + 1],
                 surface: surface,
-                edgeParents: sourceEdgeParents(
+                edgeParents: try sourceEdgeParents(
                     start: boundary[index],
                     end: boundary[index + 1],
                     selectedEdges: [],
@@ -437,13 +437,13 @@ public struct SetbackCornerFeatureEvaluator: FeatureEvaluating, ValidatedFeature
                     model: model,
                     context: context
                 ),
-                startVertexParents: sourceVertexParents(
+                startVertexParents: try sourceVertexParents(
                     boundary[index],
                     sourceVertexIDs: sourceVertexIDs,
                     model: model,
                     context: context
                 ),
-                endVertexParents: sourceVertexParents(
+                endVertexParents: try sourceVertexParents(
                     boundary[index + 1],
                     sourceVertexIDs: sourceVertexIDs,
                     model: model,
@@ -476,7 +476,7 @@ public struct SetbackCornerFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             surface: surface,
             orientation: face.orientation,
             loops: [BRepSewingLoop(stableID: "\(stableID):outer", role: .outer, edges: edges)],
-            parentSubshapeIDs: subshapeIDs(for: .face(faceID), context: context)
+            parentSubshapeIDs: try subshapeIDs(for: .face(faceID), context: context)
         )
     }
 
@@ -736,14 +736,14 @@ public struct SetbackCornerFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         sourceEdgeIDs: Set<EdgeID>,
         model: BRepModel,
         context: EvaluationContext
-    ) -> [SubshapeID] {
+    ) throws -> [SubshapeID] {
         for edgeID in sourceEdgeIDs.sorted() {
             guard let edge = model.edges[edgeID] else { continue }
             guard let first = model.vertices[edge.startVertexID]?.point,
                   let second = model.vertices[edge.endVertexID]?.point,
                   point(start, on: first, second, tolerance: context.tolerance),
                   point(end, on: first, second, tolerance: context.tolerance) else { continue }
-            let parents = subshapeIDs(for: .edge(edge.id), context: context)
+            let parents = try subshapeIDs(for: .edge(edge.id), context: context)
             if parents.isEmpty == false { return parents }
         }
         let candidate = end - start
@@ -758,13 +758,13 @@ public struct SetbackCornerFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         sourceVertexIDs: Set<VertexID>,
         model: BRepModel,
         context: EvaluationContext
-    ) -> [SubshapeID] {
+    ) throws -> [SubshapeID] {
         for vertexID in sourceVertexIDs.sorted() {
             guard let vertex = model.vertices[vertexID],
                   vertex.point.isApproximatelyEqual(to: point, tolerance: context.tolerance.distance) else {
                 continue
             }
-            return subshapeIDs(for: .vertex(vertex.id), context: context)
+            return try subshapeIDs(for: .vertex(vertex.id), context: context)
         }
         return []
     }
@@ -801,8 +801,8 @@ public struct SetbackCornerFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         return parameter >= -tolerance.distance / length && parameter <= 1.0 + tolerance.distance / length
     }
 
-    private func subshapeIDs(for reference: TopologyReference, context: EvaluationContext) -> [SubshapeID] {
-        context.subshapeIDs(for: reference)
+    private func subshapeIDs(for reference: TopologyReference, context: EvaluationContext) throws -> [SubshapeID] {
+        try context.subshapeIDs(for: reference)
     }
 
     private func nearestQuarterTurn(from start: Double, to end: Double) -> Double {

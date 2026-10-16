@@ -11,13 +11,13 @@ public struct DefaultOriginalFiniteRetainedSurfaceChartPreparer<S:OriginalRetain
         maximumCharts:Int,limits:OriginalSourceIssuanceLimits,using a:inout A) throws(OriginalSourceIssuanceFailure) -> OriginalFiniteRetainedSurfaceCharts<S> {
         let source=copy source
         do {
-            return try OriginalSourceProofAdmission<A>.withBorrow(&a) { a in
+            return try a.withProofScope { a in
                 try compose(source:source,maximumCharts:maximumCharts,limits:limits,using:&a)
             }
         } catch { throw OriginalSourceIssuanceFailure(preserving:error) }
     }
     private func compose<A:ExactScalarAdmission & ~Copyable>(source:OriginalSourceBinding<S>,
-        maximumCharts:Int,limits:OriginalSourceIssuanceLimits,using a:inout OriginalSourceProofAdmission<A>) throws -> OriginalFiniteRetainedSurfaceCharts<S> {
+        maximumCharts:Int,limits:OriginalSourceIssuanceLimits,using a:inout A) throws -> OriginalFiniteRetainedSurfaceCharts<S> {
         do {
             try a.checkpoint();try source.require(limits)
             let inherited=source.original.originalProofDepth

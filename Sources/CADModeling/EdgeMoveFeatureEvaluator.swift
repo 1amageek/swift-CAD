@@ -60,7 +60,7 @@ public struct EdgeMoveFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalu
             featureID: feature.id,
             context: context
         )
-        let replacedSubshapeIDs = bodyScope.subshapeIDs(in: context.subshapes)
+        let replacedSubshapeIDs = try bodyScope.subshapeIDs(in: context.subshapes)
         var model = context.brep
         let isCircular: Bool
         if let edge = model.edges[edgeID], case .circle = model.geometry.curves[edge.curveID] {

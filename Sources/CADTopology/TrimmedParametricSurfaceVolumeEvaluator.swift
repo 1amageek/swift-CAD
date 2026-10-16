@@ -56,22 +56,43 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
     self.maximumProceduralCellCount = maximumProceduralCellCount
   }
 
+  func volume(of shell: Shell, in model: BRepModel, tolerance: ModelingTolerance) throws -> Double {
+    var execution = try OriginalQueryExecution.independentGeometry()
+    return try volume(of: shell, in: model, tolerance: tolerance, using: &execution)
+  }
+
+  func volumeBounds(of shell: Shell, in model: BRepModel, tolerance: ModelingTolerance) throws -> VolumeBounds {
+    var execution = try OriginalQueryExecution.independentGeometry()
+    return try volumeBounds(of: shell, in: model, tolerance: tolerance, using: &execution)
+  }
+
+  func rationalLoopVolumeBounds(surface: BSplineSurface3D, parameterCurves: [SurfaceParameterCurve], role: LoopRole, reference: Point3D, requestedWidth: Double, tolerance: ModelingTolerance) throws -> VolumeBounds? {
+    var execution = try OriginalQueryExecution.independentGeometry()
+    return try rationalLoopVolumeBounds(surface: surface, parameterCurves: parameterCurves, role: role, reference: reference, requestedWidth: requestedWidth, tolerance: tolerance, using: &execution)
+  }
+
+  func polynomialLoopVolumeBounds(surface: BSplineSurface3D, parameterCurves: [SurfaceParameterCurve], role: LoopRole, reference: Point3D, requestedWidth: Double, tolerance: ModelingTolerance) throws -> VolumeBounds? {
+    var execution = try OriginalQueryExecution.independentGeometry()
+    return try polynomialLoopVolumeBounds(surface: surface, parameterCurves: parameterCurves, role: role, reference: reference, requestedWidth: requestedWidth, tolerance: tolerance, using: &execution)
+  }
+
   func volume(
     of shell: Shell,
     in model: BRepModel,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> Double {
+      try execution.consumeWork(1)
     let bounds = try volumeBounds(
       of: shell,
       in: model,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
-    let reference = try referencePoint(for: shell, in: model)
+    let reference = try referencePoint(for: shell, in: model, using: &execution)
     let characteristicLength = try characteristicLength(
       of: shell,
       in: model,
       reference: reference,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
     let requestedError = volumeTolerance(
       characteristicLength: characteristicLength,
@@ -92,15 +113,16 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
   func volumeBounds(
     of shell: Shell,
     in model: BRepModel,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> VolumeBounds {
+      try execution.consumeWork(1)
     try tolerance.validate()
-    let reference = try referencePoint(for: shell, in: model)
+    let reference = try referencePoint(for: shell, in: model, using: &execution)
     let characteristicLength = try characteristicLength(
       of: shell,
       in: model,
       reference: reference,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
     let requestedError = volumeTolerance(
       characteristicLength: characteristicLength,
@@ -110,13 +132,14 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
     guard faceCount > 0 else {
       throw TopologyError.openShell(shell.id)
     }
-    let totalCoedgeCount = try coedgeCount(of: shell, in: model)
+    let totalCoedgeCount = try coedgeCount(of: shell, in: model, using: &execution)
     guard totalCoedgeCount > 0 else {
       throw TopologyError.openShell(shell.id)
     }
-    var budget = CoefficientBudget(limit: maximumCoefficientOperations)
+    var coefficientOperations = CoefficientOperationCount(limit: maximumCoefficientOperations)
     var total = OutwardInterval.exact(0.0)
     for faceID in shell.faceIDs {
+      try execution.consumeWork(1)
       guard let face = model.faces[faceID],
         let surface = model.geometry.surfaces[face.surfaceID]
       else {
@@ -135,8 +158,8 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
             reference: reference,
             requestedFaceError: requestedError * 0.99 / Double(faceCount),
             requestedCurveWidth: requestedError * 1.98 / Double(totalCoedgeCount),
-            budget: &budget,
-            tolerance: tolerance
+            coefficientOperations: &coefficientOperations,
+            tolerance: tolerance, using: &execution
           )
         else {
           throw unhandledValidatedFace(
@@ -147,7 +170,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
         contribution = bSplineContribution
       case .procedural(let procedural):
         if let exactSurface = try procedural.exactChartPreservingSurface(
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         ) {
           switch exactSurface {
           case .bSpline(let spline):
@@ -159,8 +182,8 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
                 reference: reference,
                 requestedFaceError: requestedError * 0.99 / Double(faceCount),
                 requestedCurveWidth: requestedError * 1.98 / Double(totalCoedgeCount),
-                budget: &budget,
-                tolerance: tolerance
+                coefficientOperations: &coefficientOperations,
+                tolerance: tolerance, using: &execution
               )
             else {
               throw unhandledValidatedFace(
@@ -184,7 +207,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
                 model: model,
                 reference: reference,
                 requestedCurveWidth: requestedError * 1.98 / Double(totalCoedgeCount),
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
               )
             else {
               throw unhandledValidatedFace(
@@ -200,7 +223,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
           model: model,
           reference: reference,
           requestedError: requestedError * 0.99 / Double(faceCount),
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         ) {
           contribution = proceduralContribution
         } else if let proceduralContribution = try arbitraryProceduralContribution(
@@ -209,7 +232,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
           model: model,
           reference: reference,
           requestedCurveWidth: requestedError * 1.98 / Double(totalCoedgeCount),
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         ) {
           contribution = proceduralContribution
         } else {
@@ -226,7 +249,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
             model: model,
             reference: reference,
             requestedCurveWidth: requestedError * 1.98 / Double(totalCoedgeCount),
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
           )
         else {
           throw unhandledValidatedFace(
@@ -292,19 +315,21 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
     reference: Point3D,
     requestedFaceError: Double,
     requestedCurveWidth: Double,
-    budget: inout CoefficientBudget,
-    tolerance: ModelingTolerance
+    coefficientOperations: inout CoefficientOperationCount,
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> OutwardInterval? {
-    try surface.validate(tolerance: tolerance)
+      try execution.consumeWork(1)
+    try surface.validate(tolerance: tolerance, using: &execution)
     let trim = try ExactRectangularPcurveDomainResolver().resolve(
       face: face,
       model: model,
-      tolerance: tolerance
+      tolerance: tolerance, maximumSubdivisionDepth: min(32, execution.effectiveLimits.maximumSubdivisionDepth),
+        remainingSourceDepth: min(16, execution.effectiveLimits.remainingSourceDepth), using: &execution
     )
     if let trim {
       if var patch = try PolynomialBezierPatch(
         surface: surface,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       ) {
         patch = try patch.trimmed(
           uLower: trim.uLower,
@@ -313,20 +338,20 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
           vUpper: trim.vUpper,
           sourceUDomain: surface.uDomain,
           sourceVDomain: surface.vDomain,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
         return try patch.fluxIntegral(
           reference: reference,
-          budget: &budget,
-          tolerance: tolerance
+          coefficientOperations: &coefficientOperations,
+          tolerance: tolerance, using: &execution
         )
       }
       if let piecewise = try piecewisePolynomialRectangleContribution(
         surface: surface,
         trim: trim,
         reference: reference,
-        budget: &budget,
-        tolerance: tolerance
+        coefficientOperations: &coefficientOperations,
+        tolerance: tolerance, using: &execution
       ) {
         return piecewise
       }
@@ -335,7 +360,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
         surface: surface,
         model: model,
         reference: reference,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       ) {
         return planarContribution
       }
@@ -351,7 +376,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
           vUpper: trim.vUpper,
           reference: reference,
           requestedError: requestedFaceError,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
       else {
         return nil
@@ -363,7 +388,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
     }
     if let patch = try PolynomialBezierPatch(
       surface: surface,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     ),
       let polynomialContribution = try arbitraryPolynomialContribution(
         face: face,
@@ -372,11 +397,11 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
           reference: reference,
           uDomain: surface.uDomain,
           vDomain: surface.vDomain,
-          budget: &budget,
-          tolerance: tolerance
+          coefficientOperations: &coefficientOperations,
+          tolerance: tolerance, using: &execution
         ),
         requestedCurveWidth: requestedCurveWidth,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
     {
       return polynomialContribution
@@ -386,7 +411,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
       surface: surface,
       model: model,
       reference: reference,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     ) {
       return planarContribution
     }
@@ -397,7 +422,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
       ).preparedField(
         surface: surface,
         reference: reference,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
     else {
       return nil
@@ -408,8 +433,8 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
       model: model,
       field: field,
       requestedCurveWidth: requestedCurveWidth,
-      budget: &budget,
-      tolerance: tolerance
+      coefficientOperations: &coefficientOperations,
+      tolerance: tolerance, using: &execution
     )
   }
 
@@ -422,26 +447,28 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
     surface: BSplineSurface3D,
     trim: ExactRectangularPcurveDomain,
     reference: Point3D,
-    budget: inout CoefficientBudget,
-    tolerance: ModelingTolerance
+    coefficientOperations: inout CoefficientOperationCount,
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> OutwardInterval? {
+      try execution.consumeWork(1)
     guard !surface.isRational,
       let patches = try CertifiedBSplineSurfaceBezierExtractor().patches(
         surface: surface,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
     else {
       return nil
     }
     var total = OutwardInterval.exact(0.0)
     for piece in patches {
+      try execution.consumeWork(1)
       let uLower = max(trim.uLower, piece.uLower), uUpper = min(trim.uUpper, piece.uUpper)
       let vLower = max(trim.vLower, piece.vLower), vUpper = min(trim.vUpper, piece.vUpper)
       guard uUpper > uLower, vUpper > vLower else { continue }
       let scale = max(1.0, abs(piece.uLower), abs(piece.uUpper), abs(piece.vLower), abs(piece.vUpper))
       let resolution = max(tolerance.relative * scale, Double.ulpOfOne * scale * 256.0)
       guard uUpper - uLower > resolution, vUpper - vLower > resolution,
-        let patch = PolynomialBezierPatch(certified: piece)
+        let patch = try PolynomialBezierPatch(certified: piece, using: &execution)
       else {
         return nil
       }
@@ -452,9 +479,9 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
         vUpper: vUpper,
         sourceUDomain: .closed(piece.uLower, piece.uUpper),
         sourceVDomain: .closed(piece.vLower, piece.vUpper),
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
-      total = total + (try share.fluxIntegral(reference: reference, budget: &budget, tolerance: tolerance))
+      total = total + (try share.fluxIntegral(reference: reference, coefficientOperations: &coefficientOperations, tolerance: tolerance, using: &execution))
     }
     return total
   }
@@ -465,10 +492,12 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
     model: BRepModel,
     reference: Point3D,
     requestedCurveWidth: Double,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> OutwardInterval? {
+      try execution.consumeWork(1)
     var total = OutwardInterval.exact(0.0)
     for loopID in face.loops {
+      try execution.consumeWork(1)
       guard let loop = model.loops[loopID],
         loop.coedges.isEmpty == false
       else {
@@ -476,12 +505,12 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
           "Procedural volume references a missing or empty loop."
         )
       }
-      let curves = try loop.coedges.map { coedge in
+      let curves = try (try OriginalParameterQueryStorage.map(loop.coedges, using: &execution) { coedge, execution in
         guard let curve = coedge.surfaceParameterCurve else {
           throw TopologyError.invalidTrim(coedge.edgeID)
         }
         return curve
-      }
+      })
       guard
         let contribution = try proceduralLoopContribution(
           parameterCurves: curves,
@@ -489,7 +518,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
           surface: surface,
           reference: reference,
           requestedCurveWidth: requestedCurveWidth,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
       else {
         return nil
@@ -505,8 +534,9 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
     surface: Surface3D,
     reference: Point3D,
     requestedCurveWidth: Double,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> OutwardInterval? {
+      try execution.consumeWork(1)
     guard let firstCurve = parameterCurves.first,
       requestedCurveWidth.isFinite,
       requestedCurveWidth > 0.0
@@ -519,11 +549,12 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
         message: "Procedural volume requires pcurves and a positive curve enclosure width."
       )
     }
-    let uBase = try firstCurve.startParameter(tolerance: tolerance).u
+    let uBase = try firstCurve.startParameter(tolerance: tolerance, using: &execution).u
     let integrator = CertifiedAnalyticPcurveFluxIntegrator()
     var rawFlux = TrimmedAnalyticSurfaceVolumeEvaluator.Interval.exact(0.0)
     var areaBounds = SurfaceParameterAreaBounds.zero
     for curve in parameterCurves {
+      try execution.consumeWork(1)
       guard
         let contribution = try integrator.proceduralSurfaceBounds(
           for: curve,
@@ -531,7 +562,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
           reference: reference,
           uBase: uBase,
           requestedWidth: requestedCurveWidth,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
       else {
         return nil
@@ -545,7 +576,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
             tolerance.relative,
             Double.ulpOfOne * 256.0
           ),
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
       )
     }
@@ -579,13 +610,15 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
     model: BRepModel,
     reference: Point3D,
     requestedError: Double,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> OutwardInterval? {
+      try execution.consumeWork(1)
     guard
       let trim = try ExactRectangularPcurveDomainResolver().resolve(
         face: face,
         model: model,
-        tolerance: tolerance
+        tolerance: tolerance, maximumSubdivisionDepth: min(32, execution.effectiveLimits.maximumSubdivisionDepth),
+        remainingSourceDepth: min(16, execution.effectiveLimits.remainingSourceDepth), using: &execution
       )
     else {
       return nil
@@ -603,6 +636,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
         message: "Certified procedural volume requires a positive error and subdivision budget."
       )
     }
+    try execution.retainStorage(bytes: MemoryLayout<ProceduralFluxWorkItem>.stride)
     var pending = [
       ProceduralFluxWorkItem(
         cell: ProceduralFluxCell(
@@ -619,19 +653,20 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
     var leafCount = 1
     let fluxEncloser = try SurfaceFluxDifferentialEncloser(
       surface: surface,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
     while let item = pending.popLast() {
+      try execution.visitGeometricCell(depth: item.depth)
       let contribution = try proceduralFluxContribution(
         cell: item.cell,
         surface: surface,
         encloser: fluxEncloser,
         reference: reference,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
       let truncationError = (contribution.uErrorUpper + contribution.vErrorUpper).nextUp
       if truncationError <= item.errorBudget {
-        accepted.append(contribution.interval)
+        try OriginalParameterQueryStorage.append(contribution.interval, to: &accepted, using: &execution)
         continue
       }
       guard item.depth < maximumProceduralSubdivisionDepth,
@@ -654,21 +689,23 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
       }
       let children = item.cell.split(alongU: splitAlongU)
       let childBudget = (item.errorBudget * 0.5).nextDown
-      pending.append(
+      try OriginalParameterQueryStorage.append(
         ProceduralFluxWorkItem(
           cell: children.second,
           errorBudget: childBudget,
           depth: item.depth + 1
-        ))
-      pending.append(
+        ), to: &pending, using: &execution)
+      try OriginalParameterQueryStorage.append(
         ProceduralFluxWorkItem(
           cell: children.first,
           errorBudget: childBudget,
           depth: item.depth + 1
-        ))
-      leafCount += 1
+        ), to: &pending, using: &execution)
+      let nextLeaves = leafCount.addingReportingOverflow(1)
+      guard !nextLeaves.overflow else { throw ExactScalarFailure.countOverflow }
+      leafCount = nextLeaves.partialValue
     }
-    let total = accepted.reduce(OutwardInterval.exact(0.0), +)
+    let total = try OriginalParameterQueryStorage.reduce(accepted, initial: OutwardInterval.exact(0.0), using: &execution) { total, value, execution in total + value }
     return total
   }
 
@@ -677,13 +714,14 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
     surface: Surface3D,
     encloser: SurfaceFluxDifferentialEncloser,
     reference: Point3D,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> ProceduralFluxContribution {
+      try execution.consumeWork(1)
     let parameterBox = try cell.parameterBox()
     let differential = try encloser.enclosure(
       over: parameterBox,
       relativeTo: reference,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
     let center = try encloser.enclosure(
       over: cell.midpointBox(
@@ -691,7 +729,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
         relativeWidthMultiplier: midpointWidthMultiplier(for: surface)
       ),
       relativeTo: reference,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
     let uWidth =
       OutwardInterval.exact(cell.uUpper)
@@ -749,23 +787,26 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
     model: BRepModel,
     reference: Point3D,
     requestedCurveWidth: Double,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> OutwardInterval? {
+      try execution.consumeWork(1)
     var total = OutwardInterval.exact(0.0)
     let evaluator = TrimmedAnalyticSurfaceVolumeEvaluator()
     for loopID in face.loops {
+      try execution.consumeWork(1)
       guard let loop = model.loops[loopID], !loop.coedges.isEmpty else {
         throw TopologyError.missingReference(
           "Mixed parametric volume references a missing or empty analytic face loop."
         )
       }
       var parameterCurves: [SurfaceParameterCurve] = []
-      parameterCurves.reserveCapacity(loop.coedges.count)
+      try OriginalParameterQueryStorage.reserve(loop.coedges.count, in: &parameterCurves, using: &execution)
       for coedge in loop.coedges {
+        try execution.consumeWork(1)
         guard let parameterCurve = coedge.surfaceParameterCurve else {
           throw TopologyError.invalidTrim(coedge.edgeID)
         }
-        parameterCurves.append(parameterCurve)
+        try OriginalParameterQueryStorage.append(parameterCurve, to: &parameterCurves, using: &execution)
       }
       guard
         let bounds = try evaluator.analyticLoopVolumeBounds(
@@ -774,7 +815,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
           role: loop.role,
           reference: reference,
           requestedWidth: requestedCurveWidth,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
       else {
         return nil
@@ -795,8 +836,9 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
     role: LoopRole,
     reference: Point3D,
     requestedWidth: Double,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> VolumeBounds? {
+      try execution.consumeWork(1)
     try tolerance.validate()
     guard !parameterCurves.isEmpty,
       requestedWidth.isFinite,
@@ -816,7 +858,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
     )
     if let plane = try AxisAlignedPlane(
       surface: surface,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     ) {
       if plane.coordinate == plane.coordinate(of: reference) {
         return VolumeBounds(lower: 0.0, upper: 0.0)
@@ -826,7 +868,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
           surface: surface,
           reference: reference,
           includeFluxNumerator: false,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
       else {
         return nil
@@ -838,7 +880,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
         field: planarField,
         reference: reference,
         requestedCurveWidth: requestedWidth / Double(parameterCurves.count),
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       ) {
         return VolumeBounds(
           lower: planarContribution.lower,
@@ -850,7 +892,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
       let field = try integrator.preparedField(
         surface: surface,
         reference: reference,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
     else {
       return nil
@@ -859,11 +901,12 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
       throw KernelError(phase: .topology, code: .invalidInput, tolerance: tolerance,
         message: "Original loop flux requires a bounded U chart.")
     }
-    var budget = CoefficientBudget(limit: maximumCoefficientOperations)
-    let allImplicit = parameterCurves.allSatisfy { if case .certifiedImplicit = $0 { return true }; return false }
-    let primitive = allImplicit ? nil : try field.preparedPolynomialGreenPrimitive(uBase: uBase) {
-      try budget.consume($0, tolerance: tolerance)
-    }
+    var coefficientOperations = CoefficientOperationCount(limit: maximumCoefficientOperations)
+    let allImplicit = (try OriginalParameterQueryStorage.allSatisfy(parameterCurves, using: &execution) { item, execution in if case .certifiedImplicit = item { return true }; return false })
+    let coefficientOperationLimit = coefficientOperations.limit
+    let primitive = allImplicit ? nil : try field.preparedPolynomialGreenPrimitive(uBase: uBase,
+      coefficientOperations: &coefficientOperations.consumed,
+      maximumCoefficientOperations: coefficientOperationLimit, using: &execution)
     guard
       let contribution = try rationalLoopContribution(
         parameterCurves: parameterCurves,
@@ -872,7 +915,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
         field: field,
         requestedCurveWidth: requestedWidth / Double(parameterCurves.count),
         polynomialPrimitive: primitive,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
     else {
       return nil
@@ -887,19 +930,21 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
     field: CertifiedRationalBezierSurfaceFluxIntegrator.PreparedField,
     reference: Point3D,
     requestedCurveWidth: Double,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> OutwardInterval? {
+      try execution.consumeWork(1)
     var projectedArea = TrimmedAnalyticSurfaceVolumeEvaluator.Interval.exact(0.0)
     var parameterArea = SurfaceParameterAreaBounds.zero
     let integrator = CertifiedAnalyticPcurveFluxIntegrator()
     for curve in parameterCurves {
+      try execution.consumeWork(1)
       guard
         let curveArea = try integrator.rationalPlanarAreaBounds(
           for: curve,
           field: field,
           projection: plane.projection,
           requestedWidth: requestedCurveWidth,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
       else {
         return nil
@@ -913,7 +958,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
             tolerance.relative,
             Double.ulpOfOne * 256.0
           ),
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
       )
     }
@@ -951,8 +996,9 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
     role: LoopRole,
     reference: Point3D,
     requestedWidth: Double,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> VolumeBounds? {
+      try execution.consumeWork(1)
     try tolerance.validate()
     guard !parameterCurves.isEmpty,
       requestedWidth.isFinite,
@@ -969,18 +1015,18 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
     guard
       let patch = try PolynomialBezierPatch(
         surface: surface,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
     else {
       return nil
     }
-    var budget = CoefficientBudget(limit: maximumCoefficientOperations)
+    var coefficientOperations = CoefficientOperationCount(limit: maximumCoefficientOperations)
     let primitive = try patch.fluxPrimitive(
       reference: reference,
       uDomain: surface.uDomain,
       vDomain: surface.vDomain,
-      budget: &budget,
-      tolerance: tolerance
+      coefficientOperations: &coefficientOperations,
+      tolerance: tolerance, using: &execution
     )
     guard
       let contribution = try polynomialLoopContribution(
@@ -988,7 +1034,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
         role: role,
         primitive: primitive,
         requestedCurveWidth: requestedWidth / Double(parameterCurves.count),
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
     else {
       return nil
@@ -1001,10 +1047,12 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
     model: BRepModel,
     primitive: CertifiedPolynomialSurfaceFluxPrimitive,
     requestedCurveWidth: Double,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> OutwardInterval? {
+      try execution.consumeWork(1)
     var total = OutwardInterval.exact(0.0)
     for loopID in face.loops {
+      try execution.consumeWork(1)
       guard let loop = model.loops[loopID],
         !loop.coedges.isEmpty
       else {
@@ -1013,12 +1061,13 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
         )
       }
       var curves: [SurfaceParameterCurve] = []
-      curves.reserveCapacity(loop.coedges.count)
+      try OriginalParameterQueryStorage.reserve(loop.coedges.count, in: &curves, using: &execution)
       for coedge in loop.coedges {
+        try execution.consumeWork(1)
         guard let curve = coedge.surfaceParameterCurve else {
           throw TopologyError.invalidTrim(coedge.edgeID)
         }
-        curves.append(curve)
+        try OriginalParameterQueryStorage.append(curve, to: &curves, using: &execution)
       }
       guard
         let contribution = try polynomialLoopContribution(
@@ -1026,7 +1075,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
           role: loop.role,
           primitive: primitive,
           requestedCurveWidth: requestedCurveWidth,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
       else {
         return nil
@@ -1042,24 +1091,28 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
     model: BRepModel,
     field: CertifiedRationalBezierSurfaceFluxIntegrator.PreparedField,
     requestedCurveWidth: Double,
-    budget: inout CoefficientBudget,
-    tolerance: ModelingTolerance
+    coefficientOperations: inout CoefficientOperationCount,
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> OutwardInterval? {
+      try execution.consumeWork(1)
     guard case .closed(let uBase, _) = surface.uDomain else {
       throw KernelError(phase: .topology, code: .invalidInput, tolerance: tolerance,
         message: "Original polynomial flux requires a bounded U chart.")
     }
-    let allImplicit = face.loops.allSatisfy { loopID in
-      model.loops[loopID]?.coedges.allSatisfy { coedge in
+    let allImplicit = try OriginalParameterQueryStorage.allSatisfy(face.loops, using: &execution) { loopID, execution in
+      guard let loop = model.loops[loopID] else { return false }
+      return try OriginalParameterQueryStorage.allSatisfy(loop.coedges, using: &execution) { coedge, execution in
         if case .certifiedImplicit? = coedge.surfaceParameterCurve { return true }
         return false
-      } ?? false
+      }
     }
-    let primitive = allImplicit ? nil : try field.preparedPolynomialGreenPrimitive(uBase: uBase) {
-      try budget.consume($0, tolerance: tolerance)
-    }
+    let coefficientOperationLimit = coefficientOperations.limit
+    let primitive = allImplicit ? nil : try field.preparedPolynomialGreenPrimitive(uBase: uBase,
+      coefficientOperations: &coefficientOperations.consumed,
+      maximumCoefficientOperations: coefficientOperationLimit, using: &execution)
     var total = OutwardInterval.exact(0.0)
     for loopID in face.loops {
+      try execution.consumeWork(1)
       guard let loop = model.loops[loopID],
         !loop.coedges.isEmpty
       else {
@@ -1068,12 +1121,13 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
         )
       }
       var curves: [SurfaceParameterCurve] = []
-      curves.reserveCapacity(loop.coedges.count)
+      try OriginalParameterQueryStorage.reserve(loop.coedges.count, in: &curves, using: &execution)
       for coedge in loop.coedges {
+        try execution.consumeWork(1)
         guard let curve = coedge.surfaceParameterCurve else {
           throw TopologyError.invalidTrim(coedge.edgeID)
         }
-        curves.append(curve)
+        try OriginalParameterQueryStorage.append(curve, to: &curves, using: &execution)
       }
       guard
         let contribution = try rationalLoopContribution(
@@ -1083,7 +1137,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
           field: field,
           requestedCurveWidth: requestedCurveWidth,
           polynomialPrimitive: primitive,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
       else {
         return nil
@@ -1100,8 +1154,9 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
     field: CertifiedRationalBezierSurfaceFluxIntegrator.PreparedField,
     requestedCurveWidth: Double,
     polynomialPrimitive: CertifiedPiecewisePolynomialSurfaceFluxPrimitive? = nil,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> OutwardInterval? {
+      try execution.consumeWork(1)
     guard case .closed(let uBase, _) = surface.uDomain,
       !parameterCurves.isEmpty,
       requestedCurveWidth.isFinite,
@@ -1119,6 +1174,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
     var rawFlux = TrimmedAnalyticSurfaceVolumeEvaluator.Interval.exact(0.0)
     var areaBounds = SurfaceParameterAreaBounds.zero
     for curve in parameterCurves {
+      try execution.consumeWork(1)
       let contribution: TrimmedAnalyticSurfaceVolumeEvaluator.Interval
       if let primitive = polynomialPrimitive {
         // Explicit curves use prefixes; native implicit curves keep their existing owner.
@@ -1130,7 +1186,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
           field: field,
           uBase: uBase,
           requestedWidth: requestedCurveWidth,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
         else { return nil }
         contribution = certified
@@ -1141,7 +1197,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
           for: curve,
           uShift: 0.0,
           requestedWidth: max(tolerance.relative, Double.ulpOfOne * 256.0),
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
       )
     }
@@ -1174,8 +1230,9 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
     role: LoopRole,
     primitive: CertifiedPolynomialSurfaceFluxPrimitive,
     requestedCurveWidth: Double,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> OutwardInterval? {
+      try execution.consumeWork(1)
     guard !parameterCurves.isEmpty,
       requestedCurveWidth.isFinite,
       requestedCurveWidth > 0.0
@@ -1192,6 +1249,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
     var rawFlux = TrimmedAnalyticSurfaceVolumeEvaluator.Interval.exact(0.0)
     var areaBounds = SurfaceParameterAreaBounds.zero
     for curve in parameterCurves {
+      try execution.consumeWork(1)
       guard
         let contribution = try integrator.polynomialBounds(
           for: curve,
@@ -1208,7 +1266,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
           for: curve,
           uShift: 0.0,
           requestedWidth: max(tolerance.relative, Double.ulpOfOne * 256.0),
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
       )
     }
@@ -1241,12 +1299,13 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
     surface: BSplineSurface3D,
     model: BRepModel,
     reference: Point3D,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> OutwardInterval? {
+      try execution.consumeWork(1)
     guard
       let plane = try AxisAlignedPlane(
         surface: surface,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
     else {
       return nil
@@ -1256,6 +1315,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
     }
     var orientedArea = OutwardInterval.exact(0.0)
     for loopID in face.loops {
+      try execution.consumeWork(1)
       guard let loop = model.loops[loopID],
         !loop.coedges.isEmpty
       else {
@@ -1264,8 +1324,9 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
         )
       }
       var points: [Point3D] = []
-      points.reserveCapacity(loop.coedges.count)
+      try OriginalParameterQueryStorage.reserve(loop.coedges.count, in: &points, using: &execution)
       for coedge in loop.coedges {
+        try execution.consumeWork(1)
         guard let edge = model.edges[coedge.edgeID],
           let curve = model.geometry.curves[edge.curveID],
           let start = model.vertices[
@@ -1284,19 +1345,20 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
           )
         }
         guard
-          curveIsCertifiedStraight(
+          try curveIsCertifiedStraight(
             curve,
             start: start,
-            end: end
+            end: end, using: &execution
           ), plane.coordinate(of: start) == plane.coordinate,
           plane.coordinate(of: end) == plane.coordinate
         else {
           return nil
         }
-        points.append(start)
+        try OriginalParameterQueryStorage.append(start, to: &points, using: &execution)
       }
       var twiceArea = OutwardInterval.exact(0.0)
       for index in points.indices {
+        try execution.consumeWork(1)
         let current = plane.projected(points[index])
         let next = plane.projected(points[(index + 1) % points.count])
         twiceArea =
@@ -1335,36 +1397,38 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
   private func curveIsCertifiedStraight(
     _ curve: Curve3D,
     start: Point3D,
-    end: Point3D
-  ) -> Bool {
+    end: Point3D, using execution: inout OriginalQueryExecution
+  ) throws -> Bool {
+      try execution.consumeWork(1)
     switch curve {
     case .line, .analytic(.line):
       return true
     case .bSpline(let spline):
-      let changingAxes = CoordinateAxis.allCases.filter {
-        $0.coordinate(of: start) != $0.coordinate(of: end)
-      }
+      try execution.retainStorage(bytes: 6 * MemoryLayout<CoordinateAxis>.stride)
+      let changingAxes = (try OriginalParameterQueryStorage.filter(CoordinateAxis.allCases, using: &execution) { item, execution in
+        item.coordinate(of: start) != item.coordinate(of: end)
+      })
       guard changingAxes.count == 1 else {
         return false
       }
-      let fixedAxes = CoordinateAxis.allCases.filter {
-        $0 != changingAxes[0]
-      }
-      return fixedAxes.allSatisfy { axis in
+      let fixedAxes = (try OriginalParameterQueryStorage.filter(CoordinateAxis.allCases, using: &execution) { item, execution in
+        item != changingAxes[0]
+      })
+      return (try OriginalParameterQueryStorage.allSatisfy(fixedAxes, using: &execution) { axis, execution in
         let coordinate = axis.coordinate(of: start)
-        return axis.coordinate(of: end) == coordinate
-          && spline.controlPoints.allSatisfy {
-            axis.coordinate(of: $0) == coordinate
-          }
-      }
+        return try axis.coordinate(of: end) == coordinate
+          && (try OriginalParameterQueryStorage.allSatisfy(spline.controlPoints, using: &execution) { item, execution in
+            axis.coordinate(of: item) == coordinate
+          })
+      })
     case .rigidImage(let image):
-      return curveIsCertifiedStraight(
+      return try curveIsCertifiedStraight(
         image.source,
         start: image.transform.inverted().applying(to: start),
-        end: image.transform.inverted().applying(to: end)
+        end: image.transform.inverted().applying(to: end), using: &execution
       )
     case .parameterImage(let image):
-      return curveIsCertifiedStraight(image.source, start: start, end: end)
+      return try curveIsCertifiedStraight(image.source, start: start, end: end, using: &execution)
     case .affineImage, .originalAffineWord:
       return curve.hasExactLinearParameterization
     case .circle, .analytic, .implicit, .surfaceLift,
@@ -1394,19 +1458,22 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
 
     init?(
       surface: BSplineSurface3D,
-      tolerance: ModelingTolerance
+      tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws {
+      try execution.consumeWork(1)
       guard let bottomLeft = surface.controlPoints.first?.first,
         let bottomRight = surface.controlPoints.first?.last,
         let topLeft = surface.controlPoints.last?.first
       else {
         return nil
       }
+      try execution.retainStorage(bytes: 3 * MemoryLayout<CoordinateAxis>.stride)
       for candidate in CoordinateAxis.allCases {
+        try execution.consumeWork(1)
         let value = candidate.coordinate(of: bottomLeft)
         guard
-          surface.controlPoints.allSatisfy({ row in
-            row.allSatisfy { candidate.coordinate(of: $0) == value }
+          (try OriginalParameterQueryStorage.allSatisfy(surface.controlPoints, using: &execution) { row, execution in
+            (try OriginalParameterQueryStorage.allSatisfy(row, using: &execution) { item, execution in candidate.coordinate(of: item) == value })
           })
         else {
           continue
@@ -1416,7 +1483,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
           Self.projected(bottomRight, axis: candidate),
           Self.projected(topLeft, axis: candidate),
           relativeTo: Self.projected(bottomLeft, axis: candidate),
-          determinantTolerance: minimumArea
+          determinantTolerance: minimumArea, using: &execution
         )
         guard sign == .positive || sign == .negative else {
           continue
@@ -1424,8 +1491,7 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
         axis = candidate
         coordinate = value
         normalSign = sign == .positive ? 1.0 : -1.0
-        return
-      }
+        return }
       return nil
     }
 
@@ -1463,33 +1529,39 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
 
   private func referencePoint(
     for shell: Shell,
-    in model: BRepModel
+    in model: BRepModel, using execution: inout OriginalQueryExecution
   ) throws -> Point3D {
-    try BRepShellReferencePointResolver().referencePoint(
+      try execution.consumeWork(1)
+    return try BRepShellReferencePointResolver().referencePoint(
       for: shell,
       in: model,
-      context: "Parametric volume"
+      context: "Parametric volume", using: &execution
     )
   }
 
   private func coedgeCount(
     of shell: Shell,
-    in model: BRepModel
+    in model: BRepModel, using execution: inout OriginalQueryExecution
   ) throws -> Int {
+      try execution.consumeWork(1)
     var count = 0
     for faceID in shell.faceIDs {
+      try execution.consumeWork(1)
       guard let face = model.faces[faceID] else {
         throw TopologyError.missingReference(
           "Parametric volume references a missing face."
         )
       }
       for loopID in face.loops {
+        try execution.consumeWork(1)
         guard let loop = model.loops[loopID] else {
           throw TopologyError.missingReference(
             "Parametric volume references a missing loop."
           )
         }
-        count += loop.coedges.count
+        let next = count.addingReportingOverflow(loop.coedges.count)
+        guard !next.overflow else { throw ExactScalarFailure.countOverflow }
+        count = next.partialValue
       }
     }
     return count
@@ -1499,10 +1571,12 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
     of shell: Shell,
     in model: BRepModel,
     reference: Point3D,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> Double {
+      try execution.consumeWork(1)
     var maximumLength = tolerance.distance
     for faceID in shell.faceIDs {
+      try execution.consumeWork(1)
       guard let face = model.faces[faceID],
         let surface = model.geometry.surfaces[face.surfaceID]
       else {
@@ -1511,8 +1585,12 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
         )
       }
       if case .bSpline(let spline) = surface {
-        for point in spline.controlPoints.flatMap({ $0 }) {
-          maximumLength = max(maximumLength, (point - reference).length)
+        for row in spline.controlPoints {
+          try execution.consumeWork(1)
+          for point in row {
+            try execution.consumeWork(1)
+            maximumLength = max(maximumLength, (point - reference).length)
+          }
         }
       }
     }
@@ -1536,22 +1614,26 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
 
     init?(
       surface: BSplineSurface3D,
-      tolerance: ModelingTolerance
+      tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws {
+      try execution.consumeWork(1)
+      let uCount = surface.uDegree.addingReportingOverflow(1)
+      let vCount = surface.vDegree.addingReportingOverflow(1)
+      guard !uCount.overflow, !vCount.overflow else { throw ExactScalarFailure.countOverflow }
       guard surface.uDegree >= 1,
         surface.vDegree >= 1,
-        surface.uControlPointCount == surface.uDegree + 1,
-        surface.vControlPointCount == surface.vDegree + 1,
-        Self.isSingleBezierKnotVector(
+        surface.uControlPointCount == uCount.partialValue,
+        surface.vControlPointCount == vCount.partialValue,
+        try Self.isSingleBezierKnotVector(
           surface.uKnots,
-          degree: surface.uDegree
+          degree: surface.uDegree, using: &execution
         ),
-        Self.isSingleBezierKnotVector(
+        try Self.isSingleBezierKnotVector(
           surface.vKnots,
-          degree: surface.vDegree
+          degree: surface.vDegree, using: &execution
         ),
         let firstWeight = surface.weights.first?.first,
-        surface.weights.flatMap({ $0 }).allSatisfy({ $0 == firstWeight })
+        (try OriginalParameterQueryStorage.allSatisfy(surface.weights, using: &execution) { row, execution in (try OriginalParameterQueryStorage.allSatisfy(row, using: &execution) { item, execution in item == firstWeight }) })
       else {
         return nil
       }
@@ -1559,39 +1641,43 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
         throw GeometryError.invalidDistance(firstWeight)
       }
       x = BernsteinPolynomial2D(
-        surface.controlPoints.map { row in
-          row.map { OutwardInterval.exact($0.x) }
-        })
+        (try OriginalParameterQueryStorage.map(surface.controlPoints, using: &execution) { row, execution in
+          (try OriginalParameterQueryStorage.map(row, using: &execution) { item, execution in OutwardInterval.exact(item.x) })
+        }))
       y = BernsteinPolynomial2D(
-        surface.controlPoints.map { row in
-          row.map { OutwardInterval.exact($0.y) }
-        })
+        (try OriginalParameterQueryStorage.map(surface.controlPoints, using: &execution) { row, execution in
+          (try OriginalParameterQueryStorage.map(row, using: &execution) { item, execution in OutwardInterval.exact(item.y) })
+        }))
       z = BernsteinPolynomial2D(
-        surface.controlPoints.map { row in
-          row.map { OutwardInterval.exact($0.z) }
-        })
+        (try OriginalParameterQueryStorage.map(surface.controlPoints, using: &execution) { row, execution in
+          (try OriginalParameterQueryStorage.map(row, using: &execution) { item, execution in OutwardInterval.exact(item.z) })
+        }))
     }
 
     /// A span of a non-rational surface from its certified homogeneous Bezier controls, each
     /// coordinate enclosed by dividing by its weight's enclosure; nil when a weight's enclosure
     /// is not positive.
-    init?(certified patch: CertifiedHomogeneousBezierSurfacePatch) {
-      func coordinate(_ value: (CertifiedHomogeneousBezierSurfacePatch.HomogeneousPoint) -> CertifiedHomogeneousBezierSurfacePatch.ScalarBounds) -> BernsteinPolynomial2D? {
+    init?(certified patch: CertifiedHomogeneousBezierSurfacePatch, using execution: inout OriginalQueryExecution) throws {
+      try execution.consumeWork(1)
+      func coordinate(_ value: (CertifiedHomogeneousBezierSurfacePatch.HomogeneousPoint) -> CertifiedHomogeneousBezierSurfacePatch.ScalarBounds,
+        using execution: inout OriginalQueryExecution) throws -> BernsteinPolynomial2D? {
         var rows: [[OutwardInterval]] = []
         for row in patch.controls {
+          try execution.consumeWork(1)
           var coefficients: [OutwardInterval] = []
           for point in row {
+            try execution.consumeWork(1)
             guard point.weight.lower > 0.0, point.weight.isFinite, value(point).isFinite else { return nil }
-            coefficients.append(
+            try OriginalParameterQueryStorage.append(
               OutwardInterval(lower: value(point).lower, upper: value(point).upper)
                 / OutwardInterval(lower: point.weight.lower, upper: point.weight.upper)
-            )
+            , to: &coefficients, using: &execution)
           }
-          rows.append(coefficients)
+          try OriginalParameterQueryStorage.append(coefficients, to: &rows, using: &execution)
         }
         return BernsteinPolynomial2D(rows)
       }
-      guard let x = coordinate({ $0.x }), let y = coordinate({ $0.y }), let z = coordinate({ $0.z }) else {
+      guard let x = try coordinate({ $0.x }, using: &execution), let y = try coordinate({ $0.y }, using: &execution), let z = try coordinate({ $0.z }, using: &execution) else {
         return nil
       }
       self.init(x: x, y: y, z: z)
@@ -1604,8 +1690,9 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
       vUpper: Double,
       sourceUDomain: ParameterDomain,
       sourceVDomain: ParameterDomain,
-      tolerance: ModelingTolerance
+      tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> PolynomialBezierPatch {
+      try execution.consumeWork(1)
       guard case .closed(let sourceULower, let sourceUUpper) = sourceUDomain,
         case .closed(let sourceVLower, let sourceVUpper) = sourceVDomain
       else {
@@ -1655,51 +1742,57 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
         domainUpper: sourceVUpper,
         tolerance: tolerance
       )
-      return PolynomialBezierPatch(
-        x: x.trimmed(u: normalizedU, v: normalizedV),
-        y: y.trimmed(u: normalizedU, v: normalizedV),
-        z: z.trimmed(u: normalizedU, v: normalizedV)
+      return try PolynomialBezierPatch(
+        x: x.trimmed(u: normalizedU, v: normalizedV, using: &execution),
+        y: y.trimmed(u: normalizedU, v: normalizedV, using: &execution),
+        z: z.trimmed(u: normalizedU, v: normalizedV, using: &execution)
       )
     }
 
     func fluxIntegral(
       reference: Point3D,
-      budget: inout CoefficientBudget,
-      tolerance: ModelingTolerance
+      coefficientOperations: inout CoefficientOperationCount,
+      tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> OutwardInterval {
-      try fluxPolynomial(
+      try execution.consumeWork(1)
+      return try fluxPolynomial(
         reference: reference,
-        budget: &budget,
-        tolerance: tolerance
-      ).integral()
+        coefficientOperations: &coefficientOperations,
+        tolerance: tolerance, using: &execution
+      ).integral(using: &execution)
     }
 
     func fluxPrimitive(
       reference: Point3D,
       uDomain: ParameterDomain,
       vDomain: ParameterDomain,
-      budget: inout CoefficientBudget,
-      tolerance: ModelingTolerance
+      coefficientOperations: inout CoefficientOperationCount,
+      tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> CertifiedPolynomialSurfaceFluxPrimitive {
+      try execution.consumeWork(1)
       let flux = try fluxPolynomial(
         reference: reference,
-        budget: &budget,
-        tolerance: tolerance
+        coefficientOperations: &coefficientOperations,
+        tolerance: tolerance, using: &execution
       )
       let denominator = OutwardInterval.exact(Double(flux.uDegree + 1))
-      let primitive = flux.coefficients.map { row in
-        var result = [OutwardInterval.exact(0.0)]
-        result.reserveCapacity(row.count + 1)
+      let primitive = (try OriginalParameterQueryStorage.map(flux.coefficients, using: &execution) { row, execution in
+        var result: [OutwardInterval] = []
+        let capacity = row.count.addingReportingOverflow(1)
+        guard !capacity.overflow else { throw ExactScalarFailure.countOverflow }
+        try OriginalParameterQueryStorage.reserve(capacity.partialValue, in: &result, using: &execution)
+        try OriginalParameterQueryStorage.append(OutwardInterval.exact(0.0), to: &result, using: &execution)
         for coefficient in row {
-          result.append(result[result.count - 1] + coefficient / denominator)
+          try execution.consumeWork(1)
+          try OriginalParameterQueryStorage.append(result[result.count - 1] + coefficient / denominator, to: &result, using: &execution)
         }
-        return result.map {
+        return (try OriginalParameterQueryStorage.map(result, using: &execution) { item, execution in
           TrimmedAnalyticSurfaceVolumeEvaluator.Interval(
-            lower: $0.lower,
-            upper: $0.upper
+            lower: item.lower,
+            upper: item.upper
           )
-        }
-      }
+        })
+      })
       return CertifiedPolynomialSurfaceFluxPrimitive(
         coefficients: primitive,
         uDomain: uDomain,
@@ -1709,34 +1802,35 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
 
     private func fluxPolynomial(
       reference: Point3D,
-      budget: inout CoefficientBudget,
-      tolerance: ModelingTolerance
+      coefficientOperations: inout CoefficientOperationCount,
+      tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> BernsteinPolynomial2D {
-      let tangentU = PolynomialVector3(
-        x: x.derivativeU(),
-        y: y.derivativeU(),
-        z: z.derivativeU()
+      try execution.consumeWork(1)
+      let tangentU = try PolynomialVector3(
+        x: x.derivativeU(using: &execution),
+        y: y.derivativeU(using: &execution),
+        z: z.derivativeU(using: &execution)
       )
-      let tangentV = PolynomialVector3(
-        x: x.derivativeV(),
-        y: y.derivativeV(),
-        z: z.derivativeV()
+      let tangentV = try PolynomialVector3(
+        x: x.derivativeV(using: &execution),
+        y: y.derivativeV(using: &execution),
+        z: z.derivativeV(using: &execution)
       )
       let areaVector = try tangentU.cross(
         tangentV,
-        budget: &budget,
-        tolerance: tolerance
+        coefficientOperations: &coefficientOperations,
+        tolerance: tolerance, using: &execution
       )
-      let relativePosition = PolynomialVector3(
-        x: x.subtracting(constant: reference.x),
-        y: y.subtracting(constant: reference.y),
-        z: z.subtracting(constant: reference.z)
+      let relativePosition = try PolynomialVector3(
+        x: x.subtracting(constant: reference.x, using: &execution),
+        y: y.subtracting(constant: reference.y, using: &execution),
+        z: z.subtracting(constant: reference.z, using: &execution)
       )
       let flux = try relativePosition.dot(
         areaVector,
-        budget: &budget,
-        tolerance: tolerance
-      ).scaled(by: OutwardInterval.exact(1.0) / OutwardInterval.exact(3.0))
+        coefficientOperations: &coefficientOperations,
+        tolerance: tolerance, using: &execution
+      ).scaled(by: OutwardInterval.exact(1.0) / OutwardInterval.exact(3.0), using: &execution)
       return flux
     }
 
@@ -1752,17 +1846,21 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
 
     private static func isSingleBezierKnotVector(
       _ knots: [Double],
-      degree: Int
-    ) -> Bool {
-      guard knots.count == 2 * (degree + 1),
+      degree: Int, using execution: inout OriginalQueryExecution
+    ) throws -> Bool {
+      try execution.consumeWork(1)
+      let count = degree.addingReportingOverflow(1)
+      let doubled = count.partialValue.multipliedReportingOverflow(by: 2)
+      guard !count.overflow, !doubled.overflow else { throw ExactScalarFailure.countOverflow }
+      guard knots.count == doubled.partialValue,
         let lower = knots.first,
         let upper = knots.last,
         upper > lower
       else {
         return false
       }
-      return knots.prefix(degree + 1).allSatisfy { $0 == lower }
-        && knots.suffix(degree + 1).allSatisfy { $0 == upper }
+      return try OriginalParameterQueryStorage.allSatisfy(knots.prefix(degree + 1), using: &execution) { knot, execution in knot == lower }
+        && OriginalParameterQueryStorage.allSatisfy(knots.suffix(degree + 1), using: &execution) { knot, execution in knot == upper }
     }
 
     private static func normalizedBounds(
@@ -1821,75 +1919,77 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
 
     func cross(
       _ other: PolynomialVector3,
-      budget: inout CoefficientBudget,
-      tolerance: ModelingTolerance
+      coefficientOperations: inout CoefficientOperationCount,
+      tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> PolynomialVector3 {
-      PolynomialVector3(
+      try execution.consumeWork(1)
+      return PolynomialVector3(
         x: try y.multiplied(
           by: other.z,
-          budget: &budget,
-          tolerance: tolerance
+          coefficientOperations: &coefficientOperations,
+          tolerance: tolerance, using: &execution
         ).subtracting(
           z.multiplied(
             by: other.y,
-            budget: &budget,
-            tolerance: tolerance
+            coefficientOperations: &coefficientOperations,
+            tolerance: tolerance, using: &execution
           ),
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         ),
         y: try z.multiplied(
           by: other.x,
-          budget: &budget,
-          tolerance: tolerance
+          coefficientOperations: &coefficientOperations,
+          tolerance: tolerance, using: &execution
         ).subtracting(
           x.multiplied(
             by: other.z,
-            budget: &budget,
-            tolerance: tolerance
+            coefficientOperations: &coefficientOperations,
+            tolerance: tolerance, using: &execution
           ),
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         ),
         z: try x.multiplied(
           by: other.y,
-          budget: &budget,
-          tolerance: tolerance
+          coefficientOperations: &coefficientOperations,
+          tolerance: tolerance, using: &execution
         ).subtracting(
           y.multiplied(
             by: other.x,
-            budget: &budget,
-            tolerance: tolerance
+            coefficientOperations: &coefficientOperations,
+            tolerance: tolerance, using: &execution
           ),
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
       )
     }
 
     func dot(
       _ other: PolynomialVector3,
-      budget: inout CoefficientBudget,
-      tolerance: ModelingTolerance
+      coefficientOperations: inout CoefficientOperationCount,
+      tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> BernsteinPolynomial2D {
+      try execution.consumeWork(1)
       let first = try x.multiplied(
         by: other.x,
-        budget: &budget,
-        tolerance: tolerance
+        coefficientOperations: &coefficientOperations,
+        tolerance: tolerance, using: &execution
       )
       let second = try y.multiplied(
         by: other.y,
-        budget: &budget,
-        tolerance: tolerance
+        coefficientOperations: &coefficientOperations,
+        tolerance: tolerance, using: &execution
       )
       let third = try z.multiplied(
         by: other.z,
-        budget: &budget,
-        tolerance: tolerance
+        coefficientOperations: &coefficientOperations,
+        tolerance: tolerance, using: &execution
       )
       return try first.adding(
         second,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       ).adding(
         third,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
     }
   }
@@ -1909,81 +2009,90 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
       self.coefficients = coefficients
     }
 
-    func derivativeU() -> BernsteinPolynomial2D {
-      BernsteinPolynomial2D(
-        coefficients.map { row in
-          (0..<uDegree).map { index in
+    func derivativeU(using execution: inout OriginalQueryExecution) throws -> BernsteinPolynomial2D {
+      try execution.consumeWork(1)
+      return BernsteinPolynomial2D(
+        (try OriginalParameterQueryStorage.map(coefficients, using: &execution) { row, execution in
+          try OriginalParameterQueryStorage.map(0..<uDegree, using: &execution) { index, execution in
             (row[index + 1] - row[index]) * OutwardInterval.exact(Double(uDegree))
           }
-        })
+        }))
     }
 
-    func derivativeV() -> BernsteinPolynomial2D {
-      BernsteinPolynomial2D(
-        (0..<vDegree).map { rowIndex in
-          coefficients[rowIndex].indices.map { columnIndex in
+    func derivativeV(using execution: inout OriginalQueryExecution) throws -> BernsteinPolynomial2D {
+      try execution.consumeWork(1)
+      return BernsteinPolynomial2D(
+        try OriginalParameterQueryStorage.map(0..<vDegree, using: &execution) { rowIndex, execution in
+          (try OriginalParameterQueryStorage.map(coefficients[rowIndex].indices, using: &execution) { columnIndex, execution in
             (coefficients[rowIndex + 1][columnIndex]
               - coefficients[rowIndex][columnIndex])
               * OutwardInterval.exact(Double(vDegree))
-          }
+          })
         })
     }
 
-    func subtracting(constant: Double) -> BernsteinPolynomial2D {
+    func subtracting(constant: Double, using execution: inout OriginalQueryExecution) throws -> BernsteinPolynomial2D {
+      try execution.consumeWork(1)
       let interval = OutwardInterval.exact(constant)
       return BernsteinPolynomial2D(
-        coefficients.map { row in
-          row.map { $0 - interval }
-        })
+        (try OriginalParameterQueryStorage.map(coefficients, using: &execution) { row, execution in
+          (try OriginalParameterQueryStorage.map(row, using: &execution) { item, execution in item - interval })
+        }))
     }
 
-    func scaled(by scale: OutwardInterval) -> BernsteinPolynomial2D {
-      BernsteinPolynomial2D(
-        coefficients.map { row in
-          row.map { $0 * scale }
-        })
+    func scaled(by scale: OutwardInterval, using execution: inout OriginalQueryExecution) throws -> BernsteinPolynomial2D {
+      try execution.consumeWork(1)
+      return BernsteinPolynomial2D(
+        (try OriginalParameterQueryStorage.map(coefficients, using: &execution) { row, execution in
+          (try OriginalParameterQueryStorage.map(row, using: &execution) { item, execution in item * scale })
+        }))
     }
 
     func multiplied(
       by other: BernsteinPolynomial2D,
-      budget: inout CoefficientBudget,
-      tolerance: ModelingTolerance
+      coefficientOperations: inout CoefficientOperationCount,
+      tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> BernsteinPolynomial2D {
-      let outputUDegree = uDegree + other.uDegree
-      let outputVDegree = vDegree + other.vDegree
-      try budget.consume(
-        (outputUDegree + 1) * (outputVDegree + 1),
-        tolerance: tolerance
-      )
-      var output = Array(
-        repeating: Array(
-          repeating: OutwardInterval.exact(0.0),
-          count: outputUDegree + 1
-        ),
-        count: outputVDegree + 1
-      )
+      try execution.consumeWork(1)
+      let uSum = uDegree.addingReportingOverflow(other.uDegree)
+      let vSum = vDegree.addingReportingOverflow(other.vDegree)
+      let uCount = uSum.partialValue.addingReportingOverflow(1)
+      let vCount = vSum.partialValue.addingReportingOverflow(1)
+      let coefficientCount = uCount.partialValue.multipliedReportingOverflow(by: vCount.partialValue)
+      guard !uSum.overflow, !vSum.overflow, !uCount.overflow, !vCount.overflow,
+        !coefficientCount.overflow else { throw ExactScalarFailure.countOverflow }
+      let outputUDegree = uSum.partialValue
+      let outputVDegree = vSum.partialValue
+      try coefficientOperations.consume(coefficientCount.partialValue, tolerance: tolerance)
+      var output = try OriginalParameterQueryStorage.map(0..<vCount.partialValue, using: &execution) { _, execution in
+        try OriginalParameterQueryStorage.repeated(OutwardInterval.exact(0.0), count: uCount.partialValue, using: &execution)
+      }
       for outputV in 0...outputVDegree {
+        try execution.consumeWork(1)
         let firstVLower = max(0, outputV - other.vDegree)
         let firstVUpper = min(vDegree, outputV)
         for outputU in 0...outputUDegree {
+          try execution.consumeWork(1)
           let firstULower = max(0, outputU - other.uDegree)
           let firstUUpper = min(uDegree, outputU)
           var coefficient = OutwardInterval.exact(0.0)
           for firstV in firstVLower...firstVUpper {
+            try execution.consumeWork(1)
             let secondV = outputV - firstV
-            let vWeight = Self.productWeight(
+            let vWeight = try Self.productWeight(
               firstDegree: vDegree,
               firstIndex: firstV,
               secondDegree: other.vDegree,
-              secondIndex: secondV
+              secondIndex: secondV, using: &execution
             )
             for firstU in firstULower...firstUUpper {
+              try execution.consumeWork(1)
               let secondU = outputU - firstU
-              let uWeight = Self.productWeight(
+              let uWeight = try Self.productWeight(
                 firstDegree: uDegree,
                 firstIndex: firstU,
                 secondDegree: other.uDegree,
-                secondIndex: secondU
+                secondIndex: secondU, using: &execution
               )
               coefficient =
                 coefficient
@@ -1998,65 +2107,74 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
       return BernsteinPolynomial2D(output)
     }
 
-    func integral() -> OutwardInterval {
+    func integral(using execution: inout OriginalQueryExecution) throws -> OutwardInterval {
+      try execution.consumeWork(1)
       var total = OutwardInterval.exact(0.0)
-      for coefficient in coefficients.flatMap({ $0 }) {
-        total = total + coefficient
+      for row in coefficients {
+        try execution.consumeWork(1)
+        for coefficient in row {
+          try execution.consumeWork(1)
+          total = total + coefficient
+        }
       }
-      let denominator = OutwardInterval.exact(
-        Double((uDegree + 1) * (vDegree + 1))
-      )
+      let count = (uDegree + 1).multipliedReportingOverflow(by: vDegree + 1)
+      guard !count.overflow else { throw ExactScalarFailure.countOverflow }
+      let denominator = OutwardInterval.exact(Double(count.partialValue))
       return total / denominator
     }
 
     func trimmed(
       u: ClosedIntervalPair,
-      v: ClosedIntervalPair
-    ) -> BernsteinPolynomial2D {
-      let uTrimmed = Self.trimLines(
+      v: ClosedIntervalPair, using execution: inout OriginalQueryExecution
+    ) throws -> BernsteinPolynomial2D {
+      try execution.consumeWork(1)
+      let uTrimmed = try Self.trimLines(
         coefficients,
         lower: u.lower,
-        upper: u.upper
+        upper: u.upper, using: &execution
       )
-      let transposed = Self.transpose(uTrimmed)
-      let vTrimmed = Self.trimLines(
+      let transposed = try Self.transpose(uTrimmed, using: &execution)
+      let vTrimmed = try Self.trimLines(
         transposed,
         lower: v.lower,
-        upper: v.upper
+        upper: v.upper, using: &execution
       )
-      return BernsteinPolynomial2D(Self.transpose(vTrimmed))
+      return try BernsteinPolynomial2D(Self.transpose(vTrimmed, using: &execution))
     }
 
     func adding(
       _ other: BernsteinPolynomial2D,
-      tolerance: ModelingTolerance
+      tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> BernsteinPolynomial2D {
-      try validateMatchingDegree(other, tolerance: tolerance)
+      try execution.consumeWork(1)
+      try validateMatchingDegree(other, tolerance: tolerance, using: &execution)
       return BernsteinPolynomial2D(
-        coefficients.indices.map { row in
-          coefficients[row].indices.map { column in
+        (try OriginalParameterQueryStorage.map(coefficients.indices, using: &execution) { row, execution in
+          (try OriginalParameterQueryStorage.map(coefficients[row].indices, using: &execution) { column, execution in
             coefficients[row][column] + other.coefficients[row][column]
-          }
-        })
+          })
+        }))
     }
 
     func subtracting(
       _ other: BernsteinPolynomial2D,
-      tolerance: ModelingTolerance
+      tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> BernsteinPolynomial2D {
-      try validateMatchingDegree(other, tolerance: tolerance)
+      try execution.consumeWork(1)
+      try validateMatchingDegree(other, tolerance: tolerance, using: &execution)
       return BernsteinPolynomial2D(
-        coefficients.indices.map { row in
-          coefficients[row].indices.map { column in
+        (try OriginalParameterQueryStorage.map(coefficients.indices, using: &execution) { row, execution in
+          (try OriginalParameterQueryStorage.map(coefficients[row].indices, using: &execution) { column, execution in
             coefficients[row][column] - other.coefficients[row][column]
-          }
-        })
+          })
+        }))
     }
 
     private func validateMatchingDegree(
       _ other: BernsteinPolynomial2D,
-      tolerance: ModelingTolerance
+      tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws {
+      try execution.consumeWork(1)
       guard uDegree == other.uDegree,
         vDegree == other.vDegree
       else {
@@ -2072,65 +2190,73 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
     private static func trimLines(
       _ lines: [[OutwardInterval]],
       lower: OutwardInterval,
-      upper: OutwardInterval
-    ) -> [[OutwardInterval]] {
-      lines.map { line in
+      upper: OutwardInterval, using execution: inout OriginalQueryExecution
+    ) throws -> [[OutwardInterval]] {
+      try execution.consumeWork(1)
+      return (try OriginalParameterQueryStorage.map(lines, using: &execution) { line, execution in
         var current = line
         if lower.upper > 0.0 {
-          current = split(current, parameter: lower).upper
+          current = try split(current, parameter: lower, using: &execution).upper
         }
         if upper.lower < 1.0 {
           let denominator = OutwardInterval.exact(1.0) - lower
           let localUpper = (upper - lower) / denominator
-          current = split(current, parameter: localUpper).lower
+          current = try split(current, parameter: localUpper, using: &execution).lower
         }
         return current
-      }
+      })
     }
 
     private static func split(
       _ values: [OutwardInterval],
-      parameter: OutwardInterval
-    ) -> (lower: [OutwardInterval], upper: [OutwardInterval]) {
+      parameter: OutwardInterval, using execution: inout OriginalQueryExecution
+    ) throws -> (lower: [OutwardInterval], upper: [OutwardInterval]) {
+      try execution.consumeWork(1)
       let complement = OutwardInterval.exact(1.0) - parameter
+      try execution.retainStorage(bytes: MemoryLayout<[OutwardInterval]>.stride)
       var levels = [values]
       while let previous = levels.last, previous.count > 1 {
-        levels.append(
-          (0..<(previous.count - 1)).map { index in
+        try execution.consumeWork(1)
+        try OriginalParameterQueryStorage.append(
+          try OriginalParameterQueryStorage.map(0..<(previous.count - 1), using: &execution) { index, execution in
             previous[index] * complement + previous[index + 1] * parameter
-          })
+          }, to: &levels, using: &execution)
       }
       return (
-        levels.map { $0[0] },
-        levels.reversed().map { $0[$0.count - 1] }
+        (try OriginalParameterQueryStorage.map(levels, using: &execution) { item, execution in item[0] }),
+        try OriginalParameterQueryStorage.map(levels.reversed(), using: &execution) { level, execution in level[level.count - 1] }
       )
     }
 
     private static func transpose(
-      _ values: [[OutwardInterval]]
-    ) -> [[OutwardInterval]] {
+      _ values: [[OutwardInterval]], using execution: inout OriginalQueryExecution
+    ) throws -> [[OutwardInterval]] {
+      try execution.consumeWork(1)
       guard let first = values.first else { return [] }
-      return first.indices.map { column in
-        values.indices.map { row in values[row][column] }
-      }
+      return (try OriginalParameterQueryStorage.map(first.indices, using: &execution) { column, execution in
+        (try OriginalParameterQueryStorage.map(values.indices, using: &execution) { row, execution in values[row][column] })
+      })
     }
 
     private static func productWeight(
       firstDegree: Int,
       firstIndex: Int,
       secondDegree: Int,
-      secondIndex: Int
-    ) -> OutwardInterval {
-      binomial(firstDegree, firstIndex)
-        * binomial(secondDegree, secondIndex)
-        / binomial(firstDegree + secondDegree, firstIndex + secondIndex)
+      secondIndex: Int, using execution: inout OriginalQueryExecution
+    ) throws -> OutwardInterval {
+      try execution.consumeWork(1)
+      return try binomial(firstDegree, firstIndex, using: &execution)
+        * binomial(secondDegree, secondIndex, using: &execution)
+        / binomial(firstDegree + secondDegree, firstIndex + secondIndex, using: &execution)
     }
 
-    private static func binomial(_ n: Int, _ k: Int) -> OutwardInterval {
+    private static func binomial(_ n: Int, _ k: Int, using execution: inout OriginalQueryExecution) throws -> OutwardInterval {
+      try execution.consumeWork(1)
       let reducedK = min(k, n - k)
       guard reducedK > 0 else { return .exact(1.0) }
       var value = OutwardInterval.exact(1.0)
       for index in 1...reducedK {
+        try execution.consumeWork(1)
         value =
           value * OutwardInterval.exact(Double(n - reducedK + index))
           / OutwardInterval.exact(Double(index))
@@ -2139,7 +2265,8 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
     }
   }
 
-  private struct CoefficientBudget {
+  /// Local mathematical coefficient-operation ceiling; resource work is charged to execution.
+  private struct CoefficientOperationCount {
     let limit: Int
     var consumed = 0
 
@@ -2147,13 +2274,13 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
       _ count: Int,
       tolerance: ModelingTolerance
     ) throws {
-      guard count >= 0,
+      guard limit >= 0, count >= 0, count <= limit,
         consumed <= limit - count
       else {
         throw KernelError(
           phase: .topology,
           code: .resourceLimitExceeded,
-          residual: Double(consumed + max(count, 0)),
+          residual: Double(consumed) + Double(max(count, 0)),
           tolerance: tolerance,
           message:
             "Certified polynomial B-spline volume exhausted its coefficient-operation budget."

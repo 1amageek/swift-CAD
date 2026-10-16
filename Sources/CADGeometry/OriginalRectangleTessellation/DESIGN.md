@@ -38,6 +38,16 @@ flowchart LR
 
 ## Contracts and Invariants
 
+Selected-token validation, coefficient receipts, station-row preparation,
+materialization and selected numeric differentiation follow the
+[module's direct execution contract](../DESIGN.md#direct-original-query-execution).
+They receive the original generic admission, retain immutable source and
+one-sided span owners, and debit source comparisons, actual numeric loops and
+typed storage through that same owner. Tokens retain no mutable execution or
+callback allowance. The admitted interval-jet path keeps its original coefficient
+receipt and requested-order Taylor producer; rounded Cartesian patches do not
+replace its source authority.
+
 Tokens bind the exact surface value and preparation tolerance. Queries lie
 inside the actual closed native knot span; neither tolerance padding nor
 canonical endpoint replacement changes ownership. Native bounds use original
@@ -56,8 +66,14 @@ selected owner subdivides. Only complete panel aggregates are returned.
 
 ## State, Ownership, and Lifecycle
 
-The budget is a Sendable value local to one synchronous throwing invocation.
-Mutation occurs only through its inout owner; no shared mutable cache exists.
+The caller owns one exclusive execution. The native rectangle installs an
+immutable contribution with the original 262,144 work/cell ceiling, word-based
+allocation contribution and geometric depth 32. The common synchronized budget
+owns the cumulative counters; this component owns no duplicate mutable ledger.
+Actual cell depth is mapped only as geometric depth, independently of scalar and
+source depth. Pending panels and cells admit their real typed replacement
+capacity before allocation; no predicted traversal storage is materialized.
+No shared mutable cache is introduced.
 Tokens and prepared coefficient nets are immutable Sendable values retained for
 the operation. Native, WASM and Embedded share these same declarations and
 access paths; this component adds no conditional synchronization branches.

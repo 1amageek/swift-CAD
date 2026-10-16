@@ -14,6 +14,28 @@ import CADCore
 struct CoaxialConeTorusSurfaceIntersector {
     private let verifier = SurfaceSurfaceIntersectionVerifier()
 
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Ordinary SSI dispatch reaches this direct entry.
+    // The former numerical/tolerance branches did not establish original common-set
+    // authority. U4 must supply complete original source/UV coverage before success.
+    func intersections(
+        cone: CanonicalAnalyticSurface.Cone,
+        torus: CanonicalAnalyticSurface.Torus,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution
+    ) throws -> [SurfaceSurfaceIntersection] {
+        execution.context = execution.context.at(stage: .relation)
+        do {
+            try execution.checkpoint()
+            throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+                message: "CoaxialConeTorusSurfaceIntersector requires complete original source relation authority.")
+        } catch { throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance) }
+    }
+
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Existing candidate/source helper methods call
+    // this ordinary publication entry. It performs no numeric solve or fallback;
+    // U4 must provide source-bound relation proof and direct execution before success.
     func intersections(
         cone: CanonicalAnalyticSurface.Cone,
         torus: CanonicalAnalyticSurface.Torus,
@@ -21,95 +43,9 @@ struct CoaxialConeTorusSurfaceIntersector {
         secondSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws -> [SurfaceSurfaceIntersection] {
-        let axisResidual = cone.axis.cross(torus.axis).length
-        guard axisResidual <= tolerance.angle else {
-            throw unsupported(
-                residual: axisResidual,
-                tolerance: tolerance,
-                message: "Cone-torus intersection requires parallel axes."
-            )
-        }
-        let apexOffset = cone.apex - torus.center
-        let apexAxis = apexOffset.dot(torus.axis)
-        let apexRadial = apexOffset - torus.axis * apexAxis
-        guard apexRadial.length <= tolerance.distance else {
-            throw unsupported(
-                residual: apexRadial.length,
-                tolerance: tolerance,
-                message: "Cone-torus intersection requires a common axis."
-            )
-        }
-
-        let inverseTangent = 1.0 / tan(cone.halfAngle)
-        let quadratic = 1.0 + inverseTangent * inverseTangent
-        let constant = torus.majorRadius * torus.majorRadius
-            + apexAxis * apexAxis
-            - torus.minorRadius * torus.minorRadius
-        var candidates: [(radius: Double, axis: Double, tangent: Bool)] = []
-        for nappe in [-1.0, 1.0] {
-            let linear = 2.0 * (
-                apexAxis * nappe * inverseTangent
-                    - torus.majorRadius
-            )
-            let discriminant = linear * linear
-                - 4.0 * quadratic * constant
-            let lengthScale = max(
-                1.0,
-                max(
-                    abs(linear),
-                    max(
-                        abs(apexAxis),
-                        torus.majorRadius + torus.minorRadius
-                    )
-                )
-            )
-            let discriminantTolerance = tolerance.distance * lengthScale
-            guard discriminant >= -discriminantTolerance else {
-                continue
-            }
-            let root = sqrt(max(0.0, discriminant))
-            let radii = root <= tolerance.distance
-                ? [-linear / (2.0 * quadratic)]
-                : [
-                    (-linear - root) / (2.0 * quadratic),
-                    (-linear + root) / (2.0 * quadratic),
-                ]
-            for radius in radii where radius >= -tolerance.distance {
-                let axis = apexAxis + nappe * radius * inverseTangent
-                appendCandidate(
-                    (max(0.0, radius), axis, root <= tolerance.distance),
-                    to: &candidates,
-                    tolerance: tolerance
-                )
-            }
-        }
-
-        var results: [SurfaceSurfaceIntersection] = []
-        for candidate in candidates.sorted(by: candidateOrder) {
-            let center = torus.center + torus.axis * candidate.axis
-            if candidate.radius <= tolerance.distance {
-                results.append(try verifier.point(
-                    center,
-                    firstSurface: firstSurface,
-                    secondSurface: secondSurface,
-                    tolerance: tolerance
-                ))
-                continue
-            }
-            results.append(try verifier.curve(
-                .circle(Circle3D(
-                    center: center,
-                    normal: torus.axis,
-                    radius: candidate.radius
-                )),
-                kind: candidate.tangent ? .tangent : .transverse,
-                firstSurface: firstSurface,
-                secondSurface: secondSurface,
-                sampleParameters: SurfaceSurfaceIntersectionVerifier.closedCurveSamples,
-                tolerance: tolerance
-            ))
-        }
-        return results
+        try CurrentTaskCancellationChecker().checkCancellation()
+        throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+            message: "CoaxialConeTorusSurfaceIntersector has no ordinary original-proof publication.")
     }
 
     private func appendCandidate(

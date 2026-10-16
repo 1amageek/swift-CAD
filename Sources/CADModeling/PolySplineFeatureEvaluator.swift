@@ -444,7 +444,7 @@ public struct PolySplineFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
                                 "Rounded PolySpline edge does not belong to its source patch."
                             )
                         }
-                        curve = .surfaceLift(SurfaceLiftCurve3D(
+                        curve = .surfaceLift(try SurfaceLiftCurve3D(
                             surface: surfaceGeometry,
                             parameterCurve: segment.parameterCurve,
                             exactBSplineImage: exactImage
@@ -457,7 +457,7 @@ public struct PolySplineFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
                             tolerance: context.tolerance
                         ))
                     } else {
-                        curve = .surfaceLift(SurfaceLiftCurve3D(
+                        curve = .surfaceLift(try SurfaceLiftCurve3D(
                             surface: surfaceGeometry,
                             parameterCurve: segment.parameterCurve
                         ))
@@ -669,13 +669,13 @@ public struct PolySplineFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
                     vOffset: Double(patch.cellY),
                     tolerance: context.tolerance
                 )
-                model.geometry.curves[curveID] = .surfaceLift(SurfaceLiftCurve3D(
+                model.geometry.curves[curveID] = .surfaceLift(try SurfaceLiftCurve3D(
                     surface: surfaceGeometry,
                     parameterCurve: segment.parameterCurve,
                     exactBSplineImage: exactImage
                 ))
             } else {
-                model.geometry.curves[curveID] = .surfaceLift(SurfaceLiftCurve3D(
+                model.geometry.curves[curveID] = .surfaceLift(try SurfaceLiftCurve3D(
                     surface: surfaceGeometry,
                     parameterCurve: segment.parameterCurve
                 ))

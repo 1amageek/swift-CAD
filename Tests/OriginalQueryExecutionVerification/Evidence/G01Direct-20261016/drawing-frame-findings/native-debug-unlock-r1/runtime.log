@@ -1,0 +1,12 @@
+(lldb) command source -s 0 '/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-debug-unlock-r1/commands.lldb'
+Executing commands in '/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-debug-unlock-r1/commands.lldb'.
+(lldb) # Diagnostic preparation only. Root owns one 120-second bounded launch.
+(lldb) # Capture commands execute only on this exact abort-entry breakpoint.
+(lldb) settings set interpreter.stop-command-source-on-error false
+(lldb) settings set auto-confirm true
+(lldb) target create --arch arm64 "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/libexec/swift/pm/swiftpm-testing-helper"
+Current executable set to '/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/libexec/swift/pm/swiftpm-testing-helper' (arm64).
+(lldb) settings set target.disable-aslr false
+(lldb) settings set target.run-args "--test-bundle-path" "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-silhouette-r2/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests" "--testing-library" "swift-testing" "--filter" "DocumentDrawingCanonicalAdmissionTests" "--xunit-output" "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-debug-unlock-r1/diagnostic-results.xml"
+                                    ˄˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜˜
+                                    ╰─ error: unknown or ambiguous option

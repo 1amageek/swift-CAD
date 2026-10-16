@@ -34,6 +34,17 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
     }
 
     private struct Certificate: Hashable, Sendable {
+        let data: CertificateData
+        let receipt: OriginalGeometryPreparationReceipt
+        static func == (lhs: Certificate, rhs: Certificate) -> Bool { lhs.data == rhs.data }
+        func hash(into hasher: inout Hasher) { data.hash(into: &hasher) }
+        var trace: GeneralTorusTorusSurfaceIntersector.RootTrace { data.trace }
+        var cycles: [[Int]] { data.cycles }
+        var meridianRootCompleteness: GeneralTorusTorusSurfaceIntersector.MeridianRootCompletenessCertificate { data.meridianRootCompleteness }
+        var branchSpatialDifferential: GeneralTorusTorusSurfaceIntersector.BranchSpatialDifferentialCertificate { data.branchSpatialDifferential }
+    }
+
+    private struct CertificateData: Hashable, Sendable {
         let trace: GeneralTorusTorusSurfaceIntersector.RootTrace
         let cycles: [[Int]]
         let meridianRootCompleteness:
@@ -52,32 +63,85 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
     }
 
     struct SpatialDifferentialBoundsPreparation: Sendable {
+        typealias ParameterDifferentialMagnitudeBounds = SpatialDifferentialBoundsData.ParameterDifferentialMagnitudeBounds
+        private let data: SpatialDifferentialBoundsData
+        private let receipt: OriginalGeometryPreparationReceipt
+
+        fileprivate init(data: SpatialDifferentialBoundsData, receipt: OriginalGeometryPreparationReceipt) {
+            self.data = data
+            self.receipt = receipt
+        }
+
+        func bounds(fromNormalizedFraction lowerFraction: Double, toNormalizedFraction upperFraction: Double,
+            tolerance: ModelingTolerance) throws -> SpatialDifferentialMagnitudeBounds {
+            var execution = try receipt.makeExecution()
+            return try bounds(fromNormalizedFraction: lowerFraction, toNormalizedFraction: upperFraction,
+                tolerance: tolerance, using: &execution)
+        }
+        func bounds(fromNormalizedFraction lowerFraction: Double, toNormalizedFraction upperFraction: Double,
+            tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> SpatialDifferentialMagnitudeBounds {
+            try receipt.withContributionScopes(using: &execution) { execution in
+                try receipt.admit(tolerance: receipt.tolerance, using: &execution)
+                return try data.bounds(fromNormalizedFraction: lowerFraction, toNormalizedFraction: upperFraction,
+                    tolerance: tolerance, using: &execution)
+            }
+        }
+        func parameterizedParameterDifferentialMagnitudeBounds(fromNormalizedFraction lowerFraction: Double,
+            toNormalizedFraction upperFraction: Double, tolerance: ModelingTolerance) throws -> ParameterDifferentialMagnitudeBounds {
+            var execution = try receipt.makeExecution()
+            return try parameterizedParameterDifferentialMagnitudeBounds(fromNormalizedFraction: lowerFraction,
+                toNormalizedFraction: upperFraction, tolerance: tolerance, using: &execution)
+        }
+        func parameterizedParameterDifferentialMagnitudeBounds(fromNormalizedFraction lowerFraction: Double,
+            toNormalizedFraction upperFraction: Double, tolerance: ModelingTolerance,
+            using execution: inout OriginalQueryExecution) throws -> ParameterDifferentialMagnitudeBounds {
+            try receipt.withContributionScopes(using: &execution) { execution in
+                try receipt.admit(tolerance: receipt.tolerance, using: &execution)
+                return try data.parameterizedParameterDifferentialMagnitudeBounds(fromNormalizedFraction: lowerFraction,
+                    toNormalizedFraction: upperFraction, tolerance: tolerance, using: &execution)
+            }
+        }
+    }
+
+    struct SpatialDifferentialBoundsData: Sendable {
         private struct BranchPartitionIndex: Sendable {
             let partitions: [GeneralTorusTorusSurfaceIntersector
                 .BranchSpatialDifferentialPartition]
             let maximumUpperPrefix: [Double]
 
-            init(
+            init<A: ExactScalarAdmission & ~Copyable>(
                 _ unsorted: [GeneralTorusTorusSurfaceIntersector
-                    .BranchSpatialDifferentialPartition]
-            ) {
-                partitions = unsorted.sorted { lhs, rhs in
+                    .BranchSpatialDifferentialPartition],
+                using execution: inout A
+            ) throws {
+                partitions = try CertifiedAnalyticCurveEvaluation.sorted(unsorted, using: &execution) { lhs, rhs in
                     if lhs.majorAngleLower == rhs.majorAngleLower {
                         return lhs.majorAngleUpper < rhs.majorAngleUpper
                     }
                     return lhs.majorAngleLower < rhs.majorAngleLower
                 }
                 var maximum = -Double.infinity
-                maximumUpperPrefix = partitions.map { partition in
+                maximumUpperPrefix = try CertifiedAnalyticCurveEvaluation.map(partitions, using: &execution) { partition, _ in
                     maximum = max(maximum, partition.majorAngleUpper)
                     return maximum
                 }
             }
 
-            func firstPotentialOverlap(lower: Double) -> Int {
+            func firstPotentialOverlap<A: ExactScalarAdmission & ~Copyable>(lower: Double, using execution: inout A) throws -> Int {
+                try execution.checkpoint()
+                let result = try firstPotentialOverlapImplementation(lower: lower, using: &execution)
+                try execution.checkpoint()
+                return result
+            }
+
+
+            private func firstPotentialOverlapImplementation<A: ExactScalarAdmission & ~Copyable>(lower: Double, using execution: inout A) throws -> Int {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
                 var low = 0
                 var high = maximumUpperPrefix.count
                 while low < high {
+                    try execution.consumeWork(1)
                     let middle = low + (high - low) / 2
                     if maximumUpperPrefix[middle] < lower {
                         low = middle + 1
@@ -109,18 +173,27 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
             branchCount: Int,
             partitions: [GeneralTorusTorusSurfaceIntersector
                 .BranchSpatialDifferentialPartition],
-            configuration: GeneralTorusTorusSurfaceIntersector.Configuration
-        ) {
+            configuration: GeneralTorusTorusSurfaceIntersector.Configuration,
+            using execution: inout OriginalQueryExecution
+        ) throws {
             self.cycle = cycle
-            var indexed = Array(
-                repeating: [GeneralTorusTorusSurfaceIntersector
+            var indexed = try CertifiedAnalyticCurveEvaluation.repeated(
+                [GeneralTorusTorusSurfaceIntersector
                     .BranchSpatialDifferentialPartition](),
-                count: branchCount
+                count: branchCount, using: &execution
             )
+            var capacities = try CertifiedAnalyticCurveEvaluation.repeated(0,
+                count: branchCount, using: &execution)
             for partition in partitions {
-                indexed[partition.branchIndex].append(partition)
+                try execution.consumeWork(1)
+                try CertifiedAnalyticCurveEvaluation.append(partition,
+                    to: &indexed[partition.branchIndex], using: &execution,
+                    capacity: &capacities[partition.branchIndex])
             }
-            partitionsByBranch = indexed.map(BranchPartitionIndex.init)
+            partitionsByBranch = try CertifiedAnalyticCurveEvaluation.map(indexed,
+                using: &execution) { values, execution in
+                try BranchPartitionIndex(values, using: &execution)
+            }
             majorRadiusBound = (
                 configuration.parameterized.majorRadius
                     + configuration.parameterized.minorRadius
@@ -129,16 +202,34 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
             parameterScale = 2.0 * Double.pi * Double(cycle.count)
         }
 
+
+
+
         func parameterizedParameterDifferentialMagnitudeBounds(
             fromNormalizedFraction lowerFraction: Double,
             toNormalizedFraction upperFraction: Double,
             tolerance: ModelingTolerance
-        ) throws -> ParameterDifferentialMagnitudeBounds {
+        , using execution: inout OriginalQueryExecution) throws -> ParameterDifferentialMagnitudeBounds {
+            try execution.checkpoint()
+            let result = try parameterizedParameterDifferentialMagnitudeBoundsImplementation(fromNormalizedFraction: lowerFraction, toNormalizedFraction: upperFraction, tolerance: tolerance, using: &execution)
+            try execution.checkpoint()
+            return result
+        }
+
+
+
+        private func parameterizedParameterDifferentialMagnitudeBoundsImplementation(
+            fromNormalizedFraction lowerFraction: Double,
+            toNormalizedFraction upperFraction: Double,
+            tolerance: ModelingTolerance
+        , using execution: inout OriginalQueryExecution) throws -> ParameterDifferentialMagnitudeBounds {
+            try execution.checkpoint()
+            try execution.consumeWork(1)
             let minor = try minorDifferentialMagnitudeBounds(
                 fromNormalizedFraction: lowerFraction,
                 toNormalizedFraction: upperFraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
             // The exact chart derivative is constant, but callers recover it
             // through a surface-metric solve. Include that bounded floating-
             // point reconstruction noise so the certified upper bound still
@@ -159,16 +250,34 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
             )
         }
 
+
+
+
         func bounds(
             fromNormalizedFraction lowerFraction: Double,
             toNormalizedFraction upperFraction: Double,
             tolerance: ModelingTolerance
-        ) throws -> SpatialDifferentialMagnitudeBounds {
+        , using execution: inout OriginalQueryExecution) throws -> SpatialDifferentialMagnitudeBounds {
+            try execution.checkpoint()
+            let result = try boundsImplementation(fromNormalizedFraction: lowerFraction, toNormalizedFraction: upperFraction, tolerance: tolerance, using: &execution)
+            try execution.checkpoint()
+            return result
+        }
+
+
+
+        private func boundsImplementation(
+            fromNormalizedFraction lowerFraction: Double,
+            toNormalizedFraction upperFraction: Double,
+            tolerance: ModelingTolerance
+        , using execution: inout OriginalQueryExecution) throws -> SpatialDifferentialMagnitudeBounds {
+            try execution.checkpoint()
+            try execution.consumeWork(1)
             let minor = try minorDifferentialMagnitudeBounds(
                 fromNormalizedFraction: lowerFraction,
                 toNormalizedFraction: upperFraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
             let minorFirst = minor.first
             let minorSecond = minor.second
             let minorThird = minor.third
@@ -207,7 +316,9 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
             fromNormalizedFraction lowerFraction: Double,
             toNormalizedFraction upperFraction: Double,
             tolerance: ModelingTolerance
-        ) throws -> (first: Double, second: Double, third: Double) {
+        , using execution: inout OriginalQueryExecution) throws -> (first: Double, second: Double, third: Double) {
+            try execution.checkpoint()
+            try execution.consumeWork(1)
             try tolerance.validate()
             guard lowerFraction.isFinite,
                   upperFraction.isFinite,
@@ -236,12 +347,14 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
             var minorSecond = 0.0
             var minorThird = 0.0
             for cycleIndex in lowerCycle...upperCycle {
+                try execution.consumeWork(1)
                 let cycleOffset = Double(cycleIndex) * period
                 let lower = max(lowerMajorAngle - cycleOffset, 0.0)
                 let upper = min(upperMajorAngle - cycleOffset, period)
                 let index = partitionsByBranch[cycle[cycleIndex]]
-                var partitionIndex = index.firstPotentialOverlap(lower: lower)
+                var partitionIndex = (try index.firstPotentialOverlap(lower: lower, using: &execution))
                 while partitionIndex < index.partitions.count {
+                    try execution.consumeWork(1)
                     let partition = index.partitions[partitionIndex]
                     guard partition.majorAngleLower <= upper else { break }
                     if upper > lower,
@@ -279,9 +392,6 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
     // Certificate derivation traces the full meridian-quartic root system,
     // and decoding rebuilds the same certificate for identical surfaces on
     // every round trip, so derived certificates are memoized per process.
-    // Older Apple platforms derive every certificate instead of weakening
-    // the shared-state isolation contract with a target-specific raw cache.
-    @available(macOS 15.0, iOS 18.0, visionOS 2.0, *)
     private enum CertificateCache {
         static let storage = Mutex<[CertificateCacheKey: Certificate?]>([:])
     }
@@ -292,22 +402,23 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
         configuration: GeneralTorusTorusSurfaceIntersector.Configuration,
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
-    ) throws -> Certificate? {
-        guard #available(macOS 15.0, iOS 18.0, visionOS 2.0, *) else {
-            return try makeCertificate(
-                configuration: configuration,
-                options: options,
-                tolerance: tolerance
-            )
-        }
+    , using execution: inout OriginalQueryExecution) throws -> Certificate? {
+        try GeometryStructuralComparisonWork.charge(surface: parameterizedSurface, using: &execution)
+        try GeometryStructuralComparisonWork.charge(surface: referenceSurface, using: &execution)
+        try execution.checkpoint()
+        try execution.consumeWork(1)
+
         let key = CertificateCacheKey(
             parameterizedSurface: parameterizedSurface,
             referenceSurface: referenceSurface,
             options: options,
             tolerance: tolerance
         )
-        if let cached = CertificateCache.storage.withLock({ $0[key] }) {
-            return cached
+        if let cached = CertificateCache.storage.withLock({ $0[key] }), let certificate = cached {
+            try certificate.receipt.withContributionScopes(using: &execution) { execution in
+                try certificate.receipt.admit(tolerance: tolerance, using: &execution)
+            }
+            return certificate
         }
         // Derivation runs outside the lock; concurrent duplicate derivation
         // is acceptable for a memoization cache.
@@ -315,12 +426,14 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
             configuration: configuration,
             options: options,
             tolerance: tolerance
-        )
-        CertificateCache.storage.withLock { cache in
-            if cache.count >= 64 {
-                cache.removeAll(keepingCapacity: true)
+        , using: &execution)
+        if let certificate {
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 1,
+                of: (CertificateCacheKey, Certificate).self))
+            CertificateCache.storage.withLock { cache in
+                if cache.count >= 64 { cache.removeAll(keepingCapacity: true) }
+                cache[key] = certificate
             }
-            cache[key] = certificate
         }
         return certificate
     }
@@ -336,32 +449,35 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
     public let maximumResidualUpperBound: Double
     private let certificate: Certificate
 
-    package func chargeStructuralComparisonWork(
-        using charge: GeometryStructuralComparisonWork.Charge
+    package func chargeStructuralComparisonWork<A: ExactScalarAdmission & ~Copyable>(
+        using execution: inout A
     ) throws {
-        try charge(1) // meridianRootCompleteness.processedCellCount
-        try charge(1) // branchSpatialDifferential.processedCellCount
+        try execution.consumeWork(1) // meridianRootCompleteness.processedCellCount
+        try execution.consumeWork(1) // branchSpatialDifferential.processedCellCount
 
-        try charge(certificate.trace.parameters.count)
-        try charge(certificate.trace.valuesByBranch.count)
+        try execution.consumeWork(certificate.trace.parameters.count)
+        try execution.consumeWork(certificate.trace.valuesByBranch.count)
         for row in certificate.trace.valuesByBranch {
+            try execution.consumeWork(1)
             try CurrentTaskCancellationChecker().checkCancellation()
-            try charge(row.count)
+            try execution.consumeWork(row.count)
         }
-        try charge(certificate.trace.permutation.count)
+        try execution.consumeWork(certificate.trace.permutation.count)
 
-        try charge(certificate.cycles.count)
+        try execution.consumeWork(certificate.cycles.count)
         for cycle in certificate.cycles {
+            try execution.consumeWork(1)
             try CurrentTaskCancellationChecker().checkCancellation()
-            try charge(cycle.count)
+            try execution.consumeWork(cycle.count)
         }
 
         let partitions = certificate.branchSpatialDifferential.partitions
-        try charge(partitions.count)
+        try execution.consumeWork(partitions.count)
         for _ in partitions {
+            try execution.consumeWork(1)
             try CurrentTaskCancellationChecker().checkCancellation()
             // branch index, angle interval, and three derivative bounds.
-            try charge(6)
+            try execution.consumeWork(6)
         }
     }
 
@@ -391,6 +507,22 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
         maximumSeedCount: Int = 1_024,
         tolerance: ModelingTolerance
     ) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try self.init(parameterizedSurface: parameterizedSurface, referenceSurface: referenceSurface, componentIndex: componentIndex, maximumSubdivisionDepth: maximumSubdivisionDepth, maximumIterations: maximumIterations, maximumSeedCount: maximumSeedCount, tolerance: tolerance, using: &execution)
+    }
+
+
+    public init(
+        parameterizedSurface: Surface3D,
+        referenceSurface: Surface3D,
+        componentIndex: Int,
+        maximumSubdivisionDepth: Int = 12,
+        maximumIterations: Int = 32,
+        maximumSeedCount: Int = 1_024,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let options = Self.options(
             maximumSubdivisionDepth: maximumSubdivisionDepth,
             maximumIterations: maximumIterations,
@@ -401,14 +533,14 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
             parameterizedSurface: parameterizedSurface,
             referenceSurface: referenceSurface,
             tolerance: tolerance
-        )
+        , using: &execution)
         guard let certificate = try Self.cachedCertificate(
             parameterizedSurface: parameterizedSurface,
             referenceSurface: referenceSurface,
             configuration: configuration,
             options: options,
             tolerance: tolerance
-        ) else {
+        , using: &execution) else {
             throw KernelError(
                 phase: .geometry,
                 code: .intersectionFailure,
@@ -426,7 +558,8 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
             tolerance: tolerance,
             configuration: configuration,
             certificate: certificate
-        )
+        , using: &execution)
+            try execution.checkpoint()
     }
 
     private init(
@@ -439,7 +572,9 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
         tolerance: ModelingTolerance,
         configuration: GeneralTorusTorusSurfaceIntersector.Configuration,
         certificate: Certificate
-    ) throws {
+    , using execution: inout OriginalQueryExecution) throws {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         self.parameterizedSurface = parameterizedSurface
         self.referenceSurface = referenceSurface
         self.componentIndex = componentIndex
@@ -451,9 +586,10 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
         maximumResidualUpperBound = try Self.residualUpperBound(
             configuration: configuration,
             tolerance: tolerance
-        )
+        , using: &execution)
         self.certificate = certificate
-        try validate(tolerance: tolerance)
+        try validate(tolerance: tolerance, using: &execution)
+            try execution.checkpoint()
     }
 
     static func certifiedCurves(
@@ -462,34 +598,64 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
     ) throws -> [CertifiedGeneralTorusTorusIntersectionCurve] {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try certifiedCurves(firstTorusSurface: firstTorusSurface, secondTorusSurface: secondTorusSurface, options: options, tolerance: tolerance, using: &execution)
+    }
+
+
+    static func certifiedCurves(
+        firstTorusSurface: Surface3D,
+        secondTorusSurface: Surface3D,
+        options: SurfaceSurfaceIntersectionOptions,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> [CertifiedGeneralTorusTorusIntersectionCurve] {
+        try execution.checkpoint()
+        let result = try certifiedCurvesImplementation(firstTorusSurface: firstTorusSurface, secondTorusSurface: secondTorusSurface, options: options, tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+
+
+    private static func certifiedCurvesImplementation(
+        firstTorusSurface: Surface3D,
+        secondTorusSurface: Surface3D,
+        options: SurfaceSurfaceIntersectionOptions,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> [CertifiedGeneralTorusTorusIntersectionCurve] {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         try options.validate(tolerance: tolerance)
         let ordered = try orderedSurfaces(
             first: firstTorusSurface,
             second: secondTorusSurface,
             tolerance: tolerance
-        )
+        , using: &execution)
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 2, of: (parameterized: Surface3D, reference: Surface3D).self))
         let candidates = [
             (parameterized: ordered.first, reference: ordered.second),
             (parameterized: ordered.second, reference: ordered.first),
         ]
         var recoverableErrors: [KernelError] = []
+        var recoverableErrorsCapacity = recoverableErrors.count
         for candidate in candidates {
+            try execution.consumeWork(1)
             do {
                 let configuration = try makeConfiguration(
                     parameterizedSurface: candidate.parameterized,
                     referenceSurface: candidate.reference,
                     tolerance: tolerance
-                )
+                , using: &execution)
                 guard let certificate = try cachedCertificate(
                     parameterizedSurface: candidate.parameterized,
                     referenceSurface: candidate.reference,
                     configuration: configuration,
                     options: options,
                     tolerance: tolerance
-                ) else {
+                , using: &execution) else {
                     return []
                 }
-                return try certificate.cycles.indices.map { componentIndex in
+                return try (try CertifiedAnalyticCurveEvaluation.map(certificate.cycles.indices, using: &execution) { componentIndex, execution in
                     try CertifiedGeneralTorusTorusIntersectionCurve(
                         parameterizedSurface: candidate.parameterized,
                         referenceSurface: candidate.reference,
@@ -500,12 +666,12 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
                         tolerance: tolerance,
                         configuration: configuration,
                         certificate: certificate
-                    )
-                }
+                    , using: &execution)
+                 })
             } catch let error as KernelError
                 where error.code == .resourceLimitExceeded
                     || error.code == .singularSystem {
-                recoverableErrors.append(error)
+                try CertifiedAnalyticCurveEvaluation.append(error, to: &recoverableErrors, using: &execution, capacity: &recoverableErrorsCapacity)
             }
         }
         if let error = recoverableErrors.min(by: {
@@ -522,6 +688,27 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.checkpoint()
+        try validateImplementation(tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+    }
+
+
+
+    private func validateImplementation(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try certificate.receipt.withContributionScopes(using: &execution) { execution in
+            try certificate.receipt.admit(tolerance: certificate.receipt.tolerance, using: &execution)
+        }
+        try GeometryStructuralComparisonWork.charge(surface: parameterizedSurface, using: &execution)
+        try GeometryStructuralComparisonWork.charge(surface: referenceSurface, using: &execution)
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         try tolerance.validate()
         try certificationTolerance.validate()
         guard certificationTolerance.distance <= tolerance.distance,
@@ -544,7 +731,7 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
             parameterizedSurface: parameterizedSurface,
             referenceSurface: referenceSurface,
             tolerance: tolerance
-        )
+        , using: &execution)
         guard componentCount > 0,
               componentCount == certificate.cycles.count,
               componentIndex >= 0,
@@ -582,7 +769,7 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
         let reproducedBound = try Self.residualUpperBound(
             configuration: configuration,
             tolerance: certificationTolerance
-        )
+        , using: &execution)
         guard maximumResidualUpperBound == reproducedBound else {
             throw KernelError(
                 phase: .geometry,
@@ -598,33 +785,84 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> Point3D {
-        try resolvedRoot(
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try point(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+
+    public func point(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> Point3D {
+        try execution.checkpoint()
+        let result = try pointImplementation(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+
+
+    private func pointImplementation(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> Point3D {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
+        return try resolvedRoot(
             atNormalizedFraction: fraction,
             tolerance: tolerance
-        ).point
+        , using: &execution).point
     }
 
     public func differential(
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> DifferentialGeometry {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try differential(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+
+    public func differential(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> DifferentialGeometry {
+        try execution.checkpoint()
+        let result = try differentialImplementation(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+
+
+    private func differentialImplementation(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> DifferentialGeometry {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let root = try resolvedRoot(
             atNormalizedFraction: fraction,
             tolerance: tolerance
-        )
+        , using: &execution)
         return try Self.differentialGeometry(
             majorAngle: root.majorAngle,
             minorAngle: root.minorAngle,
             parameterScale: root.parameterScale,
             configuration: root.configuration,
             tolerance: tolerance
-        )
+        , using: &execution)
     }
 
     private func resolvedRoot(
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
-    ) throws -> RootLocation {
+    , using execution: inout OriginalQueryExecution) throws -> RootLocation {
+        try certificate.receipt.withContributionScopes(using: &execution) { execution in
+            try certificate.receipt.admit(tolerance: certificate.receipt.tolerance, using: &execution)
+        }
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard fraction.isFinite,
               fraction >= -tolerance.relative,
@@ -636,7 +874,7 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
             parameterizedSurface: parameterizedSurface,
             referenceSurface: referenceSurface,
             tolerance: tolerance
-        )
+        , using: &execution)
         let cycle = certificate.cycles[componentIndex]
         let period = 2.0 * Double.pi
         let upper = period * Double(cycle.count)
@@ -655,21 +893,21 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
             majorAngle = parameter - Double(cycleIndex) * period
         }
         let intersector = GeneralTorusTorusSurfaceIntersector()
-        let traceReference = certificate.trace.referenceValue(
+        let traceReference = try certificate.trace.referenceValue(
             branch: branch,
             at: majorAngle
-        )
-        // Newton polishing from the traced branch reference resolves the
-        // selected meridian root without re-isolating every root; the
-        // trailing residual guard certifies the result geometrically, and
-        // any non-convergence falls back to full verified isolation.
-        if let polished = Self.newtonPolishedMinorAngle(
+        , using: &execution)
+        // Newton polishing refines a numerical representative of the retained
+        // certified branch. The residual guard checks that representative;
+        // source relation authority remains with the certificate. Numerical
+        // nonconvergence uses the existing full verified isolation branch.
+        if let polished = try Self.newtonPolishedMinorAngle(
             majorAngle: majorAngle,
             reference: traceReference,
             branch: branch,
             certificate: certificate,
             configuration: configuration,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         ) {
             let root = RootLocation(
                 configuration: configuration,
@@ -693,7 +931,7 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
                 maximumSeedCount: maximumSeedCount
             ),
             tolerance: tolerance
-        )
+        , using: &execution)
         guard roots.count == certificate.trace.valuesByBranch.count else {
             throw KernelError(
                 phase: .geometry,
@@ -705,16 +943,16 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
                 message: "A certified torus-torus component changed meridian root count during evaluation."
             )
         }
-        let reference = certificate.trace.referenceValue(
+        let reference = try certificate.trace.referenceValue(
             branch: branch,
             at: majorAngle
-        )
+        , using: &execution)
         let minorAngle = try intersector.selectedRoot(
             candidates: roots,
             reference: reference,
             period: period,
             tolerance: tolerance
-        )
+        , using: &execution)
         let root = RootLocation(
             configuration: configuration,
             majorAngle: majorAngle,
@@ -765,24 +1003,47 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> Vector3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try thirdDerivative(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+
+    func thirdDerivative(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> Vector3D {
+        try execution.checkpoint()
+        let result = try thirdDerivativeImplementation(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+
+
+    private func thirdDerivativeImplementation(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> Vector3D {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let lower = try differential(
             atNormalizedFraction: fraction,
             tolerance: tolerance
-        )
+        , using: &execution)
         let configuration = try Self.cachedConfiguration(
             parameterizedSurface: parameterizedSurface,
             referenceSurface: referenceSurface,
             tolerance: tolerance
-        )
+        , using: &execution)
         let projection = try parameterizedSurface.parameterProjection(
             of: lower.position,
             tolerance: tolerance
-        )
+        , using: &execution)
         let surface = try parameterizedSurface.parameterDerivativesThroughThirdOrder(
             u: projection.u,
             v: projection.v,
             tolerance: tolerance
-        )
+        , using: &execution)
         let firstParameter = try SurfaceParameterFirstDerivativeSolver().solve(
             tangentU: surface.tangentU,
             tangentV: surface.tangentV,
@@ -794,7 +1055,7 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
             u: projection.u,
             v: projection.v,
             tolerance: tolerance
-        )
+        , using: &execution)
         let secondParameter = try SurfaceParameterSecondDerivativeSolver().solve(
             surface: lowerSurface,
             firstParameterDerivative: firstParameter,
@@ -832,7 +1093,7 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
             },
             tolerance: tolerance,
             diagnosticContext: "General torus-torus curve"
-        )
+        , using: &execution)
         return SurfaceParameterThirdOrderChainRule.thirdDerivative(
             surface: surface,
             firstParameterDerivative: firstParameter,
@@ -846,11 +1107,36 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameter {
-        try pointAndParameter(
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try parameter(on: surface, atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+
+    public func parameter(
+        on surface: Surface3D,
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceParameter {
+        try execution.checkpoint()
+        let result = try parameterImplementation(on: surface, atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+
+
+    private func parameterImplementation(
+        on surface: Surface3D,
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceParameter {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
+        return try pointAndParameter(
             on: surface,
             atNormalizedFraction: fraction,
             tolerance: tolerance
-        ).parameter
+        , using: &execution).parameter
     }
 
     func pointAndParameter(
@@ -858,6 +1144,31 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> (point: Point3D, parameter: SurfaceParameter) {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try pointAndParameter(on: surface, atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+
+    func pointAndParameter(
+        on surface: Surface3D,
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> (point: Point3D, parameter: SurfaceParameter) {
+        try execution.checkpoint()
+        let result = try pointAndParameterImplementation(on: surface, atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+
+
+    private func pointAndParameterImplementation(
+        on surface: Surface3D,
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> (point: Point3D, parameter: SurfaceParameter) {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         guard surface == parameterizedSurface || surface == referenceSurface else {
             throw KernelError(
                 phase: .geometry,
@@ -869,11 +1180,11 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
         let point = try resolvedRoot(
             atNormalizedFraction: fraction,
             tolerance: tolerance
-        ).point
+        , using: &execution).point
         let projection = try surface.parameterProjection(
             of: point,
             tolerance: tolerance
-        )
+        , using: &execution)
         return (
             point,
             SurfaceParameter(u: projection.u, v: projection.v)
@@ -881,11 +1192,28 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
     }
 
     public func boundingBox(tolerance: ModelingTolerance) throws -> BoundingBox3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try boundingBox(tolerance: tolerance, using: &execution)
+    }
+
+
+    public func boundingBox(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> BoundingBox3D {
+        try execution.checkpoint()
+        let result = try boundingBoxImplementation(tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+
+
+    private func boundingBoxImplementation(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> BoundingBox3D {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let configuration = try Self.makeConfiguration(
             parameterizedSurface: parameterizedSurface,
             referenceSurface: referenceSurface,
             tolerance: tolerance
-        )
+        , using: &execution)
         let radius = configuration.parameterized.majorRadius
             + configuration.parameterized.minorRadius
             + tolerance.distance
@@ -908,30 +1236,82 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
         toNormalizedFraction upperFraction: Double = 1.0,
         tolerance: ModelingTolerance
     ) throws -> SpatialDifferentialMagnitudeBounds {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try spatialDifferentialMagnitudeBounds(fromNormalizedFraction: lowerFraction, toNormalizedFraction: upperFraction, tolerance: tolerance, using: &execution)
+    }
+
+
+    func spatialDifferentialMagnitudeBounds(
+        fromNormalizedFraction lowerFraction: Double = 0.0,
+        toNormalizedFraction upperFraction: Double = 1.0,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> SpatialDifferentialMagnitudeBounds {
+        try execution.checkpoint()
+        let result = try spatialDifferentialMagnitudeBoundsImplementation(fromNormalizedFraction: lowerFraction, toNormalizedFraction: upperFraction, tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+
+
+    private func spatialDifferentialMagnitudeBoundsImplementation(
+        fromNormalizedFraction lowerFraction: Double = 0.0,
+        toNormalizedFraction upperFraction: Double = 1.0,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> SpatialDifferentialMagnitudeBounds {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let preparation = try prepareSpatialDifferentialBounds(
             tolerance: tolerance
-        )
+        , using: &execution)
         return try preparation.bounds(
             fromNormalizedFraction: lowerFraction,
             toNormalizedFraction: upperFraction,
             tolerance: tolerance
-        )
+        , using: &execution)
     }
 
     func prepareSpatialDifferentialBounds(
         tolerance: ModelingTolerance
     ) throws -> SpatialDifferentialBoundsPreparation {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try prepareSpatialDifferentialBounds(tolerance: tolerance, using: &execution)
+    }
+
+
+    func prepareSpatialDifferentialBounds(
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> SpatialDifferentialBoundsPreparation {
+        let prepared = try execution.withPreparationScope { execution in
+            try prepareSpatialDifferentialBoundsImplementation(tolerance: tolerance, using: &execution)
+        }
+        let receipt = try OriginalGeometryPreparationReceipt(tolerance: tolerance,
+            depth: prepared.depth, using: &execution)
+        try execution.checkpoint()
+        return SpatialDifferentialBoundsPreparation(data: prepared.result, receipt: receipt)
+    }
+
+
+
+    private func prepareSpatialDifferentialBoundsImplementation(
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> SpatialDifferentialBoundsData {
+        try certificate.receipt.withContributionScopes(using: &execution) { execution in
+            try certificate.receipt.admit(tolerance: certificate.receipt.tolerance, using: &execution)
+        }
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         try tolerance.validate()
         let configuration = try Self.cachedConfiguration(
             parameterizedSurface: parameterizedSurface,
             referenceSurface: referenceSurface,
             tolerance: tolerance
-        )
-        return SpatialDifferentialBoundsPreparation(
+        , using: &execution)
+        return try SpatialDifferentialBoundsData(
             cycle: certificate.cycles[componentIndex],
             branchCount: certificate.trace.valuesByBranch.count,
             partitions: certificate.branchSpatialDifferential.partitions,
-            configuration: configuration
+            configuration: configuration, using: &execution
         )
     }
 
@@ -944,10 +1324,10 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
     // Every evaluation entry point rebuilds the meridian configuration for
     // the same immutable surface pair, so derived configurations are
     // memoized per process alongside the certificate cache.
-    @available(macOS 15.0, iOS 18.0, visionOS 2.0, *)
     private enum ConfigurationCache {
         static let storage = Mutex<
-            [ConfigurationCacheKey: GeneralTorusTorusSurfaceIntersector.Configuration]
+            [ConfigurationCacheKey: (configuration: GeneralTorusTorusSurfaceIntersector.Configuration,
+                receipt: OriginalGeometryPreparationReceipt)]
         >([:])
     }
 
@@ -956,31 +1336,60 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
         referenceSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws -> GeneralTorusTorusSurfaceIntersector.Configuration {
-        guard #available(macOS 15.0, iOS 18.0, visionOS 2.0, *) else {
-            return try makeConfiguration(
-                parameterizedSurface: parameterizedSurface,
-                referenceSurface: referenceSurface,
-                tolerance: tolerance
-            )
-        }
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try cachedConfiguration(parameterizedSurface: parameterizedSurface, referenceSurface: referenceSurface, tolerance: tolerance, using: &execution)
+    }
+
+
+    static func cachedConfiguration(
+        parameterizedSurface: Surface3D,
+        referenceSurface: Surface3D,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> GeneralTorusTorusSurfaceIntersector.Configuration {
+        try execution.checkpoint()
+        let result = try cachedConfigurationImplementation(parameterizedSurface: parameterizedSurface, referenceSurface: referenceSurface, tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+
+
+    private static func cachedConfigurationImplementation(
+        parameterizedSurface: Surface3D,
+        referenceSurface: Surface3D,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> GeneralTorusTorusSurfaceIntersector.Configuration {
+        try GeometryStructuralComparisonWork.charge(surface: parameterizedSurface, using: &execution)
+        try GeometryStructuralComparisonWork.charge(surface: referenceSurface, using: &execution)
+        try execution.checkpoint()
+        try execution.consumeWork(1)
+
         let key = ConfigurationCacheKey(
             parameterizedSurface: parameterizedSurface,
             referenceSurface: referenceSurface,
             tolerance: tolerance
         )
         if let cached = ConfigurationCache.storage.withLock({ $0[key] }) {
-            return cached
+            try cached.receipt.withContributionScopes(using: &execution) { execution in
+                try cached.receipt.admit(tolerance: tolerance, using: &execution)
+            }
+            return cached.configuration
         }
-        let configuration = try makeConfiguration(
-            parameterizedSurface: parameterizedSurface,
-            referenceSurface: referenceSurface,
-            tolerance: tolerance
-        )
+        let prepared = try execution.withPreparationScope { execution in
+            try makeConfiguration(parameterizedSurface: parameterizedSurface,
+                referenceSurface: referenceSurface, tolerance: tolerance, using: &execution)
+        }
+        let configuration = prepared.result
+        let receipt = try OriginalGeometryPreparationReceipt(tolerance: tolerance,
+            depth: prepared.depth, using: &execution)
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 1,
+            of: (ConfigurationCacheKey, GeneralTorusTorusSurfaceIntersector.Configuration,
+                OriginalGeometryPreparationReceipt).self))
         ConfigurationCache.storage.withLock { cache in
             if cache.count >= 64 {
                 cache.removeAll(keepingCapacity: true)
             }
-            cache[key] = configuration
+            cache[key] = (configuration: configuration, receipt: receipt)
         }
         return configuration
     }
@@ -989,9 +1398,13 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
         parameterizedSurface: Surface3D,
         referenceSurface: Surface3D,
         tolerance: ModelingTolerance
-    ) throws -> GeneralTorusTorusSurfaceIntersector.Configuration {
-        try parameterizedSurface.validate(tolerance: tolerance)
-        try referenceSurface.validate(tolerance: tolerance)
+    , using execution: inout OriginalQueryExecution) throws -> GeneralTorusTorusSurfaceIntersector.Configuration {
+        try GeometryStructuralComparisonWork.charge(surface: parameterizedSurface, using: &execution)
+        try GeometryStructuralComparisonWork.charge(surface: referenceSurface, using: &execution)
+        try execution.checkpoint()
+        try execution.consumeWork(1)
+        try parameterizedSurface.validate(tolerance: tolerance, using: &execution)
+        try referenceSurface.validate(tolerance: tolerance, using: &execution)
         guard case let .torus(parameterizedSource) = CanonicalAnalyticSurface(
             parameterizedSurface
         ), case let .torus(referenceSource) = CanonicalAnalyticSurface(
@@ -1022,44 +1435,60 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
             parameterized: intersector.canonicalTorus(
                 parameterizedSource,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             reference: intersector.canonicalTorus(
                 referenceSource,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             tolerance: tolerance
-        )
+        , using: &execution)
     }
 
     private static func makeCertificate(
         configuration: GeneralTorusTorusSurfaceIntersector.Configuration,
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
-    ) throws -> Certificate? {
+    , using execution: inout OriginalQueryExecution) throws -> Certificate? {
+        let prepared = try execution.withPreparationScope { execution in
+            try makeCertificateData(configuration: configuration, options: options, tolerance: tolerance, using: &execution)
+        }
+        guard let data = prepared.result else { return nil }
+        let receipt = try OriginalGeometryPreparationReceipt(tolerance: tolerance,
+            depth: prepared.depth, using: &execution)
+        return Certificate(data: data, receipt: receipt)
+    }
+
+    private static func makeCertificateData(
+        configuration: GeneralTorusTorusSurfaceIntersector.Configuration,
+        options: SurfaceSurfaceIntersectionOptions,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> CertificateData? {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let intersector = GeneralTorusTorusSurfaceIntersector()
         let meridianRootCompleteness =
             try intersector.certifyConstantSimpleMeridianRoots(
             configuration: configuration,
             options: options,
             tolerance: tolerance
-        )
+        , using: &execution)
         let initialRoots = try intersector.verifiedRoots(
             majorAngle: 0.0,
             configuration: configuration,
             options: options,
             tolerance: tolerance
-        )
+        , using: &execution)
         guard initialRoots.isEmpty == false else { return nil }
         let trace = try intersector.makeRootTrace(
             initialRoots: initialRoots,
             configuration: configuration,
             options: options,
             tolerance: tolerance
-        )
+        , using: &execution)
         let cycles = try intersector.permutationCycles(
             trace.permutation,
             tolerance: tolerance
-        )
+        , using: &execution)
         guard cycles.isEmpty == false else {
             throw KernelError(
                 phase: .geometry,
@@ -1074,8 +1503,8 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
                 configuration: configuration,
                 options: options,
                 tolerance: tolerance
-            )
-        return Certificate(
+            , using: &execution)
+        return CertificateData(
             trace: trace,
             cycles: cycles,
             meridianRootCompleteness: meridianRootCompleteness,
@@ -1089,7 +1518,9 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
         parameterScale: Double,
         configuration: GeneralTorusTorusSurfaceIntersector.Configuration,
         tolerance: ModelingTolerance
-    ) throws -> DifferentialGeometry {
+    , using execution: inout OriginalQueryExecution) throws -> DifferentialGeometry {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let radial = configuration.radial(at: majorAngle)
         let radialFirst = configuration.zeroRadial * -sin(majorAngle)
             + configuration.quarterRadial * cos(majorAngle)
@@ -1238,8 +1669,9 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
         branch: Int,
         certificate: Certificate,
         configuration: GeneralTorusTorusSurfaceIntersector.Configuration,
-        tolerance: ModelingTolerance
-    ) -> Double? {
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+    ) throws -> Double? {
+        try execution.consumeWork(1)
         let intersector = GeneralTorusTorusSurfaceIntersector()
         let derivativeFloor = derivativeThreshold(
             configuration: configuration,
@@ -1248,6 +1680,7 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
         var v = reference
         var converged = false
         for _ in 0..<24 {
+            try execution.consumeWork(1)
             let valueAndDerivative = intersector
                 .implicitValueAndMinorDerivative(
                     majorAngle: majorAngle,
@@ -1279,10 +1712,11 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
         }
         let ownDistance = periodicDistance(v, reference)
         for other in certificate.trace.valuesByBranch.indices where other != branch {
-            let otherReference = certificate.trace.referenceValue(
+            try execution.consumeWork(1)
+            let otherReference = try certificate.trace.referenceValue(
                 branch: other,
                 at: majorAngle
-            )
+            , using: &execution)
             if periodicDistance(v, otherReference) <= ownDistance {
                 return nil
             }
@@ -1293,7 +1727,9 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
     private static func residualUpperBound(
         configuration: GeneralTorusTorusSurfaceIntersector.Configuration,
         tolerance: ModelingTolerance
-    ) throws -> Double {
+    , using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let machineBound = Double.ulpOfOne
             * configuration.characteristicLength * 1_048_576.0
         guard machineBound <= tolerance.distance else {
@@ -1312,7 +1748,9 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
         first: Surface3D,
         second: Surface3D,
         tolerance: ModelingTolerance
-    ) throws -> (first: Surface3D, second: Surface3D) {
+    , using execution: inout OriginalQueryExecution) throws -> (first: Surface3D, second: Surface3D) {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         guard case let .torus(firstSource) = CanonicalAnalyticSurface(first),
               case let .torus(secondSource) = CanonicalAnalyticSurface(second) else {
             throw KernelError(
@@ -1326,13 +1764,13 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
         let firstTorus = try intersector.canonicalTorus(
             firstSource,
             tolerance: tolerance
-        )
+        , using: &execution)
         let secondTorus = try intersector.canonicalTorus(
             secondSource,
             tolerance: tolerance
-        )
-        return intersector.torusKey(firstTorus)
-            .lexicographicallyPrecedes(intersector.torusKey(secondTorus))
+        , using: &execution)
+        return (try intersector.torusKey(firstTorus, using: &execution))
+            .lexicographicallyPrecedes((try intersector.torusKey(secondTorus, using: &execution)))
             ? (first, second)
             : (second, first)
     }
@@ -1365,6 +1803,8 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
 
 #if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
+        var execution = try NativeRationalSourceDecodingContext.validationExecution(from: decoder)
+
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
             [
@@ -1407,7 +1847,7 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
                 forKey: .maximumSeedCount
             ),
             tolerance: tolerance
-        )
+        , using: &execution)
         let storedComponentCount = try container.decode(
             Int.self,
             forKey: .componentCount
@@ -1435,7 +1875,9 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
 
 #if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
-        try validate(tolerance: certificationTolerance)
+        var execution = try NativeOriginalSourceEncodingContext.execution(from: encoder)
+
+        try validate(tolerance: certificationTolerance, using: &execution)
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(parameterizedSurface, forKey: .parameterizedSurface)
         try container.encode(referenceSurface, forKey: .referenceSurface)

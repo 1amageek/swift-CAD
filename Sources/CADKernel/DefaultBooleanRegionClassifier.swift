@@ -8,6 +8,14 @@ import CADTopology
 public struct DefaultBooleanRegionClassifier: BooleanRegionClassifying {
     public init() {}
 
+    public func classificationGraph(uvSplitGraph: BooleanUVSplitGraph,
+        targetBodyIDs: [BodyID], toolBodyID: BodyID, model: BRepModel,
+        operands: BooleanOperandContext, tolerance: ModelingTolerance) throws -> BooleanClassificationGraph {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try classificationGraph(uvSplitGraph: uvSplitGraph, targetBodyIDs: targetBodyIDs,
+            toolBodyID: toolBodyID, model: model, operands: operands, tolerance: tolerance, using: &execution)
+    }
+
     public func classificationGraph(
         uvSplitGraph: BooleanUVSplitGraph,
         targetBodyIDs: [BodyID],
@@ -15,29 +23,32 @@ public struct DefaultBooleanRegionClassifier: BooleanRegionClassifying {
         model: BRepModel,
         operands: BooleanOperandContext,
         tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution
     ) throws -> BooleanClassificationGraph {
+        try execution.consumeWork(1)
         var resultSamples: [BooleanClassificationGraph.Sample] = []
         let classificationSessions = try SolidPointClassificationSessionSet(
             bodyIDs: targetBodyIDs + [toolBodyID],
             pointClassifier: operands.pointClassifier,
             model: model,
             tolerance: tolerance
-        )
+        , using: &execution)
         for split in uvSplitGraph.splits {
             let targetBodyID = try bodyID(
                 containing: split.facePair.targetFaceID,
                 candidates: targetBodyIDs,
                 model: model,
                 tolerance: tolerance
-            )
+            , using: &execution)
             for component in split.components {
                 guard let sample = try intersectionSample(
                     component: component,
                     tolerance: tolerance
-                ) else {
+                , using: &execution) else {
                     continue
                 }
-                resultSamples.append(contentsOf: try classificationSamples(
+                try OriginalParameterQueryStorage.append(contentsOf: try classificationSamples(
                     facePair: split.facePair,
                     componentID: component.id,
                     sourceFaceID: split.facePair.targetFaceID,
@@ -48,8 +59,8 @@ public struct DefaultBooleanRegionClassifier: BooleanRegionClassifying {
                     model: model,
                     classificationSessions: classificationSessions,
                     tolerance: tolerance
-                ))
-                resultSamples.append(contentsOf: try classificationSamples(
+                , using: &execution), to: &resultSamples, using: &execution)
+                try OriginalParameterQueryStorage.append(contentsOf: try classificationSamples(
                     facePair: split.facePair,
                     componentID: component.id,
                     sourceFaceID: split.facePair.toolFaceID,
@@ -60,11 +71,11 @@ public struct DefaultBooleanRegionClassifier: BooleanRegionClassifying {
                     model: model,
                     classificationSessions: classificationSessions,
                     tolerance: tolerance
-                ))
+                , using: &execution), to: &resultSamples, using: &execution)
             }
         }
         let graph = BooleanClassificationGraph(samples: resultSamples)
-        try graph.validate(uvSplitGraph: uvSplitGraph, model: model, tolerance: tolerance)
+        try graph.validate(uvSplitGraph: uvSplitGraph, model: model, tolerance: tolerance, using: &execution)
         return graph
     }
 
@@ -77,7 +88,10 @@ public struct DefaultBooleanRegionClassifier: BooleanRegionClassifying {
         model: BRepModel,
         pointClassifier: any SolidPointClassifying,
         tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution
     ) throws -> BooleanClassificationGraph {
+        try execution.consumeWork(1)
         try CurrentTaskCancellationChecker().checkCancellation()
         try tolerance.validate()
         guard !targetBodyIDs.isEmpty, Set(targetBodyIDs).count == targetBodyIDs.count,
@@ -86,25 +100,25 @@ public struct DefaultBooleanRegionClassifier: BooleanRegionClassifying {
                 message: "Plane-side classification requires distinct original target and cutting-tool bodies.")
         }
         let sessions = try SolidPointClassificationSessionSet(bodyIDs: targetBodyIDs,
-            pointClassifier: pointClassifier, model: model, tolerance: tolerance)
+            pointClassifier: pointClassifier, model: model, tolerance: tolerance, using: &execution)
         var resultSamples: [BooleanClassificationGraph.Sample] = []
         for split in uvSplitGraph.splits {
             try CurrentTaskCancellationChecker().checkCancellation()
             let targetBodyID = try bodyID(containing: split.facePair.targetFaceID,
-                candidates: targetBodyIDs, model: model, tolerance: tolerance)
+                candidates: targetBodyIDs, model: model, tolerance: tolerance, using: &execution)
             _ = try bodyID(containing: split.facePair.toolFaceID, candidates: [toolBodyID],
-                model: model, tolerance: tolerance)
+                model: model, tolerance: tolerance, using: &execution)
             for component in split.components {
-                guard let sample = try intersectionSample(component: component, tolerance: tolerance) else { continue }
-                resultSamples.append(contentsOf: try classificationSamples(facePair: split.facePair,
+                guard let sample = try intersectionSample(component: component, tolerance: tolerance, using: &execution) else { continue }
+                try OriginalParameterQueryStorage.append(contentsOf: try classificationSamples(facePair: split.facePair,
                     componentID: component.id, sourceFaceID: split.facePair.toolFaceID,
                     oppositeBodyID: targetBodyID, midpoint: sample.point,
                     intersectionDirection: sample.direction, surfaceParameter: sample.toolParameter,
-                    model: model, classificationSessions: sessions, tolerance: tolerance))
+                    model: model, classificationSessions: sessions, tolerance: tolerance, using: &execution), to: &resultSamples, using: &execution)
             }
         }
         let graph = BooleanClassificationGraph(samples: resultSamples)
-        try graph.validate(uvSplitGraph: uvSplitGraph, model: model, tolerance: tolerance)
+        try graph.validate(uvSplitGraph: uvSplitGraph, model: model, tolerance: tolerance, using: &execution)
         try CurrentTaskCancellationChecker().checkCancellation()
         return graph
     }
@@ -115,7 +129,10 @@ public struct DefaultBooleanRegionClassifier: BooleanRegionClassifying {
         model: BRepModel,
         pointClassifier: any SolidPointClassifying,
         tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution
     ) throws -> BooleanClassificationGraph {
+        try execution.consumeWork(1)
         try CurrentTaskCancellationChecker().checkCancellation()
         try tolerance.validate()
         guard Set(boundaries.map(\.reference)).count == boundaries.count else {
@@ -124,7 +141,7 @@ public struct DefaultBooleanRegionClassifier: BooleanRegionClassifying {
         }
         let sessions = try SolidPointClassificationSessionSet(
             bodyIDs: Array(Set(boundaries.map(\.targetBodyID))).sorted(),
-            pointClassifier: pointClassifier, model: model, tolerance: tolerance)
+            pointClassifier: pointClassifier, model: model, tolerance: tolerance, using: &execution)
         var samples: [BooleanClassificationGraph.Sample] = []
         for boundary in boundaries {
             try CurrentTaskCancellationChecker().checkCancellation()
@@ -134,7 +151,7 @@ public struct DefaultBooleanRegionClassifier: BooleanRegionClassifying {
                     message: "An explicit plane boundary has no matching original cutting face.")
             }
             _ = try bodyID(containing: boundary.reference.facePair.targetFaceID,
-                candidates: [boundary.targetBodyID], model: model, tolerance: tolerance)
+                candidates: [boundary.targetBodyID], model: model, tolerance: tolerance, using: &execution)
             guard let cuttingFace = model.faces[boundary.cuttingFaceID],
                   let cuttingSurface = model.geometry.surfaces[cuttingFace.surfaceID],
                   let sourceFace = model.faces[boundary.reference.facePair.targetFaceID] else {
@@ -152,24 +169,24 @@ public struct DefaultBooleanRegionClassifier: BooleanRegionClassifying {
                 throw KernelError(phase: .classification, code: .invalidInput, tolerance: tolerance,
                     message: "An explicit plane-sector boundary is not an original span owned by its referenced face.")
             }
-            try boundary.edge.validate(on: cuttingSurface, tolerance: tolerance)
-            let native = try boundary.edge.surfaceParameterCurve.parameter(atNormalizedFraction: 0.5, tolerance: tolerance)
-            let midpoint = try cuttingSurface.point(u: native.u, v: native.v, tolerance: tolerance)
+            try boundary.edge.validate(on: cuttingSurface, tolerance: tolerance, using: &execution)
+            let native = try boundary.edge.surfaceParameterCurve.parameter(atNormalizedFraction: 0.5, tolerance: tolerance, using: &execution)
+            let midpoint = try cuttingSurface.point(u: native.u, v: native.v, tolerance: tolerance, using: &execution)
             let range = try ScalarInterval(lower: min(boundary.edge.startParameter, boundary.edge.endParameter),
                 upper: max(boundary.edge.startParameter, boundary.edge.endParameter))
             let projection = try boundary.edge.curve.closestParameterProjection(of: midpoint,
-                options: CurveParameterProjectionOptions(parameterRange: range), tolerance: tolerance)
+                options: CurveParameterProjectionOptions(parameterRange: range), tolerance: tolerance, using: &execution)
             guard projection.residual <= tolerance.distance else {
                 throw KernelError(phase: .classification, code: .classificationFailure, residual: projection.residual,
                     tolerance: tolerance, message: "A plane-sector point does not lie on its original boundary span.")
             }
-            let geometry = try boundary.edge.curve.differentialGeometry(at: projection.parameter, tolerance: tolerance)
+            let geometry = try boundary.edge.curve.differentialGeometry(at: projection.parameter, tolerance: tolerance, using: &execution)
             let direction = boundary.edge.endParameter > boundary.edge.startParameter ? geometry.tangent : geometry.tangent * -1
-            samples.append(contentsOf: try classificationSamples(facePair: boundary.reference.facePair,
+            try OriginalParameterQueryStorage.append(contentsOf: try classificationSamples(facePair: boundary.reference.facePair,
                 componentID: boundary.reference.componentID, sourceFaceID: boundary.cuttingFaceID,
                 oppositeBodyID: boundary.targetBodyID, midpoint: midpoint,
                 intersectionDirection: direction, surfaceParameter: native, model: model,
-                classificationSessions: sessions, tolerance: tolerance))
+                classificationSessions: sessions, tolerance: tolerance, using: &execution), to: &samples, using: &execution)
         }
         try CurrentTaskCancellationChecker().checkCancellation()
         return BooleanClassificationGraph(samples: samples)
@@ -178,7 +195,10 @@ public struct DefaultBooleanRegionClassifier: BooleanRegionClassifying {
     private func intersectionSample(
         component: BooleanFaceSplitComponent,
         tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution
     ) throws -> IntersectionSample? {
+        try execution.consumeWork(1)
         switch component.geometry {
         case let .transverseSegment(start, end):
             return IntersectionSample(
@@ -207,7 +227,7 @@ public struct DefaultBooleanRegionClassifier: BooleanRegionClassifying {
                 direction: try closedCurve.intersection.curve.differentialGeometry(
                     at: sample.curveParameter,
                     tolerance: tolerance
-                ).tangent,
+                , using: &execution).tangent,
                 targetParameter: SurfaceParameter(
                     u: sample.uvPoint.targetU,
                     v: sample.uvPoint.targetV
@@ -219,25 +239,19 @@ public struct DefaultBooleanRegionClassifier: BooleanRegionClassifying {
             )
         case let .trimmedCurve(chain):
             let curve = chain.classificationSegment
-            let targetParameter = try curve.intersection.surfaceParameter(
-                on: .first,
-                atCurveParameter: curve.midpointParameter,
-                tolerance: tolerance
-            )
-            let toolParameter = try curve.intersection.surfaceParameter(
-                on: .second,
-                atCurveParameter: curve.midpointParameter,
-                tolerance: tolerance
-            )
+            let pair = try curve.intersection.surfaceParameterPair(
+                atCurveParameter: curve.midpointParameter, tolerance: tolerance, using: &execution)
+            let targetParameter = pair.first
+            let toolParameter = pair.second
             return IntersectionSample(
                 point: try curve.intersection.curve.point(
                     at: curve.midpointParameter,
                     tolerance: tolerance
-                ),
+                , using: &execution),
                 direction: try curve.intersection.curve.differentialGeometry(
                     at: curve.midpointParameter,
                     tolerance: tolerance
-                ).tangent,
+                , using: &execution).tangent,
                 targetParameter: targetParameter,
                 toolParameter: toolParameter
             )
@@ -257,7 +271,10 @@ public struct DefaultBooleanRegionClassifier: BooleanRegionClassifying {
         model: BRepModel,
         classificationSessions: SolidPointClassificationSessionSet,
         tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution
     ) throws -> [BooleanClassificationGraph.Sample] {
+        try execution.consumeWork(1)
         guard let face = model.faces[sourceFaceID],
               let surface = model.geometry.surfaces[face.surfaceID] else {
             throw KernelError(
@@ -272,7 +289,7 @@ public struct DefaultBooleanRegionClassifier: BooleanRegionClassifying {
             u: surfaceParameter.u,
             v: surfaceParameter.v,
             tolerance: tolerance
-        )
+        , using: &execution)
         let parameterResidual = (parameterPoint - midpoint).length
         guard parameterResidual <= tolerance.distance else {
             throw KernelError(
@@ -287,11 +304,12 @@ public struct DefaultBooleanRegionClassifier: BooleanRegionClassifying {
             u: surfaceParameter.u,
             v: surfaceParameter.v,
             tolerance: tolerance
-        )
+        , using: &execution)
         let normal = face.orientation == .forward ? geometricNormal : geometricNormal * -1.0
         let sideDirection = try normal.cross(intersectionDirection).normalized(
             tolerance: tolerance.distance
         )
+        try execution.retainKernelValues(count: 2, stride: MemoryLayout<BooleanClassificationGraph.Sample>.stride)
         return [
             try classifiedSample(
                 facePair: facePair,
@@ -304,7 +322,7 @@ public struct DefaultBooleanRegionClassifier: BooleanRegionClassifying {
                 sourceInwardDirection: normal * -1.0,
                 classificationSessions: classificationSessions,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             try classifiedSample(
                 facePair: facePair,
                 componentID: componentID,
@@ -316,7 +334,7 @@ public struct DefaultBooleanRegionClassifier: BooleanRegionClassifying {
                 sourceInwardDirection: normal * -1.0,
                 classificationSessions: classificationSessions,
                 tolerance: tolerance
-            ),
+            , using: &execution),
         ]
     }
 
@@ -331,15 +349,19 @@ public struct DefaultBooleanRegionClassifier: BooleanRegionClassifying {
         sourceInwardDirection: Vector3D,
         classificationSessions: SolidPointClassificationSessionSet,
         tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution
     ) throws -> BooleanClassificationGraph.Sample {
+        try execution.consumeWork(1)
         let maximumAttempts = 8
         var distance = tolerance.distance * 8.0
         for _ in 0..<maximumAttempts {
+            try execution.consumeWork(1)
             let point = midpoint + sideDirection * distance
             let classification = try classificationSessions.classify(
                 point,
                 in: oppositeBodyID
-            )
+            , using: &execution)
             if classification != .boundary {
                 return BooleanClassificationGraph.Sample(
                     facePair: facePair,
@@ -355,7 +377,7 @@ public struct DefaultBooleanRegionClassifier: BooleanRegionClassifying {
             let materialClassification = try classificationSessions.classify(
                 materialPoint,
                 in: oppositeBodyID
-            )
+            , using: &execution)
             if materialClassification != .boundary {
                 return BooleanClassificationGraph.Sample(
                     facePair: facePair,
@@ -382,7 +404,10 @@ public struct DefaultBooleanRegionClassifier: BooleanRegionClassifying {
         candidates: [BodyID],
         model: BRepModel,
         tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution
     ) throws -> BodyID {
+        try execution.consumeWork(1)
         for bodyID in candidates {
             guard let body = model.bodies[bodyID] else { continue }
             for shellID in body.shellIDs where model.shells[shellID]?.faceIDs.contains(faceID) == true {

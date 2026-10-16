@@ -13,14 +13,14 @@ public struct OriginalAffineOperationWord: Hashable, Sendable {
     public let orientationSign: Int
     var isRational: Bool { if case .none = normalizedFrame { return true }; return false }
 
-    public init<B: RationalAlgebraAdmitting>(factors: [OriginalAffineOperation], usage: inout B) throws {
+    public init<B: ExactScalarAdmission & ~Copyable>(factors: [OriginalAffineOperation], usage: inout B) throws {
         guard !factors.isEmpty else { throw rationalAlgebraFailure("An original affine word requires at least one factor.") }
-        try usage.consumeExactWork(factors.count)
+        try usage.consumeWork(factors.count)
         try OriginalAffineRationalMatrix.retain(factors.count, of: OriginalAffineOperation.self, usage: &usage)
         var matrix = try OriginalAffineRationalMatrix.identity(usage: &usage)
         var orientation = 1
         for operation in factors {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             guard let original = try OriginalAffineRationalMatrix.original(operation, usage: &usage) else {
                 throw rationalAlgebraFailure("Normalized original factors require explicit tolerance and algebraic depth.")
             }
@@ -43,11 +43,11 @@ public struct OriginalAffineOperationWord: Hashable, Sendable {
         self.normalizedCofactors = []; self.normalizedFrame = nil; self.maximumDepth = 0
     }
 
-    public init<B: RationalAlgebraAdmitting>(factors: [OriginalAffineOperation],
+    public init<B: ExactScalarAdmission & ~Copyable>(factors: [OriginalAffineOperation],
         tolerance: ModelingTolerance, maximumDepth: Int, usage: inout B) throws {
         try tolerance.validate()
         guard maximumDepth >= 0 else { throw rationalAlgebraFailure("Original algebraic depth must be nonnegative.") }
-        try usage.consumeExactWork(factors.count)
+        try usage.consumeWork(factors.count)
         let hasNormalized = factors.contains { operation in
             switch operation { case .normalizedForward, .normalizedInverse: true; default: false }
         }
@@ -59,7 +59,7 @@ public struct OriginalAffineOperationWord: Hashable, Sendable {
             return
         }
         guard !factors.isEmpty else { throw rationalAlgebraFailure("An original word requires factors.") }
-        try usage.consumeExactWork(factors.count)
+        try usage.consumeWork(factors.count)
         try OriginalAffineRationalMatrix.retain(factors.count, of: OriginalAffineOperation.self, usage: &usage)
         let base = try OriginalSingularFieldContext(usage: &usage)
         let frame = try Self.fieldFrame(factors: factors, in: base, tolerance: tolerance,
@@ -77,19 +77,19 @@ public struct OriginalAffineOperationWord: Hashable, Sendable {
     }
 
     /// Admits the single-factor array before creating its owned storage.
-    public init<B: RationalAlgebraAdmitting>(operation: OriginalAffineOperation, tolerance: ModelingTolerance,
+    public init<B: ExactScalarAdmission & ~Copyable>(operation: OriginalAffineOperation, tolerance: ModelingTolerance,
         maximumDepth: Int, usage: inout B) throws {
         try OriginalAffineRationalMatrix.retain(1, of: OriginalAffineOperation.self, usage: &usage)
         self = try Self(factors: [operation], tolerance: tolerance, maximumDepth: maximumDepth, usage: &usage)
     }
 
-    private static func fieldFrame<B: RationalAlgebraAdmitting>(factors: [OriginalAffineOperation],
+    private static func fieldFrame<B: ExactScalarAdmission & ~Copyable>(factors: [OriginalAffineOperation],
         in base: OriginalSingularFieldContext, tolerance: ModelingTolerance, maximumDepth: Int,
         usage: inout B) throws -> OriginalRationalNormalizedFrame {
         var context = base
         var frame: OriginalRationalNormalizedFrame?
         for operation in factors {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             var action: OriginalRationalNormalizedFrame
             switch operation {
             case .forward(let value), .inverse(let value):
@@ -115,7 +115,7 @@ public struct OriginalAffineOperationWord: Hashable, Sendable {
     }
 
     /// Proves complete action equality in one shared original field, including normalization.
-    public func isEquivalent<B: RationalAlgebraAdmitting>(to other: Self, tolerance: ModelingTolerance,
+    public func isEquivalent<B: ExactScalarAdmission & ~Copyable>(to other: Self, tolerance: ModelingTolerance,
         maximumDepth: Int, usage: inout B) throws -> Bool {
         try tolerance.validate()
         guard maximumDepth >= 0 else { throw rationalAlgebraFailure("Original equivalence depth must be nonnegative.") }
@@ -126,7 +126,7 @@ public struct OriginalAffineOperationWord: Hashable, Sendable {
         try other.validateOriginal(tolerance: tolerance, maximumDepth: maximumDepth, usage: &usage)
         if isRational, other.isRational {
             for index in 0..<12 {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 if try !coefficients[index].subtracting(other.coefficients[index], usage: &usage).isZero { return false }
             }
             return true
@@ -142,7 +142,7 @@ public struct OriginalAffineOperationWord: Hashable, Sendable {
             tolerance: tolerance, maximumDepth: maximumDepth, usage: &usage)
         for row in 0..<3 {
             for column in 0..<4 {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 let a = try OriginalAffineFieldAction.coefficient(left, row: row, column: column,
                     maximumDepth: maximumDepth, usage: &usage).embedded(in: right.context, maximumDepth: maximumDepth, usage: &usage)
                 let b = try OriginalAffineFieldAction.coefficient(right, row: row, column: column,
@@ -157,7 +157,7 @@ public struct OriginalAffineOperationWord: Hashable, Sendable {
     }
 
     /// Compares two authored point images exactly, including nonbinary original unit gains.
-    public func mapsSameImage<B: RationalAlgebraAdmitting>(of point: Point3D,
+    public func mapsSameImage<B: ExactScalarAdmission & ~Copyable>(of point: Point3D,
         as other: Self, of otherPoint: Point3D, tolerance: ModelingTolerance,
         maximumDepth: Int, usage: inout B) throws -> Bool {
         try point.validate(); try otherPoint.validate()
@@ -185,7 +185,7 @@ public struct OriginalAffineOperationWord: Hashable, Sendable {
         let secondImage = try second.applying(to: Vector3D(x: otherPoint.x, y: otherPoint.y, z: otherPoint.z),
             asPoint: true, maximumDepth: maximumDepth, usage: &usage)
         for coordinate in 0..<3 {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             let embedded = try firstImage[coordinate].embedded(in: second.context,
                 maximumDepth: maximumDepth, usage: &usage)
             guard case .zero = try embedded.subtracting(secondImage[coordinate], maximumDepth: maximumDepth, usage: &usage)
@@ -194,11 +194,11 @@ public struct OriginalAffineOperationWord: Hashable, Sendable {
         return true
     }
 
-    private func rationalPointCoordinate<B: RationalAlgebraAdmitting>(_ point: Point3D,
+    private func rationalPointCoordinate<B: ExactScalarAdmission & ~Copyable>(_ point: Point3D,
         row: Int, usage: inout B) throws -> ExactRationalCoefficient {
         var value = coefficients[row * 4 + 3]
         for column in 0..<3 {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             let component = column == 0 ? point.x : column == 1 ? point.y : point.z
             let original = try ExactRationalCoefficient.originalDouble(component, usage: &usage)
             value = try value.adding(coefficients[row * 4 + column].multiplied(by: original, usage: &usage), usage: &usage)
@@ -207,11 +207,11 @@ public struct OriginalAffineOperationWord: Hashable, Sendable {
     }
 
     /// Appends an original operation, preserving the retained exact algebra authority.
-    public func appending<B: RationalAlgebraAdmitting>(_ operation: OriginalAffineOperation,
+    public func appending<B: ExactScalarAdmission & ~Copyable>(_ operation: OriginalAffineOperation,
         tolerance: ModelingTolerance, usage: inout B) throws -> Self {
         try validateOriginal(tolerance: tolerance, usage: &usage)
         let count = try rationalAlgebraCount(factors.count, 1)
-        try usage.consumeExactWork(count)
+        try usage.consumeWork(count)
         try OriginalAffineRationalMatrix.retain(count, of: OriginalAffineOperation.self, usage: &usage)
         var originalFactors = factors
         originalFactors.reserveCapacity(count)
@@ -260,7 +260,7 @@ public struct OriginalAffineOperationWord: Hashable, Sendable {
         return try appendedResult(originalFactors: originalFactors, frame: frame, usage: &usage)
     }
 
-    private func appendedResult<B: RationalAlgebraAdmitting>(originalFactors: [OriginalAffineOperation],
+    private func appendedResult<B: ExactScalarAdmission & ~Copyable>(originalFactors: [OriginalAffineOperation],
         frame: OriginalRationalNormalizedFrame, usage: inout B) throws -> Self {
         let cofactors = try OriginalAffineFieldAction.cofactors(frame, maximumDepth: maximumDepth, usage: &usage)
         let determinant = try OriginalAffineFieldAction.determinant(frame, cofactors: cofactors,
@@ -275,8 +275,8 @@ public struct OriginalAffineOperationWord: Hashable, Sendable {
             determinant: determinant, maximumDepth: maximumDepth, orientationSign: sign)
     }
 
-    public func prepared<B: RationalAlgebraAdmitting>(usage: inout B) throws -> PreparedOriginalAffineOperationWord {
-        try usage.consumeExactWork(1)
+    public func prepared<B: ExactScalarAdmission & ~Copyable>(usage: inout B) throws -> PreparedOriginalAffineOperationWord {
+        try usage.consumeWork(1)
         try OriginalAffineRationalMatrix.retain(1, of: PreparedOriginalAffineOperationWord.self, usage: &usage)
         return PreparedOriginalAffineOperationWord(source: self)
     }

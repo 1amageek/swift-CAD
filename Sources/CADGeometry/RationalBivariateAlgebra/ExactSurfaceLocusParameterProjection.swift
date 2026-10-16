@@ -12,7 +12,7 @@ package struct ExactSurfaceLocusParameterProjection: Sendable {
     package let originalCommonInV: ExactSurfaceCoefficientPolynomial
     package let kind: Kind
 
-    package init<B: RationalAlgebraAdmitting>(component: ExactSurfaceLocusCommonFiber.Component,
+    package init<B: ExactScalarAdmission & ~Copyable>(component: ExactSurfaceLocusCommonFiber.Component,
         usage: inout B) throws {
         self.component = component
         originalLocusInV = try Self.reordered(locus: component.originalLocus, usage: &usage)
@@ -30,7 +30,7 @@ package struct ExactSurfaceLocusParameterProjection: Sendable {
                 originalLocusInV, originalCommonInV, usage: &usage))
         }
     }
-    package static func reordered<B: RationalAlgebraAdmitting>(locus: ExactBivariatePolynomial,
+    package static func reordered<B: ExactScalarAdmission & ~Copyable>(locus: ExactBivariatePolynomial,
         usage: inout B) throws -> ExactSurfaceCoefficientPolynomial {
         let count = try rationalAlgebraCount(max(0, locus.vDegree), 1)
         try RationalAlgebraStorage.retain(count, of: ExactBivariatePolynomial.self, usage: &usage)
@@ -40,16 +40,16 @@ package struct ExactSurfaceLocusParameterProjection: Sendable {
         }
         return try .init(coefficients: values, usage: &usage)
     }
-    package static func reordered<B: RationalAlgebraAdmitting>(common: ExactSurfaceCoefficientPolynomial,
+    package static func reordered<B: ExactScalarAdmission & ~Copyable>(common: ExactSurfaceCoefficientPolynomial,
         usage: inout B) throws -> ExactSurfaceCoefficientPolynomial {
         var degree = -1
-        for coefficient in common.coefficients { try usage.consumeExactWork(1); degree = max(degree, coefficient.vDegree) }
+        for coefficient in common.coefficients { try usage.consumeWork(1); degree = max(degree, coefficient.vDegree) }
         let count = degree < 0 ? 0 : try rationalAlgebraCount(degree, 1)
         try RationalAlgebraStorage.retain(count, of: ExactBivariatePolynomial.self, usage: &usage)
         var values = [ExactBivariatePolynomial](repeating: .zero, count: count)
         for sourceParameterPower in common.coefficients.indices {
             for (power, value) in try common.coefficients[sourceParameterPower].orderedTerms(usage: &usage) {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 try RationalAlgebraStorage.retain(1, of: (ExactBivariatePolynomial.Power, ExactRationalCoefficient).self, usage: &usage)
                 let term = try ExactBivariatePolynomial([.init(u: power.u, v: sourceParameterPower): value])
                 values[power.v] = try values[power.v].adding(term, usage: &usage)

@@ -16,7 +16,7 @@ public struct DefaultOriginalCurveEndpointIssuer<Source: Sendable, Selection: Se
         let source = copy source, curve = copy curve
         let localParameter = copy localParameter, originalParameter = copy originalParameter
         do {
-            return try OriginalSourceProofAdmission<A>.withBorrow(&admission) { usage in
+            return try admission.withProofScope { usage in
                 try Self.evaluate(source: source, curve: curve, localParameter: localParameter,
                     originalParameter: originalParameter, limits: limits, using: &usage)
             }
@@ -25,7 +25,7 @@ public struct DefaultOriginalCurveEndpointIssuer<Source: Sendable, Selection: Se
     private static func evaluate<A: ExactScalarAdmission & ~Copyable>(
         source: borrowing OriginalSourceBinding<Source>, curve: borrowing OriginalRationalChartReceipt<Source, Selection, Field>,
         localParameter: borrowing Field.Value, originalParameter: borrowing Field.Value,
-        limits: OriginalSourceIssuanceLimits, using admission: inout OriginalSourceProofAdmission<A>
+        limits: OriginalSourceIssuanceLimits, using admission: inout A
     ) throws -> OriginalCurveEndpointReceipt<Source, Selection, Field> {
             try admission.checkpoint(); try admission.consumeWork(1); try source.require(limits)
             guard source.owns(curve.chart) else { throw OriginalSourceIssuanceFailure.foreignBinding }
@@ -43,7 +43,7 @@ public struct DefaultOriginalCurveEndpointIssuer<Source: Sendable, Selection: Se
             try admission.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: Field.Value.self))
             let coordinates = [local]
             var valueDepth = 0, coefficientDepth = 0
-            func evaluate(_ polynomial: ExactPolynomial<Field>, _ usage: inout OriginalSourceProofAdmission<A>) throws -> Field.Value {
+            func evaluate(_ polynomial: ExactPolynomial<Field>, _ usage: inout A) throws -> Field.Value {
                 let result = try ring.evaluated(polynomial, at: coordinates, using: &usage)
                 valueDepth = max(valueDepth, result.depth.value)
                 coefficientDepth = max(coefficientDepth, result.depth.coefficient)

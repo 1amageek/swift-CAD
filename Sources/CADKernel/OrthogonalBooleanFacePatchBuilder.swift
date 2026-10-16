@@ -10,15 +10,16 @@ struct OrthogonalBooleanFacePatchBuilder {
     func request(
         for shape: BooleanBodyShape,
         featureID: FeatureID
-    ) throws -> BRepSewingRequest {
+    , using execution: inout OriginalQueryExecution) throws -> BRepSewingRequest {
+        try execution.consumeWork(1)
         try tolerance.validate()
         let shells: [BRepSewingShell]
         let bodyTopology: BRepSewingBodyTopology
         switch shape {
         case let .boxes(boxes):
             shells = try boxes.enumerated().map { componentIndex, box in
-                let grid = try makeGrid(from: [box])
-                guard let component = connectedComponents(in: grid).first else {
+                let grid = try makeGrid(from: [box], using: &execution)
+                guard let component = try connectedComponents(in: grid, using: &execution).first else {
                     throw FeatureEvaluationError.emptyResult(
                         "Orthogonal Boolean box produced no occupied component."
                     )
@@ -29,15 +30,15 @@ struct OrthogonalBooleanFacePatchBuilder {
                         componentIndex: componentIndex,
                         component: component,
                         grid: grid
-                    )
+                    , using: &execution)
                 )
             }
             bodyTopology = .solid(components: shells.map {
                 BRepSewingSolidComponent(outerShellStableID: $0.stableID)
             })
         case .orthogonalCellUnion, .zThroughFrame:
-            let grid = try makeGrid(from: cells(for: shape))
-            let components = connectedComponents(in: grid)
+            let grid = try makeGrid(from: try cells(for: shape, using: &execution), using: &execution)
+            let components = try connectedComponents(in: grid, using: &execution)
             guard components.isEmpty == false else {
                 throw FeatureEvaluationError.emptyResult(
                     "Orthogonal Boolean face-patch generation produced no occupied component."
@@ -46,7 +47,7 @@ struct OrthogonalBooleanFacePatchBuilder {
             let boundary = try boundaryShells(
                 components: components,
                 grid: grid
-            )
+            , using: &execution)
             shells = boundary.shells
             bodyTopology = .solid(components: boundary.components)
         }
@@ -59,17 +60,19 @@ struct OrthogonalBooleanFacePatchBuilder {
 
     func topology(
         for shape: BooleanBodyShape
-    ) throws -> (slots: [BooleanEvaluationTopologySlot], counts: BooleanEvaluationTopologyCounts) {
-        let request = try request(for: shape, featureID: FeatureID())
-        return try topology(for: request)
+    , using execution: inout OriginalQueryExecution) throws -> (slots: [BooleanEvaluationTopologySlot], counts: BooleanEvaluationTopologyCounts) {
+        try execution.consumeWork(1)
+        let request = try request(for: shape, featureID: FeatureID(), using: &execution)
+        return try topology(for: request, using: &execution)
     }
 
     func topology(
         for request: BRepSewingRequest
-    ) throws -> (slots: [BooleanEvaluationTopologySlot], counts: BooleanEvaluationTopologyCounts) {
-        let sewn = try DefaultBRepSewer().sew(request, tolerance: tolerance)
+    , using execution: inout OriginalQueryExecution) throws -> (slots: [BooleanEvaluationTopologySlot], counts: BooleanEvaluationTopologyCounts) {
+        try execution.consumeWork(1)
+        let sewn = try DefaultBRepSewer().sew(request, tolerance: tolerance, using: &execution)
         return (
-            slots: topologySlots(from: sewn.stableReferences),
+            slots: try topologySlots(from: sewn.stableReferences, using: &execution),
             counts: BooleanEvaluationTopologyCounts(
                 bodyCount: sewn.brep.bodies.count,
                 shellCount: sewn.brep.shells.count,
@@ -81,15 +84,24 @@ struct OrthogonalBooleanFacePatchBuilder {
         )
     }
 
+    func generatedSubshapes(featureID: FeatureID,
+        stableReferences: [BRepSewingStableKey: TopologyReference]) throws -> [SubshapeID: TopologyReference] {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try generatedSubshapes(featureID: featureID, stableReferences: stableReferences, using: &execution)
+    }
+
     func generatedSubshapes(
         featureID: FeatureID,
         stableReferences: [BRepSewingStableKey: TopologyReference]
-    ) throws -> [SubshapeID: TopologyReference] {
+    , using execution: inout OriginalQueryExecution) throws -> [SubshapeID: TopologyReference] {
         var result: [SubshapeID: TopologyReference] = [:]
         var publishedReferences = Set<TopologyReference>()
-        for key in sortedStableKeys(stableReferences.keys) {
+        try execution.retainKernelValues(count: stableReferences.count, stride: MemoryLayout<BRepSewingStableKey>.stride)
+        for key in try sortedStableKeys(stableReferences.keys, using: &execution) {
+            try execution.consumeWork(1)
+            try execution.consumeWork(1)
             guard let reference = stableReferences[key],
-                  publishedReferences.insert(reference).inserted else {
+                  (try OriginalParameterQueryStorage.insert(reference, in: &publishedReferences, using: &execution)) else {
                 continue
             }
             let descriptor = topologyDescriptor(for: key)
@@ -106,7 +118,7 @@ struct OrthogonalBooleanFacePatchBuilder {
                     "Orthogonal Boolean generated subshape collision."
                 )
             }
-            result[subshapeID] = reference
+            try OriginalParameterQueryStorage.set(reference, for: subshapeID, in: &result, using: &execution)
         }
         guard let bodyReference = stableReferences[.body],
               result.values.contains(bodyReference) else {
@@ -117,7 +129,8 @@ struct OrthogonalBooleanFacePatchBuilder {
         return result
     }
 
-    private func cells(for shape: BooleanBodyShape) throws -> [AxisAlignedBox] {
+    private func cells(for shape: BooleanBodyShape, using execution: inout OriginalQueryExecution) throws -> [AxisAlignedBox] {
+        try execution.consumeWork(1)
         switch shape {
         case let .boxes(boxes), let .orthogonalCellUnion(boxes):
             return boxes
@@ -129,22 +142,22 @@ struct OrthogonalBooleanFacePatchBuilder {
                 minimum: outer.minimum,
                 maximum: Point3D(x: hole.minimum.x, y: outer.maximum.y, z: outer.maximum.z),
                 to: &cells
-            )
+            , using: &execution)
             try appendCell(
                 minimum: Point3D(x: hole.maximum.x, y: outer.minimum.y, z: outer.minimum.z),
                 maximum: outer.maximum,
                 to: &cells
-            )
+            , using: &execution)
             try appendCell(
                 minimum: Point3D(x: hole.minimum.x, y: outer.minimum.y, z: outer.minimum.z),
                 maximum: Point3D(x: hole.maximum.x, y: hole.minimum.y, z: outer.maximum.z),
                 to: &cells
-            )
+            , using: &execution)
             try appendCell(
                 minimum: Point3D(x: hole.minimum.x, y: hole.maximum.y, z: outer.minimum.z),
                 maximum: Point3D(x: hole.maximum.x, y: outer.maximum.y, z: outer.maximum.z),
                 to: &cells
-            )
+            , using: &execution)
             return cells
         }
     }
@@ -153,7 +166,8 @@ struct OrthogonalBooleanFacePatchBuilder {
         minimum: Point3D,
         maximum: Point3D,
         to cells: inout [AxisAlignedBox]
-    ) throws {
+    , using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         guard maximum.x - minimum.x > tolerance.distance,
               maximum.y - minimum.y > tolerance.distance,
               maximum.z - minimum.z > tolerance.distance else {
@@ -166,21 +180,25 @@ struct OrthogonalBooleanFacePatchBuilder {
         ))
     }
 
-    private func makeGrid(from cells: [AxisAlignedBox]) throws -> Grid {
+    private func makeGrid(from cells: [AxisAlignedBox], using execution: inout OriginalQueryExecution) throws -> Grid {
+        try execution.consumeWork(1)
         guard cells.isEmpty == false else {
             throw FeatureEvaluationError.emptyResult(
                 "Orthogonal Boolean face-patch generation requires occupied cells."
             )
         }
-        let x = deduplicatedCoordinates(cells.flatMap { [$0.minimum.x, $0.maximum.x] })
-        let y = deduplicatedCoordinates(cells.flatMap { [$0.minimum.y, $0.maximum.y] })
-        let z = deduplicatedCoordinates(cells.flatMap { [$0.minimum.z, $0.maximum.z] })
+        let x = try deduplicatedCoordinates(cells.flatMap { [$0.minimum.x, $0.maximum.x] }, using: &execution)
+        let y = try deduplicatedCoordinates(cells.flatMap { [$0.minimum.y, $0.maximum.y] }, using: &execution)
+        let z = try deduplicatedCoordinates(cells.flatMap { [$0.minimum.z, $0.maximum.z] }, using: &execution)
         guard x.count >= 2, y.count >= 2, z.count >= 2 else {
             throw FeatureEvaluationError.emptyResult(
                 "Orthogonal Boolean coordinate grid collapsed."
             )
         }
-        let intervalCount = (x.count - 1) * (y.count - 1) * (z.count - 1)
+        let xyCount = (x.count - 1).multipliedReportingOverflow(by: y.count - 1)
+        let xyzCount = xyCount.partialValue.multipliedReportingOverflow(by: z.count - 1)
+        guard !xyCount.overflow, !xyzCount.overflow else { throw ExactScalarFailure.countOverflow }
+        let intervalCount = xyzCount.partialValue
         guard intervalCount <= 1_000_000 else {
             throw KernelError(
                 phase: .topology,
@@ -191,15 +209,18 @@ struct OrthogonalBooleanFacePatchBuilder {
         }
         var occupied = Set<CellKey>()
         for xIndex in 0..<(x.count - 1) {
+            try execution.consumeWork(1)
             for yIndex in 0..<(y.count - 1) {
+            try execution.consumeWork(1)
                 for zIndex in 0..<(z.count - 1) {
+            try execution.consumeWork(1)
                     let center = Point3D(
                         x: (x[xIndex] + x[xIndex + 1]) * 0.5,
                         y: (y[yIndex] + y[yIndex + 1]) * 0.5,
                         z: (z[zIndex] + z[zIndex + 1]) * 0.5
                     )
                     if cells.contains(where: { $0.contains(center) }) {
-                        occupied.insert(CellKey(x: xIndex, y: yIndex, z: zIndex))
+                        try OriginalParameterQueryStorage.insert(CellKey(x: xIndex, y: yIndex, z: zIndex), in: &occupied, using: &execution)
                     }
                 }
             }
@@ -207,23 +228,28 @@ struct OrthogonalBooleanFacePatchBuilder {
         return Grid(x: x, y: y, z: z, occupied: occupied)
     }
 
-    private func connectedComponents(in grid: Grid) -> [Set<CellKey>] {
+    private func connectedComponents(in grid: Grid, using execution: inout OriginalQueryExecution) throws -> [Set<CellKey>] {
+        try execution.consumeWork(1)
+        try execution.retainKernelValues(count: grid.occupied.count, stride: MemoryLayout<CellKey>.stride)
         var remaining = grid.occupied
         var result: [Set<CellKey>] = []
         while let seed = remaining.min() {
+            try execution.consumeWork(1)
             var component = Set<CellKey>()
             var frontier = [seed]
             remaining.remove(seed)
             while let cell = frontier.popLast() {
-                component.insert(cell)
+            try execution.consumeWork(1)
+                try OriginalParameterQueryStorage.insert(cell, in: &component, using: &execution)
                 for direction in Direction.allCases {
+            try execution.consumeWork(1)
                     let neighbor = cell.moved(direction.offset)
                     if remaining.remove(neighbor) != nil {
-                        frontier.append(neighbor)
+                        try OriginalParameterQueryStorage.append(neighbor, to: &frontier, using: &execution)
                     }
                 }
             }
-            result.append(component)
+            try OriginalParameterQueryStorage.append(component, to: &result, using: &execution)
         }
         return result
     }
@@ -231,14 +257,18 @@ struct OrthogonalBooleanFacePatchBuilder {
     private func boundaryShells(
         components: [Set<CellKey>],
         grid: Grid
-    ) throws -> BoundaryShellResult {
-        let emptyRegionByCell = emptyRegions(in: grid)
+    , using execution: inout OriginalQueryExecution) throws -> BoundaryShellResult {
+        try execution.consumeWork(1)
+        let emptyRegionByCell = try emptyRegions(in: grid, using: &execution)
         var shells: [BRepSewingShell] = []
         var solidComponents: [BRepSewingSolidComponent] = []
         for (componentIndex, component) in components.enumerated() {
+            try execution.consumeWork(1)
             var planeGroupsByRegion: [EmptyRegionKey: [PlaneKey: Set<CellKey>]] = [:]
             for cell in component.sorted() {
+            try execution.consumeWork(1)
                 for direction in Direction.allCases {
+            try execution.consumeWork(1)
                     let neighbor = cell.moved(direction.offset)
                     guard grid.occupied.contains(neighbor) == false else { continue }
                     let region: EmptyRegionKey
@@ -279,12 +309,13 @@ struct OrthogonalBooleanFacePatchBuilder {
                     planeGroups: outerPlaneGroups,
                     grid: grid,
                     faceOrientation: .forward
-                )
+                , using: &execution)
             ))
 
             let voidRegions = planeGroupsByRegion.keys.filter { $0 != .exterior }.sorted()
             var voidStableIDs: [String] = []
             for (voidIndex, voidRegion) in voidRegions.enumerated() {
+            try execution.consumeWork(1)
                 guard let voidPlaneGroups = planeGroupsByRegion[voidRegion] else { continue }
                 let voidStableID = "\(outerStableID):void:\(voidIndex)"
                 shells.append(BRepSewingShell(
@@ -294,7 +325,7 @@ struct OrthogonalBooleanFacePatchBuilder {
                         planeGroups: voidPlaneGroups,
                         grid: grid,
                         faceOrientation: .reversed
-                    ),
+                    , using: &execution),
                     orientation: .reversed
                 ))
                 voidStableIDs.append(voidStableID)
@@ -310,27 +341,34 @@ struct OrthogonalBooleanFacePatchBuilder {
         )
     }
 
-    private func emptyRegions(in grid: Grid) -> [CellKey: EmptyRegionKey] {
+    private func emptyRegions(in grid: Grid, using execution: inout OriginalQueryExecution) throws -> [CellKey: EmptyRegionKey] {
+        try execution.consumeWork(1)
         var remaining = Set<CellKey>()
         for x in 0..<(grid.x.count - 1) {
+            try execution.consumeWork(1)
             for y in 0..<(grid.y.count - 1) {
+            try execution.consumeWork(1)
                 for z in 0..<(grid.z.count - 1) {
+            try execution.consumeWork(1)
                     let cell = CellKey(x: x, y: y, z: z)
                     if grid.occupied.contains(cell) == false {
-                        remaining.insert(cell)
+                        try OriginalParameterQueryStorage.insert(cell, in: &remaining, using: &execution)
                     }
                 }
             }
         }
         var result: [CellKey: EmptyRegionKey] = [:]
         while let seed = remaining.min() {
+            try execution.consumeWork(1)
             var regionCells = Set<CellKey>()
             var frontier = [seed]
             var reachesExterior = false
             remaining.remove(seed)
             while let cell = frontier.popLast() {
-                regionCells.insert(cell)
+            try execution.consumeWork(1)
+                try OriginalParameterQueryStorage.insert(cell, in: &regionCells, using: &execution)
                 for direction in Direction.allCases {
+            try execution.consumeWork(1)
                     let neighbor = cell.moved(direction.offset)
                     guard grid.contains(neighbor) else {
                         reachesExterior = true
@@ -340,14 +378,15 @@ struct OrthogonalBooleanFacePatchBuilder {
                           remaining.remove(neighbor) != nil else {
                         continue
                     }
-                    frontier.append(neighbor)
+                    try OriginalParameterQueryStorage.append(neighbor, to: &frontier, using: &execution)
                 }
             }
             let key: EmptyRegionKey = reachesExterior
                 ? .exterior
                 : .enclosed(regionCells.min() ?? seed)
             for cell in regionCells {
-                result[cell] = key
+            try execution.consumeWork(1)
+                try OriginalParameterQueryStorage.set(key, for: cell, in: &result, using: &execution)
             }
         }
         return result
@@ -357,11 +396,14 @@ struct OrthogonalBooleanFacePatchBuilder {
         componentIndex: Int,
         component: Set<CellKey>,
         grid: Grid
-    ) throws -> [BRepSewingFacePatch] {
+    , using execution: inout OriginalQueryExecution) throws -> [BRepSewingFacePatch] {
+        try execution.consumeWork(1)
         var planeGroups: [PlaneKey: Set<CellKey>] = [:]
         for cell in component.sorted() {
+            try execution.consumeWork(1)
             for direction in Direction.allCases where
                 grid.occupied.contains(cell.moved(direction.offset)) == false {
+                try execution.consumeWork(1)
                 let key = PlaneKey(
                     direction: direction,
                     coordinate: direction.planeCoordinate(for: cell)
@@ -373,7 +415,7 @@ struct OrthogonalBooleanFacePatchBuilder {
             stablePrefix: "orthogonal:component:\(componentIndex)",
             planeGroups: planeGroups,
             grid: grid
-        )
+        , using: &execution)
     }
 
     private func patches(
@@ -381,14 +423,16 @@ struct OrthogonalBooleanFacePatchBuilder {
         planeGroups: [PlaneKey: Set<CellKey>],
         grid: Grid,
         faceOrientation: Orientation = .forward
-    ) throws -> [BRepSewingFacePatch] {
+    , using execution: inout OriginalQueryExecution) throws -> [BRepSewingFacePatch] {
+        try execution.consumeWork(1)
         var result: [BRepSewingFacePatch] = []
         for plane in planeGroups.keys.sorted() {
+            try execution.consumeWork(1)
             guard let faceCells = planeGroups[plane] else { continue }
-            for (regionIndex, region) in connectedFaceRegions(
+            for (regionIndex, region) in try connectedFaceRegions(
                 faceCells,
                 direction: plane.direction
-            ).enumerated() {
+            , using: &execution).enumerated() {
                 result.append(try patch(
                     stablePrefix: stablePrefix,
                     plane: plane,
@@ -396,7 +440,7 @@ struct OrthogonalBooleanFacePatchBuilder {
                     cells: region,
                     grid: grid,
                     faceOrientation: faceOrientation
-                ))
+                , using: &execution))
             }
         }
         return result
@@ -405,23 +449,28 @@ struct OrthogonalBooleanFacePatchBuilder {
     private func connectedFaceRegions(
         _ cells: Set<CellKey>,
         direction: Direction
-    ) -> [Set<CellKey>] {
+    , using execution: inout OriginalQueryExecution) throws -> [Set<CellKey>] {
+        try execution.consumeWork(1)
+        try execution.retainKernelValues(count: cells.count, stride: MemoryLayout<CellKey>.stride)
         var remaining = cells
         var result: [Set<CellKey>] = []
         while let seed = remaining.min() {
+            try execution.consumeWork(1)
             var region = Set<CellKey>()
             var frontier = [seed]
             remaining.remove(seed)
             while let cell = frontier.popLast() {
-                region.insert(cell)
+            try execution.consumeWork(1)
+                try OriginalParameterQueryStorage.insert(cell, in: &region, using: &execution)
                 for offset in direction.planarOffsets {
+            try execution.consumeWork(1)
                     let neighbor = cell.moved(offset)
                     if remaining.remove(neighbor) != nil {
-                        frontier.append(neighbor)
+                        try OriginalParameterQueryStorage.append(neighbor, to: &frontier, using: &execution)
                     }
                 }
             }
-            result.append(region)
+            try OriginalParameterQueryStorage.append(region, to: &result, using: &execution)
         }
         return result
     }
@@ -433,7 +482,8 @@ struct OrthogonalBooleanFacePatchBuilder {
         cells: Set<CellKey>,
         grid: Grid,
         faceOrientation: Orientation
-    ) throws -> BRepSewingFacePatch {
+    , using execution: inout OriginalQueryExecution) throws -> BRepSewingFacePatch {
+        try execution.consumeWork(1)
         let stableID = [
             stablePrefix,
             "face", plane.direction.rawValue,
@@ -444,7 +494,7 @@ struct OrthogonalBooleanFacePatchBuilder {
             for: cells,
             direction: plane.direction,
             grid: grid
-        )
+        , using: &execution)
         guard let outerCycle = cycles.first(where: { $0.role == .outer }),
               let originKey = outerCycle.vertices.first else {
             throw KernelError(
@@ -465,7 +515,7 @@ struct OrthogonalBooleanFacePatchBuilder {
                     start: cycle.vertices[edgeIndex].point(in: grid),
                     end: cycle.vertices[(edgeIndex + 1) % cycle.vertices.count].point(in: grid),
                     surface: surface
-                )
+                , using: &execution)
             }
             return BRepSewingLoop(
                 stableID: "\(stableID):loop:\(loopIndex)",
@@ -485,11 +535,14 @@ struct OrthogonalBooleanFacePatchBuilder {
         for cells: Set<CellKey>,
         direction: Direction,
         grid: Grid
-    ) throws -> [BoundaryCycle] {
+    , using execution: inout OriginalQueryExecution) throws -> [BoundaryCycle] {
+        try execution.consumeWork(1)
         var boundary: [UndirectedEdgeKey: DirectedEdge] = [:]
         for cell in cells.sorted() {
+            try execution.consumeWork(1)
             let corners = direction.cornerKeys(cell: cell)
             for index in corners.indices {
+            try execution.consumeWork(1)
                 let edge = DirectedEdge(
                     start: corners[index],
                     end: corners[(index + 1) % corners.count]
@@ -501,7 +554,7 @@ struct OrthogonalBooleanFacePatchBuilder {
                     }
                     boundary.removeValue(forKey: key)
                 } else {
-                    boundary[key] = edge
+                    try OriginalParameterQueryStorage.set(edge, for: key, in: &boundary, using: &execution)
                 }
             }
         }
@@ -515,16 +568,19 @@ struct OrthogonalBooleanFacePatchBuilder {
         }
         var outgoing: [VertexKey: VertexKey] = [:]
         for edge in boundary.values {
+            try execution.consumeWork(1)
             guard outgoing[edge.start] == nil else {
                 throw nonManifoldPlanarRegionError()
             }
-            outgoing[edge.start] = edge.end
+            try OriginalParameterQueryStorage.set(edge.end, for: edge.start, in: &outgoing, using: &execution)
         }
         var cycles: [BoundaryCycle] = []
         while let seed = outgoing.keys.min() {
+            try execution.consumeWork(1)
             var vertices = [seed]
             var current = seed
             while true {
+            try execution.consumeWork(1)
                 guard let next = outgoing.removeValue(forKey: current) else {
                     throw nonManifoldPlanarRegionError()
                 }
@@ -532,10 +588,10 @@ struct OrthogonalBooleanFacePatchBuilder {
                 guard vertices.contains(next) == false else {
                     throw nonManifoldPlanarRegionError()
                 }
-                vertices.append(next)
+                try OriginalParameterQueryStorage.append(next, to: &vertices, using: &execution)
                 current = next
             }
-            vertices = simplifiedCycle(vertices)
+            vertices = try simplifiedCycle(vertices, using: &execution)
             guard vertices.count >= 4 else {
                 throw KernelError(
                     phase: .topology,
@@ -548,7 +604,7 @@ struct OrthogonalBooleanFacePatchBuilder {
                 of: vertices,
                 direction: direction,
                 grid: grid
-            )
+            , using: &execution)
             guard abs(signedArea) > tolerance.distance * tolerance.distance else {
                 throw KernelError(
                     phase: .topology,
@@ -572,12 +628,16 @@ struct OrthogonalBooleanFacePatchBuilder {
         }
     }
 
-    private func simplifiedCycle(_ vertices: [VertexKey]) -> [VertexKey] {
+    private func simplifiedCycle(_ vertices: [VertexKey], using execution: inout OriginalQueryExecution) throws -> [VertexKey] {
+        try execution.consumeWork(1)
+        try execution.retainKernelValues(count: vertices.count, stride: MemoryLayout<VertexKey>.stride)
         var result = vertices
         var changed = true
         while changed, result.count > 4 {
+            try execution.consumeWork(1)
             changed = false
             for index in result.indices {
+            try execution.consumeWork(1)
                 let previous = result[(index + result.count - 1) % result.count]
                 let current = result[index]
                 let next = result[(index + 1) % result.count]
@@ -608,10 +668,11 @@ struct OrthogonalBooleanFacePatchBuilder {
         of vertices: [VertexKey],
         direction: Direction,
         grid: Grid
-    ) throws -> Double {
-        try AdaptivePlanarPredicateEvaluator().certifiedSignedArea(
+    , using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
+        return try AdaptivePlanarPredicateEvaluator().certifiedSignedArea(
             of: vertices.map { direction.planarPoint($0.point(in: grid)) },
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
     }
 
@@ -629,12 +690,13 @@ struct OrthogonalBooleanFacePatchBuilder {
         start: Point3D,
         end: Point3D,
         surface: Surface3D
-    ) throws -> BRepSewingEdge {
+    , using execution: inout OriginalQueryExecution) throws -> BRepSewingEdge {
+        try execution.consumeWork(1)
         let delta = end - start
         let length = delta.length
         let direction = try delta.normalized(tolerance: tolerance.distance)
-        let startUV = try surface.parameterProjection(of: start, tolerance: tolerance)
-        let endUV = try surface.parameterProjection(of: end, tolerance: tolerance)
+        let startUV = try surface.parameterProjection(of: start, tolerance: tolerance, using: &execution)
+        let endUV = try surface.parameterProjection(of: end, tolerance: tolerance, using: &execution)
         let pcurve: SurfaceParameterCurve
         if abs(startUV.u - endUV.u) <= tolerance.distance {
             pcurve = .constantU(u: startUV.u, vStart: startUV.v, vEnd: endUV.v)
@@ -661,10 +723,12 @@ struct OrthogonalBooleanFacePatchBuilder {
 
     func topologySlots(
         from stableReferences: [BRepSewingStableKey: TopologyReference]
-    ) -> [BooleanEvaluationTopologySlot] {
+    , using execution: inout OriginalQueryExecution) throws -> [BooleanEvaluationTopologySlot] {
+        try execution.consumeWork(1)
         var result: [BooleanEvaluationTopologySlot] = []
         var publishedReferences = Set<TopologyReference>()
-        for key in sortedStableKeys(stableReferences.keys) {
+        for key in try sortedStableKeys(stableReferences.keys, using: &execution) {
+            try execution.consumeWork(1)
             guard let reference = stableReferences[key],
                   publishedReferences.insert(reference).inserted else {
                 continue
@@ -695,10 +759,12 @@ struct OrthogonalBooleanFacePatchBuilder {
         }
     }
 
-    private func sortedStableKeys<S: Sequence>(
+    private func sortedStableKeys<S: Collection>(
         _ keys: S
-    ) -> [BRepSewingStableKey] where S.Element == BRepSewingStableKey {
-        keys.sorted { stableSortKey($0) < stableSortKey($1) }
+    , using execution: inout OriginalQueryExecution) throws -> [BRepSewingStableKey] where S.Element == BRepSewingStableKey {
+        try execution.consumeWork(1)
+        try execution.retainKernelValues(count: keys.count, stride: MemoryLayout<BRepSewingStableKey>.stride)
+        return try OriginalParameterQueryStorage.ordered(Array(keys), using: &execution, less: { stableSortKey($0) < stableSortKey($1) })
     }
 
     private func stableSortKey(_ key: BRepSewingStableKey) -> String {
@@ -716,9 +782,11 @@ struct OrthogonalBooleanFacePatchBuilder {
         }
     }
 
-    private func deduplicatedCoordinates(_ values: [Double]) -> [Double] {
+    private func deduplicatedCoordinates(_ values: [Double], using execution: inout OriginalQueryExecution) throws -> [Double] {
+        try execution.consumeWork(1)
         var result: [Double] = []
         for value in values.sorted() {
+            try execution.consumeWork(1)
             if result.last.map({ abs($0 - value) <= tolerance.distance }) != true {
                 result.append(value)
             }

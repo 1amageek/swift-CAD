@@ -24,6 +24,45 @@ they do not authorize adapter-based unification. Migration must change actual
 owners/callers and remove duplicate preparation and obsolete execution paths
 after verification. Documentation or a renamed wrapper is not completion.
 
+### Direct Public Failure Contract
+
+CADCore owns KernelFailureClassifying with the kernelFailure classification
+requirement; KernelError itself conforms without changing its stored fields,
+Equatable or Codable contract. Geometry owns OriginalQueryFailure and its
+immutable OriginalQueryFailureContext, retaining the incoming original Error,
+operation/entry/stage, ordered source roles, requested or retained scopes and
+axis-specific independently known/unknown resource observations. Lower scalar,
+root, domain and relation typed failures remain independent of CADCore.
+
+Existing source binding and parameter selection owners are retained through
+readonly handles. Context capture does not fetch/copy whole source values,
+materialize parameter arrays, create a chart or issue new evidence after failure.
+The execution/stage owner establishes context before fallible work. A more
+concrete inner context is preserved when an outer boundary classifies the cause.
+Normalization inspects typed causes only to classify or detect cancellation;
+it does not discard the incoming error. Nested cancellation is published as
+CancellationError and is never wrapped. Opaque callback counters stay unknown.
+
+Actual public callers use `OriginalQueryFailure.classification(of:)` to read
+the concrete retained failure or Core `KernelError`, then rethrow the original
+error. Statically known classified failures use the Core refined-existential
+requirement overload. Neither path dynamically casts to a protocol existential, which
+Embedded Swift cannot support. The concrete reader preserves the same
+classification on all targets; unrecognized foreign errors remain unclassified. KernelError.wrapping is a classification snapshot,
+not a context-preserving throw operation. Final publication allocation/checkpoint
+and prepared creation use the same failure contract. This is an explicit public
+failure-type migration; obsolete concrete catches are migrated rather than kept
+as duplicate compatibility paths.
+
+Embedded clients consume serialized Swift library modules and generate the
+required Swift code in the client, following the [Embedded library model](https://docs.swift.org/main/documentation/embeddedswift/libraries/).
+A verification link must not add standalone pure Swift library code objects to
+those imported serialized modules. Public failure verification exercises a real
+refused query through the full Geometry module, checking the retained original
+cause, classification and work/storage axis at the client. Classification and
+cancellation semantics do not depend on duplicate library code or a synthetic
+local error-box primer.
+
 ## Related Designs
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
@@ -47,6 +86,26 @@ flowchart LR
 ```
 
 ## Contracts and Invariants
+
+### Direct bounded sphere-cone finite cuts
+
+Ordinary, admitted and prepared SSI publication consumes the complete finite
+cut owned by [NativeExactRelations](../NativeExactRelations/DESIGN.md#retained-bounded-sphere-cone-finite-cuts).
+The producer forwards the caller's tolerance and the same concrete
+`OriginalQueryExecution`; it does not create a second scalar allowance or
+restart the original intersection. Empty publication retains the complete
+exclusion receipt. Nonempty publication retains the implicit boundary root,
+original Cartesian law, both UV pairs and every selected/excluded source cell.
+Exact authored binary64 cone-U queries and the symbolic endpoint are separate
+inputs. General algebraic ordering against an implicit endpoint remains an
+explicit incomplete capability rather than a fabricated scalar value.
+
+Preparation retains the original pair and supports independent query admissions.
+Proof readers readmit source, value, coefficient and geometric depth separately;
+source release does not invalidate the retained result. The first delivery
+requires the excluded singleton and wide nonempty cut in both source orders,
+plus preservation of the previously selected finite arc. This limited unit
+does not complete all bounded/open/apex families or the whole SSI requirement.
 
 ### Ordinary retained Coons and plane SSI
 
@@ -312,8 +371,10 @@ public cells are regressions. General correction atlases, pcurves and plane
 bases remain separate open capabilities. This routing adds no shared mutable
 state, target-specific branch, unsafe owner or buffer copy.
 
-Work-budget edges remain owned by the unchanged `NativeExactPublicAdmission`
-and `NativeCurveSurfacePointAllowance` contracts and their admitted evidence.
+Work-budget edges use the same caller-owned [direct execution](../OriginalQueryExecution/DESIGN.md)
+through source, DI, arithmetic and publication. Historical allowance evidence
+remains scoped to the snapshot on which it ran; direct execution needs its own
+behavioral gate.
 Whole-query work is not specified as deterministic: repeated actual corrected
 queries have different totals even after a warmup and with fresh inputs. A
 previous run's total therefore cannot define the next run's exact work boundary.
@@ -377,10 +438,10 @@ prove it bounds representative mismatch and never establish contact existence.
 
 ## Existing Caller Admission Migration
 
-Ordinary and callback entry composition uses an invocation-local adapter of the
-existing NativeCurveSurfacePointAllowance / SSI allowance. The L0 required cell
-visit port forwards value and coefficient visits to the same existing cumulative
-cell counter after lower causal-depth mapping. `admitDepth` checks depth only and
+Ordinary and admitted entry composition passes the original caller execution.
+The L0 required cell visit port admits value and coefficient visits against the
+same cumulative budget and exclusive local cell counter after lower causal-depth
+mapping. `admitDepth` checks depth only and
 does not consume cells. Checked bytes-to-UInt32-word rounding preserves the old
 storage policy. Source/decomposition/root/result caps remain independent.
 
@@ -547,8 +608,7 @@ relations; bare results refuse them. Candidate counts bound selected cells,
 components and isolated contacts before numerical materialization.
 
 All source preparation, both domain covers, one graph solve, publication scratch
-and output reservations use the existing `NativeExactPublicAdmission` and
-`NativeCurveSurfacePointAllowance`. Caller work, storage, visits, source/value/
+and output reservations use the original caller execution directly. Caller work, storage, visits, source/value/
 coefficient depths, chart, degree and candidate ceilings are unchanged. A final
 checkpoint follows result reservation. No shared mutable state, target-specific
 ownership, source fitting or unchecked authority conversion is introduced.
@@ -670,7 +730,7 @@ is preserved. The source/selection theorem, rather than an empty candidate
 array, proves the result complete. There is no unchecked initializer or Boolean
 callback that can approve completeness.
 
-The producer reuses NativeExactPublicAdmission and the existing failure mapper,
+The producer receives the original caller execution and uses the failure mapper,
 never resets work/storage/depth/cancel limits, charges new output storage before
 allocation and checks cancellation immediately before returning even an empty
 result. Later reader queries re-admit retained proof/selection under independent
@@ -791,10 +851,9 @@ all positive-dimensional flags are false. The owner, rather than empty arrays,
 proves completeness. Its checked internal factory and private initializer prevent
 unchecked publication authority.
 
-One `NativeExactPublicAdmission<NativeCurveSurfacePointAllowance>` owns all
+The original caller execution directly admits all
 binding, source proof, DI selection, output allocation and the final cancellation
-checkpoint. It keeps existing work/storage/depth/candidate limits and invocation
-callbacks. Later proof queries use explicit independent admissions. All retained
+checkpoint. It keeps existing work/storage/depth/candidate limits and the caller budget callbacks. Later proof queries use explicit independent admissions. All retained
 state is immutable Sendable, with no target-specific state or isolation branch.
 Verification owns actual standard/callback bare/rich empty behavior, exact
 requested/effective domains, capability decline, selected typed failures,
@@ -1096,3 +1155,10 @@ remain deprecated data forms. The live full/bounded publishers use the complete
 inverse case. Consumers retain the condition rather than evaluating raw atan2
 without its nonzero guard. This avoids demanding an unnecessary per-member
 pole classification before publishing the source's already complete inverse.
+
+The concrete classification entry point emits its body into the caller. Fixed Embedded Swift error-box metadata is established
+where the error is boxed; keeping those concrete casts at that caller boundary
+preserves discovery of the retained failure. This changes neither error storage
+nor shared-state synchronization. The common four-target runtime fixture checks
+the original typed cause and immutable context after publication, beyond link
+success.

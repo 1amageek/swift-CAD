@@ -38,3 +38,11 @@ The unbounded or periodic face extent comes from CADTopology FaceParameterExtent
 Foreign original-image charts first map the complete original face extent to their source chart. Untrim constructs native bounded-domain, periodic, and cone-apex patches recursively, then retains every original lift through OriginalImageSurfaceParameterCurve. Signed gains and axis exchange determine UV loop direction; they do not substitute rounded foreign coordinates for original singularity. Model-space endpoints come from the retained lift's original spatial image, never an inverse-UV roundtrip. Nested images preserve this same structural binding at each layer.
 
 Original affine operation word supports have unchanged native UV. Untrim recurses into the retained source support with the same full extent, constructs its native pole/apex/periodic patches, and wraps every original source lift with the identical target word. Word factors never become a rounded support or a foreign inverse chart, and the existing face orientation remains the target face authority.
+
+The native Kernel binding gate requires the existing actual consumer body to
+borrow OriginalQueryExecution through changed containment, arrangement, source
+validation and scalar readers. Ordinary operation entries root once. Pure
+structural/interpolation helpers keep their existing signatures; throwing
+topology getters propagate failure. Existing formulas, ordering, selected domains
+and independent local ceilings remain authoritative. This is API/caller repair,
+not new feature or whole-resource completion evidence.

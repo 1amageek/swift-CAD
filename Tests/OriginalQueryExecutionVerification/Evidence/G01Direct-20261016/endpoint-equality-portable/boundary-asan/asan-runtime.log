@@ -1,0 +1,5 @@
+PASS native boundary whole closed laws
+PASS native boundary exact payload and map refusal
+PASS native boundary caller resources and lifetime
+PASS native boundary cancellation
+PASS native boundary portable all

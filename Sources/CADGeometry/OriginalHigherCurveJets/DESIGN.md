@@ -18,7 +18,7 @@ The caller supplies span, subdivision, source-depth and cumulative work admissio
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
 | [CADGeometry](../DESIGN.md) | parent | native and implicit source charts | Composes original derivatives. | One-sided joins require original continuity. |
-| [Surface Silhouette](../SurfaceSilhouette/DESIGN.md) | depends on | requested-order original surface Taylor coefficients | Supplies exact derivative order for implicit composition. | Pass the same caller admission and callback. |
+| [Surface Silhouette](../SurfaceSilhouette/DESIGN.md) | depends on | requested-order original surface Taylor coefficients | Supplies exact derivative order for implicit composition. | Pass the same caller execution. |
 | [Surface Area Integration](../SurfaceAreaIntegration/DESIGN.md) | depends on | interval Taylor algebra | Factorial-scaled composition and reciprocal arithmetic. | No independent proof allowance. |
 
 ## Architecture
@@ -84,7 +84,7 @@ platform-dependent synchronization is added.
 
 ## Failure, Concurrency, and Constraints
 
-All loops check cancellation and debit the caller work callback. The caller owns
+All loops check cancellation and debit the caller direct execution. The caller owns
 maximum native spans, subdivision depth and source recursion depth; lower work
 never increases them. Unproved smooth joins, singular Jacobians, nonpositive
 rational denominators and unsupported original chart laws fail explicitly.
@@ -112,7 +112,7 @@ orders, exact original homogeneous quotient derivatives on the left and right
 are evaluated at the shared original station. Every XYZ difference crossproduct
 must be exactly zero. Periodic seams compare both actual original end stations
 and require exact stored translated-knot equality separately. Exact preparation,
-scalar operations and retained slots debit the same caller work callback; no
+scalar operations and retained slots debit the same caller direct execution; no
 independent exact-algebra allowance is introduced.
 
 Implicit closed value and one-sided derivative queries may select an original
@@ -129,7 +129,7 @@ avoids amplifying native station rounding in arbitrarily narrow admitted spans.
 Bounded implicit preparation retains caller span, subdivision and source-depth
 capabilities and forwards optional retained-byte admission into both prepared
 source surfaces. Every state preparation, restriction and advance accepts the
-same work callback, including source-binding comparisons and matrix rows.
+same execution, including source-binding comparisons and matrix rows.
 Original closed center-position bounds supply the Krawczyk residual; numerical
 centers choose only finite representatives. A subdivided higher-jet query passes
 its remaining depth to each nested surface operation. Query-temporary allocation
@@ -147,13 +147,13 @@ station atlas allocations.
 
 Requested-order ideal line, circle, circular arc and ellipse queries admit the
 original source through bounded validation and use the shared continuous
-canonical angular harmonic. The byte callback reserves each coefficient table
+canonical angular harmonic. The execution byte owner reserves each coefficient table
 and original derivative recurrence buffer before allocation. Parameter and
-spatial images forward the same callback into the source and every result table;
+spatial images forward the same execution into the source and every result table;
 word action uses exact final field extrema. Native nonperiodic queries forward
 bytes through the original owning cover, exact join law and Taylor scratch.
 Periodic native and implicit/lift byte paths retain explicit incomplete failure
-until their remaining allocations carry the same callback. No chart parameter
+until their remaining allocations carry the same execution. No chart parameter
 map or join continuity is inferred from these derivative coefficients.
 
 Requested-order original native and explicit analytic queries admit order zero and above. A value-only or first-order request does not demand C4 merely to satisfy an implementation entry point. Native joins prove only the requested order; higher implicit/lift composition keeps its actual lower order constraints and explicit failures.
@@ -199,7 +199,28 @@ uses that exact source value and the unchanged caller work, byte, source,
 subdivision and algebra admission. Standalone numeric 2D laws retain their
 independent original value contract without claiming surface containment.
 Native splines and continuations validate original controls/weights/knots under
-the same callback; polyline and finite scalar laws use their original bounded
+the same execution; polyline and finite scalar laws use their original bounded
 value producers. A hosting-dependent chart queried without a host fails with
 explicit unsupported capability. No invented plane or replacement support
 can authorize a source relation.
+
+## Direct Query Propagation
+
+Requested-order curve, implicit, native and parameter Taylor producers borrow
+`inout OriginalQueryExecution` throughout validation, source descent, coefficient
+construction and publication. Work/execution byte owners and reconstructed rational
+admissions are removed from this path. Explicit source/geometric policy retains
+its independent meaning; scalar and coefficient depth use direct proof scopes.
+The original source formulas, native owning cuts and unsupported completion
+gates remain those of their existing source owners.
+
+```text
+requested original order -> source owner -> coefficients / native cover
+                        -> same exclusive execution -> cumulative admission
+```
+
+Verification checks the actual requested-order Native and lifted paths, source
+refusal and independent resource/cancellation boundaries; typed signatures alone
+are not behavioral completion evidence.
+
+Cached original affine-word circular coefficients first consume their source owner's `admitCoefficientProof(using:)` port. Binary coefficient Taylor evaluation cannot replace the actual scalar proof depth retained by the normalized original word.

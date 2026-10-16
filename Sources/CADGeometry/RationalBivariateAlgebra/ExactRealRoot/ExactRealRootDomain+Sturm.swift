@@ -4,22 +4,22 @@ import L1
 #endif
 
 extension ExactRealRootDomain {
-    func degree(_ p: ExactPolynomial<F>, _ a: inout ExactRootBorrowedAdmission) throws -> Int? {
+    func degree<A: ExactScalarAdmission & ~Copyable>(_ p: ExactPolynomial<F>, _ a: inout A) throws -> Int? {
         try context.univariate.degree(of: p, in: 0, using: &a)
     }
-    func evaluated(_ p: ExactPolynomial<F>, _ x: F.Value, _ a: inout ExactRootBorrowedAdmission) throws -> F.Value {
+    func evaluated<A: ExactScalarAdmission & ~Copyable>(_ p: ExactPolynomial<F>, _ x: F.Value, _ a: inout A) throws -> F.Value {
         try ExactRootAccess.storage(1, F.Value.self, &a)
         let result = try context.univariate.evaluated(p, at: [x], using: &a)
         try ExactRootAccess.admit(result.depth, &a); return result.value
     }
-    func positiveUnitNormalized(_ law: ExactPolynomial<F>,
-        _ a: inout ExactRootBorrowedAdmission) throws -> ExactPolynomial<F> {
+    func positiveUnitNormalized<A: ExactScalarAdmission & ~Copyable>(_ law: ExactPolynomial<F>,
+        _ a: inout A) throws -> ExactPolynomial<F> {
         guard let leading = law.terms.first else { return law }
         let monic = try context.univariate.normalized(law, using: &a)
         return try context.field.sign(of: leading.coefficient, using: &a) == .negative
             ? context.univariate.negated(monic, using: &a) : monic
     }
-    func sturm(_ law: ExactPolynomial<F>, _ a: inout ExactRootBorrowedAdmission) throws -> ExactRootSturm<F> {
+    func sturm<A: ExactScalarAdmission & ~Copyable>(_ law: ExactPolynomial<F>, _ a: inout A) throws -> ExactRootSturm<F> {
         guard try degree(law, &a) != nil else { throw ExactRealRootFailure.invalidSource }
         let derivative = try context.univariate.differentiated(law, in: 0, using: &a)
         let repeated = try context.univariate.greatestCommonDivisor(law, derivative, using: &a)
@@ -43,10 +43,10 @@ extension ExactRealRootDomain {
             }
         }
         try ExactRootAccess.owner((ExactPolynomial<F>, [ExactPolynomial<F>], ExactScalarDepth).self, &a)
-        return ExactRootSturm(polynomial: p, chain: chain, depth: a.depth)
+        return ExactRootSturm(polynomial: p, chain: chain, depth: (try a.depth))
     }
-    func variations(_ proof: ExactRootSturm<F>, _ at: ExactRealRootBound<F.Value>,
-        _ a: inout ExactRootBorrowedAdmission) throws -> Int {
+    func variations<A: ExactScalarAdmission & ~Copyable>(_ proof: ExactRootSturm<F>, _ at: ExactRealRootBound<F.Value>,
+        _ a: inout A) throws -> Int {
         try ExactRootAccess.admit(proof.depth, &a)
         var previous = ExactSign.zero, result = 0
         for p in proof.chain {
@@ -67,13 +67,13 @@ extension ExactRealRootDomain {
         }
         return result
     }
-    func zeroAt(_ proof: ExactRootSturm<F>, _ bound: ExactRealRootBound<F.Value>,
-        _ a: inout ExactRootBorrowedAdmission) throws -> Bool {
+    func zeroAt<A: ExactScalarAdmission & ~Copyable>(_ proof: ExactRootSturm<F>, _ bound: ExactRealRootBound<F.Value>,
+        _ a: inout A) throws -> Bool {
         if case .finite(let x) = bound { return try context.field.sign(of: evaluated(proof.polynomial, x, &a), using: &a) == .zero }
         return false
     }
-    func roots(_ proof: ExactRootSturm<F>, _ domain: ExactRealRootInterval<F.Value>,
-        _ a: inout ExactRootBorrowedAdmission) throws -> Int {
+    func roots<A: ExactScalarAdmission & ~Copyable>(_ proof: ExactRootSturm<F>, _ domain: ExactRealRootInterval<F.Value>,
+        _ a: inout A) throws -> Int {
         try ExactRootAccess.admit(domain.depth, &a)
         if domain.isEmpty { return 0 }
         let left = try variations(proof, domain.lower, &a)
@@ -83,7 +83,7 @@ extension ExactRealRootDomain {
         if !domain.includesUpper { if try zeroAt(proof, domain.upper, &a) { result -= 1 } }
         guard result >= 0 else { throw ExactRealRootFailure.invalidEvidence }; return result
     }
-    func bound(_ p: ExactPolynomial<F>, _ a: inout ExactRootBorrowedAdmission) throws -> F.Value {
+    func bound<A: ExactScalarAdmission & ~Copyable>(_ p: ExactPolynomial<F>, _ a: inout A) throws -> F.Value {
         guard let lead = p.terms.first else { throw ExactRealRootFailure.invalidSource }
         let one = try context.field.integer(1, using: &a)
         var largest = try context.field.integer(0, using: &a)
@@ -95,8 +95,8 @@ extension ExactRealRootDomain {
         }
         return try context.field.adding(one, largest, using: &a)
     }
-    func finite(_ selected: ExactRealRootInterval<F.Value>, proof: ExactRootSturm<F>,
-        _ a: inout ExactRootBorrowedAdmission) throws -> ExactRealRootInterval<F.Value> {
+    func finite<A: ExactScalarAdmission & ~Copyable>(_ selected: ExactRealRootInterval<F.Value>, proof: ExactRootSturm<F>,
+        _ a: inout A) throws -> ExactRealRootInterval<F.Value> {
         if case .finite = selected.lower, case .finite = selected.upper {
             return try interval(selected.lower, selected.upper, selected.includesLower, selected.includesUpper, &a)
         }
@@ -114,8 +114,8 @@ extension ExactRealRootDomain {
         }
         return try interval(.finite(lo), .finite(hi), il, iu, &a)
     }
-    func split(_ domain: ExactRealRootInterval<F.Value>, axis: ExactScalarRootAxis,
-        _ a: inout ExactRootBorrowedAdmission) throws -> (ExactRealRootInterval<F.Value>, ExactRealRootInterval<F.Value>) {
+    func split<A: ExactScalarAdmission & ~Copyable>(_ domain: ExactRealRootInterval<F.Value>, axis: ExactScalarRootAxis,
+        _ a: inout A) throws -> (ExactRealRootInterval<F.Value>, ExactRealRootInterval<F.Value>) {
         guard case .finite(let lo) = domain.lower, case .finite(let hi) = domain.upper,
             try context.field.compare(lo, hi, using: &a) == .less else { throw ExactRealRootFailure.invalidEvidence }
         _ = try ExactRootAccess.step(domain.depth, axis: axis, &a)

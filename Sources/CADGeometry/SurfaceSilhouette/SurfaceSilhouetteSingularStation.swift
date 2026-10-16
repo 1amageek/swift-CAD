@@ -13,9 +13,12 @@ public struct SurfaceSilhouetteSingularStation: Sendable {
     public let spatialEnclosure: CoordinateEnclosure3D
     let originalCurve: OriginalSurfaceSilhouetteCurve
     public func writeOriginalProvenance(to sink: any SurfaceSilhouetteProvenanceWriting,
-        usage: inout SurfaceSilhouetteUsage) throws {
+        using execution: inout OriginalQueryExecution) throws {
+        try originalCurve.queryContext.withExecution(using: &execution) { execution in
         var emitter = SurfaceSilhouetteProvenanceEmitter(sink: sink)
-        try emitter.write(self, usage: &usage)
+        try emitter.write(self, usage: &execution)
+    
+        }
     }
 
 }

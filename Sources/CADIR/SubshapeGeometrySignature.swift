@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 public enum SubshapeGeometrySignature: Hashable, Sendable {
     case body(BodyGeometrySignature)
@@ -7,15 +8,21 @@ public enum SubshapeGeometrySignature: Hashable, Sendable {
     case face(FaceGeometrySignature)
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         switch self {
         case let .body(geometry):
-            try geometry.validate()
+            try geometry.validate(using: &execution)
         case let .vertex(point):
             try point.validate()
         case let .edge(geometry):
-            try geometry.validate()
+            try geometry.validate(using: &execution)
         case let .face(geometry):
-            try geometry.validate()
+            try geometry.validate(using: &execution)
         }
     }
 

@@ -10,8 +10,8 @@ public enum AssemblyPlacement: Equatable, Sendable {
 
     public static func translated(by offset: Vector3D) -> Self { .rigid(.translated(by: offset)) }
 
-    public func validate(tolerance: ModelingTolerance, maximumAlgebraicDepth: Int = 32, maximumSourceDepth: Int, consumeWork: @escaping () throws -> Void) throws {
-        try consumeWork()
+    public func validate(tolerance: ModelingTolerance, maximumAlgebraicDepth: Int = 32, maximumSourceDepth: Int, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         guard (0...32).contains(maximumAlgebraicDepth), maximumSourceDepth > 0 else {
             throw AssemblyError.invalidSource("Original placement algebra depth must be in 0...32.")
         }
@@ -20,12 +20,12 @@ public enum AssemblyPlacement: Equatable, Sendable {
             try frame.validate(tolerance: tolerance)
             guard !frame.reversesOrientation else { throw AssemblyError.invalidPlacement }
         case .affine(let transform):
-            _ = try transform.originalDeterminantSign(consumeWork: consumeWork)
+            _ = try transform.originalDeterminantSign(using: &execution)
         case .step(let source):
-            var admission = AssemblyPlacementSourceAdmission(maximumDepth: maximumAlgebraicDepth, consume: consumeWork)
-            try source.validateOriginal(tolerance: tolerance, maximumDepth: maximumAlgebraicDepth, maximumSourceDepth: maximumSourceDepth, usage: &admission)
+            try source.validateOriginal(tolerance: tolerance, maximumDepth: maximumAlgebraicDepth,
+                maximumSourceDepth: maximumSourceDepth, using: &execution)
         case .word(let word):
-            for factor in word.factors { try factor.validate(tolerance: tolerance, maximumAlgebraicDepth: maximumAlgebraicDepth, maximumSourceDepth: maximumSourceDepth, consumeWork: consumeWork) }
+            for factor in word.factors { try factor.validate(tolerance: tolerance, maximumAlgebraicDepth: maximumAlgebraicDepth, maximumSourceDepth: maximumSourceDepth, using: &execution) }
         }
     }
 

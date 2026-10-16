@@ -1,12 +1,12 @@
 extension OriginalSingularFieldRoot {
     /// Use the original rational sign authority whenever both retained laws are rational.
-    func rationalSign<B: RationalAlgebraAdmitting>(of expression: OriginalSingularFieldPolynomial,
+    func rationalSign<B: ExactScalarAdmission & ~Copyable>(of expression: OriginalSingularFieldPolynomial,
         maximumDepth: Int, usage: inout B) throws -> ExactAlgebraicRealRoot.Sign? {
         func rationalPolynomial(_ source: OriginalSingularFieldPolynomial,
             usage: inout B) throws -> ExactBivariatePolynomial? {
             var coefficients: [ExactBivariatePolynomial.Power: ExactRationalCoefficient] = [:]
             for (power, coefficient) in source.coefficients.enumerated() {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 guard let value = try coefficient.rationalValue(usage: &usage) else { return nil }
                 if value.isZero { continue }
                 try RationalAlgebraStorage.retain(1,
@@ -16,19 +16,19 @@ extension OriginalSingularFieldRoot {
             return ExactBivariatePolynomial(coefficients)
         }
         guard let evaluated = try rationalPolynomial(expression, usage: &usage) else { return nil }
-        var admission = OriginalScalarRootDomainAdmission(base: usage, domain: admissionDomain)
-        defer { usage = admission.base }
-        guard let issued = try retainedRationalRoot ?? rationalAuthority(usage: &admission) else { return nil }
-        let retained = try issued.retainingIsolation(.init(lower: isolation.lower, upper: isolation.upper,
-            isRationalStation: isolation.lower == isolation.upper, isolationDepth: isolation.depth,
-            excludesLowerEndpoint: isolation.excludesLower, excludesUpperEndpoint: isolation.excludesUpper), usage: &admission)
-        return try retained.sign(of: evaluated, maximumDepth: maximumDepth, usage: &admission)
+        return try usage.withProofScope(valueAxis: admissionDomain.axis) { usage in
+            guard let issued = try retainedRationalRoot ?? rationalAuthority(usage: &usage) else { return nil }
+            let retained = try issued.retainingIsolation(.init(lower: isolation.lower, upper: isolation.upper,
+                isRationalStation: isolation.lower == isolation.upper, isolationDepth: isolation.depth,
+                excludesLowerEndpoint: isolation.excludesLower, excludesUpperEndpoint: isolation.excludesUpper), usage: &usage)
+            return try retained.sign(of: evaluated, maximumDepth: maximumDepth, usage: &usage)
+        }
     }
 
-    func rationalAuthority<B: RationalAlgebraAdmitting>(usage: inout B) throws -> ExactAlgebraicRealRoot? {
+    func rationalAuthority<B: ExactScalarAdmission & ~Copyable>(usage: inout B) throws -> ExactAlgebraicRealRoot? {
         var coefficients: [ExactBivariatePolynomial.Power: ExactRationalCoefficient] = [:]
         for (power, coefficient) in polynomial.coefficients.enumerated() {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             guard let value = try coefficient.rationalValue(usage: &usage) else { return nil }
             if value.isZero { continue }
             try RationalAlgebraStorage.retain(1,
@@ -42,27 +42,27 @@ extension OriginalSingularFieldRoot {
     }
 
     /// Reuses rational Newton localization without changing the retained original field law.
-    func rationalRefinedOnce<B: RationalAlgebraAdmitting>(maximumDepth: Int, forSeparation: Bool,
+    func rationalRefinedOnce<B: ExactScalarAdmission & ~Copyable>(maximumDepth: Int, forSeparation: Bool,
         usage: inout B) throws -> Self? {
-        var admission = OriginalScalarRootDomainAdmission(base: usage, domain: admissionDomain)
-        defer { usage = admission.base }
-        guard let issued = try retainedRationalRoot ?? rationalAuthority(usage: &admission) else { return nil }
-        let retained = try issued.retainingIsolation(.init(lower: isolation.lower, upper: isolation.upper,
-            isRationalStation: isolation.lower == isolation.upper, isolationDepth: isolation.depth,
-            excludesLowerEndpoint: isolation.excludesLower, excludesUpperEndpoint: isolation.excludesUpper), usage: &admission)
-        let width = try isolation.upper.subtracting(isolation.lower, usage: &admission)
-            .divided(by: .natural(2, usage: &admission), usage: &admission)
-        let refined = try forSeparation
-            ? retained.refinedForSeparation(maximumWidth: width, maximumDepth: maximumDepth, usage: &admission)
-            : retained.refined(maximumWidth: width, maximumDepth: maximumDepth, usage: &admission)
-        try RationalAlgebraStorage.retain(1, of: Self.self, usage: &admission)
-        return retainingRationalIsolation(refined)
+        return try usage.withProofScope(valueAxis: admissionDomain.axis) { usage in
+            guard let issued = try retainedRationalRoot ?? rationalAuthority(usage: &usage) else { return nil }
+            let retained = try issued.retainingIsolation(.init(lower: isolation.lower, upper: isolation.upper,
+                isRationalStation: isolation.lower == isolation.upper, isolationDepth: isolation.depth,
+                excludesLowerEndpoint: isolation.excludesLower, excludesUpperEndpoint: isolation.excludesUpper), usage: &usage)
+            let width = try isolation.upper.subtracting(isolation.lower, usage: &usage)
+                .divided(by: .natural(2, usage: &usage), usage: &usage)
+            let refined = try forSeparation
+                ? retained.refinedForSeparation(maximumWidth: width, maximumDepth: maximumDepth, usage: &usage)
+                : retained.refined(maximumWidth: width, maximumDepth: maximumDepth, usage: &usage)
+            try RationalAlgebraStorage.retain(1, of: Self.self, usage: &usage)
+            return retainingRationalIsolation(refined)
+        }
     }
 }
 
 extension OriginalSingularFieldRoot {
     /// Contract an exact linear-fractional image of the same retained ancestor.
-    func rationalImageRefinedOnce<B: RationalAlgebraAdmitting>(maximumDepth: Int, forSeparation: Bool,
+    func rationalImageRefinedOnce<B: ExactScalarAdmission & ~Copyable>(maximumDepth: Int, forSeparation: Bool,
         usage: inout B) throws -> Self? {
         guard polynomial.degree == 1, case .parameter = admissionDomain,
             case .extended(let parent) = polynomial.context.source,
@@ -108,7 +108,7 @@ extension OriginalSingularFieldRoot {
         let width = try isolation.upper.subtracting(isolation.lower, usage: &usage)
             .divided(by: .natural(2, usage: &usage), usage: &usage)
         while true {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             let lowerDenominator = try c.multiplied(by: ancestor.isolation.lower, usage: &usage).adding(d, usage: &usage)
             let upperDenominator = try c.multiplied(by: ancestor.isolation.upper, usage: &usage).adding(d, usage: &usage)
             // A linear denominator has a nonzero sign throughout the bracket only

@@ -3,9 +3,91 @@ import CADCore
 @testable import CADTopology
 import Foundation
 import Testing
+import Synchronization
 
 @Suite("Certified free-surface area")
 struct SurfaceAreaIntegrationTests {
+    private func execution(_ budget: OriginalQueryBudget? = nil) throws -> OriginalQueryExecution {
+        OriginalQueryExecution(budget: try budget ?? OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: Int.max, maximumCoefficientDepth: Int.max))
+    }
+
+    private func retainedKernelFailure(_ error: any Error) -> KernelError? {
+        if let kernel = error as? KernelError { return kernel }
+        if let query = error as? OriginalQueryFailure { return retainedKernelFailure(query.originalError) ?? query.kernelFailure }
+        if let scalar = error as? ExactScalarFailure, case .admissionRejected(let cause) = scalar {
+            return retainedKernelFailure(cause)
+        }
+        return nil
+    }
+
+    private func retainedRefinementFailure(_ error: any Error) -> Bool {
+        if error is SurfaceAreaEnclosureRefinementRequired { return true }
+        if let query = error as? OriginalQueryFailure { return retainedRefinementFailure(query.originalError) }
+        if let scalar = error as? ExactScalarFailure, case .admissionRejected(let cause) = scalar {
+            return retainedRefinementFailure(cause)
+        }
+        return false
+    }
+
+    private func retainedQueryFailure(_ error: any Error) -> OriginalQueryFailure? {
+        if let query = error as? OriginalQueryFailure { return query }
+        if let scalar = error as? ExactScalarFailure, case .admissionRejected(let cause) = scalar {
+            return retainedQueryFailure(cause)
+        }
+        return nil
+    }
+
+    private func retainedWorkLimit(_ error: any Error) -> Bool {
+        if let scalar = error as? ExactScalarFailure {
+            if case .resourceLimit(.work) = scalar { return true }
+            if case .admissionRejected(let cause) = scalar { return retainedWorkLimit(cause) }
+        }
+        if let query = error as? OriginalQueryFailure { return retainedWorkLimit(query.originalError) }
+        return false
+    }
+
+    private func exactWorkBoundary<State>(
+        prepare: (inout OriginalQueryExecution) throws -> State,
+        operation: (State, inout OriginalQueryExecution) throws -> Void,
+        function: StaticString = #function
+    ) throws {
+        let measuredBudget = try OriginalQueryBudget()
+        var measured = try execution(measuredBudget)
+        let state = try prepare(&measured)
+        let preparationWork = measuredBudget.snapshot.work
+        try operation(state, &measured)
+        let totalWork = measuredBudget.snapshot.work
+        #expect(totalWork > preparationWork)
+        print("CANONICAL_WORK_BOUNDARY function=\(function) preparation=\(preparationWork) total=\(totalWork)")
+        for ceiling in [totalWork, totalWork - 1] {
+            let budget = try OriginalQueryBudget(workLimit: ceiling)
+            var bounded = try execution(budget)
+            let prepared = try prepare(&bounded)
+            #expect(budget.snapshot.work == preparationWork)
+            do {
+                try operation(prepared, &bounded)
+                #expect(ceiling == totalWork)
+                #expect(budget.snapshot.work == totalWork)
+            } catch {
+                #expect(ceiling == totalWork - 1)
+                let failure = try #require(retainedQueryFailure(error))
+                #expect(failure.kernelFailure.code == .resourceLimitExceeded)
+                let resource = try #require(failure.context.resource)
+                #expect(resource.axis == .work)
+                #expect(resource.limit == .known(ceiling))
+                #expect(retainedWorkLimit(failure.originalError))
+                guard case .known(let used) = resource.used,
+                      case .known(let requested) = resource.requested else {
+                    Issue.record("The actual work owner lost its known debit observation.")
+                    continue
+                }
+                let debit = used.addingReportingOverflow(requested)
+                #expect(!debit.overflow && debit.partialValue > ceiling)
+            }
+        }
+    }
+
     private let tolerance = ModelingTolerance(distance: 1e-6, angle: 1e-9, relative: 1e-6)
 
     private func rectangle(_ u0: Double = 0, _ u1: Double = 1,
@@ -102,6 +184,7 @@ struct SurfaceAreaIntegrationTests {
 
     @Test(.timeLimit(.minutes(1)))
     func translatedDiagonalRollingSpineRetainsNativeSectionAndCentroid() throws {
+        var admitted = try execution()
         let origin = Point3D(x:1.0/32,y:1.0/64,z:0)
         let delta = Vector3D(x:1.0/64,y:1.0/64,z:0)
         let radius = sqrt(2.0)/256
@@ -113,10 +196,10 @@ struct SurfaceAreaIntegrationTests {
         }
         let blend = RollingBallBlendSurface3D(centerSpine:rail(.zero),firstContact:rail(a),
             secondContact:rail(b),radius:radius,tolerance:tolerance)
-        let prepared = try #require(try SurfaceAreaTranslatedRollingBallJet(blend))
+        let prepared = try #require(try SurfaceAreaTranslatedRollingBallJet(blend, using: &admitted))
         let box = SurfaceParameterBox(u:try ScalarInterval(lower:0,upper:1),
             v:try ScalarInterval(lower:0,upper:1))
-        let jet = try prepared.intervalJet(over:box,tolerance:tolerance)
+        let jet = try prepared.intervalJet(over:box,tolerance:tolerance, using: &admitted)
         // Independent quotient differentiation of the native circular section.
         // A comparison in angular coordinates would not detect a changed V chart.
         for t in [0.0,0.125,0.5,0.875,1.0] {
@@ -155,6 +238,7 @@ struct SurfaceAreaIntegrationTests {
 
     @Test(.timeLimit(.minutes(1)))
     func unequalRollingRailMotionUsesTheGeneralPreparedPath() throws {
+        var admitted = try execution()
         func rail(_ y: Double, _ z: Double, _ dx: Double) -> Curve3D {
             .bSpline(BSplineCurve3D(degree:1,knots:[0,0,1,1],
                 controlPoints:[Point3D(x:0,y:y,z:z),Point3D(x:dx,y:y,z:z)]))
@@ -162,19 +246,19 @@ struct SurfaceAreaIntegrationTests {
         let blend = RollingBallBlendSurface3D(centerSpine:rail(0,0,0.02),
             firstContact:rail(0.01,0,0.020001),secondContact:rail(0,0.01,0.02),
             radius:0.01,tolerance:tolerance)
-        #expect(try SurfaceAreaTranslatedRollingBallJet(blend) == nil)
+        #expect(try SurfaceAreaTranslatedRollingBallJet(blend, using: &admitted) == nil)
         let surface = Surface3D.procedural(.rollingBall(blend))
-        let prepared = try PreparedSurfaceAreaIntegrand(surface:surface,tolerance:tolerance)
+        let prepared = try PreparedSurfaceAreaIntegrand(surface:surface,tolerance:tolerance, using: &admitted)
         #expect(prepared.translationDirection == nil)
         let fraction = try ScalarInterval(lower:0.5,upper:0.50001)
         let fields = try prepared.bounds(curve:.constantU(u:0.5,vStart:0,vEnd:1),
             anchor:SurfaceParameter(u:0.25,v:0.25),reference:.origin,
-            boundaryFraction:fraction,radialFraction:fraction,tolerance:tolerance)
+            boundaryFraction:fraction,radialFraction:fraction,tolerance:tolerance, using: &admitted)
         #expect(fields.count == 4 && fields.allSatisfy { $0.value.isFinite })
         let point = try surface.point(u:0.4,v:0.6,tolerance:tolerance)
-        let direct = try PreparedSurfaceDifferentialEncloser(surface:surface,tolerance:tolerance)
+        let direct = try PreparedSurfaceDifferentialEncloser(surface:surface,tolerance:tolerance, using: &admitted)
             .enclosure(over:SurfaceParameterBox(u:ScalarInterval(lower:0.4,upper:0.40001),
-                v:ScalarInterval(lower:0.6,upper:0.60001)),tolerance:tolerance).position
+                v:ScalarInterval(lower:0.6,upper:0.60001)),tolerance:tolerance, using: &admitted).position
         #expect(direct.x.lower <= point.x && point.x <= direct.x.upper)
         #expect(direct.y.lower <= point.y && point.y <= direct.y.upper)
         #expect(direct.z.lower <= point.z && point.z <= direct.z.upper)
@@ -192,8 +276,7 @@ struct SurfaceAreaIntegrationTests {
             #expect(abs(result.area-area) <= tolerance.distance*tolerance.distance+tolerance.relative*area)
             #expect((result.centroid-centroid).length <= tolerance.distance)
             print("AREA_PROFILE fixture=rolling budget=\(budget) outcome=success residual=none elapsed=\(started.duration(to: .now))")
-        } catch let error as KernelError {
-            print("AREA_PROFILE fixture=rolling budget=\(budget) outcome=\(error.code.rawValue) residual=\(String(describing: error.residual)) elapsed=\(started.duration(to: .now))")
+        } catch let error as KernelError { print("AREA_PROFILE fixture=rolling budget=\(budget) outcome=\(error.code.rawValue) residual=\(String(describing: error.residual)) elapsed=\(started.duration(to: .now))")
             #expect(error.code == .resourceLimitExceeded)
             #expect(error.residual == Double(budget+1))
         }
@@ -201,7 +284,8 @@ struct SurfaceAreaIntegrationTests {
 
     @Test(.timeLimit(.minutes(1)))
     func rollingTranslationCertificateReportsBoundedDyadicErrorProbe() throws {
-        let prepared = try PreparedSurfaceAreaIntegrand(surface:quarterCylinderBlend(),tolerance:tolerance)
+        var admitted = try execution()
+        let prepared = try PreparedSurfaceAreaIntegrand(surface:quarterCylinderBlend(),tolerance:tolerance, using: &admitted)
         #expect(prepared.translationDirection == .u)
         let box = SurfaceParameterBox(u:try ScalarInterval(lower:0,upper:1),
             v:try ScalarInterval(lower:0,upper:1))
@@ -219,17 +303,18 @@ struct SurfaceAreaIntegrationTests {
                 let fraction = try ScalarInterval(lower:lower,upper:upper)
                 do {
                     let fields = try prepared.rectangularTranslationBounds(rectangle:box,
-                        fraction:fraction,reference:Point3D(x:0,y:0.01,z:0),tolerance:tolerance)
+                        fraction:fraction,reference:Point3D(x:0,y:0.01,z:0),tolerance:tolerance, using: &admitted)
                     let center = try prepared.rectangularTranslationBounds(rectangle:box,
                         fraction:ScalarInterval(lower:fraction.midpoint,upper:fraction.midpoint),
-                        reference:Point3D(x:0,y:0.01,z:0),tolerance:tolerance)
+                        reference:Point3D(x:0,y:0.01,z:0),tolerance:tolerance, using: &admitted)
                     for i in fields.indices {
                         let hessian = try #require(fields[i].secondUU)
                         let midpointError = center[i].value.width*0.5
                         let hessianError = hessian.width*width*width/48
                         print("AREA_ERROR_PROBE fixture=rolling depth=\(depth) station=\(station) field=\(i) midpointError=\(midpointError) hessianError=\(hessianError) goal=\(goals[i]) ratio=\((midpointError+hessianError)/goals[i])")
                     }
-                } catch let error as KernelError {
+                } catch {
+                    let error = try #require(retainedKernelFailure(error))
                     print("AREA_ERROR_PROBE fixture=rolling depth=\(depth) station=\(station) outcome=\(error.code.rawValue) residual=\(String(describing:error.residual))")
                     #expect(error.code == .singularSystem || error.code == .singularGeometry)
                 }
@@ -291,9 +376,10 @@ struct SurfaceAreaIntegrationTests {
 
     @Test(.timeLimit(.minutes(1)))
     func polynomialOffsetBoundsContainAnalyticDensityDerivatives() throws {
+        var admitted = try execution()
         let a = 0.02, b = 0.03, k = 10.0, distance = 0.001
         let support = Surface3D.procedural(.offset(OffsetSurface3D(source: graph(), distance: distance)))
-        let prepared = try PreparedSurfaceAreaIntegrand(surface: support, tolerance: tolerance)
+        let prepared = try PreparedSurfaceAreaIntegrand(surface: support, tolerance: tolerance, using: &admitted)
         let unit = try ScalarInterval(lower: 0, upper: 1)
         let rectangle = SurfaceParameterBox(u: unit, v: unit)
         // Differentiate the independent analytic physical-X offset area element.
@@ -303,7 +389,7 @@ struct SurfaceAreaIntegrationTests {
         for (lower, upper) in [(0.0,0.01),(0.49,0.51),(0.99,1.0)] {
             let bounds = try prepared.rectangularTranslationBounds(rectangle: rectangle,
                 fraction: ScalarInterval(lower: lower, upper: upper), reference: .origin,
-                tolerance: tolerance)[0]
+                tolerance: tolerance, using: &admitted)[0]
             let second = try #require(bounds.secondUU)
             for u in [lower, (lower+upper)*0.5, upper] {
                 let r = 1+c2*u*u
@@ -339,28 +425,30 @@ struct SurfaceAreaIntegrationTests {
 
     @Test(.timeLimit(.minutes(1)))
     func translationReductionPreservesTheFullSupportDomain() throws {
-        let prepared = try PreparedSurfaceAreaIntegrand(surface: graph(), tolerance: tolerance)
+        var admitted = try execution()
+        let prepared = try PreparedSurfaceAreaIntegrand(surface: graph(), tolerance: tolerance, using: &admitted)
         let box = SurfaceParameterBox(u: try ScalarInterval(lower:0,upper:1),
                                       v: try ScalarInterval(lower:-0.1,upper:1.1))
         do {
             _ = try prepared.rectangularTranslationBounds(rectangle:box,
-                fraction:ScalarInterval(lower:0.4,upper:0.6),reference:.origin,tolerance:tolerance)
+                fraction:ScalarInterval(lower:0.4,upper:0.6),reference:.origin,tolerance:tolerance, using: &admitted)
             Issue.record("Eliminating a band must not admit its out-of-domain endpoints.")
         } catch SurfaceAreaEnclosureRefinementRequired.parameterDomain {}
     }
 
     @Test(.timeLimit(.minutes(1)))
     func periodicStripBoundsContainIndependentSeamAndShiftDerivatives() throws {
+        var admitted = try execution()
         let height = 0.03
         for uPeriodic in [true,false] {
             let surface = try periodicStrip(uPeriodic:uPeriodic)
-            let prepared = try PreparedSurfaceAreaIntegrand(surface:.bSpline(surface),tolerance:tolerance)
+            let prepared = try PreparedSurfaceAreaIntegrand(surface:.bSpline(surface),tolerance:tolerance, using: &admitted)
             for (lower,upper) in [(-0.3,-0.1),(-4.25,-3.75),(-0.25,0.25),(7.75,8.25)] {
                 let cycle = try ScalarInterval(lower:lower,upper:upper)
                 let open = try ScalarInterval(lower:0,upper:1)
                 let box = SurfaceParameterBox(u:uPeriodic ? cycle : open,v:uPeriodic ? open : cycle)
                 let fields = try prepared.rectangularTranslationBounds(rectangle:box,
-                    fraction:ScalarInterval(lower:0,upper:1),reference:.origin,tolerance:tolerance)
+                    fraction:ScalarInterval(lower:0,upper:1),reference:.origin,tolerance:tolerance, using: &admitted)
                 let width = upper-lower, scale = width*height
                 // Independent uniform cubic section formulas, including their
                 // rotated derivatives, do not call the production spline evaluator.
@@ -485,8 +573,7 @@ struct SurfaceAreaIntegrationTests {
             #expect(abs(result.area-0.0008) <= 1e-9)
             #expect((result.centroid-Point3D(x:0.02,y:0.01,z:0)).length <= tolerance.distance)
             print("AREA_PROFILE fixture=affine budget=\(budget) outcome=success residual=none elapsed=\(started.duration(to: .now))")
-        } catch let error as KernelError {
-            print("AREA_PROFILE fixture=affine budget=\(budget) outcome=\(error.code.rawValue) residual=\(String(describing: error.residual)) elapsed=\(started.duration(to: .now))")
+        } catch let error as KernelError { print("AREA_PROFILE fixture=affine budget=\(budget) outcome=\(error.code.rawValue) residual=\(String(describing: error.residual)) elapsed=\(started.duration(to: .now))")
             #expect(error.code == .resourceLimitExceeded)
             #expect(error.residual == Double(budget+1))
         }
@@ -507,8 +594,7 @@ struct SurfaceAreaIntegrationTests {
             #expect(abs(result.centroid.x-momentX/length) <= tolerance.distance)
             #expect(abs(result.centroid.y-0.015) <= tolerance.distance)
             print("AREA_PROFILE fixture=curved budget=\(budget) outcome=success residual=none elapsed=\(started.duration(to: .now))")
-        } catch let error as KernelError {
-            print("AREA_PROFILE fixture=curved budget=\(budget) outcome=\(error.code.rawValue) residual=\(String(describing: error.residual)) elapsed=\(started.duration(to: .now))")
+        } catch let error as KernelError { print("AREA_PROFILE fixture=curved budget=\(budget) outcome=\(error.code.rawValue) residual=\(String(describing: error.residual)) elapsed=\(started.duration(to: .now))")
             #expect(error.code == .resourceLimitExceeded)
             #expect(error.residual == Double(budget+1))
         }
@@ -582,18 +668,19 @@ struct SurfaceAreaIntegrationTests {
 
     @Test(.timeLimit(.minutes(1)))
     func c0OneSidedNativeAuthorityAndCrossSpanValueProofRemainDistinct() throws {
-        let prepared = try PreparedSurfaceAreaIntegrand(surface:foldedSupport(knot:0.5),tolerance:tolerance)
+        var admitted = try execution()
+        let prepared = try PreparedSurfaceAreaIntegrand(surface:foldedSupport(knot:0.5),tolerance:tolerance, using: &admitted)
         let unit = try ScalarInterval(lower:0,upper:1)
         let box = SurfaceParameterBox(u:unit,v:unit)
-        let domains = try #require(try prepared.nativeRectangleDomains(over:box,maximumCount:16,tolerance:tolerance))
+        let domains = try #require(try prepared.nativeRectangleDomains(over:box,maximumCount:16,tolerance:tolerance, using: &admitted))
         #expect(domains.count == 2)
         for domain in domains {
             let fields = try prepared.rectangularTranslationBounds(rectangle:domain.rectangle,
-                fraction:unit,reference:.origin,tolerance:tolerance,domain:domain)
+                fraction:unit,reference:.origin,tolerance:tolerance,domain:domain, using: &admitted)
             #expect(fields.allSatisfy { $0.derivativeU != nil && $0.derivativeV != nil && $0.secondUU != nil })
         }
         let crossing = try prepared.rectangularTranslationBounds(rectangle:box,
-            fraction:ScalarInterval(lower:0.25,upper:0.75),reference:.origin,tolerance:tolerance)
+            fraction:ScalarInterval(lower:0.25,upper:0.75),reference:.origin,tolerance:tolerance, using: &admitted)
         #expect(crossing.allSatisfy { $0.derivativeU == nil && $0.derivativeV == nil && $0.secondUU == nil && $0.secondUV == nil && $0.secondVV == nil })
         let densities = [0.0006,0.03*hypot(0.02,0.04)]
         for (u,density) in [(0.25,densities[0]),(0.75,densities[1])] {
@@ -603,39 +690,47 @@ struct SurfaceAreaIntegrationTests {
         }
         let fan = try prepared.bounds(curve:.constantU(u:1,vStart:0,vEnd:1),
             anchor:SurfaceParameter(u:0,v:0),reference:.origin,boundaryFraction:unit,
-            radialFraction:ScalarInterval(lower:0.25,upper:0.75),tolerance:tolerance)
+            radialFraction:ScalarInterval(lower:0.25,upper:0.75),tolerance:tolerance, using: &admitted)
         #expect(fan.allSatisfy { $0.derivativeU == nil && $0.secondUU == nil })
         for (r,density) in [(0.25,densities[0]),(0.75,densities[1])] {
             let values = [density*r,0.02*r*density*r,0.03*r*0.5*density*r,
                 (r < 0.5 ? 0 : 0.04*r-0.02)*density*r]
             for i in fan.indices { #expect(fan[i].value.contains(values[i])) }
         }
-        let other = try PreparedSurfaceAreaIntegrand(surface:foldedSupport(knot:0.37),tolerance:tolerance)
+        let other = try PreparedSurfaceAreaIntegrand(surface:foldedSupport(knot:0.37),tolerance:tolerance, using: &admitted)
         do {
             _ = try other.rectangularTranslationBounds(rectangle:domains[0].rectangle,
-                fraction:unit,reference:.origin,tolerance:tolerance,domain:domains[0])
+                fraction:unit,reference:.origin,tolerance:tolerance,domain:domains[0], using: &admitted)
             Issue.record("Foreign prepared-span identity must not select a one-sided derivative.")
-        } catch let error as KernelError { #expect(error.code == .invalidInput) }
+        } catch {
+            let error = try #require(retainedKernelFailure(error))
+            #expect(error.code == .invalidInput)
+        }
         do {
             _ = try prepared.nativeRectangleDomains(over:SurfaceParameterBox(
-                u:ScalarInterval(lower:-0.1,upper:1),v:unit),maximumCount:16,tolerance:tolerance)
+                u:ScalarInterval(lower:-0.1,upper:1),v:unit),maximumCount:16,tolerance:tolerance, using: &admitted)
             Issue.record("Span intersection must not discard part of the original domain.")
-        } catch let error as KernelError { #expect(error.code == .classificationFailure) }
+        } catch {
+            let error = try #require(retainedKernelFailure(error))
+            #expect(error.code == .classificationFailure)
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func nativePiecesShareOneAggregateErrorAndResourceBudget() throws {
+        var admitted = try execution()
         let unit = try ScalarInterval(lower:0,upper:1)
         let cell = SurfaceAreaAdaptiveIntegral.Cell(t:unit,r:unit,depth:1,rectangle:nil,domain:nil)
         var work = 0
         do {
             _ = try SurfaceAreaAdaptiveIntegral().integrate(cells:[cell,cell],goals:[1,1,1,1],
-                options:FaceAreaIntegrationOptions(maximumCellCount:6),work:&work,tolerance:tolerance) { cell, _ in
+                options:FaceAreaIntegrationOptions(maximumCellCount:6),work:&work,tolerance:tolerance, using: &admitted) { cell, _, _ in
                     let measure = cell.t.width*cell.r.width
                     return .init(contribution:Array(repeating:OutwardScalarInterval(lower:-0.75*measure,upper:0.75*measure),count:4),splitT:true)
                 }
             Issue.record("Two pieces each below the target cannot spend that target twice.")
-        } catch let error as KernelError {
+        } catch {
+            let error = try #require(retainedKernelFailure(error))
             #expect(error.code == .resourceLimitExceeded)
             #expect(work == 7 && error.residual == 7)
         }
@@ -645,7 +740,10 @@ struct SurfaceAreaIntegrationTests {
             _ = try model.faceAreaMeasurement(of:id,tolerance:tolerance,
                 integrationOptions:FaceAreaIntegrationOptions(maximumCellCount:3))
             Issue.record("Native pieces in another loop must share the original work counter.")
-        } catch let error as KernelError { #expect(error.code == .resourceLimitExceeded) }
+        } catch {
+            let error = try #require(retainedKernelFailure(error))
+            #expect(error.code == .resourceLimitExceeded)
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -707,6 +805,7 @@ struct SurfaceAreaIntegrationTests {
 
     @Test(.timeLimit(.minutes(1)))
     func mappedRigidFractionJetsContainIndependentHarmonicAndRationalDerivatives() throws {
+        var admitted = try execution()
         let source = flatAreaSupport(), transform = try areaFixtureTransform()
         let target = try transform.applying(to:source,tolerance:tolerance)
         let charts: [SurfaceParameterCurve] = [.harmonic(center:Point2D(x:0.5,y:0.5),
@@ -718,10 +817,10 @@ struct SurfaceAreaIntegrationTests {
             let curve = SurfaceParameterCurve.rigidImage(try RigidImageSurfaceParameterCurve(
                 source:SurfaceLiftCurve3D(surface:source,parameterCurve:base),targetSurface:target,
                 transform:transform,startFraction:0.875,endFraction:0.125,tolerance:tolerance))
-            let prepared = try SurfaceAreaParameterChartEncloser(curve:curve,on:target,tolerance:tolerance)
+            let prepared = try SurfaceAreaParameterChartEncloser(curve:curve,on:target,tolerance:tolerance, using: &admitted)
             for index in 0..<8 {
                 let lower = Double(index)/8, upper = Double(index+1)/8
-                let jet = try prepared.intervalJet(over:ScalarInterval(lower:lower,upper:upper),tolerance:tolerance)
+                let jet = try prepared.intervalJet(over:ScalarInterval(lower:lower,upper:upper),tolerance:tolerance, using: &admitted)
                 for fraction in [lower,(lower+upper)/2,upper] {
                     let q = 0.875-0.75*fraction, scale = -0.75
                     let u: [Double], v: [Double]
@@ -775,6 +874,7 @@ struct SurfaceAreaIntegrationTests {
 
     @Test(.timeLimit(.minutes(1)))
     func mappedNonIdentityAffineUVUsesTheOriginalFractionChain() throws {
+        var admitted = try execution()
         let source = Surface3D.plane(Plane3D(origin:.origin,normal:.unitZ))
         let transform = try areaFixtureTransform()
         let target = try transform.applying(to:source,tolerance:tolerance)
@@ -782,8 +882,8 @@ struct SurfaceAreaIntegrationTests {
             source:SurfaceLiftCurve3D(surface:source,parameterCurve:.affine(origin:Point2D(x:0.2,y:0.3),
                 direction:Point2D(x:0.1,y:0.2),startParameter:0,endParameter:1)),
             targetSurface:target,transform:transform,startFraction:0.875,endFraction:0.125,tolerance:tolerance))
-        let prepared = try SurfaceAreaParameterChartEncloser(curve:curve,on:target,tolerance:tolerance)
-        let jet = try prepared.intervalJet(over:ScalarInterval(lower:0.25,upper:0.75),tolerance:tolerance)
+        let prepared = try SurfaceAreaParameterChartEncloser(curve:curve,on:target,tolerance:tolerance, using: &admitted)
+        let jet = try prepared.intervalJet(over:ScalarInterval(lower:0.25,upper:0.75),tolerance:tolerance, using: &admitted)
         // With identical +Z plane bases, an exact 90-degree rotation maps (u,v) to (-v,u).
         for fraction in [0.25,0.5,0.75] {
             let q = 0.875-0.75*fraction
@@ -813,20 +913,27 @@ struct SurfaceAreaIntegrationTests {
 
     @Test(.timeLimit(.minutes(1)))
     func mappedChartForeignTargetsOutsideFractionsAndNonAffineMapsFailExplicitly() throws {
+        var admitted = try execution()
         let source = flatAreaSupport(), transform = try areaFixtureTransform()
         let target = try transform.applying(to:source,tolerance:tolerance)
         let image = try RigidImageSurfaceParameterCurve(source:SurfaceLiftCurve3D(surface:source,
             parameterCurve:rectangle()[0]),targetSurface:target,transform:transform,tolerance:tolerance)
         do {
-            _ = try SurfaceAreaParameterChartEncloser(curve:.rigidImage(image),on:source,tolerance:tolerance)
+            _ = try SurfaceAreaParameterChartEncloser(curve:.rigidImage(image),on:source,tolerance:tolerance, using: &admitted)
             Issue.record("A mapped trim cannot authorize a different face support.")
-        } catch let error as KernelError { #expect(error.code == .invalidInput) }
+        } catch {
+            let error = try #require(retainedKernelFailure(error))
+            #expect(error.code == .invalidInput)
+        }
         let outside = try RigidImageSurfaceParameterCurve(source:image.source,targetSurface:target,
             transform:transform,startFraction:-tolerance.relative/2,endFraction:1,tolerance:tolerance)
         do {
-            _ = try SurfaceAreaParameterChartEncloser(curve:.rigidImage(outside),on:target,tolerance:tolerance)
+            _ = try SurfaceAreaParameterChartEncloser(curve:.rigidImage(outside),on:target,tolerance:tolerance, using: &admitted)
             Issue.record("A tolerated source fraction outside the original chart cannot be clamped into an integral.")
-        } catch let error as KernelError { #expect(error.code == .invalidInput) }
+        } catch {
+            let error = try #require(retainedKernelFailure(error))
+            #expect(error.code == .invalidInput)
+        }
         let sphere = Surface3D.analytic(.sphere(center:.origin,radius:0.02))
         let rotation = try RigidTransform3D.rotated(around:.origin,direction:.unitX,angle:.pi/2,tolerance:tolerance)
         let sphericalTarget = try rotation.applying(to:sphere,tolerance:tolerance)
@@ -834,9 +941,12 @@ struct SurfaceAreaIntegrationTests {
             parameterCurve:.constantV(v:0,uStart:0.1,uEnd:0.3)),targetSurface:sphericalTarget,
             transform:rotation,tolerance:tolerance)
         do {
-            _ = try SurfaceAreaParameterChartEncloser(curve:.rigidImage(sphericalImage),on:sphericalTarget,tolerance:tolerance)
+            _ = try SurfaceAreaParameterChartEncloser(curve:.rigidImage(sphericalImage),on:sphericalTarget,tolerance:tolerance, using: &admitted)
             Issue.record("Non-affine spherical charts still require their own whole-interval proof.")
-        } catch let error as KernelError { #expect(error.code == .unsupportedCapability) }
+        } catch {
+            let error = try #require(retainedKernelFailure(error))
+            #expect(error.code == .unsupportedCapability)
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -855,6 +965,7 @@ struct SurfaceAreaIntegrationTests {
 
     @Test(.timeLimit(.minutes(1)))
     func ruledSurfaceLiftAdmissionRetainsItsExactSupportAndEnclosingDepth() throws {
+        var admitted = try execution()
         let source = Surface3D.plane(Plane3D(origin:.origin,normal:.unitZ))
         let startChart = SurfaceParameterCurve.constantV(v:0,uStart:0,uEnd:0.04)
         let endRail = Curve3D.surfaceLift(SurfaceLiftCurve3D(surface:source,
@@ -873,7 +984,7 @@ struct SurfaceAreaIntegrationTests {
         // The chart is within the standalone limit; two enclosing ruled/lift
         // levels put the same native source beyond the one admission depth limit.
         try SurfaceAreaParameterChartEncloser.validateAdmission(curve:nested,on:source,
-            maximumControlPointCount:65_536,maximumBoundaryCurveCount:4_096,tolerance:tolerance)
+            maximumControlPointCount:65_536,maximumBoundaryCurveCount:4_096,tolerance:tolerance, using: &admitted)
         let (nestedID,nestedModel) = try fixture(support(nested))
         do {
             _ = try nestedModel.faceAreaMeasurement(of:nestedID,tolerance:tolerance)
@@ -883,6 +994,7 @@ struct SurfaceAreaIntegrationTests {
 
     @Test(.timeLimit(.minutes(1)))
     func mappedNestedSourceDimensionsAndDepthFailBeforeRecursiveValidation() throws {
+        var admitted = try execution()
         let source = flatAreaSupport(), transform = try areaFixtureTransform()
         let target = try transform.applying(to:source,tolerance:tolerance)
         let good = try RigidImageSurfaceParameterCurve(source:SurfaceLiftCurve3D(surface:source,
@@ -897,15 +1009,21 @@ struct SurfaceAreaIntegrationTests {
             from:JSONSerialization.data(withJSONObject:encoded))
         do {
             _ = try SurfaceAreaParameterChartEncloser(curve:.rigidImage(malformed),on:target,
-                maximumControlPointCount:8,tolerance:tolerance)
+                maximumControlPointCount:8,tolerance:tolerance, using: &admitted)
             Issue.record("Oversized nested knot arrays must fail before recursive image validation.")
-        } catch let error as KernelError { #expect(error.code == .resourceLimitExceeded) }
+        } catch {
+            let error = try #require(retainedKernelFailure(error))
+            #expect(error.code == .resourceLimitExceeded)
+        }
         var nested = SurfaceParameterCurve.rigidImage(good)
         for _ in 0..<17 { nested = .periodicTranslation(base:nested,uShift:0,vShift:0) }
         do {
-            _ = try SurfaceAreaParameterChartEncloser(curve:nested,on:target,tolerance:tolerance)
+            _ = try SurfaceAreaParameterChartEncloser(curve:nested,on:target,tolerance:tolerance, using: &admitted)
             Issue.record("Mapped chart nesting cannot grant another preparation depth budget.")
-        } catch let error as KernelError { #expect(error.code == .resourceLimitExceeded) }
+        } catch {
+            let error = try #require(retainedKernelFailure(error))
+            #expect(error.code == .resourceLimitExceeded)
+        }
     }
 
     @Test(.timeLimit(.minutes(1)), arguments:[false,true])
@@ -930,14 +1048,15 @@ struct SurfaceAreaIntegrationTests {
 
     @Test(.timeLimit(.minutes(1)), arguments:[false,true])
     func affineImplicitJetsRetainNativeFractionsRolesAndCellDirection(_ backwards: Bool) throws {
+        var admitted = try execution()
         let (source,intersection) = try affineImplicitAreaFixture(direction:backwards ? .reversed : .forward)
         for role in [SurfaceIntersectionSurfaceRole.first,.second] {
             let curve = try CertifiedImplicitSurfaceParameterCurve(intersection:intersection,role:role,
                 startFraction:0.75,endFraction:0.25,tolerance:tolerance)
             let support = role == .first ? Surface3D.bSpline(source) : intersection.secondSurface
-            let prepared = try SurfaceAreaParameterChartEncloser(curve:.certifiedImplicit(curve),on:support,tolerance:tolerance)
+            let prepared = try SurfaceAreaParameterChartEncloser(curve:.certifiedImplicit(curve),on:support,tolerance:tolerance, using: &admitted)
             let fraction = try ScalarInterval(lower:0.2,upper:0.6)
-            let actual = try prepared.intervalJet(over:fraction,tolerance:tolerance)
+            let actual = try prepared.intervalJet(over:fraction,tolerance:tolerance, using: &admitted)
             for t in [0.2,0.4,0.6] {
                 let mapped = 0.75-0.5*t
                 let s = backwards ? 1-mapped : mapped
@@ -955,7 +1074,7 @@ struct SurfaceAreaIntegrationTests {
             // Original point evaluation uses cell native free UV, not arc length.
             let original = try curve.parameter(atNormalizedFraction:0.4,tolerance:tolerance)
             #expect(actual.u.value.contains(original.u) && actual.v.value.contains(original.v))
-            let point = try prepared.intervalJet(over:ScalarInterval(lower:0.4,upper:0.4),tolerance:tolerance)
+            let point = try prepared.intervalJet(over:ScalarInterval(lower:0.4,upper:0.4),tolerance:tolerance, using: &admitted)
             #expect(point.u.value.contains(original.u) && point.v.value.contains(original.v))
             #expect(point.u.value.upper-point.u.value.lower < 1e-10)
             #expect(point.v.value.upper-point.v.value.lower < 1e-10)
@@ -964,42 +1083,58 @@ struct SurfaceAreaIntegrationTests {
 
     @Test(.timeLimit(.minutes(1)))
     func affineImplicitAdmissionRejectsForeignFractionsAndNonAffineFamily() throws {
+        var admitted = try execution()
         let (source,intersection) = try affineImplicitAreaFixture()
         let good = try CertifiedImplicitSurfaceParameterCurve(intersection:intersection,role:.first,
             startFraction:0.25,endFraction:0.75,tolerance:tolerance)
         var foreign = source
         foreign.controlPoints = foreign.controlPoints.map { row in row.map { Point3D(x:$0.x,y:$0.y,z:$0.z+0.125) } }
         do {
-            _ = try SurfaceAreaParameterChartEncloser(curve:.certifiedImplicit(good),on:.bSpline(foreign),tolerance:tolerance)
+            _ = try SurfaceAreaParameterChartEncloser(curve:.certifiedImplicit(good),on:.bSpline(foreign),tolerance:tolerance, using: &admitted)
             Issue.record("Implicit trim authority cannot be transferred to a foreign face support.")
-        } catch let error as KernelError { #expect(error.code == .invalidInput) }
+        } catch {
+            let error = try #require(retainedKernelFailure(error))
+            #expect(error.code == .invalidInput)
+        }
         let invalid = CertifiedImplicitSurfaceParameterCurve(validatedIntersection:intersection,role:.first,
             startFraction:0,endFraction:1+tolerance.relative/2)
         do {
-            _ = try SurfaceAreaParameterChartEncloser(curve:.certifiedImplicit(invalid),on:.bSpline(source),tolerance:tolerance)
+            _ = try SurfaceAreaParameterChartEncloser(curve:.certifiedImplicit(invalid),on:.bSpline(source),tolerance:tolerance, using: &admitted)
             Issue.record("Area admission must not clamp stored implicit source fractions.")
-        } catch let error as KernelError { #expect(error.code == .invalidInput) }
+        } catch {
+            let error = try #require(retainedKernelFailure(error))
+            #expect(error.code == .invalidInput)
+        }
         var nested = SurfaceParameterCurve.certifiedImplicit(good)
         for _ in 0..<17 { nested = .periodicTranslation(base:nested,uShift:0,vShift:0) }
         do {
-            _ = try SurfaceAreaParameterChartEncloser(curve:nested,on:.bSpline(source),tolerance:tolerance)
+            _ = try SurfaceAreaParameterChartEncloser(curve:nested,on:.bSpline(source),tolerance:tolerance, using: &admitted)
             Issue.record("Implicit source preparation must retain the shared nesting limit.")
-        } catch let error as KernelError { #expect(error.code == .resourceLimitExceeded) }
+        } catch {
+            let error = try #require(retainedKernelFailure(error))
+            #expect(error.code == .resourceLimitExceeded)
+        }
         do {
             _ = try SurfaceAreaParameterChartEncloser(curve:.certifiedImplicit(good),on:.bSpline(source),
-                maximumControlPointCount:3,tolerance:tolerance)
+                maximumControlPointCount:3,tolerance:tolerance, using: &admitted)
             Issue.record("Both implicit supports must be bounded before source validation.")
-        } catch let error as KernelError { #expect(error.code == .resourceLimitExceeded) }
+        } catch {
+            let error = try #require(retainedKernelFailure(error))
+            #expect(error.code == .resourceLimitExceeded)
+        }
         let rational = BSplineSurface3D(uDegree:1,vDegree:1,uKnots:[0,0,1,1],vKnots:[0,0,1,1],
             controlPoints:[0.4765625,0.546875].map { z in [Point3D(x:0.1328125,y:0.25,z:z),
                 Point3D(x:0.1328125,y:0.265625,z:z)] },weights:[[1,0.5],[1,0.5]])
-        let graph = try #require(try ExactAffineBilinearIntersectionGraph.certified(first:source,second:rational,tolerance:tolerance))
-        let nonAffine = try graph.certifiedImplicitCurve(first:source,second:rational,tolerance:tolerance)
+        let graph = try #require(try ExactAffineBilinearIntersectionGraph.certified(first:source,second:rational,tolerance:tolerance, using: &admitted))
+        let nonAffine = try graph.certifiedImplicitCurve(first:source,second:rational,tolerance:tolerance, using: &admitted)
         let nonAffineTrim = try CertifiedImplicitSurfaceParameterCurve(intersection:nonAffine,role:.first,tolerance:tolerance)
         do {
-            _ = try SurfaceAreaParameterChartEncloser(curve:.certifiedImplicit(nonAffineTrim),on:.bSpline(source),tolerance:tolerance)
+            _ = try SurfaceAreaParameterChartEncloser(curve:.certifiedImplicit(nonAffineTrim),on:.bSpline(source),tolerance:tolerance, using: &admitted)
             Issue.record("A non-affine implicit source requires a caller budget instead of the constant-system proof.")
-        } catch let error as KernelError { #expect(error.code == .invalidInput) }
+        } catch {
+            let error = try #require(retainedKernelFailure(error))
+            #expect(error.code == .invalidInput)
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -1057,27 +1192,28 @@ struct SurfaceAreaIntegrationTests {
 
     @Test(.timeLimit(.minutes(1)), arguments:[false,true])
     func affineImplicitChainProofDistinguishesOwningPiecesAndJoins(_ backwards: Bool) throws {
+        var admitted = try execution()
         let (source,intersection) = try affineImplicitChainFixture(direction:backwards ? .reversed : .forward)
         for role in [SurfaceIntersectionSurfaceRole.first,.second] {
             let implicit = try CertifiedImplicitSurfaceParameterCurve(intersection:intersection,role:role,
                 startFraction:0.875,endFraction:0.125,tolerance:tolerance)
             let curve = SurfaceParameterCurve.certifiedImplicit(implicit)
             let support = role == .first ? Surface3D.bSpline(source) : intersection.secondSurface
-            let prepared = try SurfaceAreaParameterChartEncloser(curve:curve,on:support,tolerance:tolerance)
+            let prepared = try SurfaceAreaParameterChartEncloser(curve:curve,on:support,tolerance:tolerance, using: &admitted)
             #expect(prepared.hasNativeJoins)
             for endpoint in [0.0,1.0] {
-                let actual = try prepared.intervalJet(over:ScalarInterval(lower:endpoint,upper:endpoint),tolerance:tolerance)
+                let actual = try prepared.intervalJet(over:ScalarInterval(lower:endpoint,upper:endpoint),tolerance:tolerance, using: &admitted)
                 let point = try implicit.parameter(atNormalizedFraction:endpoint,tolerance:tolerance)
                 #expect(actual.u.value.contains(point.u) && actual.v.value.contains(point.v))
             }
-            let smooth = try prepared.intervalJet(over:ScalarInterval(lower:0.05,upper:0.1),tolerance:tolerance)
+            let smooth = try prepared.intervalJet(over:ScalarInterval(lower:0.05,upper:0.1),tolerance:tolerance, using: &admitted)
             let nativeSlope = backwards ? 0.5625 : -1.125
             #expect(smooth.u.derivativeU.contains(role == .first ? 0 : nativeSlope/6))
             #expect(smooth.v.derivativeU.contains(role == .first ? nativeSlope : 0))
             #expect(smooth.u.secondDerivativeUU.lower == 0 && smooth.u.secondDerivativeUU.upper == 0)
             #expect(smooth.v.thirdDerivativeUUU.lower == 0 && smooth.v.thirdDerivativeUUU.upper == 0)
             let interval = try ScalarInterval(lower:0.2,upper:0.4)
-            let proof = try prepared.intervalProof(over:interval,tolerance:tolerance)
+            let proof = try prepared.intervalProof(over:interval,tolerance:tolerance, using: &admitted)
             guard case .valueOnly(let u,let v,let du,let dv) = proof else {
                 Issue.record("Unequal native speeds at a join cannot authorize a smooth jet."); return
             }
@@ -1098,18 +1234,21 @@ struct SurfaceAreaIntegrationTests {
                 #expect(dv.contains(role == .first ? slope : 0))
             }
             guard case .valueOnly = try prepared.intervalProof(
-                over:ScalarInterval(lower:5.0/18,upper:5.0/18),tolerance:tolerance) else {
+                over:ScalarInterval(lower:5.0/18,upper:5.0/18),tolerance:tolerance, using: &admitted) else {
                 Issue.record("A shared native endpoint must retain both owning one-sided charts."); return
             }
             do {
-                _ = try prepared.intervalJet(over:interval,tolerance:tolerance)
+                _ = try prepared.intervalJet(over:interval,tolerance:tolerance, using: &admitted)
                 Issue.record("A value-only join must not masquerade as a third-order jet.")
-            } catch let error as KernelError { #expect(error.code == .unsupportedCapability) }
-            let integrand = try PreparedSurfaceAreaIntegrand(surface:support,tolerance:tolerance)
+            } catch {
+                let error = try #require(retainedKernelFailure(error))
+                #expect(error.code == .unsupportedCapability)
+            }
+            let integrand = try PreparedSurfaceAreaIntegrand(surface:support,tolerance:tolerance, using: &admitted)
             let anchor = role == .first ? SurfaceParameter(u:4.25,v:7.09375) : SurfaceParameter(u:0.2,v:0.2)
             let fields = try integrand.bounds(curve:curve,anchor:anchor,reference:.origin,
                 boundaryFraction:interval,radialFraction:ScalarInterval(lower:0.25,upper:0.75),
-                tolerance:tolerance,parameterChart:prepared)
+                tolerance:tolerance,parameterChart:prepared, using: &admitted)
             #expect(fields.count == 4 && fields.allSatisfy {
                 $0.derivativeU == nil && $0.derivativeV == nil && $0.secondUU == nil && $0.secondUV == nil && $0.secondVV == nil
             })
@@ -1118,6 +1257,7 @@ struct SurfaceAreaIntegrationTests {
 
     @Test(.timeLimit(.minutes(1)))
     func affineImplicitChainJoinAuthorityPropagatesThroughOriginalWrappers() throws {
+        var admitted = try execution()
         let (source,intersection) = try affineImplicitChainFixture()
         let implicit = try CertifiedImplicitSurfaceParameterCurve(intersection:intersection,role:.first,
             startFraction:0.875,endFraction:0.125,tolerance:tolerance)
@@ -1130,31 +1270,35 @@ struct SurfaceAreaIntegrationTests {
         let offsetCurve = SurfaceParameterCurve.offsetSurfaceImage(try offset.parameterCurveImage(transporting:curve,tolerance:tolerance))
         for (wrapped,face) in [(image,target),(offsetCurve,Surface3D.procedural(.offset(offset))),
                               (.periodicTranslation(base:curve,uShift:0,vShift:0),support)] {
-            let prepared = try SurfaceAreaParameterChartEncloser(curve:wrapped,on:face,tolerance:tolerance)
+            let prepared = try SurfaceAreaParameterChartEncloser(curve:wrapped,on:face,tolerance:tolerance, using: &admitted)
             #expect(prepared.hasNativeJoins)
             guard case .valueOnly(let u,let v,_,_) = try prepared.intervalProof(
-                over:ScalarInterval(lower:0,upper:1),tolerance:tolerance) else {
+                over:ScalarInterval(lower:0,upper:1),tolerance:tolerance, using: &admitted) else {
                 Issue.record("A wrapper cannot erase original native join authority."); return
             }
             let point = try wrapped.parameter(atNormalizedFraction:0.3,tolerance:tolerance)
             #expect(u.contains(point.u) && v.contains(point.v))
         }
-        let reversed = try SurfaceAreaParameterChartEncloser(curve:image,on:target,tolerance:tolerance)
-        let smooth = try reversed.intervalJet(over:ScalarInterval(lower:0.9,upper:0.95),tolerance:tolerance)
+        let reversed = try SurfaceAreaParameterChartEncloser(curve:image,on:target,tolerance:tolerance, using: &admitted)
+        let smooth = try reversed.intervalJet(over:ScalarInterval(lower:0.9,upper:0.95),tolerance:tolerance, using: &admitted)
         #expect(smooth.v.derivativeU.contains(1.125))
     }
 
     @Test(.timeLimit(.minutes(1)))
     func affineImplicitChainRejectsToleranceGapsMixedCoordinatesAndInvalidAffineClosure() throws {
+        var admitted = try execution()
         for (gap,mixed) in [(1e-9,false),(0.0,true)] {
             // The original public certificate validates these real native cells.
             // Its modeling-tolerance connectivity cannot prove an exact trim join.
             let (source,intersection) = try affineImplicitChainFixture(gap:gap,mixedCoordinate:mixed)
             let curve = try CertifiedImplicitSurfaceParameterCurve(intersection:intersection,role:.first,tolerance:tolerance)
             do {
-                _ = try SurfaceAreaParameterChartEncloser(curve:.certifiedImplicit(curve),on:.bSpline(source),tolerance:tolerance)
+                _ = try SurfaceAreaParameterChartEncloser(curve:.certifiedImplicit(curve),on:.bSpline(source),tolerance:tolerance, using: &admitted)
                 Issue.record("Inexact or mixed-coordinate joins cannot inherit affine chain authority.")
-            } catch let error as KernelError { #expect(error.code == .unsupportedCapability) }
+            } catch {
+                let error = try #require(retainedKernelFailure(error))
+                #expect(error.code == .unsupportedCapability)
+            }
         }
         let (source,forward) = try affineImplicitAreaFixture()
         let (_,reverse) = try affineImplicitAreaFixture(direction:.reversed)
@@ -1165,7 +1309,8 @@ struct SurfaceAreaIntegrationTests {
             _ = try CertifiedImplicitIntersectionCurve(firstSurface:forward.firstSurface,secondSurface:forward.secondSurface,
                 cells:[forward.cells[0],reverse.cells[0]],isClosed:true,tolerance:tolerance)
             Issue.record("Opposing affine line tangents cannot form a certified closed intersection.")
-        } catch let error as KernelError {
+        } catch {
+            let error = try #require(retainedKernelFailure(error))
             #expect(error.code == .intersectionFailure)
             #expect(error.message.contains("tangent orientation"))
         }
@@ -1173,9 +1318,12 @@ struct SurfaceAreaIntegrationTests {
         let trim = try CertifiedImplicitSurfaceParameterCurve(intersection:chain,role:.first,tolerance:tolerance)
         do {
             _ = try SurfaceAreaParameterChartEncloser(curve:.certifiedImplicit(trim),on:.bSpline(source),
-                maximumBoundaryCurveCount:2,tolerance:tolerance)
+                maximumBoundaryCurveCount:2,tolerance:tolerance, using: &admitted)
             Issue.record("Native cell admission must be bounded before source validation.")
-        } catch let error as KernelError { #expect(error.code == .resourceLimitExceeded) }
+        } catch {
+            let error = try #require(retainedKernelFailure(error))
+            #expect(error.code == .resourceLimitExceeded)
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -1197,25 +1345,33 @@ struct SurfaceAreaIntegrationTests {
 
     @Test(.timeLimit(.minutes(1)))
     func centeredRationalChartsRetainOriginalThirdOrderAuthority() throws {
+        let tolerance = tolerance
         let (first, intersection) = try rationalImplicitAreaFixture(direction: .forward)
-        var remaining = FaceAreaIntegrationOptions().maximumCellCount
-        func consume() throws {
-            guard remaining > 0 else {
-                throw KernelError(phase: .topology, code: .resourceLimitExceeded, tolerance: tolerance,
-                    message: "Centered chart proofs exhausted their shared caller work.")
-            }
-            remaining -= 1
+        let remainingState = Mutex(FaceAreaIntegrationOptions().maximumCellCount)
+        var remaining: Int {
+            get { remainingState.withLock { $0 } }
+            set { remainingState.withLock { $0 = newValue } }
         }
+        @Sendable func consume() throws {
+            try remainingState.withLock { remaining in
+                guard remaining > 0 else {
+                    throw KernelError(phase: .topology, code: .resourceLimitExceeded, tolerance: tolerance,
+                        message: "Centered chart proofs exhausted their shared caller work.")
+                }
+                remaining -= 1
+            }
+        }
+        var admitted = try execution(OriginalQueryBudget(consumeWorkUnits: { _ in try consume() }))
         let interval = try ScalarInterval(lower: 0.5,
             upper: 0.5 + Double(sign: .plus, exponent: -8, significand: 1))
         for role in [SurfaceIntersectionSurfaceRole.first, .second] {
             let trim = try CertifiedImplicitSurfaceParameterCurve(intersection: intersection, role: role,
                 startFraction: 1, endFraction: 0, tolerance: tolerance)
             let chart = try SurfaceAreaParameterChartEncloser(curve: .certifiedImplicit(trim),
-                on: role == .first ? first : intersection.secondSurface, tolerance: tolerance, consumeWork: consume)
-            let original = try chart.intervalJet(over: interval, tolerance: tolerance, consumeWork: consume)
+                on: role == .first ? first : intersection.secondSurface, tolerance: tolerance, using: &admitted)
+            let original = try chart.intervalJet(over: interval, tolerance: tolerance, using: &admitted)
             let before = remaining
-            let centered = try chart.centeredIntervalJets(over: interval, tolerance: tolerance, consumeWork: consume)
+            let centered = try chart.centeredIntervalJets(over: interval, tolerance: tolerance, using: &admitted)
             #expect(remaining < before - 1)
             #expect(centered.range.u.secondDerivativeUU.upper - centered.range.u.secondDerivativeUU.lower
                 < original.u.secondDerivativeUU.upper - original.u.secondDerivativeUU.lower)
@@ -1238,24 +1394,18 @@ struct SurfaceAreaIntegrationTests {
 
     @Test(.timeLimit(.minutes(1)), arguments: [false, true])
     func rationalImplicitSingletonFractionsRetainLowerPointWorkAndAuthority(_ backwards: Bool) throws {
+        let tolerance = tolerance
         let (first, intersection) = try rationalImplicitAreaFixture(direction: backwards ? .reversed : .forward)
-        var remaining = FaceAreaIntegrationOptions().maximumCellCount
-        func consume() throws {
-            guard remaining > 0 else {
-                throw KernelError(phase: .topology, code: .resourceLimitExceeded, tolerance: tolerance,
-                    message: "Singleton chart proofs exhausted their shared caller work.")
-            }
-            remaining -= 1
-        }
-        try consume()
-        let lower = try ImplicitCurveIntervalJetEncloser(intersection: intersection, tolerance: tolerance)
+        var admitted = try execution()
+
+        let lower = try ImplicitCurveIntervalJetEncloser(intersection: intersection, tolerance: tolerance, using: &admitted)
         func originalProof(over interval: ScalarInterval) throws -> CertifiedImplicitParameterIntervalJet {
-            try consume()
+
             var state = try lower.prepareParameterEnclosure(of: intersection, cellIndex: 0,
-                overClosedInterval: interval, tolerance: tolerance)
+                overClosedInterval: interval, tolerance: tolerance, using: &admitted)
             while true {
-                try consume()
-                switch try lower.advanceParameterEnclosure(state, tolerance: tolerance) {
+
+                switch try lower.advanceParameterEnclosure(state, tolerance: tolerance, using: &admitted) {
                 case .contracted(let next): state = next
                 case .enclosed(let jet): return jet
                 case .subdivisionRequired:
@@ -1275,7 +1425,7 @@ struct SurfaceAreaIntegrationTests {
                 let trim = try CertifiedImplicitSurfaceParameterCurve(intersection: intersection, role: role,
                     startFraction: mapping.start, endFraction: mapping.end, tolerance: tolerance)
                 let chart = try SurfaceAreaParameterChartEncloser(curve: .certifiedImplicit(trim),
-                    on: role == .first ? first : intersection.secondSurface, tolerance: tolerance, consumeWork: consume)
+                    on: role == .first ? first : intersection.secondSurface, tolerance: tolerance, using: &admitted)
                 let slope = OutwardScalarInterval.exact(mapping.end) - .exact(mapping.start)
                 let source = OutwardScalarInterval.exact(mapping.start)
                     + slope * OutwardScalarInterval(lower: mapping.fraction, upper: mapping.fraction)
@@ -1287,13 +1437,17 @@ struct SurfaceAreaIntegrationTests {
                     original = try ScalarInterval(lower: max(0, source.lower), upper: min(1, source.upper))
                     #expect(original.width > 0)
                 }
-                let beforeLower = remaining
                 let direct = try originalProof(over: original)
-                let lowerWork = beforeLower - remaining
-                let beforeChart = remaining
                 let jet = try chart.intervalJet(over: ScalarInterval(lower: mapping.fraction, upper: mapping.fraction),
-                    tolerance: tolerance, consumeWork: consume)
-                #expect(beforeChart - remaining == lowerWork)
+                    tolerance: tolerance, using: &admitted)
+                try exactWorkBoundary(prepare: { execution in
+                    try SurfaceAreaParameterChartEncloser(curve: .certifiedImplicit(trim),
+                        on: role == .first ? first : intersection.secondSurface,
+                        tolerance: tolerance, using: &execution)
+                }, operation: { chart, execution in
+                    _ = try chart.intervalJet(over: ScalarInterval(lower: mapping.fraction, upper: mapping.fraction),
+                        tolerance: tolerance, using: &execution)
+                })
                 let base = role == .first ? 0 : 2
                 for (field, coordinate) in zip([jet.u, jet.v], direct.coordinates[base..<(base + 2)]) {
                     #expect(field.value.lower == coordinate.value.lower && field.value.upper == coordinate.value.upper)
@@ -1321,6 +1475,7 @@ struct SurfaceAreaIntegrationTests {
 
     @Test(.timeLimit(.minutes(1)))
     func affineGreenCorrectionsDoNotTelescopeAcrossRoundingSizedJoins() throws {
+        var admitted = try execution()
         let support = Surface3D.analytic(.plane(origin: Point3D(x: 0, y: 0, z: 0),
             normal: Vector3D(x: 0, y: 0, z: 1)))
         let gap = Double.ulpOfOne * 48
@@ -1328,25 +1483,25 @@ struct SurfaceAreaIntegrationTests {
             .affine(origin: Point2D(x: 0, y: 0), direction: Point2D(x: 0.125, y: 0.125), startParameter: 0, endParameter: 1),
             .affine(origin: Point2D(x: 0.125 + gap, y: 0.125),
                 direction: Point2D(x: -0.125 - gap, y: -0.125), startParameter: 0, endParameter: 1)]
-        let charts = try curves.map { try SurfaceAreaParameterChartEncloser(curve: $0, on: support, tolerance: tolerance) }
-        let endpoints = try charts.map { try (start: $0.endpointBounds(atEnd: false, tolerance: tolerance, consumeWork: {}),
-            end: $0.endpointBounds(atEnd: true, tolerance: tolerance, consumeWork: {})) }
+        let charts = try curves.map { try SurfaceAreaParameterChartEncloser(curve: $0, on: support, tolerance: tolerance, using: &admitted) }
+        let endpoints = try charts.map { try (start: $0.endpointBounds(atEnd: false, tolerance: tolerance, using: &admitted),
+            end: $0.endpointBounds(atEnd: true, tolerance: tolerance, using: &admitted)) }
         let difference = OutwardScalarInterval(lower: endpoints[1].start.u.lower, upper: endpoints[1].start.u.upper)
             - OutwardScalarInterval(lower: endpoints[0].end.u.lower, upper: endpoints[0].end.u.upper)
         #expect(difference.absoluteUpperBound <= Double.ulpOfOne * 64)
-        let prepared = try PreparedSurfaceAreaIntegrand(surface: support, tolerance: tolerance)
+        let prepared = try PreparedSurfaceAreaIntegrand(surface: support, tolerance: tolerance, using: &admitted)
         let anchor = SurfaceParameter(u: 0, v: 0), reference = Point3D(x: 0, y: 0, z: 0)
         let first = try prepared.affineBoundaryCorrection(start: endpoints[0].start, end: endpoints[0].end,
-            anchor: anchor, reference: reference, tolerance: tolerance)
+            anchor: anchor, reference: reference, tolerance: tolerance, using: &admitted)
         let second = try prepared.affineBoundaryCorrection(start: endpoints[1].start, end: endpoints[1].end,
-            anchor: anchor, reference: reference, tolerance: tolerance)
+            anchor: anchor, reference: reference, tolerance: tolerance, using: &admitted)
         let retained = first[0] + second[0]
         // Each edge's original signed fan is zero. Its Green flux cancels
         // its own endpoint primitive; dropping the internal join changes it.
         #expect(retained.contains(gap * 0.125 * 0.5))
         #expect(retained.lower > 0)
         let telescoped = try prepared.affineBoundaryCorrection(start: endpoints[0].start, end: endpoints[1].end,
-            anchor: anchor, reference: reference, tolerance: tolerance)
+            anchor: anchor, reference: reference, tolerance: tolerance, using: &admitted)
         #expect(telescoped[0].contains(0))
         #expect(retained.lower > telescoped[0].upper)
     }
@@ -1380,23 +1535,30 @@ struct SurfaceAreaIntegrationTests {
                 _ = try model.faceAreaMeasurement(of:id,tolerance:tolerance,
                     integrationOptions:FaceAreaIntegrationOptions(maximumCellCount:1))
                 Issue.record("Rational endpoint work cannot bypass the original query budget.")
-            } catch let error as KernelError {
-                #expect(error.code == .resourceLimitExceeded && error.residual == 2)
+            } catch let error as KernelError { #expect(error.code == .resourceLimitExceeded && error.residual == 2)
             }
         }
     }
 
     @Test(.timeLimit(.minutes(1)), arguments:[false,true])
     func rationalImplicitPartialChartsRetainRolesDirectionAndRigidFractions(_ backwards: Bool) throws {
+        let tolerance = tolerance
         let (first,intersection) = try rationalImplicitAreaFixture(direction:backwards ? .reversed : .forward)
-        var remaining = FaceAreaIntegrationOptions().maximumCellCount
-        func consume() throws {
-            guard remaining > 0 else {
-                throw KernelError(phase:.topology,code:.resourceLimitExceeded,tolerance:tolerance,
-                    message:"Rational chart proofs exhausted their shared query work.")
-            }
-            remaining -= 1
+        let remainingState = Mutex(FaceAreaIntegrationOptions().maximumCellCount)
+        var remaining: Int {
+            get { remainingState.withLock { $0 } }
+            set { remainingState.withLock { $0 = newValue } }
         }
+        @Sendable func consume() throws {
+            try remainingState.withLock { remaining in
+                guard remaining > 0 else {
+                    throw KernelError(phase:.topology,code:.resourceLimitExceeded,tolerance:tolerance,
+                        message:"Rational chart proofs exhausted their shared query work.")
+                }
+                remaining -= 1
+            }
+        }
+        var admitted = try execution(OriginalQueryBudget(consumeWorkUnits: { _ in try consume() }))
         for role in [SurfaceIntersectionSurfaceRole.first,.second] {
             let source = role == .first ? first : intersection.secondSurface
             let trim = try CertifiedImplicitSurfaceParameterCurve(intersection:intersection,role:role,
@@ -1407,9 +1569,9 @@ struct SurfaceAreaIntegrationTests {
                 source:SurfaceLiftCurve3D(surface:source,parameterCurve:.certifiedImplicit(trim)),
                 targetSurface:target,transform:transform,startFraction:1,endFraction:0,tolerance:tolerance))
             let chart = try SurfaceAreaParameterChartEncloser(curve:curve,on:target,
-                tolerance:tolerance,consumeWork:consume)
+                tolerance:tolerance, using: &admitted)
             let interval = try ScalarInterval(lower:0.25,upper:0.75)
-            let jet = try chart.intervalJet(over:interval,tolerance:tolerance,consumeWork:consume)
+            let jet = try chart.intervalJet(over:interval,tolerance:tolerance, using: &admitted)
             for fraction in [interval.lower,interval.midpoint,interval.upper] {
                 let original = 0.25+0.5*fraction
                 let t = backwards ? 5.0/8-original/4 : 3.0/8+original/4
@@ -1425,7 +1587,7 @@ struct SurfaceAreaIntegrationTests {
                 #expect(jet.v.secondDerivativeUU.contains(0) && jet.v.thirdDerivativeUUU.contains(0))
             }
             for atEnd in [false,true] {
-                let bounds = try chart.endpointBounds(atEnd:atEnd,tolerance:tolerance,consumeWork:consume)
+                let bounds = try chart.endpointBounds(atEnd:atEnd,tolerance:tolerance, using: &admitted)
                 let original = atEnd ? 0.75 : 0.25
                 let t = backwards ? 5.0/8-original/4 : 3.0/8+original/4
                 #expect(bounds.u.contains(role == .first ? t*t : 2*t/(1+t)))
@@ -1437,33 +1599,31 @@ struct SurfaceAreaIntegrationTests {
 
     @Test(.timeLimit(.minutes(1)), arguments:[false,true])
     func centeredRationalCurvedFanPairContainsIndependentPhysicalFields(_ backwards: Bool) throws {
+        let tolerance = tolerance
         let (_,intersection) = try rationalImplicitAreaFixture(direction:backwards ? .reversed : .forward)
         let surface = intersection.secondSurface
         let curve = try rationalImplicitCurvedBand(intersection,backwards:backwards)[2]
-        let limit = FaceAreaIntegrationOptions().maximumCellCount
-        var work = 0
-        func consume() throws {
-            work += 1
-            guard work <= limit else {
-                throw KernelError(phase:.topology,code:.resourceLimitExceeded,residual:Double(work),
-                    tolerance:tolerance,message:"Independent fan proof exhausted its query work.")
-            }
-        }
+        var admitted = try execution()
         let chart = try SurfaceAreaParameterChartEncloser(curve:curve,on:surface,
-            tolerance:tolerance,consumeWork:consume)
-        let prepared = try PreparedSurfaceAreaIntegrand(surface:surface,tolerance:tolerance)
+            tolerance:tolerance, using: &admitted)
+        let prepared = try PreparedSurfaceAreaIntegrand(surface:surface,tolerance:tolerance, using: &admitted)
         let t = try ScalarInterval(lower:0.5,upper:0.5+1.0/64)
         let r = try ScalarInterval(lower:0.25,upper:0.75)
-        // Compare charged work with the actual original centered chart owner,
-        // rather than a guessed iteration count or a separate solver allowance.
-        work = 0
-        _ = try chart.centeredIntervalJets(over:t,tolerance:tolerance,consumeWork:consume)
-        let chartWork = work
-        work = 0
+        // The actual preparation and field operation share one cumulative admission owner.
         let pair = try prepared.centeredFanBounds(curve:curve,parameterChart:chart,
             anchor:SurfaceParameter(u:10.0/13,v:1),reference:.origin,
-            boundaryFraction:t,radialFraction:r,tolerance:tolerance,consumeWork:consume)
-        #expect(work == chartWork && work > 0)
+            boundaryFraction:t,radialFraction:r,tolerance:tolerance, using: &admitted)
+        try exactWorkBoundary(prepare: { execution in
+            let chart = try SurfaceAreaParameterChartEncloser(curve: curve, on: surface,
+                tolerance: tolerance, using: &execution)
+            let integrand = try PreparedSurfaceAreaIntegrand(surface: surface,
+                tolerance: tolerance, using: &execution)
+            return (chart: chart, integrand: integrand)
+        }, operation: { state, execution in
+            _ = try state.integrand.centeredFanBounds(curve: curve, parameterChart: state.chart,
+                anchor: SurfaceParameter(u:10.0/13,v:1), reference: .origin, boundaryFraction: t,
+                radialFraction: r, tolerance: tolerance, using: &execution)
+        })
         for atT in [t.lower,t.midpoint,t.upper] {
             for atR in [r.lower,r.midpoint,r.upper] {
                 for (bound,value) in zip(pair.range,rationalCurvedFanPhysicalFields(atT,atR)) {
@@ -1480,6 +1640,7 @@ struct SurfaceAreaIntegrationTests {
 
     @Test(.timeLimit(.minutes(1)), arguments:[false,true])
     func sourceCenteredOriginalFanPairTightensSameInputHessians(_ backwards: Bool) throws {
+        let tolerance = tolerance
         let (_,intersection) = try rationalImplicitAreaFixture(direction:backwards ? .reversed : .forward)
         let original = intersection.secondSurface
         let originalCurve = try rationalImplicitCurvedBand(intersection,backwards:backwards)[2]
@@ -1492,18 +1653,11 @@ struct SurfaceAreaIntegrationTests {
                 surface = try transform.applying(to:original,tolerance:tolerance)
                 curve = try #require(rigidTrims([originalCurve],source:original,target:surface,transform:transform).first)
             } else { surface = original; curve = originalCurve }
-            var work = 0
-            func consume() throws {
-                work += 1
-                guard work <= FaceAreaIntegrationOptions().maximumCellCount else {
-                    throw KernelError(phase:.topology,code:.resourceLimitExceeded,residual:Double(work),
-                        tolerance:tolerance,message:"Source-centered field evidence exhausted original caller work.")
-                }
-            }
+            var admitted = try execution()
             let chart = try SurfaceAreaParameterChartEncloser(curve:curve,on:surface,
-                tolerance:tolerance,consumeWork:consume)
-            let prepared = try PreparedSurfaceAreaIntegrand(surface:surface,tolerance:tolerance)
-            let chartPair = try chart.centeredIntervalJets(over:t,tolerance:tolerance,consumeWork:consume)
+                tolerance:tolerance, using: &admitted)
+            let prepared = try PreparedSurfaceAreaIntegrand(surface:surface,tolerance:tolerance, using: &admitted)
+            let chartPair = try chart.centeredIntervalJets(over:t,tolerance:tolerance, using: &admitted)
             let anchor = SurfaceParameter(u:10.0/13,v:1)
             func pullback(_ chart: (u: SurfaceIntervalJet,v: SurfaceIntervalJet),_ radial: ScalarInterval)
                 throws -> (box: SurfaceParameterBox,u: SurfaceIntervalJet,v: SurfaceIntervalJet,measure: SurfaceIntervalJet) {
@@ -1521,10 +1675,10 @@ struct SurfaceAreaIntegrationTests {
             // Prepare the original stored controls once. Both field compositions
             // below consume these exact same two evaluated source proofs.
             let patch = try RationalBezierSurfaceJetEncloser().prepare(RationalBezierSurfacePatch3D(
-                controlPoints:spline.controlPoints,weights:spline.weights,uLower:0,uUpper:1,vLower:0,vUpper:1),tolerance:tolerance)
+                controlPoints:spline.controlPoints,weights:spline.weights,uLower:0,uUpper:1,vLower:0,vUpper:1),tolerance:tolerance, using: &admitted)
             let owner = RationalBezierSurfaceJetEncloser()
-            let rangeJet = try owner.enclosure(of:patch,u:whole.box.u,v:whole.box.v,tolerance:tolerance)
-            let midpointJet = try owner.enclosure(of:patch,u:point.box.u,v:point.box.v,tolerance:tolerance)
+            let rangeJet = try owner.enclosure(of:patch,u:whole.box.u,v:whole.box.v,tolerance:tolerance, using: &admitted)
+            let midpointJet = try owner.enclosure(of:patch,u:point.box.u,v:point.box.v,tolerance:tolerance, using: &admitted)
             let tightened = try PreparedSurfaceAreaIntegrand.centeredSourceRange(rangeJet,midpoint:midpointJet,
                 over:whole.box,midpointBox:point.box,tolerance:tolerance)
             for (before,after) in zip([rangeJet.x,rangeJet.y,rangeJet.z],[tightened.x,tightened.y,tightened.z]) {
@@ -1534,9 +1688,9 @@ struct SurfaceAreaIntegrationTests {
                 #expect(after.thirdDerivativeVVV.lower == before.thirdDerivativeVVV.lower && after.thirdDerivativeVVV.upper == before.thirdDerivativeVVV.upper)
             }
             let before = try prepared.fields(from:rangeJet,order:3,u:whole.u,v:whole.v,
-                measure:whole.measure,reference:.origin,tolerance:tolerance)
+                measure:whole.measure,reference:.origin,tolerance:tolerance, using: &admitted)
             let after = try prepared.fields(from:tightened,order:3,u:whole.u,v:whole.v,
-                measure:whole.measure,reference:.origin,tolerance:tolerance)
+                measure:whole.measure,reference:.origin,tolerance:tolerance, using: &admitted)
             for index in before.indices {
                 let old = try [#require(before[index].secondUU),#require(before[index].secondUV),#require(before[index].secondVV)]
                 let new = try [#require(after[index].secondUU),#require(after[index].secondUV),#require(after[index].secondVV)]
@@ -1567,13 +1721,19 @@ struct SurfaceAreaIntegrationTests {
                     }
                 }
             }
-            work = 0
-            _ = try chart.centeredIntervalJets(over:t,tolerance:tolerance,consumeWork:consume)
-            let expectedWork = work
-            work = 0
             let actual = try prepared.centeredFanBounds(curve:curve,parameterChart:chart,anchor:anchor,
-                reference:.origin,boundaryFraction:t,radialFraction:r,tolerance:tolerance,consumeWork:consume)
-            #expect(work == expectedWork)
+                reference:.origin,boundaryFraction:t,radialFraction:r,tolerance:tolerance, using: &admitted)
+            try exactWorkBoundary(prepare: { execution in
+                let chart = try SurfaceAreaParameterChartEncloser(curve: curve, on: surface,
+                    tolerance: tolerance, using: &execution)
+                let integrand = try PreparedSurfaceAreaIntegrand(surface: surface,
+                    tolerance: tolerance, using: &execution)
+                return (chart: chart, integrand: integrand)
+            }, operation: { state, execution in
+                _ = try state.integrand.centeredFanBounds(curve: curve, parameterChart: state.chart,
+                    anchor: anchor, reference: .origin, boundaryFraction: t,
+                    radialFraction: r, tolerance: tolerance, using: &execution)
+            })
             for index in after.indices {
                 #expect(actual.range[index].value.lower == after[index].value.lower && actual.range[index].value.upper == after[index].value.upper)
                 let secondUU = try #require(actual.range[index].secondUU)
@@ -1587,7 +1747,7 @@ struct SurfaceAreaIntegrationTests {
                 #expect(secondVV.lower == expectedSecondVV.lower && secondVV.upper == expectedSecondVV.upper)
             }
             let originalMidpoint = try prepared.fields(from:midpointJet,order:3,u:point.u,v:point.v,
-                measure:point.measure,reference:.origin,tolerance:tolerance)
+                measure:point.measure,reference:.origin,tolerance:tolerance, using: &admitted)
             for index in originalMidpoint.indices {
                 #expect(actual.midpoint[index].value.lower == originalMidpoint[index].value.lower && actual.midpoint[index].value.upper == originalMidpoint[index].value.upper)
                 let secondUU = try #require(actual.midpoint[index].secondUU)
@@ -1634,27 +1794,28 @@ struct SurfaceAreaIntegrationTests {
 
     @Test(.timeLimit(.minutes(1)))
     func sourceCenteredPairRejectsForeignOwnerAndContradictoryBoxes() throws {
+        var admitted = try execution()
         let (_,intersection) = try rationalImplicitAreaFixture()
         let source = intersection.secondSurface
         let curve = try rationalImplicitCurvedBand(intersection,backwards:false)[1]
-        let chart = try SurfaceAreaParameterChartEncloser(curve:curve,on:source,tolerance:tolerance)
-        let prepared = try PreparedSurfaceAreaIntegrand(surface:source,tolerance:tolerance)
+        let chart = try SurfaceAreaParameterChartEncloser(curve:curve,on:source,tolerance:tolerance, using: &admitted)
+        let prepared = try PreparedSurfaceAreaIntegrand(surface:source,tolerance:tolerance, using: &admitted)
         let t = try ScalarInterval(lower:0.25,upper:0.75), r = try ScalarInterval(lower:0.25,upper:0.75)
         let anchor = SurfaceParameter(u:10.0/13,v:1)
-        let foreign = try PreparedSurfaceAreaIntegrand(surface:intersection.firstSurface,tolerance:tolerance)
+        let foreign = try PreparedSurfaceAreaIntegrand(surface:intersection.firstSurface,tolerance:tolerance, using: &admitted)
         #expect(throws:KernelError.self) {
             try foreign.pairedFanBounds(curve:curve,parameterChart:chart,anchor:anchor,reference:.origin,
-                boundaryFraction:t,radialFraction:r,tolerance:tolerance,consumeWork:{})
+                boundaryFraction:t,radialFraction:r,tolerance:tolerance, using: &admitted)
         }
         let otherTolerance = ModelingTolerance(distance:2*tolerance.distance,angle:tolerance.angle,relative:tolerance.relative)
         #expect(throws:KernelError.self) {
             try prepared.pairedFanBounds(curve:curve,parameterChart:chart,anchor:anchor,reference:.origin,
-                boundaryFraction:t,radialFraction:r,tolerance:otherTolerance,consumeWork:{})
+                boundaryFraction:t,radialFraction:r,tolerance:otherTolerance, using: &admitted)
         }
         let box = SurfaceParameterBox(u:t,v:r)
         guard case .bSpline(let spline) = source else { Issue.record("The source fixture lost its spline."); return }
-        let owner = try PreparedBSplineSurfaceDifferentialEncloser(surface:spline,tolerance:tolerance)
-        let rangeJet = try owner.intervalJet(overClosedBox:box,tolerance:tolerance)
+        let owner = try PreparedBSplineSurfaceDifferentialEncloser(surface:spline,tolerance:tolerance, using: &admitted)
+        let rangeJet = try owner.intervalJet(overClosedBox:box,tolerance:tolerance, using: &admitted)
         let outside = SurfaceParameterBox(u:try ScalarInterval(lower:0,upper:0),v:r)
         #expect(throws:KernelError.self) {
             try PreparedSurfaceAreaIntegrand.centeredSourceRange(rangeJet,midpoint:rangeJet,
@@ -1674,19 +1835,20 @@ struct SurfaceAreaIntegrationTests {
 
     @Test(.timeLimit(.minutes(1)))
     func sourceCenteredPairKeepsOriginalKnotSidesOnLegacyRoute() throws {
+        var admitted = try execution()
         let source = foldedSupport(knot:0.37)
         let curve = SurfaceParameterCurve.constantV(v:0.03,uStart:0,uEnd:1)
-        let chart = try SurfaceAreaParameterChartEncloser(curve:curve,on:source,tolerance:tolerance)
-        let prepared = try PreparedSurfaceAreaIntegrand(surface:source,tolerance:tolerance)
+        let chart = try SurfaceAreaParameterChartEncloser(curve:curve,on:source,tolerance:tolerance, using: &admitted)
+        let prepared = try PreparedSurfaceAreaIntegrand(surface:source,tolerance:tolerance, using: &admitted)
         let t = try ScalarInterval(lower:0,upper:1), r = try ScalarInterval(lower:0.25,upper:0.75)
         let anchor = SurfaceParameter(u:0,v:0)
         let originalRange = try prepared.bounds(curve:curve,anchor:anchor,reference:.origin,
-            boundaryFraction:t,radialFraction:r,tolerance:tolerance,parameterChart:chart)
+            boundaryFraction:t,radialFraction:r,tolerance:tolerance,parameterChart:chart, using: &admitted)
         let originalMidpoint = try prepared.bounds(curve:curve,anchor:anchor,reference:.origin,
             boundaryFraction:ScalarInterval(lower:0.5,upper:0.5),
-            radialFraction:ScalarInterval(lower:0.5,upper:0.5),tolerance:tolerance,parameterChart:chart)
+            radialFraction:ScalarInterval(lower:0.5,upper:0.5),tolerance:tolerance,parameterChart:chart, using: &admitted)
         let pair = try prepared.pairedFanBounds(curve:curve,parameterChart:chart,anchor:anchor,reference:.origin,
-            boundaryFraction:t,radialFraction:r,tolerance:tolerance,consumeWork:{})
+            boundaryFraction:t,radialFraction:r,tolerance:tolerance, using: &admitted)
         for (old,new) in zip(originalRange,pair.range) {
             #expect(new.value.lower == old.value.lower && new.value.upper == old.value.upper)
             #expect(new.secondUU == nil && new.secondUV == nil && new.secondVV == nil)
@@ -1698,30 +1860,34 @@ struct SurfaceAreaIntegrationTests {
 
     @Test(.timeLimit(.minutes(1)), arguments:[false,true])
     func retainedRationalFanChartProofOwnsOnlyItsOriginalBoundaryInterval(_ backwards: Bool) throws {
+        let tolerance = tolerance
         let (first,intersection) = try rationalImplicitAreaFixture(direction:backwards ? .reversed : .forward)
         let surface = intersection.secondSurface
         let curve = try rationalImplicitCurvedBand(intersection,backwards:backwards)[2]
-        let limit = FaceAreaIntegrationOptions().maximumCellCount
-        var work = 0
-        func consume() throws {
-            work += 1
-            guard work <= limit else {
-                throw KernelError(phase:.topology,code:.resourceLimitExceeded,residual:Double(work),
-                    tolerance:tolerance,message:"Retained fan proof exhausted its query work.")
-            }
-        }
+        var admitted = try execution()
         let chart = try SurfaceAreaParameterChartEncloser(curve:curve,on:surface,
-            tolerance:tolerance,consumeWork:consume)
-        let prepared = try PreparedSurfaceAreaIntegrand(surface:surface,tolerance:tolerance)
+            tolerance:tolerance, using: &admitted)
+        let prepared = try PreparedSurfaceAreaIntegrand(surface:surface,tolerance:tolerance, using: &admitted)
         let t = try ScalarInterval(lower:0.5,upper:0.5+1.0/64)
         let proof = try prepared.prepareCenteredFanChartProof(curve:curve,parameterChart:chart,
-            boundaryFraction:t,tolerance:tolerance,consumeWork:consume)
-        let paidWork = work
+            boundaryFraction:t,tolerance:tolerance, using: &admitted)
         let anchor = SurfaceParameter(u:10.0/13,v:1)
         for r in [try ScalarInterval(lower:0.25,upper:0.5),try ScalarInterval(lower:0.5,upper:0.75)] {
             let pair = try prepared.centeredFanBounds(using:proof,curve:curve,parameterChart:chart,
-                anchor:anchor,reference:.origin,boundaryFraction:t,radialFraction:r,tolerance:tolerance)
-            #expect(work == paidWork && paidWork > 0)
+                anchor:anchor,reference:.origin,boundaryFraction:t,radialFraction:r,tolerance:tolerance, using: &admitted)
+            try exactWorkBoundary(prepare: { execution in
+                let chart = try SurfaceAreaParameterChartEncloser(curve: curve, on: surface,
+                    tolerance: tolerance, using: &execution)
+                let integrand = try PreparedSurfaceAreaIntegrand(surface: surface,
+                    tolerance: tolerance, using: &execution)
+                let proof = try integrand.prepareCenteredFanChartProof(curve: curve,
+                    parameterChart: chart, boundaryFraction: t, tolerance: tolerance, using: &execution)
+                return (chart: chart, integrand: integrand, proof: proof)
+            }, operation: { state, execution in
+                _ = try state.integrand.centeredFanBounds(using: state.proof, curve: curve,
+                    parameterChart: state.chart, anchor: anchor, reference: .origin,
+                    boundaryFraction: t, radialFraction: r, tolerance: tolerance, using: &execution)
+            })
             for atT in [t.lower,t.midpoint,t.upper] {
                 for atR in [r.lower,r.midpoint,r.upper] {
                     for (bound,value) in zip(pair.range,rationalCurvedFanPhysicalFields(atT,atR)) {
@@ -1737,24 +1903,25 @@ struct SurfaceAreaIntegrationTests {
         let narrowerT = try ScalarInterval(lower:0.5,upper:0.5+1.0/128)
         let differentTolerance = ModelingTolerance(distance:tolerance.distance*2,
             angle:tolerance.angle,relative:tolerance.relative)
-        let foreign = try PreparedSurfaceAreaIntegrand(surface:first,tolerance:tolerance)
+        let foreign = try PreparedSurfaceAreaIntegrand(surface:first,tolerance:tolerance, using: &admitted)
         for mismatch in 0..<4 {
             do {
                 _ = try (mismatch == 0 ? foreign : prepared).centeredFanBounds(using:proof,
                     curve:mismatch == 1 ? .constantV(v:0.5,uStart:0,uEnd:1) : curve,
                     parameterChart:chart,anchor:anchor,reference:.origin,
                     boundaryFraction:mismatch == 2 ? narrowerT : t,radialFraction:r,
-                    tolerance:mismatch == 3 ? differentTolerance : tolerance)
+                    tolerance:mismatch == 3 ? differentTolerance : tolerance, using: &admitted)
                 Issue.record("Retained chart proof accepted a foreign original authority.")
-            } catch let error as KernelError {
+            } catch {
+                let error = try #require(retainedKernelFailure(error))
                 #expect(error.code == .invalidInput)
             }
         }
-        #expect(work == paidWork)
     }
 
     @Test(.timeLimit(.minutes(1)), arguments:[false,true])
     func rationalFanChildRestrictionRetainsOriginalMidpointWorkAndPhysicalFields(_ backwards: Bool) throws {
+        let tolerance = tolerance
         let (_,intersection) = try rationalImplicitAreaFixture(direction:backwards ? .reversed : .forward)
         let originalSurface = intersection.secondSurface
         let originalCurve = try rationalImplicitCurvedBand(intersection,backwards:backwards)[2]
@@ -1765,29 +1932,19 @@ struct SurfaceAreaIntegrationTests {
                 surface = try transform.applying(to:originalSurface,tolerance:tolerance)
                 curve = try rigidTrims([originalCurve],source:originalSurface,target:surface,transform:transform)[0]
             } else { surface = originalSurface; curve = originalCurve }
-            var work = 0
-            let limit = FaceAreaIntegrationOptions().maximumCellCount
-            func consume() throws {
-                work += 1
-                guard work <= limit else {
-                    throw KernelError(phase:.topology,code:.resourceLimitExceeded,residual:Double(work),
-                        tolerance:tolerance,message:"Original child midpoint exhausted its shared work.")
-                }
-            }
+            var admitted = try execution()
             let chart = try SurfaceAreaParameterChartEncloser(curve:curve,on:surface,
-                tolerance:tolerance,consumeWork:consume)
-            let prepared = try PreparedSurfaceAreaIntegrand(surface:surface,tolerance:tolerance)
+                tolerance:tolerance, using: &admitted)
+            let prepared = try PreparedSurfaceAreaIntegrand(surface:surface,tolerance:tolerance, using: &admitted)
             let parentT = try ScalarInterval(lower:0.25,upper:0.75)
             let childT = try ScalarInterval(lower:0.5,upper:0.5+1.0/64)
             let parent = try prepared.prepareCenteredFanChartProof(curve:curve,parameterChart:chart,
-                boundaryFraction:parentT,tolerance:tolerance,consumeWork:consume)
+                boundaryFraction:parentT,tolerance:tolerance, using: &admitted)
             let originalRange = try chart.intervalProofRetainingRoot(over:parentT,
-                tolerance:tolerance,consumeWork:consume)
-            work = 0
+                tolerance:tolerance, using: &admitted)
             let pointProof = try chart.intervalProofRetainingRoot(
                 over:ScalarInterval(lower:childT.midpoint,upper:childT.midpoint),
-                restricting:originalRange.root,tolerance:tolerance,consumeWork:consume)
-            let pointWork = work
+                restricting:originalRange.root,tolerance:tolerance, using: &admitted)
             guard case .smooth(let pointU,let pointV) = pointProof.proof else {
                 Issue.record("Original restricted singleton lost its smooth chart derivatives.")
                 continue
@@ -1799,14 +1956,29 @@ struct SurfaceAreaIntegrationTests {
                                     [2*physicalT/d,0.5/pow(d,2),-0.25/pow(d,3),0.1875/pow(d,4)]) {
                 #expect(field.contains(value))
             }
-            work = 0
             let child = try prepared.prepareCenteredFanChartProof(restricting:parent,curve:curve,
-                parameterChart:chart,boundaryFraction:childT,tolerance:tolerance,consumeWork:consume)
-            #expect(work == pointWork && pointWork > 0)
+                parameterChart:chart,boundaryFraction:childT,tolerance:tolerance, using: &admitted)
             let r = try ScalarInterval(lower:0.25,upper:0.75)
             let pair = try prepared.centeredFanBounds(using:child,curve:curve,parameterChart:chart,
                 anchor:SurfaceParameter(u:10.0/13,v:1),reference:.origin,
-                boundaryFraction:childT,radialFraction:r,tolerance:tolerance)
+                boundaryFraction:childT,radialFraction:r,tolerance:tolerance, using: &admitted)
+            try exactWorkBoundary(prepare: { execution in
+                let chart = try SurfaceAreaParameterChartEncloser(curve: curve, on: surface,
+                    tolerance: tolerance, using: &execution)
+                let integrand = try PreparedSurfaceAreaIntegrand(surface: surface,
+                    tolerance: tolerance, using: &execution)
+                let parent = try integrand.prepareCenteredFanChartProof(curve: curve,
+                    parameterChart: chart, boundaryFraction: parentT, tolerance: tolerance, using: &execution)
+                return (chart: chart, integrand: integrand, parent: parent)
+            }, operation: { state, execution in
+                let child = try state.integrand.prepareCenteredFanChartProof(restricting: state.parent,
+                    curve: curve, parameterChart: state.chart, boundaryFraction: childT,
+                    tolerance: tolerance, using: &execution)
+                _ = try state.integrand.centeredFanBounds(using: child, curve: curve,
+                    parameterChart: state.chart, anchor: SurfaceParameter(u:10.0/13,v:1),
+                    reference: .origin, boundaryFraction: childT, radialFraction: r,
+                    tolerance: tolerance, using: &execution)
+            })
             func physical(_ fraction: Double, _ radial: Double) -> [Double] {
                 let fields = rationalCurvedFanPhysicalFields(fraction,radial)
                 return mapped ? [fields[0],0.125*fields[0]-fields[2],
@@ -1822,14 +1994,16 @@ struct SurfaceAreaIntegrationTests {
             for (bound,value) in zip(pair.midpoint,physical(childT.midpoint,r.midpoint)) {
                 #expect(bound.value.contains(value))
             }
-            #expect(work == pointWork)
             do {
                 _ = try prepared.prepareCenteredFanChartProof(restricting:parent,curve:curve,
                     parameterChart:chart,boundaryFraction:ScalarInterval(lower:0,upper:0.5),
-                    tolerance:tolerance,consumeWork:consume)
+                    tolerance:tolerance, using: &admitted)
                 Issue.record("Child chart restriction escaped its original parent T domain.")
-            } catch let error as KernelError { #expect(error.code == .invalidInput) }
-            let foreign = try PreparedSurfaceAreaIntegrand(surface:intersection.firstSurface,tolerance:tolerance)
+            } catch {
+                let error = try #require(retainedKernelFailure(error))
+                #expect(error.code == .invalidInput)
+            }
+            let foreign = try PreparedSurfaceAreaIntegrand(surface:intersection.firstSurface,tolerance:tolerance, using: &admitted)
             let differentTolerance = ModelingTolerance(distance:tolerance.distance*2,
                 angle:tolerance.angle,relative:tolerance.relative)
             for mismatch in 0..<3 {
@@ -1837,23 +2011,30 @@ struct SurfaceAreaIntegrationTests {
                     _ = try (mismatch == 0 ? foreign : prepared).prepareCenteredFanChartProof(restricting:parent,
                         curve:mismatch == 1 ? .constantV(v:0.5,uStart:0,uEnd:1) : curve,
                         parameterChart:chart,boundaryFraction:childT,
-                        tolerance:mismatch == 2 ? differentTolerance : tolerance,consumeWork:consume)
+                        tolerance:mismatch == 2 ? differentTolerance : tolerance, using: &admitted)
                     Issue.record("Child chart restriction adopted a foreign parent authority.")
-                } catch let error as KernelError { #expect(error.code == .invalidInput) }
+                } catch {
+                    let error = try #require(retainedKernelFailure(error))
+                    #expect(error.code == .invalidInput)
+                }
             }
-            #expect(work == pointWork)
             do {
+                var refusedAdmission = try execution(OriginalQueryBudget(consumeWorkUnits: { _ in
+                    throw SurfaceAreaEnclosureRefinementRequired.implicitLocalization
+                }))
                 _ = try prepared.prepareCenteredFanChartProof(restricting:parent,curve:curve,
-                    parameterChart:chart,boundaryFraction:childT,tolerance:tolerance,
-                    consumeWork:{ throw SurfaceAreaEnclosureRefinementRequired.implicitLocalization })
+                    parameterChart:chart,boundaryFraction:childT,tolerance:tolerance, using: &refusedAdmission)
                 Issue.record("Inconclusive original child localization minted a chart proof.")
-            } catch is SurfaceAreaEnclosureRefinementRequired { }
+            } catch { #expect(retainedRefinementFailure(error)) }
             do {
                 _ = try chart.centeredIntervalJets(over:childT,
                     restricting:(u:SurfaceIntervalJet.constant(10),v:SurfaceIntervalJet.constant(10)),
-                    tolerance:tolerance,consumeWork:consume)
+                    tolerance:tolerance, using: &admitted)
                 Issue.record("A contradictory parent range accepted its original child midpoint.")
-            } catch let error as KernelError { #expect(error.code == .classificationFailure) }
+            } catch {
+                let error = try #require(retainedKernelFailure(error))
+                #expect(error.code == .classificationFailure)
+            }
         }
     }
 
@@ -1870,6 +2051,8 @@ struct SurfaceAreaIntegrationTests {
 
     @Test(.timeLimit(.minutes(1)), arguments:[false,true])
     func originalImplicitIsoImageRetainsWholeRootFractionsAndRigidIdentity(_ backwards: Bool) throws {
+        let tolerance = tolerance
+        var admitted = try execution()
         let (_,intersection) = try rationalImplicitAreaFixture(direction:backwards ? .reversed : .forward)
         let original = try rationalImplicitCurvedBand(intersection,backwards:backwards)[2]
         for mapped in [false,true] {
@@ -1880,44 +2063,58 @@ struct SurfaceAreaIntegrationTests {
                 support = try transform.applying(to:intersection.secondSurface,tolerance:tolerance)
                 curve = try rigidTrims([original],source:intersection.secondSurface,target:support,transform:transform)[0]
             } else { support = intersection.secondSurface; curve = original }
-            var work = 0
+            let workState = Mutex(0)
+            var work: Int {
+                get { workState.withLock { $0 } }
+                set { workState.withLock { $0 = newValue } }
+            }
+            var admitted = try execution(OriginalQueryBudget(consumeWorkUnits: { _ in
+                workState.withLock { $0 += 1 }
+            }))
             let chart = try SurfaceAreaParameterChartEncloser(curve:curve,on:support,
-                tolerance:tolerance,consumeWork:{ work += 1 })
+                tolerance:tolerance, using: &admitted)
             let before = work
-            let image = try #require(try chart.certifiedIsoBoundaryImage(tolerance:tolerance,consumeWork:{ work += 1 }))
+            let image = try #require(try chart.certifiedIsoBoundaryImage(tolerance:tolerance, using: &admitted))
             #expect(work > before)
             #expect(chart.exactIsoBoundary == nil)
             #expect(image.axis == .v && image.fixedParameter == 0.5)
             #expect(image.start.u.contains(6.0/11) && image.end.u.contains(10.0/13))
             #expect(image.start.v.contains(0.5) && image.end.v.contains(0.5))
-            try image.validate(for:chart,on:support,tolerance:tolerance)
+            try image.validate(for:chart,on:support,tolerance:tolerance, using: &admitted)
             let wrong = ModelingTolerance(distance:tolerance.distance,angle:tolerance.angle,relative:tolerance.relative*2)
             do {
-                try image.validate(for:chart,on:support,tolerance:wrong)
+                try image.validate(for:chart,on:support,tolerance:wrong, using: &admitted)
                 Issue.record("An iso-image receipt changed its original preparation tolerance.")
-            } catch let error as KernelError { #expect(error.code == .invalidInput) }
+            } catch {
+                let error = try #require(retainedKernelFailure(error))
+                #expect(error.code == .invalidInput)
+            }
         }
         // Partial native fractions and reversed traversal remain the original
         // implicit parameterization, rather than an endpoint-fitted line.
         let partial = SurfaceParameterCurve.certifiedImplicit(try CertifiedImplicitSurfaceParameterCurve(
             intersection:intersection,role:.second,startFraction:0.25,endFraction:0.75,tolerance:tolerance))
         let partialChart = try SurfaceAreaParameterChartEncloser(curve:partial,on:intersection.secondSurface,
-            tolerance:tolerance,consumeWork:{})
-        let partialImage = try #require(try partialChart.certifiedIsoBoundaryImage(tolerance:tolerance,consumeWork:{}))
+            tolerance:tolerance, using: &admitted)
+        let partialImage = try #require(try partialChart.certifiedIsoBoundaryImage(tolerance:tolerance, using: &admitted))
         let firstT = backwards ? 9.0/16 : 7.0/16
         let lastT = backwards ? 7.0/16 : 9.0/16
         #expect(partialImage.start.u.contains(2*firstT/(1+firstT)))
         #expect(partialImage.end.u.contains(2*lastT/(1+lastT)))
         let chart = try SurfaceAreaParameterChartEncloser(curve:original,on:intersection.secondSurface,
-            tolerance:tolerance,consumeWork:{})
+            tolerance:tolerance, using: &admitted)
         do {
-            try partialImage.validate(for:chart,on:intersection.secondSurface,tolerance:tolerance)
+            try partialImage.validate(for:chart,on:intersection.secondSurface,tolerance:tolerance, using: &admitted)
             Issue.record("An iso-image receipt adopted different original trim fractions.")
-        } catch let error as KernelError { #expect(error.code == .invalidInput) }
+        } catch {
+            let error = try #require(retainedKernelFailure(error))
+            #expect(error.code == .invalidInput)
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func interiorCoefficientPerturbationCannotAuthorizeAnImplicitIsoImage() throws {
+        var admitted = try execution()
         let (_,original) = try rationalImplicitAreaFixture()
         guard case .bSpline(let plane) = original.firstSurface,
               case .bSpline(let originalExtrusion) = original.secondSurface else {
@@ -1933,7 +2130,7 @@ struct SurfaceAreaIntegrationTests {
         let extrusion = BSplineSurface3D(uDegree:originalExtrusion.uDegree,vDegree:originalExtrusion.vDegree,
             uKnots:originalExtrusion.uKnots,vKnots:originalExtrusion.vKnots,
             controlPoints:controls,weights:originalExtrusion.weights)
-        #expect(SurfaceAreaTranslationCertificate.direction(of:.bSpline(extrusion)) == .v)
+        #expect(try SurfaceAreaTranslationCertificate.direction(of:.bSpline(extrusion), remainingSourceDepth: 16, maximumAlgebraicDepth: 32, using: &admitted) == .v)
         let old = original.cells[0]
         let cell = try CertifiedImplicitIntersectionGraphCell(parameterBox:old.parameterBox,
             freeParameter:old.freeParameter,direction:old.direction,lowerAnchor:old.lowerAnchor,
@@ -1944,8 +2141,8 @@ struct SurfaceAreaIntegrationTests {
         let curve = SurfaceParameterCurve.certifiedImplicit(try CertifiedImplicitSurfaceParameterCurve(
             intersection:intersection,role:.second,tolerance:tolerance))
         let chart = try SurfaceAreaParameterChartEncloser(curve:curve,on:.bSpline(extrusion),
-            tolerance:tolerance,consumeWork:{})
-        #expect(try chart.certifiedIsoBoundaryImage(tolerance:tolerance,consumeWork:{}) == nil)
+            tolerance:tolerance, using: &admitted)
+        #expect(try chart.certifiedIsoBoundaryImage(tolerance:tolerance, using: &admitted) == nil)
         // Independent homogeneous numerator at s=2/3: the middle weighted
         // basis contributes 1/2 of the perturbation; solving Z=0 changes V.
         let actualV = 0.5 - 32 * (perturbation * 0.5)
@@ -1954,23 +2151,35 @@ struct SurfaceAreaIntegrationTests {
 
     @Test(.timeLimit(.minutes(1)), arguments:[false,true])
     func isoImageEndpointTrianglesRetainIndependentNonzeroAreaAndAllMoments(_ uAxis: Bool) throws {
+        let tolerance = tolerance
         let intersection = try planarIsoImageIntersection(uAxis:uAxis)
         let curve = SurfaceParameterCurve.certifiedImplicit(try CertifiedImplicitSurfaceParameterCurve(
             intersection:intersection,role:.second,tolerance:tolerance))
-        var work = 0
+        var admitted = try execution()
         let chart = try SurfaceAreaParameterChartEncloser(curve:curve,on:intersection.secondSurface,
-            tolerance:tolerance,consumeWork:{ work += 1 })
-        let image = try #require(try chart.certifiedIsoBoundaryImage(tolerance:tolerance,consumeWork:{ work += 1 }))
-        let prepared = try PreparedSurfaceAreaIntegrand(surface:intersection.secondSurface,tolerance:tolerance)
+            tolerance:tolerance, using: &admitted)
+        let image = try #require(try chart.certifiedIsoBoundaryImage(tolerance:tolerance, using: &admitted))
+        let prepared = try PreparedSurfaceAreaIntegrand(surface:intersection.secondSurface,tolerance:tolerance, using: &admitted)
         let epsilon = Double.ulpOfOne * 8
         let start = uAxis ? SurfaceParameter(u:0.5,v:0.25+epsilon) : SurfaceParameter(u:0.25+epsilon,v:0.5)
         let end = uAxis ? SurfaceParameter(u:0.5,v:0.75-2*epsilon) : SurfaceParameter(u:0.75-2*epsilon,v:0.5)
         let anchor = uAxis ? SurfaceParameter(u:1,v:0.75) : SurfaceParameter(u:0.75,v:1)
-        let before = work
         let correction = try prepared.isoImageEndpointCorrection(image:image,parameterChart:chart,
             nominalStart:start,nominalEnd:end,anchor:anchor,reference:Point3D(x:0,y:-2,z:-1),
-            tolerance:tolerance,consumeWork:{ work += 1 })
-        #expect(work == before + 2)
+            tolerance:tolerance, using: &admitted)
+        try exactWorkBoundary(prepare: { execution in
+            let chart = try SurfaceAreaParameterChartEncloser(curve: curve, on: intersection.secondSurface,
+                tolerance: tolerance, using: &execution)
+            let candidate = try chart.certifiedIsoBoundaryImage(tolerance: tolerance, using: &execution)
+            let image = try #require(candidate)
+            let integrand = try PreparedSurfaceAreaIntegrand(surface: intersection.secondSurface,
+                tolerance: tolerance, using: &execution)
+            return (chart: chart, image: image, integrand: integrand)
+        }, operation: { state, execution in
+            _ = try state.integrand.isoImageEndpointCorrection(image: state.image, parameterChart: state.chart,
+                nominalStart: start, nominalEnd: end, anchor: anchor,
+                reference: Point3D(x:0,y:-2,z:-1), tolerance: tolerance, using: &execution)
+        })
         // S=(u,0,2v-1), or its original native-axis transpose, J=2.
         // These are exact planar triangle integrals,
         // independently of the implicit chart and its interval point arithmetic.
@@ -1986,30 +2195,45 @@ struct SurfaceAreaIntegrationTests {
             _ = try prepared.isoImageEndpointCorrection(image:image,parameterChart:chart,
                 nominalStart:uAxis ? SurfaceParameter(u:0.5,v:0.25+1e-12) : SurfaceParameter(u:0.25+1e-12,v:0.5),
                 nominalEnd:end,anchor:anchor,
-                reference:.origin,tolerance:tolerance,consumeWork:{})
+                reference:.origin,tolerance:tolerance, using: &admitted)
             Issue.record("Endpoint correction accepted a gap beyond original parameter connection precision.")
-        } catch let error as KernelError { #expect(error.code == .invalidInput) }
+        } catch {
+            let error = try #require(retainedKernelFailure(error))
+            #expect(error.code == .invalidInput)
+        }
         do {
             _ = try prepared.isoImageEndpointCorrection(image:image,parameterChart:chart,
                 nominalStart:start,nominalEnd:uAxis ? SurfaceParameter(u:0.5+1e-12,v:end.v)
                     : SurfaceParameter(u:end.u,v:0.5+1e-12),anchor:anchor,
-                reference:.origin,tolerance:tolerance,consumeWork:{})
+                reference:.origin,tolerance:tolerance, using: &admitted)
             Issue.record("Endpoint correction accepted an axis contrary to the original coefficient identity.")
-        } catch let error as KernelError { #expect(error.code == .invalidInput) }
+        } catch {
+            let error = try #require(retainedKernelFailure(error))
+            #expect(error.code == .invalidInput)
+        }
         do {
-            _ = try chart.certifiedIsoBoundaryImage(tolerance:tolerance,consumeWork:{
+            var refusedAdmission = try execution(OriginalQueryBudget(consumeWorkUnits: { _ in
                 throw KernelError(phase:.topology,code:.resourceLimitExceeded,residual:2,tolerance:tolerance,
                     message:"Original iso-image preparation shares caller work.")
-            })
+            }))
+            _ = try chart.certifiedIsoBoundaryImage(tolerance:tolerance, using: &refusedAdmission)
             Issue.record("Original iso-image preparation bypassed caller work refusal.")
-        } catch let error as KernelError { #expect(error.code == .resourceLimitExceeded && error.residual == 2) }
+        } catch {
+            let error = try #require(retainedKernelFailure(error))
+            #expect(error.code == .resourceLimitExceeded && error.residual == 2)
+        }
         do {
+            var refusedAdmission = try execution(OriginalQueryBudget(consumeWorkUnits: { _ in
+                throw KernelError(phase:.topology,code:.cancelled,tolerance:tolerance,
+                    message:"Original endpoint corrections retain caller cancellation.")
+            }))
             _ = try prepared.isoImageEndpointCorrection(image:image,parameterChart:chart,
-                nominalStart:start,nominalEnd:end,anchor:anchor,reference:.origin,tolerance:tolerance,
-                consumeWork:{ throw KernelError(phase:.topology,code:.cancelled,tolerance:tolerance,
-                    message:"Original endpoint corrections retain caller cancellation.") })
+                nominalStart:start,nominalEnd:end,anchor:anchor,reference:.origin,tolerance:tolerance, using: &refusedAdmission)
             Issue.record("Original endpoint correction swallowed caller cancellation.")
-        } catch let error as KernelError { #expect(error.code == .cancelled) }
+        } catch {
+            let error = try #require(retainedKernelFailure(error))
+            #expect(error.code == .cancelled)
+        }
     }
 
     private func planarIsoImageIntersection(uAxis: Bool) throws -> CertifiedImplicitIntersectionCurve {
@@ -2063,6 +2287,7 @@ struct SurfaceAreaIntegrationTests {
 
     @Test(.timeLimit(.minutes(1)))
     func rationalImplicitCurvedSupportRetainsQueryWorkAndEndpointAuthority() throws {
+        var admitted = try execution()
         let (first,intersection) = try rationalImplicitAreaFixture()
         let source = intersection.secondSurface
         let curves = try rationalImplicitCurvedBand(intersection,backwards:false)
@@ -2071,14 +2296,16 @@ struct SurfaceAreaIntegrationTests {
             _ = try model.faceAreaMeasurement(of:id,tolerance:tolerance,
                 integrationOptions:FaceAreaIntegrationOptions(maximumCellCount:1))
             Issue.record("Curved rational endpoint localization bypassed the shared query budget.")
-        } catch let error as KernelError {
+        } catch {
+            let error = try #require(retainedKernelFailure(error))
             #expect(error.code == .resourceLimitExceeded && error.residual == 2)
         }
         do {
             _ = try SurfaceAreaParameterChartEncloser(curve:curves[2],on:first,
-                tolerance:tolerance,consumeWork:{})
+                tolerance:tolerance, using: &admitted)
             Issue.record("A second-role rational chart adopted the first support.")
-        } catch let error as KernelError {
+        } catch {
+            let error = try #require(retainedKernelFailure(error))
             #expect(error.code == .invalidInput)
         }
         var disconnected = curves
@@ -2089,7 +2316,8 @@ struct SurfaceAreaIntegrationTests {
         do {
             _ = try brokenModel.faceAreaMeasurement(of:brokenID,tolerance:tolerance)
             Issue.record("Curved rational area accepted a real original trim endpoint gap.")
-        } catch let error as KernelError {
+        } catch {
+            let error = try #require(retainedKernelFailure(error))
             #expect(error.code == .topologyFailure)
         }
     }
@@ -2181,25 +2409,33 @@ struct SurfaceAreaIntegrationTests {
 
     @Test(.timeLimit(.minutes(1)), arguments:[false,true])
     func nonlinearOriginalTwoCellChartsPreserveOneSidedJetsAndValueOnlyJoins(_ backwards: Bool) throws {
+        let tolerance = tolerance
         let (first,intersection) = try nonlinearImplicitAreaFixture(
             direction:backwards ? .reversed : .forward,split:true)
-        var work = 0
-        func consume() throws {
-            work += 1
-            guard work <= FaceAreaIntegrationOptions().maximumCellCount else {
-                throw KernelError(phase:.topology,code:.resourceLimitExceeded,tolerance:tolerance,
-                    message:"The original chain test exhausted shared caller work.")
+        let workState = Mutex(0)
+        var work: Int {
+            get { workState.withLock { $0 } }
+            set { workState.withLock { $0 = newValue } }
+        }
+        @Sendable func consume() throws {
+            try workState.withLock { work in
+                work += 1
+                guard work <= FaceAreaIntegrationOptions().maximumCellCount else {
+                    throw KernelError(phase:.topology,code:.resourceLimitExceeded,tolerance:tolerance,
+                        message:"The original chain test exhausted shared caller work.")
+                }
             }
         }
+        var admitted = try execution(OriginalQueryBudget(consumeWorkUnits: { _ in try consume() }))
         for role in [SurfaceIntersectionSurfaceRole.first,.second] {
             let support = role == .first ? first : intersection.secondSurface
             let trim = try CertifiedImplicitSurfaceParameterCurve(intersection:intersection,role:role,tolerance:tolerance)
             let chart = try SurfaceAreaParameterChartEncloser(curve:.certifiedImplicit(trim),on:support,
-                tolerance:tolerance,consumeWork:consume)
+                tolerance:tolerance, using: &admitted)
             #expect(chart.requiresCallerWork && chart.hasNativeJoins)
             for range in [try ScalarInterval(lower:0.125,upper:0.375),
                           try ScalarInterval(lower:0.625,upper:0.875)] {
-                let jets = try chart.intervalJet(over:range,tolerance:tolerance,consumeWork:consume)
+                let jets = try chart.intervalJet(over:range,tolerance:tolerance, using: &admitted)
                 for fraction in [range.lower,range.midpoint,range.upper] {
                     let t = backwards ? 0.75-0.5*fraction : 0.25+0.5*fraction
                     let h = backwards ? -0.5 : 0.5
@@ -2213,7 +2449,7 @@ struct SurfaceAreaIntegrationTests {
             }
             for range in [try ScalarInterval(lower:0.375,upper:0.625),
                           try ScalarInterval(lower:0.5,upper:0.5)] {
-                let proof = try chart.intervalProof(over:range,tolerance:tolerance,consumeWork:consume)
+                let proof = try chart.intervalProof(over:range,tolerance:tolerance, using: &admitted)
                 guard case .valueOnly(let u,let v,let du,let dv) = proof else {
                     Issue.record("Both closed owning cell sides cannot supply a smooth join jet.")
                     continue
@@ -2226,7 +2462,7 @@ struct SurfaceAreaIntegrationTests {
                 }
             }
             for endpoint in [false,true] {
-                let bounds = try chart.endpointBounds(atEnd:endpoint,tolerance:tolerance,consumeWork:consume)
+                let bounds = try chart.endpointBounds(atEnd:endpoint,tolerance:tolerance, using: &admitted)
                 #expect(bounds.u.width <= Double.ulpOfOne*64 && bounds.v.width <= Double.ulpOfOne*64)
             }
         }
@@ -2235,6 +2471,7 @@ struct SurfaceAreaIntegrationTests {
 
     @Test(.timeLimit(.minutes(1)))
     func nonlinearOriginalTwoCellPreparationRefusesRealGapAndSharedResourceExhaustion() throws {
+        var admitted = try execution()
         let (source,intersection) = try nonlinearImplicitAreaFixture(split:true)
         let (id,model) = try fixture(source,outer:nonlinearImplicitRegion(intersection))
         for options in [FaceAreaIntegrationOptions(maximumCellCount:1),
@@ -2242,15 +2479,21 @@ struct SurfaceAreaIntegrationTests {
             do {
                 _ = try model.faceAreaMeasurement(of:id,tolerance:tolerance,integrationOptions:options)
                 Issue.record("An original nonlinear chain reset the aggregate work or depth ceiling.")
-            } catch let error as KernelError { #expect(error.code == .resourceLimitExceeded) }
+            } catch {
+                let error = try #require(retainedKernelFailure(error))
+                #expect(error.code == .resourceLimitExceeded)
+            }
         }
         let (brokenSource,broken) = try nonlinearImplicitAreaFixture(split:true,gap:Double(sign:.plus,exponent:-36,significand:1))
         let trim = try CertifiedImplicitSurfaceParameterCurve(intersection:broken,role:.first,tolerance:tolerance)
         do {
             _ = try SurfaceAreaParameterChartEncloser(curve:.certifiedImplicit(trim),on:brokenSource,
-                tolerance:tolerance,consumeWork:{})
+                tolerance:tolerance, using: &admitted)
             Issue.record("An original nonlinear chain certified a real native free-coordinate gap.")
-        } catch let error as KernelError { #expect(error.code == .unsupportedCapability) }
+        } catch {
+            let error = try #require(retainedKernelFailure(error))
+            #expect(error.code == .unsupportedCapability)
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -2289,23 +2532,30 @@ struct SurfaceAreaIntegrationTests {
                 _ = try model.faceAreaMeasurement(of:id,tolerance:tolerance,
                     integrationOptions:FaceAreaIntegrationOptions(maximumCellCount:1))
                 Issue.record("The partial endpoint proof must consume the query work after chart preparation.")
-            } catch let error as KernelError {
-                #expect(error.code == .resourceLimitExceeded && error.residual == 2)
+            } catch let error as KernelError { #expect(error.code == .resourceLimitExceeded && error.residual == 2)
             }
         }
     }
 
     @Test(.timeLimit(.minutes(1)), arguments:[false,true])
     func nonlinearImplicitClosedEndpointsRetainBothRolesAndRigidDirection(_ backwards: Bool) throws {
+        let tolerance = tolerance
         let (first,intersection) = try nonlinearImplicitAreaFixture(direction:backwards ? .reversed : .forward)
-        var remaining = FaceAreaIntegrationOptions().maximumCellCount
-        func consume() throws {
-            guard remaining > 0 else {
-                throw KernelError(phase:.topology,code:.resourceLimitExceeded,tolerance:tolerance,
-                    message:"Closed endpoint proofs exhausted their shared work.")
-            }
-            remaining -= 1
+        let remainingState = Mutex(FaceAreaIntegrationOptions().maximumCellCount)
+        var remaining: Int {
+            get { remainingState.withLock { $0 } }
+            set { remainingState.withLock { $0 = newValue } }
         }
+        @Sendable func consume() throws {
+            try remainingState.withLock { remaining in
+                guard remaining > 0 else {
+                    throw KernelError(phase:.topology,code:.resourceLimitExceeded,tolerance:tolerance,
+                        message:"Closed endpoint proofs exhausted their shared work.")
+                }
+                remaining -= 1
+            }
+        }
+        var admitted = try execution(OriginalQueryBudget(consumeWorkUnits: { _ in try consume() }))
         for role in [SurfaceIntersectionSurfaceRole.first,.second] {
             let source = role == .first ? first : intersection.secondSurface
             let trim = try CertifiedImplicitSurfaceParameterCurve(intersection:intersection,role:role,
@@ -2321,11 +2571,11 @@ struct SurfaceAreaIntegrationTests {
                         targetSurface:support,transform:transform,startFraction:1,endFraction:0,tolerance:tolerance))
                 } else { support = source; curve = .certifiedImplicit(trim) }
                 let chart = try SurfaceAreaParameterChartEncloser(curve:curve,on:support,
-                    tolerance:tolerance,consumeWork:consume)
+                    tolerance:tolerance, using: &admitted)
                 for atEnd in [false,true] {
                     let fraction = (atEnd != mapped) ? 0.25 : 0.75
                     let t = backwards ? 0.75-0.5*fraction : 0.25+0.5*fraction
-                    let bounds = try chart.endpointBounds(atEnd:atEnd,tolerance:tolerance,consumeWork:consume)
+                    let bounds = try chart.endpointBounds(atEnd:atEnd,tolerance:tolerance, using: &admitted)
                     #expect(bounds.u.contains(role == .first ? t*t : t))
                     #expect(bounds.v.contains(role == .first ? t : 0.5))
                     #expect(bounds.u.width <= Double.ulpOfOne*64 && bounds.v.width <= Double.ulpOfOne*64)
@@ -2336,14 +2586,22 @@ struct SurfaceAreaIntegrationTests {
 
     @Test(.timeLimit(.minutes(1)))
     func nonlinearImplicitWholeRigidIdentityChartRetainsClosedEndpointProofs() throws {
-        var remaining = FaceAreaIntegrationOptions().maximumCellCount
-        func consume() throws {
-            guard remaining > 0 else {
-                throw KernelError(phase:.topology,code:.resourceLimitExceeded,tolerance:tolerance,
-                    message:"Whole rigid endpoint proofs exhausted their shared work.")
-            }
-            remaining -= 1
+        let tolerance = tolerance
+        let remainingState = Mutex(FaceAreaIntegrationOptions().maximumCellCount)
+        var remaining: Int {
+            get { remainingState.withLock { $0 } }
+            set { remainingState.withLock { $0 = newValue } }
         }
+        @Sendable func consume() throws {
+            try remainingState.withLock { remaining in
+                guard remaining > 0 else {
+                    throw KernelError(phase:.topology,code:.resourceLimitExceeded,tolerance:tolerance,
+                        message:"Whole rigid endpoint proofs exhausted their shared work.")
+                }
+                remaining -= 1
+            }
+        }
+        var admitted = try execution(OriginalQueryBudget(consumeWorkUnits: { _ in try consume() }))
         for direction in [CertifiedImplicitIntersectionDirection.forward,.reversed] {
             let (first,intersection) = try nonlinearImplicitAreaFixture(direction:direction)
             for role in [SurfaceIntersectionSurfaceRole.first,.second] {
@@ -2356,19 +2614,19 @@ struct SurfaceAreaIntegrationTests {
                     targetSurface:target,transform:transform,tolerance:tolerance)
                 #expect(try image.affineParameterTransform(tolerance:tolerance) == .identity)
                 let original = try SurfaceAreaParameterChartEncloser(curve:.certifiedImplicit(trim),on:source,
-                    tolerance:tolerance,consumeWork:consume)
+                    tolerance:tolerance, using: &admitted)
                 let mapped = try SurfaceAreaParameterChartEncloser(curve:.rigidImage(image),on:target,
-                    tolerance:tolerance,consumeWork:consume)
+                    tolerance:tolerance, using: &admitted)
                 for atEnd in [false,true] {
                     let fraction = atEnd ? 1.0 : 0.0
                     let t = direction == .forward ? 0.25+0.5*fraction : 0.75-0.5*fraction
-                    let bounds = try mapped.endpointBounds(atEnd:atEnd,tolerance:tolerance,consumeWork:consume)
+                    let bounds = try mapped.endpointBounds(atEnd:atEnd,tolerance:tolerance, using: &admitted)
                     #expect(bounds.u.contains(role == .first ? t*t : t))
                     #expect(bounds.v.contains(role == .first ? t : 0.5))
                     #expect(bounds.u.width <= Double.ulpOfOne*64 && bounds.v.width <= Double.ulpOfOne*64)
                     let range = try ScalarInterval(lower:fraction,upper:fraction)
-                    let a = try original.intervalJet(over:range,tolerance:tolerance,consumeWork:consume)
-                    let b = try mapped.intervalJet(over:range,tolerance:tolerance,consumeWork:consume)
+                    let a = try original.intervalJet(over:range,tolerance:tolerance, using: &admitted)
+                    let b = try mapped.intervalJet(over:range,tolerance:tolerance, using: &admitted)
                     for (left,right) in [(a.u,b.u),(a.v,b.v)] {
                         for (x,y) in zip([left.value,left.derivativeU,left.secondDerivativeUU,left.thirdDerivativeUUU],
                                          [right.value,right.derivativeU,right.secondDerivativeUU,right.thirdDerivativeUUU]) {
@@ -2418,14 +2676,22 @@ struct SurfaceAreaIntegrationTests {
 
     @Test(.timeLimit(.minutes(1)), arguments:[false,true])
     func nonlinearImplicitJetsRetainPartialReverseRolesAndRigidFractions(_ backwards: Bool) throws {
+        let tolerance = tolerance
         let (first,intersection) = try nonlinearImplicitAreaFixture(direction:backwards ? .reversed : .forward)
-        var remaining = FaceAreaIntegrationOptions().maximumCellCount
-        func consume() throws {
-            guard remaining > 0 else {
-                throw KernelError(phase:.topology,code:.resourceLimitExceeded,tolerance:tolerance,message:"The original chart test exhausted its shared query work.")
-            }
-            remaining -= 1
+        let remainingState = Mutex(FaceAreaIntegrationOptions().maximumCellCount)
+        var remaining: Int {
+            get { remainingState.withLock { $0 } }
+            set { remainingState.withLock { $0 = newValue } }
         }
+        @Sendable func consume() throws {
+            try remainingState.withLock { remaining in
+                guard remaining > 0 else {
+                    throw KernelError(phase:.topology,code:.resourceLimitExceeded,tolerance:tolerance,message:"The original chart test exhausted its shared query work.")
+                }
+                remaining -= 1
+            }
+        }
+        var admitted = try execution(OriginalQueryBudget(consumeWorkUnits: { _ in try consume() }))
         for role in [SurfaceIntersectionSurfaceRole.first,.second] {
             let support = role == .first ? first : intersection.secondSurface
             let trim = try CertifiedImplicitSurfaceParameterCurve(intersection:intersection,role:role,
@@ -2440,10 +2706,10 @@ struct SurfaceAreaIntegrationTests {
                         source:SurfaceLiftCurve3D(surface:support,parameterCurve:.certifiedImplicit(trim)),
                         targetSurface:target,transform:transform,startFraction:0.8,endFraction:0.2,tolerance:tolerance))
                 } else { target = support; curve = .certifiedImplicit(trim) }
-                let chart = try SurfaceAreaParameterChartEncloser(curve:curve,on:target,tolerance:tolerance,consumeWork:consume)
+                let chart = try SurfaceAreaParameterChartEncloser(curve:curve,on:target,tolerance:tolerance, using: &admitted)
                 #expect(chart.requiresCallerWork && !chart.hasNativeJoins)
                 for interval in [try ScalarInterval(lower:0.2,upper:0.6),try ScalarInterval(lower:0.4,upper:0.4)] {
-                    let jet = try chart.intervalJet(over:interval,tolerance:tolerance,consumeWork:consume)
+                    let jet = try chart.intervalJet(over:interval,tolerance:tolerance, using: &admitted)
                     for fraction in [interval.lower,interval.midpoint,interval.upper] {
                         let original = mapped ? 0.35+0.3*fraction : 0.75-0.5*fraction
                         let t = backwards ? 0.75-0.5*original : 0.25+0.5*original
@@ -2468,45 +2734,72 @@ struct SurfaceAreaIntegrationTests {
 
     @Test(.timeLimit(.minutes(1)))
     func nonlinearImplicitChartRequiresWorkAndRejectsForeignAuthority() throws {
+        let tolerance = tolerance
+        var identityAdmission = try execution()
         let (source,intersection) = try nonlinearImplicitAreaFixture()
         let trim = try CertifiedImplicitSurfaceParameterCurve(intersection:intersection,role:.first,tolerance:tolerance)
         do {
-            _ = try SurfaceAreaParameterChartEncloser(curve:.certifiedImplicit(trim),on:source,tolerance:tolerance)
+            var refusedAdmission = try execution(OriginalQueryBudget(workLimit: 0))
+            _ = try SurfaceAreaParameterChartEncloser(curve:.certifiedImplicit(trim),on:source,tolerance:tolerance, using: &refusedAdmission)
             Issue.record("A nonlinear chart cannot silently create its own work allowance.")
-        } catch let error as KernelError { #expect(error.code == .invalidInput) }
+        } catch {
+            let error = try #require(retainedKernelFailure(error))
+            #expect(error.code == .resourceLimitExceeded)
+        }
         let foreign = try areaFixtureTransform().applying(to:source,tolerance:tolerance)
         do {
-            _ = try SurfaceAreaParameterChartEncloser(curve:.certifiedImplicit(trim),on:foreign,tolerance:tolerance)
+            _ = try SurfaceAreaParameterChartEncloser(curve:.certifiedImplicit(trim),on:foreign,tolerance:tolerance, using: &identityAdmission)
             Issue.record("A nonlinear original chart cannot adopt a foreign support.")
-        } catch let error as KernelError { #expect(error.code == .invalidInput) }
+        } catch {
+            let error = try #require(retainedKernelFailure(error))
+            #expect(error.code == .invalidInput)
+        }
         let (_,chain) = try nonlinearImplicitAreaFixture(split:true)
         let joined = try CertifiedImplicitSurfaceParameterCurve(intersection:chain,role:.first,tolerance:tolerance)
         do {
-            _ = try SurfaceAreaParameterChartEncloser(curve:.certifiedImplicit(joined),on:source,tolerance:tolerance)
+            var refusedAdmission = try execution(OriginalQueryBudget(workLimit: 0))
+            _ = try SurfaceAreaParameterChartEncloser(curve:.certifiedImplicit(joined),on:source,tolerance:tolerance, using: &refusedAdmission)
             Issue.record("A nonlinear multi-cell certificate cannot create a private work allowance.")
-        } catch let error as KernelError { #expect(error.code == .invalidInput) }
-        var remaining = FaceAreaIntegrationOptions().maximumCellCount
-        func consume() throws {
-            guard remaining > 0 else {
-                throw KernelError(phase:.topology,code:.resourceLimitExceeded,tolerance:tolerance,message:"The chart test exhausted its original query work.")
-            }
-            remaining -= 1
+        } catch {
+            let error = try #require(retainedKernelFailure(error))
+            #expect(error.code == .resourceLimitExceeded)
         }
-        let chart = try SurfaceAreaParameterChartEncloser(curve:.certifiedImplicit(trim),on:source,tolerance:tolerance,consumeWork:consume)
-        _ = try chart.signedFluxBounds(over:ScalarInterval(lower:0,upper:1),tolerance:tolerance,consumeWork:consume)
+        let remainingState = Mutex(FaceAreaIntegrationOptions().maximumCellCount)
+        var remaining: Int {
+            get { remainingState.withLock { $0 } }
+            set { remainingState.withLock { $0 = newValue } }
+        }
+        @Sendable func consume() throws {
+            try remainingState.withLock { remaining in
+                guard remaining > 0 else {
+                    throw KernelError(phase:.topology,code:.resourceLimitExceeded,tolerance:tolerance,message:"The chart test exhausted its original query work.")
+                }
+                remaining -= 1
+            }
+        }
+        var admitted = try execution(OriginalQueryBudget(consumeWorkUnits: { _ in try consume() }))
+        let chart = try SurfaceAreaParameterChartEncloser(curve:.certifiedImplicit(trim),on:source,tolerance:tolerance, using: &admitted)
+        _ = try chart.signedFluxBounds(over:ScalarInterval(lower:0,upper:1),tolerance:tolerance, using: &admitted)
         #expect(remaining < FaceAreaIntegrationOptions().maximumCellCount-1)
         do {
-            _ = try chart.intervalJet(over:ScalarInterval(lower:0.5,upper:0.5),tolerance:tolerance)
+            var refusedAdmission = try execution(OriginalQueryBudget(workLimit: 0))
+            _ = try chart.intervalJet(over:ScalarInterval(lower:0.5,upper:0.5),tolerance:tolerance, using: &refusedAdmission)
             Issue.record("A prepared chart still requires caller work for each interval.")
-        } catch let error as KernelError { #expect(error.code == .invalidInput) }
+        } catch {
+            let error = try #require(retainedKernelFailure(error))
+            #expect(error.code == .resourceLimitExceeded)
+        }
+        let integrand = try PreparedSurfaceAreaIntegrand(surface:source,tolerance:tolerance, using: &admitted)
         remaining = 0
-        let integrand = try PreparedSurfaceAreaIntegrand(surface:source,tolerance:tolerance)
         do {
             _ = try integrand.boundaryBounds(curve:.certifiedImplicit(trim),anchor:SurfaceParameter(u:0,v:0.75),
                 reference:.origin,boundaryFraction:ScalarInterval(lower:0,upper:1),tolerance:tolerance,
-                parameterChart:chart,consumeWork:consume)
+                parameterChart:chart, using: &admitted)
             Issue.record("Integral evaluation cannot reset the work used for chart preparation and effort.")
-        } catch let error as KernelError { #expect(error.code == .resourceLimitExceeded) }
+        } catch {
+            let error = try #require(retainedKernelFailure(error))
+            #expect(error.code == .resourceLimitExceeded)
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))

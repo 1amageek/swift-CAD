@@ -8,12 +8,12 @@ struct SurfaceSilhouetteCuspParameterImage: Hashable, Sendable {
     let vDerivatives: [ExactBivariatePolynomial]
 
     init(cusp: OriginalRationalBinomialCusp, start: ExactMonotoneGraphEndpoint,
-        end: ExactMonotoneGraphEndpoint, usage: inout SurfaceSilhouetteUsage) throws {
+        end: ExactMonotoneGraphEndpoint, usage: inout OriginalQueryExecution) throws {
         self.cusp = cusp
         let low = try start.lower.outwardInterval(usage: &usage)
         let high = try end.upper.outwardInterval(usage: &usage)
         nativeCover = try ScalarInterval(lower: low.lower, upper: high.upper)
-        try usage.retain(8)
+        try RationalAlgebraStorage.retain(8, of: UInt32.self, usage: &usage)
         var u = [cusp.u], v = [cusp.v]
         for _ in 0..<3 {
             u.append(try u[u.count - 1].differentiated(alongU: true, usage: &usage))
@@ -34,11 +34,11 @@ struct SurfaceSilhouetteCuspParameterImage: Hashable, Sendable {
 
     func enclosure(over range: ScalarInterval, image: SurfaceSilhouetteFreeParameterImage,
         field: OriginalSurfaceSilhouetteField, chart: SurfaceParameterBox,
-        usage: inout SurfaceSilhouetteUsage) throws -> SurfaceSilhouetteCurveEnclosure {
+        usage: inout OriginalQueryExecution) throws -> SurfaceSilhouetteCurveEnclosure {
         let mapped = try image.mapped(over: range, nativeCover: nativeCover, usage: &usage)
         let zero = try ScalarInterval(lower: 0, upper: 0)
         let parameterBox = SurfaceParameterBox(u: mapped.parameter, v: zero)
-        try usage.retain(8)
+        try RationalAlgebraStorage.retain(8, of: UInt32.self, usage: &usage)
         var u: [OutwardScalarInterval] = [], v: [OutwardScalarInterval] = []
         var scale = OutwardScalarInterval.exact(1)
         for order in 0..<4 {
@@ -72,7 +72,7 @@ struct SurfaceSilhouetteCuspParameterImage: Hashable, Sendable {
                 + s.derivativeU * u[3] + s.derivativeV * v[3]
             return [s.value, first, second, third]
         }
-        try usage.retain(20)
+        try RationalAlgebraStorage.retain(20, of: UInt32.self, usage: &usage)
         let x = composed(source.x), y = composed(source.y), z = composed(source.z)
         var uv: [CoordinateEnclosure2D] = [], xyz: [CoordinateEnclosure3D] = []
         for index in 0..<4 {

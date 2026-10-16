@@ -2,15 +2,16 @@ import CADCore
 
 /// Publishes the original Rolling-ball/plane product through the existing issued graph path.
 struct OriginalRetainedRollingPlanePublicProducer {
-    private typealias Admission = NativeExactPublicAdmission<NativeSurfaceSurfacePointAllowance>
     private typealias Base = OriginalExactScalarDomain
     private typealias Source = OriginalGraphRollingBallSnapshot
 
     func resolve(first: Surface3D, second: Surface3D,
         firstBox: SurfaceParameterBox? = nil, secondBox: SurfaceParameterBox? = nil,
         options: SurfaceSurfaceIntersectionOptions, tolerance: ModelingTolerance,
-        includeRelations: Bool = false, admission: SurfaceSurfaceQueryAdmission = .legacy)
+        includeRelations: Bool = false, using a: inout OriginalQueryExecution)
         throws -> SurfaceSurfaceIntersectionResult? {
+        a.context = a.context.at(stage: .request)
+        try a.checkpoint()
         let rolling: RollingBallBlendSurface3D, plane: Surface3D, planeFirst: Bool
         let rollingBox: SurfaceParameterBox?, planeBox: SurfaceParameterBox?
         if case .procedural(.rollingBall(let host)) = first {
@@ -36,19 +37,20 @@ struct OriginalRetainedRollingPlanePublicProducer {
         else { return nil }
         do {
             try options.validate(tolerance: tolerance)
-            let usage = try NativeSurfaceSurfacePointAllowance(options: options, admission: admission)
-            let depth = usage.maximumAlgebraicDepth
-            var a = NativeExactPublicAdmission(usage: usage, maximumDepth: depth)
+            let depth = a.effectiveLimits.maximumValueDepth
             try a.checkpoint()
+            a.context = a.context.at(stage: .source)
             let sourceLimits = try OriginalSourceIssuanceLimits(remainingSourceDepth:
-                min(admission.remainingSourceDepth, options.maximumSubdivisionDepth))
-            let charts = min(admission.maximumSpanCount, options.maximumSubdivisionCells)
+                a.effectiveLimits.remainingSourceDepth)
+            let charts = min(min(a.effectiveLimits.maximumCharts, a.effectiveLimits.maximumSpans), options.maximumSubdivisionCells)
             let limits = try OriginalDomainIdentityLimits(source: sourceLimits,
-                maximumTransportDepth: depth, maximumCharts: charts,
-                maximumFamilies: 2, maximumIdentityProofs: 0)
-            let f = try Base(maximumValueDepth: depth, maximumCoefficientDepth: depth, using: &a)
+                maximumTransportDepth: a.effectiveLimits.maximumTransportDepth, maximumCharts: charts,
+                maximumFamilies: min(2, a.effectiveLimits.maximumFamilies), maximumIdentityProofs: 0)
+            let f = try Base(maximumValueDepth: a.effectiveLimits.maximumValueDepth, maximumCoefficientDepth: a.effectiveLimits.maximumCoefficientDepth, using: &a)
             let source = try DefaultOriginalSourceBindingIssuer(provider:
                 OriginalGraphRollingBallSnapshotProvider(field:f)).bind(rolling,limits:sourceLimits,using:&a)
+            try a.admitSourceDepth(source.sourceDepth)
+            a.context = a.context.retaining(first: planeFirst ? nil : .init(source: source), second: planeFirst ? .init(source: source) : nil)
             let children = try OriginalSourceIssuanceLimits(remainingSourceDepth:sourceLimits.remainingSourceDepth-1)
             let child = DefaultOriginalRollingBallCurveGraphPreparer()
             let center = try child.prepare(source:source.original.originalCenter,field:f,maximumCharts:charts,limits:children,using:&a)
@@ -58,9 +60,11 @@ struct OriginalRetainedRollingPlanePublicProducer {
             typealias ChildCover = OriginalRollingBallCurveGraphCoverage
             let family = try DefaultOriginalFiniteRollingBallGraphPreparer<Source,ChildEvidence,ChildCover>()
                 .prepare(source:source,center:center,first:first,second:second,maximumCharts:charts,limits:sourceLimits,using:&a)
+            a.context = a.context.at(stage: .domain)
             let domain = DefaultOriginalRollingBallGraphDomainIssuer<Source,ChildEvidence,ChildCover>()
             let frame = try domain.frame(family:family,limits:limits,using:&a)
             let request = try selection(frame,box:rollingBox,field:f,limits:limits,using:&a)
+            a.context = a.context.retaining(first: planeFirst ? nil : .init(selection: request), second: planeFirst ? .init(selection: request) : nil)
             let cover = try domain.issue(request:request,family:family,limits:limits,using:&a)
             let field = try ExactAlgebraicScalarDomain.base(field:f,maximumExtensionLevel:depth,using:&a)
             // FIXME(INCOMPLETE_IMPLEMENTATION): Ordinary rolling/plane SSI currently
@@ -69,21 +73,27 @@ struct OriginalRetainedRollingPlanePublicProducer {
             // before this production route can claim rolling-family coverage.
             let graphs = try DefaultOriginalRollingBallGraphFamilyPreparer<Source,ChildEvidence,ChildCover>()
                 .prepare(cover:cover,field:field,maximumGraphs:charts,limits:limits,using:&a)
+            a.context = a.context.at(stage: .source)
             let target = try DefaultOriginalSourceBindingIssuer(provider: OriginalPlaneSnapshotProvider(tolerance: tolerance))
                 .bind(plane, limits: sourceLimits, using: &a)
+            try a.admitSourceDepth(target.sourceDepth)
+            a.context = a.context.retaining(first: planeFirst ? .init(source: target) : nil, second: planeFirst ? nil : .init(source: target))
             let exactLength = try f.binary64(exactly: length, using: &a)
             let basis = try DefaultOriginalPlaneBasisIssuer<OriginalPlaneSnapshot,Base>()
                 .issue(source: target, field: f, firstLength: exactLength, normalLength: exactLength,
                     limits: sourceLimits, using: &a)
+            a.context = a.context.at(stage: .domain)
             let planeDomain = DefaultOriginalPlaneDomainIssuer<OriginalPlaneSnapshot,Base>()
             let planeFrame = try planeDomain.frame(basis: basis, limits: limits, using: &a)
             let planeRequest = try selection(planeFrame, box: planeBox, field: f, limits: limits, using: &a)
+            a.context = a.context.retaining(first: planeFirst ? .init(selection: planeRequest) : nil, second: planeFirst ? nil : .init(selection: planeRequest))
             let planeCover = try planeDomain.issue(request: planeRequest, basis: basis, limits: limits, using: &a)
             let planeGraph = try DefaultOriginalPlaneGraphCompiler<OriginalPlaneSnapshot>()
                 .compile(cover: planeCover, field: field, limits: limits, using: &a)
             let geometryLimits = try NativeExactPublicLimits.unboundedStructure()
+            a.context = a.context.at(stage: .relation)
             let receipt = try DefaultOriginalRollingPlaneSectionResolver().resolve(surface:graphs,plane:planeGraph,
-                planeFirst:planeFirst,maximumPieces:options.maximumSeedCount,limits:limits,cellLimits:geometryLimits.cells,using:&a)
+                planeFirst:planeFirst,maximumPieces:min(options.maximumSeedCount, a.effectiveLimits.maximumResults),limits:limits,cellLimits:geometryLimits.cells,using:&a)
             if !includeRelations, receipt.hasPositiveDimensionalSolutions {
                 throw KernelError(phase: .geometry, code: .nonDiscreteIntersection, tolerance: tolerance,
                     message: "The original Rolling-ball/plane relation contains a positive-dimensional intersection.")
@@ -96,16 +106,17 @@ struct OriginalRetainedRollingPlanePublicProducer {
                 throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
                     message: "Isolated Rolling-ball/plane contacts require numerical point publication.")
             }
+            a.context = a.context.at(stage: .publication)
             try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: SurfaceSurfaceIntersectionResult.self))
             let result = SurfaceSurfaceIntersectionResult(intersections: [], originalIssuedGeometricRelation: receipt)
             try a.checkpoint()
             return result
-        } catch { throw NativeExactGeometryPublicationFailure.published(error, tolerance: tolerance) }
+        } catch { throw NativeExactGeometryPublicationFailure.published(error, tolerance: tolerance, context: a.context) }
     }
 
     private func selection<S: Sendable>(_ frame: OriginalParameterFrame<S,Base>,
         box: SurfaceParameterBox?, field: Base, limits: OriginalDomainIdentityLimits,
-        using a: inout Admission) throws -> OriginalParameterSelection<S,Base> {
+        using a: inout OriginalQueryExecution) throws -> OriginalParameterSelection<S,Base> {
         guard let box else { return try frame.fullSelection(limits: limits, using: &a) }
         try a.retainStorage(bytes: exactScalarPayloadBytes(count: 2, of: [ExactParameterInterval<OriginalExactScalar>].self))
         try a.retainStorage(bytes: exactScalarPayloadBytes(count: 2, of: ExactParameterInterval<OriginalExactScalar>.self))
@@ -114,7 +125,7 @@ struct OriginalRetainedRollingPlanePublicProducer {
     }
 
     private func interval(_ range: ScalarInterval, field: Base,
-        using a: inout Admission) throws -> ExactParameterInterval<OriginalExactScalar> {
+        using a: inout OriginalQueryExecution) throws -> ExactParameterInterval<OriginalExactScalar> {
         let lo = try field.binary64(exactly: range.lower, using: &a)
         let hi = try field.binary64(exactly: range.upper, using: &a)
         return try .checked(field: field, lower: .finite(lo), upper: .finite(hi),

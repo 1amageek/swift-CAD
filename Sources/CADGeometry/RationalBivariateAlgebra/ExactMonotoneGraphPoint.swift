@@ -8,7 +8,7 @@ package struct ExactMonotoneGraphPoint: Sendable {
     package let freeEndpoint: ExactMonotoneGraphEndpoint
     private let parameters: ExactAlgebraicParameterPair
 
-    package init<B: RationalAlgebraAdmitting>(original: ExactBivariatePolynomial,
+    package init<B: ExactScalarAdmission & ~Copyable>(original: ExactBivariatePolynomial,
         over domain: SurfaceParameterBox, freeAlongU: Bool, endpoint: ExactMonotoneGraphEndpoint,
         maximumDepth: Int, usage: inout B) throws {
         let transverseDerivative = try original.differentiated(alongU: !freeAlongU, usage: &usage)
@@ -44,18 +44,18 @@ package struct ExactMonotoneGraphPoint: Sendable {
             fiberRoot: transverseRoot, sourceDomain: orientedDomain)
     }
 
-    package func enclosure<B: RationalAlgebraAdmitting>(usage: inout B) throws -> SurfaceParameterBox {
+    package func enclosure<B: ExactScalarAdmission & ~Copyable>(usage: inout B) throws -> SurfaceParameterBox {
         let box = try parameters.enclosure(usage: &usage)
         return freeAlongU ? box : SurfaceParameterBox(u: box.v, v: box.u)
     }
 
-    package func sign<B: RationalAlgebraAdmitting>(of expression: ExactBivariatePolynomial,
+    package func sign<B: ExactScalarAdmission & ~Copyable>(of expression: ExactBivariatePolynomial,
         maximumDepth: Int, usage: inout B) throws -> ExactAlgebraicRealRoot.Sign {
         let native = freeAlongU ? expression : try expression.exchangedAxes(usage: &usage)
         return try parameters.sign(of: native, maximumDepth: maximumDepth, usage: &usage)
     }
 
-    package func coordinateIs<B: RationalAlgebraAdmitting>(_ endpoint: ExactMonotoneGraphEndpoint,
+    package func coordinateIs<B: ExactScalarAdmission & ~Copyable>(_ endpoint: ExactMonotoneGraphEndpoint,
         alongU: Bool, maximumDepth: Int, usage: inout B) throws -> Bool {
         let coordinate = try ExactBivariatePolynomial.coordinate(alongU: alongU, usage: &usage)
         switch endpoint {
@@ -82,7 +82,7 @@ package struct ExactMonotoneGraphPoint: Sendable {
         }
     }
 
-    package func dependentCoordinateIsSame<B: RationalAlgebraAdmitting>(as other: Self,
+    package func dependentCoordinateIsSame<B: ExactScalarAdmission & ~Copyable>(as other: Self,
         maximumDepth: Int, usage: inout B) throws -> Bool {
         guard freeAlongU == other.freeAlongU,
             try freeEndpoint.hasSameValue(as: other.freeEndpoint,

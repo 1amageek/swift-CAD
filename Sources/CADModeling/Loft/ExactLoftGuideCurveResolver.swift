@@ -9,46 +9,41 @@ package struct ExactLoftGuideCurveResolver {
         guides: [LoftGuideReference],
         profiles: [Profile],
         context: EvaluationContext,
-        conversionAdmission: GeometryConversionAdmission? = nil
+        using execution: inout OriginalQueryExecution
     ) throws -> [ExactLoftGuideCurve] {
+        guard !guides.isEmpty else { return [] }
+        let contact = try contactContribution(using: &execution)
+        return try execution.withContributionScope(contact) { execution in
+
         guard guides.isEmpty == false else { return [] }
-        let admission = try conversionAdmission ?? LoftCorrespondenceAllowance(tolerance: context.tolerance).conversionAdmission()
-        let builder = ExactBSplineCurveSpanBuilder(tolerance: context.tolerance, admission: admission)
-        var allowance = try OriginalCurveContactAllowance(
-            maximumSubdivisionDepth: min(32, admission.maximumSubdivisionDepth), tolerance: context.tolerance,
-            admission: .init(consumeWork: { try admission.chargeWork($0) },
-                consumeStorage: { try admission.chargeStorage(bytes: $0) }),
-            maximumAlgebraicDepth: admission.maximumAlgebraicDepth ?? 32,
-            remainingSourceDepth: min(32, admission.remainingSourceDepth))
+        let builder = try ExactBSplineCurveSpanBuilder(tolerance: context.tolerance, using: &execution)
         let originalSources = OriginalLoftProfileContactSources()
-        try allowance.reserveStorage(profiles.count, of: ExactLoftGuideSection.self)
+        try RationalAlgebraStorage.retain(profiles.count, of: ExactLoftGuideSection.self, usage: &execution)
         let sections = try profiles.map {
-            ExactLoftGuideSection(loops: try builder.profileLoopSpans(from: $0),
+            ExactLoftGuideSection(loops: try builder.profileLoopSpans(from: $0, using: &execution),
                 originalContactLoops: try originalSources.loops(profile: $0,
-                    consumeStorage: { try allowance.reserveStorageWords($0) }, tolerance: context.tolerance))
+                    tolerance: context.tolerance, using: &execution))
         }
-        return try resolve(guides: guides, sections: sections, context: context, allowance: &allowance, conversionAdmission: admission)
-    }
+        return try resolvePrepared(guides: guides, sections: sections, context: context, using: &execution)
+            }
+}
 
     package func resolve(
         guides: [LoftGuideReference],
         sections: [ExactLoftGuideSection],
         context: EvaluationContext,
-        conversionAdmission: GeometryConversionAdmission? = nil
+        using execution: inout OriginalQueryExecution
     ) throws -> [ExactLoftGuideCurve] {
-        let admission = try conversionAdmission ?? LoftCorrespondenceAllowance(tolerance: context.tolerance).conversionAdmission()
-        var allowance = try OriginalCurveContactAllowance(
-            maximumSubdivisionDepth: min(32, admission.maximumSubdivisionDepth), tolerance: context.tolerance,
-            admission: .init(consumeWork: { try admission.chargeWork($0) },
-                consumeStorage: { try admission.chargeStorage(bytes: $0) }),
-            maximumAlgebraicDepth: admission.maximumAlgebraicDepth ?? 32,
-            remainingSourceDepth: min(32, admission.remainingSourceDepth))
-        return try resolve(guides: guides, sections: sections, context: context, allowance: &allowance, conversionAdmission: admission)
-    }
+        guard !guides.isEmpty else { return [] }
+        let contact = try contactContribution(using: &execution)
+        return try execution.withContributionScope(contact) { execution in
 
-    private func resolve(guides: [LoftGuideReference], sections: [ExactLoftGuideSection],
-                         context: EvaluationContext, allowance: inout OriginalCurveContactAllowance,
-                         conversionAdmission: GeometryConversionAdmission) throws -> [ExactLoftGuideCurve] {
+        return try resolvePrepared(guides: guides, sections: sections, context: context, using: &execution)
+            }
+}
+
+    private func resolvePrepared(guides: [LoftGuideReference], sections: [ExactLoftGuideSection],
+                         context: EvaluationContext, using execution: inout OriginalQueryExecution) throws -> [ExactLoftGuideCurve] {
         guard guides.isEmpty == false else { return [] }
         guard sections.count >= 2 else {
             throw FeatureEvaluationError.invalidGraph(
@@ -70,19 +65,31 @@ package struct ExactLoftGuideCurveResolver {
         let chainBuilder = EvaluatedCurveChainBuilder(
             tolerance: context.tolerance
         )
-        try allowance.reserveStorage(guides.count, of: ExactLoftGuideCurve.self)
+        try RationalAlgebraStorage.retain(guides.count, of: ExactLoftGuideCurve.self, usage: &execution)
         return try guides.map { guide in
             guard let sourceCurves = context.curves[guide.featureID] else {
                 throw FeatureEvaluationError.missingInput("Missing Loft guide curve source \(guide.featureID).")
             }
-            try allowance.reserveEntries(sourceCurves.count)
+            try execution.consumeWork(sourceCurves.count)
             let segments = try chainBuilder.openSegments(from: sourceCurves, operationName: "Loft guide")
-            try allowance.reserveEntries(segments.count)
-            let chain = try OriginalLoftGuideChain(segments: segments, tolerance: context.tolerance, conversionAdmission: conversionAdmission)
+            try execution.consumeWork(segments.count)
+            let chain = try OriginalLoftGuideChain(segments: segments, tolerance: context.tolerance)
             return try OriginalLoftGuideResolver().resolve(chain: chain, sections: sections,
-                featureID: guide.featureID, allowance: &allowance, tolerance: context.tolerance)
+                featureID: guide.featureID, using: &execution, tolerance: context.tolerance)
         }
+        }
+
+    private func contactContribution(using execution: inout OriginalQueryExecution) throws -> OriginalQueryContributionHandle {
+        let parent = execution.effectiveLimits
+        return try execution.makeContributionHandle(workLimit: 1_048_576,
+            storageByteLimit: 4_194_304, cellLimit: 1_048_576, allocationPolicy: .uint32WordWork,
+            executionLimits: .init(maximumValueDepth: min(32, parent.maximumValueDepth),
+                maximumCoefficientDepth: min(32, parent.maximumCoefficientDepth),
+                maximumCells: min(1_048_576, parent.maximumCells),
+                remainingSourceDepth: min(32, parent.remainingSourceDepth),
+                maximumSubdivisionDepth: min(32, parent.maximumSubdivisionDepth)))
     }
+
 
     // Legacy projected contact helpers are retained only for source comparison.
     // Production dispatch uses OriginalLoftGuideResolver exclusively. Remove
@@ -341,7 +348,7 @@ package struct ExactLoftGuideCurveResolver {
         let roots = try RationalBSplineCurveIntersector2D().intersections(
             first: projected(guide), second: projected(boundary),
             maximumSubdivisionDepth: 32, maximumSubdivisionCells: 1_048_576,
-            accepting: { root in
+            accepting: { root, execution in
                 let distance = try squaredDistance(root)
                 return distance.upper <= limit.lower || distance.lower > limit.upper
             }, tolerance: tolerance)

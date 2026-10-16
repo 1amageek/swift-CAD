@@ -2,12 +2,12 @@ import CADCore
 
 extension ExactRationalCoefficient {
     /// Brackets the exact rational by comparing candidate Double bits exactly.
-    package func outwardInterval<B: RationalAlgebraAdmitting>(usage: inout B) throws -> OutwardScalarInterval {
+    package func outwardInterval<B: ExactScalarAdmission & ~Copyable>(usage: inout B) throws -> OutwardScalarInterval {
         if isZero { return .exact(0) }
         func approximation(_ magnitude: ExactNaturalMagnitude) throws -> (Double, Int) {
             let words = magnitude.words
             guard let last = words.last else { return (0, 0) }
-            try usage.consumeExactWork(3)
+            try usage.consumeWork(3)
             let next = words.count > 1 ? words[words.count - 2] : 0
             let third = words.count > 2 ? words[words.count - 3] : 0
             // Three words retain at least 65 source bits even when the
@@ -28,7 +28,7 @@ extension ExactRationalCoefficient {
         if comparison.isZero { return .exact(candidate) }
         let below = comparison.isPositive
         while true {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             let adjacent = below ? candidate.nextUp : candidate.nextDown
             guard adjacent.isFinite else { throw rationalAlgebraFailure("Exact rational coefficient exceeds finite interval support.") }
             comparison = try subtracting(.originalDouble(adjacent, usage: &usage), usage: &usage)
@@ -45,14 +45,14 @@ extension ExactRationalCoefficient {
 
 extension ExactBivariatePolynomial {
     /// Original polynomial enclosure; no interval coefficient is promoted to exact.
-    package func enclosure<B: RationalAlgebraAdmitting>(over box: SurfaceParameterBox,
+    package func enclosure<B: ExactScalarAdmission & ~Copyable>(over box: SurfaceParameterBox,
         usage: inout B) throws -> OutwardScalarInterval {
         let u = OutwardScalarInterval(lower: box.u.lower, upper: box.u.upper)
         let v = OutwardScalarInterval(lower: box.v.lower, upper: box.v.upper)
         func power(_ value: OutwardScalarInterval, _ exponent: Int) throws -> OutwardScalarInterval {
             var result = OutwardScalarInterval.exact(1), factor = value, remaining = exponent
             while remaining > 0 {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 if remaining & 1 == 1 { result = result * factor }
                 remaining >>= 1
                 if remaining > 0 { factor = factor * factor }
@@ -61,7 +61,7 @@ extension ExactBivariatePolynomial {
         }
         var result = OutwardScalarInterval.exact(0)
         for term in try orderedTerms(usage: &usage) {
-            try usage.consumeExactWork(2)
+            try usage.consumeWork(2)
             result = try result + term.value.outwardInterval(usage: &usage)
                 * power(u, term.key.u) * power(v, term.key.v)
         }

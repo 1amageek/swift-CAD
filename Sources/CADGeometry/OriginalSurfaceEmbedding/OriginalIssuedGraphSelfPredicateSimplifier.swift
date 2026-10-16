@@ -16,7 +16,7 @@ struct OriginalIssuedGraphSelfPredicateSimplifier {
     }
     static func simplify<A: ExactScalarAdmission & ~Copyable>(_ predicate: Predicate,
         cells: ExactRealCellDomain<Base>, using admission: inout A) throws -> Result {
-        try OriginalSourceProofAdmission.withBorrow(&admission) { a in
+        try admission.withProofScope { a in
             try a.checkpoint()
             try a.admitDepth(value: predicate.depth.value, coefficient: predicate.depth.coefficient)
             let field = try cells.coefficientField(of: predicate.source, using: &a)

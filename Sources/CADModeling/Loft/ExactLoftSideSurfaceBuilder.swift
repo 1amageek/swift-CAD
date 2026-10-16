@@ -24,6 +24,7 @@ package struct ExactLoftSideSurfaceBuilder: Sendable {
         uMaximumBoundary: BSplineCurve3D,
         tolerance: ModelingTolerance
     ) throws -> BSplineSurface3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
         try tolerance.validate()
         let surface: BSplineSurface3D
         if hasLinearConnectorParameterization(uMinimumBoundary),
@@ -42,17 +43,17 @@ package struct ExactLoftSideSurfaceBuilder: Sendable {
                 tolerance: tolerance
             )
         }
-        return try validated(surface, tolerance: tolerance)
+        return try validated(surface, tolerance: tolerance, using: &execution)
     }
 
-    package func buildOriginal<B: RationalAlgebraAdmitting>(
+    package func buildOriginal(
         vMinimumBoundary: OriginalCurveRootSpan3D, vMaximumBoundary: OriginalCurveRootSpan3D,
         uMinimumBoundary: OriginalCurveRootSpan3D, uMaximumBoundary: OriginalCurveRootSpan3D,
-        tolerance: ModelingTolerance, usage: inout B
+        tolerance: ModelingTolerance, usage: inout OriginalQueryExecution
     ) throws -> OriginalCoonsSurface3D {
         try OriginalCoonsSurface3D(vMinimumBoundary: vMinimumBoundary, vMaximumBoundary: vMaximumBoundary,
             uMinimumBoundary: uMinimumBoundary, uMaximumBoundary: uMaximumBoundary,
-            tolerance: tolerance, usage: &usage)
+            tolerance: tolerance, using: &usage)
     }
 
     /// The Hermite side between two section spans of one basis and one set of weights: in v a
@@ -70,6 +71,26 @@ package struct ExactLoftSideSurfaceBuilder: Sendable {
         endSecondDerivatives: [Vector3D]? = nil,
         tolerance: ModelingTolerance
     ) throws -> BSplineSurface3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try buildHermite(start: start, startDerivatives: startDerivatives, end: end, endDerivatives: endDerivatives, degree: degree, startSecondDerivatives: startSecondDerivatives, endSecondDerivatives: endSecondDerivatives, tolerance: tolerance, using: &execution)
+    }
+
+    package func validated(_ surface: BSplineSurface3D, tolerance: ModelingTolerance) throws -> BSplineSurface3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try validated(surface, tolerance: tolerance, using: &execution)
+    }
+
+    package func buildHermite(
+        start: BSplineCurve3D,
+        startDerivatives: [Vector3D],
+        end: BSplineCurve3D,
+        endDerivatives: [Vector3D],
+        degree: Int,
+        startSecondDerivatives: [Vector3D]? = nil,
+        endSecondDerivatives: [Vector3D]? = nil,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> BSplineSurface3D {
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard degree == 3 || degree == 5, start.degree == end.degree, start.knots == end.knots,
               start.weights == end.weights, start.controlPoints.count == end.controlPoints.count,
@@ -77,34 +98,48 @@ package struct ExactLoftSideSurfaceBuilder: Sendable {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
                               message: "A Hermite Loft side needs two spans of one basis with a derivative per control point.")
         }
+        try execution.retainStorage(count: degree == 3 ? 2 : 3, stride: MemoryLayout<Double>.stride)
+        let rowCount = degree == 3 ? 2 : 3
+        try execution.retainStorage(count: rowCount, stride: MemoryLayout<[Point3D]>.stride)
+        try execution.retainStorage(count: rowCount, stride: MemoryLayout<[Point3D]>.stride)
+        for _ in 0..<rowCount {
+            try execution.retainStorage(count: start.controlPoints.count, stride: MemoryLayout<Point3D>.stride)
+            try execution.retainStorage(count: end.controlPoints.count, stride: MemoryLayout<Point3D>.stride)
+        }
         let steps = degree == 3 ? [0.0, 1.0 / 3] : [0.0, 1.0 / 5, 2.0 / 5]
         var leading = steps.map { step in zip(start.controlPoints, startDerivatives).map { $0 + $1 * step } }
         var trailing = steps.reversed().map { step in zip(end.controlPoints, endDerivatives).map { $0 + $1 * -step } }
         // A quintic's second derivative at an end is twenty times its second difference there.
         if degree == 5 {
-            if let second = startSecondDerivatives { leading[2] = zip(leading[2], second).map { $0 + $1 * (1.0 / 20) } }
-            if let second = endSecondDerivatives { trailing[0] = zip(trailing[0], second).map { $0 + $1 * (1.0 / 20) } }
+            if let second = startSecondDerivatives { try execution.retainStorage(count: second.count, stride: MemoryLayout<Point3D>.stride); leading[2] = zip(leading[2], second).map { $0 + $1 * (1.0 / 20) } }
+            if let second = endSecondDerivatives { try execution.retainStorage(count: second.count, stride: MemoryLayout<Point3D>.stride); trailing[0] = zip(trailing[0], second).map { $0 + $1 * (1.0 / 20) } }
         }
+        try execution.retainStorage(count: rowCount * 2, stride: MemoryLayout<[Point3D]>.stride)
+        try execution.retainStorage(count: degree + 1, stride: MemoryLayout<Double>.stride)
+        try execution.retainStorage(count: degree + 1, stride: MemoryLayout<Double>.stride)
+        try execution.retainStorage(count: 2 * (degree + 1), stride: MemoryLayout<Double>.stride)
+        try execution.retainStorage(count: rowCount * 2, stride: MemoryLayout<[Double]>.stride)
         let rows = leading + trailing
         let surface = BSplineSurface3D(
             uDegree: start.degree, vDegree: degree, uKnots: start.knots,
             vKnots: Array(repeating: 0.0, count: degree + 1) + Array(repeating: 1.0, count: degree + 1),
             controlPoints: rows, weights: Array(repeating: start.weights, count: rows.count)
         )
-        return try validated(surface, tolerance: tolerance)
+        return try validated(surface, tolerance: tolerance, using: &execution)
     }
 
-    package func validated(_ surface: BSplineSurface3D, tolerance: ModelingTolerance) throws -> BSplineSurface3D {
+    package func validated(_ surface: BSplineSurface3D, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> BSplineSurface3D {
+        try execution.consumeWork(1)
         // The returned tensor chart is a construction map. The body builder
         // publishes the certified planar support for a collinear corner.
-        if try BSplineSurfaceEmbeddingValidator.stationaryPlanarSupport(for: surface, tolerance: tolerance) == nil {
+        if try BSplineSurfaceEmbeddingValidator.stationaryPlanarSupport(for: surface, tolerance: tolerance, using: &execution) == nil {
             try BSplineSurfaceRegularityValidator().validate(surface,
                 uDomain: surface.uDomain, vDomain: surface.vDomain, tolerance: tolerance,
-                allowStationaryBoundaryParameterization: true)
+                allowStationaryBoundaryParameterization: true, using: &execution)
         }
         try BSplineSurfaceEmbeddingValidator().validate(surface,
             uDomain: surface.uDomain, vDomain: surface.vDomain, tolerance: tolerance,
-            allowStationaryBoundaryParameterization: true)
+            allowStationaryBoundaryParameterization: true, using: &execution)
         return surface
     }
 

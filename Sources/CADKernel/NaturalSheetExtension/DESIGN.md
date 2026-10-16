@@ -56,3 +56,17 @@ Body-limit ray candidates retain one complete original target-body bounding box 
 Natural strip construction also consumes a retained original affine operation-word boundary directly. It requires exact original pcurve/source/target support binding and whole directed fractions 0-to-1 or 1-to-0, recursively reads the unchanged original iso coordinates, and preserves reversal. The resulting strip retains the target original word surface as physical/arclength authority. A rounded inverse chart or converted curve does not authorize this dispatch.
 
 Both strip-axis selection and rectangular selected-side coverage consume Topology's `ExactRectangularPcurveAxisEndpoints` receipt. The issuer binds the actual retained support and original directed pcurve, resolves full image/word traversals and exact gain/swap endpoints, and refuses an unrepresentable singleton instead of rounding its inverse. Natural extension reads only the certified fixed axis and directed endpoints; the image support remains the physical reach authority. The reach invocation pays these source visits when configured, without claiming a Boolean/sewing resource ledger.
+
+## Canonical Native Binding
+The SheetExtend operation creates one immutable contribution with its existing
+NaturalSheetExtensionLimits. Reach candidates, exact rectangular endpoints,
+original arclength certification and downstream clipping/sewing borrow the same
+execution; the private invocation Mutex counter and copied evaluator are removed.
+Natural/soft/linear/reflective formulas, sixteen-piece quadrature, iteration32,
+source/subdivision/scalar policy and retained topology order are preserved.
+The component still refuses missing original source capabilities.
+
+## Required Provider Binding Boundaries
+The candidate's direct entry refuses planar inward cuts and B-spline boundary extension while their shared Modeling producers have only ordinary witnesses. Refusal retains the caller's checkpoint and contribution, issues no partial topology and does not invoke a child budget. Other shared ordinary callers and producer mathematics remain unchanged; these required families remain incomplete.
+
+Variable provenance filter/sort and carried-identity traversal are charged at their Modeling owner through direct requirements. Pure metadata operations do not imply zero dynamic work or storage. Rectangle patch construction evaluates the same native isoparametric curves and four original corners using the caller's execution.

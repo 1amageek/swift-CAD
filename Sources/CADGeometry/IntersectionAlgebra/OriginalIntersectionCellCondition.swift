@@ -7,7 +7,7 @@ package struct OriginalIntersectionCellCondition: Sendable {
     package let coefficientVariableCount: Int
     package let fixedCoefficientCellIndex: Int?
 
-    package init<B: RationalAlgebraAdmitting>(partition: OriginalRationalIntersectionCells,
+    package init<B: ExactScalarAdmission & ~Copyable>(partition: OriginalRationalIntersectionCells,
         cellIndex: Int, usage: inout B) throws {
         try intersectionAlgebraStep(&usage)
         guard partition.tower.hasThomEncoding, cellIndex >= 0, cellIndex < partition.cells.count,
@@ -63,7 +63,7 @@ package struct OriginalIntersectionCellCondition: Sendable {
         self.cellIndex = cellIndex; self.polynomials = polynomials; self.signs = signs
     }
 
-    package func contains<B: RationalAlgebraAdmitting>(context: OriginalSingularFieldContext,
+    package func contains<B: ExactScalarAdmission & ~Copyable>(context: OriginalSingularFieldContext,
         coordinates: [OriginalSingularFieldElement], maximumDepth: Int, usage: inout B) throws -> Bool {
         guard coordinates.count == variableCount else {
             throw rationalAlgebraFailure("Cell membership requires all original coordinates.")

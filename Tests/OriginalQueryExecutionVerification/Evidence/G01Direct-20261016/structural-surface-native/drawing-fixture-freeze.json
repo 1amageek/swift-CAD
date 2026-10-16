@@ -1,0 +1,64 @@
+{
+  "status": "sourceReadyFrozenNotCompiled",
+  "oldFixtureSHA256": "744af275a41cc69d7cd70325c43a2bd2c7c09960d2daf4156fd4ad7bd4f360b4",
+  "fixtureSHA256": "e43658640faa3eda427d3543c00164673bcff704fc0ccc38cc19d07fb39c6a4b",
+  "designSHA256": "3948943c4ed0162d2f2c9ed431557fba370b401145037a7357b943e6802f1a52",
+  "expectCount": 41,
+  "requireCount": 6,
+  "allOracleExpressionsExactSameOrder": true,
+  "methodBodyBlocks": [
+    {
+      "name": "projectEdges",
+      "bodySHA256": "9f9d202cf2ff8ec3fa4fc4e2cb39a5b1ddb54f6474be57ea271d81cfb67d2564",
+      "byteEqual": true
+    },
+    {
+      "name": "unplacedSilhouettes",
+      "bodySHA256": "7a058408280ef000ee92a08a5072faea3dc04a649ffa9f12c57158f7153eb438",
+      "byteEqual": true
+    },
+    {
+      "name": "placedSilhouettes",
+      "bodySHA256": "76f126ee5424e0d3f6b83b5707d4e92ad7ef67bbcd2230d248f2097df5406575",
+      "byteEqual": true
+    },
+    {
+      "name": "silhouetteReaders",
+      "bodySHA256": "96653ca94e28c41ad4e7a316e31d6fd9bff053df3d4504daa0eeba1fd3175343",
+      "byteEqual": true
+    },
+    {
+      "name": "contacts.prepare",
+      "bodySHA256": "bb409c87a02ec43501cff40fc81bca02df91bf4c5c8c5bbd9d2a3da7d89af838",
+      "byteEqual": true
+    },
+    {
+      "name": "contactReaders",
+      "bodySHA256": "979ab18bd0966974eef1289e1a7f3e081448a386e67c7c8c2801a5c017390f3d",
+      "byteEqual": true
+    }
+  ],
+  "sourcePreparationAndRemainingTestBodiesByteEqual": true,
+  "sameExecutionAndSameExistentialInstances": true,
+  "helperOrder": [
+    "projectAndPlace",
+    "unplacedSilhouettes",
+    "placedSilhouettes",
+    "readSilhouettes",
+    "prepareContacts",
+    "readContacts"
+  ],
+  "noninlineBoundaries": [
+    "query",
+    "projectAndPlace",
+    "unplacedSilhouettes",
+    "placedSilhouettes",
+    "readSilhouettes",
+    "prepareContacts",
+    "readContacts",
+    "check"
+  ],
+  "newRootOrCapChange": false,
+  "originalTreeFixtureExists": false,
+  "verification": "Root owns compiler/runtime; no behavior success inferred from source comparison"
+}

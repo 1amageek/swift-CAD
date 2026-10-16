@@ -55,7 +55,7 @@ struct BSplineCurveSurfaceTangencyTests {
         #expect(rich.points == result)
         let receipt = try #require(rich.originalNativePoints)
         let reference = receipt.pointCells[0]
-        let decomposition = receipt.charts[reference.chartIndex].decomposition
+        let decomposition = try #require(receipt.charts[reference.chartIndex].decomposition)
         guard case .parameterCells(let strata, _, _) = decomposition.coverage else {
             Issue.record("Original repeated-root contact lost its complete native coverage.")
             return
@@ -63,8 +63,8 @@ struct BSplineCurveSurfaceTangencyTests {
         #expect(strata.jacobian.equations == decomposition.system.equations)
         #expect(strata.strata.first?.originalJacobianRank == 2)
         #expect(strata.strata.first?.isolatedRankSigns?.count == strata.jacobian.minors.count)
-        var proofUsage = OriginalRelationUsage(consumeWork: { _ in }, retainStorage: { _ in },
-            visitCell: { _ in }, visitCoefficientCell: { _ in })
+        var proofUsage = GeometryTestScalarRecorder(observeWork: { _ in }, observeStorageWords: { _ in },
+            observeValueCell: { _ in }, observeCoefficientCell: { _ in })
         let uProof = try #require(receipt.parameterLocalizations[1])
         let vProof = try #require(receipt.parameterLocalizations[2])
         #expect(uProof.primitiveCoordinate.context === vProof.primitiveCoordinate.context)
@@ -79,7 +79,7 @@ struct BSplineCurveSurfaceTangencyTests {
         let handle = try receipt.point(at: 0)
         for axis in [1, 2] {
             let enclosed = try handle.parameter(axis: axis, in: receipt).enclosed(maximumDepth: 32,
-                maximumCoefficientDepth: 32, usage: proofUsage)
+                maximumCoefficientDepth: 32, usage: &proofUsage)
             let lower = try enclosed.lower.outwardInterval(usage: &proofUsage)
             let upper = try enclosed.upper.outwardInterval(usage: &proofUsage)
             #expect(upper.upper - lower.lower <= tolerance.distance)

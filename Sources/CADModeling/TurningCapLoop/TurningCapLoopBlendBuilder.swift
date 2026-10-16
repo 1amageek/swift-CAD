@@ -84,8 +84,8 @@ package struct TurningCapLoopBlendBuilder {
         let segments = loop.segments
         let count = segments.count
         let parentOf = Dictionary(selected.map { ($0.edgeID, $0.subshapeID) }, uniquingKeysWith: { first, _ in first })
-        func parents(_ segment: Segment) -> [SubshapeID] {
-            parentOf[segment.edgeID].map { [$0] } ?? context.subshapeIDs(for: .edge(segment.edgeID))
+        func parents(_ segment: Segment) throws -> [SubshapeID] {
+            try parentOf[segment.edgeID].map { [$0] } ?? context.subshapeIDs(for: .edge(segment.edgeID))
         }
         func tangent(_ segment: Segment, at point: Point3D) throws -> Vector3D {
             if let arc = segment.arc {
@@ -317,7 +317,7 @@ package struct TurningCapLoopBlendBuilder {
         for (index, segment) in segments.enumerated() {
             let band = bands[index]
             let name = "turning-loop:band:\(index)"
-            let edgeParents = parents(segment)
+            let edgeParents = try parents(segment)
             // An end section beside a corner patch split in a Y meets it at its middle too.
             let previous = (index - 1 + count) % count
             let (splitsEnd, splitsStart) = (splitsCorners && turns[index] != nil, splitsCorners && turns[previous] != nil)
@@ -341,7 +341,7 @@ package struct TurningCapLoopBlendBuilder {
             if facing { edges = try edges.reversed().map(reversed) }
             patches.append(BRepSewingFacePatch(stableID: name, surface: .bSpline(band.surface), orientation: facing ? .forward : .reversed,
                                                loops: [BRepSewingLoop(stableID: "\(name):outer", role: .outer, edges: edges)],
-                                               parentSubshapeIDs: [loop.capFaceID, segment.wallFaceID].flatMap { context.subshapeIDs(for: .face($0)) }))
+                                               parentSubshapeIDs: try [loop.capFaceID, segment.wallFaceID].flatMap { try context.subshapeIDs(for: .face($0)) }))
         }
         // The corner patches.
         let cornerPatches = TurningCapLoopCornerPatchBuilder(tolerance: tolerance)
@@ -360,10 +360,10 @@ package struct TurningCapLoopBlendBuilder {
                                                     risingBand: risingBand.surface, fallingBand: fallingBand.surface,
                                                     wallNormal: wallNormal, featureID: featureID)
             let name = "turning-loop:corner:\(index)"
-            let edgeParents = parents(rising) + parents(falling)
+            let edgeParents = try parents(rising) + parents(falling)
             // Facing out of the material at P, where the patch is tangent to the cap.
             let facing = try surface.normal(u: 0.05, v: 0.05, tolerance: tolerance).dot(n) >= 0
-            let faceParents = [loop.capFaceID, rising.wallFaceID, falling.wallFaceID].flatMap { context.subshapeIDs(for: .face($0)) }
+            let faceParents = try [loop.capFaceID, rising.wallFaceID, falling.wallFaceID].flatMap { try context.subshapeIDs(for: .face($0)) }
             /// A face of the patch from its loop counterclockwise in (u, v).
             func face(_ stableID: String, _ loopEdges: [BRepSewingEdge]) throws -> BRepSewingFacePatch {
                 BRepSewingFacePatch(stableID: stableID, surface: .bSpline(surface), orientation: facing ? .forward : .reversed,
@@ -423,7 +423,7 @@ package struct TurningCapLoopBlendBuilder {
         func wallPieces(_ index: Int, face name: String) throws -> [BRepSewingEdge] {
             let segment = segments[index]
             let band = bands[index]
-            let edgeParents = parents(segment)
+            let edgeParents = try parents(segment)
             var pieces: [BRepSewingEdge] = []
             let previous = (index - 1 + count) % count
             if let turn = turns[previous] {
@@ -482,7 +482,7 @@ package struct TurningCapLoopBlendBuilder {
                         if faceID == loop.capFaceID {
                             let band = bands[index]
                             pieces = [try edge("\(source.stableID):band:\(index):cap", band.cap.curve, band.cap.from, band.cap.to,
-                                               .polyline([]), parents(segment))]
+                                               .polyline([]), try parents(segment))]
                         } else {
                             pieces = try wallPieces(index, face: source.stableID)
                         }
@@ -520,7 +520,7 @@ package struct TurningCapLoopBlendBuilder {
         }
         return BRepSewingRequest(featureID: featureID, bodyKind: .solid,
                                  shells: [BRepSewingShell(stableID: "shell:0", patches: patches)],
-                                 bodyParentSubshapeIDs: context.subshapeIDs(for: .body(bodyID)))
+                                 bodyParentSubshapeIDs: try context.subshapeIDs(for: .body(bodyID)))
     }
 
     // MARK: - Geometry
@@ -614,7 +614,7 @@ package struct TurningCapLoopBlendBuilder {
         let alongV = u != nil
         let (knots, degree, count) = alongV ? (surface.uKnots, surface.uDegree, surface.uControlPointCount)
             : (surface.vKnots, surface.vDegree, surface.vControlPointCount)
-        let basis = FairSurfaceSystem.Basis(knots: knots, degree: degree, count: count).derivatives(at: u ?? v ?? 0, order: 0)[0]
+        let basis = try FairSurfaceSystem.Basis(knots: knots, degree: degree, count: count).derivatives(at: u ?? v ?? 0, order: 0)[0]
         let others = alongV ? surface.vControlPointCount : surface.uControlPointCount
         var points: [Point3D] = []
         var weights: [Double] = []

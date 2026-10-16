@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 import CADTopology
 #if canImport(Darwin)
 import Darwin
@@ -26,13 +27,22 @@ public struct SurfaceParameterCurveSampler: Sendable {
     }
 
     public func sample(_ curve: SurfaceParameterCurve) throws -> [SurfaceParameter] {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try sample(curve, using: &execution)
+    }
+
+    public func sample(
+        _ curve: SurfaceParameterCurve,
+        using execution: inout OriginalQueryExecution
+    ) throws -> [SurfaceParameter] {
+        try execution.checkpoint()
         try tolerance.validate()
         guard maximumDepth >= 0, maximumSampleCount >= 2 else {
             throw FeatureEvaluationError.invalidGraph(
                 "Surface parameter curve sampler limits must permit at least one segment."
             )
         }
-        let breakpoints = try samplingBreakpoints(for: curve)
+        let breakpoints = try samplingBreakpoints(for: curve, using: &execution)
         guard let firstFraction = breakpoints.first else {
             throw FeatureEvaluationError.invalidGraph(
                 "Surface parameter curve sampling requires a non-empty parameter domain."
@@ -41,13 +51,16 @@ public struct SurfaceParameterCurveSampler: Sendable {
         var lowerFraction = firstFraction
         var lower = try curve.parameter(
             atNormalizedFraction: lowerFraction,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
+        try execution.retainStorage(count: 1, stride: MemoryLayout<SurfaceParameter>.stride)
         var points = [lower]
+        var capacity = points.count
         for upperFraction in breakpoints.dropFirst() {
+            try execution.consumeWork(1)
             let upper = try curve.parameter(
                 atNormalizedFraction: upperFraction,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
             try appendSamples(
                 curve: curve,
@@ -56,18 +69,20 @@ public struct SurfaceParameterCurveSampler: Sendable {
                 upperFraction: upperFraction,
                 upper: upper,
                 depth: 0,
-                points: &points
+                points: &points, capacity: &capacity, using: &execution
             )
             lowerFraction = upperFraction
             lower = upper
         }
+        try execution.checkpoint()
         return points
     }
 
     private func samplingBreakpoints(
-        for curve: SurfaceParameterCurve
+        for curve: SurfaceParameterCurve, using execution: inout OriginalQueryExecution
     ) throws -> [Double] {
         guard case let .bSpline(spline) = curve else {
+            try execution.retainStorage(count: 2, stride: MemoryLayout<Double>.stride)
             return [0.0, 1.0]
         }
         guard case let .closed(lower, upper) = spline.domain,
@@ -80,13 +95,19 @@ public struct SurfaceParameterCurveSampler: Sendable {
         let numericalTolerance = Double.ulpOfOne
             * max(abs(lower), abs(upper), 1.0)
             * 64.0
+        try execution.retainStorage(count: 1, stride: MemoryLayout<Double>.stride)
         var result = [0.0]
-        for knot in spline.knots where knot > lower && knot < upper {
+        var capacity = result.count
+        for knot in spline.knots {
+            try execution.consumeWork(1)
+            guard knot > lower && knot < upper else { continue }
             let fraction = (knot - lower) / span
             if result.last.map({ abs($0 - fraction) > numericalTolerance }) != false {
+                try reserveAppend(to: &result, capacity: &capacity, using: &execution)
                 result.append(fraction)
             }
         }
+        try reserveAppend(to: &result, capacity: &capacity, using: &execution)
         result.append(1.0)
         return result
     }
@@ -98,12 +119,15 @@ public struct SurfaceParameterCurveSampler: Sendable {
         upperFraction: Double,
         upper: SurfaceParameter,
         depth: Int,
-        points: inout [SurfaceParameter]
+        points: inout [SurfaceParameter], capacity: inout Int,
+        using execution: inout OriginalQueryExecution
     ) throws {
+        try execution.admitGeometricDepth(depth)
+        try execution.consumeWork(1)
         let midpointFraction = (lowerFraction + upperFraction) * 0.5
         let midpoint = try curve.parameter(
             atNormalizedFraction: midpointFraction,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         let deviation = distance(
             midpoint,
@@ -111,7 +135,7 @@ public struct SurfaceParameterCurveSampler: Sendable {
             to: upper
         )
         if deviation <= tolerance.distance {
-            try appendIfSeparated(upper, to: &points)
+            try appendIfSeparated(upper, to: &points, capacity: &capacity, using: &execution)
             return
         }
         guard depth < maximumDepth else {
@@ -130,7 +154,7 @@ public struct SurfaceParameterCurveSampler: Sendable {
             upperFraction: midpointFraction,
             upper: midpoint,
             depth: depth + 1,
-            points: &points
+            points: &points, capacity: &capacity, using: &execution
         )
         try appendSamples(
             curve: curve,
@@ -139,14 +163,16 @@ public struct SurfaceParameterCurveSampler: Sendable {
             upperFraction: upperFraction,
             upper: upper,
             depth: depth + 1,
-            points: &points
+            points: &points, capacity: &capacity, using: &execution
         )
     }
 
     private func appendIfSeparated(
         _ point: SurfaceParameter,
-        to points: inout [SurfaceParameter]
+        to points: inout [SurfaceParameter], capacity: inout Int,
+        using execution: inout OriginalQueryExecution
     ) throws {
+        try execution.consumeWork(1)
         guard points.last.map({ distance($0, to: point) <= tolerance.distance }) != true else {
             return
         }
@@ -159,7 +185,23 @@ public struct SurfaceParameterCurveSampler: Sendable {
                 message: "Surface parameter curve exhausted its adaptive sample-count budget."
             )
         }
+        try reserveAppend(to: &points, capacity: &capacity, using: &execution)
         points.append(point)
+    }
+
+    private func reserveAppend<Element>(
+        to values: inout [Element], capacity: inout Int,
+        using execution: inout OriginalQueryExecution
+    ) throws {
+        guard values.count == capacity else { return }
+        let growth = capacity.multipliedReportingOverflow(by: 2)
+        guard !growth.overflow else {
+            throw FeatureEvaluationError.invalidGraph("Surface parameter sample capacity overflow.")
+        }
+        let next = max(1, growth.partialValue)
+        try execution.retainStorage(count: next, stride: MemoryLayout<Element>.stride)
+        values.reserveCapacity(next)
+        capacity = next
     }
 
     private func distance(

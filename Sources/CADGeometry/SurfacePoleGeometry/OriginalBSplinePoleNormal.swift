@@ -18,11 +18,11 @@ package struct OriginalBSplinePoleNormal: Sendable {
     private let tolerance: ModelingTolerance
     private let prepared: PreparedBSplineSurfaceDifferentialEncloser
 
-    package init(surface: BSplineSurface3D, tolerance: ModelingTolerance,
-        consumeWork: () throws -> Void) throws {
+    package init<A: ExactScalarAdmission & ~Copyable>(surface: BSplineSurface3D, tolerance: ModelingTolerance,
+        using execution: inout A) throws {
         self.surface = surface; self.tolerance = tolerance
         prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: surface,
-            tolerance: tolerance, consumeWork: consumeWork)
+            tolerance: tolerance, using: &execution)
     }
 
     package init(surface: BSplineSurface3D, tolerance: ModelingTolerance,
@@ -31,10 +31,10 @@ package struct OriginalBSplinePoleNormal: Sendable {
     }
 
     /// Optional original collapse recognition; ordinary native edges return nil.
-    package func originalCollapsedDirection(over box:SurfaceParameterBox,
+    package func originalCollapsedDirection<A: ExactScalarAdmission & ~Copyable>(over box:SurfaceParameterBox,
         owning span:PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan,
-        consumeWork:()throws->Void) throws -> Direction? {
-        try span.validate(on:surface,over:box,tolerance:tolerance,consumeWork:consumeWork)
+        using execution: inout A) throws -> Direction? {
+        try span.validate(on:surface,over:box,tolerance:tolerance,using: &execution)
         var candidates:[(Direction,SurfaceParameter)] = []
         if case .closed(let u0, let u1) = surface.uDomain {
             if box.u.lower == u0 { candidates.append((.constantU,.init(u:u0,v:box.v.lower))) }
@@ -46,7 +46,7 @@ package struct OriginalBSplinePoleNormal: Sendable {
         }
         for (direction,parameter) in candidates {
             do {
-                _ = try collapseSign(at:parameter,direction:direction,consumeWork:consumeWork)
+                _ = try collapseSign(at:parameter,direction:direction,using: &execution)
                 return direction
             } catch let error as KernelError where error.code == .invalidInput {
                 // Validated source and owning box remain bound. Only a missing
@@ -57,11 +57,11 @@ package struct OriginalBSplinePoleNormal: Sendable {
         return nil
     }
 
-    package func prepareExactPanelIfCollapsed<B:RationalAlgebraAdmitting>(over box:SurfaceParameterBox,
+    package func prepareExactPanelIfCollapsed<B:ExactScalarAdmission & ~Copyable>(over box:SurfaceParameterBox,
         owning span:PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan,
         usage:inout B) throws -> OriginalExactBSplinePoleNormal? {
         try span.validate(on: surface, over: box, tolerance: tolerance,
-          consumeWork: { try usage.consumeExactWork(1) })
+          using: &usage)
         var candidates: [(Direction, SurfaceParameter)] = []
         if case .closed(let u0, let u1) = surface.uDomain {
             if box.u.lower == u0 { candidates.append((.constantU, .init(u: u0, v: box.v.lower))) }
@@ -76,7 +76,7 @@ package struct OriginalBSplinePoleNormal: Sendable {
             let sign: Double
             do {
                 sign = try collapseSign(at: station, direction: direction,
-                    consumeWork: { try usage.consumeExactWork(1) })
+                    using: &usage)
             } catch let error as KernelError where error.code == .invalidInput {
                 continue
             }
@@ -94,9 +94,9 @@ package struct OriginalBSplinePoleNormal: Sendable {
         return result
     }
 
-    package func collapsedPoint(at parameter:SurfaceParameter,direction:Direction,
-        consumeWork:()throws->Void) throws -> Point3D {
-        _ = try collapseSign(at:parameter,direction:direction,consumeWork:consumeWork)
+    package func collapsedPoint<A: ExactScalarAdmission & ~Copyable>(at parameter:SurfaceParameter,direction:Direction,
+        using execution: inout A) throws -> Point3D {
+        _ = try collapseSign(at:parameter,direction:direction,using: &execution)
         switch direction {
         case .constantU:
             return surface.controlPoints[0][parameter.u == surface.uKnots[surface.uDegree] ? 0 : surface.uControlPointCount-1]
@@ -108,14 +108,14 @@ package struct OriginalBSplinePoleNormal: Sendable {
     // FIXME(INCOMPLETE_IMPLEMENTATION): Mesh pole normals currently use the
     // first original nonzero normal coefficient. Higher-order collapsed supports
     // require exact preceding-coefficient zero proofs before they may succeed.
-    package func normal(at parameter: SurfaceParameter, direction: Direction,
-        consumeWork: () throws -> Void) throws -> OriginalBSplinePoleNormalReceipt {
-        try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
-        let sign = try collapseSign(at: parameter, direction: direction, consumeWork: consumeWork)
-        try consumeWork()
+    package func normal<A: ExactScalarAdmission & ~Copyable>(at parameter: SurfaceParameter, direction: Direction,
+        using execution: inout A) throws -> OriginalBSplinePoleNormalReceipt {
+        try CurrentTaskCancellationChecker().checkCancellation(); try execution.consumeWork(1)
+        let sign = try collapseSign(at: parameter, direction: direction, using: &execution)
+        try execution.consumeWork(1)
         let jet = try prepared.intervalJet(overClosedBox: .init(
             u: ScalarInterval(lower: parameter.u, upper: parameter.u),
-            v: ScalarInterval(lower: parameter.v, upper: parameter.v)), tolerance: tolerance)
+            v: ScalarInterval(lower: parameter.v, upper: parameter.v)), tolerance: tolerance, using: &execution)
         func vector(_ field: (SurfaceIntervalJet) -> OutwardScalarInterval) -> IntervalVector3DBounds {
             .init(x: field(jet.x), y: field(jet.y), z: field(jet.z))
         }
@@ -151,10 +151,10 @@ package struct OriginalBSplinePoleNormal: Sendable {
 
 
     /// Original normal divided by the exact inward endpoint factor on one closed panel.
-    package func panelBounds(over box: SurfaceParameterBox, direction: Direction,
+    package func panelBounds<A: ExactScalarAdmission & ~Copyable>(over box: SurfaceParameterBox, direction: Direction,
         owning originalSpan: PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan? = nil,
-        consumeWork: () throws -> Void) throws -> OriginalBSplinePoleNormalPanel {
-        try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
+        using execution: inout A) throws -> OriginalBSplinePoleNormalPanel {
+        try CurrentTaskCancellationChecker().checkCancellation(); try execution.consumeWork(1)
         let parameter: SurfaceParameter
         switch direction {
         case .constantU:
@@ -174,21 +174,21 @@ package struct OriginalBSplinePoleNormal: Sendable {
             }
             parameter = .init(u: box.u.lower, v: box.v.lower == v0 ? v0 : v1)
         }
-        let sign = try collapseSign(at: parameter, direction: direction, consumeWork: consumeWork)
+        let sign = try collapseSign(at: parameter, direction: direction, using: &execution)
         let span: PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan
         if let originalSpan {
-            try originalSpan.validate(on: surface, over: box, tolerance: tolerance,consumeWork:consumeWork)
+            try originalSpan.validate(on: surface, over: box, tolerance: tolerance,using: &execution)
             span = originalSpan
         } else {
             let spans = try prepared.originalNativeSpans(over: box, tolerance: tolerance,
-                maximumSpanCount: 1, consumeWork: consumeWork)
+                maximumSpanCount: 1, using: &execution)
             guard spans.count == 1, let original = spans.first else {
                 throw failure(.invalidInput, "Pole normal panel requires one original owning native span.")
             }
             span = original
         }
-        try consumeWork()
-        let jet = try span.intervalJet(overClosedBox: box, on: surface, tolerance: tolerance,consumeWork:consumeWork)
+        try execution.consumeWork(1)
+        let jet = try span.intervalJet(overClosedBox: box, on: surface, tolerance: tolerance,using: &execution)
         func vector(_ field: (SurfaceIntervalJet) -> OutwardScalarInterval) -> IntervalVector3DBounds {
             .init(x: field(jet.x), y: field(jet.y), z: field(jet.z))
         }
@@ -197,7 +197,7 @@ package struct OriginalBSplinePoleNormal: Sendable {
         let vv = vector({ $0.secondDerivativeVV }), uuu = vector({ $0.thirdDerivativeUUU })
         let uuv = vector({ $0.thirdDerivativeUUV }), uvv = vector({ $0.thirdDerivativeUVV })
         let vvv = vector({ $0.thirdDerivativeVVV })
-        try consumeWork()
+        try execution.consumeWork(1)
         let mixed = uuv.cross(v) + uu.cross(vv) + u.cross(uvv)
         let factor: IntervalVector3DBounds
         let derivativeU: Double, derivativeV: Double
@@ -232,7 +232,7 @@ package struct OriginalBSplinePoleNormal: Sendable {
                 unitNormalDerivativeVMagnitudeUpperBound: normalV))
     }
 
-    package func prepareExactPanel<B:RationalAlgebraAdmitting>(over box:SurfaceParameterBox,direction:Direction,
+    package func prepareExactPanel<B:ExactScalarAdmission & ~Copyable>(over box:SurfaceParameterBox,direction:Direction,
         owning span:PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan,
         usage:inout B) throws -> OriginalExactBSplinePoleNormal {
         let station:SurfaceParameter
@@ -250,14 +250,14 @@ package struct OriginalBSplinePoleNormal: Sendable {
             guard box.v.lower == v0 || box.v.upper == v1 else { throw failure(.invalidInput,"Exact normal panel does not own an original V boundary.") }
             station = .init(u:box.u.lower,v:box.v.lower == v0 ? v0 : v1)
         }
-        let sign = try collapseSign(at:station,direction:direction,consumeWork:{ try usage.consumeExactWork(1) })
+        let sign = try collapseSign(at:station,direction:direction,using: &usage)
         let original = try OriginalRationalSurfacePolynomial(source:surface,native:span,domain:box,view:.zero,tolerance:tolerance,usage:&usage)
         return try .init(original:original,span:span,direction:direction,boundary:direction == .constantU ? station.u : station.v,
             inwardSign:sign,tolerance:tolerance,usage:&usage)
     }
 
-    private func collapseSign(at parameter: SurfaceParameter, direction: Direction,
-        consumeWork: () throws -> Void) throws -> Double {
+    private func collapseSign<A: ExactScalarAdmission & ~Copyable>(at parameter: SurfaceParameter, direction: Direction,
+        using execution: inout A) throws -> Double {
         guard parameter.u.isFinite, parameter.v.isFinite,
               containsOriginal(parameter.u, in: surface.uDomain),
               containsOriginal(parameter.v, in: surface.vDomain) else {
@@ -281,7 +281,7 @@ package struct OriginalBSplinePoleNormal: Sendable {
             let column = lower ? 0 : surface.uControlPointCount - 1
             let first = surface.controlPoints[0][column]
             for row in surface.controlPoints {
-                try consumeWork()
+                try execution.consumeWork(1)
                 guard row[column] == first else {
                     throw failure(.invalidInput, "Original endpoint column does not collapse to one point.")
                 }
@@ -303,7 +303,7 @@ package struct OriginalBSplinePoleNormal: Sendable {
             let row = surface.controlPoints[lower ? 0 : surface.vControlPointCount - 1]
             guard let first = row.first else { throw failure(.invalidInput, "Original pole row is empty.") }
             for point in row {
-                try consumeWork()
+                try execution.consumeWork(1)
                 guard point == first else {
                     throw failure(.invalidInput, "Original endpoint row does not collapse to one point.")
                 }

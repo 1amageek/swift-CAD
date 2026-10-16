@@ -410,4 +410,31 @@ private final class CountingCurveArcLengthResolver: CurveArcLengthResolving, Sen
             tolerance: tolerance
         )
     }
+
+    func enclosure(of curve: Curve3D, over interval: ScalarInterval,
+        options: CurveArcLengthOptions, tolerance: ModelingTolerance,
+        maximumSubdivisionDepth: Int, remainingSourceDepth: Int, maximumAlgebraicDepth: Int?,
+        using execution: inout OriginalQueryExecution) throws -> CurveArcLengthEnclosure {
+        try base.enclosure(of: curve, over: interval, options: options, tolerance: tolerance,
+            maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
+            maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
+    }
+
+    func parameterEnclosure(atArcLengthFraction fraction: Double, of curve: Curve3D,
+        over interval: ScalarInterval, options: CurveArcLengthOptions, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> CurveArcLengthParameterEnclosure {
+        try base.parameterEnclosure(atArcLengthFraction: fraction, of: curve, over: interval,
+            options: options, tolerance: tolerance, using: &execution)
+    }
+
+    func parameterization(of curve: Curve3D, over interval: ScalarInterval,
+        options: CurveArcLengthOptions, tolerance: ModelingTolerance,
+        maximumSubdivisionDepth: Int, remainingSourceDepth: Int, maximumAlgebraicDepth: Int?,
+        using execution: inout OriginalQueryExecution) throws -> any CurveArcLengthParameterization {
+        callCount.withLock { $0 += 1 }
+        return try base.parameterization(of: curve, over: interval, options: options, tolerance: tolerance,
+            maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
+            maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
+    }
+
 }

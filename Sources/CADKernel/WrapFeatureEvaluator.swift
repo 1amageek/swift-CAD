@@ -182,7 +182,7 @@ struct WrapFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
         var removedSubshapeIDs = Set<SubshapeID>()
         if !wrap.keepsTarget {
             let removal = BRepBodyTopologyRemoval()
-            removedSubshapeIDs = removal.subshapeIDs(bodyID: sourceBodyID, in: model, subshapes: context.subshapes.entries)
+            removedSubshapeIDs = try removal.subshapeIDs(bodyID: sourceBodyID, in: model, subshapes: context.subshapes.entries)
             try removal.remove(bodyID: sourceBodyID, from: &model)
         }
         try BRepModelCombiner().merge(sewn.brep, into: &model)

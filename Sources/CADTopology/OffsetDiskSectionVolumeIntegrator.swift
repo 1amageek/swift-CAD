@@ -8,6 +8,7 @@ import WASILibc
 #error("A C math implementation is required.")
 #endif
 import CADCore
+import CADGeometry
 
 /// Integrates intersections of offset circular or annular cross-sections.
 struct OffsetDiskSectionVolumeIntegrator {
@@ -17,9 +18,10 @@ struct OffsetDiskSectionVolumeIntegrator {
         characteristicLength: Double,
         tolerance: ModelingTolerance,
         firstRadiusAt: (Double) -> Double,
-        secondRadiusAt: (Double) -> Double
+        secondRadiusAt: (Double) -> Double, using execution: inout OriginalQueryExecution
     ) throws -> Double {
-        try integratedVolume(
+        try execution.consumeWork(1)
+        return try integratedVolume(
             breakpoints: breakpoints,
             centerDistance: centerDistance,
             characteristicLength: characteristicLength,
@@ -30,7 +32,7 @@ struct OffsetDiskSectionVolumeIntegrator {
                     secondRadius: max(0.0, secondRadiusAt(parameter)),
                     centerDistance: centerDistance
                 )
-            }
+            }, using: &execution
         )
     }
 
@@ -42,9 +44,10 @@ struct OffsetDiskSectionVolumeIntegrator {
         firstInnerRadiusAt: (Double) -> Double,
         firstOuterRadiusAt: (Double) -> Double,
         secondInnerRadiusAt: (Double) -> Double,
-        secondOuterRadiusAt: (Double) -> Double
+        secondOuterRadiusAt: (Double) -> Double, using execution: inout OriginalQueryExecution
     ) throws -> Double {
-        try integratedVolume(
+        try execution.consumeWork(1)
+        return try integratedVolume(
             breakpoints: breakpoints,
             centerDistance: centerDistance,
             characteristicLength: characteristicLength,
@@ -72,7 +75,7 @@ struct OffsetDiskSectionVolumeIntegrator {
                     centerDistance: centerDistance
                 )
                 return max(area, 0.0)
-            }
+            }, using: &execution
         )
     }
 
@@ -81,8 +84,9 @@ struct OffsetDiskSectionVolumeIntegrator {
         centerDistance: Double,
         characteristicLength: Double,
         tolerance: ModelingTolerance,
-        integrand: (Double) -> Double
+        integrand: (Double) -> Double, using execution: inout OriginalQueryExecution
     ) throws -> Double {
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard breakpoints.count >= 2,
               centerDistance > tolerance.distance,
@@ -102,6 +106,7 @@ struct OffsetDiskSectionVolumeIntegrator {
         let spanCount = breakpoints.count - 1
         var result = 0.0
         for index in 0..<spanCount {
+            try execution.consumeWork(1)
             let lower = breakpoints[index]
             let upper = breakpoints[index + 1]
             guard lower.isFinite,
@@ -120,7 +125,7 @@ struct OffsetDiskSectionVolumeIntegrator {
                 targetError: targetError / Double(spanCount),
                 depth: 0,
                 tolerance: tolerance,
-                integrand: integrand
+                integrand: integrand, using: &execution
             )
         }
         return result
@@ -132,12 +137,14 @@ struct OffsetDiskSectionVolumeIntegrator {
         targetError: Double,
         depth: Int,
         tolerance: ModelingTolerance,
-        integrand: (Double) -> Double
+        integrand: (Double) -> Double, using execution: inout OriginalQueryExecution
     ) throws -> Double {
+        try execution.consumeWork(1)
+        try execution.visitGeometricCell(depth: depth)
         let midpoint = (lower + upper) * 0.5
-        let coarse = gaussIntegral(lower: lower, upper: upper, integrand: integrand)
-        let fine = gaussIntegral(lower: lower, upper: midpoint, integrand: integrand)
-            + gaussIntegral(lower: midpoint, upper: upper, integrand: integrand)
+        let coarse = try gaussIntegral(lower: lower, upper: upper, integrand: integrand, using: &execution)
+        let fine = try gaussIntegral(lower: lower, upper: midpoint, integrand: integrand, using: &execution)
+            + gaussIntegral(lower: midpoint, upper: upper, integrand: integrand, using: &execution)
         let error = abs(fine - coarse)
         if error <= targetError {
             return fine
@@ -157,22 +164,24 @@ struct OffsetDiskSectionVolumeIntegrator {
             targetError: targetError * 0.5,
             depth: depth + 1,
             tolerance: tolerance,
-            integrand: integrand
+            integrand: integrand, using: &execution
         ) + adaptiveIntegral(
             lower: midpoint,
             upper: upper,
             targetError: targetError * 0.5,
             depth: depth + 1,
             tolerance: tolerance,
-            integrand: integrand
+            integrand: integrand, using: &execution
         )
     }
 
     private func gaussIntegral(
         lower: Double,
         upper: Double,
-        integrand: (Double) -> Double
-    ) -> Double {
+        integrand: (Double) -> Double, using execution: inout OriginalQueryExecution
+    ) throws -> Double {
+        try execution.consumeWork(1)
+        try execution.retainStorage(bytes: 5 * MemoryLayout<Double>.stride)
         let nodes = [
             -0.906_179_845_938_664,
             -0.538_469_310_105_683_1,
@@ -180,6 +189,7 @@ struct OffsetDiskSectionVolumeIntegrator {
             0.538_469_310_105_683_1,
             0.906_179_845_938_664,
         ]
+        try execution.retainStorage(bytes: 5 * MemoryLayout<Double>.stride)
         let weights = [
             0.236_926_885_056_189_1,
             0.478_628_670_499_366_5,
@@ -191,6 +201,7 @@ struct OffsetDiskSectionVolumeIntegrator {
         let halfSpan = (upper - lower) * 0.5
         var result = 0.0
         for index in nodes.indices {
+            try execution.consumeWork(1)
             result += weights[index] * integrand(midpoint + halfSpan * nodes[index])
         }
         return result * halfSpan

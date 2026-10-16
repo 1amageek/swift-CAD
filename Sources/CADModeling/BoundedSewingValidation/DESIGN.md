@@ -41,3 +41,10 @@ already used for edge relation validation and lifted position bounds. The UV
 facade does not infer a host from samples or a replacement plane. Its work,
 optional bytes and independent capabilities remain the sewing invocation
 allowance.
+
+Request-level body ancestry validity visits each original parent under the same
+execution before reading its `isValid` predicate. The existing guard order and
+short-circuit failure are unchanged; shell validation follows only after every
+body parent passes. [CanonicalConstructionAdmissionTests](../../../Tests/CADModelingTests/CanonicalConstructionAdmissionTests.swift)
+verifies parent-count work growth, the exact cumulative work ceiling and one
+unit less, and cancellation during the parent scan on the actual request path.

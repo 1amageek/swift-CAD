@@ -2,8 +2,8 @@ import CADCore
 
 /// Requires complete global exclusion before the separate local embedding proof.
 enum OriginalExactEmbeddingSelfContactConsumer {
-    static func validate<B: RationalAlgebraAdmitting>(surface: Surface3D, domain: SurfaceParameterBox,
-        remainingSourceDepth: Int, maximumCharts: Int, tolerance: ModelingTolerance, usage: inout B
+    static func validate(surface: Surface3D, domain: SurfaceParameterBox,
+        remainingSourceDepth: Int, maximumCharts: Int, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws {
         let supported: Bool
         switch surface {
@@ -15,12 +15,8 @@ enum OriginalExactEmbeddingSelfContactConsumer {
         default: supported = false
         }
         guard supported else { return }
-        // Scalar visits remain governed by B's independent value/coefficient
-        // witnesses; the existing public bridge's algorithm cap is not spatial depth.
-        var a = NativeExactPublicAdmission(usage:usage,maximumDepth:32)
-        defer { usage = a.usage }
         let limits = try OriginalDomainIdentityLimits(source:.init(remainingSourceDepth:remainingSourceDepth),
-            maximumTransportDepth:32,maximumCharts:maximumCharts,maximumFamilies:maximumCharts,
+            maximumTransportDepth:execution.limits.maximumTransportDepth,maximumCharts:maximumCharts,maximumFamilies:maximumCharts,
             maximumIdentityProofs:maximumCharts)
         let pairs = maximumCharts.multipliedReportingOverflow(by:maximumCharts)
         // A quota above Int.max admits every representable count. Saturating
@@ -33,26 +29,26 @@ enum OriginalExactEmbeddingSelfContactConsumer {
         case .bSpline(let native):
             let result = try OriginalExactSurfaceSelfContactPreparer.native(surface:native,domain:domain,
                 tolerance:tolerance,limits:limits,maximumMaps:maximumCharts,maximumPairs:maximumPairs,
-                cellLimits:structure.cells,topologyLimits:structure.topology,using:&a)
+                cellLimits:structure.cells,topologyLimits:structure.topology,using:&execution)
             for refined in result.refinements {
                 for included in refined.pullback.region.included {
-                    try a.consumeWork(1)
+                    try execution.consumeWork(1)
                     if included { throw contact(tolerance) }
                 }
             }
         case .procedural(.originalCoons(let coons)):
             let result = try OriginalExactSurfaceSelfContactPreparer.coons(surface:coons,domain:domain,
                 tolerance:tolerance,limits:limits,maximumPairs:maximumPairs,
-                cellLimits:structure.cells,topologyLimits:structure.topology,using:&a)
+                cellLimits:structure.cells,topologyLimits:structure.topology,using:&execution)
             for refined in result.refinements {
                 for included in refined.pullback.region.included {
-                    try a.consumeWork(1)
+                    try execution.consumeWork(1)
                     if included { throw contact(tolerance) }
                 }
             }
         default: throw NativeExactRelationFailure.invalidDomain
         }
-        try a.checkpoint()
+        try execution.checkpoint()
     }
 
     private static func contact(_ tolerance: ModelingTolerance) -> KernelError {

@@ -12,12 +12,12 @@ struct OriginalCorrespondenceNativeCurve {
     let lower: Double
     let upper: Double
 
-    init(source: BSplineCurve3D, maximumDegree: Int, budget: inout OriginalCorrespondenceBudget) throws {
-        guard !source.isPeriodic, (1...maximumDegree).contains(source.degree) else { throw budget.unsupported() }
-        try source.validate(tolerance: budget.tolerance)
+    init(source: BSplineCurve3D, maximumDegree: Int, policy: OriginalCorrespondencePolicy, using execution: inout OriginalQueryExecution) throws {
+        guard !source.isPeriodic, (1...maximumDegree).contains(source.degree) else { throw policy.unsupported() }
+        try source.validate(tolerance: policy.tolerance, using: &execution)
         guard source.knots.prefix(source.degree + 1).allSatisfy({ $0 == source.knots[source.degree] }),
               source.knots.suffix(source.degree + 1).allSatisfy({ $0 == source.knots[source.controlPointCount] }) else {
-            throw budget.unsupported()
+            throw policy.unsupported()
         }
         lower = source.knots[source.degree]
         upper = source.knots[source.controlPointCount]
@@ -26,12 +26,15 @@ struct OriginalCorrespondenceNativeCurve {
         while index < source.controlPointCount {
             var end = index + 1
             while end < source.controlPointCount, source.knots[end] == source.knots[index] { end += 1 }
-            guard end - index == source.degree else { throw budget.unsupported() }
+            guard end - index == source.degree else { throw policy.unsupported() }
             index = end
         }
+        let capacity = source.controlPointCount - source.degree
+        try OriginalCoefficientAllocation.reserve(count: capacity, of: Span.self, using: &execution)
         var records: [Span] = []
+        records.reserveCapacity(capacity)
         for index in source.degree..<source.controlPointCount where source.knots[index] < source.knots[index + 1] {
-            try budget.charge()
+            try policy.charge(using: &execution)
             records.append(Span(lower: source.knots[index], upper: source.knots[index + 1],
                 firstControl: index - source.degree))
         }
@@ -39,10 +42,10 @@ struct OriginalCorrespondenceNativeCurve {
     }
 
     func enclose(parameter: OriginalCorrespondenceScalarJet,
-                 budget: inout OriginalCorrespondenceBudget) throws -> [OriginalCorrespondenceScalarJet] {
+                 policy: OriginalCorrespondencePolicy, using execution: inout OriginalQueryExecution) throws -> [OriginalCorrespondenceScalarJet] {
         // Caller has independently established that the exact parameter stays in this domain.
         let parameter = try parameter.contained(in: OutwardScalarInterval(lower: lower, upper: upper),
-            tolerance: budget.tolerance)
+            tolerance: policy.tolerance)
         var first = 0, last = spans.count
         while first < last {
             let mid = first + (last - first) / 2
@@ -51,45 +54,50 @@ struct OriginalCorrespondenceNativeCurve {
         var result: [OriginalCorrespondenceScalarJet]?
         var index = first
         while index < spans.count, spans[index].lower <= parameter.value.upper {
-            try budget.charge()
+            try policy.charge(using: &execution)
             let span = spans[index]
             let selected = try parameter.contained(in: OutwardScalarInterval(lower: span.lower, upper: span.upper),
-                tolerance: budget.tolerance)
+                tolerance: policy.tolerance)
             let q = try (selected - .constant(span.lower)).divided(
-                by: .constant(span.upper) - .constant(span.lower), tolerance: budget.tolerance)
-                .contained(in: OutwardScalarInterval(lower: 0, upper: 1), tolerance: budget.tolerance)
-            let jets = try patch(span, at: q, tolerance: budget.tolerance)
-            if let old = result { result = zip(old, jets).map { $0.union($1) } } else { result = jets }
+                by: .constant(span.upper) - .constant(span.lower), tolerance: policy.tolerance)
+                .contained(in: OutwardScalarInterval(lower: 0, upper: 1), tolerance: policy.tolerance)
+            let jets = try patch(span, at: q, tolerance: policy.tolerance, using: &execution)
+            if let old = result { try OriginalCoefficientAllocation.reserve(count: old.count, of: OriginalCorrespondenceScalarJet.self, using: &execution); result = zip(old, jets).map { $0.union($1) } } else { result = jets }
             index += 1
         }
         guard let result else {
-            throw OriginalCorrespondenceBudget.failure(.invalidInput, budget.tolerance,
+            throw OriginalCorrespondencePolicy.failure(.invalidInput, policy.tolerance,
                 "The original parameter does not intersect a retained native curve span.")
         }
         return result
     }
 
     private func patch(_ span: Span, at q: OriginalCorrespondenceScalarJet,
-                       tolerance: ModelingTolerance) throws -> [OriginalCorrespondenceScalarJet] {
+                       tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> [OriginalCorrespondenceScalarJet] {
         let indices = span.firstControl...(span.firstControl + source.degree)
         var weightLower = Double.infinity, weightUpper = -Double.infinity
         for index in indices {
             weightLower = min(weightLower, source.weights[index])
             weightUpper = max(weightUpper, source.weights[index])
         }
+        try OriginalCoefficientAllocation.reserve(count: indices.count, of: OriginalCorrespondenceScalarJet.self, using: &execution)
         var weights = indices.map { OriginalCorrespondenceScalarJet.constant(source.weights[$0]) }
         let commonWeight = weightLower == weightUpper
         let weight = commonWeight ? OriginalCorrespondenceScalarJet.constant(weightLower)
-            : try evaluate(&weights, at: q).contained(
+            : try evaluate(&weights, at: q, using: &execution).contained(
                 in: OutwardScalarInterval(lower: weightLower, upper: weightUpper), tolerance: tolerance)
+        try OriginalCoefficientAllocation.reserve(count: 3, of: OriginalCorrespondenceScalarJet.self, using: &execution)
         var result: [OriginalCorrespondenceScalarJet] = []
+        result.reserveCapacity(3)
         for axis in 0..<3 {
             func coordinate(_ index: Int) -> Double {
                 let p = source.controlPoints[index]
                 return axis == 0 ? p.x : axis == 1 ? p.y : p.z
             }
             var low = Double.infinity, high = -Double.infinity
+            try OriginalCoefficientAllocation.reserve(count: indices.count, of: OriginalCorrespondenceScalarJet.self, using: &execution)
             var controls: [OriginalCorrespondenceScalarJet] = []
+            controls.reserveCapacity(indices.count)
             for index in indices {
                 let value = coordinate(index)
                 low = min(low, value); high = max(high, value)
@@ -97,7 +105,7 @@ struct OriginalCorrespondenceNativeCurve {
             }
             // A common Cartesian coordinate is an exact rational identity.
             if low == high { result.append(.constant(low)); continue }
-            let value = try evaluate(&controls, at: q).divided(by: weight, tolerance: tolerance)
+            let value = try evaluate(&controls, at: q, using: &execution).divided(by: weight, tolerance: tolerance)
                 .contained(in: OutwardScalarInterval(lower: low, upper: high), tolerance: tolerance)
             result.append(value)
         }
@@ -105,11 +113,11 @@ struct OriginalCorrespondenceNativeCurve {
     }
 
     private func evaluate(_ level: inout [OriginalCorrespondenceScalarJet],
-                          at q: OriginalCorrespondenceScalarJet) -> OriginalCorrespondenceScalarJet {
+                          at q: OriginalCorrespondenceScalarJet, using execution: inout OriginalQueryExecution) throws -> OriginalCorrespondenceScalarJet {
         var count = level.count
         let complement = OriginalCorrespondenceScalarJet.constant(1) - q
         while count > 1 {
-            for index in 0..<(count - 1) { level[index] = level[index] * complement + level[index + 1] * q }
+            for index in 0..<(count - 1) { try execution.consumeWork(1); level[index] = level[index] * complement + level[index + 1] * q }
             count -= 1
         }
         return level[0]

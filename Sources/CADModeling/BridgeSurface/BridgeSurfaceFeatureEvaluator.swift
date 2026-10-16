@@ -11,7 +11,8 @@ public struct BridgeSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeature
     private let surfaceEvaluator: BSplineSurfaceFeatureEvaluator
     private let surfaceBuilder: any RuledBSplineSurfaceBuilding
     private let wallTrimmer: (any BridgeSurfaceWallTrimming)?
-    private let sourceAdmission: GeometryConversionAdmission?
+    private let sourceBudget: OriginalQueryBudget?
+    private let sourceLimits: OriginalQueryExecutionLimits?
     private let subshapeResolver = StableSubshapeResolver()
     private let boundaryLoopResolver = OpenBoundaryLoopResolver()
     private let boundaryCurveResolver = ExactBoundaryCurveResolver()
@@ -20,12 +21,13 @@ public struct BridgeSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         surfaceEvaluator: BSplineSurfaceFeatureEvaluator = BSplineSurfaceFeatureEvaluator(),
         surfaceBuilder: any RuledBSplineSurfaceBuilding = ExactRuledBSplineSurfaceBuilder(),
         wallTrimmer: (any BridgeSurfaceWallTrimming)? = nil,
-        sourceAdmission: GeometryConversionAdmission? = nil
+        sourceBudget: OriginalQueryBudget? = nil,
+        sourceLimits: OriginalQueryExecutionLimits? = nil
     ) {
         self.surfaceEvaluator = surfaceEvaluator
         self.surfaceBuilder = surfaceBuilder
         self.wallTrimmer = wallTrimmer
-        self.sourceAdmission = sourceAdmission
+        self.sourceBudget = sourceBudget; self.sourceLimits = sourceLimits
     }
 
     public func evaluate(
@@ -35,23 +37,38 @@ public struct BridgeSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         try evaluateValidated(feature: feature, context: context).result
     }
 
-    package func evaluateValidated(
-        feature: FeatureNode,
-        context: EvaluationContext
-    ) throws -> ValidatedFeatureEvaluation {
+    package func evaluateValidated(feature: FeatureNode, context: EvaluationContext) throws -> ValidatedFeatureEvaluation {
+        guard (sourceBudget == nil) == (sourceLimits == nil) else {
+            throw GeometryConversionError.invalidInput("Bridge source budget and limits must be supplied together.")
+        }
+        let budget = try sourceBudget ?? OriginalQueryBudget()
+        let limits = try sourceLimits ?? OriginalQueryExecutionLimits(maximumValueDepth: 32,
+            maximumCoefficientDepth: 32, remainingSourceDepth: 16,
+            maximumSubdivisionDepth: 20, maximumSpans: 4096)
+        var execution = OriginalQueryExecution(budget: budget, limits: limits,
+            context: .init(operation: .conversion, entry: .ordinary, stage: .request))
+        return try evaluateValidated(feature: feature, context: context, using: &execution)
+    }
+
+    // FIXME(INCOMPLETE_IMPLEMENTATION): The feature dispatcher uses this entry
+    // for the selected original source construction. Existing request/expression
+    // or staged feature branches still need their own direct contract; this
+    // binding must not be counted as complete whole-feature U1 accounting.
+    package func evaluateValidated(feature: FeatureNode, context: EvaluationContext,
+        using execution: inout OriginalQueryExecution) throws -> ValidatedFeatureEvaluation {
         do {
-            return try evaluateBridgeSurface(feature: feature, context: context)
+            return try evaluateBridgeSurface(feature: feature, context: context, using: &execution)
         } catch {
-            throw KernelError.wrapping(
-                error, phase: .evaluation, featureID: feature.id,
-                tolerance: context.tolerance
-            )
+            let retained = OriginalQueryFailure.published(error, context: execution.context,
+                tolerance: context.tolerance)
+            throw OriginalQueryFailure.contextualizing(retained, classification: KernelError.wrapping(
+                retained, phase: .evaluation, featureID: feature.id, tolerance: context.tolerance))
         }
     }
 
     private func evaluateBridgeSurface(
         feature: FeatureNode,
-        context: EvaluationContext
+        context: EvaluationContext, using execution: inout OriginalQueryExecution
     ) throws -> ValidatedFeatureEvaluation {
         guard case let .bridgeSurface(bridge) = feature.operation else {
             throw KernelError(
@@ -97,16 +114,16 @@ public struct BridgeSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             context: context
         )
         guard (startEdgeID != endEdgeID || bridge.startTransform != bridge.endTransform),
-              boundaryLoopResolver.loop(
+              try boundaryLoopResolver.loop(
                 startingAt: startEdgeID,
                 in: body,
                 model: context.brep
-              ) != nil,
-              boundaryLoopResolver.loop(
+              , using: &execution) != nil,
+              try boundaryLoopResolver.loop(
                 startingAt: endEdgeID,
                 in: endBody,
                 model: context.brep
-              ) != nil else {
+              , using: &execution) != nil else {
             throw KernelError.unsupportedEvaluation(
                 featureID: feature.id,
                 tolerance: context.tolerance,
@@ -153,10 +170,10 @@ public struct BridgeSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeature
                 startContinuity: bridge.startContinuity, endContinuity: bridge.endContinuity,
                 startTension: bridge.startTension, endTension: bridge.endTension, width: bridge.width,
                 startWallBoundary: firstWall.boundary, endWallBoundary: lastWall.boundary,
-                tolerance: context.tolerance, admission: sourceAdmission)
+                tolerance: context.tolerance, using: &execution)
         } else {
             surface = try surfaceBuilder.build(startBoundary: startBoundary, endBoundary: endBoundary,
-                tolerance: context.tolerance)
+                tolerance: context.tolerance, using: &execution)
         }
         let candidate = try surfaceEvaluator.evaluateValidated(
             feature: FeatureNode(
@@ -177,8 +194,8 @@ public struct BridgeSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeature
                     tolerance: context.tolerance, message: "Finite bridge wall clipping requires the kernel trim port.")
             }
             return try ValidatedFeatureEvaluation(validating:
-                wallTrimmer.trim(feature: feature, candidate: candidate.result, context: context),
-                tolerance: context.tolerance)
+                wallTrimmer.trim(feature: feature, candidate: candidate.result, context: context, using: &execution),
+                tolerance: context.tolerance, using: &execution)
         }
         return candidate
     }

@@ -66,8 +66,9 @@ struct OriginalGeneralClosedOverlapTests {
             _ = try resolver.intersectionResult(curve: .bSpline(literalSource()), surface: .bSpline(literalTarget()),
                 options: request, tolerance: .standard)
             Issue.record("A general closed query bypassed its caller work ceiling.")
-        } catch let error as KernelError {
-            #expect(error.code == .resourceLimitExceeded)
+        } catch {
+            let published = OriginalQueryFailure.published(error, context: .unspecified, tolerance: .standard)
+            #expect(OriginalQueryFailure.classification(of: published)?.code == .resourceLimitExceeded)
         }
     }
 
@@ -102,7 +103,7 @@ struct OriginalGeneralClosedOverlapTests {
                 options: request, tolerance: .standard)
         }
         task.cancel()
-        await #expect(throws: CancellationError.self) { _ = try await task.value }
+        await geometryTestExpectFailure({ geometryTestIsCancelled($0) }) { _ = try await task.value }
     }
 
     @Test(.timeLimit(.minutes(1)), arguments: [false, true])
@@ -110,22 +111,23 @@ struct OriginalGeneralClosedOverlapTests {
         let target = literalTarget()
         let pair = OverlapRegularGraphCell.Pair(first: 0, second: 1)
         var source = literalSource(reversed: reversed)
-        var budget = OverlapProofBudget(options: options(), tolerance: .standard)
-        let exact = try #require(OverlapAffineComposedResidualAuthority.certificate(
-            source: source, target: target, pair: pair, budget: &budget))
+        var budgetExecution = try OriginalQueryExecution.independentGeometry()
+        var budget = try OverlapProofPolicy(options: options(), tolerance: .standard, using: &budgetExecution)
+        let exact = try geometryTestRequire(OverlapAffineComposedResidualAuthority.certificate(
+            source: source, target: target, pair: pair, policy: budget, using: &budgetExecution))
         // Independent complete degree-four numerator is [0,0,0,0,0] on every axis.
         #expect(exact.errors.count == 3 && exact.errors.allSatisfy({ $0 < 1e-10 }))
         #expect(exact.start == SurfaceParameter(u: reversed ? 1 : 0, v: reversed ? 1 : 0))
         #expect(exact.end == SurfaceParameter(u: reversed ? 0 : 1, v: reversed ? 0 : 1))
         source.controlPoints[1].z = 1e-3
-        let changed = try #require(OverlapAffineComposedResidualAuthority.certificate(
-            source: source, target: target, pair: pair, budget: &budget))
+        let changed = try geometryTestRequire(OverlapAffineComposedResidualAuthority.certificate(
+            source: source, target: target, pair: pair, policy: budget, using: &budgetExecution))
         // Forward numerator is [0,-1/2000,-1/1500,-1/1000,0]; reverse reverses it.
         #expect(changed.errors[0] < 1e-10 && changed.errors[1] < 1e-10)
         #expect(changed.errors[2] > 1e-4)
         #expect(changed.errors[2] >= 2e-3*0.5*(1-0.5)/(1+0.5*0.5))
         #expect(exact.source.controlPoints[1].z == 0)
-        let hint = try exact.candidateBox(over: ScalarInterval(lower: 0.25, upper: 0.75), budget: &budget)
+        let hint = try exact.candidateBox(over: ScalarInterval(lower: 0.25, upper: 0.75), policy: budget, using: &budgetExecution)
         #expect(hint.u.lower <= 0.25 && hint.u.upper >= 0.75)
         #expect(hint.v.lower <= 0.25 && hint.v.upper >= 0.75)
     }
@@ -134,8 +136,9 @@ struct OriginalGeneralClosedOverlapTests {
     func originalDerivativeTubesContainLiteralUnitSpeed(reversed: Bool) throws {
         let source = literalSource(reversed: reversed), target = literalTarget()
         let pair = OverlapRegularGraphCell.Pair(first: 0, second: 1)
-        var budget = OverlapProofBudget(options: options(), tolerance: .standard)
-        try budget.preparation(curve: source, surface: target)
+        var budgetExecution = try OriginalQueryExecution.independentGeometry()
+        var budget = try OverlapProofPolicy(options: options(), tolerance: .standard, using: &budgetExecution)
+        try budget.preparation(curve: source, surface: target, using: &budgetExecution)
         let root = OverlapRegularGraphRootCertifier(
             curve: try PreparedCurveDifferentialEncloser(curve: .bSpline(source), tolerance: .standard),
             surface: try PreparedBSplineSurfaceDifferentialEncloser(surface: target, tolerance: .standard),
@@ -143,14 +146,14 @@ struct OriginalGeneralClosedOverlapTests {
         let range = try ScalarInterval(lower: 0, upper: 1.0/64)
         let mid = range.midpoint, uv = reversed ? 1-mid : mid
         // The literal UV is a trial hint only; original closed/strict proof is mandatory.
-        let box = try #require(root.trialBox(range: range, pair: pair,
-            seed: SurfaceParameter(u: uv, v: uv), budget: &budget))
-        let proof = try #require(root.proof(range: range, box: box, pair: pair, budget: &budget))
-        let coefficient = try #require(OverlapAffineComposedResidualAuthority.certificate(
-            source: source, target: target, pair: pair, budget: &budget))
-        let transfer = try #require(root.composedResidual(proof: proof, coefficient: coefficient, budget: &budget))
+        let box = try geometryTestRequire(root.trialBox(range: range, pair: pair,
+            seed: SurfaceParameter(u: uv, v: uv), policy: budget, using: &budgetExecution))
+        let proof = try geometryTestRequire(root.proof(range: range, box: box, pair: pair, policy: budget, using: &budgetExecution))
+        let coefficient = try geometryTestRequire(OverlapAffineComposedResidualAuthority.certificate(
+            source: source, target: target, pair: pair, policy: budget, using: &budgetExecution))
+        let transfer = try geometryTestRequire(root.composedResidual(proof: proof, coefficient: coefficient, policy: budget, using: &budgetExecution))
         #expect(transfer.residual.absoluteUpperBound <= ModelingTolerance.standard.distance)
-        let derivative = try root.composedFirstDerivatives(transfer, budget: &budget)
+        let derivative = try root.composedFirstDerivatives(transfer, policy: budget, using: &budgetExecution)
         let speed = reversed ? -1.0 : 1.0
         #expect(derivative.u.lower <= speed && derivative.u.upper >= speed)
         #expect(derivative.v.lower <= speed && derivative.v.upper >= speed)
@@ -167,24 +170,36 @@ struct OriginalGeneralClosedOverlapTests {
             tolerance: .standard)
         var request = options()
         request.maximumSubdivisionCells = fee
-        var exact = OverlapProofBudget(options: request, tolerance: .standard)
-        _ = try #require(OverlapAffineComposedResidualAuthority.certificate(
-            source: source, target: target, pair: pair, budget: &exact))
-        do { try exact.work(); Issue.record("Composed preparation reset its consumed work.") }
-        catch let error as KernelError { #expect(error.code == .resourceLimitExceeded) }
+        var exactExecution = try OriginalQueryExecution.independentGeometry()
+        let exact = try OverlapProofPolicy(options: request, tolerance: .standard, using: &exactExecution)
+        _ = try geometryTestRequire(OverlapAffineComposedResidualAuthority.certificate(
+            source: source, target: target, pair: pair, policy: exact, using: &exactExecution))
+        do { try exact.work(using: &exactExecution); Issue.record("Composed preparation reset its consumed work.") }
+        catch {
+            let published = OriginalQueryFailure.published(error, context: .unspecified, tolerance: .standard)
+            #expect(OriginalQueryFailure.classification(of: published)?.code == .resourceLimitExceeded)
+        }
         request.maximumSubdivisionCells = fee - 1
-        var insufficient = OverlapProofBudget(options: request, tolerance: .standard)
+        var insufficientExecution = try OriginalQueryExecution.independentGeometry()
+        let insufficient = try OverlapProofPolicy(options: request, tolerance: .standard, using: &insufficientExecution)
         do {
-            _ = try OverlapAffineComposedResidualAuthority.certificate(source: source, target: target, pair: pair, budget: &insufficient)
+            _ = try OverlapAffineComposedResidualAuthority.certificate(source: source, target: target, pair: pair, policy: insufficient, using: &insufficientExecution)
             Issue.record("Composed coefficients were allocated beyond the caller work cap.")
-        } catch let error as KernelError { #expect(error.code == .resourceLimitExceeded) }
+        } catch {
+            let published = OriginalQueryFailure.published(error, context: .unspecified, tolerance: .standard)
+            #expect(OriginalQueryFailure.classification(of: published)?.code == .resourceLimitExceeded)
+        }
         request = options()
         request.maximumPolynomialDegree = 3
-        var degree = OverlapProofBudget(options: request, tolerance: .standard)
+        var degreeExecution = try OriginalQueryExecution.independentGeometry()
+        let degree = try OverlapProofPolicy(options: request, tolerance: .standard, using: &degreeExecution)
         do {
-            _ = try OverlapAffineComposedResidualAuthority.certificate(source: source, target: target, pair: pair, budget: &degree)
+            _ = try OverlapAffineComposedResidualAuthority.certificate(source: source, target: target, pair: pair, policy: degree, using: &degreeExecution)
             Issue.record("A complete degree-four residual bypassed the degree-three cap.")
-        } catch let error as KernelError { #expect(error.code == .resourceLimitExceeded) }
+        } catch {
+            let published = OriginalQueryFailure.published(error, context: .unspecified, tolerance: .standard)
+            #expect(OriginalQueryFailure.classification(of: published)?.code == .resourceLimitExceeded)
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -192,12 +207,13 @@ struct OriginalGeneralClosedOverlapTests {
         let source = literalSource(), target = literalTarget(), request = options()
         let task = Task {
             while !Task.isCancelled { await Task.yield() }
-            var budget = OverlapProofBudget(options: request, tolerance: .standard)
+            var budgetExecution = try OriginalQueryExecution.independentGeometry()
+            var budget = try OverlapProofPolicy(options: request, tolerance: .standard, using: &budgetExecution)
             return try OverlapAffineComposedResidualAuthority.certificate(source: source, target: target,
-                pair: OverlapRegularGraphCell.Pair(first: 0, second: 1), budget: &budget)
+                pair: OverlapRegularGraphCell.Pair(first: 0, second: 1), policy: budget, using: &budgetExecution)
         }
         task.cancel()
-        await #expect(throws: CancellationError.self) { _ = try await task.value }
+        await geometryTestExpectFailure({ geometryTestIsCancelled($0) }) { _ = try await task.value }
     }
 
     @Test(.timeLimit(.minutes(1)), arguments: [false, true])
@@ -260,33 +276,46 @@ struct OriginalGeneralClosedOverlapTests {
             targetKnots: target.uKnots.count + target.vKnots.count, tolerance: .standard)
         var request = options()
         request.maximumSubdivisionCells = fee
-        var budget = OverlapProofBudget(options: request, tolerance: .standard)
-        let certificate = try #require(OverlapAffineComposedResidualAuthority.certificate(
-            source: source, target: target, pair: pair, budget: &budget))
+        var budgetExecution = try OriginalQueryExecution.independentGeometry()
+        var budget = try OverlapProofPolicy(options: request, tolerance: .standard, using: &budgetExecution)
+        let certificate = try geometryTestRequire(OverlapAffineComposedResidualAuthority.certificate(
+            source: source, target: target, pair: pair, policy: budget, using: &budgetExecution))
         // Ideal degree-eight cross-products are all zero. Original rounded
         // controls/weights must be enclosed, rather than asserted algebraically equal.
         #expect(certificate.errors.count == 3 && certificate.errors.allSatisfy({ $0 < 1e-10 }))
-        do { try budget.work(); Issue.record("Higher-order preparation reset its original work charge.") }
-        catch let error as KernelError { #expect(error.code == .resourceLimitExceeded) }
+        do { try budget.work(using: &budgetExecution); Issue.record("Higher-order preparation reset its original work charge.") }
+        catch {
+            let published = OriginalQueryFailure.published(error, context: .unspecified, tolerance: .standard)
+            #expect(OriginalQueryFailure.classification(of: published)?.code == .resourceLimitExceeded)
+        }
         request.maximumSubdivisionCells = fee - 1
-        var insufficient = OverlapProofBudget(options: request, tolerance: .standard)
+        var insufficientExecution = try OriginalQueryExecution.independentGeometry()
+        let insufficient = try OverlapProofPolicy(options: request, tolerance: .standard, using: &insufficientExecution)
         do {
             _ = try OverlapAffineComposedResidualAuthority.certificate(source: source, target: target,
-                pair: pair, budget: &insufficient)
+                pair: pair, policy: insufficient, using: &insufficientExecution)
             Issue.record("Higher-order coefficients bypassed the caller preparation cap.")
-        } catch let error as KernelError { #expect(error.code == .resourceLimitExceeded) }
+        } catch {
+            let published = OriginalQueryFailure.published(error, context: .unspecified, tolerance: .standard)
+            #expect(OriginalQueryFailure.classification(of: published)?.code == .resourceLimitExceeded)
+        }
         request = options()
         request.maximumPolynomialDegree = 7
-        var degree = OverlapProofBudget(options: request, tolerance: .standard)
+        var degreeExecution = try OriginalQueryExecution.independentGeometry()
+        let degree = try OverlapProofPolicy(options: request, tolerance: .standard, using: &degreeExecution)
         do {
-            _ = try OverlapAffineComposedResidualAuthority.certificate(source: source, target: target, pair: pair, budget: &degree)
+            _ = try OverlapAffineComposedResidualAuthority.certificate(source: source, target: target, pair: pair, policy: degree, using: &degreeExecution)
             Issue.record("A complete degree-eight residual bypassed the degree-seven cap.")
-        } catch let error as KernelError { #expect(error.code == .resourceLimitExceeded) }
+        } catch {
+            let published = OriginalQueryFailure.published(error, context: .unspecified, tolerance: .standard)
+            #expect(OriginalQueryFailure.classification(of: published)?.code == .resourceLimitExceeded)
+        }
         var changed = source
         changed.controlPoints[2].z += 1e-3
-        budget = OverlapProofBudget(options: options(), tolerance: .standard)
-        let deviation = try #require(OverlapAffineComposedResidualAuthority.certificate(
-            source: changed, target: target, pair: pair, budget: &budget))
+        budgetExecution = try OriginalQueryExecution.independentGeometry()
+        budget = try OverlapProofPolicy(options: options(), tolerance: .standard, using: &budgetExecution)
+        let deviation = try geometryTestRequire(OverlapAffineComposedResidualAuthority.certificate(
+            source: changed, target: target, pair: pair, policy: budget, using: &budgetExecution))
         // Independent ideal midpoint deviation is 7*k*t^2*(1-t)^2/(1+t^2).
         #expect(deviation.errors[2] >= 3.5e-4)
         #expect(deviation.errors[0] < 1e-10 && deviation.errors[1] < 1e-10)
@@ -317,12 +346,13 @@ struct OriginalGeneralClosedOverlapTests {
         let source = higherOrderSource(), target = higherOrderTarget(), request = options()
         let task = Task {
             while !Task.isCancelled { await Task.yield() }
-            var budget = OverlapProofBudget(options: request, tolerance: .standard)
+            var budgetExecution = try OriginalQueryExecution.independentGeometry()
+            var budget = try OverlapProofPolicy(options: request, tolerance: .standard, using: &budgetExecution)
             return try OverlapAffineComposedResidualAuthority.certificate(source: source, target: target,
-                pair: OverlapRegularGraphCell.Pair(first: 0, second: 1), budget: &budget)
+                pair: OverlapRegularGraphCell.Pair(first: 0, second: 1), policy: budget, using: &budgetExecution)
         }
         task.cancel()
-        await #expect(throws: CancellationError.self) { _ = try await task.value }
+        await geometryTestExpectFailure({ geometryTestIsCancelled($0) }) { _ = try await task.value }
     }
 
     private func higherOrderSource(reversed: Bool = false) -> BSplineCurve3D {

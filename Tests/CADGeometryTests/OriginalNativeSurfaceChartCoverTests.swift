@@ -1,11 +1,13 @@
 import CADCore
 import Testing
+import Synchronization
 @testable import CADGeometry
 
 @Suite("Finite original-native intersection chart cover")
 struct OriginalNativeSurfaceChartCoverTests {
     @Test(.timeLimit(.minutes(1)), arguments: ["u", "v", "both"], ["multi", "negative", "shifted", "reversed"])
     func everySelectedCycleRetainsOriginalSourceEvaluation(axes: String, chart: String) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
         var source = try fixture(axes)
         if chart == "shifted" {
             if source.isUPeriodic { source.uPeriodicOrigin = 20 }
@@ -25,8 +27,8 @@ struct OriginalNativeSurfaceChartCoverTests {
         let original = source
         let range = chart == "negative" ? (-12.5, 8.5) : chart == "shifted" ? (19.5, 40.5) : (0.0, 20.5)
         let query = try box(source.isUPeriodic ? range : (0, 1), source.isVPeriodic ? range : (0, 1))
-        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: source, tolerance: .standard)
-        let spans = try prepared.originalIntersectionNativeSpans(over: query, tolerance: .standard, consumeWork: {})
+        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: source, tolerance: .standard, using: &execution)
+        let spans = try prepared.originalIntersectionNativeSpans(over: query, tolerance: .standard, using: &execution)
         let axisCount = 22
         #expect(spans.count == (axes == "both" ? axisCount * axisCount : axisCount))
         var area = 0.0
@@ -40,7 +42,7 @@ struct OriginalNativeSurfaceChartCoverTests {
             #expect(span.originalUTranslation == Double(span.uCycle) * (source.isUPeriodic ? 4 : 0))
             #expect(span.originalVTranslation == Double(span.vCycle) * (source.isVPeriodic ? 4 : 0))
             let u = (u0 + u1) / 2, v = (v0 + v1) / 2
-            let jet = try span.pointJet(u: u, v: v, on: source, tolerance: .standard)
+            let jet = try span.pointJet(u: u, v: v, on: source, tolerance: .standard, using: &execution)
             let a = diamond(source.isUPeriodic && chart == "reversed" ? -u : u)
             let b = diamond(source.isVPeriodic && chart == "reversed" ? -v : v)
             let expected = axes == "both" ? Point3D(x: (3 + b.0) * a.0, y: (3 + b.0) * a.1, z: b.1)
@@ -65,19 +67,20 @@ struct OriginalNativeSurfaceChartCoverTests {
 
     @Test(.timeLimit(.minutes(1)))
     func meshWidthRefusalAndClosedSeamOwnersRemainIndependent() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
         let source = try fixture("both")
-        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: source, tolerance: .standard)
+        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: source, tolerance: .standard, using: &execution)
         let range = try box((0, 4.5), (0, 1))
         expectCode(.unsupportedCapability) { _ = try prepared.originalNativeSpans(over: range, tolerance: .standard) }
-        #expect(try prepared.originalIntersectionNativeSpans(over: range, tolerance: .standard, consumeWork: {}).count == 18)
+        #expect(try prepared.originalIntersectionNativeSpans(over: range, tolerance: .standard, using: &execution).count == 18)
         for seam in [-12.0, 0, 20] {
             let singleton = try box((seam, seam), (seam, seam))
-            let owners = try prepared.originalIntersectionNativeSpans(over: singleton, tolerance: .standard, consumeWork: {})
+            let owners = try prepared.originalIntersectionNativeSpans(over: singleton, tolerance: .standard, using: &execution)
             #expect(owners.count == 4)
             #expect(Set(owners.map { $0.uCycle }).count == 2)
             #expect(Set(owners.map { $0.vCycle }).count == 2)
             for owner in owners {
-                let value = try owner.pointValue(u: seam, v: seam, on: source, tolerance: .standard)
+                let value = try owner.pointValue(u: seam, v: seam, on: source, tolerance: .standard, using: &execution)
                 #expect(value.x.lower <= 4 && 4 <= value.x.upper)
                 #expect(value.y.lower <= 0 && 0 <= value.y.upper)
             }
@@ -88,81 +91,86 @@ struct OriginalNativeSurfaceChartCoverTests {
 
     @Test(.timeLimit(.minutes(1)))
     func aggregateSpanWorkAndBytesRefuseWithoutPublishingPartialCover() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
         let source = try fixture("both")
-        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: source, tolerance: .standard)
+        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: source, tolerance: .standard, using: &execution)
         let query = try box((0.25, 12.5), (-4.5, 8.5))
-        let complete = try prepared.originalIntersectionNativeSpans(over: query, tolerance: .standard, consumeWork: {})
+        let complete = try prepared.originalIntersectionNativeSpans(over: query, tolerance: .standard, using: &execution)
         expectCode(.resourceLimitExceeded) {
             _ = try prepared.originalIntersectionNativeSpans(over: query, tolerance: .standard,
-                maximumSpanCount: complete.count - 1, consumeWork: {})
+                maximumSpanCount: complete.count - 1, using: &execution)
         }
         #expect(try prepared.originalIntersectionNativeSpans(over: query, tolerance: .standard,
-            maximumSpanCount: complete.count, consumeWork: {}).count == complete.count)
-        var work = 0, bytes = 0
-        _ = try prepared.originalIntersectionNativeSpans(over: query, tolerance: .standard,
-            consumeWork: { work += 1 }, consumeStorage: { bytes += $0 })
+            maximumSpanCount: complete.count, using: &execution).count == complete.count)
+        var measured = try OriginalQueryExecution.independentGeometry()
+        _ = try prepared.originalIntersectionNativeSpans(over: query, tolerance: .standard, using: &measured)
+        let work = measured.budget.snapshot.work, bytes = measured.budget.snapshot.storageBytes
         #expect(work > complete.count && bytes > complete.count)
-        var remainingWork = work - 1
-        #expect(throws: AdmissionFailure.work) {
-            _ = try prepared.originalIntersectionNativeSpans(over: query, tolerance: .standard,
-                consumeWork: { remainingWork -= 1; if remainingWork < 0 { throw AdmissionFailure.work } }, consumeStorage: { _ in })
+        var noWork = OriginalQueryExecution(budget: try OriginalQueryBudget(workLimit: work - 1),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
+        geometryTestExpectFailure({ if case .resourceLimit(.work)? = geometryTestOriginalFailure($0) as? ExactScalarFailure { true } else { false } }) {
+            _ = try prepared.originalIntersectionNativeSpans(over: query, tolerance: .standard, using: &noWork)
         }
-        var remainingBytes = bytes - 1
-        #expect(throws: AdmissionFailure.storage) {
-            _ = try prepared.originalIntersectionNativeSpans(over: query, tolerance: .standard,
-                consumeWork: {}, consumeStorage: { remainingBytes -= $0; if remainingBytes < 0 { throw AdmissionFailure.storage } })
+        var noStorage = OriginalQueryExecution(budget: try OriginalQueryBudget(storageByteLimit: bytes - 1),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
+        geometryTestExpectFailure({ if case .resourceLimit(.storage)? = geometryTestOriginalFailure($0) as? ExactScalarFailure { true } else { false } }) {
+            _ = try prepared.originalIntersectionNativeSpans(over: query, tolerance: .standard, using: &noStorage)
         }
         expectCode(.invalidInput) {
-            _ = try prepared.originalIntersectionNativeSpans(over: query, tolerance: .standard, maximumSpanCount: 0, consumeWork: {})
+            _ = try prepared.originalIntersectionNativeSpans(over: query, tolerance: .standard, maximumSpanCount: 0, using: &execution)
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func approximatePeriodsUnrepresentableCyclesAndForeignAuthorityRemainFailures() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
         var source = try fixture("both")
         source.uKnots[0] = source.uKnots[0].nextUp
         try source.validate(tolerance: .standard)
-        let approximate = try PreparedBSplineSurfaceDifferentialEncloser(surface: source, tolerance: .standard)
+        let approximate = try PreparedBSplineSurfaceDifferentialEncloser(surface: source, tolerance: .standard, using: &execution)
         expectCode(.unsupportedCapability) {
-            _ = try approximate.originalIntersectionNativeSpans(over: box((0, 20), (0, 1)), tolerance: .standard, consumeWork: {})
+            _ = try approximate.originalIntersectionNativeSpans(over: box((0, 20), (0, 1)), tolerance: .standard, using: &execution)
         }
         source = try fixture("u")
-        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: source, tolerance: .standard)
+        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: source, tolerance: .standard, using: &execution)
         expectCode(.resourceLimitExceeded) {
-            _ = try prepared.originalIntersectionNativeSpans(over: box((1e20, 1e20), (0, 1)), tolerance: .standard, consumeWork: {})
+            _ = try prepared.originalIntersectionNativeSpans(over: box((1e20, 1e20), (0, 1)), tolerance: .standard, using: &execution)
         }
         expectCode(.invalidInput) {
-            _ = try prepared.originalIntersectionNativeSpans(over: box((0, 20), (-1, 1)), tolerance: .standard, consumeWork: {})
+            _ = try prepared.originalIntersectionNativeSpans(over: box((0, 20), (-1, 1)), tolerance: .standard, using: &execution)
         }
-        let token = try #require(try prepared.originalIntersectionNativeSpans(over: box((8.25, 20.5), (0, 1)),
-            tolerance: .standard, consumeWork: {}).first)
+        let token = try geometryTestRequire(try prepared.originalIntersectionNativeSpans(over: box((8.25, 20.5), (0, 1)),
+            tolerance: .standard, using: &execution).first)
         var foreign = source; foreign.controlPoints[0][0].z += 0.25
-        expectCode(.invalidInput) { _ = try token.pointJet(u: 8.5, v: 0.5, on: foreign, tolerance: .standard) }
-        expectCode(.invalidInput) { _ = try token.pointJet(u: 0.5, v: 0.5, on: source, tolerance: .standard) }
+        expectCode(.invalidInput) { _ = try token.pointJet(u: 8.5, v: 0.5, on: foreign, tolerance: .standard, using: &execution) }
+        expectCode(.invalidInput) { _ = try token.pointJet(u: 0.5, v: 0.5, on: source, tolerance: .standard, using: &execution) }
         var otherTolerance = ModelingTolerance.standard; otherTolerance.distance *= 2
         expectCode(.invalidInput) {
-            _ = try prepared.originalIntersectionNativeSpans(over: box((0, 20), (0, 1)), tolerance: otherTolerance, consumeWork: {})
+            _ = try prepared.originalIntersectionNativeSpans(over: box((0, 20), (0, 1)), tolerance: otherTolerance, using: &execution)
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func cancellationAtFinalStorageAdmissionCannotPublishCover() async throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
         let source = try fixture("u")
-        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: source, tolerance: .standard)
+        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: source, tolerance: .standard, using: &execution)
         let query = try box((0.25, 0.75), (0, 1))
-        var reservations = 0
-        _ = try prepared.originalIntersectionNativeSpans(over: query, tolerance: .standard,
-            consumeWork: {}, consumeStorage: { _ in reservations += 1 })
-        let lastReservation = reservations
+        let reservations = Mutex(0)
+        var baseline = OriginalQueryExecution(budget: try OriginalQueryBudget(consumeStorageBytes: { _ in
+            reservations.withLock { $0 += 1 }
+        }), limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
+        _ = try prepared.originalIntersectionNativeSpans(over: query, tolerance: .standard, using: &baseline)
+        let lastReservation = reservations.withLock { $0 }
         let task = Task {
-            var admitted = 0
-            return try prepared.originalIntersectionNativeSpans(over: query, tolerance: .standard,
-                consumeWork: {}, consumeStorage: { _ in
-                    admitted += 1
-                    if admitted == lastReservation { withUnsafeCurrentTask { $0?.cancel() } }
-                })
+            let admitted = Mutex(0)
+            var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(consumeStorageBytes: { _ in
+                let isLast = admitted.withLock { $0 += 1; return $0 == lastReservation }
+                if isLast { withUnsafeCurrentTask { $0?.cancel() } }
+            }), limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
+            return try prepared.originalIntersectionNativeSpans(over: query, tolerance: .standard, using: &execution)
         }
-        await #expect(throws: CancellationError.self) { _ = try await task.value }
+        await geometryTestExpectFailure({ geometryTestIsCancelled($0) }) { _ = try await task.value }
     }
 
     private func fixture(_ axes: String) throws -> BSplineSurface3D {
@@ -190,7 +198,9 @@ struct OriginalNativeSurfaceChartCoverTests {
 
     private func expectCode(_ code: KernelErrorCode, _ operation: () throws -> Void) {
         do { try operation(); Issue.record("Incomplete selected cover was admitted.") }
-        catch let error as KernelError { #expect(error.code == code) }
+        catch let caught where geometryTestKernelFailure(caught) != nil {
+            let error = geometryTestKernelFailure(caught)!
+            #expect(error.code == code) }
         catch { Issue.record("Unexpected selected cover error: \(error)") }
     }
 }

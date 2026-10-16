@@ -55,6 +55,46 @@ flowchart LR
 
 ## Contracts and Invariants
 
+### Caller-Owned Attribute Budget Composition
+
+`ProductAttributeBudget.init(limits:using:)`, `charge(...using:)`, and
+`withExecution(using:_:)` consume the same `OriginalQueryExecution` as the
+Kernel resolver. The budget retains the immutable original budget identity,
+execution limits/context, and contribution handles; it does not copy numeric
+accounting into another ledger. Its ordinary initializer creates one independent
+execution. Later ordinary charges reconstruct an execution on that retained
+owner, preserving cumulative admission rather than creating a new root.
+
+| Existing local allowance | Canonical contribution | Meaning retained |
+|---|---|---|
+| consumedWork / maximumWork | Attribute work scope | Actual work, including direct geometry work inside the attribute invocation |
+| consumedTargets / maximumTargets | Target record scope | Number of resolved target publications |
+| consumedTextBytes / maximumTextBytes | Independent source-text scope | Exact authored UTF-8 bytes, separate from numeric storage |
+
+Each charge preserves the existing nonnegative/local-limit checks and
+`ProductAttributeError.resourceLimitExceeded` rejection. Caller limits,
+contribution preparation, and cancellation additionally retain their original
+typed canonical failures. Publication uses the common atomic charge operation;
+failed admission does not update a separate local counter. A copied budget value
+retains the same owner and contribution authority. A foreign execution is
+rejected explicitly. Kernel resolution and mass-property callers must forward
+their existing execution through each direct charge and geometry scope.
+
+The `ProductAttributesValidating` direct requirement executes the existing
+validator body under that attribute scope. The concrete validator retains record
+preflight, metadata/target validation, override traversal, ambiguity checks,
+layers, and original failure order. An injected validator without a direct body
+refuses the composing call explicitly. Target validation forwards the same
+execution through the stable reference and complete geometry signature validation
+owned by [CADIR](../DESIGN.md), including its original minimal validation tolerance.
+Derived maps, sets, and annotation concatenation are charged before allocation.
+
+| Shared accounting state | Native | WASM | Embedded |
+|---|---|---|---|
+| Storage and isolation | OriginalQueryBudget and contribution handles, common Mutex owner | Same | Same |
+| Reads and mutations | Canonical snapshots and caller execution charge operations | Same | Same |
+| Lifetime | Immutable retained owner/handles; no raw state or target-specific synchronization branch | Same | Same |
+
 - The current envelope is owned by [CADCore](../../CADCore/DESIGN.md). Encoded documents require a
   non-null `productAttributes` container, including an explicitly empty value.
   Older envelopes, missing fields, unknown keys/discriminators, and malformed

@@ -31,27 +31,38 @@ public struct OriginalCurveSurfaceCorrespondenceCertificate: Sendable {
         self.inspectedCells = inspectedCells
     }
 
+    public func validateBinding(curve: Curve3D, from startParameter: Double, to endParameter: Double,
+        surface: Surface3D, parameterCurve: SurfaceParameterCurve,
+        options: CurveSurfaceCorrespondenceValidationOptions, tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validateBinding(curve: curve, from: startParameter, to: endParameter,
+            surface: surface, parameterCurve: parameterCurve, options: options,
+            tolerance: tolerance, using: &execution)
+    }
+
     public func validateBinding(
         curve: Curve3D, from startParameter: Double, to endParameter: Double,
         surface: Surface3D, parameterCurve: SurfaceParameterCurve,
         options: CurveSurfaceCorrespondenceValidationOptions, tolerance: ModelingTolerance
+, using execution: inout OriginalQueryExecution
     ) throws {
-        var budget = try OriginalCorrespondenceBudget(options: options, tolerance: tolerance)
+        let policy = try OriginalCorrespondencePolicy(options: options, tolerance: tolerance, using: &execution)
         // The retained source data was already admitted by the producer under these options.
         // Check the small immutable header before scanning new source data; do not charge its
         // retained prefix a second time as though equality allocated another source owner.
         guard self.startParameter == startParameter, self.endParameter == endParameter,
               self.options == options, self.tolerance == tolerance else {
-            throw OriginalCorrespondenceBudget.failure(.invalidInput, tolerance,
+            throw OriginalCorrespondencePolicy.failure(.invalidInput, tolerance,
                 "Original correspondence evidence has a foreign directed trim, tolerance or options.")
         }
-        try budget.admitSources(curve: curve, surface: surface, parameterCurve: parameterCurve)
+        try policy.admitSources(curve: curve, surface: surface, parameterCurve: parameterCurve, using: &execution)
         guard self.curve == curve, self.startParameter == startParameter,
               self.endParameter == endParameter, self.surface == surface,
               self.parameterCurve == parameterCurve, self.options == options,
               self.tolerance == tolerance else {
-            throw OriginalCorrespondenceBudget.failure(.invalidInput, tolerance,
+            throw OriginalCorrespondencePolicy.failure(.invalidInput, tolerance,
                 "Original correspondence evidence does not belong to these immutable sources and options.")
         }
+        try execution.checkpoint()
     }
 }

@@ -12,7 +12,7 @@ public struct DocumentDrawingSilhouetteProducer: DocumentDrawingSilhouetteProduc
         currentEvaluation: EvaluatedDocument, onto frame: OrthographicProjectionFrame,
         maximumSourceEntities: Int, maximumSourceFaces: Int, maximumProjectedSpans: Int,
         maximumControlPointCount: Int, maximumBoundaryCurveCount: Int,
-        usage: inout SurfaceSilhouetteUsage) throws -> BRepDrawingSilhouettes {
+        using execution: inout OriginalQueryExecution) throws -> BRepDrawingSilhouettes {
         guard currentEvaluation.document == document else {
             throw KernelError(phase: .evaluation, code: .missingReference,
                 tolerance: currentEvaluation.configuration.tolerance,
@@ -21,12 +21,12 @@ public struct DocumentDrawingSilhouetteProducer: DocumentDrawingSilhouetteProduc
         return try producer.silhouettes(placement, in: currentEvaluation, onto: frame,
             maximumSourceEntities: maximumSourceEntities, maximumSourceFaces: maximumSourceFaces,
             maximumProjectedSpans: maximumProjectedSpans, maximumControlPointCount: maximumControlPointCount,
-            maximumBoundaryCurveCount: maximumBoundaryCurveCount, usage: &usage)
+            maximumBoundaryCurveCount: maximumBoundaryCurveCount, using: &execution)
     }
     public func silhouettes(document: CADDocument, currentEvaluation: EvaluatedDocument,
         onto frame: OrthographicProjectionFrame, maximumSourceFaces: Int,
         maximumProjectedSpans: Int, maximumControlPointCount: Int,
-        maximumBoundaryCurveCount: Int, usage: inout SurfaceSilhouetteUsage) throws -> BRepDrawingSilhouettes {
+        maximumBoundaryCurveCount: Int, using execution: inout OriginalQueryExecution) throws -> BRepDrawingSilhouettes {
         guard currentEvaluation.document == document else {
             throw KernelError(phase: .evaluation, code: .missingReference,
                 tolerance: currentEvaluation.configuration.tolerance,
@@ -35,6 +35,6 @@ public struct DocumentDrawingSilhouetteProducer: DocumentDrawingSilhouetteProduc
         return try producer.silhouettes(in: currentEvaluation, onto: frame,
             maximumSourceFaces: maximumSourceFaces, maximumProjectedSpans: maximumProjectedSpans,
             maximumControlPointCount: maximumControlPointCount,
-            maximumBoundaryCurveCount: maximumBoundaryCurveCount, usage: &usage)
+            maximumBoundaryCurveCount: maximumBoundaryCurveCount, using: &execution)
     }
 }

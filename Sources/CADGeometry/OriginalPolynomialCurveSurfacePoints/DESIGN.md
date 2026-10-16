@@ -15,13 +15,13 @@ The producer owns source preparation, exact requested/native domain intersection
 | [CADGeometry](../DESIGN.md) | parent | Public rich/discrete dispatch | Carries the original point receipt through every public entry | Integration and parent index are root-owned |
 | [OriginalRuledIntersectionSources](../OriginalRuledIntersectionSources/DESIGN.md) | depends on | Original ruled homogeneous law and guarded CS relation | Retains authored ruled and boundary source authority | Unchanged native U and linear V, no fitting |
 | [IntersectionAlgebra](../IntersectionAlgebra/DESIGN.md) | depends on | Original rational cells, incidence and components | Proves complete parameter coverage and tuple identity | Same caller admission and inherited depth |
-| [NativePointRelations](../CurveSurfaceOverlap/NativePointRelations/DESIGN.md) | coordinates with | NativeCurveSurfacePointAllowance, scalar localization and shared exact publication | Reuses the existing bounded representative algorithm | Source equality precedes numerical representative tolerances |
+| [NativePointRelations](../CurveSurfaceOverlap/NativePointRelations/DESIGN.md) | coordinates with | Direct original execution, scalar localization and shared exact publication | Reuses the existing bounded representative algorithm | Source equality precedes numerical representative tolerances |
 
 ## Architecture
 
 ```text
 original curve + original ruled source + options/caller
-  -> same NativeCurveSurfacePointAllowance
+  -> same original execution
   -> original native curve law + ruled polynomial receipt
   -> exact native/requested intersection
   -> raw XYZ zero laws + both nonzero denominator guards
@@ -45,8 +45,26 @@ The readonly receipt strongly retains original curve and ruled value, both origi
 
 ## Failure, Concurrency, and Constraints
 
-One value-local Native allowance forwards the caller's work/storage admission through source preparation, root search, incidence, localization, representatives and final receipt/result allocation. Cell/coefficient visits retain the same cumulative count and maximum algebraic depth. Surface-to-boundary source descent requires positive remainingSourceDepth; each direct Native boundary requires no further structural descent. A single source product consumes one span and depth-zero subdivision admission. Source degree, candidate, refinement iteration, cancellation and allocation ceilings retain existing options/caller meanings. Every output/temporary buffer is charged and reserved before allocation; receipt heap metadata is charged separately. All failures propagate without partial result or fallback. Final admission is followed by cancellation checking.
+The original caller execution directly admits work and storage through source preparation, root search, incidence, localization, representatives and final receipt/result allocation. Cell/coefficient visits retain the same cumulative count and independent value/coefficient depth ceilings. Surface-to-boundary source descent requires positive remainingSourceDepth; each direct Native boundary requires no further structural descent. A single source product consumes one span and depth-zero subdivision admission. Source degree, candidate, refinement iteration, cancellation and allocation ceilings retain existing options/caller meanings. Every output/temporary buffer is charged and reserved before allocation; receipt heap metadata is charged separately. All failures propagate without partial result or fallback. Final admission is followed by cancellation checking.
 
 ## Verification and Change Impact
 
 [OriginalPolynomialCurveSurfacePointTests](../../../Tests/CADGeometryTests/OriginalPolynomialCurveSurfacePointTests.swift) owns public ordinary/admitted rich/discrete isolated, multiple-UV, closed endpoint/singleton, complete-empty and nonDiscrete behavior, retained source/tuple lifetime and foreign owners, representative bounds, independent work/storage/source/algebraic depth/candidate failure and final cancellation. Root composes the stable component and shared publication/dispatch patch into the existing P warm full-module build path before focused execution. Changes to the issuer, algebra, localization or shared publisher require rechecking the corresponding assumptions; unchanged frozen SSI evidence is independent.
+
+### Direct Source Descent Ceiling
+
+The existing procedural point issuer admits one surface-to-direct-native boundary
+or descendant step. Its local source ceiling remains one and is intersected with
+the caller execution ceiling; direct migration does not expand admitted source
+families. Successful construction records that actual one-step descent on the
+same execution. A caller ceiling of zero fails before source construction.
+
+## Direct Execution Admission
+
+Source arithmetic borrows `A: ExactScalarAdmission & ~Copyable`; composed query
+operations borrow `inout OriginalQueryExecution`. Source validation, native span
+validation, structural comparisons and exact refinement receive that same admission.
+The [execution owner](../OriginalQueryExecution/DESIGN.md) defines cumulative
+work and actual byte accounting, independent depth axes, cancellation and lexical
+proof scopes. Retained geometry and relation evidence stay immutable; no callback
+adapter, copied counter or second allowance supplies arithmetic authority.

@@ -21,7 +21,7 @@ package struct OriginalSingularFieldPlaneProjection: Sendable {
     package let stations: [Station]
     package let sectors: [Sector]
 
-    package init<B: RationalAlgebraAdmitting>(original: OriginalSingularFieldPlanePolynomial,
+    package init<B: ExactScalarAdmission & ~Copyable>(original: OriginalSingularFieldPlanePolynomial,
         over domain: SurfaceParameterBox, inheritedDepth: Int, maximumDepth: Int, usage: inout B) throws {
         guard !original.isZero, domain.u.width > 0, domain.v.width > 0,
             inheritedDepth >= 0, inheritedDepth <= maximumDepth, original.context.depth <= maximumDepth else {
@@ -139,9 +139,9 @@ package struct OriginalSingularFieldPlaneProjection: Sendable {
         stations = fibers; sectors = strips
     }
 
-    package func finiteOriginalRoots<B: RationalAlgebraAdmitting>(usage: inout B) throws -> [OriginalSingularFieldSystemRoot]? {
+    package func finiteOriginalRoots<B: ExactScalarAdmission & ~Copyable>(usage: inout B) throws -> [OriginalSingularFieldSystemRoot]? {
         if !verticalComponents.isEmpty || !horizontalComponents.isEmpty { return nil }
-        for sector in sectors { try usage.consumeExactWork(1); if !sector.fiberRoots.isEmpty { return nil } }
+        for sector in sectors { try usage.consumeWork(1); if !sector.fiberRoots.isEmpty { return nil } }
         var result: [OriginalSingularFieldSystemRoot] = []
         for station in stations {
             try RationalAlgebraStorage.retain(station.roots.count, of: OriginalSingularFieldSystemRoot.self, usage: &usage)
@@ -150,7 +150,7 @@ package struct OriginalSingularFieldPlaneProjection: Sendable {
         return result
     }
 
-    static func restricted<B: RationalAlgebraAdmitting>(_ polynomial: OriginalSingularFieldPlanePolynomial,
+    static func restricted<B: ExactScalarAdmission & ~Copyable>(_ polynomial: OriginalSingularFieldPlanePolynomial,
         alongU: Bool, station: ExactRationalCoefficient, maximumDepth: Int, usage: inout B) throws -> OriginalSingularFieldPolynomial {
         let count = try rationalAlgebraCount(alongU ? polynomial.vDegree : polynomial.uDegree, 1)
         let zero = try OriginalSingularFieldElement.constant(.zero, in: polynomial.context, maximumDepth: maximumDepth, usage: &usage)
@@ -166,7 +166,7 @@ package struct OriginalSingularFieldPlaneProjection: Sendable {
         return try .init(context: polynomial.context, coefficients: coefficients, maximumDepth: maximumDepth, usage: &usage)
     }
 
-    static func sliceRoots<B: RationalAlgebraAdmitting>(_ polynomial: OriginalSingularFieldPolynomial,
+    static func sliceRoots<B: ExactScalarAdmission & ~Copyable>(_ polynomial: OriginalSingularFieldPolynomial,
         lower: ExactRationalCoefficient, upper: ExactRationalCoefficient, inheritedDepth: Int,
         maximumDepth: Int, usage: inout B) throws -> [OriginalSingularFieldRoot] {
         guard !polynomial.isZero else { throw rationalAlgebraFailure("Original field slice cannot isolate an identically zero source.") }
@@ -184,7 +184,7 @@ package struct OriginalSingularFieldPlaneProjection: Sendable {
         return roots
     }
 
-    private static func ordered<B: RationalAlgebraAdmitting>(_ values: [OriginalSingularFieldEndpoint],
+    private static func ordered<B: ExactScalarAdmission & ~Copyable>(_ values: [OriginalSingularFieldEndpoint],
         maximumDepth: Int, usage: inout B) throws -> [OriginalSingularFieldEndpoint] {
         var result: [OriginalSingularFieldEndpoint] = []
         for value in values {
@@ -199,14 +199,14 @@ package struct OriginalSingularFieldPlaneProjection: Sendable {
             }
             if !duplicate {
                 try RationalAlgebraStorage.retain(1, of: OriginalSingularFieldEndpoint.self, usage: &usage)
-                try usage.consumeExactWork(result.count - index)
+                try usage.consumeWork(result.count - index)
                 result.insert(candidate, at: index)
             }
         }
         return result
     }
 
-    package static func root<B: RationalAlgebraAdmitting>(_ endpoint: OriginalSingularFieldEndpoint,
+    package static func root<B: ExactScalarAdmission & ~Copyable>(_ endpoint: OriginalSingularFieldEndpoint,
         context: OriginalSingularFieldContext, inheritedDepth: Int, maximumDepth: Int,
         usage: inout B) throws -> OriginalSingularFieldRoot {
         switch endpoint {

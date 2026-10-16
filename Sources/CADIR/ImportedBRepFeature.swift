@@ -1,5 +1,6 @@
 import HashTreeCollections
 import CADCore
+import CADGeometry
 import CADTopology
 
 /// An exact B-rep retained as a source feature from an exchange import.
@@ -21,6 +22,13 @@ public struct ImportedBRepFeature: Sendable, Hashable {
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
+        var execution = try BRepModel.originalValidationExecution()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try tolerance.validate()
         try sourceUnits.validate()
         guard !model.bodies.isEmpty else {
@@ -33,7 +41,7 @@ public struct ImportedBRepFeature: Sendable, Hashable {
                 "An imported B-rep source must contain exactly one body."
             )
         }
-        try model.validate(level: .exact, tolerance: tolerance)
+        try model.validate(level: .exact, tolerance: tolerance, using: &execution)
     }
 
     public static func == (

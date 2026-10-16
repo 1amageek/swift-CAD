@@ -109,7 +109,7 @@ package struct ConicalRimBlendBuilder {
         func onCap(_ point: Point3D) throws -> Point3D { rim.center + (try radial(point)) * capRadius }
         func onWall(_ point: Point3D) throws -> Point3D { rim.center + n * wallDrop + (try radial(point)) * wallRadius }
         let parents = selected.map(\.subshapeID)
-        let faceParents = (rim.capFaceIDs.sorted() + rim.wallFaceIDs.sorted()).flatMap { context.subshapeIDs(for: .face($0)) }
+        let faceParents = try (rim.capFaceIDs.sorted() + rim.wallFaceIDs.sorted()).flatMap { try context.subshapeIDs(for: .face($0)) }
         // The band's surface about the axis.
         let band: Surface3D
         if let roundCenter, case let .round(radius) = section {
@@ -247,7 +247,7 @@ package struct ConicalRimBlendBuilder {
                                                loops: loops, parentSubshapeIDs: source.parentSubshapeIDs))
         }
         return BRepSewingRequest(featureID: featureID, bodyKind: .solid, shells: [BRepSewingShell(stableID: "shell:0", patches: patches)],
-                                 bodyParentSubshapeIDs: context.subshapeIDs(for: .body(bodyID)))
+                                 bodyParentSubshapeIDs: try context.subshapeIDs(for: .body(bodyID)))
     }
 
     /// The band's outward normal at the middle of its section through `point`: away from the

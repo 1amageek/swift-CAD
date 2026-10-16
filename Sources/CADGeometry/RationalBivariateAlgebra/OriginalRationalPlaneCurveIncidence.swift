@@ -17,7 +17,7 @@ package struct OriginalRationalPlaneCurveIncidence: Sendable {
     package let projection: OriginalRationalPlaneCurveProjection
     package let halfBranches: [HalfBranch]
 
-    package init<B: RationalAlgebraAdmitting>(projection: OriginalRationalPlaneCurveProjection,
+    package init<B: ExactScalarAdmission & ~Copyable>(projection: OriginalRationalPlaneCurveProjection,
         maximumDepth: Int, usage: inout B) throws {
         self.projection = projection
         var published: [HalfBranch] = []
@@ -30,7 +30,7 @@ package struct OriginalRationalPlaneCurveIncidence: Sendable {
                 var roots = try Self.ordered(station.roots, maximumDepth: maximumDepth, usage: &usage)
                 guard !roots.isEmpty else { throw rationalAlgebraFailure("Original bounded strip branch has no limiting station fiber.") }
                 var cuts = [v0]
-                try usage.retainExactStorage(roots.count + 1)
+                try RationalAlgebraStorage.retain(rationalAlgebraCount(roots.count, 1), of: ExactRationalCoefficient.self, usage: &usage)
                 if roots.count > 1 { for i in 0..<(roots.count - 1) {
                     let gap = try roots[i + 1].fiberRoot.lower.subtracting(roots[i].fiberRoot.upper, usage: &usage)
                     guard gap.isPositive else { throw rationalAlgebraFailure("Original limiting station fibers have no separated cut.") }
@@ -96,7 +96,7 @@ package struct OriginalRationalPlaneCurveIncidence: Sendable {
                     guard let selected else { throw rationalAlgebraFailure("Original safe branch has no retained limiting station fiber.") }
                     let depth = max(root.isolation.isolationDepth, roots[selected].fiberRoot.isolationDepth)
                     roots[selected] = try roots[selected].retainingDepth(depth, usage: &usage)
-                    try usage.retainExactStorage(1)
+                    try RationalAlgebraStorage.retain(1, of: HalfBranch.self, usage: &usage)
                     published.append(HalfBranch(sectorIndex: sectorIndex, branchOrdinal: ordinal,
                         stationIndex: index, stationRootOrdinal: selected, side: side,
                         originalStationRoot: roots[selected], safeFreeStation: witness, originalSafeFiber: root))
@@ -106,9 +106,9 @@ package struct OriginalRationalPlaneCurveIncidence: Sendable {
         halfBranches = published
     }
 
-    private static func ordered<B: RationalAlgebraAdmitting>(_ input: [ExactBivariateSystemRoot],
+    private static func ordered<B: ExactScalarAdmission & ~Copyable>(_ input: [ExactBivariateSystemRoot],
         maximumDepth: Int, usage: inout B) throws -> [ExactBivariateSystemRoot] {
-        try usage.retainExactStorage(input.count)
+        try RationalAlgebraStorage.retain(input.count, of: ExactBivariateSystemRoot.self, usage: &usage)
         var values: [ExactBivariateSystemRoot] = []
         for var root in input {
             var index = values.count
@@ -128,7 +128,7 @@ package struct OriginalRationalPlaneCurveIncidence: Sendable {
         return values
     }
 
-    private static func refine<B: RationalAlgebraAdmitting>(_ root: ExactBivariateSystemRoot,
+    private static func refine<B: ExactScalarAdmission & ~Copyable>(_ root: ExactBivariateSystemRoot,
         maximumDepth: Int, usage: inout B) throws -> ExactBivariateSystemRoot {
         let width = try root.fiberRoot.upper.subtracting(root.fiberRoot.lower, usage: &usage)
         if width.isZero { return root }

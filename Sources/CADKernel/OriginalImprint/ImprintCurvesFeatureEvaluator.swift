@@ -35,19 +35,20 @@ struct ImprintCurvesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
     }
 
     func evaluateValidated(feature: FeatureNode, context: EvaluationContext) throws -> ValidatedFeatureEvaluation {
-        try FeatureEvaluationBoundary.evaluateValidated(featureID: feature.id, tolerance: context.tolerance) {
-            try imprint(feature: feature, context: context)
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try FeatureEvaluationBoundary.evaluateValidated(featureID: feature.id, tolerance: context.tolerance, using: &execution) { execution in
+            try imprint(feature: feature, context: context, using: &execution)
         }
     }
 
-    private func imprint(feature: FeatureNode, context: EvaluationContext) throws -> EvaluationResult {
+    private func imprint(feature: FeatureNode, context: EvaluationContext, using execution: inout OriginalQueryExecution) throws -> EvaluationResult {
         guard case let .imprintCurves(imprint) = feature.operation else {
             throw failure(.invalidInput, feature.id, context, "Imprint evaluator requires an imprintCurves feature.")
         }
-        try FeatureEvaluationBoundary.validateRequest(featureID: feature.id, tolerance: context.tolerance) {
+        try FeatureEvaluationBoundary.validateRequest(featureID: feature.id, tolerance: context.tolerance, using: &execution) {
             try imprint.validate()
         }
-        try FeatureEvaluationBoundary.validateExactInput(context, featureID: feature.id, tolerance: context.tolerance)
+        try FeatureEvaluationBoundary.validateExactInput(context, featureID: feature.id, tolerance: context.tolerance, using: &execution)
         let targetBodyID = try context.bodyID(generatedBy: imprint.target.featureID)
         var curves: [BRepFaceImprinter.Curve] = []
         for (index, reference) in imprint.curves.enumerated() {
@@ -61,10 +62,10 @@ struct ImprintCurvesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
             case let .vector(direction, bidirectional, hidesOcclusion):
                 projected = try swept(
                     curve, over: span, along: direction, bidirectional: bidirectional, hidesOcclusion: hidesOcclusion,
-                    onto: targetBodyID, featureID: feature.id, context: context
+                    onto: targetBodyID, featureID: feature.id, context: context, using: &execution
                 )
             case .normal:
-                projected = try closest(curve, over: span, onto: targetBodyID, featureID: feature.id, context: context)
+                projected = try closest(curve, over: span, onto: targetBodyID, featureID: feature.id, context: context, using: &execution)
             }
             curves += projected.enumerated().map { ordinal, curve in
                 BRepFaceImprinter.Curve(faceID: curve.faceID, edge: restamped(curve.edge, "imprint:curve:\(index):\(ordinal)"))
@@ -74,9 +75,9 @@ struct ImprintCurvesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
             throw failure(.invalidInput, feature.id, context, "The curves do not reach the target.")
         }
         let completed = try BRepImprintCompletion().completed(
-            curves, by: imprint.completion, model: context.brep, sourceSubshapes: context.subshapes.entries, tolerance: context.tolerance
+            curves, by: imprint.completion, model: context.brep, sourceSubshapes: context.subshapes.entries, tolerance: context.tolerance, using: &execution
         )
-        return try BRepFaceImprinter(sewer: sewer).imprint(completed, on: targetBodyID, featureID: feature.id, context: context)
+        return try BRepFaceImprinter(sewer: sewer).imprint(completed, on: targetBodyID, featureID: feature.id, context: context, using: &execution)
     }
 
     private func exactCurve(
@@ -100,13 +101,13 @@ struct ImprintCurvesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
 
     private func swept(
         _ curve: Curve3D, over span: ClosedRange<Double>, along direction: Vector3D, bidirectional: Bool, hidesOcclusion: Bool,
-        onto targetBodyID: BodyID, featureID: FeatureID, context: EvaluationContext
+        onto targetBodyID: BodyID, featureID: FeatureID, context: EvaluationContext, using execution: inout OriginalQueryExecution
     ) throws -> [BRepFaceImprinter.Curve] {
         let tolerance = context.tolerance
         // A closed curve's sweep would meet itself along a seam; it is swept in two halves, whose
         // crossings meet end to end.
         let kind = try BRepEdgeGeometryClassifier().kind(curve: curve,
-            from: span.lowerBound, to: span.upperBound, tolerance: tolerance)
+            from: span.lowerBound, to: span.upperBound, tolerance: tolerance, using: &execution)
         guard kind != .singular else {
             throw failure(.singularGeometry, featureID, context,
                 "An original collapsed curve cannot define an imprint sweep.")
@@ -115,11 +116,11 @@ struct ImprintCurvesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
             let middle = (span.lowerBound + span.upperBound) / 2
             return try [span.lowerBound...middle, middle...span.upperBound].flatMap { half in
                 try swept(curve, over: half, along: direction, bidirectional: bidirectional, hidesOcclusion: hidesOcclusion,
-                          onto: targetBodyID, featureID: featureID, context: context)
+                          onto: targetBodyID, featureID: featureID, context: context, using: &execution)
             }
         }
         let unit = try direction.normalized(tolerance: tolerance.distance)
-        let box = try BRepBodyBoundingBoxBuilder().bounds(for: targetBodyID, in: context.brep, tolerance: tolerance)
+        let box = try BRepBodyBoundingBoxBuilder().bounds(for: targetBodyID, in: context.brep, tolerance: tolerance, using: &execution)
         let center = Point3D(x: box.minimum.x * 0.5 + box.maximum.x * 0.5,
             y: box.minimum.y * 0.5 + box.maximum.y * 0.5,
             z: box.minimum.z * 0.5 + box.maximum.z * 0.5)
@@ -133,10 +134,10 @@ struct ImprintCurvesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
             OutwardScalarInterval(lower: box.minimum.x, upper: box.maximum.x) - .exact(center.x),
             OutwardScalarInterval(lower: box.minimum.y, upper: box.maximum.y) - .exact(center.y),
             OutwardScalarInterval(lower: box.minimum.z, upper: box.maximum.z) - .exact(center.z)).upper
-        let prepared = try PreparedCurveDifferentialEncloser(curve: curve, tolerance: tolerance)
+        let prepared = try PreparedCurveDifferentialEncloser(curve: curve, tolerance: tolerance, remainingSourceDepth: 16, maximumSubdivisionDepth: 32, maximumAlgebraicDepth: 32, using: &execution)
         let cover = try prepared.closedNativeJets(
             over: ScalarInterval(lower: span.lowerBound, upper: span.upperBound),
-            tolerance: tolerance, consumeWork: { try Task.checkCancellation() })
+            tolerance: tolerance, maximumSpanCount: 262_144, maximumSubdivisionDepth: 32, remainingSourceDepth: 16, using: &execution)
         var farthest = 0.0
         for owner in cover.spans {
             try Task.checkCancellation()
@@ -152,32 +153,34 @@ struct ImprintCurvesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
                 "The complete original imprint sweep reach has no finite direction bound.")
         }
         let reach = reachBound.upper
-        func translated(_ distance: Double) throws -> Curve3D {
+        func translated(_ distance: Double, using execution: inout OriginalQueryExecution) throws -> Curve3D {
             try .affineImage(AffineImageCurve3D(
                 source: curve,
                 transform: try AffineTransform3D(basisX: .unitX, basisY: .unitY, basisZ: .unitZ, translation: unit * distance),
-                tolerance: tolerance
+                tolerance: tolerance, remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+                maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth,
+                maximumAlgebraicDepth: min(execution.effectiveLimits.maximumValueDepth, execution.effectiveLimits.maximumCoefficientDepth), using: &execution
             ))
         }
         let (surface, sides) = try sweepSurface(
-            over: span, back: bidirectional ? -reach : 0, forth: reach, translated: translated, tolerance: tolerance
+            over: span, back: bidirectional ? -reach : 0, forth: reach, translated: { distance, execution in try translated(distance, using: &execution) }, tolerance: tolerance, using: &execution
         )
         let sheet = try sewer.sew(BRepSewingRequest(featureID: featureID, bodyKind: .sheet, shells: [BRepSewingShell(
             stableID: "imprint:sweep:shell",
             patches: [BRepSewingFacePatch(
                 stableID: "imprint:sweep:face", surface: surface, orientation: .forward,
                 loops: [BRepSewingLoop(stableID: "imprint:sweep:loop", role: .outer, edges: try sides.enumerated().map { index, side in
-                    try BRepFaceCurveClipper.edge(side, on: surface, stableID: "imprint:sweep:edge:\(index)", parentSubshapeIDs: [], tolerance: tolerance)
+                    try BRepFaceCurveClipper.edge(side, on: surface, stableID: "imprint:sweep:edge:\(index)", parentSubshapeIDs: [], tolerance: tolerance, using: &execution)
                 })],
                 parentSubshapeIDs: []
             )]
-        )]), tolerance: tolerance)
+        )]), tolerance: tolerance, using: &execution)
         var scratch = context
-        try BRepModelCombiner().merge(sheet.brep, into: &scratch.brep)
+        try BRepModelCombiner().merge(sheet.brep, into: &scratch.brep, using: &execution)
         scratch.subshapes = SubshapeIndex(context.subshapes.entries.merging(sheet.subshapes) { $1 })
-        let pairs = try ImprintBodyFeatureEvaluator.crossingPairs(of: targetBodyID, by: sheet.bodyID, pipeline: pipeline, featureID: featureID, context: scratch)
+        let pairs = try ImprintBodyFeatureEvaluator.crossingPairs(of: targetBodyID, by: sheet.bodyID, pipeline: pipeline, featureID: featureID, context: scratch, using: &execution)
         let visible = hidesOcclusion
-            ? try seenFirst(pairs, sweeping: curve, over: span, along: unit, featureID: featureID, context: context)
+            ? try seenFirst(pairs, sweeping: curve, over: span, along: unit, featureID: featureID, context: context, using: &execution)
             : pairs
         // The sweep sheet is never published.
         let published = Set(context.subshapes.entries.keys)
@@ -194,11 +197,12 @@ struct ImprintCurvesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
     /// Retains the original two rails and native U chart of the complete sweep.
     private func sweepSurface(
         over span: ClosedRange<Double>, back: Double, forth: Double,
-        translated: (Double) throws -> Curve3D, tolerance: ModelingTolerance
+        translated: (Double, inout OriginalQueryExecution) throws -> Curve3D, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution
     ) throws -> (Surface3D, [SurfaceParameterCurve]) {
-        let ruled = RuledSurface3D(startBoundary: try translated(back),
-            endBoundary: try translated(forth), uDomain: .closed(span.lowerBound, span.upperBound))
-        try ruled.validate(tolerance: tolerance)
+        let ruled = RuledSurface3D(startBoundary: try translated(back, &execution),
+            endBoundary: try translated(forth, &execution), uDomain: .closed(span.lowerBound, span.upperBound))
+        try ruled.validate(tolerance: tolerance, using: &execution)
         return (.procedural(.ruled(ruled)), [
             .constantV(v: 0, uStart: span.lowerBound, uEnd: span.upperBound),
             .constantU(u: span.upperBound, vStart: 0, vEnd: 1),
@@ -218,17 +222,17 @@ struct ImprintCurvesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
     private func seenFirst(
         _ pairs: [(onTarget: BRepFaceImprinter.Curve, onTool: BRepSewingEdge)],
         sweeping curve: Curve3D, over span: ClosedRange<Double>, along unit: Vector3D,
-        featureID: FeatureID, context: EvaluationContext
+        featureID: FeatureID, context: EvaluationContext, using execution: inout OriginalQueryExecution
     ) throws -> [(onTarget: BRepFaceImprinter.Curve, onTool: BRepSewingEdge)] {
         let tolerance = context.tolerance
         let curveSamples = try (0...256).map { index -> (t: Double, point: Point3D) in
             let t = span.lowerBound + (span.upperBound - span.lowerBound) * Double(index) / 256
-            return (t, try curve.point(at: t, tolerance: tolerance))
+            return (t, try curve.point(at: t, tolerance: tolerance, using: &execution))
         }
         /// The curve parameter a point is swept from, and how far along the sweep it lies.
         func sweepCoordinates(of point: Point3D) throws -> (t: Double, distance: Double) {
             func across(_ t: Double) throws -> Double {
-                let offset = point - (try curve.point(at: t, tolerance: tolerance))
+                let offset = point - (try curve.point(at: t, tolerance: tolerance, using: &execution))
                 return (offset - unit * offset.dot(unit)).length
             }
             var best = curveSamples[0]
@@ -245,13 +249,13 @@ struct ImprintCurvesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
                 if try across(a) < across(b) { high = b } else { low = a }
             }
             let t = (low + high) / 2
-            return (t, (point - (try curve.point(at: t, tolerance: tolerance))).dot(unit))
+            return (t, (point - (try curve.point(at: t, tolerance: tolerance, using: &execution))).dot(unit))
         }
         let traces = try pairs.map { pair in
             let edge = pair.onTarget.edge
             return try (0...64).map { index in
                 try sweepCoordinates(of: try edge.curve.point(
-                    at: edge.startParameter + (edge.endParameter - edge.startParameter) * Double(index) / 64, tolerance: tolerance
+                    at: edge.startParameter + (edge.endParameter - edge.startParameter) * Double(index) / 64, tolerance: tolerance, using: &execution
                 ))
             }
         }
@@ -282,7 +286,7 @@ struct ImprintCurvesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
             // crossing, and keep the pieces seen.
             let edge = pair.onTarget.edge
             func point(_ fraction: Double) throws -> Point3D {
-                try edge.curve.point(at: edge.startParameter + (edge.endParameter - edge.startParameter) * fraction, tolerance: tolerance)
+                try edge.curve.point(at: edge.startParameter + (edge.endParameter - edge.startParameter) * fraction, tolerance: tolerance, using: &execution)
             }
             func isSeen(_ fraction: Double) throws -> Bool {
                 !hidden(try sweepCoordinates(of: try point(fraction)), by: index)
@@ -297,9 +301,9 @@ struct ImprintCurvesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
                 }
                 splits.append(try point((low + high) / 2))
             }
-            let pieces = try BRepSewingEdgeSubdivider().subdivide(edge, at: splits, tolerance: tolerance)
+            let pieces = try BRepSewingEdgeSubdivider().subdivide(edge, at: splits, tolerance: tolerance, using: &execution)
             for (ordinal, piece) in pieces.enumerated() {
-                let middle = try piece.curve.point(at: (piece.startParameter + piece.endParameter) / 2, tolerance: tolerance)
+                let middle = try piece.curve.point(at: (piece.startParameter + piece.endParameter) / 2, tolerance: tolerance, using: &execution)
                 guard !hidden(try sweepCoordinates(of: middle), by: index) else { continue }
                 let kept = BRepSewingEdge(
                     stableID: "\(edge.stableID):seen:\(ordinal)", curve: piece.curve,
@@ -320,7 +324,7 @@ struct ImprintCurvesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
     // branch correspondence, trim crossings, and whole trace deviation must be
     // certified before this route can establish the E9 completion contract.
     private func closest(
-        _ curve: Curve3D, over span: ClosedRange<Double>, onto targetBodyID: BodyID, featureID: FeatureID, context: EvaluationContext
+        _ curve: Curve3D, over span: ClosedRange<Double>, onto targetBodyID: BodyID, featureID: FeatureID, context: EvaluationContext, using execution: inout OriginalQueryExecution
     ) throws -> [BRepFaceImprinter.Curve] {
         let tolerance = context.tolerance
         let model = context.brep
@@ -334,7 +338,7 @@ struct ImprintCurvesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
                 throw failure(.missingReference, featureID, context, "A target face is missing.")
             }
             let bounds = try OriginalFaceParameterBounds.resolve(for: faceID,
-                surface: surface, model: model, tolerance: tolerance)
+                surface: surface, model: model, tolerance: tolerance, using: &execution)
             projectors[faceID] = BRepFaceClosestPointProjector(
                 surface: surface,
                 extent: (u: bounds.u.lower...bounds.u.upper, v: bounds.v.lower...bounds.v.upper),
@@ -343,14 +347,14 @@ struct ImprintCurvesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
         }
         let tester = DefaultFacePointContainmentTester()
         var preparation = FacePointContainmentPreparationCache()
-        func project(_ t: Double) throws -> (faceID: FaceID, projection: BRepFaceClosestPointProjector.Projection)? {
-            let point = try curve.point(at: t, tolerance: tolerance)
+        func project(_ t: Double, using execution: inout OriginalQueryExecution) throws -> (faceID: FaceID, projection: BRepFaceClosestPointProjector.Projection)? {
+            let point = try curve.point(at: t, tolerance: tolerance, using: &execution)
             var best: (faceID: FaceID, projection: BRepFaceClosestPointProjector.Projection)?
             for faceID in faceIDs {
                 guard let projector = projectors[faceID] else { continue }
-                let projection = try projector.closest(to: point)
+                let projection = try projector.closest(to: point, using: &execution)
                 guard projection.distance < best?.projection.distance ?? .infinity,
-                      try tester.contains(projection.parameter, on: faceID, in: model, preparationCache: &preparation, tolerance: tolerance) else {
+                      try tester.contains(projection.parameter, on: faceID, in: model, preparationCache: &preparation, tolerance: tolerance, using: &execution) else {
                     continue
                 }
                 best = (faceID, projection)
@@ -361,7 +365,7 @@ struct ImprintCurvesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
         let parameters = (0..<count).map { span.lowerBound + (span.upperBound - span.lowerBound) * Double($0) / Double(count - 1) }
         var samples: [(t: Double, faceID: FaceID, parameter: SurfaceParameter)?] = []
         for t in parameters {
-            samples.append(try project(t).map { (t, $0.faceID, $0.projection.parameter) })
+            samples.append(try project(t, using: &execution).map { (t, $0.faceID, $0.projection.parameter) })
         }
         // Runs of samples on one face; where a run passes to a neighbour, both end at the point of
         // their shared edge the projection crosses.
@@ -376,8 +380,8 @@ struct ImprintCurvesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
             if var run = current, run.faceID != sample.faceID {
                 if let previous = samples[index - 1],
                    let crossing = try edgeCrossing(
-                       from: (previous.t, run.faceID), to: (sample.t, sample.faceID), curve: curve, project: project,
-                       model: model, featureID: featureID, context: context
+                       from: (previous.t, run.faceID), to: (sample.t, sample.faceID), curve: curve, project: { t, execution in try project(t, using: &execution) },
+                       model: model, featureID: featureID, context: context, using: &execution
                    ) {
                     run.points.append(crossing.onFirst)
                     runs.append(run)
@@ -398,9 +402,9 @@ struct ImprintCurvesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
         var result: [BRepFaceImprinter.Curve] = []
         for (runIndex, run) in runs.enumerated() where run.points.count >= 2 {
             guard let face = model.faces[run.faceID], let surface = model.geometry.surfaces[face.surfaceID] else { continue }
-            let parents = context.subshapeIDs(for: .face(run.faceID))
-            let start = try surface.point(u: run.points[0].u, v: run.points[0].v, tolerance: tolerance)
-            let end = try surface.point(u: run.points[run.points.count - 1].u, v: run.points[run.points.count - 1].v, tolerance: tolerance)
+            let parents = try context.subshapeIDs(for: .face(run.faceID), using: &execution)
+            let start = try surface.point(u: run.points[0].u, v: run.points[0].v, tolerance: tolerance, using: &execution)
+            let end = try surface.point(u: run.points[run.points.count - 1].u, v: run.points[run.points.count - 1].v, tolerance: tolerance, using: &execution)
             // A projection that closes on itself on one face is two edges, since an edge joins two vertices.
             let pieces = (start - end).length <= tolerance.distance && run.points.count >= 5
                 ? [Array(run.points[0...(run.points.count / 2)]), Array(run.points[(run.points.count / 2)...])]
@@ -408,7 +412,7 @@ struct ImprintCurvesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
             for (pieceIndex, points) in pieces.enumerated() {
                 let parameterCurve = try ParameterPointInterpolator().curve(through: points, tolerance: tolerance)
                 result.append(BRepFaceImprinter.Curve(faceID: run.faceID, edge: try BRepFaceCurveClipper.edge(
-                    parameterCurve, on: surface, stableID: "imprint:normal:\(runIndex):\(pieceIndex)", parentSubshapeIDs: parents, tolerance: tolerance
+                    parameterCurve, on: surface, stableID: "imprint:normal:\(runIndex):\(pieceIndex)", parentSubshapeIDs: parents, tolerance: tolerance, using: &execution
                 )))
             }
         }
@@ -422,10 +426,10 @@ struct ImprintCurvesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
         from first: (t: Double, faceID: FaceID),
         to second: (t: Double, faceID: FaceID),
         curve: Curve3D,
-        project: (Double) throws -> (faceID: FaceID, projection: BRepFaceClosestPointProjector.Projection)?,
+        project: (Double, inout OriginalQueryExecution) throws -> (faceID: FaceID, projection: BRepFaceClosestPointProjector.Projection)?,
         model: BRepModel,
         featureID: FeatureID,
-        context: EvaluationContext
+        context: EvaluationContext, using execution: inout OriginalQueryExecution
     ) throws -> (onFirst: SurfaceParameter, onSecond: SurfaceParameter)? {
         let tolerance = context.tolerance
         func edges(of faceID: FaceID) -> Set<EdgeID> {
@@ -434,10 +438,10 @@ struct ImprintCurvesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
         let shared = edges(of: first.faceID).intersection(edges(of: second.faceID))
         guard shared.isEmpty == false else { return nil }
         var low = first.t, high = second.t
-        var point = try curve.point(at: low, tolerance: tolerance)
+        var point = try curve.point(at: low, tolerance: tolerance, using: &execution)
         for _ in 0..<40 {
             let middle = (low + high) / 2
-            guard let projected = try project(middle) else { break }
+            guard let projected = try project(middle, &execution) else { break }
             point = projected.projection.point
             if projected.faceID == first.faceID { low = middle } else { high = middle }
         }
@@ -449,28 +453,28 @@ struct ImprintCurvesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
             var bestDistance = Double.infinity
             for index in 0...64 {
                 let t = a + (b - a) * Double(index) / 64
-                let distance = (try edgeCurve.point(at: t, tolerance: tolerance) - point).length
+                let distance = (try edgeCurve.point(at: t, tolerance: tolerance, using: &execution) - point).length
                 if distance < bestDistance { bestDistance = distance; best = t }
             }
             let step = (b - a) / 64
             a = max(a, best - step); b = min(b, best + step)
             for _ in 0..<60 {
                 let m1 = a + (b - a) / 3, m2 = b - (b - a) / 3
-                if (try edgeCurve.point(at: m1, tolerance: tolerance) - point).length < (try edgeCurve.point(at: m2, tolerance: tolerance) - point).length {
+                if (try edgeCurve.point(at: m1, tolerance: tolerance, using: &execution) - point).length < (try edgeCurve.point(at: m2, tolerance: tolerance, using: &execution) - point).length {
                     b = m2
                 } else {
                     a = m1
                 }
             }
-            let onEdge = try edgeCurve.point(at: (a + b) / 2, tolerance: tolerance)
+            let onEdge = try edgeCurve.point(at: (a + b) / 2, tolerance: tolerance, using: &execution)
             let distance = (onEdge - point).length
             if distance < nearest?.distance ?? .infinity { nearest = (onEdge, distance) }
         }
         guard let crossing = nearest?.point,
               let firstSurface = model.faces[first.faceID].flatMap({ model.geometry.surfaces[$0.surfaceID] }),
               let secondSurface = model.faces[second.faceID].flatMap({ model.geometry.surfaces[$0.surfaceID] }),
-              case let .projected(onFirst) = try firstSurface.parameterProjectionResult(of: crossing, tolerance: tolerance),
-              case let .projected(onSecond) = try secondSurface.parameterProjectionResult(of: crossing, tolerance: tolerance) else {
+              case let .projected(onFirst) = try firstSurface.parameterProjectionResult(of: crossing, tolerance: tolerance, using: &execution),
+              case let .projected(onSecond) = try secondSurface.parameterProjectionResult(of: crossing, tolerance: tolerance, using: &execution) else {
             throw failure(.topologyFailure, featureID, context, "A projected curve crosses an edge the faces cannot both place.")
         }
         return (SurfaceParameter(u: onFirst.u, v: onFirst.v), SurfaceParameter(u: onSecond.u, v: onSecond.v))

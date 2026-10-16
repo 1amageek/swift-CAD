@@ -55,7 +55,7 @@ extension ExactPolynomialDomain: ExactPolynomialSubresultantProducing {
         }
     }
     func axisCoefficient<A: ExactScalarAdmission & ~Copyable>(_ value: borrowing Polynomial,
-        variable: Int, degree: Int, _ usage: inout ExactPolynomialAdmission<A>) throws -> Polynomial {
+        variable: Int, degree: Int, _ usage: inout A) throws -> Polynomial {
         var count = 0
         for term in value.terms {
             try usage.consumeWork(1)
@@ -74,7 +74,7 @@ extension ExactPolynomialDomain: ExactPolynomialSubresultantProducing {
         return try wrap(terms, &usage)
     }
     func subresultantRemainder<A: ExactScalarAdmission & ~Copyable>(_ first: borrowing Polynomial,
-        _ second: borrowing Polynomial, variable: Int, _ usage: inout ExactPolynomialAdmission<A>
+        _ second: borrowing Polynomial, variable: Int, _ usage: inout A
     ) throws -> Polynomial {
         guard let n = try degree(second, variable, &usage) else { throw ExactPolynomialFailure.zeroDivisor }
         guard let m = try degree(first, variable, &usage) else { return try wrap([], &usage) }
@@ -98,7 +98,7 @@ extension ExactPolynomialDomain: ExactPolynomialSubresultantProducing {
     }
     func principalPRS<A: ExactScalarAdmission & ~Copyable>(_ first: borrowing Polynomial,
         _ second: borrowing Polynomial, m: Int, n: Int, variable: Int,
-        values: inout [Polynomial], _ usage: inout ExactPolynomialAdmission<A>) throws {
+        values: inout [Polynomial], _ usage: inout A) throws {
         let swapped = m < n
         let f = swapped ? copy second : copy first
         var g = swapped ? copy first : copy second

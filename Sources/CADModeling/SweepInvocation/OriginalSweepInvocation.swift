@@ -9,12 +9,12 @@ package struct OriginalSweepInvocation: Sendable {
     package let sourceBudget: CurvedSweepSourceBudget
 
     package init(section: ResolvedModelingSection? = nil, pathSpans: [ExactBSplineCurveSpan],
-        pathIsClosed: Bool, sourceBudget: CurvedSweepSourceBudget) throws {
+        pathIsClosed: Bool, sourceBudget: CurvedSweepSourceBudget, using execution: inout OriginalQueryExecution) throws {
         guard !pathSpans.isEmpty else {
             throw GeometryConversionError.invalidInput("An original Sweep invocation needs retained directed path spans.")
         }
         for span in pathSpans {
-            try sourceBudget.consumeExactWork(1)
+            try execution.consumeWork(1)
             guard span.correspondence.candidate == span.curve else {
                 throw GeometryConversionError.invalidInput("A nested Sweep path candidate must retain its own original correspondence.")
             }

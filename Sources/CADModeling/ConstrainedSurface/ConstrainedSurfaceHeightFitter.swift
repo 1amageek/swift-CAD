@@ -7,6 +7,12 @@ package struct ConstrainedSurfaceHeightFitter {
     let maximumMatrixElements: Int
 
     func fit(_ source: ConstrainedSurfaceFeature, tolerance: ModelingTolerance) throws -> BSplineSurface3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try fit(source, tolerance: tolerance, using: &execution)
+    }
+
+    func fit(_ source: ConstrainedSurfaceFeature, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> BSplineSurface3D {
         try source.validate(tolerance: tolerance)
         guard maximumMatrixElements > 0, source.points.count <= maximumMatrixElements / 16 else {
             throw failure(.resourceLimitExceeded, "Constrained Surface exceeded its point storage budget.")
@@ -34,6 +40,7 @@ package struct ConstrainedSurfaceHeightFitter {
         let equalityCount = source.points.count
         var count = max(4, Int(ceil(sqrt(Double(equalityCount)))))
         while true {
+            try execution.consumeWork(1)
             let columns = count * count
             let fairnessCount = source.optimization == .smoothness
                 ? 2 * count * (count - 2) + (count - 1) * (count - 1)
@@ -95,8 +102,8 @@ package struct ConstrainedSurfaceHeightFitter {
             row = 0
             for i in source.points.indices {
                 let uv = coordinates[i]
-                let ub = BSplineBasis.values(parameter: uv.x, degree: 3, knots: knots, count: count)
-                let vb = BSplineBasis.values(parameter: uv.y, degree: 3, knots: knots, count: count)
+                let ub = try BSplineBasis.values(parameter: uv.x, degree: 3, knots: knots, count: count, using: &execution)
+                let vb = try BSplineBasis.values(parameter: uv.y, degree: 3, knots: knots, count: count, using: &execution)
                 for v in 0..<count { for u in 0..<count {
                     constraints[row * columns + v * count + u] = ub[u] * vb[v]
                 } }
@@ -110,12 +117,12 @@ package struct ConstrainedSurfaceHeightFitter {
                     target: Array(repeating: 0, count: columns), constraints: constraints, values: values,
                     columns: columns, relativeRankTolerance: 1e-12,
                     constraintTolerance: source.positionTolerance,
-                    maximumElements: maximumMatrixElements)
+                    maximumElements: maximumMatrixElements, using: &execution)
                 let relaxed = try SurfaceFittingLeastSquares.solve(objective: objective,
                     target: Array(repeating: 0, count: rows), constraints: constraints, values: values,
                     columns: columns, relativeRankTolerance: 1e-12,
                     constraintTolerance: source.positionTolerance,
-                    maximumElements: maximumMatrixElements)
+                    maximumElements: maximumMatrixElements, using: &execution)
                 heights = try Self.angularlyBoundedRelaxation(tight: tight, relaxed: relaxed,
                     count: count, knots: knots, width: width, height: height,
                     angularTolerance: source.angularTolerance)
@@ -135,9 +142,9 @@ package struct ConstrainedSurfaceHeightFitter {
                 net.append(points)
             }
             let surface = BSplineSurface3D(uDegree: 3, vDegree: 3, uKnots: knots, vKnots: knots, controlPoints: net)
-            try surface.validate(tolerance: tolerance)
+            try surface.validate(tolerance: tolerance, using: &execution)
             for i in source.points.indices {
-                let evaluated = try surface.differentialGeometry(u: coordinates[i].x, v: coordinates[i].y, tolerance: tolerance)
+                let evaluated = try surface.differentialGeometry(u: coordinates[i].x, v: coordinates[i].y, tolerance: tolerance, using: &execution)
                 guard (evaluated.position - source.points[i].position).length <= source.positionTolerance else {
                     throw failure(.conflictingConstraints, "Constrained Surface failed independent positional verification.")
                 }

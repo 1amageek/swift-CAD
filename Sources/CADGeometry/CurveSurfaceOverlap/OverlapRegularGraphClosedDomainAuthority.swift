@@ -20,7 +20,7 @@ struct OverlapRegularGraphClosedDomainAuthority: Sendable {
         }
 
         static func certificate(prepared: PreparedBSplineSurfaceDifferentialEncloser,
-                                budget: inout OverlapProofBudget) throws -> Self? {
+                                policy: OverlapProofPolicy, using execution: inout OriginalQueryExecution) throws -> Self? {
             let surface = prepared.surface
             guard !surface.isUPeriodic, !surface.isVPeriodic else { return nil }
             let count = surface.uControlPointCount.multipliedReportingOverflow(by: surface.vControlPointCount)
@@ -28,12 +28,12 @@ struct OverlapRegularGraphClosedDomainAuthority: Sendable {
             let knots = surface.uKnots.count.addingReportingOverflow(surface.vKnots.count)
             let scan = comparisons.partialValue.addingReportingOverflow(knots.partialValue)
             guard !count.overflow, !comparisons.overflow, !knots.overflow, !scan.overflow else {
-                throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: budget.tolerance,
+                throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: policy.tolerance,
                     message: "Original coordinate independence scan count overflowed.")
             }
             // Two equalities per Cartesian coordinate, one weight check, and both knot vectors.
             // Fixed coordinate metadata is allocated only after its complete scan is paid.
-            try budget.work(scan.partialValue)
+            try policy.work(scan.partialValue, using: &execution)
             guard OverlapRegularGraphClosedDomainAuthority.clamped(surface.uKnots, degree: surface.uDegree, count: surface.uControlPointCount),
                   OverlapRegularGraphClosedDomainAuthority.clamped(surface.vKnots, degree: surface.vDegree, count: surface.vControlPointCount) else { return nil }
             var unit = true
@@ -44,7 +44,7 @@ struct OverlapRegularGraphClosedDomainAuthority: Sendable {
                 }
             }
             if !unit {
-                try budget.work(count.partialValue)
+                try policy.work(count.partialValue, using: &execution)
                 for row in 0..<surface.vControlPointCount {
                     for column in 0..<surface.uControlPointCount {
                         guard OverlapRegularGraphClosedDomainAuthority.equalPositiveDyadicProducts(surface.weights[row][column], surface.weights[0][0],
@@ -180,18 +180,18 @@ struct OverlapRegularGraphClosedDomainAuthority: Sendable {
     static func certificate(curve: Curve3D, surface: BSplineSurface3D,
                             range: ScalarInterval, pair: OverlapRegularGraphCell.Pair,
                             box: SurfaceParameterBox, target: SurfaceIntervalVectorJet,
-                            budget: inout OverlapProofBudget) throws -> Self? {
+                            policy: OverlapProofPolicy, using execution: inout OriginalQueryExecution) throws -> Self? {
         guard case .bSpline(let source) = curve, !source.isPeriodic,
               !surface.isUPeriodic, !surface.isVPeriodic else { return nil }
         let tensorCount = surface.uControlPointCount.multipliedReportingOverflow(by: surface.vControlPointCount)
         guard !tensorCount.overflow else {
-            throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: budget.tolerance,
+            throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: policy.tolerance,
                 message: "Closed-domain tensor comparison count overflowed.")
         }
         let scan = source.controlPointCount * 3 + source.knots.count
             + surface.uKnots.count + surface.vKnots.count
             + tensorCount.partialValue * 3
-        try budget.work(scan)
+        try policy.work(scan, using: &execution)
         guard originalSourceAtlas(source),
               clamped(surface.uKnots, degree: surface.uDegree, count: surface.uControlPointCount),
               clamped(surface.vKnots, degree: surface.vDegree, count: surface.vControlPointCount),
@@ -210,7 +210,7 @@ struct OverlapRegularGraphClosedDomainAuthority: Sendable {
             // Global rank-one original weights factor W=A(U)B(V)/W00 in any
             // tensor B-spline basis. Cartesian row/column independence below
             // then cancels the other positive factor without span replacement.
-            try budget.work(tensorCount.partialValue)
+            try policy.work(tensorCount.partialValue, using: &execution)
             for row in 0..<surface.vControlPointCount {
                 for column in 0..<surface.uControlPointCount {
                     // FIXME(INCOMPLETE_IMPLEMENTATION): Non-factorable rational target
@@ -227,17 +227,17 @@ struct OverlapRegularGraphClosedDomainAuthority: Sendable {
            first.variesU != second.variesU,
            monotone(first, target: target), monotone(second, target: target) {
             return try admittedSource(source, surface: surface, range: range, pair: pair, box: box,
-                first: first, second: second, budget: &budget)
+                first: first, second: second, policy: policy, using: &execution)
         }
-        return try admittedTriangular(source, surface: surface, range: range, pair: pair, box: box, budget: &budget)
+        return try admittedTriangular(source, surface: surface, range: range, pair: pair, box: box, policy: policy, using: &execution)
     }
 
     static func certificate(curve: Curve3D, independence: TargetIndependence,
                             range: ScalarInterval, pair: OverlapRegularGraphCell.Pair,
                             box: SurfaceParameterBox, target: SurfaceIntervalVectorJet,
-                            budget: inout OverlapProofBudget) throws -> Self? {
+                            policy: OverlapProofPolicy, using execution: inout OriginalQueryExecution) throws -> Self? {
         guard case .bSpline(let source) = curve, !source.isPeriodic else { return nil }
-        try budget.work(source.controlPointCount * 3 + source.knots.count)
+        try policy.work(source.controlPointCount * 3 + source.knots.count, using: &execution)
         let surface = independence.prepared.surface
         guard originalSourceAtlas(source),
               box.u.lower == surface.uKnots[surface.uDegree], box.u.upper == surface.uKnots[surface.uControlPointCount],
@@ -247,9 +247,9 @@ struct OverlapRegularGraphClosedDomainAuthority: Sendable {
            let second = independence.axis(coordinate: pair.second, box: box), first.variesU != second.variesU,
            monotone(first, target: target), monotone(second, target: target) {
             return try admittedSource(source, surface: surface, range: range, pair: pair, box: box,
-                first: first, second: second, budget: &budget)
+                first: first, second: second, policy: policy, using: &execution)
         }
-        return try admittedTriangular(source, surface: surface, range: range, pair: pair, box: box, budget: &budget)
+        return try admittedTriangular(source, surface: surface, range: range, pair: pair, box: box, policy: policy, using: &execution)
     }
 
     /// The caller has paid the complete original knot scan before this check.
@@ -282,7 +282,7 @@ struct OverlapRegularGraphClosedDomainAuthority: Sendable {
     private static func admittedSource(_ source: BSplineCurve3D, surface: BSplineSurface3D,
                                        range: ScalarInterval, pair: OverlapRegularGraphCell.Pair,
                                        box: SurfaceParameterBox, first: Axis, second: Axis,
-                                       budget: inout OverlapProofBudget) throws -> Self? {
+                                       policy: OverlapProofPolicy, using execution: inout OriginalQueryExecution) throws -> Self? {
         var firstMinimum = Double.infinity, firstMaximum = -Double.infinity
         var secondMinimum = Double.infinity, secondMaximum = -Double.infinity
         for index in 0..<source.controlPointCount {
@@ -303,10 +303,10 @@ struct OverlapRegularGraphClosedDomainAuthority: Sendable {
             let count = axis.variesU ? surface.uControlPointCount : surface.vControlPointCount
             let fee = knots.count.addingReportingOverflow(4)
             guard !fee.overflow else {
-                throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: budget.tolerance,
+                throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: policy.tolerance,
                     message: "An original stationary-axis scan count overflowed.")
             }
-            try budget.work(fee.partialValue)
+            try policy.work(fee.partialValue, using: &execution)
             let parameter: Double?
             if minimum == axis.lowerValue { parameter = axis.parameters.lower }
             else if minimum == axis.upperValue { parameter = axis.parameters.upper }
@@ -363,7 +363,7 @@ struct OverlapRegularGraphClosedDomainAuthority: Sendable {
 
     private static func admittedTriangular(_ source: BSplineCurve3D, surface: BSplineSurface3D,
                                           range: ScalarInterval, pair: OverlapRegularGraphCell.Pair,
-                                          box: SurfaceParameterBox, budget: inout OverlapProofBudget) throws -> Self? {
+                                          box: SurfaceParameterBox, policy: OverlapProofPolicy, using execution: inout OriginalQueryExecution) throws -> Self? {
         guard surface.uDegree == 1, surface.vDegree == 1,
               surface.uControlPointCount == 2, surface.vControlPointCount == 2,
               surface.weights.allSatisfy({ $0.allSatisfy { $0 == 1 } }) else { return nil }
@@ -372,7 +372,7 @@ struct OverlapRegularGraphClosedDomainAuthority: Sendable {
             let secondary = primary == pair.first ? pair.second : pair.first
             for variesU in [true, false] {
                 // Seven bounded exact coefficient operations, including the diagonal product.
-                try budget.work(7)
+                try policy.work(7, using: &execution)
                 func coordinate(_ row: Int, _ column: Int, _ axis: Int) -> Double {
                     OverlapRegularGraphCell.coordinate(surface.controlPoints[row][column], axis)
                 }
@@ -381,43 +381,44 @@ struct OverlapRegularGraphClosedDomainAuthority: Sendable {
                 guard variesU ? (p00 == p01 && p10 == p11) : (p00 == p10 && p01 == p11) else { continue }
                 let q00 = coordinate(0, 0, secondary), q10 = coordinate(0, 1, secondary)
                 let q01 = coordinate(1, 0, secondary), q11 = coordinate(1, 1, secondary)
-                let mixed = try Exact.subtract(Exact.difference(q11, q10, budget.tolerance),
-                    Exact.difference(q01, q00, budget.tolerance), budget.tolerance)
-                guard FloatingPointExpansion.sign(mixed) == .zero else { continue }
-                let a = try Exact.difference(variesU ? p10 : p01, p00, budget.tolerance)
-                let b = try Exact.difference(variesU ? q10 : q01, q00, budget.tolerance)
-                let c = try Exact.difference(variesU ? q01 : q10, q00, budget.tolerance)
-                let determinant = try Exact.product(a, c, budget.tolerance)
-                let sign = FloatingPointExpansion.sign(determinant)
+                let mixed = try Exact.subtract(Exact.difference(q11, q10, policy.tolerance, using: &execution),
+                    Exact.difference(q01, q00, policy.tolerance, using: &execution), policy.tolerance, using: &execution)
+                guard try FloatingPointExpansion.sign(mixed, using: &execution) == .zero else { continue }
+                let a = try Exact.difference(variesU ? p10 : p01, p00, policy.tolerance, using: &execution)
+                let b = try Exact.difference(variesU ? q10 : q01, q00, policy.tolerance, using: &execution)
+                let c = try Exact.difference(variesU ? q01 : q10, q00, policy.tolerance, using: &execution)
+                let determinant = try Exact.product(a, c, policy.tolerance, using: &execution)
+                let sign = try FloatingPointExpansion.sign(determinant, using: &execution)
                 guard sign == .positive || sign == .negative else { continue }
                 let fee = source.controlPointCount.multipliedReportingOverflow(by: 8)
-                guard !fee.overflow else { throw Exact.failure(budget.tolerance) }
+                guard !fee.overflow else { throw Exact.failure(policy.tolerance) }
                 // Complete pullback comparisons are paid before coefficient arrays grow.
-                try budget.work(fee.partialValue)
+                try policy.work(fee.partialValue, using: &execution)
                 var start: SurfaceParameter?, end: SurfaceParameter?
                 for index in 0..<source.controlPointCount {
                     guard source.weights[index].isFinite, source.weights[index] > 0 else { return nil }
                     let point = source.controlPoints[index]
-                    let p = try Exact.difference(OverlapRegularGraphCell.coordinate(point, primary), p00, budget.tolerance)
-                    let q = try Exact.difference(OverlapRegularGraphCell.coordinate(point, secondary), q00, budget.tolerance)
-                    let first = try Exact.product(p, c, budget.tolerance)
-                    let second = try Exact.subtract(Exact.product(a, q, budget.tolerance),
-                        Exact.product(b, p, budget.tolerance), budget.tolerance)
-                    let firstUpper = try Exact.subtract(first, determinant, budget.tolerance)
-                    let secondUpper = try Exact.subtract(second, determinant, budget.tolerance)
-                    func inside(_ value: [Double], _ upper: [Double]) -> Bool {
-                        let lowerSign = FloatingPointExpansion.sign(value), upperSign = FloatingPointExpansion.sign(upper)
+                    let p = try Exact.difference(OverlapRegularGraphCell.coordinate(point, primary), p00, policy.tolerance, using: &execution)
+                    let q = try Exact.difference(OverlapRegularGraphCell.coordinate(point, secondary), q00, policy.tolerance, using: &execution)
+                    let first = try Exact.product(p, c, policy.tolerance, using: &execution)
+                    let second = try Exact.subtract(Exact.product(a, q, policy.tolerance, using: &execution),
+                        Exact.product(b, p, policy.tolerance, using: &execution), policy.tolerance, using: &execution)
+                    let firstUpper = try Exact.subtract(first, determinant, policy.tolerance, using: &execution)
+                    let secondUpper = try Exact.subtract(second, determinant, policy.tolerance, using: &execution)
+                    func inside(_ value: [Double], _ upper: [Double]) throws -> Bool {
+                        let lowerSign = try FloatingPointExpansion.sign(value, using: &execution)
+                        let upperSign = try FloatingPointExpansion.sign(upper, using: &execution)
                         return sign == .positive ? lowerSign != .negative && upperSign != .positive
                             : lowerSign != .positive && upperSign != .negative
                     }
-                    guard inside(first, firstUpper), inside(second, secondUpper) else { return nil }
-                    func endpoint(_ value: [Double], _ upper: [Double], _ axis: ScalarInterval) -> Double? {
-                        if FloatingPointExpansion.sign(value) == .zero { return axis.lower }
-                        if FloatingPointExpansion.sign(upper) == .zero { return axis.upper }
+                    guard try inside(first, firstUpper), try inside(second, secondUpper) else { return nil }
+                    func endpoint(_ value: [Double], _ upper: [Double], _ axis: ScalarInterval) throws -> Double? {
+                        if try FloatingPointExpansion.sign(value, using: &execution) == .zero { return axis.lower }
+                        if try FloatingPointExpansion.sign(upper, using: &execution) == .zero { return axis.upper }
                         return nil
                     }
-                    if let firstEnd = endpoint(first, firstUpper, variesU ? box.u : box.v),
-                       let secondEnd = endpoint(second, secondUpper, variesU ? box.v : box.u) {
+                    if let firstEnd = try endpoint(first, firstUpper, variesU ? box.u : box.v),
+                       let secondEnd = try endpoint(second, secondUpper, variesU ? box.v : box.u) {
                         let uv = SurfaceParameter(u: variesU ? firstEnd : secondEnd, v: variesU ? secondEnd : firstEnd)
                         if index == 0 { start = uv }
                         if index == source.controlPointCount - 1 { end = uv }
@@ -452,21 +453,21 @@ struct OverlapRegularGraphClosedDomainAuthority: Sendable {
         }
 
         static func difference(_ first: Double, _ second: Double,
-                               _ tolerance: ModelingTolerance) throws -> [Double] {
+                               _ tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> [Double] {
             guard first.isFinite, second.isFinite, abs(first) <= safeMagnitude,
                   abs(second) <= safeMagnitude else { throw failure(tolerance) }
-            return try checked(FloatingPointExpansion.difference(first, second), tolerance)
+            return try checked(FloatingPointExpansion.difference(first, second, using: &execution), tolerance)
         }
 
         static func subtract(_ first: [Double], _ second: [Double],
-                             _ tolerance: ModelingTolerance) throws -> [Double] {
+                             _ tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> [Double] {
             _ = try checked(first, tolerance); _ = try checked(second, tolerance)
             guard first.count + second.count <= maximumComponents else { throw failure(tolerance) }
-            return try checked(FloatingPointExpansion.subtract(first, second), tolerance)
+            return try checked(FloatingPointExpansion.subtract(first, second, using: &execution), tolerance)
         }
 
         static func product(_ first: [Double], _ second: [Double],
-                            _ tolerance: ModelingTolerance) throws -> [Double] {
+                            _ tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> [Double] {
             _ = try checked(first, tolerance); _ = try checked(second, tolerance)
             guard first.count * second.count * 2 <= maximumComponents else { throw failure(tolerance) }
             for a in first where a != 0 {
@@ -477,7 +478,7 @@ struct OverlapRegularGraphClosedDomainAuthority: Sendable {
                           (a * b).isFinite, abs(a * b) <= safeMagnitude else { throw failure(tolerance) }
                 }
             }
-            return try checked(FloatingPointExpansion.product(first, second), tolerance)
+            return try checked(FloatingPointExpansion.product(first, second, using: &execution), tolerance)
         }
     }
 

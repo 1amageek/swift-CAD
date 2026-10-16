@@ -14,14 +14,15 @@ public struct DrawingRadialDimensionSource: Sendable {
     public let frame: OrthographicProjectionFrame
     public let pointsPerMeter: Double
     public let translation: Point2D
-    let accountingOwner: DrawingExchangeUsage
+    let accountingOwner: DrawingExchangeOwner
 
     public init(original: OriginalCircularMeasurement, bodyID: BodyID? = nil,
         sourceFeatureID: FeatureID? = nil, sourceSketchEntityID: SketchEntityID? = nil,
         occurrenceIdentity: String?, measurementIdentity: String, identity: String,
         kind: DrawingRadialDimensionKind, frame: OrthographicProjectionFrame,
         pointsPerMeter: Double, translation: Point2D,
-        usage: inout DrawingExchangeUsage) throws {
+        usage: DrawingExchangeOwner, using execution: inout OriginalQueryExecution) throws {
+        try usage.validateExecution(execution)
         try usage.check()
         let isBodySource = bodyID != nil && sourceFeatureID == nil && sourceSketchEntityID == nil
         let isSketchSource = bodyID == nil && sourceFeatureID != nil && sourceSketchEntityID != nil

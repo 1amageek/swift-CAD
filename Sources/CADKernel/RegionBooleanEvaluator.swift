@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 import CADIR
 import CADModeling
 import CADTopology
@@ -17,6 +18,14 @@ struct RegionBooleanEvaluator {
         self.pipeline = pipeline
     }
 
+    func evaluate(operandBodyIDs: [BodyID], featureID: FeatureID, model: BRepModel,
+        subshapes: [SubshapeID: TopologyReference], inputLineage: [SubshapeID: TopologyLineage],
+        tolerance: ModelingTolerance) throws -> EvaluationResult {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try evaluate(operandBodyIDs: operandBodyIDs, featureID: featureID, model: model,
+            subshapes: subshapes, inputLineage: inputLineage, tolerance: tolerance, using: &execution)
+    }
+
     func evaluate(
         operandBodyIDs: [BodyID],
         featureID: FeatureID,
@@ -24,7 +33,7 @@ struct RegionBooleanEvaluator {
         subshapes: [SubshapeID: TopologyReference],
         inputLineage: [SubshapeID: TopologyLineage],
         tolerance: ModelingTolerance
-    ) throws -> EvaluationResult {
+    , using execution: inout OriginalQueryExecution) throws -> EvaluationResult {
         try tolerance.validate()
         guard operandBodyIDs.count >= 2, Set(operandBodyIDs).count == operandBodyIDs.count,
               operandBodyIDs.allSatisfy({ model.bodies[$0] != nil }) else {
@@ -34,35 +43,35 @@ struct RegionBooleanEvaluator {
         var boundaries: [BooleanFaceArrangementBoundary] = []
         for (index, first) in operandBodyIDs.enumerated() {
             for second in operandBodyIDs.dropFirst(index + 1) {
-                boundaries += try pairBoundaries(first, second, model: model, subshapes: subshapes, tolerance: tolerance)
+                boundaries += try pairBoundaries(first, second, model: model, subshapes: subshapes, tolerance: tolerance, using: &execution)
             }
         }
         let arrangement = try SharedCurveFaceArrangement().arrange(
             boundaries: boundaries, model: model, sourceSubshapes: subshapes, tolerance: tolerance
-        )
+        , using: &execution)
         var patches = arrangement.patches
         for bodyID in operandBodyIDs {
-            for faceID in try faceIDs(of: bodyID, in: model, tolerance: tolerance)
+            for faceID in try faceIDs(of: bodyID, in: model, tolerance: tolerance, using: &execution)
                 where arrangement.splitFaceIDs.contains(faceID) == false {
                 patches.append(try SourceBRepFacePatchBuilder().build(
                     faceID: faceID, stableID: "region:face:\(faceID)",
                     from: model, sourceSubshapes: subshapes, tolerance: tolerance
-                ).patch)
+                , using: &execution).patch)
             }
         }
-        let request = try BRepCellComplexBuilder(tolerance: tolerance).request(patches: try CoincidentFacePatchMerger().merge(patches, tolerance: tolerance), featureID: featureID)
+        let request = try BRepCellComplexBuilder(tolerance: tolerance).request(patches: try CoincidentFacePatchMerger().merge(patches, tolerance: tolerance, using: &execution), featureID: featureID, using: &execution)
         var resultModel = model
         var removedSubshapeIDs = Set<SubshapeID>()
         let removal = BRepBodyTopologyRemoval()
         for bodyID in operandBodyIDs {
-            removedSubshapeIDs.formUnion(removal.subshapeIDs(bodyID: bodyID, in: resultModel, subshapes: subshapes))
-            try removal.remove(bodyID: bodyID, from: &resultModel)
+            removedSubshapeIDs.formUnion(try removal.subshapeIDs(bodyID: bodyID, in: resultModel, subshapes: subshapes, using: &execution))
+            try removal.remove(bodyID: bodyID, from: &resultModel, using: &execution)
         }
-        let sewn = try DefaultBRepSewer().sew(request.namespaced(as: .booleanResult), tolerance: tolerance)
-        try BRepModelCombiner().merge(sewn.brep, into: &resultModel)
+        let sewn = try DefaultBRepSewer().sew(request.namespaced(as: .booleanResult), tolerance: tolerance, using: &execution)
+        try BRepModelCombiner().merge(sewn.brep, into: &resultModel, using: &execution)
         let builtSubshapes = try OrthogonalBooleanFacePatchBuilder(tolerance: tolerance).generatedSubshapes(
             featureID: featureID, stableReferences: sewn.stableReferences
-        )
+        , using: &execution)
         var result = EvaluationResult(
             brep: resultModel, subshapes: builtSubshapes, removedSubshapeIDs: removedSubshapeIDs,
             lineage: sewn.lineage(remappedTo: builtSubshapes)
@@ -76,7 +85,7 @@ struct RegionBooleanEvaluator {
             outputSubshapes: result.subshapes,
             inputLineage: inputLineage,
             tolerance: tolerance
-        )
+        , using: &execution)
         for (subshapeID, entry) in topologyLineage where result.lineage[subshapeID] == nil {
             result.lineage[subshapeID] = entry
         }
@@ -91,11 +100,11 @@ struct RegionBooleanEvaluator {
         model: BRepModel,
         subshapes: [SubshapeID: TopologyReference],
         tolerance: ModelingTolerance
-    ) throws -> [BooleanFaceArrangementBoundary] {
+    , using execution: inout OriginalQueryExecution) throws -> [BooleanFaceArrangementBoundary] {
         let intersections = try pipeline.completeIntersectionGraph(
             targetBodyIDs: [first], toolBodyID: second, operation: .region, model: model, tolerance: tolerance
-        )
-        let splits = try pipeline.uvSplitGraph(intersectionGraph: intersections, model: model, tolerance: tolerance)
+        , using: &execution)
+        let splits = try pipeline.uvSplitGraph(intersectionGraph: intersections, model: model, tolerance: tolerance, using: &execution)
         var result: [BooleanFaceArrangementBoundary] = []
         for split in splits.splits {
             let parents = parentSubshapeIDs(.face(split.facePair.targetFaceID), subshapes)
@@ -107,7 +116,7 @@ struct RegionBooleanEvaluator {
                                                (split.facePair.toolFaceID, split.facePair.targetFaceID)] {
                         let outline = try CoincidentBooleanFaceArrangementBoundaryBuilder().outlineEdges(
                             of: opposing, onto: source, reference: reference, model: model,
-                            sourceSubshapes: subshapes, tolerance: tolerance)
+                            sourceSubshapes: subshapes, tolerance: tolerance, using: &execution)
                         result += outline.enumerated().map { ordinal, edge in
                             BooleanFaceArrangementBoundary(reference: reference, segmentOrdinal: ordinal,
                                 faceID: source, edge: edge, forwardLeftAction: .keep,
@@ -122,7 +131,7 @@ struct RegionBooleanEvaluator {
                     let edges = try BooleanFaceArrangementBoundary.edges(
                         reference: reference, geometry: component.geometry, faceID: faceID,
                         surfaceSide: side, parentSubshapeIDs: parents, tolerance: tolerance
-                    )
+                    , using: &execution)
                     result += edges.enumerated().map { ordinal, edge in
                         BooleanFaceArrangementBoundary(
                             reference: reference, segmentOrdinal: ordinal, faceID: faceID, edge: edge,
@@ -135,7 +144,7 @@ struct RegionBooleanEvaluator {
         return result
     }
 
-    private func faceIDs(of bodyID: BodyID, in model: BRepModel, tolerance: ModelingTolerance) throws -> [FaceID] {
+    private func faceIDs(of bodyID: BodyID, in model: BRepModel, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> [FaceID] {
         guard let body = model.bodies[bodyID] else {
             throw KernelError(phase: .topology, code: .missingReference, tolerance: tolerance,
                 message: "A Region Boolean operand body is missing.")

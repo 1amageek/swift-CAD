@@ -12,6 +12,30 @@ import WASILibc
 #endif
 
 struct BoundedPlaneConeSurfaceIntersector {
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Ordinary SSI dispatch reaches this direct entry.
+    // The former numerical/tolerance branches did not establish original common-set
+    // authority. U4 must supply complete original source/UV coverage before success.
+    func intersections(
+        plane: CanonicalAnalyticSurface.Plane,
+        cone: CanonicalAnalyticSurface.Cone,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        boundaryPoints: [Point3D],
+        options: SurfaceSurfaceIntersectionOptions,
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution
+    ) throws -> [SurfaceSurfaceIntersection]? {
+        execution.context = execution.context.at(stage: .relation)
+        do {
+            try execution.checkpoint()
+            throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+                message: "BoundedPlaneConeSurfaceIntersector requires complete original source relation authority.")
+        } catch { throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance) }
+    }
+
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Existing candidate/source helper methods call
+    // this ordinary publication entry. It performs no numeric solve or fallback;
+    // U4 must provide source-bound relation proof and direct execution before success.
     func intersections(
         plane: CanonicalAnalyticSurface.Plane,
         cone: CanonicalAnalyticSurface.Cone,
@@ -21,121 +45,9 @@ struct BoundedPlaneConeSurfaceIntersector {
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
     ) throws -> [SurfaceSurfaceIntersection]? {
-        try plane.requireLegacyUnitNormal(tolerance: tolerance)
-        let planeSurface = Self.planeSurface(firstSurface, secondSurface: secondSurface)
-        let coneSurface = firstSurface == planeSurface ? secondSurface : firstSurface
-        let containsApex = abs((cone.apex - plane.origin).dot(plane.normal))
-            <= tolerance.distance
-        guard containsApex == false else { return nil }
-        guard boundaryPoints.count >= 2 else { return [] }
-
-        let candidates = try PlaneConeSurfaceIntersector().intersections(
-            plane: plane,
-            cone: cone,
-            firstSurface: planeSurface,
-            secondSurface: coneSurface,
-            tolerance: tolerance
-        ).compactMap(Self.analyticConic)
-        guard candidates.isEmpty == false else { return nil }
-
-        let uniqueBoundaryPoints = deduplicated(boundaryPoints, tolerance: tolerance)
-        var parametersByCandidate = Array(repeating: [Double](), count: candidates.count)
-        for point in uniqueBoundaryPoints {
-            var matchedCandidate: Int?
-            for index in candidates.indices {
-                guard let parameter = try parameter(
-                    of: point,
-                    on: candidates[index],
-                    tolerance: tolerance
-                ) else {
-                    continue
-                }
-                guard matchedCandidate == nil else {
-                    throw KernelError(
-                        phase: .geometry,
-                        code: .singularGeometry,
-                        tolerance: tolerance,
-                        message: "A bounded plane-cone boundary contact ambiguously belongs to multiple exact branches."
-                    )
-                }
-                matchedCandidate = index
-                parametersByCandidate[index].append(parameter)
-            }
-            guard matchedCandidate != nil else {
-                throw KernelError(
-                    phase: .geometry,
-                    code: .intersectionFailure,
-                    tolerance: tolerance,
-                    message: "A bounded plane-cone boundary contact does not lie on an exact section branch."
-                )
-            }
-        }
-
-        var result: [SurfaceSurfaceIntersection] = []
-        for index in candidates.indices {
-            let parameters = deduplicated(
-                parametersByCandidate[index],
-                tolerance: tolerance
-            )
-            guard let lower = parameters.first,
-                  let upper = parameters.last,
-                  upper > lower else {
-                continue
-            }
-            let exactCurve = try CertifiedBoundedPlaneConeIntersectionCurve(
-                planeSurface: planeSurface,
-                coneSurface: coneSurface,
-                analyticCurve: candidates[index],
-                startParameter: lower,
-                endParameter: upper,
-                tolerance: tolerance
-            )
-            let wrapper = try CertifiedAnalyticAnalyticIntersectionCurve(
-                boundedPlaneConeCurve: exactCurve,
-                firstSurface: firstSurface,
-                secondSurface: secondSurface,
-                tolerance: tolerance
-            )
-            let builder = SurfaceIntersectionSplineBuilder(
-                firstSurface: firstSurface,
-                secondSurface: secondSurface,
-                options: options,
-                tolerance: tolerance
-            )
-            let segmentCount = min(8, max(1, options.maximumSeedCount))
-            let breaks = (0...segmentCount).map {
-                Double($0) / Double(segmentCount)
-            }
-            let derived = try builder.intersection(
-                parameterRange: 0.0...1.0,
-                initialBreaks: breaks,
-                kind: .transverse,
-                isClosed: false,
-                pointAt: { fraction in
-                    try exactCurve.point(
-                        atNormalizedFraction: fraction,
-                        tolerance: tolerance
-                    )
-                }
-            )
-            guard case let .curve(derivedCurve) = derived else {
-                throw KernelError(
-                    phase: .geometry,
-                    code: .intersectionFailure,
-                    tolerance: tolerance,
-                    message: "A bounded plane-cone derived representation did not produce a curve."
-                )
-            }
-            result.append(.curve(try SurfaceSurfaceIntersectionCurve(
-                truth: .analyticAnalytic(wrapper),
-                derivedRepresentation: derivedCurve.derivedRepresentation,
-                kind: .transverse,
-                firstSurfaceAnchor: derivedCurve.firstSurfaceAnchor,
-                secondSurfaceAnchor: derivedCurve.secondSurfaceAnchor,
-                tolerance: tolerance
-            )))
-        }
-        return result
+        try CurrentTaskCancellationChecker().checkCancellation()
+        throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+            message: "BoundedPlaneConeSurfaceIntersector has no ordinary original-proof publication.")
     }
 
     private static func planeSurface(

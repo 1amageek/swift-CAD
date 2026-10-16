@@ -29,11 +29,13 @@ struct BSplineSurfaceDerivativeRangeResolverTests {
             vTo: 0.05,
             tolerance: tolerance
         )
-        let ranges = try DefaultBSplineSurfaceDerivativeRangeResolver()
-            .derivativeRanges(
-                surface: trimmed,
-                tolerance: tolerance
-            )
+        var execution = try OriginalQueryExecution.independentGeometry()
+        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(
+            surface: trimmed, tolerance: tolerance, using: &execution)
+        let ranges = try prepared.intervalJet(overClosedBox: SurfaceParameterBox(
+            u: try ScalarInterval(lower: 3.25, upper: 3.75),
+            v: try ScalarInterval(lower: -0.05, upper: 0.05)),
+            tolerance: tolerance, using: &execution)
 
         for u in [3.25, 3.5, 3.75] {
             for v in [-0.05, 0.0, 0.05] {
@@ -43,19 +45,19 @@ struct BSplineSurfaceDerivativeRangeResolverTests {
                         v: v,
                         tolerance: tolerance
                     )
-                assertContains(differential.tangentU.x, in: ranges.u.x)
-                assertContains(differential.tangentU.y, in: ranges.u.y)
-                assertContains(differential.tangentU.z, in: ranges.u.z)
-                assertContains(differential.tangentV.x, in: ranges.v.x)
-                assertContains(differential.tangentV.y, in: ranges.v.y)
-                assertContains(differential.tangentV.z, in: ranges.v.z)
+                assertContains(differential.tangentU.x, in: ranges.x.derivativeU)
+                assertContains(differential.tangentU.y, in: ranges.y.derivativeU)
+                assertContains(differential.tangentU.z, in: ranges.z.derivativeU)
+                assertContains(differential.tangentV.x, in: ranges.x.derivativeV)
+                assertContains(differential.tangentV.y, in: ranges.y.derivativeV)
+                assertContains(differential.tangentV.z, in: ranges.z.derivativeV)
             }
         }
     }
 
     private func assertContains(
         _ value: Double,
-        in interval: ScalarInterval
+        in interval: OutwardScalarInterval
     ) {
         #expect(value >= interval.lower)
         #expect(value <= interval.upper)

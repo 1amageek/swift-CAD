@@ -6,31 +6,31 @@ struct SurfaceSilhouetteFieldCoordinateComponents {
     let endpoints: [OriginalSingularFieldSystemRoot]
 
     init(field: OriginalSurfaceSilhouetteField, projection: OriginalSingularFieldPlaneProjection,
-        usage: inout SurfaceSilhouetteUsage) throws {
+        usage: inout OriginalQueryExecution) throws {
         let original = projection.squareFree
         let content = try OriginalSingularFieldPlaneGCD.content(original,
-            maximumDepth: usage.maximumDepth, usage: &usage)
+            maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
         let nonVertical = try OriginalSingularFieldPlaneGCD.primitive(original,
-            content: content, maximumDepth: usage.maximumDepth, usage: &usage)
+            content: content, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
         var curves: [OriginalSurfaceSilhouetteCurve] = []
         var endpoints: [OriginalSingularFieldSystemRoot] = []
         for fixed in projection.verticalComponents {
-            try usage.consumeWork()
-            let u = try fixed.value(maximumDepth: usage.maximumDepth, usage: &usage)
+            try usage.consumeWork(1)
+            let u = try fixed.value(maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
             let factor = try OriginalSingularFieldPlanePolynomial.coordinate(alongU: true,
-                in: u.context, maximumDepth: usage.maximumDepth, usage: &usage)
-                .subtracting(.constant(u, maximumDepth: usage.maximumDepth, usage: &usage),
-                    maximumDepth: usage.maximumDepth, usage: &usage)
+                in: u.context, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
+                .subtracting(.constant(u, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage),
+                    maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
             let complementary = try OriginalSingularFieldSystemSolver.fiber(nonVertical, at: u,
-                maximumDepth: usage.maximumDepth, usage: &usage)
+                maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
             let cuts = try Self.cuts(complementary, over: projection.domain.v,
                 depth: fixed.isolation.depth, usage: &usage)
             var points: [OriginalSingularFieldSystemRoot] = []
             for cut in cuts {
                 let vRoot = try OriginalSingularFieldPlaneProjection.root(cut, context: u.context,
-                    inheritedDepth: fixed.isolation.depth, maximumDepth: usage.maximumDepth, usage: &usage)
-                let v = try vRoot.value(maximumDepth: usage.maximumDepth, usage: &usage)
-                let first = try u.embedded(in: v.context, maximumDepth: usage.maximumDepth, usage: &usage)
+                    inheritedDepth: fixed.isolation.depth, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
+                let v = try vRoot.value(maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
+                let first = try u.embedded(in: v.context, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
                 let secondEquation: OriginalSingularFieldPlanePolynomial
                 switch cut {
                 case .authored(let boundary):
@@ -43,7 +43,7 @@ struct SurfaceSilhouetteFieldCoordinateComponents {
                 let point = OriginalSingularFieldSystemRoot(equations: [firstEquation, secondEquation],
                     projectionRoot: fixed, fiberRoot: vRoot, u: first, v: v, sourceDomain: projection.domain)
                 guard case .zero = try point.sign(of: original,
-                    maximumDepth: usage.maximumDepth, usage: &usage) else {
+                    maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage) else {
                     throw rationalAlgebraFailure("Original vertical component endpoint lost full zero-law incidence.")
                 }
                 try RationalAlgebraStorage.retain(1, of: OriginalSingularFieldSystemRoot.self, usage: &usage)
@@ -56,26 +56,26 @@ struct SurfaceSilhouetteFieldCoordinateComponents {
         for fixed in projection.horizontalComponents {
             let factor = try Self.boundary(fixed, alongU: false, context: original.context, usage: &usage)
             let remainder = try original.dividedExactly(by: factor,
-                maximumDepth: usage.maximumDepth, usage: &usage)
+                maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
             let complementary = try OriginalSingularFieldPlaneProjection.restricted(remainder,
-                alongU: false, station: fixed, maximumDepth: usage.maximumDepth, usage: &usage)
+                alongU: false, station: fixed, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
             let cuts = try Self.cuts(complementary, over: projection.domain.u,
                 depth: projection.sourceDepth, usage: &usage)
             var points: [OriginalSingularFieldSystemRoot] = []
             for cut in cuts {
                 let uRoot = try OriginalSingularFieldPlaneProjection.root(cut, context: original.context,
-                    inheritedDepth: projection.sourceDepth, maximumDepth: usage.maximumDepth, usage: &usage)
-                let u = try uRoot.value(maximumDepth: usage.maximumDepth, usage: &usage)
+                    inheritedDepth: projection.sourceDepth, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
+                let u = try uRoot.value(maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
                 let vRoot = try OriginalSingularFieldPlaneProjection.root(.authored(fixed), context: u.context,
-                    inheritedDepth: uRoot.isolation.depth, maximumDepth: usage.maximumDepth, usage: &usage)
-                let v = try vRoot.value(maximumDepth: usage.maximumDepth, usage: &usage)
-                let first = try u.embedded(in: v.context, maximumDepth: usage.maximumDepth, usage: &usage)
+                    inheritedDepth: uRoot.isolation.depth, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
+                let v = try vRoot.value(maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
+                let first = try u.embedded(in: v.context, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
                 let firstEquation = try Self.lift(uRoot.polynomial, alongU: true, usage: &usage)
                 try RationalAlgebraStorage.retain(2, of: OriginalSingularFieldPlanePolynomial.self, usage: &usage)
                 let point = OriginalSingularFieldSystemRoot(equations: [firstEquation, factor],
                     projectionRoot: uRoot, fiberRoot: vRoot, u: first, v: v, sourceDomain: projection.domain)
                 guard case .zero = try point.sign(of: original,
-                    maximumDepth: usage.maximumDepth, usage: &usage) else {
+                    maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage) else {
                     throw rationalAlgebraFailure("Original horizontal component endpoint lost full zero-law incidence.")
                 }
                 try RationalAlgebraStorage.retain(1, of: OriginalSingularFieldSystemRoot.self, usage: &usage)
@@ -89,7 +89,7 @@ struct SurfaceSilhouetteFieldCoordinateComponents {
     }
 
     private static func cuts(_ polynomial: OriginalSingularFieldPolynomial,
-        over domain: ScalarInterval, depth: Int, usage: inout SurfaceSilhouetteUsage)
+        over domain: ScalarInterval, depth: Int, usage: inout OriginalQueryExecution)
         throws -> [OriginalSingularFieldEndpoint] {
         guard !polynomial.isZero else {
             throw rationalAlgebraFailure("Original square-free coordinate factor retained a coincident complementary component.")
@@ -100,19 +100,19 @@ struct SurfaceSilhouetteFieldCoordinateComponents {
         var result: [OriginalSingularFieldEndpoint] = [.authored(lower), .authored(upper)]
         for root in try OriginalSingularFieldPlaneProjection.sliceRoots(polynomial,
             lower: lower, upper: upper, inheritedDepth: depth,
-            maximumDepth: usage.maximumDepth, usage: &usage) {
+            maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage) {
             var candidate = OriginalSingularFieldEndpoint.algebraic(root)
             var index = 0, duplicate = false
             while index < result.count {
                 var existing = result[index]
                 let order = try OriginalSingularFieldEndpoint.compare(&candidate, &existing,
-                    maximumDepth: usage.maximumDepth, usage: &usage)
+                    maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
                 result[index] = existing
                 if order == 0 { duplicate = true; break }
                 if order < 0 { break }; index += 1
             }
             if !duplicate {
-                try usage.consumeExactWork(result.count - index)
+                try usage.consumeWork(result.count - index)
                 try RationalAlgebraStorage.retain(1, of: OriginalSingularFieldEndpoint.self, usage: &usage)
                 result.insert(candidate, at: index)
             }
@@ -121,34 +121,34 @@ struct SurfaceSilhouetteFieldCoordinateComponents {
     }
 
     private static func boundary(_ value: ExactRationalCoefficient, alongU: Bool,
-        context: OriginalSingularFieldContext, usage: inout SurfaceSilhouetteUsage)
+        context: OriginalSingularFieldContext, usage: inout OriginalQueryExecution)
         throws -> OriginalSingularFieldPlanePolynomial {
         let station = try OriginalSingularFieldElement.constant(value, in: context,
-            maximumDepth: usage.maximumDepth, usage: &usage)
+            maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
         return try OriginalSingularFieldPlanePolynomial.coordinate(alongU: alongU,
-            in: context, maximumDepth: usage.maximumDepth, usage: &usage)
-            .subtracting(.constant(station, maximumDepth: usage.maximumDepth, usage: &usage),
-                maximumDepth: usage.maximumDepth, usage: &usage)
+            in: context, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
+            .subtracting(.constant(station, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage),
+                maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
     }
 
     private static func lift(_ original: OriginalSingularFieldPolynomial, alongU: Bool,
-        usage: inout SurfaceSilhouetteUsage) throws -> OriginalSingularFieldPlanePolynomial {
+        usage: inout OriginalQueryExecution) throws -> OriginalSingularFieldPlanePolynomial {
         try RationalAlgebraStorage.retain(original.coefficients.count,
             of: (ExactBivariatePolynomial.Power, OriginalSingularFieldElement).self, usage: &usage)
         var terms: [ExactBivariatePolynomial.Power: OriginalSingularFieldElement] = [:]
         for index in original.coefficients.indices {
-            try usage.consumeWork()
+            try usage.consumeWork(1)
             terms[try .init(u: alongU ? index : 0, v: alongU ? 0 : index)] = original.coefficients[index]
         }
         return try .init(context: original.context, coefficients: terms,
-            maximumDepth: usage.maximumDepth, usage: &usage)
+            maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
     }
 
     private static func append(points: [OriginalSingularFieldSystemRoot],
         factor: OriginalSingularFieldPlanePolynomial, freeAlongU: Bool,
         field: OriginalSurfaceSilhouetteField, original: OriginalSingularFieldPlanePolynomial,
         domain: SurfaceParameterBox, curves: inout [OriginalSurfaceSilhouetteCurve],
-        endpoints: inout [OriginalSingularFieldSystemRoot], usage: inout SurfaceSilhouetteUsage) throws {
+        endpoints: inout [OriginalSingularFieldSystemRoot], usage: inout OriginalQueryExecution) throws {
         guard points.count >= 2 else { throw rationalAlgebraFailure("Original coordinate component lost its closed range endpoints.") }
         let selected = try field.selectingOriginalFieldFactor(factor, usage: &usage)
         for index in 0..<(points.count - 1) {
@@ -156,8 +156,8 @@ struct SurfaceSilhouetteFieldCoordinateComponents {
             let firstDepth = max(first.projectionRoot.isolation.depth, first.fiberRoot.isolation.depth)
             let lastDepth = max(last.projectionRoot.isolation.depth, last.fiberRoot.isolation.depth)
             let image = try SurfaceSilhouetteOrderedFreeParameterImage(
-                start: .init(freeAlongU ? first.u : first.v, depth: firstDepth),
-                end: .init(freeAlongU ? last.u : last.v, depth: lastDepth), usage: &usage)
+                start: try .init(freeAlongU ? first.u : first.v, depth: firstDepth, using: &usage),
+                end: try .init(freeAlongU ? last.u : last.v, depth: lastDepth, using: &usage), usage: &usage)
             let a = SurfaceSilhouetteFieldAtlasEndpoint(original: original,
                 location: .station(first, completeHalfBranchCount: 0))
             let b = SurfaceSilhouetteFieldAtlasEndpoint(original: original,

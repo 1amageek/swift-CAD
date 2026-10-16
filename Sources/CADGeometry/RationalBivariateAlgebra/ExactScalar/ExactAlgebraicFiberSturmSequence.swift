@@ -2,7 +2,7 @@
 struct ExactAlgebraicFiberSturmSequence: Sendable {
     let source: ExactAlgebraicFiberPolynomial
     let chain: [ExactAlgebraicFiberPolynomial]
-    init<B: RationalAlgebraAdmitting>(_ polynomial: ExactAlgebraicFiberPolynomial,
+    init<B: ExactScalarAdmission & ~Copyable>(_ polynomial: ExactAlgebraicFiberPolynomial,
         maximumDepth: Int, usage: inout B) throws {
         guard !polynomial.isZero else { throw exactScalarBackendFailure("An identically-zero algebraic fiber is a component, not discrete roots.") }
         let derivative = try polynomial.differentiated(usage: &usage)
@@ -25,7 +25,7 @@ struct ExactAlgebraicFiberSturmSequence: Sendable {
         }
         chain = values
     }
-    private func variations<B: RationalAlgebraAdmitting>(at station: ExactRationalCoefficient,
+    private func variations<B: ExactScalarAdmission & ~Copyable>(at station: ExactRationalCoefficient,
         maximumDepth: Int, usage: inout B) throws -> Int {
         var previous = 0, result = 0
         for polynomial in chain {
@@ -39,7 +39,7 @@ struct ExactAlgebraicFiberSturmSequence: Sendable {
         }
         return result
     }
-    func count<B: RationalAlgebraAdmitting>(lower: ExactRationalCoefficient, upper: ExactRationalCoefficient,
+    func count<B: ExactScalarAdmission & ~Copyable>(lower: ExactRationalCoefficient, upper: ExactRationalCoefficient,
         excludesLower: Bool, excludesUpper: Bool, maximumDepth: Int, usage: inout B) throws -> Int {
         func isZero(_ station: ExactRationalCoefficient) throws -> Bool {
             if case .zero = try source.evaluated(at: station, usage: &usage)

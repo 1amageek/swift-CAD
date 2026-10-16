@@ -7,8 +7,8 @@ import Testing
 struct ExactRationalIntervalConversionTests {
     @Test(.timeLimit(.minutes(1)), arguments: Array(0...8))
     func exactOutwardEndpointsHaveBoundedWork(mode: Int) throws {
-        var verification = OriginalRelationUsage(consumeWork: { _ in }, retainStorage: { _ in },
-            visitCell: { _ in }, visitCoefficientCell: { _ in })
+        var verification = GeometryTestScalarRecorder(observeWork: { _ in }, observeStorageWords: { _ in },
+            observeValueCell: { _ in }, observeCoefficientCell: { _ in })
         let original: ExactRationalCoefficient
         switch mode {
         case 0, 1:
@@ -33,7 +33,7 @@ struct ExactRationalIntervalConversionTests {
                 denominatorWords: [313_853_205,1_575_754_564,1], usage: &verification)
         }
         let work = Mutex(0)
-        var bounded = OriginalRelationUsage(consumeWork: { count in
+        var bounded = GeometryTestScalarRecorder(observeWork: { count in
             try work.withLock { used in
                 guard count <= 100_000 - used else {
                     throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: nil,
@@ -41,7 +41,7 @@ struct ExactRationalIntervalConversionTests {
                 }
                 used += count
             }
-        }, retainStorage: { _ in }, visitCell: { _ in }, visitCoefficientCell: { _ in })
+        }, observeStorageWords: { _ in }, observeValueCell: { _ in }, observeCoefficientCell: { _ in })
         let interval = try original.outwardInterval(usage: &bounded)
         #expect(interval.isFinite && interval.lower <= interval.upper)
         let lower = try ExactRationalCoefficient.originalDouble(interval.lower, usage: &verification)

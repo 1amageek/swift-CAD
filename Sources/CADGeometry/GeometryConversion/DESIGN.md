@@ -98,9 +98,9 @@ evaluator failures and cancellation propagate without fallback.
 Inputs and outputs are owned Sendable values. Prepared native source adapters
 retain immutable decomposition. Intrinsic budgets and traversal stacks are
 operation-local. Caller-admitted paths borrow the same invocation identity and
-Sendable work/byte callbacks throughout preparation, construction and proof.
-The caller owns callback accounting and synchronization; the conversion source
-adds no shared mutable state, I/O, tasks, streams or shutdown operations.
+the same direct execution throughout preparation, construction and proof.
+Its cumulative budget owns synchronized work and byte accounting; the source
+retains immutable evidence and policy without sharing query-local proof scopes.
 
 ## Failure, Concurrency, and Constraints
 
@@ -321,7 +321,7 @@ regression remains required in the merged behavioral proof.
 
 A separate GeometrySurfacePositionCertifying requirement owns certification of an immutable nonperiodic native B-spline source and actual B-spline candidate over one caller-specified SurfaceParameterBox strictly contained in both original supports, on the identical native UV chart. CertifiedNativeSurfacePositionCertifier accepts a finite positive maximumPositionError and caller-owned NativeSurfacePositionCertificationLimits (boxes, cumulative scalar slots and work units) and returns a producer-created NativeSurfacePositionCertificate reporting the covered rectangle, admitted Euclidean position bound and charged conservative cumulative reservations. It does not manufacture tangent/curvature fields or require nonzero speed/normal. Position-continuous piecewise native spans retain both knot sides; unsupported periodic, discontinuous, outside-domain or foreign-chart input fails explicitly. No clipping, replacement Cartesian source, natural continuation, sample acceptance or tolerance relaxation authorizes success.
 
-The certifier owns complete source and target preparation cost before either is prepared. For pairs where either original tensor has nonconstant weights, a PreparedBSplineSurfaceDifferentialCost descriptor in the native preparation owner derives conservative checked reservations from actual original span/local basis/Taylor-to-Bernstein/ten-derivative-net dimensions. The descriptor's original validation/control/knot scans are charged before execution; allocation, source and target preparation, each full-cell and anchor probe (including every original-span scan and localization scratch), and stack storage are charged cumulatively to the same operation. The existing native prepared source remains original homogeneous authority. Costs follow the executed producer loops, not a guessed flat per-box price; all arithmetic overflow and exhaustion produce typed resource failure. Default limits follow the existing conversion envelope (65536 boxes,1048576 scalar slots,16777216 work units); caller limits can change without changing correctness. Admission must be tested under actual defaults rather than increasing them to pass a fixture. Cancellation is checked before preparation, at traversal and immediately before certificate publication.
+The certifier owns complete source and target preparation cost before either is prepared. For pairs where either original tensor has nonconstant weights, a PreparedBSplineSurfaceDifferentialCost descriptor in the native preparation owner derives conservative checked reservations from actual original span/local basis/Taylor-to-Bernstein/ten-derivative-net dimensions. The descriptor retains the existing local scalar-slot policy and charges its actual cost-inspection loops. Direct native validators, preparers and localizers own their actual work and typed bytes; no former opaque proxy work is charged again. Source and target preparation, full-cell and anchor probes, and stack storage reach the same cumulative owner. The existing native prepared source remains original homogeneous authority. Costs follow the executed producer loops, not a guessed flat per-box price; all arithmetic overflow and exhaustion produce typed resource failure. Default limits follow the existing conversion envelope (65536 boxes,1048576 scalar slots,16777216 work units); caller limits can change without changing correctness. Admission must be tested under actual defaults rather than increasing them to pass a fixture. Cancellation is checked before preparation, at traversal and immediately before certificate publication.
 
 After complete input/domain validation and charged original structural comparison, exactly equal complete stored source/candidate values may certify zero position error on the requested native rectangle directly; this original coefficient identity proves the whole locus, requires no artificial preparation or probes, reports their actual zero usage and checks cancellation before publication. It does not authorize reparameterization or approximate equality. Varying-weight cases prepare both original supports and every cell uses an outward original source/candidate anchor enclosure plus the complete first-derivative difference times outward UV offsets, bounding position by the fundamental theorem of calculus. The anchor uses the central stored original knot when strictly interior to the cell, otherwise its midpoint; every lower and upper offset uses that actual anchor. Original anchor evidence may establish definite excess before full-cell jets, and cannot admit a successful cell alone. Definite positional excess is GeometryConversionError.toleranceRejected; unresolved subdivision/work/representable precision is an explicit resource failure. Every cell must be admitted before a certificate exists. Independent literal flat/nonregular metric sources, the9-by-9 bump alias, same-source success, repeated-knot coverage, asymmetric domains, strict overshoot refusal, cost-boundary failure and cancellation precede the public native Rebuild integration. Existing three-field conversion APIs retain their semantics and source-cost contract.
 
@@ -342,7 +342,7 @@ validated original tensors + paid admission
                     -> complete residual hull / paid residual subdivision
 ```
 
-The native budget's limits and all paid scalar/work/cell counters transfer intact to PolynomialSurfacePositionDifferenceNet.Budget. The same caller limits own axis records and capacity, retained interval fields, basis row-owner buffers and returned net payloads, basis scratch, interval multiplication/division scratch, contraction arrays, difference arrays and cell-stack storage. Charges precede each allocation or traversal and derive from the executed producer loops with checked dimensions. A scale step pays three interval multiplication scratch arrays and one division scratch array (18 doubles); each scalar coefficient product pays its four-double scratch array. The producer reuses immutable axis and U-contraction buffers rather than paying for full mixed Taylor and ten derivative tensors. All common native cells receive their initial paid residual hull check before adaptive refinement. Only initially unresolved hulls receive a paid center lower-bound witness; any definite excess rejects immediately. The remaining unresolved residual nets retain their exact chart and widths in one cumulatively paid global stack, after charging record payload and conservative COW/backing growth before append. Refinement begins only after this complete initial pass, so depth-first threshold-boundary subdivision in an early native cell cannot starve a later already-accessible definite-excess witness. Initial hulls are not recomputed; each popped unresolved cell is subdivided and its children receive their own paid hull/witness admission. Every native cell must satisfy the position bound; definite excess is toleranceRejected, while unresolved arithmetic, scalar/work/cell exhaustion or representable subdivision is a typed resource failure. Cancellation is checked at preparation, contraction, traversal and publication. Defaults, the requested precision and source chart are unchanged.
+The same direct execution and its active conversion scope continue into PolynomialSurfacePositionDifferenceNet; no counter snapshot becomes a spendable allowance. The same caller limits own axis records and capacity, retained interval fields, basis row-owner buffers and returned net payloads, basis scratch, interval multiplication/division scratch, contraction arrays, difference arrays and cell-stack storage. Charges precede each allocation or traversal and derive from the executed producer loops with checked dimensions. A scale step pays three interval multiplication scratch arrays and one division scratch array (18 doubles); each scalar coefficient product pays its four-double scratch array. The producer reuses immutable axis and U-contraction buffers rather than paying for full mixed Taylor and ten derivative tensors. All common native cells receive their initial paid residual hull check before adaptive refinement. Only initially unresolved hulls receive a paid center lower-bound witness; any definite excess rejects immediately. The remaining unresolved residual nets retain their exact chart and widths in one cumulatively paid global stack, after charging record payload and conservative COW/backing growth before append. Refinement begins only after this complete initial pass, so depth-first threshold-boundary subdivision in an early native cell cannot starve a later already-accessible definite-excess witness. Initial hulls are not recomputed; each popped unresolved cell is subdivided and its children receive their own paid hull/witness admission. Every native cell must satisfy the position bound; definite excess is toleranceRejected, while unresolved arithmetic, scalar/work/cell exhaustion or representable subdivision is a typed resource failure. Cancellation is checked at preparation, contraction, traversal and publication. Defaults, the requested precision and source chart are unchanged.
 
 Independent two-span quadratic-by-linear source and separately authored 128-by-2-span cubic candidate controls use analytical B-spline polynomial coefficients, with a known constant 2e-9 difference. The dedicated owner tests exercise original/asymmetric charts, common positive nonunit weights, a known interior bump, exact reported allowance boundaries and cancellation. Changes to the shared residual net also require the existing continuation lower-owner regression; the unchanged public zero-extension multi-span Rebuild test requires actual relink and runtime verification before upper completion.
 
@@ -352,7 +352,7 @@ Native Swift6.4.0 verification: [NativePolynomialSurfacePositionCertificationTes
 
 Source admission precedes consumer fitting. The geometry owner provides an immutable prepared continuation request retaining the exact original source, requested rectangle, distance, tolerance, caller limits and paid admission usage. Preparation validates and charges the original source family before the consumer constructs a candidate. Certification accepts this receipt and the actual candidate, resumes the same cumulative budget and publishes only the existing complete certificate. The direct source/candidate operation composes preparation and receipt certification; it must not reset or repeat admission charges. Unsupported varying-weight and periodic sources therefore reach typed refusal without entering adaptive fitting. This request contains no shared mutable state or foreign source substitution.
 
-The protocol requirements are prepareContinuationRequest(source:over:maximumPositionError:limits:tolerance:) and certifyContinuationPosition(preparedRequest:candidate:), alongside the direct source/candidate requirement. PreparedPolynomialSurfaceContinuationPositionRequest has no public initializer and exposes only immutable source, parameters, maximumPositionError, limits, tolerance, admittedScalarCount, admittedWorkUnits and admittedBoxCount. It retains the complete original value through native COW storage; subsequent mutation of the caller's own surface cannot change the receipt. Its producer reserves the concrete receipt payload before construction, including array-owner words without copying original coefficient buffers. Candidate certification copies its paid counters into an invocation-local budget with the same limits, admits only the new candidate, and retains all existing original-law and strict candidate-chart guarantees. Copying or reusing a receipt starts another certification against the same immutable admitted source with the same paid prefix; it does not mutate shared counters or permit any operation to spend a fresh allowance. Receipt creation and certification each check cancellation before publication.
+The protocol requirements are prepareContinuationRequest(source:over:maximumPositionError:limits:tolerance:) and certifyContinuationPosition(preparedRequest:candidate:), alongside the direct source/candidate requirement. PreparedPolynomialSurfaceContinuationPositionRequest has no public initializer and exposes only immutable source, parameters, maximumPositionError, limits, tolerance, admittedScalarCount, admittedWorkUnits and admittedBoxCount. It retains the complete original value through native COW storage; subsequent mutation of the caller's own surface cannot change the receipt. Its producer reserves the concrete receipt payload before construction, including array-owner words without copying original coefficient buffers. Candidate certification readmits the immutable preparation receipt through its supplied execution, admits the new candidate, and retains the original-law and strict candidate-chart guarantees. Receipt reuse shares the retained cumulative budget for ordinary queries; an explicit independent execution verifies the actual preparation metadata without reconstructing decomposition or historical work. Receipt creation and certification each check cancellation before publication.
 
 ```text
 original source + request + limits
@@ -367,7 +367,7 @@ For single-Bezier source/candidate pairs, GeometryPolynomialSurfaceContinuationP
 
 The owner transforms both original polynomial coefficient tensors onto the identical requested native rectangle using outward arithmetic on exact stored coordinates, knots and rectangle endpoints. Each affine ratio is formed from outward differences of original endpoints. Tensor blossom/de Casteljau evaluation with the required lower/upper affine parameters retains the original polynomial even when source parameters lie outside [0,1]. Original-derived interval Bernstein degree elevation then places both tensors on one common U/V degree; public Double collocation elevation and rounded replacement Cartesian source nets are not proof authority. Subtract corresponding two-dimensional coefficients on the shared basis before taking norms, retaining parameter correlation. The complete coefficient convex hull encloses the position difference over every closed requested cell. Only a finite outward Euclidean norm upper bound at or below the request admits a cell. A paid original difference-net anchor norm lower bound strictly above the request establishes toleranceRejected; a large hull alone does not. Unresolved precision or exhaustion is explicit resource failure. If subdivision is required, it subdivides this same original-derived difference tensor, retains all cells and charges the caller's same limits without increasing defaults. No source sample, chart clipping, endpoint equality, tolerance relaxation or new fallback budget authorizes publication.
 
-Original validation/weight/clamping/control/knot scans, checked tensor dimensions and arithmetic, affine normalization, every executed blossom level/output, elevation level, difference tensor, norm/anchor/subdivision work and cumulative storage/stack reservations are charged before execution or allocation by a local invocation budget. Original immutable input ownership and cancellation at entrance, each producer phase/traversal boundary and before publication are retained. Arithmetic overflow/nonfinite output, unsupported input, definite excess, precision/resource exhaustion and cancellation remain distinct failures. The independent lower oracle is the literal arch S(u,v)=(.02*u,.02*v,.02*u*(1-u)) continued to [-.25,1.25]x[0,1], compared against independently authored higher-degree candidate coefficients under unchanged standard limits. Tests must also cover a genuinely displaced candidate's definite rejection, asymmetric/nonunit native charts and equal nonunit weights, unsupported families, exact cost-boundary refusal, immutable inputs and cancellation. Consumer publication and the unchanged original anExtendedSheetReachesPastItsEdgesAndKeepsThem/nominal-trim public oracles remain separately owned after lower evidence passes. Full G6 and portable target evidence remain open.
+Original validation/weight/clamping/control/knot scans, checked tensor dimensions and arithmetic, affine normalization, every executed blossom level/output, elevation level, difference tensor, norm/anchor/subdivision work and cumulative storage/stack reservations are charged before execution or allocation through the active local scope of the same execution. Original immutable input ownership and cancellation at entrance, each producer phase/traversal boundary and before publication are retained. Arithmetic overflow/nonfinite output, unsupported input, definite excess, precision/resource exhaustion and cancellation remain distinct failures. The independent lower oracle is the literal arch S(u,v)=(.02*u,.02*v,.02*u*(1-u)) continued to [-.25,1.25]x[0,1], compared against independently authored higher-degree candidate coefficients under unchanged standard limits. Tests must also cover a genuinely displaced candidate's definite rejection, asymmetric/nonunit native charts and equal nonunit weights, unsupported families, exact cost-boundary refusal, immutable inputs and cancellation. Consumer publication and the unchanged original anExtendedSheetReachesPastItsEdgesAndKeepsThem/nominal-trim public oracles remain separately owned after lower evidence passes. Full G6 and portable target evidence remain open.
 
 Native lower verification: all14 declarations/16 cases pass on the frozen Swift6.4.0 source, including original polynomial continuation, independent candidate excess, strict candidate support, source-family admission before fitting, immutable COW source ownership, exact direct/prepared budget equality, paid-prefix reset refusal and cancellation after preparation. This completes the lower contract only; public Rebuild composition, the existing contained multi-span resource counterexample and portable integration remain separate task owners. The tests are [PolynomialSurfaceContinuationPositionCertificationTests](../../../Tests/CADGeometryTests/PolynomialSurfaceContinuationPositionCertificationTests.swift).
 
@@ -375,7 +375,7 @@ Native lower verification: all14 declarations/16 cases pass on the frozen Swift6
 
 The continuation position owner additionally admits exact-clamped, nonperiodic, finite multi-span tensors with exactly common positive stored weights. Original validation retains internal C0 continuity. Each actual positive native span owns its original polynomial; outside the support, the first or last positive span continues independently on each axis. This is the same end-span law consumed by `BSplineSurfaceNaturalContinuation`, not a new global polynomial through all controls. Candidate tensors obey the same family admission and must contain the entire requested native rectangle. Single-Bezier pairs retain the preceding proof path. No position proof depends on tangent or normal regularity.
 
-A producer-only `PreparedPolynomialSurfaceContinuationLaw` retains immutable actual native axis records in the paid source receipt. Original coefficient buffers remain COW-owned by the receipt source. The producer validates clamping, common weights, dimensions and the complete source before fitting. Candidate certification resumes every paid counter and charges only its additional candidate/coverage/extraction work. Source and candidate original positive spans and candidate knot boundaries form finite common cells; every closed cell is retained, including both internal knot sides. Outside-domain cells select end polynomials without clipping, epsilon shifts or selected-native queries outside their authority.
+A producer-only `PreparedPolynomialSurfaceContinuationLaw` retains immutable actual native axis records in the paid source receipt. Original coefficient buffers remain COW-owned by the receipt source. The producer validates clamping, common weights, dimensions and the complete source before fitting. Candidate certification consumes the same execution and charges only its actual candidate, coverage and extraction work; retained counters are observation metadata. Source and candidate original positive spans and candidate knot boundaries form finite common cells; every closed cell is retained, including both internal knot sides. Outside-domain cells select end polynomials without clipping, epsilon shifts or selected-native queries outside their authority.
 
 The unchanged native polynomial preparation extracts each source polynomial on its actual native rectangle using original basis derivatives and Cartesian controls relative to one common source origin. The owner transforms that original-derived interval Bernstein tensor to the requested cell by outward affine ratios and blossom, including ratios outside [0,1]. Candidate coefficients are extracted directly on the same cell. Both use one common U/V degree, then coefficient subtraction precedes a complete residual hull bound. No rounded replacement surface, source samples or fit residual authorize success. Initial cells each receive one paid hull and, only if unresolved, a paid center lower-bound witness before entering the shared pending stack. Only unresolved residual tensors are refined, without repeating their admitted parent probes. All initial and refined cells must be discharged before publication.
 
@@ -894,7 +894,7 @@ Original native curve coefficient preparation forwards the composing callback in
 
 Bounded original 2D continuation admission prepares its original endpoint-span coefficients once, evaluates the complete normalized closed range with the exact endpoint-difference interval, and checks the whole UV value enclosure against closed support domains. Every original preparation and continuation coefficient visit shares the composing callback. Numerical UV representatives do not authorize support containment.
 
-Original homogeneous coefficient allocation accepts a byte callback distinct from work/depth admission. Each concrete native coefficient, row-owner, derivative-net and prepared-span buffer reserves checked count times stride immediately before its allocation or COW materialization. Legacy nil callbacks preserve historical accounting. Bounded consumers forward the same callback through descendant preparations; no guessed total preparation estimate replaces actual loops or allocations.
+Original homogeneous coefficient allocation accepts the same direct scalar execution for bytes and work. Each concrete native coefficient, row-owner, derivative-net and prepared-span buffer reserves checked count times stride immediately before its allocation or COW materialization. Allocation failures propagate through that execution. Consumers pass the same execution through descendant preparations; no guessed total preparation estimate replaces actual loops or allocations.
 
 Selected original surface-span queries accept the same caller work callback.
 They issue a source-bound homogeneous coefficient receipt and evaluate genuine
@@ -956,57 +956,8 @@ with admitted parameter visits, bounded source construction stations and fresh
 continuous certification under the unchanged admission. The borrowed station
 array is never copied into an independent construction allowance.
 
-Final trimmed/reversed construction candidates receive a new complete comparison
-against the retained original source. Earlier construction guarantees do not
-transfer to a changed candidate. `CallerAdmittedGeometryConverting` refines the
-legacy converter with explicit immutable `GeometryConversionAdmission`; legacy
-custom conformers remain source compatible. Bounded source operations are
-protocol requirements so Native, WASM and Embedded existential dispatch shares
-the same witness contract.
+Final trimmed/reversed construction candidates receive a complete comparison against the retained original source. Earlier guarantees do not transfer to a changed candidate. `CallerAdmittedGeometryConverting` and the source protocols expose direct execution requirements for existential dispatch on every target. The [Direct Conversion Execution](#direct-conversion-execution) section owns execution lifetime, local attribution and prepared evidence reuse.
 
-The admission retains one caller work-unit and byte callback, original source
-and subdivision depths and span ceiling. An optional independent algebra-depth
-ceiling is either absent (preserving immutable construction authority) or lies
-in `0...32`; supplied values constrain source word/root admission without
-reusing or widening either source-tree or subdivision depth. Each final certificate retains the
-existing requirements' local ceilings in addition to the cumulative caller
-allowance. Neither callback is replaced during candidate validation, target
-preparation, continuous probes, refinement or publication. A copied admission
-retains its immutable invocation identity. Paid Native preparation rejects a
-query from a different admission owner even when its tolerance or limits look
-equal; another ledger cannot inherit preparation charges or source capability.
-The identity carries no mutable state and has the same ownership on all targets. Native target degree
-is compared to the caller's configured maximum; cubic candidate construction
-policy cannot reject a higher-degree authored final candidate by declaration.
-
-```text
-retained original source + final candidate + same caller admission
-    -> bounded original source/target validation and preparation
-    -> complete D0/D1/D2 comparison on each closed source interval
-    -> same-ledger refinement -> measured position/tangent/curvature guarantee
-```
-
-Actual target/query owners admit allocated coefficient buffers in bytes. Legacy
-scalar cost estimates remain separate intrinsic limits and do not certify
-actual byte coverage. The certificate DFS admits its own concrete stack records
-before allocation; each split tracks and checks the caller subdivision depth.
-A bounded source lacking its actual allocation/work port fails explicitly rather
-than forwarding to an opaque legacy enclosure. After the all-source gate,
-verify changed final candidate rejection, high-degree native candidates,
-source/candidate mutation, exact existing thresholds and one-less cumulative
-work/storage/depth refusal through the public bounded entry.
-
-`certifyCurveCorrespondence` compares two original `GeometryCurveConversionSource`
-laws on the same declared chart using this complete D0/D1/D2 certifier. Both
-providers must supply actual caller-admitted validation and enclosure witnesses;
-neither inherits a fitted candidate's guarantee. No generated native target is
-present, so native degree/control-net cost inspection does not apply. Both source
-owners account for their actual preparation/query work and bytes, while the
-certifier retains its existing local proof limits and concrete stack admission.
-Custom bounded converters retain source compatibility through an explicit
-unsupported default requirement witness, never a legacy query fallback.
-
-Surface candidates use the existing Greville tensor interpolation algorithm with
 explicit admission at knot, abscissa, sample, control-net, collocation factor and
 solve buffers. Candidate basis evaluation owns its scratch and forwards work in
 its recurrences and elimination loops. Quarter-grid checks are construction
@@ -1022,17 +973,14 @@ Bounded validation and enclosure are protocol witnesses, including for
 existential/Embedded dispatch. Queries reuse the paid preparation and forward
 its caller span/source/subdivision limits, work units and bytes to closed native
 jets. Their union encloses separate one-sided fields and does not prove generic
-implicit, offset or lifted join continuity. Legacy prepared sources cannot claim
-paid bounded preparation retroactively; they require the bounded constructor.
+implicit, offset or lifted join continuity. Ordinary and explicit constructors both perform paid direct preparation and retain its evidence.
 Singleton queries use original closed positions and derivatives without an
 artificial epsilon interval. Unknown lower byte/family authority propagates a
 typed failure.
 
 ### Caller-Admitted Original Surface Sources
 
-The surface source protocol publishes bounded validation, numeric point proposal and whole differential enclosure requirements using GeometryConversionAdmission. Native sources retain one paid PreparedSurface token after source validation with the caller's independent algebra/source/subdivision capabilities; every query forwards the same work and BYTE callbacks. Point proposals use original closed singleton position bounds, while whole surface certification consumes complete differential enclosures. Legacy conformers without bounded source witnesses fail explicitly. Native bounded preparation does not substitute the rounded polynomial ruled candidate for original support authority.
-
-Bounded Native curve and surface source preparations retain the exact GeometryConversionAdmission invocation owner. Every bounded validation/query requires that same owner and preparation tolerance; copying the admission preserves it, while a separately initialized or tighter unrelated admission cannot borrow previously unpaid preparation. Legacy preparations have no bounded invocation witness.
+The surface protocol publishes direct validation, point proposal and complete differential enclosure requirements. Native sources retain paid preparation and its immutable receipt. Each query borrows the supplied execution; ordinary query conveniences use the retained cumulative owner. An explicitly independent execution readmits preparation evidence rather than replaying its decomposition. Point proposals use original closed singleton bounds; whole certification consumes complete differential enclosures. Unsupported source witnesses fail explicitly.
 
 NativeCurveConversionSource exposes an invocation-bound original owning parameter
 cover for drawing chord construction. Direct native knots and parameter-preserving
@@ -1057,3 +1005,112 @@ with the same work, optional bytes and independent source/spatial/algebra
 policies. No legacy private source enclosure participates in this constructor.
 The number of native owners is bounded by the original control count; explicit
 caller query limits remain authoritative for subsequent queries.
+
+## Direct Conversion Execution
+
+All admitted source, construction and continuous certification entries receive
+`inout OriginalQueryExecution` directly. Ordinary convenience entries create
+one explicit execution from their requirements, then invoke that same path.
+Prepared native adapters retain immutable source evidence, tolerance, policy
+and the cumulative budget identity; they retain neither work callbacks nor
+query-local proof scopes. Queries borrow the caller execution directly.
+
+```text
+requirements + source chart -> exclusive execution
+  -> original source preparation -> candidate -> complete-domain admission
+  -> one cumulative work/byte owner; local proof/count scopes
+```
+
+`maximumWorkUnits` constrains attributed actual work during the conversion
+scope. Scope entry records the execution's local work observation, and every
+actual debit both checks that difference and charges the sole cumulative budget.
+The scope owns no spendable credits, independent budget, reset or refund.
+`maximumScalarCount` and `maximumCertificationBoxes` are distinct local counts;
+controls, candidates, source depth and geometric depth preserve their existing
+meanings. Parallel executions may share the cumulative owner while retaining
+independent attribution and proof scopes. Failure closes scopes without callback
+or allocation and propagates the original failure.
+
+Source evaluation, source validation and retained differential preparation
+propagate the same execution instead of rebuilding callback-based numeric
+admissions. Conversion changes no source coefficient or proximity semantics.
+Explicit independent later queries readmit immutable evidence with their own
+execution. Cancellation is observed through final source callback publication.
+Behavioral verification must cover actual plain and admitted callers, scoped
+work/scalar/box N/N-1 limits, cumulative prepared reuse and terminal cancellation;
+parsing or type existence cannot establish this migration's completion.
+
+Prepared native curve storage exposes a package-only immutable COW view of its
+original nonperiodic coefficient spans for RootSpan's direct native guard path.
+The request owner still verifies complete closed coverage and native parameter
+correspondence. Periodic and other storage return no such view; absence of this
+capability is not geometric absence. The view retains the original span array
+and permits no source mutation, extraction or coefficient replacement.
+
+### Direct Position Certificate Accounting
+
+Native, analytic and polynomial continuation position certificates borrow the
+same execution through original coefficient preparation, candidate comparison
+and complete-domain traversal. Their existing position limits are attributed
+work/scalar/box scopes; no certificate budget is copied or adopted. Static
+dimension arithmetic remains pure and owns no counters. Every certificate
+reports the active scope's observed work, scalar slots and certification boxes;
+source algebraic cell visits do not become certificate-box counts.
+
+A prepared continuation request retains its immutable original law, source,
+parameter rectangle, tolerance, preparation depth receipt and cumulative budget
+owner. Historical preparation observations are evidence metadata, never new
+spendable credits. Later queries use exclusive scopes and the same retained
+budget, or explicitly readmit immutable evidence under an independent execution.
+Numeric owners debit their actual work and bytes. Native cost inspection retains
+its structural scalar-slot reservations and charges its own inspections; it
+does not charge native work again after the native implementation has admitted it.
+Existing position laws, original coefficients and complete coverage rules remain
+unchanged. Verification includes direct native/analytic/continuation callers,
+prepared cumulative reuse, independent readers and resource/cancellation failure.
+
+The receipt owner is [Original Geometry Source Validation](../OriginalGeometrySourceValidation/DESIGN.md#immutable-preparation-evidence). Native conversion adapters and high-level prepared enclosers share that contract. Historical scalar/work counts in the preceding verification records describe their recorded source revisions; U1 changes require fresh direct-execution behavioral verification and do not inherit those cost-boundary results.
+
+[Direct execution behavioral tests](../../../Tests/CADGeometryTests/GeometryConversionDirectExecutionTests.swift) own complete analytical-line conversion at the observed cumulative work boundary and one below, failed local-scope cleanup, and independent prepared readmission using operation-local actual source depth. Their runtime evidence remains pending until the direct lower API graph compiles.
+
+Native target cost inspection retains its structural scalar-slot ceiling while actual direct native owners charge numeric work and typed allocations. The former slot-times-32/8 opaque work proxy is removed to avoid charging the same executed math twice. Historical counter values therefore require new measurements; ceilings are not raised to conceal the change. Scalar interval product/division use fixed fields and receive no heap-scratch byte fee.
+
+Convenience preparation and query entries derive local source/span/subdivision
+ceilings from `execution.effectiveLimits`, including every active selected
+contribution. The immutable receipt captures those effective limits and active
+contributions; the root allowance is not substituted for a narrower active
+caller policy. A two-native-span query under a one-span contribution falsifies
+incorrect propagation; leaving that scope restores the outer policy.
+
+Certification stacks reserve one initial cell and charge checked full replacement
+capacity immediately before actual child growth. An unlimited depth policy is
+not an allocation request. Retained ordinary derivative/arc readers recreate a
+query-local execution through the original immutable preparation receipt, keeping
+the same cumulative budget and selected contribution handles.
+
+### Native knot-product enumeration cells
+
+`BSplineSurfaceBezierDecomposer.resolvedSurfacePatches` enumerates the fixed
+Cartesian product of original U/V knot intervals. Each visited pair admits one
+common scalar cell at local value depth zero before any patch calculation. This
+keeps the caller's cumulative cell ceiling and existing inherited scalar depth;
+it creates no new value/coefficient depth. Enumeration does not recurse through
+geometric subdivision and does not apply a geometric subdivision offset. Actual
+adaptive conversion/subdivision owners separately admit their geometric depth.
+
+
+### Prepared Curve Family Frame Boundary
+
+PreparedCurveDifferentialEncloser keeps its existing preparation scope and
+receipt capture. Its private non-inlined storage dispatcher performs the same
+entry cancellation/work/tolerance/depth checks and original source validation
+before selecting native, lifted or other family storage. Non-inlined family
+helpers contain only the existing bodies, so unrelated family scratch is not
+live during native/lift validation or preparation. All descendants borrow the
+same execution and keep their original depth, work, storage and failure order;
+no validation is skipped and no fresh allowance or new source capability is
+introduced. The owning source-validation contract and concrete caller
+counterexample are in [Original geometry source validation](../OriginalGeometrySourceValidation/DESIGN.md).
+The actual fixed-toolchain caller/frame and unchanged public G01 controls must
+pass before this stack finding is closed; no stack-cap or product-actor change
+substitutes for those checks.

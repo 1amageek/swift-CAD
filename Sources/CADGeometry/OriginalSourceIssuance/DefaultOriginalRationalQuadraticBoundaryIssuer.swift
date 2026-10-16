@@ -15,7 +15,7 @@ public struct DefaultOriginalRationalQuadraticBoundaryIssuer<S: OriginalBSplineS
         throws(OriginalSourceIssuanceFailure) -> OriginalRationalQuadraticBoundaryReceipt<S,F> {
         let source=copy source,f=copy field
         do {
-            return try OriginalSourceProofAdmission<A>.withBorrow(&admission) { a in
+            return try admission.withProofScope { a in
                 try a.checkpoint()
                 guard source.sourceDepth >= 0 else { throw OriginalSourceIssuanceFailure.invalidSource }
                 guard source.sourceDepth <= limits.remainingSourceDepth else { throw OriginalSourceIssuanceFailure.sourceDepthLimit }

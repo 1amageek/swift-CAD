@@ -195,8 +195,8 @@ this source composition is incomplete even when a restricted forward image works
 ### Flat Original Placement Action
 
 AssemblyPlacementWord.originalOperationWord receives the explicit evaluation
-tolerance and min(32, caller maximumDepth), and uses AssemblyOriginalAlgebraAdmission
-backed by the invocation's existing Mutex-owned usage. Rational/algebraic work
+tolerance and min(32, caller maximumDepth), and borrows the invocation's
+OriginalQueryExecution under its retained contribution. Rational/algebraic work
 and exact root visits share that owner; retained UInt32 limbs are charged as
 checked bytes to its original work/storage envelope before allocation. One
 immutable operation word is prepared per occurrence and reused across its source
@@ -205,8 +205,29 @@ source; no rounded inverse/composition or reset allowance is introduced.
 Topology owns original curve/surface image publication and orientation transport,
 with word length independent of the child-source min(16, caller depth) cap.
 
-Original word preparation and its exact-cell visit adapter consume the explicit
+Original word preparation and exact-cell visits consume the explicit
 AssemblyResourceLimits.maximumAlgebraicDepth, independent from structural
-maximumDepth and bounded curve subdivision. The same AssemblyEvaluationUsage
-owner admits exact work/storage and ordinary geometry visits; separating the
+maximumDepth and bounded curve subdivision. The same OriginalQueryExecution
+and contribution admit exact work/storage and geometry visits; separating the
 depth authorities neither resets counters nor enlarges any numeric ceiling.
+
+## Canonical placement caller admission
+
+The existing ordinary AssemblyEvaluator entry creates one OriginalQueryExecution
+with the selected assembly work/source/scalar limits. Expansion, exact placement
+words, validated BRep preparation and shape transformation borrow that execution.
+The removed RationalAlgebraAdmitting adapter and its duplicate cumulative usage
+owner are not reconstructed. Existing extraction/count/namespace algorithms and
+independent topology/depth guards remain unchanged. This caller rebinding does
+not change document evaluation or establish independent assembly runtime acceptance.
+
+Assembly namespace rebinding borrows the invocation execution for every existing
+source-table and internal-reference visit. Deterministic ID allocation, ordering
+and retained geometry are unchanged; the ordinary reidentifier roots once and
+delegates to that same body. This is the concrete caller dependency of assembly
+composition, not a new imported-feature algorithm.
+
+The direct assembly entry intersects the same declared AssemblyResourceLimits
+with its incoming execution using one immutable contribution. Nested product
+consistency evaluation consumes the same owner and keeps the original assembly
+expansion, namespace, placement and validation algorithms.

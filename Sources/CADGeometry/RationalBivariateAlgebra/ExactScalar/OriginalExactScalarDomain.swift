@@ -36,7 +36,7 @@ public struct OriginalExactScalarDomain: ExactScalarArithmetic, ExactScalarOrder
             try RationalAlgebraStorage.retain(count, of: OriginalSingularFieldElement.self, usage: &usage)
             var coefficients: [OriginalSingularFieldElement] = []; coefficients.reserveCapacity(count)
             for index in 0..<count {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 let coefficient = root.polynomial.coefficients[try .init(u: index, v: 0)] ?? .zero
                 coefficients.append(try .constant(coefficient, in: parent,
                     maximumDepth: maximumValueDepth, usage: &usage))
@@ -113,14 +113,21 @@ public struct OriginalExactScalarDomain: ExactScalarArithmetic, ExactScalarOrder
     }
     public func importing<A: ExactScalarAdmission & ~Copyable>(_ source: borrowing Source, using admission: inout A) throws(ExactScalarFailure) -> Value {
         let depth = mergedDepth(source.depth)
+        if source.original.context === context {
+            try admission.checkpoint()
+            try Self.validateDepth(depth, valueLimit: maximumValueDepth, coefficientLimit: maximumCoefficientDepth)
+            try admission.admitDepth(value: depth.value, coefficient: depth.coefficient)
+            try admission.consumeWork(1)
+            try admission.checkpoint()
+            return Value(original: source.original, depth: depth)
+        }
         return try operation(depth: depth, using: &admission) { usage in
-            if source.original.context === context { return source.original }
             if let constant = try source.original.rationalValue(usage: &usage) {
                 return try .constant(constant, in: context, maximumDepth: maximumValueDepth, usage: &usage)
             }
             var candidate: OriginalSingularFieldContext? = context
             while let owner = candidate {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 if owner === source.original.context {
                     return try source.original.embedded(in: context, maximumDepth: maximumValueDepth, usage: &usage)
                 }
@@ -179,17 +186,17 @@ public struct OriginalExactScalarDomain: ExactScalarArithmetic, ExactScalarOrder
     }
 
     private func operation<A: ExactScalarAdmission & ~Copyable>(depth: ExactScalarDepth? = nil, using admission: inout A,
-        _ body: (inout ExactScalarRationalAdmission<A>) throws -> OriginalSingularFieldElement) throws(ExactScalarFailure) -> Value {
+        _ body: (inout A) throws -> OriginalSingularFieldElement) throws(ExactScalarFailure) -> Value {
         let inherited = depth ?? originalDepth
         let result = try decisionResult(depth: inherited, using: &admission, body)
         return Value(original: result.value, depth: result.depth)
     }
     private func decision<A: ExactScalarAdmission & ~Copyable, R>(depth: ExactScalarDepth, using admission: inout A,
-        _ body: (inout ExactScalarRationalAdmission<A>) throws -> R) throws(ExactScalarFailure) -> R {
+        _ body: (inout A) throws -> R) throws(ExactScalarFailure) -> R {
         try decisionResult(depth: depth, using: &admission, body).value
     }
     private func decisionResult<A: ExactScalarAdmission & ~Copyable, R>(depth: ExactScalarDepth, using admission: inout A,
-        _ body: (inout ExactScalarRationalAdmission<A>) throws -> R) throws(ExactScalarFailure) -> (value: R, depth: ExactScalarDepth) {
+        _ body: (inout A) throws -> R) throws(ExactScalarFailure) -> (value: R, depth: ExactScalarDepth) {
         try admission.checkpoint()
         try Self.validateDepth(depth, valueLimit: maximumValueDepth, coefficientLimit: maximumCoefficientDepth)
         return try ExactScalarNumericAccess.withAdmission(&admission, original: originalDepth, inherited: depth,

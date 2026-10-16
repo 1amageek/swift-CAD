@@ -12,48 +12,44 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
   FaceParameterContainmentSessionPreparing
 {
   private let maximumSubdivisionDepth: Int
-  private let consumeWork: (@Sendable (Int) throws -> Void)?
-  private let consumeStorage: (@Sendable (Int) throws -> Void)?
   private let remainingSourceDepth: Int
   private let maximumAlgebraicDepth: Int
 
   public init(
     maximumSubdivisionDepth: Int = 48,
-    consumeWork: (@Sendable (Int) throws -> Void)? = nil,
-    consumeStorage: (@Sendable (Int) throws -> Void)? = nil,
     remainingSourceDepth: Int = 16,
     maximumAlgebraicDepth: Int = 32
   ) {
     self.maximumSubdivisionDepth = maximumSubdivisionDepth
-    self.consumeWork = consumeWork
-    self.consumeStorage = consumeStorage
     self.remainingSourceDepth = remainingSourceDepth
     self.maximumAlgebraicDepth = maximumAlgebraicDepth
   }
 
   private func reserve<Value>(_ count: Int, in values: inout [Value],
-    tolerance: ModelingTolerance) throws {
-    try consume(0, tolerance: tolerance)
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+    try consume(0, tolerance: tolerance, using: &execution)
     let bytes = count.multipliedReportingOverflow(by: MemoryLayout<Value>.stride)
     guard count >= 0, !bytes.overflow else {
       throw KernelError(phase: .classification, code: .resourceLimitExceeded, tolerance: tolerance,
         message: "Original face preparation buffer byte count overflowed.")
     }
-    try consumeStorage?(bytes.partialValue)
+    try execution.retainStorage(bytes: bytes.partialValue)
     values.reserveCapacity(count)
   }
 
   private func reverseOriginalCurves(_ curves: inout [SurfaceParameterCurve],
-    lower: Int, upper: Int, tolerance: ModelingTolerance) throws {
+    lower: Int, upper: Int, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
     var first = lower, last = upper - 1
     while first < last {
-      try consume(0, tolerance: tolerance)
+      try consume(0, tolerance: tolerance, using: &execution)
       curves.swapAt(first, last)
       first += 1; last -= 1
     }
   }
 
-  private func consume(_ depth: Int, tolerance: ModelingTolerance) throws {
+  private func consume(_ depth: Int, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+    let maximumSubdivisionDepth = min(self.maximumSubdivisionDepth, execution.effectiveLimits.maximumSubdivisionDepth)
+    let remainingSourceDepth = min(16, self.remainingSourceDepth, execution.effectiveLimits.remainingSourceDepth)
     try Task.checkCancellation()
     guard maximumSubdivisionDepth >= 0, maximumSubdivisionDepth <= 48,
           remainingSourceDepth >= 0, (0...32).contains(maximumAlgebraicDepth) else {
@@ -64,95 +60,78 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
       throw KernelError(phase: .classification, code: .resourceLimitExceeded, tolerance: tolerance,
         message: "Finite face containment exhausted the caller's subdivision depth.")
     }
-    try consumeWork?(depth)
+    try execution.admitGeometricDepth(depth); try execution.consumeWork(1)
   }
 
-  public func contains(
-    _ point: Point3D,
-    on faceID: FaceID,
-    in model: BRepModel,
-    tolerance: ModelingTolerance
-  ) throws -> Bool {
-    var preparationCache = FacePointContainmentPreparationCache()
-    return try contains(
-      point,
-      on: faceID,
-      in: model,
-      preparationCache: &preparationCache,
-      tolerance: tolerance
-    )
+  public func contains(_ point: Point3D, on faceID: FaceID,
+    in model: BRepModel, tolerance: ModelingTolerance) throws -> Bool {
+    var execution = try OriginalQueryExecution.kernelOriginal()
+    return try contains(point, on: faceID, in: model, tolerance: tolerance, using: &execution)
   }
 
-  public func preparedContainmentSession(
-    for faceIDs: [FaceID],
-    in model: BRepModel,
-    tolerance: ModelingTolerance
-  ) throws -> (any FacePointContainmentSession)? {
-    try makeContainmentSession(for: faceIDs, in: model, tolerance: tolerance)
+  public func contains(_ point: Point3D, on faceID: FaceID,
+    in model: BRepModel, tolerance: ModelingTolerance,
+    using execution: inout OriginalQueryExecution) throws -> Bool {
+    do {
+    var cache = FacePointContainmentPreparationCache()
+    let tester = self
+    return try tester.contains(point, on: faceID, in: model,
+      preparationCache: &cache, tolerance: tolerance, using: &execution)
+
+    } catch { throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance) }
   }
 
   public func preparedContainmentSession(for faceIDs: [FaceID], in model: BRepModel,
-    tolerance: ModelingTolerance, maximumSubdivisionDepth: Int,
-    consumeWork: @escaping @Sendable (Int) throws -> Void
-  ) throws -> any FacePointContainmentSession {
-    try DefaultFacePointContainmentTester(maximumSubdivisionDepth: maximumSubdivisionDepth,
-      consumeWork: consumeWork).makeContainmentSession(for: faceIDs, in: model, tolerance: tolerance)
+    tolerance: ModelingTolerance) throws -> (any FacePointContainmentSession)? {
+    var execution = try OriginalQueryExecution.kernelOriginal()
+    return try preparedContainmentSession(for: faceIDs, in: model,
+      tolerance: tolerance, using: &execution)
   }
 
   public func preparedContainmentSession(for faceIDs: [FaceID], in model: BRepModel,
-    tolerance: ModelingTolerance, maximumSubdivisionDepth: Int,
-    remainingSourceDepth: Int, maximumAlgebraicDepth: Int,
-    consumeWork: @escaping @Sendable (Int) throws -> Void,
-    consumeStorage: (@Sendable (Int) throws -> Void)?
-  ) throws -> any FacePointContainmentSession {
-    try DefaultFacePointContainmentTester(maximumSubdivisionDepth: maximumSubdivisionDepth,
-      consumeWork: consumeWork, consumeStorage: consumeStorage,
-      remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth)
-      .makeContainmentSession(for: faceIDs, in: model, tolerance: tolerance)
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution)
+    throws -> any FacePointContainmentSession {
+    do {
+    return try makeContainmentSession(for: faceIDs, in: model,
+      tolerance: tolerance, using: &execution)
+
+    } catch { throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance) }
   }
 
-  func makeContainmentSession(
-    for faceIDs: [FaceID],
-    in model: BRepModel,
-    tolerance: ModelingTolerance
-  ) throws -> any FacePointContainmentSession {
-    try consume(0, tolerance: tolerance)
-    try tolerance.validate()
-    var preparedFaces: [FaceID: FacePointContainmentPreparationCache.PreparedFace] = [:]
-    for faceID in faceIDs where preparedFaces[faceID] == nil {
-      preparedFaces[faceID] = try prepare(
-        faceID: faceID,
-        model: model,
-        tolerance: tolerance
-      )
-    }
-    return Session(
-      tester: self,
-      preparedFaces: preparedFaces,
-      tolerance: tolerance
-    )
+
+
+  func makeContainmentSession(for faceIDs: [FaceID], in model: BRepModel,
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution)
+    throws -> any FacePointContainmentSession {
+    try makePreparedSession(for: faceIDs, in: model, tolerance: tolerance, using: &execution)
   }
 
-  func makeParameterContainmentSession(
-    for faceIDs: [FaceID],
-    in model: BRepModel,
-    tolerance: ModelingTolerance
-  ) throws -> any FaceParameterContainmentSession {
-    try consume(0, tolerance: tolerance)
-    try tolerance.validate()
-    var preparedFaces: [FaceID: FacePointContainmentPreparationCache.PreparedFace] = [:]
-    for faceID in faceIDs where preparedFaces[faceID] == nil {
-      preparedFaces[faceID] = try prepare(
-        faceID: faceID,
-        model: model,
-        tolerance: tolerance
-      )
+  func makeParameterContainmentSession(for faceIDs: [FaceID], in model: BRepModel,
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution)
+    throws -> any FaceParameterContainmentSession {
+    try makePreparedSession(for: faceIDs, in: model, tolerance: tolerance, using: &execution)
+  }
+
+  private func makePreparedSession(for faceIDs: [FaceID], in model: BRepModel,
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Session {
+    let prepared = try execution.withPreparationScope { execution in
+      try consume(0, tolerance: tolerance, using: &execution)
+      try tolerance.validate()
+      var faces: [FaceID: FacePointContainmentPreparationCache.PreparedFace] = [:]
+      for faceID in faceIDs where faces[faceID] == nil {
+        let face = try prepare(faceID: faceID, model: model,
+          tolerance: tolerance, using: &execution)
+        try OriginalParameterQueryStorage.set(face, for: faceID, in: &faces, using: &execution)
+      }
+      return faces
     }
-    return Session(
-      tester: self,
-      preparedFaces: preparedFaces,
-      tolerance: tolerance
-    )
+    try execution.retainStorage(bytes: MemoryLayout<Session.Payload>.stride
+      + 2 * MemoryLayout<UnsafeRawPointer>.stride)
+    let lifetime = try PreparedBooleanQueryLifetime.retain(depth: prepared.depth, using: &execution)
+    let payload = Session.Payload(tester: self, preparedFaces: prepared.result,
+      tolerance: tolerance, lifetime: lifetime)
+    try execution.checkpoint()
+    return Session(payload: payload)
   }
 
   func contains(
@@ -161,8 +140,8 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
     in model: BRepModel,
     preparationCache: inout FacePointContainmentPreparationCache,
     tolerance: ModelingTolerance
-  ) throws -> Bool {
-    try consume(0, tolerance: tolerance)
+  , using execution: inout OriginalQueryExecution) throws -> Bool {
+    try consume(0, tolerance: tolerance, using: &execution)
     try tolerance.validate()
     try point.validate()
     let preparedFace: FacePointContainmentPreparationCache.PreparedFace
@@ -173,46 +152,39 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
         faceID: faceID,
         model: model,
         tolerance: tolerance
-      )
-      preparationCache.faces[faceID] = preparedFace
+      , using: &execution)
+      try OriginalParameterQueryStorage.set(preparedFace, for: faceID,
+        in: &preparationCache.faces, using: &execution)
     }
     return try contains(
       point,
       on: preparedFace,
       tolerance: tolerance
-    )
+    , using: &execution)
   }
 
   func contains(
     _ point: Point3D,
     on preparedFace: FacePointContainmentPreparationCache.PreparedFace,
     tolerance: ModelingTolerance
-  ) throws -> Bool {
-    try consume(0, tolerance: tolerance)
-    // FIXME(INCOMPLETE_IMPLEMENTATION): Bounded point projection now forwards
-    // original threshold coverage and the caller ledger. Whole-query completion
-    // still requires original pcurve reconstruction/validation preparation to
-    // forward that same admission, followed by deferred behavioral verification.
+  , using execution: inout OriginalQueryExecution) throws -> Bool {
+    return try execution.withProofScope(maximum: .init(value: maximumAlgebraicDepth,
+      coefficient: maximumAlgebraicDepth)) { execution in
+    let maximumSubdivisionDepth = min(self.maximumSubdivisionDepth, execution.effectiveLimits.maximumSubdivisionDepth)
+    try consume(0, tolerance: tolerance, using: &execution)
     let result: SurfaceParameterProjectionResult
-    if let consumeWork {
-      guard let domain = preparedFace.parameterBounds else {
-        throw KernelError(phase: .classification, code: .invalidInput, tolerance: tolerance,
-          message: "Bounded face containment requires its complete original finite parameter extent.")
-      }
-      // FIXME(INCOMPLETE_IMPLEMENTATION): Selected byte preparation and winding
-      // forward the actual caller, but this model-space projection requirement
-      // still lacks optional bytes and independent source/algebra admission.
-      // A work-only closest-point receipt cannot authorize complete byte success.
-      guard consumeStorage == nil else {
-        throw KernelError(phase: .classification, code: .unsupportedCapability, tolerance: tolerance,
-          message: "Original finite-face projection lacks selected byte admission.")
-      }
+    if let domain = preparedFace.parameterBounds {
       result = try DefaultSurfaceParameterProjector().projectionResult(of: point,
-        on: preparedFace.surface, over: domain, options: SurfaceParameterProjectionOptions(),
-        tolerance: tolerance, maximumSubdivisionDepth: min(maximumSubdivisionDepth, 32),
-        consumeWork: consumeWork)
+        on: preparedFace.surface, over: domain,
+        options: SurfaceParameterProjectionOptions(), tolerance: tolerance,
+        maximumSubdivisionDepth: min(maximumSubdivisionDepth, 32),
+        remainingSourceDepth: min(16, remainingSourceDepth, execution.effectiveLimits.remainingSourceDepth),
+        maximumAlgebraicDepth: min(maximumAlgebraicDepth, execution.effectiveLimits.maximumValueDepth,
+          execution.effectiveLimits.maximumCoefficientDepth), using: &execution)
     } else {
-      result = try preparedFace.surface.parameterProjectionResult(of: point, tolerance: tolerance)
+      // Nil extent is issued only for untrimmed native plane/cylinder proximity.
+      result = try preparedFace.surface.parameterProjectionResult(of: point,
+        tolerance: tolerance, using: &execution)
     }
     switch result {
     case .projected(let projection):
@@ -220,11 +192,12 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
         SurfaceParameter(u: projection.u, v: projection.v),
         on: preparedFace,
         tolerance: tolerance
-      )
+      , using: &execution)
     case .outsideTolerance:
       return false
     }
-  }
+      }
+}
 
   func contains(
     _ parameter: SurfaceParameter,
@@ -232,8 +205,8 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
     in model: BRepModel,
     preparationCache: inout FacePointContainmentPreparationCache,
     tolerance: ModelingTolerance
-  ) throws -> Bool {
-    try consume(0, tolerance: tolerance)
+  , using execution: inout OriginalQueryExecution) throws -> Bool {
+    try consume(0, tolerance: tolerance, using: &execution)
     try tolerance.validate()
     try parameter.validate()
     let preparedFace: FacePointContainmentPreparationCache.PreparedFace
@@ -244,22 +217,26 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
         faceID: faceID,
         model: model,
         tolerance: tolerance
-      )
-      preparationCache.faces[faceID] = preparedFace
+      , using: &execution)
+      try OriginalParameterQueryStorage.set(preparedFace, for: faceID,
+        in: &preparationCache.faces, using: &execution)
     }
     return try contains(
       parameter,
       on: preparedFace,
       tolerance: tolerance
-    )
+    , using: &execution)
   }
 
   private func contains(
     _ parameter: SurfaceParameter,
     on preparedFace: FacePointContainmentPreparationCache.PreparedFace,
     tolerance: ModelingTolerance
-  ) throws -> Bool {
-    try consume(0, tolerance: tolerance)
+  , using execution: inout OriginalQueryExecution) throws -> Bool {
+    return try execution.withProofScope(maximum: .init(value: maximumAlgebraicDepth,
+      coefficient: maximumAlgebraicDepth)) { execution in
+    let maximumSubdivisionDepth = min(self.maximumSubdivisionDepth, execution.effectiveLimits.maximumSubdivisionDepth)
+    try consume(0, tolerance: tolerance, using: &execution)
     if preparedFace.loops.isEmpty {
       return try preparedFace.surface.uDomain.contains(
         parameter.u,
@@ -276,8 +253,10 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
     // loops' levels in the transverse coordinate.
     var windingULevels: [Double] = []
     var windingVLevels: [Double] = []
+    try reserve(preparedFace.loops.count, in: &windingULevels, tolerance: tolerance, using: &execution)
+    try reserve(preparedFace.loops.count, in: &windingVLevels, tolerance: tolerance, using: &execution)
     for loop in preparedFace.loops {
-      try consume(0, tolerance: tolerance)
+      try consume(0, tolerance: tolerance, using: &execution)
       if loop.uWinding != 0,
         loop.vWinding == 0,
         let level = loop.constantVLevel
@@ -298,11 +277,11 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
         let lowerLevel = windingVLevels.min(),
         let upperLevel = windingVLevels.max()
       {
-        let query = aligned(
+        let query = try aligned(
           projectionPoint,
           to: UV(u: 0.0, v: (lowerLevel + upperLevel) * 0.5),
           on: preparedFace.surface
-        )
+        , using: &execution)
         inside =
           inside
           && query.v >= lowerLevel - tolerance.angle
@@ -312,11 +291,11 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
         let lowerLevel = windingULevels.min(),
         let upperLevel = windingULevels.max()
       {
-        let query = aligned(
+        let query = try aligned(
           projectionPoint,
           to: UV(u: (lowerLevel + upperLevel) * 0.5, v: 0.0),
           on: preparedFace.surface
-        )
+        , using: &execution)
         inside =
           inside
           && query.u >= lowerLevel - tolerance.angle
@@ -326,31 +305,28 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
     }
     var insideOuter = false
     for loop in preparedFace.loops {
-      try consume(0, tolerance: tolerance)
-      let query = aligned(
+      try consume(0, tolerance: tolerance, using: &execution)
+      let query = try aligned(
         UV(u: parameter.u, v: parameter.v),
         to: loop.center,
         on: preparedFace.surface
-      )
+      , using: &execution)
       // A near-seam query has several periodic chart representatives
       // and only one of them lines up with the unrolled polygon, so
       // every in-extent representative votes and any inside verdict
       // wins; representatives beyond the polygon's parameter extent
       // can never be inside it.
       var classification = PlanarPointClassification.outside
-      for representative in periodicRepresentatives(
+      for representative in try periodicRepresentatives(
         of: query,
-        on: preparedFace.surface
+        on: preparedFace.surface, using: &execution
       ) {
         let candidate: PlanarPointClassification
         if let predicate = loop.certifiedPredicate {
-          candidate = try predicate.classify(
-            Point2D(x: representative.u, y: representative.v),
-            tolerance: tolerance,
-            consumeWork: { depth in try consume(depth, tolerance: tolerance) },
-            consumeStorage: consumeStorage,
-            maximumSubdivisionDepth: maximumSubdivisionDepth
-          )
+          candidate = try predicate.classify(Point2D(x: representative.u, y: representative.v),
+        tolerance: tolerance,
+        maximumSubdivisionDepth: maximumSubdivisionDepth,
+        using: &execution)
         } else {
           throw KernelError(
             phase: .classification,
@@ -384,14 +360,19 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
       }
     }
     return insideOuter
-  }
+      }
+}
 
   func prepare(
     faceID: FaceID,
     model: BRepModel,
     tolerance: ModelingTolerance
-  ) throws -> FacePointContainmentPreparationCache.PreparedFace {
-    try consume(0, tolerance: tolerance)
+  , using execution: inout OriginalQueryExecution) throws -> FacePointContainmentPreparationCache.PreparedFace {
+    return try execution.withProofScope(maximum: .init(value: maximumAlgebraicDepth,
+      coefficient: maximumAlgebraicDepth)) { execution in
+    let maximumSubdivisionDepth = min(self.maximumSubdivisionDepth, execution.effectiveLimits.maximumSubdivisionDepth)
+    let remainingSourceDepth = min(16, self.remainingSourceDepth, execution.effectiveLimits.remainingSourceDepth)
+    try consume(0, tolerance: tolerance, using: &execution)
     guard let face = model.faces[faceID],
       let surface = model.geometry.surfaces[face.surfaceID]
     else {
@@ -402,10 +383,32 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
         message: "Trimmed-face containment references missing face geometry."
       )
     }
+    try surface.validate(tolerance: tolerance, using: &execution)
+    let untrimmedPrimitive: Bool
+    switch surface {
+    case .plane, .cylinder, .analytic(.plane), .analytic(.cylinder):
+      untrimmedPrimitive = face.loops.isEmpty
+    default:
+      untrimmedPrimitive = false
+    }
+    if face.loops.isEmpty && !untrimmedPrimitive {
+      let unboundedU: Bool
+      let unboundedV: Bool
+      if case .unbounded = surface.uDomain { unboundedU = true } else { unboundedU = false }
+      if case .unbounded = surface.vDomain { unboundedV = true } else { unboundedV = false }
+      // FIXME(INCOMPLETE_IMPLEMENTATION): Nonprimitive untrimmed unbounded face
+      // containment has no original projection/threshold producer. Public and
+      // prepared callers must fail until that actual source capability exists.
+      guard !unboundedU && !unboundedV else {
+        execution.context = execution.context.at(stage: .domain)
+        throw KernelError(phase: .classification, code: .unsupportedCapability, tolerance: tolerance,
+          message: "Untrimmed unbounded nonprimitive faces require original membership coverage.")
+      }
+    }
     var regions: [FacePointContainmentPreparationCache.LoopRegion] = []
-    try reserve(face.loops.count, in: &regions, tolerance: tolerance)
+    try reserve(face.loops.count, in: &regions, tolerance: tolerance, using: &execution)
     for loopID in face.loops {
-      try consume(0, tolerance: tolerance)
+      try consume(0, tolerance: tolerance, using: &execution)
       guard let loop = model.loops[loopID] else {
         throw KernelError(
           phase: .topology,
@@ -422,20 +425,20 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
           surface: surface,
           model: model,
           tolerance: tolerance
-        )
+        , using: &execution)
         certification = try certifyLoop(
           loop,
           surface: surface,
           model: model,
           tolerance: tolerance
-        )
+        , using: &execution)
       } catch {
         let wrapped = KernelError.wrapping(
           error,
           phase: .classification,
           tolerance: tolerance
         )
-        throw KernelError(
+        let classification = KernelError(
           phase: wrapped.phase,
           code: wrapped.code,
           featureID: wrapped.featureID,
@@ -445,6 +448,7 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
           message:
             "Trimmed-face containment could not parameterize loop \(loopID) on face \(faceID): \(wrapped.message)"
         )
+        throw OriginalQueryFailure.contextualizing(error, classification: classification)
       }
       regions.append(FacePointContainmentPreparationCache.LoopRegion(
         role: loop.role,
@@ -459,27 +463,30 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
     return FacePointContainmentPreparationCache.PreparedFace(
       surface: surface,
       loops: regions,
-      parameterBounds: (consumeWork != nil || consumeStorage != nil)
-        ? try OriginalFaceParameterBounds.resolve(for: faceID, surface: surface, model: model,
-          tolerance: tolerance, maximumSubdivisionDepth: maximumSubdivisionDepth,
-          consumeWork: consumeWork, consumeStorage: consumeStorage,
-          remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth)
-        : nil
+      faceID: faceID, surfaceID: face.surfaceID,
+      parameterBounds: untrimmedPrimitive ? nil : try OriginalFaceParameterBounds.resolve(for: faceID,
+        surface: surface, model: model, tolerance: tolerance,
+        maximumSubdivisionDepth: maximumSubdivisionDepth,
+        remainingSourceDepth: remainingSourceDepth,
+        maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
     )
-  }
+      }
+}
 
   private func certifyLoop(
     _ loop: Loop,
     surface: Surface3D,
     model: BRepModel,
     tolerance: ModelingTolerance
-  ) throws -> LoopCertification {
+  , using execution: inout OriginalQueryExecution) throws -> LoopCertification {
+    let maximumSubdivisionDepth = min(self.maximumSubdivisionDepth, execution.effectiveLimits.maximumSubdivisionDepth)
+    let remainingSourceDepth = min(16, self.remainingSourceDepth, execution.effectiveLimits.remainingSourceDepth)
     let parameterTolerance = max(tolerance.distance, tolerance.angle)
-    let parameterTopology = SurfaceParameterTopology(surface: surface)
+    let parameterTopology = try SurfaceParameterTopology(surface: surface, using: &execution)
     var authoredCurves: [SurfaceParameterCurve] = []
-    try reserve(loop.coedges.count, in: &authoredCurves, tolerance: tolerance)
+    try reserve(loop.coedges.count, in: &authoredCurves, tolerance: tolerance, using: &execution)
     for coedge in loop.coedges {
-      try consume(0, tolerance: tolerance)
+      try consume(0, tolerance: tolerance, using: &execution)
       guard let edge = model.edges[coedge.edgeID],
         let spatialCurve = model.geometry.curves[edge.curveID]
       else {
@@ -517,17 +524,12 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
           endParameter: endParameter,
           on: surface,
           tolerance: tolerance
-        )
+        , using: &execution)
       }
-      if let consumeWork {
-        try parameterCurve.validate(on: surface, tolerance: tolerance,
-          remainingSourceDepth: remainingSourceDepth,
-          maximumSubdivisionDepth: maximumSubdivisionDepth,
-          consumeWork: consumeWork, consumeStorage: consumeStorage,
-          maximumAlgebraicDepth: maximumAlgebraicDepth)
-      } else {
-        try parameterCurve.validate(on: surface, tolerance: tolerance)
-      }
+      try parameterCurve.validate(on: surface, tolerance: tolerance,
+        remainingSourceDepth: remainingSourceDepth,
+        maximumSubdivisionDepth: maximumSubdivisionDepth,
+        maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
       authoredCurves.append(parameterCurve)
     }
     guard authoredCurves.isEmpty == false else {
@@ -539,15 +541,15 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
       )
     }
     if let singularStartIndex = try authoredCurves.firstIndex(where: { curve in
-      parameterTopology.isUSingular(
-        try curve.startParameter(tolerance: tolerance),
+      try parameterTopology.isUSingular(
+        try curve.startParameter(tolerance: tolerance, using: &execution),
         tolerance: tolerance
-      )
+      , using: &execution)
     }), singularStartIndex != authoredCurves.startIndex {
-      try reverseOriginalCurves(&authoredCurves, lower: 0, upper: singularStartIndex, tolerance: tolerance)
+      try reverseOriginalCurves(&authoredCurves, lower: 0, upper: singularStartIndex, tolerance: tolerance, using: &execution)
       try reverseOriginalCurves(&authoredCurves, lower: singularStartIndex,
-        upper: authoredCurves.count, tolerance: tolerance)
-      try reverseOriginalCurves(&authoredCurves, lower: 0, upper: authoredCurves.count, tolerance: tolerance)
+        upper: authoredCurves.count, tolerance: tolerance, using: &execution)
+      try reverseOriginalCurves(&authoredCurves, lower: 0, upper: authoredCurves.count, tolerance: tolerance, using: &execution)
     }
 
     var alignedCurves: [SurfaceParameterCurve] = []
@@ -557,25 +559,25 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
       throw KernelError(phase: .classification, code: .resourceLimitExceeded, tolerance: tolerance,
         message: "Original aligned chart capacity overflowed.")
     }
-    try reserve(capacity.partialValue, in: &alignedCurves, tolerance: tolerance)
+    try reserve(capacity.partialValue, in: &alignedCurves, tolerance: tolerance, using: &execution)
     var firstStart: SurfaceParameter?
     var previousEnd: SurfaceParameter?
     for parameterCurve in authoredCurves {
-      try consume(0, tolerance: tolerance)
-      let rawStart = try parameterCurve.startParameter(tolerance: tolerance)
+      try consume(0, tolerance: tolerance, using: &execution)
+      let rawStart = try parameterCurve.startParameter(tolerance: tolerance, using: &execution)
       let crossesUSingularity =
-        previousEnd.map {
-          parameterTopology.isUSingular($0, tolerance: tolerance)
-            && parameterTopology.isUSingular(rawStart, tolerance: tolerance)
+        try previousEnd.map {
+          try parameterTopology.isUSingular($0, tolerance: tolerance, using: &execution)
+            && parameterTopology.isUSingular(rawStart, tolerance: tolerance, using: &execution)
         } ?? false
       let alignedStart =
         crossesUSingularity
         ? UV(u: rawStart.u, v: rawStart.v)
-        : unwrapped(
+        : try unwrapped(
           UV(u: rawStart.u, v: rawStart.v),
           relativeTo: previousEnd.map { UV(u: $0.u, v: $0.v) },
           on: surface
-        )
+        , using: &execution)
       let uShift = alignedStart.u - rawStart.u
       let vShift = alignedStart.v - rawStart.v
       let alignedCurve: SurfaceParameterCurve
@@ -588,12 +590,12 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
           vShift: vShift
         )
       }
-      let start = try alignedCurve.startParameter(tolerance: tolerance)
+      let start = try alignedCurve.startParameter(tolerance: tolerance, using: &execution)
       if let previousEnd {
         let residual = hypot(start.u - previousEnd.u, start.v - previousEnd.v)
         if residual > parameterTolerance,
-          parameterTopology.isUSingular(previousEnd, tolerance: tolerance),
-          parameterTopology.isUSingular(start, tolerance: tolerance)
+          try parameterTopology.isUSingular(previousEnd, tolerance: tolerance, using: &execution),
+          try parameterTopology.isUSingular(start, tolerance: tolerance, using: &execution)
         {
           alignedCurves.append(
             .constantV(
@@ -618,7 +620,7 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
         from: start,
         on: surface,
         tolerance: tolerance
-      )
+      , using: &execution)
       alignedCurves.append(alignedCurve)
     }
     guard let firstStart, var previousEnd else {
@@ -634,8 +636,8 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
       previousEnd.v - firstStart.v
     )
     if closureResidual > parameterTolerance,
-      parameterTopology.isUSingular(previousEnd, tolerance: tolerance),
-      parameterTopology.isUSingular(firstStart, tolerance: tolerance)
+      try parameterTopology.isUSingular(previousEnd, tolerance: tolerance, using: &execution),
+      try parameterTopology.isUSingular(firstStart, tolerance: tolerance, using: &execution)
     {
       alignedCurves.append(
         .constantV(
@@ -657,22 +659,11 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
     )
     if uWinding == 0, vWinding == 0 {
       let predicate: CertifiedSurfaceParameterLoopPredicate
-      if let consumeWork {
-        // FIXME(INCOMPLETE_IMPLEMENTATION): This original predicate consumes
-        // caller source/work/bytes for endpoint/chart admission and queries;
-        // preceding periodic alignment and missing-pcurve reconstruction still
-        // need their actual bounded source producers for whole-query accounting.
-        predicate = try CertifiedSurfaceParameterLoopPredicate(curves: alignedCurves,
-          on: surface, uPeriod: parameterTopology.uPeriod, vPeriod: parameterTopology.vPeriod,
-          tolerance: tolerance, maximumSubdivisionDepth: maximumSubdivisionDepth,
-          remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth,
-          consumeWork: consumeWork, consumeStorage: consumeStorage)
-      } else {
-        predicate = try CertifiedSurfaceParameterLoopPredicate(curves: alignedCurves,
-          maximumAlgebraicDepth: maximumAlgebraicDepth,
-          uPeriod: parameterTopology.uPeriod, vPeriod: parameterTopology.vPeriod,
-          tolerance: tolerance)
-      }
+      predicate = try CertifiedSurfaceParameterLoopPredicate(curves: alignedCurves,
+        on: surface, uPeriod: parameterTopology.uPeriod, vPeriod: parameterTopology.vPeriod,
+        tolerance: tolerance, maximumSubdivisionDepth: maximumSubdivisionDepth,
+        remainingSourceDepth: remainingSourceDepth,
+        maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
       return LoopCertification(predicate: predicate, uWinding: 0, vWinding: 0,
         constantULevel: nil, constantVLevel: nil)
     }
@@ -689,7 +680,7 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
       of: alignedCurves,
       on: surface,
       tolerance: tolerance
-    )
+    , using: &execution)
     if uWinding != 0,
       vWinding == 0,
       bounds.v.width <= parameterTolerance * 2.0
@@ -727,51 +718,58 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
     from start: SurfaceParameter,
     on surface: Surface3D,
     tolerance: ModelingTolerance
-  ) throws -> SurfaceParameter {
-    let topology = SurfaceParameterTopology(surface: surface)
-    let periodicWidths = [topology.uPeriod, topology.vPeriod].compactMap { $0 }
-    guard let minimumPeriod = periodicWidths.min() else {
-      return try curve.endParameter(tolerance: tolerance)
+  , using execution: inout OriginalQueryExecution) throws -> SurfaceParameter {
+    let maximumSubdivisionDepth = min(self.maximumSubdivisionDepth, execution.effectiveLimits.maximumSubdivisionDepth)
+    let remainingSourceDepth = min(16, self.remainingSourceDepth, execution.effectiveLimits.remainingSourceDepth)
+    let topology = try SurfaceParameterTopology(surface: surface, using: &execution)
+    let minimumPeriod: Double?
+    switch (topology.uPeriod, topology.vPeriod) {
+    case let (u?, v?): minimumPeriod = min(u, v)
+    case let (u?, nil): minimumPeriod = u
+    case let (nil, v?): minimumPeriod = v
+    case (nil, nil): minimumPeriod = nil
     }
-    let enclosures = try CertifiedSurfaceParameterCurveEncloser(
-      maximumSubdivisionDepth: maximumSubdivisionDepth,
-      consumeWork: { depth in try consume(depth, tolerance: tolerance) },
-      consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth,
-      remainingSourceDepth: remainingSourceDepth
-    ).enclosures(
+    guard let minimumPeriod else {
+      return try curve.endParameter(tolerance: tolerance, using: &execution)
+    }
+    var enclosures = try CertifiedSurfaceParameterCurveEncloser(maximumSubdivisionDepth: maximumSubdivisionDepth,
+        maximumAlgebraicDepth: maximumAlgebraicDepth,
+        remainingSourceDepth: remainingSourceDepth).enclosures(
       for: curve,
       on: surface,
       maximumWidth: minimumPeriod * 0.25,
       tolerance: tolerance
-    ).sorted { $0.lowerFraction < $1.lowerFraction }
+    , using: &execution)
+    try OriginalParameterQueryStorage.sort(&enclosures, using: &execution,
+      less: { $0.lowerFraction < $1.lowerFraction })
     var reference = UV(u: start.u, v: start.v)
     for enclosure in enclosures {
-      try consume(0, tolerance: tolerance)
+      try consume(0, tolerance: tolerance, using: &execution)
       reference = UV(
-        u: unwrapped(
+        u: try unwrapped(
           enclosure.u.midpoint,
           relativeTo: reference.u,
           domain: surface.uDomain
-        ),
-        v: unwrapped(
+        , using: &execution),
+        v: try unwrapped(
           enclosure.v.midpoint,
           relativeTo: reference.v,
           domain: surface.vDomain
-        )
+        , using: &execution)
       )
     }
-    let rawEnd = try curve.endParameter(tolerance: tolerance)
+    let rawEnd = try curve.endParameter(tolerance: tolerance, using: &execution)
     return SurfaceParameter(
-      u: unwrapped(
+      u: try unwrapped(
         rawEnd.u,
         relativeTo: reference.u,
         domain: surface.uDomain
-      ),
-      v: unwrapped(
+      , using: &execution),
+      v: try unwrapped(
         rawEnd.v,
         relativeTo: reference.v,
         domain: surface.vDomain
-      )
+      , using: &execution)
     )
   }
 
@@ -779,26 +777,25 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
     of curves: [SurfaceParameterCurve],
     on surface: Surface3D,
     tolerance: ModelingTolerance
-  ) throws -> (u: ScalarInterval, v: ScalarInterval) {
+  , using execution: inout OriginalQueryExecution) throws -> (u: ScalarInterval, v: ScalarInterval) {
+    let maximumSubdivisionDepth = min(self.maximumSubdivisionDepth, execution.effectiveLimits.maximumSubdivisionDepth)
+    let remainingSourceDepth = min(16, self.remainingSourceDepth, execution.effectiveLimits.remainingSourceDepth)
     var minimumU = Double.infinity
     var maximumU = -Double.infinity
     var minimumV = Double.infinity
     var maximumV = -Double.infinity
     for curve in curves {
-      try consume(0, tolerance: tolerance)
-      let enclosures = try CertifiedSurfaceParameterCurveEncloser(
-        maximumSubdivisionDepth: maximumSubdivisionDepth,
-        consumeWork: { depth in try consume(depth, tolerance: tolerance) },
-        consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth,
-        remainingSourceDepth: remainingSourceDepth
-      ).enclosures(
+      try consume(0, tolerance: tolerance, using: &execution)
+      var enclosures = try CertifiedSurfaceParameterCurveEncloser(maximumSubdivisionDepth: maximumSubdivisionDepth,
+        maximumAlgebraicDepth: maximumAlgebraicDepth,
+        remainingSourceDepth: remainingSourceDepth).enclosures(
         for: curve,
         on: surface,
         maximumWidth: Double.greatestFiniteMagnitude.squareRoot(),
         tolerance: tolerance
-      )
+      , using: &execution)
       for enclosure in enclosures {
-        try consume(0, tolerance: tolerance)
+        try consume(0, tolerance: tolerance, using: &execution)
         minimumU = min(minimumU, enclosure.u.lower)
         maximumU = max(maximumU, enclosure.u.upper)
         minimumV = min(minimumV, enclosure.v.lower)
@@ -863,14 +860,14 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
     surface: Surface3D,
     model: BRepModel,
     tolerance: ModelingTolerance
-  ) throws -> [UV] {
+  , using execution: inout OriginalQueryExecution) throws -> [UV] {
     var polygon: [UV] = []
     var uSingularFlags: [Bool] = []
-    let singularVValues = SurfaceParameterTopology(
+    let singularVValues = try SurfaceParameterTopology(
       surface: surface
-    ).uSingularVValues
+    , using: &execution).uSingularVValues
     for coedge in loop.coedges {
-      try consume(0, tolerance: tolerance)
+      try consume(0, tolerance: tolerance, using: &execution)
       guard let edge = model.edges[coedge.edgeID] else {
         throw KernelError(
           phase: .topology,
@@ -880,11 +877,11 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
         )
       }
       if let parameterCurve = coedge.surfaceParameterCurve {
-        try parameterCurve.validate(on: surface, tolerance: tolerance)
+        try parameterCurve.validate(on: surface, tolerance: tolerance, remainingSourceDepth: min(16, self.remainingSourceDepth, execution.effectiveLimits.remainingSourceDepth), maximumSubdivisionDepth: min(self.maximumSubdivisionDepth, execution.effectiveLimits.maximumSubdivisionDepth), maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
         let authoredSamples = try parameterSamples(
           parameterCurve,
           tolerance: tolerance
-        )
+        , using: &execution)
         try appendAuthoredParameterSamples(
           authoredSamples,
           to: &polygon,
@@ -895,7 +892,7 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
             parameterCurve
           ),
           tolerance: tolerance
-        )
+        , using: &execution)
         continue
       }
       let samples = try edgeSamples(
@@ -903,26 +900,25 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
         orientation: coedge.orientation,
         model: model,
         tolerance: tolerance
-      )
+      , using: &execution)
       for sample in samples {
-        try consume(0, tolerance: tolerance)
-        let projection = try surface.parameterProjection(of: sample, tolerance: tolerance)
-        let parameter = unwrapped(
+        try consume(0, tolerance: tolerance, using: &execution)
+        let projection = try surface.parameterProjection(of: sample, tolerance: tolerance, using: &execution)
+        let parameter = try unwrapped(
           UV(u: projection.u, v: projection.v),
           relativeTo: polygon.last,
           on: surface
-        )
+        , using: &execution)
         let countBefore = polygon.count
-        append(
+        try append(
           parameter,
           to: &polygon,
           tolerance: tolerance.distance
-        )
+        , using: &execution)
         if polygon.count > countBefore {
-          uSingularFlags.append(
-            singularVValues.contains {
-              abs(projection.v - $0) <= tolerance.distance
-            })
+          try OriginalParameterQueryStorage.append(singularVValues.contains {
+            abs(projection.v - $0) <= tolerance.distance
+          }, to: &uSingularFlags, using: &execution)
         }
       }
     }
@@ -973,18 +969,18 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
     on surface: Surface3D,
     preservesAuthoredWinding: Bool,
     tolerance: ModelingTolerance
-  ) throws {
+  , using execution: inout OriginalQueryExecution) throws {
     guard let first = samples.first else { return }
     let authoredFirst = UV(u: first.u, v: first.v)
-    let alignedFirst = unwrapped(
+    let alignedFirst = try unwrapped(
       authoredFirst,
       relativeTo: polygon.last,
       on: surface
-    )
+    , using: &execution)
     let uOffset = alignedFirst.u - authoredFirst.u
     let vOffset = alignedFirst.v - authoredFirst.v
     for sample in samples {
-      try consume(0, tolerance: tolerance)
+      try consume(0, tolerance: tolerance, using: &execution)
       let authored = UV(u: sample.u, v: sample.v)
       let parameter: UV
       if preservesAuthoredWinding {
@@ -999,23 +995,22 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
         // Projection-backed curves return canonical chart values at
         // each evaluation, so their samples must be unwrapped
         // continuously along the loop.
-        parameter = unwrapped(
+        parameter = try unwrapped(
           authored,
           relativeTo: polygon.last,
           on: surface
-        )
+        , using: &execution)
       }
       let countBefore = polygon.count
-      append(
+      try append(
         parameter,
         to: &polygon,
         tolerance: tolerance.distance
-      )
+      , using: &execution)
       if polygon.count > countBefore {
-        uSingularFlags.append(
-          singularVValues.contains {
-            abs(parameter.v - $0) <= tolerance.distance
-          })
+        try OriginalParameterQueryStorage.append(singularVValues.contains {
+          abs(parameter.v - $0) <= tolerance.distance
+        }, to: &uSingularFlags, using: &execution)
       }
     }
   }
@@ -1045,11 +1040,11 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
     _ point: UV,
     relativeTo reference: UV?,
     on surface: Surface3D
-  ) -> UV {
+  , using execution: inout OriginalQueryExecution) throws -> UV {
     guard let reference else { return point }
     return UV(
-      u: unwrapped(point.u, relativeTo: reference.u, domain: surface.uDomain),
-      v: unwrapped(point.v, relativeTo: reference.v, domain: surface.vDomain)
+      u: try unwrapped(point.u, relativeTo: reference.u, domain: surface.uDomain, using: &execution),
+      v: try unwrapped(point.v, relativeTo: reference.v, domain: surface.vDomain, using: &execution)
     )
   }
 
@@ -1058,7 +1053,7 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
     orientation: Orientation,
     model: BRepModel,
     tolerance: ModelingTolerance
-  ) throws -> [Point3D] {
+  , using execution: inout OriginalQueryExecution) throws -> [Point3D] {
     guard let curve = model.geometry.curves[edge.curveID],
       let startVertex = model.vertices[edge.startVertexID],
       let endVertex = model.vertices[edge.endVertexID]
@@ -1071,6 +1066,7 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
       )
     }
     guard let trim = edge.trim else {
+      try execution.retainKernelValues(count: 2, stride: MemoryLayout<Point3D>.stride)
       return orientation == .forward
         ? [startVertex.point, endVertex.point]
         : [endVertex.point, startVertex.point]
@@ -1086,9 +1082,10 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
     let validatedCurve = try ValidatedCurve3D(
       curve,
       tolerance: tolerance
-    )
-    let start = try validatedCurve.point(at: startParameter)
-    let end = try validatedCurve.point(at: endParameter)
+    , using: &execution)
+    let start = try validatedCurve.point(at: startParameter, using: &execution)
+    let end = try validatedCurve.point(at: endParameter, using: &execution)
+    try execution.retainKernelValues(count: 1, stride: MemoryLayout<Point3D>.stride)
     var result = [start]
     try appendEdgeSamples(
       curve: validatedCurve,
@@ -1099,7 +1096,7 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
       depth: 0,
       points: &result,
       tolerance: tolerance
-    )
+    , using: &execution)
     return result
   }
 
@@ -1112,12 +1109,13 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
     depth: Int,
     points: inout [Point3D],
     tolerance: ModelingTolerance
-  ) throws {
+  , using execution: inout OriginalQueryExecution) throws {
+    try execution.visitGeometricCell(depth: depth)
     let midpointParameter = lowerParameter + (upperParameter - lowerParameter) * 0.5
-    let midpoint = try curve.point(at: midpointParameter)
+    let midpoint = try curve.point(at: midpointParameter, using: &execution)
     let deviation = distance(midpoint, toSegmentFrom: lowerPoint, to: upperPoint)
     if deviation <= tolerance.distance {
-      points.append(upperPoint)
+      try OriginalParameterQueryStorage.append(upperPoint, to: &points, using: &execution)
       return
     }
     guard depth < 20 else {
@@ -1138,7 +1136,7 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
       depth: depth + 1,
       points: &points,
       tolerance: tolerance
-    )
+    , using: &execution)
     try appendEdgeSamples(
       curve: curve,
       lowerParameter: midpointParameter,
@@ -1148,55 +1146,65 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
       depth: depth + 1,
       points: &points,
       tolerance: tolerance
-    )
+    , using: &execution)
   }
 
   private func parameterSamples(
     _ curve: SurfaceParameterCurve,
     tolerance: ModelingTolerance
-  ) throws -> [SurfaceParameter] {
-    return try SurfaceParameterCurveSampler(tolerance: tolerance).sample(curve)
+  , using execution: inout OriginalQueryExecution) throws -> [SurfaceParameter] {
+    return try SurfaceParameterCurveSampler(tolerance: tolerance).sample(curve, using: &execution)
   }
 
   private func unwrapped(
     _ value: Double,
     relativeTo reference: Double,
     domain: ParameterDomain
-  ) -> Double {
+  , using execution: inout OriginalQueryExecution) throws -> Double {
     guard case .periodic(let period) = domain else { return value }
     var result = value
-    while result - reference > period * 0.5 { result -= period }
-    while result - reference < -period * 0.5 { result += period }
+    while result - reference > period * 0.5 {
+      try execution.consumeWork(1)
+      let next = result - period
+      guard next != result else { throw GeometryConversionError.resourceLimitExceeded("Periodic chart representative cannot advance in finite arithmetic.") }
+      result = next
+    }
+    while result - reference < -period * 0.5 {
+      try execution.consumeWork(1)
+      let next = result + period
+      guard next != result else { throw GeometryConversionError.resourceLimitExceeded("Periodic chart representative cannot advance in finite arithmetic.") }
+      result = next
+    }
     return result
   }
 
   private func periodicRepresentatives(
-    of point: UV,
-    on surface: Surface3D
-  ) -> [UV] {
-    var uCandidates = [point.u]
-    if case .periodic(let uPeriod) = surface.uDomain {
-      uCandidates.append(point.u - uPeriod)
-      uCandidates.append(point.u + uPeriod)
-    }
-    var vCandidates = [point.v]
-    if case .periodic(let vPeriod) = surface.vDomain {
-      vCandidates.append(point.v - vPeriod)
-      vCandidates.append(point.v + vPeriod)
-    }
+    of point: UV, on surface: Surface3D,
+    using execution: inout OriginalQueryExecution
+  ) throws -> [UV] {
+    let uPeriod: Double?
+    let vPeriod: Double?
+    if case .periodic(let period) = surface.uDomain { uPeriod = period } else { uPeriod = nil }
+    if case .periodic(let period) = surface.vDomain { vPeriod = period } else { vPeriod = nil }
     var result: [UV] = []
-    for u in uCandidates {
-      for v in vCandidates {
+    try execution.retainKernelValues(count: (uPeriod == nil ? 1 : 3) * (vPeriod == nil ? 1 : 3),
+      stride: MemoryLayout<UV>.stride)
+    result.reserveCapacity((uPeriod == nil ? 1 : 3) * (vPeriod == nil ? 1 : 3))
+    for uIndex in 0..<(uPeriod == nil ? 1 : 3) {
+      let u = point.u + (uPeriod ?? 0) * (uIndex == 0 ? 0 : uIndex == 1 ? -1 : 1)
+      for vIndex in 0..<(vPeriod == nil ? 1 : 3) {
+        try execution.consumeWork(1)
+        let v = point.v + (vPeriod ?? 0) * (vIndex == 0 ? 0 : vIndex == 1 ? -1 : 1)
         result.append(UV(u: u, v: v))
       }
     }
     return result
   }
 
-  private func aligned(_ point: UV, to center: UV, on surface: Surface3D) -> UV {
+  private func aligned(_ point: UV, to center: UV, on surface: Surface3D, using execution: inout OriginalQueryExecution) throws -> UV {
     return UV(
-      u: unwrapped(point.u, relativeTo: center.u, domain: surface.uDomain),
-      v: unwrapped(point.v, relativeTo: center.v, domain: surface.vDomain)
+      u: try unwrapped(point.u, relativeTo: center.u, domain: surface.uDomain, using: &execution),
+      v: try unwrapped(point.v, relativeTo: center.v, domain: surface.vDomain, using: &execution)
     )
   }
 
@@ -1212,11 +1220,11 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
     return (point - (start + segment * fraction)).length
   }
 
-  private func append(_ point: UV, to polygon: inout [UV], tolerance: Double) {
+  private func append(_ point: UV, to polygon: inout [UV], tolerance: Double, using execution: inout OriginalQueryExecution) throws {
     guard polygon.last.map({ hypot($0.u - point.u, $0.v - point.v) <= tolerance }) != true else {
       return
     }
-    polygon.append(point)
+    try OriginalParameterQueryStorage.append(point, to: &polygon, using: &execution)
   }
 
   private typealias UV = FacePointContainmentPreparationCache.UV
@@ -1229,52 +1237,79 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
     let constantVLevel: Double?
   }
 
-  private struct Session: FacePointContainmentSession,
-    FaceParameterContainmentSession
-  {
-    let tester: DefaultFacePointContainmentTester
-    let preparedFaces: [FaceID: FacePointContainmentPreparationCache.PreparedFace]
-    let tolerance: ModelingTolerance
-
+  private final class Session: FacePointContainmentSession, FaceParameterContainmentSession {
+    struct Payload: Sendable {
+      let tester: DefaultFacePointContainmentTester
+      let preparedFaces: [FaceID: FacePointContainmentPreparationCache.PreparedFace]
+      let tolerance: ModelingTolerance
+      let lifetime: PreparedBooleanQueryLifetime
+    }
+    let payload: Payload
+    init(payload: Payload) { self.payload = payload }
     func containsParameter(_ parameter: SurfaceParameter, on faceID: FaceID) throws -> Bool? {
-      try contains(parameter, on: faceID)
+      var execution = try payload.lifetime.execution()
+      return try contains(parameter, on: faceID, using: &execution)
     }
-
+    func containsParameter(_ parameter: SurfaceParameter, on faceID: FaceID,
+      using execution: inout OriginalQueryExecution) throws -> Bool? {
+      try contains(parameter, on: faceID, using: &execution)
+    }
     func contains(_ point: Point3D, on faceID: FaceID) throws -> Bool {
-      try point.validate()
-      guard let preparedFace = preparedFaces[faceID] else {
-        throw KernelError(
-          phase: .classification,
-          code: .missingReference,
-          tolerance: tolerance,
-          message: "Face containment session does not own the requested face."
-        )
-      }
-      return try tester.contains(
-        point,
-        on: preparedFace,
-        tolerance: tolerance
-      )
+      var execution = try payload.lifetime.execution()
+      return try contains(point, on: faceID, using: &execution)
     }
+    func contains(_ point: Point3D, on faceID: FaceID,
+      using execution: inout OriginalQueryExecution) throws -> Bool {
+      do {
+        return try payload.lifetime.withRead(using: &execution) { execution in
+        try execution.consumeWork(1); try point.validate()
+        guard let face = payload.preparedFaces[faceID] else {
+          throw KernelError(phase: .classification, code: .missingReference, tolerance: payload.tolerance,
+            message: "Face containment session does not own the requested face.")
+        }
+        let result = try payload.tester.contains(point, on: face, tolerance: payload.tolerance, using: &execution)
+        try execution.checkpoint(); return result
+        }
+      } catch { throw OriginalQueryFailure.published(error, context: execution.context, tolerance: payload.tolerance) }
+    }
+    func contains(_ parameter: SurfaceParameter, on faceID: FaceID) throws -> Bool {
+      var execution = try payload.lifetime.execution()
+      return try contains(parameter, on: faceID, using: &execution)
+    }
+    func contains(_ parameter: SurfaceParameter, on faceID: FaceID,
+      using execution: inout OriginalQueryExecution) throws -> Bool {
+      do {
+        return try payload.lifetime.withRead(using: &execution) { execution in
+        try execution.consumeWork(1); try parameter.validate()
+        guard let face = payload.preparedFaces[faceID] else {
+          throw KernelError(phase: .classification, code: .missingReference, tolerance: payload.tolerance,
+            message: "Face containment session does not own the requested face.")
+        }
+        let result = try payload.tester.contains(parameter, on: face, tolerance: payload.tolerance, using: &execution)
+        try execution.checkpoint(); return result
+        }
+      } catch { throw OriginalQueryFailure.published(error, context: execution.context, tolerance: payload.tolerance) }
+    }
+  }
+}
 
-    func contains(
-      _ parameter: SurfaceParameter,
-      on faceID: FaceID
-    ) throws -> Bool {
-      try parameter.validate()
-      guard let preparedFace = preparedFaces[faceID] else {
-        throw KernelError(
-          phase: .classification,
-          code: .missingReference,
-          tolerance: tolerance,
-          message: "Face containment session does not own the requested face."
-        )
-      }
-      return try tester.contains(
-        parameter,
-        on: preparedFace,
-        tolerance: tolerance
-      )
+// This immutable preparation is issued only by the source/extent path in this
+// file. Its finite box scopes search; retained loop predicates decide material.
+extension FacePointContainmentPreparationCache {
+  struct PreparedFace: Sendable {
+    let surface: Surface3D
+    let loops: [LoopRegion]
+    let faceID: FaceID
+    let surfaceID: SurfaceID
+    let parameterBounds: SurfaceParameterBox?
+
+    fileprivate init(surface: Surface3D, loops: [LoopRegion], faceID: FaceID,
+      surfaceID: SurfaceID, parameterBounds: SurfaceParameterBox?) {
+      self.surface = surface
+      self.loops = loops
+      self.faceID = faceID
+      self.surfaceID = surfaceID
+      self.parameterBounds = parameterBounds
     }
   }
 }

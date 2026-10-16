@@ -13,7 +13,7 @@ public struct OriginalCoincidentConeSnapshot: Sendable {
     public let proofDepth: ExactScalarDepth
     public func position<A: ExactScalarAdmission & ~Copyable>(intrinsicLabel: Field.Value, slant: Field.Value,
         using a: inout A) throws -> OriginalCoincidentConePosition {
-        try OriginalSourceProofAdmission<A>.withBorrow(&a) { a in
+        try a.withProofScope { a in
             try a.admitDepth(value:proofDepth.value,coefficient:proofDepth.coefficient)
             let label=try field.importing(intrinsicLabel,using:&a),v=try field.importing(slant,using:&a)
             let radial=try field.multiplying(sine,v,using:&a),axial=try field.multiplying(cosine,v,using:&a)

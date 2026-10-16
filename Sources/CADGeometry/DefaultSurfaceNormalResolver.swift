@@ -17,8 +17,9 @@ struct DefaultSurfaceNormalResolver: SurfaceNormalResolving {
         on surface: Surface3D,
         u: Double,
         v: Double,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Vector3D {
+        try execution.consumeWork(1)
         switch surface {
         case let .plane(plane):
             return try plane.normal.normalized(
@@ -35,19 +36,19 @@ struct DefaultSurfaceNormalResolver: SurfaceNormalResolving {
                 on: surface,
                 u: u,
                 v: v,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         case let .bSpline(surface):
             return try surface.normal(
                 u: u,
                 v: v,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         case let .procedural(surface):
             let derivatives = try surface.parameterDerivatives(
                 u: u,
                 v: v,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
             return try derivatives.tangentU.cross(
                 derivatives.tangentV
@@ -60,8 +61,9 @@ struct DefaultSurfaceNormalResolver: SurfaceNormalResolving {
         on surface: AnalyticSurface3D,
         u: Double,
         v: Double,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Vector3D {
+        try execution.consumeWork(1)
         switch surface {
         case let .plane(_, normal):
             return try normal.normalized(tolerance: tolerance.distance)

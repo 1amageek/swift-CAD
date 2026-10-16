@@ -152,3 +152,12 @@ This component consumes the unchanged current-task cancellation and direct
 collection import contracts owned by [CADTopology](../DESIGN.md#m6-portable-validation-wiring).
 Its algorithms, budgets, immutable source owners and existing isolation remain
 unchanged on Native, ordinary WASM and Embedded.
+
+### Canonical Geometry API rebinding
+
+Existing numerical consumers borrow the common
+[execution](../../CADGeometry/OriginalQueryExecution/DESIGN.md) through actual
+source preparation and Geometry queries. Ordinary roots delegate once into the
+same body. Independent local limits, formulas, result meaning and all supported
+branches remain unchanged; resource and cancellation failures stay explicit.
+This delivery binding does not add an independent algorithm or feature fix.

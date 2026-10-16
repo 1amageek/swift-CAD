@@ -14,11 +14,11 @@ public struct OriginalNativeSurfaceSurfaceFiber: Sendable {
 
 extension OriginalNativeSurfaceSurfaceRelations {
     /// Algebraic stations retain their original ordered coefficient owners and both depth domains.
-    public func fiber(surface: Int, u: OriginalAlgebraicCoordinate, v: OriginalAlgebraicCoordinate,
+    public func fiber<A: ExactScalarAdmission & ~Copyable>(surface: Int, u: OriginalAlgebraicCoordinate, v: OriginalAlgebraicCoordinate,
         maximumAlgebraicDepth: Int, maximumCoefficientDepth: Int,
-        usage: OriginalRelationUsage) throws -> OriginalNativeSurfaceSurfaceFiber {
-        var admission = try OriginalRelationDepthAdmission(base: usage, maximumDepth: maximumAlgebraicDepth,
-            maximumCoefficientDepth: maximumCoefficientDepth)
+        usage: inout A) throws -> OriginalNativeSurfaceSurfaceFiber {
+        return try usage.withProofScope(maximum: .init(value: maximumAlgebraicDepth,
+            coefficient: maximumCoefficientDepth)) { admission in
         try intersectionAlgebraStep(&admission)
         guard (0...1).contains(surface) else { throw GeometryConversionError.invalidInput("An exact SSI fiber requires an original surface role.") }
         let retainedDepth = try retainedParameterDepth(usage: &admission)
@@ -34,13 +34,12 @@ extension OriginalNativeSurfaceSurfaceRelations {
                 coordinate.inheritedCoefficientDepth <= maximumCoefficientDepth else {
                 throw rationalAlgebraFailure("Exact SSI station cannot reset its retained scalar depths.")
             }
-            var source = OriginalSourceScalarAdmission(base: admission, maximumDepth: maximumAlgebraicDepth,
-                maximumCoefficientDepth: maximumCoefficientDepth, originalParameterDepth: coordinate.original.context.depth,
-                originalCoefficientDepth: coordinate.original.context.coefficientDepth, inheritedParameterDepth: parameterDepth,
-                inheritedCoefficientDepth: coordinate.inheritedCoefficientDepth, parameterDepth: parameterDepth,
-                coefficientDepth: coordinate.inheritedCoefficientDepth)
             let available = try rationalAlgebraCount(coordinate.original.context.depth,maximumAlgebraicDepth - parameterDepth)
-            do {
+            try intersectionSourceCalculation(originalParameterDepth: coordinate.original.context.depth,
+                originalCoefficientDepth: coordinate.original.context.coefficientDepth,
+                inheritedParameterDepth: parameterDepth, inheritedCoefficientDepth: coordinate.inheritedCoefficientDepth,
+                maximumDepth: maximumAlgebraicDepth, maximumCoefficientDepth: maximumCoefficientDepth,
+                usage: &admission) { source in
                 if let lower = domain.lower {
                     let bound = try OriginalSingularFieldElement.constant(lower,in: coordinate.original.context,maximumDepth: available,usage: &source)
                     if try coordinate.original.subtracting(bound,maximumDepth: available,usage: &source).sign(maximumDepth: available,usage: &source) == .negative {
@@ -53,8 +52,8 @@ extension OriginalNativeSurfaceSurfaceRelations {
                         throw GeometryConversionError.invalidInput("Exact SSI fiber station is outside the original requested domain.")
                     }
                 }
-            } catch { admission = source.base; throw error }
-            admission = source.base
+            }
+
         }
         let rational = try OriginalSingularFieldContext(usage: &admission)
         let sourcePolynomials: [ExactIntersectionPolynomial]?
@@ -71,7 +70,7 @@ extension OriginalNativeSurfaceSurfaceRelations {
             let sourceCapacity = try rationalAlgebraCount(necessaryStart, necessaryCount)
             try RationalAlgebraStorage.retain(sourceCapacity, of: ExactIntersectionPolynomial.self, usage: &admission)
             var commonLaws: [ExactIntersectionPolynomial] = []; commonLaws.reserveCapacity(sourceCapacity)
-            try admission.consumeExactWork(sourceCapacity)
+            try admission.consumeWork(sourceCapacity)
             commonLaws.append(contentsOf: proof.laws); commonLaws.append(contentsOf: proof.necessaryIdeal.reducedBasis)
             sourcePolynomials = commonLaws; sourcePredicate = proof.predicate; equationCount = 0; guardCount = 0
         }
@@ -110,25 +109,23 @@ extension OriginalNativeSurfaceSurfaceRelations {
             // Negate the retained scalar in its source field without constructing a numerical substitute.
             try RationalAlgebraStorage.retain(2, of: OriginalOrderedIntersectionPolynomial.Term.self, usage: &admission)
             var station = terms
-            var sourceAdmission = OriginalSourceScalarAdmission(base: admission, maximumDepth: maximumAlgebraicDepth,
-                maximumCoefficientDepth: maximumCoefficientDepth, originalParameterDepth: coordinate.original.context.depth,
-                originalCoefficientDepth: coordinate.original.context.coefficientDepth,
-                inheritedParameterDepth: max(retainedDepth,coordinate.inheritedDepth),
-                inheritedCoefficientDepth: coordinate.inheritedCoefficientDepth,
-                parameterDepth: max(retainedDepth,coordinate.inheritedDepth), coefficientDepth: coordinate.inheritedCoefficientDepth)
             guard max(retainedDepth,coordinate.inheritedDepth) <= maximumAlgebraicDepth,
                 coordinate.inheritedCoefficientDepth <= maximumCoefficientDepth else {
                 throw rationalAlgebraFailure("Exact SSI station cannot reset its retained scalar depths.")
             }
             let available = try rationalAlgebraCount(coordinate.original.context.depth,
                 maximumAlgebraicDepth - max(retainedDepth,coordinate.inheritedDepth))
-            let negative: OriginalSingularFieldElement
-            do { negative = try coordinate.original.negated(maximumDepth: available, usage: &sourceAdmission) }
-            catch { admission = sourceAdmission.base; throw error }
-            admission = sourceAdmission.base
-            station[1] = .init(power: terms[1].power, coefficient: negative,
-                inheritedParameterDepth: sourceAdmission.parameterDepth,
-                inheritedCoefficientDepth: sourceAdmission.coefficientDepth)
+            let negative = try intersectionSourceCalculation(originalParameterDepth: coordinate.original.context.depth,
+                originalCoefficientDepth: coordinate.original.context.coefficientDepth,
+                inheritedParameterDepth: max(retainedDepth, coordinate.inheritedDepth),
+                inheritedCoefficientDepth: coordinate.inheritedCoefficientDepth,
+                maximumDepth: maximumAlgebraicDepth, maximumCoefficientDepth: maximumCoefficientDepth,
+                usage: &admission) { source in
+                try coordinate.original.negated(maximumDepth: available, usage: &source)
+            }
+            station[1] = .init(power: terms[1].power, coefficient: negative.value,
+                inheritedParameterDepth: negative.parameterDepth,
+                inheritedCoefficientDepth: negative.coefficientDepth)
             laws.append(try .init(variableCount: 4, terms: station, maximumDepth: maximumAlgebraicDepth,
                 maximumCoefficientDepth: maximumCoefficientDepth, inheritedParameterDepth: retainedDepth, usage: &admission))
         }
@@ -160,7 +157,7 @@ extension OriginalNativeSurfaceSurfaceRelations {
             }
         }
         for ordinal in necessaryStart..<(necessaryStart + necessaryCount) {
-            try admission.consumeExactWork(2)
+            try admission.consumeWork(2)
             instructions.append(.sign(polynomial: ordinal, .zero)); instructions.append(.and)
         }
         for ordinal in sourceCount..<count { instructions.append(.sign(polynomial: ordinal, .zero)); instructions.append(.and) }
@@ -181,5 +178,6 @@ extension OriginalNativeSurfaceSurfaceRelations {
         try RationalAlgebraStorage.retain(1,of: OriginalNativeSurfaceSurfaceFiber.self,usage: &admission)
         try CurrentTaskCancellationChecker().checkCancellation()
         return .init(source: self,surfaceRole: surface,u: u,v: v,relation: relation)
+        }
     }
 }

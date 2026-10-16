@@ -25,7 +25,7 @@ package struct OriginalEvenPowerEquationZeroSet: Sendable {
         self.coordinateEquations = coordinateEquations; self.reconstruction = reconstruction
     }
 
-    package static func prepare<B: RationalAlgebraAdmitting>(_ equation: ExactIntersectionPolynomial,
+    package static func prepare<B: ExactScalarAdmission & ~Copyable>(_ equation: ExactIntersectionPolynomial,
         equationIndex: Int, usage: inout B) throws -> Self? {
         try intersectionAlgebraStep(&usage)
         if equation.isZero || equation.isConstant { return nil }

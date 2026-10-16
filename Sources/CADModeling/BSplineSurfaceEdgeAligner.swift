@@ -52,6 +52,22 @@ package struct BSplineSurfaceEdgeAligner: Sendable {
         partialStart: Double = 0, partialEnd: Double = 1, layout: MappedBSplineSurfaceFitter.Layout? = nil,
         flow: Flow = .next, localizes: Bool = false, tolerance: ModelingTolerance
     ) throws -> BSplineSurface3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try aligned(target, side: targetSide, to: reference, side: referenceSide,
+            continuity: continuity, tension: tension, blendRows: blendRows,
+            inputShapeInfluence: inputShapeInfluence, partialStart: partialStart,
+            partialEnd: partialEnd, layout: layout, flow: flow, localizes: localizes,
+            tolerance: tolerance, using: &execution)
+    }
+
+    package func aligned(
+        _ target: BSplineSurface3D, side targetSide: Side,
+        to reference: BSplineSurface3D, side referenceSide: Side,
+        continuity: Int, tension: Double, blendRows: Int, inputShapeInfluence: Double = 1,
+        partialStart: Double = 0, partialEnd: Double = 1, layout: MappedBSplineSurfaceFitter.Layout? = nil,
+        flow: Flow = .next, localizes: Bool = false, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution
+    ) throws -> BSplineSurface3D {
         guard (0...2).contains(continuity), tension.isFinite, tension > 0, blendRows >= 0, (0...1).contains(inputShapeInfluence),
               (0...1).contains(partialStart), (0...1).contains(partialEnd), partialEnd - partialStart > 1e-9 else {
             throw failure(.invalidInput, "Align Surface takes G0, G1 or G2, a positive tension, blended rows none or more, an influence and partial fractions within 0 to 1.", tolerance)
@@ -66,21 +82,21 @@ package struct BSplineSurfaceEdgeAligner: Sendable {
                 throw failure(.invalidInput, "A target surface has no parameter domain.", tolerance)
             }
             target = try MappedBSplineSurfaceFitter.fit(
-                layout: layout, u: ScalarInterval(lower: u0, upper: u1), v: ScalarInterval(lower: v0, upper: v1), tolerance: tolerance
-            ) { u, v in try Surface3D.bSpline(own).differentialGeometry(u: u, v: v, tolerance: tolerance).position }.surface
+                layout: layout, u: ScalarInterval(lower: u0, upper: u1), v: ScalarInterval(lower: v0, upper: v1), tolerance: tolerance, using: &execution
+            ) { u, v, execution in try Surface3D.bSpline(own).differentialGeometry(u: u, v: v, tolerance: tolerance, using: &execution).position }.surface
         }
         // The target's edge at its lower U boundary, its interior after it; the reference's at its
         // upper U boundary, its interior before it.
         var working = oriented(target, side: targetSide, toLower: true)
         var guide = oriented(reference, side: referenceSide, toLower: false)
-        let evaluate = { (surface: BSplineSurface3D, u: Double, v: Double) throws -> Point3D in
-            try Surface3D.bSpline(surface).differentialGeometry(u: u, v: v, tolerance: tolerance).position
+        func evaluate(_ surface: BSplineSurface3D, _ u: Double, _ v: Double, using execution: inout OriginalQueryExecution) throws -> Point3D {
+            try Surface3D.bSpline(surface).differentialGeometry(u: u, v: v, tolerance: tolerance, using: &execution).position
         }
         // The reference runs along the edge the way the target does.
         let (tu, tv0, tv1) = (working.uKnots.first ?? 0, working.vKnots.first ?? 0, working.vKnots.last ?? 0)
         let (gu, gv0, gv1) = (guide.uKnots.last ?? 0, guide.vKnots.first ?? 0, guide.vKnots.last ?? 0)
-        let (ts, te) = (try evaluate(working, tu, tv0), try evaluate(working, tu, tv1))
-        let (gs, ge) = (try evaluate(guide, gu, gv0), try evaluate(guide, gu, gv1))
+        let (ts, te) = (try evaluate(working, tu, tv0, using: &execution), try evaluate(working, tu, tv1, using: &execution))
+        let (gs, ge) = (try evaluate(guide, gu, gv0, using: &execution), try evaluate(guide, gu, gv1, using: &execution))
         if (ts - gs).length + (te - ge).length > (ts - ge).length + (te - gs).length {
             guide = transposed(reversedU(transposed(guide)))
         }
@@ -89,17 +105,17 @@ package struct BSplineSurfaceEdgeAligner: Sendable {
         // Partial: the target's whole edge goes onto the stretch of the reference's edge between
         // the two fractions.
         if partialStart > 0 || partialEnd < 1, let u0 = guide.uKnots.first, let u1 = guide.uKnots.last {
-            guide = unitV(try guide.trimmed(uFrom: u0, uTo: u1, vFrom: partialStart, vTo: partialEnd, tolerance: tolerance))
+            guide = unitV(try guide.trimmed(uFrom: u0, uTo: u1, vFrom: partialStart, vTo: partialEnd, tolerance: tolerance, using: &execution))
         }
-        while working.vDegree < guide.vDegree { working = try working.elevatingDegree(direction: .v, tolerance: tolerance) }
-        while guide.vDegree < working.vDegree { guide = try guide.elevatingDegree(direction: .v, tolerance: tolerance) }
+        while working.vDegree < guide.vDegree { working = try working.elevatingDegree(direction: .v, tolerance: tolerance, using: &execution) }
+        while guide.vDegree < working.vDegree { guide = try guide.elevatingDegree(direction: .v, tolerance: tolerance, using: &execution) }
         for value in Set(working.vKnots + guide.vKnots).sorted() {
             let needed = max(multiplicity(of: value, in: working.vKnots, tolerance), multiplicity(of: value, in: guide.vKnots, tolerance))
             while multiplicity(of: value, in: working.vKnots, tolerance) < needed {
-                working = try working.insertingKnot(direction: .v, value: value, tolerance: tolerance)
+                working = try working.insertingKnot(direction: .v, value: value, tolerance: tolerance, using: &execution)
             }
             while multiplicity(of: value, in: guide.vKnots, tolerance) < needed {
-                guide = try guide.insertingKnot(direction: .v, value: value, tolerance: tolerance)
+                guide = try guide.insertingKnot(direction: .v, value: value, tolerance: tolerance, using: &execution)
             }
         }
         // Rows that reach only the stretch beside the edge, so the sheet's other aligned edges keep
@@ -109,27 +125,27 @@ package struct BSplineSurfaceEdgeAligner: Sendable {
             for fraction in [1.0 / 16, 1.0 / 8, 1.0 / 4] {
                 let value = u0 + (u1 - u0) * fraction
                 if multiplicity(of: value, in: working.uKnots, tolerance) == 0 {
-                    working = try working.insertingKnot(direction: .u, value: value, tolerance: tolerance)
+                    working = try working.insertingKnot(direction: .u, value: value, tolerance: tolerance, using: &execution)
                 }
             }
         }
         // Enough rows along U for the rows set and one more; blended rows are the target's own, so
         // its control net keeps its size (Plasticity adds no rows for Blend).
         let setRows = continuity + 1
-        while working.uDegree < max(continuity, 1) { working = try working.elevatingDegree(direction: .u, tolerance: tolerance) }
+        while working.uDegree < max(continuity, 1) { working = try working.elevatingDegree(direction: .u, tolerance: tolerance, using: &execution) }
         while (working.controlPoints.first?.count ?? 0) < setRows + 1 {
             let knots = working.uKnots
             guard let first = knots.first, let next = knots.first(where: { $0 > first + tolerance.distance }) else {
                 throw failure(.invalidInput, "A target surface has no U span to refine.", tolerance)
             }
-            working = try working.insertingKnot(direction: .u, value: (first + next) / 2, tolerance: tolerance)
+            working = try working.insertingKnot(direction: .u, value: (first + next) / 2, tolerance: tolerance, using: &execution)
         }
         guard working.controlPoints.count == guide.controlPoints.count else {
             throw failure(.topologyFailure, "The aligned edges did not reach one basis.", tolerance)
         }
         if continuity >= 1, flow != .next {
             return try flowAligned(working, guide: guide, targetSide: targetSide, continuity: continuity, tension: tension,
-                                   blendRows: blendRows, inputShapeInfluence: inputShapeInfluence, flow: flow, tolerance: tolerance)
+                                   blendRows: blendRows, inputShapeInfluence: inputShapeInfluence, flow: flow, tolerance: tolerance, using: &execution)
         }
         // The reference's boundary row and its derivatives across the edge, column by column.
         let p = guide.uDegree
@@ -212,25 +228,25 @@ package struct BSplineSurfaceEdgeAligner: Sendable {
     private func flowAligned(
         _ start: BSplineSurface3D, guide startGuide: BSplineSurface3D, targetSide: Side, continuity: Int, tension: Double,
         blendRows: Int, inputShapeInfluence: Double, flow: Flow,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> BSplineSurface3D {
         var working = start, guide = startGuide
         // The target's own cross derivatives (Natural, Adjacent), read before it is changed.
         let own = Surface3D.bSpline(working)
         let (tu, gu) = (working.uKnots.first ?? 0, guide.uKnots.last ?? 0)
         func ownCross(_ v: Double) throws -> Vector3D {
-            try own.differentialGeometry(u: tu, v: v, tolerance: tolerance).tangentU
+            try own.differentialGeometry(u: tu, v: v, tolerance: tolerance, using: &execution).tangentU
         }
         // The products' space: degree raised by 2 per order, interior knots repeated once more per order.
         let interior = Array(Set(working.vKnots.filter { $0 > 0 && $0 < 1 })).sorted()
         for _ in 0..<(2 * continuity) {
-            working = try working.elevatingDegree(direction: .v, tolerance: tolerance)
-            guide = try guide.elevatingDegree(direction: .v, tolerance: tolerance)
+            working = try working.elevatingDegree(direction: .v, tolerance: tolerance, using: &execution)
+            guide = try guide.elevatingDegree(direction: .v, tolerance: tolerance, using: &execution)
         }
         for value in interior {
             for _ in 0..<continuity {
-                working = try working.insertingKnot(direction: .v, value: value, tolerance: tolerance)
-                guide = try guide.insertingKnot(direction: .v, value: value, tolerance: tolerance)
+                working = try working.insertingKnot(direction: .v, value: value, tolerance: tolerance, using: &execution)
+                guide = try guide.insertingKnot(direction: .v, value: value, tolerance: tolerance, using: &execution)
             }
         }
         guard working.controlPoints.count == guide.controlPoints.count else {
@@ -239,7 +255,7 @@ package struct BSplineSurfaceEdgeAligner: Sendable {
         let reference = Surface3D.bSpline(guide)
         // The coefficients a(v), b(v): quadratics fitted to the flow at nine stations.
         let middleSpeed = try ownCross(0.5).length
-        let guideMiddle = try reference.differentialGeometry(u: gu, v: 0.5, tolerance: tolerance)
+        let guideMiddle = try reference.differentialGeometry(u: gu, v: 0.5, tolerance: tolerance, using: &execution)
         guard middleSpeed > tolerance.distance, guideMiddle.tangentU.length > tolerance.distance else {
             throw failure(.topologyFailure, "An aligned edge has no speed across it.", tolerance)
         }
@@ -248,7 +264,7 @@ package struct BSplineSurfaceEdgeAligner: Sendable {
         var samples: [(v: Double, a: Double, b: Double)] = []
         for k in 0...8 {
             let v = Double(k) / 8
-            let jet = try reference.differentialGeometry(u: gu, v: v, tolerance: tolerance)
+            let jet = try reference.differentialGeometry(u: gu, v: v, tolerance: tolerance, using: &execution)
             let (ru, rv) = (jet.tangentU, jet.tangentV)
             let (a, b): (Double, Double)
             switch flow {
@@ -282,8 +298,8 @@ package struct BSplineSurfaceEdgeAligner: Sendable {
                 }
             }
             let qr = try SurfaceFittingQR(coefficients: normal.flatMap { $0 }, rows: 3, columns: 3, relativeRankTolerance: 1e-14,
-                                          maximumElements: 9)
-            let c = try qr.solveFullRankLeastSquares(right)
+                                          maximumElements: 9, using: &execution)
+            let c = try qr.solveFullRankLeastSquares(right, using: &execution)
             return { v in c[0] + c[1] * v + c[2] * v * v }
         }
         let a = try quadratic(samples.map(\.a)), b = try quadratic(samples.map(\.b))
@@ -296,20 +312,20 @@ package struct BSplineSurfaceEdgeAligner: Sendable {
         let abscissae = greville(vKnots, degree: vDegree, count: columns)
         var matrix: [Double] = []
         for g in abscissae {
-            matrix += BSplineBasis.values(parameter: BSplineBasis.clampedParameter(g, knots: vKnots, degree: vDegree),
-                                          degree: vDegree, knots: vKnots, count: columns)
+            matrix += try BSplineBasis.values(parameter: BSplineBasis.clampedParameter(g, knots: vKnots, degree: vDegree),
+                                          degree: vDegree, knots: vKnots, count: columns, using: &execution)
         }
         let collocation = try SurfaceFittingQR(coefficients: matrix, rows: columns, columns: columns, relativeRankTolerance: 1e-13,
-                                               maximumElements: max(1 << 16, columns * columns))
+                                               maximumElements: max(1 << 16, columns * columns), using: &execution)
         func interpolated(_ values: [Vector3D]) throws -> [Vector3D] {
-            let x = try collocation.solveFullRankLeastSquares(values.map(\.x))
-            let y = try collocation.solveFullRankLeastSquares(values.map(\.y))
-            let z = try collocation.solveFullRankLeastSquares(values.map(\.z))
+            let x = try collocation.solveFullRankLeastSquares(values.map(\.x), using: &execution)
+            let y = try collocation.solveFullRankLeastSquares(values.map(\.y), using: &execution)
+            let z = try collocation.solveFullRankLeastSquares(values.map(\.z), using: &execution)
             return (0..<columns).map { Vector3D(x: x[$0], y: y[$0], z: z[$0]) }
         }
         var first: [Vector3D] = [], second: [Vector3D] = []
         for g in abscissae {
-            let jet = try reference.differentialGeometry(u: gu, v: g, tolerance: tolerance)
+            let jet = try reference.differentialGeometry(u: gu, v: g, tolerance: tolerance, using: &execution)
             let (av, bv) = (a(g), b(g))
             first.append(jet.tangentV * av + jet.tangentU * bv)
             second.append(jet.secondDerivativeUU * (bv * bv) + jet.secondDerivativeUV * (2 * av * bv) + jet.secondDerivativeVV * (av * av))

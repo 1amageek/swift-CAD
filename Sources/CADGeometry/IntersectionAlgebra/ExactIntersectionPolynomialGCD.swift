@@ -5,7 +5,7 @@ package enum ExactIntersectionPolynomialGCD {
     private typealias Polynomial = ExactIntersectionPolynomial
     private enum SpecializedGCD { case unit, factor(Polynomial) }
 
-    package static func gcd<B: RationalAlgebraAdmitting>(_ first: ExactIntersectionPolynomial,
+    package static func gcd<B: ExactScalarAdmission & ~Copyable>(_ first: ExactIntersectionPolynomial,
         _ second: ExactIntersectionPolynomial, usage: inout B) throws -> ExactIntersectionPolynomial {
         try intersectionAlgebraStep(&usage)
         guard first.variableCount == second.variableCount else {
@@ -72,7 +72,7 @@ package enum ExactIntersectionPolynomialGCD {
         return try a.multiplied(by: commonContent, usage: &usage).monic(usage: &usage)
     }
 
-    package static func squareFree<B: RationalAlgebraAdmitting>(_ source: ExactIntersectionPolynomial,
+    package static func squareFree<B: ExactScalarAdmission & ~Copyable>(_ source: ExactIntersectionPolynomial,
         usage: inout B) throws -> ExactIntersectionPolynomial {
         try intersectionAlgebraStep(&usage)
         if source.isZero || source.isConstant { return try source.monic(usage: &usage) }
@@ -95,7 +95,7 @@ package enum ExactIntersectionPolynomialGCD {
             if inline == 0 { return overflow.count == 1 ? overflow[0] : nil }
             return overflow.isEmpty && inline.nonzeroBitCount == 1 ? inline.trailingZeroBitCount : nil
         }
-        func contains<B: RationalAlgebraAdmitting>(_ axis: Int, usage: inout B) throws -> Bool {
+        func contains<B: ExactScalarAdmission & ~Copyable>(_ axis: Int, usage: inout B) throws -> Bool {
             if axis < UInt.bitWidth { return inline & (UInt(1) << axis) != 0 }
             var lower = 0, upper = overflow.count
             while lower < upper {
@@ -105,7 +105,7 @@ package enum ExactIntersectionPolynomialGCD {
             }
             return lower < overflow.count && overflow[lower] == axis
         }
-        func intersects<B: RationalAlgebraAdmitting>(_ other: Self, usage: inout B) throws -> Bool {
+        func intersects<B: ExactScalarAdmission & ~Copyable>(_ other: Self, usage: inout B) throws -> Bool {
             if inline & other.inline != 0 { return true }
             var first = 0, second = 0
             while first < overflow.count && second < other.overflow.count {
@@ -117,7 +117,7 @@ package enum ExactIntersectionPolynomialGCD {
         }
     }
 
-    private static func coordinateSupport<B: RationalAlgebraAdmitting>(_ source: Polynomial,
+    private static func coordinateSupport<B: ExactScalarAdmission & ~Copyable>(_ source: Polynomial,
         usage: inout B) throws -> CoordinateSupport {
         let terms = try source.orderedTerms(usage: &usage)
         var inline: UInt = 0, overflow: [Int] = []
@@ -136,7 +136,7 @@ package enum ExactIntersectionPolynomialGCD {
         return CoordinateSupport(inline: inline, overflow: overflow)
     }
 
-    private static func rationalLinearGCD<B: RationalAlgebraAdmitting>(_ factor: Polynomial, _ other: Polynomial,
+    private static func rationalLinearGCD<B: ExactScalarAdmission & ~Copyable>(_ factor: Polynomial, _ other: Polynomial,
         mask: CoordinateSupport, usage: inout B) throws -> Polynomial? {
         try intersectionAlgebraStep(&usage)
         guard let axis = mask.singleAxis else { return nil }
@@ -156,7 +156,7 @@ package enum ExactIntersectionPolynomialGCD {
         return try .constant(variableCount: factor.variableCount, value: .one, usage: &usage)
     }
 
-    private static func content<B: RationalAlgebraAdmitting>(_ source: Polynomial, axis: Int,
+    private static func content<B: ExactScalarAdmission & ~Copyable>(_ source: Polynomial, axis: Int,
         usage: inout B) throws -> Polynomial {
         var result = try Polynomial.zero(variableCount: source.variableCount)
         for coefficient in try source.axisCoefficients(at: axis, usage: &usage) where !coefficient.isZero {
@@ -166,7 +166,7 @@ package enum ExactIntersectionPolynomialGCD {
         return result
     }
 
-    private static func wholeCoprimeSpecialization<B: RationalAlgebraAdmitting>(_ first: Polynomial, _ second: Polynomial,
+    private static func wholeCoprimeSpecialization<B: ExactScalarAdmission & ~Copyable>(_ first: Polynomial, _ second: Polynomial,
         firstMask: CoordinateSupport, secondMask: CoordinateSupport, usage: inout B) throws -> Bool {
         var covered = false
         for axis in 0..<first.variableCount {
@@ -182,7 +182,7 @@ package enum ExactIntersectionPolynomialGCD {
         return covered
     }
 
-    private static func specializedGCD<B: RationalAlgebraAdmitting>(_ first: Polynomial, _ second: Polynomial,
+    private static func specializedGCD<B: ExactScalarAdmission & ~Copyable>(_ first: Polynomial, _ second: Polynomial,
         axis: Int, singleCoordinate: Bool, reconstructFactor: Bool = true, usage: inout B) throws -> SpecializedGCD? {
         let a = try first.axisCoefficients(at: axis, usage: &usage)
         let b = try second.axisCoefficients(at: axis, usage: &usage)
@@ -235,7 +235,7 @@ package enum ExactIntersectionPolynomialGCD {
         return nil
     }
 
-    private static func polynomial<B: RationalAlgebraAdmitting>(_ coefficients: [ExactRationalCoefficient],
+    private static func polynomial<B: ExactScalarAdmission & ~Copyable>(_ coefficients: [ExactRationalCoefficient],
         axis: Int, variableCount: Int, usage: inout B) throws -> Polynomial {
         var result = try Polynomial.zero(variableCount: variableCount)
         for (exponent, coefficient) in coefficients.enumerated() {
@@ -249,7 +249,7 @@ package enum ExactIntersectionPolynomialGCD {
         return result
     }
 
-    private static func pseudoRemainder<B: RationalAlgebraAdmitting>(_ source: Polynomial, _ divisor: Polynomial,
+    private static func pseudoRemainder<B: ExactScalarAdmission & ~Copyable>(_ source: Polynomial, _ divisor: Polynomial,
         axis: Int, usage: inout B) throws -> Polynomial {
         let coefficients = try divisor.axisCoefficients(at: axis, usage: &usage)
         guard let lead = coefficients.last else { throw rationalAlgebraFailure("Original pseudo-division has a zero divisor.") }

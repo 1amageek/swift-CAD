@@ -31,3 +31,38 @@ Nonfinite points, no positive total length, invalid normalized range or exhauste
 
 ## Verification and Change Impact
 Behavioral verification must cover unequal lengths, exact corners and preceding tangent selection, explicit repeated closure points, no implicit closing segment, tiny/large source coordinates, reduced algebra admission and work/storage exhaustion. Common curve preparation, arc length, drawing owning covers and Kernel nil-exact curve receipts are affected. Source edits alone do not establish these behaviors.
+
+## Direct Original Query Calling
+
+The [module direct execution contract](../DESIGN.md#u1-direct-execution-ownership)
+governs caller composition. Scalar source construction consumes the original
+`inout A: ExactScalarAdmission & ~Copyable`, with explicit work units, checked
+allocation bytes, independent value/coefficient scope observations and unchanged
+source laws. Geometry query composition uses the same original execution;
+ordinary conveniences create one cumulative owner only at their real entry.
+Callback-to-admission reconstruction, copied budget writeback and cancellation-
+only legacy allowances are removed. Actual structural and parameter guards,
+original source ownership and scoped identities remain required.
+
+### Direct Source Execution
+
+Pure original word/coefficient operations receive the original generic
+`inout A: ExactScalarAdmission & ~Copyable`. General geometry construction,
+validation and retained queries receive the original `inout OriginalQueryExecution`.
+Actual lower calculations keep that same object; no legacy, validation or borrowed
+admission is reconstructed from resource callbacks. Configured capabilities
+remain independent of attained proof metadata. Actual payload bytes are checked
+and admitted before materialization; failures and cancellation publish no partial
+source or complete query. Ordinary numerical entry points may create one explicit
+independent execution and delegate to the direct operation. Source-only generic
+branches consume their genuine Native/word law without acquiring a general
+geometry capability.
+
+```text
+Original caller execution -> source validation/query -> original lower operation
+generic caller A -> pure Native/word coefficient law -> retained source proof
+```
+
+Owning behavioral success, guard rejection, independent budgets/depth, terminal
+cancellation and retained lifetime must execute through the actual direct path.
+Syntax or signature checks alone are not completion evidence.

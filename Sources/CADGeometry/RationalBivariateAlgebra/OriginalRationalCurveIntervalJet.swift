@@ -8,7 +8,7 @@ package struct OriginalRationalCurveIntervalJet: Sendable {
     package let rawUpper: ExactRationalCoefficient
     package let jet: IntervalVectorDerivativeJet
 
-    package init<B: RationalAlgebraAdmitting>(original: OriginalRationalCurvePolynomial,
+    package init<B: ExactScalarAdmission & ~Copyable>(original: OriginalRationalCurvePolynomial,
         parameterMap: OriginalCurveAffineParameterMap,
         normalizedLower: ExactRationalCoefficient, normalizedUpper: ExactRationalCoefficient,
         throughOrder: Int, usage: inout B) throws {
@@ -35,7 +35,7 @@ package struct OriginalRationalCurveIntervalJet: Sendable {
         x.reserveCapacity(count); y.reserveCapacity(count); z.reserveCapacity(count)
         var gainPower = ExactRationalCoefficient.one
         for order in 0...throughOrder {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             let denominator = try OriginalRationalPolynomialRange(original: derivatives.denominators[order],
                 lower: lower, upper: upper, usage: &usage)
             for axis in 0..<3 {

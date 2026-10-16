@@ -6,7 +6,7 @@ package struct NativeSurfaceSurfaceCommonGraph {
     package let ideal: ExactIntersectionIdeal
     package let guardedEquations: [OriginalGuardedIntersectionEquations]
 
-    package static func prepare<B: RationalAlgebraAdmitting>(coverage: NativeSurfaceSurfaceCommonCoverage,
+    package static func prepare<B: ExactScalarAdmission & ~Copyable>(coverage: NativeSurfaceSurfaceCommonCoverage,
         conditions: [OriginalIntersectionCellCondition], maximumDepth: Int,
         usage: inout B) throws -> Self {
         guard let effective = coverage.effectiveDomains else {
@@ -121,9 +121,9 @@ package struct NativeSurfaceSurfaceCommonGraph {
         let logicalCount = try rationalAlgebraCount(graphStart, chartLawCount)
         try RationalAlgebraStorage.retain(logicalCount, of: Int.self, usage: &usage)
         try RationalAlgebraStorage.retain(logicalCount, of: OriginalPolynomialPredicate.Sign.self, usage: &usage)
-        try usage.consumeExactWork(logicalCount)
+        try usage.consumeWork(logicalCount)
         var physicalOrdinals = Array(repeating: -1, count: logicalCount)
-        try usage.consumeExactWork(logicalCount)
+        try usage.consumeWork(logicalCount)
         var fixedSigns = Array(repeating: OriginalPolynomialPredicate.Sign.zero, count: logicalCount)
         var capacity = logicalCount
         capacity = try rationalAlgebraCount(capacity, witnessCapacity)
@@ -237,7 +237,7 @@ package struct NativeSurfaceSurfaceCommonGraph {
 
     /// Positive original rational basis weights make these source extrema exact
     /// necessary graph bounds throughout the retained closed native charts.
-    private static func originalImageDomains<B: RationalAlgebraAdmitting>(charts: [NativeSurfaceSurfaceSourceChart],
+    private static func originalImageDomains<B: ExactScalarAdmission & ~Copyable>(charts: [NativeSurfaceSurfaceSourceChart],
         usage: inout B) throws -> [OriginalRationalParameterDomain] {
         try RationalAlgebraStorage.retain(6, of: Double.self, usage: &usage)
         var lower = Array(repeating: Double.infinity, count: 3)

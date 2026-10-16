@@ -12,6 +12,18 @@ struct OrthogonalSolidOperand: Sendable {
         planarPredicates: any PlanarPredicateEvaluating = AdaptivePlanarPredicateEvaluator(),
         tolerance: ModelingTolerance
     ) throws {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        try self.init(bodyID: bodyID, in: model, planarPredicates: planarPredicates,
+            tolerance: tolerance, using: &execution)
+    }
+
+    init(
+        bodyID: BodyID,
+        in model: BRepModel,
+        planarPredicates: any PlanarPredicateEvaluating = AdaptivePlanarPredicateEvaluator(),
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard let body = model.bodies[bodyID] else {
             throw TopologyError.missingReference("Missing boolean target body \(bodyID).")
@@ -21,12 +33,15 @@ struct OrthogonalSolidOperand: Sendable {
                 "Orthogonal boolean evaluation currently requires solid operands."
             )
         }
-        try Self.validateOrthogonalTopology(body: body, in: model, tolerance: tolerance)
-        let coordinates = try Self.coordinateGrid(for: body, in: model, tolerance: tolerance)
+        try Self.validateOrthogonalTopology(body: body, in: model, tolerance: tolerance, using: &execution)
+        let coordinates = try Self.coordinateGrid(for: body, in: model, tolerance: tolerance, using: &execution)
         var cells: [AxisAlignedBox] = []
         for xIndex in 0..<(coordinates.x.count - 1) {
+            try execution.consumeWork(1)
             for yIndex in 0..<(coordinates.y.count - 1) {
+            try execution.consumeWork(1)
                 for zIndex in 0..<(coordinates.z.count - 1) {
+            try execution.consumeWork(1)
                     let minimum = Point3D(
                         x: coordinates.x[xIndex],
                         y: coordinates.y[yIndex],
@@ -48,10 +63,11 @@ struct OrthogonalSolidOperand: Sendable {
                         model: model,
                         planarPredicates: planarPredicates,
                         tolerance: tolerance
-                    ) else {
+                    , using: &execution) else {
                         continue
                     }
-                    cells.append(try AxisAlignedBox(minimum: minimum, maximum: maximum, tolerance: tolerance))
+                    let cell = try AxisAlignedBox(minimum: minimum, maximum: maximum, tolerance: tolerance)
+                    try OriginalParameterQueryStorage.append(cell, to: &cells, using: &execution)
                 }
             }
         }
@@ -89,13 +105,15 @@ struct OrthogonalSolidOperand: Sendable {
         body: Body,
         in model: BRepModel,
         tolerance: ModelingTolerance
-    ) throws {
+    , using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         guard body.shellIDs.isEmpty == false else {
             throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
                 "Orthogonal boolean evaluation requires closed solid shells."
             )
         }
         for shellID in body.shellIDs {
+            try execution.consumeWork(1)
             guard let shell = model.shells[shellID] else {
                 throw TopologyError.missingReference("Missing boolean shell \(shellID).")
             }
@@ -105,6 +123,7 @@ struct OrthogonalSolidOperand: Sendable {
                 )
             }
             for faceID in shell.faceIDs {
+            try execution.consumeWork(1)
                 guard let face = model.faces[faceID],
                       let surface = model.geometry.surfaces[face.surfaceID] else {
                     throw TopologyError.missingReference("Missing boolean face \(faceID).")
@@ -114,12 +133,14 @@ struct OrthogonalSolidOperand: Sendable {
                         "Orthogonal boolean evaluation currently requires planar faces."
                     )
                 }
-                _ = try axisDirection(for: plane.normal, tolerance: tolerance)
+                _ = try axisDirection(for: plane.normal, tolerance: tolerance, using: &execution)
                 for loopID in face.loops {
+            try execution.consumeWork(1)
                     guard let loop = model.loops[loopID] else {
                         throw TopologyError.missingReference("Missing boolean loop \(loopID).")
                     }
                     for orientedEdge in loop.edges {
+            try execution.consumeWork(1)
                         guard let edge = model.edges[orientedEdge.edgeID],
                               let curve = model.geometry.curves[edge.curveID],
                               let start = model.vertices[edge.startVertexID]?.point,
@@ -131,8 +152,8 @@ struct OrthogonalSolidOperand: Sendable {
                                 "Orthogonal boolean evaluation currently requires linear edges."
                             )
                         }
-                        _ = try axisDirection(for: line.direction, tolerance: tolerance)
-                        try validateAxisAlignedSegment(start: start, end: end, tolerance: tolerance)
+                        _ = try axisDirection(for: line.direction, tolerance: tolerance, using: &execution)
+                        try validateAxisAlignedSegment(start: start, end: end, tolerance: tolerance, using: &execution)
                     }
                 }
             }
@@ -143,23 +164,28 @@ struct OrthogonalSolidOperand: Sendable {
         for body: Body,
         in model: BRepModel,
         tolerance: ModelingTolerance
-    ) throws -> CoordinateGrid {
+    , using execution: inout OriginalQueryExecution) throws -> CoordinateGrid {
+        try execution.consumeWork(1)
         var x: [Double] = []
         var y: [Double] = []
         var z: [Double] = []
         for shellID in body.shellIDs {
+            try execution.consumeWork(1)
             guard let shell = model.shells[shellID] else {
                 throw TopologyError.missingReference("Missing boolean shell \(shellID).")
             }
             for faceID in shell.faceIDs {
+            try execution.consumeWork(1)
                 guard let face = model.faces[faceID] else {
                     throw TopologyError.missingReference("Missing boolean face \(faceID).")
                 }
                 for loopID in face.loops {
-                    for point in try model.orderedPoints(for: loopID) {
-                        x.append(point.x)
-                        y.append(point.y)
-                        z.append(point.z)
+            try execution.consumeWork(1)
+                    for point in try model.orderedPoints(for: loopID, using: &execution) {
+            try execution.consumeWork(1)
+                        try OriginalParameterQueryStorage.append(point.x, to: &x, using: &execution)
+                        try OriginalParameterQueryStorage.append(point.y, to: &y, using: &execution)
+                        try OriginalParameterQueryStorage.append(point.z, to: &z, using: &execution)
                     }
                 }
             }
@@ -183,20 +209,23 @@ struct OrthogonalSolidOperand: Sendable {
         model: BRepModel,
         planarPredicates: any PlanarPredicateEvaluating,
         tolerance: ModelingTolerance
-    ) throws -> Bool {
+    , using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.consumeWork(1)
         var crossingCount = 0
         for shellID in body.shellIDs {
+            try execution.consumeWork(1)
             guard let shell = model.shells[shellID] else {
                 throw TopologyError.missingReference("Missing boolean shell \(shellID).")
             }
             for faceID in shell.faceIDs {
+            try execution.consumeWork(1)
                 if try crossesPositiveXRay(
                     faceID: faceID,
                     from: point,
                     model: model,
                     planarPredicates: planarPredicates,
                     tolerance: tolerance
-                ) {
+                , using: &execution) {
                     crossingCount += 1
                 }
             }
@@ -210,7 +239,8 @@ struct OrthogonalSolidOperand: Sendable {
         model: BRepModel,
         planarPredicates: any PlanarPredicateEvaluating,
         tolerance: ModelingTolerance
-    ) throws -> Bool {
+    , using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.consumeWork(1)
         guard let face = model.faces[faceID],
               let surface = model.geometry.surfaces[face.surfaceID] else {
             throw TopologyError.missingReference("Missing boolean face \(faceID).")
@@ -220,7 +250,7 @@ struct OrthogonalSolidOperand: Sendable {
                 "Orthogonal boolean evaluation currently requires planar faces."
             )
         }
-        let direction = try axisDirection(for: plane.normal, tolerance: tolerance)
+        let direction = try axisDirection(for: plane.normal, tolerance: tolerance, using: &execution)
         guard direction.isX else {
             return false
         }
@@ -234,7 +264,7 @@ struct OrthogonalSolidOperand: Sendable {
             model: model,
             planarPredicates: planarPredicates,
             tolerance: tolerance
-        )
+        , using: &execution)
     }
 
     private static func faceContainsProjectedPoint(
@@ -243,18 +273,20 @@ struct OrthogonalSolidOperand: Sendable {
         model: BRepModel,
         planarPredicates: any PlanarPredicateEvaluating,
         tolerance: ModelingTolerance
-    ) throws -> Bool {
+    , using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.consumeWork(1)
         var containsOuterLoop = false
         for loopID in face.loops {
+            try execution.consumeWork(1)
             guard let loop = model.loops[loopID] else {
                 throw TopologyError.missingReference("Missing boolean loop \(loopID).")
             }
-            let polygon = try model.orderedPoints(for: loopID).map { Point2D(x: $0.y, y: $0.z) }
+            let polygon = try model.orderedPoints(for: loopID, using: &execution).map { Point2D(x: $0.y, y: $0.z) }
             let classification = try planarPredicates.classify(
                 point,
                 in: polygon,
                 tolerance: tolerance
-            )
+            , using: &execution)
             guard classification != .indeterminate else {
                 throw KernelError(
                     phase: .classification,
@@ -280,7 +312,8 @@ struct OrthogonalSolidOperand: Sendable {
         start: Point3D,
         end: Point3D,
         tolerance: ModelingTolerance
-    ) throws {
+    , using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         let delta = end - start
         let changingAxes = [
             abs(delta.x) > tolerance.distance,
@@ -297,7 +330,8 @@ struct OrthogonalSolidOperand: Sendable {
     private static func axisDirection(
         for vector: Vector3D,
         tolerance: ModelingTolerance
-    ) throws -> AxisDirection {
+    , using execution: inout OriginalQueryExecution) throws -> AxisDirection {
+        try execution.consumeWork(1)
         let normalized = try vector.normalized(tolerance: tolerance.distance)
         let epsilon = max(tolerance.distance, tolerance.angle)
         if abs(normalized.x - 1.0) <= epsilon, abs(normalized.y) <= epsilon, abs(normalized.z) <= epsilon {

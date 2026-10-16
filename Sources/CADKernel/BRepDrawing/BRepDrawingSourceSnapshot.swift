@@ -1,3 +1,4 @@
+import CADGeometry
 import CADCore
 import CADIR
 import CADTopology
@@ -15,9 +16,18 @@ final class BRepDrawingSourceSnapshot: Sendable {
     }
 
     func validateCurrent(_ evaluated: EvaluatedDocument) throws {
-        try CurrentTaskCancellationChecker().checkCancellation()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try validateCurrent(evaluated, using: &execution)
+    }
+
+    func validateCurrent(_ evaluated: EvaluatedDocument, using execution: inout OriginalQueryExecution) throws {
+        try execution.checkpoint()
+        try execution.checkpoint()
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Drawing freshness still compares the complete
+        // authored CADDocument with its retained snapshot. CADIR must supply paid exact
+        // structural comparison before this public path has complete bounded source admission.
         guard evaluated.document == document, evaluated.configuration == configuration,
-              evaluated.brep == brep else {
+              try OriginalBRepStructuralComparison.models(evaluated.brep, brep, using: &execution) else {
             throw KernelError(phase: .evaluation, code: .missingReference,
                 tolerance: configuration.tolerance,
                 message: "Drawing geometry belongs to a different original evaluated snapshot.")

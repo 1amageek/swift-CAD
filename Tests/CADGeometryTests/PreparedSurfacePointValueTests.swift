@@ -24,6 +24,8 @@ struct PreparedSurfacePointValueTests {
 
     @Test(.timeLimit(.minutes(1)), arguments:[1.0,2.0])
     func polynomialNativePointValuesKeepLiteralTranslationAndFullBits(_ commonWeight: Double) throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
         let squared = [0.0,0,1.0/3,1]
         let surface = BSplineSurface3D(uDegree:3,vDegree:1,
             uKnots:[2,2,2,2,5,5,5,5],vKnots:[7,7,9,9],
@@ -32,41 +34,43 @@ struct PreparedSurfacePointValueTests {
                     z:2+(i == 3 ? 0.008 : 0)+0.006*squared[i]*Double(j))
             } },weights:Array(repeating:Array(repeating:commonWeight,count:4),count:2))
         let primitive = RationalBezierSurfaceJetEncloser()
-        let preparedPatch = try primitive.prepare(patch(surface),tolerance:tolerance)
-        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface:surface,tolerance:tolerance)
-        let delegate = try PreparedSurfaceDifferentialEncloser(surface:.bSpline(surface),tolerance:tolerance)
+        let preparedPatch = try primitive.prepare(patch(surface),tolerance:tolerance, using: &execution)
+        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface:surface,tolerance:tolerance, using: &execution)
+        let delegate = try PreparedSurfaceDifferentialEncloser(surface:.bSpline(surface),tolerance:tolerance, using: &execution)
         for (u,v) in [(2.0,7.0),(5.0,9.0),(5.0.nextDown,9.0.nextDown),(3.35,8.0)] {
             let t = (u-2)/3, s = (v-7)/2
             let literal = Point3D(x:4+0.04*t,y:-3+0.02*s,z:2+0.008*t*t*t+0.006*t*t*s)
-            let full = try prepared.pointJet(u:u,v:v,tolerance:tolerance)
-            expectSame(try primitive.pointValueEnclosure(of:preparedPatch,u:u,v:v,tolerance:tolerance),full,containing:literal)
-            expectSame(try prepared.pointValue(u:u,v:v,tolerance:tolerance),full,containing:literal)
-            expectSame(try delegate.pointValue(u:u,v:v,tolerance:tolerance),full,containing:literal)
+            let full = try prepared.pointJet(u:u,v:v,tolerance:tolerance, using: &execution)
+            expectSame(try primitive.pointValueEnclosure(of:preparedPatch,u:u,v:v,tolerance:tolerance, using: &execution),full,containing:literal)
+            expectSame(try prepared.pointValue(u:u,v:v,tolerance:tolerance, using: &execution),full,containing:literal)
+            expectSame(try delegate.pointValue(u:u,v:v,tolerance:tolerance, using: &execution),full,containing:literal)
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func genuinelyRationalPointValuesRetainUnequalWeightQuotientAndFullBits() throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
         let surface = BSplineSurface3D(uDegree:2,vDegree:1,
             uKnots:[2,2,2,5,5,5],vKnots:[7,7,9,9],
             controlPoints:[-1.0/64,1.0/64].map { z in
                 [Point3D(x:0,y:0,z:z),Point3D(x:0,y:1.0/128,z:z),Point3D(x:1.0/32,y:1.0/64,z:z)]
             },weights:[[4,2,1],[4,2,1]])
         let primitive = RationalBezierSurfaceJetEncloser()
-        let preparedPatch = try primitive.prepare(patch(surface),tolerance:tolerance)
-        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface:surface,tolerance:tolerance)
-        let delegate = try PreparedSurfaceDifferentialEncloser(surface:.bSpline(surface),tolerance:tolerance)
+        let preparedPatch = try primitive.prepare(patch(surface),tolerance:tolerance, using: &execution)
+        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface:surface,tolerance:tolerance, using: &execution)
+        let delegate = try PreparedSurfaceDifferentialEncloser(surface:.bSpline(surface),tolerance:tolerance, using: &execution)
         for (u,v) in [(2.0,7.0),(5.0,9.0),(3.35,8.0),(3.875,7.75),(5.0.nextDown,9.0.nextDown)] {
             let s = (u-2)/3, r = (v-7)/2, t = s/(2-s)
             let literal = Point3D(x:t*t/32,y:t/64,z:(2*r-1)/64)
-            let full = try prepared.pointJet(u:u,v:v,tolerance:tolerance)
-            expectSame(try primitive.pointValueEnclosure(of:preparedPatch,u:u,v:v,tolerance:tolerance),full,containing:literal)
-            expectSame(try prepared.pointValue(u:u,v:v,tolerance:tolerance),full,containing:literal)
-            expectSame(try delegate.pointValue(u:u,v:v,tolerance:tolerance),full,containing:literal)
+            let full = try prepared.pointJet(u:u,v:v,tolerance:tolerance, using: &execution)
+            expectSame(try primitive.pointValueEnclosure(of:preparedPatch,u:u,v:v,tolerance:tolerance, using: &execution),full,containing:literal)
+            expectSame(try prepared.pointValue(u:u,v:v,tolerance:tolerance, using: &execution),full,containing:literal)
+            expectSame(try delegate.pointValue(u:u,v:v,tolerance:tolerance, using: &execution),full,containing:literal)
             let uBox = try ScalarInterval(lower:u == 5 ? u-1e-8 : u,upper:u == 5 ? u : min(5,u+1e-8))
             let vBox = try ScalarInterval(lower:7.25,upper:8.75)
-            let range = try primitive.enclosure(of:preparedPatch,u:uBox,v:vBox,tolerance:tolerance)
-            let value = try primitive.valueEnclosure(of:preparedPatch,u:uBox,v:vBox,tolerance:tolerance)
+            let range = try primitive.enclosure(of:preparedPatch,u:uBox,v:vBox,tolerance:tolerance, using: &execution)
+            let value = try primitive.valueEnclosure(of:preparedPatch,u:uBox,v:vBox,tolerance:tolerance, using: &execution)
             for (a,b) in [(value.x,range.x.value),(value.y,range.y.value),(value.z,range.z.value)] {
                 #expect(a.lower.bitPattern == b.lower.bitPattern && a.upper.bitPattern == b.upper.bitPattern)
             }
@@ -83,25 +87,27 @@ struct PreparedSurfacePointValueTests {
 
     @Test(.timeLimit(.minutes(1)))
     func originalKnotCornerValuesUnionAllClosedOwnersAndRejectForeignTokens() throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
         let source = knotSurface()
-        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface:source,tolerance:tolerance)
+        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface:source,tolerance:tolerance, using: &execution)
         let box = SurfaceParameterBox(u:try ScalarInterval(lower:0.5,upper:0.5),v:try ScalarInterval(lower:0.5,upper:0.5))
-        let owners = try prepared.originalNativeSpans(over:box,tolerance:tolerance)
+        let owners = try prepared.originalNativeSpans(over:box,tolerance:tolerance, using: &execution)
         #expect(owners.count == 4)
         let literal = Point3D(x:0.5,y:0.5,z:0.25)
         var union: IntervalVector3DBounds?
         for owner in owners {
-            let value = try owner.pointValue(u:0.5,v:0.5,on:source,tolerance:tolerance)
-            expectSame(value,try owner.pointJet(u:0.5,v:0.5,on:source,tolerance:tolerance),containing:literal)
+            let value = try owner.pointValue(u:0.5,v:0.5,on:source,tolerance:tolerance, using: &execution)
+            expectSame(value,try owner.pointJet(u:0.5,v:0.5,on:source,tolerance:tolerance, using: &execution),containing:literal)
             if let old = union { union = IntervalVector3DBounds(x:old.x.union(value.x),y:old.y.union(value.y),z:old.z.union(value.z)) }
             else { union = value }
         }
-        let result = try prepared.pointValue(u:0.5,v:0.5,tolerance:tolerance)
+        let result = try prepared.pointValue(u:0.5,v:0.5,tolerance:tolerance, using: &execution)
         let allSides = try #require(union)
         for (a,b) in [(result.x,allSides.x),(result.y,allSides.y),(result.z,allSides.z)] {
             #expect(a.lower.bitPattern == b.lower.bitPattern && a.upper.bitPattern == b.upper.bitPattern)
         }
-        expectSame(result,try prepared.pointJet(u:0.5,v:0.5,tolerance:tolerance),containing:literal)
+        expectSame(result,try prepared.pointJet(u:0.5,v:0.5,tolerance:tolerance, using: &execution),containing:literal)
         let owner = try #require(owners.first { $0.uSpanIndex == 1 && $0.vSpanIndex == 1 })
         var foreign = source
         foreign.controlPoints[0][0].z = 100
@@ -109,13 +115,13 @@ struct PreparedSurfacePointValueTests {
         for (surface,tol,u) in [(foreign,tolerance,0.5),(source,otherTolerance,0.5),
                               (source,tolerance,0.5.nextUp),(source,tolerance,Double.infinity)] {
             do {
-                _ = try owner.pointValue(u:u,v:0.5,on:surface,tolerance:tol)
+                _ = try owner.pointValue(u:u,v:0.5,on:surface,tolerance:tol, using: &execution)
                 Issue.record("Original point values must reject foreign native token authority.")
             } catch let error as KernelError { #expect(error.code == .invalidInput) }
         }
         // Caller mutation cannot change the immutable original prepared source.
-        expectSame(try owner.pointValue(u:0.5,v:0.5,on:owner.surface,tolerance:tolerance),
-            try owner.pointJet(u:0.5,v:0.5,on:owner.surface,tolerance:tolerance),containing:literal)
+        expectSame(try owner.pointValue(u:0.5,v:0.5,on:owner.surface,tolerance:tolerance, using: &execution),
+            try owner.pointJet(u:0.5,v:0.5,on:owner.surface,tolerance:tolerance, using: &execution),containing:literal)
     }
 
     @Test(.timeLimit(.minutes(1)), arguments:[true,false])
@@ -144,19 +150,21 @@ struct PreparedSurfacePointValueTests {
 
     @Test(.timeLimit(.minutes(1)))
     func preparedPointValuesRejectInvalidDomainsToleranceAndUnsupportedRepresentations() throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
         let surface = knotSurface()
-        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface:surface,tolerance:tolerance)
+        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface:surface,tolerance:tolerance, using: &execution)
         let otherTolerance = ModelingTolerance(distance:2*tolerance.distance,angle:tolerance.angle,relative:tolerance.relative)
         for (u,v,tol) in [(-Double.ulpOfOne,0.5,tolerance),(1.0.nextUp,0.5,tolerance),
                           (0.5,Double.infinity,tolerance),(Double.nan,0.5,tolerance),(0.5,0.5,otherTolerance)] {
             do {
-                _ = try prepared.pointValue(u:u,v:v,tolerance:tol)
+                _ = try prepared.pointValue(u:u,v:v,tolerance:tol, using: &execution)
                 Issue.record("Prepared point values must retain strict original domain/tolerance authority.")
             } catch let error as KernelError { #expect(error.code == .invalidInput) }
         }
-        let plane = try PreparedSurfaceDifferentialEncloser(surface:.plane(Plane3D(origin:.origin,normal:.unitZ)),tolerance:tolerance)
+        let plane = try PreparedSurfaceDifferentialEncloser(surface:.plane(Plane3D(origin:.origin,normal:.unitZ)),tolerance:tolerance, using: &execution)
         do {
-            _ = try plane.pointValue(u:0,v:0,tolerance:tolerance)
+            _ = try plane.pointValue(u:0,v:0,tolerance:tolerance, using: &execution)
             Issue.record("This closed-point value route must not admit another representation.")
         } catch let error as KernelError { #expect(error.code == .unsupportedCapability) }
         let smallest = Double.leastNonzeroMagnitude
@@ -164,36 +172,40 @@ struct PreparedSurfacePointValueTests {
         let owned = try primitive.prepare(RationalBezierSurfacePatch3D(
             controlPoints:[[.origin,Point3D(x:0.02,y:0,z:0)],
                            [Point3D(x:0,y:0.02,z:0),Point3D(x:0.02,y:0.02,z:0)]],
-            weights:[[smallest,2*smallest],[smallest,2*smallest]],uLower:0,uUpper:1,vLower:0,vUpper:1),tolerance:tolerance)
+            weights:[[smallest,2*smallest],[smallest,2*smallest]],uLower:0,uUpper:1,vLower:0,vUpper:1),tolerance:tolerance, using: &execution)
         do {
-            _ = try primitive.pointValueEnclosure(of:owned,u:0.5,v:0.5,tolerance:tolerance)
+            _ = try primitive.pointValueEnclosure(of:owned,u:0.5,v:0.5,tolerance:tolerance, using: &execution)
             Issue.record("An unresolved finite reciprocal cannot certify Cartesian point values.")
         } catch let error as KernelError { #expect(error.code == .singularSystem) }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func originalPreparedPointValueOperationsRetainCancellation() async throws {
+        let budget = try OriginalQueryBudget()
+        let limits = try OriginalQueryExecutionLimits(maximumValueDepth: 32, maximumCoefficientDepth: 32)
+        var execution = OriginalQueryExecution(budget: budget, limits: limits)
         let surface = knotSurface()
-        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface:surface,tolerance:tolerance)
-        let delegate = try PreparedSurfaceDifferentialEncloser(surface:.bSpline(surface),tolerance:tolerance)
+        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface:surface,tolerance:tolerance, using: &execution)
+        let delegate = try PreparedSurfaceDifferentialEncloser(surface:.bSpline(surface),tolerance:tolerance, using: &execution)
         let primitive = RationalBezierSurfaceJetEncloser()
         let owned = try primitive.prepare(RationalBezierSurfacePatch3D(
             controlPoints:[[.origin,Point3D(x:1,y:0,z:0)],[Point3D(x:0,y:1,z:0),Point3D(x:1,y:1,z:0)]],
-            weights:[[1,1],[1,1]],uLower:0,uUpper:1,vLower:0,vUpper:1),tolerance:tolerance)
+            weights:[[1,1],[1,1]],uLower:0,uUpper:1,vLower:0,vUpper:1),tolerance:tolerance, using: &execution)
         for operation in 0...2 {
             let (stream,continuation) = AsyncStream<Void>.makeStream()
             let task = Task {
+                var execution = OriginalQueryExecution(budget: budget, limits: limits)
                 for await _ in stream { break }
                 switch operation {
-                case 0: _ = try primitive.pointValueEnclosure(of:owned,u:0.5,v:0.5,tolerance:tolerance)
-                case 1: _ = try prepared.pointValue(u:0.5,v:0.5,tolerance:tolerance)
-                default: _ = try delegate.pointValue(u:0.5,v:0.5,tolerance:tolerance)
+                case 0: _ = try primitive.pointValueEnclosure(of:owned,u:0.5,v:0.5,tolerance:tolerance, using: &execution)
+                case 1: _ = try prepared.pointValue(u:0.5,v:0.5,tolerance:tolerance, using: &execution)
+                default: _ = try delegate.pointValue(u:0.5,v:0.5,tolerance:tolerance, using: &execution)
                 }
             }
             task.cancel()
             continuation.yield()
             continuation.finish()
-            await #expect(throws:CancellationError.self) { _ = try await task.value }
+            await geometryTestExpectFailure(geometryTestIsCancelled) { _ = try await task.value }
         }
     }
 }

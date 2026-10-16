@@ -1,0 +1,23 @@
+{
+  "status": "preparedNotExecuted",
+  "commands": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-debug-unlock-r1/commands-r3.lldb",
+  "sha256": "3157ba522a51626d4fc87f98eff1d9590faac3d33e359f18d850d22d801ba98d",
+  "previousCommands": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-debug-unlock-r1/commands-r2.lldb",
+  "previousSHA256": "5a8513e2d9406663c2b41e55a143dabfaa512dbab5c61560fb7d0f05cf4691a5",
+  "onlyChange": "Add causal Xcode platform public/private framework and XCTest Swift support library search paths; binary, query arguments, breakpoint/capture commands and caps unchanged.",
+  "environment": {
+    "DYLD_FRAMEWORK_PATH": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks:/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+    "DYLD_LIBRARY_PATH": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib"
+  },
+  "evidence": [
+    "Actual binary LC_LOAD_DYLIB names @rpath/XCTest.framework, @rpath/Testing.framework and @rpath/libXCTestSwiftSupport.dylib.",
+    "Actual test link uses -Fsystem platform/Developer/Library/Frameworks and -L platform/Developer/usr/lib.",
+    "XCTest reexports XCTestCore from the same platform Developer/Library/PrivateFrameworks."
+  ],
+  "runtimeFiles": {
+    "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks/XCTest.framework/Versions/A/XCTest": "014f185d17e7034dbf568b03e7cdcad2dfb88e8645e8e77897752ad677a7acfb",
+    "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks/Testing.framework/Versions/A/Testing": "e64271557d03ed7e99b0444fd5c4743710aa6480c7e6d059b79f83b55acad9f6",
+    "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks/XCTestCore.framework/Versions/A/XCTestCore": "a4dc2378a7c447da1338a7507abfe419899422d296f9682570ae4252d16971f2",
+    "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/libXCTestSwiftSupport.dylib": "4c20549e36a7014dec2226a963c23edeaa5e8936b3f584f7e54fa51ffc6e0652"
+  }
+}

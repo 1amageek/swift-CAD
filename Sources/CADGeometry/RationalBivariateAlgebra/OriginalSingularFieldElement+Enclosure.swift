@@ -3,7 +3,7 @@ import CADCore
 extension OriginalSingularFieldElement {
     /// One query keeps every refinement receipt locally; repeated callers retain the isolation port.
     package func enclosure(maximumWidth: ExactRationalCoefficient? = nil, inheritedDepth: Int = 0,
-        maximumDepth: Int, usage: inout some RationalAlgebraAdmitting) throws -> OutwardScalarInterval {
+        maximumDepth: Int, usage: inout some ExactScalarAdmission & ~Copyable) throws -> OutwardScalarInterval {
         if let maximumWidth, !maximumWidth.isPositive {
             throw rationalAlgebraFailure("Original field enclosure requires positive caller width.")
         }

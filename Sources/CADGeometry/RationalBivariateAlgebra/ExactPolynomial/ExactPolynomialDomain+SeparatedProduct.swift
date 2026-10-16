@@ -4,7 +4,7 @@ import L0
 
 extension ExactPolynomialDomain {
     func varyingAxes<A: ExactScalarAdmission & ~Copyable>(_ value: borrowing Polynomial,
-        _ usage: inout ExactPolynomialAdmission<A>) throws -> (first: Int, last: Int) {
+        _ usage: inout A) throws -> (first: Int, last: Int) {
         var first = variableCount, last = -1
         let reference = value.terms[0].powers
         for term in value.terms {
@@ -16,7 +16,7 @@ extension ExactPolynomialDomain {
         return (first,last)
     }
     func separatedProduct<A: ExactScalarAdmission & ~Copyable>(_ lhs: borrowing Polynomial,
-        _ rhs: borrowing Polynomial, _ usage: inout ExactPolynomialAdmission<A>) throws -> Polynomial? {
+        _ rhs: borrowing Polynomial, _ usage: inout A) throws -> Polynomial? {
         let left = try varyingAxes(lhs, &usage), right = try varyingAxes(rhs, &usage)
         let rows: [ExactPolynomialTerm<Coefficient>], columns: [ExactPolynomialTerm<Coefficient>]
         if left.last < right.first { rows = lhs.terms; columns = rhs.terms }

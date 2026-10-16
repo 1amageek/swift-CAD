@@ -1,42 +1,47 @@
+import CADGeometry
+
 struct CertifiedIntervalSummation {
-    static func sum(
-        _ values: [SurfaceParameterAreaBounds]
-    ) -> SurfaceParameterAreaBounds {
-        sum(values, bounds: { $0 })
+    static func sum<A: ExactScalarAdmission & ~Copyable>(
+        _ values: [SurfaceParameterAreaBounds], using execution: inout A
+    ) throws -> SurfaceParameterAreaBounds {
+        try sum(values, bounds: { value, execution in value }, using: &execution)
     }
 
-    static func sum<Value>(
+    static func sum<Value, A: ExactScalarAdmission & ~Copyable>(
         _ values: [Value],
-        bounds: (Value) -> SurfaceParameterAreaBounds
-    ) -> SurfaceParameterAreaBounds {
-        sum(
+        bounds: (Value, inout A) throws -> SurfaceParameterAreaBounds,
+        using execution: inout A
+    ) throws -> SurfaceParameterAreaBounds {
+        try sum(
             values,
             lowerIndex: 0,
             upperIndex: values.count,
-            bounds: bounds
+            bounds: bounds, using: &execution
         )
     }
 
-    private static func sum<Value>(
+    private static func sum<Value, A: ExactScalarAdmission & ~Copyable>(
         _ values: [Value],
         lowerIndex: Int,
         upperIndex: Int,
-        bounds: (Value) -> SurfaceParameterAreaBounds
-    ) -> SurfaceParameterAreaBounds {
+        bounds: (Value, inout A) throws -> SurfaceParameterAreaBounds,
+        using execution: inout A
+    ) throws -> SurfaceParameterAreaBounds {
+        try execution.checkpoint(); try execution.consumeWork(1)
         let count = upperIndex - lowerIndex
         guard count > 0 else { return .zero }
-        guard count > 1 else { return bounds(values[lowerIndex]) }
+        guard count > 1 else { return try bounds(values[lowerIndex], &execution) }
         let middleIndex = lowerIndex + count / 2
-        return sum(
+        return try sum(
             values,
             lowerIndex: lowerIndex,
             upperIndex: middleIndex,
-            bounds: bounds
+            bounds: bounds, using: &execution
         ).adding(sum(
             values,
             lowerIndex: middleIndex,
             upperIndex: upperIndex,
-            bounds: bounds
+            bounds: bounds, using: &execution
         ))
     }
 }

@@ -31,42 +31,52 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         feature: FeatureNode,
         context: EvaluationContext
     ) throws -> ValidatedFeatureEvaluation {
-        var result = try evaluateUnvalidated(feature: feature, context: context)
+        var execution = try ordinaryExecution(tolerance: context.tolerance)
+        return try evaluateValidated(feature: feature, context: context, using: &execution)
+    }
+
+    // FIXME(INCOMPLETE_IMPLEMENTATION): The feature dispatcher uses this entry
+    // for the selected original source construction. Existing request/expression
+    // or staged feature branches still need their own direct contract; this
+    // binding must not be counted as complete whole-feature U1 accounting.
+    package func evaluateValidated(feature: FeatureNode, context: EvaluationContext,
+        using execution: inout OriginalQueryExecution) throws -> ValidatedFeatureEvaluation {
+        var result = try evaluateUnvalidated(feature: feature, context: context, using: &execution)
         // Simplify: the loft's flat faces are trimmed planes.
         if case let .loft(loft) = feature.operation, loft.options.simplify {
             let bodyReference = result.subshapes[SubshapeID(featureID: feature.id, role: GeneratedSubshapeRole.body.rawValue, ordinal: 0)]
             guard case let .body(bodyID)? = bodyReference else {
                 throw FeatureEvaluationError.missingInput("A simplified Loft publishes no body.")
             }
-            result = try PlanarFaceSimplifier(tolerance: context.tolerance).simplified(result, bodyID: bodyID)
+            result = try PlanarFaceSimplifier(tolerance: context.tolerance).simplified(result, bodyID: bodyID, using: &execution)
         }
         return try ValidatedFeatureEvaluation(
             validating: result,
-            tolerance: context.tolerance
+            tolerance: context.tolerance, using: &execution
         )
     }
 
     /// A Loft from its one section to a vertex of a body, the section's one loop ruled to it.
     private func apexLoft(_ loft: LoftFeature, apex: LoftApex, featureID: FeatureID, context: EvaluationContext,
-        allowance: inout LoftCorrespondenceAllowance) throws -> EvaluationResult {
+        using execution: inout OriginalQueryExecution) throws -> EvaluationResult {
         let tolerance = context.tolerance
         guard let sewer else {
             throw KernelError(phase: .evaluation, code: .unsupportedCapability, featureID: featureID, tolerance: tolerance,
                               message: "This evaluator cannot sew a Loft to a vertex.")
         }
-        let spanBuilder = ExactBSplineCurveSpanBuilder(tolerance: tolerance, admission: try allowance.conversionAdmission())
+        let spanBuilder = try ExactBSplineCurveSpanBuilder(tolerance: tolerance, using: &execution)
         let section = loft.sections[0]
         let loop: (spans: [ExactBSplineCurveSpan], closed: Bool)
         switch section.section {
         case .face(let reference):
-            let loops = try spanBuilder.faceLoopSpans(from: try FaceSectionProfileResolver().resolve(for: reference, context: context, featureID: featureID, admission: try allowance.conversionAdmission()))
+            let loops = try spanBuilder.faceLoopSpans(from: try FaceSectionProfileResolver().resolve(for: reference, context: context, featureID: featureID, using: &execution), using: &execution)
             guard loops.count == 1 else {
                 throw KernelError(phase: .topology, code: .ambiguousSelection, featureID: featureID, tolerance: tolerance,
                     message: "A Loft face with \(max(0, loops.count - 1)) holes and one terminal vertex has no declared hole birth or death correspondence.")
             }
             loop = (loops[0], true)
         case .profile(let reference):
-            let loops = try spanBuilder.profileLoopSpans(from: try ResolvedModelingSection.resolveProfile(reference, from: context.profiles[reference.featureID]))
+            let loops = try spanBuilder.profileLoopSpans(from: try ResolvedModelingSection.resolveProfile(reference, from: context.profiles[reference.featureID]), using: &execution)
             guard loops.count == 1 else {
                 throw KernelError(phase: .topology, code: .ambiguousSelection, featureID: featureID, tolerance: tolerance,
                     message: "A Loft profile with \(max(0, loops.count - 1)) holes and one terminal vertex has no declared hole birth or death correspondence.")
@@ -74,7 +84,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             loop = (loops[0], true)
         case .curve(let reference):
             let original = try OriginalLoftCurveSection(reference: reference,
-                curves: context.curves[reference.featureID], allowance: &allowance, tolerance: tolerance)
+                curves: context.curves[reference.featureID], using: &execution, tolerance: tolerance)
             loop = (original.imageSpans, original.isClosed)
         }
         guard case let .vertex(vertexID) = try StableSubshapeResolver().topologyReference(
@@ -93,7 +103,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
     private func evaluateUnvalidated(
         feature: FeatureNode,
         context: EvaluationContext
-    ) throws -> EvaluationResult {
+    , using execution: inout OriginalQueryExecution) throws -> EvaluationResult {
         try context.tolerance.validate()
         guard case let .loft(loft) = feature.operation else {
             throw KernelError(
@@ -123,19 +133,18 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                 featureID: feature.id, tolerance: context.tolerance,
                 message: "Loft guide-end extension has no original carried-section admission.")
         }
-        var correspondenceAllowance = LoftCorrespondenceAllowance(tolerance: context.tolerance)
         if let apex = loft.apex {
-            return try apexLoft(loft, apex: apex, featureID: feature.id, context: context, allowance: &correspondenceAllowance)
+            return try apexLoft(loft, apex: apex, featureID: feature.id, context: context, using: &execution)
         }
         if loft.sections.contains(where: { !$0.section.isClosedRegion }) {
-            let spanBuilder = ExactBSplineCurveSpanBuilder(tolerance: context.tolerance, admission: try correspondenceAllowance.conversionAdmission())
+            let spanBuilder = try ExactBSplineCurveSpanBuilder(tolerance: context.tolerance, using: &execution)
             var seamPoints: [Point3D?] = []
             var originalContactLoops: [[[OriginalCurveContactSource]]?] = []
             let profileContacts = OriginalLoftProfileContactSources()
             let boundaries = try loft.sections.map { section -> (spans: [ExactBSplineCurveSpan], closed: Bool) in
                 switch section.section {
                 case .face(let reference):
-                    let face = try FaceSectionProfileResolver().resolve(for: reference, context: context, featureID: feature.id, admission: try correspondenceAllowance.conversionAdmission())
+                    let face = try FaceSectionProfileResolver().resolve(for: reference, context: context, featureID: feature.id, using: &execution)
                     let profile = face.profile
                     if let index = section.startSampleIndex {
                         guard profile.vertices.indices.contains(index) else {
@@ -145,19 +154,19 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                     } else {
                         seamPoints.append(nil)
                     }
-                    let loops = try spanBuilder.faceLoopSpans(from: face)
+                    let loops = try spanBuilder.faceLoopSpans(from: face, using: &execution)
                     originalContactLoops.append(try profileContacts.loops(face: face,
-                        consumeStorage: { try correspondenceAllowance.charge($0) }, tolerance: context.tolerance))
+                        tolerance: context.tolerance, using: &execution))
                     guard loops.count == 1, let spans = loops.first else {
                         throw KernelError(phase: .topology, code: .ambiguousSelection, tolerance: context.tolerance,
                             message: "A single curve and a Loft face with \(max(0, loops.count - 1)) holes have no declared boundary birth or death correspondence.")
                     }
-                    return (try directedProfileSpans(spans, direction: section.profileDirection, tolerance: context.tolerance), true)
+                    return (try directedProfileSpans(spans, direction: section.profileDirection, tolerance: context.tolerance, using: &execution), true)
                 case .curve(let reference):
                     if let index = section.startSampleIndex {
                         let source = try ResolvedModelingSection.resolveCurve(
                             CurveSectionReference(featureID: reference.featureID),
-                            from: context.curves[reference.featureID], tolerance: context.tolerance)
+                            from: context.curves[reference.featureID], tolerance: context.tolerance, using: &execution)
                         guard source.points.indices.contains(index) else {
                             throw FeatureEvaluationError.invalidGraph("Loft start index must reference an existing source curve sample.")
                         }
@@ -166,7 +175,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                         seamPoints.append(nil)
                     }
                     let original = try OriginalLoftCurveSection(reference: reference,
-                        curves: context.curves[reference.featureID], allowance: &correspondenceAllowance,
+                        curves: context.curves[reference.featureID], using: &execution,
                         tolerance: context.tolerance)
                     originalContactLoops.append([[original.source]])
                     return (original.imageSpans, original.isClosed)
@@ -181,15 +190,15 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                     } else {
                         seamPoints.append(nil)
                     }
-                    let loops = try spanBuilder.profileLoopSpans(from: profile)
+                    let loops = try spanBuilder.profileLoopSpans(from: profile, using: &execution)
                     originalContactLoops.append(try profileContacts.loops(profile: profile,
-                        consumeStorage: { try correspondenceAllowance.charge($0) }, tolerance: context.tolerance))
+                        tolerance: context.tolerance, using: &execution))
                     guard loops.count == 1, let spans = loops.first else {
                         throw KernelError(phase: .topology, code: .ambiguousSelection,
                             tolerance: context.tolerance,
                             message: "A single curve and a Loft profile with \(max(0, loops.count - 1)) holes have no declared boundary birth or death correspondence.")
                     }
-                    return (try directedProfileSpans(spans, direction: section.profileDirection, tolerance: context.tolerance), true)
+                    return (try directedProfileSpans(spans, direction: section.profileDirection, tolerance: context.tolerance, using: &execution), true)
                 }
             }
             guard let closed = boundaries.first?.closed, boundaries.allSatisfy({ $0.closed == closed }) else {
@@ -202,10 +211,10 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                 // far ends, a section of its own (no continuity) for the builder.
                 let guideSpans = try loft.guides.map { guide in
                     try spanBuilder.sectionSpans(from: ResolvedModelingSection.resolveCurve(
-                        CurveSectionReference(featureID: guide.featureID), from: context.curves[guide.featureID], tolerance: context.tolerance))
+                        CurveSectionReference(featureID: guide.featureID), from: context.curves[guide.featureID], tolerance: context.tolerance, using: &execution), using: &execution)
                 }
-                boundarySpans.append(try ContinuousLoftEndSectionBuilder(tolerance: context.tolerance, admission: try correspondenceAllowance.conversionAdmission())
-                    .endSection(of: boundarySpans[0], guides: guideSpans, featureID: feature.id))
+                boundarySpans.append(try ContinuousLoftEndSectionBuilder(tolerance: context.tolerance)
+                    .endSection(of: boundarySpans[0], guides: guideSpans, featureID: feature.id, using: &execution))
                 var end = loft.sections[0]
                 end.section = .curve(CurveSectionReference(featureID: featureEvaluationStageID(featureID: feature.id, domain: .loftEndSection, ordinal: 0)))
                 end.continuity = nil
@@ -220,10 +229,10 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             }
             if closed {
                 let seamResolver = ExactLoftBodyBuilder(featureID: feature.id, context: context,
-                    capContactValidator: capContactValidator, conversionAdmission: try correspondenceAllowance.conversionAdmission())
+                    capContactValidator: capContactValidator)
                 for section in boundarySpans.indices {
                     if let seam = seamPoints[section] {
-                        boundarySpans[section] = try seamResolver.boundarySpans(boundarySpans[section], startingAt: seam)
+                        boundarySpans[section] = try seamResolver.boundarySpans(boundarySpans[section], startingAt: seam, using: &execution)
                     }
                 }
             }
@@ -235,20 +244,20 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                         return seamPoints[index] != nil || lofted.sections[index].profileDirection != .automatic
                     }),
                     closesSectionLoop: lofted.options.closesSectionLoop,
-                    allowance: &correspondenceAllowance, tolerance: context.tolerance)
+                    using: &execution, tolerance: context.tolerance)
                 for section in boundarySpans.indices where reversed[section] {
                     boundarySpans[section] = try boundarySpans[section].reversed().map {
-                        try ExactBSplineCurveSpan(curve: $0.curve.reversed(tolerance: context.tolerance),
-                            tolerance: context.tolerance, originalChart: $0.originalChart.reversed())
+                        try ExactBSplineCurveSpan(curve: $0.curve.reversed(tolerance: context.tolerance, using: &execution),
+                            tolerance: context.tolerance, originalChart: $0.originalChart.reversed(), using: &execution)
                     }
                 }
             }
             if closed, lofted.guides.isEmpty {
                 let targetCount = max(3, boundarySpans.map(\.count).max() ?? 0)
                 let rings = try boundarySpans.map { spans in
-                    try correspondenceAllowance.charge(targetCount)
+                    try execution.consumeWork(targetCount)
                     return try exactMatchingRing(spans: spans, targetSampleCount: targetCount,
-                        tolerance: context.tolerance)
+                        tolerance: context.tolerance, using: &execution)
                 }
                 let correspondence = try matchedEqualCountRings(rings,
                     lockedSectionIndexes: Set(seamPoints.indices.filter { seamPoints[$0] != nil }),
@@ -258,12 +267,12 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                         return false
                     }),
                     closesSectionLoop: lofted.options.closesSectionLoop,
-                    tolerance: context.tolerance, allowance: &correspondenceAllowance)
+                    tolerance: context.tolerance, using: &execution)
                 for section in boundarySpans.indices {
                     if correspondence.reversals[section] {
                         boundarySpans[section] = try boundarySpans[section].reversed().map {
-                            try ExactBSplineCurveSpan(curve: $0.curve.reversed(tolerance: context.tolerance),
-                                tolerance: context.tolerance, originalChart: $0.originalChart.reversed())
+                            try ExactBSplineCurveSpan(curve: $0.curve.reversed(tolerance: context.tolerance, using: &execution),
+                                tolerance: context.tolerance, originalChart: $0.originalChart.reversed(), using: &execution)
                         }
                     }
                     seamPoints[section] = correspondence.rings[section].first
@@ -273,25 +282,25 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                 sections: boundarySpans.indices.map {
                     ExactLoftGuideSection(loops: [boundarySpans[$0]],
                         originalContactLoops: originalContactLoops[$0])
-                }, context: context, conversionAdmission: try correspondenceAllowance.conversionAdmission())
-            return try ExactLoftBodyBuilder(featureID: feature.id, context: context, capContactValidator: capContactValidator, conversionAdmission: try correspondenceAllowance.conversionAdmission())
+                }, context: context, using: &execution)
+            return try ExactLoftBodyBuilder(featureID: feature.id, context: context, capContactValidator: capContactValidator)
                 .build(loft: lofted, boundarySpans: boundarySpans, isClosed: closed,
-                    guideCurves: guides, seamPoints: seamPoints)
+                    guideCurves: guides, seamPoints: seamPoints, using: &execution)
         }
         let originalRegions = try OriginalLoftRegionSections(loft: loft, featureID: feature.id,
-            context: context, allowance: &correspondenceAllowance)
+            context: context, using: &execution)
         let originalProfiles = originalRegions.profiles
         let guideCurves = try ExactLoftGuideCurveResolver().resolve(
             guides: loft.guides,
             sections: originalRegions.spans.indices.map {
                 ExactLoftGuideSection(loops: originalRegions.spans[$0], originalContactLoops: originalRegions.contacts[$0])
             },
-            context: context, conversionAdmission: try correspondenceAllowance.conversionAdmission()
+            context: context, using: &execution
         )
         let profiles = try resolvedCorrespondingProfiles(originalProfiles, guides: guideCurves,
             closesSectionLoop: loft.options.closesSectionLoop, tolerance: context.tolerance,
-            allowance: &correspondenceAllowance, originalLoopSpans: originalRegions.spans)
-        let orderedOriginalSpans = try originalRegions.reorderedSpans(for: profiles, allowance: &correspondenceAllowance)
+            using: &execution, originalLoopSpans: originalRegions.spans)
+        let orderedOriginalSpans = try originalRegions.reorderedSpans(for: profiles, using: &execution)
         let matchedLoops = try resolvedMatchedLoops(
             from: profiles,
             originalLoopSpans: orderedOriginalSpans,
@@ -299,7 +308,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             guides: guideCurves,
             smoothTangentScale: loft.options.smoothTangentScale,
             closesSectionLoop: loft.options.closesSectionLoop,
-            tolerance: context.tolerance, allowance: &correspondenceAllowance
+            tolerance: context.tolerance, using: &execution
         )
         guard let outerMatched = matchedLoops.loops.first else {
             throw FeatureEvaluationError.invalidGraph(
@@ -311,7 +320,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             for loop in matchedLoops.loops {
                 try validateParallelSectionTraversal(loop.rings,
                     closesSectionLoop: loft.options.closesSectionLoop,
-                    tolerance: context.tolerance)
+                    tolerance: context.tolerance, using: &execution)
             }
         }
         let includesCaps = loft.options.resultKind == .solid
@@ -321,12 +330,11 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             includesCaps: includesCaps,
             closesSectionLoop: closesSectionLoop,
             tolerance: context.tolerance
-        )
+        , using: &execution)
 
         return try ExactLoftBodyBuilder(
             featureID: feature.id,
-            context: context, capContactValidator: capContactValidator,
-            conversionAdmission: try correspondenceAllowance.conversionAdmission()
+            context: context, capContactValidator: capContactValidator
         ).build(
             loft: loft,
             profiles: profiles,
@@ -337,7 +345,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             sectionTangentModes: outerMatched.smoothTangentModes,
             guideCurves: guideCurves,
             faceOrientation: faceOrientation
-        )
+        , using: &execution)
     }
 
     private func resolvedMatchedLoops(
@@ -347,7 +355,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         guides: [ExactLoftGuideCurve],
         smoothTangentScale: Double,
         closesSectionLoop: Bool,
-        tolerance: ModelingTolerance, allowance: inout LoftCorrespondenceAllowance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> LoftMatchedLoopSet {
         guard let loopCount = profiles.first?.boundaryLoops.count,
               loopCount > 0,
@@ -390,7 +398,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                 guides: guides.filter { $0.boundaryLoopIndex == loopIndex },
                 smoothTangentScale: smoothTangentScale,
                 closesSectionLoop: closesSectionLoop,
-                tolerance: tolerance, allowance: &allowance
+                tolerance: tolerance, using: &execution
             )
         }
         return LoftMatchedLoopSet(loops: matched)
@@ -398,7 +406,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
 
     private func resolvedCorrespondingProfiles(
         _ profiles: [Profile], guides: [ExactLoftGuideCurve], closesSectionLoop: Bool,
-        tolerance: ModelingTolerance, allowance: inout LoftCorrespondenceAllowance,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution,
         originalLoopSpans: [[[ExactBSplineCurveSpan]]]
     ) throws -> [Profile] {
         guard let holeCount = profiles.first?.innerLoops.count,
@@ -407,7 +415,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             throw KernelError(phase: .topology, code: .ambiguousSelection, tolerance: tolerance,
                 message: "Loft hole counts \(counts) differ; no original correspondence identifies a hole birth or death.")
         }
-        try allowance.charge(profiles.count)
+        try execution.consumeWork(profiles.count)
         var required = Array(repeating: [Int: Int](), count: profiles.count)
         for guide in guides where guide.boundaryLoopIndex > 0 {
             guard guide.sectionBoundaryLoopIndexes.count == profiles.count else {
@@ -415,7 +423,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             }
             let canonical = guide.boundaryLoopIndex - 1
             for section in profiles.indices {
-                try allowance.charge(1)
+                try execution.consumeWork(1)
                 let original = guide.sectionBoundaryLoopIndexes[section] - 1
                 guard original >= 0, original < holeCount,
                       required[section][canonical] == nil || required[section][canonical] == original else {
@@ -431,14 +439,14 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             // Source control and knot scans are charged before constructing exact
             // section partitions; display sample density is not the objective.
             for loop in profile.innerLoops {
-                try allowance.charge(loop.vertices.count)
+                try execution.consumeWork(loop.vertices.count)
                 for segment in loop.boundarySegments {
                     switch segment {
-                    case .line: try allowance.charge(2)
-                    case .circularArc: try allowance.charge(4)
+                    case .line: try execution.consumeWork(2)
+                    case .circularArc: try execution.consumeWork(4)
                     case .spline(let spline):
-                        try allowance.charge(spline.curve.controlPoints.count)
-                        try allowance.charge(spline.curve.knots.count)
+                        try execution.consumeWork(spline.curve.controlPoints.count)
+                        try execution.consumeWork(spline.curve.knots.count)
                     }
                 }
             }
@@ -447,20 +455,20 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         let targetCount = max(3, spans.flatMap { $0.map(\.count) }.max() ?? 0)
         var rings: [[[Point3D]]] = []
         for section in spans {
-            try allowance.charge(section.count)
+            try execution.consumeWork(section.count)
             var sectionRings: [[Point3D]] = []
             for hole in section {
-                try allowance.charge(targetCount)
-                for span in hole { try allowance.charge(span.curve.controlPoints.count) }
+                try execution.consumeWork(targetCount)
+                for span in hole { try execution.consumeWork(span.curve.controlPoints.count) }
                 sectionRings.append(try exactMatchingRing(spans: hole,
-                    targetSampleCount: targetCount, tolerance: tolerance))
+                    targetSampleCount: targetCount, tolerance: tolerance, using: &execution))
             }
             rings.append(sectionRings)
         }
         let mapping = try LoftHoleCorrespondenceResolver().resolve(ringsBySection: rings,
             requiredMappings: required, closesSectionLoop: closesSectionLoop,
-            allowance: &allowance, tolerance: tolerance)
-        try allowance.charge(profiles.count)
+            using: &execution, tolerance: tolerance)
+        try execution.consumeWork(profiles.count)
         return profiles.indices.map { section in
             var profile = profiles[section]
             profile.innerLoops = mapping[section].map { profiles[section].innerLoops[$0] }
@@ -475,7 +483,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         guides: [ExactLoftGuideCurve],
         smoothTangentScale: Double,
         closesSectionLoop: Bool,
-        tolerance: ModelingTolerance, allowance: inout LoftCorrespondenceAllowance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> LoftMatchedRings {
         guard let first = profiles.first else {
             throw FeatureEvaluationError.invalidGraph("Loft requires at least one resolved profile.")
@@ -503,7 +511,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                profile.vertices.indices.contains(startSampleIndex) == false {
                 throw FeatureEvaluationError.invalidGraph("Loft section start sample indexes must reference existing section samples.")
             }
-            try validateClosedRing(profile.vertices, tolerance: tolerance)
+            try validateClosedRing(profile.vertices, tolerance: tolerance, using: &execution)
             let guidePoints = guides.map { $0.sectionPoints[sectionIndex] }
             let seamPoint = section.startSampleIndex.map { profile.vertices[$0] }
                 ?? guidePoints.first
@@ -513,8 +521,8 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                 seamPoint: seamPoint,
                 partitionPoints: guidePoints,
                 tolerance: tolerance
-            )
-            exactSections.append(try directedProfileSpans(spans, direction: section.profileDirection, tolerance: tolerance))
+            , using: &execution)
+            exactSections.append(try directedProfileSpans(spans, direction: section.profileDirection, tolerance: tolerance, using: &execution))
         }
         let sectionTangentScales = sections.map { section in
             section.smoothTangentScale ?? smoothTangentScale
@@ -527,7 +535,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             sections: exactSections,
             guidePointsBySection: guidePointsBySection,
             tolerance: tolerance
-        )
+        , using: &execution)
         let matched: [[Point3D]]
         if guides.isEmpty {
             let lockedSectionIndexes = Set(
@@ -538,7 +546,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                 lockedSectionIndexes: lockedSectionIndexes,
                 directions: sections.map(\.profileDirection),
                 closesSectionLoop: closesSectionLoop,
-                tolerance: tolerance, allowance: &allowance
+                tolerance: tolerance, using: &execution
             ).rings
         } else {
             matched = rings
@@ -557,14 +565,14 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         seamPoint: Point3D?,
         partitionPoints: [Point3D],
         tolerance: ModelingTolerance
-    ) throws -> [ExactBSplineCurveSpan] {
+    , using execution: inout OriginalQueryExecution) throws -> [ExactBSplineCurveSpan] {
         var spans = originalSpans
         for point in partitionPoints {
             spans = try spansSplit(
                 spans,
                 at: point,
                 tolerance: tolerance
-            )
+            , using: &execution)
         }
         guard let seamPoint else {
             return spans
@@ -588,7 +596,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             let projection: CurveParameterProjection
             do {
                 projection = try Curve3D.bSpline(spans[index].curve)
-                    .parameterProjection(of: seamPoint, tolerance: tolerance)
+                    .parameterProjection(of: seamPoint, tolerance: tolerance, using: &execution)
             } catch let error as KernelError where error.code == .intersectionFailure {
                 continue
             }
@@ -608,22 +616,22 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                 curve: spans[index].curve.trimmed(
                     from: projection.parameter,
                     to: upper,
-                    tolerance: tolerance
+                    tolerance: tolerance, using: &execution
                 ),
                 tolerance: tolerance,
                 originalChart: try spans[index].originalChart.restricted(from: projection.parameter, to: upper,
-                    in: spans[index].curve.domain, tolerance: tolerance)
-            )
+                    in: spans[index].curve.domain, tolerance: tolerance, using: &execution)
+            , using: &execution)
             let head = try ExactBSplineCurveSpan(
                 curve: spans[index].curve.trimmed(
                     from: lower,
                     to: projection.parameter,
-                    tolerance: tolerance
+                    tolerance: tolerance, using: &execution
                 ),
                 tolerance: tolerance,
                 originalChart: try spans[index].originalChart.restricted(from: lower, to: projection.parameter,
-                    in: spans[index].curve.domain, tolerance: tolerance)
-            )
+                    in: spans[index].curve.domain, tolerance: tolerance, using: &execution)
+            , using: &execution)
             var result = [tail]
             if spans.count > 1 {
                 var cursor = (index + 1) % spans.count
@@ -648,7 +656,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         _ spans: [ExactBSplineCurveSpan],
         at point: Point3D,
         tolerance: ModelingTolerance
-    ) throws -> [ExactBSplineCurveSpan] {
+    , using execution: inout OriginalQueryExecution) throws -> [ExactBSplineCurveSpan] {
         if spans.contains(where: { span in
             span.startPoint.isApproximatelyEqual(
                 to: point,
@@ -664,7 +672,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         for index in spans.indices {
             do {
                 let projection = try Curve3D.bSpline(spans[index].curve)
-                    .parameterProjection(of: point, tolerance: tolerance)
+                    .parameterProjection(of: point, tolerance: tolerance, using: &execution)
                 if best.map({ projection.residual < $0.projection.residual }) ?? true {
                     best = (index, projection)
                 }
@@ -694,22 +702,22 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             curve: spans[best.index].curve.trimmed(
                 from: lower,
                 to: best.projection.parameter,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             ),
             tolerance: tolerance,
                 originalChart: try spans[best.index].originalChart.restricted(from: lower, to: best.projection.parameter,
-                    in: spans[best.index].curve.domain, tolerance: tolerance)
-        )
+                    in: spans[best.index].curve.domain, tolerance: tolerance, using: &execution)
+        , using: &execution)
         let tail = try ExactBSplineCurveSpan(
             curve: spans[best.index].curve.trimmed(
                 from: best.projection.parameter,
                 to: upper,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             ),
             tolerance: tolerance,
                 originalChart: try spans[best.index].originalChart.restricted(from: best.projection.parameter, to: upper,
-                    in: spans[best.index].curve.domain, tolerance: tolerance)
-        )
+                    in: spans[best.index].curve.domain, tolerance: tolerance, using: &execution)
+        , using: &execution)
         var result = Array(spans[..<best.index])
         result.append(head)
         result.append(tail)
@@ -721,7 +729,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         sections: [[ExactBSplineCurveSpan]],
         guidePointsBySection: [[Point3D]],
         tolerance: ModelingTolerance
-    ) throws -> [[Point3D]] {
+    , using execution: inout OriginalQueryExecution) throws -> [[Point3D]] {
         guard sections.count == guidePointsBySection.count,
               let firstSection = sections.first else {
             throw FeatureEvaluationError.invalidGraph(
@@ -735,8 +743,8 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                     spans: spans,
                     targetSampleCount: targetCount,
                     tolerance: tolerance
-                )
-                try validateClosedRing(ring, tolerance: tolerance)
+                , using: &execution)
+                try validateClosedRing(ring, tolerance: tolerance, using: &execution)
                 return ring
             }
         }
@@ -811,9 +819,9 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                     spans: Array(sections[sectionIndex][lower..<upper]),
                     targetSampleCount: targetCounts[intervalIndex],
                     tolerance: tolerance
-                ))
+                , using: &execution))
             }
-            try validateClosedRing(ring, tolerance: tolerance)
+            try validateClosedRing(ring, tolerance: tolerance, using: &execution)
             return ring
         }
     }
@@ -822,7 +830,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         spans: [ExactBSplineCurveSpan],
         targetSampleCount: Int,
         tolerance: ModelingTolerance
-    ) throws -> [Point3D] {
+    , using execution: inout OriginalQueryExecution) throws -> [Point3D] {
         guard spans.isEmpty == false,
               targetSampleCount >= spans.count else {
             throw SketchError.openProfile
@@ -851,7 +859,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                 let ratio = Double(step) / Double(insertedCounts[index] + 1)
                 result.append(try span.curve.point(
                     at: lower + (upper - lower) * ratio,
-                    tolerance: tolerance
+                    tolerance: tolerance, using: &execution
                 ))
             }
         }
@@ -864,17 +872,17 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
     }
 
     private func directedProfileSpans(_ spans: [ExactBSplineCurveSpan], direction: LoftProfileDirection,
-        tolerance: ModelingTolerance) throws -> [ExactBSplineCurveSpan] {
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> [ExactBSplineCurveSpan] {
         guard direction == .reversed else { return spans }
         return try spans.reversed().map {
-            try ExactBSplineCurveSpan(curve: $0.curve.reversed(tolerance: tolerance), tolerance: tolerance,
-                    originalChart: $0.originalChart.reversed())
+            try ExactBSplineCurveSpan(curve: $0.curve.reversed(tolerance: tolerance, using: &execution), tolerance: tolerance,
+                    originalChart: $0.originalChart.reversed(), using: &execution)
         }
     }
 
     private func validateParallelSectionTraversal(_ rings: [[Point3D]],
-        closesSectionLoop: Bool, tolerance: ModelingTolerance) throws {
-        let normals = try rings.map { try ringWindingNormal($0, tolerance: tolerance) }
+        closesSectionLoop: Bool, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        let normals = try rings.map { try ringWindingNormal($0, tolerance: tolerance, using: &execution) }
         let connectionCount = normals.count - (closesSectionLoop ? 0 : 1)
         for index in 0..<connectionCount {
             let next = normals[(index + 1) % normals.count]
@@ -893,7 +901,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         directions: [LoftProfileDirection],
         lockedTraversalIndexes: Set<Int> = [],
         closesSectionLoop: Bool,
-        tolerance: ModelingTolerance, allowance: inout LoftCorrespondenceAllowance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> LoftRingCorrespondence {
         guard let reference = rings.first, reference.count >= 3,
               directions.count == rings.count,
@@ -909,7 +917,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         let advances = try rings.indices.map { index -> Double in
             let previous = index == 0 ? (closesSectionLoop ? rings.count - 1 : 0) : index - 1
             let next = index == rings.count - 1 ? (closesSectionLoop ? 0 : index) : index + 1
-            return try ringWindingNormal(rings[index], tolerance: tolerance)
+            return try ringWindingNormal(rings[index], tolerance: tolerance, using: &execution)
                 .dot(centers[next] - centers[previous])
         }
         var reversalsBySection = [[false]]
@@ -926,7 +934,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         return try LoftRingCorrespondenceResolver().correspondence(
             rings: rings, reversalsBySection: reversalsBySection,
             lockedSectionIndexes: lockedSectionIndexes,
-            closesSectionLoop: closesSectionLoop, tolerance: tolerance, allowance: &allowance)
+            closesSectionLoop: closesSectionLoop, tolerance: tolerance, using: &execution)
     }
 
     private func rotatedSpans<T>(_ spans: [T], offset: Int) -> [T] {
@@ -948,7 +956,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         includesCaps: Bool,
         closesSectionLoop: Bool,
         tolerance: ModelingTolerance
-    ) throws -> Orientation {
+    , using execution: inout OriginalQueryExecution) throws -> Orientation {
         guard includesCaps, closesSectionLoop == false, rings.count >= 2 else {
             return .forward
         }
@@ -958,7 +966,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             let windingNormal = try ringWindingNormal(
                 rings[sectionIndex],
                 tolerance: tolerance
-            )
+            , using: &execution)
             let advance = averageRingOffset(
                 from: rings[sectionIndex],
                 to: rings[sectionIndex + 1]
@@ -983,7 +991,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
     private func ringWindingNormal(
         _ ring: [Point3D],
         tolerance: ModelingTolerance
-    ) throws -> Vector3D {
+    , using execution: inout OriginalQueryExecution) throws -> Vector3D {
         // Newell's method: follows the ring winding regardless of concave corners.
         let origin = ring[0]
         var areaVector = Vector3D(x: 0.0, y: 0.0, z: 0.0)
@@ -1040,7 +1048,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
     private func validateClosedRing(
         _ points: [Point3D],
         tolerance: ModelingTolerance
-    ) throws {
+    , using execution: inout OriginalQueryExecution) throws {
         guard points.count >= 3 else {
             throw SketchError.openProfile
         }
@@ -1052,6 +1060,15 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         }
     }
 
+    private func ordinaryExecution(tolerance: ModelingTolerance) throws -> OriginalQueryExecution {
+        let requirements = GeometryConversionRequirements(maximumPositionError: tolerance.distance * 0.25,
+            maximumTangentAngle: tolerance.angle, maximumCurvatureError: tolerance.distance)
+        return OriginalQueryExecution(budget: try OriginalQueryBudget(workLimit: 262_144,
+            storageByteLimit: 1_048_576, allocationPolicy: .uint32WordWork),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32,
+                remainingSourceDepth: 20, maximumSubdivisionDepth: 20,
+                maximumSpans: requirements.maximumControlPointCount))
+    }
 }
 
 private struct LoftMatchedRings: Sendable, Hashable {
@@ -1063,4 +1080,6 @@ private struct LoftMatchedRings: Sendable, Hashable {
 
 private struct LoftMatchedLoopSet: Sendable, Hashable {
     var loops: [LoftMatchedRings]
+
+
 }

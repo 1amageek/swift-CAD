@@ -17,8 +17,16 @@ public struct DefaultBRepDrawingPlacer: BRepDrawingPlacing {
     public func place(_ original: BRepDrawingProjection, in evaluated: EvaluatedDocument,
                       placements: [BRepDrawingPlacement], maximumPlacements: Int,
                       maximumProjectedUses: Int) throws -> BRepDrawingPlacedProjection {
-        try CurrentTaskCancellationChecker().checkCancellation()
-        try original.validateCurrent(evaluated)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try place(original, in: evaluated, placements: placements, maximumPlacements: maximumPlacements, maximumProjectedUses: maximumProjectedUses, using: &execution)
+    }
+
+    public func place(_ original: BRepDrawingProjection, in evaluated: EvaluatedDocument,
+                      placements: [BRepDrawingPlacement], maximumPlacements: Int,
+                      maximumProjectedUses: Int, using execution: inout OriginalQueryExecution) throws -> BRepDrawingPlacedProjection {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
+        try original.validateCurrent(evaluated, using: &execution)
         let tolerance = original.configuration.tolerance
         guard maximumPlacements > 0, maximumProjectedUses > 0,
               placements.count <= maximumPlacements else {
@@ -29,19 +37,22 @@ public struct DefaultBRepDrawingPlacer: BRepDrawingPlacing {
         // copying each curve/topology receipt or rescanning all bodies per occurrence.
         var indicesByBody: [BodyID: [Int]] = [:]
         for index in original.uses.indices {
-            try CurrentTaskCancellationChecker().checkCancellation()
-            indicesByBody[original.uses[index].bodyID, default: []].append(index)
+            try execution.consumeWork(1)
+            let bodyID = original.uses[index].bodyID
+            try BRepDrawingGroupedStorage.append(index, for: bodyID, in: &indicesByBody, using: &execution)
         }
         var keys: Set<Key> = []
         var count = 0
         for placement in placements {
-            try CurrentTaskCancellationChecker().checkCancellation()
+            try execution.consumeWork(1)
+            try execution.consumeWork(placement.identity.utf8.count)
             try placement.transform.validate()
             guard evaluated.brep.bodies[placement.bodyID] != nil,
-                  keys.insert(Key(identity: placement.identity, bodyID: placement.bodyID)).inserted else {
+                  try OriginalParameterQueryStorage.insert(Key(identity: placement.identity, bodyID: placement.bodyID), in: &keys, using: &execution) else {
                 throw TopologyError.missingReference("Drawing placement is foreign or duplicated.")
             }
             for _ in indicesByBody[placement.bodyID] ?? [] {
+                try execution.consumeWork(1)
                 guard count < maximumProjectedUses else {
                     throw KernelError(phase: .geometry, code: .resourceLimitExceeded,
                         tolerance: tolerance, message: "Placed drawing exhausts the caller projected-use capacity.")
@@ -51,24 +62,27 @@ public struct DefaultBRepDrawingPlacer: BRepDrawingPlacing {
         }
         // Count admission precedes all retained affine images and output storage.
         var uses: [BRepDrawingPlacedUse] = []
-        uses.reserveCapacity(count)
+        try OriginalParameterQueryStorage.reserve(count, in: &uses, using: &execution)
         for placement in placements {
             for index in indicesByBody[placement.bodyID] ?? [] {
-                try CurrentTaskCancellationChecker().checkCancellation()
+                try execution.consumeWork(1)
                 let use = original.uses[index]
                 let source: Curve3D
                 if let word = placement.operationWord {
                     source = .originalAffineWord(try OriginalAffineWordCurve3D(
-                        source: use.edge.curve.source, operationWord: word, tolerance: tolerance))
+                        source: use.edge.curve.source, operationWord: word, tolerance: tolerance,
+                        remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+                        maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth,
+                        maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth, usage: &execution))
                 } else {
                     source = .affineImage(try AffineImageCurve3D(source: use.edge.curve.source,
-                        transform: placement.transform, tolerance: tolerance))
+                        transform: placement.transform, tolerance: tolerance, using: &execution))
                 }
-                let curve = try curves.project(source, onto: original.frame, tolerance: tolerance)
+                let curve = try curves.project(source, onto: original.frame, tolerance: tolerance, using: &execution)
                 uses.append(BRepDrawingPlacedUse(placement: placement, original: use, curve: curve))
             }
         }
-        try CurrentTaskCancellationChecker().checkCancellation()
+        try execution.consumeWork(1)
         return BRepDrawingPlacedProjection(original: original, placements: placements, uses: uses)
     }
 }

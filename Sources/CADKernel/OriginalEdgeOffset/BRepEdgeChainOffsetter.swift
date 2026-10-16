@@ -19,33 +19,29 @@ struct BRepEdgeChainOffsetter {
         model: BRepModel,
         sourceSubshapes: [SubshapeID: TopologyReference],
         tolerance: ModelingTolerance,
-        conversionAdmission: GeometryConversionAdmission? = nil
+        conversionLimits: EdgeOffsetConversionLimits? = nil,
+        using execution: inout OriginalQueryExecution
     ) throws -> [BRepFaceImprinter.Curve] {
+        do {
+            execution.context = execution.context.at(stage: .source)
+            let result = try resolve(using: &execution)
+            execution.context = execution.context.at(stage: .publication)
+            try execution.checkpoint()
+            return result
+        } catch {
+            throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance)
+        }
+        func resolve(using execution: inout OriginalQueryExecution) throws -> [BRepFaceImprinter.Curve] {
         guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID] else {
             throw failure(.missingReference, tolerance, "The face to offset over is missing.")
         }
         guard distance > tolerance.distance else {
             throw failure(.invalidInput, tolerance, "An offset distance must be positive.")
         }
-        let visit: (@Sendable (Int) throws -> Void)?
-        let retain: (@Sendable (Int) throws -> Void)?
-        if let admission = conversionAdmission {
-            let visitCallback: @Sendable (Int) throws -> Void = { (depth: Int) throws -> Void in
-                try admission.visit(depth: depth)
-            }
-            let retainCallback: @Sendable (Int) throws -> Void = { (bytes: Int) throws -> Void in
-                try admission.chargeStorage(bytes: bytes)
-            }
-            visit = visitCallback
-            retain = retainCallback
-        } else {
-            visit = nil
-            retain = nil
-        }
+        try execution.consumeWork(1)
         let built = try SourceBRepFacePatchBuilder().build(
-            faceID: faceID, stableID: "\(stableID):face", from: model, sourceSubshapes: sourceSubshapes, tolerance: tolerance,
-            consumeWork: visit, consumeStorage: retain
-        )
+            faceID: faceID, stableID: "\(stableID):face", from: model,
+            sourceSubshapes: sourceSubshapes, tolerance: tolerance, using: &execution)
         let patch = built.patch
         // Which of the face's edges each edge of its patch is.
         var edgeByStableID: [String: EdgeID] = [:]
@@ -53,17 +49,15 @@ struct BRepEdgeChainOffsetter {
             if case let .edge(edgeID) = reference, case let .edge(edgeStableID) = key { edgeByStableID[edgeStableID] = edgeID }
         }
         let extent: SurfaceParameterBox
-        if let conversionAdmission {
+        if let conversionLimits {
             extent = try DefaultFaceParameterBoundsResolver(
-                maximumSubdivisionDepth: conversionAdmission.maximumSubdivisionDepth,
-                consumeWork: { try conversionAdmission.visit(depth: $0) },
-                consumeStorage: { try conversionAdmission.chargeStorage(bytes: $0) },
-                remainingSourceDepth: conversionAdmission.remainingSourceDepth,
-                maximumAlgebraicDepth: conversionAdmission.maximumAlgebraicDepth ?? 32)
-                .bounds(for: faceID, in: model, tolerance: tolerance)
+                maximumSubdivisionDepth: conversionLimits.maximumSubdivisionDepth,
+                remainingSourceDepth: conversionLimits.remainingSourceDepth,
+                maximumAlgebraicDepth: conversionLimits.maximumAlgebraicDepth)
+                .bounds(for: faceID, in: model, tolerance: tolerance, using: &execution)
         } else {
             extent = try OriginalFaceParameterBounds.resolve(for: faceID,
-                surface: surface, model: model, tolerance: tolerance)
+                surface: surface, model: model, tolerance: tolerance, using: &execution)
         }
         let margin = 0.25 * max(extent.u.width, extent.v.width)
         let projector = BRepFaceClosestPointProjector(
@@ -85,7 +79,7 @@ struct BRepEdgeChainOffsetter {
                     try offsetSegment(
                         loop.edges[index], surface: surface, side: side, distance: distance, projector: projector,
                         stableID: "\(stableID):\(loopIndex):\(runIndex):\(index)", tolerance: tolerance,
-                        conversionAdmission: conversionAdmission
+                        conversionLimits: conversionLimits, using: &execution
                     )
                 }
                 var chain: [BRepSewingEdge] = []
@@ -97,7 +91,7 @@ struct BRepEdgeChainOffsetter {
                     let (first, second, filler) = try joined(
                         segments[joint], segments[next], around: corner, surface: surface, side: side, distance: distance,
                         gapFill: gapFill, projector: projector, stableID: "\(stableID):\(loopIndex):\(runIndex):gap:\(joint)", tolerance: tolerance
-                    )
+                    , using: &execution)
                     segments[joint] = first
                     segments[next] = second
                     fillers[joint] = filler
@@ -110,10 +104,10 @@ struct BRepEdgeChainOffsetter {
                 // inferring periodicity from two numerically close endpoint values.
                 for edge in chain {
                     let kind = try BRepEdgeGeometryClassifier().kind(curve: edge.curve,
-                        from: edge.startParameter, to: edge.endParameter, tolerance: tolerance)
+                        from: edge.startParameter, to: edge.endParameter, tolerance: tolerance, using: &execution)
                     if kind == .closed {
-                        let middle = try edge.curve.point(at: (edge.startParameter + edge.endParameter) / 2, tolerance: tolerance)
-                        curves += try BRepSewingEdgeSubdivider().subdivide(edge, at: [middle], tolerance: tolerance)
+                        let middle = try edge.curve.point(at: (edge.startParameter + edge.endParameter) / 2, tolerance: tolerance, using: &execution)
+                        curves += try BRepSewingEdgeSubdivider().subdivide(edge, at: [middle], tolerance: tolerance, using: &execution)
                             .map { BRepFaceImprinter.Curve(faceID: faceID, edge: $0) }
                     } else {
                         curves.append(BRepFaceImprinter.Curve(faceID: faceID, edge: edge))
@@ -125,6 +119,7 @@ struct BRepEdgeChainOffsetter {
             throw failure(.invalidInput, tolerance, "An offset edge does not bound the face it is offset over.")
         }
         return curves
+            }
     }
 
     /// The runs of chosen edges in a loop, each as the loop indices in order; a loop chosen
@@ -154,7 +149,8 @@ struct BRepEdgeChainOffsetter {
     private func offsetSegment(
         _ edge: BRepSewingEdge, surface: Surface3D, side: Double, distance: Double,
         projector: BRepFaceClosestPointProjector, stableID: String, tolerance: ModelingTolerance,
-        conversionAdmission: GeometryConversionAdmission?
+        conversionLimits: EdgeOffsetConversionLimits?,
+        using execution: inout OriginalQueryExecution
     ) throws -> BRepSewingEdge {
         try Task.checkCancellation()
         let originalNormal: Vector3D?
@@ -166,28 +162,16 @@ struct BRepEdgeChainOffsetter {
         if let originalNormal {
             let correspondenceOptions = CurveSurfaceCorrespondenceValidationOptions(
                 maximumSubdivisionDepth: 32, maximumCellCount: 65_536)
-            if let conversionAdmission {
-                try DefaultCurveSurfaceCorrespondenceValidator().validate(curve: edge.curve,
-                    from: edge.startParameter, to: edge.endParameter, surface: surface,
-                    parameterCurve: edge.surfaceParameterCurve, options: correspondenceOptions,
-                    tolerance: tolerance, maximumSpanCount: min(65_536, conversionAdmission.maximumSpanCount),
-                    maximumSubdivisionDepth: min(32, conversionAdmission.maximumSubdivisionDepth),
-                    remainingSourceDepth: conversionAdmission.remainingSourceDepth,
-                    consumeWork: { try conversionAdmission.chargeWork() },
-                    consumeStorage: { try conversionAdmission.chargeStorage(bytes: $0) },
-                    maximumAlgebraicDepth: conversionAdmission.maximumAlgebraicDepth)
-            } else {
-                try DefaultCurveSurfaceCorrespondenceValidator().validate(curve: edge.curve,
-                    from: edge.startParameter, to: edge.endParameter, surface: surface,
-                    parameterCurve: edge.surfaceParameterCurve, options: correspondenceOptions,
-                    tolerance: tolerance)
-            }
+            try DefaultCurveSurfaceCorrespondenceValidator().validate(curve: edge.curve,
+                from: edge.startParameter, to: edge.endParameter, surface: surface,
+                parameterCurve: edge.surfaceParameterCurve, options: correspondenceOptions,
+                tolerance: tolerance, using: &execution)
             let interval = try ScalarInterval(lower: min(edge.startParameter, edge.endParameter),
                 upper: max(edge.startParameter, edge.endParameter))
             let direction = edge.endParameter > edge.startParameter ? 1.0 : -1.0
             let shift = -side * direction * distance
             let candidate: Curve3D
-            if let conversionAdmission {
+            if conversionLimits != nil {
                 // FIXME(INCOMPLETE_IMPLEMENTATION): This E8 entry forwards the
                 // same original conversion ledger to every segment, source copy
                 // original correspondence and planar candidate pcurve. Dictionary
@@ -195,47 +179,40 @@ struct BRepEdgeChainOffsetter {
                 // before whole-feature resource completion.
                 let producer = PlanarCurveOffsetApproximator(tolerance: tolerance)
                 let basis = try producer.basis(for: edge.curve, normal: originalNormal,
-                    reach: distance, over: interval, admission: conversionAdmission)
+                    reach: distance, over: interval, using: &execution)
                 candidate = .bSpline(try producer.offset(edge.curve,
                     normal: originalNormal, shift: shift, knots: basis,
-                    admission: conversionAdmission))
+                    using: &execution))
             } else if case let .bSpline(original) = edge.curve {
                 let producer = PlanarCurveOffsetApproximator(tolerance: tolerance)
                 let basis = try producer.basis(for: original, normal: originalNormal,
-                    reach: distance, over: interval)
+                    reach: distance, over: interval, using: &execution)
                 candidate = .bSpline(try producer.offset(original,
-                    normal: originalNormal, shift: shift, knots: basis))
+                    normal: originalNormal, shift: shift, knots: basis, using: &execution))
             } else {
                 let source = try PlanarOffsetCurveSource(curve: edge.curve,
-                    normal: originalNormal, shift: shift, tolerance: tolerance)
+                    normal: originalNormal, shift: shift, tolerance: tolerance, using: &execution)
                 let converted = try CertifiedGeometryConverter().approximateCurve(source: source,
                     over: interval, requirements: GeometryConversionRequirements(
                         maximumPositionError: tolerance.distance * 0.25,
                         maximumTangentAngle: tolerance.angle,
-                        maximumCurvatureError: tolerance.distance), tolerance: tolerance)
+                        maximumCurvatureError: tolerance.distance), tolerance: tolerance, using: &execution)
                 candidate = .bSpline(converted.curve)
             }
-            let pcurve: SurfaceParameterCurve
-            if let conversionAdmission {
-                pcurve = try ExactFacePcurveBuilder().surfaceParameterCurve(for: candidate,
-                    startParameter: edge.startParameter, endParameter: edge.endParameter,
-                    on: surface, tolerance: tolerance, admission: conversionAdmission)
-            } else {
-                pcurve = try ExactFacePcurveBuilder().surfaceParameterCurve(for: candidate,
-                    startParameter: edge.startParameter, endParameter: edge.endParameter,
-                    on: surface, tolerance: tolerance)
-            }
+            let pcurve = try ExactFacePcurveBuilder().surfaceParameterCurve(for: candidate,
+                startParameter: edge.startParameter, endParameter: edge.endParameter,
+                on: surface, tolerance: tolerance, using: &execution)
             let startPoint: Point3D, endPoint: Point3D
-            if let conversionAdmission {
+            if conversionLimits != nil {
                 let preparedCandidate = try NativeCurveConversionSource(candidate,
-                    tolerance: tolerance, admission: conversionAdmission)
+                    tolerance: tolerance, using: &execution)
                 startPoint = try endpointProposal(at: edge.startParameter,
-                    source: preparedCandidate, tolerance: tolerance, admission: conversionAdmission)
+                    source: preparedCandidate, tolerance: tolerance, using: &execution)
                 endPoint = try endpointProposal(at: edge.endParameter,
-                    source: preparedCandidate, tolerance: tolerance, admission: conversionAdmission)
+                    source: preparedCandidate, tolerance: tolerance, using: &execution)
             } else {
-                startPoint = try candidate.point(at: edge.startParameter, tolerance: tolerance)
-                endPoint = try candidate.point(at: edge.endParameter, tolerance: tolerance)
+                startPoint = try candidate.point(at: edge.startParameter, tolerance: tolerance, using: &execution)
+                endPoint = try candidate.point(at: edge.endParameter, tolerance: tolerance, using: &execution)
             }
             return BRepSewingEdge(stableID: stableID, curve: candidate,
                 startParameter: edge.startParameter, endParameter: edge.endParameter,
@@ -253,10 +230,10 @@ struct BRepEdgeChainOffsetter {
     }
 
     private func endpointProposal(at parameter: Double, source: NativeCurveConversionSource,
-        tolerance: ModelingTolerance, admission: GeometryConversionAdmission) throws -> Point3D {
-        try admission.chargeWork()
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Point3D {
+        try execution.consumeWork(1)
         let box = try source.enclosure(over: ScalarInterval(lower: parameter, upper: parameter),
-            tolerance: tolerance, admission: admission).position
+            tolerance: tolerance, using: &execution).position
         let point = Point3D(x: box.x.lower * 0.5 + box.x.upper * 0.5,
             y: box.y.lower * 0.5 + box.y.upper * 0.5,
             z: box.z.lower * 0.5 + box.z.upper * 0.5)
@@ -277,30 +254,30 @@ struct BRepEdgeChainOffsetter {
     private func joined(
         _ first: BRepSewingEdge, _ second: BRepSewingEdge, around corner: Point3D, surface: Surface3D, side: Double, distance: Double,
         gapFill: OffsetGapFill, projector: BRepFaceClosestPointProjector, stableID: String, tolerance: ModelingTolerance
-    ) throws -> (BRepSewingEdge, BRepSewingEdge, [BRepSewingEdge]) {
+    , using execution: inout OriginalQueryExecution) throws -> (BRepSewingEdge, BRepSewingEdge, [BRepSewingEdge]) {
         if (first.endPoint - second.startPoint).length <= tolerance.distance {
             return (first, second, [])
         }
-        if case .subdivisionPoints(let points) = try ExactTrimEdgeIntersector().intersections(first, second, sharedSurface: surface, tolerance: tolerance),
+        if case .subdivisionPoints(let points) = try ExactTrimEdgeIntersector().intersections(first, second, sharedSurface: surface, tolerance: tolerance, using: &execution),
            let crossing = points.min(by: { ($0 - corner).length < ($1 - corner).length }) {
             let subdivider = BRepSewingEdgeSubdivider()
-            if let head = try subdivider.subdivide(first, at: [crossing], tolerance: tolerance).first,
-               let tail = try subdivider.subdivide(second, at: [crossing], tolerance: tolerance).last {
+            if let head = try subdivider.subdivide(first, at: [crossing], tolerance: tolerance, using: &execution).first,
+               let tail = try subdivider.subdivide(second, at: [crossing], tolerance: tolerance, using: &execution).last {
                 return (head, tail, [])
             }
         }
-        let a = try first.surfaceParameterCurve.parameter(atNormalizedFraction: 1, tolerance: tolerance)
-        let b = try second.surfaceParameterCurve.parameter(atNormalizedFraction: 0, tolerance: tolerance)
+        let a = try first.surfaceParameterCurve.parameter(atNormalizedFraction: 1, tolerance: tolerance, using: &execution)
+        let b = try second.surfaceParameterCurve.parameter(atNormalizedFraction: 0, tolerance: tolerance, using: &execution)
         let interpolator = ParameterPointInterpolator()
         func lifted(_ curve: SurfaceParameterCurve, _ ordinal: Int) throws -> BRepSewingEdge {
-            try BRepFaceCurveClipper.edge(curve, on: surface, stableID: "\(stableID):\(ordinal)", parentSubshapeIDs: first.parentSubshapeIDs + second.parentSubshapeIDs, tolerance: tolerance)
+            try BRepFaceCurveClipper.edge(curve, on: surface, stableID: "\(stableID):\(ordinal)", parentSubshapeIDs: first.parentSubshapeIDs + second.parentSubshapeIDs, tolerance: tolerance, using: &execution)
         }
         // Where the offsets carried straight on along their end tangents meet, ahead of both.
         func meeting() throws -> SurfaceParameter? {
             let firstJet = try first.surfaceParameterCurve.differentialGeometry(
-                atNormalizedFraction: 1, tolerance: tolerance)
+                atNormalizedFraction: 1, tolerance: tolerance, using: &execution)
             let secondJet = try second.surfaceParameterCurve.differentialGeometry(
-                atNormalizedFraction: 0, tolerance: tolerance)
+                atNormalizedFraction: 0, tolerance: tolerance, using: &execution)
             let ta = (u: firstJet.firstDerivative.x, v: firstJet.firstDerivative.y)
             let tb = (u: secondJet.firstDerivative.x, v: secondJet.firstDerivative.y)
             // Endpoint jets propose a line intersection; no sampled slope defines it.
@@ -339,7 +316,7 @@ struct BRepEdgeChainOffsetter {
             return (first, second, [try lifted(try interpolator.curve(through: [a, b], tolerance: tolerance), 0)])
         case .natural:
             guard let joined = try curvedNatural(first, second, surface: surface, distance: distance,
-                projector: projector, tolerance: tolerance) else {
+                projector: projector, tolerance: tolerance, using: &execution) else {
                 throw failure(.intersectionFailure, tolerance,
                     "The original offset continuation laws have no joining crossing in the admitted search envelope.")
             }
@@ -357,8 +334,8 @@ struct BRepEdgeChainOffsetter {
                     "Round joins require an original metric-circle producer on this support.")
             }
             let circle = Curve3D.circle(Circle3D(center: corner, normal: normal, radius: distance))
-            let start = try circle.parameterProjection(of: first.endPoint, tolerance: tolerance)
-            let finish = try circle.parameterProjection(of: second.startPoint, tolerance: tolerance)
+            let start = try circle.parameterProjection(of: first.endPoint, tolerance: tolerance, using: &execution)
+            let finish = try circle.parameterProjection(of: second.startPoint, tolerance: tolerance, using: &execution)
             guard case let .periodic(period) = circle.parameterDomain else {
                 throw failure(.invalidInput, tolerance, "Round join lost its native angular period.")
             }
@@ -371,11 +348,11 @@ struct BRepEdgeChainOffsetter {
             }
             let pcurve = try ExactFacePcurveBuilder().surfaceParameterCurve(for: circle,
                 startParameter: start.parameter, endParameter: endParameter,
-                on: surface, tolerance: tolerance)
+                on: surface, tolerance: tolerance, using: &execution)
             let filler = BRepSewingEdge(stableID: "\(stableID):0", curve: circle,
                 startParameter: start.parameter, endParameter: endParameter,
-                startPoint: try circle.point(at: start.parameter, tolerance: tolerance),
-                endPoint: try circle.point(at: endParameter, tolerance: tolerance),
+                startPoint: try circle.point(at: start.parameter, tolerance: tolerance, using: &execution),
+                endPoint: try circle.point(at: endParameter, tolerance: tolerance, using: &execution),
                 surfaceParameterCurve: pcurve,
                 parentSubshapeIDs: first.parentSubshapeIDs + second.parentSubshapeIDs,
                 startVertexParentSubshapeIDs: first.endVertexParentSubshapeIDs,
@@ -388,11 +365,11 @@ struct BRepEdgeChainOffsetter {
     private func curvedNatural(
         _ first: BRepSewingEdge, _ second: BRepSewingEdge, surface: Surface3D, distance: Double,
         projector: BRepFaceClosestPointProjector, tolerance: ModelingTolerance
-    ) throws -> (BRepSewingEdge, BRepSewingEdge, [BRepSewingEdge])? {
+    , using execution: inout OriginalQueryExecution) throws -> (BRepSewingEdge, BRepSewingEdge, [BRepSewingEdge])? {
         let reach = 16 * max((second.startPoint - first.endPoint).length, abs(distance))
-        let firstSpeed = try first.curve.differentialGeometry(at: first.endParameter, tolerance: tolerance).firstDerivative.length
+        let firstSpeed = try first.curve.differentialGeometry(at: first.endParameter, tolerance: tolerance, using: &execution).firstDerivative.length
             * abs(first.endParameter - first.startParameter)
-        let secondSpeed = try second.curve.differentialGeometry(at: second.startParameter, tolerance: tolerance).firstDerivative.length
+        let secondSpeed = try second.curve.differentialGeometry(at: second.startParameter, tolerance: tolerance, using: &execution).firstDerivative.length
             * abs(second.endParameter - second.startParameter)
         guard firstSpeed > Double.leastNormalMagnitude, secondSpeed > Double.leastNormalMagnitude else {
             throw failure(.singularGeometry, tolerance, "Natural continuation requires regular original endpoints.")
@@ -404,12 +381,12 @@ struct BRepEdgeChainOffsetter {
         let continuation = OriginalOffsetCurveContinuation()
         let head = try BRepFaceCurveClipper.edge(continuation.curve(first.surfaceParameterCurve,
             from: 0, to: 1 + firstReach, tolerance: tolerance), on: surface,
-            stableID: first.stableID, parentSubshapeIDs: first.parentSubshapeIDs, tolerance: tolerance)
+            stableID: first.stableID, parentSubshapeIDs: first.parentSubshapeIDs, tolerance: tolerance, using: &execution)
         let tail = try BRepFaceCurveClipper.edge(continuation.curve(second.surfaceParameterCurve,
             from: -secondReach, to: 1, tolerance: tolerance), on: surface,
-            stableID: second.stableID, parentSubshapeIDs: second.parentSubshapeIDs, tolerance: tolerance)
+            stableID: second.stableID, parentSubshapeIDs: second.parentSubshapeIDs, tolerance: tolerance, using: &execution)
         let intersections = try ExactTrimEdgeIntersector().intersections(head, tail,
-            sharedSurface: surface, tolerance: tolerance)
+            sharedSurface: surface, tolerance: tolerance, using: &execution)
         guard case let .subdivisionPoints(points) = intersections else {
             throw failure(.classificationFailure, tolerance, "Natural continued offset laws coincide without one isolated joining crossing.")
         }
@@ -418,9 +395,9 @@ struct BRepEdgeChainOffsetter {
         for point in points {
             try Task.checkCancellation()
             let a = try head.curve.closestParameterProjection(of: point,
-                options: CurveParameterProjectionOptions(parameterRange: range), tolerance: tolerance)
+                options: CurveParameterProjectionOptions(parameterRange: range), tolerance: tolerance, using: &execution)
             let b = try tail.curve.closestParameterProjection(of: point,
-                options: CurveParameterProjectionOptions(parameterRange: range), tolerance: tolerance)
+                options: CurveParameterProjectionOptions(parameterRange: range), tolerance: tolerance, using: &execution)
             guard a.residual <= tolerance.distance, b.residual <= tolerance.distance,
                   a.parameter >= 1 / (1 + firstReach), b.parameter <= secondReach / (1 + secondReach) else { continue }
             let cost = a.parameter * (1 + firstReach) - 1 + secondReach - b.parameter * (1 + secondReach)
@@ -428,8 +405,8 @@ struct BRepEdgeChainOffsetter {
         }
         guard let best else { return nil }
         let subdivider = BRepSewingEdgeSubdivider()
-        guard let joinedHead = try subdivider.subdivide(head, at: [best.point], tolerance: tolerance).first,
-              let joinedTail = try subdivider.subdivide(tail, at: [best.point], tolerance: tolerance).last else {
+        guard let joinedHead = try subdivider.subdivide(head, at: [best.point], tolerance: tolerance, using: &execution).first,
+              let joinedTail = try subdivider.subdivide(tail, at: [best.point], tolerance: tolerance, using: &execution).last else {
             throw failure(.topologyFailure, tolerance, "An isolated original-law joining crossing did not produce both trimmed edges.")
         }
         return (joinedHead, joinedTail, [])

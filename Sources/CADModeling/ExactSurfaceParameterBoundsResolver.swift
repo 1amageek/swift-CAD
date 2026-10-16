@@ -10,6 +10,13 @@ package struct ExactSurfaceParameterBoundsResolver {
         on surface: Surface3D,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterBox {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try resolve(parameterCurves: parameterCurves, on: surface, tolerance: tolerance, using: &execution)
+    }
+
+    package func resolve(parameterCurves: [SurfaceParameterCurve], on surface: Surface3D,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> SurfaceParameterBox {
+        try execution.consumeWork(1)
         guard parameterCurves.isEmpty == false else {
             throw failure(
                 .topologyFailure,
@@ -23,12 +30,14 @@ package struct ExactSurfaceParameterBoundsResolver {
         var upperV = -Double.infinity
         let encloser = CertifiedSurfaceParameterCurveEncloser()
         for curve in parameterCurves {
+            try execution.consumeWork(1)
             for enclosure in try encloser.enclosures(
                 for: curve,
                 on: surface,
                 maximumWidth: 0.25,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             ) {
+                try execution.consumeWork(1)
                 lowerU = min(lowerU, enclosure.u.lower)
                 upperU = max(upperU, enclosure.u.upper)
                 lowerV = min(lowerV, enclosure.v.lower)

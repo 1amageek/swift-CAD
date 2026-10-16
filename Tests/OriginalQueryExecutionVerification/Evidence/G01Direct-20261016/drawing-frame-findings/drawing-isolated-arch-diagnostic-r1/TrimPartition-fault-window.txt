@@ -1,0 +1,30 @@
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-boundary-root-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000001dd0204 <_$s11CADGeometry46OriginalSurfaceSilhouetteTrimPartitionProducerV9partition5curve8boundary5usingAA0cdeF0VAA0bcD5CurveV_AA0bcD8BoundaryVAA0B14QueryExecutionVztKFAiOzKXEfU_>:
+ 1dd0390:      	add	x10, x10, #0xf10
+ 1dd0394:      	add	x11, sp, #0x4, lsl #12  ; =0x4000
+ 1dd0398:      	add	x11, x11, #0xf0
+ 1dd039c:      	str	x10, [x11, #0x7ff8]
+ 1dd03a0:      	adrp	x10, 0x637d000 <_write+0x637d000>
+ 1dd03a4:      	add	x10, x10, #0xf40
+ 1dd03a8:      	add	x11, sp, #0x4, lsl #12  ; =0x4000
+ 1dd03ac:      	add	x11, x11, #0xf8
+ 1dd03b0:      	str	x10, [x11, #0x7ff8]
+ 1dd03b4:      	str	xzr, [x9, #0x5f30]
+ 1dd03b8:      	str	xzr, [x9, #0x5f28]
+ 1dd03bc:      	str	xzr, [x9, #0x5f20]
+ 1dd03c0:      	str	xzr, [x9, #0x2e18]
+ 1dd03c4:      	str	xzr, [x9, #0x2e10]
+ 1dd03c8:      	str	xzr, [x8, #0x2ec0]
+ 1dd03cc:      	str	xzr, [x8, #0x2ec8]
+ 1dd03d0:      	add	x0, sp, #0x23, lsl #12  ; =0x23000
+ 1dd03d4:      	add	x0, x0, #0xee0
+ 1dd03d8:      	mov	w8, #0x28               ; =40
+ 1dd03dc:      	mov	x2, x8
+ 1dd03e0:      	add	x8, sp, #0x4, lsl #12   ; =0x4000
+ 1dd03e4:      	add	x8, x8, #0x100
+ 1dd03e8:      	str	x2, [x8, #0x7ff8]
+ 1dd03ec:      	mov	w1, #0x0                ; =0

@@ -3,7 +3,7 @@ import CADCore
 /// Exact original harmonic coefficient identity for a complete regular cylinder.
 struct SurfaceSilhouetteCylindricalZeroAuthority {
     static func isIdenticallyZero(surface: Surface3D, view: Vector3D,
-        tolerance: ModelingTolerance, usage: inout SurfaceSilhouetteUsage) throws -> Bool {
+        tolerance: ModelingTolerance, usage: inout OriginalQueryExecution) throws -> Bool {
         let axis: Vector3D, basis: (u: Vector3D, v: Vector3D)
         switch surface {
         case .cylinder(let source):
@@ -12,13 +12,13 @@ struct SurfaceSilhouetteCylindricalZeroAuthority {
             axis = sourceAxis; basis = try analyticOrthonormalBasis(sourceAxis, tolerance: tolerance)
         default: return false
         }
-        func exact(_ value: Vector3D, usage: inout SurfaceSilhouetteUsage) throws -> [ExactRationalCoefficient] {
+        func exact(_ value: Vector3D, usage: inout OriginalQueryExecution) throws -> [ExactRationalCoefficient] {
             try RationalAlgebraStorage.retain(3, of: ExactRationalCoefficient.self, usage: &usage)
             return try [ExactRationalCoefficient.originalDouble(value.x, usage: &usage),
                 .originalDouble(value.y, usage: &usage), .originalDouble(value.z, usage: &usage)]
         }
         func cross(_ a: [ExactRationalCoefficient], _ b: [ExactRationalCoefficient],
-            usage: inout SurfaceSilhouetteUsage) throws -> [ExactRationalCoefficient] {
+            usage: inout OriginalQueryExecution) throws -> [ExactRationalCoefficient] {
             try RationalAlgebraStorage.retain(3, of: ExactRationalCoefficient.self, usage: &usage)
             var result: [ExactRationalCoefficient] = []; result.reserveCapacity(3)
             for axis in 0..<3 {
@@ -29,7 +29,7 @@ struct SurfaceSilhouetteCylindricalZeroAuthority {
             return result
         }
         func dot(_ a: [ExactRationalCoefficient], _ b: [ExactRationalCoefficient],
-            usage: inout SurfaceSilhouetteUsage) throws -> ExactRationalCoefficient {
+            usage: inout OriginalQueryExecution) throws -> ExactRationalCoefficient {
             var result = ExactRationalCoefficient.zero
             for axis in 0..<3 {
                 result = try result.adding(a[axis].multiplied(by: b[axis], usage: &usage), usage: &usage)

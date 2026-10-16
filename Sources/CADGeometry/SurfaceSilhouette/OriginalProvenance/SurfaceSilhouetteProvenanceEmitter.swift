@@ -6,24 +6,24 @@ struct SurfaceSilhouetteProvenanceEmitter {
     private var contexts: [OriginalSingularFieldContext] = []
     init(sink: any SurfaceSilhouetteProvenanceWriting) { self.sink = sink }
 
-    func emit(_ event: SurfaceSilhouetteProvenanceEvent, usage: inout SurfaceSilhouetteUsage) throws {
-        try usage.consumeWork()
-        try sink.write(event, usage: &usage)
+    func emit(_ event: SurfaceSilhouetteProvenanceEvent, usage: inout OriginalQueryExecution) throws {
+        try usage.consumeWork(1)
+        try sink.write(event, using: &usage)
     }
-    func field(_ name: String, usage: inout SurfaceSilhouetteUsage) throws {
+    func field(_ name: String, usage: inout OriginalQueryExecution) throws {
         try emit(.field(name), usage: &usage)
     }
-    func write(_ value: Int, usage: inout SurfaceSilhouetteUsage) throws { try emit(.integer(value), usage: &usage) }
-    func write(_ value: Bool, usage: inout SurfaceSilhouetteUsage) throws { try emit(.boolean(value), usage: &usage) }
-    func write(_ value: Double, usage: inout SurfaceSilhouetteUsage) throws { try emit(.floatingBits(value.bitPattern), usage: &usage) }
-    func write(_ value: Surface3D, usage: inout SurfaceSilhouetteUsage) throws { try emit(.surface(value), usage: &usage) }
+    func write(_ value: Int, usage: inout OriginalQueryExecution) throws { try emit(.integer(value), usage: &usage) }
+    func write(_ value: Bool, usage: inout OriginalQueryExecution) throws { try emit(.boolean(value), usage: &usage) }
+    func write(_ value: Double, usage: inout OriginalQueryExecution) throws { try emit(.floatingBits(value.bitPattern), usage: &usage) }
+    func write(_ value: Surface3D, usage: inout OriginalQueryExecution) throws { try emit(.surface(value), usage: &usage) }
 
-    mutating func write(_ value: OriginalSingularFieldContext, usage: inout SurfaceSilhouetteUsage) throws {
-        guard value.depth <= usage.maximumDepth, value.coefficientDepth <= usage.maximumAlgebraicDepth else {
+    mutating func write(_ value: OriginalSingularFieldContext, usage: inout OriginalQueryExecution) throws {
+        guard value.depth <= usage.effectiveLimits.maximumSubdivisionDepth, value.coefficientDepth <= usage.effectiveLimits.maximumCoefficientDepth else {
             throw rationalAlgebraFailure("Retained provenance field exceeds the caller's independent depth caps.")
         }
         for index in contexts.indices {
-            try usage.consumeWork()
+            try usage.consumeWork(1)
             if contexts[index] === value {
                 try emit(.beginRecord(type: "fieldReference"), usage: &usage)
                 try field("id", usage: &usage); try write(index, usage: &usage)
@@ -44,7 +44,7 @@ struct SurfaceSilhouetteProvenanceEmitter {
         }
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: OriginalSingularFieldElement, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: OriginalSingularFieldElement, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "fieldValue"), usage: &usage)
         try field("owner", usage: &usage); try write(value.context, usage: &usage)
         try field("law", usage: &usage)
@@ -60,7 +60,7 @@ struct SurfaceSilhouetteProvenanceEmitter {
         }
         try emit(.endRecord, usage: &usage); try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: ExactRationalCoefficient, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: ExactRationalCoefficient, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "rational"), usage: &usage)
         try field("sign", usage: &usage); try write(value.canonicalSign, usage: &usage)
         try field("numerator", usage: &usage)
@@ -71,7 +71,7 @@ struct SurfaceSilhouetteProvenanceEmitter {
         try emit(.unsignedWords(value.canonicalDenominatorWords), usage: &usage)
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: ExactBivariatePolynomial, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: ExactBivariatePolynomial, usage: inout OriginalQueryExecution) throws {
         let terms = try value.orderedTerms(usage: &usage)
         try emit(.beginRecord(type: "rationalPolynomial"), usage: &usage)
         try field("terms", usage: &usage); try emit(.beginArray(count: terms.count), usage: &usage)
@@ -84,7 +84,7 @@ struct SurfaceSilhouetteProvenanceEmitter {
         }
         try emit(.endArray, usage: &usage); try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: OriginalSingularFieldPlanePolynomial, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: OriginalSingularFieldPlanePolynomial, usage: inout OriginalQueryExecution) throws {
         let terms = try value.orderedTerms(usage: &usage)
         try emit(.beginRecord(type: "fieldPlanePolynomial"), usage: &usage)
         try field("owner", usage: &usage); try write(value.context, usage: &usage)
@@ -98,14 +98,14 @@ struct SurfaceSilhouetteProvenanceEmitter {
         }
         try emit(.endArray, usage: &usage); try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: ExactAlgebraicPairAuthority, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: ExactAlgebraicPairAuthority, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "ExactAlgebraicPairAuthority"), usage: &usage)
         try field("projectionRoot", usage: &usage); try write(value.projectionRoot, usage: &usage)
         try field("fiberRoot", usage: &usage); try write(value.fiberRoot, usage: &usage)
         try field("fiber", usage: &usage); try write(value.fiber, usage: &usage)
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: ExactBivariateSystemRoot, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: ExactBivariateSystemRoot, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "rationalSystemRoot"), usage: &usage)
         try field("equations", usage: &usage); try emit(.beginArray(count: value.equations.count), usage: &usage)
         for equation in value.equations { try write(equation, usage: &usage) }
@@ -131,7 +131,7 @@ struct SurfaceSilhouetteProvenanceEmitter {
         try field("fiberMultiplicity", usage: &usage); try write(value.fiberMultiplicity, usage: &usage)
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: ExactMonotoneGraphEndpoint, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: ExactMonotoneGraphEndpoint, usage: inout OriginalQueryExecution) throws {
         switch value {
         case .authored(let original):
             try emit(.beginRecord(type: "authoredEndpoint"), usage: &usage)
@@ -142,7 +142,7 @@ struct SurfaceSilhouetteProvenanceEmitter {
         }
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: OriginalSingularFieldEndpoint, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: OriginalSingularFieldEndpoint, usage: inout OriginalQueryExecution) throws {
         switch value {
         case .authored(let original):
             try emit(.beginRecord(type: "authoredEndpoint"), usage: &usage)
@@ -153,7 +153,7 @@ struct SurfaceSilhouetteProvenanceEmitter {
         }
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: ScalarInterval, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: ScalarInterval, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "ScalarInterval"), usage: &usage)
         try field("lower", usage: &usage)
         try write(value.lower, usage: &usage)
@@ -161,7 +161,7 @@ struct SurfaceSilhouetteProvenanceEmitter {
         try write(value.upper, usage: &usage)
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: SurfaceParameterBox, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: SurfaceParameterBox, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "SurfaceParameterBox"), usage: &usage)
         try field("u", usage: &usage)
         try write(value.u, usage: &usage)
@@ -169,7 +169,7 @@ struct SurfaceSilhouetteProvenanceEmitter {
         try write(value.v, usage: &usage)
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: Vector3D, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: Vector3D, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "Vector3D"), usage: &usage)
         try field("x", usage: &usage)
         try write(value.x, usage: &usage)
@@ -179,7 +179,7 @@ struct SurfaceSilhouetteProvenanceEmitter {
         try write(value.z, usage: &usage)
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: Point3D, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: Point3D, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "Point3D"), usage: &usage)
         try field("x", usage: &usage)
         try write(value.x, usage: &usage)
@@ -189,7 +189,7 @@ struct SurfaceSilhouetteProvenanceEmitter {
         try write(value.z, usage: &usage)
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: ModelingTolerance, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: ModelingTolerance, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "ModelingTolerance"), usage: &usage)
         try field("distance", usage: &usage)
         try write(value.distance, usage: &usage)
@@ -199,7 +199,7 @@ struct SurfaceSilhouetteProvenanceEmitter {
         try write(value.relative, usage: &usage)
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: ExactAlgebraicRealRoot, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: ExactAlgebraicRealRoot, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "ExactAlgebraicRealRoot"), usage: &usage)
         try field("polynomial", usage: &usage)
         try write(value.polynomial, usage: &usage)
@@ -207,7 +207,7 @@ struct SurfaceSilhouetteProvenanceEmitter {
         try write(value.isolation, usage: &usage)
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: ExactUnivariateRootIsolator.Root, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: ExactUnivariateRootIsolator.Root, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "ExactUnivariateRootIsolator.Root"), usage: &usage)
         try field("lower", usage: &usage)
         try write(value.lower, usage: &usage)
@@ -223,7 +223,7 @@ struct SurfaceSilhouetteProvenanceEmitter {
         try write(value.excludesUpperEndpoint, usage: &usage)
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: ExactAlgebraicFiberRootIsolator.Root, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: ExactAlgebraicFiberRootIsolator.Root, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "ExactAlgebraicFiberRootIsolator.Root"), usage: &usage)
         try field("lower", usage: &usage)
         try write(value.lower, usage: &usage)
@@ -237,7 +237,7 @@ struct SurfaceSilhouetteProvenanceEmitter {
         try write(value.isolationDepth, usage: &usage)
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: OriginalSingularFieldRoot.Isolation, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: OriginalSingularFieldRoot.Isolation, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "OriginalSingularFieldRoot.Isolation"), usage: &usage)
         try field("lower", usage: &usage)
         try write(value.lower, usage: &usage)
@@ -251,7 +251,7 @@ struct SurfaceSilhouetteProvenanceEmitter {
         try write(value.depth, usage: &usage)
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: OriginalSingularFieldPolynomial, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: OriginalSingularFieldPolynomial, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "OriginalSingularFieldPolynomial"), usage: &usage)
         try field("context", usage: &usage)
         try write(value.context, usage: &usage)
@@ -261,7 +261,7 @@ struct SurfaceSilhouetteProvenanceEmitter {
         try emit(.endArray, usage: &usage)
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: OriginalSingularFieldSystemRoot, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: OriginalSingularFieldSystemRoot, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "OriginalSingularFieldSystemRoot"), usage: &usage)
         try field("equations", usage: &usage)
         try emit(.beginArray(count: value.equations.count), usage: &usage)
@@ -279,7 +279,7 @@ struct SurfaceSilhouetteProvenanceEmitter {
         try write(value.sourceDomain, usage: &usage)
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: OriginalSingularFieldValueIsolation, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: OriginalSingularFieldValueIsolation, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "OriginalSingularFieldValueIsolation"), usage: &usage)
         try field("original", usage: &usage)
         try write(value.original, usage: &usage)
@@ -291,7 +291,7 @@ struct SurfaceSilhouetteProvenanceEmitter {
         try write(value.sourceDepth, usage: &usage)
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: OriginalRationalZeroSetAuthority, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: OriginalRationalZeroSetAuthority, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "OriginalRationalZeroSetAuthority"), usage: &usage)
         try field("original", usage: &usage)
         try write(value.original, usage: &usage)
@@ -301,7 +301,7 @@ struct SurfaceSilhouetteProvenanceEmitter {
         try write(value.squareFree, usage: &usage)
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: OriginalFieldZeroSetAuthority, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: OriginalFieldZeroSetAuthority, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "OriginalFieldZeroSetAuthority"), usage: &usage)
         try field("original", usage: &usage)
         try write(value.original, usage: &usage)
@@ -313,7 +313,7 @@ struct SurfaceSilhouetteProvenanceEmitter {
         try write(value.maximumAlgebraicDepth, usage: &usage)
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: OriginalRationalBinomialCusp, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: OriginalRationalBinomialCusp, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "OriginalRationalBinomialCusp"), usage: &usage)
         try field("original", usage: &usage)
         try write(value.original, usage: &usage)
@@ -339,7 +339,7 @@ struct SurfaceSilhouetteProvenanceEmitter {
         try write(value.v, usage: &usage)
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: OriginalRationalBinomialBranches, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: OriginalRationalBinomialBranches, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "OriginalRationalBinomialBranches"), usage: &usage)
         try field("original", usage: &usage)
         try write(value.original, usage: &usage)
@@ -359,7 +359,7 @@ struct SurfaceSilhouetteProvenanceEmitter {
         try write(value.centerV, usage: &usage)
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: OriginalSingularRegularChart, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: OriginalSingularRegularChart, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "OriginalSingularRegularChart"), usage: &usage)
         try field("germ", usage: &usage)
         try write(value.germ, usage: &usage)
@@ -371,7 +371,7 @@ struct SurfaceSilhouetteProvenanceEmitter {
         try write(value.sourceDepth, usage: &usage)
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: OriginalSingularResolution.Germ, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: OriginalSingularResolution.Germ, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "OriginalSingularResolution.Germ"), usage: &usage)
         try field("strictTransform", usage: &usage)
         try write(value.strictTransform, usage: &usage)
@@ -389,7 +389,7 @@ struct SurfaceSilhouetteProvenanceEmitter {
         try write(value.depth, usage: &usage)
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: OriginalSingularResolution.Step, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: OriginalSingularResolution.Step, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "OriginalSingularResolution.Step"), usage: &usage)
         try field("direction", usage: &usage)
         try write(value.direction, usage: &usage)
@@ -402,7 +402,7 @@ struct SurfaceSilhouetteProvenanceEmitter {
         try write(value.sourceDepth, usage: &usage)
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: OriginalSingularChartIdentity, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: OriginalSingularChartIdentity, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "OriginalSingularChartIdentity"), usage: &usage)
         try field("original", usage: &usage)
         try write(value.original, usage: &usage)
@@ -431,7 +431,7 @@ struct SurfaceSilhouetteProvenanceEmitter {
         try write(value.halfBranchSide, usage: &usage)
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: SurfaceSilhouetteFieldChartIdentity, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: SurfaceSilhouetteFieldChartIdentity, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "SurfaceSilhouetteFieldChartIdentity"), usage: &usage)
         try field("owner", usage: &usage)
         try write(value.owner, usage: &usage)
@@ -451,7 +451,7 @@ struct SurfaceSilhouetteProvenanceEmitter {
         try write(value.anchor, usage: &usage)
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: SurfaceSilhouetteFreeParameterImage, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: SurfaceSilhouetteFreeParameterImage, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "SurfaceSilhouetteFreeParameterImage"), usage: &usage)
         try field("start", usage: &usage)
         try write(value.start, usage: &usage)
@@ -461,7 +461,7 @@ struct SurfaceSilhouetteProvenanceEmitter {
         try write(value.normalizedDomain, usage: &usage)
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: SurfaceSilhouetteOrderedFreeParameterImage, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: SurfaceSilhouetteOrderedFreeParameterImage, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "SurfaceSilhouetteOrderedFreeParameterImage"), usage: &usage)
         try field("start", usage: &usage)
         try write(value.start, usage: &usage)
@@ -480,7 +480,7 @@ struct SurfaceSilhouetteProvenanceEmitter {
         try write(value.normalizedDomain, usage: &usage)
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: SurfaceSilhouetteCuspParameterImage, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: SurfaceSilhouetteCuspParameterImage, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "SurfaceSilhouetteCuspParameterImage"), usage: &usage)
         try field("cusp", usage: &usage)
         try write(value.cusp, usage: &usage)
@@ -488,7 +488,7 @@ struct SurfaceSilhouetteProvenanceEmitter {
         try write(value.nativeCover, usage: &usage)
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: SurfaceSilhouetteRamifiedParameterImage, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: SurfaceSilhouetteRamifiedParameterImage, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "SurfaceSilhouetteRamifiedParameterImage"), usage: &usage)
         try field("identity", usage: &usage)
         try write(value.identity, usage: &usage)

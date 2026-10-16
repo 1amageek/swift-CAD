@@ -27,7 +27,7 @@ struct GeometryStructuralComparisonWorkTests {
     }
 
     @Test
-    func nestedOriginalCurvesAndRowsUseOneSharedThrowingCallback() throws {
+    func nestedOriginalCurvesAndRowsUseOneSharedThrowingAdmission() throws {
         let curve = BSplineCurve3D(
             degree: 2,
             knots: [0, 0, 0, 1, 1, 1],
@@ -48,7 +48,7 @@ struct GeometryStructuralComparisonWorkTests {
                 Point3D(x: 1, y: 0, z: 0), Point3D(x: 1, y: 1, z: 0)
             ]]
         )
-        let lift = SurfaceLiftCurve3D(
+        let lift = try SurfaceLiftCurve3D(
             surface: .bSpline(surface),
             parameterCurve: .bSpline(BSplineCurve2D(
                 degree: 1,
@@ -74,33 +74,36 @@ struct GeometryStructuralComparisonWorkTests {
         ))
         let total = try charge(curve)
         var exact = total
-        try GeometryStructuralComparisonWork.charge(curve: curve) { units in
+        var recorder = GeometryTestScalarRecorder(observeWork: { units in
             guard units <= exact else { throw BudgetError() }
             exact -= units
-        }
+        })
+        try GeometryStructuralComparisonWork.charge(curve: curve, using: &recorder)
         #expect(exact == 0)
 
         var oneLess = total - 1
-        #expect(throws: BudgetError.self) {
-            try GeometryStructuralComparisonWork.charge(curve: curve) { units in
+        expectOriginalFailure(BudgetError.self) {
+            var recorder = GeometryTestScalarRecorder(observeWork: { units in
                 guard units <= oneLess else { throw BudgetError() }
                 oneLess -= units
-            }
+            })
+            try GeometryStructuralComparisonWork.charge(curve: curve, using: &recorder)
         }
     }
 
     @Test
-    func callbackFailureAndCancellationArePropagatedBeforeDescent() {
+    func admissionFailureAndCancellationArePropagatedBeforeDescent() {
         struct Sentinel: Error, Equatable {}
         let curve = Curve3D.bSpline(BSplineCurve3D(
             degree: 1,
             knots: [0, 0, 1, 1],
             controlPoints: [Point3D(x: 0, y: 0, z: 0), Point3D(x: 1, y: 0, z: 0)]
         ))
-        #expect(throws: Sentinel.self) {
-            try GeometryStructuralComparisonWork.charge(curve: curve) { _ in
+        expectOriginalFailure(Sentinel.self) {
+            var recorder = GeometryTestScalarRecorder(observeWork: { _ in
                 throw Sentinel()
-            }
+            })
+            try GeometryStructuralComparisonWork.charge(curve: curve, using: &recorder)
         }
     }
 
@@ -114,11 +117,12 @@ struct GeometryStructuralComparisonWorkTests {
         #expect(largeWork > smallWork)
 
         var remaining = smallWork
-        #expect(throws: BudgetError.self) {
-            try GeometryStructuralComparisonWork.charge(curve: large) { units in
+        expectOriginalFailure(BudgetError.self) {
+            var recorder = GeometryTestScalarRecorder(observeWork: { units in
                 guard units <= remaining else { throw BudgetError() }
                 remaining -= units
-            }
+            })
+            try GeometryStructuralComparisonWork.charge(curve: large, using: &recorder)
         }
     }
 
@@ -153,7 +157,8 @@ struct GeometryStructuralComparisonWorkTests {
         ))
         let task = Task { () throws -> Void in
             try await Task.yield()
-            try GeometryStructuralComparisonWork.charge(curve: curve) { _ in }
+            var recorder = GeometryTestScalarRecorder(observeWork: { _ in })
+            try GeometryStructuralComparisonWork.charge(curve: curve, using: &recorder)
         }
         task.cancel()
         do {
@@ -251,17 +256,19 @@ struct GeometryStructuralComparisonWorkTests {
 
     private func charge(_ curve: Curve3D) throws -> Int {
         var total = 0
-        try GeometryStructuralComparisonWork.charge(curve: curve) { units in
+        var recorder = GeometryTestScalarRecorder(observeWork: { units in
             total += units
-        }
+        })
+        try GeometryStructuralComparisonWork.charge(curve: curve, using: &recorder)
         return total
     }
 
     private func charge(parameterCurve: SurfaceParameterCurve) throws -> Int {
         var total = 0
-        try GeometryStructuralComparisonWork.charge(parameterCurve: parameterCurve) { units in
+        var recorder = GeometryTestScalarRecorder(observeWork: { units in
             total += units
-        }
+        })
+        try GeometryStructuralComparisonWork.charge(parameterCurve: parameterCurve, using: &recorder)
         return total
     }
 
@@ -270,18 +277,30 @@ struct GeometryStructuralComparisonWorkTests {
         parameterCurve: SurfaceParameterCurve
     ) throws {
         var exact = total
-        try GeometryStructuralComparisonWork.charge(parameterCurve: parameterCurve) { units in
+        var recorder = GeometryTestScalarRecorder(observeWork: { units in
             guard units <= exact else { throw BudgetFailure() }
             exact -= units
-        }
+        })
+        try GeometryStructuralComparisonWork.charge(parameterCurve: parameterCurve, using: &recorder)
         #expect(exact == 0)
 
         var oneLess = total - 1
-        #expect(throws: BudgetFailure.self) {
-            try GeometryStructuralComparisonWork.charge(parameterCurve: parameterCurve) { units in
+        expectOriginalFailure(BudgetFailure.self) {
+            var recorder = GeometryTestScalarRecorder(observeWork: { units in
                 guard units <= oneLess else { throw BudgetFailure() }
                 oneLess -= units
-            }
+            })
+            try GeometryStructuralComparisonWork.charge(parameterCurve: parameterCurve, using: &recorder)
+        }
+    }
+
+    private func expectOriginalFailure<Failure: Error>(_ type: Failure.Type,
+        _ body: () throws -> Void) {
+        do {
+            try body()
+            Issue.record("An admission refusal returned success.")
+        } catch {
+            #expect(geometryTestOriginalFailure(error) is Failure)
         }
     }
 

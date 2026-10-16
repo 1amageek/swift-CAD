@@ -12,9 +12,7 @@ public protocol SurfaceQueryModel: Sendable {
     func topologyReference(for reference: StableSubshapeReference) throws -> TopologyReference
     func originalTopologyReference(for reference: StableSubshapeReference,
         tolerance: ModelingTolerance, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
-        consumeWork: @escaping @Sendable (Int) throws -> Void,
-        consumeStorage: (@Sendable (Int) throws -> Void)?,
-        maximumAlgebraicDepth: Int?) throws -> TopologyReference
+        maximumAlgebraicDepth: Int?, using execution: inout OriginalQueryExecution) throws -> TopologyReference
 }
 
 extension EvaluatedDocument: SurfaceQueryModel {}
@@ -38,9 +36,7 @@ extension SurfaceQueryModel {
     // this default must not succeed until that provider composes the caller callbacks.
     public func originalTopologyReference(for reference: StableSubshapeReference,
         tolerance: ModelingTolerance, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
-        consumeWork: @escaping @Sendable (Int) throws -> Void,
-        consumeStorage: (@Sendable (Int) throws -> Void)?,
-        maximumAlgebraicDepth: Int?) throws -> TopologyReference {
+        maximumAlgebraicDepth: Int?, using execution: inout OriginalQueryExecution) throws -> TopologyReference {
         throw KernelError(phase: .evaluation, code: .unsupportedCapability, tolerance: tolerance,
             message: "Custom surface query models must supply original same-ledger topology resolution.")
     }
@@ -49,27 +45,21 @@ extension SurfaceQueryModel {
 extension EvaluatedDocument {
     public func originalTopologyReference(for reference: StableSubshapeReference,
         tolerance: ModelingTolerance, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
-        consumeWork: @escaping @Sendable (Int) throws -> Void,
-        consumeStorage: (@Sendable (Int) throws -> Void)?,
-        maximumAlgebraicDepth: Int?) throws -> TopologyReference {
+        maximumAlgebraicDepth: Int?, using execution: inout OriginalQueryExecution) throws -> TopologyReference {
         try StableSubshapeResolver().topologyReference(for: reference, model: brep,
             subshapes: subshapes, lineage: lineage, tolerance: tolerance,
             maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
-            consumeWork: consumeWork, consumeStorage: consumeStorage,
-            maximumAlgebraicDepth: maximumAlgebraicDepth)
+            maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
     }
 }
 
 extension EvaluationContext {
     public func originalTopologyReference(for reference: StableSubshapeReference,
         tolerance: ModelingTolerance, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
-        consumeWork: @escaping @Sendable (Int) throws -> Void,
-        consumeStorage: (@Sendable (Int) throws -> Void)?,
-        maximumAlgebraicDepth: Int?) throws -> TopologyReference {
+        maximumAlgebraicDepth: Int?, using execution: inout OriginalQueryExecution) throws -> TopologyReference {
         try StableSubshapeResolver().topologyReference(for: reference, model: brep,
             subshapes: subshapes, lineage: lineage, tolerance: tolerance,
             maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
-            consumeWork: consumeWork, consumeStorage: consumeStorage,
-            maximumAlgebraicDepth: maximumAlgebraicDepth)
+            maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
     }
 }

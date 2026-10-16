@@ -1,0 +1,18 @@
+{
+  "scope": "Only structural surface metering dispatcher frame separation; no runtime claim.",
+  "previousAuthority": {
+    "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-production-r1/receipt.json",
+    "sha256": "7432d8f66382f64727a09d00855477623f40099f337b0b8992e37995365b4041"
+  },
+  "oldSourceSHA256": "a55bc576924ec5af013c350c6f4809d7c16bcc8bc835ec275475c96f772cfeec",
+  "sourceRoot": "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD",
+  "files": {
+    "Sources/CADGeometry/StructuralGeometryWork/GeometryStructuralComparisonWork.swift": "e0978f2bb75c79ef1b3181fb24e626a68b36221dbf5cbd3a60260d98fa2241d4",
+    "Sources/CADGeometry/StructuralGeometryWork/DESIGN.md": "6af2d9a7e5a37be813ccaf530a5a71f3be5412ef194b276cc7a9dd0fb6e3e586",
+    "Tests/CADGeometryTests/StructuralSurfaceMeteringTests.swift": "07f3af8f29dcd5f869592d19f95f26669394d34532df82260a3d4e7cf453a7fc",
+    "Tests/OriginalQueryExecutionVerification/StructuralSurfaceMeteringPortable.swift": "979e443690e9dee2e79df1e3a6bf6ec1491bbc3060e2ac3aada946afc6606f32"
+  },
+  "sourceEquivalence": "Removing only the new Native fast dispatch, outlined function boundary and three noinline attributes reconstructs the entire old file byte-for-byte, preserving every Native/non-Native body/order/debit/overflow/cancel call.",
+  "fixtureParity": "All four helper/check bodies byte-equal between Native and portable fixtures.",
+  "runtime": "Pending Root accepted new Native authority."
+}

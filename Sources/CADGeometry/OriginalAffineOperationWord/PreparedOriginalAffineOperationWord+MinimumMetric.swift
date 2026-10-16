@@ -2,7 +2,7 @@ import CADCore
 
 extension PreparedOriginalAffineOperationWord {
     /// Proves the whole two- or three-dimensional original unit-direction metric.
-    public func minimumImageLengthIsGreaterThan<B: RationalAlgebraAdmitting>(
+    public func minimumImageLengthIsGreaterThan<B: ExactScalarAdmission & ~Copyable>(
         originalAxes: [Vector3D], originalLengths: [Double], physicalThreshold: Double,
         usage: inout B) throws -> Bool {
         guard originalAxes.count == originalLengths.count else {
@@ -12,7 +12,7 @@ extension PreparedOriginalAffineOperationWord {
         try OriginalAffineRationalMatrix.retain(originalLengths.count, of: ExactRationalCoefficient.self, usage: &usage)
         var lengths: [ExactRationalCoefficient] = []; lengths.reserveCapacity(originalLengths.count)
         for length in originalLengths {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             guard length.isFinite, length >= 0 else { throw rationalAlgebraFailure("Original metric lengths must be finite and nonnegative.") }
             lengths.append(try .originalDouble(length, usage: &usage))
         }
@@ -20,7 +20,7 @@ extension PreparedOriginalAffineOperationWord {
     }
 
     /// Uses the exact original difference as every axis length, without binary subtraction.
-    public func minimumImageDifferenceIsGreaterThan<B: RationalAlgebraAdmitting>(
+    public func minimumImageDifferenceIsGreaterThan<B: ExactScalarAdmission & ~Copyable>(
         originalAxes: [Vector3D], originalLower: Double, originalUpper: Double,
         physicalThreshold: Double, usage: inout B) throws -> Bool {
         try validateMetricInput(originalAxes, physicalThreshold: physicalThreshold, usage: &usage)
@@ -35,14 +35,14 @@ extension PreparedOriginalAffineOperationWord {
     }
 
     /// Proves the complete original radial gap measured perpendicular to the transformed axis.
-    public func minimumProjectedImageDifferenceIsGreaterThan<B: RationalAlgebraAdmitting>(
+    public func minimumProjectedImageDifferenceIsGreaterThan<B: ExactScalarAdmission & ~Copyable>(
         originalAxes: [Vector3D], originalAxis: Vector3D, originalLower: Double,
         originalUpper: Double, physicalThreshold: Double, usage: inout B) throws -> Bool {
         guard originalAxes.count == 2 else {
             throw rationalAlgebraFailure("Original projected metric requires two radial axes.")
         }
         try validateMetricInput(originalAxes, physicalThreshold: physicalThreshold, usage: &usage)
-        try usage.consumeExactWork(3)
+        try usage.consumeWork(3)
         try originalAxis.validate()
         guard originalLower.isFinite, originalLower >= 0, originalUpper.isFinite,
               originalUpper >= originalLower else {
@@ -61,15 +61,15 @@ extension PreparedOriginalAffineOperationWord {
             projectsLastAxis: true, usage: &usage)
     }
 
-    private func validateMetricInput<B: RationalAlgebraAdmitting>(_ axes: [Vector3D],
+    private func validateMetricInput<B: ExactScalarAdmission & ~Copyable>(_ axes: [Vector3D],
         physicalThreshold: Double, usage: inout B) throws {
         guard (2...3).contains(axes.count), physicalThreshold.isFinite, physicalThreshold >= 0 else {
             throw rationalAlgebraFailure("Original minimum metric requires two or three axes and a finite nonnegative threshold.")
         }
-        for axis in axes { try usage.consumeExactWork(3); try axis.validate() }
+        for axis in axes { try usage.consumeWork(3); try axis.validate() }
     }
 
-    private func minimumMetric<B: RationalAlgebraAdmitting>(_ axes: [Vector3D],
+    private func minimumMetric<B: ExactScalarAdmission & ~Copyable>(_ axes: [Vector3D],
         lengths: [ExactRationalCoefficient], physicalThreshold: Double, projectsLastAxis: Bool = false,
         usage: inout B) throws -> Bool {
         let threshold = try ExactRationalCoefficient.originalDouble(physicalThreshold, usage: &usage)
@@ -83,7 +83,7 @@ extension PreparedOriginalAffineOperationWord {
                 let y = try ExactRationalCoefficient.originalDouble(axes[column].y, usage: &usage)
                 let z = try ExactRationalCoefficient.originalDouble(axes[column].z, usage: &usage)
                 for row in 0..<3 {
-                    try usage.consumeExactWork(3)
+                    try usage.consumeWork(3)
                     let first = try source.coefficients[row * 4].multiplied(by: x, usage: &usage)
                     let second = try source.coefficients[row * 4 + 1].multiplied(by: y, usage: &usage)
                     let third = try source.coefficients[row * 4 + 2].multiplied(by: z, usage: &usage)
@@ -97,7 +97,7 @@ extension PreparedOriginalAffineOperationWord {
                 for second in first..<count {
                     var value = ExactRationalCoefficient.zero
                     for row in 0..<3 {
-                        try usage.consumeExactWork(1)
+                        try usage.consumeWork(1)
                         value = try value.adding(columns[row * count + first]
                             .multiplied(by: columns[row * count + second], usage: &usage), usage: &usage)
                     }
@@ -121,7 +121,7 @@ extension PreparedOriginalAffineOperationWord {
             let z = try OriginalSingularFieldElement.constant(.originalDouble(axes[column].z, usage: &usage), in: frame.context, maximumDepth: depth, usage: &usage)
             let length = try OriginalSingularFieldElement.constant(lengths[column], in: frame.context, maximumDepth: depth, usage: &usage)
             for row in 0..<3 {
-                try usage.consumeExactWork(3)
+                try usage.consumeWork(3)
                 let a = try OriginalAffineFieldAction.coefficient(frame, row: row, column: 0, maximumDepth: depth, usage: &usage)
                 let b = try OriginalAffineFieldAction.coefficient(frame, row: row, column: 1, maximumDepth: depth, usage: &usage)
                 let c = try OriginalAffineFieldAction.coefficient(frame, row: row, column: 2, maximumDepth: depth, usage: &usage)
@@ -138,7 +138,7 @@ extension PreparedOriginalAffineOperationWord {
             for second in first..<count {
                 var value = zero
                 for row in 0..<3 {
-                    try usage.consumeExactWork(1)
+                    try usage.consumeWork(1)
                     value = try value.adding(columns[row * count + first].multiplied(by: columns[row * count + second],
                         maximumDepth: depth, usage: &usage), maximumDepth: depth, usage: &usage)
                 }
@@ -152,7 +152,7 @@ extension PreparedOriginalAffineOperationWord {
         return try fieldPositiveMetric(gram, count: count, usage: &usage)
     }
 
-    private func rationalProjectedMetric<B: RationalAlgebraAdmitting>(_ g: [ExactRationalCoefficient],
+    private func rationalProjectedMetric<B: ExactScalarAdmission & ~Copyable>(_ g: [ExactRationalCoefficient],
         thresholdSquare: ExactRationalCoefficient, usage: inout B) throws -> Bool {
         guard g[8].isPositive else {
             throw rationalAlgebraFailure("Original projected metric requires a nonzero transformed axis.")
@@ -161,7 +161,7 @@ extension PreparedOriginalAffineOperationWord {
         var projected = Array(repeating: ExactRationalCoefficient.zero, count: 4)
         for first in 0..<2 {
             for second in first..<2 {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 var value = g[first * 3 + second]
                 if first == second { value = try value.subtracting(thresholdSquare, usage: &usage) }
                 value = try value.multiplied(by: g[8], usage: &usage)
@@ -172,7 +172,7 @@ extension PreparedOriginalAffineOperationWord {
         return try rationalPositiveMetric(projected, count: 2, usage: &usage)
     }
 
-    private func fieldProjectedMetric<B: RationalAlgebraAdmitting>(_ g: [OriginalSingularFieldElement],
+    private func fieldProjectedMetric<B: ExactScalarAdmission & ~Copyable>(_ g: [OriginalSingularFieldElement],
         thresholdSquare: OriginalSingularFieldElement, usage: inout B) throws -> Bool {
         let depth = source.maximumDepth
         guard case .positive = try g[8].sign(maximumDepth: depth, usage: &usage) else {
@@ -184,7 +184,7 @@ extension PreparedOriginalAffineOperationWord {
         var projected = Array(repeating: zero, count: 4)
         for first in 0..<2 {
             for second in first..<2 {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 var value = g[first * 3 + second]
                 if first == second { value = try value.subtracting(thresholdSquare, maximumDepth: depth, usage: &usage) }
                 value = try value.multiplied(by: g[8], maximumDepth: depth, usage: &usage)
@@ -196,7 +196,7 @@ extension PreparedOriginalAffineOperationWord {
         return try fieldPositiveMetric(projected, count: 2, usage: &usage)
     }
 
-    private func rationalPositiveMetric<B: RationalAlgebraAdmitting>(_ g: [ExactRationalCoefficient],
+    private func rationalPositiveMetric<B: ExactScalarAdmission & ~Copyable>(_ g: [ExactRationalCoefficient],
         count: Int, usage: inout B) throws -> Bool {
         guard g[0].isPositive else { return false }
         let minor = try g[0].multiplied(by: g[count + 1], usage: &usage)
@@ -211,7 +211,7 @@ extension PreparedOriginalAffineOperationWord {
             .adding(g[2].multiplied(by: third, usage: &usage), usage: &usage)
         return determinant.isPositive
     }
-    private func fieldPositiveMetric<B: RationalAlgebraAdmitting>(_ g: [OriginalSingularFieldElement],
+    private func fieldPositiveMetric<B: ExactScalarAdmission & ~Copyable>(_ g: [OriginalSingularFieldElement],
         count: Int, usage: inout B) throws -> Bool {
         let depth = source.maximumDepth
         guard case .positive = try g[0].sign(maximumDepth: depth, usage: &usage) else { return false }

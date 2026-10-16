@@ -2,7 +2,7 @@ import CADCore
 
 /// Whole-rectangle isolated source proof for separable irrational flat stations.
 package struct OriginalRationalSeparableIsolatedPointCertifier {
-    package static func provesOnlyZero<B: RationalAlgebraAdmitting>(at root: ExactBivariateCriticalPoint,
+    package static func provesOnlyZero<B: ExactScalarAdmission & ~Copyable>(at root: ExactBivariateCriticalPoint,
         maximumDepth: Int, usage: inout B) throws -> Bool {
         let original = root.original
         for (power, _) in try original.orderedTerms(usage: &usage) {
@@ -29,7 +29,7 @@ package struct OriginalRationalSeparableIsolatedPointCertifier {
         return a == b
     }
 
-    private static func signWithOneZero<B: RationalAlgebraAdmitting>(_ source: ExactBivariatePolynomial,
+    private static func signWithOneZero<B: ExactScalarAdmission & ~Copyable>(_ source: ExactBivariatePolynomial,
         over interval: ScalarInterval, usage: inout B) throws -> Int? {
         guard source.uDegree > 0, interval.width > 0 else { return nil }
         let lower = try ExactRationalCoefficient.originalDouble(interval.lower, usage: &usage)

@@ -1,0 +1,80 @@
+{
+  "scope": "Native endpoint source-comparison finding and actual fresh Native recovery products; no Drawing pass inferred.",
+  "files": [
+    {
+      "copy": "production-receipt.json",
+      "original": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-production-r1/receipt.json",
+      "sha256": "7432d8f66382f64727a09d00855477623f40099f337b0b8992e37995365b4041"
+    },
+    {
+      "copy": "upper-receipt.json",
+      "original": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-upper-r1/receipt.json",
+      "sha256": "b08daad065c233fe22542b70b29f3d0820b44147aa612ca08af234909db62b92"
+    },
+    {
+      "copy": "focused-receipt.json",
+      "original": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/endpoint-native-focused-r1/receipt.json",
+      "sha256": "6129c577b26f979a6676d01bc92602a54b5120b1b7f381d10d4086ff293b89f5"
+    },
+    {
+      "copy": "focused-runtime.log",
+      "original": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/endpoint-native-focused-r1/test-runtime.log",
+      "sha256": "2eaa4d00932a94c85184134f29667aed031fd55926825e63c719c4e8e1898567"
+    },
+    {
+      "copy": "focused-results.xml",
+      "original": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/endpoint-native-focused-r1/results.xml",
+      "sha256": "4e1e9bf9746ccda31fdb38da0a5ff2b243b6f65bfaa8dbeebab7b4caea945511"
+    },
+    {
+      "copy": "source-delta.patch",
+      "original": "/tmp/g01-native-endpoint-equality-fix/OriginalCurveEndpointPositionRelation.swift.patch",
+      "sha256": "7a3f10af161929b9df976e9d174b4c6129805d87132b1fcc0e30ac510747c58d"
+    },
+    {
+      "copy": "source-inputs.json",
+      "original": "/tmp/g01-native-endpoint-equality-fix/inputs.json",
+      "sha256": "5967f07bb5db253c28ba931635512b00f5856c590b2693f334958dc95d8fa05d"
+    },
+    {
+      "copy": "collections-receipt.json",
+      "original": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/dependencies/collections-native-r1/receipt.json",
+      "sha256": "c362948203a3a7c69895b142c1f7176cc6ef5fec06e4f43f555f4fb5f467f723"
+    },
+    {
+      "copy": "collections-products.json",
+      "original": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/dependencies/collections-native-r1/products.json",
+      "sha256": "64cda615899460520018a303fe15b3d1b91468d4a61763e8199f233fe6354112"
+    },
+    {
+      "copy": "openusd-receipt.json",
+      "original": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/receipt.json",
+      "sha256": "365a67f9a0d83c6371e498c7612ce849ee363c4445384dd6b5bd8528882bd456"
+    },
+    {
+      "copy": "runner-source-freeze.json",
+      "original": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/runner-bindings/source-freeze.json",
+      "sha256": "11d7a8ac660be1f52762d2e641a1f40464a9db825e331ecd7d1821f89ea37943"
+    },
+    {
+      "copy": "drawing-before-kernel-receipt.json",
+      "original": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-r1/receipt.json",
+      "sha256": "bb5e572062cbc979bcfcbd23e965ce6e4ec2c48655f8765e4deb1f7c9960df64"
+    },
+    {
+      "copy": "drawing-before-kernel-runtime.log",
+      "original": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-r1/test-runtime.log",
+      "sha256": "42ffe2d1ffa24921c7dc76a603e1ea3f0fbfd6ed471e61683bd27367d026ba1f"
+    },
+    {
+      "copy": "drawing-before-kernel-stages.log",
+      "original": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-r1-stages.log",
+      "sha256": "09cc1a023875b6bc285b9ba66b112922b0fd8bb49082c5c1ca604965c9988548"
+    },
+    {
+      "copy": "drawing-kernel-stack-finding.json",
+      "original": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-r1/crash-finding.json",
+      "sha256": "3a0cb8a7cb878c06b655dc67650384afdc8764d221fde1506ef3a55c3c02918a"
+    }
+  ]
+}

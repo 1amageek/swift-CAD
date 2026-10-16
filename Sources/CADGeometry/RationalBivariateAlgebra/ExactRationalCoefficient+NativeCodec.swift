@@ -14,9 +14,9 @@ extension ExactRationalCoefficient: Codable {
         guard #available(macOS 15.0, iOS 18.0, visionOS 2.0, watchOS 11.0, tvOS 18.0, *) else {
             throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable
         }
-        var usage = try NativeRationalSourceDecodingContext.allowance(from: decoder)
+        var usage = try NativeRationalSourceDecodingContext.execution(from: decoder)
         let original = try decoder.container(keyedBy: OriginalKey.self)
-        try usage.consumeExactWork(original.allKeys.count)
+        try usage.consumeWork(original.allKeys.count)
         let allowed = Set(["sign", "numeratorWords", "denominatorWords"])
         guard original.allKeys.allSatisfy({ allowed.contains($0.stringValue) }) else {
             throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath,
@@ -26,15 +26,19 @@ extension ExactRationalCoefficient: Codable {
         func words(_ key: CodingKeys) throws -> [UInt32] {
             var source = try container.nestedUnkeyedContainer(forKey: key)
             guard let count = source.count else { throw NativeRationalSourceDecodingError.unboundedWordContainer }
-            try usage.consumeExactWork(count); try usage.retainExactStorage(count)
+            try usage.consumeWork(count); try usage.retainStorage(bytes: exactScalarPayloadBytes(count: count, of: UInt32.self))
             var result: [UInt32] = []; result.reserveCapacity(count)
-            while !source.isAtEnd { result.append(try source.decode(UInt32.self)) }
+            while !source.isAtEnd {
+                try usage.checkpoint()
+                result.append(try source.decode(UInt32.self))
+            }
             return result
         }
         let sign = try container.decode(Int.self, forKey: .sign)
         let numerator = try words(.numeratorWords), denominator = try words(.denominatorWords)
         try self.init(canonicalSign: sign, numeratorWords: numerator,
             denominatorWords: denominator, usage: &usage)
+        try usage.checkpoint()
     }
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)

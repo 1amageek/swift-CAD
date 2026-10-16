@@ -20,10 +20,19 @@ struct BoundedSurfaceSurfaceAdmissionWitnessTests {
         sourceDepth: Int = 1, spatialDepth: Int = 0, algebraDepth: Int? = 32,
         work: @escaping @Sendable () throws -> Void,
         storage: (@Sendable (Int) throws -> Void)? = nil) throws -> [SurfaceSurfaceIntersection]? {
-        try producer.intersections(first: plane(z: 0), second: plane(z: 1), boundaryPoints: [],
-            options: .init(), tolerance: tolerance, maximumSpanCount: 1,
-            maximumSubdivisionDepth: spatialDepth, remainingSourceDepth: sourceDepth,
-            consumeWork: work, consumeStorage: storage, maximumAlgebraicDepth: algebraDepth)
+        try geometryTestWithQuery(maximumSpanCount: 1,
+            maximumSubdivisionDepth: spatialDepth,
+            remainingSourceDepth: sourceDepth,
+            maximumAlgebraicDepth: algebraDepth ?? 32,
+            consumeWorkUnits: { units in for _ in 0..<units { try work() } },
+            consumeStorageBytes: storage) { queryExecution in
+            try producer.intersections(first: plane(z: 0),
+            second: plane(z: 1),
+            boundaryPoints: [],
+            options: .init(),
+            tolerance: tolerance,
+            using: &queryExecution)
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -34,19 +43,35 @@ struct BoundedSurfaceSurfaceAdmissionWitnessTests {
         let throughWitnessCandidate: [SurfaceSurfaceIntersection]? = try query(existential,
             work: { counter.withLock { $0 += 1 } })
         let throughWitness = try #require(throughWitnessCandidate)
-        let directCandidate: [SurfaceSurfaceIntersection]? = try concrete.intersections(
-            first: plane(z: 0), second: plane(z: 1),
-            boundaryPoints: [], options: .init(), tolerance: tolerance, maximumSpanCount: 1,
-            maximumSubdivisionDepth: 0, remainingSourceDepth: 1, consumeWork: {},
-            consumeStorage: nil, maximumAlgebraicDepth: 32)
+        let directCandidate: [SurfaceSurfaceIntersection]? = try geometryTestWithQuery(maximumSpanCount: 1,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            maximumAlgebraicDepth: 32,
+            consumeWorkUnits: { units in for _ in 0..<units {  } },
+            consumeStorageBytes: nil) { queryExecution in
+            try concrete.intersections(first: plane(z: 0),
+            second: plane(z: 1),
+            boundaryPoints: [],
+            options: .init(),
+            tolerance: tolerance,
+            using: &queryExecution)
+        }
         let direct = try #require(directCandidate)
         #expect(throughWitness.isEmpty)
         #expect(direct == throughWitness)
         #expect(counter.withLock { $0 } > 0)
-        let compatibilityCandidate: [SurfaceSurfaceIntersection]? = try existential.intersections(
-            first: plane(z: 0), second: plane(z: 1),
-            boundaryPoints: [], options: .init(), tolerance: tolerance, maximumSpanCount: 1,
-            maximumSubdivisionDepth: 0, remainingSourceDepth: 1, consumeWork: {}, consumeStorage: nil)
+        let compatibilityCandidate: [SurfaceSurfaceIntersection]? = try geometryTestWithQuery(maximumSpanCount: 1,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            consumeWorkUnits: { units in for _ in 0..<units {  } },
+            consumeStorageBytes: nil) { queryExecution in
+            try existential.intersections(first: plane(z: 0),
+            second: plane(z: 1),
+            boundaryPoints: [],
+            options: .init(),
+            tolerance: tolerance,
+            using: &queryExecution)
+        }
         let compatibility = try #require(compatibilityCandidate)
         #expect(compatibility == throughWitness)
     }
@@ -59,11 +84,19 @@ struct BoundedSurfaceSurfaceAdmissionWitnessTests {
             controlPoints: (0..<3).map { v in (0..<3).map { u in
                 Point3D(x: x[u], y: x[v], z: square[u] + square[v]) } })
         let producer: any BoundedSurfaceSurfaceIntersecting = DefaultBoundedSurfaceSurfaceIntersector()
-        let candidate: [SurfaceSurfaceIntersection]? = try producer.intersections(
-            first: plane(z: 0), second: .bSpline(bowl),
-            boundaryPoints: [], options: .init(), tolerance: tolerance, maximumSpanCount: 1,
-            maximumSubdivisionDepth: 0, remainingSourceDepth: 1, consumeWork: {},
-            consumeStorage: nil, maximumAlgebraicDepth: 32)
+        let candidate: [SurfaceSurfaceIntersection]? = try geometryTestWithQuery(maximumSpanCount: 1,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            maximumAlgebraicDepth: 32,
+            consumeWorkUnits: { units in for _ in 0..<units {  } },
+            consumeStorageBytes: nil) { queryExecution in
+            try producer.intersections(first: plane(z: 0),
+            second: .bSpline(bowl),
+            boundaryPoints: [],
+            options: .init(),
+            tolerance: tolerance,
+            using: &queryExecution)
+        }
         let result = try #require(candidate)
         #expect(result.count == 1)
         guard case .point(let point) = try #require(result.first) else {
@@ -82,8 +115,8 @@ struct BoundedSurfaceSurfaceAdmissionWitnessTests {
     @Test(.timeLimit(.minutes(1)))
     func callbacksPropagateIndependentRefusals() throws {
         let producer: any BoundedSurfaceSurfaceIntersecting = DefaultBoundedSurfaceSurfaceIntersector()
-        #expect(throws: Refusal.work) { try query(producer, work: { throw Refusal.work }) }
-        #expect(throws: Refusal.storage) {
+        geometryTestExpectFailure({ if case .work? = geometryTestOriginalFailure($0) as? Refusal { true } else { false } }) { try query(producer, work: { throw Refusal.work }) }
+        geometryTestExpectFailure({ if case .storage? = geometryTestOriginalFailure($0) as? Refusal { true } else { false } }) {
             try query(producer, work: {}, storage: { _ in throw Refusal.storage })
         }
         let bytes = Mutex(0)
@@ -101,7 +134,7 @@ struct BoundedSurfaceSurfaceAdmissionWitnessTests {
             spatialDepth: 0, algebraDepth: 32, work: {})
         let result = try #require(candidate)
         #expect(result.isEmpty)
-        #expect(throws: KernelError.self) { try query(producer, sourceDepth: 0, work: {}) }
+        geometryTestExpectFailure({ geometryTestKernelFailure($0) != nil }) { try query(producer, sourceDepth: 0, work: {}) }
         #expect(throws: GeometryConversionError.self) { try query(producer, algebraDepth: 33, work: {}) }
         #expect(throws: GeometryConversionError.self) { try query(producer, spatialDepth: -1, work: {}) }
     }
@@ -113,7 +146,7 @@ struct BoundedSurfaceSurfaceAdmissionWitnessTests {
             return try query(DefaultBoundedSurfaceSurfaceIntersector(), work: {})
         }
         do { _ = try await task.value; Issue.record("Cancelled bounded producer published success.") }
-        catch is CancellationError {}
+        catch where geometryTestIsCancelled(error) {}
     }
 
     private struct LegacyOnly: BoundedSurfaceSurfaceIntersecting {
@@ -126,6 +159,8 @@ struct BoundedSurfaceSurfaceAdmissionWitnessTests {
         do {
             _ = try query(LegacyOnly(), work: {})
             Issue.record("A legacy producer supplied an independent algebra witness.")
-        } catch let error as KernelError { #expect(error.code == .unsupportedCapability) }
+        } catch let caught where geometryTestKernelFailure(caught) != nil {
+            let error = geometryTestKernelFailure(caught)!
+            #expect(error.code == .unsupportedCapability) }
     }
 }

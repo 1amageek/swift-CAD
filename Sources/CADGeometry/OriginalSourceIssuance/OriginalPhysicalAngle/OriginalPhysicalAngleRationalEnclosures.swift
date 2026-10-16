@@ -23,19 +23,72 @@ public enum OriginalPhysicalAngleRationalEnclosures {
                 try visit(depth, &a)
                 piBounds = try pi.next(&a)
             }
-            let two = try q.integer(2, using: &a)
-            let scale = OriginalPhysicalAngleInterval(try q.dividing(two, labelPeriod, using: &a))
-            let phase = try OriginalPhysicalAngleInterval(lower: lower, upper: upper)
-                .multiplying(piBounds, q, &a).multiplying(scale, q, &a).outwardDyadic(q, &a)
-            let center = try q.dividing(q.adding(phase.lower, phase.upper, using: &a), two, using: &a)
-            let radius = try q.dividing(q.subtracting(phase.upper, phase.lower, using: &a), two, using: &a)
-            let values = try sineCosine(center, refinementDepth: refinementDepth, q, &a)
-            let spread = OriginalPhysicalAngleInterval(lower: try q.negated(radius, using: &a), upper: radius)
-            let sine = try values.sine.adding(spread, q, &a).outwardDyadic(q, &a)
-            let cosine = try values.cosine.adding(spread, q, &a).outwardDyadic(q, &a)
-            return try (OriginalPhysicalAngleScalarDomain.publishedBounds(sine, &a),
-                OriginalPhysicalAngleScalarDomain.publishedBounds(cosine, &a))
+            return try normalizedLabelCore(lower: lower, upper: upper, labelPeriod: labelPeriod,
+                refinementDepth: refinementDepth, piBounds: piBounds, using: &a)
         }
+    }
+
+    /// Uses only sealed continuing Machin evidence, never a caller-supplied pi interval.
+    static func normalizedLabelSineCosine<A: ExactScalarAdmission & ~Copyable>(
+        lower: ExactRationalCoefficient, upper: ExactRationalCoefficient,
+        labelPeriod: ExactRationalCoefficient, refinementDepth: Int,
+        piEvidence: OriginalPiRefinement.Evidence, using admission: inout A
+    ) throws(ExactScalarFailure) -> (sine: OriginalPhysicalAngleRationalBounds,
+        cosine: OriginalPhysicalAngleRationalBounds) {
+        try OriginalPhysicalAngleScalarDomain.query(&admission) { a in
+            let q = ExactRationalScalarDomain()
+            guard refinementDepth > 0, try q.compare(lower, upper, using: &a) != .greater,
+                try q.sign(of: labelPeriod, using: &a) == .positive else {
+                throw ExactScalarFailure.invalidEvidence
+            }
+            try piEvidence.admitProof(using: &a)
+            guard refinementDepth == piEvidence.coefficientDepth else {
+                throw ExactScalarFailure.invalidEvidence
+            }
+            return try normalizedLabelCore(lower: lower, upper: upper, labelPeriod: labelPeriod,
+                refinementDepth: refinementDepth, piBounds: piEvidence.interval, using: &a)
+        }
+    }
+
+    private static func normalizedLabelCore<A: ExactScalarAdmission & ~Copyable>(
+        lower: ExactRationalCoefficient, upper: ExactRationalCoefficient,
+        labelPeriod: ExactRationalCoefficient, refinementDepth: Int,
+        piBounds: OriginalPhysicalAngleInterval, using a: inout A
+    ) throws -> (sine: OriginalPhysicalAngleRationalBounds, cosine: OriginalPhysicalAngleRationalBounds) {
+        let q = ExactRationalScalarDomain()
+        let two = try q.integer(2, using: &a)
+        let scale = OriginalPhysicalAngleInterval(try q.dividing(two, labelPeriod, using: &a))
+        let phase = try OriginalPhysicalAngleInterval(lower: lower, upper: upper)
+            .multiplying(piBounds, q, &a).multiplying(scale, q, &a).outwardDyadic(q, &a)
+        let center = try q.dividing(q.adding(phase.lower, phase.upper, using: &a), two, using: &a)
+        let radius = try q.dividing(q.subtracting(phase.upper, phase.lower, using: &a), two, using: &a)
+        let values = try sineCosine(center, refinementDepth: refinementDepth, q, &a)
+        let spread = OriginalPhysicalAngleInterval(lower: try q.negated(radius, using: &a), upper: radius)
+        var sine = try values.sine.adding(spread, q, &a).outwardDyadic(q, &a)
+        var cosine = try values.cosine.adding(spread, q, &a).outwardDyadic(q, &a)
+        if try q.sign(of: radius, using: &a) != .zero {
+            // Taylor's second-order remainder is bounded by R^2/2 over the whole phase box.
+            let remainderRadius = try q.dividing(q.multiplying(radius, radius, using: &a), two, using: &a)
+            let remainder = OriginalPhysicalAngleInterval(
+                lower: try q.negated(remainderRadius, using: &a), upper: remainderRadius)
+            let firstSine = try values.sine.adding(values.cosine.multiplying(spread, q, &a), q, &a)
+                .adding(remainder, q, &a).outwardDyadic(q, &a)
+            let firstCosine = try values.cosine.subtracting(values.sine.multiplying(spread, q, &a), q, &a)
+                .adding(remainder, q, &a).outwardDyadic(q, &a)
+            func intersection(_ old: OriginalPhysicalAngleInterval, _ refined: OriginalPhysicalAngleInterval,
+                using a: inout A) throws -> OriginalPhysicalAngleInterval {
+                let lower = try q.compare(old.lower, refined.lower, using: &a) == .less ? refined.lower : old.lower
+                let upper = try q.compare(old.upper, refined.upper, using: &a) == .greater ? refined.upper : old.upper
+                guard try q.compare(lower, upper, using: &a) != .greater else {
+                    throw ExactScalarFailure.invalidEvidence
+                }
+                return .init(lower: lower, upper: upper)
+            }
+            sine = try intersection(sine, firstSine, using: &a)
+            cosine = try intersection(cosine, firstCosine, using: &a)
+        }
+        return try (OriginalPhysicalAngleScalarDomain.publishedBounds(sine, &a),
+            OriginalPhysicalAngleScalarDomain.publishedBounds(cosine, &a))
     }
 
     /// Positive square-root bounds verified only with rational squared comparisons.

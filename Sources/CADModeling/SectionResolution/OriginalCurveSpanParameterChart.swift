@@ -15,7 +15,9 @@ package struct OriginalCurveSpanParameterChart: Sendable {
     package let startParameter: Double
     package let endParameter: Double
     package let mapping: Mapping
-    package let constructionAdmission: GeometryConversionAdmission?
+    package let constructionBudget: OriginalQueryBudget?
+    package let constructionLimits: OriginalQueryExecutionLimits?
+    package let constructionContributions: [OriginalQueryContributionHandle]
     package let exactFirstFraction: ExactRationalCoefficient
     package let exactLastFraction: ExactRationalCoefficient
     private let firstFraction: OutwardScalarInterval
@@ -42,13 +44,17 @@ package struct OriginalCurveSpanParameterChart: Sendable {
         exactFirstFraction: ExactRationalCoefficient,
         exactLastFraction: ExactRationalCoefficient,
         firstFraction: OutwardScalarInterval, lastFraction: OutwardScalarInterval,
-        constructionAdmission: GeometryConversionAdmission? = nil) {
+        constructionBudget: OriginalQueryBudget? = nil,
+        constructionLimits: OriginalQueryExecutionLimits? = nil,
+        constructionContributions: [OriginalQueryContributionHandle]? = nil) {
         identity = OriginalCurveSpanChartIdentity()
         self.source = source
         self.startParameter = startParameter
         self.endParameter = endParameter
         self.mapping = mapping
-        self.constructionAdmission = constructionAdmission ?? source.admission
+        self.constructionBudget = constructionBudget ?? source.budget
+        self.constructionLimits = constructionLimits ?? source.limits
+        self.constructionContributions = constructionContributions ?? source.contributions
         self.exactFirstFraction = exactFirstFraction
         self.exactLastFraction = exactLastFraction
         self.firstFraction = firstFraction
@@ -67,7 +73,7 @@ package struct OriginalCurveSpanParameterChart: Sendable {
             mapping: mapping, exactFirstFraction: exactLastFraction,
             exactLastFraction: exactFirstFraction,
             firstFraction: lastFraction, lastFraction: firstFraction,
-            constructionAdmission: constructionAdmission)
+            constructionBudget: constructionBudget, constructionLimits: constructionLimits, constructionContributions: constructionContributions)
     }
 
     package func replacingCurve(_ curve: Curve3D) -> Self {
@@ -79,14 +85,15 @@ package struct OriginalCurveSpanParameterChart: Sendable {
             endParameter: endParameter, mapping: mapping,
             exactFirstFraction: exactFirstFraction, exactLastFraction: exactLastFraction,
             firstFraction: firstFraction, lastFraction: lastFraction,
-            constructionAdmission: constructionAdmission)
+            constructionBudget: constructionBudget, constructionLimits: constructionLimits, constructionContributions: constructionContributions)
     }
 
-    package func admittingConstruction(_ admission: GeometryConversionAdmission) -> Self {
-        Self(source: source, startParameter: startParameter, endParameter: endParameter,
+    package func admittingConstruction(using execution: inout OriginalQueryExecution) throws -> Self {
+        try Self(source: source, startParameter: startParameter, endParameter: endParameter,
             mapping: mapping, exactFirstFraction: exactFirstFraction,
             exactLastFraction: exactLastFraction, firstFraction: firstFraction,
-            lastFraction: lastFraction, constructionAdmission: admission)
+            lastFraction: lastFraction, constructionBudget: execution.budget, constructionLimits: execution.effectiveLimits,
+            constructionContributions: try execution.retainActiveContributionHandles())
     }
 
     package var parameterSource: OriginalCurveConstructionParameterSource {
@@ -102,18 +109,18 @@ package struct OriginalCurveSpanParameterChart: Sendable {
     }
 
     package func persistentCurve(tolerance: ModelingTolerance,
-        admission: GeometryConversionAdmission) throws -> Curve3D {
-        var usage = ExactAdmission(admission: admission, tolerance: tolerance)
+        using execution: inout OriginalQueryExecution) throws -> Curve3D {
         return .originalConstructionChart(try OriginalCurveConstructionChartImage(
             parameterSource: parameterSource, tolerance: tolerance,
-            maximumSpanCount: admission.maximumSpanCount,
-            maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
-            remainingSourceDepth: admission.remainingSourceDepth,
-            storageByteStride: MemoryLayout<UInt32>.stride, usage: &usage))
+            maximumSpanCount: execution.effectiveLimits.maximumSpans,
+            maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth,
+            remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+            using: &execution))
     }
 
     package func restricted(from lower: Double, to upper: Double,
-        in domain: ParameterDomain, tolerance: ModelingTolerance) throws -> Self {
+        in domain: ParameterDomain, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> Self {
         guard case let .closed(a, b) = domain, a <= lower, lower < upper, upper <= b else {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
                 message: "Original span restriction needs its retained construction domain.")
@@ -122,31 +129,30 @@ package struct OriginalCurveSpanParameterChart: Sendable {
            firstFraction.lower == 0, firstFraction.upper == 0,
            lastFraction.lower == 1, lastFraction.upper == 1 {
             let result = Self(source: source, startParameter: lower, endParameter: upper)
-            return constructionAdmission.map { result.admittingConstruction($0) } ?? result
+            return try result.admittingConstruction(using: &execution)
         }
-        let admission = try constructionAdmission ?? CurvedSweepSourceBudget(tolerance: tolerance).conversionAdmission()
-        var usage = ExactAdmission(admission: admission, tolerance: tolerance)
-        let origin = try ExactRationalCoefficient.originalDouble(a, usage: &usage)
-        let width = try ExactRationalCoefficient.originalDouble(b, usage: &usage)
-            .subtracting(origin, usage: &usage)
-        let gain = try exactLastFraction.subtracting(exactFirstFraction, usage: &usage)
-        func station(_ label: Double, usage: inout ExactAdmission) throws -> ExactRationalCoefficient {
+        let origin = try ExactRationalCoefficient.originalDouble(a, usage: &execution)
+        let width = try ExactRationalCoefficient.originalDouble(b, usage: &execution)
+            .subtracting(origin, usage: &execution)
+        let gain = try exactLastFraction.subtracting(exactFirstFraction, usage: &execution)
+        func station(_ label: Double, usage: inout OriginalQueryExecution) throws -> ExactRationalCoefficient {
             let value = try ExactRationalCoefficient.originalDouble(label, usage: &usage)
                 .subtracting(origin, usage: &usage).divided(by: width, usage: &usage)
             return try exactFirstFraction.adding(gain.multiplied(by: value, usage: &usage), usage: &usage)
         }
-        let first = try lower == a ? exactFirstFraction : station(lower, usage: &usage)
-        let last = try upper == b ? exactLastFraction : station(upper, usage: &usage)
+        let first = try lower == a ? exactFirstFraction : station(lower, usage: &execution)
+        let last = try upper == b ? exactLastFraction : station(upper, usage: &execution)
         return Self(source: source, startParameter: startParameter, endParameter: endParameter,
             mapping: mapping, exactFirstFraction: first, exactLastFraction: last,
-            firstFraction: try first.outwardInterval(usage: &usage),
-            lastFraction: try last.outwardInterval(usage: &usage),
-            constructionAdmission: admission)
+            firstFraction: try first.outwardInterval(usage: &execution),
+            lastFraction: try last.outwardInterval(usage: &execution),
+            constructionBudget: execution.budget, constructionLimits: execution.effectiveLimits,
+            constructionContributions: try execution.retainActiveContributionHandles())
     }
 
     /// Capability only: nil retains the need for an original exact endpoint chart.
     package func authoredEndpointParameter(atEnd: Bool,
-        tolerance: ModelingTolerance) throws -> Double? {
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Double? {
         let fraction = atEnd ? lastFraction : firstFraction
         switch mapping {
         case .affine:
@@ -156,13 +162,12 @@ package struct OriginalCurveSpanParameterChart: Sendable {
                 || (fraction.lower == 1 && fraction.upper == 1) else { return nil }
         }
         let bounds = try parameterBounds(atNormalizedFraction: atEnd ? 1 : 0,
-            tolerance: tolerance)
+            tolerance: tolerance, using: &execution)
         return bounds.lower == bounds.upper ? bounds.lower : nil
     }
 
     package func parameterBounds(atNormalizedFraction fraction: Double,
-        tolerance: ModelingTolerance, consumeWork: () throws -> Void = {},
-        consumeStorage: (Int) throws -> Void = { _ in }) throws -> OutwardScalarInterval {
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> OutwardScalarInterval {
         guard fraction.isFinite, fraction >= 0, fraction <= 1,
               startParameter.isFinite, endParameter.isFinite,
               startParameter != endParameter else {
@@ -184,19 +189,18 @@ package struct OriginalCurveSpanParameterChart: Sendable {
         case .circularRational:
             return try OriginalCircularRationalParameterLaw(start: startParameter,
                 end: endParameter).jet(over: originalFraction, throughOrder: 0,
-                    tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage).value
+                    tolerance: tolerance, using: &execution).value
         case .hyperbolicRational:
             return try OriginalHyperbolicRationalParameterLaw(start: startParameter,
                 end: endParameter).jet(over: originalFraction, throughOrder: 0,
-                    tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage).value
+                    tolerance: tolerance, using: &execution).value
         }
     }
 
     /// Closed original label derivatives in the retained construction fraction.
     package func parameterJet(overNormalizedFraction range: ScalarInterval, throughOrder order: Int,
-        tolerance: ModelingTolerance, consumeWork: () throws -> Void,
-        consumeStorage: (Int) throws -> Void) throws -> IntervalDerivativeJet {
-        try consumeWork()
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> IntervalDerivativeJet {
+        try execution.consumeWork(1)
         guard range.lower >= 0, range.upper <= 1, order >= 0, order <= 5,
               startParameter.isFinite, endParameter.isFinite, startParameter != endParameter else {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
@@ -213,14 +217,14 @@ package struct OriginalCurveSpanParameterChart: Sendable {
             let gain = OutwardScalarInterval.exact(endParameter) - .exact(startParameter)
             var native = OutwardScalarInterval.exact(startParameter) + gain * fraction
             if range.lower == 0, range.upper == 0,
-               let endpoint = try authoredEndpointParameter(atEnd: false, tolerance: tolerance) { native = .exact(endpoint) }
+               let endpoint = try authoredEndpointParameter(atEnd: false, tolerance: tolerance, using: &execution) { native = .exact(endpoint) }
             if range.lower == 1, range.upper == 1,
-               let endpoint = try authoredEndpointParameter(atEnd: true, tolerance: tolerance) { native = .exact(endpoint) }
-            try consumeStorage((order + 1) * MemoryLayout<OutwardScalarInterval>.stride)
+               let endpoint = try authoredEndpointParameter(atEnd: true, tolerance: tolerance, using: &execution) { native = .exact(endpoint) }
+            try execution.retainStorage(bytes:(order + 1) * MemoryLayout<OutwardScalarInterval>.stride)
             var fields: [OutwardScalarInterval] = []
             fields.reserveCapacity(order + 1); fields.append(native)
             if order > 0 { fields.append(gain * fractionGain) }
-            while fields.count <= order { try consumeWork(); fields.append(.exact(0)) }
+            while fields.count <= order { try execution.consumeWork(1); fields.append(.exact(0)) }
             return .init(derivatives: fields)
         case .circularRational, .hyperbolicRational:
             let original: IntervalDerivativeJet
@@ -228,20 +232,20 @@ package struct OriginalCurveSpanParameterChart: Sendable {
             case .circularRational:
                 original = try OriginalCircularRationalParameterLaw(start: startParameter,
                     end: endParameter).jet(over: fraction, throughOrder: order, tolerance: tolerance,
-                        consumeWork: consumeWork, consumeStorage: consumeStorage)
+                        using: &execution)
             case .hyperbolicRational:
                 original = try OriginalHyperbolicRationalParameterLaw(start: startParameter,
                     end: endParameter).jet(over: fraction, throughOrder: order, tolerance: tolerance,
-                        consumeWork: consumeWork, consumeStorage: consumeStorage)
+                        using: &execution)
             case .affine:
                 throw GeometryConversionError.invalidInput("Original nonlinear parameter dispatch lost its chart kind.")
             }
-            try consumeStorage((order + 1) * MemoryLayout<OutwardScalarInterval>.stride)
+            try execution.retainStorage(bytes:(order + 1) * MemoryLayout<OutwardScalarInterval>.stride)
             var fields: [OutwardScalarInterval] = []
             fields.reserveCapacity(order + 1)
             var power = OutwardScalarInterval.exact(1)
             for index in 0...order {
-                try consumeWork()
+                try execution.consumeWork(1)
                 fields.append(original.derivatives[index] * power)
                 power = power * fractionGain
             }
@@ -250,24 +254,15 @@ package struct OriginalCurveSpanParameterChart: Sendable {
         }
     }
 
-    private struct ExactAdmission: RationalAlgebraAdmitting {
-        let admission: GeometryConversionAdmission
-        let tolerance: ModelingTolerance
-        mutating func consumeExactWork(_ count: Int) throws { try admission.chargeWork(count) }
-        mutating func retainExactStorage(_ count: Int) throws {
-            let bytes = count.multipliedReportingOverflow(by: MemoryLayout<UInt32>.stride)
-            guard count >= 0, !bytes.overflow else {
-                throw KernelError(phase: .geometry, code: .resourceLimitExceeded,
-                    tolerance: tolerance, message: "Original chart exact storage overflows.")
-            }
-            try admission.chargeStorage(bytes: bytes.partialValue)
+    /// A convenience query owns fresh local scope state and the retained cumulative owner.
+    package func authoredEndpointParameter(atEnd: Bool, tolerance: ModelingTolerance) throws -> Double? {
+        var execution: OriginalQueryExecution
+        if let budget = constructionBudget, let limits = constructionLimits {
+            execution = try OriginalQueryExecution(budget: budget, limits: limits, contributions: constructionContributions)
+        } else {
+            let owner = try CurvedSweepSourceBudget(tolerance: tolerance)
+            execution = try owner.execution()
         }
-        mutating func visitExactCell(depth: Int) throws {
-            guard depth >= 0, depth <= 32 else {
-                throw KernelError(phase: .geometry, code: .resourceLimitExceeded,
-                    tolerance: tolerance, message: "Original chart exact algebra depth is exhausted.")
-            }
-            try admission.chargeWork()
-        }
+        return try authoredEndpointParameter(atEnd: atEnd, tolerance: tolerance, using: &execution)
     }
 }

@@ -85,16 +85,21 @@ public struct OriginalSurfaceSilhouetteCurve: Sendable, Hashable {
         hasher.combine(field.zeroSetAuthority?.squareFree.vDegree)
     }
 
-    public func enclosure(over parameter: ScalarInterval, usage: inout SurfaceSilhouetteUsage)
+    var queryContext: SurfaceSilhouetteQueryContext { field.queryContext }
+
+    public func enclosure(over parameter: ScalarInterval, using execution: inout OriginalQueryExecution)
         throws -> SurfaceSilhouetteCurveEnclosure {
+        return try field.queryContext.withExecution(using: &execution) { execution in
         guard parameter.lower >= nativeDomain.lower, parameter.upper <= nativeDomain.upper else {
             throw failure(.invalidInput, "Silhouette native query exceeds its original branch domain.")
         }
-        return try enclosure(over: parameter, image: freeImage, usage: &usage)
+        return try enclosure(over: parameter, image: freeImage, usage: &execution)
+    
+        }
     }
 
     private func enclosure(over parameter: ScalarInterval, image: SurfaceSilhouetteFreeParameterImage?,
-        orderedImage: SurfaceSilhouetteOrderedFreeParameterImage? = nil, usage: inout SurfaceSilhouetteUsage) throws -> SurfaceSilhouetteCurveEnclosure {
+        orderedImage: SurfaceSilhouetteOrderedFreeParameterImage? = nil, usage: inout OriginalQueryExecution) throws -> SurfaceSilhouetteCurveEnclosure {
         if let ramifiedImage { return try ramifiedImage.enclosure(over: parameter, field: field, usage: &usage) }
         if let cuspImage {
             guard let image else { throw failure(.intersectionFailure, "Original cusp lost its exact parameter endpoint image.") }
@@ -116,17 +121,17 @@ public struct OriginalSurfaceSilhouetteCurve: Sendable, Hashable {
         // Interval Newton preserves all roots for every free parameter in the query.
         // A noncontracting whole-interval query still yields valid original bounds.
         while true {
-            try usage.consumeWork()
+            try usage.consumeWork(1)
             let midpoint = transverse.lower + (transverse.upper - transverse.lower) * 0.5
             guard midpoint.isFinite else { throw failure(.intersectionFailure, "Silhouette root midpoint is nonfinite.") }
             let box = makeBox(nativeParameter, transverse)
-            let scalar = try field.evaluate(over: box, usage: &usage).scalar
+            let scalar = try field.scalarJet(over: box, usage: &usage)
             let derivative = freeCoordinate == .u ? scalar.v : scalar.u
             guard derivative.excludesZero else {
                 throw failure(.intersectionFailure, "Silhouette branch lost original transverse uniqueness.")
             }
             let station = makeBox(nativeParameter, try ScalarInterval(lower: midpoint, upper: midpoint))
-            let value = try field.evaluate(over: station, usage: &usage).scalar.value
+            let value = try field.scalarJet(over: station, usage: &usage).value
             guard let correction = value.divided(by: derivative),
                   let contracted = (OutwardScalarInterval.exact(midpoint) - correction)
                     .intersection(with: .init(lower: transverse.lower, upper: transverse.upper)) else {
@@ -182,7 +187,7 @@ public struct OriginalSurfaceSilhouetteCurve: Sendable, Hashable {
                     + sbbb * first * first * first + .exact(3) * (sab + sbb * first) * second
                     + sb * thirdDerivative]
         }
-        try usage.retain(28)
+        try RationalAlgebraStorage.retain(28, of: UInt32.self, usage: &usage)
         let x = composed(original.x), y = composed(original.y), z = composed(original.z)
         let zero = OutwardScalarInterval.exact(0), one = OutwardScalarInterval.exact(1)
         let free = OutwardScalarInterval(lower: nativeParameter.lower, upper: nativeParameter.upper)
@@ -207,7 +212,8 @@ public struct OriginalSurfaceSilhouetteCurve: Sendable, Hashable {
             parameterDerivatives: uv, spatialDerivatives: xyz)
     }
 
-    public func point(at parameter: Double, usage: inout SurfaceSilhouetteUsage) throws -> Point3D {
+    public func point(at parameter: Double, using execution: inout OriginalQueryExecution) throws -> Point3D {
+        return try field.queryContext.withExecution(using: &execution) { execution in
         guard parameter.isFinite else { throw failure(.invalidInput, "Silhouette parameter must be finite.") }
         guard parameter >= nativeDomain.lower, parameter <= nativeDomain.upper else {
             throw failure(.invalidInput, "Silhouette point exceeds its original branch domain.")
@@ -215,27 +221,29 @@ public struct OriginalSurfaceSilhouetteCurve: Sendable, Hashable {
         let query = try ScalarInterval(lower: parameter, upper: parameter)
         if var ramified = ramifiedImage {
             while true {
-                let result = try ramified.enclosure(over: query, field: field, usage: &usage)
+                let result = try ramified.enclosure(over: query, field: field, usage: &execution)
                 let box = result.spatialDerivatives[0]
                 if max(box.x.width, box.y.width, box.z.width) <= certificationTolerance.distance {
                     return Point3D(x: box.x.lower + box.x.width * 0.5,
                         y: box.y.lower + box.y.width * 0.5, z: box.z.lower + box.z.width * 0.5)
                 }
-                ramified = try ramified.refined(usage: &usage)
+                ramified = try ramified.refined(usage: &execution)
             }
         }
         var image = freeImage
         var ordered = orderedFreeImage
         while true {
-            let result = try enclosure(over: query, image: image, orderedImage: ordered, usage: &usage)
+            let result = try enclosure(over: query, image: image, orderedImage: ordered, usage: &execution)
             let box = result.spatialDerivatives[0]
             if max(box.x.width, box.y.width, box.z.width) <= certificationTolerance.distance {
                 return Point3D(x: box.x.lower + box.x.width * 0.5,
                     y: box.y.lower + box.y.width * 0.5, z: box.z.lower + box.z.width * 0.5)
             }
-            if let current = ordered { ordered = try current.refined(usage: &usage) }
-            else if let current = image { image = try current.refined(usage: &usage) }
+            if let current = ordered { ordered = try current.refined(usage: &execution) }
+            else if let current = image { image = try current.refined(usage: &execution) }
             else { throw failure(.intersectionFailure, "Original silhouette point is not localized to the caller distance tolerance.") }
+        }
+    
         }
     }
 
@@ -252,7 +260,7 @@ public struct OriginalSurfaceSilhouetteCurve: Sendable, Hashable {
         return (authority.squareFree, nil, freeImage, orderedFreeImage, cuspImage, ramifiedImage)
     }
 
-    func originalFreeEndpoint(atUpperEnd: Bool, usage: inout SurfaceSilhouetteUsage)
+    func originalFreeEndpoint(atUpperEnd: Bool, usage: inout OriginalQueryExecution)
         throws -> ExactMonotoneGraphEndpoint {
         if ramifiedImage != nil {
             // FIXME(INCOMPLETE_IMPLEMENTATION): Global silhouette assembly must
@@ -264,23 +272,23 @@ public struct OriginalSurfaceSilhouetteCurve: Sendable, Hashable {
         return try .authored(.originalDouble(atUpperEnd ? nativeDomain.upper : nativeDomain.lower, usage: &usage))
     }
 
-    func boundaryPoint(atUpperEnd: Bool, usage: inout SurfaceSilhouetteUsage)
+    func boundaryPoint(atUpperEnd: Bool, usage: inout OriginalQueryExecution)
         throws -> ExactMonotoneGraphPoint? {
         guard cuspImage == nil, ramifiedImage == nil, orderedFreeImage == nil, let authority = field.zeroSetAuthority else { return nil }
         return try ExactMonotoneGraphPoint(original: authority.squareFree, over: chart,
             freeAlongU: freeCoordinate == .u,
             endpoint: originalFreeEndpoint(atUpperEnd: atUpperEnd, usage: &usage),
-            maximumDepth: usage.maximumDepth, usage: &usage)
+            maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
     }
 
-    func boundaryKey(atUpperEnd: Bool, usage: inout SurfaceSilhouetteUsage)
+    func boundaryKey(atUpperEnd: Bool, usage: inout OriginalQueryExecution)
         throws -> (station: Double?, periodicKey: Double?) {
         if cuspImage != nil || ramifiedImage != nil || orderedFreeImage != nil { return (nil, nil) }
         let endpoint = try originalFreeEndpoint(atUpperEnd: atUpperEnd, usage: &usage)
         let cover = freeCoordinate == .u ? chart.u : chart.v
         for station in [cover.lower, cover.upper] {
             let candidate = try ExactMonotoneGraphEndpoint.authored(.originalDouble(station, usage: &usage))
-            if try endpoint.hasSameValue(as: candidate, maximumDepth: usage.maximumDepth, usage: &usage) {
+            if try endpoint.hasSameValue(as: candidate, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage) {
                 return (station, try field.periodicBoundaryKey(coordinate: freeCoordinate,
                     station: station, usage: &usage))
             }
@@ -290,79 +298,15 @@ public struct OriginalSurfaceSilhouetteCurve: Sendable, Hashable {
 
     func boundaryRootIsSame(as other: Self, atUpperEnd: Bool, otherAtUpperEnd: Bool,
         periodic: Bool, firstPoint: ExactMonotoneGraphPoint?,
-        secondPoint: ExactMonotoneGraphPoint?, usage: inout SurfaceSilhouetteUsage) throws -> Bool {
-        try GeometryStructuralComparisonWork.charge(surface: surface, using: { try usage.consumeWork($0) })
-        try GeometryStructuralComparisonWork.charge(surface: other.surface, using: { try usage.consumeWork($0) })
+        secondPoint: ExactMonotoneGraphPoint?, usage: inout OriginalQueryExecution) throws -> Bool {
+        try GeometryStructuralComparisonWork.charge(surface: surface, using: &usage)
+        try GeometryStructuralComparisonWork.charge(surface: other.surface, using: &usage)
         guard surface == other.surface, view == other.view else { return false }
         if !periodic, fieldAtlasStart != nil || other.fieldAtlasStart != nil {
-            let first = atUpperEnd ? fieldAtlasEnd : fieldAtlasStart
-            let second = otherAtUpperEnd ? other.fieldAtlasEnd : other.fieldAtlasStart
-            let admitted: SurfaceSilhouetteFieldAtlasEndpoint
-            if let first, let second {
-                guard try first.hasSameValue(as: second, usage: &usage) else { return false }
-                admitted = first
-            } else if let first, let rational = otherAtUpperEnd ? other.atlasEnd : other.atlasStart {
-                guard try first.hasSameValue(as: rational, usage: &usage) else { return false }
-                admitted = first
-            } else if let second, let rational = atUpperEnd ? atlasEnd : atlasStart {
-                guard try second.hasSameValue(as: rational, usage: &usage) else { return false }
-                admitted = second
-            } else {
-                // FIXME(INCOMPLETE_IMPLEMENTATION): Generic non-atlas endpoint
-                // joins need original coordinate transport before drawing assembly.
-                throw failure(.intersectionFailure, "Original field atlas endpoint lacks compatible source incidence.")
-            }
-            if field.domain != other.field.domain {
-                guard let differences = try field.originalFirstPartialEquality(with: other.field, usage: &usage) else {
-                    throw failure(.intersectionFailure, "Original field atlas seam lacks source partial equality.")
-                }
-                for difference in differences {
-                    guard case .zero = try admitted.sign(of: difference, usage: &usage) else {
-                        throw failure(.intersectionFailure, "Original field atlas seam has unequal source partials.")
-                    }
-                }
-            }
-            return true
+            return try fieldAtlasBoundaryIsSame(as: other, atUpperEnd: atUpperEnd, otherAtUpperEnd: otherAtUpperEnd, firstPoint: firstPoint, secondPoint: secondPoint, usage: &usage)
         }
         if !periodic, usesOriginalAtlas || other.usesOriginalAtlas {
-            let first = atUpperEnd ? atlasEnd : atlasStart
-            let second = otherAtUpperEnd ? other.atlasEnd : other.atlasStart
-            let admitted: SurfaceSilhouetteAtlasEndpoint
-            if let first, let second {
-                guard try first.hasSameValue(as: second, usage: &usage) else { return false }
-                admitted = first
-            } else if let first, let secondPoint {
-                guard try first.hasSameValue(as: secondPoint, usage: &usage) else { return false }
-                admitted = first
-            } else if let second, let firstPoint {
-                guard try second.hasSameValue(as: firstPoint, usage: &usage) else { return false }
-                admitted = second
-            } else if let first, let point = try other.polynomialPoint(atUpperEnd: otherAtUpperEnd, usage: &usage) {
-                guard try first.hasSameValue(as: point, usage: &usage) else { return false }
-                admitted = first
-            } else if let second, let point = try polynomialPoint(atUpperEnd: atUpperEnd, usage: &usage) {
-                guard try second.hasSameValue(as: point, usage: &usage) else { return false }
-                admitted = second
-            } else {
-                // FIXME(INCOMPLETE_IMPLEMENTATION): Mixed polynomial or
-                // periodic atlas endpoint joins require their exact original
-                // source incidence before the drawing envelope can publish.
-                throw failure(.intersectionFailure, "Original atlas endpoint lacks compatible source incidence.")
-            }
-            if field.domain != other.field.domain {
-                guard let differences = try field.originalFirstPartialEquality(with: other.field, usage: &usage) else {
-                    throw failure(.intersectionFailure, "Original atlas seam lacks one-sided source partials.")
-                }
-                for difference in differences {
-                    guard case .zero = try admitted.sign(of: difference, usage: &usage) else {
-                        throw failure(.intersectionFailure, "Original atlas seam has unequal one-sided source partials.")
-                    }
-                }
-                try certifyOffsetNormal(with: other, sign: { polynomial, usage in
-                    try admitted.sign(of: polynomial, usage: &usage)
-                }, usage: &usage)
-            }
-            return true
+            return try rationalAtlasBoundaryIsSame(as: other, atUpperEnd: atUpperEnd, otherAtUpperEnd: otherAtUpperEnd, firstPoint: firstPoint, secondPoint: secondPoint, usage: &usage)
         }
         if ramifiedImage != nil || other.ramifiedImage != nil {
             // FIXME(INCOMPLETE_IMPLEMENTATION): The public envelope assembler
@@ -374,12 +318,107 @@ public struct OriginalSurfaceSilhouetteCurve: Sendable, Hashable {
             return try polynomialBoundaryIsSame(as: other, atUpperEnd: atUpperEnd,
                 otherAtUpperEnd: otherAtUpperEnd, firstPoint: firstPoint, secondPoint: secondPoint, usage: &usage)
         }
+        return try regularBoundaryIsSame(as: other, atUpperEnd: atUpperEnd,
+            otherAtUpperEnd: otherAtUpperEnd, periodic: periodic,
+            firstPoint: firstPoint, secondPoint: secondPoint, usage: &usage)
+    }
+
+    @inline(never)
+    private func fieldAtlasBoundaryIsSame(
+        as other: Self, atUpperEnd: Bool, otherAtUpperEnd: Bool,
+        firstPoint: ExactMonotoneGraphPoint?, secondPoint: ExactMonotoneGraphPoint?,
+        usage: inout OriginalQueryExecution
+    ) throws -> Bool {
+
+        let first = atUpperEnd ? fieldAtlasEnd : fieldAtlasStart
+        let second = otherAtUpperEnd ? other.fieldAtlasEnd : other.fieldAtlasStart
+        let admitted: SurfaceSilhouetteFieldAtlasEndpoint
+        if let first, let second {
+            guard try first.hasSameValue(as: second, usage: &usage) else { return false }
+            admitted = first
+        } else if let first, let rational = otherAtUpperEnd ? other.atlasEnd : other.atlasStart {
+            guard try first.hasSameValue(as: rational, usage: &usage) else { return false }
+            admitted = first
+        } else if let second, let rational = atUpperEnd ? atlasEnd : atlasStart {
+            guard try second.hasSameValue(as: rational, usage: &usage) else { return false }
+            admitted = second
+        } else {
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Generic non-atlas endpoint
+            // joins need original coordinate transport before drawing assembly.
+            throw failure(.intersectionFailure, "Original field atlas endpoint lacks compatible source incidence.")
+        }
+        if field.domain != other.field.domain {
+            guard let differences = try field.originalFirstPartialEquality(with: other.field, usage: &usage) else {
+                throw failure(.intersectionFailure, "Original field atlas seam lacks source partial equality.")
+            }
+            for difference in differences {
+                guard case .zero = try admitted.sign(of: difference, usage: &usage) else {
+                    throw failure(.intersectionFailure, "Original field atlas seam has unequal source partials.")
+                }
+            }
+        }
+        return true
+    }
+
+    @inline(never)
+    private func rationalAtlasBoundaryIsSame(
+        as other: Self, atUpperEnd: Bool, otherAtUpperEnd: Bool,
+        firstPoint: ExactMonotoneGraphPoint?, secondPoint: ExactMonotoneGraphPoint?,
+        usage: inout OriginalQueryExecution
+    ) throws -> Bool {
+
+        let first = atUpperEnd ? atlasEnd : atlasStart
+        let second = otherAtUpperEnd ? other.atlasEnd : other.atlasStart
+        let admitted: SurfaceSilhouetteAtlasEndpoint
+        if let first, let second {
+            guard try first.hasSameValue(as: second, usage: &usage) else { return false }
+            admitted = first
+        } else if let first, let secondPoint {
+            guard try first.hasSameValue(as: secondPoint, usage: &usage) else { return false }
+            admitted = first
+        } else if let second, let firstPoint {
+            guard try second.hasSameValue(as: firstPoint, usage: &usage) else { return false }
+            admitted = second
+        } else if let first, let point = try other.polynomialPoint(atUpperEnd: otherAtUpperEnd, usage: &usage) {
+            guard try first.hasSameValue(as: point, usage: &usage) else { return false }
+            admitted = first
+        } else if let second, let point = try polynomialPoint(atUpperEnd: atUpperEnd, usage: &usage) {
+            guard try second.hasSameValue(as: point, usage: &usage) else { return false }
+            admitted = second
+        } else {
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Mixed polynomial or
+            // periodic atlas endpoint joins require their exact original
+            // source incidence before the drawing envelope can publish.
+            throw failure(.intersectionFailure, "Original atlas endpoint lacks compatible source incidence.")
+        }
+        if field.domain != other.field.domain {
+            guard let differences = try field.originalFirstPartialEquality(with: other.field, usage: &usage) else {
+                throw failure(.intersectionFailure, "Original atlas seam lacks one-sided source partials.")
+            }
+            for difference in differences {
+                guard case .zero = try admitted.sign(of: difference, usage: &usage) else {
+                    throw failure(.intersectionFailure, "Original atlas seam has unequal one-sided source partials.")
+                }
+            }
+            try certifyOffsetNormal(with: other, sign: { polynomial, usage in
+                try admitted.sign(of: polynomial, usage: &usage)
+            }, usage: &usage)
+        }
+        return true
+    }
+
+    @inline(never)
+    private func regularBoundaryIsSame(
+        as other: Self, atUpperEnd: Bool, otherAtUpperEnd: Bool,
+        periodic: Bool, firstPoint: ExactMonotoneGraphPoint?, secondPoint: ExactMonotoneGraphPoint?,
+        usage: inout OriginalQueryExecution
+    ) throws -> Bool {
         if freeCoordinate != other.freeCoordinate {
             guard !periodic, let firstPoint, let secondPoint else { return false }
             guard try firstPoint.coordinateIs(secondPoint.freeEndpoint,
-                alongU: secondPoint.freeAlongU, maximumDepth: usage.maximumDepth, usage: &usage),
+                alongU: secondPoint.freeAlongU, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage),
                 try secondPoint.coordinateIs(firstPoint.freeEndpoint,
-                alongU: firstPoint.freeAlongU, maximumDepth: usage.maximumDepth, usage: &usage) else { return false }
+                alongU: firstPoint.freeAlongU, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage) else { return false }
             try certifyContinuity(with: other, point: firstPoint, otherPoint: secondPoint, wholeEdge: nil, usage: &usage)
             return true
         }
@@ -391,10 +430,10 @@ public struct OriginalSurfaceSilhouetteCurve: Sendable, Hashable {
         let otherEndpoint = try other.originalFreeEndpoint(atUpperEnd: otherAtUpperEnd, usage: &usage)
         if !periodic {
             guard try endpoint.hasSameValue(as: otherEndpoint,
-                maximumDepth: usage.maximumDepth, usage: &usage) else { return false }
+                maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage) else { return false }
             if let firstPoint, let secondPoint {
                 guard try firstPoint.dependentCoordinateIsSame(as: secondPoint,
-                    maximumDepth: usage.maximumDepth, usage: &usage) else { return false }
+                    maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage) else { return false }
                 try certifyContinuity(with: other, point: firstPoint, otherPoint: secondPoint,
                     wholeEdge: max(firstTransverse.lower, secondTransverse.lower)
                         < min(firstTransverse.upper, secondTransverse.upper) ? freeCoordinate : nil,
@@ -422,8 +461,8 @@ public struct OriginalSurfaceSilhouetteCurve: Sendable, Hashable {
             upper: atUpperEnd ? nativeDomain.upper : nativeDomain.lower)
         let otherQuery = try ScalarInterval(lower: otherAtUpperEnd ? other.nativeDomain.upper : other.nativeDomain.lower,
             upper: otherAtUpperEnd ? other.nativeDomain.upper : other.nativeDomain.lower)
-        let firstBounds = try enclosure(over: query, usage: &usage).parameters
-        let secondBounds = try other.enclosure(over: otherQuery, usage: &usage).parameters
+        let firstBounds = try enclosure(over: query, using: &usage).parameters
+        let secondBounds = try other.enclosure(over: otherQuery, using: &usage).parameters
         let first = try field.evaluate(over: firstBounds, usage: &usage).scalar
         let second = try other.field.evaluate(over: secondBounds, usage: &usage).scalar
         let a = freeCoordinate == .u ? first.v : first.u
@@ -434,8 +473,9 @@ public struct OriginalSurfaceSilhouetteCurve: Sendable, Hashable {
         return true
     }
 
+
     func boundaryAtlasStationIsCertified(as other: Self, atUpperEnd: Bool,
-        otherAtUpperEnd: Bool, usage: inout SurfaceSilhouetteUsage) throws -> Bool {
+        otherAtUpperEnd: Bool, usage: inout OriginalQueryExecution) throws -> Bool {
         if let first = atUpperEnd ? fieldAtlasEnd : fieldAtlasStart,
             let second = otherAtUpperEnd ? other.fieldAtlasEnd : other.fieldAtlasStart {
             return try first.certifiesStationIncidence(with: second, usage: &usage)
@@ -445,7 +485,7 @@ public struct OriginalSurfaceSilhouetteCurve: Sendable, Hashable {
         return try first.certifiesStationIncidence(with: second, usage: &usage)
     }
 
-    func boundaryAtlasIsSingular(atUpperEnd: Bool, usage: inout SurfaceSilhouetteUsage) throws -> Bool {
+    func boundaryAtlasIsSingular(atUpperEnd: Bool, usage: inout OriginalQueryExecution) throws -> Bool {
         if let endpoint = atUpperEnd ? fieldAtlasEnd : fieldAtlasStart {
             return try endpoint.isSingularStation(usage: &usage)
         }
@@ -454,15 +494,15 @@ public struct OriginalSurfaceSilhouetteCurve: Sendable, Hashable {
     }
 
     func boundaryOriginalAtlasPeriodicIsSame(as other: Self, atUpperEnd: Bool,
-        otherAtUpperEnd: Bool, usage: inout SurfaceSilhouetteUsage) throws -> Bool {
+        otherAtUpperEnd: Bool, usage: inout OriginalQueryExecution) throws -> Bool {
         if fieldAtlasStart != nil || other.fieldAtlasStart != nil {
             return try boundaryFieldAtlasPeriodicIsSame(as: other, atUpperEnd: atUpperEnd,
                 otherAtUpperEnd: otherAtUpperEnd, usage: &usage)
         }
         guard let first = atUpperEnd ? atlasEnd : atlasStart,
             let second = otherAtUpperEnd ? other.atlasEnd : other.atlasStart else { return false }
-        try GeometryStructuralComparisonWork.charge(surface: surface, using: { try usage.consumeWork($0) })
-        try GeometryStructuralComparisonWork.charge(surface: other.surface, using: { try usage.consumeWork($0) })
+        try GeometryStructuralComparisonWork.charge(surface: surface, using: &usage)
+        try GeometryStructuralComparisonWork.charge(surface: other.surface, using: &usage)
         guard surface == other.surface, view == other.view else { return false }
         for axis in 0..<2 {
             let alongU = axis == 0
@@ -503,11 +543,11 @@ public struct OriginalSurfaceSilhouetteCurve: Sendable, Hashable {
     }
 
     private func boundaryFieldAtlasPeriodicIsSame(as other: Self, atUpperEnd: Bool,
-        otherAtUpperEnd: Bool, usage: inout SurfaceSilhouetteUsage) throws -> Bool {
+        otherAtUpperEnd: Bool, usage: inout OriginalQueryExecution) throws -> Bool {
         guard let first = atUpperEnd ? fieldAtlasEnd : fieldAtlasStart,
             let second = otherAtUpperEnd ? other.fieldAtlasEnd : other.fieldAtlasStart else { return false }
-        try GeometryStructuralComparisonWork.charge(surface: surface, using: { try usage.consumeWork($0) })
-        try GeometryStructuralComparisonWork.charge(surface: other.surface, using: { try usage.consumeWork($0) })
+        try GeometryStructuralComparisonWork.charge(surface: surface, using: &usage)
+        try GeometryStructuralComparisonWork.charge(surface: other.surface, using: &usage)
         guard surface == other.surface, view == other.view else { return false }
         for axis in 0..<2 {
             let alongU = axis == 0
@@ -544,7 +584,7 @@ public struct OriginalSurfaceSilhouetteCurve: Sendable, Hashable {
         return false
     }
 
-    private func polynomialPoint(atUpperEnd: Bool, usage: inout SurfaceSilhouetteUsage)
+    private func polynomialPoint(atUpperEnd: Bool, usage: inout OriginalQueryExecution)
         throws -> ExactPolynomialParameterPoint? {
         guard let cuspImage else { return nil }
         return try .init(u: cuspImage.cusp.u, v: cuspImage.cusp.v,
@@ -553,7 +593,7 @@ public struct OriginalSurfaceSilhouetteCurve: Sendable, Hashable {
 
     private func polynomialBoundaryIsSame(as other: Self, atUpperEnd: Bool, otherAtUpperEnd: Bool,
         firstPoint: ExactMonotoneGraphPoint?, secondPoint: ExactMonotoneGraphPoint?,
-        usage: inout SurfaceSilhouetteUsage) throws -> Bool {
+        usage: inout OriginalQueryExecution) throws -> Bool {
         if let first = try polynomialPoint(atUpperEnd: atUpperEnd, usage: &usage),
             let second = try other.polynomialPoint(atUpperEnd: otherAtUpperEnd, usage: &usage) {
             if try boundaryBinomialIntersectionMultiplicity(as: other, atUpperEnd: atUpperEnd,
@@ -563,10 +603,10 @@ public struct OriginalSurfaceSilhouetteCurve: Sendable, Hashable {
             }
             if cuspImage == other.cuspImage,
                 try first.parameter.hasSameValue(as: second.parameter,
-                    maximumDepth: usage.maximumDepth, usage: &usage) {
+                    maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage) {
                 return try polynomialContinuity(with: other, at: first, usage: &usage)
             }
-            guard try first.hasSameCoordinates(as: second, maximumDepth: usage.maximumDepth, usage: &usage) else { return false }
+            guard try first.hasSameCoordinates(as: second, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage) else { return false }
             return try polynomialContinuity(with: other, at: first, usage: &usage)
         }
         let polynomial: ExactPolynomialParameterPoint
@@ -578,9 +618,9 @@ public struct OriginalSurfaceSilhouetteCurve: Sendable, Hashable {
             polynomial = second; graph = firstPoint; graphCurve = self
         } else { return false }
         guard try polynomial.coordinateIs(graph.freeEndpoint, alongU: graph.freeAlongU,
-            maximumDepth: usage.maximumDepth, usage: &usage),
-            case .zero = try polynomial.sign(of: graph.original, maximumDepth: usage.maximumDepth, usage: &usage),
-            try polynomial.isInside(graphCurve.chart, maximumDepth: usage.maximumDepth, usage: &usage) else { return false }
+            maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage),
+            case .zero = try polynomial.sign(of: graph.original, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage),
+            try polynomial.isInside(graphCurve.chart, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage) else { return false }
         // The graph's whole transverse derivative proves its unique root at
         // this exact free coordinate. Exact original polynomial point incidence
         // in the original chart therefore proves the same dependent coordinate.
@@ -588,7 +628,7 @@ public struct OriginalSurfaceSilhouetteCurve: Sendable, Hashable {
     }
 
     private func polynomialContinuity(with other: Self, at point: ExactPolynomialParameterPoint,
-        usage: inout SurfaceSilhouetteUsage) throws -> Bool {
+        usage: inout OriginalQueryExecution) throws -> Bool {
         if field.domain == other.field.domain { return true }
         guard let equality = try field.originalFirstPartialEquality(with: other.field, usage: &usage) else {
             // FIXME(INCOMPLETE_IMPLEMENTATION): Procedural cusp/source-seam
@@ -596,34 +636,34 @@ public struct OriginalSurfaceSilhouetteCurve: Sendable, Hashable {
             throw failure(.intersectionFailure, "Original polynomial silhouette join has no coefficient continuity authority.")
         }
         for difference in equality {
-            guard case .zero = try point.sign(of: difference, maximumDepth: usage.maximumDepth, usage: &usage) else {
+            guard case .zero = try point.sign(of: difference, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage) else {
                 throw failure(.intersectionFailure, "Original polynomial silhouette join has different one-sided first partials.")
             }
         }
         try certifyOffsetNormal(with: other, sign: { polynomial, usage in
-            try point.sign(of: polynomial, maximumDepth: usage.maximumDepth, usage: &usage)
+            try point.sign(of: polynomial, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
         }, usage: &usage)
         return true
     }
 
     func boundaryBinomialIntersectionMultiplicity(as other: Self, atUpperEnd: Bool,
         otherAtUpperEnd: Bool, firstPoint: ExactMonotoneGraphPoint?,
-        secondPoint: ExactMonotoneGraphPoint?, usage: inout SurfaceSilhouetteUsage) throws -> Int? {
+        secondPoint: ExactMonotoneGraphPoint?, usage: inout OriginalQueryExecution) throws -> Int? {
         guard let branches = field.binomialBranches, let otherBranches = other.field.binomialBranches,
             branches.original == otherBranches.original, branches.factors.count == 2,
             let firstOrdinal = field.quadraticBranchOrdinal, let secondOrdinal = other.field.quadraticBranchOrdinal,
             firstOrdinal != secondOrdinal else { return nil }
         func isCenter(_ curve: Self, upper: Bool, point: ExactMonotoneGraphPoint?,
-            usage: inout SurfaceSilhouetteUsage) throws -> Bool {
+            usage: inout OriginalQueryExecution) throws -> Bool {
             let u = ExactMonotoneGraphEndpoint.authored(branches.centerU)
             let v = ExactMonotoneGraphEndpoint.authored(branches.centerV)
             if let polynomial = try curve.polynomialPoint(atUpperEnd: upper, usage: &usage) {
-                return try polynomial.coordinateIs(u, alongU: true, maximumDepth: usage.maximumDepth, usage: &usage)
-                    && polynomial.coordinateIs(v, alongU: false, maximumDepth: usage.maximumDepth, usage: &usage)
+                return try polynomial.coordinateIs(u, alongU: true, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
+                    && polynomial.coordinateIs(v, alongU: false, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
             }
             guard let point else { return false }
-            return try point.coordinateIs(u, alongU: true, maximumDepth: usage.maximumDepth, usage: &usage)
-                && point.coordinateIs(v, alongU: false, maximumDepth: usage.maximumDepth, usage: &usage)
+            return try point.coordinateIs(u, alongU: true, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
+                && point.coordinateIs(v, alongU: false, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
         }
         guard try isCenter(self, upper: atUpperEnd, point: firstPoint, usage: &usage),
             try isCenter(other, upper: otherAtUpperEnd, point: secondPoint, usage: &usage) else { return nil }
@@ -633,25 +673,25 @@ public struct OriginalSurfaceSilhouetteCurve: Sendable, Hashable {
         guard !product.overflow, product.partialValue > 0 else {
             throw rationalAlgebraFailure("Original binomial branch intersection multiplicity overflows finite source indices.")
         }
-        try usage.consumeWork()
+        try usage.consumeWork(1)
         return product.partialValue
     }
 
     func boundaryCuspIsCertified(as other: Self, atUpperEnd: Bool,
-        usage: inout SurfaceSilhouetteUsage) throws -> Bool {
+        usage: inout OriginalQueryExecution) throws -> Bool {
         guard let cuspImage, cuspImage == other.cuspImage else { return false }
         let parameter = try originalFreeEndpoint(atUpperEnd: atUpperEnd, usage: &usage)
         let coordinate = try ExactBivariatePolynomial.coordinate(alongU: true, usage: &usage)
-        if case .zero = try parameter.sign(of: coordinate, maximumDepth: usage.maximumDepth, usage: &usage) { return true }
+        if case .zero = try parameter.sign(of: coordinate, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage) { return true }
         return false
     }
 
-    func cuspStation(curveIndex: Int, usage: inout SurfaceSilhouetteUsage)
+    func cuspStation(curveIndex: Int, usage: inout OriginalQueryExecution)
         throws -> SurfaceSilhouetteSingularStation? {
         guard let cuspImage, let freeImage else { return nil }
         let coordinate = try ExactBivariatePolynomial.coordinate(alongU: true, usage: &usage)
-        let lower = try freeImage.start.sign(of: coordinate, maximumDepth: usage.maximumDepth, usage: &usage)
-        let upper = try freeImage.end.sign(of: coordinate, maximumDepth: usage.maximumDepth, usage: &usage)
+        let lower = try freeImage.start.sign(of: coordinate, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
+        let upper = try freeImage.end.sign(of: coordinate, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
         if case .positive = lower { return nil }
         if case .negative = upper { return nil }
         let normalized: ScalarInterval
@@ -671,7 +711,7 @@ public struct OriginalSurfaceSilhouetteCurve: Sendable, Hashable {
         }
         let point = ExactPolynomialParameterPoint(u: cuspImage.cusp.u, v: cuspImage.cusp.v,
             parameter: .authored(.zero), originalDomain: chart)
-        guard try point.isInside(chart, maximumDepth: usage.maximumDepth, usage: &usage) else {
+        guard try point.isInside(chart, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage) else {
             throw failure(.intersectionFailure, "Original cusp station is outside its retained native chart.")
         }
         let originalParameters = try point.enclosure(usage: &usage)
@@ -695,7 +735,7 @@ public struct OriginalSurfaceSilhouetteCurve: Sendable, Hashable {
     }
 
     func boundaryCrossingIsCertified(as other: Self, point: ExactMonotoneGraphPoint?,
-        usage: inout SurfaceSilhouetteUsage) throws -> Bool {
+        usage: inout OriginalQueryExecution) throws -> Bool {
         let distinctCoordinateFactors = field.coordinateFactorAxis != nil && other.field.coordinateFactorAxis != nil
             && field.coordinateFactorAxis != other.field.coordinateFactorAxis
         let distinctQuadraticFactors = field.quadraticBranchOrdinal != nil && other.field.quadraticBranchOrdinal != nil
@@ -706,26 +746,26 @@ public struct OriginalSurfaceSilhouetteCurve: Sendable, Hashable {
             .multiplied(by: b.differentiated(alongU: false, usage: &usage), usage: &usage)
             .subtracting(a.differentiated(alongU: false, usage: &usage)
                 .multiplied(by: b.differentiated(alongU: true, usage: &usage), usage: &usage), usage: &usage)
-        switch try point.sign(of: determinant, maximumDepth: usage.maximumDepth, usage: &usage) {
+        switch try point.sign(of: determinant, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage) {
         case .zero: return false
         case .negative, .positive: return true
         }
     }
 
     func boundaryTangentContactOrder(as other: Self, point: ExactMonotoneGraphPoint?,
-        usage: inout SurfaceSilhouetteUsage) throws -> Int? {
+        usage: inout OriginalQueryExecution) throws -> Int? {
         guard let first = field.quadraticBranchOrdinal, let second = other.field.quadraticBranchOrdinal,
             first != second, let point, freeCoordinate == other.freeCoordinate,
             let a = field.zeroSetAuthority?.squareFree, let b = other.field.zeroSetAuthority?.squareFree else { return nil }
         var difference = try a.subtracting(b, usage: &usage)
         guard !difference.isZero,
             freeCoordinate == .u ? difference.vDegree <= 0 : difference.uDegree <= 0,
-            case .zero = try point.sign(of: difference, maximumDepth: usage.maximumDepth, usage: &usage) else { return nil }
+            case .zero = try point.sign(of: difference, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage) else { return nil }
         let degree = freeCoordinate == .u ? difference.uDegree : difference.vDegree
         guard degree > 0 else { return nil }
         for order in 1...degree {
             difference = try difference.differentiated(alongU: freeCoordinate == .u, usage: &usage)
-            switch try point.sign(of: difference, maximumDepth: usage.maximumDepth, usage: &usage) {
+            switch try point.sign(of: difference, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage) {
             case .zero: continue
             case .positive, .negative: return order > 1 ? order : nil
             }
@@ -735,7 +775,7 @@ public struct OriginalSurfaceSilhouetteCurve: Sendable, Hashable {
 
     private func certifyContinuity(with other: Self, point: ExactMonotoneGraphPoint,
         otherPoint: ExactMonotoneGraphPoint, wholeEdge: FreeCoordinate?,
-        usage: inout SurfaceSilhouetteUsage) throws {
+        usage: inout OriginalQueryExecution) throws {
         if field.domain == other.field.domain { return }
         var firstPartialEquality: [ExactBivariatePolynomial]?
         for (owner, root) in [(self, point), (other, otherPoint)] {
@@ -744,7 +784,7 @@ public struct OriginalSurfaceSilhouetteCurve: Sendable, Hashable {
                 for station in [bounds.lower, bounds.upper] {
                     let endpoint = try ExactMonotoneGraphEndpoint.authored(.originalDouble(station, usage: &usage))
                     guard try root.coordinateIs(endpoint, alongU: coordinate == .u,
-                        maximumDepth: usage.maximumDepth, usage: &usage) else { continue }
+                        maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage) else { continue }
                     if try owner.field.firstOrderContinuous(across: coordinate, at: station, usage: &usage) { continue }
                     if firstPartialEquality == nil {
                         firstPartialEquality = try field.originalFirstPartialEquality(with: other.field, usage: &usage)
@@ -764,7 +804,7 @@ public struct OriginalSurfaceSilhouetteCurve: Sendable, Hashable {
                             }
                         } else {
                             guard case .zero = try point.sign(of: difference,
-                                maximumDepth: usage.maximumDepth, usage: &usage) else {
+                                maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage) else {
                                 throw failure(.intersectionFailure, "Original silhouette corner first partials disagree.")
                             }
                         }
@@ -773,13 +813,13 @@ public struct OriginalSurfaceSilhouetteCurve: Sendable, Hashable {
             }
         }
         try certifyOffsetNormal(with: other, sign: { polynomial, usage in
-            try point.sign(of: polynomial, maximumDepth: usage.maximumDepth, usage: &usage)
+            try point.sign(of: polynomial, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
         }, usage: &usage)
     }
 
     private func certifyPeriodicOffsetBoundary(with other: Self, atUpperEnd: Bool,
         otherAtUpperEnd: Bool, firstPoint: ExactMonotoneGraphPoint?,
-        usage: inout SurfaceSilhouetteUsage) throws -> Bool {
+        usage: inout OriginalQueryExecution) throws -> Bool {
         let firstKey = try boundaryKey(atUpperEnd: atUpperEnd, usage: &usage)
         let secondKey = try other.boundaryKey(atUpperEnd: otherAtUpperEnd, usage: &usage)
         guard let firstStation = firstKey.station, let secondStation = secondKey.station,
@@ -800,31 +840,31 @@ public struct OriginalSurfaceSilhouetteCurve: Sendable, Hashable {
             v: freeCoordinate == .u ? other.chart.v : singleton)
         let endpoint = try other.originalFreeEndpoint(atUpperEnd: otherAtUpperEnd, usage: &usage)
         let secondOriginal = try ExactMonotoneGraphEndpoint.authored(.originalDouble(secondStation, usage: &usage))
-        guard try endpoint.hasSameValue(as: secondOriginal, maximumDepth: usage.maximumDepth, usage: &usage) else { return false }
+        guard try endpoint.hasSameValue(as: secondOriginal, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage) else { return false }
         let rebased = try ExactMonotoneGraphPoint(original: transported, over: domain,
             freeAlongU: freeCoordinate == .u, endpoint: firstPoint.freeEndpoint,
-            maximumDepth: usage.maximumDepth, usage: &usage)
+            maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
         guard try firstPoint.dependentCoordinateIsSame(as: rebased,
-            maximumDepth: usage.maximumDepth, usage: &usage) else { return false }
+            maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage) else { return false }
         guard let equality = try field.originalFirstPartialEquality(with: other.field,
             secondTranslation: translation, usage: &usage) else {
             throw failure(.intersectionFailure, "Periodic offset seam lacks original one-sided spatial partials.")
         }
         for polynomial in equality {
-            guard case .zero = try firstPoint.sign(of: polynomial, maximumDepth: usage.maximumDepth, usage: &usage) else {
+            guard case .zero = try firstPoint.sign(of: polynomial, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage) else {
                 throw failure(.intersectionFailure, "Periodic offset seam original spatial partials disagree.")
             }
         }
         try certifyOffsetNormal(with: other, sign: { polynomial, usage in
-            try firstPoint.sign(of: polynomial, maximumDepth: usage.maximumDepth, usage: &usage)
+            try firstPoint.sign(of: polynomial, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
         }, secondTranslation: translation, usage: &usage)
         return true
     }
 
     private func certifyOffsetNormal(with other: Self,
-        sign: (ExactBivariatePolynomial, inout SurfaceSilhouetteUsage) throws -> ExactAlgebraicRealRoot.Sign,
+        sign: (ExactBivariatePolynomial, inout OriginalQueryExecution) throws -> ExactAlgebraicRealRoot.Sign,
         secondTranslation: (alongU: Bool, amount: ExactRationalCoefficient)? = nil,
-        usage: inout SurfaceSilhouetteUsage) throws {
+        usage: inout OriginalQueryExecution) throws {
         if !field.requiresOffsetNormalJoin && !other.field.requiresOffsetNormalJoin { return }
         guard let proof = try field.offsetNormalJoin(with: other.field, over: chart,
             otherBox: other.chart, secondTranslation: secondTranslation, usage: &usage),
@@ -862,7 +902,7 @@ public struct OriginalSurfaceSilhouetteCurve: Sendable, Hashable {
         KernelError(phase: .geometry, code: code, tolerance: certificationTolerance, message: message)
     }
     func writeOriginalProvenance(to emitter: inout SurfaceSilhouetteProvenanceEmitter,
-        usage: inout SurfaceSilhouetteUsage) throws {
+        usage: inout OriginalQueryExecution) throws {
         try emitter.emit(.beginRecord(type: "curve"), usage: &usage)
         try emitter.field("surface", usage: &usage)
         try emitter.write(surface, usage: &usage)
@@ -905,29 +945,31 @@ public struct OriginalSurfaceSilhouetteCurve: Sendable, Hashable {
 
     /// Visits the complete retained source, including constant-image branches.
     public func writeOriginalProvenance(to sink: any SurfaceSilhouetteProvenanceWriting,
-        usage: inout SurfaceSilhouetteUsage) throws {
+        using execution: inout OriginalQueryExecution) throws {
+        try field.queryContext.withExecution(using: &execution) { execution in
         var emitter = SurfaceSilhouetteProvenanceEmitter(sink: sink)
-        try emitter.emit(.beginRecord(type: "original-silhouette-curve-v1"), usage: &usage)
-        try emitter.field("original", usage: &usage)
-        try writeOriginalProvenance(to: &emitter, usage: &usage)
-        try emitter.emit(.endRecord, usage: &usage)
+        try emitter.emit(.beginRecord(type: "original-silhouette-curve-v1"), usage: &execution)
+        try emitter.field("original", usage: &execution)
+        try writeOriginalProvenance(to: &emitter, usage: &execution)
+        try emitter.emit(.endRecord, usage: &execution)
+    
+        }
     }
 
     func projectedNativePolynomialAuthority() throws
         -> (polynomial: OriginalRationalSurfacePolynomial, zeroLaw: ExactBivariatePolynomial) {
-        // FIXME(INCOMPLETE_IMPLEMENTATION): The projected contact production path
-        // currently extracts direct original rational native tensors. Analytic,
-        // offset and ordered-word surfaces need their actual coefficient laws;
-        // rounded converted tensors must never satisfy this source boundary.
-        guard case .bSpline = surface, let polynomial = field.exactSourcePolynomial,
-            let authority = field.zeroSetAuthority, !authority.squareFree.isZero else {
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Projected contacts consume direct
+        // Native or fully admitted rational-word Native world coefficients.
+        // Analytic, offset, pole-word and non-rational word laws still require
+        // their complete original coefficient authority before publication.
+        guard let authority = field.projectedRationalAuthority else {
             throw failure(.unsupportedCapability, "Projected coincidence needs an original rational native tensor law.")
         }
-        return (polynomial, authority.squareFree)
+        return authority
     }
 
     func projectedOriginalParameters(originalU: OriginalSingularFieldElement,
-        originalV: OriginalSingularFieldElement, usage: inout SurfaceSilhouetteUsage)
+        originalV: OriginalSingularFieldElement, usage: inout OriginalQueryExecution)
         throws -> [OriginalSingularFieldElement] {
         try SurfaceSilhouetteProjectedParameterInverse.parameters(originalU: originalU, originalV: originalV,
             chart: chart, freeCoordinate: freeCoordinate, freeImage: freeImage,
@@ -935,7 +977,7 @@ public struct OriginalSurfaceSilhouetteCurve: Sendable, Hashable {
     }
 
     func projectedOriginalParameters(at root: ExactBivariateSystemRoot,
-        in context: OriginalSingularFieldContext, usage: inout SurfaceSilhouetteUsage)
+        in context: OriginalSingularFieldContext, usage: inout OriginalQueryExecution)
         throws -> [OriginalSingularFieldElement] {
         try SurfaceSilhouetteProjectedParameterInverse.parameters(at: root, in: context,
             chart: chart, freeCoordinate: freeCoordinate, freeImage: freeImage,

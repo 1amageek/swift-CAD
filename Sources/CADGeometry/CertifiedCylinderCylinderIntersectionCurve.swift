@@ -141,8 +141,10 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
         componentKind: ComponentKind,
         lowerAngle: Double,
         upperAngle: Double,
-        tolerance: ModelingTolerance
-    ) throws {
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         self.referenceSurface = referenceSurface
         self.parameterizedSurface = parameterizedSurface
         self.componentKind = componentKind
@@ -152,19 +154,22 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
         let configuration = try Self.makeConfiguration(
             referenceSurface: referenceSurface,
             parameterizedSurface: parameterizedSurface,
-            tolerance: tolerance
-        )
+            tolerance: tolerance,
+            using: &execution)
         maximumResidualUpperBound = try Self.residualUpperBound(
             componentKind: componentKind,
             lowerAngle: lowerAngle,
             upperAngle: upperAngle,
             configuration: configuration,
-            tolerance: tolerance
-        )
-        try validate(tolerance: tolerance)
+            tolerance: tolerance,
+            using: &execution)
+        try validate(tolerance: tolerance, using: &execution)
+            try execution.checkpoint()
     }
 
-    public func validate(tolerance: ModelingTolerance) throws {
+    private func validateImplementation(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         try tolerance.validate()
         try certificationTolerance.validate()
         guard certificationTolerance.distance <= tolerance.distance,
@@ -180,8 +185,8 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
         let configuration = try Self.makeConfiguration(
             referenceSurface: referenceSurface,
             parameterizedSurface: parameterizedSurface,
-            tolerance: tolerance
-        )
+            tolerance: tolerance,
+            using: &execution)
         guard lowerAngle.isFinite,
               upperAngle.isFinite,
               upperAngle > lowerAngle,
@@ -192,13 +197,13 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
             configuration: configuration,
             tolerance: tolerance
         )
-        let boundaries = Self.boundaryAngles(
+        let boundaries = try Self.boundaryAngles(
             configuration: configuration,
-            tolerance: tolerance
-        )
+            tolerance: tolerance,
+            using: &execution)
         switch componentKind {
         case .negativeFullBranch, .positiveFullBranch:
-            let minimumRadicand = Self.minimumRadicand(configuration: configuration)
+            let minimumRadicand = try Self.minimumRadicand(configuration: configuration, using: &execution)
             guard abs(lowerAngle) <= tolerance.angle,
                   abs(upperAngle - 2.0 * Double.pi) <= tolerance.angle,
                   boundaries.isEmpty,
@@ -212,13 +217,14 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
                 )
             }
         case .boundedAngularInterval:
-            let validIntervals = Self.validIntervals(
+            let validIntervals = try Self.validIntervals(
                 boundaries: boundaries,
                 configuration: configuration,
-                classificationTolerance: classificationTolerance
-            )
-            let matchesCompleteInterval = validIntervals.contains { interval in
-                abs(interval.lower - lowerAngle) <= tolerance.angle
+                classificationTolerance: classificationTolerance,
+                using: &execution)
+            let matchesCompleteInterval = try validIntervals.contains { interval in
+                try execution.consumeWork(1)
+                return abs(interval.lower - lowerAngle) <= tolerance.angle
                     && abs(interval.upper - upperAngle) <= tolerance.angle
             }
             let lowerResidual = abs(configuration.radicand(at: lowerAngle))
@@ -245,8 +251,8 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
             lowerAngle: lowerAngle,
             upperAngle: upperAngle,
             configuration: configuration,
-            tolerance: tolerance
-        )
+            tolerance: tolerance,
+            using: &execution)
         guard maximumResidualUpperBound.isFinite,
               maximumResidualUpperBound >= reproducedBound,
               maximumResidualUpperBound <= tolerance.distance else {
@@ -258,19 +264,21 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
                 message: "A cylinder-cylinder curve exceeded its certified geometric residual."
             )
         }
+        try OriginalCoefficientAllocation.reserve(count: 4, of: Double.self, using: &execution)
         for fraction in [0.0, 0.25, 0.5, 0.75] {
+            try execution.consumeWork(1)
             let point = try self.point(
                 atNormalizedFraction: fraction,
-                tolerance: tolerance
-            )
+                tolerance: tolerance,
+                using: &execution)
             let firstProjection = try referenceSurface.parameterProjection(
                 of: point,
-                tolerance: tolerance
-            )
+                tolerance: tolerance,
+                using: &execution)
             let secondProjection = try parameterizedSurface.parameterProjection(
                 of: point,
-                tolerance: tolerance
-            )
+                tolerance: tolerance,
+                using: &execution)
             let residual = max(firstProjection.residual, secondProjection.residual)
             guard residual <= maximumResidualUpperBound else {
                 throw KernelError(
@@ -284,20 +292,24 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
         }
     }
 
-    public func point(
+    private func pointImplementation(
         atNormalizedFraction fraction: Double,
-        tolerance: ModelingTolerance
-    ) throws -> Point3D {
-        try differential(
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> Point3D {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
+        return try differential(
             atNormalizedFraction: fraction,
-            tolerance: tolerance
-        ).position
+            tolerance: tolerance,
+            using: &execution).position
     }
 
-    public func differential(
+    private func differentialImplementation(
         atNormalizedFraction fraction: Double,
-        tolerance: ModelingTolerance
-    ) throws -> DifferentialGeometry {
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> DifferentialGeometry {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard fraction.isFinite,
               fraction >= -tolerance.relative,
@@ -308,14 +320,14 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
         let configuration = try Self.makeConfiguration(
             referenceSurface: referenceSurface,
             parameterizedSurface: parameterizedSurface,
-            tolerance: tolerance
-        )
+            tolerance: tolerance,
+            using: &execution)
         let angle = angleDifferential(at: normalizedFraction)
         let baseGeometry = try configuration.parameterized.surface.differentialGeometry(
             u: angle.value,
             v: 0.0,
-            tolerance: tolerance
-        )
+            tolerance: tolerance,
+            using: &execution)
         let offset = baseGeometry.position - configuration.reference.origin
         let linear = composedProjection(
             offset: offset,
@@ -339,8 +351,8 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
                 angle: angle,
                 fraction: normalizedFraction,
                 configuration: configuration,
-                tolerance: tolerance
-            )
+                tolerance: tolerance,
+                using: &execution)
         } else {
             let rawRadicand = ScalarDifferential(
                 value: (
@@ -357,8 +369,8 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
             signedRoot = try signedSquareRootDifferential(
                 rawRadicand.scaled(by: inverseProjectedAxisSquaredLength),
                 configuration: configuration,
-                tolerance: tolerance
-            )
+                tolerance: tolerance,
+                using: &execution)
         }
         let height = linear
             .scaled(by: -inverseProjectedAxisSquaredLength)
@@ -366,8 +378,8 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
         let surfaceGeometry = try configuration.parameterized.surface.differentialGeometry(
             u: angle.value,
             v: height.value,
-            tolerance: tolerance
-        )
+            tolerance: tolerance,
+            using: &execution)
         let firstDerivative = surfaceGeometry.tangentU * angle.first
             + surfaceGeometry.tangentV * height.first
         let secondDerivative = surfaceGeometry.secondDerivativeUU
@@ -394,10 +406,12 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
         )
     }
 
-    func thirdDerivative(
+    private func thirdDerivativeImplementation(
         atNormalizedFraction fraction: Double,
-        tolerance: ModelingTolerance
-    ) throws -> Vector3D {
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> Vector3D {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard fraction.isFinite,
               fraction >= -tolerance.relative,
@@ -408,8 +422,8 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
         let configuration = try Self.makeConfiguration(
             referenceSurface: referenceSurface,
             parameterizedSurface: parameterizedSurface,
-            tolerance: tolerance
-        )
+            tolerance: tolerance,
+            using: &execution)
         let source = CurveTaylorScalarJet.variable(clamped)
         let angle = angleTaylorJet(at: source)
         let linear = CurveTaylorScalarJet(value: configuration.linearCenter)
@@ -419,8 +433,8 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
             angle: angle,
             fraction: source,
             configuration: configuration,
-            tolerance: tolerance
-        )
+            tolerance: tolerance,
+            using: &execution)
         let inverseProjectedAxisSquaredLength = 1.0
             / configuration.projectedAxisSquaredLength
         let height = linear.scaled(by: -inverseProjectedAxisSquaredLength)
@@ -429,8 +443,8 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
             .parameterDerivativesThroughThirdOrder(
                 u: angle.value,
                 v: height.value,
-                tolerance: tolerance
-            )
+                tolerance: tolerance,
+                using: &execution)
         let firstParameter = Point2D(
             x: angle.firstDerivative,
             y: height.firstDerivative
@@ -445,8 +459,8 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
         )
         let lower = try differential(
             atNormalizedFraction: clamped,
-            tolerance: tolerance
-        )
+            tolerance: tolerance,
+            using: &execution)
         let reconstructedFirst = SurfaceParameterThirdOrderChainRule.firstDerivative(
             surface: surface,
             parameter: firstParameter
@@ -475,36 +489,39 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
             surface: surface,
             firstParameterDerivative: firstParameter,
             secondParameterDerivative: secondParameter,
-            thirdParameterDerivative: thirdParameter
-        )
+            thirdParameterDerivative: thirdParameter)
     }
 
-    public func parameter(
+    private func parameterImplementation(
         on surface: Surface3D,
         atNormalizedFraction fraction: Double,
-        tolerance: ModelingTolerance
-    ) throws -> SurfaceParameter {
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> SurfaceParameter {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let point = try self.point(
             atNormalizedFraction: fraction,
-            tolerance: tolerance
-        )
+            tolerance: tolerance,
+            using: &execution)
         let projection = try surface.parameterProjection(
             of: point,
-            tolerance: tolerance
-        )
+            tolerance: tolerance,
+            using: &execution)
         return SurfaceParameter(u: projection.u, v: projection.v)
     }
 
-    public func boundingBox(tolerance: ModelingTolerance) throws -> BoundingBox3D {
+    private func boundingBoxImplementation(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> BoundingBox3D {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let configuration = try Self.makeConfiguration(
             referenceSurface: referenceSurface,
             parameterizedSurface: parameterizedSurface,
-            tolerance: tolerance
-        )
+            tolerance: tolerance,
+            using: &execution)
         let maximumLinear = abs(configuration.linearCenter)
             + configuration.linearAmplitude
         let maximumRadicand = max(
-            Self.maximumRadicand(configuration: configuration),
+            try Self.maximumRadicand(configuration: configuration, using: &execution),
             0.0
         )
         let height = maximumLinear / configuration.projectedAxisSquaredLength
@@ -524,9 +541,11 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
         )
     }
 
-    func fullBranchSpatialDifferentialMagnitudeBounds(
-        tolerance: ModelingTolerance
-    ) throws -> SpatialDifferentialMagnitudeBounds {
+    private func fullBranchSpatialDifferentialMagnitudeBoundsImplementation(
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> SpatialDifferentialMagnitudeBounds {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard componentKind == .negativeFullBranch
                 || componentKind == .positiveFullBranch else {
@@ -540,12 +559,12 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
         let configuration = try Self.makeConfiguration(
             referenceSurface: referenceSurface,
             parameterizedSurface: parameterizedSurface,
-            tolerance: tolerance
-        )
+            tolerance: tolerance,
+            using: &execution)
         let height = try fullBranchHeightDifferentialMagnitudeBounds(
             configuration: configuration,
-            tolerance: tolerance
-        )
+            tolerance: tolerance,
+            using: &execution)
         let angularScale = (2.0 * Double.pi).nextUp
         let first = Self.upperProduct(
             angularScale,
@@ -579,14 +598,16 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
 
     private func fullBranchHeightDifferentialMagnitudeBounds(
         configuration: Configuration,
-        tolerance: ModelingTolerance
-    ) throws -> HeightDifferentialMagnitudeBounds {
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> HeightDifferentialMagnitudeBounds {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let arithmeticEnvelope = Self.classificationTolerance(
             configuration: configuration,
             tolerance: tolerance
         )
         let minimumRawRadicand = (
-            Self.minimumRadicand(configuration: configuration)
+            try Self.minimumRadicand(configuration: configuration, using: &execution)
                 - arithmeticEnvelope
         ).nextDown
         let projectedAxisSquaredLengthLower = (
@@ -731,11 +752,13 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
         )
     }
 
-    package func parameterizedParameterBounds(
+    private func parameterizedParameterBoundsImplementation(
         fromNormalizedFraction lowerFraction: Double,
         toNormalizedFraction upperFraction: Double,
-        tolerance: ModelingTolerance
-    ) throws -> CertifiedCylinderCylinderParameterizedParameterBounds? {
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> CertifiedCylinderCylinderParameterizedParameterBounds? {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard componentKind == .negativeFullBranch
                 || componentKind == .positiveFullBranch else {
@@ -750,23 +773,23 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
         let configuration = try Self.makeConfiguration(
             referenceSurface: referenceSurface,
             parameterizedSurface: parameterizedSurface,
-            tolerance: tolerance
-        )
+            tolerance: tolerance,
+            using: &execution)
         let height = try fullBranchHeightDifferentialMagnitudeBounds(
             configuration: configuration,
-            tolerance: tolerance
-        )
+            tolerance: tolerance,
+            using: &execution)
         let period = 2.0 * Double.pi
         let chartZero = try parameter(
             on: parameterizedSurface,
             atNormalizedFraction: 0.0,
-            tolerance: tolerance
-        ).u
+            tolerance: tolerance,
+            using: &execution).u
         let chartQuarter = try parameter(
             on: parameterizedSurface,
             atNormalizedFraction: 0.25,
-            tolerance: tolerance
-        ).u
+            tolerance: tolerance,
+            using: &execution).u
         let rawQuarterTurn = chartQuarter - chartZero
         let quarterTurn = rawQuarterTurn
             - round(rawQuarterTurn / period) * period
@@ -800,8 +823,8 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
         let middleParameter = try parameter(
             on: parameterizedSurface,
             atNormalizedFraction: canonicalMiddleFraction,
-            tolerance: tolerance
-        )
+            tolerance: tolerance,
+            using: &execution)
         let totalVariationV = Self.upperProduct(height.first, angleSpan)
         let valueRoundoff = (
             Double.ulpOfOne * max(
@@ -838,21 +861,25 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
         )
     }
 
-    func spatialDifferentialMagnitudeBounds(
-        tolerance: ModelingTolerance
-    ) throws -> SpatialDifferentialMagnitudeBounds {
-        try spatialDifferentialMagnitudeBounds(
+    private func spatialDifferentialMagnitudeBoundsImplementation(
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> SpatialDifferentialMagnitudeBounds {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
+        return try spatialDifferentialMagnitudeBounds(
             fromNormalizedFraction: 0.0,
             toNormalizedFraction: 1.0,
-            tolerance: tolerance
-        )
+            tolerance: tolerance,
+            using: &execution)
     }
 
-    func spatialDifferentialMagnitudeBounds(
+    private func spatialDifferentialMagnitudeBoundsImplementation(
         fromNormalizedFraction lowerFraction: Double,
         toNormalizedFraction upperFraction: Double,
-        tolerance: ModelingTolerance
-    ) throws -> SpatialDifferentialMagnitudeBounds {
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> SpatialDifferentialMagnitudeBounds {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard lowerFraction.isFinite,
               upperFraction.isFinite,
@@ -868,22 +895,24 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
         switch componentKind {
         case .negativeFullBranch, .positiveFullBranch:
             return try fullBranchSpatialDifferentialMagnitudeBounds(
-                tolerance: tolerance
-            )
+                tolerance: tolerance,
+                using: &execution)
         case .boundedAngularInterval:
             return try boundedBranchSpatialDifferentialMagnitudeBounds(
                 fromNormalizedFraction: min(max(lowerFraction, 0.0), 1.0),
                 toNormalizedFraction: min(max(upperFraction, 0.0), 1.0),
-                tolerance: tolerance
-            )
+                tolerance: tolerance,
+                using: &execution)
         }
     }
 
     private func boundedBranchSpatialDifferentialMagnitudeBounds(
         fromNormalizedFraction lowerFraction: Double,
         toNormalizedFraction upperFraction: Double,
-        tolerance: ModelingTolerance
-    ) throws -> SpatialDifferentialMagnitudeBounds {
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> SpatialDifferentialMagnitudeBounds {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard componentKind == .boundedAngularInterval else {
             throw KernelError(
@@ -896,8 +925,8 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
         let configuration = try Self.makeConfiguration(
             referenceSurface: referenceSurface,
             parameterizedSurface: parameterizedSurface,
-            tolerance: tolerance
-        )
+            tolerance: tolerance,
+            using: &execution)
         let span = upperAngle - lowerAngle
         let halfSpan = span * 0.5
         let arithmeticEnvelope = Self.classificationTolerance(
@@ -960,12 +989,12 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
                 Self.upperProduct(distanceMagnitude, distanceDerivative)
             )
         )
-        let angleRange = Self.boundedAngleRange(
+        let angleRange = try Self.boundedAngleRange(
             lowerFraction: lowerFraction,
             upperFraction: upperFraction,
             lowerAngle: lowerAngle,
-            upperAngle: upperAngle
-        )
+            upperAngle: upperAngle,
+            using: &execution)
         let factorBounds = try EndpointRegularizedFactorBounder().bounds(
             componentLower: lowerAngle,
             componentUpper: upperAngle,
@@ -984,23 +1013,23 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
             thirdDerivativeMagnitudeUpperBound: rawThird,
             fourthDerivativeMagnitudeUpperBound: rawFourth,
             arithmeticEnvelope: arithmeticEnvelope,
-            valueRange: { lower, upper in
+            valueRange: { lower, upper, execution in
                 (
-                    Self.minimumRadicand(
+                    try Self.minimumRadicand(
                         lower: lower,
                         upper: upper,
-                        configuration: configuration
-                    ),
-                    Self.maximumRadicand(
+                        configuration: configuration,
+                        using: &execution),
+                    try Self.maximumRadicand(
                         lower: lower,
                         upper: upper,
-                        configuration: configuration
-                    )
+                        configuration: configuration,
+                        using: &execution)
                 )
             },
             tolerance: tolerance,
-            label: "Cylinder-cylinder bounded branch"
-        )
+            label: "Cylinder-cylinder bounded branch",
+            using: &execution)
 
         let rootLower = sqrt(
             (
@@ -1130,14 +1159,14 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
             lower: 2.0 * Double.pi * lowerFraction,
             upper: 2.0 * Double.pi * upperFraction
         )
-        let sineMagnitude = Self.maximumAbsoluteSine(
+        let sineMagnitude = try Self.maximumAbsoluteSine(
             lower: phaseRange.lower,
-            upper: phaseRange.upper
-        )
-        let cosineMagnitude = Self.maximumAbsoluteCosine(
+            upper: phaseRange.upper,
+            using: &execution)
+        let cosineMagnitude = try Self.maximumAbsoluteCosine(
             lower: phaseRange.lower,
-            upper: phaseRange.upper
-        )
+            upper: phaseRange.upper,
+            using: &execution)
         let angleFirst = Self.upperProduct(
             Self.upperProduct(halfSpan, phaseScale),
             sineMagnitude
@@ -1380,15 +1409,17 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
         angle: CurveTaylorScalarJet,
         fraction: CurveTaylorScalarJet,
         configuration: Configuration,
-        tolerance: ModelingTolerance
-    ) throws -> CurveTaylorScalarJet {
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> CurveTaylorScalarJet {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let context = "Cylinder-cylinder third derivative"
         if componentKind == .boundedAngularInterval {
             let factor = try regularizedFactorTaylorJet(
                 angle: angle,
                 configuration: configuration,
-                tolerance: tolerance
-            ).scaled(by: 1.0 / configuration.projectedAxisSquaredLength)
+                tolerance: tolerance,
+                using: &execution).scaled(by: 1.0 / configuration.projectedAxisSquaredLength)
             let prefix = fraction.scaled(by: 2.0 * Double.pi).sine()
                 .scaled(by: (upperAngle - lowerAngle) * 0.5)
             return try (
@@ -1421,8 +1452,10 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
     private func regularizedFactorTaylorJet(
         angle: CurveTaylorScalarJet,
         configuration: Configuration,
-        tolerance: ModelingTolerance
-    ) throws -> CurveTaylorScalarJet {
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> CurveTaylorScalarJet {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let context = "Cylinder-cylinder regularized radicand"
         let span = upperAngle - lowerAngle
         let usesLowerEndpoint = angle.value - lowerAngle
@@ -1496,13 +1529,15 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
         angle: ScalarDifferential,
         fraction: Double,
         configuration: Configuration,
-        tolerance: ModelingTolerance
-    ) throws -> ScalarDifferential {
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> ScalarDifferential {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let factor = try regularizedFactorDifferential(
             at: angle.value,
             configuration: configuration,
-            tolerance: tolerance
-        )
+            tolerance: tolerance,
+            using: &execution)
         let projectedAxisSquaredLength =
             configuration.projectedAxisSquaredLength
         let normalizedFactor = factor.value / projectedAxisSquaredLength
@@ -1562,8 +1597,10 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
     private func regularizedFactorDifferential(
         at angle: Double,
         configuration: Configuration,
-        tolerance: ModelingTolerance
-    ) throws -> ScalarDifferential {
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> ScalarDifferential {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let span = upperAngle - lowerAngle
         let lowerDistance = angle - lowerAngle
         let upperDistance = upperAngle - angle
@@ -1590,7 +1627,7 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
         let midpoint = usesLowerEndpoint
             ? endpoint + distance * 0.5
             : endpoint - distance * 0.5
-        let sineQuotient = Self.halfAngleSineQuotient(distance)
+        let sineQuotient = try Self.halfAngleSineQuotient(distance, using: &execution)
         let cosineCoefficient = configuration.signedDistanceCosine
         let sineCoefficient = configuration.signedDistanceSine
         let multiplier: ScalarDifferential
@@ -1681,8 +1718,10 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
     }
 
     private static func halfAngleSineQuotient(
-        _ value: Double
-    ) -> ScalarDifferential {
+        _ value: Double,
+        using execution: inout OriginalQueryExecution) throws -> ScalarDifferential {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         if abs(value) <= 0.25 {
             var result = ScalarDifferential(
                 value: 0.0,
@@ -1691,6 +1730,7 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
             )
             var coefficient = 0.5
             for index in 0...12 {
+                try execution.consumeWork(1)
                 let exponent = index * 2
                 let valueTerm = coefficient
                     * pow(value, Double(exponent))
@@ -1743,8 +1783,10 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
     private func signedSquareRootDifferential(
         _ radicand: ScalarDifferential,
         configuration: Configuration,
-        tolerance: ModelingTolerance
-    ) throws -> ScalarDifferential {
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> ScalarDifferential {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let algebraicTolerance = Self.classificationTolerance(
             configuration: configuration,
             tolerance: tolerance
@@ -1795,10 +1837,15 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
     private static func makeConfiguration(
         referenceSurface: Surface3D,
         parameterizedSurface: Surface3D,
-        tolerance: ModelingTolerance
-    ) throws -> Configuration {
-        try referenceSurface.validate(tolerance: tolerance)
-        try parameterizedSurface.validate(tolerance: tolerance)
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> Configuration {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
+        try referenceSurface.validate(tolerance: tolerance, using: &execution)
+        try parameterizedSurface.validate(tolerance: tolerance, using: &execution)
+        // Canonicalization may traverse the retained offset source chain.
+        try GeometryStructuralComparisonWork.charge(surface: referenceSurface, using: &execution)
+        try GeometryStructuralComparisonWork.charge(surface: parameterizedSurface, using: &execution)
         guard case let .cylinder(referenceCanonical) = CanonicalAnalyticSurface(referenceSurface),
               case let .cylinder(parameterizedCanonical) = CanonicalAnalyticSurface(parameterizedSurface) else {
             throw KernelError(
@@ -1808,11 +1855,11 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
                 message: "A certified cylinder-cylinder curve requires two exact cylinder surfaces."
             )
         }
-        let reference = try canonicalCylinder(referenceCanonical, tolerance: tolerance)
+        let reference = try canonicalCylinder(referenceCanonical, tolerance: tolerance, using: &execution)
         let parameterized = try canonicalCylinder(
             parameterizedCanonical,
-            tolerance: tolerance
-        )
+            tolerance: tolerance,
+            using: &execution)
         let axisCross = parameterized.axis.cross(reference.axis)
         guard axisCross.length > tolerance.angle else {
             throw KernelError(
@@ -1839,13 +1886,13 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
         let zeroPoint = try parameterized.surface.point(
             u: 0.0,
             v: 0.0,
-            tolerance: tolerance
-        )
+            tolerance: tolerance,
+            using: &execution)
         let quarterPoint = try parameterized.surface.point(
             u: Double.pi * 0.5,
             v: 0.0,
-            tolerance: tolerance
-        )
+            tolerance: tolerance,
+            using: &execution)
         return Configuration(
             reference: reference,
             parameterized: parameterized,
@@ -1863,8 +1910,10 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
 
     private static func canonicalCylinder(
         _ cylinder: CanonicalAnalyticSurface.Cylinder,
-        tolerance: ModelingTolerance
-    ) throws -> Cylinder {
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> Cylinder {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         var axis = try cylinder.axis.normalized(tolerance: tolerance.distance)
         if isNegative(axis) {
             axis = -axis
@@ -1876,42 +1925,45 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
 
     private static func boundaryAngles(
         configuration: Configuration,
-        tolerance: ModelingTolerance
-    ) -> [Double] {
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> [Double] {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let amplitude = configuration.signedDistanceAmplitude
         let numericalThreshold = max(
             Double.ulpOfOne * configuration.characteristicLength * 64.0,
             tolerance.distance * 1.0e-6
         )
         guard amplitude > numericalThreshold else { return [] }
-        var values = angles(
+        var values = try angles(
             target: configuration.reference.radius,
             center: configuration.signedDistanceCenter,
             cosine: configuration.signedDistanceCosine,
             sine: configuration.signedDistanceSine,
             amplitude: amplitude,
-            tolerance: tolerance
-        )
-        values.append(contentsOf: angles(
+            tolerance: tolerance,
+            using: &execution)
+        try CertifiedAnalyticCurveEvaluation.reserveCapacity(4, in: &values, using: &execution)
+        values.append(contentsOf: try angles(
             target: -configuration.reference.radius,
             center: configuration.signedDistanceCenter,
             cosine: configuration.signedDistanceCosine,
             sine: configuration.signedDistanceSine,
             amplitude: amplitude,
-            tolerance: tolerance
-        ))
-        let canonicalValues = values.map { value in
-            refinedBoundaryAngle(
-                value,
-                configuration: configuration,
-                tolerance: tolerance
-            )
-        }.map { value in
+            tolerance: tolerance,
+            using: &execution))
+        let refined = try CertifiedAnalyticCurveEvaluation.map(values, using: &execution) { value, execution in
+            try refinedBoundaryAngle(value, configuration: configuration, tolerance: tolerance, using: &execution)
+        }
+        let canonical = try CertifiedAnalyticCurveEvaluation.map(refined, using: &execution) { value, _ in
             abs(value - 2.0 * Double.pi) <= tolerance.angle ? 0.0 : value
-        }.sorted()
+        }
+        let canonicalValues = try CertifiedAnalyticCurveEvaluation.sorted(canonical, using: &execution)
         var result: [Double] = []
-        for value in canonicalValues where
-            result.last.map({ angularDistance($0, value) <= tolerance.angle }) != true {
+        try CertifiedAnalyticCurveEvaluation.reserveCapacity(canonicalValues.count, in: &result, using: &execution)
+        for value in canonicalValues {
+            try execution.consumeWork(1)
+            if result.last.map({ angularDistance($0, value) <= tolerance.angle }) == true { continue }
             result.append(value)
         }
         if result.count > 1,
@@ -1929,8 +1981,10 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
         cosine: Double,
         sine: Double,
         amplitude: Double,
-        tolerance: ModelingTolerance
-    ) -> [Double] {
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> [Double] {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let ratio = (target - center) / amplitude
         let ratioTolerance = tolerance.distance / amplitude
         guard ratio >= -1.0 - ratioTolerance,
@@ -1940,31 +1994,34 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
         let clamped = min(max(ratio, -1.0), 1.0)
         let phase = atan2(sine, cosine)
         let offset = acos(clamped)
-        return [
-            normalizedAngle(phase - offset),
-            normalizedAngle(phase + offset),
-        ]
+        return try CertifiedAnalyticCurveEvaluation.values(normalizedAngle(phase - offset),
+            normalizedAngle(phase + offset), using: &execution)
     }
 
     private static func validIntervals(
         boundaries: [Double],
         configuration: Configuration,
-        classificationTolerance: Double
-    ) -> [(lower: Double, upper: Double)] {
+        classificationTolerance: Double,
+        using execution: inout OriginalQueryExecution) throws -> [(lower: Double, upper: Double)] {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         guard boundaries.isEmpty == false else { return [] }
-        return boundaries.indices.compactMap { index in
+        try OriginalCoefficientAllocation.reserve(count: boundaries.count, of: (lower: Double, upper: Double).self, using: &execution)
+        var result: [(lower: Double, upper: Double)] = []; result.reserveCapacity(boundaries.count)
+        for index in boundaries.indices {
+            try execution.consumeWork(1)
             let lower = boundaries[index]
-            let upper = index + 1 < boundaries.count
-                ? boundaries[index + 1]
-                : boundaries[0] + 2.0 * Double.pi
-            return configuration.radicand(at: lower + (upper - lower) * 0.5)
-                > classificationTolerance
-                ? (lower, upper)
-                : nil
+            let upper = index + 1 < boundaries.count ? boundaries[index + 1] : boundaries[0] + 2.0 * Double.pi
+            if configuration.radicand(at: lower + (upper - lower) * 0.5) > classificationTolerance {
+                result.append((lower, upper))
+            }
         }
+        return result
     }
 
-    private static func minimumRadicand(configuration: Configuration) -> Double {
+    private static func minimumRadicand(configuration: Configuration, using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let maximumAbsoluteDistance = max(
             abs(configuration.signedDistanceCenter
                 - configuration.signedDistanceAmplitude),
@@ -1975,7 +2032,9 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
             - maximumAbsoluteDistance * maximumAbsoluteDistance
     }
 
-    private static func maximumRadicand(configuration: Configuration) -> Double {
+    private static func maximumRadicand(configuration: Configuration, using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let lower = configuration.signedDistanceCenter
             - configuration.signedDistanceAmplitude
         let upper = configuration.signedDistanceCenter
@@ -1994,17 +2053,21 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
         lowerFraction: Double,
         upperFraction: Double,
         lowerAngle: Double,
-        upperAngle: Double
-    ) -> (lower: Double, upper: Double) {
+        upperAngle: Double,
+        using execution: inout OriginalQueryExecution) throws -> (lower: Double, upper: Double) {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let midpoint = lowerAngle + (upperAngle - lowerAngle) * 0.5
         let halfSpan = (upperAngle - lowerAngle) * 0.5
         let lowerPhase = 2.0 * Double.pi * lowerFraction
         let upperPhase = 2.0 * Double.pi * upperFraction
-        var values = [
-            midpoint - halfSpan * cos(lowerPhase),
-            midpoint - halfSpan * cos(upperPhase),
-        ]
+        var values: [Double] = []
+        try CertifiedAnalyticCurveEvaluation.reserveCapacity(5, in: &values, using: &execution)
+        values.append(midpoint - halfSpan * cos(lowerPhase))
+        values.append(midpoint - halfSpan * cos(upperPhase))
+
         for index in 0...2 {
+            try execution.consumeWork(1)
             let phase = Double(index) * Double.pi
             if phase > lowerPhase, phase < upperPhase {
                 values.append(midpoint - halfSpan * cos(phase))
@@ -2018,36 +2081,43 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
 
     private static func maximumAbsoluteSine(
         lower: Double,
-        upper: Double
-    ) -> Double {
-        maximumAbsoluteTrigonometricValue(
+        upper: Double,
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
+        return try maximumAbsoluteTrigonometricValue(
             lower: lower,
             upper: upper,
-            offset: Double.pi * 0.5
-        )
+            offset: Double.pi * 0.5,
+            using: &execution)
     }
 
     private static func maximumAbsoluteCosine(
         lower: Double,
-        upper: Double
-    ) -> Double {
-        maximumAbsoluteTrigonometricValue(
+        upper: Double,
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
+        return try maximumAbsoluteTrigonometricValue(
             lower: lower,
             upper: upper,
-            offset: 0.0
-        )
+            offset: 0.0,
+            using: &execution)
     }
 
     private static func maximumAbsoluteTrigonometricValue(
         lower: Double,
         upper: Double,
-        offset: Double
-    ) -> Double {
+        offset: Double,
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         var result = max(
             abs(cos(lower - offset)),
             abs(cos(upper - offset))
         )
         for index in -2...4 {
+            try execution.consumeWork(1)
             let extremum = offset + Double(index) * Double.pi
             if extremum > lower, extremum < upper {
                 result = 1.0
@@ -2060,22 +2130,29 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
     private static func minimumRadicand(
         lower: Double,
         upper: Double,
-        configuration: Configuration
-    ) -> Double {
-        var angles = [lower, upper]
+        configuration: Configuration,
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
+        var angles: [Double] = []
+        try CertifiedAnalyticCurveEvaluation.reserveCapacity(15, in: &angles, using: &execution)
+        angles.append(lower)
+        angles.append(upper)
+
         let phase = atan2(
             configuration.signedDistanceSine,
             configuration.signedDistanceCosine
         )
         for halfTurn in -4...8 {
+            try execution.consumeWork(1)
             let angle = phase + Double(halfTurn) * Double.pi
             if angle > lower, angle < upper {
                 angles.append(angle)
             }
         }
-        let maximumAbsoluteDistance = angles.map {
-            abs(configuration.signedDistance(at: $0))
-        }.max() ?? .infinity
+        let distances = try CertifiedAnalyticCurveEvaluation.map(angles, using: &execution) { value, _ in abs(configuration.signedDistance(at: value)) }
+        try execution.consumeWork(distances.count)
+        let maximumAbsoluteDistance = distances.max() ?? .infinity
         return (
             configuration.reference.radius * configuration.reference.radius
                 - maximumAbsoluteDistance * maximumAbsoluteDistance
@@ -2085,14 +2162,21 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
     private static func maximumRadicand(
         lower: Double,
         upper: Double,
-        configuration: Configuration
-    ) -> Double {
-        var angles = [lower, upper]
+        configuration: Configuration,
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
+        var angles: [Double] = []
+        try CertifiedAnalyticCurveEvaluation.reserveCapacity(29, in: &angles, using: &execution)
+        angles.append(lower)
+        angles.append(upper)
+
         let phase = atan2(
             configuration.signedDistanceSine,
             configuration.signedDistanceCosine
         )
         for halfTurn in -4...8 {
+            try execution.consumeWork(1)
             let angle = phase + Double(halfTurn) * Double.pi
             if angle > lower, angle < upper {
                 angles.append(angle)
@@ -2104,17 +2188,20 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
             if ratio >= -1.0, ratio <= 1.0 {
                 let offset = acos(min(max(ratio, -1.0), 1.0))
                 for turn in -2...4 {
+                    try execution.consumeWork(1)
                     let base = phase + Double(turn) * 2.0 * Double.pi
-                    for angle in [base - offset, base + offset]
-                        where angle > lower && angle < upper {
+                    try OriginalCoefficientAllocation.reserve(count: 2, of: Double.self, using: &execution)
+                    for angle in [base - offset, base + offset] {
+                        try execution.consumeWork(1)
+                        guard angle > lower && angle < upper else { continue }
                         angles.append(angle)
                     }
                 }
             }
         }
-        let minimumAbsoluteDistance = angles.map {
-            abs(configuration.signedDistance(at: $0))
-        }.min() ?? 0.0
+        let distances = try CertifiedAnalyticCurveEvaluation.map(angles, using: &execution) { value, _ in abs(configuration.signedDistance(at: value)) }
+        try execution.consumeWork(distances.count)
+        let minimumAbsoluteDistance = distances.min() ?? 0.0
         return (
             configuration.reference.radius * configuration.reference.radius
                 - minimumAbsoluteDistance * minimumAbsoluteDistance
@@ -2152,8 +2239,10 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
         lowerAngle: Double,
         upperAngle: Double,
         configuration: Configuration,
-        tolerance: ModelingTolerance
-    ) throws -> Double {
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let machineBound = Double.ulpOfOne
             * configuration.characteristicLength * 131_072.0
         guard componentKind == .boundedAngularInterval else {
@@ -2193,8 +2282,10 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
     private static func refinedBoundaryAngle(
         _ initial: Double,
         configuration: Configuration,
-        tolerance: ModelingTolerance
-    ) -> Double {
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         var angle = normalizedAngle(initial)
         let proofResidualTolerance = max(
             Double.leastNonzeroMagnitude,
@@ -2203,6 +2294,7 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
                 * configuration.characteristicLength * 128.0
         )
         for _ in 0..<64 {
+            try execution.consumeWork(1)
             let value = configuration.radicand(at: angle)
             if abs(value) <= proofResidualTolerance { break }
             let derivative = configuration.radicandFirstDerivative(at: angle)
@@ -2229,6 +2321,188 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
         return min(difference, period - difference)
     }
 
+
+    public func validate(tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.checkpoint()
+        try validateImplementation(tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+    }
+
+    public func point(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Point3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try point(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+    public func point(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> Point3D {
+        try execution.checkpoint()
+        let result = try pointImplementation(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+    public func differential(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> DifferentialGeometry {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try differential(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+    public func differential(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> DifferentialGeometry {
+        try execution.checkpoint()
+        let result = try differentialImplementation(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+    func thirdDerivative(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Vector3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try thirdDerivative(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+    func thirdDerivative(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> Vector3D {
+        try execution.checkpoint()
+        let result = try thirdDerivativeImplementation(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+    public func parameter(
+        on surface: Surface3D,
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceParameter {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try parameter(on: surface, atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+    public func parameter(
+        on surface: Surface3D,
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> SurfaceParameter {
+        try execution.checkpoint()
+        let result = try parameterImplementation(on: surface, atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+    public func boundingBox(tolerance: ModelingTolerance) throws -> BoundingBox3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try boundingBox(tolerance: tolerance, using: &execution)
+    }
+
+    public func boundingBox(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> BoundingBox3D {
+        try execution.checkpoint()
+        let result = try boundingBoxImplementation(tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+    func fullBranchSpatialDifferentialMagnitudeBounds(
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try fullBranchSpatialDifferentialMagnitudeBounds(tolerance: tolerance, using: &execution)
+    }
+
+    func fullBranchSpatialDifferentialMagnitudeBounds(
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> SpatialDifferentialMagnitudeBounds {
+        try execution.checkpoint()
+        let result = try fullBranchSpatialDifferentialMagnitudeBoundsImplementation(tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+    package func parameterizedParameterBounds(
+        fromNormalizedFraction lowerFraction: Double,
+        toNormalizedFraction upperFraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> CertifiedCylinderCylinderParameterizedParameterBounds? {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try parameterizedParameterBounds(fromNormalizedFraction: lowerFraction, toNormalizedFraction: upperFraction, tolerance: tolerance, using: &execution)
+    }
+
+    package func parameterizedParameterBounds(
+        fromNormalizedFraction lowerFraction: Double,
+        toNormalizedFraction upperFraction: Double,
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> CertifiedCylinderCylinderParameterizedParameterBounds? {
+        try execution.checkpoint()
+        let result = try parameterizedParameterBoundsImplementation(fromNormalizedFraction: lowerFraction, toNormalizedFraction: upperFraction, tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+    func spatialDifferentialMagnitudeBounds(
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try spatialDifferentialMagnitudeBounds(tolerance: tolerance, using: &execution)
+    }
+
+    func spatialDifferentialMagnitudeBounds(
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> SpatialDifferentialMagnitudeBounds {
+        try execution.checkpoint()
+        let result = try spatialDifferentialMagnitudeBoundsImplementation(tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+    func spatialDifferentialMagnitudeBounds(
+        fromNormalizedFraction lowerFraction: Double,
+        toNormalizedFraction upperFraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try spatialDifferentialMagnitudeBounds(fromNormalizedFraction: lowerFraction, toNormalizedFraction: upperFraction, tolerance: tolerance, using: &execution)
+    }
+
+    func spatialDifferentialMagnitudeBounds(
+        fromNormalizedFraction lowerFraction: Double,
+        toNormalizedFraction upperFraction: Double,
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> SpatialDifferentialMagnitudeBounds {
+        try execution.checkpoint()
+        let result = try spatialDifferentialMagnitudeBoundsImplementation(fromNormalizedFraction: lowerFraction, toNormalizedFraction: upperFraction, tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+    public init(
+        referenceSurface: Surface3D,
+        parameterizedSurface: Surface3D,
+        componentKind: ComponentKind,
+        lowerAngle: Double,
+        upperAngle: Double,
+        tolerance: ModelingTolerance
+    ) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try self.init(referenceSurface: referenceSurface, parameterizedSurface: parameterizedSurface, componentKind: componentKind, lowerAngle: lowerAngle, upperAngle: upperAngle, tolerance: tolerance, using: &execution)
+    }
+
     private static func isNegative(_ direction: Vector3D) -> Bool {
         direction.x < 0.0
             || (direction.x == 0.0 && direction.y < 0.0)
@@ -2249,6 +2523,7 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
 
 #if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
+        var execution = try NativeRationalSourceDecodingContext.validationExecution(from: decoder)
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
             [
@@ -2287,7 +2562,7 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
             lowerAngle: lowerAngle,
             upperAngle: upperAngle,
             tolerance: tolerance
-        )
+        , using: &execution)
         let storedBound = try container.decode(
             Double.self,
             forKey: .maximumResidualUpperBound
@@ -2304,7 +2579,8 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
 
 #if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
-        try validate(tolerance: certificationTolerance)
+        var execution = try NativeOriginalSourceEncodingContext.execution(from: encoder)
+        try validate(tolerance: certificationTolerance, using: &execution)
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(referenceSurface, forKey: .referenceSurface)
         try container.encode(parameterizedSurface, forKey: .parameterizedSurface)

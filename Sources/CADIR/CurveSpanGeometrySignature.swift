@@ -23,7 +23,13 @@ public struct CurveSpanGeometrySignature: Hashable, Sendable {
     }
 
     public func validate() throws {
-        try curve.validate(tolerance: GeometrySignatureValidation.tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try curve.validate(tolerance: GeometrySignatureValidation.tolerance, using: &execution)
         try startPoint.validate()
         try endPoint.validate()
         guard startPoint != endPoint,

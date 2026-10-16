@@ -11,7 +11,7 @@ import WASILibc
 #error("CADGeometry numeric algorithms require the target C math module.")
 #endif
 
-/// An exact affine change of coordinates between two surface parameter charts.
+/// An affine coordinate map between two numerical surface parameter charts.
 public struct SurfaceParameterAffineTransform: Hashable, Sendable {
     public let uu: Double
     public let uv: Double
@@ -69,8 +69,8 @@ public struct SurfaceParameterAffineTransform: Hashable, Sendable {
 
     public func validate(tolerance: ModelingTolerance) throws {
         try tolerance.validate()
-        let values = [uu, uv, vu, vv, uOffset, vOffset]
-        guard values.allSatisfy({ $0.isFinite }),
+        guard uu.isFinite, uv.isFinite, vu.isFinite, vv.isFinite,
+              uOffset.isFinite, vOffset.isFinite,
               abs(determinant) > tolerance.relative else {
             throw KernelError(
                 phase: .geometry,
@@ -130,14 +130,13 @@ public struct SurfaceParameterAffineTransform: Hashable, Sendable {
         secondScale: Double,
         offset: Double
     ) throws -> ScalarInterval {
-        let values = [
-            firstScale * first.lower + secondScale * second.lower + offset,
-            firstScale * first.lower + secondScale * second.upper + offset,
-            firstScale * first.upper + secondScale * second.lower + offset,
-            firstScale * first.upper + secondScale * second.upper + offset,
-        ]
-        guard let lower = values.min(), let upper = values.max(),
-              lower.isFinite, upper.isFinite else {
+        let a = firstScale * first.lower + secondScale * second.lower + offset
+        let b = firstScale * first.lower + secondScale * second.upper + offset
+        let c = firstScale * first.upper + secondScale * second.lower + offset
+        let d = firstScale * first.upper + secondScale * second.upper + offset
+        let lower = min(min(min(a, b), c), d)
+        let upper = max(max(max(a, b), c), d)
+        guard a.isFinite, b.isFinite, c.isFinite, d.isFinite else {
             throw KernelError(
                 phase: .geometry,
                 code: .resourceLimitExceeded,
@@ -150,12 +149,29 @@ public struct SurfaceParameterAffineTransform: Hashable, Sendable {
 }
 
 package extension RigidTransform3D {
-    func parameterAffineTransform(
-        from source: Surface3D,
-        to target: Surface3D,
-        tolerance: ModelingTolerance
-    ) throws -> SurfaceParameterAffineTransform? {
-        let expectedTarget = try applying(to: source, tolerance: tolerance)
+    func parameterAffineTransform(from source: Surface3D, to target: Surface3D,
+        tolerance: ModelingTolerance) throws -> SurfaceParameterAffineTransform? {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try parameterAffineTransform(from: source, to: target,
+            tolerance: tolerance, using: &execution)
+    }
+
+    func parameterAffineTransform(from source: Surface3D, to target: Surface3D,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution)
+        throws -> SurfaceParameterAffineTransform? {
+        let result = try parameterChartTransform(from: source, to: target,
+            tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+    private func parameterChartTransform(from source: Surface3D, to target: Surface3D,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution)
+        throws -> SurfaceParameterAffineTransform? {
+        try execution.consumeWork(1)
+        let expectedTarget = try applying(to: source, tolerance: tolerance, using: &execution)
+        try GeometryStructuralComparisonWork.charge(surface: expectedTarget, using: &execution)
+        try GeometryStructuralComparisonWork.charge(surface: target, using: &execution)
         guard expectedTarget == target else {
             throw KernelError(
                 phase: .geometry,

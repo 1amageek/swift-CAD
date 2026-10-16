@@ -1,0 +1,7 @@
+(node:38414) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+START G01 query admitted full swapped=false
+PASS G01 query admitted full swapped=false work=7951458 bytes=7545301
+START G01 query admitted full swapped=true
+PASS G01 query admitted full swapped=true work=7951458 bytes=7545301
+PASS G01 public full

@@ -131,17 +131,14 @@ package struct SubshapeGeometrySignatureBuilder {
 extension SubshapeGeometrySignatureBuilder {
     package func validateOriginal(_ signature: SubshapeGeometrySignature,
         maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
-        consumeWork: @escaping @Sendable (Int) throws -> Void,
-        consumeStorage: (@Sendable (Int) throws -> Void)?,
-        maximumAlgebraicDepth: Int?) throws {
-        try consumeWork(0); try CurrentTaskCancellationChecker().checkCancellation()
+        maximumAlgebraicDepth: Int?, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1); try CurrentTaskCancellationChecker().checkCancellation()
         let structuralTolerance = GeometrySignatureValidation.tolerance
-        func edge(_ value: CurveSpanGeometrySignature) throws {
-            try consumeWork(0)
+        func edge(_ value: CurveSpanGeometrySignature, using execution: inout OriginalQueryExecution) throws {
+            try execution.consumeWork(1)
             try value.curve.validate(tolerance: structuralTolerance,
                 remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth,
-                consumeWork: consumeWork, consumeStorage: consumeStorage,
-                maximumAlgebraicDepth: maximumAlgebraicDepth)
+                maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
             try value.startPoint.validate(); try value.endPoint.validate()
             guard value.startPoint != value.endPoint,
                 (value.startParameter == nil) == (value.endParameter == nil) else {
@@ -153,72 +150,69 @@ extension SubshapeGeometrySignatureBuilder {
                 }
             }
         }
-        func face(_ value: FaceGeometrySignature) throws {
-            try consumeWork(0)
+        func face(_ value: FaceGeometrySignature, using execution: inout OriginalQueryExecution) throws {
+            try execution.consumeWork(1)
             try value.surface.validate(tolerance: structuralTolerance,
                 remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth,
-                consumeWork: consumeWork, consumeStorage: consumeStorage,
-                maximumAlgebraicDepth: maximumAlgebraicDepth)
+                maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
             for loop in value.loops {
-                try consumeWork(0)
+                try execution.consumeWork(1)
                 guard !loop.coedges.isEmpty else { throw missingTopology("nonempty signature loop") }
                 for coedge in loop.coedges {
-                    try consumeWork(0); try CurrentTaskCancellationChecker().checkCancellation()
-                    try edge(coedge.edge)
+                    try execution.consumeWork(1); try CurrentTaskCancellationChecker().checkCancellation()
+                    try edge(coedge.edge, using: &execution)
                     try coedge.surfaceParameterCurve.validate(on: value.surface,
                         tolerance: structuralTolerance, remainingSourceDepth: remainingSourceDepth,
                         maximumSubdivisionDepth: maximumSubdivisionDepth,
-                        consumeWork: consumeWork, consumeStorage: consumeStorage,
-                        maximumAlgebraicDepth: maximumAlgebraicDepth)
+                        maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
                 }
             }
         }
         switch signature {
         case .vertex(let point): try point.validate()
-        case .edge(let value): try edge(value)
-        case .face(let value): try face(value)
+        case .edge(let value): try edge(value, using: &execution)
+        case .face(let value): try face(value, using: &execution)
         case .body(let value):
             guard !value.shells.isEmpty else { throw missingTopology("nonempty signature body") }
             for shell in value.shells {
-                try consumeWork(0)
+                try execution.consumeWork(1)
                 guard !shell.faces.isEmpty else { throw missingTopology("nonempty signature shell") }
-                for value in shell.faces { try face(value) }
+                for value in shell.faces { try face(value, using: &execution) }
             }
         }
     }
 
     package func signature(for reference: TopologyReference,
-        consumeWork: @escaping @Sendable (Int) throws -> Void,
-        consumeStorage: (@Sendable (Int) throws -> Void)?) throws -> SubshapeGeometrySignature {
-        try consumeWork(0); try CurrentTaskCancellationChecker().checkCancellation()
-        func reserve<T>(_ type: T.Type, count: Int) throws {
+        using execution: inout OriginalQueryExecution) throws -> SubshapeGeometrySignature {
+        try execution.consumeWork(1); try CurrentTaskCancellationChecker().checkCancellation()
+        func reserve<T>(_ type: T.Type, count: Int, using execution: inout OriginalQueryExecution) throws {
             let (bytes, overflow) = count.multipliedReportingOverflow(by: MemoryLayout<T>.stride)
-            guard !overflow else { throw GeometryConversionError.resourceLimitExceeded("Signature storage overflow.") }
-            try consumeStorage?(bytes)
+            guard count >= 0, !overflow else { throw GeometryConversionError.resourceLimitExceeded("Signature storage overflow.") }
+            try execution.retainStorage(bytes: bytes)
         }
-        func edge(_ id: EdgeID) throws -> CurveSpanGeometrySignature {
-            try consumeWork(0); try CurrentTaskCancellationChecker().checkCancellation()
+        func edge(_ id: EdgeID, using execution: inout OriginalQueryExecution) throws -> CurveSpanGeometrySignature {
+            try execution.consumeWork(1); try CurrentTaskCancellationChecker().checkCancellation()
             return try edgeSignature(id)
         }
-        func face(_ id: FaceID) throws -> FaceGeometrySignature {
-            try consumeWork(0); try CurrentTaskCancellationChecker().checkCancellation()
+        func face(_ id: FaceID, using execution: inout OriginalQueryExecution) throws -> FaceGeometrySignature {
+            try execution.consumeWork(1); try CurrentTaskCancellationChecker().checkCancellation()
             guard let face = model.faces[id], let surface = model.geometry.surfaces[face.surfaceID] else {
                 throw missingTopology("face")
             }
-            try reserve(LoopGeometrySignature.self, count: face.loops.count)
+            try reserve(LoopGeometrySignature.self, count: face.loops.count, using: &execution)
             var loops: [LoopGeometrySignature] = []; loops.reserveCapacity(face.loops.count)
             for id in face.loops {
-                try consumeWork(0)
+                try execution.consumeWork(1)
                 guard let loop = model.loops[id] else { throw missingTopology("loop") }
-                try reserve(CoedgeGeometrySignature.self, count: loop.coedges.count)
+                try reserve(CoedgeGeometrySignature.self, count: loop.coedges.count, using: &execution)
                 var coedges: [CoedgeGeometrySignature] = []; coedges.reserveCapacity(loop.coedges.count)
                 for coedge in loop.coedges {
-                    try consumeWork(0); try CurrentTaskCancellationChecker().checkCancellation()
+                    try execution.consumeWork(1); try CurrentTaskCancellationChecker().checkCancellation()
                     guard let pcurve = coedge.surfaceParameterCurve else {
                         throw KernelError(phase: .topology, code: .topologyFailure, tolerance: tolerance,
                             message: "Stable face geometry requires original coedge pcurves.")
                     }
-                    coedges.append(CoedgeGeometrySignature(edge: try edge(coedge.edgeID),
+                    coedges.append(CoedgeGeometrySignature(edge: try edge(coedge.edgeID, using: &execution),
                         orientation: coedge.orientation, surfaceParameterCurve: pcurve))
                 }
                 loops.append(LoopGeometrySignature(role: loop.role, coedges: coedges))
@@ -229,18 +223,18 @@ extension SubshapeGeometrySignatureBuilder {
         case .vertex(let id):
             guard let vertex = model.vertices[id] else { throw missingTopology("vertex") }
             return .vertex(point: vertex.point)
-        case .edge(let id): return .edge(try edge(id))
-        case .face(let id): return .face(try face(id))
+        case .edge(let id): return .edge(try edge(id, using: &execution))
+        case .face(let id): return .face(try face(id, using: &execution))
         case .body(let id):
             guard let body = model.bodies[id] else { throw missingTopology("body") }
-            try reserve(ShellGeometrySignature.self, count: body.shellIDs.count)
+            try reserve(ShellGeometrySignature.self, count: body.shellIDs.count, using: &execution)
             var shells: [ShellGeometrySignature] = []; shells.reserveCapacity(body.shellIDs.count)
             for id in body.shellIDs {
-                try consumeWork(0)
+                try execution.consumeWork(1)
                 guard let shell = model.shells[id] else { throw missingTopology("shell") }
-                try reserve(FaceGeometrySignature.self, count: shell.faceIDs.count)
+                try reserve(FaceGeometrySignature.self, count: shell.faceIDs.count, using: &execution)
                 var faces: [FaceGeometrySignature] = []; faces.reserveCapacity(shell.faceIDs.count)
-                for id in shell.faceIDs { faces.append(try face(id)) }
+                for id in shell.faceIDs { faces.append(try face(id, using: &execution)) }
                 shells.append(ShellGeometrySignature(orientation: shell.orientation, faces: faces))
             }
             return .body(BodyGeometrySignature(kind: body.kind, shells: shells))
@@ -248,45 +242,45 @@ extension SubshapeGeometrySignatureBuilder {
     }
 
     package static func chargeStoredSignature(_ value: SubshapeGeometrySignature,
-        consumeWork: @escaping @Sendable (Int) throws -> Void) throws {
-        func visit(_ units: Int) throws {
+        using execution: inout OriginalQueryExecution) throws {
+        func visit(_ units: Int, using execution: inout OriginalQueryExecution) throws {
             guard units >= 0 else { throw GeometryConversionError.invalidInput("Negative signature comparison work.") }
-            for _ in 0..<units { try consumeWork(0); try CurrentTaskCancellationChecker().checkCancellation() }
+            try execution.consumeWork(units)
         }
-        func edge(_ value: CurveSpanGeometrySignature) throws {
-            try visit(5); try GeometryStructuralComparisonWork.charge(curve: value.curve, using: visit)
+        func edge(_ value: CurveSpanGeometrySignature, using execution: inout OriginalQueryExecution) throws {
+            try visit(5, using: &execution); try GeometryStructuralComparisonWork.charge(curve: value.curve, using: &execution)
         }
-        func face(_ value: FaceGeometrySignature) throws {
-            try visit(3); try GeometryStructuralComparisonWork.charge(surface: value.surface, using: visit)
+        func face(_ value: FaceGeometrySignature, using execution: inout OriginalQueryExecution) throws {
+            try visit(3, using: &execution); try GeometryStructuralComparisonWork.charge(surface: value.surface, using: &execution)
             for loop in value.loops {
-                try visit(2)
+                try visit(2, using: &execution)
                 for coedge in loop.coedges {
-                    try visit(3); try edge(coedge.edge)
-                    try GeometryStructuralComparisonWork.charge(parameterCurve: coedge.surfaceParameterCurve, using: visit)
+                    try visit(3, using: &execution); try edge(coedge.edge, using: &execution)
+                    try GeometryStructuralComparisonWork.charge(parameterCurve: coedge.surfaceParameterCurve, using: &execution)
                 }
             }
         }
-        func signature(_ value: SubshapeGeometrySignature) throws {
-            try visit(1)
+        func signature(_ value: SubshapeGeometrySignature, using execution: inout OriginalQueryExecution) throws {
+            try visit(1, using: &execution)
             switch value {
-            case .vertex: try visit(3)
-            case .edge(let value): try edge(value)
-            case .face(let value): try face(value)
+            case .vertex: try visit(3, using: &execution)
+            case .edge(let value): try edge(value, using: &execution)
+            case .face(let value): try face(value, using: &execution)
             case .body(let value):
-                try visit(2)
+                try visit(2, using: &execution)
                 for shell in value.shells {
-                    try visit(2)
-                    for value in shell.faces { try face(value) }
+                    try visit(2, using: &execution)
+                    for value in shell.faces { try face(value, using: &execution) }
                 }
             }
         }
-        try signature(value)
+        try signature(value, using: &execution)
     }
 
     package func matches(_ left: SubshapeGeometrySignature, _ right: SubshapeGeometrySignature,
-        consumeWork: @escaping @Sendable (Int) throws -> Void) throws -> Bool {
-        try Self.chargeStoredSignature(left, consumeWork: consumeWork)
-        try Self.chargeStoredSignature(right, consumeWork: consumeWork)
+        using execution: inout OriginalQueryExecution) throws -> Bool {
+        try Self.chargeStoredSignature(left, using: &execution)
+        try Self.chargeStoredSignature(right, using: &execution)
         return matches(left, right)
     }
 

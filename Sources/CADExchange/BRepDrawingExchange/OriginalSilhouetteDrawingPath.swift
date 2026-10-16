@@ -14,7 +14,7 @@ public struct OriginalSilhouetteDrawingPath: Sendable {
     public let maximumDeviation: Double
     public let maximumParameterWidth: ExactRationalCoefficient
     public let samples: [Sample]
-    let accountingOwner: DrawingExchangeUsage
-    let silhouetteOwner: SurfaceSilhouetteUsage
+    let accountingOwner: DrawingExchangeOwner
+    let silhouetteOwner: SurfaceSilhouetteContext
     let admission: DrawingSilhouetteAdmission
 }

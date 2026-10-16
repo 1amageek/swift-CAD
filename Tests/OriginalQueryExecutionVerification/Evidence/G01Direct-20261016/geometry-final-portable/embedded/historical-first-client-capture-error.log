@@ -1,0 +1,25 @@
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-final-portable-embedded-r1/snapshot/Tests/OriginalQueryExecutionVerification/StructuralSurfaceMeteringPortable.swift:35:13: error: capturing generic non-copyable type with deinit in escaping closure not supported in embedded Swift [#EmbeddedRestrictions]
+ 33 |     }
+ 34 |     static func surfaceSequence(_ surface: Surface3D) throws -> [Int] {
+ 35 |         let observed = Mutex<[Int]>([])
+    |             `- error: capturing generic non-copyable type with deinit in escaping closure not supported in embedded Swift [#EmbeddedRestrictions]
+ 36 |         let budget = try OriginalQueryBudget(workLimit: 8_388_608, storageByteLimit: 268_435_456,
+ 37 |             consumeWorkUnits: { units in observed.withLock { $0.append(units) } })
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-final-portable-embedded-r1/snapshot/Tests/OriginalQueryExecutionVerification/StructuralSurfaceMeteringPortable.swift:61:13: error: capturing generic non-copyable type with deinit in escaping closure not supported in embedded Swift [#EmbeddedRestrictions]
+ 59 |         for (surface, fees) in analytic { try require(try surfaceSequence(.analytic(surface)) == fees) }
+ 60 |         try require(try surfaceSequence(.procedural(.offset(.init(source: plane,distance: 0.25)))) == [1,1,1,1,4,1])
+ 61 |         let observed = Mutex<[Int]>([])
+    |             `- error: capturing generic non-copyable type with deinit in escaping closure not supported in embedded Swift [#EmbeddedRestrictions]
+ 62 |         let budget = try OriginalQueryBudget(consumeWorkUnits: { units in observed.withLock { $0.append(units) } })
+ 63 |         var admission = try execution(budget)
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-final-portable-embedded-r1/snapshot/Tests/OriginalQueryExecutionVerification/StructuralSurfaceMeteringPortable.swift:109:13: error: capturing generic non-copyable type with deinit in escaping closure not supported in embedded Swift [#EmbeddedRestrictions]
+107 |         }
+108 |         try require(stopped.snapshot.work == 0 && stopped.snapshot.storageBytes == 0)
+109 |         let state = Mutex((work: 0, cancelled: false))
+    |             `- error: capturing generic non-copyable type with deinit in escaping closure not supported in embedded Swift [#EmbeddedRestrictions]
+110 |         let budget = try OriginalQueryBudget(consumeWorkUnits: { units in
+111 |             state.withLock { $0.work += units; if $0.work == 73 { $0.cancelled = true } }
+
+[#EmbeddedRestrictions]: <https://docs.swift.org/compiler/documentation/diagnostics/embedded-restrictions>

@@ -241,3 +241,70 @@ The graph reader retains every actual APPLIED_GROUP_ASSIGNMENT and one typed ori
 Every actual bare GROUP is retained in source.originalSTEPGroups before assignment traversal. A group-only file follows the same public independent importer; no synthetic geometry/context/assignment is inserted. The STEP writer emits all original owners before assignments and reuses their real emitted entity IDs. Ambient declarations need no additional graph-root selector because GROUP itself is not a groupable_item. IGES projection reports and may omit bare owners only under explicit independentShapes loss; it never emits an empty fake 402 assignment.
 
 Unitless owner-only GROUP input has no geometric coordinate authority. The resolver returns the existing metre document presentation convention only when no primitive roots or represented numeric contexts require a foreign unit law. It never synthesizes a standard context, conversion factor or geometry. IGES group projection separately reports nullable description loss; a metadata-only source cannot publish an empty successful retained IGES model.
+
+
+## Canonical Exact Admission Binding
+
+The immutable independent-exchange invocation owner replaces its copied `RationalAlgebraAdmitting` usage. Existing readers/writers and exact unit/frame/trim preparation borrow the owner's `OriginalQueryExecution`, retaining format ceilings, deadline, original body/source associations and typed failures. Protocol witnesses expose that same execution where the selected lower operation requires it. No exchange payload or representability rule changes as part of this binding. See [Geometry execution](../../CADGeometry/OriginalQueryExecution/DESIGN.md). The extracted package must be verified against its own sources and products.
+
+Every public STEP/IGES graph read/write entry, including STEP append, checks that
+the supplied execution's budget is the invocation owner's `originalBudget`.
+A foreign pairing throws `IndependentShapeExchangeError.invalidAssociation`
+before validation, parsing, producer calls, builder ownership transfer, or any
+counter mutation. Internal callers' use of `owner.execution()` does not replace
+this public boundary check. This check creates no execution or allowance and
+does not alter unit interpretation or format/source ceilings.
+
+`IndependentGraphOwnerBindingTests` exercises an actual existing GROUP wire
+through the real STEP lexical reader with the same owner, and rejects foreign
+pairings at all five exposed entries while both budgets and strict producer
+observers remain unchanged. Foreign-pair controls use strict producers that throw on every invocation;
+they never manufacture successful geometry.
+
+
+### Scoped source processing charges
+
+After an execution exists, independent graph builders and their actual lexical,
+unit, placement, and primitive producer helpers charge source records, explicit
+work, and bytes through `owner.charge(..., using: &execution)`. The checked owner
+forwards these unchanged units to `execution.chargeSource`, which atomically
+admits the common budget and every active contribution. The existing format
+failure mapping and deadline/cancellation checks remain at the owner boundary.
+Owner construction and its already-paid input prefix may charge the root budget
+before an execution exists; processing never selects that root-seeding method.
+
+```text
+Independent graph / actual producer helper
+    -> owner.charge(..., using: caller execution)
+        -> execution.chargeSource
+            -> common budget + all active contributions
+```
+
+`IndependentGraphOwnerBindingTests` additionally checks a matched original GROUP
+query under a zero-work contribution: no field/producer call or source counter
+mutation may precede refusal. Its successful selected query compares every
+common source/work/storage debit with the selected handle, then derives exact
+N/N-1 work ceilings from that same real lexical and validation path. Independent
+ordinary parser/accountant algorithms are outside this processing contract.
+
+
+### STEP existential writer boundary
+
+The fixed Swift 6.4.0 compiler crashes in IR generation when the public
+existential producer is implicitly opened into generic append alongside the
+noncopyable inout execution. A private value witness forwards the nine existing
+producer requirements to that same existential, so generic append receives a
+known concrete type. It introduces no source owner, budget, or mutable shared
+state. The original value/COW producer contract is retained: write restores the
+actual existential base after both append success and append failure, then
+finishes through the restored producer so finish mutations also survive throws.
+The one existing Builder algorithm and concrete mixed-STEP append remain
+unchanged. Every forwarded operation is an existing protocol requirement, with
+the same execution and Sendable contract on all targets; no extension-only
+existential operation, cast, pointer, or fallback implementation is involved.
+
+The GROUP writeback regression uses the actual entity table and STEP publisher
+for lexical output, while every primitive geometry operation still refuses.
+Success, failure after table mutation, and failure after finish publication all
+retain the producer's value state and original execution. A subsequent genuine
+publication observes that value state rather than relying on a shared observer.

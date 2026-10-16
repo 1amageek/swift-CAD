@@ -14,23 +14,33 @@ struct OriginalPolynomialRelationTests {
             maximumWork = work; maximumStorage = storage
         }
         var consumedWork: Int { state.withLock { $0.work } }
-        var usage: OriginalRelationUsage {
-            .init(consumeWork: { count in
+        var usage: GeometryTestScalarRecorder { instrument() }
+        func instrument(onWork: @escaping (Int) -> Void = { _ in },
+            onStorage: @escaping (Int) -> Void = { _ in },
+            onValue: @escaping (Int) -> Void = { _ in },
+            onCoefficient: @escaping (Int) -> Void = { _ in }) -> GeometryTestScalarRecorder {
+            .init(maximumValueDepth: 24, maximumCoefficientDepth: 24, observeWork: { count in
                 try self.state.withLock { state in
                     guard count <= self.maximumWork - state.work else { throw Self.exhausted() }
                     state.work += count
                 }
-            }, retainStorage: { count in
+            
+                onWork(count)
+            }, observeStorageWords: { count in
                 try self.state.withLock { state in
                     guard count <= self.maximumStorage - state.storage else { throw Self.exhausted() }
                     state.storage += count
                 }
-            }, visitCell: { depth in
+            
+                onStorage(count)
+            }, observeValueCell: { depth in
                 try self.state.withLock { state in
                     guard depth <= 24, state.cells < 100_000 else { throw Self.exhausted() }
                     state.cells += 1
                 }
-            }, visitCoefficientCell: { _ in throw Self.exhausted() })
+            
+                onValue(depth)
+            }, observeCoefficientCell: { _ in throw Self.exhausted() })
         }
         private static func exhausted() -> KernelError {
             .init(phase: .geometry, code: .resourceLimitExceeded, tolerance: nil,
@@ -48,10 +58,10 @@ struct OriginalPolynomialRelationTests {
         var law = try x.multiplied(by: x, usage: &usage).adding(y.multiplied(by: y, usage: &usage), usage: &usage)
         if absent { law = try law.adding(.constant(variableCount: 2, value: .one, usage: &usage), usage: &usage) }
         let input = try relation([law], instructions: [.sign(polynomial: 0, .zero)], usage: &usage)
-        let result = try resolver.decompose(input, maximumDepth: 24, maximumCoefficientDepth: 0, usage: usage)
+        let result = try resolver.decompose(input, maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage)
         #expect(result.components.count == (absent ? 0 : 1))
         #expect(result.cells.count == (absent ? 0 : 1))
-        #expect(try result.contains(rationalPoint: [.zero, .zero], maximumDepth: 24, maximumCoefficientDepth: 0, usage: usage) == !absent)
+        #expect(try result.contains(rationalPoint: [.zero, .zero], maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage) == !absent)
         if !absent { #expect(result.cells.first?.dimension == 0) }
     }
 
@@ -62,11 +72,11 @@ struct OriginalPolynomialRelationTests {
         let y = try OriginalRationalPolynomial.coordinate(variableCount: 2, at: 1, usage: &usage)
         let law = try x.multiplied(by: y, usage: &usage)
         let input = try relation([law], instructions: [.sign(polynomial: 0, .zero)], bounded: true, usage: &usage)
-        let result = try resolver.decompose(input, maximumDepth: 24, maximumCoefficientDepth: 0, usage: usage)
+        let result = try resolver.decompose(input, maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage)
         #expect(result.components.count == 1 && result.components.first?.dimension == 1)
-        #expect(try result.contains(rationalPoint: [.zero, .one], maximumDepth: 24, maximumCoefficientDepth: 0, usage: usage))
-        #expect(try result.contains(rationalPoint: [.one, .zero], maximumDepth: 24, maximumCoefficientDepth: 0, usage: usage))
-        #expect(try !result.contains(rationalPoint: [.one, .one], maximumDepth: 24, maximumCoefficientDepth: 0, usage: usage))
+        #expect(try result.contains(rationalPoint: [.zero, .one], maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage))
+        #expect(try result.contains(rationalPoint: [.one, .zero], maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage))
+        #expect(try !result.contains(rationalPoint: [.one, .one], maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage))
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -76,11 +86,11 @@ struct OriginalPolynomialRelationTests {
         let y = try OriginalRationalPolynomial.coordinate(variableCount: 2, at: 1, usage: &usage)
         let input = try relation([x,y], instructions: [.sign(polynomial: 1, .zero),
             .sign(polynomial: 0, .zero), .not, .and], bounded: true, usage: &usage)
-        let result = try resolver.decompose(input, maximumDepth: 24, maximumCoefficientDepth: 0, usage: usage)
+        let result = try resolver.decompose(input, maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage)
         #expect(result.components.count == 2 && result.components.allSatisfy { $0.dimension == 1 })
-        #expect(try !result.contains(rationalPoint: [.zero, .zero], maximumDepth: 24, maximumCoefficientDepth: 0, usage: usage))
-        #expect(try result.contains(rationalPoint: [.one.negated, .zero], maximumDepth: 24, maximumCoefficientDepth: 0, usage: usage))
-        #expect(try result.contains(rationalPoint: [.one, .zero], maximumDepth: 24, maximumCoefficientDepth: 0, usage: usage))
+        #expect(try !result.contains(rationalPoint: [.zero, .zero], maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage))
+        #expect(try result.contains(rationalPoint: [.one.negated, .zero], maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage))
+        #expect(try result.contains(rationalPoint: [.one, .zero], maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage))
     }
 
     @Test(.timeLimit(.minutes(1)), arguments: [false, true])
@@ -93,10 +103,10 @@ struct OriginalPolynomialRelationTests {
             ? [.sign(polynomial: 1, .zero)]
             : [.sign(polynomial: 1, .negative), .not]
         let input = try relation([law,y], instructions: [.sign(polynomial: 0, .zero)] + boundary + [.and], bounded: true, usage: &usage)
-        let result = try resolver.decompose(input, maximumDepth: 24, maximumCoefficientDepth: 0, usage: usage)
+        let result = try resolver.decompose(input, maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage)
         #expect(result.components.count == 1 && result.components.first?.dimension == (onlyBoundary ? 0 : 1))
-        #expect(try result.contains(rationalPoint: [.zero,.zero], maximumDepth: 24, maximumCoefficientDepth: 0, usage: usage))
-        #expect(try result.contains(rationalPoint: [.one,.one], maximumDepth: 24, maximumCoefficientDepth: 0, usage: usage) == !onlyBoundary)
+        #expect(try result.contains(rationalPoint: [.zero,.zero], maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage))
+        #expect(try result.contains(rationalPoint: [.one,.one], maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage) == !onlyBoundary)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -106,13 +116,13 @@ struct OriginalPolynomialRelationTests {
         let atOne = try x.subtracting(.constant(variableCount: 1, value: .one, usage: &usage), usage: &usage)
         let input = try relation([x,atOne], instructions: [.sign(polynomial: 0, .zero),
             .sign(polynomial: 1, .zero), .or], usage: &usage)
-        let result = try resolver.decompose(input, maximumDepth: 24, maximumCoefficientDepth: 0, usage: usage)
+        let result = try resolver.decompose(input, maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage)
         #expect(result.cells.count == 2 && result.components.count == 2)
         let predicate = try OriginalPolynomialPredicate(polynomialCount: 0, instructions: [.literal(true)], usage: &usage)
         let unbounded = try OriginalRationalParameterDomain(nil, usage: &usage)
         let all = try OriginalPolynomialRelation(variableCount: 2, polynomials: [], predicate: predicate,
             domains: [unbounded,unbounded], usage: &usage)
-        let region = try resolver.decompose(all, maximumDepth: 24, maximumCoefficientDepth: 0, usage: usage)
+        let region = try resolver.decompose(all, maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage)
         #expect(region.cells.count == 1 && region.components.first?.dimension == 2)
     }
 
@@ -127,21 +137,21 @@ struct OriginalPolynomialRelationTests {
         let domain = try OriginalRationalParameterDomain(lower: third, upper: third, usage: &usage)
         let input = try OriginalPolynomialRelation(variableCount: 1, polynomials: [law], predicate: predicate,
             domains: [domain], usage: &usage)
-        let result = try resolver.decompose(input, maximumDepth: 24, maximumCoefficientDepth: 0, usage: usage)
-        let exact = try #require(result.cells.first?.sample.first).enclosed(maximumDepth: 24, maximumCoefficientDepth: 0, usage: usage)
+        let result = try resolver.decompose(input, maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage)
+        let exact = try #require(result.cells.first?.sample.first).enclosed(maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage)
         #expect(exact.lower == third && exact.upper == third)
         let rounded = try ExactRationalCoefficient.originalDouble(1.0/3.0, usage: &usage)
-        #expect(try !result.contains(rationalPoint: [rounded], maximumDepth: 24, maximumCoefficientDepth: 0, usage: usage))
+        #expect(try !result.contains(rationalPoint: [rounded], maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage))
         let two = try ExactRationalCoefficient.originalDouble(2, usage: &usage)
         let quadratic = try x.multiplied(by: x, usage: &usage)
             .subtracting(.constant(variableCount: 1, value: two, usage: &usage), usage: &usage)
         let roots = try resolver.decompose(relation([quadratic], instructions: [.sign(polynomial: 0, .zero)], usage: &usage),
-            maximumDepth: 24, maximumCoefficientDepth: 0, usage: usage)
+            maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage)
         #expect(roots.cells.count == 2 && roots.components.count == 2)
         let width = try ExactRationalCoefficient.originalDouble(1.0/1024.0, usage: &usage)
         for cell in roots.cells {
-            let initial = try cell.sample[0].enclosed(maximumDepth: 24, maximumCoefficientDepth: 0, usage: usage)
-            let refined = try initial.refined(maximumWidth: width, maximumDepth: 24, maximumCoefficientDepth: 0, usage: usage)
+            let initial = try cell.sample[0].enclosed(maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage)
+            let refined = try initial.refined(maximumWidth: width, maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage)
             #expect(try refined.lower.subtracting(initial.lower, usage: &usage).canonicalSign >= 0)
             #expect(try initial.upper.subtracting(refined.upper, usage: &usage).canonicalSign >= 0)
             #expect(try width.subtracting(refined.upper.subtracting(refined.lower, usage: &usage), usage: &usage).canonicalSign >= 0)
@@ -153,22 +163,24 @@ struct OriginalPolynomialRelationTests {
     func invalidBindingAndIndependentLimitsCannotPublishACompleteRelation() throws {
         let budget = Budget(); var usage = budget.usage
         let x = try OriginalRationalPolynomial.coordinate(variableCount: 1, at: 0, usage: &usage)
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestKernelFailure($0) != nil }) {
             try OriginalPolynomialPredicate(polynomialCount: 1, instructions: [.sign(polynomial: 1,.zero)], usage: &usage)
         }
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestKernelFailure($0) != nil }) {
             try OriginalRationalPolynomial(variableCount: 1, terms: [.init(coefficient: .one, powers: [-1])], usage: &usage)
         }
         let input = try relation([x], instructions: [.sign(polynomial: 0,.zero)], usage: &usage)
-        #expect(throws: KernelError.self) { try resolver.decompose(input, maximumDepth: 24, maximumCoefficientDepth: 0, usage: Budget(work: 0).usage) }
-        #expect(throws: KernelError.self) { try resolver.decompose(input, maximumDepth: 24, maximumCoefficientDepth: 0, usage: Budget(storage: 0).usage) }
-        #expect(throws: KernelError.self) { try resolver.decompose(input, maximumDepth: -1, maximumCoefficientDepth: 0, usage: usage) }
-        let first = try resolver.decompose(input, maximumDepth: 24, maximumCoefficientDepth: 0, usage: usage)
-        let second = try resolver.decompose(input, maximumDepth: 24, maximumCoefficientDepth: 0, usage: usage)
+        geometryTestExpectFailure({ geometryTestKernelFailure($0) != nil }) { var refused = Budget(work: 0).usage
+            try resolver.decompose(input, maximumDepth: 24, maximumCoefficientDepth: 0, usage: &refused) }
+        geometryTestExpectFailure({ geometryTestKernelFailure($0) != nil }) { var refused = Budget(storage: 0).usage
+            try resolver.decompose(input, maximumDepth: 24, maximumCoefficientDepth: 0, usage: &refused) }
+        geometryTestExpectFailure({ geometryTestKernelFailure($0) != nil }) { try resolver.decompose(input, maximumDepth: -1, maximumCoefficientDepth: 0, usage: &usage) }
+        let first = try resolver.decompose(input, maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage)
+        let second = try resolver.decompose(input, maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage)
         let foreign = try #require(second.cells.first?.identifier)
         #expect(first.cells.first?.identifier != foreign)
-        #expect(throws: KernelError.self) {
-            try first.contains(rationalPoint: [.zero], inCell: foreign, maximumDepth: 24, maximumCoefficientDepth: 0, usage: usage)
+        geometryTestExpectFailure({ geometryTestKernelFailure($0) != nil }) {
+            try first.contains(rationalPoint: [.zero], inCell: foreign, maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage)
         }
     }
 
@@ -181,11 +193,12 @@ struct OriginalPolynomialRelationTests {
         let gate = Mutex(false)
         let task = Task {
             while !gate.withLock({ $0 }) { await Task.yield() }
-            return try resolver.decompose(input, maximumDepth: 24, maximumCoefficientDepth: 0, usage: operationBudget.usage)
+            var operationAdmission = operationBudget.usage
+            return try resolver.decompose(input, maximumDepth: 24, maximumCoefficientDepth: 0, usage: &operationAdmission)
         }
         task.cancel(); gate.withLock { $0 = true }
         do { _ = try await task.value; Issue.record("Cancelled original relation published a result.") }
-        catch is CancellationError {}
+        catch where geometryTestIsCancelled(error) {}
         #expect(operationBudget.consumedWork == 0)
     }
 
@@ -198,49 +211,31 @@ struct OriginalPolynomialRelationTests {
         let input = try OriginalPolynomialRelation(variableCount: 1, polynomials: [],
             predicate: predicate, domains: [domain], usage: &constructionUsage)
         let baseline = Budget(), observed = Mutex<[Int]>([])
-        let baselineUsage = baseline.usage
-        let counted = OriginalRelationUsage(consumeWork: { count in
-            var usage = baselineUsage; try usage.consumeExactWork(count)
-        }, retainStorage: { count in
-            var usage = baselineUsage; try usage.retainExactStorage(count)
-            observed.withLock { $0.append(count) }
-        }, visitCell: { depth in
-            var usage = baselineUsage; try usage.visitExactCell(depth: depth)
-        }, visitCoefficientCell: { depth in
-            var usage = baselineUsage; try usage.visitCoefficientCell(depth: depth)
-        })
+        var counted = baseline.instrument(onStorage: { count in observed.withLock { $0.append(count) } })
         let empty = try resolver.decompose(input, maximumDepth: 24,
-            maximumCoefficientDepth: 0, usage: counted)
+            maximumCoefficientDepth: 0, usage: &counted)
         #expect(empty.cells.isEmpty && empty.components.isEmpty)
         let finalOrdinal = observed.withLock { $0.count }
         #expect(finalOrdinal > 0 && observed.withLock { $0.last } == 0)
         let operation = Budget(), calls = Mutex(0)
-        let operationUsage = operation.usage
         let task = Task {
-            let cancelling = OriginalRelationUsage(consumeWork: { count in
-                var usage = operationUsage; try usage.consumeExactWork(count)
-            }, retainStorage: { count in
-                var usage = operationUsage; try usage.retainExactStorage(count)
+            var cancelling = operation.instrument(onStorage: { _ in
                 let final = calls.withLock { $0 += 1; return $0 == finalOrdinal }
                 if final { withUnsafeCurrentTask { $0?.cancel() } }
-            }, visitCell: { depth in
-                var usage = operationUsage; try usage.visitExactCell(depth: depth)
-            }, visitCoefficientCell: { depth in
-                var usage = operationUsage; try usage.visitCoefficientCell(depth: depth)
             })
             return try resolver.decompose(input, maximumDepth: 24,
-                maximumCoefficientDepth: 0, usage: cancelling)
+                maximumCoefficientDepth: 0, usage: &cancelling)
         }
         do {
             _ = try await task.value
             Issue.record("The final normal-return storage callback published a cancelled empty relation.")
-        } catch is CancellationError {}
+        } catch where geometryTestIsCancelled(error) {}
         #expect(calls.withLock { $0 } == finalOrdinal)
     }
 
     private func relation(_ polynomials: [OriginalRationalPolynomial],
         instructions: [OriginalPolynomialPredicate.Instruction], bounded: Bool = false,
-        usage: inout OriginalRelationUsage) throws -> OriginalPolynomialRelation {
+        usage: inout GeometryTestScalarRecorder) throws -> OriginalPolynomialRelation {
         let count = try #require(polynomials.first?.variableCount)
         let predicate = try OriginalPolynomialPredicate(polynomialCount: polynomials.count, instructions: instructions, usage: &usage)
         let domain = bounded

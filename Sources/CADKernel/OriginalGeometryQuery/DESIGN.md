@@ -74,3 +74,25 @@ issuer with a caller that already owns complete current BRep source admission.
 It does not fabricate a generated ID or historical lineage. It retains actual
 curve ID, curve law and directed native endpoints; external current/generated
 binding remains the caller's separate invariant.
+
+## Ordinary Kernel execution envelope
+
+Existing ordinary Kernel source operations use one canonical OriginalQueryExecution
+entry envelope; their nested direct bodies borrow it. The shared entry factory
+creates no per-element or per-phase allowance. Independent local limits remain
+with their operation owner and typed retained capacities debit this execution.
+
+Original edge/curve/surface and trim selection providers require the concrete
+borrowed execution through stable-reference resolution, source validation and
+exact native parameter arithmetic. SurfaceQueryModel declares this operation as
+a requirement so injected models supply a genuine witness; an ordinary-only
+custom provider explicitly refuses the original query. Existing source domains,
+span clocks, local ceilings and unsupported nonrepresentable stations remain.
+
+The native Kernel binding gate requires the existing actual consumer body to
+borrow OriginalQueryExecution through changed containment, arrangement, source
+validation and scalar readers. Ordinary operation entries root once. Pure
+structural/interpolation helpers keep their existing signatures; throwing
+topology getters propagate failure. Existing formulas, ordering, selected domains
+and independent local ceilings remain authoritative. This is API/caller repair,
+not new feature or whole-resource completion evidence.

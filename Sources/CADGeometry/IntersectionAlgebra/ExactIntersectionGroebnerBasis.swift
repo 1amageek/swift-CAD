@@ -4,7 +4,7 @@ import CADCore
 enum ExactIntersectionGroebnerBasis {
     private struct Pair { let first: Int; let second: Int }
 
-    static func reducedBasis<B: RationalAlgebraAdmitting>(_ equations: [ExactIntersectionPolynomial],
+    static func reducedBasis<B: ExactScalarAdmission & ~Copyable>(_ equations: [ExactIntersectionPolynomial],
         variableCount: Int, usage: inout B) throws -> [ExactIntersectionPolynomial] {
         var basis: [ExactIntersectionPolynomial] = []
         for equation in equations {
@@ -45,7 +45,7 @@ enum ExactIntersectionGroebnerBasis {
             for j in basis.indices where i != j {
                 try intersectionAlgebraStep(&usage)
                 guard let other = try basis[j].leading(usage: &usage) else { continue }
-                try usage.consumeExactWork(max(other.power.overflowCount, lead.power.overflowCount))
+                try usage.consumeWork(max(other.power.overflowCount, lead.power.overflowCount))
                 guard other.power.divides(lead.power) else { continue }
                 if other.power != lead.power || j < i { redundant = true; break }
             }
@@ -75,13 +75,13 @@ enum ExactIntersectionGroebnerBasis {
             guard let a = try left.leading(usage: &usage), let b = try right.leading(usage: &usage) else {
                 throw rationalAlgebraFailure("A reduced intersection basis cannot contain a zero generator.")
             }
-            try usage.consumeExactWork(max(a.power.overflowCount, b.power.overflowCount))
+            try usage.consumeWork(max(a.power.overflowCount, b.power.overflowCount))
             return a.power.precedes(b.power)
         }
         return try verified(result, equations: equations, usage: &usage)
     }
 
-    static func reduced<B: RationalAlgebraAdmitting>(_ source: ExactIntersectionPolynomial,
+    static func reduced<B: ExactScalarAdmission & ~Copyable>(_ source: ExactIntersectionPolynomial,
         by basis: [ExactIntersectionPolynomial], usage: inout B) throws -> ExactIntersectionPolynomial {
         var pending = source, remainder = try ExactIntersectionPolynomial.zero(variableCount: source.variableCount)
         while let lead = try pending.leading(usage: &usage) {
@@ -90,7 +90,7 @@ enum ExactIntersectionGroebnerBasis {
             for divisor in basis {
                 try intersectionAlgebraStep(&usage)
                 guard let d = try divisor.leading(usage: &usage) else { continue }
-                try usage.consumeExactWork(max(d.power.overflowCount, lead.power.overflowCount))
+                try usage.consumeWork(max(d.power.overflowCount, lead.power.overflowCount))
                 guard d.power.divides(lead.power) else { continue }
                 let power = try lead.power.quotient(by: d.power, variableCount: source.variableCount, usage: &usage)
                 let factor = try ExactIntersectionPolynomial.monomial(variableCount: source.variableCount,
@@ -113,7 +113,7 @@ enum ExactIntersectionGroebnerBasis {
         return remainder
     }
 
-    private static func sPolynomial<B: RationalAlgebraAdmitting>(_ first: ExactIntersectionPolynomial,
+    private static func sPolynomial<B: ExactScalarAdmission & ~Copyable>(_ first: ExactIntersectionPolynomial,
         _ second: ExactIntersectionPolynomial, usage: inout B) throws -> ExactIntersectionPolynomial {
         guard let a = try first.leading(usage: &usage), let b = try second.leading(usage: &usage) else {
             throw rationalAlgebraFailure("Intersection S-pair requires two nonzero original generators.")
@@ -131,7 +131,7 @@ enum ExactIntersectionGroebnerBasis {
             .subtracting(second.multiplied(by: bf, usage: &usage), usage: &usage)
     }
 
-    private static func verified<B: RationalAlgebraAdmitting>(_ basis: [ExactIntersectionPolynomial],
+    private static func verified<B: ExactScalarAdmission & ~Copyable>(_ basis: [ExactIntersectionPolynomial],
         equations: [ExactIntersectionPolynomial], usage: inout B) throws -> [ExactIntersectionPolynomial] {
         for equation in equations {
             guard try reduced(equation, by: basis, usage: &usage).isZero else {

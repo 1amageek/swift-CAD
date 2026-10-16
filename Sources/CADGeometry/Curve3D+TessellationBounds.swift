@@ -48,8 +48,16 @@ package extension Curve3D {
         _ interval: ScalarInterval,
         tolerance: ModelingTolerance
     ) throws -> CurveTessellationIntervalBounds {
-        try ValidatedCurve3D(self, tolerance: tolerance)
-            .tessellationIntervalEvaluation(interval)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try tessellationIntervalBounds(interval, tolerance: tolerance, using: &execution)
+    }
+
+    func tessellationIntervalBounds(
+        _ interval: ScalarInterval,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+    ) throws -> CurveTessellationIntervalBounds {
+        try ValidatedCurve3D(self, tolerance: tolerance, using: &execution)
+            .tessellationIntervalEvaluation(interval, using: &execution)
             .bounds
     }
 
@@ -62,10 +70,22 @@ package extension Curve3D {
         usingCertifiedSecondDerivativeMagnitudeUpperBound secondDerivativeBound: Double,
         tolerance: ModelingTolerance
     ) throws -> CurveTessellationIntervalBounds {
-        try ValidatedCurve3D(self, tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try tessellationIntervalBounds(interval,
+            usingCertifiedSecondDerivativeMagnitudeUpperBound: secondDerivativeBound,
+            tolerance: tolerance, using: &execution)
+    }
+
+    func tessellationIntervalBounds(
+        _ interval: ScalarInterval,
+        usingCertifiedSecondDerivativeMagnitudeUpperBound secondDerivativeBound: Double,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+    ) throws -> CurveTessellationIntervalBounds {
+        try ValidatedCurve3D(self, tolerance: tolerance, using: &execution)
             .tessellationIntervalEvaluation(
                 interval,
-                usingCertifiedSecondDerivativeMagnitudeUpperBound: secondDerivativeBound
+                usingCertifiedSecondDerivativeMagnitudeUpperBound: secondDerivativeBound,
+                using: &execution
             )
             .bounds
     }
@@ -76,101 +96,125 @@ package extension ValidatedCurve3D {
         _ interval: ScalarInterval,
         usingCertifiedSecondDerivativeMagnitudeUpperBound inheritedBound: Double? = nil
     ) throws -> CurveTessellationIntervalEvaluation {
-        guard interval.width > 0.0 else {
-            throw KernelError(
-                phase: .geometry,
-                code: .invalidInput,
-                tolerance: tolerance,
-                message: "Curve tessellation certification requires a positive parameter interval."
-            )
-        }
-        try curve.validatePeriodicDerivativeCertificate(over: interval, tolerance: tolerance)
-        if let inheritedBound {
-            guard inheritedBound.isFinite, inheritedBound >= 0.0 else {
+        var execution = try originalExecution()
+        return try tessellationIntervalEvaluation(interval,
+            usingCertifiedSecondDerivativeMagnitudeUpperBound: inheritedBound,
+            using: &execution)
+    }
+
+    func tessellationIntervalEvaluation(
+        _ interval: ScalarInterval,
+        usingCertifiedSecondDerivativeMagnitudeUpperBound inheritedBound: Double? = nil,
+        using execution: inout OriginalQueryExecution
+    ) throws -> CurveTessellationIntervalEvaluation {
+        try withRead(using: &execution) { execution in
+            try execution.consumeWork(1)
+            guard interval.width > 0.0 else {
                 throw KernelError(
                     phase: .geometry,
                     code: .invalidInput,
                     tolerance: tolerance,
-                    message: "Reusable curve tessellation certification requires a finite nonnegative derivative bound."
+                    message: "Curve tessellation certification requires a positive parameter interval."
                 )
             }
-        }
-        let midpointPoint: Point3D
-        let midpointDerivative: Vector3D
-        if case let .bSpline(spline) = curve {
-            let derivatives = try spline.parameterDerivativesAssumingValid(
-                at: interval.midpoint,
-                tolerance: tolerance
-            )
-            midpointPoint = derivatives.position
-            midpointDerivative = derivatives.firstDerivative
-        } else {
-            let geometry = try curve.differentialGeometryAssumingValid(
-                at: interval.midpoint,
-                tolerance: tolerance
-            )
-            midpointPoint = geometry.position
-            midpointDerivative = geometry.firstDerivative
-        }
-        let bounds: CurveTessellationIntervalBounds
-        if case .implicit = curve {
-            bounds = try curve.implicitTessellationIntervalBounds(
-                interval,
-                midpointDerivative: midpointDerivative,
-                tolerance: tolerance
-            )
-        } else {
-            let secondDerivativeBound: Double
+            try curve.validatePeriodicDerivativeCertificate(over: interval, tolerance: tolerance, using: &execution)
             if let inheritedBound {
-                secondDerivativeBound = inheritedBound
+                guard inheritedBound.isFinite, inheritedBound >= 0.0 else {
+                    throw KernelError(
+                        phase: .geometry,
+                        code: .invalidInput,
+                        tolerance: tolerance,
+                        message: "Reusable curve tessellation certification requires a finite nonnegative derivative bound."
+                    )
+                }
+            }
+            let midpointPoint: Point3D
+            let midpointDerivative: Vector3D
+            if case let .bSpline(spline) = curve {
+                let derivatives = try spline.parameterDerivativesAssumingValid(
+                    at: interval.midpoint,
+                    tolerance: tolerance, using: &execution
+                )
+                midpointPoint = derivatives.position
+                midpointDerivative = derivatives.firstDerivative
             } else {
-                secondDerivativeBound = try curve.secondDerivativeMagnitudeUpperBound(
+                let geometry = try curve.differentialGeometryAssumingValid(
+                    at: interval.midpoint,
+                    tolerance: tolerance, using: &execution
+                )
+                midpointPoint = geometry.position
+                midpointDerivative = geometry.firstDerivative
+            }
+            let bounds: CurveTessellationIntervalBounds
+            if case .implicit = curve {
+                bounds = try curve.implicitTessellationIntervalBounds(
                     interval,
-                    tolerance: tolerance
+                    midpointDerivative: midpointDerivative,
+                    tolerance: tolerance, using: &execution
+                )
+            } else {
+                let secondDerivativeBound: Double
+                if let inheritedBound {
+                    secondDerivativeBound = inheritedBound
+                } else {
+                    secondDerivativeBound = try curve.secondDerivativeMagnitudeUpperBound(
+                        interval,
+                        tolerance: tolerance, using: &execution
+                    )
+                }
+                bounds = try Curve3D.tessellationIntervalBounds(
+                    parameterWidth: interval.width,
+                    midpointDerivative: midpointDerivative,
+                    secondDerivativeBound: secondDerivativeBound,
+                    tangentDeviationOverride: try curve
+                        .stationaryEndpointTangentDeviationUpperBound(interval, using: &execution),
+                    tolerance: tolerance, using: &execution
                 )
             }
-            bounds = try Curve3D.tessellationIntervalBounds(
-                parameterWidth: interval.width,
-                midpointDerivative: midpointDerivative,
-                secondDerivativeBound: secondDerivativeBound,
-                tangentDeviationOverride: curve
-                    .stationaryEndpointTangentDeviationUpperBound(interval),
-                tolerance: tolerance
+            return CurveTessellationIntervalEvaluation(
+                bounds: bounds,
+                midpointPoint: midpointPoint
             )
         }
-        return CurveTessellationIntervalEvaluation(
-            bounds: bounds,
-            midpointPoint: midpointPoint
-        )
     }
 }
 
 fileprivate extension Curve3D {
-    func validatePeriodicDerivativeCertificate(over interval: ScalarInterval, tolerance: ModelingTolerance) throws {
+    func validatePeriodicDerivativeCertificate(over interval: ScalarInterval, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try execution.admitSourceDepth(0)
         switch self {
         case let .bSpline(spline):
-            try spline.validatePeriodicDerivativeCertificate(over: interval, tolerance: tolerance)
+            try spline.validatePeriodicDerivativeCertificate(over: interval, tolerance: tolerance, using: &execution)
         case let .rigidImage(image):
-            try image.source.validatePeriodicDerivativeCertificate(over: interval, tolerance: tolerance)
+            try execution.withSourceDepthOffset(1) { execution in
+                try image.source.validatePeriodicDerivativeCertificate(over: interval, tolerance: tolerance, using: &execution)
+            }
         case let .originalAffineWord(image):
-            try image.source.validatePeriodicDerivativeCertificate(over: interval, tolerance: tolerance)
+            try execution.withSourceDepthOffset(1) { execution in
+                try image.source.validatePeriodicDerivativeCertificate(over: interval, tolerance: tolerance, using: &execution)
+            }
         case let .affineImage(image):
-            try image.source.validatePeriodicDerivativeCertificate(over: interval, tolerance: tolerance)
+            try execution.withSourceDepthOffset(1) { execution in
+                try image.source.validatePeriodicDerivativeCertificate(over: interval, tolerance: tolerance, using: &execution)
+            }
         default:
             break
         }
     }
 
-    func stationaryEndpointTangentDeviationUpperBound(
-        _ interval: ScalarInterval
-    ) -> Double? {
+    func stationaryEndpointTangentDeviationUpperBound<A: ExactScalarAdmission & ~Copyable>(
+        _ interval: ScalarInterval, using execution: inout A
+    ) throws -> Double? {
+        try execution.consumeWork(1)
         guard case let .bSpline(curve) = self,
               curve.degree == 3,
               curve.controlPointCount == 4,
               case let .closed(domainLower, domainUpper) = curve.domain,
               (interval.lower == domainLower && curve.controlPoints[0] == curve.controlPoints[1])
                 || (interval.upper == domainUpper && curve.controlPoints[2] == curve.controlPoints[3]),
-              curve.weights.allSatisfy({ $0 == 1 }),
+              try curve.weights.allSatisfy({ try execution.consumeWork(1); return $0 == 1 }),
               curve.knots.count == 8,
               curve.knots[0] == domainLower, curve.knots[7] == domainUpper else {
             return nil
@@ -216,13 +260,14 @@ fileprivate extension Curve3D {
     func implicitTessellationIntervalBounds(
         _ interval: ScalarInterval,
         midpointDerivative: Vector3D,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> CurveTessellationIntervalBounds {
+        try execution.consumeWork(1)
         guard let derivativeRange = try DefaultCurveSpatialDerivativeRangeResolver()
             .derivativeRange(
                 curve: self,
                 interval: interval,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             ) else {
             throw certificationFailure(
                 tolerance: tolerance,
@@ -280,18 +325,23 @@ fileprivate extension Curve3D {
             speedLowerBound: max(0.0, minimumDerivative),
             speedUpperBound: maximumDerivative,
             secondDerivativeMagnitudeUpperBound: .infinity,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
     }
 
     func secondDerivativeMagnitudeUpperBound(
         _ interval: ScalarInterval,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Double {
+        try execution.consumeWork(1)
+        try execution.admitSourceDepth(0)
         switch self {
         case let .parameterImage(image):
-            let source = try image.source.secondDerivativeMagnitudeUpperBound(
-                image.originalInterval(interval), tolerance: tolerance)
+            let original = try image.originalInterval(interval, using: &execution)
+            let source = try execution.withSourceDepthOffset(1) { execution in
+                try image.source.secondDerivativeMagnitudeUpperBound(
+                    original, tolerance: tolerance, using: &execution)
+            }
             return (source * image.gain * image.gain).nextUp
 
         case .line, .analytic(.line):
@@ -325,19 +375,19 @@ fileprivate extension Curve3D {
             return try curve.spatialDifferentialMagnitudeBounds(
                 fromParameter: interval.lower,
                 toParameter: interval.upper,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             ).second
         case let .bSpline(curve):
-            if let exactBound = cubicPolynomialSecondDerivativeMagnitudeUpperBound(
+            if let exactBound = try cubicPolynomialSecondDerivativeMagnitudeUpperBound(
                 curve,
-                interval: interval
+                interval: interval, using: &execution
             ) {
                 return exactBound
             }
             let patches = try BSplineCurveBezierDecomposer().curvePatches(
                 curve: curve,
                 intersecting: interval,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
             guard patches.isEmpty == false else {
                 throw certificationFailure(
@@ -347,6 +397,7 @@ fileprivate extension Curve3D {
             }
             var maximum = 0.0
             for sourcePatch in patches {
+                try execution.consumeWork(1)
                 let lower = max(interval.lower, sourcePatch.lower)
                 let upper = min(interval.upper, sourcePatch.upper)
                 guard upper > lower else { continue }
@@ -359,17 +410,17 @@ fileprivate extension Curve3D {
                     : try sourcePatch.trimmed(
                         from: lower,
                         to: upper,
-                        tolerance: tolerance
+                        tolerance: tolerance, using: &execution
                     )
+                try OriginalCoefficientAllocation.reserve(count: 3, of: [Double].self, using: &execution)
+                let xCoordinates = try CertifiedAnalyticCurveEvaluation.map(patch.controlPoints, using: &execution) { point, _ in point.x }
+                let yCoordinates = try CertifiedAnalyticCurveEvaluation.map(patch.controlPoints, using: &execution) { point, _ in point.y }
+                let zCoordinates = try CertifiedAnalyticCurveEvaluation.map(patch.controlPoints, using: &execution) { point, _ in point.z }
                 let bound = try RationalBezierCurveDerivativeBound(
-                    coordinates: [
-                        patch.controlPoints.map({ $0.x }),
-                        patch.controlPoints.map({ $0.y }),
-                        patch.controlPoints.map({ $0.z }),
-                    ],
+                    coordinates: [xCoordinates, yCoordinates, zCoordinates],
                     weights: patch.weights,
                     parameterWidth: patch.upper - patch.lower,
-                    tolerance: tolerance
+                    tolerance: tolerance, using: &execution
                 )
                 maximum = max(
                     maximum,
@@ -385,7 +436,7 @@ fileprivate extension Curve3D {
                 .secondDerivativeMagnitude(
                     lift: lift,
                     interval: interval,
-                    tolerance: tolerance
+                    tolerance: tolerance, using: &execution
                 ) else {
                 throw certificationFailure(
                     tolerance: tolerance,
@@ -397,30 +448,30 @@ fileprivate extension Curve3D {
             return try curve.spatialDifferentialMagnitudeBounds(
                 fromNormalizedFraction: interval.lower,
                 toNormalizedFraction: interval.upper,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             ).second
         case let .rigidImage(image):
-            return try image.source.secondDerivativeMagnitudeUpperBound(
-                interval,
-                tolerance: tolerance
-            )
+            return try execution.withSourceDepthOffset(1) { execution in
+                try image.source.secondDerivativeMagnitudeUpperBound(
+                    interval, tolerance: tolerance, using: &execution)
+            }
         case .originalAffineWord, .originalEndpointConnector, .originalConstructionChart, .originalAngularTransport, .originalPlaneDerivative, .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline, .originalDrafted:
-            let receipt = try PreparedCurveDifferentialEncloser(curve: self, tolerance: tolerance)
-                .closedNativeJets(over: interval, tolerance: tolerance, consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
-            guard let first = receipt.spans.first else { throw GeometryConversionError.invalidInput("Original word tessellation has no native owner.") }
+            let receipt = try PreparedCurveDifferentialEncloser(curve: self, tolerance: tolerance, using: &execution)
+                .closedNativeJets(over: interval, tolerance: tolerance, using: &execution)
+            guard !receipt.spans.isEmpty else { throw GeometryConversionError.invalidInput("Original word tessellation has no native owner.") }
             var bound = 0.0
             for span in receipt.spans {
+                try execution.consumeWork(1)
                 let q = span.jet
                 bound = max(bound, IntervalVector3DBounds(x: q.x.secondDerivativeUU,
                     y: q.y.secondDerivativeUU, z: q.z.secondDerivativeUU).lengthUpperBound)
             }
-            _ = first
             return bound
         case let .affineImage(image):
-            let sourceBound = try image.source.secondDerivativeMagnitudeUpperBound(
-                interval,
-                tolerance: tolerance
-            )
+            let sourceBound = try execution.withSourceDepthOffset(1) { execution in
+                try image.source.secondDerivativeMagnitudeUpperBound(
+                    interval, tolerance: tolerance, using: &execution)
+            }
             let transformedBound = (
                 sourceBound * image.transform.linearMagnitudeUpperBound
             ).nextUp
@@ -439,13 +490,14 @@ fileprivate extension Curve3D {
         }
     }
 
-    func cubicPolynomialSecondDerivativeMagnitudeUpperBound(
+    func cubicPolynomialSecondDerivativeMagnitudeUpperBound<A: ExactScalarAdmission & ~Copyable>(
         _ curve: BSplineCurve3D,
-        interval: ScalarInterval
-    ) -> Double? {
+        interval: ScalarInterval, using execution: inout A
+    ) throws -> Double? {
+        try execution.consumeWork(1)
         guard curve.degree == 3,
               curve.controlPointCount == 4,
-              curve.weights.allSatisfy({ $0 == 1 }),
+              try curve.weights.allSatisfy({ try execution.consumeWork(1); return $0 == 1 }),
               case let .closed(lower, upper) = curve.domain,
               curve.knots.count == 8,
               curve.knots[0] == lower, curve.knots[7] == upper else {
@@ -479,13 +531,14 @@ fileprivate extension Curve3D {
         return max(lowerDerivative.length, upperDerivative.length).nextUp
     }
 
-    static func tessellationIntervalBounds(
+    static func tessellationIntervalBounds<A: ExactScalarAdmission & ~Copyable>(
         parameterWidth: Double,
         midpointDerivative: Vector3D,
         secondDerivativeBound: Double,
         tangentDeviationOverride: Double? = nil,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout A
     ) throws -> CurveTessellationIntervalBounds {
+        try execution.consumeWork(1)
         let halfWidth = parameterWidth * 0.5
         let derivativeRadius = (secondDerivativeBound * halfWidth).nextUp
         let speedUpper = (midpointDerivative.length + derivativeRadius).nextUp
@@ -506,19 +559,20 @@ fileprivate extension Curve3D {
             speedLowerBound: max(0.0, speedLower),
             speedUpperBound: speedUpper,
             secondDerivativeMagnitudeUpperBound: secondDerivativeBound,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
     }
 
-    static func validatedTessellationBounds(
+    static func validatedTessellationBounds<A: ExactScalarAdmission & ~Copyable>(
         chordDeviation: Double,
         arcLength: Double,
         tangentDeviation: Double,
         speedLowerBound: Double,
         speedUpperBound: Double,
         secondDerivativeMagnitudeUpperBound: Double,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout A
     ) throws -> CurveTessellationIntervalBounds {
+        try execution.consumeWork(1)
         guard chordDeviation.isFinite,
               chordDeviation >= 0.0,
               arcLength.isFinite,

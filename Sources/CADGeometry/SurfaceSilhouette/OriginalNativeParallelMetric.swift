@@ -12,7 +12,7 @@ struct OriginalNativeParallelMetric: Sendable {
     private let gaussianNumerator: ExactBivariatePolynomial
     private let normalSquare: ExactBivariatePolynomial
 
-    init<B: RationalAlgebraAdmitting>(original: OriginalRationalSurfacePolynomial,
+    init<B: ExactScalarAdmission & ~Copyable>(original: OriginalRationalSurfacePolynomial,
         normal: [ExactBivariatePolynomial], usage: inout B) throws {
         guard normal.count == 3 else { throw rationalAlgebraFailure("Original parallel metric requires three normal coefficients.") }
         self.original = original; self.normal = normal
@@ -35,7 +35,7 @@ struct OriginalNativeParallelMetric: Sendable {
         let law = try OriginalRationalSurfaceDerivativeLaw(original: original, throughOrder: 2, usage: &usage)
         func partial(_ u: Int, _ v: Int, usage: inout B) throws -> [ExactBivariatePolynomial] {
             for value in law.partials {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 if value.uOrder == u && value.vOrder == v { return value.numerators }
             }
             throw rationalAlgebraFailure("Original parallel metric lost a source partial.")
@@ -65,7 +65,7 @@ struct OriginalNativeParallelMetric: Sendable {
         normalSquare = try dot(normal, normal, usage: &usage)
     }
 
-    func admission<B: RationalAlgebraAdmitting>(over box: SurfaceParameterBox,
+    func admission<B: ExactScalarAdmission & ~Copyable>(over box: SurfaceParameterBox,
         distances: [Double], usage: inout B) throws -> Admission? {
         guard box.u.lower >= original.domain.u.lower, box.u.upper <= original.domain.u.upper,
               box.v.lower >= original.domain.v.lower, box.v.upper <= original.domain.v.upper else {
@@ -84,7 +84,7 @@ struct OriginalNativeParallelMetric: Sendable {
               mean.isFinite, gaussian.isFinite else { return nil }
         var effective = ExactRationalCoefficient.zero, orientation = 1
         for distance in distances {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             let authored = try ExactRationalCoefficient.originalDouble(distance, usage: &usage)
             effective = try effective.adding(orientation > 0 ? authored : authored.negated, usage: &usage)
             let d = try effective.outwardInterval(usage: &usage)

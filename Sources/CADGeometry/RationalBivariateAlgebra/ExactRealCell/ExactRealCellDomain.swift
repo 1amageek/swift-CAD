@@ -15,7 +15,7 @@ public struct ExactRealCellDomain<Base: ExactScalarArithmetic & ExactScalarOrder
             guard variableCount >= 0 else { throw ExactRealCellFailure.invalidVariable }
             let p = try ExactPolynomialDomain(field: field, variableCount: variableCount, using: &a)
             try ExactCellAccess.owner((Field, ExactPolynomialDomain<Field>, ExactScalarDepth).self, &a)
-            return ExactRealCellContext(field: field, polynomials: p, depth: a.depth)
+            return ExactRealCellContext(field: field, polynomials: p, depth: (try a.depth))
         }
     }
     public init<A: ExactScalarAdmission & ~Copyable>(retaining source: borrowing ExactRealCellSource<Base>,
@@ -23,7 +23,7 @@ public struct ExactRealCellDomain<Base: ExactScalarArithmetic & ExactScalarOrder
         let source = copy source
         context = try ExactCellAccess.run(&admission, inherited: source.depth) { _ in source.owner.context }
     }
-    func require(_ source: ExactRealCellSource<Base>, _ a: inout ExactCellBorrowedAdmission) throws {
+    func require<A: ExactScalarAdmission & ~Copyable>(_ source: ExactRealCellSource<Base>, _ a: inout A) throws {
         guard source.owner.context === context else { throw ExactRealCellFailure.incompatibleDomain }
         try ExactCellAccess.admit(source.depth, &a)
     }
@@ -45,7 +45,7 @@ public struct ExactRealCellDomain<Base: ExactScalarArithmetic & ExactScalarOrder
                 }
             }
             try ExactCellAccess.owner((ExactRealCellContext<Base>, [Polynomial], [ExactRealRootInterval<Field.Value>], ExactScalarDepth).self, &a)
-            return ExactRealCellSource(owner: ExactRealCellSourceStorage(context: context, laws: laws, domains: domains, depth: a.depth))
+            return ExactRealCellSource(owner: ExactRealCellSourceStorage(context: context, laws: laws, domains: domains, depth: (try a.depth)))
         }
     }
     public func predicate<A: ExactScalarAdmission & ~Copyable>(instructions: [ExactRealCellInstruction],
@@ -68,7 +68,7 @@ public struct ExactRealCellDomain<Base: ExactScalarArithmetic & ExactScalarOrder
                 }
             }
             guard count == 1 else { throw ExactRealCellFailure.invalidPredicate }
-            return ExactRealCellPredicate(source: source, instructions: instructions, depth: a.depth)
+            return ExactRealCellPredicate(source: source, instructions: instructions, depth: (try a.depth))
         }
     }
 }

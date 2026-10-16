@@ -46,204 +46,97 @@ struct DefaultParametricCurveSurfaceRootCertifier:
 
   private struct Session: ParametricCurveSurfaceRootCertificationSession {
     let certifier: DefaultParametricCurveSurfaceRootCertifier
-    let curve: Curve3D
-    let invocation: CurveSurfaceQueryInvocation?
     let preparationTolerance: ModelingTolerance
-    let surface: Surface3D
-    let preparedCurve: PreparedCurveDifferentialEncloser
-    let preparedSurface: PreparedSurfaceDifferentialEncloser
-    let curveContinuity: PreparedCurveDifferentialEncloser.ContinuousFirstOrderSource?
-    let surfaceContinuity: PreparedSurfaceDifferentialEncloser.ContinuousFirstOrderSource?
+    let curveContinuity: PreparedCurveDifferentialEncloser.ContinuousFirstOrderSource
+    let surfaceContinuity: PreparedSurfaceDifferentialEncloser.ContinuousFirstOrderSource
 
-    private func admit(_ cell: ParametricCurveSurfaceRootCell, tolerance: ModelingTolerance) throws {
-      guard tolerance == preparationTolerance else { throw certifier.bindingFailure(tolerance) }
-      if invocation != nil {
-        guard let curveContinuity, let surfaceContinuity,
-          cell.curve.lower >= curveContinuity.parameters.lower,
-          cell.curve.upper <= curveContinuity.parameters.upper,
-          cell.surfaceU.lower >= surfaceContinuity.parameters.u.lower,
-          cell.surfaceU.upper <= surfaceContinuity.parameters.u.upper,
-          cell.surfaceV.lower >= surfaceContinuity.parameters.v.lower,
-          cell.surfaceV.upper <= surfaceContinuity.parameters.v.upper else {
-          throw certifier.bindingFailure(tolerance)
-        }
+    private func admit(_ cell: ParametricCurveSurfaceRootCell,
+      tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+      try execution.consumeWork(1)
+      guard tolerance == preparationTolerance,
+        cell.curve.lower >= curveContinuity.parameters.lower,
+        cell.curve.upper <= curveContinuity.parameters.upper,
+        cell.surfaceU.lower >= surfaceContinuity.parameters.u.lower,
+        cell.surfaceU.upper <= surfaceContinuity.parameters.u.upper,
+        cell.surfaceV.lower >= surfaceContinuity.parameters.v.lower,
+        cell.surfaceV.upper <= surfaceContinuity.parameters.v.upper else {
+        throw certifier.bindingFailure(tolerance)
       }
     }
 
-    func certificate(
-      cell: ParametricCurveSurfaceRootCell,
-      tolerance: ModelingTolerance
+    func certificate(cell: ParametricCurveSurfaceRootCell,
+      tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> ParametricCurveSurfaceRootCertificate {
-      try admit(cell, tolerance: tolerance)
-      return try certifier.certificate(
-        curve: curve,
-        invocation: invocation,
-        surface: surface,
-        preparedCurve: preparedCurve,
-        preparedSurface: preparedSurface,
-        cell: cell,
-        tolerance: tolerance
-      )
+      try admit(cell, tolerance: tolerance, using: &execution)
+      let result = try certifier.certificate(curve: curveContinuity.prepared.curve,
+        using: &execution, surface: surfaceContinuity.prepared.surface,
+        preparedCurve: curveContinuity.prepared, preparedSurface: surfaceContinuity.prepared,
+        cell: cell, tolerance: tolerance)
+      try execution.checkpoint()
+      return result
     }
 
-    func boundaryCertificate(
-      cell: ParametricCurveSurfaceRootCell,
-      witness: CurveSurfaceIntersection,
-      tolerance: ModelingTolerance
-    ) throws -> ParametricCurveSurfaceRootCertificate {
-      try admit(cell, tolerance: tolerance)
-      return try certifier.boundaryCertificate(
-        curve: curve,
-        invocation: invocation,
-        surface: surface,
-        preparedCurve: preparedCurve,
-        preparedSurface: preparedSurface,
-        cell: cell,
-        witness: witness,
-        tolerance: tolerance
-      )
-    }
-  }
-
-  func prepare(
-    curve: Curve3D,
-    surface: Surface3D,
-    preparedCurve: PreparedCurveDifferentialEncloser,
-    preparedSurface: PreparedSurfaceDifferentialEncloser,
-    tolerance: ModelingTolerance
-  ) throws -> any ParametricCurveSurfaceRootCertificationSession {
-    try prepare(curve: curve, surface: surface, preparedCurve: preparedCurve,
-      preparedSurface: preparedSurface, tolerance: tolerance, invocation: nil)
-  }
-
-  func prepare(curve: Curve3D, surface: Surface3D,
-    preparedCurve: PreparedCurveDifferentialEncloser,
-    preparedSurface: PreparedSurfaceDifferentialEncloser,
-    tolerance: ModelingTolerance, invocation: CurveSurfaceQueryInvocation?
-  ) throws -> any ParametricCurveSurfaceRootCertificationSession {
-    // FIXME(INCOMPLETE_IMPLEMENTATION): The source-argument compatibility
-    // entry has no caller-paid structural comparison producer. Bounded public
-    // queries consume the prepared-only requirement below instead of accepting
-    // a second, unmetered source value or a guessed bulk comparison debit.
-    guard invocation == nil else {
-      throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
-        message: "Bounded root preparation requires immutable prepared-source authority.")
-    }
-    try tolerance.validate()
-    guard preparedCurve.curve == curve,
-      preparedSurface.surface == surface
-    else {
-      throw KernelError(
-        phase: .geometry,
-        code: .invalidInput,
-        tolerance: tolerance,
-        message:
-          "A root-certification session requires preparation for its exact curve and surface operands."
-      )
-    }
-    return try prepare(preparedCurve: preparedCurve, preparedSurface: preparedSurface,
-      tolerance: tolerance, invocation: nil)
-  }
-
-  func prepare(preparedCurve: PreparedCurveDifferentialEncloser,
-    preparedSurface: PreparedSurfaceDifferentialEncloser,
-    tolerance: ModelingTolerance, invocation: CurveSurfaceQueryInvocation?
-  ) throws -> any ParametricCurveSurfaceRootCertificationSession {
-    try CurrentTaskCancellationChecker().checkCancellation()
-    try invocation?.consumeFixedWork()
-    try tolerance.validate()
-    // FIXME(INCOMPLETE_IMPLEMENTATION): Selected generic root certification
-    // requires producer-issued first-order continuity for the retained original
-    // curve and surface. Native full-multiplicity and implicit graph joins cannot
-    // acquire that premise from a derivative hull. The public selected adaptive
-    // route must bind the forthcoming prepared continuity witnesses before use;
-    // the independent native-plane polynomial route retains its own root authority.
-    if invocation != nil {
-      throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
-        message: "Selected root certification requires retained original first-order continuity witnesses.")
-    }
-    // Operands come from the immutable preparations; there is no second source
-    // graph to compare. Each original query still enforces its preparation tolerance.
-    return Session(certifier: self, curve: preparedCurve.curve, invocation: invocation,
-      preparationTolerance: tolerance, surface: preparedSurface.surface,
-      preparedCurve: preparedCurve, preparedSurface: preparedSurface,
-      curveContinuity: nil, surfaceContinuity: nil)
-  }
-
-  private struct ContinuityUsage: RationalAlgebraAdmitting {
-    let invocation: CurveSurfaceQueryInvocation
-    mutating func visitExactCell(depth: Int) throws {
-      guard depth >= 0, depth <= (invocation.maximumAlgebraicDepth ?? 32) else {
-        throw GeometryConversionError.resourceLimitExceeded("Original continuity exhausted caller algebra depth.")
-      }
-      try invocation.consumeFixedWork()
-    }
-    mutating func consumeExactWork(_ count: Int) throws {
-      guard count >= 0 else { throw GeometryConversionError.invalidInput("Continuity work must be nonnegative.") }
-      for _ in 0..<count { try invocation.consumeFixedWork() }
-    }
-    mutating func retainExactStorage(_ count: Int) throws {
-      try invocation.reserve(count: count, stride: MemoryLayout<UInt32>.stride)
+    // FIXME(INCOMPLETE_IMPLEMENTATION): The selected adaptive CS caller can
+    // supply a boundary candidate, but a tolerance residual and contraction
+    // bound prove no source-root existence. A source-issued boundary existence
+    // receipt or closed-cell inclusion theorem is required before unique success.
+    func boundaryCertificate(cell: ParametricCurveSurfaceRootCell,
+      witness: CurveSurfaceIntersection, tolerance: ModelingTolerance,
+      using execution: inout OriginalQueryExecution) throws -> ParametricCurveSurfaceRootCertificate {
+      try admit(cell, tolerance: tolerance, using: &execution)
+      return try certificate(cell: cell, tolerance: tolerance, using: &execution)
     }
   }
 
   func prepare(preparedCurve: PreparedCurveDifferentialEncloser,
     preparedSurface: PreparedSurfaceDifferentialEncloser,
     domain: ParametricCurveSurfaceRootCell, tolerance: ModelingTolerance,
-    invocation: CurveSurfaceQueryInvocation?
+    using execution: inout OriginalQueryExecution
   ) throws -> any ParametricCurveSurfaceRootCertificationSession {
-    guard let invocation else {
-      return try prepare(preparedCurve: preparedCurve, preparedSurface: preparedSurface,
-        tolerance: tolerance, invocation: nil)
-    }
-    try invocation.consume(depth: domain.depth)
+    try execution.checkpoint(); try tolerance.validate()
+    try execution.admitGeometricDepth(domain.depth)
+    try execution.consumeWork(1)
     guard domain.curve.lower < domain.curve.upper,
       domain.surfaceU.lower < domain.surfaceU.upper,
       domain.surfaceV.lower < domain.surfaceV.upper else { throw bindingFailure(tolerance) }
-    var usage = ContinuityUsage(invocation: invocation)
-    // FIXME(INCOMPLETE_IMPLEMENTATION): The selected generic route consumes
-    // actual native/analytic C0 issuers. Original implicit/lift and procedural
-    // normal joins still need their own continuity producer before they can
-    // authorize this theorem; a closed derivative hull is never that authority.
     guard let curveProof = try preparedCurve.admittingContinuousFirstOrder(over: domain.curve,
-      tolerance: tolerance, maximumSubdivisionDepth: invocation.maximumSubdivisionDepth,
-      remainingSourceDepth: invocation.remainingSourceDepth, usage: &usage),
+      tolerance: tolerance, maximumSubdivisionDepth: execution.limits.maximumSubdivisionDepth,
+      remainingSourceDepth: execution.limits.remainingSourceDepth, using: &execution),
       let surfaceProof = try preparedSurface.admittingContinuousFirstOrder(
         over: SurfaceParameterBox(u: domain.surfaceU, v: domain.surfaceV), tolerance: tolerance,
-        remainingSourceDepth: invocation.remainingSourceDepth,
-        maximumSpanCount: invocation.maximumSpanCount,
-        maximumSubdivisionDepth: invocation.maximumSubdivisionDepth, usage: &usage) else {
+        remainingSourceDepth: execution.limits.remainingSourceDepth,
+        maximumSpanCount: execution.limits.maximumSpans,
+        maximumSubdivisionDepth: execution.limits.maximumSubdivisionDepth, using: &execution) else {
       throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
         message: "The selected original root domain lacks producer-issued first-order continuity.")
     }
-    try invocation.reserve(count: 1, stride: MemoryLayout<Session>.stride)
-    return Session(certifier: self, curve: curveProof.prepared.curve, invocation: invocation,
-      preparationTolerance: tolerance, surface: surfaceProof.prepared.surface,
-      preparedCurve: curveProof.prepared, preparedSurface: surfaceProof.prepared,
+    try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: Session.self))
+    try execution.checkpoint()
+    return Session(certifier: self, preparationTolerance: tolerance,
       curveContinuity: curveProof, surfaceContinuity: surfaceProof)
   }
 
   private func certificate(
     curve: Curve3D,
-    invocation: CurveSurfaceQueryInvocation?,
+    using execution: inout OriginalQueryExecution,
     surface: Surface3D,
     preparedCurve: PreparedCurveDifferentialEncloser,
     preparedSurface: PreparedSurfaceDifferentialEncloser,
     cell: ParametricCurveSurfaceRootCell,
     tolerance: ModelingTolerance
   ) throws -> ParametricCurveSurfaceRootCertificate {
-    try invocation?.consume(depth: cell.depth)
+    try execution.admitGeometricDepth(cell.depth); try execution.consumeWork(1)
     // A caller's cached candidate derivative has no original source binding.
     let curveDerivative = try curveDerivativeRange(prepared: preparedCurve,
-      interval: cell.curve, tolerance: tolerance, invocation: invocation, depth: cell.depth)
+      interval: cell.curve, tolerance: tolerance, using: &execution, depth: cell.depth)
     let surfaceDerivative = try surfaceDerivativeRanges(prepared: preparedSurface,
       uInterval: cell.surfaceU, vInterval: cell.surfaceV,
-      tolerance: tolerance, invocation: invocation, depth: cell.depth)
+      tolerance: tolerance, using: &execution, depth: cell.depth)
     let curveCenter = try originalCurveJet(preparedCurve,
-      over: midpointInterval(cell.curve), tolerance: tolerance, invocation: invocation, depth: cell.depth)
+      over: midpointInterval(cell.curve), tolerance: tolerance, using: &execution, depth: cell.depth)
     let surfaceCenter = try originalSurfaceJet(preparedSurface,
       over: SurfaceParameterBox(u: midpointInterval(cell.surfaceU), v: midpointInterval(cell.surfaceV)),
-      tolerance: tolerance, invocation: invocation, depth: cell.depth)
+      tolerance: tolerance, using: &execution, depth: cell.depth)
     guard let inverse = inverseRows(
       first: representative(curveCenter, derivativeU: true) * cell.curve.width,
       second: representative(surfaceCenter, derivativeU: true) * -cell.surfaceU.width,
@@ -267,10 +160,10 @@ struct DefaultParametricCurveSurfaceRootCertifier:
     let zero = try constantInterval(0)
     var krawczyk = IntervalVector(x: zero, y: zero, z: zero)
     for row in 0..<3 {
-      try invocation?.consume(depth: cell.depth)
+      try execution.admitGeometricDepth(cell.depth); try execution.consumeWork(1)
       var component = try constantInterval(0.5)
       for inner in 0..<3 {
-        try invocation?.consume(depth: cell.depth)
+        try execution.admitGeometricDepth(cell.depth); try execution.consumeWork(1)
         component = try added(
           component,
           scaled(
@@ -280,10 +173,10 @@ struct DefaultParametricCurveSurfaceRootCertifier:
         )
       }
       for column in 0..<3 {
-        try invocation?.consume(depth: cell.depth)
+        try execution.admitGeometricDepth(cell.depth); try execution.consumeWork(1)
         var preconditioned = try constantInterval(0.0)
         for inner in 0..<3 {
-          try invocation?.consume(depth: cell.depth)
+          try execution.admitGeometricDepth(cell.depth); try execution.consumeWork(1)
           preconditioned = try added(
             preconditioned,
             scaled(
@@ -314,7 +207,7 @@ struct DefaultParametricCurveSurfaceRootCertifier:
     )
     var strictlyInside = true
     for index in 0..<3 {
-      try invocation?.consume(depth: cell.depth)
+      try execution.admitGeometricDepth(cell.depth); try execution.consumeWork(1)
       let value = krawczyk[index]
       if value.upper < -certificateSlack || value.lower > 1.0 + certificateSlack {
         return .excluded
@@ -326,107 +219,17 @@ struct DefaultParametricCurveSurfaceRootCertifier:
     return strictlyInside ? .unique : .unresolved
   }
 
-  private func boundaryCertificate(
-    curve: Curve3D,
-    invocation: CurveSurfaceQueryInvocation?,
-    surface: Surface3D,
-    preparedCurve: PreparedCurveDifferentialEncloser,
-    preparedSurface: PreparedSurfaceDifferentialEncloser,
-    cell: ParametricCurveSurfaceRootCell,
-    witness: CurveSurfaceIntersection,
-    tolerance: ModelingTolerance
-  ) throws -> ParametricCurveSurfaceRootCertificate {
-    try invocation?.consume(depth: cell.depth)
-    let parameterSlack = Double.ulpOfOne * 8_192.0
-    func inside(_ parameter: Double, _ interval: ScalarInterval) -> Bool {
-      let value = (parameter - interval.lower) / interval.width
-      return value.isFinite && value >= -parameterSlack && value <= 1.0 + parameterSlack
-    }
-    guard inside(witness.curveParameter, cell.curve), inside(witness.surfaceU, cell.surfaceU),
-      inside(witness.surfaceV, cell.surfaceV) else { return .unresolved }
-    // A caller's cached candidate derivative has no original source binding.
-    let curveDerivative = try curveDerivativeRange(prepared: preparedCurve,
-      interval: cell.curve, tolerance: tolerance, invocation: invocation, depth: cell.depth)
-    let surfaceDerivative = try surfaceDerivativeRanges(prepared: preparedSurface,
-      uInterval: cell.surfaceU, vInterval: cell.surfaceV,
-      tolerance: tolerance, invocation: invocation, depth: cell.depth)
-    let curveCenter = try originalCurveJet(preparedCurve,
-      over: ScalarInterval(lower: witness.curveParameter, upper: witness.curveParameter),
-      tolerance: tolerance, invocation: invocation, depth: cell.depth)
-    let surfaceCenter = try originalSurfaceJet(preparedSurface,
-      over: SurfaceParameterBox(u: ScalarInterval(lower: witness.surfaceU, upper: witness.surfaceU),
-        v: ScalarInterval(lower: witness.surfaceV, upper: witness.surfaceV)),
-      tolerance: tolerance, invocation: invocation, depth: cell.depth)
-    guard let inverse = inverseRows(
-      first: representative(curveCenter, derivativeU: true) * cell.curve.width,
-      second: representative(surfaceCenter, derivativeU: true) * -cell.surfaceU.width,
-      third: representative(surfaceCenter, derivativeU: false) * -cell.surfaceV.width
-    ) else { return .unresolved }
-    let curveScale = try nativeSpan(cell.curve)
-    let surfaceUScale = try scaled(nativeSpan(cell.surfaceU), by: -1)
-    let surfaceVScale = try scaled(nativeSpan(cell.surfaceV), by: -1)
-    let jacobian = try IntervalMatrix(
-      first: IntervalVector(x: multiplied(curveDerivative.x, curveScale),
-        y: multiplied(surfaceDerivative.u.x, surfaceUScale),
-        z: multiplied(surfaceDerivative.v.x, surfaceVScale)),
-      second: IntervalVector(x: multiplied(curveDerivative.y, curveScale),
-        y: multiplied(surfaceDerivative.u.y, surfaceUScale),
-        z: multiplied(surfaceDerivative.v.y, surfaceVScale)),
-      third: IntervalVector(x: multiplied(curveDerivative.z, curveScale),
-        y: multiplied(surfaceDerivative.u.z, surfaceUScale),
-        z: multiplied(surfaceDerivative.v.z, surfaceVScale)))
-    let residual = try sourceResidual(curveCenter, surfaceCenter)
-    var residualSquare = OutwardScalarInterval.exact(0)
-    for index in 0..<3 {
-      try invocation?.consume(depth: cell.depth)
-      let coordinate = residual[index]
-      let bound = OutwardScalarInterval.exact(max(abs(coordinate.lower), abs(coordinate.upper)))
-      residualSquare = residualSquare + bound * bound
-    }
-    guard residualSquare.isFinite, sqrt(residualSquare.upper).nextUp <= tolerance.distance,
-      witness.residual.isFinite, witness.residual <= tolerance.distance else { return .unresolved }
-    var contractionBound = 0.0
-    for row in 0..<3 {
-      try invocation?.consume(depth: cell.depth)
-      var rowBound = 0.0
-      for column in 0..<3 {
-        try invocation?.consume(depth: cell.depth)
-        var preconditioned = try constantInterval(0.0)
-        for inner in 0..<3 {
-          try invocation?.consume(depth: cell.depth)
-          preconditioned = try added(
-            preconditioned,
-            scaled(
-              jacobian[inner][column],
-              by: inverse[row, inner]
-            )
-          )
-        }
-        let identity = try constantInterval(
-          row == column ? 1.0 : 0.0
-        )
-        let value = try added(
-          identity,
-          scaled(preconditioned, by: -1.0)
-        )
-        rowBound = (rowBound + max(abs(value.lower), abs(value.upper))).nextUp
-      }
-      contractionBound = max(contractionBound, rowBound)
-    }
-    return contractionBound < 1.0 ? .unique : .unresolved
-  }
-
   private func surfaceDerivativeRanges(
     prepared: PreparedSurfaceDifferentialEncloser,
     uInterval: ScalarInterval,
     vInterval: ScalarInterval,
     tolerance: ModelingTolerance,
-    invocation: CurveSurfaceQueryInvocation?,
+    using execution: inout OriginalQueryExecution,
     depth: Int
   ) throws -> (u: IntervalVector, v: IntervalVector) {
     let jet = try originalSurfaceJet(prepared,
       over: SurfaceParameterBox(u: uInterval, v: vInterval), tolerance: tolerance,
-      invocation: invocation, depth: depth)
+      using: &execution, depth: depth)
     return (try intervalVector(jet.differentiatedUThroughSecondOrder()),
       try intervalVector(jet.differentiatedVThroughSecondOrder()))
   }
@@ -435,11 +238,11 @@ struct DefaultParametricCurveSurfaceRootCertifier:
     prepared: PreparedCurveDifferentialEncloser,
     interval: ScalarInterval,
     tolerance: ModelingTolerance,
-    invocation: CurveSurfaceQueryInvocation?,
+    using execution: inout OriginalQueryExecution,
     depth: Int
   ) throws -> CurveSpatialDerivativeRange {
     let jet = try originalCurveJet(prepared, over: interval, tolerance: tolerance,
-      invocation: invocation, depth: depth)
+      using: &execution, depth: depth)
     return CurveSpatialDerivativeRange(x: try scalarInterval(jet.x.derivativeU),
       y: try scalarInterval(jet.y.derivativeU), z: try scalarInterval(jet.z.derivativeU))
   }
@@ -458,29 +261,21 @@ struct DefaultParametricCurveSurfaceRootCertifier:
     _ prepared: PreparedCurveDifferentialEncloser,
     over parameters: ScalarInterval,
     tolerance: ModelingTolerance,
-    invocation: CurveSurfaceQueryInvocation?,
+    using execution: inout OriginalQueryExecution,
     depth: Int
   ) throws -> SurfaceIntervalVectorJet {
-    let receipt: PreparedCurveDifferentialEncloser.ClosedNativeJet
-    if let invocation {
-      try admitNestedDepth(depth, invocation: invocation, tolerance: tolerance)
-      receipt = try prepared.closedNativeJets(over: parameters, tolerance: tolerance,
-        maximumSpanCount: invocation.maximumSpanCount,
-        maximumSubdivisionDepth: invocation.maximumSubdivisionDepth - depth,
-        remainingSourceDepth: invocation.remainingSourceDepth,
-        consumeWork: { try invocation.consume(depth: depth) },
-        consumeStorage: invocation.consumeStorage)
-    } else {
-      receipt = try prepared.closedNativeJets(over: parameters, tolerance: tolerance,
-        consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
-    }
+    try execution.admitGeometricDepth(depth)
+    let receipt = try prepared.closedNativeJets(over: parameters, tolerance: tolerance,
+      maximumSpanCount: execution.limits.maximumSpans,
+      maximumSubdivisionDepth: execution.limits.maximumSubdivisionDepth - depth,
+      remainingSourceDepth: execution.limits.remainingSourceDepth, using: &execution)
     guard receipt.parameters == parameters,
       receipt.tolerance == tolerance, let first = receipt.spans.first else {
       throw bindingFailure(tolerance)
     }
     var result = first.jet
     for span in receipt.spans.dropFirst() {
-      try invocation?.consume(depth: depth)
+      try execution.admitGeometricDepth(depth); try execution.consumeWork(1)
       // Validated native splines are C0. This hull bounds their piecewise
       // first derivatives; it does not assert derivative continuity at joins.
       result = result.union(span.jet)
@@ -492,28 +287,14 @@ struct DefaultParametricCurveSurfaceRootCertifier:
     _ prepared: PreparedSurfaceDifferentialEncloser,
     over parameters: SurfaceParameterBox,
     tolerance: ModelingTolerance,
-    invocation: CurveSurfaceQueryInvocation?,
+    using execution: inout OriginalQueryExecution,
     depth: Int
   ) throws -> SurfaceIntervalVectorJet {
-    if let invocation {
-      try admitNestedDepth(depth, invocation: invocation, tolerance: tolerance)
-      return try prepared.intervalJet(overClosedBox: parameters, tolerance: tolerance,
-        maximumSpanCount: invocation.maximumSpanCount,
-        maximumSubdivisionDepth: invocation.maximumSubdivisionDepth - depth,
-        remainingSourceDepth: invocation.remainingSourceDepth,
-        consumeWork: { try invocation.consume(depth: depth) },
-        consumeStorage: invocation.consumeStorage)
-    }
-    try CurrentTaskCancellationChecker().checkCancellation()
-    return try prepared.intervalJet(overClosedBox: parameters, tolerance: tolerance)
-  }
-
-  private func admitNestedDepth(_ depth: Int,
-    invocation: CurveSurfaceQueryInvocation, tolerance: ModelingTolerance
-  ) throws {
-    try invocation.consume(depth: depth)
-    // Spatial refinement consumes only its spatial ceiling. Source recursion
-    // is debited by the actual descendant original producers, never this cell.
+    try execution.admitGeometricDepth(depth)
+    return try prepared.intervalJet(overClosedBox: parameters, tolerance: tolerance,
+      maximumSpanCount: execution.limits.maximumSpans,
+      maximumSubdivisionDepth: execution.limits.maximumSubdivisionDepth - depth,
+      remainingSourceDepth: execution.limits.remainingSourceDepth, using: &execution)
   }
 
   private func midpointInterval(_ parameters: ScalarInterval) throws -> ScalarInterval {

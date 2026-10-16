@@ -13,45 +13,45 @@ public struct OriginalIGESInstanceSource: Equatable, Sendable {
         self.matrixFrameID = matrixFrameID; self.scale = scale; self.translation = translation
         self.lengthUnit = lengthUnit; self.adjustments = adjustments
     }
-    public func originalOperationWord<B: RationalAlgebraAdmitting>(matrix: OriginalIGESMatrixSource?,
-        tolerance: ModelingTolerance, maximumAlgebraicDepth: Int, usage: inout B) throws -> OriginalAffineOperationWord {
+    public func originalOperationWord(matrix: OriginalIGESMatrixSource?,
+        tolerance: ModelingTolerance, maximumAlgebraicDepth: Int, using execution: inout OriginalQueryExecution) throws -> OriginalAffineOperationWord {
         guard translation.count == 3, (matrixFrameID == nil) == (matrix == nil),
             matrix == nil || matrix?.lengthUnit == lengthUnit else {
             throw IndependentShapeSourceError.invalidSource("Original IGES instance matrix/unit/translation source is inconsistent.")
         }
-        let originalScale = try OriginalIGESScalarSource.coefficient(scale, usage: &usage)
+        let originalScale = try OriginalIGESScalarSource.coefficient(scale, using: &execution)
         guard originalScale.isPositive else { throw IndependentShapeSourceError.invalidSource("Original IGES instance scale must be positive.") }
-        try RationalAlgebraStorage.retain(12, of: ExactRationalCoefficient.self, usage: &usage)
+        try RationalAlgebraStorage.retain(12, of: ExactRationalCoefficient.self, usage: &execution)
         let scaleSource = try OriginalRationalAffineSource(coefficients: [originalScale, .zero, .zero, .zero,
-            .zero, originalScale, .zero, .zero, .zero, .zero, originalScale, .zero], usage: &usage)
+            .zero, originalScale, .zero, .zero, .zero, .zero, originalScale, .zero], usage: &execution)
         var word = try OriginalAffineOperationWord(operation: .rationalForward(scaleSource), tolerance: tolerance,
-            maximumDepth: maximumAlgebraicDepth, usage: &usage)
+            maximumDepth: maximumAlgebraicDepth, usage: &execution)
         if let matrix {
-            let matrixWord = try matrix.originalOperationWord(tolerance: tolerance, maximumAlgebraicDepth: maximumAlgebraicDepth, usage: &usage)
-            for factor in matrixWord.factors { word = try word.appending(factor, tolerance: tolerance, usage: &usage) }
+            let matrixWord = try matrix.originalOperationWord(tolerance: tolerance, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
+            for factor in matrixWord.factors { word = try word.appending(factor, tolerance: tolerance, usage: &execution) }
         }
-        let gain = try OriginalIGESScalarSource.lengthGain(lengthUnit, usage: &usage)
-        let x = try OriginalIGESScalarSource.coefficient(translation[0], usage: &usage).multiplied(by: gain, usage: &usage)
-        let y = try OriginalIGESScalarSource.coefficient(translation[1], usage: &usage).multiplied(by: gain, usage: &usage)
-        let z = try OriginalIGESScalarSource.coefficient(translation[2], usage: &usage).multiplied(by: gain, usage: &usage)
-        try RationalAlgebraStorage.retain(12, of: ExactRationalCoefficient.self, usage: &usage)
+        let gain = try OriginalIGESScalarSource.lengthGain(lengthUnit, using: &execution)
+        let x = try OriginalIGESScalarSource.coefficient(translation[0], using: &execution).multiplied(by: gain, usage: &execution)
+        let y = try OriginalIGESScalarSource.coefficient(translation[1], using: &execution).multiplied(by: gain, usage: &execution)
+        let z = try OriginalIGESScalarSource.coefficient(translation[2], using: &execution).multiplied(by: gain, usage: &execution)
+        try RationalAlgebraStorage.retain(12, of: ExactRationalCoefficient.self, usage: &execution)
         let translated = try OriginalRationalAffineSource(coefficients: [.one, .zero, .zero, x,
-            .zero, .one, .zero, y, .zero, .zero, .one, z], usage: &usage)
-        word = try word.appending(.rationalForward(translated), tolerance: tolerance, usage: &usage)
-        for adjustment in adjustments { word = try adjustment.applying(to: word, tolerance: tolerance, maximumAlgebraicDepth: maximumAlgebraicDepth, usage: &usage) }
+            .zero, .one, .zero, y, .zero, .zero, .one, z], usage: &execution)
+        word = try word.appending(.rationalForward(translated), tolerance: tolerance, usage: &execution)
+        for adjustment in adjustments { word = try adjustment.applying(to: word, tolerance: tolerance, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution) }
         return word
     }
-    public func derivedAffineTransform<B: RationalAlgebraAdmitting>(matrix: OriginalIGESMatrixSource?, tolerance: ModelingTolerance,
-        maximumAlgebraicDepth: Int, usage: inout B) throws -> AffineTransform3D {
+    public func derivedAffineTransform(matrix: OriginalIGESMatrixSource?, tolerance: ModelingTolerance,
+        maximumAlgebraicDepth: Int, using execution: inout OriginalQueryExecution) throws -> AffineTransform3D {
         try OriginalIGESScalarSource.view(of: originalOperationWord(matrix: matrix, tolerance: tolerance,
-            maximumAlgebraicDepth: maximumAlgebraicDepth, usage: &usage), usage: &usage)
+            maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution), using: &execution)
     }
-    public func adjusted<B: RationalAlgebraAdmitting>(by displacement: Vector3D, conjugates: Bool, usage: inout B) throws -> Self {
+    public func adjusted(by displacement: Vector3D, conjugates: Bool, using execution: inout OriginalQueryExecution) throws -> Self {
         try displacement.validate()
         let count = adjustments.count.addingReportingOverflow(1)
         guard !count.overflow else { throw IndependentShapeSourceError.resourceLimitExceeded("Original IGES instance adjustment count overflows.") }
-        try usage.consumeExactWork(count.partialValue)
-        try RationalAlgebraStorage.retain(count.partialValue, of: OriginalIGESPlacementAdjustment.self, usage: &usage)
+        try execution.consumeWork(count.partialValue)
+        try RationalAlgebraStorage.retain(count.partialValue, of: OriginalIGESPlacementAdjustment.self, usage: &execution)
         return .init(matrixFrameID: matrixFrameID, scale: scale, translation: translation, lengthUnit: lengthUnit,
             adjustments: adjustments + [.init(displacement: displacement, conjugates: conjugates)])
     }

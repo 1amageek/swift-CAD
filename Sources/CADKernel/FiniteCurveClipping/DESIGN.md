@@ -25,7 +25,7 @@ original face chart lift + original trim edges -> complete contacts
 Closed-span subdivision requires the original structural periodic-law classification. Numerically close open endpoints do not authorize splitting as a closed traversal. Generated edges retain both endpoint parent lists of their original admitted pieces and the candidate edge parents. Geometric source, native trim and pcurve remain unchanged when stable IDs are assigned.
 
 ## Failure, Concurrency, and Constraints
-All caches and buffers are invocation-local. Contact/containment/subdivision failures propagate. The legacy producer's complete callback/storage chain remains a bounded-query gap; an outer contact count cannot certify its lower work. Coincident interval completeness and critical boundary sectors remain inherited original contact producer gaps.
+All caches and buffers are invocation-local. Contact/containment/subdivision failures propagate. The direct clipping body forwards one OriginalQueryExecution into actual contact, containment and subdivision operations; its ordinary entry creates one execution. An outer contact count cannot certify a lower producer's work or completeness. Coincident interval completeness and critical boundary sectors remain inherited original contact producer gaps.
 
 ## Verification and Change Impact
 Deferred checks cover true periodic loops, short open spans, holes, along-edge semantics, inherited endpoint parents and failed original contacts without partial publication. Recheck original closedness and edge subdivision when their source law admission changes. No tests or behavioral verification are claimed in the source phase.

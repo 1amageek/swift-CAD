@@ -19,6 +19,7 @@ visibility fallback is used to implement the geometric drawing facade.
 | [SwiftCAD](../DESIGN.md) | parent | public document facade | Publishes drawing | Exact source binds evaluation |
 | [BRepDrawing](../../CADKernel/BRepDrawing/DESIGN.md) | depends on | retained original projected uses | Owns topology and curve projection | Edge result does not classify visibility |
 | [CADExchange](../../CADExchange/DESIGN.md) | used by | geometric result | Owns output formats | SI to output/page conversion occurs once |
+| [Drawing caller tests](../../../Tests/SwiftCADTests/DESIGN.md) | verified by | real document drawing witnesses | Native worker, resource and cancellation regressions | Source preparation alone is not a query success |
 
 ## Architecture
 ```text
@@ -87,13 +88,18 @@ callback gaps propagate without a facade completion claim.
 The additive placed silhouette facade forwards one original body/occurrence word
 and explicit entity, face, span, control and boundary capacities to Kernel. The
 original current evaluation remains source authority; an imaged model is an
-invocation-local working source. The same SurfaceSilhouetteUsage owns extraction,
+invocation-local working source. The same SurfaceSilhouetteContext retains authority for extraction,
 trim partition, projection and shared external accounting, without reset. No
 foreground-depth visibility classification is inferred from these contours.
 
 The projected-contact facade requires the current document/evaluation and
 retained placed projection/silhouette packets, then forwards the SAME supplied
-SurfaceSilhouetteUsage to the Kernel exact pair preparer. It publishes original
+original execution to the Kernel exact pair preparer. It publishes original
 event endpoints/fibers and event-free source sectors, not hidden/visible labels.
 Visibility requires complete trim/point/overlap and foreground depth coverage
 after this preparation.
+
+
+## Canonical Silhouette Witness Binding
+
+The silhouette and projected-contact facade requirements forward the same caller `OriginalQueryExecution` to Kernel; quantitative contexts remain retained by their actual source owners. Complete current-source checks and all existing body/face/span/control/boundary limits remain unchanged. This is the actual witness/caller closure required by the removed lower usage API, not a new visibility or drawing algorithm. See [BRep drawing](../../CADKernel/BRepDrawing/DESIGN.md).

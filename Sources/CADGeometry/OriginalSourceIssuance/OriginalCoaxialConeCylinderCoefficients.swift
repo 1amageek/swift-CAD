@@ -10,7 +10,7 @@ struct OriginalCoaxialConeCylinderCoefficients: Sendable {
     let proofDepth: ExactScalarDepth
     static func prepare<A: ExactScalarAdmission & ~Copyable>(radius: Double,
         field f: OriginalPhysicalAngleScalarDomain, using a: inout A) throws -> Self {
-        try OriginalSourceProofAdmission<A>.withBorrow(&a) { a in
+        try a.withProofScope { a in
             try a.checkpoint(); try a.consumeWork(1)
             let r = try f.binary64(exactly: radius, using: &a)
             let sine = try f.sine(using: &a), cosine = try f.cosine(using: &a)

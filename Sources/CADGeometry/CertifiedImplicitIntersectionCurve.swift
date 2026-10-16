@@ -1,14 +1,15 @@
 import CADCore
+
 #if !hasFeature(Embedded)
-import Foundation
+  import Foundation
 #elseif canImport(Darwin)
-import Darwin
+  import Darwin
 #elseif canImport(Glibc)
-import Glibc
+  import Glibc
 #elseif canImport(WASILibc)
-import WASILibc
+  import WASILibc
 #else
-#error("CADGeometry numeric algorithms require the target C math module.")
+  #error("CADGeometry numeric algorithms require the target C math module.")
 #endif
 
 public struct CertifiedImplicitIntersectionCurve: Sendable, Hashable {
@@ -33,12 +34,38 @@ public struct CertifiedImplicitIntersectionCurve: Sendable, Hashable {
     isClosed: Bool,
     tolerance: ModelingTolerance
   ) throws {
+    var execution = try OriginalQueryExecution.surfaceSurface(
+      options: .init(),
+      context: .init(
+        operation: .surfaceSurface, entry: .ordinary, stage: .source,
+        first: .init(role: .firstSurface, request: .wholeSourceSupport),
+        second: .init(role: .secondSurface, request: .wholeSourceSupport)))
+    do {
+      try execution.checkpoint()
+      try self.init(
+        firstSurface: firstSurface, secondSurface: secondSurface, cells: cells, isClosed: isClosed,
+        tolerance: tolerance, using: &execution)
+      execution.context = execution.context.at(stage: .publication)
+      try execution.checkpoint()
+    } catch {
+      throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance)
+    }
+  }
+
+  public init(
+    firstSurface: Surface3D,
+    secondSurface: Surface3D,
+    cells: [CertifiedImplicitIntersectionGraphCell],
+    isClosed: Bool,
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+  ) throws {
     self.firstSurface = firstSurface
     self.secondSurface = secondSurface
     self.cells = cells
     self.isClosed = isClosed
     certificationTolerance = tolerance
-    try validate(tolerance: tolerance)
+    try validate(tolerance: tolerance, using: &execution)
+    try execution.checkpoint()
   }
 
   package init(
@@ -46,7 +73,7 @@ public struct CertifiedImplicitIntersectionCurve: Sendable, Hashable {
     secondSurface preparedSecondSurface: PreparedSurfaceDifferentialEncloser,
     validatedCells cells: [CertifiedImplicitIntersectionGraphCell],
     isClosed: Bool,
-    tolerance: ModelingTolerance, admission: SurfaceSurfaceQueryAdmission = .legacy
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws {
     firstSurface = preparedFirstSurface.surface
     secondSurface = preparedSecondSurface.surface
@@ -54,22 +81,44 @@ public struct CertifiedImplicitIntersectionCurve: Sendable, Hashable {
     self.isClosed = isClosed
     certificationTolerance = tolerance
     try validateCertificationContract(tolerance: tolerance)
-    try validateConnections(tolerance: tolerance, admission: admission,
+    try validateConnections(
+      tolerance: tolerance, using: &execution,
       preparedFirstSurface: preparedFirstSurface, preparedSecondSurface: preparedSecondSurface)
+    try execution.checkpoint()
   }
 
   public func validate(tolerance: ModelingTolerance) throws {
-    try validateCertificationContract(tolerance: tolerance)
-    try firstSurface.validate(tolerance: tolerance)
-    try secondSurface.validate(tolerance: tolerance)
-    for cell in cells {
-      try cell.validate(
-        firstSurface: firstSurface,
-        secondSurface: secondSurface,
-        tolerance: tolerance
-      )
+    var execution = try OriginalQueryExecution.surfaceSurface(
+      options: .init(),
+      context: .init(
+        operation: .surfaceSurface, entry: .ordinary, stage: .source,
+        first: .init(role: .firstSurface, request: .wholeSourceSupport),
+        second: .init(role: .secondSurface, request: .wholeSourceSupport)))
+    do {
+      try execution.checkpoint()
+      try validate(tolerance: tolerance, using: &execution)
+      execution.context = execution.context.at(stage: .publication)
+      try execution.checkpoint()
+    } catch {
+      throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance)
     }
-    try validateConnections(tolerance: tolerance)
+  }
+
+  public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution)
+    throws
+  {
+    try validateCertificationContract(tolerance: tolerance)
+    let preparedFirst = try PreparedSurfaceDifferentialEncloser(
+      surface: firstSurface, tolerance: tolerance, using: &execution)
+    let preparedSecond = try PreparedSurfaceDifferentialEncloser(
+      surface: secondSurface, tolerance: tolerance, using: &execution)
+    for cell in cells {
+      try execution.consumeWork(1)
+      try cell.validate(
+        firstSurface: preparedFirst, secondSurface: preparedSecond,
+        tolerance: tolerance, using: &execution)
+    }
+    try validateConnections(tolerance: tolerance, using: &execution)
   }
 
   /// Validates that this immutable certificate can be consumed at the
@@ -113,23 +162,24 @@ public struct CertifiedImplicitIntersectionCurve: Sendable, Hashable {
   }
 
   private func validateConnections(
-    tolerance: ModelingTolerance, admission: SurfaceSurfaceQueryAdmission = .legacy,
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution,
     preparedFirstSurface: PreparedSurfaceDifferentialEncloser? = nil,
     preparedSecondSurface: PreparedSurfaceDifferentialEncloser? = nil
   ) throws {
-    let domainMap: BoundedSurfaceParameterDomainMap? = cells.count > 1
+    let domainMap: BoundedSurfaceParameterDomainMap? =
+      cells.count > 1
       ? try BoundedSurfaceParameterDomainMap(
         first: firstSurface, second: secondSurface,
-        tolerance: certificationTolerance, admission: admission,
+        tolerance: certificationTolerance, using: &execution,
         preparedFirstSurface: preparedFirstSurface, preparedSecondSurface: preparedSecondSurface)
       : nil
     for index in 1..<cells.count {
-      try admission.step()
+      try execution.consumeWork(1)
       try validateConnection(
         fromCell: cells[index - 1],
         toCell: cells[index],
         parameterDomainMap: domainMap,
-        tolerance: tolerance, admission: admission,
+        tolerance: tolerance, using: &execution,
         preparedFirstSurface: preparedFirstSurface, preparedSecondSurface: preparedSecondSurface
       )
     }
@@ -138,7 +188,7 @@ public struct CertifiedImplicitIntersectionCurve: Sendable, Hashable {
         fromCell: cells[cells.count - 1],
         toCell: cells[0],
         parameterDomainMap: nil,
-        tolerance: tolerance, admission: admission,
+        tolerance: tolerance, using: &execution,
         preparedFirstSurface: preparedFirstSurface, preparedSecondSurface: preparedSecondSurface
       )
     }
@@ -148,6 +198,30 @@ public struct CertifiedImplicitIntersectionCurve: Sendable, Hashable {
     atNormalizedFraction fraction: Double,
     tolerance: ModelingTolerance
   ) throws -> SurfaceIntersectionParameterPair {
+    var execution = try OriginalQueryExecution.surfaceSurface(
+      options: .init(),
+      context: .init(
+        operation: .surfaceSurface, entry: .ordinary, stage: .source,
+        first: .init(role: .firstSurface, request: .wholeSourceSupport),
+        second: .init(role: .secondSurface, request: .wholeSourceSupport)))
+    do {
+      try execution.checkpoint()
+      let result = try parameterPair(
+        atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+      execution.context = execution.context.at(stage: .publication)
+      try execution.checkpoint()
+      return result
+    } catch {
+      throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance)
+    }
+  }
+
+  public func parameterPair(
+    atNormalizedFraction fraction: Double,
+    tolerance: ModelingTolerance, maximumSpanCount: Int? = nil, maximumSubdivisionDepth: Int? = nil,
+    remainingSourceDepth: Int? = nil, maximumAlgebraicDepth: Int? = nil,
+    using execution: inout OriginalQueryExecution
+  ) throws -> SurfaceIntersectionParameterPair {
     let location = try cellLocation(
       atNormalizedFraction: fraction,
       tolerance: tolerance
@@ -156,13 +230,38 @@ public struct CertifiedImplicitIntersectionCurve: Sendable, Hashable {
       atNormalizedFraction: location.fraction,
       firstSurface: firstSurface,
       secondSurface: secondSurface,
-      tolerance: tolerance
-    )
+      tolerance: tolerance, maximumSpanCount: maximumSpanCount,
+      maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
+      maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
   }
 
   public func point(
     atNormalizedFraction fraction: Double,
     tolerance: ModelingTolerance
+  ) throws -> Point3D {
+    var execution = try OriginalQueryExecution.surfaceSurface(
+      options: .init(),
+      context: .init(
+        operation: .surfaceSurface, entry: .ordinary, stage: .source,
+        first: .init(role: .firstSurface, request: .wholeSourceSupport),
+        second: .init(role: .secondSurface, request: .wholeSourceSupport)))
+    do {
+      try execution.checkpoint()
+      let result = try point(
+        atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+      execution.context = execution.context.at(stage: .publication)
+      try execution.checkpoint()
+      return result
+    } catch {
+      throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance)
+    }
+  }
+
+  public func point(
+    atNormalizedFraction fraction: Double,
+    tolerance: ModelingTolerance, maximumSpanCount: Int? = nil, maximumSubdivisionDepth: Int? = nil,
+    remainingSourceDepth: Int? = nil, maximumAlgebraicDepth: Int? = nil,
+    using execution: inout OriginalQueryExecution
   ) throws -> Point3D {
     let location = try cellLocation(
       atNormalizedFraction: fraction,
@@ -172,36 +271,80 @@ public struct CertifiedImplicitIntersectionCurve: Sendable, Hashable {
       atNormalizedFraction: location.fraction,
       firstSurface: firstSurface,
       secondSurface: secondSurface,
-      tolerance: tolerance
-    )
+      tolerance: tolerance, maximumSpanCount: maximumSpanCount,
+      maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
+      maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
   }
 
-  package func parameterPair(atNormalizedFraction fraction: Double,
+  package func parameterPair(
+    atNormalizedFraction fraction: Double,
     firstSurface first: PreparedSurfaceDifferentialEncloser,
     secondSurface second: PreparedSurfaceDifferentialEncloser,
-    tolerance: ModelingTolerance, admission: SurfaceSurfaceQueryAdmission) throws -> SurfaceIntersectionParameterPair {
-    try admission.step(); try validateCertificationContract(tolerance: tolerance)
-    try validatePreparedSources(first: first, second: second, admission: admission, tolerance: tolerance)
+    tolerance: ModelingTolerance, maximumSpanCount: Int? = nil, maximumSubdivisionDepth: Int? = nil,
+    remainingSourceDepth: Int? = nil, maximumAlgebraicDepth: Int? = nil,
+    using execution: inout OriginalQueryExecution
+  ) throws -> SurfaceIntersectionParameterPair {
+    try execution.consumeWork(1)
+    try validateCertificationContract(tolerance: tolerance)
+    try validatePreparedSources(
+      first: first, second: second, using: &execution, tolerance: tolerance)
     let location = try cellLocation(atNormalizedFraction: fraction, tolerance: tolerance)
-    return try cells[location.index].boundedParameterPair(atNormalizedFraction: location.fraction,
+    return try cells[location.index].boundedParameterPair(
+      atNormalizedFraction: location.fraction,
       firstSurface: first.surface, secondSurface: second.surface, tolerance: tolerance,
-      admission: admission, preparedFirstSurface: first, preparedSecondSurface: second)
+      maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
+      remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth,
+      using: &execution, preparedFirstSurface: first, preparedSecondSurface: second)
   }
 
-  package func point(atNormalizedFraction fraction: Double,
+  package func point(
+    atNormalizedFraction fraction: Double,
     firstSurface first: PreparedSurfaceDifferentialEncloser,
     secondSurface second: PreparedSurfaceDifferentialEncloser,
-    tolerance: ModelingTolerance, admission: SurfaceSurfaceQueryAdmission) throws -> Point3D {
-    try admission.step(); try validateCertificationContract(tolerance: tolerance)
-    try validatePreparedSources(first: first, second: second, admission: admission, tolerance: tolerance)
+    tolerance: ModelingTolerance, maximumSpanCount: Int? = nil, maximumSubdivisionDepth: Int? = nil,
+    remainingSourceDepth: Int? = nil, maximumAlgebraicDepth: Int? = nil,
+    using execution: inout OriginalQueryExecution
+  ) throws -> Point3D {
+    try execution.consumeWork(1)
+    try validateCertificationContract(tolerance: tolerance)
+    try validatePreparedSources(
+      first: first, second: second, using: &execution, tolerance: tolerance)
     let location = try cellLocation(atNormalizedFraction: fraction, tolerance: tolerance)
-    return try cells[location.index].point(atNormalizedFraction: location.fraction,
-      firstSurface: first, secondSurface: second, tolerance: tolerance, admission: admission)
+    return try cells[location.index].point(
+      atNormalizedFraction: location.fraction,
+      firstSurface: first, secondSurface: second, tolerance: tolerance,
+      maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
+      remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth,
+      using: &execution)
   }
 
   public func differential(
     atNormalizedFraction fraction: Double,
     tolerance: ModelingTolerance
+  ) throws -> CertifiedImplicitIntersectionDifferential {
+    var execution = try OriginalQueryExecution.surfaceSurface(
+      options: .init(),
+      context: .init(
+        operation: .surfaceSurface, entry: .ordinary, stage: .source,
+        first: .init(role: .firstSurface, request: .wholeSourceSupport),
+        second: .init(role: .secondSurface, request: .wholeSourceSupport)))
+    do {
+      try execution.checkpoint()
+      let result = try differential(
+        atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+      execution.context = execution.context.at(stage: .publication)
+      try execution.checkpoint()
+      return result
+    } catch {
+      throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance)
+    }
+  }
+
+  public func differential(
+    atNormalizedFraction fraction: Double,
+    tolerance: ModelingTolerance, maximumSpanCount: Int? = nil, maximumSubdivisionDepth: Int? = nil,
+    remainingSourceDepth: Int? = nil, maximumAlgebraicDepth: Int? = nil,
+    using execution: inout OriginalQueryExecution
   ) throws -> CertifiedImplicitIntersectionDifferential {
     let location = try cellLocation(
       atNormalizedFraction: fraction,
@@ -212,27 +355,81 @@ public struct CertifiedImplicitIntersectionCurve: Sendable, Hashable {
       parameterScale: Double(cells.count),
       firstSurface: firstSurface,
       secondSurface: secondSurface,
-      tolerance: tolerance
-    )
+      tolerance: tolerance, maximumSpanCount: maximumSpanCount,
+      maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
+      maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
   }
 
   func secondOrderDifferential(
     atNormalizedFraction fraction: Double,
     tolerance: ModelingTolerance
   ) throws -> CertifiedImplicitIntersectionDifferential.SecondOrder {
+    var execution = try OriginalQueryExecution.surfaceSurface(
+      options: .init(),
+      context: .init(
+        operation: .surfaceSurface, entry: .ordinary, stage: .source,
+        first: .init(role: .firstSurface, request: .wholeSourceSupport),
+        second: .init(role: .secondSurface, request: .wholeSourceSupport)))
+    do {
+      try execution.checkpoint()
+      let result = try secondOrderDifferential(
+        atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+      execution.context = execution.context.at(stage: .publication)
+      try execution.checkpoint()
+      return result
+    } catch {
+      throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance)
+    }
+  }
+
+  func secondOrderDifferential(
+    atNormalizedFraction fraction: Double,
+    tolerance: ModelingTolerance, maximumSpanCount: Int? = nil, maximumSubdivisionDepth: Int? = nil,
+    remainingSourceDepth: Int? = nil, maximumAlgebraicDepth: Int? = nil,
+    using execution: inout OriginalQueryExecution
+  ) throws -> CertifiedImplicitIntersectionDifferential.SecondOrder {
     let location = try cellLocation(atNormalizedFraction: fraction, tolerance: tolerance)
     return try cells[location.index].secondOrderDifferential(
       atNormalizedFraction: location.fraction, parameterScale: Double(cells.count),
-      firstSurface: firstSurface, secondSurface: secondSurface, tolerance: tolerance)
+      firstSurface: firstSurface, secondSurface: secondSurface, tolerance: tolerance,
+      maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
+      remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth,
+      using: &execution)
   }
 
   func thirdDerivative(
     atNormalizedFraction fraction: Double,
     tolerance: ModelingTolerance
   ) throws -> Vector3D {
+    var execution = try OriginalQueryExecution.surfaceSurface(
+      options: .init(),
+      context: .init(
+        operation: .surfaceSurface, entry: .ordinary, stage: .source,
+        first: .init(role: .firstSurface, request: .wholeSourceSupport),
+        second: .init(role: .secondSurface, request: .wholeSourceSupport)))
+    do {
+      try execution.checkpoint()
+      let result = try thirdDerivative(
+        atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+      execution.context = execution.context.at(stage: .publication)
+      try execution.checkpoint()
+      return result
+    } catch {
+      throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance)
+    }
+  }
+
+  func thirdDerivative(
+    atNormalizedFraction fraction: Double,
+    tolerance: ModelingTolerance, maximumSpanCount: Int? = nil, maximumSubdivisionDepth: Int? = nil,
+    remainingSourceDepth: Int? = nil, maximumAlgebraicDepth: Int? = nil,
+    using execution: inout OriginalQueryExecution
+  ) throws -> Vector3D {
     try differential(
       atNormalizedFraction: fraction,
-      tolerance: tolerance
+      tolerance: tolerance, maximumSpanCount: maximumSpanCount,
+      maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
+      maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution
     ).thirdDerivative
   }
 
@@ -240,6 +437,32 @@ public struct CertifiedImplicitIntersectionCurve: Sendable, Hashable {
     fromNormalizedFraction lower: Double,
     toNormalizedFraction upper: Double,
     tolerance: ModelingTolerance
+  ) throws -> BoundingBox3D {
+    var execution = try OriginalQueryExecution.surfaceSurface(
+      options: .init(),
+      context: .init(
+        operation: .surfaceSurface, entry: .ordinary, stage: .source,
+        first: .init(role: .firstSurface, request: .wholeSourceSupport),
+        second: .init(role: .secondSurface, request: .wholeSourceSupport)))
+    do {
+      try execution.checkpoint()
+      let result = try boundingBox(
+        fromNormalizedFraction: lower, toNormalizedFraction: upper, tolerance: tolerance,
+        using: &execution)
+      execution.context = execution.context.at(stage: .publication)
+      try execution.checkpoint()
+      return result
+    } catch {
+      throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance)
+    }
+  }
+
+  public func boundingBox(
+    fromNormalizedFraction lower: Double,
+    toNormalizedFraction upper: Double,
+    tolerance: ModelingTolerance, maximumSpanCount: Int? = nil, maximumSubdivisionDepth: Int? = nil,
+    remainingSourceDepth: Int? = nil, maximumAlgebraicDepth: Int? = nil,
+    using execution: inout OriginalQueryExecution
   ) throws -> BoundingBox3D {
     guard lower.isFinite,
       upper.isFinite,
@@ -259,25 +482,40 @@ public struct CertifiedImplicitIntersectionCurve: Sendable, Hashable {
     )
     let encloser = try PreparedSurfaceDifferentialEncloser(
       surface: firstSurface,
-      tolerance: tolerance
-    )
+      tolerance: tolerance,
+      remainingSourceDepth: min(
+        remainingSourceDepth ?? execution.effectiveLimits.remainingSourceDepth,
+        execution.effectiveLimits.remainingSourceDepth),
+      maximumSubdivisionDepth: min(
+        maximumSubdivisionDepth ?? execution.effectiveLimits.maximumSubdivisionDepth,
+        execution.effectiveLimits.maximumSubdivisionDepth), maximumAlgebraicDepth: maximumAlgebraicDepth,
+      using: &execution)
     var result: BoundingBox3D?
     for index in lowerLocation.index...upperLocation.index {
+      try execution.consumeWork(1)
       let box = cells[index].parameterBox
-      let enclosure = try encloser.enclosure(
+      let enclosure = try encloser.positionBounds(
         over: SurfaceParameterBox(u: box.firstU, v: box.firstV),
-        tolerance: tolerance
+        tolerance: tolerance,
+        maximumSpanCount: min(
+          maximumSpanCount ?? execution.effectiveLimits.maximumSpans, execution.effectiveLimits.maximumSpans),
+        maximumSubdivisionDepth: min(
+          maximumSubdivisionDepth ?? execution.effectiveLimits.maximumSubdivisionDepth,
+          execution.effectiveLimits.maximumSubdivisionDepth),
+        remainingSourceDepth: min(
+          remainingSourceDepth ?? execution.effectiveLimits.remainingSourceDepth,
+          execution.effectiveLimits.remainingSourceDepth), using: &execution
       )
       let patchBounds = try BoundingBox3D(
         minimum: Point3D(
-          x: enclosure.position.x.lower,
-          y: enclosure.position.y.lower,
-          z: enclosure.position.z.lower
+          x: enclosure.x.lower,
+          y: enclosure.y.lower,
+          z: enclosure.z.lower
         ),
         maximum: Point3D(
-          x: enclosure.position.x.upper,
-          y: enclosure.position.y.upper,
-          z: enclosure.position.z.upper
+          x: enclosure.x.upper,
+          y: enclosure.y.upper,
+          z: enclosure.z.upper
         )
       )
       if let current = result {
@@ -297,19 +535,18 @@ public struct CertifiedImplicitIntersectionCurve: Sendable, Hashable {
     return try result.expanded(by: tolerance.distance)
   }
 
-  private func validatePreparedSources(first: PreparedSurfaceDifferentialEncloser,
-    second: PreparedSurfaceDifferentialEncloser, admission: SurfaceSurfaceQueryAdmission,
-    tolerance: ModelingTolerance) throws {
-    func charge(_ count: Int) throws {
-      guard count >= 0 else { throw GeometryConversionError.invalidInput("Original source comparison work is negative.") }
-      for _ in 0..<count { try admission.step() }
-    }
-    try GeometryStructuralComparisonWork.charge(surface: firstSurface, using: charge)
-    try GeometryStructuralComparisonWork.charge(surface: first.surface, using: charge)
-    try GeometryStructuralComparisonWork.charge(surface: secondSurface, using: charge)
-    try GeometryStructuralComparisonWork.charge(surface: second.surface, using: charge)
+  private func validatePreparedSources(
+    first: PreparedSurfaceDifferentialEncloser,
+    second: PreparedSurfaceDifferentialEncloser, using execution: inout OriginalQueryExecution,
+    tolerance: ModelingTolerance
+  ) throws {
+    try GeometryStructuralComparisonWork.charge(surface: firstSurface, using: &execution)
+    try GeometryStructuralComparisonWork.charge(surface: first.surface, using: &execution)
+    try GeometryStructuralComparisonWork.charge(surface: secondSurface, using: &execution)
+    try GeometryStructuralComparisonWork.charge(surface: second.surface, using: &execution)
     guard first.surface == firstSurface, second.surface == secondSurface else {
-      throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+      throw KernelError(
+        phase: .geometry, code: .invalidInput, tolerance: tolerance,
         message: "Original graph query prepared owners do not match its retained supports.")
     }
   }
@@ -338,217 +575,242 @@ public struct CertifiedImplicitIntersectionCurve: Sendable, Hashable {
     fromCell: CertifiedImplicitIntersectionGraphCell,
     toCell: CertifiedImplicitIntersectionGraphCell,
     parameterDomainMap: BoundedSurfaceParameterDomainMap?,
-    tolerance: ModelingTolerance, admission: SurfaceSurfaceQueryAdmission = .legacy,
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution,
     preparedFirstSurface: PreparedSurfaceDifferentialEncloser? = nil,
     preparedSecondSurface: PreparedSurfaceDifferentialEncloser? = nil
   ) throws {
-    let preparedFirst = try preparedFirstSurface ?? admission.prepare(firstSurface, tolerance: tolerance)
-    let preparedSecond = try preparedSecondSurface ?? admission.prepare(secondSurface, tolerance: tolerance)
-    let from = try fromCell.connectionSource(atEnd: true, first: preparedFirst,
-      second: preparedSecond, tolerance: tolerance, admission: admission)
-    let to = try toCell.connectionSource(atEnd: false, first: preparedFirst,
-      second: preparedSecond, tolerance: tolerance, admission: admission)
-    if let parameterDomainMap {
-      var parameterResidual = 0.0
-      for coordinate in 0..<4 {
-        let a = from.parameters[coordinate], b = to.parameters[coordinate]
-        let normalizedA = try parameterDomainMap.originalNormalizedBounds(
-          .init(lower: a.lower, upper: a.upper), coordinate: coordinate, admission: admission)
-        let normalizedB = try parameterDomainMap.originalNormalizedBounds(
-          .init(lower: b.lower, upper: b.upper), coordinate: coordinate, admission: admission)
-        parameterResidual = max(parameterResidual, (normalizedA - normalizedB).absoluteUpperBound)
+    try execution.checkpoint()
+    execution.context = execution.context.at(stage: .relation)
+    guard
+      let fromGraph = try OriginalAuthoredPlaneIntersectionGraph.prepare(
+        first: firstSurface, second: secondSurface, parameterBox: fromCell.parameterBox,
+        freeParameter: fromCell.freeParameter, using: &execution),
+      let toGraph = try OriginalAuthoredPlaneIntersectionGraph.prepare(
+        first: firstSurface, second: secondSurface, parameterBox: toCell.parameterBox,
+        freeParameter: toCell.freeParameter, using: &execution)
+    else {
+      // FIXME(INCOMPLETE_IMPLEMENTATION): Regular SSI atlas assembly and decoded
+      // multi-cell implicit curves require original common-root transition proof.
+      // Proximity of endpoint boxes/points/tangents cannot establish identity;
+      // general joins must not succeed before that source-bound proof exists.
+      throw OriginalQueryFailure.published(
+        KernelError(
+          phase: .geometry,
+          code: .unsupportedCapability, tolerance: tolerance,
+          message: "Original graph connection lacks exact common-root transition evidence."),
+        context: execution.context, tolerance: tolerance)
+    }
+    let from = try fromGraph.endpoint(atEnd: true, direction: fromCell.direction, using: &execution)
+    let to = try toGraph.endpoint(atEnd: false, direction: toCell.direction, using: &execution)
+    for index in 0..<4 {
+      try execution.consumeWork(1)
+      guard try from.parameters[index].subtracting(to.parameters[index], usage: &execution).isZero
+      else {
+        throw KernelError(
+          phase: .geometry, code: .intersectionFailure, tolerance: tolerance,
+          message: "Original authored-plane graph endpoints are source-distinct.")
       }
-      guard parameterResidual.isFinite, parameterResidual <= tolerance.relative else {
-        throw KernelError(phase: .geometry, code: .intersectionFailure,
-          residual: parameterResidual, tolerance: tolerance,
-          message: "Original closed graph roots do not certify four-dimensional parameter continuity.")
+    }
+    guard let pivot = from.derivative.firstIndex(where: { !$0.isZero }),
+      !to.derivative[pivot].isZero
+    else {
+      throw KernelError(
+        phase: .geometry, code: .singularSystem, tolerance: tolerance,
+        message: "Original affine graph connection has no nonzero directed parameter derivative.")
+    }
+    let ratio = try to.derivative[pivot].divided(by: from.derivative[pivot], usage: &execution)
+    guard ratio.isPositive else {
+      throw KernelError(
+        phase: .geometry, code: .intersectionFailure, tolerance: tolerance,
+        message: "Original affine graph connection reverses its source orientation.")
+    }
+    for index in 0..<4 {
+      try execution.consumeWork(1)
+      guard
+        try from.derivative[index].multiplied(by: ratio, usage: &execution)
+          .subtracting(to.derivative[index], usage: &execution).isZero
+      else {
+        throw KernelError(
+          phase: .geometry, code: .intersectionFailure, tolerance: tolerance,
+          message: "Original affine graph connection has unequal source directions.")
       }
     }
-    let geometricResidual = max((from.first - to.first).lengthUpperBound,
-      (from.second - to.second).lengthUpperBound,
-      (from.first - from.second).lengthUpperBound,
-      (to.first - to.second).lengthUpperBound)
-    guard geometricResidual.isFinite, geometricResidual <= tolerance.distance else {
-      throw KernelError(phase: .geometry, code: .intersectionFailure,
-        residual: geometricResidual, tolerance: tolerance,
-        message: "Original closed graph endpoint bounds do not certify continuity on both source surfaces.")
-    }
-    func scaled(_ vector: IntervalVector3DBounds) throws -> IntervalVector3DBounds {
-      try admission.step()
-      let magnitude = max(vector.x.absoluteUpperBound, vector.y.absoluteUpperBound,
-        vector.z.absoluteUpperBound)
-      guard magnitude.isFinite, magnitude > 0,
-        let x = vector.x.divided(by: .exact(magnitude)),
-        let y = vector.y.divided(by: .exact(magnitude)),
-        let z = vector.z.divided(by: .exact(magnitude)) else {
-        throw KernelError(phase: .geometry, code: .singularSystem, tolerance: tolerance,
-          message: "Original graph connection has no finite nonzero tangent enclosure.")
-      }
-      return .init(x: x, y: y, z: z)
-    }
-    let fromTangent = try scaled(from.tangent), toTangent = try scaled(to.tangent)
-    let magnitudeProduct = OutwardScalarInterval.exact(fromTangent.lengthLowerBound)
-      * .exact(toTangent.lengthLowerBound)
-    guard magnitudeProduct.isFinite, magnitudeProduct.lower > 0,
-      let angularResidual = OutwardScalarInterval.exact(fromTangent.cross(toTangent).lengthUpperBound)
-        .divided(by: magnitudeProduct), angularResidual.isFinite else {
-      throw KernelError(phase: .geometry, code: .singularSystem, tolerance: tolerance,
-        message: "Original closed graph connection cannot certify regular tangents.")
-    }
-    let threshold = min(sin(tolerance.angle), SurfaceIntervalJet.sine(of: .constant(tolerance.angle)).value.lower)
-    guard fromTangent.dot(toTangent).lower > 0, angularResidual.upper <= threshold else {
-      throw KernelError(phase: .geometry, code: .intersectionFailure,
-        residual: angularResidual.upper, tolerance: tolerance,
-        message: "Original closed graph endpoint tangent bounds do not certify orientation and angular continuity.")
-    }
+    try execution.checkpoint()
   }
 
-#if !hasFeature(Embedded)
-  private enum CodingKeys: String, CodingKey {
-    case firstSurface
-    case secondSurface
-    case cells
-    case isClosed
-    case certificationTolerance
-  }
-#endif
-
-#if !hasFeature(Embedded)
-  private struct GraphCellPayload: Codable {
-    let parameterBox: SurfaceIntersectionParameterBox
-    let freeParameter: SurfaceIntersectionParameterCoordinate
-    let direction: CertifiedImplicitIntersectionDirection
-    let lowerAnchor: SurfaceIntersectionParameterPair
-    let midpointAnchor: SurfaceIntersectionParameterPair
-    let upperAnchor: SurfaceIntersectionParameterPair
-
+  #if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
-      case parameterBox
-      case freeParameter
-      case direction
-      case lowerAnchor
-      case midpointAnchor
-      case upperAnchor
+      case firstSurface
+      case secondSurface
+      case cells
+      case isClosed
+      case certificationTolerance
     }
+  #endif
 
-    init(cell: CertifiedImplicitIntersectionGraphCell) {
-      parameterBox = cell.parameterBox
-      freeParameter = cell.freeParameter
-      direction = cell.direction
-      lowerAnchor = cell.lowerAnchor
-      midpointAnchor = cell.midpointAnchor
-      upperAnchor = cell.upperAnchor
+  #if !hasFeature(Embedded)
+    private struct GraphCellPayload: Codable {
+      let parameterBox: SurfaceIntersectionParameterBox
+      let freeParameter: SurfaceIntersectionParameterCoordinate
+      let direction: CertifiedImplicitIntersectionDirection
+      let lowerAnchor: SurfaceIntersectionParameterPair
+      let midpointAnchor: SurfaceIntersectionParameterPair
+      let upperAnchor: SurfaceIntersectionParameterPair
+
+      private enum CodingKeys: String, CodingKey {
+        case parameterBox
+        case freeParameter
+        case direction
+        case lowerAnchor
+        case midpointAnchor
+        case upperAnchor
+      }
+
+      init(cell: CertifiedImplicitIntersectionGraphCell) {
+        parameterBox = cell.parameterBox
+        freeParameter = cell.freeParameter
+        direction = cell.direction
+        lowerAnchor = cell.lowerAnchor
+        midpointAnchor = cell.midpointAnchor
+        upperAnchor = cell.upperAnchor
+      }
+
+      init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        try container.validateOnlyExpectedKeys(
+          [
+            .parameterBox,
+            .freeParameter,
+            .direction,
+            .lowerAnchor,
+            .midpointAnchor,
+            .upperAnchor,
+          ],
+          in: decoder
+        )
+        parameterBox = try container.decode(
+          SurfaceIntersectionParameterBox.self,
+          forKey: .parameterBox
+        )
+        freeParameter = try container.decode(
+          SurfaceIntersectionParameterCoordinate.self,
+          forKey: .freeParameter
+        )
+        direction = try container.decode(
+          CertifiedImplicitIntersectionDirection.self,
+          forKey: .direction
+        )
+        lowerAnchor = try container.decode(
+          SurfaceIntersectionParameterPair.self,
+          forKey: .lowerAnchor
+        )
+        midpointAnchor = try container.decode(
+          SurfaceIntersectionParameterPair.self,
+          forKey: .midpointAnchor
+        )
+        upperAnchor = try container.decode(
+          SurfaceIntersectionParameterPair.self,
+          forKey: .upperAnchor
+        )
+      }
+
+      func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(parameterBox, forKey: .parameterBox)
+        try container.encode(freeParameter, forKey: .freeParameter)
+        try container.encode(direction, forKey: .direction)
+        try container.encode(lowerAnchor, forKey: .lowerAnchor)
+        try container.encode(midpointAnchor, forKey: .midpointAnchor)
+        try container.encode(upperAnchor, forKey: .upperAnchor)
+      }
+
+      func graphCell(
+        firstSurface: PreparedSurfaceDifferentialEncloser,
+        secondSurface: PreparedSurfaceDifferentialEncloser,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+      ) throws -> CertifiedImplicitIntersectionGraphCell {
+        try CertifiedImplicitIntersectionGraphCell(
+          parameterBox: parameterBox,
+          freeParameter: freeParameter,
+          direction: direction,
+          lowerAnchor: lowerAnchor,
+          midpointAnchor: midpointAnchor,
+          upperAnchor: upperAnchor,
+          firstSurface: firstSurface,
+          secondSurface: secondSurface,
+          tolerance: tolerance, using: &execution
+        )
+      }
     }
+  #endif
 
-    init(from decoder: Decoder) throws {
+  #if !hasFeature(Embedded)
+    public init(from decoder: Decoder) throws {
       let container = try decoder.container(keyedBy: CodingKeys.self)
       try container.validateOnlyExpectedKeys(
-        [
-          .parameterBox,
-          .freeParameter,
-          .direction,
-          .lowerAnchor,
-          .midpointAnchor,
-          .upperAnchor,
-        ],
+        [.firstSurface, .secondSurface, .cells, .isClosed, .certificationTolerance],
         in: decoder
       )
-      parameterBox = try container.decode(
-        SurfaceIntersectionParameterBox.self,
-        forKey: .parameterBox
-      )
-      freeParameter = try container.decode(
-        SurfaceIntersectionParameterCoordinate.self,
-        forKey: .freeParameter
-      )
-      direction = try container.decode(
-        CertifiedImplicitIntersectionDirection.self,
-        forKey: .direction
-      )
-      lowerAnchor = try container.decode(
-        SurfaceIntersectionParameterPair.self,
-        forKey: .lowerAnchor
-      )
-      midpointAnchor = try container.decode(
-        SurfaceIntersectionParameterPair.self,
-        forKey: .midpointAnchor
-      )
-      upperAnchor = try container.decode(
-        SurfaceIntersectionParameterPair.self,
-        forKey: .upperAnchor
-      )
-    }
+      let firstSurface = try container.decode(Surface3D.self, forKey: .firstSurface)
+      let secondSurface = try container.decode(Surface3D.self, forKey: .secondSurface)
+      let tolerance = try container.decode(ModelingTolerance.self, forKey: .certificationTolerance)
+      try tolerance.validate()
+      let payloads = try container.decode([GraphCellPayload].self, forKey: .cells)
+      var execution = try OriginalQueryExecution.surfaceSurface(
+        options: .init(),
+        context: .init(
+          operation: .surfaceSurface, entry: .ordinary, stage: .source,
+          first: .init(role: .firstSurface, request: .wholeSourceSupport),
+          second: .init(role: .secondSurface, request: .wholeSourceSupport)))
+      do {
+        let preparedFirst = try PreparedSurfaceDifferentialEncloser(
+          surface: firstSurface,
+          tolerance: tolerance, using: &execution)
+        let preparedSecond = try PreparedSurfaceDifferentialEncloser(
+          surface: secondSurface,
+          tolerance: tolerance, using: &execution)
+        try execution.retainStorage(
+          count: payloads.count, stride: MemoryLayout<CertifiedImplicitIntersectionGraphCell>.stride
+        )
+        let cells = try payloads.map {
+          try execution.consumeWork(1)
+          return try $0.graphCell(
+            firstSurface: preparedFirst, secondSurface: preparedSecond,
+            tolerance: tolerance, using: &execution)
+        }
+        try self.init(
+          firstSurface: preparedFirst, secondSurface: preparedSecond,
+          validatedCells: cells, isClosed: container.decode(Bool.self, forKey: .isClosed),
+          tolerance: tolerance, using: &execution)
+        execution.context = execution.context.at(stage: .publication)
+        try execution.checkpoint()
+      } catch {
+        throw OriginalQueryFailure.published(
+          error, context: execution.context, tolerance: tolerance)
+      }
 
-    func encode(to encoder: Encoder) throws {
+    }
+  #endif
+
+  #if !hasFeature(Embedded)
+    public func encode(to encoder: Encoder) throws {
+      var execution = try OriginalQueryExecution.surfaceSurface(
+        options: .init(),
+        context: .init(operation: .surfaceSurface, entry: .ordinary, stage: .publication))
+
+      try validate(tolerance: certificationTolerance, using: &execution)
+      execution.context = execution.context.at(stage: .publication)
+      try execution.checkpoint()
       var container = encoder.container(keyedBy: CodingKeys.self)
-      try container.encode(parameterBox, forKey: .parameterBox)
-      try container.encode(freeParameter, forKey: .freeParameter)
-      try container.encode(direction, forKey: .direction)
-      try container.encode(lowerAnchor, forKey: .lowerAnchor)
-      try container.encode(midpointAnchor, forKey: .midpointAnchor)
-      try container.encode(upperAnchor, forKey: .upperAnchor)
+      try container.encode(firstSurface, forKey: .firstSurface)
+      try container.encode(secondSurface, forKey: .secondSurface)
+      try execution.retainStorage(count: cells.count, stride: MemoryLayout<GraphCellPayload>.stride)
+      try container.encode(cells.map(GraphCellPayload.init), forKey: .cells)
+      try container.encode(isClosed, forKey: .isClosed)
+      try container.encode(certificationTolerance, forKey: .certificationTolerance)
+      try execution.checkpoint()
     }
-
-    func graphCell(
-      firstSurface: Surface3D,
-      secondSurface: Surface3D,
-      tolerance: ModelingTolerance
-    ) throws -> CertifiedImplicitIntersectionGraphCell {
-      try CertifiedImplicitIntersectionGraphCell(
-        parameterBox: parameterBox,
-        freeParameter: freeParameter,
-        direction: direction,
-        lowerAnchor: lowerAnchor,
-        midpointAnchor: midpointAnchor,
-        upperAnchor: upperAnchor,
-        firstSurface: firstSurface,
-        secondSurface: secondSurface,
-        tolerance: tolerance
-      )
-    }
-  }
-#endif
-
-#if !hasFeature(Embedded)
-  public init(from decoder: Decoder) throws {
-    let container = try decoder.container(keyedBy: CodingKeys.self)
-    try container.validateOnlyExpectedKeys(
-      [.firstSurface, .secondSurface, .cells, .isClosed, .certificationTolerance],
-      in: decoder
-    )
-    let firstSurface = try container.decode(Surface3D.self, forKey: .firstSurface)
-    let secondSurface = try container.decode(Surface3D.self, forKey: .secondSurface)
-    let tolerance = try container.decode(ModelingTolerance.self, forKey: .certificationTolerance)
-    try tolerance.validate()
-    let payloads = try container.decode([GraphCellPayload].self, forKey: .cells)
-    let cells = try payloads.map {
-      try $0.graphCell(
-        firstSurface: firstSurface,
-        secondSurface: secondSurface,
-        tolerance: tolerance
-      )
-    }
-    try self.init(
-      firstSurface: firstSurface,
-      secondSurface: secondSurface,
-      cells: cells,
-      isClosed: try container.decode(Bool.self, forKey: .isClosed),
-      tolerance: tolerance
-    )
-  }
-#endif
-
-#if !hasFeature(Embedded)
-  public func encode(to encoder: Encoder) throws {
-    try validate(tolerance: certificationTolerance)
-    var container = encoder.container(keyedBy: CodingKeys.self)
-    try container.encode(firstSurface, forKey: .firstSurface)
-    try container.encode(secondSurface, forKey: .secondSurface)
-    try container.encode(cells.map(GraphCellPayload.init), forKey: .cells)
-    try container.encode(isClosed, forKey: .isClosed)
-    try container.encode(certificationTolerance, forKey: .certificationTolerance)
-  }
-#endif
+  #endif
 }
 
 extension CertifiedImplicitIntersectionCurve {
@@ -567,8 +829,23 @@ extension CertifiedImplicitIntersectionCurve {
       tolerance: tolerance
     )
   }
+  public init(
+    firstSurface: BSplineSurface3D,
+    secondSurface: BSplineSurface3D,
+    cells: [CertifiedImplicitIntersectionGraphCell],
+    isClosed: Bool,
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+  ) throws {
+    try self.init(
+      firstSurface: .bSpline(firstSurface),
+      secondSurface: .bSpline(secondSurface),
+      cells: cells,
+      isClosed: isClosed,
+      tolerance: tolerance, using: &execution
+    )
+  }
 }
 
 #if !hasFeature(Embedded)
-extension CertifiedImplicitIntersectionCurve: Codable {}
+  extension CertifiedImplicitIntersectionCurve: Codable {}
 #endif

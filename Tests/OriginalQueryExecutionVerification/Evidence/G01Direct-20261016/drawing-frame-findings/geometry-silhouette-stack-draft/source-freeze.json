@@ -1,0 +1,30 @@
+{
+  "status": "source-ready-frozen-no-compiler",
+  "sourceRoots": [
+    "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD"
+  ],
+  "files": {
+    "Sources/CADGeometry/SurfaceSilhouette/DefaultSurfaceSilhouetteProducer.swift": "3865a56dc120c28019ee49cf7a2c116c756cb1ffa309f0c4992742b86b2cb633",
+    "Sources/CADGeometry/SurfaceSilhouette/DESIGN.md": "2e91da04632038504cb8bf3fd98be9424140d0e512342896667844059d3dd561"
+  },
+  "bodyComparisonSHA256": "0156d37c7d875e01b910edbd3dc0437eb2b56b68d4e57d158b41cb7866cc0951",
+  "mechanicalPatchSHA256": "1c1542504f5058cf78e946b0789f26a855aa021fdd95869f1cec9b721c904b30",
+  "publicPreflightEarlyZeroExactTextEqual": true,
+  "nativeCoverAndSixBranchesAndPublicationActualBodyComparisons": 9,
+  "resourceOperationOccurrenceCountsUnchanged": true,
+  "noExplicitCopiesAdded": true,
+  "sameOriginalOwners": [
+    "OriginalQueryExecution",
+    "Pending source field and closed cover",
+    "criticalSourceCache",
+    "planeRealLocusCache",
+    "six output arrays"
+  ],
+  "knownMeasuredBeforeFrameBytes": 917552,
+  "awaiting": [
+    "Native semantic/object compile",
+    "actual new prologues",
+    "unchanged real Drawing3 runtime"
+  ]
+}

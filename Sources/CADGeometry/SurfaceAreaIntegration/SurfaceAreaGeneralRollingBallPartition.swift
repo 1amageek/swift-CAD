@@ -23,16 +23,13 @@ struct SurfaceAreaGeneralRollingBallPartition: Sendable {
     private let originalRemainingSourceDepth: Int
     private let originalMaximumAlgebraicDepth: Int?
 
-    init(original: RollingBallBlendSurface3D, tolerance: ModelingTolerance,
-        consumeWork: () throws -> Void, maximumSubdivisionDepth: Int? = nil,
-        remainingSourceDepth: Int = 16, maximumAlgebraicDepth: Int? = nil,
-        consumeStorage: ((Int) throws -> Void)? = nil) throws {
+    init(original: RollingBallBlendSurface3D, tolerance: ModelingTolerance, maximumSubdivisionDepth: Int? = nil,
+        remainingSourceDepth: Int = 16, maximumAlgebraicDepth: Int? = nil, using execution: inout OriginalQueryExecution) throws {
         if let maximumSubdivisionDepth {
             try Surface3D.procedural(.rollingBall(original)).validateOriginalSource(tolerance:tolerance,
                 remainingSourceDepth:remainingSourceDepth,maximumSubdivisionDepth:maximumSubdivisionDepth,
-                consumeWork:{ _ in try consumeWork() },consumeStorage:consumeStorage,
-                maximumAlgebraicDepth:maximumAlgebraicDepth)
-        } else { try original.validate() }
+                maximumAlgebraicDepth:maximumAlgebraicDepth, using: &execution)
+        } else { try original.validate(using: &execution) }
         originalMaximumSubdivisionDepth = maximumSubdivisionDepth
         originalRemainingSourceDepth = remainingSourceDepth
         originalMaximumAlgebraicDepth = maximumAlgebraicDepth
@@ -43,20 +40,20 @@ struct SurfaceAreaGeneralRollingBallPartition: Sendable {
         self.original = original
         surface = .procedural(.rollingBall(original))
         preparationTolerance = tolerance
-        try consumeStorage?(2 * MemoryLayout<Double>.stride)
+        try execution.retainStorage(bytes: 2 * MemoryLayout<Double>.stride)
         var breaks = [lower, upper]
         try Self.appendNativeBreaks(original.firstContact, lower: lower, upper: upper,
-            to: &breaks, tolerance: tolerance, consumeWork: consumeWork,consumeStorage:consumeStorage,maximumAlgebraicDepth:maximumAlgebraicDepth)
+            to: &breaks, tolerance: tolerance,maximumAlgebraicDepth:maximumAlgebraicDepth, using: &execution)
         try Self.appendNativeBreaks(original.secondContact, lower: lower, upper: upper,
-            to: &breaks, tolerance: tolerance, consumeWork: consumeWork,consumeStorage:consumeStorage,maximumAlgebraicDepth:maximumAlgebraicDepth)
+            to: &breaks, tolerance: tolerance,maximumAlgebraicDepth:maximumAlgebraicDepth, using: &execution)
         try Self.appendNativeBreaks(original.centerSpine, lower: lower, upper: upper,
-            to: &breaks, tolerance: tolerance, consumeWork: consumeWork,consumeStorage:consumeStorage,maximumAlgebraicDepth:maximumAlgebraicDepth)
-        try breaks.sort { try consumeWork(); return $0 < $1 }
-        try consumeStorage?(try Self.requestedBytes(breaks.count, MemoryLayout<ScalarInterval>.stride))
+            to: &breaks, tolerance: tolerance,maximumAlgebraicDepth:maximumAlgebraicDepth, using: &execution)
+        try breaks.sort { try execution.consumeWork(1); return $0 < $1 }
+        try execution.retainStorage(bytes: try Self.requestedBytes(breaks.count, MemoryLayout<ScalarInterval>.stride))
         var pieces: [ScalarInterval] = []
         pieces.reserveCapacity(breaks.count)
         for index in 1..<breaks.count where breaks[index - 1] < breaks[index] {
-            try consumeWork()
+            try execution.consumeWork(1)
             pieces.append(try ScalarInterval(lower: breaks[index - 1], upper: breaks[index]))
         }
         domains = pieces
@@ -64,10 +61,9 @@ struct SurfaceAreaGeneralRollingBallPartition: Sendable {
         func prepareRail(_ curve: Curve3D) throws -> PreparedCurveDifferentialEncloser {
             if let maximumSubdivisionDepth {
                 return try PreparedCurveDifferentialEncloser(curve:curve,tolerance:tolerance,
-                    remainingSourceDepth:remainingSourceDepth,maximumSubdivisionDepth:maximumSubdivisionDepth,
-                    consumeWork:consumeWork,consumeStorage:consumeStorage,maximumAlgebraicDepth:maximumAlgebraicDepth)
+                    remainingSourceDepth:remainingSourceDepth,maximumSubdivisionDepth:maximumSubdivisionDepth,maximumAlgebraicDepth:maximumAlgebraicDepth, using: &execution)
             }
-            return try PreparedCurveDifferentialEncloser(curve:curve,tolerance:tolerance,consumeWork:consumeWork)
+            return try PreparedCurveDifferentialEncloser(curve:curve,tolerance:tolerance, using: &execution)
         }
         first = try prepareRail(original.firstContact)
         second = try prepareRail(original.secondContact)
@@ -75,27 +71,25 @@ struct SurfaceAreaGeneralRollingBallPartition: Sendable {
     }
 
     func rectangleDomains(over box: SurfaceParameterBox, maximumCount: Int,
-        tolerance: ModelingTolerance, maximumSubdivisionDepth: Int = Int.max,
-        consumeWork: (Int) throws -> Void = { _ in try CurrentTaskCancellationChecker().checkCancellation() },
-        consumeStorage: ((Int) throws -> Void)? = nil) throws -> [SurfaceAreaNativeSpanDomain]? {
+        tolerance: ModelingTolerance, maximumSubdivisionDepth: Int = Int.max, using execution: inout OriginalQueryExecution) throws -> [SurfaceAreaNativeSpanDomain]? {
         guard maximumSubdivisionDepth >= 0, maximumCount > 0 else {
             throw GeometryConversionError.resourceLimitExceeded("Original native partition exhausted caller admission.")
         }
-        try consumeWork(0); try CurrentTaskCancellationChecker().checkCancellation()
+        try execution.visitGeometricCell(depth: 0); try CurrentTaskCancellationChecker().checkCancellation()
 
         try validate(tolerance)
         guard hasNativeJoins else { return nil }
-        try OriginalCoefficientAllocation.reserve(count:domains.count,of:SurfaceAreaNativeSpanDomain.self,consumeStorage:consumeStorage)
+        try OriginalCoefficientAllocation.reserve(count:domains.count,of:SurfaceAreaNativeSpanDomain.self, using: &execution)
         var result: [SurfaceAreaNativeSpanDomain] = []
         result.reserveCapacity(domains.count)
         for (index, range) in domains.enumerated() {
-            try consumeWork(0); try CurrentTaskCancellationChecker().checkCancellation()
+            try execution.visitGeometricCell(depth: 0); try CurrentTaskCancellationChecker().checkCancellation()
             let a = max(range.lower, box.u.lower), b = min(range.upper, box.u.upper)
             guard a < b else { continue }
             guard result.count < maximumCount else {
                 throw Self.failure(.resourceLimitExceeded, tolerance, "Original rolling-ball native domains exceed the shared cell budget.")
             }
-            try consumeWork(0)
+            try execution.visitGeometricCell(depth: 0)
             result.append(.init(rectangle: SurfaceParameterBox(u: try ScalarInterval(lower: a, upper: b), v: box.v),
                 radialRange: nil, index: index, source: surface, curve: nil, anchor: nil))
         }
@@ -103,13 +97,11 @@ struct SurfaceAreaGeneralRollingBallPartition: Sendable {
     }
 
     func fanDomains(curve: SurfaceParameterCurve, anchor: SurfaceParameter,
-        maximumCount: Int, tolerance: ModelingTolerance, maximumSubdivisionDepth: Int = Int.max,
-        consumeWork: (Int) throws -> Void = { _ in try CurrentTaskCancellationChecker().checkCancellation() },
-        consumeStorage: ((Int) throws -> Void)? = nil) throws -> [SurfaceAreaNativeSpanDomain]? {
+        maximumCount: Int, tolerance: ModelingTolerance, maximumSubdivisionDepth: Int = Int.max, using execution: inout OriginalQueryExecution) throws -> [SurfaceAreaNativeSpanDomain]? {
         guard maximumSubdivisionDepth >= 0, maximumCount > 0 else {
             throw GeometryConversionError.resourceLimitExceeded("Original native partition exhausted caller admission.")
         }
-        try consumeWork(0); try CurrentTaskCancellationChecker().checkCancellation()
+        try execution.visitGeometricCell(depth: 0); try CurrentTaskCancellationChecker().checkCancellation()
 
         try validate(tolerance)
         guard hasNativeJoins, case .constantU(let end, let v0, let v1) = curve,
@@ -117,39 +109,37 @@ struct SurfaceAreaGeneralRollingBallPartition: Sendable {
         let delta = end - anchor.u
         guard delta.isFinite, delta != 0 else { return nil }
         func cut(_ knot: Double) throws -> Double? {
-            try consumeWork(0)
+            try execution.visitGeometricCell(depth: 0)
             let result = (knot - anchor.u) / delta
             guard result.isFinite else { return nil }
             return try SurfaceAreaTranslationCertificate.linearImageIsExactlyRepresented(origin:anchor.u,
-                first:end,second:anchor.u,fraction:result,value:knot,maximumAlgebraicDepth:originalMaximumAlgebraicDepth,
-                consumeWork:{ try consumeWork(0) },consumeStorage:consumeStorage) ? result : nil
+                first:end,second:anchor.u,fraction:result,value:knot,maximumAlgebraicDepth:originalMaximumAlgebraicDepth, using: &execution) ? result : nil
         }
-        try OriginalCoefficientAllocation.reserve(count:domains.count,of:SurfaceAreaNativeSpanDomain.self,consumeStorage:consumeStorage)
+        try OriginalCoefficientAllocation.reserve(count:domains.count,of:SurfaceAreaNativeSpanDomain.self, using: &execution)
         var result: [SurfaceAreaNativeSpanDomain] = []
         result.reserveCapacity(domains.count)
         for (index, range) in domains.enumerated() {
-            try consumeWork(0); try CurrentTaskCancellationChecker().checkCancellation()
+            try execution.visitGeometricCell(depth: 0); try CurrentTaskCancellationChecker().checkCancellation()
             guard let a = try cut(range.lower), let b = try cut(range.upper) else { return nil }
             let lo = max(0, min(a, b)), hi = min(1, max(a, b))
             guard lo < hi else { continue }
             guard result.count < maximumCount else {
                 throw Self.failure(.resourceLimitExceeded, tolerance, "Original rolling-ball fans exceed the shared cell budget.")
             }
-            try consumeWork(0)
+            try execution.visitGeometricCell(depth: 0)
             result.append(.init(rectangle: SurfaceParameterBox(u: range, v: try ScalarInterval(lower: 0, upper: 1)),
                 radialRange: try ScalarInterval(lower: lo, upper: hi), index: index,
                 source: surface, curve: curve, anchor: anchor))
         }
-        try result.sort { try consumeWork(0); return ($0.radialRange?.lower ?? 0) < ($1.radialRange?.lower ?? 0) }
+        try result.sort { try execution.visitGeometricCell(depth: 0); return ($0.radialRange?.lower ?? 0) < ($1.radialRange?.lower ?? 0) }
         guard result.first?.radialRange?.lower == 0, result.last?.radialRange?.upper == 1,
-              try result.indices.dropFirst().allSatisfy({ try consumeWork(0); return result[$0 - 1].radialRange?.upper == result[$0].radialRange?.lower }) else { return nil }
+              try result.indices.dropFirst().allSatisfy({ try execution.visitGeometricCell(depth: 0); return result[$0 - 1].radialRange?.upper == result[$0].radialRange?.lower }) else { return nil }
         return result
     }
 
     func forEachJet(over box: SurfaceParameterBox, domain: SurfaceAreaNativeSpanDomain?,
-        tolerance: ModelingTolerance, consumeWork: () throws -> Void,
-        consumeStorage: ((Int) throws -> Void)? = nil,
-        _ consume: (SurfaceIntervalVectorJet, Int) throws -> Void) throws {
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution,
+        _ consume: (SurfaceIntervalVectorJet, Int, inout OriginalQueryExecution) throws -> Void) throws {
         try validate(tolerance)
         if let domain {
             guard domain.source == surface, domains.indices.contains(domain.index),
@@ -159,7 +149,7 @@ struct SurfaceAreaGeneralRollingBallPartition: Sendable {
         }
         var found = false
         for (index, range) in domains.enumerated() {
-            try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
+            try CurrentTaskCancellationChecker().checkCancellation(); try execution.consumeWork(1)
             if let domain, domain.index != index { continue }
             let a = max(box.u.lower, range.lower), b = min(box.u.upper, range.upper)
             guard a <= b else { continue }
@@ -169,12 +159,11 @@ struct SurfaceAreaGeneralRollingBallPartition: Sendable {
                 let receipt: PreparedCurveDifferentialEncloser.ClosedNativeJet
                 if let depth = originalMaximumSubdivisionDepth {
                     receipt = try prepared.closedNativeJets(over:u,tolerance:tolerance,maximumSpanCount:262_144,
-                        maximumSubdivisionDepth:depth,remainingSourceDepth:originalRemainingSourceDepth,
-                        consumeWork:consumeWork,consumeStorage:consumeStorage)
-                } else { receipt = try prepared.closedNativeJets(over:u,tolerance:tolerance,consumeWork:consumeWork) }
+                        maximumSubdivisionDepth:depth,remainingSourceDepth:originalRemainingSourceDepth, using: &execution)
+                } else { receipt = try prepared.closedNativeJets(over:u,tolerance:tolerance, using: &execution) }
                 var result: SurfaceIntervalVectorJet?
                 for piece in receipt.spans {
-                    try consumeWork()
+                    try execution.consumeWork(1)
                     if a < b, (piece.parameters.lower == piece.parameters.upper) { continue }
                     result = result.map { $0.union(piece.jet) } ?? piece.jet
                 }
@@ -189,10 +178,9 @@ struct SurfaceAreaGeneralRollingBallPartition: Sendable {
             // production area path. Caller-paid fixed composition does not by
             // itself establish every original rail family or physical storage.
             let jet = try original.intervalJet(over: SurfaceParameterBox(u: u, v: box.v),
-                centerJet: centerJet, firstContactJet: aJet, secondContactJet: bJet,
-                consumeWork:consumeWork,consumeStorage:consumeStorage)
+                centerJet: centerJet, firstContactJet: aJet, secondContactJet: bJet, using: &execution)
             let smooth = domain != nil || (box.u.lower >= range.lower && box.u.upper <= range.upper)
-            try consume(jet, smooth ? 3 : 0)
+            try consume(jet, smooth ? 3 : 0, &execution)
             found = true
         }
         guard found else { throw Self.failure(.classificationFailure, tolerance, "Original rolling-ball query has no native U coverage.") }
@@ -207,23 +195,22 @@ struct SurfaceAreaGeneralRollingBallPartition: Sendable {
     }
 
     private static func appendNativeBreaks(_ curve: Curve3D, lower: Double, upper: Double,
-        to result: inout [Double], tolerance: ModelingTolerance, consumeWork: () throws -> Void,
-        consumeStorage: ((Int) throws -> Void)? = nil, maximumAlgebraicDepth: Int? = nil) throws {
-        try consumeWork()
+        to result: inout [Double], tolerance: ModelingTolerance, maximumAlgebraicDepth: Int? = nil, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         switch curve {
         case .rigidImage(let image):
             try appendNativeBreaks(image.source, lower: lower, upper: upper, to: &result,
-                tolerance: tolerance, consumeWork: consumeWork,consumeStorage:consumeStorage,maximumAlgebraicDepth:maximumAlgebraicDepth)
+                tolerance: tolerance,maximumAlgebraicDepth:maximumAlgebraicDepth, using: &execution)
         case .affineImage(let image):
             try appendNativeBreaks(image.source, lower: lower, upper: upper, to: &result,
-                tolerance: tolerance, consumeWork: consumeWork,consumeStorage:consumeStorage,maximumAlgebraicDepth:maximumAlgebraicDepth)
+                tolerance: tolerance,maximumAlgebraicDepth:maximumAlgebraicDepth, using: &execution)
         case .bSpline(let spline):
             let period = spline.knots[spline.controlPointCount] - spline.knots[spline.degree]
             for index in spline.degree...spline.controlPointCount {
-                try consumeWork()
+                try execution.consumeWork(1)
                 let knot = spline.knots[index]
                 if !spline.isPeriodic {
-                    if knot > lower, knot < upper { try consumeWork(); try consumeStorage?(try requestedBytes(result.count+1,MemoryLayout<Double>.stride)); result.reserveCapacity(result.count+1); result.append(knot) }
+                    if knot > lower, knot < upper { try execution.consumeWork(1); try execution.retainStorage(bytes: try requestedBytes(result.count+1,MemoryLayout<Double>.stride)); result.reserveCapacity(result.count+1); result.append(knot) }
                     continue
                 }
                 let first = ceil((lower - knot) / period), last = floor((upper - knot) / period)
@@ -233,14 +220,14 @@ struct SurfaceAreaGeneralRollingBallPartition: Sendable {
                 }
                 var cycle = first
                 while cycle <= last {
-                    try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
+                    try CurrentTaskCancellationChecker().checkCancellation(); try execution.consumeWork(1)
                     let value = knot + cycle * period
                     guard value.isFinite, try SurfaceAreaTranslationCertificate.linearImageIsExactlyRepresented(
                         origin:knot,first:spline.knots[spline.controlPointCount],second:spline.knots[spline.degree],fraction:cycle,value:value,
-                        maximumAlgebraicDepth:maximumAlgebraicDepth,consumeWork:consumeWork,consumeStorage:consumeStorage) else {
+                        maximumAlgebraicDepth:maximumAlgebraicDepth, using: &execution) else {
                         throw failure(.resourceLimitExceeded,tolerance,"An original periodic rail join has no exact represented lift.")
                     }
-                    if value > lower, value < upper { try consumeWork(); try consumeStorage?(try requestedBytes(result.count+1,MemoryLayout<Double>.stride)); result.reserveCapacity(result.count+1); result.append(value) }
+                    if value > lower, value < upper { try execution.consumeWork(1); try execution.retainStorage(bytes: try requestedBytes(result.count+1,MemoryLayout<Double>.stride)); result.reserveCapacity(result.count+1); result.append(value) }
                     cycle += 1
                 }
             }

@@ -292,7 +292,17 @@ struct CurveMatchFeatureTests {
              .bSpline,
              .implicit,
              .surfaceLift,
-             .certifiedIntersection:
+             .certifiedIntersection,
+             .originalConstructionChart,
+             .originalEndpointConnector,
+             .originalPlaneDerivative,
+             .originalGuideTraversalChain,
+             .originalPolyline,
+             .originalGuideEndpointConnector,
+             .originalDrafted,
+             .originalAngularTransport,
+             .originalAffineWord,
+             .parameterImage:
             return .spline
         case let .rigidImage(image):
             return exactCurveKind(image.source)

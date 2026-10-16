@@ -18,15 +18,15 @@ package struct OriginalNativeCurveChartCover: Sendable {
         package var originalTranslation: Double { law.originalTranslation }
 
         /// Evaluates the retained original law without a rounded base station.
-        package func intervalJet<B: RationalAlgebraAdmitting>(over query: ScalarInterval,
+        package func intervalJet<B: ExactScalarAdmission & ~Copyable>(over query: ScalarInterval,
             on source: BSplineCurve3D, tolerance: ModelingTolerance,
             throughOrder: Int = 3, usage: inout B) throws -> IntervalVectorDerivativeJet {
             try CurrentTaskCancellationChecker().checkCancellation()
             try tolerance.validate()
             try GeometryStructuralComparisonWork.charge(curve: .bSpline(source),
-                using: { try usage.consumeExactWork($0) })
+                using: &usage)
             try GeometryStructuralComparisonWork.charge(curve: .bSpline(law.source),
-                using: { try usage.consumeExactWork($0) })
+                using: &usage)
             guard source == law.source, tolerance == self.tolerance,
                 query.lower.isFinite, query.upper.isFinite, query.lower <= query.upper,
                 query.lower >= parameters.lower, query.upper <= parameters.upper,
@@ -49,7 +49,7 @@ package struct OriginalNativeCurveChartCover: Sendable {
         }
     }
 
-    package init<B: RationalAlgebraAdmitting>(source: BSplineCurve3D,
+    package init<B: ExactScalarAdmission & ~Copyable>(source: BSplineCurve3D,
         over parameters: ScalarInterval, tolerance: ModelingTolerance,
         maximumSpanCount: Int, usage: inout B) throws {
         try CurrentTaskCancellationChecker().checkCancellation()
@@ -58,7 +58,7 @@ package struct OriginalNativeCurveChartCover: Sendable {
             parameters.upper.isFinite, parameters.lower <= parameters.upper else {
             throw Self.failure(.invalidInput, "Original curve chart coverage requires a finite ordered interval and positive caller span admission.", tolerance)
         }
-        try source.validate(tolerance: tolerance, consumeWork: { try usage.consumeExactWork(1) })
+        try source.validate(tolerance: tolerance, using: &usage)
         let lower = source.knots[source.degree], upper = source.knots[source.controlPointCount]
         let firstCycle: Int, lastCycle: Int, period: Double
         if source.isPeriodic {
@@ -69,7 +69,7 @@ package struct OriginalNativeCurveChartCover: Sendable {
             period = exact.head
             let cycleCount = source.controlPointCount - source.degree
             for index in 0..<(source.knots.count - cycleCount) {
-                try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(1)
+                try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeWork(1)
                 let difference = try PreparedBSplineSurfaceDifferentialEncloser.exactDifference(
                     source.knots[index + cycleCount], source.knots[index], tolerance: tolerance)
                 guard difference.head == period, difference.tail == 0 else {
@@ -100,13 +100,13 @@ package struct OriginalNativeCurveChartCover: Sendable {
         var result: [OwnedSpan] = []
         var capacity = 0
         for cycle in firstCycle...lastCycle {
-            try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(1)
+            try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeWork(1)
             let translation = Double(cycle) * period
             guard translation.isFinite, (-translation).addingProduct(Double(cycle), period) == 0 else {
                 throw Self.failure(.resourceLimitExceeded, "Original curve cycle translation is not exactly represented.", tolerance)
             }
             for index in source.degree..<source.controlPointCount {
-                try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(1)
+                try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeWork(1)
                 guard source.knots[index] < source.knots[index + 1] else { continue }
                 let a = try PreparedBSplineSurfaceDifferentialEncloser.exactDifference(source.knots[index], -translation, tolerance: tolerance)
                 let b = try PreparedBSplineSurfaceDifferentialEncloser.exactDifference(source.knots[index + 1], -translation, tolerance: tolerance)
@@ -129,7 +129,7 @@ package struct OriginalNativeCurveChartCover: Sendable {
                 }
                 let law = try OriginalRationalCurvePolynomial(source: source, spanIndex: index,
                     originalTranslation: translation, tolerance: tolerance, usage: &usage)
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 result.append(.init(law: law, nativeDomain: try .init(lower: a.head, upper: b.head),
                     parameters: try .init(lower: selectedLower, upper: selectedUpper), cycle: cycle, tolerance: tolerance))
             }

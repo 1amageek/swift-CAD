@@ -7,7 +7,7 @@ struct SurfaceSilhouettePlaneAtlasPublication {
     let provenance: SurfaceSilhouettePlaneAtlas
 
     init(field originalField: OriginalSurfaceSilhouetteField, atlas: OriginalRationalPlaneCurveAtlas,
-        firstCurveIndex: Int, usage: inout SurfaceSilhouetteUsage) throws {
+        firstCurveIndex: Int, usage: inout OriginalQueryExecution) throws {
         guard firstCurveIndex >= 0, atlas.projection.verticalComponents.isEmpty,
             atlas.projection.horizontalComponents.isEmpty else {
             throw rationalAlgebraFailure("Original generic plane publication requires separately retained coordinate components.")
@@ -24,7 +24,7 @@ struct SurfaceSilhouettePlaneAtlasPublication {
             let attachment = incidence.attachment
             var count = 0
             for candidate in atlas.incidences {
-                try usage.consumeWork()
+                try usage.consumeWork(1)
                 if candidate.stationIndex == incidence.stationIndex { count = try rationalAlgebraCount(count, 1) }
             }
             let image = try SurfaceSilhouetteRamifiedParameterImage(resolution: station.resolution,
@@ -47,13 +47,13 @@ struct SurfaceSilhouettePlaneAtlasPublication {
         }
         for strip in atlas.strips {
             for piece in strip.originalCover.pieces {
-                func endpoint(_ u: ExactRationalCoefficient, usage: inout SurfaceSilhouetteUsage)
+                func endpoint(_ u: ExactRationalCoefficient, usage: inout OriginalQueryExecution)
                     throws -> SurfaceSilhouetteAtlasEndpoint {
                     let source = try atlas.projection.primitive.restricted(alongU: true, station: u, usage: &usage)
                     let roots = try OriginalRationalPlaneCurveProjection.sliceRoots(source,
                         lower: .originalDouble(piece.domain.v.lower, usage: &usage),
                         upper: .originalDouble(piece.domain.v.upper, usage: &usage),
-                        parentDepth: piece.sourceDepth, maximumDepth: usage.maximumDepth, usage: &usage)
+                        parentDepth: piece.sourceDepth, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
                     guard roots.count == 1, case .algebraic(let root) = roots[0] else {
                         throw rationalAlgebraFailure("Original regular tube endpoint lost its unique transverse source root.")
                     }
@@ -91,7 +91,7 @@ struct SurfaceSilhouettePlaneAtlasPublication {
     }
 
     init(field originalField: OriginalSurfaceSilhouetteField, atlas: OriginalFieldPlaneAtlas,
-        firstCurveIndex: Int, usage: inout SurfaceSilhouetteUsage) throws {
+        firstCurveIndex: Int, usage: inout OriginalQueryExecution) throws {
         guard firstCurveIndex >= 0 else { throw rationalAlgebraFailure("Original atlas curve offset must be nonnegative.") }
         let coordinates = try SurfaceSilhouetteFieldCoordinateComponents(field: originalField,
             projection: atlas.projection, usage: &usage)
@@ -103,12 +103,44 @@ struct SurfaceSilhouettePlaneAtlasPublication {
         try RationalAlgebraStorage.retain(atlas.stations.count, of: [Bool].self, usage: &usage)
         stationCurves.reserveCapacity(atlas.stations.count); stationEnds.reserveCapacity(atlas.stations.count)
         for _ in atlas.stations { stationCurves.append([]); stationEnds.append([]) }
+        if !atlas.incidences.isEmpty {
+            try Self.appendFieldIncidences(atlas: atlas, firstCurveIndex: firstCurveIndex, curves: &curves, stationCurves: &stationCurves, stationEnds: &stationEnds, field: field, usage: &usage)
+        }
+        if !atlas.strips.isEmpty {
+            try Self.appendFieldStrips(atlas: atlas, firstCurveIndex: firstCurveIndex, curves: &curves, stationCurves: &stationCurves, stationEnds: &stationEnds, field: field, usage: &usage)
+        }
+        if !curves.isEmpty {
+            try Self.retainCompleteFieldIncidence(atlas: atlas, firstCurveIndex: firstCurveIndex, curves: &curves, stationCurves: &stationCurves, stationEnds: &stationEnds, usage: &usage)
+        }
+        var contacts: [SurfaceSilhouetteAlgebraicContact] = []
+        var stations: [SurfaceSilhouettePlaneAtlas.Station] = []
+        if !atlas.stations.isEmpty {
+            try Self.appendFieldStations(atlas: atlas, firstCurveIndex: firstCurveIndex, curves: &curves, stationCurves: &stationCurves, stationEnds: &stationEnds, originalField: originalField, coordinates: coordinates, contacts: &contacts, stations: &stations, usage: &usage)
+        }
+        if !coordinates.endpoints.isEmpty {
+            try Self.appendCoordinateStations(atlas: atlas, firstCurveIndex: firstCurveIndex, curves: &curves, stationCurves: &stationCurves, stationEnds: &stationEnds, originalField: originalField, coordinates: coordinates, stations: &stations, usage: &usage)
+        }
+        try RationalAlgebraStorage.retain(curves.count, of: Int.self, usage: &usage)
+        var indices: [Int] = []; indices.reserveCapacity(curves.count)
+        for index in curves.indices { indices.append(try rationalAlgebraCount(firstCurveIndex, index)) }
+        self.curves = curves; isolatedContacts = contacts
+        provenance = SurfaceSilhouettePlaneAtlas(field: field, original: atlas, curveIndices: indices, stations: stations)
+    }
+
+    @inline(never)
+    private static func appendFieldIncidences(
+        atlas: OriginalFieldPlaneAtlas, firstCurveIndex: Int,
+        curves: inout [OriginalSurfaceSilhouetteCurve],
+        stationCurves: inout [[Int]], stationEnds: inout [[Bool]],
+        field: OriginalSurfaceSilhouetteField,
+        usage: inout OriginalQueryExecution
+    ) throws {
         for incidence in atlas.incidences {
             let station = atlas.stations[incidence.stationIndex]
             let attachment = incidence.attachment
             var count = 0
             for candidate in atlas.incidences {
-                try usage.consumeWork()
+                try usage.consumeWork(1)
                 if candidate.stationIndex == incidence.stationIndex { count = try rationalAlgebraCount(count, 1) }
             }
             let image = try SurfaceSilhouetteRamifiedParameterImage(resolution: station.resolution,
@@ -129,16 +161,26 @@ struct SurfaceSilhouettePlaneAtlasPublication {
                 freeCoordinate: station.charts[attachment.chartIndex].freeAlongU ? .u : .v,
                 ramifiedImage: image, fieldAtlasStart: upper ? anchor : origin, fieldAtlasEnd: upper ? origin : anchor))
         }
+    }
+
+    @inline(never)
+    private static func appendFieldStrips(
+        atlas: OriginalFieldPlaneAtlas, firstCurveIndex: Int,
+        curves: inout [OriginalSurfaceSilhouetteCurve],
+        stationCurves: inout [[Int]], stationEnds: inout [[Bool]],
+        field: OriginalSurfaceSilhouetteField,
+        usage: inout OriginalQueryExecution
+    ) throws {
         for strip in atlas.strips {
             for piece in strip.originalInteriorCover.pieces {
-                func endpoint(_ u: ExactRationalCoefficient, usage: inout SurfaceSilhouetteUsage)
+                func endpoint(_ u: ExactRationalCoefficient, usage: inout OriginalQueryExecution)
                     throws -> SurfaceSilhouetteFieldAtlasEndpoint {
                     let source = try OriginalSingularFieldPlaneProjection.restricted(atlas.projection.primitive,
-                        alongU: true, station: u, maximumDepth: usage.maximumDepth, usage: &usage)
+                        alongU: true, station: u, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
                     let roots = try OriginalSingularFieldPlaneProjection.sliceRoots(source,
                         lower: .originalDouble(piece.domain.v.lower, usage: &usage),
                         upper: .originalDouble(piece.domain.v.upper, usage: &usage),
-                        inheritedDepth: piece.sourceDepth, maximumDepth: usage.maximumDepth, usage: &usage)
+                        inheritedDepth: piece.sourceDepth, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
                     guard roots.count == 1, let root = roots.first else {
                         throw rationalAlgebraFailure("Original regular tube endpoint lost its unique transverse source root.")
                     }
@@ -151,16 +193,25 @@ struct SurfaceSilhouettePlaneAtlasPublication {
                     freeCoordinate: .u, freeImage: image, fieldAtlasStart: first, fieldAtlasEnd: last))
             }
         }
+    }
+
+    @inline(never)
+    private static func retainCompleteFieldIncidence(
+        atlas: OriginalFieldPlaneAtlas, firstCurveIndex: Int,
+        curves: inout [OriginalSurfaceSilhouetteCurve],
+        stationCurves: inout [[Int]], stationEnds: inout [[Bool]],
+        usage: inout OriginalQueryExecution
+    ) throws {
         // Complete counts include coordinate and primitive original half-branches.
         // Endpoints are compared by exact retained UV authority, never by bounds.
         for index in curves.indices {
             guard let endpoints = curves[index].originalFieldAtlasEndpoints else {
                 throw rationalAlgebraFailure("Original field atlas curve lost complete endpoint provenance.")
             }
-            func count(_ endpoint: SurfaceSilhouetteFieldAtlasEndpoint, usage: inout SurfaceSilhouetteUsage) throws -> Int {
+            func count(_ endpoint: SurfaceSilhouetteFieldAtlasEndpoint, usage: inout OriginalQueryExecution) throws -> Int {
                 var count = 0
                 for curve in curves {
-                    try usage.consumeWork()
+                    try usage.consumeWork(1)
                     guard let pair = curve.originalFieldAtlasEndpoints else {
                         throw rationalAlgebraFailure("Original field atlas incidence lost another source endpoint.")
                     }
@@ -173,8 +224,19 @@ struct SurfaceSilhouettePlaneAtlasPublication {
             curves[index] = curves[index].retainingFieldIncidence(
                 first: endpoints.first.retainingCompleteIncidence(a), last: endpoints.last.retainingCompleteIncidence(b))
         }
-        var contacts: [SurfaceSilhouetteAlgebraicContact] = []
-        var stations: [SurfaceSilhouettePlaneAtlas.Station] = []
+    }
+
+    @inline(never)
+    private static func appendFieldStations(
+        atlas: OriginalFieldPlaneAtlas, firstCurveIndex: Int,
+        curves: inout [OriginalSurfaceSilhouetteCurve],
+        stationCurves: inout [[Int]], stationEnds: inout [[Bool]],
+        originalField: OriginalSurfaceSilhouetteField,
+        coordinates: SurfaceSilhouetteFieldCoordinateComponents,
+        contacts: inout [SurfaceSilhouetteAlgebraicContact],
+        stations: inout [SurfaceSilhouettePlaneAtlas.Station],
+        usage: inout OriginalQueryExecution
+    ) throws {
         for index in atlas.stations.indices {
             let station = atlas.stations[index]
             stationCurves[index].removeAll(keepingCapacity: true); stationEnds[index].removeAll(keepingCapacity: true)
@@ -212,6 +274,18 @@ struct SurfaceSilhouettePlaneAtlasPublication {
                 sourceDepth: max(station.originalRoot.projectionRoot.isolation.depth,
                     station.originalRoot.fiberRoot.isolation.depth)))
         }
+    }
+
+    @inline(never)
+    private static func appendCoordinateStations(
+        atlas: OriginalFieldPlaneAtlas, firstCurveIndex: Int,
+        curves: inout [OriginalSurfaceSilhouetteCurve],
+        stationCurves: inout [[Int]], stationEnds: inout [[Bool]],
+        originalField: OriginalSurfaceSilhouetteField,
+        coordinates: SurfaceSilhouetteFieldCoordinateComponents,
+        stations: inout [SurfaceSilhouettePlaneAtlas.Station],
+        usage: inout OriginalQueryExecution
+    ) throws {
         var coordinateStations: [SurfaceSilhouetteFieldAtlasEndpoint] = []
         for root in coordinates.endpoints {
             let endpoint = SurfaceSilhouetteFieldAtlasEndpoint(original: atlas.projection.squareFree,
@@ -253,10 +327,6 @@ struct SurfaceSilhouettePlaneAtlasPublication {
                 incidentAtUpperEnd: upperEnds, regularGermCount: (alongU ? 1 : 0) + (alongV ? 1 : 0), isolatedGermCount: 0,
                 sourceDepth: max(root.projectionRoot.isolation.depth, root.fiberRoot.isolation.depth)))
         }
-        try RationalAlgebraStorage.retain(curves.count, of: Int.self, usage: &usage)
-        var indices: [Int] = []; indices.reserveCapacity(curves.count)
-        for index in curves.indices { indices.append(try rationalAlgebraCount(firstCurveIndex, index)) }
-        self.curves = curves; isolatedContacts = contacts
-        provenance = SurfaceSilhouettePlaneAtlas(field: field, original: atlas, curveIndices: indices, stations: stations)
     }
+
 }

@@ -37,12 +37,12 @@ extension OriginalSTEPSplineSurfaceSource: Codable {
         guard #available(macOS 15.0, iOS 18.0, visionOS 2.0, watchOS 11.0, tvOS 18.0, *) else {
             throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable
         }
-        let allowance = try NativeRationalSourceDecodingContext.allowance(from: decoder)
+        var allowance = try NativeRationalSourceDecodingContext.execution(from: decoder)
         let bytes = rows.count.multipliedReportingOverflow(by: MemoryLayout<[OriginalSTEPPlacementElement]>.stride)
         guard !bytes.overflow else { throw IndependentShapeSourceError.resourceLimitExceeded("Original spline row storage overflow.") }
-        try allowance.retainExactStorage(bytes.partialValue / MemoryLayout<UInt32>.stride + (bytes.partialValue % MemoryLayout<UInt32>.stride == 0 ? 0 : 1))
+        try RationalAlgebraStorage.retain(bytes.partialValue / MemoryLayout<UInt32>.stride + (bytes.partialValue % MemoryLayout<UInt32>.stride == 0 ? 0 : 1), of: UInt32.self, usage: &allowance)
         var originalRows: [[OriginalSTEPPlacementElement]] = []; originalRows.reserveCapacity(rows.count)
-        for row in rows { try allowance.consumeExactWork(1); originalRows.append(row.elements) }
+        for row in rows { try allowance.consumeWork(1); originalRows.append(row.elements) }
         controlPointRows = originalRows
         surfaceForm = try c.decode(OriginalSTEPSplineSurfaceForm.self, forKey: .surfaceForm)
         uClosed = try c.decode(OriginalSTEPLogical.self, forKey: .uClosed); vClosed = try c.decode(OriginalSTEPLogical.self, forKey: .vClosed)

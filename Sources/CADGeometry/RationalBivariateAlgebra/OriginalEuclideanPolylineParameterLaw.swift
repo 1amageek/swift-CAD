@@ -30,7 +30,7 @@ package struct OriginalEuclideanPolylineParameterLaw: Sendable {
     package let sourceDepth: Int
 
     /// Selects the original owning segment; a corner is not a smooth-jet authority.
-    package func selectedSegment<B: RationalAlgebraAdmitting>(
+    package func selectedSegment<B: ExactScalarAdmission & ~Copyable>(
         atOriginalFraction fraction: OriginalSingularFieldElement, preferFollowingAtJoin: Bool,
         maximumAlgebraicDepth: Int, usage: inout B) throws -> Segment {
         var transport = OriginalSingularFieldTransport()
@@ -40,7 +40,7 @@ package struct OriginalEuclideanPolylineParameterLaw: Sendable {
             maximumDepth: maximumAlgebraicDepth, usage: &usage)
         var selected: Segment?
         for segment in segments {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             let lower = try segment.lowerFraction.embedded(in: owner, maximumDepth: maximumAlgebraicDepth, usage: &usage)
             let upper = try segment.upperFraction.embedded(in: owner, maximumDepth: maximumAlgebraicDepth, usage: &usage)
             if case .negative = try value.subtracting(lower, maximumDepth: maximumAlgebraicDepth, usage: &usage)
@@ -58,21 +58,21 @@ package struct OriginalEuclideanPolylineParameterLaw: Sendable {
         return selected
     }
 
-    package init<B: RationalAlgebraAdmitting>(originalPoints: [SurfaceParameter],
+    package init<B: ExactScalarAdmission & ~Copyable>(originalPoints: [SurfaceParameter],
         inheritedDepth: Int, maximumAlgebraicDepth: Int, usage: inout B) throws {
         try self.init(originalPoints:originalPoints,in:nil,inheritedDepth:inheritedDepth,
             maximumAlgebraicDepth:maximumAlgebraicDepth,usage:&usage)
     }
 
     /// Extends the retained original ancestor without re-preparing its roots.
-    package init<B: RationalAlgebraAdmitting>(originalPoints: [SurfaceParameter],
+    package init<B: ExactScalarAdmission & ~Copyable>(originalPoints: [SurfaceParameter],
         in initialContext: OriginalSingularFieldContext?,inheritedDepth: Int,
         maximumAlgebraicDepth: Int,usage: inout B) throws {
         guard originalPoints.count >= 2, inheritedDepth >= 0, maximumAlgebraicDepth >= inheritedDepth else {
             throw rationalAlgebraFailure("Original Euclidean polyline requires source points and admitted caller depth.")
         }
         for point in originalPoints {
-            try usage.consumeExactWork(2)
+            try usage.consumeWork(2)
             guard point.u.isFinite, point.v.isFinite else { throw rationalAlgebraFailure("Original polyline contains a nonfinite UV source point.") }
         }
         try RationalAlgebraStorage.retain(1, of: Self.self, usage: &usage)
@@ -83,7 +83,7 @@ package struct OriginalEuclideanPolylineParameterLaw: Sendable {
         var total = try OriginalSingularFieldElement.constant(.zero, in: owner,
             maximumDepth: maximumAlgebraicDepth, usage: &usage)
         for index in 0..<(originalPoints.count - 1) {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             let first = originalPoints[index], last = originalPoints[index + 1]
             let u = try ExactRationalCoefficient.originalDouble(first.u, usage: &usage)
             let v = try ExactRationalCoefficient.originalDouble(first.v, usage: &usage)
@@ -137,7 +137,7 @@ package struct OriginalEuclideanPolylineParameterLaw: Sendable {
 }
 
 package extension OriginalEuclideanPolylineParameterLaw.Segment {
-    func originalLocalFraction<B: RationalAlgebraAdmitting>(atOriginalFraction fraction: OriginalSingularFieldElement,
+    func originalLocalFraction<B: ExactScalarAdmission & ~Copyable>(atOriginalFraction fraction: OriginalSingularFieldElement,
         maximumAlgebraicDepth: Int, usage: inout B) throws -> OriginalSingularFieldElement {
         var transport = OriginalSingularFieldTransport()
         let owner = try transport.importing(fraction.context, into: lowerFraction.context,
@@ -160,7 +160,7 @@ package extension OriginalEuclideanPolylineParameterLaw.Segment {
         return local
     }
 
-    func originalUV<B: RationalAlgebraAdmitting>(atOriginalFraction fraction: OriginalSingularFieldElement,
+    func originalUV<B: ExactScalarAdmission & ~Copyable>(atOriginalFraction fraction: OriginalSingularFieldElement,
         maximumAlgebraicDepth: Int, usage: inout B) throws -> (u: OriginalSingularFieldElement, v: OriginalSingularFieldElement) {
         let local = try originalLocalFraction(atOriginalFraction: fraction,
             maximumAlgebraicDepth: maximumAlgebraicDepth, usage: &usage)
@@ -178,7 +178,7 @@ package extension OriginalEuclideanPolylineParameterLaw.Segment {
             coordinate(originalVStart, difference: originalVDifference, usage: &usage))
     }
 
-    func originalFirstDerivative<B: RationalAlgebraAdmitting>(maximumAlgebraicDepth: Int,
+    func originalFirstDerivative<B: ExactScalarAdmission & ~Copyable>(maximumAlgebraicDepth: Int,
         usage: inout B) throws -> (u: OriginalSingularFieldElement, v: OriginalSingularFieldElement) {
         let u = try OriginalSingularFieldElement.constant(originalUDifference, in: fractionGain.context,
             maximumDepth: maximumAlgebraicDepth, usage: &usage)

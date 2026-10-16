@@ -3,5 +3,5 @@ public protocol SurfaceSilhouetteProvenanceWriting: Sendable {
     /// Charge output allocation before writing; publish only a complete stream.
     /// The surface event must encode its full original source with these caller caps.
     func write(_ event: SurfaceSilhouetteProvenanceEvent,
-        usage: inout SurfaceSilhouetteUsage) throws
+        using execution: inout OriginalQueryExecution) throws
 }

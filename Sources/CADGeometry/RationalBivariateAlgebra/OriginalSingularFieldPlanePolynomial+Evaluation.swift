@@ -1,6 +1,6 @@
 /// Evaluates the original local law at a retained descendant-field point.
 extension OriginalSingularFieldPlanePolynomial {
-    package func evaluated<B: RationalAlgebraAdmitting>(atU u: OriginalSingularFieldElement,
+    package func evaluated<B: ExactScalarAdmission & ~Copyable>(atU u: OriginalSingularFieldElement,
         v: OriginalSingularFieldElement, maximumDepth: Int, usage: inout B) throws -> OriginalSingularFieldElement {
         guard u.context === v.context else { throw rationalAlgebraFailure("Original local point has unrelated coordinate fields.") }
         var result = try OriginalSingularFieldElement.constant(.zero, in: u.context,

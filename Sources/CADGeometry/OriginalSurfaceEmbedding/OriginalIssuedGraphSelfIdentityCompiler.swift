@@ -113,7 +113,7 @@ struct OriginalIssuedGraphSelfIdentityCompiler {
         firstPlacement: [Int], secondPlacement: [Int], diagonal: OriginalParameterIdentityRelation<S,Base>,
         identities: [OriginalParameterIdentityRelation<S,Base>], using a: inout A
     ) throws -> ExactRealCellPredicate<Base> {
-        try OriginalSourceProofAdmission.withBorrow(&a) { tracked in
+        try a.withProofScope { tracked in
             try tracked.admitDepth(value: diagonal.evidenceDepth.value, coefficient: diagonal.evidenceDepth.coefficient)
             for identity in identities {
                 try tracked.consumeWork(1)

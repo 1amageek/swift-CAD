@@ -1,0 +1,102 @@
+{
+  "binarySHA256": "96e6a39781ff431edd6776acc805c990a23266fa01e7dd43e1b1100f7b9dfdd9",
+  "bytesPerEntry": 96,
+  "helpers": [
+    {
+      "helper": "fieldAtlas",
+      "symbol": "_$s11CADGeometry32DefaultSurfaceSilhouetteProducerV10fieldAtlas33_9BA4431057C25E404349C321699D6735LL4cell7regular1f6domain9tolerance7pending6curves8excluded10coincident8contacts17algebraicContacts20originalPlaneAtlases5usingSbAC7PendingAELLVz_SbAA0cD9ScalarJetVAA0C12ParameterBoxV7CADCore17ModelingToleranceVSayATGzSayAA08OriginalcD5CurveVGzSayAXGzA4_zSayAA0cD7ContactVGzSayAA0cD16AlgebraicContactVGzSayAA0cdyG0VGzAA22OriginalQueryExecutionVztKF",
+      "address": "0x1cd87e4",
+      "entryFrameBytes": 40816,
+      "arithmetic": [
+        "0x20",
+        "0x9000",
+        "0xf50"
+      ],
+      "aloneAtLeast512KiB": false
+    },
+    {
+      "helper": "rationalAtlas",
+      "symbol": "_$s11CADGeometry32DefaultSurfaceSilhouetteProducerV13rationalAtlas33_9BA4431057C25E404349C321699D6735LL4cell7regular1f6domain9tolerance7pending6curves8excluded10coincident8contacts17algebraicContacts20originalPlaneAtlases5usingSbAC7PendingAELLVz_SbAA0cD9ScalarJetVAA0C12ParameterBoxV7CADCore17ModelingToleranceVSayATGzSayAA08OriginalcD5CurveVGzSayAXGzA4_zSayAA0cD7ContactVGzSayAA0cD16AlgebraicContactVGzSayAA0cdyG0VGzAA22OriginalQueryExecutionVztKF",
+      "address": "0x1cdf98c",
+      "entryFrameBytes": 55024,
+      "arithmetic": [
+        "0x20",
+        "0xd000",
+        "0x6d0"
+      ],
+      "aloneAtLeast512KiB": false
+    },
+    {
+      "helper": "cusp",
+      "symbol": "_$s11CADGeometry32DefaultSurfaceSilhouetteProducerV4cusp33_9BA4431057C25E404349C321699D6735LL4cell7regular1f6domain9tolerance7pending6curves8excluded10coincident8contacts17algebraicContacts20originalPlaneAtlases5usingSbAC7PendingAELLVz_SbAA0cD9ScalarJetVAA0C12ParameterBoxV7CADCore17ModelingToleranceVSayATGzSayAA08OriginalcD5CurveVGzSayAXGzA4_zSayAA0cD7ContactVGzSayAA0cD16AlgebraicContactVGzSayAA0cdX5AtlasVGzAA22OriginalQueryExecutionVztKF",
+      "address": "0x1ce3c84",
+      "entryFrameBytes": 77296,
+      "arithmetic": [
+        "0x20",
+        "0x12000",
+        "0xdd0"
+      ],
+      "aloneAtLeast512KiB": false
+    },
+    {
+      "helper": "finiteRealLocus",
+      "symbol": "_$s11CADGeometry32DefaultSurfaceSilhouetteProducerV15finiteRealLocus33_9BA4431057C25E404349C321699D6735LL4cell7regular1f6domain9tolerance7pending6curves8excluded10coincident8contacts17algebraicContacts20originalPlaneAtlases05planegH5Cache5usingSbAC7PendingAELLVz_SbAA0cD9ScalarJetVAA0C12ParameterBoxV7CADCore17ModelingToleranceVSayAUGzSayAA08OriginalcD5CurveVGzSayAYGzA5_zSayAA0cD7ContactVGzSayAA0cD16AlgebraicContactVGzSayAA0cdZ5AtlasVGzSDyAC17CriticalSourceKeyAELLVAC0zgH0AELLOGzAA22OriginalQueryExecutionVztKF",
+      "address": "0x1ce6f20",
+      "entryFrameBytes": 136544,
+      "arithmetic": [
+        "0xa0",
+        "0x21000",
+        "0x4c0"
+      ],
+      "aloneAtLeast512KiB": false
+    },
+    {
+      "helper": "criticalPoints",
+      "symbol": "_$s11CADGeometry32DefaultSurfaceSilhouetteProducerV14criticalPoints33_9BA4431057C25E404349C321699D6735LL4cell7regular1f6domain9tolerance7pending6curves8excluded10coincident8contacts17algebraicContacts20originalPlaneAtlases11determinant0F11SourceCache5usingSbAC7PendingAELLVz_SbAA0cD9ScalarJetVAA0C12ParameterBoxV7CADCore17ModelingToleranceVSayAVGzSayAA08OriginalcD5CurveVGzSayAZGzA6_zSayAA0cD7ContactVGzSayAA0cD16AlgebraicContactVGzSayAA0cdY5AtlasVGzAA21OutwardScalarIntervalVSDyAC17CriticalSourceKeyAELLVSayAA27ExactBivariateCriticalPointVGGzAA22OriginalQueryExecutionVztKF",
+      "address": "0x1cf3670",
+      "entryFrameBytes": 55216,
+      "arithmetic": [
+        "0x20",
+        "0xd000",
+        "0x790"
+      ],
+      "aloneAtLeast512KiB": false
+    },
+    {
+      "helper": "monotoneGraph",
+      "symbol": "_$s11CADGeometry32DefaultSurfaceSilhouetteProducerV13monotoneGraph33_9BA4431057C25E404349C321699D6735LL4cell7regular1f6domain9tolerance7pending6curves8excluded10coincident8contacts17algebraicContacts20originalPlaneAtlases5usingSbAC7PendingAELLVz_SbAA0cD9ScalarJetVAA0C12ParameterBoxV7CADCore17ModelingToleranceVSayATGzSayAA08OriginalcD5CurveVGzSayAXGzA4_zSayAA0cD7ContactVGzSayAA0cD16AlgebraicContactVGzSayAA0cdY5AtlasVGzAA22OriginalQueryExecutionVztKF",
+      "address": "0x1cf5a10",
+      "entryFrameBytes": 147856,
+      "arithmetic": [
+        "0x60",
+        "0x24000",
+        "0x130"
+      ],
+      "aloneAtLeast512KiB": false
+    },
+    {
+      "helper": "preparedCover",
+      "symbol": "_$s11CADGeometry32DefaultSurfaceSilhouetteProducerV13preparedCover33_9BA4431057C25E404349C321699D6735LL7surface6domain4view9tolerance15sourceAuthority5usingSayAC7PendingAELLVGAA9Surface3DO_AA0C12ParameterBoxV7CADCore8Vector3DVAS17ModelingToleranceVAA0cD17SourcePreparationVAA22OriginalQueryExecutionVztKF",
+      "address": "0x1cd4b44",
+      "entryFrameBytes": 40496,
+      "arithmetic": [
+        "0x20",
+        "0x9000",
+        "0xe10"
+      ],
+      "aloneAtLeast512KiB": false
+    },
+    {
+      "helper": "subdivision",
+      "symbol": "_$s11CADGeometry32DefaultSurfaceSilhouetteProducerV11subdivision33_9BA4431057C25E404349C321699D6735LL_9tolerance5usingAC7PendingAELLV_AItAI_7CADCore17ModelingToleranceVAA22OriginalQueryExecutionVztKF",
+      "address": "0x1ccffe8",
+      "entryFrameBytes": 43712,
+      "arithmetic": [
+        "0xa0",
+        "0xa000",
+        "0xa20"
+      ],
+      "aloneAtLeast512KiB": false
+    }
+  ]
+}

@@ -52,7 +52,7 @@ extension OriginalCertifiedCoaxialConeCylinderSnapshot {
     package func heightBounds<A: ExactScalarAdmission & ~Copyable>(tolerance: ModelingTolerance,
         using a: inout A) throws -> OutwardScalarInterval {
         let trig = try CertifiedRotationTrigonometry.evaluate(.exact(field.originalRadians),
-            tolerance: tolerance, consumeWork: { try a.consumeWork(1) })
+            tolerance: tolerance, using: &a)
         guard trig.sine.lower > 0, let height = trig.cosine.divided(by: trig.sine) else {
             throw ExactScalarFailure.unresolved
         }

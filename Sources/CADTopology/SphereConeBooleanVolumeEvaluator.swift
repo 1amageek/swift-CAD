@@ -13,16 +13,22 @@ import CADGeometry
 
 /// Evaluates supported exact sphere-cone Boolean volumes.
 struct SphereConeBooleanVolumeEvaluator {
+    func volume(of shell: Shell, in model: BRepModel, tolerance: ModelingTolerance) throws -> Double? {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try volume(of: shell, in: model, tolerance: tolerance, using: &execution)
+    }
+
     func volume(
         of shell: Shell,
         in model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Double? {
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard let surfaces = try surfaces(
             of: shell,
             in: model,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         ), let sphere = surfaces.sphere,
            let cone = surfaces.cone,
            surfaces.sphereFaces.isEmpty == false,
@@ -33,8 +39,8 @@ struct SphereConeBooleanVolumeEvaluator {
         let axialCenter = centerOffset.dot(cone.axis)
         let radialCenter = centerOffset - cone.axis * axialCenter
 
-        let sphereOrientation = uniformOrientation(surfaces.sphereFaces)
-        let coneOrientation = uniformOrientation(surfaces.coneFaces)
+        let sphereOrientation = try uniformOrientation(surfaces.sphereFaces, using: &execution)
+        let coneOrientation = try uniformOrientation(surfaces.coneFaces, using: &execution)
         guard sphereOrientation == .forward,
               let coneOrientation else {
             return nil
@@ -52,7 +58,7 @@ struct SphereConeBooleanVolumeEvaluator {
             guard let height = try coneHeight(
                 from: surfaces.planeCaps,
                 cone: cone,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             ), height > axialCenter + sphere.radius + tolerance.distance else {
                 return nil
             }
@@ -68,7 +74,7 @@ struct SphereConeBooleanVolumeEvaluator {
                 sphereAxialCenter: axialCenter,
                 coneSlope: slope,
                 coneUpper: coneUpper,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         } else {
             overlap = try offsetOverlappingVolume(
@@ -77,7 +83,7 @@ struct SphereConeBooleanVolumeEvaluator {
                 radialOffset: radialCenter.length,
                 coneSlope: slope,
                 coneUpper: coneUpper,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         }
         let sphereVolume = 4.0 * Double.pi * pow(sphere.radius, 3.0) / 3.0
@@ -95,10 +101,12 @@ struct SphereConeBooleanVolumeEvaluator {
     private func surfaces(
         of shell: Shell,
         in model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> SurfaceGroups? {
+        try execution.consumeWork(1)
         var result = SurfaceGroups()
-        for faceID in shell.faceIDs.sorted() {
+        for faceID in try OriginalParameterQueryStorage.ordered(shell.faceIDs, using: &execution, less: <) {
+            try execution.consumeWork(1)
             guard let face = model.faces[faceID],
                   let surface = model.geometry.surfaces[face.surfaceID] else {
                 throw TopologyError.missingReference(
@@ -114,7 +122,7 @@ struct SphereConeBooleanVolumeEvaluator {
                     return nil
                 }
                 result.sphere = Sphere(center: center, radius: radius)
-                result.sphereFaces.append(face)
+                try OriginalParameterQueryStorage.append(face, to: &result.sphereFaces, using: &execution)
             case let .analytic(.cone(apex, axis, halfAngle)):
                 guard result.cone.map({
                     $0.apex.isApproximatelyEqual(to: apex, tolerance: tolerance.distance)
@@ -124,15 +132,15 @@ struct SphereConeBooleanVolumeEvaluator {
                     return nil
                 }
                 result.cone = Cone(apex: apex, axis: axis, halfAngle: halfAngle)
-                result.coneFaces.append(face)
+                try OriginalParameterQueryStorage.append(face, to: &result.coneFaces, using: &execution)
             case let .analytic(.plane(origin, normal)):
-                result.planeCaps.append(Plane(origin: origin, normal: normal, face: face))
+                try OriginalParameterQueryStorage.append(Plane(origin: origin, normal: normal, face: face), to: &result.planeCaps, using: &execution)
             case let .plane(plane):
-                result.planeCaps.append(Plane(
+                try OriginalParameterQueryStorage.append(Plane(
                     origin: plane.origin,
                     normal: plane.normal,
                     face: face
-                ))
+                ), to: &result.planeCaps, using: &execution)
             case .cylinder, .bSpline, .analytic, .procedural:
                 return nil
             }
@@ -143,19 +151,21 @@ struct SphereConeBooleanVolumeEvaluator {
     private func coneHeight(
         from planes: [Plane],
         cone: Cone,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Double? {
+        try execution.consumeWork(1)
         var heights: [Double] = []
         for plane in planes {
+            try execution.consumeWork(1)
             let normal = try plane.normal.normalized(tolerance: tolerance.distance)
             guard plane.face.orientation == .forward,
                   abs(abs(normal.dot(cone.axis)) - 1.0) <= tolerance.angle else {
                 return nil
             }
-            heights.append((plane.origin - cone.apex).dot(cone.axis))
+            try OriginalParameterQueryStorage.append((plane.origin - cone.apex).dot(cone.axis), to: &heights, using: &execution)
         }
         guard let height = heights.first,
-              heights.allSatisfy({ abs($0 - height) <= tolerance.distance }) else {
+              (try OriginalParameterQueryStorage.allSatisfy(heights, using: &execution) { item, execution in abs(item - height) <= tolerance.distance }) else {
             return nil
         }
         return height
@@ -166,8 +176,9 @@ struct SphereConeBooleanVolumeEvaluator {
         sphereAxialCenter: Double,
         coneSlope: Double,
         coneUpper: Double,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Double {
+        try execution.consumeWork(1)
         let lower = max(0.0, sphereAxialCenter - sphereRadius)
         let upper = min(coneUpper, sphereAxialCenter + sphereRadius)
         guard upper - lower > tolerance.distance else { return 0.0 }
@@ -182,11 +193,13 @@ struct SphereConeBooleanVolumeEvaluator {
         let roots: [Double]
         if discriminant > 0.0 {
             let root = sqrt(discriminant)
-            roots = [
+            try execution.retainStorage(bytes: 2 * MemoryLayout<Double>.stride)
+            let candidates = [
                 (-quadraticB - root) / (2.0 * quadraticA),
                 (-quadraticB + root) / (2.0 * quadraticA),
-            ].filter {
-                $0 > lower + tolerance.distance && $0 < upper - tolerance.distance
+            ]
+            roots = try OriginalParameterQueryStorage.filter(candidates, using: &execution) { value, execution in
+                value > lower + tolerance.distance && value < upper - tolerance.distance
             }
         } else {
             // With no transverse root, one radial section owns the entire
@@ -194,9 +207,14 @@ struct SphereConeBooleanVolumeEvaluator {
             // without turning a closed-form special case into a capability gap.
             roots = []
         }
-        let breakpoints = [lower] + roots.sorted() + [upper]
+        var breakpoints: [Double] = []
+        let orderedRoots = try OriginalParameterQueryStorage.ordered(roots, using: &execution, less: <)
+        try OriginalParameterQueryStorage.append(lower, to: &breakpoints, using: &execution)
+        try OriginalParameterQueryStorage.append(contentsOf: orderedRoots, to: &breakpoints, using: &execution)
+        try OriginalParameterQueryStorage.append(upper, to: &breakpoints, using: &execution)
         var result = 0.0
         for index in 0..<(breakpoints.count - 1) {
+            try execution.consumeWork(1)
             let intervalLower = breakpoints[index]
             let intervalUpper = breakpoints[index + 1]
             let midpoint = (intervalLower + intervalUpper) * 0.5
@@ -251,8 +269,9 @@ struct SphereConeBooleanVolumeEvaluator {
         radialOffset: Double,
         coneSlope: Double,
         coneUpper: Double,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Double {
+        try execution.consumeWork(1)
         let lower = max(0.0, sphereAxialCenter - sphereRadius)
         let upper = min(coneUpper, sphereAxialCenter + sphereRadius)
         guard upper - lower > tolerance.distance else { return 0.0 }
@@ -263,14 +282,14 @@ struct SphereConeBooleanVolumeEvaluator {
             radialOffset,
             1.0
         )
-        let breakpoints = crossSectionBreakpoints(
+        let breakpoints = try crossSectionBreakpoints(
             lower: lower,
             upper: upper,
             sphereRadius: sphereRadius,
             sphereAxialCenter: sphereAxialCenter,
             radialOffset: radialOffset,
             coneSlope: coneSlope,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         return try OffsetDiskSectionVolumeIntegrator().volume(
             breakpoints: breakpoints,
@@ -286,7 +305,7 @@ struct SphereConeBooleanVolumeEvaluator {
             },
             secondRadiusAt: { axialParameter in
                 abs(axialParameter) * coneSlope
-            }
+            }, using: &execution
         )
     }
 
@@ -297,14 +316,18 @@ struct SphereConeBooleanVolumeEvaluator {
         sphereAxialCenter: Double,
         radialOffset: Double,
         coneSlope: Double,
-        tolerance: ModelingTolerance
-    ) -> [Double] {
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+    ) throws -> [Double] {
+        try execution.consumeWork(1)
         let quadraticA = 1.0 + coneSlope * coneSlope
         let quadraticC = sphereAxialCenter * sphereAxialCenter
             + radialOffset * radialOffset
             - sphereRadius * sphereRadius
+        try execution.retainStorage(bytes: 2 * MemoryLayout<Double>.stride)
         var values = [lower, upper]
+        try execution.retainStorage(bytes: 2 * MemoryLayout<Double>.stride)
         for sign in [-1.0, 1.0] {
+            try execution.consumeWork(1)
             let quadraticB = -2.0 * (
                 sphereAxialCenter - sign * coneSlope * radialOffset
             )
@@ -317,23 +340,25 @@ struct SphereConeBooleanVolumeEvaluator {
                 (-quadraticB + root) / (2.0 * quadraticA),
             ] where value > lower + tolerance.distance
                 && value < upper - tolerance.distance {
-                values.append(value)
+                try OriginalParameterQueryStorage.append(value, to: &values, using: &execution)
             }
         }
-        values.sort()
+        try OriginalParameterQueryStorage.sort(&values, using: &execution, less: <)
         var result: [Double] = []
         for value in values {
+            try execution.consumeWork(1)
             if result.last.map({ abs($0 - value) <= tolerance.distance }) != true {
-                result.append(value)
+                try OriginalParameterQueryStorage.append(value, to: &result, using: &execution)
             }
         }
         return result
     }
 
-    private func uniformOrientation(_ faces: [Face]) -> Orientation? {
-        let orientations = Set(faces.map({ $0.orientation }))
-        guard orientations.count == 1 else { return nil }
-        return orientations.first
+    private func uniformOrientation(_ faces: [Face], using execution: inout OriginalQueryExecution) throws -> Orientation? {
+        try execution.consumeWork(1)
+        guard let reference = faces.first,
+              try OriginalParameterQueryStorage.allSatisfy(faces, using: &execution, predicate: { face, execution in face.orientation == reference.orientation }) else { return nil }
+        return reference.orientation
     }
 
     private enum Operation {

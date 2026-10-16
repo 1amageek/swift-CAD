@@ -1,5 +1,6 @@
 /// Query-local ownership prevents accidentally duplicating a budget snapshot.
 public struct ExactScalarLedger: ~Copyable, ExactScalarAdmission, Sendable {
+    public var proofScopes = ExactScalarProofScopes()
     public let limits: ExactScalarLimits
     public private(set) var work = 0
     public private(set) var storageBytes = 0
@@ -15,10 +16,12 @@ public struct ExactScalarLedger: ~Copyable, ExactScalarAdmission, Sendable {
     public mutating func consumeWork(_ units: Int) throws(ExactScalarFailure) {
         try checkpoint()
         guard units >= 0 else { throw .countOverflow }
+        try proofScopes.checkWork(units)
         let next = work.addingReportingOverflow(units)
         guard !next.overflow else { throw .countOverflow }
         guard next.partialValue <= limits.work else { throw .resourceLimit(.work) }
         work = next.partialValue
+        proofScopes.recordWork(units)
     }
     public mutating func retainStorage(bytes: Int) throws(ExactScalarFailure) {
         try checkpoint()
@@ -29,14 +32,14 @@ public struct ExactScalarLedger: ~Copyable, ExactScalarAdmission, Sendable {
         storageBytes = next.partialValue
     }
     public mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
-        try admitDepth(value: axis == .value ? depth : valueDepth,
-            coefficient: axis == .coefficient ? depth : coefficientDepth)
+        try admitDepth(value:axis == .value ? depth:0,coefficient:axis == .coefficient ? depth:0)
     }
     public mutating func admitDepth(value: Int, coefficient: Int) throws(ExactScalarFailure) {
         try checkpoint()
-        guard value >= 0, coefficient >= 0 else { throw .countOverflow }
-        guard value <= limits.valueDepth else { throw .resourceLimit(.valueDepth) }
-        guard coefficient <= limits.coefficientDepth else { throw .resourceLimit(.coefficientDepth) }
-        valueDepth = max(valueDepth, value); coefficientDepth = max(coefficientDepth, coefficient)
+        let mapped=try proofScopes.mapped(value:value,coefficient:coefficient)
+        guard mapped.value<=limits.valueDepth else { throw .resourceLimit(.valueDepth) }
+        guard mapped.coefficient<=limits.coefficientDepth else { throw .resourceLimit(.coefficientDepth) }
+        try proofScopes.record(value:value,coefficient:coefficient)
+        valueDepth=max(valueDepth,mapped.value); coefficientDepth=max(coefficientDepth,mapped.coefficient)
     }
 }

@@ -5,7 +5,8 @@ import Testing
 @Suite("Canonical rational addition", .timeLimit(.minutes(1)))
 struct IntersectionRationalAdditionTests {
     private enum AdmissionFailure: Error, Equatable { case work, storage, unexpectedDepth }
-    private struct Admission: RationalAlgebraAdmitting {
+    private struct Admission: ~Copyable, GeometryScalarTestAdmission {
+        var proofScopes = ExactScalarProofScopes()
         var maximumWork = 80_000_000
         var maximumStorage = 268_435_456
         var work = 0
@@ -13,19 +14,50 @@ struct IntersectionRationalAdditionTests {
         var cells = 0
         var cancelAtWork: Int?
         var cancelAtStorage: Int?
-        mutating func consumeExactWork(_ count: Int) throws {
+        mutating func consumeWork(_ count: Int) throws(ExactScalarFailure) {
+            try checkpoint()
+            try proofScopes.checkWork(count)
+            do {
             guard count >= 0, count <= maximumWork - work else { throw AdmissionFailure.work }
             work += count
             if work == cancelAtWork { withUnsafeCurrentTask { $0?.cancel() } }
+        
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            proofScopes.recordWork(count)
+            try checkpoint()
         }
-        mutating func retainExactStorage(_ count: Int) throws {
+        mutating func retainStorage(bytes: Int) throws(ExactScalarFailure) {
+            try checkpoint()
+            let count = try geometryTestStorageWords(bytes)
+            do {
             guard count >= 0, count <= maximumStorage - storage else { throw AdmissionFailure.storage }
             storage += count
             if storage == cancelAtStorage { withUnsafeCurrentTask { $0?.cancel() } }
+        
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            try checkpoint()
         }
-        mutating func visitExactCell(depth: Int) throws {
+        
+            mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
+            try admitDepth(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+            let mapped = try proofScopes.mapped(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+            do {
+                switch (axis == .coefficient || proofScopes.exactDepthResource == .coefficientDepth) ? ExactScalarRootAxis.coefficient : .value {
+                case .value:
+                    let depth = mapped.value
+
             cells += 1
             throw AdmissionFailure.unexpectedDepth
+        
+                case .coefficient:
+                    let depth = mapped.coefficient
+ throw ExactScalarFailure.resourceLimit(.coefficientDepth) 
+                }
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            try checkpoint()
         }
     }
     private struct Golden {
@@ -154,14 +186,14 @@ struct IntersectionRationalAdditionTests {
         #expect(try values.first.adding(values.second, usage: &measured) == values.expected)
         for allowance in [0, measured.work - 1] {
             var usage = Admission(); usage.maximumWork = allowance
-            #expect(throws: AdmissionFailure.work) {
+            geometryTestExpectFailure({ if case .work? = geometryTestOriginalFailure($0) as? AdmissionFailure { true } else { false } }) {
                 try values.first.adding(values.second, usage: &usage)
             }
             #expect(usage.work <= allowance && usage.cells == 0)
         }
         for allowance in [0, measured.storage - 1] {
             var usage = Admission(); usage.maximumStorage = allowance
-            #expect(throws: AdmissionFailure.storage) {
+            geometryTestExpectFailure({ if case .storage? = geometryTestOriginalFailure($0) as? AdmissionFailure { true } else { false } }) {
                 try values.first.adding(values.second, usage: &usage)
             }
             #expect(usage.storage <= allowance && usage.cells == 0)
@@ -183,7 +215,7 @@ struct IntersectionRationalAdditionTests {
                 _ = try values.first.adding(values.second, usage: &usage)
                 Issue.record("A final rational addition admission cancelled the task but published a value.")
                 return false
-            } catch is CancellationError {
+            } catch let error where geometryTestIsCancelled(error) {
                 return (storageCallback ? usage.storage == finalStorage : usage.work == finalWork) && usage.cells == 0
             }
         }.value
@@ -202,7 +234,7 @@ struct IntersectionRationalAdditionTests {
         #expect(cancelledSum == zero && cancelledSum.canonicalSign == 0)
         let invalid: [(Int, [UInt32], [UInt32])] = [(0, [1], [1]), (1, [], [1]), (1, [2], [4])]
         for source in invalid {
-            #expect(throws: KernelError.self) {
+            geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
                 try ExactRationalCoefficient(canonicalSign: source.0, numeratorWords: source.1,
                     denominatorWords: source.2, usage: &usage)
             }
@@ -214,7 +246,7 @@ struct IntersectionRationalAdditionTests {
                 _ = try values.first.adding(values.second, usage: &admission)
                 Issue.record("A precancelled rational addition published a value.")
                 return false
-            } catch is CancellationError { return admission.work == 0 && admission.storage == 0 && admission.cells == 0 }
+            } catch let error where geometryTestIsCancelled(error) { return admission.work == 0 && admission.storage == 0 && admission.cells == 0 }
         }.value
         #expect(precancelled)
     }

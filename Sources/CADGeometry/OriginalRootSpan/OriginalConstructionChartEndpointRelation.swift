@@ -3,10 +3,10 @@ import CADCore
 /// Same symbolic endpoint recipe, without evaluating a rounded native parameter.
 package struct OriginalConstructionChartEndpointRelation {
     /// False leaves equality unresolved; it never proves unequal positions.
-    package static func matches<B: RationalAlgebraAdmitting>(first: Curve3D, at firstParameter: Double,
+    package static func matches<B: ExactScalarAdmission & ~Copyable>(first: Curve3D, at firstParameter: Double,
         second: Curve3D, at secondParameter: Double, remainingSourceDepth: Int,
         tolerance: ModelingTolerance, usage: inout B) throws -> Bool {
-        try usage.consumeExactWork(1)
+        try usage.consumeWork(1)
         guard case .originalConstructionChart(let a) = first,
             case .originalConstructionChart(let b) = second,
             case .parameterLaw(let x) = a.chart, case .parameterLaw(let y) = b.chart,
@@ -16,8 +16,8 @@ package struct OriginalConstructionChartEndpointRelation {
             a.certificationTolerance == tolerance, b.certificationTolerance == tolerance else {
             throw GeometryConversionError.resourceLimitExceeded("Original chart corner lacks its source depth or tolerance capability.")
         }
-        try GeometryStructuralComparisonWork.charge(curve: first, using: { try usage.consumeExactWork($0) })
-        try GeometryStructuralComparisonWork.charge(curve: second, using: { try usage.consumeExactWork($0) })
+        try GeometryStructuralComparisonWork.charge(curve: first, using: &usage)
+        try GeometryStructuralComparisonWork.charge(curve: second, using: &usage)
         guard x.source == y.source else { return false }
         let firstFraction = firstParameter == 0 ? x.firstFraction : x.lastFraction
         let secondFraction = secondParameter == 0 ? y.firstFraction : y.lastFraction

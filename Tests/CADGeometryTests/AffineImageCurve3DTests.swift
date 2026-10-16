@@ -162,6 +162,7 @@ struct AffineImageCurve3DTests {
 
     @Test(.timeLimit(.minutes(1)))
     func projectionEnclosureAndRationalConversionPreserveTheCurve() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
         let source = Curve3D.analytic(.ellipse(
             center: Point3D(x: -0.4, y: 0.6, z: 1.2),
             normal: .unitZ,
@@ -186,11 +187,11 @@ struct AffineImageCurve3DTests {
             over: interval,
             tolerance: tolerance
         )
-        let spline = try #require(try AnalyticCurveBSplineBuilder().boundedCurve(
+        let spline = try geometryTestRequire(try AnalyticCurveBSplineBuilder().boundedCurve(
             curve: curve,
             interval: interval,
             maximumSpanCount: 8,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         ))
         let splineCurve = Curve3D.bSpline(spline)
 

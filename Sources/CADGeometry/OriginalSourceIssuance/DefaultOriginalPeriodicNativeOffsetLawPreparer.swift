@@ -12,7 +12,7 @@ public struct DefaultOriginalPeriodicNativeOffsetLawPreparer<S: OriginalOffsetSo
         throws(OriginalSourceIssuanceFailure) -> OriginalPeriodicNativeOffsetLawFamily<S> {
         let source=copy source,child=copy child
         do {
-            return try OriginalSourceProofAdmission<A>.withBorrow(&admission) { a in
+            return try admission.withProofScope { a in
                 try a.checkpoint();try source.require(limits)
                 guard source.original.originalChild.owner === child.source.owner else { throw OriginalSourceIssuanceFailure.foreignBinding }
                 guard child.support.count==2,child.source.original.parameterCount==2,

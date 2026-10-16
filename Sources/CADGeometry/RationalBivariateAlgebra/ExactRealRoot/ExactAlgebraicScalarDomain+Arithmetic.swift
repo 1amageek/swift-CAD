@@ -4,7 +4,7 @@ import L1
 #endif
 
 extension ExactAlgebraicScalarDomain {
-    func admitted(_ source: Value, _ a: inout ExactRootBorrowedAdmission) throws -> Value {
+    func admitted<A: ExactScalarAdmission & ~Copyable>(_ source: Value, _ a: inout A) throws -> Value {
         try embedded(source, &a)
     }
     public func negated<A: ExactScalarAdmission & ~Copyable>(_ value: borrowing Value,
@@ -13,14 +13,14 @@ extension ExactAlgebraicScalarDomain {
         return try scalarQuery(&admission) { a in
             let v = try admitted(value, &a)
             switch v.storage {
-            case .base(let b): return Value(context: context, storage: .base(try context.base.negated(b, using: &a)), depth: a.depth)
+            case .base(let b): return Value(context: context, storage: .base(try context.base.negated(b, using: &a)), depth: (try a.depth))
             case .fraction(let n, let d):
                 guard let root = context.root else { throw ExactScalarFailure.invalidEvidence }
                 return try fraction(root.source.context.univariate.negated(n, using: &a), d, calculation: v.calculation, &a)
             }
         }
     }
-    func operation(_ lhs: Value, _ rhs: Value, _ kind: Int, _ a: inout ExactRootBorrowedAdmission) throws -> Value {
+    func operation<A: ExactScalarAdmission & ~Copyable>(_ lhs: Value, _ rhs: Value, _ kind: Int, _ a: inout A) throws -> Value {
         let l = try admitted(lhs, &a), r = try admitted(rhs, &a)
         switch (l.storage, r.storage) {
         case (.base(let x), .base(let y)):
@@ -31,7 +31,7 @@ extension ExactAlgebraicScalarDomain {
             case 2: value = try context.base.multiplying(x, y, using: &a)
             default: value = try context.base.dividing(x, y, using: &a)
             }
-            return Value(context: context, storage: .base(value), depth: a.depth)
+            return Value(context: context, storage: .base(value), depth: (try a.depth))
         case (.fraction(let ln, let ld), .fraction(let rn, _)):
             guard let root = context.root else { throw ExactScalarFailure.invalidEvidence }
             let p = root.source.context.univariate

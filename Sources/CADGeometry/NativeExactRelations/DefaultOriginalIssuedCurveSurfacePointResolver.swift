@@ -23,14 +23,14 @@ public struct DefaultOriginalIssuedCurveSurfacePointResolver<First: Sendable, Fi
     ) throws(NativeExactRelationFailure) -> OriginalIssuedCurveSurfacePointSet<First, FirstSelection, Second, SecondSelection> {
         do {
             let retained = copy relation
-            return try OriginalSourceProofAdmission<A>.withBorrow(&admission) { usage in
+            return try admission.withProofScope() { usage in
                 try resolveTracked(relation: retained, maximumPoints: maximumPoints, using: &usage)
             }
         } catch { throw .preserving(error) }
     }
     private func resolveTracked<A: ExactScalarAdmission & ~Copyable>(
         relation: borrowing OriginalIssuedRelation<First, FirstSelection, Second, SecondSelection>,
-        maximumPoints: Int, using admission: inout OriginalSourceProofAdmission<A>
+        maximumPoints: Int, using admission: inout A
     ) throws(NativeExactRelationFailure) -> OriginalIssuedCurveSurfacePointSet<First, FirstSelection, Second, SecondSelection> {
         do {
             try admission.checkpoint()

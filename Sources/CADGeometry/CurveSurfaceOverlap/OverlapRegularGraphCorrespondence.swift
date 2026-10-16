@@ -32,14 +32,15 @@ struct OverlapRegularGraphCorrespondence: Sendable {
     }
 
     func parameter(at t: Double) throws -> SurfaceParameter {
-        var budget = OverlapProofBudget(options: options, tolerance: root.tolerance)
-        return try parameter(at: t, budget: &budget)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        let policy = try OverlapProofPolicy(options: options, tolerance: root.tolerance, using: &execution)
+        return try parameter(at: t, policy: policy, using: &execution)
     }
 
-    func parameter(at t: Double, budget: inout OverlapProofBudget) throws -> SurfaceParameter {
-        let cell = try selectedCell(at: t, budget: &budget)
-        if let endpoint = try root.exactEndpoint(at: t, pair: cell.pair, budget: &budget) { return endpoint }
-        let proof = try root.pointProof(at: t, cell: cell, budget: &budget)
+    func parameter(at t: Double, policy: OverlapProofPolicy, using execution: inout OriginalQueryExecution) throws -> SurfaceParameter {
+        let cell = try selectedCell(at: t, policy: policy, using: &execution)
+        if let endpoint = try root.exactEndpoint(at: t, pair: cell.pair, policy: policy, using: &execution) { return endpoint }
+        let proof = try root.pointProof(at: t, cell: cell, policy: policy, using: &execution)
         guard proof.stationaryParameters.u == cell.stationaryU,
               proof.stationaryParameters.v == cell.stationaryV else {
             throw KernelError(phase: .geometry, code: .intersectionFailure, tolerance: root.tolerance,
@@ -49,10 +50,10 @@ struct OverlapRegularGraphCorrespondence: Sendable {
             v: cell.stationaryV ?? proof.box.v.midpoint)
     }
 
-    func selectedCell(at t: Double, budget: inout OverlapProofBudget) throws -> OverlapRegularGraphCell {
+    func selectedCell(at t: Double, policy: OverlapProofPolicy, using execution: inout OriginalQueryExecution) throws -> OverlapRegularGraphCell {
         var lower = 0, upper = cells.count
         while lower < upper {
-            try budget.work()
+            try policy.work(using: &execution)
             let middle = lower + (upper - lower) / 2
             if cells[middle].range.upper < t { lower = middle + 1 } else { upper = middle }
         }

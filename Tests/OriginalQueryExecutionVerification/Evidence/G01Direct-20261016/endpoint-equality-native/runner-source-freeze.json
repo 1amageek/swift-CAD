@@ -1,0 +1,43 @@
+{
+  "scope": "Only explicit fresh Native Collections dependency authority in the three existing verification runners; no production changes or compiler execution.",
+  "files": {
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalQueryExecutionVerification/typecheck.py": {
+      "sha256": "9a290a4391c71a3308753fbefb116d6fb8ed73ba6af679e1ec5d6822cbeab3c6",
+      "snapshot": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/runner-bindings/original/typecheck.py"
+    },
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalQueryExecutionVerification/native_tests.py": {
+      "sha256": "2161f2832d083f9414a1bf84f083f132f70f376f35255adff051d5cd8b1dc028",
+      "snapshot": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/runner-bindings/original/native_tests.py"
+    },
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalQueryExecutionVerification/verify_g01_direct.py": {
+      "sha256": "5fc6eb28f088976687092b297009e1135b3bcf9bf61e09c4d345678bb937e7ba",
+      "snapshot": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/runner-bindings/original/verify_g01_direct.py"
+    },
+    "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD/Tests/OriginalQueryExecutionVerification/typecheck.py": {
+      "sha256": "9a290a4391c71a3308753fbefb116d6fb8ed73ba6af679e1ec5d6822cbeab3c6",
+      "snapshot": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/runner-bindings/candidate/typecheck.py"
+    },
+    "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD/Tests/OriginalQueryExecutionVerification/native_tests.py": {
+      "sha256": "6110e954b49e99a4720a0d6c8b5cbfde96eaaa8492b5bc27ad0a8e6bd0a0f1ed",
+      "snapshot": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/runner-bindings/candidate/native_tests.py"
+    },
+    "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD/Tests/OriginalQueryExecutionVerification/verify_g01_direct.py": {
+      "sha256": "5fc6eb28f088976687092b297009e1135b3bcf9bf61e09c4d345678bb937e7ba",
+      "snapshot": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/runner-bindings/candidate/verify_g01_direct.py"
+    }
+  },
+  "monitorBodyUnchanged": true,
+  "validation": {
+    "pythonParseAndHelp": 6,
+    "actualDependencyAccepted": true,
+    "specificRefusals": [
+      "pinned revision",
+      "compiler hash",
+      "module/object hash map",
+      "actual compiler log hash"
+    ]
+  },
+  "freshDependencyReceipt": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/dependencies/collections-native-r1/receipt.json",
+  "freshProductsReceipt": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/dependencies/collections-native-r1/products.json",
+  "historicalProductMapRewritten": false
+}

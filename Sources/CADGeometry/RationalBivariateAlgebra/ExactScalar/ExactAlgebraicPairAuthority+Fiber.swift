@@ -1,5 +1,5 @@
 extension ExactAlgebraicPairAuthority {
-    func originalFiberNumerator<B: RationalAlgebraAdmitting>(usage: inout B) throws -> ExactBivariatePolynomial {
+    func originalFiberNumerator<B: ExactScalarAdmission & ~Copyable>(usage: inout B) throws -> ExactBivariatePolynomial {
         var result = ExactBivariatePolynomial.zero
         for (degree, coefficient) in fiber.coefficients {
             var term = coefficient.numerator

@@ -18,7 +18,8 @@ struct BooleanSliceSewingRequestBuilder {
         sliceRegionSelectionGraph: BooleanRegionSelectionGraph,
         operands: BooleanOperandContext,
         tolerance: ModelingTolerance
-    ) throws -> BRepSewingRequest {
+    , using execution: inout OriginalQueryExecution) throws -> BRepSewingRequest {
+        try execution.consumeWork(1)
         try tolerance.validate()
         let componentOperations: [(namespace: String, operation: BooleanOperation)] = [
             ("difference", .difference),
@@ -26,8 +27,9 @@ struct BooleanSliceSewingRequestBuilder {
         ]
         var requests: [(namespace: String, request: BRepSewingRequest)] = []
         for component in componentOperations {
+            try execution.consumeWork(1)
             let selectionGraph = BooleanRegionSelectionGraph(
-                decisions: sliceRegionSelectionGraph.decisions.map { decision in
+                decisions: try OriginalParameterQueryStorage.map(sliceRegionSelectionGraph.decisions, using: &execution) { decision, execution in
                     BooleanRegionSelectionGraph.Decision(
                         sample: decision.sample,
                         action: operands.rule.action(
@@ -49,8 +51,8 @@ struct BooleanSliceSewingRequestBuilder {
                     regionSelectionGraph: selectionGraph,
                     operands: operands,
                     tolerance: tolerance
-                )
-                requests.append((component.namespace, request))
+                , using: &execution)
+                try OriginalParameterQueryStorage.append((component.namespace, request), to: &requests, using: &execution)
             } catch {
                 guard isEmptyResult(error) else { throw error }
             }
@@ -69,19 +71,20 @@ struct BooleanSliceSewingRequestBuilder {
         var sheetShellStableIDs: [String] = []
         var bodyParentSubshapeIDs = Set<SubshapeID>()
         for entry in requests {
+            try execution.consumeWork(1)
             let prefix = "slice:\(entry.namespace)"
             switch entry.request.bodyTopology {
             case let .solid(components) where operands.resultBodyKind == .solid:
-                solidComponents.append(contentsOf: components.map {
+                try OriginalParameterQueryStorage.append(contentsOf: try OriginalParameterQueryStorage.map(components, using: &execution) { component, execution in
                     BRepSewingSolidComponent(
-                        outerShellStableID: namespaced($0.outerShellStableID, prefix: prefix),
-                        voidShellStableIDs: $0.voidShellStableIDs.map {
-                            namespaced($0, prefix: prefix)
+                        outerShellStableID: try namespaced(component.outerShellStableID, prefix: prefix, using: &execution),
+                        voidShellStableIDs: try OriginalParameterQueryStorage.map(component.voidShellStableIDs, using: &execution) { id, execution in
+                            try namespaced(id, prefix: prefix, using: &execution)
                         }
                     )
-                })
+                }, to: &solidComponents, using: &execution)
             case let .sheet(shellStableIDs) where operands.resultBodyKind == .sheet:
-                sheetShellStableIDs.append(contentsOf: shellStableIDs.map { namespaced($0, prefix: prefix) })
+                try OriginalParameterQueryStorage.append(contentsOf: try OriginalParameterQueryStorage.map(shellStableIDs, using: &execution) { id, execution in try namespaced(id, prefix: prefix, using: &execution) }, to: &sheetShellStableIDs, using: &execution)
             default:
                 throw KernelError(
                     phase: .topology,
@@ -90,11 +93,14 @@ struct BooleanSliceSewingRequestBuilder {
                     message: "Boolean slice component materialization must produce the pass's body kind."
                 )
             }
-            shells.append(contentsOf: entry.request.shells.map {
-                namespaced($0, prefix: prefix)
-            })
-            bodyParentSubshapeIDs.formUnion(entry.request.bodyParentSubshapeIDs)
+            try OriginalParameterQueryStorage.append(contentsOf: try OriginalParameterQueryStorage.map(entry.request.shells, using: &execution) { shell, execution in
+                try namespaced(shell, prefix: prefix, using: &execution)
+            }, to: &shells, using: &execution)
+            for id in entry.request.bodyParentSubshapeIDs {
+            try execution.consumeWork(1)
+            try OriginalParameterQueryStorage.insert(id, in: &bodyParentSubshapeIDs, using: &execution) }
         }
+        try execution.retainKernelValues(count: bodyParentSubshapeIDs.count, stride: MemoryLayout<SubshapeID>.stride)
         let request = BRepSewingRequest(
             featureID: featureID,
             bodyTopology: operands.resultBodyKind == .solid
@@ -103,17 +109,19 @@ struct BooleanSliceSewingRequestBuilder {
             shells: shells,
             bodyParentSubshapeIDs: Array(bodyParentSubshapeIDs)
         )
-        try request.validate(tolerance: tolerance)
+        try request.validate(tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
         return request
     }
 
     private func namespaced(
         _ shell: BRepSewingShell,
         prefix: String
-    ) -> BRepSewingShell {
-        BRepSewingShell(
-            stableID: namespaced(shell.stableID, prefix: prefix),
-            patches: shell.patches.map { namespaced($0, prefix: prefix) },
+    , using execution: inout OriginalQueryExecution) throws -> BRepSewingShell {
+        try execution.consumeWork(1)
+        return BRepSewingShell(
+            stableID: try namespaced(shell.stableID, prefix: prefix, using: &execution),
+            patches: try OriginalParameterQueryStorage.map(shell.patches, using: &execution) { patch, execution in try namespaced(patch, prefix: prefix, using: &execution) },
             orientation: shell.orientation
         )
     }
@@ -121,12 +129,13 @@ struct BooleanSliceSewingRequestBuilder {
     private func namespaced(
         _ patch: BRepSewingFacePatch,
         prefix: String
-    ) -> BRepSewingFacePatch {
-        BRepSewingFacePatch(
-            stableID: namespaced(patch.stableID, prefix: prefix),
+    , using execution: inout OriginalQueryExecution) throws -> BRepSewingFacePatch {
+        try execution.consumeWork(1)
+        return BRepSewingFacePatch(
+            stableID: try namespaced(patch.stableID, prefix: prefix, using: &execution),
             surface: patch.surface,
             orientation: patch.orientation,
-            loops: patch.loops.map { namespaced($0, prefix: prefix) },
+            loops: try OriginalParameterQueryStorage.map(patch.loops, using: &execution) { loop, execution in try namespaced(loop, prefix: prefix, using: &execution) },
             parentSubshapeIDs: patch.parentSubshapeIDs
         )
     }
@@ -134,20 +143,22 @@ struct BooleanSliceSewingRequestBuilder {
     private func namespaced(
         _ loop: BRepSewingLoop,
         prefix: String
-    ) -> BRepSewingLoop {
-        BRepSewingLoop(
-            stableID: namespaced(loop.stableID, prefix: prefix),
+    , using execution: inout OriginalQueryExecution) throws -> BRepSewingLoop {
+        try execution.consumeWork(1)
+        return BRepSewingLoop(
+            stableID: try namespaced(loop.stableID, prefix: prefix, using: &execution),
             role: loop.role,
-            edges: loop.edges.map { namespaced($0, prefix: prefix) }
+            edges: try OriginalParameterQueryStorage.map(loop.edges, using: &execution) { edge, execution in try namespaced(edge, prefix: prefix, using: &execution) }
         )
     }
 
     private func namespaced(
         _ edge: BRepSewingEdge,
         prefix: String
-    ) -> BRepSewingEdge {
-        BRepSewingEdge(
-            stableID: namespaced(edge.stableID, prefix: prefix),
+    , using execution: inout OriginalQueryExecution) throws -> BRepSewingEdge {
+        try execution.consumeWork(1)
+        return BRepSewingEdge(
+            stableID: try namespaced(edge.stableID, prefix: prefix, using: &execution),
             curve: edge.curve,
             startParameter: edge.startParameter,
             endParameter: edge.endParameter,
@@ -160,13 +171,18 @@ struct BooleanSliceSewingRequestBuilder {
         )
     }
 
-    private func namespaced(_ stableID: String, prefix: String) -> String {
-        "\(prefix):\(stableID)"
+    private func namespaced(_ stableID: String, prefix: String, using execution: inout OriginalQueryExecution) throws -> String {
+        try execution.consumeWork(1)
+        let count = prefix.utf8.count.addingReportingOverflow(stableID.utf8.count)
+        let withColon = count.partialValue.addingReportingOverflow(1)
+        guard !count.overflow, !withColon.overflow else { throw ExactScalarFailure.countOverflow }
+        try execution.retainStorage(bytes: withColon.partialValue)
+        return "\(prefix):\(stableID)"
     }
 
     private func isEmptyResult(_ error: any Error) -> Bool {
-        if let error = error as? KernelError {
-            return error.code == .emptyResult
+        if let classification = OriginalQueryFailure.classification(of: error) {
+            return classification.code == .emptyResult
         }
         if case FeatureEvaluationError.emptyResult = error {
             return true

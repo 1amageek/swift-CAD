@@ -6,27 +6,13 @@ import L2
 
 enum ExactCellAccess {
     static func run<A: ExactScalarAdmission & ~Copyable, R>(_ admission: inout A,
-        inherited: ExactScalarDepth? = nil, _ body: (inout ExactCellBorrowedAdmission) throws -> R
+        inherited: ExactScalarDepth? = nil, _ body: (inout A) throws -> R
     ) throws(ExactRealCellFailure) -> R {
         do {
-            try admission.checkpoint()
-            let depth = try inherited ?? ExactScalarDepth(value: 0, coefficient: 0)
-            try admission.admitDepth(value: depth.value, coefficient: depth.coefficient)
-            // Class payload/header plus five scoped closure contexts, each retaining one pointer.
-            let closure = MemoryLayout<() throws -> Void>.stride
-            let pointer = MemoryLayout<UnsafeRawPointer>.stride
-            let bytes = try add(add(multiply(5, closure), MemoryLayout<ExactScalarDepth>.stride),
-                add(multiply(2, pointer), multiply(5, multiply(3, pointer))))
-            try admission.retainStorage(bytes: bytes)
-            let result = try withUnsafeMutablePointer(to: &admission) { pointer in
-                var usage = ExactCellBorrowedAdmission(owner: ExactCellInvocationOwner(caller: pointer, depth: depth))
-                try usage.consumeWork(1)
-                let result = try body(&usage)
-                try usage.checkpoint()
-                return result
+            return try admission.withProofScope(inherited:inherited) { a in
+                try a.consumeWork(1)
+                return try body(&a)
             }
-            try admission.checkpoint()
-            return result
         } catch let failure as ExactRealCellFailure { throw failure }
         catch let failure as ExactScalarFailure { throw .scalar(failure) }
         catch let failure as ExactPolynomialFailure { throw .polynomial(failure) }
@@ -41,13 +27,13 @@ enum ExactCellAccess {
         let r = a.multipliedReportingOverflow(by: b)
         guard a >= 0, b >= 0, !r.overflow else { throw .countOverflow }; return r.partialValue
     }
-    static func storage<T>(_ count: Int, _ type: T.Type, _ a: inout ExactCellBorrowedAdmission) throws {
+    static func storage<T, A: ExactScalarAdmission & ~Copyable>(_ count: Int, _ type: T.Type, _ a: inout A) throws {
         try a.retainStorage(bytes: exactScalarPayloadBytes(count: count, of: type))
     }
-    static func owner<T>(_ payload: T.Type, _ a: inout ExactCellBorrowedAdmission) throws {
+    static func owner<T, A: ExactScalarAdmission & ~Copyable>(_ payload: T.Type, _ a: inout A) throws {
         try a.retainStorage(bytes: add(MemoryLayout<T>.stride, multiply(2, MemoryLayout<UnsafeRawPointer>.stride)))
     }
-    static func admit(_ depth: ExactScalarDepth, _ a: inout ExactCellBorrowedAdmission) throws {
+    static func admit<A: ExactScalarAdmission & ~Copyable>(_ depth: ExactScalarDepth, _ a: inout A) throws {
         try a.admitDepth(value: depth.value, coefficient: depth.coefficient)
     }
 }

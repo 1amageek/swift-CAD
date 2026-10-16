@@ -1,0 +1,6 @@
+(node:60319) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS structural surface original debit sequences
+PASS structural surface exact and cumulative work
+PASS structural surface checked overflow
+PASS structural surface cancellation

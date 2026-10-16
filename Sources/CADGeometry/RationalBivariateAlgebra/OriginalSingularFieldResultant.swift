@@ -1,6 +1,6 @@
 /// Fraction-free original Sylvester elimination over an ordered coefficient field.
 package struct OriginalSingularFieldResultant {
-    package static func eliminatingV<B: RationalAlgebraAdmitting>(
+    package static func eliminatingV<B: ExactScalarAdmission & ~Copyable>(
         _ first: OriginalSingularFieldPlanePolynomial, _ second: OriginalSingularFieldPlanePolynomial,
         maximumDepth: Int, usage: inout B) throws -> OriginalSingularFieldPolynomial {
         guard first.context === second.context else {
@@ -16,12 +16,12 @@ package struct OriginalSingularFieldResultant {
         try RationalAlgebraStorage.retain(count, of: OriginalSingularFieldPolynomial.self, usage: &usage)
         var matrix = Array(repeating: zero, count: count)
         for row in 0..<n { for index in 0...m {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             matrix[row * size + row + index] = try OriginalSingularFieldPlaneGCD.coefficient(first,
                 vPower: m - index, maximumDepth: maximumDepth, usage: &usage)
         } }
         for row in 0..<m { for index in 0...n {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             matrix[(row + n) * size + row + index] = try OriginalSingularFieldPlaneGCD.coefficient(second,
                 vPower: n - index, maximumDepth: maximumDepth, usage: &usage)
         } }
@@ -33,13 +33,13 @@ package struct OriginalSingularFieldResultant {
         if size > 1 { for column in 0..<(size - 1) {
             var pivotRow: Int?
             for row in column..<size {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 if !matrix[row * size + column].isZero { pivotRow = row; break }
             }
             guard let pivotRow else { return zero }
             if pivotRow != column {
                 for index in 0..<size {
-                    try usage.consumeExactWork(1)
+                    try usage.consumeWork(1)
                     matrix.swapAt(column * size + index, pivotRow * size + index)
                 }
                 negative.toggle()

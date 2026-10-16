@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="TestResults" errors="0" tests="3" failures="0" skipped="0" time="0.005043417">
+    <testcase classname="FocusedTests.OriginalNativeEndpointPositionRelationTests" name="sameAndUnequalNativeEndpointsRunOnCooperativeWorkers()" time="0.004705792" />
+    <testcase classname="FocusedTests.OriginalNativeEndpointPositionRelationTests" name="measuredBudgetDoesNotTurnGeometricAgreementIntoSourceEquality()" time="0.003039917" />
+    <testcase classname="FocusedTests.OriginalNativeEndpointPositionRelationTests" name="foreignNativeSourcesRemainExactAndRetainTheirCOWPayload()" time="0.004545959" />
+  </testsuite>
+</testsuites>

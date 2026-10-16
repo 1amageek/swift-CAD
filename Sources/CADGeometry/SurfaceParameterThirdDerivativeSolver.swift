@@ -9,6 +9,19 @@ struct SurfaceParameterThirdDerivativeSolver {
         tolerance: ModelingTolerance,
         diagnosticContext: String
     ) throws -> Point2D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try solve(surface: surface, firstParameterDerivative: firstParameterDerivative, secondParameterDerivative: secondParameterDerivative, spatialThirdDerivative: spatialThirdDerivative, tolerance: tolerance, diagnosticContext: diagnosticContext, using: &execution)
+    }
+
+    func solve<A: ExactScalarAdmission & ~Copyable>(
+        surface: SurfaceParameterThirdOrderDerivatives,
+        firstParameterDerivative: Point2D,
+        secondParameterDerivative: Point2D,
+        spatialThirdDerivative: Vector3D,
+        tolerance: ModelingTolerance,
+        diagnosticContext: String
+    , using execution: inout A) throws -> Point2D {
+        try execution.consumeWork(1)
         let tangentU = surface.tangentU
         let tangentV = surface.tangentV
         let metricUU = tangentU.dot(tangentU)

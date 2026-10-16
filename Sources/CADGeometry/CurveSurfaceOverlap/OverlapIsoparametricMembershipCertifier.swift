@@ -7,17 +7,30 @@ struct OverlapIsoparametricMembershipCertifier {
         let deviation: Double
     }
 
+    // FIXME(INCOMPLETE_IMPLEMENTATION): This retained verification algorithm
+    // bounds homogeneous deviation without issuing original source equality.
+    // Public CS dispatch bypasses it; U4 must provide an exact source relation
+    // before a successful certificate can authorize intersection publication.
     func certificate(curve: BSplineCurve3D, surface: BSplineSurface3D,
                      range: ScalarInterval, options: CurveSurfaceIntersectionOptions,
                      tolerance: ModelingTolerance) throws -> Certificate? {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        let policy = try OverlapProofPolicy(options: options, tolerance: tolerance, using: &execution)
+        return try certificate(curve: curve, surface: surface, range: range,
+            options: options, tolerance: tolerance, policy: policy, using: &execution)
+    }
+
+    private func nonperiodicCertificate(curve: BSplineCurve3D, surface: BSplineSurface3D,
+        range: ScalarInterval, options: CurveSurfaceIntersectionOptions,
+        tolerance: ModelingTolerance, policy: OverlapProofPolicy,
+        using execution: inout OriginalQueryExecution) throws -> Certificate? {
         guard !curve.isPeriodic, !surface.isUPeriodic, !surface.isVPeriodic,
               case let .closed(lower, upper) = curve.domain else { return nil }
         guard curve.controlPointCount <= options.maximumSubdivisionCells,
               surface.uControlPointCount <= options.maximumSubdivisionCells,
               surface.vControlPointCount <= options.maximumSubdivisionCells else {
-            throw failure(.resourceLimitExceeded, "Isoparametric control storage exceeds the work budget.", tolerance)
+            throw failure(.resourceLimitExceeded, "Isoparametric control storage exceeds the work policy.", tolerance)
         }
-        var remainingWork = options.maximumSubdivisionCells
         for reversed in [false, true] {
             try CurrentTaskCancellationChecker().checkCancellation()
             if reversed {
@@ -25,7 +38,7 @@ struct OverlapIsoparametricMembershipCertifier {
                 // map, rather than a nearby map produced by rounded knot arithmetic.
                 guard exactSum(lower, upper), curve.knots.allSatisfy({ exactSum(lower + upper, -$0) }) else { continue }
             }
-            let source = reversed ? try curve.reversed(tolerance: tolerance) : curve
+            let source = reversed ? try curve.reversed(tolerance: tolerance, using: &execution) : curve
             for variesU in [true, false] {
                 let degree = variesU ? surface.uDegree : surface.vDegree
                 let knots = variesU ? surface.uKnots : surface.vKnots
@@ -33,9 +46,10 @@ struct OverlapIsoparametricMembershipCertifier {
                       source.controlPointCount == (variesU ? surface.uControlPointCount : surface.vControlPointCount),
                       case let .closed(fixedLower, fixedUpper) = (variesU ? surface.vDomain : surface.uDomain) else { continue }
                 guard degree <= options.maximumPolynomialDegree else {
-                    throw failure(.resourceLimitExceeded, "Isoparametric membership exceeds the degree budget.", tolerance)
+                    throw failure(.resourceLimitExceeded, "Isoparametric membership exceeds the degree policy.", tolerance)
                 }
-                var fixedCandidates = [fixedLower, fixedUpper]
+                var fixedCandidates = try CertifiedAnalyticCurveEvaluation.values(fixedLower, fixedUpper, using: &execution)
+                var fixedCandidatesCapacity = 2
                 var projected = false
                 var index = 0
                 while index < fixedCandidates.count || !projected {
@@ -44,12 +58,12 @@ struct OverlapIsoparametricMembershipCertifier {
                         projected = true
                         // This station supplies a trial coordinate only. Every admitted
                         // trial still proves all homogeneous controls below.
-                        let point = try Curve3D.bSpline(curve).point(at: range.lower, tolerance: tolerance)
+                        let point = try Curve3D.bSpline(curve).point(at: range.lower, tolerance: tolerance, using: &execution)
                         if case .projected(let projection) = try Surface3D.bSpline(surface)
-                            .parameterProjectionResult(of: point, tolerance: tolerance) {
+                            .parameterProjectionResult(of: point, tolerance: tolerance, using: &execution) {
                             let fixed = variesU ? projection.v : projection.u
                             if fixed >= fixedLower, fixed <= fixedUpper, !fixedCandidates.contains(fixed) {
-                                fixedCandidates.append(fixed)
+                                try CertifiedAnalyticCurveEvaluation.append(fixed, to: &fixedCandidates, using: &execution, capacity: &fixedCandidatesCapacity)
                             }
                         }
                         if index == fixedCandidates.count { break }
@@ -57,7 +71,7 @@ struct OverlapIsoparametricMembershipCertifier {
                     let fixed = fixedCandidates[index]
                     index += 1
                     let bound = try deviation(source: source, surface: surface, variesU: variesU,
-                        fixed: fixed, remainingWork: &remainingWork, options: options, tolerance: tolerance)
+                        fixed: fixed, policy: policy, options: options, tolerance: tolerance, using: &execution)
                     if bound <= tolerance.distance {
                         let sum: Double? = reversed ? lower + upper : nil
                         guard sum?.isFinite ?? true else {
@@ -72,14 +86,18 @@ struct OverlapIsoparametricMembershipCertifier {
         return nil
     }
 
-    /// Periodic membership and clipping consume the same invocation budget.
+    /// Periodic membership and clipping consume the same invocation policy.
     /// The legacy nonperiodic fee contract remains in the original overload.
+    // FIXME(INCOMPLETE_IMPLEMENTATION): This retained verification algorithm
+    // bounds homogeneous deviation without issuing original source equality.
+    // Public CS dispatch bypasses it; U4 must provide an exact source relation
+    // before a successful certificate can authorize intersection publication.
     func certificate(curve: BSplineCurve3D, surface: BSplineSurface3D,
                      range: ScalarInterval, options: CurveSurfaceIntersectionOptions,
-                     tolerance: ModelingTolerance, budget: inout OverlapProofBudget) throws -> Certificate? {
+                     tolerance: ModelingTolerance, policy: OverlapProofPolicy, using execution: inout OriginalQueryExecution) throws -> Certificate? {
         if !curve.isPeriodic {
-            return try certificate(curve: curve, surface: surface, range: range,
-                options: options, tolerance: tolerance)
+            return try nonperiodicCertificate(curve: curve, surface: surface, range: range,
+                options: options, tolerance: tolerance, policy: policy, using: &execution)
         }
         guard surface.isUPeriodic != surface.isVPeriodic else { return nil }
         let variesU = surface.isUPeriodic
@@ -89,7 +107,7 @@ struct OverlapIsoparametricMembershipCertifier {
         guard curve.degree == targetDegree, curve.controlPointCount == targetCount,
               case let .closed(fixedLower, fixedUpper) = (variesU ? surface.vDomain : surface.uDomain) else { return nil }
         guard max(curve.degree, max(surface.uDegree, surface.vDegree)) <= options.maximumPolynomialDegree else {
-            throw failure(.resourceLimitExceeded, "Periodic isoparametric membership exceeds the degree budget.", tolerance)
+            throw failure(.resourceLimitExceeded, "Periodic isoparametric membership exceeds the degree policy.", tolerance)
         }
         let tensor = surface.uControlPointCount.multipliedReportingOverflow(by: surface.vControlPointCount)
         let controls = tensor.partialValue.addingReportingOverflow(curve.controlPointCount)
@@ -102,29 +120,29 @@ struct OverlapIsoparametricMembershipCertifier {
               !scan.overflow, !fee.overflow else {
             throw failure(.resourceLimitExceeded, "Periodic original control scan count overflowed.", tolerance)
         }
-        try budget.work(fee.partialValue)
-        try curve.validate(tolerance: tolerance)
-        try surface.validate(tolerance: tolerance)
+        try policy.work(fee.partialValue, using: &execution)
+        try curve.validate(tolerance: tolerance, using: &execution)
+        try surface.validate(tolerance: tolerance, using: &execution)
         guard let period = try exactCycle(degree: curve.degree, knots: curve.knots,
-                  count: curve.controlPointCount, tolerance: tolerance),
+                  count: curve.controlPointCount, tolerance: tolerance, using: &execution),
               let targetPeriod = try exactCycle(degree: targetDegree, knots: targetKnots,
-                  count: targetCount, tolerance: tolerance), period == targetPeriod,
-              exactOriginShift(curve.periodicOrigin ?? curve.knots[curve.degree],
+                  count: targetCount, tolerance: tolerance, using: &execution), period == targetPeriod,
+              try exactOriginShift(curve.periodicOrigin ?? curve.knots[curve.degree],
                   (variesU ? surface.uPeriodicOrigin : surface.vPeriodicOrigin) ?? targetKnots[targetDegree],
-                  period: period) else {
+                  period: period, using: &execution) else {
             throw failure(.unsupportedCapability, "Periodic isocurve origins or stored translations have no exact common-cycle authority.", tolerance)
         }
         guard case let .closed(lower, upper) = curve.fundamentalDomain else { return nil }
         for reversed in [false, true] {
-            try budget.work()
+            try policy.work(using: &execution)
             if reversed {
                 guard exactSum(lower, upper), curve.knots.allSatisfy({ exactSum(lower + upper, -$0) }) else { continue }
                 // Reflected controls and knots are allocated only after their work is paid.
-                try budget.work(curve.controlPointCount + curve.knots.count)
+                try policy.work(curve.controlPointCount + curve.knots.count, using: &execution)
             }
-            let source = reversed ? try curve.reversed(tolerance: tolerance) : curve
+            let source = reversed ? try curve.reversed(tolerance: tolerance, using: &execution) : curve
             guard source.knots == targetKnots else { continue }
-            try budget.storage(2)
+            try policy.storage(2, using: &execution)
             for fixed in [fixedLower, fixedUpper] {
                 let count = variesU ? surface.vControlPointCount : surface.uControlPointCount
                 let degree = variesU ? surface.vDegree : surface.uDegree
@@ -134,11 +152,11 @@ struct OverlapIsoparametricMembershipCertifier {
                 guard !product.overflow, !recurrence.overflow, !work.overflow else {
                     throw failure(.resourceLimitExceeded, "Periodic isoparametric control work overflowed.", tolerance)
                 }
-                try budget.work(work.partialValue)
+                try policy.work(work.partialValue, using: &execution)
                 let bound = try deviationValues(source: source, surface: surface, variesU: variesU,
-                    fixed: fixed, tolerance: tolerance)
+                    fixed: fixed, tolerance: tolerance, using: &execution)
                 if bound <= tolerance.distance {
-                    try budget.storage()
+                    try policy.storage(using: &execution)
                     return Certificate(correspondence: .init(variesU: variesU, fixedCoordinate: fixed,
                         reversedParameterSum: reversed ? lower + upper : nil,
                         periodic: .init(period: period, sourceRange: range)), deviation: bound)
@@ -151,24 +169,24 @@ struct OverlapIsoparametricMembershipCertifier {
         let fixedDegree = variesU ? surface.vDegree : surface.uDegree
         let fixedCount = variesU ? surface.vControlPointCount : surface.uControlPointCount
         for reversed in [false, true] {
-            try budget.work()
+            try policy.work(using: &execution)
             if reversed {
                 guard exactSum(lower, upper), curve.knots.allSatisfy({ exactSum(lower + upper, -$0) }) else { continue }
-                try budget.work(curve.controlPointCount + curve.knots.count)
+                try policy.work(curve.controlPointCount + curve.knots.count, using: &execution)
             }
-            let source = reversed ? try curve.reversed(tolerance: tolerance) : curve
+            let source = reversed ? try curve.reversed(tolerance: tolerance, using: &execution) : curve
             guard source.knots == targetKnots else { continue }
             for span in fixedDegree..<fixedCount where fixedKnots[span] < fixedKnots[span + 1] {
-                try budget.storage()
+                try policy.storage(using: &execution)
                 var fixed = fixedKnots[span] * 0.5 + fixedKnots[span + 1] * 0.5
                 guard fixed.isFinite else { throw failure(.resourceLimitExceeded, "Periodic fixed-axis seed is nonfinite.", tolerance) }
                 for _ in 0..<options.maximumIterations {
                     try chargePeriodicControlProbe(source: source, fixedCount: fixedCount,
-                        fixedDegree: fixedDegree, budget: &budget, tolerance: tolerance)
+                        fixedDegree: fixedDegree, policy: policy, tolerance: tolerance, using: &execution)
                     let bound = try deviationValues(source: source, surface: surface, variesU: variesU,
-                        fixed: fixed, tolerance: tolerance)
+                        fixed: fixed, tolerance: tolerance, using: &execution)
                     if bound <= tolerance.distance {
-                        try budget.storage()
+                        try policy.storage(using: &execution)
                         return Certificate(correspondence: .init(variesU: variesU, fixedCoordinate: fixed,
                             reversedParameterSum: reversed ? lower + upper : nil,
                             periodic: .init(period: period, sourceRange: range)), deviation: bound)
@@ -176,10 +194,10 @@ struct OverlapIsoparametricMembershipCertifier {
                     // The represented fixed parameter is a predictor only. The
                     // original basis and Cartesian control ratios determine its step.
                     try chargePeriodicControlProbe(source: source, fixedCount: fixedCount,
-                        fixedDegree: fixedDegree, budget: &budget, tolerance: tolerance)
+                        fixedDegree: fixedDegree, policy: policy, tolerance: tolerance, using: &execution)
                     let basis = try BSplineBasis.nonzeroDerivativeValues(parameter: fixed,
                         degree: fixedDegree, throughDerivativeOrder: 1, knots: fixedKnots,
-                        count: fixedCount, owningSpan: span, tolerance: tolerance)
+                        count: fixedCount, owningSpan: span, tolerance: tolerance, using: &execution)
                     var gradient = 0.0, metric = 0.0
                     for index in source.controlPoints.indices {
                         var w = 0.0, dw = 0.0
@@ -219,7 +237,7 @@ struct OverlapIsoparametricMembershipCertifier {
     }
 
     private func chargePeriodicControlProbe(source: BSplineCurve3D, fixedCount: Int,
-        fixedDegree: Int, budget: inout OverlapProofBudget, tolerance: ModelingTolerance) throws {
+        fixedDegree: Int, policy: OverlapProofPolicy, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
         let controls = source.controlPointCount.multipliedReportingOverflow(by: fixedCount)
         let basis = fixedCount.multipliedReportingOverflow(by: fixedDegree + 1)
         let controlWork = controls.partialValue.multipliedReportingOverflow(by: 96)
@@ -228,11 +246,11 @@ struct OverlapIsoparametricMembershipCertifier {
         guard !controls.overflow, !basis.overflow, !controlWork.overflow, !basisWork.overflow, !total.overflow else {
             throw failure(.resourceLimitExceeded, "Periodic interior original control probe dimensions overflowed.", tolerance)
         }
-        try budget.work(total.partialValue)
+        try policy.work(total.partialValue, using: &execution)
     }
 
     private func exactCycle(degree: Int, knots: [Double], count: Int,
-                            tolerance: ModelingTolerance) throws -> Double? {
+                            tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Double? {
         let lower = knots[degree], upper = knots[count], period = upper - lower
         guard period.isFinite, period > 0, exactSum(upper, -lower) else { return nil }
         let independent = count - degree
@@ -244,44 +262,43 @@ struct OverlapIsoparametricMembershipCertifier {
         return period
     }
 
-    private func exactOriginShift(_ first: Double, _ second: Double, period: Double) -> Bool {
+    private func exactOriginShift(_ first: Double, _ second: Double, period: Double, using execution: inout OriginalQueryExecution) throws -> Bool {
         if first == second { return true }
         let difference = second - first
         guard exactSum(second, -first), difference.isFinite else { return false }
         let cycle = difference / period
         guard cycle.isFinite, abs(cycle) <= 9_007_199_254_740_991, cycle.rounded() == cycle,
               (cycle * 134_217_729).isFinite, (period * 134_217_729).isFinite else { return false }
-        let product = FloatingPointExpansion.product([cycle], [period])
-        return FloatingPointExpansion.sign(FloatingPointExpansion.subtract(product, [difference])) == .zero
+        let product = try FloatingPointExpansion.product([cycle], [period], using: &execution)
+        return try FloatingPointExpansion.sign(FloatingPointExpansion.subtract(product, [difference], using: &execution), using: &execution) == .zero
     }
 
     private func deviation(source: BSplineCurve3D, surface: BSplineSurface3D, variesU: Bool,
-                           fixed: Double, remainingWork: inout Int,
-                           options: CurveSurfaceIntersectionOptions, tolerance: ModelingTolerance) throws -> Double {
+                           fixed: Double, policy: OverlapProofPolicy,
+                           options: CurveSurfaceIntersectionOptions, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Double {
         let count = variesU ? surface.vControlPointCount : surface.uControlPointCount
         let degree = variesU ? surface.vDegree : surface.uDegree
         guard degree <= options.maximumPolynomialDegree else {
-            throw failure(.resourceLimitExceeded, "Isoparametric fixed-axis basis exceeds the degree budget.", tolerance)
+            throw failure(.resourceLimitExceeded, "Isoparametric fixed-axis basis exceeds the degree policy.", tolerance)
         }
         let product = source.controlPointCount.multipliedReportingOverflow(by: count)
         let recurrence = count.multipliedReportingOverflow(by: degree + 1)
         let total = product.partialValue.addingReportingOverflow(recurrence.partialValue)
-        guard !product.overflow, !recurrence.overflow, !total.overflow,
-              total.partialValue <= remainingWork else {
-            throw failure(.resourceLimitExceeded, "Isoparametric certification exceeds the control-work budget.", tolerance)
+        guard !product.overflow, !recurrence.overflow, !total.overflow else {
+            throw failure(.resourceLimitExceeded, "Isoparametric certification exceeds the control-work policy.", tolerance)
         }
-        remainingWork -= total.partialValue
+        try policy.work(total.partialValue, using: &execution)
         return try deviationValues(source: source, surface: surface, variesU: variesU,
-            fixed: fixed, tolerance: tolerance)
+            fixed: fixed, tolerance: tolerance, using: &execution)
     }
 
     private func deviationValues(source: BSplineCurve3D, surface: BSplineSurface3D,
                                  variesU: Bool, fixed: Double,
-                                 tolerance: ModelingTolerance) throws -> Double {
+                                 tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Double {
         let count = variesU ? surface.vControlPointCount : surface.uControlPointCount
         let degree = variesU ? surface.vDegree : surface.uDegree
         let knots = variesU ? surface.vKnots : surface.uKnots
-        let basis = try basisValues(parameter: fixed, degree: degree, knots: knots, count: count, tolerance: tolerance)
+        let basis = try basisValues(parameter: fixed, degree: degree, knots: knots, count: count, tolerance: tolerance, using: &execution)
         let anchor = source.controlPoints[0]
         var firstWeight = OutwardScalarInterval.exact(0)
         for other in 0..<count {
@@ -292,6 +309,7 @@ struct OverlapIsoparametricMembershipCertifier {
               homogeneousScale.isFinite, homogeneousScale.lower > 0 else {
             throw failure(.singularGeometry, "Isoparametric original homogeneous scale is unresolved.", tolerance)
         }
+        try OriginalCoefficientAllocation.reserve(count: 3, of: Double.self, using: &execution)
         var maximumNumeratorError = [0.0, 0.0, 0.0]
         var maximumWeightError = 0.0
         var minimumWeight = Double.infinity
@@ -299,6 +317,8 @@ struct OverlapIsoparametricMembershipCertifier {
         for index in source.controlPoints.indices {
             try CurrentTaskCancellationChecker().checkCancellation()
             var weight = OutwardScalarInterval.exact(0)
+            try execution.consumeWork(1)
+            try OriginalCoefficientAllocation.reserve(count: 3, of: OutwardScalarInterval.self, using: &execution)
             var numerator = Array(repeating: OutwardScalarInterval.exact(0), count: 3)
             for other in 0..<count {
                 let row = variesU ? other : index, column = variesU ? index : other
@@ -322,9 +342,12 @@ struct OverlapIsoparametricMembershipCertifier {
         }
         var bound = OutwardScalarInterval.exact(0)
         for axis in 0..<3 {
-            let magnitude = source.controlPoints.map {
-                (OutwardScalarInterval.exact(coordinate[axis]($0)) - .exact(coordinate[axis](anchor))).absoluteUpperBound
-            }.max() ?? .infinity
+            var magnitude = 0.0
+            for point in source.controlPoints {
+                try execution.consumeWork(1)
+                magnitude = max(magnitude, (OutwardScalarInterval.exact(coordinate[axis](point))
+                    - .exact(coordinate[axis](anchor))).absoluteUpperBound)
+            }
             let residual = OutwardScalarInterval.exact(maximumNumeratorError[axis])
                 + .exact(magnitude) * .exact(maximumWeightError)
             guard let quotient = residual.divided(by: .exact(minimumWeight)), quotient.isFinite else {
@@ -337,19 +360,23 @@ struct OverlapIsoparametricMembershipCertifier {
     }
 
     private func basisValues(parameter: Double, degree: Int, knots: [Double], count: Int,
-                             tolerance: ModelingTolerance) throws -> [OutwardScalarInterval] {
+                             tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> [OutwardScalarInterval] {
         let upper = knots[knots.count - degree - 1]
         let endpoint = (0..<count).reversed().first { knots[$0] < upper && knots[$0 + 1] == upper }
-        var values = (0..<count).map { index in
-            OutwardScalarInterval.exact(parameter == upper
+        try OriginalCoefficientAllocation.reserve(count: count, of: OutwardScalarInterval.self, using: &execution)
+        var values = try (0..<count).map { index in
+            try execution.consumeWork(1)
+            return OutwardScalarInterval.exact(parameter == upper
                 ? (index == endpoint ? 1 : 0)
                 : (parameter >= knots[index] && parameter < knots[index + 1] ? 1 : 0))
         }
         if degree > 0 {
             for current in 1...degree {
                 try CurrentTaskCancellationChecker().checkCancellation()
+                try OriginalCoefficientAllocation.reserve(count: count, of: OutwardScalarInterval.self, using: &execution)
                 var next = Array(repeating: OutwardScalarInterval.exact(0), count: count)
                 for index in 0..<count {
+                    try execution.consumeWork(1)
                     let left = OutwardScalarInterval.exact(knots[index + current]) - .exact(knots[index])
                     if knots[index + current] > knots[index] {
                         guard let quotient = (.exact(parameter) - OutwardScalarInterval.exact(knots[index])).divided(by: left) else {

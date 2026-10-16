@@ -129,22 +129,20 @@ rails, then emits the request. A failure discards all request-local preparation.
 ## State, Ownership, and Lifecycle
 
 The builder retains immutable source values and ancestry for one request. All
-arrays, incidence indices and replacements are local to the invocation. Crossing
-queries share one request-local `RollingBallIntersectionBudget` with immutable
-limits and `Mutex<State>` work/scalar counters. Original SSI preparation and
-trim exclusion callbacks charge this owner. Original patch copies create that
-owner before copying and share it with final classification, paying source scans
-and requested payload capacity; the classifier cannot reset those charges.
-Finite-box classification receives the same byte callback for its pending-cell
-buffer and original pcurve payload. Unchanged copies retain their original
+arrays, incidence indices and replacements are local to the invocation. Crossing queries share the request's canonical execution and immutable selected
+contribution. Original SSI preparation, trim exclusion and original patch copies
+charge that owner; final classification cannot reset prior work or storage.
+Finite-box classification borrows the same execution for its pending-cell buffer
+and original pcurve payload. Unchanged copies retain their original
 FaceID and exact input receipt; their trim predicate consumes that original
 receipt directly. Replaced and generated patches consume the bounded original patch-value
 admission with independent source/algebra caps and the same work/byte owner.
 This retains support, endpoint, closure and provenance invariants; complete
 nonlinear spatial/pcurve correspondence remains a separate sewer premise. They
 never inherit an unchanged face receipt merely by matching a support.
-Callbacks and cancellation checks
-run outside the lock. There is no global cache or alternate Embedded storage.
+The budget owns synchronization and cancellation; no execution or callback is
+retained by these immutable mathematical preparations. There is no global cache
+or alternate Embedded storage.
 
 | Target | Storage | Read/mutation | Release |
 |---|---|---|---|
@@ -221,3 +219,14 @@ selected source and algebra authorities. Generated finite-patch validation and
 trim classification keep their stricter original source ceiling 16 through the
 minimum with the owner. Exact native subdivision and all original visits still
 charge the same cumulative work and Double-slot physical storage allowance.
+
+## Canonical Caller Binding
+The existing fillet request allowance (65536 work, scalar-derived bytes with
+Double quantum, geometric/source depth20, scalar depth32, native spans4096) is
+an immutable contribution on the caller's execution. Its original dihedral,
+contact/terminal and positive-crossing algorithms borrow that execution through
+all lower quantitative APIs. Geometric ancestors add through scoped depth offsets.
+The ordinary evaluator roots once, and request/classifier reuse the same selected
+handle. The former private Mutex counter is removed. Existing unsupported
+networks/families, mathematical guards, loop collections and output semantics
+remain; no new fillet solver or proof authority is added.

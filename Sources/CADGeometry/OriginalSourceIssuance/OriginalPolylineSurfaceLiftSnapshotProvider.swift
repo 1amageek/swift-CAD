@@ -12,7 +12,7 @@ public struct OriginalPolylineSurfaceLiftSnapshotProvider: OriginalSourceSnapsho
         throws(OriginalSourceIssuanceFailure) -> OriginalSourceSnapshot<OriginalPolylineSurfaceLiftSnapshot> {
         let original=copy input
         do {
-            return try OriginalSourceProofAdmission<A>.withBorrow(&admission) { a in
+            return try admission.withProofScope { a in
                 try a.checkpoint(); try a.consumeWork(1)
                 guard limits.remainingSourceDepth>0 else { throw OriginalSourceIssuanceFailure.sourceDepthLimit }
                 // FIXME(INCOMPLETE_IMPLEMENTATION): Priority-image and non-Native host lifts

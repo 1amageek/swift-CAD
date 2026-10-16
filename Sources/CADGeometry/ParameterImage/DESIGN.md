@@ -50,9 +50,9 @@ from the mapped tangents and second derivatives by the existing geometry layer.
 
 ## State, Ownership, and Lifecycle
 
-Exact chart comparison borrows the caller work closure only inside
-`withoutActuallyEscaping`; no returned source value or result retains that
-closure. Interval and Taylor validation failures propagate to the caller.
+Exact chart comparison takes the composing admission directly by `inout`.
+Returned source values retain immutable geometry and never retain the execution.
+Interval and Taylor validation failures propagate to the caller.
 
 Immutable source values retain COW storage. No mutable state, cache or platform
 specific isolation is introduced. Native Codable adapters preserve explicit source
@@ -123,7 +123,7 @@ cancellation remain owned by the invoking transformation operation.
 
 `OriginalParameterGain.originalProduct(factors:usage:)` retains the flat original
 binary/ratio factor list and prepares its reduced exact rational coefficient and
-outward interval under the invoking `RationalAlgebraAdmitting` ledger. These
+outward interval under the invoking `ExactScalarAdmission` ledger. These
 prepared values are immutable derived caches, excluded from source identity and
 wire fields. Native decoding recomputes them under the original decoder ledger.
 No rounded product is parameter-law authority. Scalar materialization and inverse
@@ -179,9 +179,9 @@ The bounded affine curve and original surface-image constructors retain the
 identical original source graph, parameter gains, offsets, axis permutation and
 spatial coefficients as the legacy constructors. They admit the resulting source
 through bounded family validation, forwarding each native control, weight, knot
-and source-descendant visit to the composing callback. Remaining source depth and
-subdivision depth are explicit caller inputs. Legacy construction remains an
-unbounded source convenience; it is not cumulative query admission. COW source
+and source-descendant visit to the composing execution. Remaining source depth and
+subdivision depth are explicit caller inputs. Standalone construction creates one independent execution; composition uses the
+caller execution directly. COW source
 retention does not materialize or round a transformed coefficient net.
 
 ### Original Affine Word Jet Transport
@@ -238,3 +238,38 @@ normal derivatives. This action neither unions neighboring owners nor grants
 continuity across a C0 knot. The composing mesh retains the original selected
 owner and uses the unchanged UV box. Nonidentity UV charts still require their
 exact owning station mapping and are outside this narrow capability.
+
+## Direct Original Query Calling
+
+The [module direct execution contract](../DESIGN.md#u1-direct-execution-ownership)
+governs caller composition. Scalar source construction consumes the original
+`inout A: ExactScalarAdmission & ~Copyable`, with explicit work units, checked
+allocation bytes, independent value/coefficient scope observations and unchanged
+source laws. Geometry query composition uses the same original execution;
+ordinary conveniences create one cumulative owner only at their real entry.
+Callback-to-admission reconstruction, copied budget writeback and cancellation-
+only legacy allowances are removed. Actual structural and parameter guards,
+original source ownership and scoped identities remain required.
+
+### Direct Source Execution
+
+Pure original word/coefficient operations receive the original generic
+`inout A: ExactScalarAdmission & ~Copyable`. General geometry construction,
+validation and retained queries receive the original `inout OriginalQueryExecution`.
+Actual lower calculations keep that same object; no legacy, validation or borrowed
+admission is reconstructed from resource callbacks. Configured capabilities
+remain independent of attained proof metadata. Actual payload bytes are checked
+and admitted before materialization; failures and cancellation publish no partial
+source or complete query. Ordinary numerical entry points may create one explicit
+independent execution and delegate to the direct operation. Source-only generic
+branches consume their genuine Native/word law without acquiring a general
+geometry capability.
+
+```text
+Original caller execution -> source validation/query -> original lower operation
+generic caller A -> pure Native/word coefficient law -> retained source proof
+```
+
+Owning behavioral success, guard rejection, independent budgets/depth, terminal
+cancellation and retained lifetime must execute through the actual direct path.
+Syntax or signature checks alone are not completion evidence.

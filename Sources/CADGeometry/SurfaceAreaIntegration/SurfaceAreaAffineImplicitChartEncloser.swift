@@ -7,39 +7,39 @@ struct SurfaceAreaAffineImplicitChartEncloser: Sendable {
         let y: OutwardScalarInterval
         let z: OutwardScalarInterval
 
-        func subtracting(_ other: Vector, consumeWork: () throws -> Void) throws -> Vector {
-            try consumeWork(); let x = self.x - other.x
-            try consumeWork(); let y = self.y - other.y
-            try consumeWork(); let z = self.z - other.z
+        func subtracting<A: ExactScalarAdmission & ~Copyable>(_ other: Vector, using execution: inout A) throws -> Vector {
+            try execution.consumeWork(1); let x = self.x - other.x
+            try execution.consumeWork(1); let y = self.y - other.y
+            try execution.consumeWork(1); let z = self.z - other.z
             return Vector(x:x,y:y,z:z)
         }
-        func scaled(_ scale: OutwardScalarInterval, consumeWork: () throws -> Void) throws -> Vector {
-            try consumeWork(); let x = self.x * scale
-            try consumeWork(); let y = self.y * scale
-            try consumeWork(); let z = self.z * scale
+        func scaled<A: ExactScalarAdmission & ~Copyable>(_ scale: OutwardScalarInterval, using execution: inout A) throws -> Vector {
+            try execution.consumeWork(1); let x = self.x * scale
+            try execution.consumeWork(1); let y = self.y * scale
+            try execution.consumeWork(1); let z = self.z * scale
             return Vector(x:x,y:y,z:z)
         }
-        func dot(_ other: Vector, consumeWork: () throws -> Void) throws -> OutwardScalarInterval {
-            try consumeWork(); let x = self.x * other.x
-            try consumeWork(); let y = self.y * other.y
-            try consumeWork(); let z = self.z * other.z
-            try consumeWork(); let xy = x + y
-            try consumeWork(); return xy + z
+        func dot<A: ExactScalarAdmission & ~Copyable>(_ other: Vector, using execution: inout A) throws -> OutwardScalarInterval {
+            try execution.consumeWork(1); let x = self.x * other.x
+            try execution.consumeWork(1); let y = self.y * other.y
+            try execution.consumeWork(1); let z = self.z * other.z
+            try execution.consumeWork(1); let xy = x + y
+            try execution.consumeWork(1); return xy + z
         }
-        func cross(_ other: Vector, consumeWork: () throws -> Void) throws -> Vector {
+        func cross<A: ExactScalarAdmission & ~Copyable>(_ other: Vector, using execution: inout A) throws -> Vector {
             func difference(_ a: OutwardScalarInterval,_ b: OutwardScalarInterval,
                 _ c: OutwardScalarInterval,_ d: OutwardScalarInterval) throws -> OutwardScalarInterval {
-                try consumeWork(); let first = a*b
-                try consumeWork(); let second = c*d
-                try consumeWork(); return first-second
+                try execution.consumeWork(1); let first = a*b
+                try execution.consumeWork(1); let second = c*d
+                try execution.consumeWork(1); return first-second
             }
             return try Vector(x:difference(y,other.z,z,other.y),
                 y:difference(z,other.x,x,other.z),z:difference(x,other.y,y,other.x))
         }
-        static func exact(_ point: Point3D, consumeWork: () throws -> Void) throws -> Vector {
-            try consumeWork(); let x = OutwardScalarInterval.exact(point.x)
-            try consumeWork(); let y = OutwardScalarInterval.exact(point.y)
-            try consumeWork(); let z = OutwardScalarInterval.exact(point.z)
+        static func exact<A: ExactScalarAdmission & ~Copyable>(_ point: Point3D, using execution: inout A) throws -> Vector {
+            try execution.consumeWork(1); let x = OutwardScalarInterval.exact(point.x)
+            try execution.consumeWork(1); let y = OutwardScalarInterval.exact(point.y)
+            try execution.consumeWork(1); let z = OutwardScalarInterval.exact(point.z)
             return Vector(x:x,y:y,z:z)
         }
     }
@@ -50,24 +50,22 @@ struct SurfaceAreaAffineImplicitChartEncloser: Sendable {
     private let vCoefficient: OutwardScalarInterval
     private let vOffset: OutwardScalarInterval
 
-    init(curve: CertifiedImplicitSurfaceParameterCurve, tolerance: ModelingTolerance,
-        consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() },
-        consumeStorage: ((Int) throws -> Void)? = nil) throws {
-        try consumeWork()
+    init(curve: CertifiedImplicitSurfaceParameterCurve, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         // FIXME(INCOMPLETE_IMPLEMENTATION): General/closed implicit trim charts
         // lack integral-specific native partition authority on face-area queries. Complete
         // only after every original piece and its derivative/error budgets are certified.
         guard !curve.intersection.isClosed, !curve.intersection.cells.isEmpty,
               case .bSpline(let first) = curve.intersection.firstSurface,
               case .bSpline(let second) = curve.intersection.secondSurface,
-              ExactAffineBSplineSurfacePatch(first) != nil,
-              ExactAffineBSplineSurfacePatch(second) != nil else {
+              try ExactAffineBSplineSurfacePatch(first, using: &execution) != nil,
+              try ExactAffineBSplineSurfacePatch(second, using: &execution) != nil else {
             throw Self.failure(.unsupportedCapability,tolerance,
                 "Area implicit chart requires an open graph chain on two exact affine B-spline supports.")
         }
         let cell = curve.intersection.cells[0]
         for index in curve.intersection.cells.indices {
-            try consumeWork()
+            try execution.consumeWork(1)
             if Task.isCancelled { throw Self.failure(.cancelled,tolerance,"Area affine implicit preparation was cancelled.") }
             let current = curve.intersection.cells[index]
             // FIXME(INCOMPLETE_IMPLEMENTATION): Mixed-coordinate/direction
@@ -92,28 +90,28 @@ struct SurfaceAreaAffineImplicitChartEncloser: Sendable {
             }
         }
         func affine(_ surface: BSplineSurface3D) throws -> (origin: Vector, u: Vector, v: Vector) {
-            let origin = try Vector.exact(surface.controlPoints[0][0],consumeWork:consumeWork)
-            try consumeWork(); let uSpan = OutwardScalarInterval.exact(surface.uKnots[2]) - .exact(surface.uKnots[1])
-            try consumeWork(); let vSpan = OutwardScalarInterval.exact(surface.vKnots[2]) - .exact(surface.vKnots[1])
-            try consumeWork(); let uInverse = OutwardScalarInterval.exact(1).divided(by:uSpan)
-            try consumeWork(); let vInverse = OutwardScalarInterval.exact(1).divided(by:vSpan)
+            let origin = try Vector.exact(surface.controlPoints[0][0], using: &execution)
+            try execution.consumeWork(1); let uSpan = OutwardScalarInterval.exact(surface.uKnots[2]) - .exact(surface.uKnots[1])
+            try execution.consumeWork(1); let vSpan = OutwardScalarInterval.exact(surface.vKnots[2]) - .exact(surface.vKnots[1])
+            try execution.consumeWork(1); let uInverse = OutwardScalarInterval.exact(1).divided(by:uSpan)
+            try execution.consumeWork(1); let vInverse = OutwardScalarInterval.exact(1).divided(by:vSpan)
             guard let uInverse, let vInverse else {
                 throw Self.failure(.singularSystem,tolerance,"Area affine implicit native spans are unresolved.")
             }
-            let u = try Vector.exact(surface.controlPoints[0][1],consumeWork:consumeWork)
-                .subtracting(origin,consumeWork:consumeWork).scaled(uInverse,consumeWork:consumeWork)
-            let v = try Vector.exact(surface.controlPoints[1][0],consumeWork:consumeWork)
-                .subtracting(origin,consumeWork:consumeWork).scaled(vInverse,consumeWork:consumeWork)
-            let uOffset = try u.scaled(.exact(surface.uKnots[1]),consumeWork:consumeWork)
-            let vOffset = try v.scaled(.exact(surface.vKnots[1]),consumeWork:consumeWork)
-            return (try origin.subtracting(uOffset,consumeWork:consumeWork)
-                .subtracting(vOffset,consumeWork:consumeWork),u,v)
+            let u = try Vector.exact(surface.controlPoints[0][1], using: &execution)
+                .subtracting(origin, using: &execution).scaled(uInverse, using: &execution)
+            let v = try Vector.exact(surface.controlPoints[1][0], using: &execution)
+                .subtracting(origin, using: &execution).scaled(vInverse, using: &execution)
+            let uOffset = try u.scaled(.exact(surface.uKnots[1]), using: &execution)
+            let vOffset = try v.scaled(.exact(surface.vKnots[1]), using: &execution)
+            return (try origin.subtracting(uOffset, using: &execution)
+                .subtracting(vOffset, using: &execution),u,v)
         }
         let a = try affine(first), b = try affine(second)
-        let negativeU = try b.u.scaled(.exact(-1),consumeWork:consumeWork)
-        let negativeV = try b.v.scaled(.exact(-1),consumeWork:consumeWork)
+        let negativeU = try b.u.scaled(.exact(-1), using: &execution)
+        let negativeV = try b.v.scaled(.exact(-1), using: &execution)
         func column(_ index: Int) throws -> Vector {
-            try consumeWork()
+            try execution.consumeWork(1)
             switch index { case 0: return a.u; case 1: return a.v; case 2: return negativeU; default: return negativeV }
         }
         let free = cell.freeParameter.rawValue
@@ -122,24 +120,24 @@ struct SurfaceAreaAffineImplicitChartEncloser: Sendable {
         let i1 = free <= 1 ? 2 : 1
         let i2 = free <= 2 ? 3 : 2
         let c0 = try column(i0), c1 = try column(i1), c2 = try column(i2)
-        let cross0 = try c1.cross(c2,consumeWork:consumeWork)
-        let cross1 = try c2.cross(c0,consumeWork:consumeWork)
-        let cross2 = try c0.cross(c1,consumeWork:consumeWork)
-        let determinant = try c0.dot(cross0,consumeWork:consumeWork)
+        let cross0 = try c1.cross(c2, using: &execution)
+        let cross1 = try c2.cross(c0, using: &execution)
+        let cross2 = try c0.cross(c1, using: &execution)
+        let determinant = try c0.dot(cross0, using: &execution)
         guard determinant.isFinite, determinant.lower > 0 || determinant.upper < 0 else {
             throw Self.failure(.singularSystem,tolerance,
                 "Area affine implicit chart cannot certify its complete constant dependent determinant.")
         }
-        let rhs = try b.origin.subtracting(a.origin,consumeWork:consumeWork)
+        let rhs = try b.origin.subtracting(a.origin, using: &execution)
         let freeColumn = try column(free)
         func solve(_ index: Int) throws -> (coefficient:OutwardScalarInterval,offset:OutwardScalarInterval) {
-            try consumeWork()
+            try execution.consumeWork(1)
             if index == free { return (.exact(1),.exact(0)) }
             let cross = index == i0 ? cross0 : index == i1 ? cross1 : cross2
-            let offsetNumerator = try rhs.dot(cross,consumeWork:consumeWork)
-            let coefficientNumerator = try freeColumn.dot(cross,consumeWork:consumeWork)
-            try consumeWork(); let offset = offsetNumerator.divided(by:determinant)
-            try consumeWork(); let coefficient = (-coefficientNumerator).divided(by:determinant)
+            let offsetNumerator = try rhs.dot(cross, using: &execution)
+            let coefficientNumerator = try freeColumn.dot(cross, using: &execution)
+            try execution.consumeWork(1); let offset = offsetNumerator.divided(by:determinant)
+            try execution.consumeWork(1); let coefficient = (-coefficientNumerator).divided(by:determinant)
             guard let offset, let coefficient, offset.isFinite, coefficient.isFinite else {
                 throw Self.failure(.singularSystem,tolerance,"Area affine implicit chart arithmetic is nonfinite.")
             }
@@ -154,15 +152,14 @@ struct SurfaceAreaAffineImplicitChartEncloser: Sendable {
 
     var hasNativeJoins: Bool { curve.intersection.cells.count > 1 }
 
-    func intervalProof(over fraction: ScalarInterval, tolerance: ModelingTolerance,
-        consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() })
+    func intervalProof(over fraction: ScalarInterval, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution)
         throws -> SurfaceAreaParameterChartEncloser.IntervalProof {
         if Task.isCancelled { throw Self.failure(.cancelled,tolerance,"Area affine implicit chart was cancelled.") }
-        try consumeWork(); let span = OutwardScalarInterval.exact(curve.endFraction) - .exact(curve.startFraction)
-        try consumeWork(); let traversed = span * OutwardScalarInterval(lower:fraction.lower,upper:fraction.upper)
-        try consumeWork(); let mapped = OutwardScalarInterval.exact(curve.startFraction) + traversed
+        try execution.consumeWork(1); let span = OutwardScalarInterval.exact(curve.endFraction) - .exact(curve.startFraction)
+        try execution.consumeWork(1); let traversed = span * OutwardScalarInterval(lower:fraction.lower,upper:fraction.upper)
+        try execution.consumeWork(1); let mapped = OutwardScalarInterval.exact(curve.startFraction) + traversed
         let count = curve.intersection.cells.count
-        try consumeWork(); let scaled = mapped * .exact(Double(count))
+        try execution.consumeWork(1); let scaled = mapped * .exact(Double(count))
         guard scaled.isFinite else {
             throw Self.failure(.singularSystem,tolerance,"Area implicit cell fraction arithmetic is nonfinite.")
         }
@@ -173,9 +170,9 @@ struct SurfaceAreaAffineImplicitChartEncloser: Sendable {
         var result: SurfaceAreaParameterChartEncloser.IntervalProof?
         func coordinate(_ coefficient: OutwardScalarInterval, _ offset: OutwardScalarInterval,
                         value: OutwardScalarInterval, slope: OutwardScalarInterval) throws -> SurfaceIntervalJet {
-            try consumeWork(); let product = coefficient*value
-            try consumeWork(); let position = offset+product
-            try consumeWork(); let first = coefficient*slope
+            try execution.consumeWork(1); let product = coefficient*value
+            try execution.consumeWork(1); let position = offset+product
+            try execution.consumeWork(1); let first = coefficient*slope
             guard position.isFinite, first.isFinite else {
                 throw Self.failure(.singularSystem,tolerance,"Area affine implicit chart could not enclose finite native UV.")
             }
@@ -186,25 +183,25 @@ struct SurfaceAreaAffineImplicitChartEncloser: Sendable {
                 thirdDerivativeUUU:zero,thirdDerivativeUUV:zero,thirdDerivativeUVV:zero,thirdDerivativeVVV:zero)
         }
         for index in first...last {
-            try consumeWork()
+            try execution.consumeWork(1)
             if Task.isCancelled { throw Self.failure(.cancelled,tolerance,"Area affine implicit enclosure was cancelled.") }
             let localLower = max(lower,Double(index)), localUpper = min(upper,Double(index+1))
             guard localLower <= localUpper else { continue }
-            try consumeWork(); let local = OutwardScalarInterval(lower:localLower,upper:localUpper) - .exact(Double(index))
+            try execution.consumeWork(1); let local = OutwardScalarInterval(lower:localLower,upper:localUpper) - .exact(Double(index))
             let cell = curve.intersection.cells[index]
             let range = cell.parameterBox.interval(for:cell.freeParameter)
-            try consumeWork(); let width = OutwardScalarInterval.exact(range.upper) - .exact(range.lower)
-            try consumeWork(); let chartSlope = width * span
-            try consumeWork(); let slope = chartSlope * .exact(Double(count))
-            try consumeWork(); let increment = width*local
-            try consumeWork(); let value = cell.direction == .forward ? .exact(range.lower)+increment : .exact(range.upper)-increment
-            try consumeWork(); let directedSlope = cell.direction == .forward ? slope : -slope
+            try execution.consumeWork(1); let width = OutwardScalarInterval.exact(range.upper) - .exact(range.lower)
+            try execution.consumeWork(1); let chartSlope = width * span
+            try execution.consumeWork(1); let slope = chartSlope * .exact(Double(count))
+            try execution.consumeWork(1); let increment = width*local
+            try execution.consumeWork(1); let value = cell.direction == .forward ? .exact(range.lower)+increment : .exact(range.upper)-increment
+            try execution.consumeWork(1); let directedSlope = cell.direction == .forward ? slope : -slope
             let proof = try SurfaceAreaParameterChartEncloser.IntervalProof.smooth(
                 u:coordinate(uCoefficient,uOffset,value:value,slope:directedSlope),
                 v:coordinate(vCoefficient,vOffset,value:value,slope:directedSlope))
             if let previous = result {
                 // Union owns four fixed original value/tangent fields.
-                for _ in 0..<4 { try consumeWork() }
+                for _ in 0..<4 { try execution.consumeWork(1) }
                 result = previous.unionValues(proof)
             } else { result = proof }
         }

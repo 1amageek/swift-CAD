@@ -4,11 +4,11 @@ package struct ExactSurfaceCoefficientPolynomial: Sendable {
     package var degree: Int { coefficients.count - 1 }
     package var isZero: Bool { coefficients.isEmpty }
 
-    package init<B: RationalAlgebraAdmitting>(coefficients: [ExactBivariatePolynomial],
+    package init<B: ExactScalarAdmission & ~Copyable>(coefficients: [ExactBivariatePolynomial],
         usage: inout B) throws {
         var count = coefficients.count
         while count > 0 {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             if !coefficients[count - 1].isZero { break }
             count -= 1
         }
@@ -20,7 +20,7 @@ package struct ExactSurfaceCoefficientPolynomial: Sendable {
     }
 
     /// Uses the issued UV pair directly; no equation solving or root selection is repeated.
-    package func specialized<B: RationalAlgebraAdmitting>(
+    package func specialized<B: ExactScalarAdmission & ~Copyable>(
         in context: OriginalSingularFieldContext, maximumDepth: Int, usage: inout B
     ) throws -> OriginalSingularFieldPolynomial {
         guard case .original = context.source else {
@@ -29,7 +29,7 @@ package struct ExactSurfaceCoefficientPolynomial: Sendable {
         try RationalAlgebraStorage.retain(coefficients.count, of: OriginalSingularFieldElement.self, usage: &usage)
         var values: [OriginalSingularFieldElement] = []; values.reserveCapacity(coefficients.count)
         for coefficient in coefficients {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             values.append(try .original(coefficient, in: context, usage: &usage))
         }
         return try .init(context: context, coefficients: values, maximumDepth: maximumDepth, usage: &usage)

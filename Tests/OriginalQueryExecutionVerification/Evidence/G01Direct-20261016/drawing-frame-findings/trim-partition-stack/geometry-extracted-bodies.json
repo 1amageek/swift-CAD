@@ -1,0 +1,58 @@
+{
+  "actualBodyComparisons": [
+    {
+      "name": "originalFreeParameter",
+      "actualExtractedBodyEqualIgnoringWhitespace": true,
+      "bodySHA256": "a435a6f072105aee046d58adc6a7a0573fa5ea9e0d2e9a7b5dae6e9f9e80e47a"
+    },
+    {
+      "name": "admitted",
+      "actualExtractedBodyEqualIgnoringWhitespace": true,
+      "bodySHA256": "fe0aaafe035f7d62131bd4c247162b70f3e556b46bc1874c78db65c4c39e87f4"
+    },
+    {
+      "name": "station",
+      "actualExtractedBodyEqualIgnoringWhitespace": true,
+      "bodySHA256": "0d79decf07268dceb8eb2d12b9263f435d78c63c1dc8deb9e81cedf4acf3fc86"
+    },
+    {
+      "name": "addRoots",
+      "actualExtractedBodyEqualIgnoringWhitespace": true,
+      "bodySHA256": "4c3427fa0e07e52f8d078c27a7551e2fc893a927080a28303696329fcb940c83"
+    },
+    {
+      "name": "originalEquation",
+      "actualExtractedBodyEqualIgnoringWhitespace": true,
+      "bodySHA256": "e1fc715b4feaf5b9cfba2a5ba66cdb830d27f693cce0d1935c0863822dec6eaf"
+    },
+    {
+      "name": "originalCuts",
+      "actualExtractedBodyEqualIgnoringWhitespace": true,
+      "bodySHA256": "743826eabdb504ed7c35a4a3de03b3c2e599313b35f20700a7a338cfba0ddf26"
+    },
+    {
+      "name": "processSpan",
+      "actualExtractedBodyEqualIgnoringWhitespace": true,
+      "bodySHA256": "eca9010092777007afaa29c8950e0859c23c71aaad655bb6d6521c4c10c55d41"
+    },
+    {
+      "name": "traversal",
+      "actualExtractedBodyEqualIgnoringWhitespace": true,
+      "bodySHA256": "597dd89eaba5eae825b7970f590bce6cfa0bed848e4da5b615362999fa136b64"
+    },
+    {
+      "name": "publishedPartition",
+      "actualExtractedBodyEqualIgnoringWhitespace": true,
+      "bodySHA256": "a884457c3fe2ef3f73a3c79e18b6e333b43e64e0461b2e4977a41f94a078b98e"
+    }
+  ],
+  "accountingAndSourceOperationOccurrenceCountsEqual": true,
+  "mechanicalChanges": [
+    "local function captures become explicit parameters",
+    "same traversal scalars returned as tuple",
+    "same cuts array returned after exact original root cuts",
+    "originalFree success returns optionalvalue; originalnil/throw remain",
+    "same per-span context/events/overlaps/nativeCuts are inout",
+    "same context withExecution scope surrounds all stages"
+  ]
+}

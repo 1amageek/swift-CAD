@@ -17,24 +17,23 @@ struct OriginalAffineIntersectionSourceTests {
         var spent: (work: Int, storage: Int, storageCalls: Int) {
             state.withLock { ($0.work, $0.storage, $0.storageCalls) }
         }
-        var usage: OriginalRelationUsage {
-            .init(consumeWork: { count in
-                try self.state.withLock { state in
-                    guard count <= self.maximumWork - state.work else { throw Self.exhausted() }
-                    state.work += count
-                }
-            }, retainStorage: { count in
-                let cancel = try self.state.withLock { state in
-                    guard count <= self.maximumStorage - state.storage else { throw Self.exhausted() }
-                    state.storage += count; state.storageCalls += 1
-                    return self.cancelAtStorageCall == state.storageCalls
-                }
-                if cancel { withUnsafeCurrentTask { $0?.cancel() } }
-            }, visitCell: { depth in
-                guard depth <= 24 else { throw Self.exhausted() }
-            }, visitCoefficientCell: { depth in
-                guard depth <= 24 else { throw Self.exhausted() }
-            })
+        func makeExecution() throws -> OriginalQueryExecution {
+                let budget = try OriginalQueryBudget(consumeWorkUnits: { count in
+                    try self.state.withLock { state in
+                        guard count <= self.maximumWork - state.work else { throw Self.exhausted() }
+                        state.work += count
+                    }
+                }, consumeStorageBytes: { bytes in
+                    let count = try geometryTestStorageWords(bytes)
+                    let cancel = try self.state.withLock { state in
+                        guard count <= self.maximumStorage - state.storage else { throw Self.exhausted() }
+                        state.storage += count; state.storageCalls += 1
+                        return self.cancelAtStorageCall == state.storageCalls
+                    }
+                    if cancel { withUnsafeCurrentTask { $0?.cancel() } }
+                })
+                return OriginalQueryExecution(budget: budget,
+                    limits: try .init(maximumValueDepth: 24, maximumCoefficientDepth: 24))
         }
         private static func exhausted() -> KernelError {
             .init(phase: .geometry, code: .resourceLimitExceeded, tolerance: nil,
@@ -56,17 +55,15 @@ struct OriginalAffineIntersectionSourceTests {
             basisZ: .init(x: 0,y: 1,z: 1), translation: .init(x: 5,y: -7,z: 11))
     }
     private func span(_ source: BSplineSurface3D, over domain: SurfaceParameterBox,
-        usage: inout OriginalRelationUsage) throws -> PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan {
+        usage: inout OriginalQueryExecution) throws -> PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan {
         let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: source, tolerance: tolerance,
-            consumeWork: { try usage.consumeExactWork(1) },
-            consumeStorage: { try RationalAlgebraStorage.retainBytes($0, usage: &usage) })
+            using: &usage)
         let spans = try prepared.originalNativeSpans(over: domain, tolerance: tolerance, maximumSpanCount: 1,
-            consumeWork: { try usage.consumeExactWork(1) },
-            consumeStorage: { try RationalAlgebraStorage.retainBytes($0, usage: &usage) })
+            using: &usage)
         return try #require(spans.first)
     }
     private func image(_ source: Surface3D, operations: [OriginalAffineOperation],
-        usage: inout OriginalRelationUsage) throws -> OriginalAffineWordSurface3D {
+        usage: inout OriginalQueryExecution) throws -> OriginalAffineWordSurface3D {
         let word = try OriginalAffineOperationWord(factors: operations, tolerance: tolerance,
             maximumDepth: 24, usage: &usage)
         return try .init(source: source, operationWord: word, tolerance: tolerance,
@@ -75,16 +72,16 @@ struct OriginalAffineIntersectionSourceTests {
     private func checkpoint(_ image: OriginalAffineWordSurface3D,
         span: PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan,
         domain: SurfaceParameterBox, depth: Int = 4, budget: Budget) throws -> OriginalAffineSurfaceIntersectionSource {
-        var usage = budget.usage
+        var usage = try budget.makeExecution()
         return try .init(image: image, nativeSpan: span, domain: domain, tolerance: tolerance,
             remainingSourceDepth: depth, maximumAlgebraicDepth: 24, usage: &usage)
     }
-    private func scalar(_ value: Double, usage: inout OriginalRelationUsage) throws -> ExactRationalCoefficient {
+    private func scalar(_ value: Double, usage: inout OriginalQueryExecution) throws -> ExactRationalCoefficient {
         try .originalDouble(value, usage: &usage)
     }
     private func polynomial(_ a: Double, _ b: Double, _ c: Double, _ d: Double,
         s: ExactBivariatePolynomial, t: ExactBivariatePolynomial,
-        usage: inout OriginalRelationUsage) throws -> ExactBivariatePolynomial {
+        usage: inout OriginalQueryExecution) throws -> ExactBivariatePolynomial {
         try .constant(scalar(a, usage: &usage), usage: &usage)
             .adding(s.scaled(by: scalar(b, usage: &usage), usage: &usage), usage: &usage)
             .adding(t.scaled(by: scalar(c, usage: &usage), usage: &usage), usage: &usage)
@@ -93,7 +90,7 @@ struct OriginalAffineIntersectionSourceTests {
 
     @Test(.timeLimit(.minutes(1)))
     func exactForwardInverseAndIdentityPreserveWeightedNativeLaw() throws {
-        let preparation = Budget(); var usage = preparation.usage
+        let preparation = Budget(); var usage = try preparation.makeExecution()
         let source = surface(), domain = try box(), native = try span(source, over: domain, usage: &usage)
         let action = try transform()
         let forward = try image(.bSpline(source), operations: [.forward(action)], usage: &usage)
@@ -137,7 +134,7 @@ struct OriginalAffineIntersectionSourceTests {
 
     @Test(.timeLimit(.minutes(1)))
     func threeAndFourVariableAdaptersRetainExactEquationsAndGuards() throws {
-        let budget = Budget(); var usage = budget.usage
+        let budget = Budget(); var usage = try budget.makeExecution()
         let source = surface(), domain = try box(), native = try span(source,over:domain,usage:&usage)
         let image = try image(.bSpline(source),operations:[.forward(transform())],usage:&usage)
         let affine = try checkpoint(image,span:native,domain:domain,budget:budget)
@@ -173,7 +170,7 @@ struct OriginalAffineIntersectionSourceTests {
 
     @Test(.timeLimit(.minutes(1)))
     func independentInvalidUnsupportedAndCallerBudgetFailures() throws {
-        let budget = Budget(); var usage = budget.usage
+        let budget = Budget(); var usage = try budget.makeExecution()
         let domain = try box(), source = surface(), native = try span(source,over:domain,usage:&usage)
         let original = try image(.bSpline(source),operations:[.forward(transform())],usage:&usage)
         let measured = Budget()
@@ -207,7 +204,7 @@ struct OriginalAffineIntersectionSourceTests {
     @Test(.timeLimit(.minutes(1)))
     func sourceOwnersOutliveInputReleaseAndFinalCancellationIsAtomic() async throws {
         func released() throws -> OriginalAffineSurfaceIntersectionSource {
-            let budget = Budget(); var usage = budget.usage
+            let budget = Budget(); var usage = try budget.makeExecution()
             var source = surface()
             let domain = try box(), native = try span(source,over:domain,usage:&usage)
             let original = try image(.bSpline(source),operations:[.inverse(transform())],usage:&usage)
@@ -225,7 +222,7 @@ struct OriginalAffineIntersectionSourceTests {
             try checkpoint(retained.image,span:retained.nativeSpan,domain:retained.nativeLaw.domain,budget:cancel)
         }
         do { _ = try await task.value; Issue.record("Cancelled source publication must fail.") }
-        catch is CancellationError {}
+        catch where geometryTestIsCancelled(error) {}
         #expect(cancel.spent.storageCalls == budget.spent.storageCalls)
     }
 }

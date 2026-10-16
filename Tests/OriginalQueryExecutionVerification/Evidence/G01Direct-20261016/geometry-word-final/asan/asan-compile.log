@@ -1,0 +1,892 @@
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/BSplineCurve3D.swift:158:34: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+156 |             degree: degree,
+157 |             knots: try knots.reversed().map { try execution.consumeWork(1); return lowerBound + upperBound - $0 },
+158 |             controlPoints: Array(try controlPoints.reversed()),
+    |                                  `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+159 |             weights: Array(try weights.reversed()),
+160 |             isPeriodic: isPeriodic,
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/BSplineCurve3D.swift:159:28: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+157 |             knots: try knots.reversed().map { try execution.consumeWork(1); return lowerBound + upperBound - $0 },
+158 |             controlPoints: Array(try controlPoints.reversed()),
+159 |             weights: Array(try weights.reversed()),
+    |                            `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+160 |             isPeriodic: isPeriodic,
+161 |             periodicOrigin: periodicOrigin
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/BSplineCurveAnalyticSurfaceIntersector.swift:347:16: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+345 |         try execution.consumeWork(1)
+346 |         for _ in 0..<3 { try execution.retainStorage(bytes: exactScalarPayloadBytes(count: span.controlPoints.count, of: Double.self)) }
+347 |         return try HomogeneousCurve(
+    |                `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+348 |             x: try bernsteinToPower(span.controlPoints.indices.map {
+349 |                 try execution.consumeWork(1)
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/BoundedParametricSurfaceIntersector.swift:248:9: warning: initialization of immutable value 'first' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+246 |     using execution: inout OriginalQueryExecution
+247 |   ) throws -> SurfaceSurfaceIntersection {
+248 |     let first = preparedFirstSurface.surface
+    |         `- warning: initialization of immutable value 'first' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+249 |     let second = preparedSecondSurface.surface
+250 |     execution.context = execution.context.at(stage: .publication)
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/BoundedParametricSurfaceIntersector.swift:249:9: warning: initialization of immutable value 'second' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+247 |   ) throws -> SurfaceSurfaceIntersection {
+248 |     let first = preparedFirstSurface.surface
+249 |     let second = preparedSecondSurface.surface
+    |         `- warning: initialization of immutable value 'second' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+250 |     execution.context = execution.context.at(stage: .publication)
+251 |     let implicit: CertifiedImplicitIntersectionCurve
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedAnalyticAnalyticIntersectionCurve.swift:960:16: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 958 |             , using: &execution)
+ 959 |         }
+ 960 |         return try (
+     |                `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 961 |             try point(
+ 962 |                 atNormalizedFraction: fraction,
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedBoundedPlaneConeIntersectionCurve.swift:486:16: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+484 |             return []
+485 |         }
+486 |         return try (try CertifiedAnalyticCurveEvaluation.compactMap(PlaneConeSurfaceIntersector().intersections(
+    |                `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+487 |             plane: plane,
+488 |             cone: cone,
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeConeIntersectionCurve.swift:895:35: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 893 |                     && abs(upperAngle - 2.0 * Double.pi) <= tolerance.angle
+ 894 |             case let .nodeIntervals(intervals):
+ 895 |                 matchesTopology = try intervals.contains { interval in
+     |                                   `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 896 |                     abs(interval.lowerBound - lowerAngle) <= tolerance.angle
+ 897 |                         && abs(interval.upperBound - upperAngle) <= tolerance.angle
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeConeIntersectionCurve.swift:3225:20: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+3223 |                 * angle.first * angle.first
+3224 |                 + angularFirst * angle.second,
+3225 |             third: try polynomial.thirdDerivative(at: angle.value)
+     |                    `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+3226 |                     * angle.first * angle.first * angle.first
+3227 |                 + 3.0 * angularSecond * angle.first * angle.second
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeCylinderIntersectionCurve.swift:2438:20: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+2436 |                 * angle.first * angle.first
+2437 |                 + angularFirst * angle.second,
+2438 |             third: try polynomial.thirdDerivative(at: angle.value)
+     |                    `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+2439 |                     * angle.first * angle.first * angle.first
+2440 |                 + 3.0 * polynomial.secondDerivative(at: angle.value)
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeCylinderIntersectionCurve.swift:2875:16: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+2873 |         let numeratorSecond = polynomial.secondDerivative(at: angle)
+2874 |         let numeratorThird = direction
+2875 |             * (try polynomial.thirdDerivative(at: angle))
+     |                `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+2876 |         let squared = coordinate * coordinate
+2877 |         let cubed = squared * coordinate
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:228:25: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 226 |         init(cosine: [Double], sine: [Double], using execution: inout OriginalQueryExecution) throws {
+ 227 |             try execution.consumeWork(1)
+ 228 |             let count = try max(cosine.count, sine.count, 1)
+     |                         `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 229 |             try execution.retainStorage(count: count, stride: MemoryLayout<Double>.stride)
+ 230 |             self.cosine = cosine + (try CertifiedAnalyticCurveEvaluation.repeated(0.0, count: count - cosine.count, using: &execution))
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:245:26: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 243 | 
+ 244 |         func coefficientScale(using execution: inout OriginalQueryExecution) throws -> Double {
+ 245 |             var result = try 1.0
+     |                          `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 246 |             for value in cosine { try execution.consumeWork(1); result = max(result, abs(value)) }
+ 247 |             for value in sine { try execution.consumeWork(1); result = max(result, abs(value)) }
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:248:20: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 246 |             for value in cosine { try execution.consumeWork(1); result = max(result, abs(value)) }
+ 247 |             for value in sine { try execution.consumeWork(1); result = max(result, abs(value)) }
+ 248 |             return try result
+     |                    `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 249 |         }
+ 250 | 
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:253:26: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 251 |         func value(at angle: Double, using execution: inout OriginalQueryExecution) throws -> Double {
+ 252 |             try execution.consumeWork(1)
+ 253 |             var result = try cosine[0]
+     |                          `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 254 |             if degree > 0 {
+ 255 |                 for harmonic in 1...degree {
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:262:20: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 260 |                 }
+ 261 |             }
+ 262 |             return try result
+     |                    `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 263 |         }
+ 264 | 
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:267:44: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 265 |         func firstDerivative(at angle: Double, using execution: inout OriginalQueryExecution) throws -> Double {
+ 266 |             try execution.consumeWork(1)
+ 267 |             guard degree > 0 else { return try 0.0 }
+     |                                            `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 268 |             var result = try 0.0
+ 269 |             for harmonic in 1...degree {
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:268:26: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 266 |             try execution.consumeWork(1)
+ 267 |             guard degree > 0 else { return try 0.0 }
+ 268 |             var result = try 0.0
+     |                          `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 269 |             for harmonic in 1...degree {
+ 270 |                 try execution.consumeWork(1)
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:272:29: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 270 |                 try execution.consumeWork(1)
+ 271 | 
+ 272 |                 let scale = try Double(harmonic)
+     |                             `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 273 |                 result = result - cosine[harmonic] * scale * sin(scale * angle)
+ 274 |                     + sine[harmonic] * scale * cos(scale * angle)
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:276:20: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 274 |                     + sine[harmonic] * scale * cos(scale * angle)
+ 275 |             }
+ 276 |             return try result
+     |                    `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 277 |         }
+ 278 | 
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:289:26: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 287 |                 return try order == 0 ? value(at: angle, using: &execution) : 0.0
+ 288 |             }
+ 289 |             var result = try 0.0
+     |                          `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 290 |             for harmonic in 1...degree {
+ 291 |                 try execution.consumeWork(1)
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:293:33: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 291 |                 try execution.consumeWork(1)
+ 292 | 
+ 293 |                 let frequency = try Double(harmonic)
+     |                                 `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 294 |                 let scale = try pow(frequency, Double(order))
+ 295 |                 let phase = try frequency * angle
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:294:29: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 292 | 
+ 293 |                 let frequency = try Double(harmonic)
+ 294 |                 let scale = try pow(frequency, Double(order))
+     |                             `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 295 |                 let phase = try frequency * angle
+ 296 |                     + Double(order) * Double.pi * 0.5
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:295:29: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 293 |                 let frequency = try Double(harmonic)
+ 294 |                 let scale = try pow(frequency, Double(order))
+ 295 |                 let phase = try frequency * angle
+     |                             `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 296 |                     + Double(order) * Double.pi * 0.5
+ 297 |                 result += scale * (
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:302:20: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 300 |                 )
+ 301 |             }
+ 302 |             return try result
+     |                    `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 303 |         }
+ 304 | 
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:307:44: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 305 |         func derivativeMagnitudeUpperBound(order: Int, using execution: inout OriginalQueryExecution) throws -> Double {
+ 306 |             try execution.consumeWork(1)
+ 307 |             guard degree > 0 else { return try 0.0 }
+     |                                            `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 308 |             var result = try 0.0
+ 309 |             for harmonic in 1...degree {
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:308:26: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 306 |             try execution.consumeWork(1)
+ 307 |             guard degree > 0 else { return try 0.0 }
+ 308 |             var result = try 0.0
+     |                          `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 309 |             for harmonic in 1...degree {
+ 310 |                 try execution.consumeWork(1)
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:312:29: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 310 |                 try execution.consumeWork(1)
+ 311 | 
+ 312 |                 let scale = try pow(Double(harmonic), Double(order))
+     |                             `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 313 |                 result = (
+ 314 |                     result
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:321:20: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 319 |                 ).nextUp
+ 320 |             }
+ 321 |             return try result
+     |                    `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 322 |         }
+ 323 | 
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:330:26: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 328 |         , using execution: inout OriginalQueryExecution) throws -> ScalarRange {
+ 329 |             try execution.consumeWork(1)
+ 330 |             let middle = try lower + (upper - lower) * 0.5
+     |                          `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 331 |             let midpoint = try derivative(
+ 332 |                 at: middle,
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:335:26: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 333 |                 order: derivativeOrder
+ 334 |             , using: &execution)
+ 335 |             let radius = try (
+     |                          `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 336 |                 try derivativeMagnitudeUpperBound(
+ 337 |                     order: derivativeOrder + 1
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:340:20: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 338 |                 , using: &execution) * (upper - lower) * 0.5
+ 339 |             ).nextUp
+ 340 |             return try ScalarRange(
+     |                    `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 341 |                 midpoint - radius,
+ 342 |                 midpoint + radius
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:348:25: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 346 |         func adding(_ other: Self, using execution: inout OriginalQueryExecution) throws -> Self {
+ 347 |             try execution.consumeWork(1)
+ 348 |             let count = try max(cosine.count, other.cosine.count)
+     |                         `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 349 |             var resultCosine = try CertifiedAnalyticCurveEvaluation.repeated(0.0, count: count, using: &execution)
+ 350 |             var resultSine = try CertifiedAnalyticCurveEvaluation.repeated(0.0, count: count, using: &execution)
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:372:32: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 370 |         func multiplied(by other: Self, using execution: inout OriginalQueryExecution) throws -> Self {
+ 371 |             try execution.consumeWork(1)
+ 372 |             let resultDegree = try degree + other.degree
+     |                                `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 373 |             var resultCosine = try CertifiedAnalyticCurveEvaluation.repeated(0.0, count: resultDegree + 1, using: &execution)
+ 374 |             var resultSine = try CertifiedAnalyticCurveEvaluation.repeated(0.0, count: resultDegree + 1, using: &execution)
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:381:39: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 379 |                 try execution.consumeWork(1)
+ 380 | 
+ 381 |                     let firstCosine = try cosine[first]
+     |                                       `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 382 |                     let firstSine = try sine[first]
+ 383 |                     let secondCosine = try other.cosine[second]
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:382:37: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 380 | 
+ 381 |                     let firstCosine = try cosine[first]
+ 382 |                     let firstSine = try sine[first]
+     |                                     `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 383 |                     let secondCosine = try other.cosine[second]
+ 384 |                     let secondSine = try other.sine[second]
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:383:40: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 381 |                     let firstCosine = try cosine[first]
+ 382 |                     let firstSine = try sine[first]
+ 383 |                     let secondCosine = try other.cosine[second]
+     |                                        `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 384 |                     let secondSine = try other.sine[second]
+ 385 |                     try addCosine(
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:384:38: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 382 |                     let firstSine = try sine[first]
+ 383 |                     let secondCosine = try other.cosine[second]
+ 384 |                     let secondSine = try other.sine[second]
+     |                                      `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 385 |                     try addCosine(
+ 386 |                         first - second,
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:424:32: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 422 |         func tangentHalfAngleCoefficients(using execution: inout OriginalQueryExecution) throws -> [Double] {
+ 423 |             try execution.consumeWork(1)
+ 424 |             let targetDegree = try degree
+     |                                `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 425 |             let denominator = try [1.0, 0.0, 1.0]
+ 426 |             let cosineBase = try [1.0, 0.0, -1.0]
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:425:31: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 423 |             try execution.consumeWork(1)
+ 424 |             let targetDegree = try degree
+ 425 |             let denominator = try [1.0, 0.0, 1.0]
+     |                               `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 426 |             let cosineBase = try [1.0, 0.0, -1.0]
+ 427 |             let sineBase = try [0.0, 2.0]
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:426:30: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 424 |             let targetDegree = try degree
+ 425 |             let denominator = try [1.0, 0.0, 1.0]
+ 426 |             let cosineBase = try [1.0, 0.0, -1.0]
+     |                              `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 427 |             let sineBase = try [0.0, 2.0]
+ 428 |             try execution.retainStorage(count: targetDegree + 1, stride: MemoryLayout<[Double]>.stride)
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:427:28: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 425 |             let denominator = try [1.0, 0.0, 1.0]
+ 426 |             let cosineBase = try [1.0, 0.0, -1.0]
+ 427 |             let sineBase = try [0.0, 2.0]
+     |                            `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 428 |             try execution.retainStorage(count: targetDegree + 1, stride: MemoryLayout<[Double]>.stride)
+ 429 |             try execution.retainStorage(count: targetDegree + 1, stride: MemoryLayout<[Double]>.stride)
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:430:36: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 428 |             try execution.retainStorage(count: targetDegree + 1, stride: MemoryLayout<[Double]>.stride)
+ 429 |             try execution.retainStorage(count: targetDegree + 1, stride: MemoryLayout<[Double]>.stride)
+ 430 |             var cosineNumerators = try [[1.0]]
+     |                                    `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 431 |             var sineNumerators = try [[0.0]]
+ 432 |             cosineNumerators.reserveCapacity(targetDegree + 1)
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:431:34: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 429 |             try execution.retainStorage(count: targetDegree + 1, stride: MemoryLayout<[Double]>.stride)
+ 430 |             var cosineNumerators = try [[1.0]]
+ 431 |             var sineNumerators = try [[0.0]]
+     |                                  `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 432 |             cosineNumerators.reserveCapacity(targetDegree + 1)
+ 433 |             sineNumerators.reserveCapacity(targetDegree + 1)
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:438:42: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 436 |                 try execution.consumeWork(1)
+ 437 | 
+ 438 |                     let previousCosine = try cosineNumerators.last ?? [1.0]
+     |                                          `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 439 |                     let previousSine = try sineNumerators.last ?? [0.0]
+ 440 |                     cosineNumerators.append(try subtract(
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:439:40: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 437 | 
+ 438 |                     let previousCosine = try cosineNumerators.last ?? [1.0]
+ 439 |                     let previousSine = try sineNumerators.last ?? [0.0]
+     |                                        `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 440 |                     cosineNumerators.append(try subtract(
+ 441 |                         try multiply(previousCosine, cosineBase, using: &execution),
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:475:20: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 473 |                 }
+ 474 |             }
+ 475 |             return try result
+     |                    `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 476 |         }
+ 477 | 
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:518:25: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 516 |         private func add(_ first: [Double], _ second: [Double], using execution: inout OriginalQueryExecution) throws -> [Double] {
+ 517 |             try execution.consumeWork(1)
+ 518 |             let count = try max(first.count, second.count)
+     |                         `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 519 |             return try CertifiedAnalyticCurveEvaluation.map(0..<count, using: &execution) { index, execution in
+ 520 |                 try coefficient(first, index, using: &execution) + coefficient(second, index, using: &execution)
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:526:25: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 524 |         private func subtract(_ first: [Double], _ second: [Double], using execution: inout OriginalQueryExecution) throws -> [Double] {
+ 525 |             try execution.consumeWork(1)
+ 526 |             let count = try max(first.count, second.count)
+     |                         `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 527 |             return try CertifiedAnalyticCurveEvaluation.map(0..<count, using: &execution) { index, execution in
+ 528 |                 try coefficient(first, index, using: &execution) - coefficient(second, index, using: &execution)
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:547:20: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 545 |                 }
+ 546 |             }
+ 547 |             return try result
+     |                    `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 548 |         }
+ 549 | 
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:556:46: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 554 |             try execution.consumeWork(1)
+ 555 |             try execution.retainStorage(count: 1, stride: MemoryLayout<Double>.stride)
+ 556 |             guard exponent > 0 else { return try [1.0] }
+     |                                              `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 557 |             var result = try [1.0]
+ 558 |             for _ in 0..<exponent {
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:557:26: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 555 |             try execution.retainStorage(count: 1, stride: MemoryLayout<Double>.stride)
+ 556 |             guard exponent > 0 else { return try [1.0] }
+ 557 |             var result = try [1.0]
+     |                          `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 558 |             for _ in 0..<exponent {
+ 559 |                 try execution.consumeWork(1)
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedConeTorusApexIntersectionCurve.swift:561:20: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 559 |                 try execution.consumeWork(1)
+ 560 |  result = try multiply(result, polynomial, using: &execution) }
+ 561 |             return try result
+     |                    `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 562 |         }
+ 563 |     }
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedCongruentTorusTorusIntersectionCurve.swift:128:16: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+126 |             tolerance: tolerance
+127 |         , using: &execution)
+128 |         return try (try CertifiedAnalyticCurveEvaluation.map(sections.enumerated(), using: &execution) { element, execution in
+    |                `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+129 |             let (index, section) = element
+130 |             return try CertifiedCongruentTorusTorusIntersectionCurve(
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedGeneralConeTorusIntersectionCurve.swift:880:57: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 878 |             return []
+ 879 |         }
+ 880 |         return try CertifiedAnalyticCurveEvaluation.map(try (0..<certificate.branchCount), using: &execution) {branchIndex, execution in
+     |                                                         `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 881 |             try CertifiedGeneralConeTorusIntersectionCurve(
+ 882 |                 coneSurface: coneSurface,
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedGeneralConeTorusIntersectionCurve.swift:1037:13: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+1035 |         }
+1036 |         if let apexReduction {
+1037 |             try (try Self.validate(
+     |             `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+1038 |                 apexReduction: apexReduction,
+1039 |                 coneSurface: coneSurface,
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedGeneralConeTorusIntersectionCurve.swift:1211:28: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+1209 |                 )
+1210 |             }
+1211 |             let geometry = try (try apexReduction.derivativesThroughThirdOrder(
+     |                            `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+1212 |                 atNormalizedFraction: min(max(fraction, 0.0), 1.0),
+1213 |                 tolerance: tolerance
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedGeneralConeTorusIntersectionCurve.swift:1511:20: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+1509 |         try validate(tolerance: tolerance, using: &execution)
+1510 |         if let apexReduction {
+1511 |             return try (try apexReduction.spatialDifferentialMagnitudeBounds(
+     |                    `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+1512 |                 fromNormalizedFraction: lowerFraction,
+1513 |                 toNormalizedFraction: upperFraction,
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedGeneralConeTorusIntersectionCurve.swift:2224:9: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+2222 |         using execution: inout OriginalQueryExecution) throws {
+2223 |         try execution.consumeWork(1)
+2224 |         try (try apexReduction.validate(tolerance: tolerance, using: &execution))
+     |         `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+2225 |         guard apexReduction.coneSurface == coneSurface,
+2226 |               apexReduction.torusSurface == torusSurface,
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedGeneralTorusCylinderIntersectionCurve.swift:430:16: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 428 |             tolerance: tolerance
+ 429 |         , using: &execution)
+ 430 |         return try (try CertifiedAnalyticCurveEvaluation.map((0..<certificate.branchCount), using: &execution) { branchIndex, execution in
+     |                `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 431 |             try CertifiedGeneralTorusCylinderIntersectionCurve(
+ 432 |                 torusSurface: torusSurface,
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedGeneralTorusCylinderIntersectionCurve.swift:1312:27: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+1310 |             try execution.checkpoint()
+1311 |             try execution.consumeWork(1)
+1312 |             let refined = try (try CertifiedAnalyticCurveEvaluation.map(lowerHeights, using: &execution) { element, execution in 
+     |                           `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+1313 |                 try refinedRoot(
+1314 |                     angle: upperAngle,
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedGeneralTorusCylinderIntersectionCurve.swift:1667:21: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+1665 |             tolerance: tolerance
+1666 |         )
+1667 |         let roots = try (try CertifiedAnalyticCurveEvaluation.filter(solver.roots(
+     |                     `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+1668 |             coefficients: (try configuration.coefficients(at: angle, using: &execution))
+1669 |         , using: &execution), using: &execution) { root, execution in
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedGeneralTorusTorusIntersectionCurve.swift:658:24: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 656 |                     return []
+ 657 |                 }
+ 658 |                 return try (try CertifiedAnalyticCurveEvaluation.map(certificate.cycles.indices, using: &execution) { componentIndex, execution in
+     |                        `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 659 |                     try CertifiedGeneralTorusTorusIntersectionCurve(
+ 660 |                         parameterizedSurface: candidate.parameterized,
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedParallelTorusTorusIntersectionCurve.swift:539:57: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 537 |             tolerance: tolerance
+ 538 |         , using: &execution)
+ 539 |         return try CertifiedAnalyticCurveEvaluation.map(try (0..<certificate.branchCount), using: &execution) {branchIndex, execution in
+     |                                                         `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 540 |             try CertifiedParallelTorusTorusIntersectionCurve(
+ 541 |                 primarySurface: ordered.primary,
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedPlaneTorusIntersectionCurve.swift:1694:24: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+1692 |                 first: factorPolynomial.derivative(at: parameter),
+1693 |                 second: factorPolynomial.secondDerivative(at: parameter),
+1694 |                 third: try factorPolynomial.thirdDerivative(at: parameter)
+     |                        `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+1695 |             )
+1696 |             guard factor.value > 0.0, factor.value.isFinite else {
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedSphereConeIntersectionCurve.swift:632:35: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 630 |                     && abs(upperAngle - 2.0 * Double.pi) <= tolerance.angle
+ 631 |             case let .nodeIntervals(intervals):
+ 632 |                 matchesTopology = try intervals.contains { interval in
+     |                                   `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 633 |                     abs(interval.lowerBound - lowerAngle) <= tolerance.angle
+ 634 |                         && abs(interval.upperBound - upperAngle) <= tolerance.angle
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedSphereConeIntersectionCurve.swift:2869:28: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+2867 |         let firstAngular = polynomial.derivative(at: angle.value)
+2868 |         let secondAngular = polynomial.secondDerivative(at: angle.value)
+2869 |         let thirdAngular = try polynomial.thirdDerivative(at: angle.value)
+     |                            `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+2870 |         let fourthAngular = polynomial.derivative(order: 4, at: angle.value)
+2871 |         let angleFourth = try angleFourthDerivative(
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedSphereConeIntersectionCurve.swift:3466:30: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+3464 |             - endpointFirst
+3465 |         let numeratorSecond = polynomial.secondDerivative(at: value)
+3466 |         let numeratorThird = try polynomial.thirdDerivative(at: value)
+     |                              `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+3467 |         let squared = difference * difference
+3468 |         let cubed = squared * difference
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedSphereTorusIntersectionCurve.swift:311:16: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 309 |             tolerance: tolerance
+ 310 |         , using: &execution)
+ 311 |         return try (try CertifiedAnalyticCurveEvaluation.map(spherePoleContacts(
+     |                `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 312 |             configuration: configuration,
+ 313 |             tolerance: tolerance
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedSphereTorusIntersectionCurve.swift:490:28: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 488 |              .positiveOpenAngularInterval:
+ 489 |             let branch = componentKind == .negativeOpenAngularInterval ? -1.0 : 1.0
+ 490 |             let contacts = try (try CertifiedAnalyticCurveEvaluation.filter(Self.spherePoleContacts(
+     |                            `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 491 |                 configuration: configuration,
+ 492 |                 tolerance: tolerance
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CertifiedSphereTorusIntersectionCurve.swift:3565:22: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+3563 |             tolerance: tolerance
+3564 |         )
+3565 |         var values = try (try CertifiedAnalyticCurveEvaluation.map(solver.roots(
+     |                      `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+3566 |             coefficients: try polynomial.tangentHalfAngleCoefficients(using: &execution)
+3567 |         , using: &execution), using: &execution) { element, execution in  normalizedAngle(2.0 * atan(element.value))  })
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/CurveCurveContact/OriginalNativeCurveCurveCriticalContact.swift:48:18: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 46 |     }
+ 47 |     let maximumDepth = min(32, execution.effectiveLimits.maximumSubdivisionDepth) - parentDepth
+ 48 |     let domain = try SurfaceParameterBox(u: firstRange, v: secondRange)
+    |                  `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 49 |     var emptyProjection = false
+ 50 |     for axes in [(0, 1), (0, 2), (1, 2)] {
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/ExactIsoparametricPlanarIntersectionGraph.swift:300:7: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 298 |     )
+ 299 |     let sourceScale = OutwardScalarInterval(
+ 300 |       try parameterBox.interval(for: freeParameter).width
+     |       `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 301 |     )
+ 302 |     let tangent = IntervalVector3DBounds(
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/ExactIsoparametricPlanarIntersectionGraph.swift:338:9: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 336 |       planeUNormalized
+ 337 |       * OutwardScalarInterval(
+ 338 |         try parameterBox.interval(for: planeUCoordinate).width
+     |         `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 339 |       )
+ 340 |     let planeV =
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/ExactIsoparametricPlanarIntersectionGraph.swift:343:9: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 341 |       planeVNormalized
+ 342 |       * OutwardScalarInterval(
+ 343 |         try parameterBox.interval(for: planeVCoordinate).width
+     |         `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 344 |       )
+ 345 |     try OriginalCoefficientAllocation.reserve(
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/ExactRectangularBSplineSurfacePatchBuilder.swift:169:38: warning: case is already handled by previous patterns; consider removing it
+167 |     case .procedural(.originalImage), .procedural(.originalRevolution), .procedural(.originalCoons),
+168 |       .procedural(.originalBoundaryCorrected), .procedural(.originalPlaneDerivative),
+169 |       .procedural(.originalDrafted), .procedural(.originalAffineWord):
+    |                                      `- warning: case is already handled by previous patterns; consider removing it
+170 |       throw KernelError(
+171 |         phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/GeneralTorusTorusSurfaceIntersector.swift:737:33: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 735 |             }
+ 736 |             let majorMidpoint = cell.majorAngle.midpoint
+ 737 |             let branchCenters = try (try CertifiedAnalyticCurveEvaluation.map(trace.valuesByBranch.indices, using: &execution) { branchIndex, execution in
+     |                                 `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 738 |                 try refinedMinorRoot(
+ 739 |                     majorAngle: majorMidpoint,
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/ImplicitCurveIntervalJetEncloser.swift:276:24: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 274 |     guard !sourceDepth.overflow else { throw ExactScalarFailure.countOverflow }
+ 275 |     try execution.admitSourceDepth(sourceDepth.partialValue)
+ 276 |     preparedSurfaces = try PreparedSurfaces(
+     |                        `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 277 |       intersection: intersection,
+ 278 |       tolerance: tolerance,
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/NativeExactGeometricRelations/OriginalImplicitHostPlanePublicProducer.swift:20:17: warning: initialization of immutable value 'depth' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+18 |         do {
+19 |             try options.validate(tolerance: tolerance)
+20 |             let depth = a.effectiveLimits.maximumValueDepth
+   |                 `- warning: initialization of immutable value 'depth' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+21 |             try a.checkpoint()
+22 |             a.context = a.context.at(stage: .source)
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/NativeExactGeometricRelations/OriginalPeriodicOffsetCurvePublicProducer.swift:22:17: warning: initialization of immutable value 'depth' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+20 |         do {
+21 |             try options.validate(tolerance:tolerance)
+22 |             let depth = a.effectiveLimits.maximumValueDepth
+   |                 `- warning: initialization of immutable value 'depth' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+23 |             try a.checkpoint()
+24 |             a.context = a.context.at(stage: .source)
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/NativeExactGeometricRelations/OriginalRevolutionAxisLinePublicProducer.swift:32:17: warning: initialization of immutable value 'depth' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+ 30 |         do {
+ 31 |             try options.validate(tolerance:tolerance)
+ 32 |             let depth=a.effectiveLimits.maximumValueDepth
+    |                 `- warning: initialization of immutable value 'depth' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+ 33 |             try a.checkpoint()
+ 34 |             a.context = a.context.at(stage: .source)
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/NativeSurfaceSurfaceRelations/OriginalNativeSurfaceSurfaceFiber.swift:38:17: warning: result of call to 'intersectionSourceCalculation(originalParameterDepth:originalCoefficientDepth:inheritedParameterDepth:inheritedCoefficientDepth:maximumDepth:maximumCoefficientDepth:usage:_:)' is unused [#NoUsage]
+ 36 |             }
+ 37 |             let available = try rationalAlgebraCount(coordinate.original.context.depth,maximumAlgebraicDepth - parameterDepth)
+ 38 |             try intersectionSourceCalculation(originalParameterDepth: coordinate.original.context.depth,
+    |                 `- warning: result of call to 'intersectionSourceCalculation(originalParameterDepth:originalCoefficientDepth:inheritedParameterDepth:inheritedCoefficientDepth:maximumDepth:maximumCoefficientDepth:usage:_:)' is unused [#NoUsage]
+ 39 |                 originalCoefficientDepth: coordinate.original.context.coefficientDepth,
+ 40 |                 inheritedParameterDepth: parameterDepth, inheritedCoefficientDepth: coordinate.inheritedCoefficientDepth,
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/OriginalCoons/OriginalCurveTraversalContinuityAdmission.swift:97:9: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 95 |     case .originalGuideTraversalChain(let chain):
+ 96 |       guard depth < capability.remainingSourceDepth,
+ 97 |         try !first.isNegative, !last.isNegative,
+    |         `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 98 |         try !ExactRationalCoefficient.one.subtracting(first, usage: &usage).isNegative,
+ 99 |         try !ExactRationalCoefficient.one.subtracting(last, usage: &usage).isNegative
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/OriginalNativePlaneContacts/OriginalNativePlaneContactProducer.swift:378:36: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+376 |                     let pv = try quotient(piece.vNumerator, piece.vDenominator, lower: lo, upper: hi, usage: &usage)
+377 |                     if let prior = position {
+378 |                         position = try .init(x: prior.x.union(value.x), y: prior.y.union(value.y), z: prior.z.union(value.z))
+    |                                    `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+379 |                     } else { position = value }
+380 |                     u = u.map { $0.union(pu) } ?? pu; v = v.map { $0.union(pv) } ?? pv
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/PreparedSurfaceDifferentialEncloser.swift:239:24: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+237 |         let low = try ScalarInterval(lower: interval.lower, upper: middle)
+238 |         let high = try ScalarInterval(lower: middle, upper: interval.upper)
+239 |         let lowerBox = try SurfaceParameterBox(u: splitU ? low : cell.box.u, v: splitU ? cell.box.v : low)
+    |                        `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+240 |         let upperBox = try SurfaceParameterBox(u: splitU ? high : cell.box.u, v: splitU ? cell.box.v : high)
+241 |         pending.append(.init(box: upperBox, depth: cell.depth + 1))
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/PreparedSurfaceDifferentialEncloser.swift:240:24: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+238 |         let high = try ScalarInterval(lower: middle, upper: interval.upper)
+239 |         let lowerBox = try SurfaceParameterBox(u: splitU ? low : cell.box.u, v: splitU ? cell.box.v : low)
+240 |         let upperBox = try SurfaceParameterBox(u: splitU ? high : cell.box.u, v: splitU ? cell.box.v : high)
+    |                        `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+241 |         pending.append(.init(box: upperBox, depth: cell.depth + 1))
+242 |         pending.append(.init(box: lowerBox, depth: cell.depth + 1))
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/PreparedSurfaceDifferentialEncloser.swift:665:13: warning: initialization of immutable value 'receipt' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+663 |           v: try ScalarInterval(lower: max(parameters.v.lower, span.vBounds.lower), upper: min(parameters.v.upper, span.vBounds.upper)))
+664 |         let original = prepared.surface
+665 |         let receipt = try span.originalCoefficientReceipt(overClosedBox: box,
+    |             `- warning: initialization of immutable value 'receipt' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+666 |           on: original, tolerance: tolerance, using: &execution)
+667 |         let jet: SurfaceIntervalVectorJet
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/RationalBezierCurveJetEncloser.swift:335:18: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+333 |         parameters: q, sourceSpan: width, tolerance: tolerance, using: &execution) * inverse
+334 |     }
+335 |     let result = try SurfaceIntervalVectorJet(
+    |                  `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+336 |       x: try coordinate(0, using: &execution), y: try coordinate(1, using: &execution),
+337 |       z: try coordinate(2, using: &execution))
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/RationalBezierCurveJetEncloser.swift:424:18: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+422 |       )
+423 |     }
+424 |     let result = try SurfaceIntervalVectorJet(
+    |                  `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+425 |       x: try scalarJet(span.coefficients[0], using: &execution) * inverse,
+426 |       y: try scalarJet(span.coefficients[1], using: &execution) * inverse,
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/RationalBezierCurveJetEncloser.swift:403:14: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+401 |       let third = try differentiated(second, span: width, tolerance: tolerance, using: &execution)
+402 |       let zero = OutwardScalarInterval.exact(0)
+403 |       return try SurfaceIntervalJet(
+    |              `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+404 |         value: try polynomial(coefficients, using: &execution),
+405 |         derivativeU: try polynomial(first, using: &execution), derivativeV: zero,
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/RationalBezierSurfaceDifferentialBounds.swift:409:16: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+407 |             return nil
+408 |         }
+409 |         return try BernsteinVector4Surface(xyz: xyz, weight: weight)
+    |                `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+410 |     }
+411 | 
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/RationalBezierSurfaceDifferentialBounds.swift:417:16: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+415 |             return nil
+416 |         }
+417 |         return try BernsteinVector4Surface(xyz: xyz, weight: weight)
+    |                `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+418 |     }
+419 | }
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/RationalBezierSurfaceJetEncloser.swift:127:16: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 125 |             controls.append(row)
+ 126 |         }
+ 127 |         return try PreparedPatch(
+     |                `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 128 |             uLower: patch.uLower, uUpper: patch.uUpper,
+ 129 |             vLower: patch.vLower, vUpper: patch.vUpper,
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/RationalBezierSurfaceJetEncloser.swift:147:16: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 145 |                  tolerance: ModelingTolerance, using execution: inout A) throws -> PreparedPatch {
+ 146 |         try execution.checkpoint()
+ 147 |         return try PreparedPatch(uLower: patch.uBounds.lower, uUpper: patch.uBounds.upper,
+     |                `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 148 |             vLower: patch.vBounds.lower, vUpper: patch.vBounds.upper, origin: patch.origin,
+ 149 |             controls: try derivativeJetControls(patch.controls,
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/RationalBezierSurfaceJetEncloser.swift:238:17: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 236 |             polynomials: [patch.polynomialX.map(firstOrderControls), patch.polynomialY.map(firstOrderControls),
+ 237 |                           patch.polynomialZ.map(firstOrderControls)], tolerance: tolerance, using: &execution) { controls, execution in
+ 238 |                 try FirstOrderControls(value: try localize(controls.value, using: &execution), derivativeU: try localize(controls.derivativeU, using: &execution),
+     |                 `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 239 |                                        derivativeV: try localize(controls.derivativeV, using: &execution))
+ 240 |             }
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/RationalBezierSurfaceJetEncloser.swift:357:13: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 355 |         return try resolvedFirstOrder(of: patch, controls: controls, polynomials: polynomials,
+ 356 |                                      tolerance: tolerance, using: &execution) { controls, execution in
+ 357 |             try FirstOrderControls(value: try localize(controls.value, using: &execution), derivativeU: try localize(controls.derivativeU, using: &execution),
+     |             `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 358 |                                    derivativeV: try localize(controls.derivativeV, using: &execution))
+ 359 |         }
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/RationalBezierSurfaceJetEncloser.swift:371:13: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 369 |         }
+ 370 |         func localize(_ controls: HomogeneousJetControls, using execution: inout A) throws -> HomogeneousJetControls {
+ 371 |             try HomogeneousJetControls(value:try evaluate(controls.value, using: &execution),
+     |             `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 372 |                 derivativeU:try evaluate(controls.derivativeU, using: &execution),derivativeV:try evaluate(controls.derivativeV, using: &execution),
+ 373 |                 secondDerivativeUU:try evaluate(controls.secondDerivativeUU, using: &execution),
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/RationalBezierSurfaceJetEncloser.swift:464:16: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 462 |             return OutwardScalarInterval(lower:max(0,result.lower),upper:min(1,result.upper))
+ 463 |         }
+ 464 |         return try (try parameter(u,lower:patch.uLower,upper:patch.uUpper, using: &execution),
+     |                `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 465 |             try parameter(v,lower:patch.vLower,upper:patch.vUpper, using: &execution))
+ 466 |     }
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/RationalBezierSurfaceJetEncloser.swift:508:16: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 506 |             return result
+ 507 |         }
+ 508 |         return try IntervalHomogeneousSurfaceControl(x: try intersect({ $0.x }, using: &execution), y: try intersect({ $0.y }, using: &execution),
+     |                `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 509 |             z: try intersect({ $0.z }, using: &execution), weight: try intersect({ $0.weight }, using: &execution))
+ 510 |     }
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/RationalBezierSurfaceJetEncloser.swift:529:22: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 527 |                 reciprocal:reciprocal,polynomial:polynomialValue,origin:origin)
+ 528 |         }
+ 529 |         let result = try IntervalVector3DBounds(
+     |                      `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 530 |             x:try coordinate(patch.polynomialX,component:{ $0.x },origin:patch.origin.x, using: &execution),
+ 531 |             y:try coordinate(patch.polynomialY,component:{ $0.y },origin:patch.origin.y, using: &execution),
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/RationalBezierSurfaceJetEncloser.swift:616:22: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 614 |                 thirdDerivativeVVV:shifted.thirdDerivativeVVV)
+ 615 |         }
+ 616 |         let result = try SurfaceIntervalVectorJet(
+     |                      `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 617 |             x: try coordinate(patch.polynomialX, rational: x, origin: patch.origin.x, using: &execution),
+ 618 |             y: try coordinate(patch.polynomialY, rational: y, origin: patch.origin.y, using: &execution),
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/RationalBezierSurfaceJetEncloser.swift:790:16: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 788 |             , using: &execution)
+ 789 |         }
+ 790 |         return try HomogeneousJetControls(
+     |                `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 791 |             value: try localized(controls.value, using: &execution),
+ 792 |             derivativeU: try localized(controls.derivativeU, using: &execution),
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/RationalBivariateAlgebra/OriginalFieldPlaneCurveIncidence.swift:32:21: warning: variable 'roots' was never mutated; consider changing to 'let' constant [#VariableNeverMutated]
+ 30 |                 let index = side == .lowerStation ? sector.lowerStation : sector.upperStation
+ 31 |                 let station = projection.stations[index]
+ 32 |                 var roots = try Self.ordered(station.roots, maximumDepth: maximumDepth, usage: &usage)
+    |                     `- warning: variable 'roots' was never mutated; consider changing to 'let' constant [#VariableNeverMutated]
+ 33 |                 guard !roots.isEmpty else { throw rationalAlgebraFailure("Original bounded strip branch has no limiting station fiber.") }
+ 34 |                 try RationalAlgebraStorage.retain(rationalAlgebraCount(roots.count, 1), of: ExactRationalCoefficient.self, usage: &usage)
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/StructuralGeometryWork/GeometryStructuralComparisonWork.swift:358:13: warning: immutable value 'cell' was never used; consider replacing with '_' or removing it [#NoUsage]
+356 |         try Self.charge(surface: curve.secondSurface, using: &execution)
+357 |         try chargeArray(curve.cells.count, using: &execution)
+358 |         for cell in curve.cells {
+    |             `- warning: immutable value 'cell' was never used; consider replacing with '_' or removing it [#NoUsage]
+359 |             try checkCancellation()
+360 |             // parameterBox (four intervals), freeParameter, direction, and
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/SurfaceAreaIntegration/PreparedSurfaceAreaIntegrand.swift:141:65: warning: left side of nil coalescing operator '??' has non-optional type 'Int', so the right side is never used
+ 139 |             derivativeOrder = try drafted.hasOriginalFirstOrderContinuity(over:box,
+ 140 |                 tolerance:tolerance,maximumSpanCount:262_144,
+ 141 |                 maximumSubdivisionDepth:maximumSubdivisionDepth ?? execution.effectiveLimits.maximumSubdivisionDepth,
+     |                                                                 `- warning: left side of nil coalescing operator '??' has non-optional type 'Int', so the right side is never used
+ 142 |                 remainingSourceDepth:remainingSourceDepth, using: &execution) ? 1 : 0
+ 143 |         case .procedural(.originalAffineWord(let image)):
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/SurfaceSilhouette/OriginalProjectedCurveContacts/OriginalNativeSilhouetteProjectedContactProducer.swift:137:16: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+135 |         }
+136 |         let u = try axis(original.u, alongU: true), v = try axis(original.v, alongU: false)
+137 |         return try .init(u: u, v: v)
+    |                `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+138 |     }
+139 | }
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/SurfaceSilhouette/OriginalProjectedCurveContacts/OriginalProjectedNativeLocus.swift:114:17: warning: initialization of immutable value 'events' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+112 |                 for parameterIndex in parameters.indices {
+113 |             let parameter = parameters[parameterIndex]
+114 |             let events = branchEvents[parameterIndex]
+    |                 `- warning: initialization of immutable value 'events' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+115 |                     try RationalAlgebraStorage.retain(2, of: SurfaceSilhouetteTrimEndpoint.self, usage: &usage)
+116 |                     let edge = try SurfaceSilhouetteTrimEndpoint(point.originalEdgeParameter,
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/SurfaceSilhouette/OriginalProjectedCurveContacts/OriginalProjectedNativeLocus.swift:59:31: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 57 |         var planeProjections: [OriginalRationalPlaneCurveProjection] = []
+ 58 |         var stationFibers: [OriginalProjectedNativeSectionFiber] = []
+ 59 |         let parameterDomain = try SurfaceParameterBox(u: domain.u, v: original.edgeRange)
+    |                               `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 60 |         for parameterIndex in parameters.indices {
+ 61 |             let parameter = parameters[parameterIndex]
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/SurfaceSilhouette/SurfaceSilhouetteCriticalCertifier.swift:73:24: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+71 |                 // convex cell and an exact stationary zero prove this is its
+72 |                 // sole zero, not merely a small interval containing zero.
+73 |                 return try .isolatedExactZero(SurfaceParameter(u: ru, v: rv))
+   |                        `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+74 |             }
+75 |         }
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/SurfaceSilhouette/SurfaceSilhouetteRamifiedParameterImage.swift:148:17: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+146 |         try RationalAlgebraStorage.retain(20, of: UInt32.self, usage: &usage)
+147 |         var uv = result.originalDerivatives
+148 |         uv[0] = try .init(x: parameters.u, y: parameters.v)
+    |                 `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+149 |         var power = OutwardScalarInterval.exact(1)
+150 |         for index in 1..<4 {
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[#VariableNeverMutated]: <https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated>
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/snapshot/Sources/CADGeometry/GeneralTorusTorusSurfaceIntersector.swift:737:33: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 735 |             }
+ 736 |             let majorMidpoint = cell.majorAngle.midpoint
+ 737 |             let branchCenters = try (try CertifiedAnalyticCurveEvaluation.map(trace.valuesByBranch.indices, using: &execution) { branchIndex, execution in
+     |                                 `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 738 |                 try refinedMinorRoot(
+ 739 |                     majorAngle: majorMidpoint,
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>

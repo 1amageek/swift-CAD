@@ -21,9 +21,9 @@ public struct OriginalBoundedSphereConeSurfaceSection: Sendable {
         self.cosine = cosine; self.plusSlant = plusSlant; self.minusSlant = minusSlant
         self.isSharedEndpoint = isSharedEndpoint; self.sourceValues = sourceValues; self.proofDepth = proofDepth
     }
-    static func issue<A: ExactScalarAdmission & ~Copyable>(relation: OriginalBoundedSphereConeSurfaceRelation,
-        halfAngle t: Field.Value, using a: inout A) throws -> Self {
-        return try OriginalSourceProofAdmission<A>.withBorrow(&a) { a in
+    static func issue(relation: OriginalBoundedSphereConeSurfaceRelation,
+        halfAngle t: Field.Value, using a: inout OriginalQueryExecution) throws -> Self {
+        return try a.withProofScope() { a in
             let source = relation.source.original
             let values = try source.sectionValues(halfAngle: t, using: &a)
             let f = values.field, plus = values.plusSlant, minus = values.minusSlant
@@ -35,10 +35,10 @@ public struct OriginalBoundedSphereConeSurfaceSection: Sendable {
         try a.checkpoint(); return section
         }
     }
-    public func member<A: ExactScalarAdmission & ~Copyable>(branch: Int, coneCycle: OriginalParameterCycle,
+    public func member(branch: Int, coneCycle: OriginalParameterCycle,
         sphereCycle: OriginalParameterCycle, limits: OriginalDomainIdentityLimits,
-        using a: inout A) throws -> OriginalBoundedSphereConeSurfaceMember {
-        return try OriginalSourceProofAdmission<A>.withBorrow(&a) { a in
+        using a: inout OriginalQueryExecution) throws -> OriginalBoundedSphereConeSurfaceMember {
+        return try a.withProofScope() { a in
             try relation.admitProof(limits: limits, using: &a)
             try a.admitDepth(value: proofDepth.value, coefficient: proofDepth.coefficient)
             guard branch == 0 || branch == 1 else { throw OriginalDomainIdentityFailure.outsideSupport }

@@ -1,0 +1,99 @@
+{
+  "receiptSHA256": "ce70b1a795f1b923941eebde77612357eba8e804c12769e9e7c9ec409e07d116",
+  "objectSHA256": "ac77a5f39df77c4c859f61e55e36d4da04d80933560bfa9b87fb8298a39f245b",
+  "entries": [
+    {
+      "function": "publishedInit",
+      "symbol": "_$s11CADGeometry35SurfaceSilhouetteProjectedPartitionV8original8contacts4cuts7sectors10wholeRangeAcA08OriginalD20NativePolynomialPairV_SayAA0bcD7ContactVGSayAA0bC12TrimEndpointVGSayAC6SectorVGSbtcfC",
+      "entryFrameBytes": 68592,
+      "arithmetic": [
+        "0x20",
+        "0x10000",
+        "0xbd0"
+      ]
+    },
+    {
+      "function": "partitionAfterPair",
+      "symbol": "_$s11CADGeometry48OriginalNativeSilhouetteProjectedContactProducerV18partitionAfterPair33_50A7F5B9EB8EBE88B9030C669F66F6DBLL_4over10silhouette5usingAA07SurfacedE9PartitionVAA0bec10PolynomialJ0V_AA14ScalarIntervalVAA0bxD12TrimmedCurveVAA0B14QueryExecutionVztKFZ",
+      "entryFrameBytes": 134656,
+      "arithmetic": [
+        "0x20",
+        "0x20000",
+        "0xde0"
+      ]
+    },
+    {
+      "function": "partitionClosure",
+      "symbol": "_$s11CADGeometry48OriginalNativeSilhouetteProjectedContactProducerV9partition4edge9spanIndex4over10silhouette5frame5usingAA07SurfacedE9PartitionVAA7Curve3DO_SiAA14ScalarIntervalVAA0bpD12TrimmedCurveVAA27OrthographicProjectionFrameVAA0B14QueryExecutionVztKFAlVzKXEfU_",
+      "entryFrameBytes": 33968,
+      "arithmetic": [
+        "0x20",
+        "0x8000",
+        "0x490"
+      ]
+    },
+    {
+      "function": "partition",
+      "symbol": "_$s11CADGeometry48OriginalNativeSilhouetteProjectedContactProducerV9partition4edge9spanIndex4over10silhouette5frame5usingAA07SurfacedE9PartitionVAA7Curve3DO_SiAA14ScalarIntervalVAA0bpD12TrimmedCurveVAA27OrthographicProjectionFrameVAA0B14QueryExecutionVztKF",
+      "entryFrameBytes": 54992,
+      "arithmetic": [
+        "0x20",
+        "0xd000",
+        "0x6b0"
+      ]
+    },
+    {
+      "function": "originalEdge",
+      "symbol": "_$s11CADGeometry35SurfaceSilhouetteProjectedPartitionV12originalEdgeAA7Curve3DOvg",
+      "entryFrameBytes": 29056,
+      "arithmetic": [
+        "0x20",
+        "0x7000",
+        "0x160"
+      ]
+    },
+    {
+      "function": "originalSpanIndex",
+      "symbol": "_$s11CADGeometry35SurfaceSilhouetteProjectedPartitionV17originalSpanIndexSivg",
+      "entryFrameBytes": 26064,
+      "arithmetic": [
+        "0x20",
+        "0x6000",
+        "0x5b0"
+      ]
+    },
+    {
+      "function": "nativeRange",
+      "symbol": "_$s11CADGeometry35SurfaceSilhouetteProjectedPartitionV11nativeRangeAA14ScalarIntervalVvg",
+      "entryFrameBytes": 22832,
+      "arithmetic": [
+        "0x20",
+        "0x5000",
+        "0x910"
+      ]
+    },
+    {
+      "function": "silhouette",
+      "symbol": "_$s11CADGeometry35SurfaceSilhouetteProjectedPartitionV10silhouetteAA08OriginalbC12TrimmedCurveVvg",
+      "entryFrameBytes": 41776,
+      "arithmetic": [
+        "0x20",
+        "0xa000",
+        "0x310"
+      ]
+    },
+    {
+      "function": "frame",
+      "symbol": "_$s11CADGeometry35SurfaceSilhouetteProjectedPartitionV5frameAA27OrthographicProjectionFrameVvg",
+      "entryFrameBytes": 22944,
+      "arithmetic": [
+        "0x20",
+        "0x5000",
+        "0x980"
+      ]
+    }
+  ],
+  "bytesPerEntry": 96,
+  "oldR7KernelBasedPublicationReplacementSubtotal": 469504,
+  "compositionAssumption": "Uses old r7 Kernel selected-edge frames while upper ABI recompilation is pending. Getter frames are not added to constructor publication point."
+}

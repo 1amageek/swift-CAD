@@ -17,13 +17,13 @@ package struct ExactBivariateSystemRoot: Sendable {
     package var vExcludesLowerEndpoint: Bool { fiberRoot.excludesLower }
     package var vExcludesUpperEndpoint: Bool { fiberRoot.excludesUpper }
 
-    package func retainingDepth<B: RationalAlgebraAdmitting>(_ depth: Int,
+    package func retainingDepth<B: ExactScalarAdmission & ~Copyable>(_ depth: Int,
         usage: inout B) throws -> Self {
         guard depth >= projectionRoot.isolation.isolationDepth,
             depth >= fiberRoot.isolationDepth else {
             throw rationalAlgebraFailure("Original pair causal depth cannot move backwards.")
         }
-        try usage.retainExactStorage(2)
+        try RationalAlgebraStorage.retain(1, of: Self.self, usage: &usage)
         let projected = try projectionRoot.retainingDepth(depth)
         let retainedFiber = ExactAlgebraicFiberPolynomial(root: projected, coefficients: fiber.coefficients)
         let retainedRoot = ExactAlgebraicFiberRootIsolator.Root(lower: fiberRoot.lower, upper: fiberRoot.upper,
@@ -33,12 +33,12 @@ package struct ExactBivariateSystemRoot: Sendable {
             projectionMultiplicity: projectionMultiplicity, fiberMultiplicity: fiberMultiplicity)
     }
 
-    package func enclosure<B: RationalAlgebraAdmitting>(usage: inout B) throws -> SurfaceParameterBox {
+    package func enclosure<B: ExactScalarAdmission & ~Copyable>(usage: inout B) throws -> SurfaceParameterBox {
         try ExactAlgebraicParameterPair(projectionRoot: projectionRoot, fiber: fiber,
             fiberRoot: fiberRoot, sourceDomain: sourceDomain).enclosure(usage: &usage)
     }
 
-    package func refined<B: RationalAlgebraAdmitting>(maximumUWidth: ExactRationalCoefficient,
+    package func refined<B: ExactScalarAdmission & ~Copyable>(maximumUWidth: ExactRationalCoefficient,
         maximumVWidth: ExactRationalCoefficient, maximumDepth: Int, usage: inout B) throws -> Self {
         let pair = try ExactAlgebraicParameterPair(projectionRoot: projectionRoot, fiber: fiber,
             fiberRoot: fiberRoot, sourceDomain: sourceDomain).refined(maximumUWidth: maximumUWidth,
@@ -47,7 +47,7 @@ package struct ExactBivariateSystemRoot: Sendable {
             fiberRoot: pair.fiberRoot, sourceDomain: sourceDomain,
             projectionMultiplicity: projectionMultiplicity, fiberMultiplicity: fiberMultiplicity)
     }
-    package func sign<B: RationalAlgebraAdmitting>(of expression: ExactBivariatePolynomial,
+    package func sign<B: ExactScalarAdmission & ~Copyable>(of expression: ExactBivariatePolynomial,
         maximumDepth: Int, usage: inout B) throws -> ExactAlgebraicRealRoot.Sign {
         try ExactAlgebraicParameterPair(projectionRoot: projectionRoot, fiber: fiber,
             fiberRoot: fiberRoot, sourceDomain: sourceDomain).sign(of: expression,

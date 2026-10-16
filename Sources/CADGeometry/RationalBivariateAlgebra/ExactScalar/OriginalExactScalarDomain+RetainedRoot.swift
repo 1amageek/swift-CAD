@@ -16,13 +16,13 @@ extension OriginalExactScalarDomain {
             original: parent.originalDepth, inherited: inherited,
             maximum: .init(value: parent.maximumValueDepth, coefficient: parent.maximumCoefficientDepth)) { usage in
             // Degree getters each scan the canonical original coefficient dictionary.
-            try usage.consumeExactWork(try exactScalarCount(root.polynomial.coefficients.count, 2, multiply: true))
+            try usage.consumeWork(try exactScalarCount(root.polynomial.coefficients.count, 2, multiply: true))
             let count = try exactScalarCount(root.polynomial.uDegree, 1)
             guard count > 1, root.polynomial.vDegree <= 0 else { throw ExactScalarFailure.invalidEvidence }
             try RationalAlgebraStorage.retain(count, of: OriginalSingularFieldElement.self, usage: &usage)
             var coefficients: [OriginalSingularFieldElement] = []; coefficients.reserveCapacity(count)
             for index in 0..<count {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 let coefficient = root.polynomial.coefficients[try .init(u: index, v: 0)] ?? .zero
                 coefficients.append(try .constant(coefficient, in: parent.context,
                     maximumDepth: parent.maximumValueDepth, usage: &usage))

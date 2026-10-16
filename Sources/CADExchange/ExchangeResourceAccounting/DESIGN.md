@@ -20,7 +20,7 @@ Invocation -> immutable shared owner -> Mutex<ValueAccountant>
 ```
 
 ## Contracts and Invariants
-Copies retain the same counters, ceilings and original deadline on all targets. Each counter update is serialized; overflow and exhausted ceilings fail without accepting the update. Snapshots atomically borrow current values for remaining-allowance computation, never restore counters. External callbacks, fitting, I/O and source algorithms run outside the lock. A conversion ledger creates exactly one GeometryConversionAdmission and returns copies of that admission throughout preparation and certification.
+Copies retain the same counters, ceilings and original deadline on all targets. Each counter update is serialized; overflow and exhausted ceilings fail without accepting the update. Snapshots atomically borrow current values for remaining-allowance computation, never restore counters. External callbacks, fitting, I/O and source algorithms run outside the lock. A conversion ledger issues one canonical execution and passes it through preparation and certification on the original shared budget.
 
 ## State, Ownership, and Lifecycle
 The owner retains one Mutex<ExchangeResourceAccountant>. Drawing usage and callbacks retain that owner. The conversion ledger retains both the owner and its admission; admission callbacks retain only the owner, preventing a retain cycle. The owner is released after all users and callbacks release it.
@@ -30,3 +30,10 @@ Short in-memory accounting mutations use Synchronization.Mutex on Native, WASM a
 
 ## Verification and Change Impact
 After the source phase, verify shared usage copies and concurrent callbacks consume one cumulative allowance, exhausted updates remain failures, admission copies preserve invocation identity, cancellation/deadline propagate, and callbacks release their owner without a cycle. Recheck conversion and drawing publication at these boundaries. Source authoring is not runtime evidence.
+
+
+## Canonical Admission Integration
+
+The exchange invocation owns one `OriginalQueryBudget`. Source conversion, exact scalar operations and retained drawing/silhouette readers borrow `OriginalQueryExecution` on that owner. Format counters and deadlines retain their existing independent limits; a callback wrapper or a copied mutable allowance cannot implement canonical proof/depth admission. Native serialization that borrows this execution retains actual active contributions and its independent wire-byte contribution. This is the caller closure of [Geometry execution](../../CADGeometry/OriginalQueryExecution/DESIGN.md), not a change to payload semantics.
+
+Verification must compile the extracted package and check original format behavior plus same-owner/cap refusal on the affected entries. Existing larger-worktree receipts do not prove this extracted delivery snapshot.

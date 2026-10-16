@@ -18,12 +18,12 @@ struct TrimmedNativePartition: Sendable {
 
     func partition(parameters input: [SurfaceParameter], triangles original: [Triangle],
         spans: [PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan],
-        budget: TessellationProofBudget, tolerance: ModelingTolerance) throws -> Result {
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Result {
         var parameters = input
         var triangles = original
         var cuts = Set<Cut>()
         for span in spans {
-            try budget.charge()
+            try execution.consumeWork(1)
             cuts.insert(Cut(axis: 0, coordinate: span.uBounds.lower))
             cuts.insert(Cut(axis: 0, coordinate: span.uBounds.upper))
             cuts.insert(Cut(axis: 1, coordinate: span.vBounds.lower))
@@ -36,13 +36,13 @@ struct TrimmedNativePartition: Sendable {
         func coordinate(_ index: Int, _ axis: Int) -> Double {
             axis == 0 ? parameters[index].u : parameters[index].v
         }
-        func crossing(_ first: Int, _ second: Int, _ cut: Cut) throws -> Int {
+        func crossing(_ first: Int, _ second: Int, _ cut: Cut, using execution: inout OriginalQueryExecution) throws -> Int {
             let a = coordinate(first, cut.axis), b = coordinate(second, cut.axis)
             if a == cut.coordinate { return first }
             if b == cut.coordinate { return second }
             let key = Crossing(first: min(first, second), second: max(first, second), cut: cut)
             if let retained = crossings[key] { return retained }
-            try budget.charge()
+            try execution.consumeWork(1)
             let low = parameters[key.first], high = parameters[key.second]
             let lowAxis = coordinate(key.first, cut.axis), highAxis = coordinate(key.second, cut.axis)
             let fraction = (cut.coordinate - lowAxis) / (highAxis - lowAxis)
@@ -62,19 +62,18 @@ struct TrimmedNativePartition: Sendable {
             crossings[key] = index
             return index
         }
-        func nonzero(_ a: Int, _ b: Int, _ c: Int) throws -> Bool {
+        func nonzero(_ a: Int, _ b: Int, _ c: Int, using execution: inout OriginalQueryExecution) throws -> Bool {
             let first = parameters[a], second = parameters[b], third = parameters[c]
             return try RobustPredicates.orientation2D(
                 Point2D(x: second.u, y: second.v), Point2D(x: third.u, y: third.v),
                 relativeTo: Point2D(x: first.u, y: first.v), determinantTolerance: 0,
-                consumeWork: { try budget.charge() },
-                consumeStorage: { try budget.chargeStorageBytes($0) }) != .zero
+                using: &execution) != .zero
         }
         for cut in orderedCuts {
             try Task.checkCancellation()
             var next: [Triangle] = []
             for triangle in triangles {
-                try budget.charge()
+                try execution.consumeWork(1)
                 let polygon = [triangle.first, triangle.second, triangle.third]
                 let values = polygon.map { coordinate($0, cut.axis) }
                 guard values.contains(where: { $0 < cut.coordinate }),
@@ -88,13 +87,13 @@ struct TrimmedNativePartition: Sendable {
                         let firstInside = upper ? coordinate(a,cut.axis) >= cut.coordinate : coordinate(a,cut.axis) <= cut.coordinate
                         let secondInside = upper ? coordinate(b,cut.axis) >= cut.coordinate : coordinate(b,cut.axis) <= cut.coordinate
                         if firstInside { clipped.append(a) }
-                        if firstInside != secondInside { clipped.append(try crossing(a,b,cut)) }
+                        if firstInside != secondInside { clipped.append(try crossing(a,b,cut, using: &execution)) }
                     }
                     var unique: [Int] = []
                     for index in clipped where unique.last != index { unique.append(index) }
                     if unique.count > 1, unique.first == unique.last { unique.removeLast() }
                     if unique.count >= 3 {
-                        for index in 1..<(unique.count-1) where try nonzero(unique[0],unique[index],unique[index+1]) {
+                        for index in 1..<(unique.count-1) where try nonzero(unique[0],unique[index],unique[index+1], using: &execution) {
                             guard next.count < 262_144 else {
                                 throw KernelError(phase: .geometry, code: .resourceLimitExceeded,
                                     tolerance: tolerance, message: "Original native trim partition exceeded its existing triangle ceiling.")
@@ -108,13 +107,13 @@ struct TrimmedNativePartition: Sendable {
         }
         var owners: [PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan] = []
         for triangle in triangles {
-            try budget.charge()
+            try execution.consumeWork(1)
             let vertices = [parameters[triangle.first], parameters[triangle.second], parameters[triangle.third]]
             let lowerU = vertices.map(\.u).min()!, upperU = vertices.map(\.u).max()!
             let lowerV = vertices.map(\.v).min()!, upperV = vertices.map(\.v).max()!
             var owner: PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan?
             for span in spans {
-                try budget.charge()
+                try execution.consumeWork(1)
                 if span.uBounds.lower <= lowerU, span.uBounds.upper >= upperU,
                     span.vBounds.lower <= lowerV, span.vBounds.upper >= upperV {
                     guard owner == nil else {

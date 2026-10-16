@@ -24,14 +24,14 @@ public struct DefaultOriginalTraversalChartIssuer<Source: OriginalTraversalSourc
         let coefficients = copy coefficients
         let source = copy source, chart = copy chart, field = copy field
         do {
-            return try OriginalSourceProofAdmission<A>.withBorrow(&admission) { usage in
+            return try admission.withProofScope { usage in
                 try Self.compose(source: source, chart: chart, field: field, coefficients: coefficients, limits: limits, using: &usage)
             }
         } catch { throw .init(preserving: error) }
     }
     private static func compose<C: OriginalSourceCoefficientImporting, A: ExactScalarAdmission & ~Copyable>(
         source: borrowing OriginalSourceBinding<Source>, chart: borrowing OriginalSourceChart<Source, Selection>,
-        field: borrowing Field, coefficients: borrowing C, limits: OriginalSourceIssuanceLimits, using admission: inout OriginalSourceProofAdmission<A>
+        field: borrowing Field, coefficients: borrowing C, limits: OriginalSourceIssuanceLimits, using admission: inout A
     ) throws -> OriginalRationalChartReceipt<Source, Selection, Field> where C.Field == Field {
         try admission.checkpoint(); try admission.consumeWork(1); try source.require(limits)
         guard source.owns(chart), source.original.originalChild.owns(chart.selection.child.chart) else {

@@ -108,3 +108,14 @@ verifies source preservation, exact planar circular-cap filling, small planar
 openings, and deterministic reevaluation with the real sewer.
 `CADExchangeTests/NativeOperationSchemaTests` verifies source-graph persistence. Changes to
 the source or output contract require rechecking CADIR, CADKernel, Core and UI.
+
+### Canonical Boundary Representation Binding
+
+`ExactBoundaryCurveResolver` uses the existing exact native representation
+producer under one execution for both entries. Its former `approximateCurve`
+fallback is retired: a rational candidate cannot replace an unrepresented
+original boundary law. `Curve3D.originalPolyline` is an explicit negative case
+because its retained Euclidean-length parameter authority is not issued by the
+native B-spline converter. Missing representation is typed unsupported and
+marked incomplete until a consuming exact source contract exists. The negative
+case is owned by [CanonicalConstructionAdmissionTests](../../../Tests/CADModelingTests/CanonicalConstructionAdmissionTests.swift).

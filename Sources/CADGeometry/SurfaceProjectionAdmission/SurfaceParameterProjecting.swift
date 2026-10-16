@@ -4,8 +4,8 @@ import CADCore
 public protocol SurfaceParameterProjecting: Sendable {
     func projection(of point:Point3D,on surface:Surface3D,over domain:SurfaceParameterBox,
         options:SurfaceParameterProjectionOptions,tolerance:ModelingTolerance,
-        maximumSubdivisionDepth:Int,consumeWork:@escaping @Sendable(Int)throws->Void) throws -> SurfaceParameterProjection
+        maximumSubdivisionDepth:Int, remainingSourceDepth:Int, maximumAlgebraicDepth:Int, using execution:inout OriginalQueryExecution) throws -> SurfaceParameterProjection
     func projectionResult(of point:Point3D,on surface:Surface3D,over domain:SurfaceParameterBox,
         options:SurfaceParameterProjectionOptions,tolerance:ModelingTolerance,
-        maximumSubdivisionDepth:Int,consumeWork:@escaping @Sendable(Int)throws->Void) throws -> SurfaceParameterProjectionResult
+        maximumSubdivisionDepth:Int, remainingSourceDepth:Int, maximumAlgebraicDepth:Int, using execution:inout OriginalQueryExecution) throws -> SurfaceParameterProjectionResult
 }

@@ -46,7 +46,7 @@ Topology: ordered original coedge uses + actual shared vertex points
 ### Input and receipt boundary
 
 The package protocol is `OriginalRationalGraphBandCertifying` with
-`certify(input:fidelity:tolerance:proofUsage:) throws -> OriginalGraphBandReceipt`.
+`certify(input:fidelity:tolerance:using:) throws -> OriginalGraphBandReceipt`.
 The input retains an exact BSplineSurface3D, the original oriented
 SurfaceParameterCurve values in an ordered loop, the graph-chain assignment,
 and numeric shared-join indices with the actual Point3D vertex. Kernel verifies
@@ -117,7 +117,7 @@ upper evidence; the lower bracket alone completes neither M1 nor M2.
 
 ### Immutable original U-row proof
 
-`stationRow(cellIndex:u:proofUsage:)` produces an opaque immutable nested
+`stationRow(cellIndex:u:using:)` produces an opaque immutable nested
 `OriginalGraphBandReceipt.Row`. It requires finite U within the complete closed
 retained cell, consumes the same invocation-local usage before preparation, and
 encloses that cell's original lower and upper graph jets exactly once. The row
@@ -125,7 +125,7 @@ retains the receipt's unique immutable identity, exact cell index and U, both or
 The row's identity remains alive through the row; materialization also requires
 the originating receipt, whose immutable input owns the original source arrays.
 
-`station(row:w:pointCandidate:proofUsage:)` checks exact receipt identity,
+`station(row:w:pointCandidate:using:)` checks exact receipt identity,
 retained cell and closed U membership, and finite W in [0,1]. It consumes the
 same usage before each station's original surface point, selected native normal,
 closed original value/first-tangent enclosure and position/normal error proof.
@@ -139,7 +139,7 @@ admission remain mandatory and unchanged. Rows at a C0 station are distinct for
 the two selected cells. A neighboring cell needs its own row and its own original
 point/normal admission even if the actual point candidate is shared.
 
-The existing `station(cellIndex:u:w:pointCandidate:proofUsage:)` delegates through
+The existing `station(cellIndex:u:w:pointCandidate:using:)` delegates through
 this factory and materialization path. Preparing one row and using it at several
 W values avoids repeated original inversions without changing source parameters,
 proof ceilings, tolerance or error arithmetic. Each row factory and each station
@@ -152,9 +152,7 @@ refuses station materialization as `resourceLimitExceeded`.
 Each original degree-one-through-four graph piece retains its original
 homogeneous first and second derivative coefficients for X, Y and W. These are
 exactly the same outward differences used by the existing graph-jet evaluation;
-only repeated coefficient preparation is removed. Native piece production pays
-one work operation and both scalar endpoints for every added derivative
-coefficient, plus the six retained array entries, before piece allocation.
+only repeated coefficient preparation is removed. Native piece production admits each actual typed derivative array before allocation and records its original coefficient arithmetic directly. Fixed order-two quotient/product recurrences retain their original directed evaluation order in three-slot admitted buffers.
 The existing native-piece and inverse operation charges remain unchanged.
 A graph query evaluates these retained nets on its independently certified
 original inverse interval and preserves all quotient, monotonicity and curvature
@@ -166,9 +164,7 @@ Join construction evaluates each selected original panel's full closed interval
 jet once. The immutable `JoinCell` retains that jet in the same index order as
 its closed panel cover. Source, selected side, parameter box and preparation
 tolerance are already bound by the owning receipt and native token; the jet
-cannot be replaced through the package API. Every panel's jet preparation and
-sixty scalar endpoint slots, plus its retained array entry, consume the same
-invocation-local proof usage before evaluation or append. Failed candidate join
+cannot be replaced through the package API. Every panel's jet preparation and retained typed array entry debit the same execution at their actual work and allocation owners. Failed candidate join
 attempts retain their consumed work; no child invocation resets or refunds it.
 
 Each actual join facet still consumes its existing operation, proves its actual
@@ -286,22 +282,11 @@ and diagonals separately satisfy maxEdgeLength; axis-only checks are insufficien
 
 ## State, Ownership, and Lifecycle
 
-Source arrays and receipts are immutable Sendable values. Proof usage is a
-single invocation-local inout value, never a stored shared mutable cache, escaped
-callback or new concurrency policy. The receipt retains its source lifetime.
+Source arrays, graph receipts and their preparation/contribution authorities are immutable Sendable values. The same exclusive OriginalQueryExecution owns actual traversal state. Standard OriginalGeometryPreparationReceipt stores only the observed scalar/source/geometric/transport depths, tolerance and original budget/contributions. Same-budget readers reconnect the original contribution; explicitly independent readers readmit immutable evidence under their own budget. Mesh plans retain the original immutable contribution across preflight and emission.
 
 ## Failure, Concurrency, and Constraints
 
-`OriginalTessellationProofUsage` retains one aggregate ceiling 262144 and depth
-32 across graph preparation, inverses, separation, selected surface panels,
-reference cells, joins and facet admission. A test-only internal initializer
-may lower the same ceiling. The original package rectangle API retains its
-default ceiling and delegates to the same native traversal; a minimal internal
-handoff charges actual visited cells without resetting the caller usage.
-Each station materialization and each inverse endpoint shortcut consumes this
-same usage before original point, normal, jet or endpoint proof work.
-Checked counts precede bounded allocation; cancellation is checked before work,
-in adaptive traversal and before a successful receipt or facet admission.
+One immutable contribution preserves the historical262144 work/cell and depth32 ceilings across graph preparation, inverses, selected panels, reference cells, joins and facet admission. Every actual cell visits the original execution; every requested typed coefficient, graph, station or facet buffer is admitted before growth. No derivative coefficient or storage entry is represented as a fake cell. Scalar, source, transport and geometric axes remain independent. The current allocation policy is inherited without changing parent secondary billing. Cancellation and failed admission propagate without publication or resetting counts.
 
 New invalid provenance/input is invalidInput; existing source validation errors
 retain their original typed contract. Valid unproved family/coverage is
@@ -368,10 +353,6 @@ remains the completion evidence. The captured Native stack shows that prior
 station emission localized unneeded derivative nets; only public runtime can
 prove the resulting cost improvement.
 
-### Composed Tessellation Cell Admission
+### Direct Graph Execution
 
-`OriginalTessellationProofUsage` may receive an immutable Sendable depth callback
-to the enclosing invocation's cell ledger. Existing local ceilings are checked
-first; the enclosing callback then admits the visit before the local count
-increments. Callback failure preserves the local count and propagates. Native,
-WASM and Embedded retain identical callback and mutable invocation ownership.
+All graph preparation, original native panels, inverse/refinement, station materialization and facet admission receive the original inout OriginalQueryExecution. OriginalTessellationProofUsage and its private counter/callback are removed. One immutable OriginalQueryContributionHandle retains the original262144 cell/work and depth32 local ceiling on the shared budget across preflight and emission. Mesh plans retain this immutable handle and complete source-bound receipt; they do not retain mutable execution. Actual typed buffers debit cumulative bytes before materialization; scalar/coefficient arithmetic and geometric refinement retain independent axes.

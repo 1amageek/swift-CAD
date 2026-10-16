@@ -101,7 +101,7 @@ public struct ChamferFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
             bodyID: bodyID,
             model: context.brep
         )
-        let replacedSubshapeIDs = bodyScope.subshapeIDs(in: context.subshapes)
+        let replacedSubshapeIDs = try bodyScope.subshapeIDs(in: context.subshapes)
         let selectedReference = chamfer.edges[0]
         let edgeID = try targetEdgeID(selectedReference, context: context, featureID: feature.id)
         guard bodyScope.references.contains(.edge(edgeID)) else {
@@ -348,8 +348,8 @@ public struct ChamferFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         let firstInward = -firstPlane.outwardNormal
         let secondInward = -secondPlane.outwardNormal
         let halfspaceNormal = firstInward + secondInward
-        let incidentFaceParents = incidentFaceIDs.flatMap {
-            subshapeIDs(for: .face($0), context: context)
+        let incidentFaceParents = try incidentFaceIDs.flatMap {
+            try subshapeIDs(for: .face($0), context: context)
         }
         var patches: [BRepSewingFacePatch] = []
         for (faceIndex, faceID) in shell.faceIDs.enumerated() {
@@ -389,9 +389,9 @@ public struct ChamferFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
                 surface: .plane(plane.plane),
                 orientation: plane.orientation,
                 vertices: clipped,
-                parentSubshapeIDs: subshapeIDs(for: .face(faceID), context: context),
+                parentSubshapeIDs: try subshapeIDs(for: .face(faceID), context: context),
                 edgeParentSubshapeIDs: clipped.indices.map { index in
-                    sourceEdgeParents(
+                    try sourceEdgeParents(
                         start: clipped[index],
                         end: clipped[(index + 1) % clipped.count],
                         selectedEdgeID: selectedEdgeID,
@@ -432,7 +432,7 @@ public struct ChamferFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
             featureID: featureID,
             bodyKind: .solid,
             shells: [BRepSewingShell(stableID: "shell:0", patches: patches)],
-            bodyParentSubshapeIDs: subshapeIDs(for: .body(bodyID), context: context)
+            bodyParentSubshapeIDs: try subshapeIDs(for: .body(bodyID), context: context)
         )
     }
 
@@ -613,7 +613,7 @@ public struct ChamferFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         sourceEdgeIDs: Set<EdgeID>,
         model: BRepModel,
         context: EvaluationContext
-    ) -> [SubshapeID] {
+    ) throws -> [SubshapeID] {
         for edgeID in sourceEdgeIDs.sorted() {
             guard let edge = model.edges[edgeID] else { continue }
             guard let first = model.vertices[edge.startVertexID]?.point,
@@ -622,7 +622,7 @@ public struct ChamferFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
                   point(end, liesOnSegmentFrom: first, to: second, tolerance: context.tolerance) else {
                 continue
             }
-            let parents = subshapeIDs(for: .edge(edge.id), context: context)
+            let parents = try subshapeIDs(for: .edge(edge.id), context: context)
             if parents.isEmpty == false {
                 return parents
             }
@@ -674,8 +674,8 @@ public struct ChamferFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
     private func subshapeIDs(
         for reference: TopologyReference,
         context: EvaluationContext
-    ) -> [SubshapeID] {
-        context.subshapeIDs(for: reference)
+    ) throws -> [SubshapeID] {
+        try context.subshapeIDs(for: reference)
     }
 
     private func missingReference(

@@ -62,7 +62,7 @@ public struct UnjoinBodyFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
         replacement.bodies.removeValue(forKey: bodyID)
         var subshapes: [SubshapeID: TopologyReference] = [:]
         var lineage: [SubshapeID: TopologyLineage] = [:]
-        let removedSubshapeIDs = Set(context.subshapeIDs(for: .body(bodyID)))
+        let removedSubshapeIDs = Set(try context.subshapeIDs(for: .body(bodyID)))
         guard removedSubshapeIDs.count == 1 else {
             throw error(
                 .topologyFailure,

@@ -12,8 +12,8 @@ package struct OriginalSurfaceCollapsedBoundaryPoint: Sendable {
 
     package static func prepare(of surface:Surface3D,over box:SurfaceParameterBox,
         direction:OriginalBSplinePoleNormal.Direction,remainingSourceDepth:Int,
-        tolerance:ModelingTolerance,consumeWork:()throws->Void) throws -> Self {
-        try consumeWork();try CurrentTaskCancellationChecker().checkCancellation();try tolerance.validate()
+        tolerance:ModelingTolerance,using execution: inout OriginalQueryExecution) throws -> Self {
+        try execution.consumeWork(1);try CurrentTaskCancellationChecker().checkCancellation();try tolerance.validate()
         let fixed = direction == .constantU ? box.u : box.v
         guard remainingSourceDepth >= 0,fixed.width == 0,fixed.lower.isFinite,
               box.u.lower.isFinite,box.u.upper.isFinite,box.v.lower.isFinite,box.v.upper.isFinite else {
@@ -23,11 +23,11 @@ package struct OriginalSurfaceCollapsedBoundaryPoint: Sendable {
         func original(_ point:Point3D)->IntervalVector3DBounds { .init(x:.exact(point.x),y:.exact(point.y),z:.exact(point.z)) }
         switch surface {
         case .bSpline(let spline):
-            let pole = try OriginalBSplinePoleNormal(surface:spline,tolerance:tolerance,consumeWork:consumeWork)
+            let pole = try OriginalBSplinePoleNormal(surface:spline,tolerance:tolerance,using: &execution)
             value = original(try pole.collapsedPoint(at:.init(u:box.u.lower,v:box.v.lower),
-                direction:direction,consumeWork:consumeWork))
+                direction:direction,using: &execution))
         case .analytic(.cone(let apex,_,_)) where direction == .constantV && fixed.lower == 0:
-            try surface.validate(tolerance:tolerance);value = original(apex)
+            try surface.validate(tolerance:tolerance, using: &execution);value = original(apex)
         case .procedural(.originalRevolution(let revolution)) where direction == .constantV:
             let atEnd = fixed.lower == 1
             guard fixed.lower == 0 || atEnd,revolution.hasOriginalAxisEndpoint(atEnd:atEnd),
@@ -36,7 +36,7 @@ package struct OriginalSurfaceCollapsedBoundaryPoint: Sendable {
                 throw GeometryConversionError.invalidInput("Original revolution XYZ does not bind an exact retained axis boundary.")
             }
             let jet = try revolution.intervalJet(over:.init(u:.init(lower:angularLower,upper:angularLower),v:box.v),
-                tolerance:tolerance,consumeWork:consumeWork)
+                tolerance:tolerance,using: &execution)
             value = .init(x:jet.x.value,y:jet.y.value,z:jet.z.value)
         case .procedural(.originalAngularTransport(let image)):
             guard remainingSourceDepth > 0, direction == .constantV,
@@ -47,30 +47,30 @@ package struct OriginalSurfaceCollapsedBoundaryPoint: Sendable {
                 throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
                     message: "Original transported support has no retained canonical collapsed pole.")
             }
-            try consumeWork(); value = pole
+            try execution.consumeWork(1); value = pole
         case .procedural(.originalAffineWord(let image)):
             guard remainingSourceDepth > 0 else {
                 throw GeometryConversionError.resourceLimitExceeded("Original collapsed word image exhausted source depth.")
             }
             if direction == .constantV, let pole = image.harmonicCoefficients?.collapsedSpherePosition(over: box) {
-                try consumeWork(); value = pole
+                try execution.consumeWork(1); value = pole
             } else {
                 let source = try prepare(of: image.source, over: box, direction: direction,
-                    remainingSourceDepth: remainingSourceDepth - 1, tolerance: tolerance, consumeWork: consumeWork)
+                    remainingSourceDepth: remainingSourceDepth - 1, tolerance: tolerance, using: &execution)
                 value = try OriginalAffineWordJetTransport.position(image.preparedWord,
-                    bounds: source.positionBounds, consumeWork: consumeWork)
+                    bounds: source.positionBounds, using: &execution)
             }
         case .procedural(.originalImage(let image)):
             guard remainingSourceDepth > 0 else {
                 throw GeometryConversionError.resourceLimitExceeded("Original collapsed image exhausted source depth.")
             }
-            let native = try image.sourceParameterBounds(over:box,tolerance:tolerance,consumeWork:consumeWork)
+            let native = try image.sourceParameterBounds(over:box,tolerance:tolerance,using: &execution)
             let sourceDirection:OriginalBSplinePoleNormal.Direction = image.swapAxes
                 ? (direction == .constantU ? .constantV : .constantU) : direction
             let source = try prepare(of:image.source,over:native,direction:sourceDirection,
-                remainingSourceDepth:remainingSourceDepth-1,tolerance:tolerance,consumeWork:consumeWork)
+                remainingSourceDepth:remainingSourceDepth-1,tolerance:tolerance,using: &execution)
             let q = source.positionBounds,a = image.transform
-            for _ in 0..<12 { try consumeWork() }
+            for _ in 0..<12 { try execution.consumeWork(1) }
             value = .init(x:.exact(a.translation.x)+q.x * .exact(a.basisX.x)+q.y * .exact(a.basisY.x)+q.z * .exact(a.basisZ.x),
                 y:.exact(a.translation.y)+q.x * .exact(a.basisX.y)+q.y * .exact(a.basisY.y)+q.z * .exact(a.basisZ.y),
                 z:.exact(a.translation.z)+q.x * .exact(a.basisX.z)+q.y * .exact(a.basisY.z)+q.z * .exact(a.basisZ.z))
@@ -80,7 +80,7 @@ package struct OriginalSurfaceCollapsedBoundaryPoint: Sendable {
                   box.u.lower <= box.u.upper else {
                 throw GeometryConversionError.invalidInput("Original sphere collapse requires its canonical quarter-turn latitude.")
             }
-            try surface.validate(tolerance: tolerance)
+            try surface.validate(tolerance: tolerance, using: &execution)
             let sign = fixed.lower > 0 ? 1.0 : -1.0
             value = .init(x: .exact(center.x), y: .exact(center.y),
                 z: .exact(center.z) + .exact(radius) * .exact(sign))

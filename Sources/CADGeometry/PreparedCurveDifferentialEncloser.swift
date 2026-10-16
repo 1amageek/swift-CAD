@@ -27,11 +27,32 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
     )
   }
 
+  private struct CallerLift: Sendable {
+    let lift: SurfaceLiftCurve3D
+    let surface: PreparedSurfaceDifferentialEncloser
+    let implicit: CertifiedImplicitSurfaceParameterCurve?
+    let localizer: ImplicitCurveIntervalJetEncloser?
+    let uShift: Double
+    let vShift: Double
+  }
+
   package let curve: Curve3D
   private let storage: Storage
+  private let receipt: OriginalGeometryPreparationReceipt
+  private let executionLimits: OriginalQueryExecutionLimits
   private let preparationTolerance: ModelingTolerance
   private let preparationMaximumAlgebraicDepth: Int?
+  package func makeExecution() throws -> OriginalQueryExecution {
+    try receipt.makeExecution()
+  }
+
   package var certificationTolerance: ModelingTolerance { preparationTolerance }
+
+  /// Immutable original nonperiodic coefficient owners for exact source consumers.
+  var retainedOriginalNativeSpans: [RationalBezierCurveJetEncloser.NativeSpan]? {
+    if case .nativeBSpline(let spans) = storage { return spans }
+    return nil
+  }
 
   package struct ContinuousFirstOrderSource: Sendable {
     package let prepared: PreparedCurveDifferentialEncloser
@@ -42,10 +63,11 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
   }
 
   /// Issues positional continuity separately from the one-sided derivative hull.
-  package func admittingContinuousFirstOrder<B: RationalAlgebraAdmitting>(
+  package func admittingContinuousFirstOrder(
     over parameters: ScalarInterval, tolerance: ModelingTolerance,
     maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
-    usage: inout B) throws -> ContinuousFirstOrderSource? {
+    using execution: inout OriginalQueryExecution) throws -> ContinuousFirstOrderSource? {
+    try receipt.admit(tolerance: tolerance, using: &execution)
     guard tolerance == preparationTolerance, parameters.lower.isFinite,
       parameters.upper.isFinite, parameters.lower <= parameters.upper,
       maximumSubdivisionDepth >= 0, remainingSourceDepth >= 0 else {
@@ -55,8 +77,8 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
       guard parameters.lower >= 0, parameters.upper <= 1 else {
         throw GeometryConversionError.invalidInput("Original polyline continuity requires its normalized source domain.")
       }
-      try original.validate(tolerance: tolerance); try usage.consumeExactWork(1)
-      try RationalAlgebraStorage.retain(1, of: ContinuousFirstOrderSource.self, usage: &usage)
+      try original.validate(tolerance: tolerance); try execution.consumeWork(1)
+      try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: ContinuousFirstOrderSource.self))
       return .init(prepared: self, parameters: parameters)
     }
     if case .direct(.originalGuideTraversalChain(let original)) = storage {
@@ -65,8 +87,8 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
         throw GeometryConversionError.invalidInput("Original guide continuity requires its admitted normalized source domain.")
       }
       try original.validate(tolerance: tolerance)
-      try usage.consumeExactWork(1)
-      try RationalAlgebraStorage.retain(1, of: ContinuousFirstOrderSource.self, usage: &usage)
+      try execution.consumeWork(1)
+      try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: ContinuousFirstOrderSource.self))
       return .init(prepared: self, parameters: parameters)
     }
     if case .direct(.originalGuideEndpointConnector(let original)) = storage {
@@ -75,30 +97,21 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
         throw GeometryConversionError.invalidInput("Original corrected guide continuity requires its admitted normalized source domain.")
       }
       try original.validate(tolerance: tolerance)
-      try usage.consumeExactWork(1)
-      try RationalAlgebraStorage.retain(1, of: ContinuousFirstOrderSource.self, usage: &usage)
+      try execution.consumeWork(1)
+      try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: ContinuousFirstOrderSource.self))
       return .init(prepared: self, parameters: parameters)
     }
     if case .direct(.originalDrafted(let original)) = storage {
-      func bytes(_ count: Int) throws {
-        let rounded = count.addingReportingOverflow(MemoryLayout<UInt32>.stride - 1)
-        guard count >= 0, !rounded.overflow else {
-          throw GeometryConversionError.resourceLimitExceeded("Original draft continuity byte count overflows.")
-        }
-        try usage.retainExactStorage(rounded.partialValue / MemoryLayout<UInt32>.stride)
-      }
-      let continuous = try withoutActuallyEscaping(bytes) { bytes in
-        try original.hasOriginalFirstOrderContinuity(over: parameters, tolerance: tolerance,
+
+      let continuous = try original.hasOriginalFirstOrderContinuity(over: parameters, tolerance: tolerance,
           maximumSpanCount: original.maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-          remainingSourceDepth: remainingSourceDepth, consumeWork: { try usage.consumeExactWork(1) },
-          consumeStorage: bytes)
-      }
+          remainingSourceDepth: remainingSourceDepth, using: &execution)
       guard continuous else { return nil }
-      try RationalAlgebraStorage.retain(1, of: ContinuousFirstOrderSource.self, usage: &usage)
+      try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: ContinuousFirstOrderSource.self))
       return .init(prepared: self, parameters: parameters)
     }
-    let first = try ExactRationalCoefficient.originalDouble(parameters.lower, usage: &usage)
-    let last = try ExactRationalCoefficient.originalDouble(parameters.upper, usage: &usage)
+    let first = try ExactRationalCoefficient.originalDouble(parameters.lower, usage: &execution)
+    let last = try ExactRationalCoefficient.originalDouble(parameters.upper, usage: &execution)
     // FIXME(INCOMPLETE_IMPLEMENTATION): Selected curve-surface and embedding
     // callers need source-owned implicit/lift join continuity. This issuer
     // reuses exact native/analytic continuity only; a derivative hull cannot
@@ -107,149 +120,95 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
       first: first, last: last, remainingSourceDepth: remainingSourceDepth,
       maximumSubdivisionDepth: maximumSubdivisionDepth,
       maximumAlgebraicDepth: preparationMaximumAlgebraicDepth,
-      tolerance: tolerance, usage: &usage) else { return nil }
-    try RationalAlgebraStorage.retain(1, of: ContinuousFirstOrderSource.self, usage: &usage)
+      tolerance: tolerance, usage: &execution) else { return nil }
+    try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: ContinuousFirstOrderSource.self))
     return .init(prepared: self, parameters: parameters)
   }
 
-  package init(
-    curve: Curve3D,
-    tolerance: ModelingTolerance,
-    consumeWork: () throws -> Void = {}
-  ) throws {
-    try CurrentTaskCancellationChecker().checkCancellation()
-    try tolerance.validate()
-    try consumeWork()
-    try curve.validate(tolerance: tolerance)
-    self.curve = curve
-    preparationTolerance = tolerance
-    preparationMaximumAlgebraicDepth = nil
-    switch curve {
-    case .bSpline(let bSpline):
-      if bSpline.isPeriodic {
-        storage = .periodicNativeBSpline(try RationalBezierCurveJetEncloser().originalNativeSpans(
-          of: bSpline, tolerance: tolerance, consumeWork: consumeWork))
-      } else {
-        storage = .nativeBSpline(try RationalBezierCurveJetEncloser().originalNativeSpans(
-          of: bSpline, tolerance: tolerance, consumeWork: consumeWork))
-      }
-    case .implicit(let implicit):
-      storage = .implicit(
-        implicit,
-        try ImplicitCurveIntervalJetEncloser(
-          intersection: implicit,
-          tolerance: tolerance
-        )
-      )
-    case .rigidImage(let image):
-      storage = .rigid(
-        image.transform,
-        source: try PreparedCurveDifferentialEncloser(
-          curve: image.source,
-          tolerance: tolerance, consumeWork: consumeWork
-        )
-      )
-    case .parameterImage(let image):
-      storage = .parameterImage(image, source: try PreparedCurveDifferentialEncloser(
-        curve: image.source, tolerance: tolerance, consumeWork: consumeWork))
-    case .originalAffineWord(let image):
-      if case .some = image.circularCoefficients { storage = .direct(curve) }
-      else { storage = .originalAffineWord(image, source: try Self(curve: image.source,
-        tolerance: try image.sourceCalculationTolerance(tolerance: tolerance, consumeWork: consumeWork, consumeStorage: nil), consumeWork: consumeWork)) }
-    case .affineImage(let image):
-      storage = .affine(
-        image.transform,
-        source: try PreparedCurveDifferentialEncloser(
-          curve: image.source,
-          tolerance: tolerance, consumeWork: consumeWork
-        )
-      )
-    case .surfaceLift(let lift):
-      var parameterCurve = lift.parameterCurve
-      unwrap: while true {
-        switch parameterCurve {
-        case .offsetSurfaceImage(let image): parameterCurve = image.source
-        case .periodicTranslation(let base, _, _): parameterCurve = base
-        default: break unwrap
-        }
-      }
-      if case .certifiedImplicit(let implicit) = parameterCurve {
-        storage = .implicitLift(curve, try ImplicitCurveIntervalJetEncloser(
-          intersection: implicit.intersection, tolerance: tolerance))
-      } else {
-        storage = .direct(curve)
-      }
-    case .line, .circle, .analytic, .certifiedIntersection, .originalEndpointConnector, .originalConstructionChart, .originalAngularTransport, .originalPlaneDerivative, .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline, .originalDrafted:
-      storage = .direct(curve)
-    }
+  package init(curve: Curve3D, tolerance: ModelingTolerance) throws {
+    var execution = try Self.independentExecution()
+    try self.init(curve: curve, tolerance: tolerance, using: &execution)
   }
 
-  private struct CallerLift: Sendable {
-    let lift: SurfaceLiftCurve3D
-    let surface: PreparedSurfaceDifferentialEncloser
-    let implicit: CertifiedImplicitSurfaceParameterCurve?
-    let localizer: ImplicitCurveIntervalJetEncloser?
-    let uShift: Double
-    let vShift: Double
+  package init(curve: Curve3D, tolerance: ModelingTolerance,
+    using execution: inout OriginalQueryExecution) throws {
+    try self.init(curve: curve, tolerance: tolerance,
+      remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+      maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth,
+      maximumAlgebraicDepth: nil, using: &execution)
+  }
+
+  private static func independentExecution() throws -> OriginalQueryExecution {
+    OriginalQueryExecution(budget: try OriginalQueryBudget(),
+      limits: try OriginalQueryExecutionLimits(maximumValueDepth: 32, maximumCoefficientDepth: 32))
   }
 
   /// Invocation-owned preparation for bounded closed queries, including implicit endpoints.
   package init(curve: Curve3D, tolerance: ModelingTolerance, remainingSourceDepth: Int, maximumSubdivisionDepth: Int = Int.max,
-    consumeWork: () throws -> Void, consumeStorage: ((Int) throws -> Void)? = nil,
-    maximumAlgebraicDepth: Int? = nil) throws {
-    try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork(); try tolerance.validate()
+    maximumAlgebraicDepth: Int? = nil, using execution: inout OriginalQueryExecution) throws {
+    let preparation = try execution.withPreparationScope { execution in
+      try Self.makeStorage(curve: curve, tolerance: tolerance, remainingSourceDepth: remainingSourceDepth,
+        maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth,
+        using: &execution)
+    }
+    self.curve = curve
+    self.preparationTolerance = tolerance
+    self.preparationMaximumAlgebraicDepth = maximumAlgebraicDepth
+    self.executionLimits = execution.effectiveLimits
+    self.storage = preparation.result
+    self.receipt = try OriginalGeometryPreparationReceipt(tolerance: tolerance, depth: preparation.depth,
+      using: &execution)
+  }
+
+  @inline(never)
+  private static func makeStorage(curve: Curve3D, tolerance: ModelingTolerance,
+    remainingSourceDepth: Int, maximumSubdivisionDepth: Int, maximumAlgebraicDepth: Int?,
+    using execution: inout OriginalQueryExecution) throws -> Storage {
+    try CurrentTaskCancellationChecker().checkCancellation(); try execution.consumeWork(1); try tolerance.validate()
     guard remainingSourceDepth >= 0 else { throw GeometryConversionError.invalidInput("Original curve preparation needs caller source depth.") }
     try curve.validateOriginalSource(tolerance: tolerance, remainingSourceDepth: remainingSourceDepth,
-      maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: { _ in try consumeWork() },
-      consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
-    self.curve = curve; preparationTolerance = tolerance
-    preparationMaximumAlgebraicDepth = maximumAlgebraicDepth
+      maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
+    switch curve {
+    case .bSpline(let original):
+      return try makeNativeStorage(original, tolerance: tolerance, using: &execution)
+    case .surfaceLift(let lift):
+      return try makeLiftStorage(lift, tolerance: tolerance, remainingSourceDepth: remainingSourceDepth,
+        maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
+    case .implicit, .rigidImage, .parameterImage, .originalAffineWord, .affineImage:
+      return try makePreparedFamilyStorage(curve: curve, tolerance: tolerance, remainingSourceDepth: remainingSourceDepth,
+        maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
+    default:
+      return .direct(curve)
+    }
+  }
+
+  @inline(never)
+  private static func makeNativeStorage(_ original: BSplineCurve3D, tolerance: ModelingTolerance,
+    using execution: inout OriginalQueryExecution) throws -> Storage {
+      let spans = try RationalBezierCurveJetEncloser().originalNativeSpans(of: original,
+        tolerance: tolerance, using: &execution)
+      return original.isPeriodic ? .periodicNativeBSpline(spans) : .nativeBSpline(spans)
+  }
+
+  @inline(never)
+  private static func makeLiftStorage(_ lift: SurfaceLiftCurve3D, tolerance: ModelingTolerance,
+    remainingSourceDepth: Int, maximumSubdivisionDepth: Int, maximumAlgebraicDepth: Int?,
+    using execution: inout OriginalQueryExecution) throws -> Storage {
     func childDepth() throws -> Int {
       guard remainingSourceDepth > 0 else { throw GeometryConversionError.resourceLimitExceeded("Original curve preparation exhausted caller source depth.") }
       return remainingSourceDepth - 1
     }
-    switch curve {
-    case .bSpline(let original):
-      let spans = try RationalBezierCurveJetEncloser().originalNativeSpans(of: original,
-        tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage)
-      storage = original.isPeriodic ? .periodicNativeBSpline(spans) : .nativeBSpline(spans)
-    case .implicit(let original):
-      let depth = try childDepth()
-      storage = .callerImplicit(original,
-        try ImplicitCurveIntervalJetEncloser(localizing: original, tolerance: tolerance,
-          maximumSpanCount: Int.max, maximumSubdivisionDepth: maximumSubdivisionDepth,
-          remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork,
-          consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth),
-        try PreparedSurfaceDifferentialEncloser(surface: original.firstSurface, tolerance: tolerance,
-          remainingSourceDepth: depth, maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth))
-    case .rigidImage(let image):
-      storage = .rigid(image.transform, source: try Self(curve: image.source, tolerance: tolerance,
-        remainingSourceDepth: childDepth(), maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth))
-    case .parameterImage(let image):
-      storage = .parameterImage(image, source: try Self(curve: image.source, tolerance: tolerance,
-        remainingSourceDepth: childDepth(), maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth))
-    case .originalAffineWord(let image):
-      if case .some = image.circularCoefficients { storage = .direct(curve) }
-      else { storage = .originalAffineWord(image, source: try Self(curve: image.source,
-        tolerance: try image.sourceCalculationTolerance(tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage), remainingSourceDepth: childDepth(),
-        maximumSubdivisionDepth: maximumSubdivisionDepth,
-        consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)) }
-    case .affineImage(let image):
-      storage = .affine(image.transform, source: try Self(curve: image.source, tolerance: tolerance,
-        remainingSourceDepth: childDepth(), maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth))
-    case .surfaceLift(let lift):
       let depth = try childDepth()
       if case .originalAffineWord(let image) = lift.parameterCurve {
         let depth = try childDepth()
-        storage = .originalWordLift(image, try Self(curve: .surfaceLift(image.source),
+        return .originalWordLift(image, try Self(curve: .surfaceLift(image.source),
           tolerance: tolerance, remainingSourceDepth: depth,
           maximumSubdivisionDepth: maximumSubdivisionDepth,
-          consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth))
-        break
+          maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution))
       }
       if case .originalImage(let image) = lift.parameterCurve {
-        storage = .originalLiftImage(image, try Self(curve: .surfaceLift(image.source),
-          tolerance: tolerance, remainingSourceDepth: depth, maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth))
+        return .originalLiftImage(image, try Self(curve: .surfaceLift(image.source),
+          tolerance: tolerance, remainingSourceDepth: depth, maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution))
       } else {
         var chart = lift.parameterCurve
         var uShift = 0.0, vShift = 0.0, wrappers = depth
@@ -257,10 +216,10 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
           switch chart {
           case .periodicTranslation(let original, let u, let v):
             guard wrappers > 0 else { throw GeometryConversionError.resourceLimitExceeded("Original lifted pcurve exhausted caller source depth.") }
-            try consumeWork(); wrappers -= 1; chart = original; uShift += u; vShift += v
+            try execution.consumeWork(1); wrappers -= 1; chart = original; uShift += u; vShift += v
           case .offsetSurfaceImage(let image):
             guard wrappers > 0 else { throw GeometryConversionError.resourceLimitExceeded("Original lifted offset chart exhausted caller source depth.") }
-            try consumeWork(); wrappers -= 1; chart = image.source
+            try execution.consumeWork(1); wrappers -= 1; chart = image.source
           default: break unwrap
           }
         }
@@ -269,151 +228,84 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
         if case .certifiedImplicit(let source) = chart { implicit = source } else { implicit = nil }
         let localizer = try implicit.map { try ImplicitCurveIntervalJetEncloser(localizing: $0.intersection,
           tolerance: tolerance, maximumSpanCount: Int.max, maximumSubdivisionDepth: maximumSubdivisionDepth,
-          remainingSourceDepth: depth, consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth) }
-        storage = .callerLift(.init(lift: lift,
+          remainingSourceDepth: depth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution) }
+        return .callerLift(.init(lift: lift,
           surface: try PreparedSurfaceDifferentialEncloser(surface: lift.surface, tolerance: tolerance,
             remainingSourceDepth: depth, maximumSubdivisionDepth: maximumSubdivisionDepth,
-            consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth), implicit: implicit,
+            maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution), implicit: implicit,
           localizer: localizer, uShift: uShift, vShift: vShift))
       }
+  }
+
+  @inline(never)
+  private static func makePreparedFamilyStorage(curve: Curve3D, tolerance: ModelingTolerance,
+    remainingSourceDepth: Int, maximumSubdivisionDepth: Int, maximumAlgebraicDepth: Int?,
+    using execution: inout OriginalQueryExecution) throws -> Storage {
+    func childDepth() throws -> Int {
+      guard remainingSourceDepth > 0 else { throw GeometryConversionError.resourceLimitExceeded("Original curve preparation exhausted caller source depth.") }
+      return remainingSourceDepth - 1
+    }
+    switch curve {
+    case .implicit(let original):
+      let depth = try childDepth()
+      return .callerImplicit(original,
+        try ImplicitCurveIntervalJetEncloser(localizing: original, tolerance: tolerance,
+          maximumSpanCount: Int.max, maximumSubdivisionDepth: maximumSubdivisionDepth,
+          remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution),
+        try PreparedSurfaceDifferentialEncloser(surface: original.firstSurface, tolerance: tolerance,
+          remainingSourceDepth: depth, maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution))
+    case .rigidImage(let image):
+      return .rigid(image.transform, source: try Self(curve: image.source, tolerance: tolerance,
+        remainingSourceDepth: childDepth(), maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution))
+    case .parameterImage(let image):
+      return .parameterImage(image, source: try Self(curve: image.source, tolerance: tolerance,
+        remainingSourceDepth: childDepth(), maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution))
+    case .originalAffineWord(let image):
+      if case .some = image.circularCoefficients { return .direct(curve) }
+      else { return .originalAffineWord(image, source: try Self(curve: image.source,
+        tolerance: try image.sourceCalculationTolerance(tolerance: tolerance, using: &execution), remainingSourceDepth: childDepth(),
+        maximumSubdivisionDepth: maximumSubdivisionDepth,
+        maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)) }
+    case .affineImage(let image):
+      return .affine(image.transform, source: try Self(curve: image.source, tolerance: tolerance,
+        remainingSourceDepth: childDepth(), maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution))
     default:
-      storage = .direct(curve)
+      throw GeometryConversionError.invalidInput("Original curve preparation family dispatch requires its selected family.")
     }
   }
 
-  func thirdOrderIntervalJet(
-    over parameters: ScalarInterval,
-    tolerance: ModelingTolerance
-  ) throws -> SurfaceIntervalVectorJet {
-    try validate(parameters: parameters, tolerance: tolerance)
-    switch storage {
-    case .callerImplicit, .callerLift, .originalLiftImage, .originalWordLift:
-      throw GeometryConversionError.invalidInput("Invocation-owned closed preparation requires its explicit caller admission overload.")
-    case .direct(let curve):
-      if case .originalConstructionChart(let image) = curve {
-        return try image.intervalTaylorJet(over: parameters, throughOrder: 3, tolerance: tolerance,
-          maximumSpanCount: image.maximumSpanCount, maximumSubdivisionDepth: image.maximumSubdivisionDepth,
-          remainingSourceDepth: image.remainingSourceDepth == Int.max ? Int.max : image.remainingSourceDepth + 1,
-          consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() }).intervalJet()
-      }
-      if case .originalPolyline(let original) = curve {
-        return try original.intervalTaylorJet(over: parameters, throughOrder: 3, tolerance: tolerance,
-          maximumSpanCount: original.maximumSpanCount, maximumSubdivisionDepth: original.maximumSubdivisionDepth,
-          remainingSourceDepth: original.remainingSourceDepth,
-          consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() }).intervalJet()
-      }
-      if case .originalGuideTraversalChain(let original) = curve {
-        return try original.intervalTaylorJet(over: parameters, throughOrder: 3, tolerance: tolerance,
-          maximumSpanCount: original.maximumSpanCount, maximumSubdivisionDepth: original.maximumSubdivisionDepth,
-          remainingSourceDepth: original.remainingSourceDepth,
-          consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() }).intervalJet()
-      }
-      if case .originalGuideEndpointConnector(let original) = curve {
-        return try original.intervalTaylorJet(over: parameters, throughOrder: 3, tolerance: tolerance,
-          maximumSpanCount: original.maximumSpanCount, maximumSubdivisionDepth: original.maximumSubdivisionDepth,
-          remainingSourceDepth: original.remainingSourceDepth,
-          consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() }).intervalJet()
-      }
-      if case .originalDrafted(let original) = curve {
-        return try original.intervalTaylorJet(over: parameters, throughOrder: 3, tolerance: tolerance,
-          maximumSpanCount: original.maximumSpanCount, maximumSubdivisionDepth: original.maximumSubdivisionDepth,
-          remainingSourceDepth: original.remainingSourceDepth,
-          consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() }).intervalJet()
-      }
-      if case .originalPlaneDerivative(let original) = curve {
-        let receipt = try original.closedNativeJets(over: parameters, tolerance: tolerance,
-          maximumSpanCount: original.maximumSpanCount, maximumSubdivisionDepth: original.maximumSubdivisionDepth,
-          remainingSourceDepth: original.remainingSourceDepth, consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
-        guard let first = receipt.spans.first else { throw GeometryConversionError.invalidInput("Original plane curve cover is empty.") }
-        return receipt.spans.dropFirst().reduce(first.jet) { $0.union($1.jet) }
-      }
-      if case .originalEndpointConnector(let connector) = curve {
-        let receipt = try connectorJets(connector, over: parameters, tolerance: tolerance,
-          maximumSpanCount: connector.maximumSpanCount, maximumSubdivisionDepth: connector.maximumSubdivisionDepth,
-          remainingSourceDepth: 0, consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
-        guard let first = receipt.spans.first else { throw GeometryConversionError.invalidInput("Original connector cover is empty.") }
-        return receipt.spans.dropFirst().reduce(first.jet) { $0.union($1.jet) }
-      }
-      return try DefaultCurveDifferentialEncloser().thirdOrderIntervalJet(
-        of: curve,
-        over: parameters,
-        tolerance: tolerance
-      )
-    case .periodicNativeBSpline(let spans):
-      let receipt = try periodicNativeJets(spans: spans, over: parameters,
-        tolerance: tolerance, consumeWork: {})
-      guard let first = receipt.spans.first else {
-        throw KernelError(phase: .geometry, code: .classificationFailure, tolerance: tolerance,
-          message: "An original periodic curve has no complete lifted span coverage.")
-      }
-      return receipt.spans.dropFirst().reduce(first.jet) { $0.union($1.jet) }
-    case .nativeBSpline(let spans):
-      var result: SurfaceIntervalVectorJet?
-      for span in spans {
-        let lower = max(parameters.lower, span.lower), upper = min(parameters.upper, span.upper)
-        guard lower <= upper else { continue }
-        try CurrentTaskCancellationChecker().checkCancellation()
-        let jet = try RationalBezierCurveJetEncloser().enclosure(of: span,
-          over: ScalarInterval(lower: lower, upper: upper), tolerance: tolerance)
-        result = result.map { $0.union(jet) } ?? jet
-      }
-      guard let result else {
-        throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
-                          message: "The curve query has no original owning native span.")
-      }
-      return result
-    case .implicit(let implicit, let encloser):
-      return try encloser.intervalJet(
-        of: implicit,
-        over: parameters,
-        tolerance: tolerance
-      )
-    case .implicitLift(let curve, let encloser):
-      guard let jet = try DefaultCurveDifferentialEncloser().directJet(
-        curve, parameters: parameters, tolerance: tolerance, preparedImplicit: encloser
-      ) else {
-        throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
-          message: "A prepared implicit lift lost its direct parameter-jet representation.")
-      }
-      return jet
-    case .rigid(let transform, let source):
-      return transformed(
-        try source.thirdOrderIntervalJet(
-          over: parameters,
-          tolerance: tolerance
-        ),
-        by: transform
-      )
-    case .parameterImage(let image, let source):
-      return try image.mappedJet(try source.thirdOrderIntervalJet(
-        over: image.originalInterval(parameters), tolerance: tolerance))
-    case .originalAffineWord(let image, let source):
-      return try OriginalAffineWordJetTransport.applying(image.preparedWord,
-        to: source.thirdOrderIntervalJet(over: parameters, tolerance: source.preparationTolerance),
-        consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
-    case .affine(let transform, let source):
-      return transformed(
-        try source.thirdOrderIntervalJet(
-          over: parameters,
-          tolerance: tolerance
-        ),
-        by: transform
-      )
-    }
+  func thirdOrderIntervalJet(over parameters: ScalarInterval,
+    tolerance: ModelingTolerance) throws -> SurfaceIntervalVectorJet {
+    var execution = try receipt.makeExecution()
+    return try thirdOrderIntervalJet(over: parameters, tolerance: tolerance, using: &execution)
   }
 
-  package func selectedAffineOwningJet<B: RationalAlgebraAdmitting>(
+  func thirdOrderIntervalJet(over parameters: ScalarInterval, tolerance: ModelingTolerance,
+    using execution: inout OriginalQueryExecution) throws -> SurfaceIntervalVectorJet {
+    try receipt.admit(tolerance: tolerance, using: &execution)
+    let receipt = try closedNativeJets(over: parameters, tolerance: tolerance, using: &execution)
+    guard let first = receipt.spans.first else {
+      throw GeometryConversionError.invalidInput("Original closed source has no owning span.")
+    }
+    var result = first.jet
+    for span in receipt.spans.dropFirst() { try execution.consumeWork(1); result = result.union(span.jet) }
+    try execution.checkpoint()
+    return result
+  }
+
+  package func selectedAffineOwningJet(
     owner: ClosedNativeJet.OwnedSpan, normalizedLower: ExactRationalCoefficient,
     normalizedUpper: ExactRationalCoefficient, throughOrder: Int,
     tolerance: ModelingTolerance, remainingSourceDepth: Int,
-    usage: inout B) throws -> OriginalRationalCurveIntervalJet {
+    using execution: inout OriginalQueryExecution) throws -> OriginalRationalCurveIntervalJet {
+    try receipt.admit(tolerance: tolerance, using: &execution)
     guard tolerance == preparationTolerance else {
       throw GeometryConversionError.invalidInput("Selected original polynomial query requires its preparation tolerance.")
     }
     if case .direct(.originalConstructionChart(let image)) = storage {
       return try image.selectedAffineOwningJet(owner: owner, normalizedLower: normalizedLower,
         normalizedUpper: normalizedUpper, throughOrder: throughOrder,
-        tolerance: tolerance, remainingSourceDepth: remainingSourceDepth, usage: &usage)
+        tolerance: tolerance, remainingSourceDepth: remainingSourceDepth, usage: &execution)
     }
     // FIXME(INCOMPLETE_IMPLEMENTATION): Original mapped contact consumers
     // require exact polynomial transport across outer spatial or parameter
@@ -469,411 +361,480 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
   }
 
   package func closedNativeJets(over parameters: ScalarInterval, tolerance: ModelingTolerance,
-                        consumeWork: () throws -> Void) throws -> ClosedNativeJet {
-    try CurrentTaskCancellationChecker().checkCancellation()
-    try tolerance.validate()
-    guard tolerance == preparationTolerance, parameters.lower.isFinite, parameters.upper.isFinite,
-          parameters.lower <= parameters.upper else {
-      throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
-                        message: "Closed native curve queries require the exact preparation tolerance and finite ordered parameters.")
-    }
-    switch storage {
-    case .nativeBSpline(let nativeSpans):
-      guard let first = nativeSpans.first, let last = nativeSpans.last,
-            parameters.lower >= first.lower, parameters.upper <= last.upper else {
-        throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
-                          message: "The closed curve query extends beyond its original native domain.")
-      }
-      var result: [ClosedNativeJet.OwnedSpan] = []
-      for span in nativeSpans {
-        let lower = max(parameters.lower, span.lower), upper = min(parameters.upper, span.upper)
-        guard lower <= upper else { continue }
-        try CurrentTaskCancellationChecker().checkCancellation()
-        try consumeWork()
-        let selected = try ScalarInterval(lower: lower, upper: upper)
-        let jet = try RationalBezierCurveJetEncloser().enclosure(of: span, over: selected, tolerance: tolerance)
-        result.append(.init(nativeIndex: span.index,
-          nativeDomain: try ScalarInterval(lower: span.lower, upper: span.upper), parameters: selected, jet: jet))
-      }
-      guard !result.isEmpty else {
-        throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
-                          message: "The closed curve query has no original owning native span.")
-      }
-      try CurrentTaskCancellationChecker().checkCancellation()
-      return ClosedNativeJet(source: curve, parameters: parameters, tolerance: tolerance, spans: result)
-    case .periodicNativeBSpline(let spans):
-      return try periodicNativeJets(spans: spans, over: parameters,
-        tolerance: tolerance, consumeWork: consumeWork)
-    case .direct(let original):
-      if case .originalConstructionChart(let image) = original {
-        let jet = try image.intervalTaylorJet(over: parameters, throughOrder: 3, tolerance: tolerance,
-          maximumSpanCount: image.maximumSpanCount, maximumSubdivisionDepth: image.maximumSubdivisionDepth,
-          remainingSourceDepth: image.remainingSourceDepth == Int.max ? Int.max : image.remainingSourceDepth + 1,
-          consumeWork: consumeWork).intervalJet()
-        return ClosedNativeJet(source: curve, parameters: parameters, tolerance: tolerance,
-          spans: [.init(nativeIndex: 0, nativeDomain: parameters, parameters: parameters, jet: jet)])
-      }
-      if case .originalPolyline(let source) = original {
-        return try polylineJets(source, over: parameters, tolerance: tolerance,
-          maximumSpanCount: source.maximumSpanCount, maximumSubdivisionDepth: source.maximumSubdivisionDepth,
-          remainingSourceDepth: source.remainingSourceDepth, consumeWork: consumeWork)
-      }
-      if case .originalGuideTraversalChain(let source) = original {
-        return try guideJets(source, over: parameters, tolerance: tolerance,
-          maximumSpanCount: source.maximumSpanCount, maximumSubdivisionDepth: source.maximumSubdivisionDepth,
-          remainingSourceDepth: source.remainingSourceDepth, consumeWork: consumeWork)
-      }
-      if case .originalGuideEndpointConnector(let source) = original {
-        return try guideJets(source, over: parameters, tolerance: tolerance,
-          maximumSpanCount: source.maximumSpanCount, maximumSubdivisionDepth: source.maximumSubdivisionDepth,
-          remainingSourceDepth: source.remainingSourceDepth, consumeWork: consumeWork)
-      }
-      if case .originalDrafted(let source) = original {
-        let jet = try source.intervalTaylorJet(over: parameters, throughOrder: 3, tolerance: tolerance,
-          maximumSpanCount: source.maximumSpanCount, maximumSubdivisionDepth: source.maximumSubdivisionDepth,
-          remainingSourceDepth: source.remainingSourceDepth, consumeWork: consumeWork).intervalJet()
-        return ClosedNativeJet(source: curve, parameters: parameters, tolerance: tolerance,
-          spans: [.init(nativeIndex: 0, nativeDomain: parameters, parameters: parameters, jet: jet)])
-      }
-      if case .originalPlaneDerivative(let source) = original {
-        return try source.closedNativeJets(over: parameters, tolerance: tolerance,
-          maximumSpanCount: source.maximumSpanCount, maximumSubdivisionDepth: source.maximumSubdivisionDepth,
-          remainingSourceDepth: source.remainingSourceDepth, consumeWork: consumeWork)
-      }
-      if case .originalEndpointConnector(let connector) = original {
-        return try connectorJets(connector, over: parameters, tolerance: tolerance,
-          maximumSpanCount: connector.maximumSpanCount, maximumSubdivisionDepth: connector.maximumSubdivisionDepth,
-          remainingSourceDepth: 0, consumeWork: consumeWork)
-      }
-      try consumeWork()
-      if let jet = try DefaultCurveDifferentialEncloser().directJet(original,
-        parameters: parameters, tolerance: tolerance, consumeWork: consumeWork) {
-        return ClosedNativeJet(source: curve, parameters: parameters, tolerance: tolerance,
-          spans: [.init(nativeIndex: 0, nativeDomain: parameters, parameters: parameters, jet: jet)])
-      }
-      if parameters.width > 0 {
-        let jet = try DefaultCurveDifferentialEncloser().thirdOrderIntervalJet(of: original,
-          over: parameters, tolerance: tolerance)
-        return ClosedNativeJet(source: curve, parameters: parameters, tolerance: tolerance,
-          spans: [.init(nativeIndex: 0, nativeDomain: parameters, parameters: parameters, jet: jet)])
-      }
-      throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
-        message: "This procedural curve has no original closed-point interval jet authority.")
-    case .rigid(let transform, let source):
-      let result = try source.closedNativeJets(over: parameters, tolerance: tolerance, consumeWork: consumeWork)
-      return ClosedNativeJet(source: curve, parameters: parameters, tolerance: tolerance,
-        spans: result.spans.map { .init(nativeIndex: $0.nativeIndex, nativeDomain: $0.nativeDomain,
-          parameters: $0.parameters, jet: transformed($0.jet, by: transform), originalPeriodicCycle: $0.originalPeriodicCycle, originalSurfaceSpan: $0.originalSurfaceSpan, originalSurfaceParameters: $0.originalSurfaceParameters, originalIsoTraversal: $0.originalIsoTraversal, originalAffineParameterMap: $0.originalAffineParameterMap) })
-    case .parameterImage(let image, let source):
-      let native = try image.originalInterval(parameters,consumeWork:consumeWork)
-      let result = try source.closedNativeJets(over: native, tolerance: tolerance, consumeWork: consumeWork)
-      return ClosedNativeJet(source: curve, parameters: parameters, tolerance: tolerance,
-        spans: try result.spans.map { span in
-          let a = (span.nativeDomain.lower - image.offset) / image.gain
-          let b = (span.nativeDomain.upper - image.offset) / image.gain
-          return .init(nativeIndex: span.nativeIndex,
-            nativeDomain: try ScalarInterval(lower: min(a,b), upper: max(a,b)),
-            parameters: parameters, jet: try image.mappedJet(span.jet), originalPeriodicCycle: span.originalPeriodicCycle, originalSurfaceSpan: span.originalSurfaceSpan, originalSurfaceParameters: span.originalSurfaceParameters, originalIsoTraversal: span.originalIsoTraversal)
-        })
-    case .affine(let transform, let source):
-      let result = try source.closedNativeJets(over: parameters, tolerance: tolerance, consumeWork: consumeWork)
-      return ClosedNativeJet(source: curve, parameters: parameters, tolerance: tolerance,
-        spans: result.spans.map { .init(nativeIndex: $0.nativeIndex, nativeDomain: $0.nativeDomain,
-          parameters: $0.parameters, jet: transformed($0.jet, by: transform), originalPeriodicCycle: $0.originalPeriodicCycle, originalSurfaceSpan: $0.originalSurfaceSpan, originalSurfaceParameters: $0.originalSurfaceParameters, originalIsoTraversal: $0.originalIsoTraversal, originalAffineParameterMap: $0.originalAffineParameterMap) })
-    default:
-      return try closedNativeJets(over:parameters,tolerance:tolerance,
-        maximumSpanCount:Int.max,maximumSubdivisionDepth:32,remainingSourceDepth:Int.max,
-        consumeWork:consumeWork)
-    }
+    using execution: inout OriginalQueryExecution) throws -> ClosedNativeJet {
+    try closedNativeJets(over: parameters, tolerance: tolerance,
+      maximumSpanCount: execution.effectiveLimits.maximumSpans,
+      maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth,
+      remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth, using: &execution)
   }
 
   /// Separate source-owning sides; no hull establishes continuity at a knot or graph join.
+  @inline(never)
   package func closedNativeJets(over parameters: ScalarInterval, tolerance: ModelingTolerance,
     maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
-    consumeWork: () throws -> Void, consumeStorage: ((Int) throws -> Void)? = nil) throws -> ClosedNativeJet {
-    try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork(); try tolerance.validate()
+    using execution: inout OriginalQueryExecution) throws -> ClosedNativeJet {
+    try receipt.admit(tolerance: tolerance, using: &execution)
+    try CurrentTaskCancellationChecker().checkCancellation(); try execution.consumeWork(1); try tolerance.validate()
     guard tolerance == preparationTolerance, maximumSpanCount > 0, maximumSubdivisionDepth >= 0,
       remainingSourceDepth >= 0, parameters.lower.isFinite, parameters.upper.isFinite,
       parameters.lower <= parameters.upper else {
       throw GeometryConversionError.invalidInput("Bounded original closed curves need their preparation tolerance and caller ceilings.")
     }
-    func depth() throws -> Int {
-      guard remainingSourceDepth > 0 else { throw GeometryConversionError.resourceLimitExceeded("Original closed curve source exhausted caller depth.") }
-      return remainingSourceDepth - 1
-    }
-    func publish(_ spans: [ClosedNativeJet.OwnedSpan]) throws -> ClosedNativeJet {
-      guard !spans.isEmpty, spans.count <= maximumSpanCount else {
-        throw GeometryConversionError.resourceLimitExceeded("Original closed curve owning cover is empty or exceeds caller admission.")
-      }
-      return .init(source: curve, parameters: parameters, tolerance: tolerance, spans: spans)
-    }
-    func unavailable(_ message: String) throws -> Never {
-      throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance, message: message)
-    }
-    func reserve(_ count: Int) throws {
-      try OriginalCoefficientAllocation.reserve(count: count, of: ClosedNativeJet.OwnedSpan.self,
-        consumeStorage: consumeStorage)
-    }
-    func singleton(_ jet: SurfaceIntervalVectorJet) throws -> ClosedNativeJet {
-      try reserve(1)
-      return try publish([.init(nativeIndex: 0, nativeDomain: parameters, parameters: parameters, jet: jet)])
-    }
     switch storage {
     case .nativeBSpline(let spans):
-      guard let first = spans.first, let last = spans.last,
-        parameters.lower >= first.lower, parameters.upper <= last.upper else {
-        throw GeometryConversionError.invalidInput("Original closed curve exceeds its native owning support.")
-      }
-      var result: [ClosedNativeJet.OwnedSpan] = []
-      var capacity = 0
-      for span in spans {
-        try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
-        let lo = max(parameters.lower, span.lower), hi = min(parameters.upper, span.upper)
-        guard lo <= hi else { continue }
-        guard result.count < maximumSpanCount else { throw GeometryConversionError.resourceLimitExceeded("Original closed curve span ceiling exhausted.") }
-        let selected = try ScalarInterval(lower: lo, upper: hi)
-        let jet = try OriginalNativeCurveHigherTaylor.enclosure(of: span, over: selected,
-          order: 3, tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage).intervalJet()
-        if result.count == capacity {
-          let doubled = capacity.multipliedReportingOverflow(by: 2)
-          guard !doubled.overflow else { throw GeometryConversionError.resourceLimitExceeded("Closed native curve result storage overflows.") }
-          capacity = min(maximumSpanCount, max(1, doubled.partialValue))
-          try reserve(capacity); result.reserveCapacity(capacity)
-        }
-        result.append(.init(nativeIndex: span.index, nativeDomain: try ScalarInterval(lower: span.lower, upper: span.upper), parameters: selected, jet: jet))
-      }
-      return try publish(result)
+      return try nativeClosedNativeJets(spans, over: parameters, tolerance: tolerance,
+        maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
+        remainingSourceDepth: remainingSourceDepth, using: &execution)
     case .periodicNativeBSpline(let spans):
       return try periodicNativeJets(spans: spans, over: parameters, tolerance: tolerance,
-        boundedSpanCount: maximumSpanCount, consumeWork: consumeWork, consumeStorage: consumeStorage)
+        boundedSpanCount: maximumSpanCount, using: &execution)
     case .rigid(let transform, let source):
-      let original = try source.closedNativeJets(over: parameters, tolerance: tolerance,
+      return try rigidClosedNativeJets(transform, source: source, over: parameters, tolerance: tolerance,
         maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-        remainingSourceDepth: depth(), consumeWork: consumeWork, consumeStorage: consumeStorage)
-      try reserve(original.spans.count)
-      return try publish(try original.spans.map {
-        try consumeWork()
-        return .init(nativeIndex: $0.nativeIndex,
-        nativeDomain: $0.nativeDomain, parameters: $0.parameters, jet: transformed($0.jet, by: transform), originalPeriodicCycle: $0.originalPeriodicCycle, originalSurfaceSpan: $0.originalSurfaceSpan, originalSurfaceParameters: $0.originalSurfaceParameters, originalIsoTraversal: $0.originalIsoTraversal, originalAffineParameterMap: $0.originalAffineParameterMap) })
+        remainingSourceDepth: remainingSourceDepth, using: &execution)
     case .originalAffineWord(let image, let source):
-      let original = try source.closedNativeJets(over: parameters, tolerance: source.preparationTolerance,
+      return try wordClosedNativeJets(image, source: source, over: parameters, tolerance: tolerance,
         maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-        remainingSourceDepth: depth(), consumeWork: consumeWork, consumeStorage: consumeStorage)
-      try reserve(original.spans.count)
-      return try publish(original.spans.map { span in
-        try consumeWork()
-        return .init(nativeIndex: span.nativeIndex, nativeDomain: span.nativeDomain,
-          parameters: span.parameters,
-          jet: try OriginalAffineWordJetTransport.applying(image.preparedWord, to: span.jet,
-            consumeWork: consumeWork, consumeStorage: consumeStorage),
-          originalPeriodicCycle: span.originalPeriodicCycle, originalSurfaceSpan: span.originalSurfaceSpan,
-          originalSurfaceParameters: span.originalSurfaceParameters, originalIsoTraversal: span.originalIsoTraversal, originalAffineParameterMap: span.originalAffineParameterMap,
-          originalGuideTraversal: span.originalGuideTraversal, originalGuideLowerParameter: span.originalGuideLowerParameter,
-          originalGuideUpperParameter: span.originalGuideUpperParameter)
-      })
+        remainingSourceDepth: remainingSourceDepth, using: &execution)
     case .originalWordLift(let image, let source):
-      let original = try source.closedNativeJets(over: image.mappedRange(parameters), tolerance: tolerance,
+      return try wordLiftClosedNativeJets(image, source: source, over: parameters, tolerance: tolerance,
         maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-        remainingSourceDepth: depth(), consumeWork: consumeWork, consumeStorage: consumeStorage)
-      let gain = OutwardScalarInterval.exact(image.endFraction) - .exact(image.startFraction)
-      guard gain.excludesZero else { throw GeometryConversionError.invalidInput("Original word lift has no signed traversal gain.") }
-      try reserve(original.spans.count)
-      return try publish(original.spans.map { span in
-        try consumeWork()
-        func callerRange(_ range: ScalarInterval) throws -> ScalarInterval {
-          guard let fraction = (OutwardScalarInterval(lower: range.lower, upper: range.upper)
-            - .exact(image.startFraction)).divided(by: gain),
-            let clipped = fraction.intersection(with: .init(lower: parameters.lower, upper: parameters.upper)) else {
-            throw GeometryConversionError.resourceLimitExceeded("Original word lift has no source-owning traversal image.")
-          }
-          return try .init(lower: clipped.lower, upper: clipped.upper)
-        }
-        let scaled = SurfaceIntervalVectorJet(x: scaledCurveParameter(span.jet.x, by: gain),
-          y: scaledCurveParameter(span.jet.y, by: gain), z: scaledCurveParameter(span.jet.z, by: gain))
-        return .init(nativeIndex: span.nativeIndex, nativeDomain: try callerRange(span.nativeDomain),
-          parameters: try callerRange(span.parameters),
-          jet: try OriginalAffineWordJetTransport.applying(image.target.preparedWord, to: scaled,
-            consumeWork: consumeWork, consumeStorage: consumeStorage),
-          originalPeriodicCycle: span.originalPeriodicCycle, originalSurfaceSpan: span.originalSurfaceSpan,
-          originalSurfaceParameters: span.originalSurfaceParameters, originalIsoTraversal: span.originalIsoTraversal)
-      })
+        remainingSourceDepth: remainingSourceDepth, using: &execution)
     case .affine(let transform, let source):
-      let original = try source.closedNativeJets(over: parameters, tolerance: tolerance,
+      return try affineClosedNativeJets(transform, source: source, over: parameters, tolerance: tolerance,
         maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-        remainingSourceDepth: depth(), consumeWork: consumeWork, consumeStorage: consumeStorage)
-      try reserve(original.spans.count)
-      return try publish(try original.spans.map {
-        try consumeWork()
-        return .init(nativeIndex: $0.nativeIndex,
-        nativeDomain: $0.nativeDomain, parameters: $0.parameters, jet: transformed($0.jet, by: transform), originalPeriodicCycle: $0.originalPeriodicCycle, originalSurfaceSpan: $0.originalSurfaceSpan, originalSurfaceParameters: $0.originalSurfaceParameters, originalIsoTraversal: $0.originalIsoTraversal, originalAffineParameterMap: $0.originalAffineParameterMap) })
+        remainingSourceDepth: remainingSourceDepth, using: &execution)
     case .parameterImage(let image, let source):
-      let original = try source.closedNativeJets(over: image.originalInterval(parameters, consumeWork: consumeWork), tolerance: tolerance,
+      return try parameterImageClosedNativeJets(image, source: source, over: parameters, tolerance: tolerance,
         maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-        remainingSourceDepth: depth(), consumeWork: consumeWork, consumeStorage: consumeStorage)
-      func inverse(_ interval: ScalarInterval) throws -> ScalarInterval {
-        try OriginalParameterImageMap.inverseInterval(interval, gain: image.parameterGain, offset: image.offset, consumeWork: consumeWork)
-      }
-      try reserve(original.spans.count)
-      return try publish(try original.spans.map {
-        try consumeWork()
-        return .init(nativeIndex: $0.nativeIndex,
-        nativeDomain: try inverse($0.nativeDomain), parameters: try inverse($0.parameters), jet: try image.mappedJet($0.jet), originalPeriodicCycle: $0.originalPeriodicCycle, originalSurfaceSpan: $0.originalSurfaceSpan, originalSurfaceParameters: $0.originalSurfaceParameters, originalIsoTraversal: $0.originalIsoTraversal) })
+        remainingSourceDepth: remainingSourceDepth, using: &execution)
     case .originalLiftImage(let image, let source):
-      let original = try source.closedNativeJets(over: image.mappedRange(parameters), tolerance: tolerance,
+      return try liftImageClosedNativeJets(image, source: source, over: parameters, tolerance: tolerance,
         maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-        remainingSourceDepth: depth(), consumeWork: consumeWork, consumeStorage: consumeStorage)
-      let gain = OutwardScalarInterval.exact(image.endFraction) - .exact(image.startFraction)
-      guard gain.excludesZero else { throw GeometryConversionError.invalidInput("Original lifted image has no directed parameter interval.") }
-      try reserve(original.spans.count)
-      return try publish(original.spans.map { span in
-        try consumeWork()
-        let mapped = SurfaceIntervalVectorJet(x: scaledCurveParameter(span.jet.x, by: gain),
-          y: scaledCurveParameter(span.jet.y, by: gain), z: scaledCurveParameter(span.jet.z, by: gain))
-        func callerRange(_ range: ScalarInterval) throws -> ScalarInterval {
-          guard let original = (OutwardScalarInterval(lower: range.lower, upper: range.upper)
-            - .exact(image.startFraction)).divided(by: gain),
-            let clipped = original.intersection(with: .init(lower: parameters.lower, upper: parameters.upper)) else {
-            throw GeometryConversionError.resourceLimitExceeded("Original lifted image has no directed owning interval.")
-          }
-          return try .init(lower: clipped.lower, upper: clipped.upper)
-        }
-        return .init(nativeIndex: span.nativeIndex, nativeDomain: try callerRange(span.nativeDomain),
-          parameters: try callerRange(span.parameters), jet: transformed(mapped, by: image.targetImage.transform), originalPeriodicCycle: span.originalPeriodicCycle, originalSurfaceSpan: span.originalSurfaceSpan, originalSurfaceParameters: span.originalSurfaceParameters, originalIsoTraversal: span.originalIsoTraversal)
-      })
+        remainingSourceDepth: remainingSourceDepth, using: &execution)
     case .callerImplicit(let original, let localizer, let surface):
-      // FIXME(INCOMPLETE_IMPLEMENTATION): Bounded original implicit owning
-      // queries now forward actual scratch bytes. Complete critical-cell atlases
-      // and cross-cell smooth transition authority remain required; these
-      // one-sided original jets do not establish a smooth global chain.
-      return try publish(implicitSpans(original: original, localizer: localizer, surface: surface,
-        over: parameters, outputParameters: parameters, role: 0, gain: .exact(1), parameterOffset: .exact(0), uShift: 0, vShift: 0,
-        tolerance: tolerance, maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-        remainingSourceDepth: depth(), consumeWork: consumeWork, consumeStorage: consumeStorage))
+      return try implicitClosedNativeJets(original, localizer: localizer, surface: surface, over: parameters, tolerance: tolerance,
+        maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
+        remainingSourceDepth: remainingSourceDepth, using: &execution)
     case .callerLift(let prepared):
-      if let chart = prepared.implicit, let localizer = prepared.localizer {
-        // FIXME(INCOMPLETE_IMPLEMENTATION): Original implicit lifted sides
-        // retain per-cell jets and paid scratch; critical transitions still need
-        // exact original common-root and requested continuity receipts.
-        let gain = OutwardScalarInterval.exact(chart.endFraction) - .exact(chart.startFraction)
-        let mapped = OutwardScalarInterval.exact(chart.startFraction) + gain * .init(lower: parameters.lower, upper: parameters.upper)
-        guard let restricted = mapped.intersection(with: .init(lower: min(chart.startFraction, chart.endFraction), upper: max(chart.startFraction, chart.endFraction))) else {
-          throw GeometryConversionError.invalidInput("Original lifted chart has no retained graph interval.")
-        }
-        return try publish(implicitSpans(original: chart.intersection, localizer: localizer, surface: prepared.surface,
-          over: ScalarInterval(lower: restricted.lower, upper: restricted.upper), outputParameters: parameters,
-          role: chart.role == .first ? 0 : 2, gain: gain, parameterOffset: .exact(chart.startFraction), uShift: prepared.uShift, vShift: prepared.vShift,
-          tolerance: tolerance, maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-          remainingSourceDepth: depth(), consumeWork: consumeWork, consumeStorage: consumeStorage))
-      }
-      if let native = prepared.surface.originalNativePreparation,
-        let spans = try nativeIsoSpans(lift: prepared.lift, native: native, over: parameters,
-          tolerance: tolerance, maximumSpanCount: maximumSpanCount,
-          maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
-          consumeWork: consumeWork, consumeStorage: consumeStorage) {
-        return try publish(spans)
-      }
-      // FIXME(INCOMPLETE_IMPLEMENTATION): Generic lifts now forward query
-      // bytes to original UV/support producers. Their unresolved source-family
-      // and native join-partition cases remain required before full lift closure;
-      // an aggregate derivative hull is not a smoothness receipt.
-      let uv = try OriginalParameterCurveHigherTaylor.enclosure(prepared.lift.parameterCurve,
-        over: parameters, order: 3, tolerance: tolerance, maximumSpanCount: maximumSpanCount,
-        maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: depth(), consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: preparationMaximumAlgebraicDepth)
-      let jet = try liftJet(surface: prepared.surface, u: uv.u, v: uv.v, tolerance: tolerance,
+      return try callerLiftClosedNativeJets(prepared, over: parameters, tolerance: tolerance,
         maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-        remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage)
-      return try singleton(jet)
+        remainingSourceDepth: remainingSourceDepth, using: &execution)
     case .implicit, .implicitLift:
-      let prepared = try Self(curve: curve, tolerance: tolerance,
-        remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: consumeWork, consumeStorage: consumeStorage)
-      return try prepared.closedNativeJets(over: parameters, tolerance: tolerance,
+      return try repreparedClosedNativeJets(over: parameters, tolerance: tolerance,
         maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-        remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage)
+        remainingSourceDepth: remainingSourceDepth, using: &execution)
     case .direct(let original):
-      if case .originalAffineWord(let image) = original, let coefficients = image.circularCoefficients {
-        let jet = try coefficients.intervalTaylorJet(over: parameters, throughOrder: 3,
-          tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage).intervalJet()
-        return try singleton(jet)
-      }
-      if case .originalConstructionChart(let image) = original {
-        if let owners = try image.affineOwningJets(over: parameters, tolerance: tolerance,
-          maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-          remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage) {
-          return try publish(owners)
-        }
-        let jet = try image.intervalTaylorJet(over: parameters, throughOrder: 3, tolerance: tolerance,
-          maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-          remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork,
-          consumeStorage: consumeStorage).intervalJet()
-        return try singleton(jet)
-      }
-      if case .originalPolyline(let source) = original {
-        return try polylineJets(source, over: parameters, tolerance: tolerance,
-          maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-          remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage)
-      }
-      if case .originalGuideTraversalChain(let source) = original {
-        return try guideJets(source, over: parameters, tolerance: tolerance,
-          maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-          remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage)
-      }
-      if case .originalGuideEndpointConnector(let source) = original {
-        return try guideJets(source, over: parameters, tolerance: tolerance,
-          maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-          remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage)
-      }
-      if case .originalDrafted(let source) = original {
-        return try singleton(source.intervalTaylorJet(over: parameters, throughOrder: 3, tolerance: tolerance,
-          maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-          remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork,
-          consumeStorage: consumeStorage).intervalJet())
-      }
-      if case .originalPlaneDerivative(let source) = original {
-        return try source.closedNativeJets(over: parameters, tolerance: tolerance,
-          maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-          remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage)
-      }
-      if case .originalEndpointConnector(let connector) = original {
-        return try connectorJets(connector, over: parameters, tolerance: tolerance,
-          maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-          remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage)
-      }
-      if case .surfaceLift = original {
-        let prepared = try Self(curve: original, tolerance: tolerance,
-          remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: consumeWork, consumeStorage: consumeStorage)
-        return try prepared.closedNativeJets(over: parameters, tolerance: tolerance,
-          maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-          remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage)
-      }
-      if let jet = try DefaultCurveDifferentialEncloser().directJet(original, parameters: parameters, tolerance: tolerance,
-        consumeWork: consumeWork, consumeStorage: consumeStorage) {
-        return try singleton(jet)
-      }
-      // FIXME(INCOMPLETE_IMPLEMENTATION): Nondirect original higher families
-      // delegate byte admission to the actual higher provider. Its remaining
-      // periodic/implicit/lift branches refuse unmetered query allocations.
-      let jet = try OriginalCurveHigherJetProvider.intervalTaylorJet(of: original, over: parameters,
-        tolerance: tolerance, throughOrder: 4, maximumSpanCount: maximumSpanCount,
-        maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
-        consumeWork: consumeWork, consumeStorage: consumeStorage,
-        maximumAlgebraicDepth: preparationMaximumAlgebraicDepth).intervalJet()
-      return try singleton(jet)
+      return try directClosedNativeJets(original, over: parameters, tolerance: tolerance,
+        maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
+        remainingSourceDepth: remainingSourceDepth, using: &execution)
     }
   }
 
+  private func closedNativeSourceDepth(_ remainingSourceDepth: Int) throws -> Int {
+    guard remainingSourceDepth > 0 else { throw GeometryConversionError.resourceLimitExceeded("Original closed curve source exhausted caller depth.") }
+    return remainingSourceDepth - 1
+  }
+
+  private func publishClosedNativeJets(_ spans: [ClosedNativeJet.OwnedSpan],
+    over parameters: ScalarInterval, tolerance: ModelingTolerance,
+    maximumSpanCount: Int) throws -> ClosedNativeJet {
+    guard !spans.isEmpty, spans.count <= maximumSpanCount else {
+      throw GeometryConversionError.resourceLimitExceeded("Original closed curve owning cover is empty or exceeds caller admission.")
+    }
+    return .init(source: curve, parameters: parameters, tolerance: tolerance, spans: spans)
+  }
+
+  @inline(never)
+  private func singletonClosedNativeJet(_ jet: SurfaceIntervalVectorJet,
+    over parameters: ScalarInterval, tolerance: ModelingTolerance, maximumSpanCount: Int,
+    using execution: inout OriginalQueryExecution) throws -> ClosedNativeJet {
+    try OriginalCoefficientAllocation.reserve(count: 1, of: ClosedNativeJet.OwnedSpan.self, using: &execution)
+    return try publishClosedNativeJets([.init(nativeIndex: 0, nativeDomain: parameters, parameters: parameters, jet: jet)],
+      over: parameters, tolerance: tolerance, maximumSpanCount: maximumSpanCount)
+  }
+
+  @inline(never)
+  private func nativeClosedNativeJets(_ spans: [RationalBezierCurveJetEncloser.NativeSpan],
+    over parameters: ScalarInterval, tolerance: ModelingTolerance,
+    maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
+    using execution: inout OriginalQueryExecution) throws -> ClosedNativeJet {
+    guard let first = spans.first, let last = spans.last,
+      parameters.lower >= first.lower, parameters.upper <= last.upper else {
+      throw GeometryConversionError.invalidInput("Original closed curve exceeds its native owning support.")
+    }
+    var result: [ClosedNativeJet.OwnedSpan] = []
+    var capacity = 0
+    for span in spans {
+      try CurrentTaskCancellationChecker().checkCancellation(); try execution.consumeWork(1)
+      let lo = max(parameters.lower, span.lower), hi = min(parameters.upper, span.upper)
+      guard lo <= hi else { continue }
+      guard result.count < maximumSpanCount else { throw GeometryConversionError.resourceLimitExceeded("Original closed curve span ceiling exhausted.") }
+      let selected = try ScalarInterval(lower: lo, upper: hi)
+      let jet = try OriginalNativeCurveHigherTaylor.enclosure(of: span, over: selected,
+        order: 3, tolerance: tolerance, using: &execution).intervalJet()
+      if result.count == capacity {
+        let doubled = capacity.multipliedReportingOverflow(by: 2)
+        guard !doubled.overflow else { throw GeometryConversionError.resourceLimitExceeded("Closed native curve result storage overflows.") }
+        capacity = min(maximumSpanCount, max(1, doubled.partialValue))
+        try OriginalCoefficientAllocation.reserve(count: capacity, of: ClosedNativeJet.OwnedSpan.self, using: &execution); result.reserveCapacity(capacity)
+      }
+      result.append(.init(nativeIndex: span.index, nativeDomain: try ScalarInterval(lower: span.lower, upper: span.upper), parameters: selected, jet: jet))
+    }
+    return try publishClosedNativeJets(result, over: parameters, tolerance: tolerance, maximumSpanCount: maximumSpanCount)
+  }
+
+  @inline(never)
+  private func rigidClosedNativeJets(_ transform: RigidTransform3D, source: PreparedCurveDifferentialEncloser,
+    over parameters: ScalarInterval, tolerance: ModelingTolerance,
+    maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
+    using execution: inout OriginalQueryExecution) throws -> ClosedNativeJet {
+    let original = try source.closedNativeJets(over: parameters, tolerance: tolerance,
+      maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
+      remainingSourceDepth: closedNativeSourceDepth(remainingSourceDepth), using: &execution)
+    try OriginalCoefficientAllocation.reserve(count: original.spans.count, of: ClosedNativeJet.OwnedSpan.self, using: &execution)
+    return try publishClosedNativeJets(try original.spans.map {
+      try execution.consumeWork(1)
+      return .init(nativeIndex: $0.nativeIndex,
+      nativeDomain: $0.nativeDomain, parameters: $0.parameters, jet: transformed($0.jet, by: transform), originalPeriodicCycle: $0.originalPeriodicCycle, originalSurfaceSpan: $0.originalSurfaceSpan, originalSurfaceParameters: $0.originalSurfaceParameters, originalIsoTraversal: $0.originalIsoTraversal, originalAffineParameterMap: $0.originalAffineParameterMap) }, over: parameters, tolerance: tolerance, maximumSpanCount: maximumSpanCount)
+  }
+
+  @inline(never)
+  private func wordClosedNativeJets(_ image: OriginalAffineWordCurve3D, source: PreparedCurveDifferentialEncloser,
+    over parameters: ScalarInterval, tolerance: ModelingTolerance,
+    maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
+    using execution: inout OriginalQueryExecution) throws -> ClosedNativeJet {
+    let original = try source.closedNativeJets(over: parameters, tolerance: source.preparationTolerance,
+      maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
+      remainingSourceDepth: closedNativeSourceDepth(remainingSourceDepth), using: &execution)
+    try OriginalCoefficientAllocation.reserve(count: original.spans.count, of: ClosedNativeJet.OwnedSpan.self, using: &execution)
+    return try publishClosedNativeJets(original.spans.map { span in
+      try execution.consumeWork(1)
+      return .init(nativeIndex: span.nativeIndex, nativeDomain: span.nativeDomain,
+        parameters: span.parameters,
+        jet: try OriginalAffineWordJetTransport.applying(image.preparedWord, to: span.jet,
+          using: &execution),
+        originalPeriodicCycle: span.originalPeriodicCycle, originalSurfaceSpan: span.originalSurfaceSpan,
+        originalSurfaceParameters: span.originalSurfaceParameters, originalIsoTraversal: span.originalIsoTraversal, originalAffineParameterMap: span.originalAffineParameterMap,
+        originalGuideTraversal: span.originalGuideTraversal, originalGuideLowerParameter: span.originalGuideLowerParameter,
+        originalGuideUpperParameter: span.originalGuideUpperParameter)
+    }, over: parameters, tolerance: tolerance, maximumSpanCount: maximumSpanCount)
+  }
+
+  @inline(never)
+  private func wordLiftClosedNativeJets(_ image: OriginalAffineWordSurfaceParameterCurve, source: PreparedCurveDifferentialEncloser,
+    over parameters: ScalarInterval, tolerance: ModelingTolerance,
+    maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
+    using execution: inout OriginalQueryExecution) throws -> ClosedNativeJet {
+    let original = try source.closedNativeJets(over: image.mappedRange(parameters), tolerance: tolerance,
+      maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
+      remainingSourceDepth: closedNativeSourceDepth(remainingSourceDepth), using: &execution)
+    let gain = OutwardScalarInterval.exact(image.endFraction) - .exact(image.startFraction)
+    guard gain.excludesZero else { throw GeometryConversionError.invalidInput("Original word lift has no signed traversal gain.") }
+    try OriginalCoefficientAllocation.reserve(count: original.spans.count, of: ClosedNativeJet.OwnedSpan.self, using: &execution)
+    return try publishClosedNativeJets(original.spans.map { span in
+      try execution.consumeWork(1)
+      func callerRange(_ range: ScalarInterval) throws -> ScalarInterval {
+        guard let fraction = (OutwardScalarInterval(lower: range.lower, upper: range.upper)
+          - .exact(image.startFraction)).divided(by: gain),
+          let clipped = fraction.intersection(with: .init(lower: parameters.lower, upper: parameters.upper)) else {
+          throw GeometryConversionError.resourceLimitExceeded("Original word lift has no source-owning traversal image.")
+        }
+        return try .init(lower: clipped.lower, upper: clipped.upper)
+      }
+      let scaled = SurfaceIntervalVectorJet(x: scaledCurveParameter(span.jet.x, by: gain),
+        y: scaledCurveParameter(span.jet.y, by: gain), z: scaledCurveParameter(span.jet.z, by: gain))
+      return .init(nativeIndex: span.nativeIndex, nativeDomain: try callerRange(span.nativeDomain),
+        parameters: try callerRange(span.parameters),
+        jet: try OriginalAffineWordJetTransport.applying(image.target.preparedWord, to: scaled,
+          using: &execution),
+        originalPeriodicCycle: span.originalPeriodicCycle, originalSurfaceSpan: span.originalSurfaceSpan,
+        originalSurfaceParameters: span.originalSurfaceParameters, originalIsoTraversal: span.originalIsoTraversal)
+    }, over: parameters, tolerance: tolerance, maximumSpanCount: maximumSpanCount)
+  }
+
+  @inline(never)
+  private func affineClosedNativeJets(_ transform: AffineTransform3D, source: PreparedCurveDifferentialEncloser,
+    over parameters: ScalarInterval, tolerance: ModelingTolerance,
+    maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
+    using execution: inout OriginalQueryExecution) throws -> ClosedNativeJet {
+    let original = try source.closedNativeJets(over: parameters, tolerance: tolerance,
+      maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
+      remainingSourceDepth: closedNativeSourceDepth(remainingSourceDepth), using: &execution)
+    try OriginalCoefficientAllocation.reserve(count: original.spans.count, of: ClosedNativeJet.OwnedSpan.self, using: &execution)
+    return try publishClosedNativeJets(try original.spans.map {
+      try execution.consumeWork(1)
+      return .init(nativeIndex: $0.nativeIndex,
+      nativeDomain: $0.nativeDomain, parameters: $0.parameters, jet: transformed($0.jet, by: transform), originalPeriodicCycle: $0.originalPeriodicCycle, originalSurfaceSpan: $0.originalSurfaceSpan, originalSurfaceParameters: $0.originalSurfaceParameters, originalIsoTraversal: $0.originalIsoTraversal, originalAffineParameterMap: $0.originalAffineParameterMap) }, over: parameters, tolerance: tolerance, maximumSpanCount: maximumSpanCount)
+  }
+
+  @inline(never)
+  private func parameterImageClosedNativeJets(_ image: ParameterImageCurve3D, source: PreparedCurveDifferentialEncloser,
+    over parameters: ScalarInterval, tolerance: ModelingTolerance,
+    maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
+    using execution: inout OriginalQueryExecution) throws -> ClosedNativeJet {
+    let original = try source.closedNativeJets(over: image.originalInterval(parameters, using: &execution), tolerance: tolerance,
+      maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
+      remainingSourceDepth: closedNativeSourceDepth(remainingSourceDepth), using: &execution)
+    func inverse(_ interval: ScalarInterval) throws -> ScalarInterval {
+      try OriginalParameterImageMap.inverseInterval(interval, gain: image.parameterGain, offset: image.offset, using: &execution)
+    }
+    try OriginalCoefficientAllocation.reserve(count: original.spans.count, of: ClosedNativeJet.OwnedSpan.self, using: &execution)
+    return try publishClosedNativeJets(try original.spans.map {
+      try execution.consumeWork(1)
+      return .init(nativeIndex: $0.nativeIndex,
+      nativeDomain: try inverse($0.nativeDomain), parameters: try inverse($0.parameters), jet: try image.mappedJet($0.jet), originalPeriodicCycle: $0.originalPeriodicCycle, originalSurfaceSpan: $0.originalSurfaceSpan, originalSurfaceParameters: $0.originalSurfaceParameters, originalIsoTraversal: $0.originalIsoTraversal) }, over: parameters, tolerance: tolerance, maximumSpanCount: maximumSpanCount)
+  }
+
+  @inline(never)
+  private func liftImageClosedNativeJets(_ image: OriginalImageSurfaceParameterCurve, source: PreparedCurveDifferentialEncloser,
+    over parameters: ScalarInterval, tolerance: ModelingTolerance,
+    maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
+    using execution: inout OriginalQueryExecution) throws -> ClosedNativeJet {
+    let original = try source.closedNativeJets(over: image.mappedRange(parameters), tolerance: tolerance,
+      maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
+      remainingSourceDepth: closedNativeSourceDepth(remainingSourceDepth), using: &execution)
+    let gain = OutwardScalarInterval.exact(image.endFraction) - .exact(image.startFraction)
+    guard gain.excludesZero else { throw GeometryConversionError.invalidInput("Original lifted image has no directed parameter interval.") }
+    try OriginalCoefficientAllocation.reserve(count: original.spans.count, of: ClosedNativeJet.OwnedSpan.self, using: &execution)
+    return try publishClosedNativeJets(original.spans.map { span in
+      try execution.consumeWork(1)
+      let mapped = SurfaceIntervalVectorJet(x: scaledCurveParameter(span.jet.x, by: gain),
+        y: scaledCurveParameter(span.jet.y, by: gain), z: scaledCurveParameter(span.jet.z, by: gain))
+      func callerRange(_ range: ScalarInterval) throws -> ScalarInterval {
+        guard let original = (OutwardScalarInterval(lower: range.lower, upper: range.upper)
+          - .exact(image.startFraction)).divided(by: gain),
+          let clipped = original.intersection(with: .init(lower: parameters.lower, upper: parameters.upper)) else {
+          throw GeometryConversionError.resourceLimitExceeded("Original lifted image has no directed owning interval.")
+        }
+        return try .init(lower: clipped.lower, upper: clipped.upper)
+      }
+      return .init(nativeIndex: span.nativeIndex, nativeDomain: try callerRange(span.nativeDomain),
+        parameters: try callerRange(span.parameters), jet: transformed(mapped, by: image.targetImage.transform), originalPeriodicCycle: span.originalPeriodicCycle, originalSurfaceSpan: span.originalSurfaceSpan, originalSurfaceParameters: span.originalSurfaceParameters, originalIsoTraversal: span.originalIsoTraversal)
+    }, over: parameters, tolerance: tolerance, maximumSpanCount: maximumSpanCount)
+  }
+
+  @inline(never)
+  private func implicitClosedNativeJets(_ original: CertifiedImplicitIntersectionCurve, localizer: ImplicitCurveIntervalJetEncloser, surface: PreparedSurfaceDifferentialEncloser,
+    over parameters: ScalarInterval, tolerance: ModelingTolerance,
+    maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
+    using execution: inout OriginalQueryExecution) throws -> ClosedNativeJet {
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Bounded original implicit owning
+    // queries now forward actual scratch bytes. Complete critical-cell atlases
+    // and cross-cell smooth transition authority remain required; these
+    // one-sided original jets do not establish a smooth global chain.
+    return try publishClosedNativeJets(implicitSpans(original: original, localizer: localizer, surface: surface,
+      over: parameters, outputParameters: parameters, role: 0, gain: .exact(1), parameterOffset: .exact(0), uShift: 0, vShift: 0,
+      tolerance: tolerance, maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
+      remainingSourceDepth: closedNativeSourceDepth(remainingSourceDepth), using: &execution), over: parameters, tolerance: tolerance, maximumSpanCount: maximumSpanCount)
+  }
+
+  @inline(never)
+  private func callerLiftClosedNativeJets(_ prepared: CallerLift,
+    over parameters: ScalarInterval, tolerance: ModelingTolerance,
+    maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
+    using execution: inout OriginalQueryExecution) throws -> ClosedNativeJet {
+    if let chart = prepared.implicit, let localizer = prepared.localizer {
+      // FIXME(INCOMPLETE_IMPLEMENTATION): Original implicit lifted sides
+      // retain per-cell jets and paid scratch; critical transitions still need
+      // exact original common-root and requested continuity receipts.
+      let gain = OutwardScalarInterval.exact(chart.endFraction) - .exact(chart.startFraction)
+      let mapped = OutwardScalarInterval.exact(chart.startFraction) + gain * .init(lower: parameters.lower, upper: parameters.upper)
+      guard let restricted = mapped.intersection(with: .init(lower: min(chart.startFraction, chart.endFraction), upper: max(chart.startFraction, chart.endFraction))) else {
+        throw GeometryConversionError.invalidInput("Original lifted chart has no retained graph interval.")
+      }
+      return try publishClosedNativeJets(implicitSpans(original: chart.intersection, localizer: localizer, surface: prepared.surface,
+        over: ScalarInterval(lower: restricted.lower, upper: restricted.upper), outputParameters: parameters,
+        role: chart.role == .first ? 0 : 2, gain: gain, parameterOffset: .exact(chart.startFraction), uShift: prepared.uShift, vShift: prepared.vShift,
+        tolerance: tolerance, maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
+        remainingSourceDepth: closedNativeSourceDepth(remainingSourceDepth), using: &execution), over: parameters, tolerance: tolerance, maximumSpanCount: maximumSpanCount)
+    }
+    if let native = prepared.surface.originalNativePreparation,
+      let spans = try nativeIsoSpans(lift: prepared.lift, native: native, over: parameters,
+        tolerance: tolerance, maximumSpanCount: maximumSpanCount,
+        maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
+        using: &execution) {
+      return try publishClosedNativeJets(spans, over: parameters, tolerance: tolerance, maximumSpanCount: maximumSpanCount)
+    }
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Generic lifts now forward query
+    // bytes to original UV/support producers. Their unresolved source-family
+    // and native join-partition cases remain required before full lift closure;
+    // an aggregate derivative hull is not a smoothness receipt.
+    let uv = try OriginalParameterCurveHigherTaylor.enclosure(prepared.lift.parameterCurve,
+      over: parameters, order: 3, tolerance: tolerance, maximumSpanCount: maximumSpanCount,
+      maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: closedNativeSourceDepth(remainingSourceDepth), maximumAlgebraicDepth: preparationMaximumAlgebraicDepth, using: &execution)
+    let jet = try liftJet(surface: prepared.surface, u: uv.u, v: uv.v, tolerance: tolerance,
+      maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
+      remainingSourceDepth: remainingSourceDepth, using: &execution)
+    return try singletonClosedNativeJet(jet, over: parameters, tolerance: tolerance, maximumSpanCount: maximumSpanCount, using: &execution)
+  }
+
+  @inline(never)
+  private func repreparedClosedNativeJets(over parameters: ScalarInterval, tolerance: ModelingTolerance,
+    maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
+    using execution: inout OriginalQueryExecution) throws -> ClosedNativeJet {
+    let prepared = try Self(curve: curve, tolerance: tolerance,
+      remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth, using: &execution)
+    return try prepared.closedNativeJets(over: parameters, tolerance: tolerance,
+      maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
+      remainingSourceDepth: remainingSourceDepth, using: &execution)
+  }
+
+  @inline(never)
+  private func higherClosedNativeJets(_ original: Curve3D,
+    over parameters: ScalarInterval, tolerance: ModelingTolerance,
+    maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
+    using execution: inout OriginalQueryExecution) throws -> ClosedNativeJet {
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Nondirect original higher families
+    // delegate byte admission to the actual higher provider. Its remaining
+    // periodic/implicit/lift branches refuse unmetered query allocations.
+    let jet = try OriginalCurveHigherJetProvider.intervalTaylorJet(of: original, over: parameters,
+      tolerance: tolerance, throughOrder: 4, maximumSpanCount: maximumSpanCount,
+      maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
+      maximumAlgebraicDepth: preparationMaximumAlgebraicDepth, using: &execution).intervalJet()
+    return try singletonClosedNativeJet(jet, over: parameters, tolerance: tolerance, maximumSpanCount: maximumSpanCount, using: &execution)
+  }
+
+  @inline(never)
+  private func directClosedNativeJets(_ original: Curve3D,
+    over parameters: ScalarInterval, tolerance: ModelingTolerance,
+    maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
+    using execution: inout OriginalQueryExecution) throws -> ClosedNativeJet {
+    switch original {
+    case .originalAffineWord(let image):
+      return try circularWordClosedNativeJets(image, original: original, over: parameters, tolerance: tolerance,
+        maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
+        remainingSourceDepth: remainingSourceDepth, using: &execution)
+
+    case .originalConstructionChart(let image):
+      return try constructionClosedNativeJets(image, over: parameters, tolerance: tolerance,
+        maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
+        remainingSourceDepth: remainingSourceDepth, using: &execution)
+
+    case .originalPolyline(let source):
+      return try polylineJets(source, over: parameters, tolerance: tolerance,
+        maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
+        remainingSourceDepth: remainingSourceDepth, using: &execution)
+
+    case .originalGuideTraversalChain(let source):
+      return try guideJets(source, over: parameters, tolerance: tolerance,
+        maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
+        remainingSourceDepth: remainingSourceDepth, using: &execution)
+
+    case .originalGuideEndpointConnector(let source):
+      return try guideJets(source, over: parameters, tolerance: tolerance,
+        maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
+        remainingSourceDepth: remainingSourceDepth, using: &execution)
+
+    case .originalDrafted(let source):
+      return try draftedClosedNativeJets(source, over: parameters, tolerance: tolerance,
+        maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
+        remainingSourceDepth: remainingSourceDepth, using: &execution)
+
+    case .originalPlaneDerivative(let source):
+      return try source.closedNativeJets(over: parameters, tolerance: tolerance,
+        maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
+        remainingSourceDepth: remainingSourceDepth, using: &execution)
+
+    case .originalEndpointConnector(let connector):
+      return try connectorJets(connector, over: parameters, tolerance: tolerance,
+        maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
+        remainingSourceDepth: remainingSourceDepth, using: &execution)
+
+    case .surfaceLift:
+      return try surfaceLiftClosedNativeJets(original, over: parameters, tolerance: tolerance,
+        maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
+        remainingSourceDepth: remainingSourceDepth, using: &execution)
+
+    default:
+      return try elementaryClosedNativeJets(original, over: parameters, tolerance: tolerance,
+        maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
+        remainingSourceDepth: remainingSourceDepth, using: &execution)
+    }
+  }
+
+  @inline(never)
+  private func circularWordClosedNativeJets(_ image: OriginalAffineWordCurve3D, original: Curve3D,
+    over parameters: ScalarInterval, tolerance: ModelingTolerance,
+    maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
+    using execution: inout OriginalQueryExecution) throws -> ClosedNativeJet {
+    if let coefficients = image.circularCoefficients {
+      let jet = try coefficients.intervalTaylorJet(over: parameters, throughOrder: 3,
+        tolerance: tolerance, using: &execution).intervalJet()
+      return try singletonClosedNativeJet(jet, over: parameters, tolerance: tolerance, maximumSpanCount: maximumSpanCount, using: &execution)
+
+    }
+    return try elementaryClosedNativeJets(original, over: parameters, tolerance: tolerance,
+      maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
+      remainingSourceDepth: remainingSourceDepth, using: &execution)
+  }
+
+  @inline(never)
+  private func constructionClosedNativeJets(_ image: OriginalCurveConstructionChartImage,
+    over parameters: ScalarInterval, tolerance: ModelingTolerance,
+    maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
+    using execution: inout OriginalQueryExecution) throws -> ClosedNativeJet {
+    if let owners = try image.affineOwningJets(over: parameters, tolerance: tolerance,
+      maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
+      remainingSourceDepth: remainingSourceDepth, using: &execution) {
+      return try publishClosedNativeJets(owners, over: parameters, tolerance: tolerance, maximumSpanCount: maximumSpanCount)
+    }
+    let jet = try image.intervalTaylorJet(over: parameters, throughOrder: 3, tolerance: tolerance,
+      maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
+      remainingSourceDepth: remainingSourceDepth, using: &execution).intervalJet()
+    return try singletonClosedNativeJet(jet, over: parameters, tolerance: tolerance, maximumSpanCount: maximumSpanCount, using: &execution)
+  }
+
+  @inline(never)
+  private func draftedClosedNativeJets(_ source: OriginalDraftedCurve3D,
+    over parameters: ScalarInterval, tolerance: ModelingTolerance,
+    maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
+    using execution: inout OriginalQueryExecution) throws -> ClosedNativeJet {
+    return try singletonClosedNativeJet(source.intervalTaylorJet(over: parameters, throughOrder: 3, tolerance: tolerance,
+      maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
+      remainingSourceDepth: remainingSourceDepth, using: &execution).intervalJet(), over: parameters, tolerance: tolerance, maximumSpanCount: maximumSpanCount, using: &execution)
+  }
+
+  @inline(never)
+  private func surfaceLiftClosedNativeJets(_ original: Curve3D,
+    over parameters: ScalarInterval, tolerance: ModelingTolerance,
+    maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
+    using execution: inout OriginalQueryExecution) throws -> ClosedNativeJet {
+    let prepared = try Self(curve: original, tolerance: tolerance,
+      remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth, using: &execution)
+    return try prepared.closedNativeJets(over: parameters, tolerance: tolerance,
+      maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
+      remainingSourceDepth: remainingSourceDepth, using: &execution)
+  }
+
+  @inline(never)
+  private func elementaryClosedNativeJets(_ original: Curve3D,
+    over parameters: ScalarInterval, tolerance: ModelingTolerance,
+    maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
+    using execution: inout OriginalQueryExecution) throws -> ClosedNativeJet {
+    if let jet = try DefaultCurveDifferentialEncloser().directJet(original, parameters: parameters,
+      tolerance: tolerance, using: &execution) {
+      return try singletonClosedNativeJet(jet, over: parameters, tolerance: tolerance,
+        maximumSpanCount: maximumSpanCount, using: &execution)
+    }
+    return try higherClosedNativeJets(original, over: parameters, tolerance: tolerance,
+        maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
+        remainingSourceDepth: remainingSourceDepth, using: &execution)
+  }
+
+  @inline(never)
   private func polylineJets(_ original: OriginalPolylineCurve3D, over parameters: ScalarInterval,
     tolerance: ModelingTolerance, maximumSpanCount: Int, maximumSubdivisionDepth: Int,
-    remainingSourceDepth: Int, consumeWork: () throws -> Void,
-    consumeStorage: ((Int) throws -> Void)? = nil) throws -> ClosedNativeJet {
+    remainingSourceDepth: Int, using execution: inout OriginalQueryExecution) throws -> ClosedNativeJet {
+    try receipt.admit(tolerance: tolerance, using: &execution)
     let owners = try original.owningDerivativeJets(over: parameters, throughOrder: 3, tolerance: tolerance,
       maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-      remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage,
-      maximumAlgebraicDepth: preparationMaximumAlgebraicDepth)
+      remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: preparationMaximumAlgebraicDepth, using: &execution)
     try OriginalCoefficientAllocation.reserve(count: owners.count, of: ClosedNativeJet.OwnedSpan.self,
-      consumeStorage: consumeStorage)
+      using: &execution)
     var spans: [ClosedNativeJet.OwnedSpan] = []; spans.reserveCapacity(owners.count)
     func axis(_ original: IntervalDerivativeJet) throws -> SurfaceIntervalJet {
-      try consumeWork()
+      try execution.consumeWork(1)
       return .init(value: original.derivatives[0], derivativeU: original.derivatives[1], derivativeV: .exact(0),
         secondDerivativeUU: original.derivatives[2], secondDerivativeUV: .exact(0), secondDerivativeVV: .exact(0),
         thirdDerivativeUUU: original.derivatives[3], thirdDerivativeUUV: .exact(0),
@@ -886,51 +847,52 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
     return .init(source: curve, parameters: parameters, tolerance: tolerance, spans: spans)
   }
 
+  @inline(never)
   private func guideJets(_ source: OriginalGuideTraversalChain3D, over parameters: ScalarInterval,
     tolerance: ModelingTolerance, maximumSpanCount: Int, maximumSubdivisionDepth: Int,
-    remainingSourceDepth: Int, consumeWork: () throws -> Void,
-    consumeStorage: ((Int) throws -> Void)? = nil) throws -> ClosedNativeJet {
+    remainingSourceDepth: Int, using execution: inout OriginalQueryExecution) throws -> ClosedNativeJet {
+    try receipt.admit(tolerance: tolerance, using: &execution)
     let owners = try source.owningDerivativeJets(over: parameters, throughOrder: 3, tolerance: tolerance,
       maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-      remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage,
-      maximumAlgebraicDepth: preparationMaximumAlgebraicDepth)
+      remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: preparationMaximumAlgebraicDepth, using: &execution)
     return try guideJets(owners: owners, traversals: source.traversals, over: parameters,
-      tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage)
+      tolerance: tolerance, using: &execution)
   }
 
+  @inline(never)
   private func guideJets(_ source: OriginalGuideEndpointConnectorCurve3D, over parameters: ScalarInterval,
     tolerance: ModelingTolerance, maximumSpanCount: Int, maximumSubdivisionDepth: Int,
-    remainingSourceDepth: Int, consumeWork: () throws -> Void,
-    consumeStorage: ((Int) throws -> Void)? = nil) throws -> ClosedNativeJet {
+    remainingSourceDepth: Int, using execution: inout OriginalQueryExecution) throws -> ClosedNativeJet {
+    try receipt.admit(tolerance: tolerance, using: &execution)
     let owners = try source.owningDerivativeJets(over: parameters, throughOrder: 3, tolerance: tolerance,
       maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-      remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage,
-      maximumAlgebraicDepth: preparationMaximumAlgebraicDepth)
+      remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: preparationMaximumAlgebraicDepth, using: &execution)
     guard case .originalGuideTraversalChain(let chain) = source.source.source else {
       throw GeometryConversionError.invalidInput("Original corrected guide lost its declared traversal source.")
     }
     return try guideJets(owners: owners, traversals: chain.traversals, over: parameters,
-      tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage)
+      tolerance: tolerance, using: &execution)
   }
 
+  @inline(never)
   private func guideJets(owners: [OriginalGuideTraversalOwningJet], traversals: [OriginalCurveRootSpan3D],
-    over parameters: ScalarInterval, tolerance: ModelingTolerance, consumeWork: () throws -> Void,
-    consumeStorage: ((Int) throws -> Void)?) throws -> ClosedNativeJet {
+    over parameters: ScalarInterval, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> ClosedNativeJet {
+    try receipt.admit(tolerance: tolerance, using: &execution)
     try OriginalCoefficientAllocation.reserve(count: owners.count, of: ClosedNativeJet.OwnedSpan.self,
-      consumeStorage: consumeStorage)
+      using: &execution)
     var spans: [ClosedNativeJet.OwnedSpan] = []; spans.reserveCapacity(owners.count)
     func axis(_ original: IntervalDerivativeJet) throws -> SurfaceIntervalJet {
       guard original.derivatives.count == 4 else {
         throw GeometryConversionError.invalidInput("Original guide owner must retain D0 through D3.")
       }
-      try consumeWork()
+      try execution.consumeWork(1)
       return .init(value: original.derivatives[0], derivativeU: original.derivatives[1], derivativeV: .exact(0),
         secondDerivativeUU: original.derivatives[2], secondDerivativeUV: .exact(0), secondDerivativeVV: .exact(0),
         thirdDerivativeUUU: original.derivatives[3], thirdDerivativeUUV: .exact(0),
         thirdDerivativeUVV: .exact(0), thirdDerivativeVVV: .exact(0))
     }
     for owner in owners {
-      try consumeWork()
+      try execution.consumeWork(1)
       guard traversals.indices.contains(owner.traversalIndex) else {
         throw GeometryConversionError.invalidInput("Original guide owner is not a retained declared traversal.")
       }
@@ -948,27 +910,28 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
     return .init(source: curve, parameters: parameters, tolerance: tolerance, spans: spans)
   }
 
+  @inline(never)
   private func connectorJets(_ connector: OriginalEndpointConnectorCurve3D, over parameters: ScalarInterval,
     tolerance: ModelingTolerance, maximumSpanCount: Int, maximumSubdivisionDepth: Int,
-    remainingSourceDepth: Int, consumeWork: () throws -> Void,
-    consumeStorage: ((Int) throws -> Void)? = nil) throws -> ClosedNativeJet {
+    remainingSourceDepth: Int, using execution: inout OriginalQueryExecution) throws -> ClosedNativeJet {
+    try receipt.admit(tolerance: tolerance, using: &execution)
     let original = try connector.constructionTraversal.constructionNativeJets(over: parameters, tolerance: tolerance,
       maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-      remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage)
+      remainingSourceDepth: remainingSourceDepth, using: &execution)
     let corrected = try connector.correctedOwningSpans(from: original, tolerance: tolerance,
-      maximumSpanCount: maximumSpanCount, consumeWork: consumeWork, consumeStorage: consumeStorage)
+      maximumSpanCount: maximumSpanCount, using: &execution)
     return .init(source: curve, parameters: parameters, tolerance: tolerance, spans: corrected)
   }
 
   package func positionBounds(over parameters: ScalarInterval, tolerance: ModelingTolerance,
     maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
-    consumeWork: () throws -> Void, consumeStorage: ((Int) throws -> Void)? = nil) throws -> IntervalVector3DBounds {
+    using execution: inout OriginalQueryExecution) throws -> IntervalVector3DBounds {
+    try receipt.admit(tolerance: tolerance, using: &execution)
     if case .direct(.originalPolyline(let original)) = storage {
       guard tolerance == preparationTolerance else { throw GeometryConversionError.invalidInput("Original polyline position changed preparation tolerance.") }
       let q = try original.intervalTaylorJet(over: parameters, throughOrder: 0, tolerance: tolerance,
         maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-        remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage,
-        maximumAlgebraicDepth: preparationMaximumAlgebraicDepth)
+        remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: preparationMaximumAlgebraicDepth, using: &execution)
       return try .init(x: q.x.coefficient(0,0), y: q.y.coefficient(0,0), z: q.z.coefficient(0,0))
     }
     if case .direct(.originalGuideTraversalChain(let original)) = storage {
@@ -977,8 +940,7 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
       }
       let q = try original.intervalTaylorJet(over: parameters, throughOrder: 0, tolerance: tolerance,
         maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-        remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage,
-        maximumAlgebraicDepth: preparationMaximumAlgebraicDepth)
+        remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: preparationMaximumAlgebraicDepth, using: &execution)
       return try .init(x: q.x.coefficient(0,0), y: q.y.coefficient(0,0), z: q.z.coefficient(0,0))
     }
     if case .direct(.originalGuideEndpointConnector(let original)) = storage {
@@ -987,13 +949,12 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
       }
       return try original.preparedFirstOrder(over: parameters, tolerance: tolerance,
         maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-        remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage,
-        maximumAlgebraicDepth: preparationMaximumAlgebraicDepth).position
+        remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: preparationMaximumAlgebraicDepth, using: &execution).position
     }
     if case .direct(.originalDrafted(let original)) = storage {
       let q = try original.intervalTaylorJet(over: parameters, throughOrder: 0, tolerance: tolerance,
         maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-        remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage)
+        remainingSourceDepth: remainingSourceDepth, using: &execution)
       return try .init(x: q.x.coefficient(0,0), y: q.y.coefficient(0,0), z: q.z.coefficient(0,0))
     }
     if case .direct(.originalPlaneDerivative(let original)) = storage {
@@ -1002,12 +963,12 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
       }
       let q = try original.intervalTaylorJet(over: parameters, throughOrder: 0, tolerance: tolerance,
         maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-        remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage)
+        remainingSourceDepth: remainingSourceDepth, using: &execution)
       return try .init(x: q.x.coefficient(0,0), y: q.y.coefficient(0,0), z: q.z.coefficient(0,0))
     }
     let receipt = try closedNativeJets(over: parameters, tolerance: tolerance, maximumSpanCount: maximumSpanCount,
       maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
-      consumeWork: consumeWork, consumeStorage: consumeStorage)
+      using: &execution)
     guard let first = receipt.spans.first else { throw GeometryConversionError.invalidInput("Original closed curve cover is empty.") }
     let jet = receipt.spans.dropFirst().reduce(first.jet) { $0.union($1.jet) }
     return .init(x: jet.x.value, y: jet.y.value, z: jet.z.value)
@@ -1024,21 +985,22 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
     package let uShift: Double
     package let vShift: Double
 
-    package func station<B: RationalAlgebraAdmitting>(atOriginalSurfaceCoordinate target: ExactRationalCoefficient,
+    package func station(atOriginalSurfaceCoordinate target: ExactRationalCoefficient,
       maximumNormalizedParameterWidth: Double, maximumAlgebraicDepth: Int,
-      usage: inout B) throws -> PreparedOriginalNativeAxisInverse.Station? {
-      let shift = try ExactRationalCoefficient.originalDouble(inverse.alongU ? uShift : vShift, usage: &usage)
-      return try inverse.station(at: target.subtracting(shift, usage: &usage),
+      using execution: inout OriginalQueryExecution) throws -> PreparedOriginalNativeAxisInverse.Station? {
+      let shift = try ExactRationalCoefficient.originalDouble(inverse.alongU ? uShift : vShift, usage: &execution)
+      return try inverse.station(at: target.subtracting(shift, usage: &execution),
         maximumNormalizedParameterWidth: maximumNormalizedParameterWidth,
-        maximumAlgebraicDepth: maximumAlgebraicDepth, usage: &usage)
+        maximumAlgebraicDepth: maximumAlgebraicDepth, usage: &execution)
     }
   }
 
   /// Owns the physical iso partition separately from a nonlinear native UV clock.
-  package func originalNativeAxisIsoCover<B: RationalAlgebraAdmitting>(over parameters: ScalarInterval,
+  package func originalNativeAxisIsoCover(over parameters: ScalarInterval,
     tolerance: ModelingTolerance, maximumSpanCount: Int, maximumSubdivisionDepth: Int,
     remainingSourceDepth: Int, maximumAlgebraicDepth: Int,
-    maximumNormalizedParameterWidth: Double, usage: inout B) throws -> [OriginalNativeAxisIsoTraversal]? {
+    maximumNormalizedParameterWidth: Double, using execution: inout OriginalQueryExecution) throws -> [OriginalNativeAxisIsoTraversal]? {
+    try receipt.admit(tolerance: tolerance, using: &execution)
     guard tolerance == preparationTolerance, maximumSpanCount > 0,
       maximumSubdivisionDepth >= 0, remainingSourceDepth >= 0,
       (0...32).contains(maximumAlgebraicDepth) else {
@@ -1053,13 +1015,13 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
     var uShiftQ = ExactRationalCoefficient.zero, vShiftQ = ExactRationalCoefficient.zero
     while true {
       if case .periodicTranslation(let child, let u, let v) = chartSource {
-        uShiftQ = try uShiftQ.adding(.originalDouble(u, usage: &usage), usage: &usage)
-        vShiftQ = try vShiftQ.adding(.originalDouble(v, usage: &usage), usage: &usage)
+        uShiftQ = try uShiftQ.adding(.originalDouble(u, usage: &execution), usage: &execution)
+        vShiftQ = try vShiftQ.adding(.originalDouble(v, usage: &execution), usage: &execution)
         guard sourceDepth > 0 else { throw GeometryConversionError.resourceLimitExceeded("Original native axis cover exhausted source descent.") }
-        try usage.consumeExactWork(1); sourceDepth -= 1; chartSource = child
+        try execution.consumeWork(1); sourceDepth -= 1; chartSource = child
       } else if case .offsetSurfaceImage(let image) = chartSource {
         guard sourceDepth > 0 else { throw GeometryConversionError.resourceLimitExceeded("Original native axis cover exhausted source descent.") }
-        try usage.consumeExactWork(1); sourceDepth -= 1; chartSource = image.source
+        try execution.consumeWork(1); sourceDepth -= 1; chartSource = image.source
       } else { break }
     }
     guard case .bSpline(let original) = chartSource,
@@ -1069,7 +1031,7 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
     let inverse = try PreparedOriginalNativeAxisInverse(source: original, alongU: alongU,
       tolerance: tolerance, remainingSourceDepth: sourceDepth, maximumSpanCount: maximumSpanCount,
       maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth,
-      usage: &usage)
+      usage: &execution)
     guard original.knots.prefix(original.degree + 1).allSatisfy({ $0 == original.knots[original.degree] }),
       original.knots.suffix(original.degree + 1).allSatisfy({ $0 == original.knots[original.controlPoints.count] }) else {
       // FIXME(INCOMPLETE_IMPLEMENTATION): Whole native axis covers currently
@@ -1077,10 +1039,10 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
       // source clocks need exact endpoint-coordinate carriers before publication.
       return nil
     }
-    try usage.consumeExactWork(original.degree * 2 + 2)
+    try execution.consumeWork(original.degree * 2 + 2)
     let first = original.controlPoints[0], last = original.controlPoints[original.controlPoints.count-1]
-    let shiftBound = try (inverse.alongU ? uShiftQ : vShiftQ).outwardInterval(usage: &usage)
-    let fixedShiftBound = try (inverse.alongU ? vShiftQ : uShiftQ).outwardInterval(usage: &usage)
+    let shiftBound = try (inverse.alongU ? uShiftQ : vShiftQ).outwardInterval(usage: &execution)
+    let fixedShiftBound = try (inverse.alongU ? vShiftQ : uShiftQ).outwardInterval(usage: &execution)
     guard shiftBound.lower == shiftBound.upper, fixedShiftBound.lower == fixedShiftBound.upper,
       shiftBound.isFinite, fixedShiftBound.isFinite else {
       // FIXME(INCOMPLETE_IMPLEMENTATION): Complete periodic UV shift sums
@@ -1089,10 +1051,10 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
       throw GeometryConversionError.resourceLimitExceeded("Original native iso shift needs a rational UV carrier.")
     }
     let shift = shiftBound.lower, fixedShift = fixedShiftBound.lower
-    func translated(_ value: Double, by shift: Double, usage: inout B) throws -> Double {
-      let exact = try ExactRationalCoefficient.originalDouble(value, usage: &usage)
-        .adding(.originalDouble(shift, usage: &usage), usage: &usage)
-      let bound = try exact.outwardInterval(usage: &usage)
+    func translated(_ value: Double, by shift: Double, using execution: inout OriginalQueryExecution) throws -> Double {
+      let exact = try ExactRationalCoefficient.originalDouble(value, usage: &execution)
+        .adding(.originalDouble(shift, usage: &execution), usage: &execution)
+      let bound = try exact.outwardInterval(usage: &execution)
       guard bound.lower == bound.upper, bound.isFinite else {
         // FIXME(INCOMPLETE_IMPLEMENTATION): Native physical iso publication
         // needs a rational UV endpoint carrier for nonrepresentable translated
@@ -1101,37 +1063,31 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
       }
       return bound.lower
     }
-    let start = try translated(inverse.alongU ? first.x : first.y, by: shift, usage: &usage)
-    let end = try translated(inverse.alongU ? last.x : last.y, by: shift, usage: &usage)
-    let fixed = try translated(inverse.alongU ? first.y : first.x, by: fixedShift, usage: &usage)
+    let start = try translated(inverse.alongU ? first.x : first.y, by: shift, using: &execution)
+    let end = try translated(inverse.alongU ? last.x : last.y, by: shift, using: &execution)
+    let fixed = try translated(inverse.alongU ? first.y : first.x, by: fixedShift, using: &execution)
     let varying = try ScalarInterval(lower: min(start,end), upper: max(start,end))
     let constant = try ScalarInterval(lower: fixed, upper: fixed)
     let box = SurfaceParameterBox(u: inverse.alongU ? varying : constant, v: inverse.alongU ? constant : varying)
-    func bytes(_ count: Int) throws {
-      let rounded = count.addingReportingOverflow(MemoryLayout<UInt32>.stride - 1)
-      guard count >= 0, !rounded.overflow else { throw GeometryConversionError.resourceLimitExceeded("Original iso cover bytes overflow.") }
-      try usage.retainExactStorage(rounded.partialValue / MemoryLayout<UInt32>.stride)
-    }
-    let owners = try withoutActuallyEscaping(bytes) { bytes in
-      try native.originalNativeSpans(over: box, tolerance: tolerance,
-        maximumSpanCount: maximumSpanCount, consumeWork: { try usage.consumeExactWork(1) }, consumeStorage: bytes)
-    }
-    try RationalAlgebraStorage.retain(owners.count, of: OriginalNativeAxisIsoTraversal.self, usage: &usage)
+
+    let owners = try native.originalNativeSpans(over: box, tolerance: tolerance,
+        maximumSpanCount: maximumSpanCount, using: &execution)
+    try execution.retainStorage(bytes: exactScalarPayloadBytes(count: owners.count, of: OriginalNativeAxisIsoTraversal.self))
     var output: [OriginalNativeAxisIsoTraversal] = []; output.reserveCapacity(owners.count)
-    let shiftQ = try ExactRationalCoefficient.originalDouble(shift, usage: &usage)
+    let shiftQ = try ExactRationalCoefficient.originalDouble(shift, usage: &execution)
     for owner in owners {
-      try usage.consumeExactWork(1)
+      try execution.consumeWork(1)
       let domain = inverse.alongU ? owner.uBounds : owner.vBounds
       let lower = max(varying.lower, domain.lower), upper = min(varying.upper, domain.upper)
       if lower >= upper { continue }
       let a = inverse.orientation > 0 ? lower : upper
       let b = inverse.orientation > 0 ? upper : lower
-      guard let firstStation = try inverse.station(at: ExactRationalCoefficient.originalDouble(a, usage: &usage)
-        .subtracting(shiftQ, usage: &usage), maximumNormalizedParameterWidth: maximumNormalizedParameterWidth,
-        maximumAlgebraicDepth: maximumAlgebraicDepth, usage: &usage),
-        let lastStation = try inverse.station(at: ExactRationalCoefficient.originalDouble(b, usage: &usage)
-          .subtracting(shiftQ, usage: &usage), maximumNormalizedParameterWidth: maximumNormalizedParameterWidth,
-          maximumAlgebraicDepth: maximumAlgebraicDepth, usage: &usage) else {
+      guard let firstStation = try inverse.station(at: ExactRationalCoefficient.originalDouble(a, usage: &execution)
+        .subtracting(shiftQ, usage: &execution), maximumNormalizedParameterWidth: maximumNormalizedParameterWidth,
+        maximumAlgebraicDepth: maximumAlgebraicDepth, usage: &execution),
+        let lastStation = try inverse.station(at: ExactRationalCoefficient.originalDouble(b, usage: &execution)
+          .subtracting(shiftQ, usage: &execution), maximumNormalizedParameterWidth: maximumNormalizedParameterWidth,
+          maximumAlgebraicDepth: maximumAlgebraicDepth, usage: &execution) else {
         throw GeometryConversionError.invalidInput("Original support iso cut has no source-bound monotone inverse.")
       }
       let part = try ScalarInterval(lower: lower, upper: upper)
@@ -1156,15 +1112,17 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
       thirdDerivativeUUV: zero, thirdDerivativeUVV: zero, thirdDerivativeVVV: zero)
   }
 
+  @inline(never)
   private func implicitSpans(original: CertifiedImplicitIntersectionCurve, localizer: ImplicitCurveIntervalJetEncloser,
     surface: PreparedSurfaceDifferentialEncloser, over native: ScalarInterval, outputParameters: ScalarInterval,
     role: Int, gain: OutwardScalarInterval, parameterOffset: OutwardScalarInterval, uShift: Double, vShift: Double, tolerance: ModelingTolerance,
     maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
-    consumeWork: () throws -> Void, consumeStorage: ((Int) throws -> Void)? = nil) throws -> [ClosedNativeJet.OwnedSpan] {
+    using execution: inout OriginalQueryExecution) throws -> [ClosedNativeJet.OwnedSpan] {
+    try receipt.admit(tolerance: tolerance, using: &execution)
     var result: [ClosedNativeJet.OwnedSpan] = []
     var capacity = 0
     for index in original.cells.indices {
-      try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
+      try CurrentTaskCancellationChecker().checkCancellation(); try execution.consumeWork(1)
       let count = OutwardScalarInterval.exact(Double(original.cells.count))
       guard let lower = OutwardScalarInterval.exact(Double(index)).divided(by: count),
         let upper = OutwardScalarInterval.exact(Double(index + 1)).divided(by: count) else {
@@ -1177,14 +1135,14 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
       let q = try OriginalImplicitCurveHigherTaylor.parameterJets(of: original, over: range,
         order: 3, tolerance: tolerance, maximumSpanCount: maximumSpanCount,
         maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
-        selectedOwningCellIndex: index, preparedLocalizer: localizer, consumeWork: consumeWork, consumeStorage: consumeStorage)
-      var u = try OriginalCurveTaylorComposition.scaledParameter(q[role], scale: gain, order: 3, consumeWork: consumeWork, consumeStorage: consumeStorage)
-      var v = try OriginalCurveTaylorComposition.scaledParameter(q[role + 1], scale: gain, order: 3, consumeWork: consumeWork, consumeStorage: consumeStorage)
-      if uShift != 0 { u = try u.adding(.constant(.exact(uShift), order: 3, tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage), consumeWork: consumeWork, consumeStorage: consumeStorage) }
-      if vShift != 0 { v = try v.adding(.constant(.exact(vShift), order: 3, tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage), consumeWork: consumeWork, consumeStorage: consumeStorage) }
+        selectedOwningCellIndex: index, preparedLocalizer: localizer, using: &execution)
+      var u = try OriginalCurveTaylorComposition.scaledParameter(q[role], scale: gain, order: 3, using: &execution)
+      var v = try OriginalCurveTaylorComposition.scaledParameter(q[role + 1], scale: gain, order: 3, using: &execution)
+      if uShift != 0 { u = try u.adding(.constant(.exact(uShift), order: 3, tolerance: tolerance, using: &execution), using: &execution) }
+      if vShift != 0 { v = try v.adding(.constant(.exact(vShift), order: 3, tolerance: tolerance, using: &execution), using: &execution) }
       let jet = try liftJet(surface: surface, u: u, v: v, tolerance: tolerance,
         maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-        remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage)
+        remainingSourceDepth: remainingSourceDepth, using: &execution)
       func callerRange(_ interval: OutwardScalarInterval) throws -> ScalarInterval {
         guard let mapped = (interval - parameterOffset).divided(by: gain),
           let clipped = mapped.intersection(with: .init(lower: outputParameters.lower, upper: outputParameters.upper)) else {
@@ -1196,7 +1154,7 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
         let grown = max(1, capacity).multipliedReportingOverflow(by: 2)
         guard !grown.overflow else { throw GeometryConversionError.resourceLimitExceeded("Original graph owning capacity overflows.") }
         capacity = min(maximumSpanCount, grown.partialValue)
-        try OriginalCoefficientAllocation.reserve(count: capacity, of: ClosedNativeJet.OwnedSpan.self, consumeStorage: consumeStorage)
+        try OriginalCoefficientAllocation.reserve(count: capacity, of: ClosedNativeJet.OwnedSpan.self, using: &execution)
         result.reserveCapacity(capacity)
       }
       result.append(.init(nativeIndex: index,
@@ -1207,18 +1165,19 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
   }
 
   /// Returns original one-sided tensor owners, never a synthetic smooth join.
+  @inline(never)
   private func nativeIsoSpans(lift: SurfaceLiftCurve3D,
     native: PreparedBSplineSurfaceDifferentialEncloser, over parameters: ScalarInterval,
     tolerance: ModelingTolerance, maximumSpanCount: Int, maximumSubdivisionDepth: Int,
-    remainingSourceDepth: Int, consumeWork: () throws -> Void,
-    consumeStorage: ((Int) throws -> Void)? = nil) throws -> [ClosedNativeJet.OwnedSpan]? {
+    remainingSourceDepth: Int, using execution: inout OriginalQueryExecution) throws -> [ClosedNativeJet.OwnedSpan]? {
+    try receipt.admit(tolerance: tolerance, using: &execution)
     let alongU: Bool, fixed: Double, start: Double, end: Double
     var chartSource = lift.parameterCurve
     var uShift = 0.0, vShift = 0.0
     if case .periodicTranslation(let base, let u, let v) = chartSource {
       guard try OriginalSurfacePeriodShift.proves(on: lift.surface, uShift: u, vShift: v,
         remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth,
-        tolerance: tolerance, consumeWork: consumeWork) else {
+        tolerance: tolerance, using: &execution) else {
         throw GeometryConversionError.invalidInput("Original iso translation is not in its support period lattice.")
       }
       chartSource = base; uShift = u; vShift = v
@@ -1226,7 +1185,7 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
     func translated(_ coordinate: Double, by shift: Double) throws -> Double {
       if shift == 0 { return coordinate }
       let singleton = try OriginalParameterImageMap.interval(.init(lower: coordinate, upper: coordinate),
-        gain: .binary(1), offset: shift, sourceDomain: .unbounded, consumeWork: consumeWork)
+        gain: .binary(1), offset: shift, sourceDomain: .unbounded, using: &execution)
       // FIXME(INCOMPLETE_IMPLEMENTATION): Native iso ownership retains exact
       // representable translated UV stations. Nonbinary stations need a
       // persistent rational UV traversal carrier before Mesh may use them.
@@ -1236,12 +1195,10 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
       return singleton.lower
     }
     func affineEndpoint(_ origin: Double, _ direction: Double, _ parameter: Double) throws -> Double {
-      try withoutActuallyEscaping(consumeWork) { work in
-        var usage = OriginalGeometryValidationAdmission(consumeWork: { _ in try work() }, consumeStorage: consumeStorage)
-        let value = try ExactRationalCoefficient.originalDouble(origin, usage: &usage)
-          .adding(ExactRationalCoefficient.originalDouble(direction, usage: &usage)
-            .multiplied(by: .originalDouble(parameter, usage: &usage), usage: &usage), usage: &usage)
-          .outwardInterval(usage: &usage)
+      let value = try ExactRationalCoefficient.originalDouble(origin, usage: &execution)
+          .adding(ExactRationalCoefficient.originalDouble(direction, usage: &execution)
+            .multiplied(by: .originalDouble(parameter, usage: &execution), usage: &execution), usage: &execution)
+          .outwardInterval(usage: &execution)
         // FIXME(INCOMPLETE_IMPLEMENTATION): Native affine iso consumers retain
         // exact binary stations here. Nonbinary original endpoint expressions
         // need a rational UV traversal carrier before Mesh may publish them.
@@ -1249,7 +1206,6 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
           throw GeometryConversionError.resourceLimitExceeded("Original affine iso endpoint is not representable in the retained native UV carrier.")
         }
         return value.lower
-      }
     }
     switch chartSource {
     case .affine(let origin, let direction, let first, let last):
@@ -1273,7 +1229,7 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
       let increasing = lastValue > firstValue
       var previous = firstValue
       for point in points {
-        try consumeWork()
+        try execution.consumeWork(1)
         guard (variesU ? point.v == first.v : point.u == first.u) else { return nil }
         let value = variesU ? point.u : point.v
         if value != previous, (value > previous) != increasing { return nil }
@@ -1310,14 +1266,11 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
     let query = SurfaceParameterBox(u: alongU ? varyingRange : fixedRange,
       v: alongU ? fixedRange : varyingRange)
     let owners: [PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan]
-    if let consumeStorage {
+
       owners = try native.originalNativeSpans(over: query, tolerance: tolerance,
-        maximumSpanCount: min(262_144, maximumSpanCount), consumeWork: consumeWork, consumeStorage: consumeStorage)
-    } else {
-      owners = try native.originalNativeSpans(over: query, tolerance: tolerance,
-        maximumSpanCount: min(262_144, maximumSpanCount), consumeWork: consumeWork)
-    }
-    try OriginalCoefficientAllocation.reserve(count: owners.count, of: ClosedNativeJet.OwnedSpan.self, consumeStorage: consumeStorage)
+        maximumSpanCount: min(262_144, maximumSpanCount), using: &execution)
+
+    try OriginalCoefficientAllocation.reserve(count: owners.count, of: ClosedNativeJet.OwnedSpan.self, using: &execution)
     var result: [ClosedNativeJet.OwnedSpan] = []; result.reserveCapacity(owners.count)
     let zero = OutwardScalarInterval.exact(0)
     func chart(_ value: OutwardScalarInterval, derivative: OutwardScalarInterval) -> SurfaceIntervalJet {
@@ -1335,20 +1288,17 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
       return try .init(lower: clipped.lower, upper: clipped.upper)
     }
     for (index, owner) in owners.enumerated() {
-      try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
+      try CurrentTaskCancellationChecker().checkCancellation(); try execution.consumeWork(1)
       let u = try ScalarInterval(lower: max(query.u.lower, owner.uBounds.lower),
         upper: min(query.u.upper, owner.uBounds.upper))
       let v = try ScalarInterval(lower: max(query.v.lower, owner.vBounds.lower),
         upper: min(query.v.upper, owner.vBounds.upper))
       let box = SurfaceParameterBox(u: u, v: v)
       let original: SurfaceIntervalVectorJet
-      if let consumeStorage {
+
         original = try owner.intervalJet(overClosedBox: box, on: native.surface,
-          tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage)
-      } else {
-        original = try owner.intervalJet(overClosedBox: box, on: native.surface,
-          tolerance: tolerance, consumeWork: consumeWork)
-      }
+          tolerance: tolerance, using: &execution)
+
       let jet = SurfaceParameterThirdOrderChainRule.intervalJet(surface: original,
         u: chart(.init(lower: u.lower, upper: u.upper), derivative: alongU ? slope : zero),
         v: chart(.init(lower: v.lower, upper: v.upper), derivative: alongU ? zero : slope))
@@ -1372,25 +1322,28 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
     return result
   }
 
+  @inline(never)
   private func liftJet(surface: PreparedSurfaceDifferentialEncloser,
     u: SurfaceAreaIntervalTaylorScalarJet, v: SurfaceAreaIntervalTaylorScalarJet, tolerance: ModelingTolerance,
     maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
-    consumeWork: () throws -> Void, consumeStorage: ((Int) throws -> Void)? = nil) throws -> SurfaceIntervalVectorJet {
+    using execution: inout OriginalQueryExecution) throws -> SurfaceIntervalVectorJet {
+    try receipt.admit(tolerance: tolerance, using: &execution)
     let uv = try SurfaceAreaIntervalTaylorVectorJet(x: u, y: v,
-      z: .constant(.exact(0), order: u.order, tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage)).intervalJet()
+      z: .constant(.exact(0), order: u.order, tolerance: tolerance, using: &execution)).intervalJet()
     let box = SurfaceParameterBox(u: try ScalarInterval(lower: uv.x.value.lower, upper: uv.x.value.upper),
       v: try ScalarInterval(lower: uv.y.value.lower, upper: uv.y.value.upper))
     let original = try surface.intervalJet(overClosedBox: box, tolerance: tolerance,
       maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-      remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage)
-    try consumeWork()
+      remainingSourceDepth: remainingSourceDepth, using: &execution)
+    try execution.consumeWork(1)
     return SurfaceParameterThirdOrderChainRule.intervalJet(surface: original, u: uv.x, v: uv.y)
   }
 
+  @inline(never)
   private func periodicNativeJets(spans: [RationalBezierCurveJetEncloser.NativeSpan],
     over parameters: ScalarInterval, tolerance: ModelingTolerance,
-    boundedSpanCount: Int? = nil, consumeWork: () throws -> Void,
-    consumeStorage: ((Int) throws -> Void)? = nil) throws -> ClosedNativeJet {
+    boundedSpanCount: Int? = nil, using execution: inout OriginalQueryExecution) throws -> ClosedNativeJet {
+    try receipt.admit(tolerance: tolerance, using: &execution)
     guard case .bSpline(let original) = curve, original.isPeriodic,
           let first = spans.first, let last = spans.last else {
       throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
@@ -1408,18 +1361,18 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
       let doubled = capacity.multipliedReportingOverflow(by: 2)
       guard !doubled.overflow else { throw GeometryConversionError.resourceLimitExceeded("Original periodic curve result storage overflows.") }
       capacity = min(boundedSpanCount ?? Int.max, max(1, doubled.partialValue))
-      try OriginalCoefficientAllocation.reserve(count: capacity, of: ClosedNativeJet.OwnedSpan.self, consumeStorage: consumeStorage)
+      try OriginalCoefficientAllocation.reserve(count: capacity, of: ClosedNativeJet.OwnedSpan.self, using: &execution)
       result.reserveCapacity(capacity)
     }
     if parameters.width >= period && boundedSpanCount == nil {
       for span in spans {
-        try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
+        try CurrentTaskCancellationChecker().checkCancellation(); try execution.consumeWork(1)
         let native = try ScalarInterval(lower: span.lower, upper: span.upper)
         if let boundedSpanCount, result.count >= boundedSpanCount { throw GeometryConversionError.resourceLimitExceeded("Original periodic closed cover exhausted caller span admission.") }
         let jet = try boundedSpanCount == nil
-          ? RationalBezierCurveJetEncloser().enclosure(of: span, over: native, tolerance: tolerance)
-          : OriginalNativeCurveHigherTaylor.enclosure(of: span, over: native, order: 3, tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage).intervalJet()
-        try consumeWork()
+          ? RationalBezierCurveJetEncloser().enclosure(of: span, over: native, tolerance: tolerance, using: &execution)
+          : OriginalNativeCurveHigherTaylor.enclosure(of: span, over: native, order: 3, tolerance: tolerance, using: &execution).intervalJet()
+        try execution.consumeWork(1)
         try reserveAppend()
         result.append(.init(nativeIndex: span.index, nativeDomain: native, parameters: parameters, jet: jet))
       }
@@ -1435,7 +1388,7 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
       }
       var cycle = lowerCycle
       while cycle <= upperCycle {
-        try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
+        try CurrentTaskCancellationChecker().checkCancellation(); try execution.consumeWork(1)
         let translation = OutwardScalarInterval.exact(cycle) * .exact(period)
         let lifted = OutwardScalarInterval(lower: parameters.lower, upper: parameters.upper) - translation
         guard translation.isFinite, lifted.isFinite else {
@@ -1443,20 +1396,20 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
             message: "Original periodic span translation is nonfinite.")
         }
         for span in spans {
-          try consumeWork()
+          try execution.consumeWork(1)
           let lower = max(span.lower, lifted.lower), upper = min(span.upper, lifted.upper)
           guard lower <= upper else { continue }
           let native = try ScalarInterval(lower: lower, upper: upper)
           if let boundedSpanCount, result.count >= boundedSpanCount { throw GeometryConversionError.resourceLimitExceeded("Original periodic closed cover exhausted caller span admission.") }
         let jet = try boundedSpanCount == nil
-          ? RationalBezierCurveJetEncloser().enclosure(of: span, over: native, tolerance: tolerance)
-          : OriginalNativeCurveHigherTaylor.enclosure(of: span, over: native, order: 3, tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage).intervalJet()
+          ? RationalBezierCurveJetEncloser().enclosure(of: span, over: native, tolerance: tolerance, using: &execution)
+          : OriginalNativeCurveHigherTaylor.enclosure(of: span, over: native, order: 3, tolerance: tolerance, using: &execution).intervalJet()
           let domain = OutwardScalarInterval(lower: span.lower, upper: span.upper) + translation
           guard domain.isFinite else {
             throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
               message: "Original periodic owning domain is nonfinite.")
           }
-          try consumeWork()
+          try execution.consumeWork(1)
           try reserveAppend()
         result.append(.init(nativeIndex: span.index,
             nativeDomain: try ScalarInterval(lower: domain.lower, upper: domain.upper),

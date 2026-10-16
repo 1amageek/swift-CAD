@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 public struct ProductAttributeTarget: Hashable, Sendable {
     public enum Kind: String, Hashable, Sendable { case body, face, part, occurrence, directUsage }
@@ -12,12 +13,18 @@ public struct ProductAttributeTarget: Hashable, Sendable {
         self.kind = kind; self.geometry = geometry; self.definitionID = definitionID; self.path = path; self.usageID = usageID
     }
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         switch kind {
         case .body, .face:
             guard let geometry, usageID == nil, definitionID == nil || path == nil else {
                 throw ProductAttributeError.invalidSource("Geometry target has invalid payload.")
             }
-            try geometry.validate()
+            try geometry.validate(using: &execution)
             switch (kind, geometry.geometrySignature) {
             case (.body, .body), (.face, .face): break
             default: throw ProductAttributeError.invalidSource("Geometry target has an incompatible signature kind.")

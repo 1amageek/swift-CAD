@@ -6,9 +6,9 @@ extension OriginalNormalizedAffineSource: Codable {
         guard #available(macOS 15.0, iOS 18.0, visionOS 2.0, watchOS 11.0, tvOS 18.0, *) else {
             throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable
         }
-        var usage = try NativeRationalSourceDecodingContext.allowance(from: decoder)
+        var usage = try NativeRationalSourceDecodingContext.execution(from: decoder)
         try OriginalAffineWordDecodingContext.validateSourceNesting(from: decoder)
-        try usage.visitExactCell(depth: 0)
+        try usage.visitCell(axis: .value, depth: 0)
         try NativeOriginalAffineWordCodec.keys(decoder, allowed: ["family", "location", "axis1", "axis2", "axis3", "scale", "lengthGain", "linearGain", "adjustments"])
         let object = try decoder.container(keyedBy: Keys.self)
         for key in [Keys.axis1, .axis2, .axis3, .scale] {
@@ -30,7 +30,7 @@ extension OriginalNormalizedAffineSource: Codable {
         }
         var container = try object.nestedUnkeyedContainer(forKey: .adjustments)
         guard let count = container.count else { throw NativeRationalSourceDecodingError.unboundedWordContainer }
-        try usage.consumeExactWork(count)
+        try usage.consumeWork(count)
         try OriginalAffineRationalMatrix.retain(count, of: OriginalNormalizedAffineAdjustment.self, usage: &usage)
         var adjustments: [OriginalNormalizedAffineAdjustment] = []; adjustments.reserveCapacity(count)
         while !container.isAtEnd {

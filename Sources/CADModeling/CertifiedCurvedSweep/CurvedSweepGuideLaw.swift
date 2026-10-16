@@ -35,12 +35,12 @@ package struct CurvedSweepGuideLaw {
 
     package init(method: SweepGuideMethod, guide: [BSplineCurve3D], section: [BSplineCurve3D], pathStart: Point3D,
                  startTangent: Vector3D, startAxes: (first: Vector3D, second: Vector3D), featureID: FeatureID?,
-                 tolerance: ModelingTolerance) throws {
+                 tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
         func failure(_ message: String) -> KernelError {
             KernelError(phase: .evaluation, code: .sweepGuideContactUnavailable, featureID: featureID, tolerance: tolerance, message: message)
         }
         guard let first = guide.first, case let .closed(lower, _) = first.domain else { throw failure("A curved sweep's guide is empty.") }
-        let begin = try Curve3D.bSpline(first).point(at: lower, tolerance: tolerance)
+        let begin = try Curve3D.bSpline(first).point(at: lower, tolerance: tolerance, using: &execution)
         guard abs((begin - pathStart).dot(startTangent)) <= tolerance.distance else {
             throw failure("A curved sweep's guide must start in the section's plane across the path.")
         }
@@ -70,11 +70,11 @@ package struct CurvedSweepGuideLaw {
     /// The section's turn and scale at the station `point` across `tangent`, its lateral axes
     /// there `axes`, continued from `state`.
     package func evaluate(at point: Point3D, tangent: Vector3D, axes: (first: Vector3D, second: Vector3D), from state: State,
-                          featureID: FeatureID?) throws -> (angle: Double, scale: Double, state: State) {
+                          featureID: FeatureID?, using execution: inout OriginalQueryExecution) throws -> (angle: Double, scale: Double, state: State) {
         func failure(_ message: String) -> KernelError {
             KernelError(phase: .evaluation, code: .sweepGuideContactUnavailable, featureID: featureID, tolerance: tolerance, message: message)
         }
-        let (g, found) = try crossing(at: point, tangent: tangent, axes: axes, from: state, featureID: featureID)
+        let (g, found) = try crossing(at: point, tangent: tangent, axes: axes, from: state, featureID: featureID, using: &execution)
         let distance = hypot(g.first, g.second)
         var contact = state.contact
         let scale: Double
@@ -85,7 +85,7 @@ package struct CurvedSweepGuideLaw {
             scale = 1
         case .curve:
             scale = 1
-            guard let reached = try reaching(distance, near: state.contact) else {
+            guard let reached = try reaching(distance, near: state.contact, using: &execution) else {
                 throw failure("A Curve guide runs farther from the path than the section reaches.")
             }
             contact = reached
@@ -98,7 +98,7 @@ package struct CurvedSweepGuideLaw {
     /// Where the guide crosses the plane across the path at the station `point`, as an offset in
     /// the station's lateral axes, searching on from where `state` last met it.
     package func crossing(at point: Point3D, tangent: Vector3D, axes: (first: Vector3D, second: Vector3D), from state: State,
-                          featureID: FeatureID?) throws -> (offset: (first: Double, second: Double), at: (span: Int, parameter: Double)) {
+                          featureID: FeatureID?, using execution: inout OriginalQueryExecution) throws -> (offset: (first: Double, second: Double), at: (span: Int, parameter: Double)) {
         func failure(_ message: String) -> KernelError {
             KernelError(phase: .evaluation, code: .sweepGuideContactUnavailable, featureID: featureID, tolerance: tolerance, message: message)
         }
@@ -113,21 +113,21 @@ package struct CurvedSweepGuideLaw {
             let from = span == state.span ? max(lower, state.parameter) : lower
             guard from <= upper else { continue }
             if from == upper {
-                let endpoint = try Curve3D.bSpline(spans[span]).point(at: upper, tolerance: tolerance)
+                let endpoint = try Curve3D.bSpline(spans[span]).point(at: upper, tolerance: tolerance, using: &execution)
                 if abs((endpoint - point).dot(tangent)) <= tolerance.distance {
                     contacts.append((span, upper))
                 }
                 continue
             }
             let roots = try intersector.intersections(curve: .bSpline(spans[span]), surface: station,
-                options: .init(curveRange: ScalarInterval(lower: from, upper: upper)), tolerance: tolerance)
+                options: .init(curveRange: ScalarInterval(lower: from, upper: upper)), tolerance: tolerance, using: &execution)
             contacts += roots.map { (span, $0.curveParameter) }
         }
         contacts.sort { $0.span == $1.span ? $0.parameter < $1.parameter : $0.span < $1.span }
         guard let found = contacts.first else {
             throw failure("A curved sweep's guide does not reach a station of the path.")
         }
-        let offset = try Curve3D.bSpline(spans[found.span]).point(at: found.parameter, tolerance: tolerance) - point
+        let offset = try Curve3D.bSpline(spans[found.span]).point(at: found.parameter, tolerance: tolerance, using: &execution) - point
         let g = (first: offset.dot(axes.first), second: offset.dot(axes.second))
         guard hypot(g.first, g.second) > tolerance.distance else { throw failure("A curved sweep's guide meets the path.") }
         return (g, found)
@@ -135,7 +135,7 @@ package struct CurvedSweepGuideLaw {
 
     /// Finds the complete original section/radius-cylinder contact set before
     /// choosing a continued contact. A sampled minimum is not a root certificate.
-    private func reaching(_ distance: Double, near previous: (first: Double, second: Double)) throws -> (first: Double, second: Double)? {
+    private func reaching(_ distance: Double, near previous: (first: Double, second: Double), using execution: inout OriginalQueryExecution) throws -> (first: Double, second: Double)? {
         let axis = try sectionAxes.first.cross(sectionAxes.second).normalized(tolerance: tolerance.distance)
         let cylinder = Surface3D.cylinder(Cylinder3D(origin: sectionOrigin, axis: axis, radius: distance))
         let intersector = DefaultCurveSurfaceIntersector()
@@ -147,7 +147,7 @@ package struct CurvedSweepGuideLaw {
                     message: "A sliding section contact lost its original finite support.")
             }
             let roots = try intersector.intersections(curve: .bSpline(span), surface: cylinder,
-                options: .init(curveRange: ScalarInterval(lower: lower, upper: upper)), tolerance: tolerance)
+                options: .init(curveRange: ScalarInterval(lower: lower, upper: upper)), tolerance: tolerance, using: &execution)
             for root in roots {
                 let offset = root.point - sectionOrigin
                 let contact = (first: offset.dot(sectionAxes.first), second: offset.dot(sectionAxes.second))

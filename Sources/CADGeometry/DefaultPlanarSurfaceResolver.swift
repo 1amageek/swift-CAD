@@ -43,58 +43,76 @@ package struct DefaultPlanarSurfaceResolver: PlanarSurfaceResolving {
         }
     }
 
-    package func exactPlane(
-        for surface: Surface3D,
-        tolerance: ModelingTolerance
-    ) throws -> ResolvedPlaneGeometry? {
-        if case let .procedural(.originalImage(image)) = surface {
-            _ = try image.transform.originalDeterminantSign(consumeWork: {})
-            guard let original = try exactPlane(for: image.source, tolerance: tolerance) else { return nil }
-            let vector = image.transform.basisY.cross(image.transform.basisZ) * original.normal.x
-                + image.transform.basisZ.cross(image.transform.basisX) * original.normal.y
-                + image.transform.basisX.cross(image.transform.basisY) * original.normal.z
-            let orientation = ((image.uGain > 0) == (image.vGain > 0) ? 1.0 : -1.0)
-                * (image.swapAxes ? -1.0 : 1.0)
-            let length = vector.length
-            guard length.isFinite, length > 0 else {
-                throw GeometryConversionError.resourceLimitExceeded("Original affine plane has no finite nonzero representative normal.")
+    package func exactPlane(for surface: Surface3D,
+        tolerance: ModelingTolerance) throws -> ResolvedPlaneGeometry? {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try exactPlane(for: surface, tolerance: tolerance, using: &execution)
+    }
+
+    package func exactPlane(for surface: Surface3D, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> ResolvedPlaneGeometry? {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
+        try execution.admitSourceDepth(0)
+        try tolerance.validate()
+        try surface.validate(tolerance: tolerance, using: &execution)
+        try GeometryStructuralComparisonWork.charge(surface: surface, using: &execution)
+        let result: ResolvedPlaneGeometry?
+        switch surface {
+        case .procedural(.originalImage):
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Exact-plane consumers reach this
+            // original affine support. A rounded cofactor normal cannot replace
+            // its retained source plane; supply an exact representation receipt
+            // before this source may be returned as an authored plane.
+            throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+                message: "Original affine plane resolution requires exact source representation authority.")
+        case let .procedural(.offset(offset)):
+            guard offset.distance == 0 else {
+                // FIXME(INCOMPLETE_IMPLEMENTATION): Exact-plane consumers may
+                // receive a nonzero original offset. Its rounded translated
+                // origin is not an exact source representation receipt.
+                throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+                    message: "Original offset plane resolution requires exact source representation authority.")
             }
-            return ResolvedPlaneGeometry(origin: image.transform.applying(to: original.origin),
-                normal: vector * (orientation / length))
+            result = try execution.withSourceDepthOffset(1) { execution in
+                try exactPlane(for: offset.source, tolerance: tolerance, using: &execution)
+            }
+        case let .bSpline(native):
+            result = try plane(forControlPoints: native.controlPoints.joined(),
+                tolerance: tolerance, using: &execution)
+        default:
+            result = canonicalPlane(for: surface)
         }
-        if let canonical = canonicalPlane(for: surface) { return canonical }
-        if case let .bSpline(surface) = surface {
-            return try plane(
-                forControlPoints: surface.controlPoints.joined(),
-                tolerance: tolerance
-            )
-        }
-        if case let .procedural(.offset(offset)) = surface,
-           let sourcePlane = try exactPlane(
-               for: offset.source,
-               tolerance: tolerance
-           ) {
-            return ResolvedPlaneGeometry(
-                origin: sourcePlane.origin + sourcePlane.normal * offset.distance,
-                normal: sourcePlane.normal
-            )
-        }
-        return nil
+        try execution.checkpoint()
+        return result
     }
 
     package func plane<Points: Collection>(
         forControlPoints points: Points,
         tolerance: ModelingTolerance
     ) throws -> ResolvedPlaneGeometry? where Points.Element == Point3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try plane(forControlPoints: points, tolerance: tolerance, using: &execution)
+    }
+
+    package func plane<Points: Collection, A: ExactScalarAdmission & ~Copyable>(
+        forControlPoints points: Points,
+        tolerance: ModelingTolerance, using execution: inout A
+    ) throws -> ResolvedPlaneGeometry? where Points.Element == Point3D {
+        try execution.checkpoint()
+        try tolerance.validate()
+        for point in points { try execution.consumeWork(1); try point.validate() }
         guard let origin = points.first else { return nil }
-        guard let first = points.dropFirst().first(where: {
-            ($0 - origin).length > tolerance.distance
+        guard let first = try points.dropFirst().first(where: {
+            try execution.consumeWork(1)
+            return ($0 - origin).length > tolerance.distance
         }) else {
             return nil
         }
         let firstDirection = first - origin
         var candidateNormal: (vector: Vector3D, minimumArea: Double)?
         for point in points.dropFirst() {
+            try execution.consumeWork(1)
             let candidateDirection = point - origin
             let cross = firstDirection.cross(candidateDirection)
             let minimumArea = tolerance.distance * max(
@@ -110,19 +128,15 @@ package struct DefaultPlanarSurfaceResolver: PlanarSurfaceResolving {
         let unitNormal = try candidateNormal.vector.normalized(
             tolerance: candidateNormal.minimumArea
         )
-        let coordinateScale = points.reduce(1.0) { scale, point in
-            max(
-                scale,
-                max(abs(point.x), max(abs(point.y), abs(point.z)))
-            )
+        let exactNormal = try ExactExpansionArithmetic.difference(
+            Point3D(x: unitNormal.x, y: unitNormal.y, z: unitNormal.z), .origin, using: &execution)
+        for point in points {
+            try execution.consumeWork(1)
+            let offset = try ExactExpansionArithmetic.difference(point, origin, using: &execution)
+            let dot = try ExactExpansionArithmetic.dot(offset, exactNormal, using: &execution)
+            guard try ExactExpansionArithmetic.sign(dot, using: &execution) == .zero else { return nil }
         }
-        let arithmeticEnvelope =
-            coordinateScale * Double.ulpOfOne * 4_096.0
-        guard points.allSatisfy({
-            abs(($0 - origin).dot(unitNormal)) <= arithmeticEnvelope
-        }) else {
-            return nil
-        }
+        try execution.checkpoint()
         return ResolvedPlaneGeometry(
             origin: origin,
             normal: unitNormal

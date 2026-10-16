@@ -1,0 +1,688 @@
+{
+  "scope": "Durable evidence for the final changed-source G01 bounded public fixture only. No whole G01/U1-U4 or upper-target completion claim.",
+  "sourceRoot": "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD",
+  "sourceCount": {
+    "CADCore": 65,
+    "CADGeometry": 2170
+  },
+  "sourceAuthority": {
+    "path": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-candidate-native-constant-depth-20261016-r1/receipt.json",
+    "sha256": "2ee8c008aad283ba33cd8a456fec51277040145437951f8ebd57f54711e28bae"
+  },
+  "sourceHashMap": "portable-receipt.json#sourceSHA256",
+  "fixture": {
+    "path": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/G01Direct/G01DirectAcceptance.swift",
+    "sha256": "b07fcbdea7ac9715979461facf282fe3c2e9ec7006d1529bd15293be8077d6c5",
+    "expectedOutputLines": [
+      "PASS G01 public ordinary",
+      "PASS G01 public admitted",
+      "PASS G01 public prepared",
+      "PASS G01 public readers",
+      "PASS G01 public resources",
+      "PASS G01 public full",
+      "PASS G01 public all"
+    ]
+  },
+  "field": {
+    "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/OriginalSingularFieldElement.swift",
+    "sha256": "c30a4912d0bd28857b7e0777ea796d7395ac2414b809c314b695292fd90f2d6d"
+  },
+  "compilerVersion": "Apple Swift version 6.4 (swift-6.4-RELEASE)\nTarget: arm64-apple-macosx27.0.0\n",
+  "toolSHA256": {
+    "swiftc": "79ae5c26645489fb783ae980f0f1bdae810f90fb180c9ac39808807b65e9fd69",
+    "swift-frontend": "32d565dc81f4e714f91da71cc1a501a335c20347c15d5ab522f9cacf9d225caf",
+    "clang": "2301dabb68b7e854c7e65e975349addd00974beae38ef7d5e4e363d4e5edeb81"
+  },
+  "wasmSDK": {
+    "path": "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1",
+    "identifiers": [
+      "swift-6.4.0-RELEASE_wasm",
+      "swift-6.4.0-RELEASE_wasm-embedded"
+    ],
+    "metadataSHA256": {
+      "swift-sdk.json": "5ce9854bf06caef51f4df3993e1c98f686b296e1029ea60a9fd0265df8966f04",
+      "embedded-swift-sdk.json": "7fa4767cd98af9f6ad8921e6effb25d29b8454e4eea55d450162c91c0d30aa75",
+      "toolset.json": "44d1b0b287ac787f0ae2de87744148de464810444afe1f12f45d367391699986",
+      "embedded-toolset.json": "7ca4a4aeeebe44a02cc2b5dfb11881a4e0e5a58cba99708727a92734b4ca2954"
+    }
+  },
+  "nativeSDK": {
+    "path": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+    "SDKSettings.json": "7b93ad7e534cc4b31c6a4e39d19b5e0288acf2168c2649479a796d1cb51939fb"
+  },
+  "nativeLinker": {
+    "path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld",
+    "sha256": "374d9f0713bce2c8a9e1e82bde51615d5433516a10d99b63107eb6ee70542e4c"
+  },
+  "environment": {
+    "PATHFirst": "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin",
+    "TOOLCHAINS": null,
+    "ASAN_OPTIONS": "halt_on_error=1:abort_on_error=1"
+  },
+  "bounds": {
+    "compileLinkSecondsPerLane": 1200,
+    "runtimeSeconds": 120,
+    "aggregateRSSBytes": 10737418240,
+    "compilerProcessesAtOnce": 1
+  },
+  "commands": {
+    "asan": {
+      "build": {
+        "compile": [
+          "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+          "-parse-as-library",
+          "-Onone",
+          "-g",
+          "-swift-version",
+          "6",
+          "-package-name",
+          "swift_cad",
+          "-DSWIFT_PACKAGE",
+          "-DDEBUG",
+          "-DNativeExchange",
+          "-whole-module-optimization",
+          "-num-threads",
+          "0",
+          "-j1",
+          "-enable-testing",
+          "-I",
+          "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan",
+          "-I",
+          "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan/dependencies",
+          "-sanitize=address",
+          "-sdk",
+          "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+          "-target",
+          "arm64-apple-macos27.0",
+          "-tools-directory",
+          "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin",
+          "-Xclang-linker",
+          "-fuse-ld=/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld",
+          "-module-name",
+          "CADGeometry",
+          "-emit-module",
+          "-emit-module-path",
+          "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan/CADGeometry.swiftmodule",
+          "-emit-object",
+          "-o",
+          "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan/CADGeometry.code.o",
+          "@/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan/GeometrySources.rsp"
+        ],
+        "link": [
+          "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+          "-parse-as-library",
+          "-Onone",
+          "-g",
+          "-swift-version",
+          "6",
+          "-package-name",
+          "swift_cad",
+          "-DSWIFT_PACKAGE",
+          "-DDEBUG",
+          "-DNativeExchange",
+          "-whole-module-optimization",
+          "-num-threads",
+          "0",
+          "-j1",
+          "-enable-testing",
+          "-I",
+          "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan",
+          "-I",
+          "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan/dependencies",
+          "-sanitize=address",
+          "-sdk",
+          "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+          "-target",
+          "arm64-apple-macos27.0",
+          "-tools-directory",
+          "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin",
+          "-Xclang-linker",
+          "-fuse-ld=/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld",
+          "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/snapshot/Tests/OriginalPublicAcceptanceVerification/G01Direct/G01DirectAcceptance.swift",
+          "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan/CADGeometry.code.o",
+          "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan/dependencies/CADCore.code.o",
+          "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan/dependencies/InternalCollectionsUtilities.o",
+          "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan/dependencies/HashTreeCollections.o",
+          "-o",
+          "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan/GeometryPublicFixture"
+        ],
+        "runtime": [
+          "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan/GeometryPublicFixture"
+        ]
+      },
+      "runtimeSteps": [
+        {
+          "phase": "runtime-ordinary",
+          "command": [
+            "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan/GeometryPublicFixture",
+            "ordinary"
+          ],
+          "requiredOutputLines": [
+            "PASS G01 public ordinary"
+          ]
+        },
+        {
+          "phase": "runtime-admitted",
+          "command": [
+            "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan/GeometryPublicFixture",
+            "admitted"
+          ],
+          "requiredOutputLines": [
+            "PASS G01 public admitted"
+          ]
+        },
+        {
+          "phase": "runtime-prepared",
+          "command": [
+            "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan/GeometryPublicFixture",
+            "prepared"
+          ],
+          "requiredOutputLines": [
+            "PASS G01 public prepared"
+          ]
+        },
+        {
+          "phase": "runtime-readers",
+          "command": [
+            "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan/GeometryPublicFixture",
+            "readers"
+          ],
+          "requiredOutputLines": [
+            "PASS G01 public readers"
+          ]
+        },
+        {
+          "phase": "runtime-resources",
+          "command": [
+            "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan/GeometryPublicFixture",
+            "resources"
+          ],
+          "requiredOutputLines": [
+            "PASS G01 public resources"
+          ]
+        },
+        {
+          "phase": "runtime-full",
+          "command": [
+            "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan/GeometryPublicFixture",
+            "full"
+          ],
+          "requiredOutputLines": [
+            "PASS G01 public full"
+          ]
+        }
+      ],
+      "sdkIdentifier": "macOS27.0"
+    },
+    "wasm": {
+      "build": {
+        "compile": [
+          "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+          "-parse-as-library",
+          "-Onone",
+          "-g",
+          "-swift-version",
+          "6",
+          "-package-name",
+          "swift_cad",
+          "-DSWIFT_PACKAGE",
+          "-DDEBUG",
+          "-DNativeExchange",
+          "-whole-module-optimization",
+          "-num-threads",
+          "0",
+          "-j1",
+          "-enable-testing",
+          "-I",
+          "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm",
+          "-I",
+          "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm/dependencies",
+          "-target",
+          "wasm32-unknown-wasip1",
+          "-sdk",
+          "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk",
+          "-resource-dir",
+          "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static",
+          "-static-stdlib",
+          "-tools-directory",
+          "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin",
+          "-Xclang-linker",
+          "-resource-dir",
+          "-Xclang-linker",
+          "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/clang",
+          "-module-name",
+          "CADGeometry",
+          "-emit-module",
+          "-emit-module-path",
+          "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm/CADGeometry.swiftmodule",
+          "-emit-object",
+          "-o",
+          "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm/CADGeometry.code.o",
+          "@/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm/GeometrySources.rsp"
+        ],
+        "link": [
+          "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+          "-parse-as-library",
+          "-Onone",
+          "-g",
+          "-swift-version",
+          "6",
+          "-package-name",
+          "swift_cad",
+          "-DSWIFT_PACKAGE",
+          "-DDEBUG",
+          "-DNativeExchange",
+          "-whole-module-optimization",
+          "-num-threads",
+          "0",
+          "-j1",
+          "-enable-testing",
+          "-I",
+          "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm",
+          "-I",
+          "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm/dependencies",
+          "-target",
+          "wasm32-unknown-wasip1",
+          "-sdk",
+          "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk",
+          "-resource-dir",
+          "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static",
+          "-static-stdlib",
+          "-tools-directory",
+          "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin",
+          "-Xclang-linker",
+          "-resource-dir",
+          "-Xclang-linker",
+          "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/clang",
+          "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/snapshot/Tests/OriginalPublicAcceptanceVerification/G01Direct/G01DirectAcceptance.swift",
+          "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm/CADGeometry.code.o",
+          "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm/dependencies/CADCore.code.o",
+          "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm/dependencies/InternalCollectionsUtilities.o",
+          "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm/dependencies/HashTreeCollections.o",
+          "-o",
+          "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm/GeometryPublicFixture.wasm",
+          "-Xlinker",
+          "-z",
+          "-Xlinker",
+          "stack-size=67108864"
+        ],
+        "runtime": [
+          "/usr/local/bin/node",
+          "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/snapshot/Tests/OriginalPublicAcceptanceVerification/RunWASI.mjs",
+          "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm/GeometryPublicFixture.wasm"
+        ]
+      },
+      "runtimeSteps": [
+        {
+          "phase": "runtime-ordinary",
+          "command": [
+            "/usr/local/bin/node",
+            "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/snapshot/Tests/OriginalPublicAcceptanceVerification/RunWASI.mjs",
+            "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm/GeometryPublicFixture.wasm",
+            "ordinary"
+          ],
+          "requiredOutputLines": [
+            "PASS G01 public ordinary"
+          ]
+        },
+        {
+          "phase": "runtime-admitted",
+          "command": [
+            "/usr/local/bin/node",
+            "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/snapshot/Tests/OriginalPublicAcceptanceVerification/RunWASI.mjs",
+            "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm/GeometryPublicFixture.wasm",
+            "admitted"
+          ],
+          "requiredOutputLines": [
+            "PASS G01 public admitted"
+          ]
+        },
+        {
+          "phase": "runtime-prepared",
+          "command": [
+            "/usr/local/bin/node",
+            "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/snapshot/Tests/OriginalPublicAcceptanceVerification/RunWASI.mjs",
+            "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm/GeometryPublicFixture.wasm",
+            "prepared"
+          ],
+          "requiredOutputLines": [
+            "PASS G01 public prepared"
+          ]
+        },
+        {
+          "phase": "runtime-readers",
+          "command": [
+            "/usr/local/bin/node",
+            "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/snapshot/Tests/OriginalPublicAcceptanceVerification/RunWASI.mjs",
+            "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm/GeometryPublicFixture.wasm",
+            "readers"
+          ],
+          "requiredOutputLines": [
+            "PASS G01 public readers"
+          ]
+        },
+        {
+          "phase": "runtime-resources",
+          "command": [
+            "/usr/local/bin/node",
+            "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/snapshot/Tests/OriginalPublicAcceptanceVerification/RunWASI.mjs",
+            "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm/GeometryPublicFixture.wasm",
+            "resources"
+          ],
+          "requiredOutputLines": [
+            "PASS G01 public resources"
+          ]
+        },
+        {
+          "phase": "runtime-full",
+          "command": [
+            "/usr/local/bin/node",
+            "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/snapshot/Tests/OriginalPublicAcceptanceVerification/RunWASI.mjs",
+            "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm/GeometryPublicFixture.wasm",
+            "full"
+          ],
+          "requiredOutputLines": [
+            "PASS G01 public full"
+          ]
+        }
+      ],
+      "sdkIdentifier": "swift-6.4.0-RELEASE_wasm"
+    },
+    "embedded": {
+      "build": {
+        "compile": [
+          "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+          "-parse-as-library",
+          "-Onone",
+          "-g",
+          "-swift-version",
+          "6",
+          "-package-name",
+          "swift_cad",
+          "-DSWIFT_PACKAGE",
+          "-DDEBUG",
+          "-DNativeExchange",
+          "-whole-module-optimization",
+          "-num-threads",
+          "0",
+          "-j1",
+          "-enable-testing",
+          "-I",
+          "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/embedded",
+          "-I",
+          "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/embedded/dependencies",
+          "-target",
+          "wasm32-unknown-wasip1",
+          "-sdk",
+          "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk",
+          "-resource-dir",
+          "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift",
+          "-static-stdlib",
+          "-tools-directory",
+          "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin",
+          "-Xclang-linker",
+          "-resource-dir",
+          "-Xclang-linker",
+          "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/clang",
+          "-enable-experimental-feature",
+          "Embedded",
+          "-module-name",
+          "CADGeometry",
+          "-emit-module",
+          "-emit-module-path",
+          "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/embedded/CADGeometry.swiftmodule",
+          "@/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/embedded/GeometrySources.rsp"
+        ],
+        "link": [
+          "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+          "-parse-as-library",
+          "-Onone",
+          "-g",
+          "-swift-version",
+          "6",
+          "-package-name",
+          "swift_cad",
+          "-DSWIFT_PACKAGE",
+          "-DDEBUG",
+          "-DNativeExchange",
+          "-whole-module-optimization",
+          "-num-threads",
+          "0",
+          "-j1",
+          "-enable-testing",
+          "-I",
+          "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/embedded",
+          "-I",
+          "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/embedded/dependencies",
+          "-target",
+          "wasm32-unknown-wasip1",
+          "-sdk",
+          "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk",
+          "-resource-dir",
+          "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift",
+          "-static-stdlib",
+          "-tools-directory",
+          "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin",
+          "-Xclang-linker",
+          "-resource-dir",
+          "-Xclang-linker",
+          "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/clang",
+          "-enable-experimental-feature",
+          "Embedded",
+          "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/snapshot/Tests/OriginalPublicAcceptanceVerification/G01Direct/G01DirectAcceptance.swift",
+          "-o",
+          "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/embedded/GeometryPublicFixture.wasm",
+          "-Xlinker",
+          "-z",
+          "-Xlinker",
+          "stack-size=67108864",
+          "-Xlinker",
+          "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/embedded/wasm32-unknown-wasip1/libswiftUnicodeDataTables.a",
+          "-Xlinker",
+          "-lc++",
+          "-Xlinker",
+          "-lc++abi",
+          "-Xlinker",
+          "-lswift_Concurrency"
+        ],
+        "runtime": [
+          "/usr/local/bin/node",
+          "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/snapshot/Tests/OriginalPublicAcceptanceVerification/RunWASI.mjs",
+          "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/embedded/GeometryPublicFixture.wasm"
+        ]
+      },
+      "runtimeSteps": [
+        {
+          "phase": "runtime",
+          "command": [
+            "/usr/local/bin/node",
+            "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/snapshot/Tests/OriginalPublicAcceptanceVerification/RunWASI.mjs",
+            "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/embedded/GeometryPublicFixture.wasm"
+          ],
+          "requiredOutputLines": [
+            "PASS G01 public ordinary",
+            "PASS G01 public admitted",
+            "PASS G01 public prepared",
+            "PASS G01 public readers",
+            "PASS G01 public resources",
+            "PASS G01 public full",
+            "PASS G01 public all"
+          ]
+        }
+      ],
+      "sdkIdentifier": "swift-6.4.0-RELEASE_wasm-embedded"
+    }
+  },
+  "products": "portable-summary.json#productSHA256",
+  "compileAndLinkLogs": "portable-summary.json#logSHA256",
+  "fullArtifactsRetainedAt": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1",
+  "review": {
+    "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-production-review-20261016/REVIEW.md",
+    "sha256": "ebd7cfddf9001cb20d3dd9d819a4875e245c9180f61c3de263bb9288a3bbebe2",
+    "manifests": {
+      "R1-finding-only-snapshot.json": {
+        "path": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-production-review-20261016/R1-finding-only-snapshot.json",
+        "sha256": "bb67c36dbd56838d7afbe817e9b5bcee2450d26667fdccb08712f4f222cd7c43"
+      },
+      "R1-prepaid-order-r4-snapshot.json": {
+        "path": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-production-review-20261016/R1-prepaid-order-r4-snapshot.json",
+        "sha256": "e6eb0580d713651bc4e91f052cc8a55f7c9dfcb1ea7aa58a6f14109bf802c1fc"
+      },
+      "measured-cost-and-R1-prefix-r5-snapshot.json": {
+        "path": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-production-review-20261016/measured-cost-and-R1-prefix-r5-snapshot.json",
+        "sha256": "a1062484dadffa0b573d384ecdb2b426b1fd6548ad3651cedc630dea4545a614"
+      },
+      "source-review-snapshot.json": {
+        "path": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-production-review-20261016/source-review-snapshot.json",
+        "sha256": "9ef16fb43ecabedeaf5efc29496aa2b3cd30009e40396e828bed3fc3d5b7b875"
+      }
+    },
+    "interpretation": "Verbatim original comprehensive G01 review and finding-only conclusions. Its pending-runtime statements retain their historical snapshot scope; this package adds the final portable proof, while latest Native public acceptance remains pending."
+  },
+  "lowerCommon": {
+    "summary": {
+      "path": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/u1-constant-depth-reverify-20261016/summary.json",
+      "sha256": "ac2e373b519e56854bdbe1262f65bd61b1e03cac1e47b59be14a9a7c3b6fb9f8"
+    },
+    "inputs": {
+      "path": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/u1-constant-depth-reverify-20261016/inputs.json",
+      "sha256": "5ef324d4091351c7e128706f9c68047bcf789a3eac5be4e98dbb969cdfd4ed7e"
+    },
+    "lowerReceipt": {
+      "path": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/u1-constant-depth-reverify-20261016/lower/receipt.json",
+      "sha256": "d8d352a226d4aa844494b7946736130eca074ced0d5afad9c5b1115e5a560201"
+    },
+    "commonReceipt": {
+      "path": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/u1-constant-depth-reverify-20261016/common/receipt.json",
+      "sha256": "46805725c20195620771ae1881aad4bb7e05ab3e5b6403282cffd92f2f5da06a"
+    },
+    "scope": "Causal constant admission correction only: actual235 lower input closure and unchanged27Core+63Geometry common execution/predicates. Not full package, all Geometry families or whole U1\u2013U4.",
+    "limitation": "WASI cooperative tasks do not prove multi-threaded WASM locking."
+  },
+  "historicalNormalWASMStop": {
+    "receipt": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/u1-g01-candidate-wasm-20261016/receipt.json",
+    "sha256": "b23dc5e5e3b4fa0c75e5b5f0dd8ecbe30622435758849fab0e3db1330b22681d",
+    "status": "failed",
+    "fixtureSHA256": "b07fcbdea7ac9715979461facf282fe3c2e9ec7006d1529bd15293be8077d6c5",
+    "runtime": {
+      "command": [
+        "/usr/local/bin/node",
+        "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/u1-g01-candidate-wasm-20261016/snapshot/Tests/OriginalPublicAcceptanceVerification/RunWASI.mjs",
+        "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/u1-g01-candidate-wasm-20261016/wasm/GeometryPublicFixture.wasm"
+      ],
+      "exitCode": -15,
+      "elapsedSeconds": 120.10685412499879,
+      "peakRSSBytes": 489619456,
+      "rssScope": "sampled PPID-descendant process tree",
+      "stopReason": "timeout",
+      "logSHA256": "1b3515bb36abc9dbcffac961e2ef19d91d8b5a9e2d354fb763ae9c362ad96922",
+      "name": "wasm-runtime",
+      "log": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/u1-g01-candidate-wasm-20261016/wasm-runtime.log",
+      "wallLimitSeconds": 120
+    },
+    "interpretation": "Historical all-in-one normal-WASM runtime timed out at its original120-second bound. It is not a current pass and was not replayed unchanged. Final changed-source proof uses six existing CLI groups, each with the unchanged120-second bound."
+  },
+  "latestNativePublic": "pending; Root owns final Native/upper/integration evidence",
+  "runnerCopy": {
+    "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalQueryExecutionVerification/verify_full_geometry.py",
+    "candidate": "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD/Tests/OriginalQueryExecutionVerification/verify_full_geometry.py",
+    "sha256": "fcaa332e62f218f1235fc4d98ab3ebc57bc7394d17b8550a4c2ac1240b09aef1",
+    "actualRunMonitor": {
+      "path": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalQueryExecutionVerification/native_tests.py",
+      "sha256": "61b14b60c57ce4064ca439fd08c53f9643cfe2da1e7c6e9f6551b0f5dc36ddbf"
+    },
+    "monitorNote": "Candidate native_tests.py resource/WMO port was not overwritten. A concurrent owner update changed its complete file SHA during packaging; before-copy and current identities are recorded separately. Its run() monitor body matches the actually executed original monitor. Actual runtime provenance remains the original paths/hashes.",
+    "candidateMonitorBeforeRunnerCopySHA256": "05ff55f78ebbd64cf8f2e6843916deef210840c072f74e8fddc9d53eceed0557",
+    "candidateMonitorAtPackagingSHA256": "01a353883f2ee661a3b4b55f11137a9b999ae58043c77513dbc19d438f4c03f5",
+    "monitorRunBodySHA256": "b54bc262f3393646519f33ce50b77955767b3d201b89db76f185ed9d61964cb0",
+    "monitorRunBodyMatchesOriginal": true,
+    "candidateMonitorEditedByPackagingOwner": false
+  },
+  "copiedFiles": {
+    "portable-receipt.json": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/receipt.json",
+      "sha256": "5fc572edc7584872cc5b582a50ae34549e19d944c5c6e5107f78c158f78e5e47"
+    },
+    "portable-summary.json": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/final-summary.json",
+      "sha256": "9793bb1b6f03b825a475bfc484a6b12e68716ff2905e3d95af82b9e964b17045"
+    },
+    "runtime/asan-runtime-ordinary.log": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan-runtime-ordinary.log",
+      "sha256": "7c59dd7c23672804650692152121f621016159fd84f8921e632488434153fc2b"
+    },
+    "runtime/asan-runtime-admitted.log": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan-runtime-admitted.log",
+      "sha256": "7fa68276fb18765ddadfce8e58f636cf57e248a32d7e2fc436b645f42e3fe095"
+    },
+    "runtime/asan-runtime-prepared.log": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan-runtime-prepared.log",
+      "sha256": "00cd7915cb0d14999298238c95733d4e062a4c02fb6913e5c62c00f7b277f795"
+    },
+    "runtime/asan-runtime-readers.log": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan-runtime-readers.log",
+      "sha256": "7061157b4225c3d88d03351aaf39a4fdbf707b445f666a02255f670ae2b858fa"
+    },
+    "runtime/asan-runtime-resources.log": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan-runtime-resources.log",
+      "sha256": "9d95120b75371fdf0d5bc873df811bdc7726530fb2ab0c62201753f38edcfb5b"
+    },
+    "runtime/asan-runtime-full.log": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan-runtime-full.log",
+      "sha256": "e4fbc0f2609afcdd8fc87b6776638758676ba0a0f7c03976798d86f935daa6b6"
+    },
+    "runtime/wasm-runtime-ordinary.log": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm-runtime-ordinary.log",
+      "sha256": "ab00ac08f8cc2077089400ddd1be69cff9cb1a713a2c51c71846aab9f8fdf427"
+    },
+    "runtime/wasm-runtime-admitted.log": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm-runtime-admitted.log",
+      "sha256": "9a146b535284b2d6eac766e686cd08df5236e7b9b31fc76aa3f6e0c44ab0cff8"
+    },
+    "runtime/wasm-runtime-prepared.log": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm-runtime-prepared.log",
+      "sha256": "5ca1cae568548948f66c9636ebbcaf103c20c3b9a8d22e198523b4cf2af6f4a4"
+    },
+    "runtime/wasm-runtime-readers.log": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm-runtime-readers.log",
+      "sha256": "7302c2c9bdf01586079591d43fb6237024034d1533eaf8d888cbca86c3c50cd7"
+    },
+    "runtime/wasm-runtime-resources.log": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm-runtime-resources.log",
+      "sha256": "432044088e8a029fa8c06b1ca512122fe91898220edbe2e3333e7db054f3bf3a"
+    },
+    "runtime/wasm-runtime-full.log": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm-runtime-full.log",
+      "sha256": "9fd1afeece9c64a9a09cbb816394f105e941e51f0a92815a2459f81e77b61691"
+    },
+    "runtime/embedded-runtime.log": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/embedded-runtime.log",
+      "sha256": "4aa46e4dc08ac61a224c515e706c0af1a561a5a8cb1a5738a149ddf22b00462c"
+    },
+    "review/REVIEW.md": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-production-review-20261016/REVIEW.md",
+      "sha256": "ebd7cfddf9001cb20d3dd9d819a4875e245c9180f61c3de263bb9288a3bbebe2"
+    },
+    "lower-common-summary.json": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/u1-constant-depth-reverify-20261016/summary.json",
+      "sha256": "ac2e373b519e56854bdbe1262f65bd61b1e03cac1e47b59be14a9a7c3b6fb9f8"
+    }
+  },
+  "binaryAndSourceSnapshotCopies": false,
+  "packagingCompilerOrRuntimeStarted": false,
+  "nativePublicFinal": {
+    "receipt": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-native-20261016-r1/receipt.json",
+    "sha256": "7a3bbe8b886b0645f8a7479a68eced3e9af7f401d2fcadfd3ddad79dba4e2304",
+    "durableCopy": "native-receipt.json",
+    "scope": "Current2235-source accepted module/object prefix and newly linked real public fixture; six bounded groups, no production regeneration.",
+    "runtimeLogs": {
+      "runtime-readers.log": "7061157b4225c3d88d03351aaf39a4fdbf707b445f666a02255f670ae2b858fa",
+      "runtime-full.log": "e4fbc0f2609afcdd8fc87b6776638758676ba0a0f7c03976798d86f935daa6b6",
+      "runtime-admitted.log": "7fa68276fb18765ddadfce8e58f636cf57e248a32d7e2fc436b645f42e3fe095",
+      "runtime-prepared.log": "00cd7915cb0d14999298238c95733d4e062a4c02fb6913e5c62c00f7b277f795",
+      "runtime-ordinary.log": "7c59dd7c23672804650692152121f621016159fd84f8921e632488434153fc2b",
+      "runtime-resources.log": "9d95120b75371fdf0d5bc873df811bdc7726530fb2ab0c62201753f38edcfb5b"
+    },
+    "sourcesAndProductsUnchanged": true
+  }
+}

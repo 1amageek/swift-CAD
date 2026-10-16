@@ -150,6 +150,9 @@ struct NativeTerminalTrimTests {
 
     @Test(.timeLimit(.minutes(2)), arguments: ["NativeTerminalTrim", "SecondNativeTerminalTrim"])
     func nativeTerminalsJoinRetainedNeighbors(fixtureName: String) throws {
+        var execution = OriginalQueryExecution(budget: try .init(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32,
+                remainingSourceDepth: 16, maximumSubdivisionDepth: 32))
         let url = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
             .appendingPathComponent("Fixtures/\(fixtureName).json")
         let fixture = try JSONDecoder().decode(Fixture.self, from: Data(contentsOf: url))
@@ -165,7 +168,7 @@ struct NativeTerminalTrimTests {
                 facePair: .init(targetFaceID: faceID, toolFaceID: faceID), componentID: .init(ordinal: 0)),
                 segmentOrdinal: 0, faceID: faceID, edge: fixture.terminal.edge,
                 forwardLeftAction: .keep, forwardRightAction: .keep, forcedPartitioning: true)],
-            model: sewn.brep, sourceSubshapes: sewn.subshapes, tolerance: tolerance)
+            model: sewn.brep, sourceSubshapes: sewn.subshapes, tolerance: tolerance, using: &execution)
         #expect(partition.isPartitioned)
         #expect(partition.patches.count == 2)
         let corner = fixture.boundary[fixtureName == "NativeTerminalTrim" ? 1 : 2].endPoint
@@ -207,6 +210,9 @@ struct NativeTerminalTrimTests {
     }
 
     private func verifyBoundary(fixtureName: String) throws {
+        var execution = OriginalQueryExecution(budget: try .init(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32,
+                remainingSourceDepth: 16, maximumSubdivisionDepth: 32))
         let url = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
             .appendingPathComponent("Fixtures/\(fixtureName).json")
         let fixture = try JSONDecoder().decode(Fixture.self, from: Data(contentsOf: url))
@@ -216,7 +222,7 @@ struct NativeTerminalTrimTests {
             print("Native terminal boundary edge \(index): \(source.stableID)")
             let result = try ExactTrimEdgeIntersector().intersections(
                 source.edge, fixture.terminal.edge,
-                sharedSurface: fixture.surface, tolerance: tolerance)
+                sharedSurface: fixture.surface, tolerance: tolerance, using: &execution)
             guard case .subdivisionPoints(let points) = result else {
                 Issue.record("A terminal crossing must not coincide with a source boundary.")
                 continue

@@ -8,7 +8,7 @@ package struct OriginalFieldSurfaceNormalLaw: Sendable {
     package let view: Vector3D
     package let maximumAlgebraicDepth: Int
 
-    package init<B: RationalAlgebraAdmitting>(originalHomogeneous: [OriginalSingularFieldPlanePolynomial],
+    package init<B: ExactScalarAdmission & ~Copyable>(originalHomogeneous: [OriginalSingularFieldPlanePolynomial],
         view: Vector3D, maximumAlgebraicDepth: Int,
         admittedNativeNormalFactor: ExactBivariatePolynomial? = nil, usage: inout B) throws {
         guard originalHomogeneous.count == 4, let first = originalHomogeneous.first,
@@ -17,7 +17,7 @@ package struct OriginalFieldSurfaceNormalLaw: Sendable {
             throw rationalAlgebraFailure("Original field normal requires complete homogeneous source coefficients and a finite nonzero view.")
         }
         for polynomial in originalHomogeneous {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             guard polynomial.context === first.context else {
                 throw rationalAlgebraFailure("Original field surface coordinates have unrelated coefficient owners.")
             }
@@ -69,7 +69,7 @@ package struct OriginalFieldSurfaceNormalLaw: Sendable {
     }
 
     /// The numerator identity is a surface zero law only on a nonzero original W.
-    package func weightIsNonzero<B: RationalAlgebraAdmitting>(over domain: SurfaceParameterBox,
+    package func weightIsNonzero<B: ExactScalarAdmission & ~Copyable>(over domain: SurfaceParameterBox,
         inheritedDepth: Int, usage: inout B) throws -> Bool {
         try originalHomogeneous[3].partial(over: domain, uOrder: 0, vOrder: 0,
             inheritedDepth: inheritedDepth, maximumDepth: maximumAlgebraicDepth, usage: &usage).excludesZero

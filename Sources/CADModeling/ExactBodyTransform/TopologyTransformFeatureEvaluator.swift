@@ -94,7 +94,7 @@ public struct TopologyTransformFeatureEvaluator: FeatureEvaluating, ValidatedFea
         guard transformsWholeBody ? !isIdentity : displacements.values.contains(where: { $0.length > context.tolerance.distance }) else {
             throw failure(.invalidInput, feature.id, context.tolerance, "A topology transform moves nothing.")
         }
-        let replacedSubshapeIDs = bodyScope.subshapeIDs(in: context.subshapes)
+        let replacedSubshapeIDs = try bodyScope.subshapeIDs(in: context.subshapes)
         var model = context.brep
         if transformsWholeBody {
             let sourceModel = try BRepBodySubmodelExtractor().extract(bodyIDs: [bodyID], from: context.brep)

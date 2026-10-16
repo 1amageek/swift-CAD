@@ -18,33 +18,26 @@ package struct OriginalCurveEndpointPositionRelation: Sendable {
     }
 
     /// Nil means a proved unequal original position; missing authority throws.
-    package static func prove<B: RationalAlgebraAdmitting>(first: Curve3D, at firstParameter: Double,
+    package static func prove(first: Curve3D, at firstParameter: Double,
         second: Curve3D, at secondParameter: Double,
         firstNativeSpanIndex: Int? = nil, secondNativeSpanIndex: Int? = nil, remainingSourceDepth: Int,
         maximumSubdivisionDepth: Int, tolerance: ModelingTolerance,
-        storageByteStride: Int = MemoryLayout<UInt32>.stride, usage: inout B,
+        usage: inout OriginalQueryExecution,
         maximumAlgebraicDepth: Int? = nil) throws -> Self? {
-        guard storageByteStride > 0, maximumAlgebraicDepth.map({ (0...32).contains($0) }) ?? true else {
+        guard maximumAlgebraicDepth.map({ (0...32).contains($0) }) ?? true else {
             throw GeometryConversionError.invalidInput("Original endpoint storage stride must be positive.")
         }
-        func bytes(_ count: Int) throws {
-            try retainBytes(count, stride: storageByteStride, usage: &usage)
-        }
-        try withoutActuallyEscaping(bytes) { storage in
-            try first.validateOriginalSource(tolerance: tolerance, remainingSourceDepth: remainingSourceDepth,
-                maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: { _ in try usage.consumeExactWork(1) }, consumeStorage: storage,
-                maximumAlgebraicDepth: maximumAlgebraicDepth)
-            try second.validateOriginalSource(tolerance: tolerance, remainingSourceDepth: remainingSourceDepth,
-                maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: { _ in try usage.consumeExactWork(1) }, consumeStorage: storage,
-                maximumAlgebraicDepth: maximumAlgebraicDepth)
-        }
+        try first.validateOriginalSource(tolerance: tolerance, remainingSourceDepth: remainingSourceDepth,
+            maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using:&usage)
+        try second.validateOriginalSource(tolerance: tolerance, remainingSourceDepth: remainingSourceDepth,
+            maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using:&usage)
         guard firstParameter.isFinite, secondParameter.isFinite else {
             throw GeometryConversionError.invalidInput("Original endpoint stations must be finite.")
         }
         if firstParameter == secondParameter, firstNativeSpanIndex == secondNativeSpanIndex {
-            try GeometryStructuralComparisonWork.charge(curve: first, using: { try usage.consumeExactWork($0) })
-            try GeometryStructuralComparisonWork.charge(curve: second, using: { try usage.consumeExactWork($0) })
-            if first == second {
+            try GeometryStructuralComparisonWork.charge(curve: first, using: &usage)
+            try GeometryStructuralComparisonWork.charge(curve: second, using: &usage)
+            if hasSameOriginalSource(first: first, second: second) {
                 var admitted = true
                 switch first.parameterDomain {
                 case .closed(let lower, let upper): admitted = firstParameter >= lower && firstParameter <= upper
@@ -80,7 +73,7 @@ package struct OriginalCurveEndpointPositionRelation: Sendable {
             guard try OriginalCurveTraversalEndpointRelation().proves(first: a.boundary,
                 firstAtEnd: a.atEnd, second: b.boundary, secondAtEnd: b.atEnd,
                 remainingSourceDepth: remainingSourceDepth - 1,
-                maximumSubdivisionDepth: maximumSubdivisionDepth, storageByteStride: storageByteStride, usage: &usage,
+                maximumSubdivisionDepth: maximumSubdivisionDepth, usage: &usage,
                 maximumAlgebraicDepth: maximumAlgebraicDepth) else { return nil }
             return .init(first: first, firstParameter: firstParameter, second: second,
                 secondParameter: secondParameter, firstNativeSpanIndex: firstNativeSpanIndex,
@@ -101,11 +94,11 @@ package struct OriginalCurveEndpointPositionRelation: Sendable {
                 secondNativeSpanIndex: secondNativeSpanIndex, tolerance: tolerance)
         }
         let a = try coordinates(first, at: .originalDouble(firstParameter, usage: &usage),
-            owningSpanIndex: firstNativeSpanIndex, remainingSourceDepth: remainingSourceDepth, tolerance: tolerance, storageByteStride: storageByteStride, usage: &usage)
+            owningSpanIndex: firstNativeSpanIndex, remainingSourceDepth: remainingSourceDepth, tolerance: tolerance, usage: &usage)
         let b = try coordinates(second, at: .originalDouble(secondParameter, usage: &usage),
-            owningSpanIndex: secondNativeSpanIndex, remainingSourceDepth: remainingSourceDepth, tolerance: tolerance, storageByteStride: storageByteStride, usage: &usage)
+            owningSpanIndex: secondNativeSpanIndex, remainingSourceDepth: remainingSourceDepth, tolerance: tolerance, usage: &usage)
         for axis in 0..<3 {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             if a[axis] != b[axis] { return nil }
         }
         return .init(first: first, firstParameter: firstParameter, second: second,
@@ -113,23 +106,32 @@ package struct OriginalCurveEndpointPositionRelation: Sendable {
             secondNativeSpanIndex: secondNativeSpanIndex, tolerance: tolerance)
     }
 
-    private static func retainBytes<B: RationalAlgebraAdmitting>(_ bytes: Int, stride: Int,
-        usage: inout B) throws {
-        let rounded = bytes.addingReportingOverflow(stride - 1)
-        guard bytes >= 0, stride > 0, !rounded.overflow else {
-            throw GeometryConversionError.resourceLimitExceeded("Original endpoint storage conversion overflows.")
+    // Preserve synthesized source equality without the aggregate enum comparator on Native worker stacks.
+    @inline(never)
+    private static func hasSameOriginalSource(first: Curve3D, second: Curve3D) -> Bool {
+        if case .bSpline(let a) = first {
+            guard case .bSpline(let b) = second else { return false }
+            return a == b
         }
-        try usage.retainExactStorage(rounded.partialValue / stride)
+        return first == second
     }
 
-    private static func hasSamePhysicalAngularStation<B: RationalAlgebraAdmitting>(first: Curve3D,
+    private static func retainBytes<B: ExactScalarAdmission & ~Copyable>(_ bytes: Int,
+        usage: inout B) throws {
+        guard bytes >= 0 else {
+            throw GeometryConversionError.resourceLimitExceeded("Original endpoint storage conversion overflows.")
+        }
+        try usage.retainStorage(bytes: bytes)
+    }
+
+    private static func hasSamePhysicalAngularStation<B: ExactScalarAdmission & ~Copyable>(first: Curve3D,
         at a: ExactRationalCoefficient, second: Curve3D, at b: ExactRationalCoefficient,
         remainingSourceDepth: Int, usage: inout B) throws -> Bool {
-        try GeometryStructuralComparisonWork.charge(curve: first, using: { try usage.consumeExactWork($0) })
-        try GeometryStructuralComparisonWork.charge(curve: second, using: { try usage.consumeExactWork($0) })
-        guard first == second else { return false }
+        try GeometryStructuralComparisonWork.charge(curve: first, using: &usage)
+        try GeometryStructuralComparisonWork.charge(curve: second, using: &usage)
+        guard hasSameOriginalSource(first: first, second: second) else { return false }
         func angle(_ curve: Curve3D, _ station: ExactRationalCoefficient, _ depth: Int, usage: inout B) throws -> ExactRationalCoefficient? {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             guard depth >= 0 else { throw GeometryConversionError.resourceLimitExceeded("Original physical endpoint exhausted source depth.") }
             switch curve {
             case .originalAngularTransport(let image):
@@ -162,12 +164,12 @@ package struct OriginalCurveEndpointPositionRelation: Sendable {
         return x == y
     }
 
-    private static func hasSameIdealPeriodicStation<B: RationalAlgebraAdmitting>(first: Curve3D,
+    private static func hasSameIdealPeriodicStation<B: ExactScalarAdmission & ~Copyable>(first: Curve3D,
         at a: ExactRationalCoefficient, second: Curve3D, at b: ExactRationalCoefficient,
         remainingSourceDepth: Int, usage: inout B) throws -> Bool {
         func native(_ curve: Curve3D, _ station: ExactRationalCoefficient, _ depth: Int,
             usage: inout B) throws -> (Curve3D, ExactRationalCoefficient)? {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             switch curve {
             case .circle, .analytic(.circle), .analytic(.ellipse): return (curve, station)
             case .originalConstructionChart(let image):
@@ -191,8 +193,8 @@ package struct OriginalCurveEndpointPositionRelation: Sendable {
         }
         guard let x = try native(first, a, remainingSourceDepth, usage: &usage),
             let y = try native(second, b, remainingSourceDepth, usage: &usage) else { return false }
-        try GeometryStructuralComparisonWork.charge(curve: x.0, using: { try usage.consumeExactWork($0) })
-        try GeometryStructuralComparisonWork.charge(curve: y.0, using: { try usage.consumeExactWork($0) })
+        try GeometryStructuralComparisonWork.charge(curve: x.0, using: &usage)
+        try GeometryStructuralComparisonWork.charge(curve: y.0, using: &usage)
         guard x.0 == y.0 else { return false }
         let turns = try x.1.subtracting(y.1, usage: &usage)
             .divided(by: .originalDouble(2 * Double.pi, usage: &usage), usage: &usage)
@@ -200,10 +202,10 @@ package struct OriginalCurveEndpointPositionRelation: Sendable {
     }
 
     /// Borrows symbolic endpoint incidence without evaluating a point candidate.
-    package static func retainedEndpoint<B: RationalAlgebraAdmitting>(of source: Curve3D,
+    package static func retainedEndpoint<B: ExactScalarAdmission & ~Copyable>(of source: Curve3D,
         at parameter: Double, remainingSourceDepth: Int, usage: inout B)
         throws -> (boundary: OriginalCurveRootSpan3D, atEnd: Bool)? {
-        try usage.consumeExactWork(1)
+        try usage.consumeWork(1)
         guard remainingSourceDepth >= 0, parameter.isFinite else {
             throw GeometryConversionError.invalidInput("Original symbolic endpoint requires finite station and source capability.")
         }
@@ -227,11 +229,11 @@ package struct OriginalCurveEndpointPositionRelation: Sendable {
         return endpoint
     }
 
-    package static func coordinates<B: RationalAlgebraAdmitting>(_ source: Curve3D,
+    package static func coordinates<B: ExactScalarAdmission & ~Copyable>(_ source: Curve3D,
         at station: ExactRationalCoefficient, owningSpanIndex: Int? = nil, remainingSourceDepth: Int,
-        tolerance: ModelingTolerance, storageByteStride: Int = MemoryLayout<UInt32>.stride,
+        tolerance: ModelingTolerance,
         usage: inout B) throws -> [ExactRationalCoefficient] {
-        try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(1)
+        try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeWork(1)
         guard remainingSourceDepth >= 0 else {
             throw GeometryConversionError.resourceLimitExceeded("Original endpoint relation exhausted source depth.")
         }
@@ -240,10 +242,10 @@ package struct OriginalCurveEndpointPositionRelation: Sendable {
                 throw GeometryConversionError.resourceLimitExceeded("Original endpoint image exhausted source depth.")
             }
             return try coordinates(curve, at: station, owningSpanIndex: owningSpanIndex, remainingSourceDepth: remainingSourceDepth - 1,
-                tolerance: tolerance, storageByteStride: storageByteStride, usage: &usage)
+                tolerance: tolerance, usage: &usage)
         }
         func linear(_ origin: Point3D, _ direction: Vector3D) throws -> [ExactRationalCoefficient] {
-            try retainBytes(3 * MemoryLayout<ExactRationalCoefficient>.stride, stride: storageByteStride, usage: &usage)
+            try retainBytes(3 * MemoryLayout<ExactRationalCoefficient>.stride, usage: &usage)
             var result: [ExactRationalCoefficient] = []
             result.reserveCapacity(3)
             for axis in 0..<3 {
@@ -257,7 +259,7 @@ package struct OriginalCurveEndpointPositionRelation: Sendable {
         }
         func transformed(_ q: [ExactRationalCoefficient], _ x: Vector3D, _ y: Vector3D,
             _ z: Vector3D, _ t: Vector3D) throws -> [ExactRationalCoefficient] {
-            try retainBytes(3 * MemoryLayout<ExactRationalCoefficient>.stride, stride: storageByteStride, usage: &usage)
+            try retainBytes(3 * MemoryLayout<ExactRationalCoefficient>.stride, usage: &usage)
             var result: [ExactRationalCoefficient] = []
             result.reserveCapacity(3)
             for axis in 0..<3 {
@@ -314,7 +316,7 @@ package struct OriginalCurveEndpointPositionRelation: Sendable {
                 return try coordinates(traversal.source, at: .originalDouble(native, usage: &usage),
                     owningSpanIndex: traversal.nativeSpanIndex,
                     remainingSourceDepth: min(remainingSourceDepth - 1, traversal.remainingSourceDepth),
-                    tolerance: traversal.certificationTolerance, storageByteStride: storageByteStride, usage: &usage)
+                    tolerance: traversal.certificationTolerance, usage: &usage)
             }
         case .originalPolyline(let original):
             let point: Point3D
@@ -327,7 +329,7 @@ package struct OriginalCurveEndpointPositionRelation: Sendable {
                 throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
                     message: "Original polyline interior endpoint requires its field clock receipt.")
             }
-            try retainBytes(3 * MemoryLayout<ExactRationalCoefficient>.stride, stride: storageByteStride, usage: &usage)
+            try retainBytes(3 * MemoryLayout<ExactRationalCoefficient>.stride, usage: &usage)
             return try [.originalDouble(point.x, usage: &usage), .originalDouble(point.y, usage: &usage),
                 .originalDouble(point.z, usage: &usage)]
         case .originalDrafted:
@@ -363,7 +365,7 @@ package struct OriginalCurveEndpointPositionRelation: Sendable {
             return try coordinates(retained.boundary.source,
                 at: .originalDouble(original, usage: &usage), owningSpanIndex: retained.boundary.nativeSpanIndex,
                 remainingSourceDepth: min(remainingSourceDepth - 1, retained.boundary.remainingSourceDepth),
-                tolerance: retained.boundary.certificationTolerance, storageByteStride: storageByteStride, usage: &usage)
+                tolerance: retained.boundary.certificationTolerance, usage: &usage)
         case .line(let line): return try linear(line.origin, line.direction)
         case .analytic(.line(let origin, let direction)): return try linear(origin, direction)
         case .parameterImage(let image):
@@ -378,11 +380,11 @@ package struct OriginalCurveEndpointPositionRelation: Sendable {
             return try transformed(q, t.basisX, t.basisY, t.basisZ, t.translation)
         case .originalAffineWord(let image):
             let q = try child(image.source, station)
-            try retainBytes(3 * MemoryLayout<ExactRationalCoefficient>.stride, stride: storageByteStride, usage: &usage)
+            try retainBytes(3 * MemoryLayout<ExactRationalCoefficient>.stride, usage: &usage)
             var result: [ExactRationalCoefficient] = []
             result.reserveCapacity(3)
             for axis in 0..<3 {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 // FIXME(INCOMPLETE_IMPLEMENTATION): Exact endpoint/corner
                 // consumers currently transport rational word coefficients.
                 // Normalized algebraic words need retained ordered-field
@@ -407,7 +409,7 @@ package struct OriginalCurveEndpointPositionRelation: Sendable {
                 candidates = index..<(index + 1)
             } else { candidates = spline.degree..<spline.controlPoints.count }
             for index in candidates {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 if spline.knots[index] >= spline.knots[index + 1] { continue }
                 let lower = try ExactRationalCoefficient.originalDouble(spline.knots[index], usage: &usage)
                 let upper = try ExactRationalCoefficient.originalDouble(spline.knots[index + 1], usage: &usage)
@@ -427,7 +429,7 @@ package struct OriginalCurveEndpointPositionRelation: Sendable {
             guard weight.isPositive else {
                 throw GeometryConversionError.invalidInput("Original endpoint homogeneous denominator is not positive.")
             }
-            try retainBytes(3 * MemoryLayout<ExactRationalCoefficient>.stride, stride: storageByteStride, usage: &usage)
+            try retainBytes(3 * MemoryLayout<ExactRationalCoefficient>.stride, usage: &usage)
             var result: [ExactRationalCoefficient] = []
             result.reserveCapacity(3)
             for axis in 0..<3 {

@@ -9,12 +9,12 @@ package struct ClosedSweepIntervalFrameAction: Sendable {
         tangent: [OutwardScalarInterval], first: [OutwardScalarInterval], second: [OutwardScalarInterval],
         originalTangent: Vector3D, originalFirst: Vector3D, originalSecond: Vector3D,
         cosine: OutwardScalarInterval, sine: OutwardScalarInterval, scale: OutwardScalarInterval,
-        admission: GeometryConversionAdmission) throws {
+        using execution: inout OriginalQueryExecution) throws {
         guard position.count == 3, tangent.count == 3, first.count == 3, second.count == 3 else {
             throw GeometryConversionError.invalidInput("A closed section action requires all three original frame coordinates.")
         }
-        try admission.chargeStorage(bytes: 12 * MemoryLayout<OutwardScalarInterval>.stride)
-        try admission.chargeStorage(bytes: 12 * MemoryLayout<Double>.stride)
+        try execution.retainStorage(bytes: 12 * MemoryLayout<OutwardScalarInterval>.stride)
+        try execution.retainStorage(bytes: 12 * MemoryLayout<Double>.stride)
         let along = [originalTangent.x, originalTangent.y, originalTangent.z]
         let across = [originalFirst.x, originalFirst.y, originalFirst.z]
         let up = [originalSecond.x, originalSecond.y, originalSecond.z]
@@ -26,7 +26,7 @@ package struct ClosedSweepIntervalFrameAction: Sendable {
             let b = second[row] * cosine - first[row] * sine
             var translation = position[row]
             for column in 0..<3 {
-                try admission.chargeWork()
+                try execution.consumeWork(1)
                 let entry = scale * (tangent[row] * .exact(along[column])
                     + a * .exact(across[column]) + b * .exact(up[column]))
                 values.append(entry)
@@ -41,8 +41,8 @@ package struct ClosedSweepIntervalFrameAction: Sendable {
     }
 
     package func apply(_ value: CoordinateEnclosure3D, isPosition: Bool,
-        admission: GeometryConversionAdmission) throws -> CoordinateEnclosure3D {
-        try admission.chargeStorage(bytes: 3 * MemoryLayout<OutwardScalarInterval>.stride
+        using execution: inout OriginalQueryExecution) throws -> CoordinateEnclosure3D {
+        try execution.retainStorage(bytes: 3 * MemoryLayout<OutwardScalarInterval>.stride
             + 3 * MemoryLayout<ScalarInterval>.stride)
         let source = [OutwardScalarInterval(lower: value.x.lower, upper: value.x.upper),
             .init(lower: value.y.lower, upper: value.y.upper), .init(lower: value.z.lower, upper: value.z.upper)]
@@ -51,7 +51,7 @@ package struct ClosedSweepIntervalFrameAction: Sendable {
         for row in 0..<3 {
             var sum = isPosition ? coefficients[4 * row + 3] : .exact(0)
             for column in 0..<3 {
-                try admission.chargeWork()
+                try execution.consumeWork(1)
                 sum = sum + coefficients[4 * row + column] * source[column]
             }
             output.append(try ScalarInterval(lower: sum.lower, upper: sum.upper))

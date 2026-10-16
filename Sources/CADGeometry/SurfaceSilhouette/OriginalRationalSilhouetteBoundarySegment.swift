@@ -23,8 +23,8 @@ struct OriginalRationalSilhouetteBoundarySegment: Sendable {
     }
 
     static func extract(_ source: SurfaceParameterCurve, tolerance: ModelingTolerance,
-        usage: inout SurfaceSilhouetteUsage, sourceDepth: Int = 0) throws -> [Self] {
-        try usage.consumeSourceVisit(depth: sourceDepth)
+        usage: inout OriginalQueryExecution, sourceDepth: Int = 0) throws -> [Self] {
+        try usage.visitSilhouetteSource(depth: sourceDepth)
         let t = try ExactBivariatePolynomial.coordinate(alongU: true, usage: &usage)
         let one = try ExactBivariatePolynomial.constant(.one, usage: &usage)
         func scalar(_ value: Double) throws -> ExactRationalCoefficient {
@@ -55,7 +55,7 @@ struct OriginalRationalSilhouetteBoundarySegment: Sendable {
                 .adding(parameter.scaled(by: scalar(direction.y), usage: &usage), usage: &usage))
         case .polyline(let points):
             let law = try OriginalEuclideanPolylineParameterLaw(originalPoints: points,
-                inheritedDepth: 0, maximumAlgebraicDepth: usage.maximumAlgebraicDepth, usage: &usage)
+                inheritedDepth: 0, maximumAlgebraicDepth: usage.effectiveLimits.maximumCoefficientDepth, usage: &usage)
             try RationalAlgebraStorage.retain(law.segments.count, of: Self.self, usage: &usage)
             var result: [Self] = []; result.reserveCapacity(law.segments.count)
             for segment in law.segments {
@@ -69,14 +69,14 @@ struct OriginalRationalSilhouetteBoundarySegment: Sendable {
             }
             return result
         case .bSpline(let curve):
-            try curve.validate(tolerance: tolerance, consumeWork: { try usage.consumeWork() })
+            try curve.validate(tolerance: tolerance, using: &usage)
             return try nativeSpline(curve, start: curve.knots[curve.degree], end: curve.knots[curve.controlPoints.count],
                 continues: false, tolerance: tolerance, usage: &usage)
         case .originalBSplineContinuation(let source):
             guard source.certificationTolerance == tolerance else {
                 throw rationalAlgebraFailure("Original pcurve continuation tolerance differs from its source certificate.")
             }
-            try source.original.validate(tolerance: tolerance, consumeWork: { try usage.consumeWork() })
+            try source.original.validate(tolerance: tolerance, using: &usage)
             return try nativeSpline(source.original, start: source.startParameter, end: source.endParameter,
                 continues: true, tolerance: tolerance, usage: &usage)
         case .originalAffineWord(let image):
@@ -128,7 +128,7 @@ struct OriginalRationalSilhouetteBoundarySegment: Sendable {
     }
 
     private static func nativeSpline(_ curve: BSplineCurve2D, start: Double, end: Double,
-        continues: Bool, tolerance: ModelingTolerance, usage: inout SurfaceSilhouetteUsage) throws -> [Self] {
+        continues: Bool, tolerance: ModelingTolerance, usage: inout OriginalQueryExecution) throws -> [Self] {
         guard start.isFinite, end.isFinite, start != end else {
             throw rationalAlgebraFailure("Original pcurve traversal requires distinct finite source labels.")
         }
@@ -139,7 +139,7 @@ struct OriginalRationalSilhouetteBoundarySegment: Sendable {
             .adding(t.scaled(by: gain, usage: &usage), usage: &usage)
         var firstSpan: Int?, lastSpan: Int?
         for span in curve.degree..<curve.controlPoints.count {
-            try usage.consumeWork()
+            try usage.consumeWork(1)
             if curve.knots[span] < curve.knots[span + 1] {
                 if firstSpan == nil { firstSpan = span }; lastSpan = span
             }
@@ -147,7 +147,7 @@ struct OriginalRationalSilhouetteBoundarySegment: Sendable {
         guard let firstSpan, let lastSpan else { throw rationalAlgebraFailure("Original pcurve has no positive native span cover.") }
         var result: [Self] = []
         for span in curve.degree..<curve.controlPoints.count {
-            try usage.consumeWork()
+            try usage.consumeWork(1)
             if curve.knots[span] == curve.knots[span + 1] { continue }
             let nativeLow = continues && span == firstSpan ? min(start, end, curve.knots[span]) : curve.knots[span]
             let nativeHigh = continues && span == lastSpan ? max(start, end, curve.knots[span + 1]) : curve.knots[span + 1]
@@ -161,7 +161,7 @@ struct OriginalRationalSilhouetteBoundarySegment: Sendable {
                 degree: curve.degree, span: span, alongU: true, translation: 0, usage: &usage)
             var u = ExactBivariatePolynomial.zero, v = ExactBivariatePolynomial.zero, w = ExactBivariatePolynomial.zero
             for index in (span - curve.degree)...span {
-                try usage.consumeWork()
+                try usage.consumeWork(1)
                 guard let original = basis[index] else { continue }
                 let value = try original.composed(withU: parameter, v: .zero, usage: &usage)
                 let weight = try ExactRationalCoefficient.originalDouble(curve.weights[index], usage: &usage)
@@ -193,7 +193,7 @@ struct OriginalRationalSilhouetteBoundarySegment: Sendable {
     }
 
     private static func remapped(_ source: [Self], from first: ExactRationalCoefficient,
-        to last: ExactRationalCoefficient, usage: inout SurfaceSilhouetteUsage) throws -> [Self] {
+        to last: ExactRationalCoefficient, usage: inout OriginalQueryExecution) throws -> [Self] {
         let gain = try last.subtracting(first, usage: &usage)
         guard !gain.isZero, !first.isNegative, !last.isNegative,
             !(try ExactRationalCoefficient.one.subtracting(first, usage: &usage)).isNegative,
@@ -207,12 +207,12 @@ struct OriginalRationalSilhouetteBoundarySegment: Sendable {
         for span in source {
             if let image = span.originalFractionImage {
                 let firstValue = try OriginalSingularFieldElement.constant(first, in: image.start.context,
-                    maximumDepth: usage.maximumDepth, usage: &usage)
+                    maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
                 let selectedGain = try OriginalSingularFieldElement.constant(gain, in: image.start.context,
-                    maximumDepth: usage.maximumDepth, usage: &usage)
-                let start = try image.start.subtracting(firstValue, maximumDepth: usage.maximumDepth, usage: &usage)
-                    .divided(by: selectedGain, maximumDepth: usage.maximumDepth, usage: &usage)
-                let slope = try image.gain.divided(by: selectedGain, maximumDepth: usage.maximumDepth, usage: &usage)
+                    maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
+                let start = try image.start.subtracting(firstValue, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
+                    .divided(by: selectedGain, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
+                let slope = try image.gain.divided(by: selectedGain, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
                 result.append(Self(ordinal: span.ordinal, lower: span.lower, upper: span.upper,
                     u: span.u, v: span.v, weight: span.weight,
                     originalFractionImage: .init(start: start, gain: slope, sourceDepth: image.sourceDepth)))
@@ -233,7 +233,7 @@ struct OriginalRationalSilhouetteBoundarySegment: Sendable {
     }
 
     func substituted(_ source: ExactBivariatePolynomial,
-        usage: inout SurfaceSilhouetteUsage) throws -> ExactBivariatePolynomial {
+        usage: inout OriginalQueryExecution) throws -> ExactBivariatePolynomial {
         let terms = try source.orderedTerms(usage: &usage)
         var degree = 0
         for (power, _) in terms { degree = max(degree, try rationalAlgebraCount(power.u, power.v)) }

@@ -18,19 +18,28 @@ package struct CertifiedCurvedPathSweepFacePatchBuilder {
         resultKind: SweepResultKind,
         featureID: FeatureID
     ) throws -> BRepSewingRequest {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try request(plan, resultKind: resultKind, featureID: featureID, using: &execution)
+    }
+
+    package func request(
+        _ plan: CertifiedCurvedPathSweepPlan,
+        resultKind: SweepResultKind,
+        featureID: FeatureID
+    , using execution: inout OriginalQueryExecution) throws -> BRepSewingRequest {
         try tolerance.validate()
         let patches = ExactLinearSectionSweepFacePatchBuilder(tolerance: tolerance)
         let windingSigns = try plan.profileSpanLoops.map { loop in
             plan.sectionIsClosed
-                ? try patches.profileWindingSign(loop, normal: plan.startNormal, featureID: featureID)
+                ? try patches.profileWindingSign(loop, normal: plan.startNormal, featureID: featureID, using: &execution)
                 : 1.0
         }
         var caps: [BRepSewingFacePatch] = []
         // A closed path closes the tube on itself: no caps.
         if resultKind == .solid, plan.pathIsClosed == false {
-            caps.append(try cap(plan, atEnd: false, outerWindingSign: windingSigns[0], patches: patches))
+            caps.append(try cap(plan, atEnd: false, outerWindingSign: windingSigns[0], patches: patches, using: &execution))
             if !plan.terminalSectionCollapsed {
-                caps.append(try cap(plan, atEnd: true, outerWindingSign: windingSigns[0], patches: patches))
+                caps.append(try cap(plan, atEnd: true, outerWindingSign: windingSigns[0], patches: patches, using: &execution))
             }
         }
         let sides = try plan.profileSpanLoops.indices.map { loopIndex in
@@ -44,7 +53,7 @@ package struct CertifiedCurvedPathSweepFacePatchBuilder {
                         stableID: loopIndex == 0
                             ? "sweep:side:path:\(piece):profile:\(span)"
                             : "sweep:side:path:\(piece):inner:\(loopIndex - 1):profile:\(span)"
-                    )
+                    , using: &execution)
                 }
             }
         }
@@ -69,7 +78,7 @@ package struct CertifiedCurvedPathSweepFacePatchBuilder {
         atEnd: Bool,
         outerWindingSign: Double,
         patches: ExactLinearSectionSweepFacePatchBuilder
-    ) throws -> BRepSewingFacePatch {
+    , using execution: inout OriginalQueryExecution) throws -> BRepSewingFacePatch {
         let stableID = atEnd ? "sweep:cap:end" : "sweep:cap:start"
         let reversedBoundary = !atEnd
         let boundaryNormalSign = reversedBoundary ? -outerWindingSign : outerWindingSign
@@ -82,7 +91,7 @@ package struct CertifiedCurvedPathSweepFacePatchBuilder {
             throw FeatureEvaluationError.emptyResult("A curved sweep's cap has no section span.")
         }
         let surface = Surface3D.plane(Plane3D(
-            origin: try Curve3D.bSpline(first).point(at: patches.closedBounds(first.domain).lower, tolerance: tolerance),
+            origin: try Curve3D.bSpline(first).point(at: patches.closedBounds(first.domain, using: &execution).lower, tolerance: tolerance, using: &execution),
             normal: (atEnd ? plan.endNormal : plan.startNormal) * boundaryNormalSign
         ))
         let loops = try curves.enumerated().map { loopIndex, loop in
@@ -94,9 +103,9 @@ package struct CertifiedCurvedPathSweepFacePatchBuilder {
                 edges: try ordered.map { index in
                     try patches.exactEdge(
                         loop[index], reversed: reversedBoundary,
-                        surfaceParameterCurve: try patches.planarPcurve(loop[index], reversed: reversedBoundary, on: surface),
+                        surfaceParameterCurve: try patches.planarPcurve(loop[index], reversed: reversedBoundary, on: surface, using: &execution),
                         stableID: "\(prefix):edge:\(index)"
-                    )
+                    , using: &execution)
                 }
             )
         }

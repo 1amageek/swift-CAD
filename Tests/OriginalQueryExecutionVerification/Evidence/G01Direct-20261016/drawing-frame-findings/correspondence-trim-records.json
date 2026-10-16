@@ -1,0 +1,60 @@
+{
+  "scope": "Actual recorded failures and exact-body source changes only; no new runtime success claim. Production acceptance remains with native and portable runtime receipts.",
+  "records": [
+    {
+      "path": "trim-partition-stack/source-freeze.json",
+      "sha256": "3c7a09e3116b064f9de63d5e38a81afc0d68fc4f734afcdde7eeea872eaf22f1",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/trim-partition-stack/source-freeze.json"
+    },
+    {
+      "path": "trim-partition-stack/whole-inverse-comparison.json",
+      "sha256": "a15c58f60294d1b769631eab0c1072d0fc3c0d34c9ef6b79f38f12a394829944",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/trim-partition-stack/whole-inverse-comparison.json"
+    },
+    {
+      "path": "trim-partition-stack/kernel-body-comparison.json",
+      "sha256": "aa64355b5267fecddb4cb4c0df0863961189ebc88830e09eab023b841216df77",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/trim-partition-stack/kernel-body-comparison.json"
+    },
+    {
+      "path": "trim-partition-stack/geometry-extracted-bodies.json",
+      "sha256": "703d173ffedbabb33335f22056dda73b9eb60ccb4c06ed20cae959ef1f8a359c",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/trim-partition-stack/geometry-extracted-bodies.json"
+    },
+    {
+      "path": "drawing-plane-debug-trim-r1/runtime.log",
+      "sha256": "f60e6cfa534ae4c30e7f89085bba9e38fccc9fd6c81909c1b03e4277495ed880",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-plane-debug-trim-r1/runtime.log"
+    },
+    {
+      "path": "drawing-plane-debug-trim-r1/receipt.json",
+      "sha256": "999d7270f236a8c5e5c32b4ed354b50fed18440802a48503a14318d7ba3091f7",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-plane-debug-trim-r1/receipt.json"
+    },
+    {
+      "path": "drawing-plane-debug-trim-r1/commands.lldb",
+      "sha256": "53a1b79ebef532b99d9ef3b0a631dd51edf26ad69342e683c93f5049649c6215",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-plane-debug-trim-r1/commands.lldb"
+    },
+    {
+      "path": "drawing-plane-debug-trim-r1/PlaneCorrespondence-recursive-chain-frames.json",
+      "sha256": "a2ad3eef78e0ed84ec136a011c71c9cc3df7679635ec0e35e21b0b81d0a025fb",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-plane-debug-trim-r1/PlaneCorrespondence-recursive-chain-frames.json"
+    },
+    {
+      "path": "correspondence-frame-source-r1/source-freeze.json",
+      "sha256": "6a8deaa725b558bc0be5b360de30fae9b3aa592945f63678bc74109c1a8688df",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/correspondence-frame-source-r1/source-freeze.json"
+    },
+    {
+      "path": "correspondence-frame-source-r1/candidate-change.patch",
+      "sha256": "1e3b5a231cfc5cdc15899018808ca80bcd3db41069ab2a162c2543aaebd63268",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/correspondence-frame-source-r1/candidate-change.patch"
+    },
+    {
+      "path": "correspondence-frame-source-r1/original-change.patch",
+      "sha256": "7b592a97ca4dc2ca1b1636603aee327367041c3a52f31bf63761b023ce80b49c",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/correspondence-frame-source-r1/original-change.patch"
+    }
+  ]
+}

@@ -16,7 +16,8 @@ package struct ExactLoftGuideCurve: Sendable {
                 throw KernelError(phase: .geometry, code: .invalidInput, tolerance: originalChain.tolerance,
                     message: "An original Loft guide has no section interval for a diagnostic image.")
             }
-            return try originalChain.connector(from: first, to: last, tolerance: originalChain.tolerance)
+            var execution = try OriginalQueryExecution.independentGeometry()
+            return try originalChain.connector(from: first, to: last, tolerance: originalChain.tolerance, using: &execution)
         }
     }
 

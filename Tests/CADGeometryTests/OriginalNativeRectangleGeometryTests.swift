@@ -10,11 +10,13 @@ struct OriginalNativeRectangleGeometryTests {
 
     @Test(.timeLimit(.minutes(1)))
     func nonclampedOriginalPanelsContainPositionAndDerivatives() throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
         let surface = nonclampedPlane()
         let box = try rectangle(u: 0, 2)
-        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance)
+        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance, using: &execution)
         let panels = try DefaultSurfaceDifferentialEncloser().originalNativeSpanTessellationBounds(
-            of: surface, over: box, tolerance: tolerance)
+            of: surface, over: box, tolerance: tolerance, using: &execution)
         #expect(panels.count == 2)
         #expect(panels.map(\.span.uSpanIndex) == [2, 3])
         #expect(panels[0].parameters.u.lower == 0)
@@ -23,20 +25,20 @@ struct OriginalNativeRectangleGeometryTests {
         #expect(panels[1].parameters.u.upper == 2)
         for panel in panels {
             for u in [panel.parameters.u.lower, panel.parameters.u.midpoint, panel.parameters.u.upper] {
-                let jet = try panel.span.pointJet(u: u, v: 0.4, on: surface, tolerance: tolerance)
+                let jet = try panel.span.pointJet(u: u, v: 0.4, on: surface, tolerance: tolerance, using: &execution)
                 #expect(jet.x.value.lower <= u && jet.x.value.upper >= u)
                 #expect(jet.y.value.lower <= 0.4 && jet.y.value.upper >= 0.4)
                 #expect(jet.x.derivativeU.lower <= 1 && jet.x.derivativeU.upper >= 1)
                 #expect(jet.y.derivativeV.lower <= 1 && jet.y.derivativeV.upper >= 1)
-                let normal = try surface.normal(u: u, v: 0.4, owning: panel.span, tolerance: tolerance)
+                let normal = try surface.normal(u: u, v: 0.4, owning: panel.span, tolerance: tolerance, using: &execution)
                 #expect(abs(normal.z - 1) < 1e-12)
             }
             #expect(panel.bounds.tangentUMagnitudeUpperBound >= 1)
             #expect(panel.bounds.tangentVMagnitudeUpperBound >= 1)
         }
-        let whole = try prepared.intervalJet(over: box, tolerance: tolerance)
+        let whole = try prepared.intervalJet(over: box, tolerance: tolerance, using: &execution)
         let direct = try DefaultSurfaceDifferentialEncloser().intervalJet(
-            of: .bSpline(surface), over: box, tolerance: tolerance)
+            of: .bSpline(surface), over: box, tolerance: tolerance, using: &execution)
         for (actual, expected) in zip([whole.x, whole.y, whole.z], [direct.x, direct.y, direct.z]) {
             let actualIntervals = [actual.value, actual.derivativeU, actual.derivativeV,
                 actual.secondDerivativeUU, actual.secondDerivativeUV, actual.secondDerivativeVV,
@@ -53,46 +55,50 @@ struct OriginalNativeRectangleGeometryTests {
 
     @Test(.timeLimit(.minutes(1)))
     func c0ClosedEndpointRetainsBothOriginalNormalOwners() throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
         let surface = c0Surface()
-        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance)
-        let spans = try prepared.originalNativeSpans(over: rectangle(u: 0, 1), tolerance: tolerance)
+        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance, using: &execution)
+        let spans = try prepared.originalNativeSpans(over: rectangle(u: 0, 1), tolerance: tolerance, using: &execution)
         #expect(spans.count == 2)
         let left = try #require(spans.first)
         let right = try #require(spans.last)
-        let leftJet = try left.pointJet(u: 0.5, v: 0.5, on: surface, tolerance: tolerance)
-        let rightJet = try right.pointJet(u: 0.5, v: 0.5, on: surface, tolerance: tolerance)
+        let leftJet = try left.pointJet(u: 0.5, v: 0.5, on: surface, tolerance: tolerance, using: &execution)
+        let rightJet = try right.pointJet(u: 0.5, v: 0.5, on: surface, tolerance: tolerance, using: &execution)
         #expect(leftJet.z.derivativeU.lower <= 0 && leftJet.z.derivativeU.upper >= 0)
         #expect(rightJet.z.derivativeU.lower <= 4 && rightJet.z.derivativeU.upper >= 4)
-        let leftNormal = try surface.normal(u: 0.5, v: 0.5, owning: left, tolerance: tolerance)
-        let rightNormal = try surface.normal(u: 0.5, v: 0.5, owning: right, tolerance: tolerance)
+        let leftNormal = try surface.normal(u: 0.5, v: 0.5, owning: left, tolerance: tolerance, using: &execution)
+        let rightNormal = try surface.normal(u: 0.5, v: 0.5, owning: right, tolerance: tolerance, using: &execution)
         #expect(abs(leftNormal.z - 1) < 1e-12)
         #expect(abs(rightNormal.x + 4 / sqrt(17)) < 1e-12)
         #expect(leftNormal.dot(rightNormal) < 0.3)
         let panels = try DefaultSurfaceDifferentialEncloser().originalNativeSpanTessellationBounds(
-            of: surface, over: rectangle(u: 0, 1), tolerance: tolerance)
+            of: surface, over: rectangle(u: 0, 1), tolerance: tolerance, using: &execution)
         #expect(panels.count == 2)
         #expect(panels[0].span.uSpanIndex != panels[1].span.uSpanIndex)
     }
 
     @Test(.timeLimit(.minutes(1)))
     func selectedTokensRejectChangedAuthorityAndClosedDomainEscape() throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
         let surface = nonclampedPlane()
-        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance)
-        let span = try #require(prepared.originalNativeSpans(over: rectangle(u: 0, 2), tolerance: tolerance).first)
+        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance, using: &execution)
+        let span = try geometryTestRequire(prepared.originalNativeSpans(over: rectangle(u: 0, 2), tolerance: tolerance, using: &execution).first)
         var changed = surface
         changed.controlPoints[0][0].z = 1
         expectFailure(.invalidInput) {
-            _ = try span.pointJet(u: 0.4, v: 0.5, on: changed, tolerance: tolerance)
+            _ = try span.pointJet(u: 0.4, v: 0.5, on: changed, tolerance: tolerance, using: &execution)
         }
         expectFailure(.invalidInput) {
             _ = try surface.normal(u: 0.4, v: 0.5, owning: span,
-                tolerance: ModelingTolerance(distance: 2e-10, angle: 1e-11, relative: 1e-12))
+                tolerance: ModelingTolerance(distance: 2e-10, angle: 1e-11, relative: 1e-12), using: &execution)
         }
         expectFailure(.invalidInput) {
-            _ = try span.pointJet(u: Double(1).nextUp, v: 0.5, on: surface, tolerance: tolerance)
+            _ = try span.pointJet(u: Double(1).nextUp, v: 0.5, on: surface, tolerance: tolerance, using: &execution)
         }
         expectFailure(.invalidInput) {
-            _ = try prepared.originalNativeSpans(over: rectangle(u: Double(0).nextDown, 2), tolerance: tolerance)
+            _ = try prepared.originalNativeSpans(over: rectangle(u: Double(0).nextDown, 2), tolerance: tolerance, using: &execution)
         }
     }
 

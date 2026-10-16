@@ -18,23 +18,22 @@ struct SurfaceAreaRollingBallSectionJet: Sendable {
     private let radius: Double
 
     /// Callers prove the stored control differences are constant on all rails.
-    init(blend: RollingBallBlendSurface3D, center: Point3D, first: Point3D, second: Point3D,
-        consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() }) throws {
-        try consumeWork()
+    init<A: ExactScalarAdmission & ~Copyable>(blend: RollingBallBlendSurface3D, center: Point3D, first: Point3D, second: Point3D, using execution: inout A) throws {
+        try execution.consumeWork(1)
         let radius = blend.radius
         self.radius = radius
         let base = Self.exact(center)
         let rawA = Self.exact(first) - base
         let rawB = Self.exact(second) - base
         func admitRadial(_ raw: IntervalVector3DBounds) throws {
-            try consumeWork()
+            try execution.consumeWork(1)
             let deviation = max(abs(raw.lengthLowerBound-radius), abs(raw.lengthUpperBound-radius)).nextUp
             guard deviation <= blend.tolerance.distance else {
                 throw blend.failure(.intersectionFailure, "Constant blend contact radials exceed the admitted radius deviation.")
             }
         }
         try admitRadial(rawA); try admitRadial(rawB)
-        try consumeWork()
+        try execution.consumeWork(1)
         guard let normalizedA = Self.constant(rawA).normalized(),
               let normalizedB = Self.constant(rawB).normalized() else {
             throw blend.failure(.singularSystem, "Constant blend radials have no certified nonzero length.")
@@ -56,9 +55,8 @@ struct SurfaceAreaRollingBallSectionJet: Sendable {
         inverseWeight = Self.constant(inverse.value)
     }
 
-    func intervalJet(over v: ScalarInterval, tolerance: ModelingTolerance,
-        consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() }) throws -> SurfaceIntervalVectorJet {
-        try consumeWork()
+    func intervalJet<A: ExactScalarAdmission & ~Copyable>(over v: ScalarInterval, tolerance: ModelingTolerance, using execution: inout A) throws -> SurfaceIntervalVectorJet {
+        try execution.consumeWork(1)
         guard v.lower >= 0, v.upper <= 1 else {
             throw KernelError(phase:.geometry,code:.invalidInput,tolerance:tolerance,
                 message:"Rolling-ball section requires its original normalized V chart.")
@@ -66,9 +64,9 @@ struct SurfaceAreaRollingBallSectionJet: Sendable {
         let one = Self.constant(.exact(1))
         let t = SurfaceIntervalJet.parameterV(v)
         let s = one-t
-        try consumeWork()
+        try execution.consumeWork(1)
         let radial = first*(s*s) + (first+second)*(s*t*inverseWeight) + second*(t*t)
-        try consumeWork()
+        try execution.consumeWork(1)
         let raw = s*s + Self.constant(.exact(2))*weight*s*t + t*t
         // The native denominator has Bernstein coefficients [1,w,1], so this
         // hull proves positivity even when independent interval s,t both include zero.
@@ -79,7 +77,7 @@ struct SurfaceAreaRollingBallSectionJet: Sendable {
         let denominator = SurfaceIntervalJet(value:value,derivativeU:.exact(0),derivativeV:raw.derivativeV,
             secondDerivativeUU:.exact(0),secondDerivativeUV:.exact(0),secondDerivativeVV:raw.secondDerivativeVV,
             thirdDerivativeUUU:.exact(0),thirdDerivativeUUV:.exact(0),thirdDerivativeUVV:.exact(0),thirdDerivativeVVV:raw.thirdDerivativeVVV)
-        try consumeWork()
+        try execution.consumeWork(1)
         guard let inverse = denominator.reciprocal() else {
             throw KernelError(phase:.geometry,code:.singularSystem,tolerance:tolerance,
                 message:"Translated rolling-ball area denominator cannot certify positivity.")

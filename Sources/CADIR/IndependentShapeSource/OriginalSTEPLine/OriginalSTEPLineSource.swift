@@ -18,26 +18,26 @@ public struct OriginalSTEPLineSource: Equatable, Sendable {
         self.magnitude = magnitude; self.lengthUnit = lengthUnit; self.originalLengthSource = originalLengthSource
         self.adjustments = adjustments
     }
-    public func originalOperationWord<B: RationalAlgebraAdmitting>(tolerance: ModelingTolerance,
-        maximumDepth: Int, maximumSourceDepth: Int, usage: inout B) throws -> OriginalAffineOperationWord {
-        try usage.consumeExactWork(location.name.utf8.count + direction.name.utf8.count + vectorName.utf8.count + 3)
+    public func originalOperationWord(tolerance: ModelingTolerance,
+        maximumDepth: Int, maximumSourceDepth: Int, using execution: inout OriginalQueryExecution) throws -> OriginalAffineOperationWord {
+        try execution.consumeWork(location.name.utf8.count + direction.name.utf8.count + vectorName.utf8.count + 3)
         try location.coordinates.validate(); try direction.coordinates.validate()
         guard magnitude.isFinite, magnitude > 0 else { throw IndependentShapeSourceError.invalidSource("Original LINE magnitude must be positive and finite.") }
         let raw = direction.coordinates
         // Crossing a cardinal axis only permutes/signs original coefficients: no rounded derived frame authority.
         let helper = raw.x == 0 && raw.y == 0 ? Vector3D.unitY : .unitZ
         let perpendicular = raw.cross(helper)
-        let gain = try originalLengthSource?.exactGain(maximumDepth: maximumSourceDepth, usage: &usage)
-            ?? ExactRationalCoefficient.originalDouble(lengthUnit.toInternal(1), usage: &usage)
-        try usage.consumeExactWork(adjustments.count)
+        let gain = try originalLengthSource?.exactGain(maximumDepth: maximumSourceDepth, using: &execution)
+            ?? ExactRationalCoefficient.originalDouble(lengthUnit.toInternal(1), usage: &execution)
+        try execution.consumeWork(adjustments.count)
         let bytes = adjustments.count.multipliedReportingOverflow(by: MemoryLayout<OriginalNormalizedAffineAdjustment>.stride)
         guard !bytes.overflow else { throw IndependentShapeSourceError.resourceLimitExceeded("Original LINE adjustment storage overflows.") }
-        try usage.retainExactStorage(bytes.partialValue / MemoryLayout<UInt32>.stride + (bytes.partialValue % MemoryLayout<UInt32>.stride == 0 ? 0 : 1))
+        try RationalAlgebraStorage.retain(bytes.partialValue / MemoryLayout<UInt32>.stride + (bytes.partialValue % MemoryLayout<UInt32>.stride == 0 ? 0 : 1), of: UInt32.self, usage: &execution)
         var operations: [OriginalNormalizedAffineAdjustment] = []; operations.reserveCapacity(adjustments.count)
         for operation in adjustments { operations.append(.init(displacement: operation.displacement, conjugates: operation.conjugates)) }
         let law = OriginalNormalizedAffineSource(family: .cartesian, location: location.coordinates,
             axis1: raw, axis2: helper, axis3: perpendicular, scale: magnitude, lengthGain: gain, linearGain: gain, adjustments: operations)
-        return try OriginalAffineOperationWord(operation: .normalizedForward(law), tolerance: tolerance, maximumDepth: maximumDepth, usage: &usage)
+        return try OriginalAffineOperationWord(operation: .normalizedForward(law), tolerance: tolerance, maximumDepth: maximumDepth, usage: &execution)
     }
     public func translated(by displacement: Vector3D) throws -> Self {
         try displacement.validate()

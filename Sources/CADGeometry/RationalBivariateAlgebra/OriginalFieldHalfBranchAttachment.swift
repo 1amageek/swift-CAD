@@ -9,7 +9,7 @@ package struct OriginalFieldHalfBranchAttachment: Sendable {
     package let originalLocalPoint: OriginalSingularGermPoint
     package let approachDepth: Int
 
-    package init<B: RationalAlgebraAdmitting>(halfBranch: OriginalFieldPlaneCurveIncidence.HalfBranch,
+    package init<B: ExactScalarAdmission & ~Copyable>(halfBranch: OriginalFieldPlaneCurveIncidence.HalfBranch,
         projection: OriginalSingularFieldPlaneProjection, resolution: OriginalFieldSingularResolution,
         charts: [OriginalSingularRegularChart], maximumDepth: Int, usage: inout B) throws {
         guard resolution.original.context === projection.primitive.context,
@@ -36,7 +36,7 @@ package struct OriginalFieldHalfBranchAttachment: Sendable {
         var depth = max(halfBranch.sourceDepth, max(event.depth, fiber.isolation.depth))
         for chart in charts { depth = max(depth, chart.sourceDepth) }
         while true {
-            try usage.visitExactCell(depth: depth)
+            try usage.visitCell(axis: .value, depth: depth)
             var selected: (Int, OriginalSingularGermPoint)?
             for index in charts.indices {
                 if let point = try OriginalSingularGermPoint.proven(originalU: free, originalV: fiber,

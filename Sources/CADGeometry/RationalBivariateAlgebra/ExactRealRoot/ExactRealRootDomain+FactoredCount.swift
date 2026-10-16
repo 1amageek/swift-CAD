@@ -65,7 +65,7 @@ extension ExactRealRootDomain {
                 }
             }
             return .init(source: source, domain: domain,
-                classification: .finite(distinct: distinct, totalMultiplicity: total), factors: factors, depth: a.depth)
+                classification: .finite(distinct: distinct, totalMultiplicity: total), factors: factors, depth: (try a.depth))
         }
     }
 }

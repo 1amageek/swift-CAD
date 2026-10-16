@@ -1,3 +1,4 @@
+import CADGeometry
 import Foundation
 import Testing
 import CADCore
@@ -7,6 +8,7 @@ import CADCore
 struct OffsetDiskSectionVolumeIntegratorTests {
     @Test
     func offsetTorusAnnulusIntersectionMatchesIndependentOracle() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
         let tolerance = ModelingTolerance.standard
         let firstMajorRadius = 3.0
         let firstMinorRadius = 0.5
@@ -37,7 +39,7 @@ struct OffsetDiskSectionVolumeIntegratorTests {
             firstOuterRadiusAt: { firstMajorRadius + firstTubeRadius($0) },
             secondInnerRadiusAt: { secondMajorRadius - secondTubeRadius($0) },
             secondOuterRadiusAt: { secondMajorRadius + secondTubeRadius($0) }
-        )
+        , using: &execution)
 
         let expectedVolume = 7.285_038_823_821_337
         let errorBound = tolerance.distance * 4.5 * 4.5 * 8.0

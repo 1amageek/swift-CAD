@@ -8,22 +8,20 @@ extension StableSubshapeResolver {
     public func topologyReference(for reference: StableSubshapeReference, model: BRepModel,
         subshapes: SubshapeIndex, lineage: [SubshapeID: TopologyLineage],
         tolerance: ModelingTolerance, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
-        consumeWork: @escaping @Sendable (Int) throws -> Void,
-        consumeStorage: (@Sendable (Int) throws -> Void)? = nil,
-        maximumAlgebraicDepth: Int? = nil) throws -> TopologyReference {
-        try consumeWork(0); try CurrentTaskCancellationChecker().checkCancellation()
+        maximumAlgebraicDepth: Int? = nil, using execution: inout OriginalQueryExecution) throws -> TopologyReference {
+        try execution.consumeWork(1); try CurrentTaskCancellationChecker().checkCancellation()
         guard reference.subshapeID.isValid else {
             throw KernelError(phase: .validation, code: .invalidInput,
                 subshapeID: reference.subshapeID, tolerance: tolerance,
                 message: "Stable subshape query requires an original valid identity.")
         }
+        for _ in reference.subshapeID.role.utf8 { try execution.consumeWork(1) }
         let signatures = SubshapeGeometrySignatureBuilder(model: model, tolerance: tolerance)
         try signatures.validateOriginal(reference.geometrySignature,
             maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
-            consumeWork: consumeWork, consumeStorage: consumeStorage,
-            maximumAlgebraicDepth: maximumAlgebraicDepth)
+            maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
         if let direct = subshapes[reference.subshapeID] {
-            try consumeWork(0); try requireLive(direct, model: model, tolerance: tolerance)
+            try execution.consumeWork(1); try requireLive(direct, model: model, tolerance: tolerance)
             guard isCompatible(reference.geometrySignature, with: direct) else {
                 throw KernelError(phase: .validation, code: .invalidInput,
                     subshapeID: reference.subshapeID, tolerance: tolerance,
@@ -31,32 +29,32 @@ extension StableSubshapeResolver {
             }
             return direct
         }
-        func sameID(_ first: SubshapeID, _ second: SubshapeID) throws -> Bool {
-            try consumeWork(0)
-            for _ in first.role.utf8 { try consumeWork(0) }
-            for _ in second.role.utf8 { try consumeWork(0) }
+        func sameID(_ first: SubshapeID, _ second: SubshapeID, using execution: inout OriginalQueryExecution) throws -> Bool {
+            try execution.consumeWork(1)
+            for _ in first.role.utf8 { try execution.consumeWork(1) }
+            for _ in second.role.utf8 { try execution.consumeWork(1) }
             return first == second
         }
-        func reserve<T>(_ type: T.Type, count: Int) throws {
+        func reserve<T>(_ type: T.Type, count: Int, using execution: inout OriginalQueryExecution) throws {
             let (bytes, overflow) = count.multipliedReportingOverflow(by: MemoryLayout<T>.stride)
-            guard !overflow else { throw GeometryConversionError.resourceLimitExceeded("Stable query storage overflow.") }
-            try consumeStorage?(bytes)
+            guard count >= 0, !overflow else { throw GeometryConversionError.resourceLimitExceeded("Stable query storage overflow.") }
+            try execution.retainStorage(bytes: bytes)
         }
         var parentCount = 0
         for (id, entry) in lineage {
-            try consumeWork(0); try CurrentTaskCancellationChecker().checkCancellation()
-            guard try sameID(id, entry.output), id.isValid else {
+            try execution.consumeWork(1); try CurrentTaskCancellationChecker().checkCancellation()
+            guard try sameID(id, entry.output, using: &execution), id.isValid else {
                 throw lineageFailure(reference, tolerance: tolerance)
             }
             var previous: SubshapeID?
             for parent in entry.parents {
-                try consumeWork(0)
-                guard parent.isValid, try !sameID(parent, id) else {
+                try execution.consumeWork(1)
+                guard parent.isValid, try !sameID(parent, id, using: &execution) else {
                     throw lineageFailure(reference, tolerance: tolerance)
                 }
                 if let previous {
-                    for _ in previous.role.utf8 { try consumeWork(0) }
-                    for _ in parent.role.utf8 { try consumeWork(0) }
+                    for _ in previous.role.utf8 { try execution.consumeWork(1) }
+                    for _ in parent.role.utf8 { try execution.consumeWork(1) }
                     guard previous < parent else { throw lineageFailure(reference, tolerance: tolerance) }
                 }
                 previous = parent
@@ -77,16 +75,16 @@ extension StableSubshapeResolver {
         guard !overflow, !pendingOverflow else {
             throw GeometryConversionError.resourceLimitExceeded("Stable lineage capacity overflow.")
         }
-        try reserve((SubshapeID, Bool).self, count: pendingBase)
-        try reserve(SubshapeID.self, count: stateCapacity)
-        try reserve(SubshapeID.self, count: stateCapacity)
+        try reserve((SubshapeID, Bool).self, count: pendingBase, using: &execution)
+        try reserve(SubshapeID.self, count: stateCapacity, using: &execution)
+        try reserve(SubshapeID.self, count: stateCapacity, using: &execution)
         var pending: [(id: SubshapeID, exiting: Bool)] = []; pending.reserveCapacity(pendingBase)
         var active: [SubshapeID] = []; active.reserveCapacity(stateCapacity)
         var completed: [SubshapeID] = []; completed.reserveCapacity(stateCapacity)
         pending.append((reference.subshapeID, false))
         var candidate: TopologyReference?
-        func include(_ next: TopologyReference) throws {
-            try consumeWork(0); try requireLive(next, model: model, tolerance: tolerance)
+        func include(_ next: TopologyReference, using execution: inout OriginalQueryExecution) throws {
+            try execution.consumeWork(1); try requireLive(next, model: model, tolerance: tolerance)
             if let candidate, candidate != next {
                 throw ambiguity(reference, tolerance: tolerance,
                     message: "Feature selection lineage has multiple live descendants.")
@@ -94,19 +92,19 @@ extension StableSubshapeResolver {
             candidate = next
         }
         while let step = pending.popLast() {
-            try consumeWork(0); try CurrentTaskCancellationChecker().checkCancellation()
+            try execution.consumeWork(1); try CurrentTaskCancellationChecker().checkCancellation()
             if step.exiting {
-                guard let last = active.last, try sameID(last, step.id) else {
+                guard let last = active.last, try sameID(last, step.id, using: &execution) else {
                     throw lineageFailure(reference, tolerance: tolerance)
                 }
                 active.removeLast(); completed.append(step.id)
                 continue
             }
             var isCompleted = false
-            for id in completed { if try sameID(id, step.id) { isCompleted = true; break } }
+            for id in completed { if try sameID(id, step.id, using: &execution) { isCompleted = true; break } }
             if isCompleted { continue }
             for id in active {
-                if try sameID(id, step.id) {
+                if try sameID(id, step.id, using: &execution) {
                     throw KernelError(phase: .topology, code: .topologyFailure,
                         subshapeID: reference.subshapeID, tolerance: tolerance,
                         message: "Stable selection lineage contains a reachable cycle.")
@@ -115,11 +113,11 @@ extension StableSubshapeResolver {
             active.append(step.id); pending.append((step.id, true))
             // This scan consumes the actual original incidences; no detached child graph or hidden hash table is allocated.
             for (_, entry) in lineage {
-                try consumeWork(0)
+                try execution.consumeWork(1)
                 for parent in entry.parents {
-                    if try sameID(parent, step.id) {
+                    if try sameID(parent, step.id, using: &execution) {
                         if let topology = subshapes[entry.output], isCompatible(reference.geometrySignature, with: topology) {
-                            try include(topology)
+                            try include(topology, using: &execution)
                         }
                         pending.append((entry.output, false))
                     }
@@ -128,16 +126,16 @@ extension StableSubshapeResolver {
         }
         if let candidate { return candidate }
         for (id, topology) in subshapes.entries {
-            try consumeWork(0); try CurrentTaskCancellationChecker().checkCancellation()
+            try execution.consumeWork(1); try CurrentTaskCancellationChecker().checkCancellation()
             guard id.featureID == reference.subshapeID.featureID,
                 isCompatible(reference.geometrySignature, with: topology) else { continue }
             let signature = try signatures.signature(for: topology,
-                consumeWork: consumeWork, consumeStorage: consumeStorage)
+                using: &execution)
             try signatures.validateOriginal(signature, maximumSubdivisionDepth: maximumSubdivisionDepth,
-                remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork,
-                consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
-            if try signatures.matches(reference.geometrySignature, signature, consumeWork: consumeWork) {
-                try include(topology)
+                remainingSourceDepth: remainingSourceDepth,
+                maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
+            if try signatures.matches(reference.geometrySignature, signature, using: &execution) {
+                try include(topology, using: &execution)
             }
         }
         guard let candidate else {

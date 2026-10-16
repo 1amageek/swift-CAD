@@ -4,5 +4,5 @@ import CADCore
 public protocol SurfaceSilhouetteProjectedContactProducing: Sendable {
     func partition(edge: Curve3D, spanIndex: Int, over: ScalarInterval,
         silhouette: OriginalSurfaceSilhouetteTrimmedCurve, frame: OrthographicProjectionFrame,
-        usage: inout SurfaceSilhouetteUsage) throws -> SurfaceSilhouetteProjectedPartition
+        using execution: inout OriginalQueryExecution) throws -> SurfaceSilhouetteProjectedPartition
 }

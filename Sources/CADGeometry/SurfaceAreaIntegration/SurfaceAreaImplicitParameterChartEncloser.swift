@@ -8,20 +8,18 @@ struct SurfaceAreaImplicitParameterChartEncloser: Sendable {
     private let maximumSubdivisionDepth: Int?
     private let remainingSourceDepth: Int
 
-    init(curve: CertifiedImplicitSurfaceParameterCurve, tolerance: ModelingTolerance,
-         consumeWork: () throws -> Void, maximumSubdivisionDepth: Int? = nil,
-         remainingSourceDepth: Int = 16, maximumAlgebraicDepth: Int? = nil,
-         consumeStorage: ((Int) throws -> Void)? = nil) throws {
+    init(curve: CertifiedImplicitSurfaceParameterCurve, tolerance: ModelingTolerance, maximumSubdivisionDepth: Int? = nil,
+         remainingSourceDepth: Int = 16, maximumAlgebraicDepth: Int? = nil, using execution: inout OriginalQueryExecution) throws {
         // FIXME(INCOMPLETE_IMPLEMENTATION): Periodic, multispan, mixed-coordinate/direction, closed and procedural
         // implicit charts lack this caller-owned localization contract on face-area
         // queries. Complete only after original root/jet coverage and shared-budget
         // area/centroid evidence is established for every owning piece.
-        guard try Self.supports(curve,consumeWork:consumeWork) else {
+        guard try Self.supports(curve, using: &execution) else {
             throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
                 message: "Nonlinear area charts require an open same-coordinate/direction graph chain on positive-weight single-span B-spline supports.")
         }
         for index in curve.intersection.cells.indices {
-            try consumeWork()
+            try execution.consumeWork(1)
             if index > 0 {
                 let previous = curve.intersection.cells[index-1]
                 let current = curve.intersection.cells[index]
@@ -45,16 +43,15 @@ struct SurfaceAreaImplicitParameterChartEncloser: Sendable {
         if let maximumSubdivisionDepth {
             prepared = try ImplicitCurveIntervalJetEncloser(localizing:curve.intersection,tolerance:tolerance,
                 maximumSpanCount:262_144,maximumSubdivisionDepth:maximumSubdivisionDepth,
-                remainingSourceDepth:remainingSourceDepth,consumeWork:consumeWork,
-                consumeStorage:consumeStorage,maximumAlgebraicDepth:maximumAlgebraicDepth)
+                remainingSourceDepth:remainingSourceDepth,maximumAlgebraicDepth:maximumAlgebraicDepth, using: &execution)
         } else {
-            prepared = try ImplicitCurveIntervalJetEncloser(intersection: curve.intersection, tolerance: tolerance)
+            prepared = try ImplicitCurveIntervalJetEncloser(intersection: curve.intersection, tolerance: tolerance, using: &execution)
         }
         for index in 1..<curve.intersection.cells.count {
             let previous = try originalJet(cellIndex:index-1,over:ScalarInterval(lower:1,upper:1),
-                restricting:nil,tolerance:tolerance,consumeWork:consumeWork,consumeStorage:consumeStorage).jet
+                restricting:nil,tolerance:tolerance, using: &execution).jet
             let current = try originalJet(cellIndex:index,over:ScalarInterval(lower:0,upper:0),
-                restricting:nil,tolerance:tolerance,consumeWork:consumeWork,consumeStorage:consumeStorage).jet
+                restricting:nil,tolerance:tolerance, using: &execution).jet
             for coordinate in 0..<4 {
                 let a = previous.coordinates[coordinate].value
                 let b = current.coordinates[coordinate].value
@@ -80,7 +77,7 @@ struct SurfaceAreaImplicitParameterChartEncloser: Sendable {
 
     /// The original plane/extrusion equation holds for every certified root.
     /// This receipt does not derive a parameter identity from anchors or samples.
-    func constantAxisAuthority(tolerance: ModelingTolerance, consumeWork: () throws -> Void)
+    func constantAxisAuthority(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution)
         throws -> (axis: SurfaceAreaTranslationCertificate, parameter: Double)? {
         guard tolerance == preparationTolerance else {
             throw KernelError(phase:.geometry,code:.invalidInput,tolerance:tolerance,
@@ -89,9 +86,10 @@ struct SurfaceAreaImplicitParameterChartEncloser: Sendable {
         guard curve.role == .second,
               case .bSpline(let plane) = curve.intersection.firstSurface,
               case .bSpline(let extrusion) = curve.intersection.secondSurface else { return nil }
-        try consumeWork()
+        try execution.consumeWork(1)
         guard
-              let axis = SurfaceAreaTranslationCertificate.direction(of:.bSpline(extrusion)) else { return nil }
+              let axis = try SurfaceAreaTranslationCertificate.direction(of:.bSpline(extrusion),
+                remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: nil, using: &execution) else { return nil }
         let count = axis == .v ? extrusion.uControlPointCount : extrusion.vControlPointCount
         let knots = axis == .v ? extrusion.vKnots : extrusion.uKnots
         // The original degree-one axis and equal weight layers own the affine
@@ -100,15 +98,18 @@ struct SurfaceAreaImplicitParameterChartEncloser: Sendable {
         // This bounded recognizer admits exact midplanes. Other affine plane
         // combinations retain their original general fan algorithm.
         let candidate = knots[0] * 0.5 + knots[3] * 0.5
-        func exactMidpoint(_ lower: Double, _ upper: Double, _ middle: Double) -> Bool {
-            let sum = FloatingPointExpansion.sum([lower],[upper])
-            let twice = FloatingPointExpansion.sum([middle],[middle])
-            let residual = FloatingPointExpansion.subtract(sum,twice)
-            return lower.isFinite && upper.isFinite && middle.isFinite
+        func exactMidpoint(_ lower: Double, _ upper: Double, _ middle: Double) throws -> Bool {
+            let low = try OriginalCoefficientAllocation.singleton(lower, using: &execution)
+            let high = try OriginalCoefficientAllocation.singleton(upper, using: &execution)
+            let mid = try OriginalCoefficientAllocation.singleton(middle, using: &execution)
+            let sum = try FloatingPointExpansion.sum(low,high, using: &execution)
+            let twice = try FloatingPointExpansion.sum(mid,mid, using: &execution)
+            let residual = try FloatingPointExpansion.subtract(sum,twice, using: &execution)
+            return try lower.isFinite && upper.isFinite && middle.isFinite
                 && sum.allSatisfy({ $0.isFinite }) && twice.allSatisfy({ $0.isFinite })
-                && residual.allSatisfy({ $0.isFinite }) && FloatingPointExpansion.sign(residual) == .zero
+                && residual.allSatisfy({ $0.isFinite }) && FloatingPointExpansion.sign(residual, using: &execution) == .zero
         }
-        guard candidate > knots[0], candidate < knots[3], exactMidpoint(knots[0],knots[3],candidate) else { return nil }
+        guard candidate > knots[0], candidate < knots[3], try exactMidpoint(knots[0],knots[3],candidate) else { return nil }
         func coordinate(_ point: Point3D, _ index: Int) -> Double {
             switch index { case 0: return point.x; case 1: return point.y; default: return point.z }
         }
@@ -122,17 +123,17 @@ struct SurfaceAreaImplicitParameterChartEncloser: Sendable {
             let upper = coordinate(control(1,0),component)
             guard lower != upper, (0..<count).allSatisfy({
                 coordinate(control(0,$0),component) == lower && coordinate(control(1,$0),component) == upper
-            }), exactMidpoint(lower,upper,planeValue) else { continue }
+            }), try exactMidpoint(lower,upper,planeValue) else { continue }
             return (axis,candidate)
         }
         return nil
     }
 
     /// Admission only; the retained lower owner supplies every root and derivative proof.
-    private static func supports(_ curve: CertifiedImplicitSurfaceParameterCurve,consumeWork: () throws -> Void) throws -> Bool {
+    private static func supports(_ curve: CertifiedImplicitSurfaceParameterCurve, using execution: inout OriginalQueryExecution) throws -> Bool {
         guard !curve.intersection.isClosed, !curve.intersection.cells.isEmpty,
               Double(exactly:curve.intersection.cells.count) != nil,
-              try curve.intersection.cells.allSatisfy({ try consumeWork(); return $0.freeParameter == curve.intersection.cells[0].freeParameter
+              try curve.intersection.cells.allSatisfy({ try execution.consumeWork(1); return $0.freeParameter == curve.intersection.cells[0].freeParameter
                 && $0.direction == curve.intersection.cells[0].direction }),
               case .bSpline(let first) = curve.intersection.firstSurface,
               case .bSpline(let second) = curve.intersection.secondSurface else { return false }
@@ -140,26 +141,25 @@ struct SurfaceAreaImplicitParameterChartEncloser: Sendable {
             guard !surface.isUPeriodic, !surface.isVPeriodic,
                   surface.controlPoints.count == surface.vDegree + 1,
                   surface.controlPoints.first?.count == surface.uDegree + 1,
-                  try surface.weights.allSatisfy({ row in try consumeWork(); return try row.allSatisfy { try consumeWork(); return $0.isFinite && $0 > 0 } }) else { return false }
+                  try surface.weights.allSatisfy({ row in try execution.consumeWork(1); return try row.allSatisfy { try execution.consumeWork(1); return $0.isFinite && $0 > 0 } }) else { return false }
             func clamped(_ knots: [Double], _ degree: Int) throws -> Bool {
                 guard knots.count == 2 * (degree + 1), let lower = knots.first,
                       let upper = knots.last, lower < upper else { return false }
-                return try knots.prefix(degree + 1).allSatisfy({ try consumeWork(); return $0 == lower })
-                    && knots.suffix(degree + 1).allSatisfy({ try consumeWork(); return $0 == upper })
+                return try knots.prefix(degree + 1).allSatisfy({ try execution.consumeWork(1); return $0 == lower })
+                    && knots.suffix(degree + 1).allSatisfy({ try execution.consumeWork(1); return $0 == upper })
             }
             return try clamped(surface.uKnots, surface.uDegree) && clamped(surface.vKnots, surface.vDegree)
         }
         return try singlePositiveWeightSpan(first) && singlePositiveWeightSpan(second)
     }
 
-    func intervalProof(over fraction: ScalarInterval, tolerance: ModelingTolerance,
-                       consumeWork: () throws -> Void, consumeStorage: ((Int) throws -> Void)? = nil) throws -> SurfaceAreaParameterChartEncloser.IntervalProof {
-        try intervalProofRetainingRoot(over:fraction,tolerance:tolerance,consumeWork:consumeWork,consumeStorage:consumeStorage).proof
+    func intervalProof(over fraction: ScalarInterval, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> SurfaceAreaParameterChartEncloser.IntervalProof {
+        try intervalProofRetainingRoot(over:fraction,tolerance:tolerance, using: &execution).proof
     }
 
     func intervalProofRetainingRoot(over fraction: ScalarInterval,
         restricting parent: ImplicitCurveIntervalJetEncloser.ParameterEnclosureState? = nil,
-        tolerance: ModelingTolerance, consumeWork: () throws -> Void, consumeStorage: ((Int) throws -> Void)? = nil)
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution)
         throws -> (proof: SurfaceAreaParameterChartEncloser.IntervalProof,
                    root: ImplicitCurveIntervalJetEncloser.ParameterEnclosureState?) {
         let slope = OutwardScalarInterval.exact(curve.endFraction) - .exact(curve.startFraction)
@@ -177,13 +177,14 @@ struct SurfaceAreaImplicitParameterChartEncloser: Sendable {
             interval = fraction
         } else if fraction.lower == fraction.upper, curve.startFraction == 1, curve.endFraction == 0 {
             let candidate = 1 - fraction.lower
-            let difference = FloatingPointExpansion.difference(1, fraction.lower)
-            let residual = FloatingPointExpansion.subtract(difference, [candidate])
+            let difference = try FloatingPointExpansion.difference(1, fraction.lower, using: &execution)
+            let singleton = try OriginalCoefficientAllocation.singleton(candidate, using: &execution)
+            let residual = try FloatingPointExpansion.subtract(difference, singleton, using: &execution)
             // A rounded complement is only a candidate. Addition/subtraction
             // expansion equality proves the original reversal is this singleton.
             if candidate.isFinite, candidate >= 0, candidate <= 1,
                difference.allSatisfy({ $0.isFinite }), residual.allSatisfy({ $0.isFinite }),
-               FloatingPointExpansion.sign(residual) == .zero {
+               try FloatingPointExpansion.sign(residual, using: &execution) == .zero {
                 interval = try ScalarInterval(lower: candidate, upper: candidate)
             } else {
                 interval = try ScalarInterval(lower: max(0, source.lower), upper: min(1, source.upper))
@@ -194,7 +195,7 @@ struct SurfaceAreaImplicitParameterChartEncloser: Sendable {
         let count = curve.intersection.cells.count
         if count == 1 {
             let original = try originalJet(cellIndex:0,over:interval,restricting:parent,
-                tolerance:tolerance,consumeWork:consumeWork,consumeStorage:consumeStorage)
+                tolerance:tolerance, using: &execution)
             return (compose(original.jet,slope:slope),original.state)
         }
         // An integer product of a stored fraction has no subnormal product-error
@@ -221,7 +222,7 @@ struct SurfaceAreaImplicitParameterChartEncloser: Sendable {
             let lo = a-Double(index), hi = b-Double(index)
             let local = try ScalarInterval(lower:max(0,lo),upper:min(1,hi))
             let original = try originalJet(cellIndex:index,over:local,restricting:parent,
-                tolerance:tolerance,consumeWork:consumeWork,consumeStorage:consumeStorage)
+                tolerance:tolerance, using: &execution)
             let proof = compose(original.jet,slope:slope)
             if let previous = combined { combined = previous.unionValues(proof); root = nil }
             else { combined = proof; root = original.state }
@@ -234,23 +235,22 @@ struct SurfaceAreaImplicitParameterChartEncloser: Sendable {
 
     private func originalJet(cellIndex: Int, over interval: ScalarInterval,
         restricting parent: ImplicitCurveIntervalJetEncloser.ParameterEnclosureState?,
-        tolerance: ModelingTolerance,consumeWork: () throws -> Void, consumeStorage: ((Int) throws -> Void)? = nil)
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution)
         throws -> (jet: CertifiedImplicitParameterIntervalJet,
                    state: ImplicitCurveIntervalJetEncloser.ParameterEnclosureState) {
-        try consumeWork()
+        try execution.consumeWork(1)
         var state: ImplicitCurveIntervalJetEncloser.ParameterEnclosureState
         if let parent {
             state = try prepared.prepareParameterEnclosure(restricting:parent,cellIndex:cellIndex,
-                overClosedInterval:interval,tolerance:tolerance,consumeWork:consumeWork,consumeStorage:consumeStorage)
+                overClosedInterval:interval,tolerance:tolerance, using: &execution)
         } else {
             state = try prepared.prepareParameterEnclosure(of:curve.intersection,cellIndex:cellIndex,
-                overClosedInterval:interval,tolerance:tolerance,consumeWork:consumeWork,consumeStorage:consumeStorage)
+                overClosedInterval:interval,tolerance:tolerance, using: &execution)
         }
         while true {
-            try consumeWork()
+            try execution.consumeWork(1)
             switch try prepared.advanceParameterEnclosure(state,tolerance:tolerance,maximumSpanCount:262_144,
-                maximumSubdivisionDepth:maximumSubdivisionDepth,remainingSourceDepth:remainingSourceDepth,
-                consumeWork:consumeWork,consumeStorage:consumeStorage) {
+                maximumSubdivisionDepth:maximumSubdivisionDepth,remainingSourceDepth:remainingSourceDepth, using: &execution) {
             case .contracted(let next): state = next
             case .subdivisionRequired: throw SurfaceAreaEnclosureRefinementRequired.implicitLocalization
             case .enclosed(let jet): return (jet,state)

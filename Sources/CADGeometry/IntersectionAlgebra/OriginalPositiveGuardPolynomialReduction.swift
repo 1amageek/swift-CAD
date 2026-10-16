@@ -43,7 +43,7 @@ package struct OriginalPositiveGuardPolynomialReduction: Sendable {
 
     /// On closed original support, a nonzero constant B rules out A=0.
     /// Continuity of the issued strict A sign therefore retains that same sign.
-    package static func prepareFreeSupport<B: RationalAlgebraAdmitting>(
+    package static func prepareFreeSupport<B: ExactScalarAdmission & ~Copyable>(
         polynomials: inout [ExactIntersectionPolynomial], source: OriginalIntersectionCellCondition,
         usage: inout B) throws -> Self? {
         guard let first = polynomials.first else { return nil }
@@ -93,7 +93,7 @@ package struct OriginalPositiveGuardPolynomialReduction: Sendable {
         return nil
     }
 
-    package static func prepare<B: RationalAlgebraAdmitting>(polynomials: inout [ExactIntersectionPolynomial],
+    package static func prepare<B: ExactScalarAdmission & ~Copyable>(polynomials: inout [ExactIntersectionPolynomial],
         original: [ExactIntersectionPolynomial], source: OriginalIntersectionCellCondition, candidateCoordinates: [Int],
         candidateCoordinate: Int, ideal: ExactIntersectionIdeal, radiusIndex: Int, usage: inout B) throws -> Self? {
         let sourceSigns = source.signs

@@ -15,21 +15,34 @@ package enum ResolvedModelingSection: Sendable {
         _ section: SectionReference,
         context: EvaluationContext,
         featureID: FeatureID,
-        sourceBudget: CurvedSweepSourceBudget? = nil,
-        admission: GeometryConversionAdmission? = nil
+        using execution: inout OriginalQueryExecution
     ) throws -> ResolvedModelingSection {
+        try resolveImpl(section, context: context, featureID: featureID,
+            originalProof: true, using: &execution)
+    }
+
+    package static func resolve(_ section: SectionReference, context: EvaluationContext,
+        featureID: FeatureID, sourceBudget: CurvedSweepSourceBudget? = nil) throws -> ResolvedModelingSection {
+        let budget = try sourceBudget ?? CurvedSweepSourceBudget(tolerance: context.tolerance)
+        var execution = try budget.execution()
+        return try resolveImpl(section, context: context, featureID: featureID,
+            originalProof: false, using: &execution)
+    }
+
+    private static func resolveImpl(_ section: SectionReference, context: EvaluationContext,
+        featureID: FeatureID, originalProof: Bool, using execution: inout OriginalQueryExecution) throws -> ResolvedModelingSection {
         switch section {
         case .face(let reference):
             return .face(
-                try FaceSectionProfileResolver().resolve(for: reference, context: context, featureID: featureID, sourceBudget: sourceBudget, admission: admission),
+                try FaceSectionProfileResolver().resolve(for: reference, context: context, featureID: featureID, using: &execution),
                 section
             )
         case .profile(let profileReference):
             return .profile(try resolveProfile(profileReference, from: context.profiles[profileReference.featureID]), section)
         case .curve(let curveReference):
-            return .curve(try resolveCurve(
+            return .curve(try resolveCurveImpl(
                 curveReference, from: context.curves[curveReference.featureID], tolerance: context.tolerance,
-                admission: admission
+                originalProof: originalProof, using: &execution
             ))
         }
     }
@@ -52,8 +65,22 @@ package enum ResolvedModelingSection: Sendable {
         _ reference: CurveSectionReference,
         from curves: [EvaluatedCurve]?,
         tolerance: ModelingTolerance,
-        admission: GeometryConversionAdmission? = nil
+        using execution: inout OriginalQueryExecution
     ) throws -> EvaluatedCurve {
+        try resolveCurveImpl(reference, from: curves, tolerance: tolerance,
+            originalProof: true, using: &execution)
+    }
+
+    package static func resolveCurve(_ reference: CurveSectionReference,
+        from curves: [EvaluatedCurve]?, tolerance: ModelingTolerance) throws -> EvaluatedCurve {
+        var execution = try CurvedSweepSourceBudget(tolerance: tolerance).execution()
+        return try resolveCurveImpl(reference, from: curves, tolerance: tolerance,
+            originalProof: false, using: &execution)
+    }
+
+    private static func resolveCurveImpl(_ reference: CurveSectionReference,
+        from curves: [EvaluatedCurve]?, tolerance: ModelingTolerance, originalProof: Bool,
+        using execution: inout OriginalQueryExecution) throws -> EvaluatedCurve {
         try reference.validate()
         guard let curves, curves.count == 1, let curve = curves.first else {
             throw KernelError.unsupportedEvaluation(
@@ -64,20 +91,15 @@ package enum ResolvedModelingSection: Sendable {
         guard curve.sourceFeatureID == reference.featureID else {
             throw FeatureEvaluationError.invalidGraph("Section curve belongs to a different source feature.")
         }
-        if let admission {
-            _ = try curve.validateOriginalGeometry(tolerance: tolerance,
-                maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
-                remainingSourceDepth: admission.remainingSourceDepth,
-                consumeWork: { try admission.visit(depth: $0) },
-                consumeStorage: { try admission.chargeStorage(bytes: $0) },
-                maximumAlgebraicDepth: admission.maximumAlgebraicDepth)
+        if originalProof {
+            _ = try curve.validateOriginalGeometry(tolerance: tolerance, using: &execution)
         }
         guard reference.parameterDomain != nil || reference.isReversed else { return curve }
-        if admission == nil { try curve.validate(tolerance: tolerance) }
+        if !originalProof { try curve.validate(tolerance: tolerance) }
         var selected = curve
         if let domain = reference.parameterDomain {
-            selected = try CurveTrimFeatureEvaluator().trimmedCurve(featureID: reference.featureID,
-                source: curve, domain: domain, tolerance: tolerance, admission: admission)
+            selected = try CurveTrimFeatureEvaluator().trimmedCurveImpl(featureID: reference.featureID,
+                source: curve, domain: domain, tolerance: tolerance, originalProof: originalProof, using: &execution)
         }
         guard reference.isReversed else { return selected }
         guard let original = selected.exactCurve else {
@@ -99,21 +121,19 @@ package enum ResolvedModelingSection: Sendable {
             throw GeometryError.invalidDistance(span)
         }
         let reversed: Curve3D
-        if let admission {
+        if originalProof {
             // Original input admission above and the fixed exact -1 gain are
             // the constructor's premise; validation pays the new image level.
             reversed = .parameterImage(ParameterImageCurve3D(validatedSource: original,
                 parameterGain: .binary(-1), offset: 0))
             try reversed.validateOriginalSource(tolerance: tolerance,
-                remainingSourceDepth: admission.remainingSourceDepth,
-                maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
-                consumeWork: { try admission.visit(depth: $0) },
-                consumeStorage: { try admission.chargeStorage(bytes: $0) },
-                maximumAlgebraicDepth: admission.maximumAlgebraicDepth)
+                remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+                maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth,
+                maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth, using: &execution)
             selected.exactCurve = reversed
             selected.exactParameterDomain = .closed(lower, upper)
             selected = try CurveTrimFeatureEvaluator().trimmedCurve(featureID: reference.featureID,
-                source: selected, domain: .closed(lower, upper), tolerance: tolerance, admission: admission)
+                source: selected, domain: .closed(lower, upper), tolerance: tolerance, using: &execution)
             selected.source = curve.source
             return selected
         }

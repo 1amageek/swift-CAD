@@ -103,21 +103,23 @@ struct PreparedBSplineSurfacePointJetTests {
 
     @Test(.timeLimit(.minutes(1)))
     func originalNativeTokensRetainEveryKnotCornerAndRejectForeignAuthority() throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
         let surface = BSplineSurface3D(uDegree: 1, vDegree: 1,
             uKnots: [0, 0, 0.5, 1, 1], vKnots: [0, 0, 0.5, 1, 1],
             controlPoints: (0...2).map { j in (0...2).map { i in
                 Point3D(x: Double(i)/2, y: Double(j)/2, z: Double(i*j)/4)
             } })
-        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance)
+        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance, using: &execution)
         let axis = try ScalarInterval(lower: 0.5, upper: 0.5)
         let box = SurfaceParameterBox(u: axis, v: axis)
-        let owners = try prepared.originalNativeSpans(over: box, tolerance: tolerance)
+        let owners = try prepared.originalNativeSpans(over: box, tolerance: tolerance, using: &execution)
         #expect(owners.count == 4)
         #expect(Set(owners.map { $0.uSpanIndex }) == Set([1,2]))
         #expect(Set(owners.map { $0.vSpanIndex }) == Set([1,2]))
         for owner in owners {
             #expect(owner.uBounds.width == 0.5 && owner.vBounds.width == 0.5)
-            let jet = try owner.pointJet(u: 0.5, v: 0.5, on: surface, tolerance: tolerance)
+            let jet = try owner.pointJet(u: 0.5, v: 0.5, on: surface, tolerance: tolerance, using: &execution)
             #expect(jet.x.value.contains(0.5) && jet.y.value.contains(0.5) && jet.z.value.contains(0.25))
             #expect(jet.x.derivativeU.contains(1) && jet.x.derivativeV.contains(0))
             #expect(jet.y.derivativeU.contains(0) && jet.y.derivativeV.contains(1))
@@ -132,33 +134,35 @@ struct PreparedBSplineSurfacePointJetTests {
         for (source, tol, u) in [(foreign,tolerance,0.5),(surface,otherTolerance,0.5),
                                 (surface,tolerance,0.5.nextUp),(surface,tolerance,Double.infinity)] {
             do {
-                _ = try owner.pointJet(u: u, v: 0.5, on: source, tolerance: tol)
+                _ = try owner.pointJet(u: u, v: 0.5, on: source, tolerance: tol, using: &execution)
                 Issue.record("A native token must reject foreign source, tolerance, or support.")
             } catch let error as KernelError { #expect(error.code == .invalidInput) }
         }
         // Mutation of the caller's value does not alter the retained original owner.
-        let retained = try owner.pointJet(u: 0.5, v: 0.5, on: owner.surface, tolerance: tolerance)
+        let retained = try owner.pointJet(u: 0.5, v: 0.5, on: owner.surface, tolerance: tolerance, using: &execution)
         #expect(retained.z.value.contains(0.25))
         let circle = [(0.02,0.0),(0.0,0.02),(-0.02,0.0),(0.0,-0.02)]
         let periodic = try BSplineSurface3D.periodic(uDegree: 3, vDegree: 1,
             uKnots: [0,1,2,3,4], vKnots: [0,0,1,1],
             controlPoints: [0.0,0.03].map { z in circle.map { Point3D(x: $0.0, y: $0.1, z: z) } },
             isUPeriodic: true, isVPeriodic: false, tolerance: tolerance)
-        let periodicPrepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: periodic, tolerance: tolerance)
+        let periodicPrepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: periodic, tolerance: tolerance, using: &execution)
         do {
-            _ = try periodicPrepared.originalNativeSpans(over: box, tolerance: tolerance)
+            _ = try periodicPrepared.originalNativeSpans(over: box, tolerance: tolerance, using: &execution)
             Issue.record("Periodic representatives must not mint original nonperiodic tokens.")
         } catch let error as KernelError { #expect(error.code == .unsupportedCapability) }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func selectedOriginalScalarBasisKeepsActualClosedEndpointSide() throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
         let knots = [0.0,0,0.37,1,1]
         for span in [1,2] {
             let scalar = try BSplineBasis.nonzeroDerivativeValues(parameter: 0.37, degree: 1,
-                throughDerivativeOrder: 1, knots: knots, count: 3, owningSpan: span, tolerance: tolerance)
+                throughDerivativeOrder: 1, knots: knots, count: 3, owningSpan: span, tolerance: tolerance, using: &execution)
             let enclosed = try BSplineBasis.nonzeroIntervalDerivativeValues(parameter: 0.37, degree: 1,
-                throughDerivativeOrder: 1, knots: knots, count: 3, owningSpan: span, tolerance: tolerance)
+                throughDerivativeOrder: 1, knots: knots, count: 3, owningSpan: span, tolerance: tolerance, using: &execution)
             #expect(scalar[0].startIndex == span-1 && enclosed[0].startIndex == span-1)
             #expect(scalar[0].values == (span == 1 ? [0,1] : [1,0]))
             let width = span == 1 ? 0.37 : 1-0.37
@@ -170,56 +174,62 @@ struct PreparedBSplineSurfacePointJetTests {
         }
         do {
             _ = try BSplineBasis.nonzeroDerivativeValues(parameter: 0.37.nextUp, degree: 1,
-                throughDerivativeOrder: 1, knots: knots, count: 3, owningSpan: 1, tolerance: tolerance)
+                throughDerivativeOrder: 1, knots: knots, count: 3, owningSpan: 1, tolerance: tolerance, using: &execution)
             Issue.record("Selected basis admission must not move a parameter across its native knot.")
         } catch let error as KernelError { #expect(error.code == .invalidInput) }
-        let ordinary = BSplineBasis.nonzeroDerivativeValues(parameter: 0.37, degree: 1,
-            throughDerivativeOrder: 1, knots: knots, count: 3)
+        let ordinary = try BSplineBasis.nonzeroDerivativeValues(parameter: 0.37, degree: 1,
+            throughDerivativeOrder: 1, knots: knots, count: 3, using: &execution)
         #expect(ordinary[0].startIndex == 1 && ordinary[0].values == [1,0])
     }
 
     @Test(.timeLimit(.minutes(1)))
     func originalSpanPreparationSelectionAndBasisRespectCancellation() async throws {
+        let budget = try OriginalQueryBudget()
+        let limits = try OriginalQueryExecutionLimits(maximumValueDepth: 32, maximumCoefficientDepth: 32)
+        var execution = OriginalQueryExecution(budget: budget, limits: limits)
         let surface = BSplineSurface3D(uDegree: 1, vDegree: 1,
             uKnots: [0,0,0.5,1,1], vKnots: [0,0,1,1],
             controlPoints: [[Point3D(x: 0,y: 0,z: 0),Point3D(x: 0.5,y: 0,z: 0),Point3D(x: 1,y: 0,z: 0)],
                             [Point3D(x: 0,y: 1,z: 0),Point3D(x: 0.5,y: 1,z: 0),Point3D(x: 1,y: 1,z: 0)]])
-        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance)
+        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance, using: &execution)
         let box = try SurfaceParameterBox(u: ScalarInterval(lower: 0.25,upper: 0.25),
                                           v: ScalarInterval(lower: 0.5,upper: 0.5))
-        let owner = try #require(prepared.originalNativeSpans(over: box, tolerance: tolerance).first)
+        let owner = try geometryTestRequire(prepared.originalNativeSpans(over: box, tolerance: tolerance, using: &execution).first)
         for operation in 0...2 {
             let (stream, continuation) = AsyncStream<Void>.makeStream()
             let task = Task {
+                var execution = OriginalQueryExecution(budget: budget, limits: limits)
                 for await _ in stream { break }
                 switch operation {
                 case 0:
-                    _ = try PreparedBSplineSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance)
+                    _ = try PreparedBSplineSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance, using: &execution)
                 case 1:
-                    _ = try owner.intervalJet(overClosedBox: box, on: surface, tolerance: tolerance)
+                    _ = try owner.intervalJet(overClosedBox: box, on: surface, tolerance: tolerance, using: &execution)
                 default:
                     _ = try BSplineBasis.nonzeroDerivativeValues(parameter: 0.25, degree: 1,
-                        throughDerivativeOrder: 1, knots: surface.uKnots, count: 3, owningSpan: 1, tolerance: tolerance)
+                        throughDerivativeOrder: 1, knots: surface.uKnots, count: 3, owningSpan: 1, tolerance: tolerance, using: &execution)
                 }
             }
             task.cancel()
             continuation.yield()
             continuation.finish()
-            await #expect(throws: CancellationError.self) { _ = try await task.value }
+            await geometryTestExpectFailure(geometryTestIsCancelled) { _ = try await task.value }
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func exactPointAndNarrowClosedBoxesContainOriginalDerivativeNets() throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
         let surface = polynomial()
-        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface:surface,tolerance:tolerance)
+        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface:surface,tolerance:tolerance, using: &execution)
         let patch = RationalBezierSurfacePatch3D(controlPoints:surface.controlPoints,weights:surface.weights,
             uLower:2,uUpper:5,vLower:7,vUpper:9)
         let encloser = RationalBezierSurfaceJetEncloser()
-        let owned = try encloser.prepare(patch,tolerance:tolerance)
+        let owned = try encloser.prepare(patch,tolerance:tolerance, using: &execution)
         for (u,v) in [(2.0,7.0),(5.0,9.0),(5.0.nextDown,9.0.nextDown),(3.35,8.0)] {
-            let actual = try prepared.pointJet(u:u,v:v,tolerance:tolerance)
-            let direct = try encloser.pointEnclosure(of:owned,u:u,v:v,tolerance:tolerance)
+            let actual = try prepared.pointJet(u:u,v:v,tolerance:tolerance, using: &execution)
+            let direct = try encloser.pointEnclosure(of:owned,u:u,v:v,tolerance:tolerance, using: &execution)
             verifyPolynomial(actual,u:u,v:v)
             for (a,b) in zip([actual.x,actual.y,actual.z],[direct.x,direct.y,direct.z]) {
                 for (x,y) in zip(fields(a),fields(b)) {
@@ -232,7 +242,7 @@ struct PreparedBSplineSurfacePointJetTests {
         for width in [1e-4,1e-7,1e-10] {
             let box = try SurfaceParameterBox(u:ScalarInterval(lower:3.35-width,upper:3.35+width),
                 v:ScalarInterval(lower:8,upper:8))
-            let actual = try prepared.intervalJet(overClosedBox:box,tolerance:tolerance)
+            let actual = try prepared.intervalJet(overClosedBox:box,tolerance:tolerance, using: &execution)
             for u in [box.u.lower,box.u.midpoint,box.u.upper] { verifyPolynomial(actual,u:u,v:8) }
             let currentWidth = actual.x.value.upper-actual.x.value.lower
             #expect(currentWidth < previousWidth)

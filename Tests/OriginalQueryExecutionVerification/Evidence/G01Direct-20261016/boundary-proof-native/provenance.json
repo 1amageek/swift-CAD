@@ -1,0 +1,100 @@
+{
+  "scope": "New private Native boundary law finding only. No whole Native or U1 completion.",
+  "files": [
+    {
+      "copy": "source-freeze.json",
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-native-boundary-correspondence-fix-20261016/source-freeze.json",
+      "sha256": "dd69d8ae154b781e99866fb644b328aa537f11b9f46b4c34086497e6abeac7d3"
+    },
+    {
+      "copy": "source-delta.patch",
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-native-boundary-correspondence-fix-20261016/source-delta.patch",
+      "sha256": "3773f18592ffbdfe51fac08762be629caa6218314cf41c4ab0ccd8aa1600bb59"
+    },
+    {
+      "copy": "core-geometry-receipt.json",
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-native-boundary-proof-20261016-r1/receipt.json",
+      "sha256": "16110db0440d87e7e64030695090fae8008bdec293a6c8769cb4c0375da32d7c"
+    },
+    {
+      "copy": "upper-production-receipt.json",
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-native-boundary-proof-upper-20261016-r1/receipt.json",
+      "sha256": "a8226dfe1b5184ffb35302e68aab26c2a97449f06ebda9e35ed77df4cfcdcc5b"
+    },
+    {
+      "copy": "focused-receipt.json",
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-native-boundary-focused-20261016-r1/run/receipt.json",
+      "sha256": "31c9c4b4eec0df081cc047d6a7aab9cc3887d388967b13214c918127bd68b41c"
+    },
+    {
+      "copy": "focused-runtime.log",
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-native-boundary-focused-20261016-r1/run/test-runtime.log",
+      "sha256": "1f6182f4903caa04c0b07be585e17ccb2600a3ed955a9eb7e942741149057b49"
+    },
+    {
+      "copy": "focused-results.xml",
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-native-boundary-focused-20261016-r1/run/results.xml",
+      "sha256": "5bde4467ed156ca2e651d001b03af39ccb038abe1be4efd86369787796a277e9"
+    },
+    {
+      "copy": "causal-red-receipt.json",
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-native-correspondence-stage-20261016-r1/run/receipt.json",
+      "sha256": "852c3125db5a0336898f3e7d854b2bf91035b63621d36d0451481b48c180283c"
+    },
+    {
+      "copy": "causal-red-stages.log",
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-native-correspondence-stage-20261016-r1/stages.log",
+      "sha256": "08cebdc8f4959a2a33ec0d28c63c62f4d5e8e39b01dd67c1a5b0bdf66115b665"
+    },
+    {
+      "copy": "focused-stages.log",
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-native-boundary-verification-preparation-20261016/native-stages.log",
+      "sha256": "6b47c7a6c8ecd89e8d3103aae0ac7cecadcc60c09cc9b0a3fff0bbcfaf7b5648"
+    },
+    {
+      "copy": "public-native-receipt.json",
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-public-boundary-fixed-native-20261016-r1/receipt.json",
+      "sha256": "c507dfcfd569979d3a37bc0f1e0a62b0c43dc5e2aed898608e6adb6ff7c1ab5f"
+    },
+    {
+      "copy": "public-runtime-readers.log",
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-public-boundary-fixed-native-20261016-r1/runtime-readers.log",
+      "sha256": "7061157b4225c3d88d03351aaf39a4fdbf707b445f666a02255f670ae2b858fa"
+    },
+    {
+      "copy": "public-runtime-full.log",
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-public-boundary-fixed-native-20261016-r1/runtime-full.log",
+      "sha256": "e4fbc0f2609afcdd8fc87b6776638758676ba0a0f7c03976798d86f935daa6b6"
+    },
+    {
+      "copy": "public-runtime-admitted.log",
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-public-boundary-fixed-native-20261016-r1/runtime-admitted.log",
+      "sha256": "7fa68276fb18765ddadfce8e58f636cf57e248a32d7e2fc436b645f42e3fe095"
+    },
+    {
+      "copy": "public-runtime-prepared.log",
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-public-boundary-fixed-native-20261016-r1/runtime-prepared.log",
+      "sha256": "00cd7915cb0d14999298238c95733d4e062a4c02fb6913e5c62c00f7b277f795"
+    },
+    {
+      "copy": "public-runtime-ordinary.log",
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-public-boundary-fixed-native-20261016-r1/runtime-ordinary.log",
+      "sha256": "7c59dd7c23672804650692152121f621016159fd84f8921e632488434153fc2b"
+    },
+    {
+      "copy": "public-runtime-resources.log",
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-public-boundary-fixed-native-20261016-r1/runtime-resources.log",
+      "sha256": "9d95120b75371fdf0d5bc873df811bdc7726530fb2ab0c62201753f38edcfb5b"
+    },
+    {
+      "copy": "public-compiler-version.log",
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-public-boundary-fixed-native-20261016-r1/compiler-version.log",
+      "sha256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c"
+    },
+    {
+      "copy": "public-fixture-compile-link.log",
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-public-boundary-fixed-native-20261016-r1/fixture-compile-link.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

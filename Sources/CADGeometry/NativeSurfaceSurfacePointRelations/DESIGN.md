@@ -22,7 +22,7 @@ sources remain with existing dispatch; failures after admission propagate.
 | [CADGeometry](../DESIGN.md) | parent | SSI result | Rich result preserves empty receipts | Array adapter exposes only intersections |
 | [Intersection Algebra](../IntersectionAlgebra/DESIGN.md) | depends on | original system, guarded isolated decomposition | Complete four-coordinate closed coverage | No sampled absence |
 | [Native CS Points](../CurveSurfaceOverlap/NativePointRelations/DESIGN.md) | depends on | scalar localization | Retained original affine root transport | No new solver |
-| [Query Admission](../SurfaceSurfaceQueryAdmission/DESIGN.md) | coordinates with | source, span, subdivision, work and bytes | One caller allowance | Exact depth is independent |
+| [Query Admission](../OriginalQueryExecution/DESIGN.md) | coordinates with | source, span, subdivision, work and bytes | One caller budget owner | Exact depth is independent |
 
 The package-internal NativeSurfaceSurfacePointPublisher is the extracted original
 localization/refinement algorithm. Both producers pass each exact cell and its canonical
@@ -69,7 +69,7 @@ are value-local. No shared mutable state or target-specific isolation is added.
 Source validation, count, work, byte, source depth, algebraic depth, refinement
 and cancellation failures propagate. Incomplete coverage never becomes empty
 success. Proximity and geometry repair do not establish original equality.
-Later exact coordinate queries require their own explicit allowance.
+Later exact coordinate queries require an explicit execution and budget owner.
 
 ## Verification and Change Impact
 The original nonconstant-weight quadratic bowl, weighted bilinear plane, and
@@ -112,3 +112,13 @@ empty relations retain the same complete source/coverage owners. Existing numeri
 entry points and Codable point formats are unchanged. No implicit numeric fallback
 or source pair re-solve occurs. The composition contract is owned by
 [NativeExactGeometricRelations](../NativeExactGeometricRelations/DESIGN.md).
+
+## Direct Execution Admission
+
+Source arithmetic borrows `A: ExactScalarAdmission & ~Copyable`; composed query
+operations borrow `inout OriginalQueryExecution`. Source validation, native span
+validation, structural comparisons and exact refinement receive that same admission.
+The [execution owner](../OriginalQueryExecution/DESIGN.md) defines cumulative
+work and actual byte accounting, independent depth axes, cancellation and lexical
+proof scopes. Retained geometry and relation evidence stay immutable; no callback
+adapter, copied counter or second allowance supplies arithmetic authority.

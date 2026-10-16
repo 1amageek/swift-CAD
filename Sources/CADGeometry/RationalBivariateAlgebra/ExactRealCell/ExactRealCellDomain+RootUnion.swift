@@ -5,9 +5,9 @@ import L2
 #endif
 
 extension ExactRealCellDomain {
-    func isolateRootUnion(_ source: ExactRealRootSource<Field>,
+    func isolateRootUnion<A: ExactScalarAdmission & ~Copyable>(_ source: ExactRealRootSource<Field>,
         laws: [ExactRealRootSource<Field>], active: [Int], domain: ExactRealRootDomain<Field>,
-        limits: ExactRealRootLimits, using a: inout ExactCellBorrowedAdmission
+        limits: ExactRealRootLimits, using a: inout A
     ) throws -> ExactRealRootSet<Field> {
         let p = domain.polynomials
         var linear = true
@@ -63,8 +63,8 @@ extension ExactRealCellDomain {
     }
 
     /// Retains the distinct root union without growing repeated source factors.
-    func adjoiningRootCuts(_ law: Polynomial, to union: Polynomial,
-        polynomials p: ExactPolynomialDomain<Field>, using a: inout ExactCellBorrowedAdmission
+    func adjoiningRootCuts<A: ExactScalarAdmission & ~Copyable>(_ law: Polynomial, to union: Polynomial,
+        polynomials p: ExactPolynomialDomain<Field>, using a: inout A
     ) throws -> Polynomial {
         // Specialization has already proved a positive univariate degree. In
         // characteristic zero, law/gcd(law, law') has exactly its distinct zeros.

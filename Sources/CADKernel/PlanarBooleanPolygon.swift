@@ -16,12 +16,13 @@ struct PlanarBooleanPolygon {
         plane: PlanarBooleanPlane,
         preserveCollinearVertices: Bool = false,
         tolerance: ModelingTolerance
-    ) throws {
-        let simplified = Self.simplified(
+    , using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        let simplified = try Self.simplified(
             vertices,
             preserveCollinearVertices: preserveCollinearVertices,
             tolerance: tolerance.distance
-        )
+        , using: &execution)
         guard simplified.count >= 3 else {
             throw KernelError(
                 phase: .topology,
@@ -36,25 +37,28 @@ struct PlanarBooleanPolygon {
         self.plane = plane
     }
 
-    func inverted(tolerance: ModelingTolerance) throws -> PlanarBooleanPolygon {
-        try PlanarBooleanPolygon(
+    func inverted(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> PlanarBooleanPolygon {
+        try execution.consumeWork(1)
+        return try PlanarBooleanPolygon(
             vertices: vertices.reversed(),
             surface: surface,
             surfaceOrientation: surfaceOrientation == .forward ? .reversed : .forward,
             plane: plane.inverted,
             tolerance: tolerance
-        )
+        , using: &execution)
     }
 
     private static func simplified(
         _ vertices: some Sequence<Point3D>,
         preserveCollinearVertices: Bool,
         tolerance: Double
-    ) -> [Point3D] {
+    , using execution: inout OriginalQueryExecution) throws -> [Point3D] {
+        try execution.consumeWork(1)
         var result: [Point3D] = []
         for vertex in vertices {
+            try execution.consumeWork(1)
             if result.last?.isApproximatelyEqual(to: vertex, tolerance: tolerance) != true {
-                result.append(vertex)
+                try OriginalParameterQueryStorage.append(vertex, to: &result, using: &execution)
             }
         }
         if result.count > 1,
@@ -68,8 +72,10 @@ struct PlanarBooleanPolygon {
         }
         var changed = true
         while changed, result.count >= 3 {
+            try execution.consumeWork(1)
             changed = false
             for index in result.indices {
+            try execution.consumeWork(1)
                 let previous = result[(index + result.count - 1) % result.count]
                 let current = result[index]
                 let next = result[(index + 1) % result.count]

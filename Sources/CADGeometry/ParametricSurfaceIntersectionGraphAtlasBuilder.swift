@@ -20,7 +20,7 @@ struct ParametricSurfaceIntersectionGraphAtlasBuilder: Sendable {
   let domains: BoundedSurfaceParameterDomainMap
   let options: SurfaceSurfaceIntersectionOptions
   let tolerance: ModelingTolerance
-  let admission: SurfaceSurfaceQueryAdmission
+
   private let preparedFirstSurface: PreparedSurfaceDifferentialEncloser
   private let preparedSecondSurface: PreparedSurfaceDifferentialEncloser
 
@@ -29,8 +29,7 @@ struct ParametricSurfaceIntersectionGraphAtlasBuilder: Sendable {
     second preparedSecondSurface: PreparedSurfaceDifferentialEncloser,
     domains: BoundedSurfaceParameterDomainMap,
     options: SurfaceSurfaceIntersectionOptions,
-    tolerance: ModelingTolerance,
-    admission: SurfaceSurfaceQueryAdmission = .legacy
+    tolerance: ModelingTolerance
   ) throws {
     try tolerance.validate()
     first = preparedFirstSurface.surface
@@ -38,7 +37,7 @@ struct ParametricSurfaceIntersectionGraphAtlasBuilder: Sendable {
     self.domains = domains
     self.options = options
     self.tolerance = tolerance
-    self.admission = admission
+
     self.preparedFirstSurface = preparedFirstSurface
     self.preparedSecondSurface = preparedSecondSurface
   }
@@ -46,7 +45,7 @@ struct ParametricSurfaceIntersectionGraphAtlasBuilder: Sendable {
   func build(
     covering component: [Sample],
     remainingRootAttempts: inout Int,
-    remainingCellAttempts: inout Int
+    remainingCellAttempts: inout Int, using execution: inout OriginalQueryExecution
   ) throws -> [Entry] {
     guard component.count >= 2 else {
       throw failure("A graph atlas requires a traced component.")
@@ -55,15 +54,18 @@ struct ParametricSurfaceIntersectionGraphAtlasBuilder: Sendable {
       component: component,
       range: 0...(component.count - 1),
       remainingRootAttempts: &remainingRootAttempts,
-      remainingCellAttempts: &remainingCellAttempts
-    )
+      remainingCellAttempts: &remainingCellAttempts, using: &execution)
     guard covered.count >= 2 else { return covered }
-    try admission.reserve(count: covered.count, stride: MemoryLayout<Entry>.stride)
+    try execution.consumeWork(1)
+    try execution.retainStorage(count: covered.count, stride: MemoryLayout<Entry>.stride)
     var entries: [Entry] = []
     entries.reserveCapacity(covered.count)
-    for entry in covered { try admission.step(); entries.append(entry) }
+    for entry in covered {
+      try execution.consumeWork(1)
+      entries.append(entry)
+    }
     for index in 1..<entries.count {
-      try admission.step()
+      try execution.consumeWork(1)
       let handoff = entries[index].componentRange.lowerBound
       let lower = max(handoff - 1, 0)
       let upper = min(handoff + 1, component.count - 1)
@@ -72,23 +74,29 @@ struct ParametricSurfaceIntersectionGraphAtlasBuilder: Sendable {
       else {
         continue
       }
-      try admission.step()
+      try execution.consumeWork(1)
+      try execution.visitGeometricCell(depth: 0)
       remainingCellAttempts -= 1
       var rejection: String?
       if let bridge = try certifiedEntry(
         component: component,
         range: lower...upper,
         remainingRootAttempts: &remainingRootAttempts,
-        rejection: &rejection
-      ) {
+        rejection: &rejection, using: &execution)
+      {
         let previous = entries[index - 1]
         let count = previous.coverageRecords.count.addingReportingOverflow(1)
         guard !count.overflow else { throw resourceLimit("SSI coverage record count overflowed.") }
-        try admission.reserve(count: count.partialValue,
+        try execution.consumeWork(1)
+        try execution.retainStorage(
+          count: count.partialValue,
           stride: MemoryLayout<ParametricSurfaceIntersectionGraphCellRecord>.stride)
         var coverage: [ParametricSurfaceIntersectionGraphCellRecord] = []
         coverage.reserveCapacity(count.partialValue)
-        for record in previous.coverageRecords { try admission.step(); coverage.append(record) }
+        for record in previous.coverageRecords {
+          try execution.consumeWork(1)
+          coverage.append(record)
+        }
         coverage.append(bridge.record)
         entries[index - 1] = Entry(
           record: previous.record,
@@ -107,27 +115,30 @@ struct ParametricSurfaceIntersectionGraphAtlasBuilder: Sendable {
     range: ClosedRange<Int>,
     remainingRootAttempts: inout Int,
     remainingCellAttempts: inout Int,
-    depth: Int = 0
+    depth: Int = 0, using execution: inout OriginalQueryExecution
   ) throws -> [Entry] {
     guard remainingCellAttempts > 0 else {
       throw resourceLimit(
         "Surface intersection graph-atlas certification exhausted its cell-attempt limit."
       )
     }
-    try admission.step()
+    try execution.consumeWork(1)
+    try execution.visitGeometricCell(depth: depth)
     remainingCellAttempts -= 1
     var rejection: String?
     if let entry = try certifiedEntry(
       component: component,
       range: range,
       remainingRootAttempts: &remainingRootAttempts,
-      rejection: &rejection
-    ) {
-      try admission.reserve(count: 1, stride: MemoryLayout<Entry>.stride)
+      rejection: &rejection, using: &execution)
+    {
+      try execution.consumeWork(1)
+      try execution.retainStorage(count: 1, stride: MemoryLayout<Entry>.stride)
       return [entry]
     }
     guard range.upperBound - range.lowerBound > 1,
-      depth < min(options.maximumBoundarySubdivisionDepth, admission.maximumSubdivisionDepth) else {
+      depth < min(options.maximumBoundarySubdivisionDepth, execution.limits.maximumSubdivisionDepth)
+    else {
       throw failure(
         "A traced surface-intersection segment could not be enclosed by a full-graph interval certificate. First rejection: \(rejection ?? "No admissible monotone graph box or refined midpoint.")"
       )
@@ -139,21 +150,27 @@ struct ParametricSurfaceIntersectionGraphAtlasBuilder: Sendable {
       component: component,
       range: range.lowerBound...middle,
       remainingRootAttempts: &remainingRootAttempts,
-      remainingCellAttempts: &remainingCellAttempts, depth: depth + 1
-    )
+      remainingCellAttempts: &remainingCellAttempts, depth: depth + 1, using: &execution)
     let upper = try cover(
       component: component,
       range: middle...range.upperBound,
       remainingRootAttempts: &remainingRootAttempts,
-      remainingCellAttempts: &remainingCellAttempts, depth: depth + 1
-    )
+      remainingCellAttempts: &remainingCellAttempts, depth: depth + 1, using: &execution)
     let combinedCount = lower.count.addingReportingOverflow(upper.count)
     guard !combinedCount.overflow else { throw resourceLimit("SSI atlas entry count overflowed.") }
-    try admission.reserve(count: combinedCount.partialValue, stride: MemoryLayout<Entry>.stride)
+    try execution.consumeWork(1)
+    try execution.retainStorage(
+      count: combinedCount.partialValue, stride: MemoryLayout<Entry>.stride)
     var combined: [Entry] = []
     combined.reserveCapacity(combinedCount.partialValue)
-    for entry in lower { try admission.step(); combined.append(entry) }
-    for entry in upper { try admission.step(); combined.append(entry) }
+    for entry in lower {
+      try execution.consumeWork(1)
+      combined.append(entry)
+    }
+    for entry in upper {
+      try execution.consumeWork(1)
+      combined.append(entry)
+    }
     return combined
   }
 
@@ -161,19 +178,19 @@ struct ParametricSurfaceIntersectionGraphAtlasBuilder: Sendable {
     component: [Sample],
     range: ClosedRange<Int>,
     remainingRootAttempts: inout Int,
-    rejection: inout String?
+    rejection: inout String?, using execution: inout OriginalQueryExecution
   ) throws -> Entry? {
     let samples = component[range]
-    let candidates = try monotoneFreeParameters(in: samples)
+    let candidates = try monotoneFreeParameters(in: samples, using: &execution)
     for freeParameter in candidates {
-      try admission.step()
+      try execution.consumeWork(1)
       if let entry = try certifiedEntry(
         component: component,
         range: range,
         freeParameter: freeParameter,
         remainingRootAttempts: &remainingRootAttempts,
-        rejection: &rejection
-      ) {
+        rejection: &rejection, using: &execution)
+      {
         return entry
       }
     }
@@ -185,7 +202,7 @@ struct ParametricSurfaceIntersectionGraphAtlasBuilder: Sendable {
     range: ClosedRange<Int>,
     freeParameter: SurfaceIntersectionParameterCoordinate,
     remainingRootAttempts: inout Int,
-    rejection: inout String?
+    rejection: inout String?, using execution: inout OriginalQueryExecution
   ) throws -> Entry? {
     let samples = component[range]
     guard let componentStart = samples.first,
@@ -218,12 +235,11 @@ struct ParametricSurfaceIntersectionGraphAtlasBuilder: Sendable {
     // the traced samples but leave interval-rounding slivers for the
     // subsequent global completeness sweep.
     for marginScale in [2.0, 1.0, 0.5, 0.25, 0.125] {
-      try admission.step()
+      try execution.consumeWork(1)
       var normalizedBounds = try parameterBounds(
         samples: samples,
         freeParameterIndex: freeIndex,
-        marginScale: marginScale
-      )
+        marginScale: marginScale, using: &execution)
       normalizedBounds[freeIndex] = (
         lower: freeLower,
         upper: freeUpper
@@ -242,7 +258,8 @@ struct ParametricSurfaceIntersectionGraphAtlasBuilder: Sendable {
       }
       remainingRootAttempts -= 1
       let midpointFree = freeLower + (freeUpper - freeLower) * 0.5
-      try admission.reserve(count: 4, stride: MemoryLayout<Double>.stride)
+      try execution.consumeWork(1)
+      try execution.retainStorage(count: 4, stride: MemoryLayout<Double>.stride)
       var midpointSeed = zip(
         lowerSample.normalized,
         upperSample.normalized
@@ -252,8 +269,7 @@ struct ParametricSurfaceIntersectionGraphAtlasBuilder: Sendable {
         let midpoint = try rootRefiner.gaugeRoot(
           seed: midpointSeed,
           fixedParameterIndex: freeIndex,
-          constraints: normalizedBounds
-        )
+          constraints: normalizedBounds, using: &execution)
       else {
         continue
       }
@@ -270,8 +286,7 @@ struct ParametricSurfaceIntersectionGraphAtlasBuilder: Sendable {
         )
       }
       let parameterBox = try actualParameterBox(
-        normalizedBounds: normalizedBounds
-      )
+        normalizedBounds: normalizedBounds, using: &execution)
       let record = try ParametricSurfaceIntersectionGraphCellRecord(
         parameterBox: parameterBox,
         freeParameter: freeParameter,
@@ -290,9 +305,11 @@ struct ParametricSurfaceIntersectionGraphAtlasBuilder: Sendable {
           direction: direction,
           first: preparedFirstSurface,
           second: preparedSecondSurface,
-          tolerance: tolerance, admission: admission
+          tolerance: tolerance, using: &execution
         )
-        try admission.reserve(count: 1,
+        try execution.consumeWork(1)
+        try execution.retainStorage(
+          count: 1,
           stride: MemoryLayout<ParametricSurfaceIntersectionGraphCellRecord>.stride)
         return Entry(
           record: record,
@@ -306,7 +323,8 @@ struct ParametricSurfaceIntersectionGraphAtlasBuilder: Sendable {
         || error.code == .singularSystem
       {
         if rejection == nil {
-          rejection = "Free coordinate \(freeParameter); anchors \(lowerSample.actual) -> \(upperSample.actual). \(error.message)"
+          rejection =
+            "Free coordinate \(freeParameter); anchors \(lowerSample.actual) -> \(upperSample.actual). \(error.message)"
         }
         continue
       }
@@ -320,77 +338,101 @@ struct ParametricSurfaceIntersectionGraphAtlasBuilder: Sendable {
       second: second,
       domains: domains,
       maximumIterations: options.maximumIterations,
-      tolerance: tolerance, admission: admission,
+      tolerance: tolerance,
       preparedFirstSurface: preparedFirstSurface, preparedSecondSurface: preparedSecondSurface
     )
   }
 
-  private func monotoneFreeParameters(in samples: ArraySlice<Sample>) throws -> [SurfaceIntersectionParameterCoordinate] {
-    try admission.reserve(count: 4,
+  private func monotoneFreeParameters(
+    in samples: ArraySlice<Sample>, using execution: inout OriginalQueryExecution
+  ) throws -> [SurfaceIntersectionParameterCoordinate] {
+    try execution.consumeWork(1)
+    try execution.retainStorage(
+      count: 4,
       stride: MemoryLayout<(SurfaceIntersectionParameterCoordinate, Double)>.stride)
     var candidates: [(coordinate: SurfaceIntersectionParameterCoordinate, span: Double)] = []
     candidates.reserveCapacity(4)
     for coordinate in SurfaceIntersectionParameterCoordinate.allCases {
       let index = coordinate.rawValue
       guard let initial = samples.first?.normalized[index] else { continue }
-      var lower = initial, upper = initial, previous = initial
-      var nondecreasing = true, nonincreasing = true
+      var lower = initial
+      var upper = initial
+      var previous = initial
+      var nondecreasing = true
+      var nonincreasing = true
       for sample in samples {
-        try admission.step()
+        try execution.consumeWork(1)
         let value = sample.normalized[index]
-        lower = min(lower, value); upper = max(upper, value)
+        lower = min(lower, value)
+        upper = max(upper, value)
         nondecreasing = nondecreasing && value >= previous - tolerance.relative
         nonincreasing = nonincreasing && value <= previous + tolerance.relative
         previous = value
       }
-      guard lower.isFinite, upper.isFinite, lower < upper, nondecreasing || nonincreasing else { continue }
+      guard lower.isFinite, upper.isFinite, lower < upper, nondecreasing || nonincreasing else {
+        continue
+      }
       candidates.append((coordinate, upper - lower))
     }
     // At most four candidates: insertion order avoids an opaque sort scratch buffer.
     for index in candidates.indices.dropFirst() {
       var current = index
       while current > 0 {
-        try admission.step()
-        let first = candidates[current], second = candidates[current - 1]
-        let precedes = first.span != second.span ? first.span > second.span
+        try execution.consumeWork(1)
+        let first = candidates[current]
+        let second = candidates[current - 1]
+        let precedes =
+          first.span != second.span
+          ? first.span > second.span
           : first.coordinate.rawValue < second.coordinate.rawValue
         if !precedes { break }
         candidates.swapAt(current, current - 1)
         current -= 1
       }
     }
-    try admission.reserve(count: candidates.count,
+    try execution.consumeWork(1)
+    try execution.retainStorage(
+      count: candidates.count,
       stride: MemoryLayout<SurfaceIntersectionParameterCoordinate>.stride)
     return candidates.map({ $0.coordinate })
   }
 
-  private func parameterBounds(samples: ArraySlice<Sample>, freeParameterIndex: Int,
-    marginScale: Double) throws -> [(lower: Double, upper: Double)] {
+  private func parameterBounds(
+    samples: ArraySlice<Sample>, freeParameterIndex: Int,
+    marginScale: Double, using execution: inout OriginalQueryExecution
+  ) throws -> [(lower: Double, upper: Double)] {
     guard let first = samples.first else { throw failure("SSI graph bounds require a sample.") }
     func range(_ index: Int) throws -> (lower: Double, upper: Double) {
-      var lower = first.normalized[index], upper = lower
+      var lower = first.normalized[index]
+      var upper = lower
       for sample in samples {
-        try admission.step()
-        lower = min(lower, sample.normalized[index]); upper = max(upper, sample.normalized[index])
+        try execution.consumeWork(1)
+        lower = min(lower, sample.normalized[index])
+        upper = max(upper, sample.normalized[index])
       }
       return (lower, upper)
     }
     let free = try range(freeParameterIndex)
     let freeSpan = free.upper - free.lower
-    try admission.reserve(count: 4, stride: MemoryLayout<(Double, Double)>.stride)
+    try execution.consumeWork(1)
+    try execution.retainStorage(count: 4, stride: MemoryLayout<(Double, Double)>.stride)
     return try first.normalized.indices.map { index in
       let values = try range(index)
-      let margin = max((values.upper - values.lower) * marginScale,
+      let margin = max(
+        (values.upper - values.lower) * marginScale,
         freeSpan * marginScale * 0.25, tolerance.relative * 32)
-      return (lower: max(0, (values.lower - margin).nextDown),
-        upper: min(1, (values.upper + margin).nextUp))
+      return (
+        lower: max(0, (values.lower - margin).nextDown),
+        upper: min(1, (values.upper + margin).nextUp)
+      )
     }
   }
 
   private func actualParameterBox(
-    normalizedBounds: [(lower: Double, upper: Double)]
+    normalizedBounds: [(lower: Double, upper: Double)],
+    using execution: inout OriginalQueryExecution
   ) throws -> SurfaceIntersectionParameterBox {
-    try domains.actualParameterBox(normalizedBounds: normalizedBounds, admission: admission)
+    try domains.actualParameterBox(normalizedBounds: normalizedBounds, using: &execution)
   }
 
   private func failure(_ message: String) -> KernelError {

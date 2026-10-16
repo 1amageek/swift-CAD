@@ -1,4 +1,3 @@
-import Foundation
 import CADCore
 import CADGeometry
 import CADIR
@@ -23,11 +22,27 @@ package struct ExactEdgeContinuitySupportResolver: Sendable {
         context: EvaluationContext,
         featureID: FeatureID
     ) throws -> ExactEdgeContinuitySupport {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try support(for: continuity, point: point, derivative: derivative, toward: toward, context: context, featureID: featureID, using: &execution)
+    }
+
+    package func support(
+        for continuity: SurfaceEdgeContinuity,
+        point: Point3D,
+        derivative: Vector3D,
+        toward: Vector3D,
+        context: EvaluationContext,
+        featureID: FeatureID
+    , using execution: inout OriginalQueryExecution) throws -> ExactEdgeContinuitySupport {
+        try execution.consumeWork(1)
         let tolerance = context.tolerance
         let model = context.brep
-        let scope = try BodyTopologyScope(bodyID: try context.bodyID(generatedBy: continuity.source), model: model)
+        let scope = try BodyTopologyScope(bodyID: try context.bodyID(generatedBy: continuity.source), model: model, using: &execution)
         let resolved = try subshapeResolver.topologyReference(
-            for: continuity.edge, model: model, subshapes: context.subshapes, lineage: context.lineage, tolerance: tolerance
+            for: continuity.edge, model: model, subshapes: context.subshapes, lineage: context.lineage, tolerance: tolerance,
+            maximumSubdivisionDepth: min(32, execution.effectiveLimits.maximumSubdivisionDepth),
+            remainingSourceDepth: min(16, execution.effectiveLimits.remainingSourceDepth),
+            maximumAlgebraicDepth: 32, using: &execution
         )
         guard case let .edge(edgeID) = resolved, scope.references.contains(.edge(edgeID)) else {
             throw KernelError(phase: .evaluation, code: .missingReference, featureID: featureID, subshapeID: continuity.edge.subshapeID,
@@ -36,7 +51,7 @@ package struct ExactEdgeContinuitySupportResolver: Sendable {
         return try support(
             across: edgeID, in: scope, excluding: nil, order: continuity.order, tension: continuity.tension,
             angularAllowance: continuity.angularAllowance, curvatureAllowance: continuity.curvatureAllowance,
-            point: point, derivative: derivative, toward: toward, context: context, featureID: featureID
+            point: point, derivative: derivative, toward: toward, context: context, featureID: featureID, using: &execution
         )
     }
 
@@ -56,31 +71,55 @@ package struct ExactEdgeContinuitySupportResolver: Sendable {
         context: EvaluationContext,
         featureID: FeatureID
     ) throws -> ExactEdgeContinuitySupport {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try support(across: edgeID, in: scope, excluding: excluded, order: order, tension: tension, angularAllowance: angularAllowance, curvatureAllowance: curvatureAllowance, point: point, derivative: derivative, toward: toward, context: context, featureID: featureID, using: &execution)
+    }
+
+    package func support(
+        across edgeID: EdgeID,
+        in scope: BodyTopologyScope,
+        excluding excluded: FaceID?,
+        order: SurfaceEdgeContinuity.Order,
+        tension: Double,
+        angularAllowance: Double?,
+        curvatureAllowance: Double?,
+        point: Point3D,
+        derivative: Vector3D,
+        toward: Vector3D,
+        context: EvaluationContext,
+        featureID: FeatureID
+    , using execution: inout OriginalQueryExecution) throws -> ExactEdgeContinuitySupport {
+        try execution.consumeWork(1)
         let tolerance = context.tolerance
         let model = context.brep
         guard let edge = model.edges[edgeID], let curve = model.geometry.curves[edge.curveID], let trim = edge.trim else {
             throw KernelError(phase: .evaluation, code: .missingReference, featureID: featureID,
                               tolerance: tolerance, message: "A continuity edge has no geometry.")
         }
-        let projection = try curve.parameterProjection(of: point, tolerance: tolerance)
-        guard (try curve.point(at: projection.parameter, tolerance: tolerance) - point).length <= tolerance.distance else {
+        let projection = try curve.parameterProjection(of: point, tolerance: tolerance, using: &execution)
+        guard (try curve.point(at: projection.parameter, tolerance: tolerance, using: &execution) - point).length <= tolerance.distance else {
             throw KernelError(phase: .evaluation, code: .invalidInput, featureID: featureID, tolerance: tolerance,
                               message: "A continuous side does not run along its edge.")
         }
-        let along = try curve.differentialGeometry(at: projection.parameter, tolerance: tolerance).firstDerivative
+        let along = try curve.differentialGeometry(at: projection.parameter, tolerance: tolerance, using: &execution).firstDerivative
             * (trim.endParameter >= trim.startParameter ? 1 : -1)
         var best: (outward: Vector3D, outwardNormal: Vector3D, face: Face,
             coedge: Coedge, score: Double)?
-        for case let .face(faceID) in scope.references where faceID != excluded {
+        for reference in scope.references {
+            try execution.consumeWork(1)
+            guard case let .face(faceID) = reference, faceID != excluded else { continue }
             guard let face = model.faces[faceID] else { continue }
             for loopID in face.loops {
+                try execution.consumeWork(1)
                 guard let loop = model.loops[loopID] else { throw TopologyError.missingReference("A face's loop is missing.") }
-                for coedge in loop.coedges where coedge.edgeID == edgeID {
+                for coedge in loop.coedges {
+                    try execution.consumeWork(1)
+                    guard coedge.edgeID == edgeID else { continue }
                     guard let surface = model.geometry.surfaces[face.surfaceID] else {
                         throw TopologyError.missingReference("A face's surface is missing.")
                     }
-                    let projected = try surface.parameterProjection(of: point, tolerance: tolerance)
-                    let outwardNormal = try surface.normal(u: projected.u, v: projected.v, tolerance: tolerance)
+                    let projected = try surface.parameterProjection(of: point, tolerance: tolerance, using: &execution)
+                    let outwardNormal = try surface.normal(u: projected.u, v: projected.v, tolerance: tolerance, using: &execution)
                         * (face.orientation == .forward ? 1 : -1)
                     // The face lies to the left of its coedges about its outward normal.
                     let travel = along * (coedge.orientation == .forward ? 1 : -1)
@@ -98,7 +137,7 @@ package struct ExactEdgeContinuitySupportResolver: Sendable {
         }
         let outwardSign: Double = best.face.orientation == .forward ? 1 : -1
         let face: ExactEdgeContinuitySupport.Face
-        if let plane = try DefaultPlanarSurfaceResolver().exactPlane(for: surface, tolerance: tolerance) {
+        if let plane = try DefaultPlanarSurfaceResolver().exactPlane(for: surface, tolerance: tolerance, using: &execution) {
             face = .plane(normal: try (plane.normal * outwardSign).normalized(tolerance: tolerance.distance))
         } else {
             guard let allowance = angularAllowance else {

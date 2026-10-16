@@ -22,7 +22,13 @@ public struct BRepDrawingRegionProducer: BRepDrawingRegionProducing {
     // capabilities before this route can complete bounded D3 or page-region output.
     public func regions(_ section: BRepDrawingSection, in evaluated: EvaluatedDocument,
                         maximumBoundaryEdges: Int, maximumRegions: Int) throws -> [BRepDrawingMaterialRegion] {
-        try section.validateCurrent(evaluated)
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try regions(section, in: evaluated, maximumBoundaryEdges: maximumBoundaryEdges, maximumRegions: maximumRegions, using: &execution)
+    }
+
+    public func regions(_ section: BRepDrawingSection, in evaluated: EvaluatedDocument,
+        maximumBoundaryEdges: Int, maximumRegions: Int, using execution: inout OriginalQueryExecution) throws -> [BRepDrawingMaterialRegion] {
+        try section.validateCurrent(evaluated, using: &execution)
         let sourceSnapshot = BRepDrawingSourceSnapshot(evaluated)
         let working = section.workingBRep
         let tolerance = evaluated.configuration.tolerance
@@ -63,7 +69,7 @@ public struct BRepDrawingRegionProducer: BRepDrawingRegionProducing {
         let regularSamples = solidBodies.isEmpty ? BooleanClassificationGraph(samples: [])
             : try DefaultBooleanRegionClassifier().planeSideClassification(uvSplitGraph: solidSplit,
                 targetBodyIDs: solidBodies, toolBodyID: try cuttingBodyID(of: cuttingFaceID, in: model, tolerance: tolerance),
-                model: model, pointClassifier: closedMaterial, tolerance: tolerance)
+                model: model, pointClassifier: closedMaterial, tolerance: tolerance, using: &execution)
         let regularDecisions = try BooleanRegionSelectionGraph(decisions: regularSamples.samples.map { sample in
             let action: BooleanRegionSelectionAction
             switch sample.classification {
@@ -122,7 +128,7 @@ public struct BRepDrawingRegionProducer: BRepDrawingRegionProducing {
                     let original = try SourceBRepFacePatchBuilder().build(
                         faceID: faceSplit.facePair.targetFaceID,
                         stableID: "drawing:cap:\(bodyID):\(faceSplit.facePair.targetFaceID)",
-                        from: working, sourceSubshapes: evaluated.subshapes.entries, tolerance: tolerance).patch
+                        from: working, sourceSubshapes: evaluated.subshapes.entries, tolerance: tolerance, using: &execution).patch
                     if body.kind != .solid {
                         boundaryCount += capEdgeCount
                         guard output.count < maximumRegions else {
@@ -166,7 +172,7 @@ public struct BRepDrawingRegionProducer: BRepDrawingRegionProducing {
                     }
                     let boundaries = try BooleanFaceArrangementBoundary.make(reference: reference,
                         geometry: component.geometry, face: cuttingFace, surfaceSide: .second,
-                        regionSelectionGraph: regularDecisions, parentSubshapeIDs: parents, tolerance: tolerance)
+                        regionSelectionGraph: regularDecisions, parentSubshapeIDs: parents, tolerance: tolerance, using: &execution)
                     guard boundaries.count <= maximumBoundaryEdges - boundaryCount else {
                         throw failure(.resourceLimitExceeded, "Section curve boundary allowance exhausted.", tolerance)
                     }
@@ -177,7 +183,7 @@ public struct BRepDrawingRegionProducer: BRepDrawingRegionProducing {
         }
         let classified = inputs.isEmpty ? BooleanClassificationGraph(samples: [])
             : try DefaultBooleanRegionClassifier().planeEdgeSideClassification(
-                boundaries: inputs, model: model, pointClassifier: closedMaterial, tolerance: tolerance)
+                boundaries: inputs, model: model, pointClassifier: closedMaterial, tolerance: tolerance, using: &execution)
         var samples: [BooleanFaceSplitComponentReference: [BooleanClassificationGraph.Sample]] = [:]
         for sample in classified.samples {
             let reference = BooleanFaceSplitComponentReference(facePair: sample.facePair, componentID: sample.componentID)
@@ -209,7 +215,7 @@ public struct BRepDrawingRegionProducer: BRepDrawingRegionProducing {
             try CurrentTaskCancellationChecker().checkCancellation()
             let arranged = try BooleanOpenFaceArrangementBuilder().build(faceID: cuttingFaceID,
                 boundaries: boundariesByBody[bodyID] ?? [], model: model,
-                sourceSubshapes: evaluated.subshapes.entries, tolerance: tolerance)
+                sourceSubshapes: evaluated.subshapes.entries, tolerance: tolerance, using: &execution)
             for patch in arranged.patches {
                 guard output.count < maximumRegions else {
                     throw failure(.resourceLimitExceeded, "Section material region allowance exhausted.", tolerance)

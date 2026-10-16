@@ -71,3 +71,25 @@ This component consumes the unchanged current-task cancellation and direct
 collection import contracts owned by [CADTopology](../DESIGN.md#m6-portable-validation-wiring).
 Its algorithms, budgets, immutable source owners and existing isolation remain
 unchanged on Native, ordinary WASM and Embedded.
+
+### Canonical direct query binding
+
+Ordinary projection creates one independent execution and delegates to the same
+selected-edge core. `OrthographicEdgeProjecting` requires a direct witness for
+callers that supply their execution. The concrete implementation forwards that
+same execution through source projection, exact affine trim inference, bounded
+trim validation, original endpoint evaluation, and closed-edge classification.
+The existing source depth 16, subdivision depth 32 and algebra depth 32 ceilings
+remain bounded by the caller's independent limits. The original endpoint allowance,
+directed parameters, references, and failure/cancellation guards retain their meaning.
+
+```text
+Drawing execution -> selected edge -> original curve projector
+                  -> original trim / endpoints / closure checks -> projected edge
+```
+
+The direct witness has no ordinary-method fallback. All selected preparation and
+read work accrues to the same caller budget. No shared mutable state is added.
+The next frozen production-module gate must include this protocol requirement
+and its three existing Drawing consumers; prior module receipts do not cover this
+binding addition. Existing directed-source and cancellation oracles remain required.

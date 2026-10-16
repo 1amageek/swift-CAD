@@ -44,9 +44,9 @@ struct OriginalDraftedZeroTranslationRationalAtlas: Sendable {
         return (axis, rawAxis, first, last)
     }
 
-    static func prepared<B: RationalAlgebraAdmitting>(_ source: OriginalDraftedRuledSurface3D,
+    static func prepared<B: ExactScalarAdmission & ~Copyable>(_ source: OriginalDraftedRuledSurface3D,
         usage: inout B) throws -> Self? {
-        try usage.consumeExactWork(1)
+        try usage.consumeWork(1)
         try source.validate(tolerance: source.certificationTolerance)
         guard source.remainingSourceDepth > 1, source.start.remainingSourceDepth > 0 else {
             throw GeometryConversionError.resourceLimitExceeded("Original drafted wall retained source depth is exhausted.")
@@ -71,7 +71,7 @@ struct OriginalDraftedZeroTranslationRationalAtlas: Sendable {
         try RationalAlgebraStorage.retain(pieces.count, of: Cell.self, usage: &usage)
         var cells: [Cell] = []; cells.reserveCapacity(pieces.count)
         for piece in pieces {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             guard piece.homogeneous.count == 4, !piece.lower.isNegative,
                 try !Q.one.subtracting(piece.upper, usage: &usage).isNegative,
                 try piece.upper.subtracting(piece.lower, usage: &usage).isPositive else {
@@ -80,7 +80,7 @@ struct OriginalDraftedZeroTranslationRationalAtlas: Sendable {
             try RationalAlgebraStorage.retain(4, of: P.self, usage: &usage)
             var position: [P] = []; position.reserveCapacity(4)
             for coordinate in 0..<3 {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 position.append(try coordinate == axis
                     ? piece.homogeneous[coordinate].adding(piece.homogeneous[3].multiplied(by: translation, usage: &usage), usage: &usage)
                     : piece.homogeneous[coordinate])

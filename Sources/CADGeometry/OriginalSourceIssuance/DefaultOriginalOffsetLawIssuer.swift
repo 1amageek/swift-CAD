@@ -15,14 +15,14 @@ public struct DefaultOriginalOffsetLawIssuer<S:OriginalOffsetSourceReading,C:Sen
         limits:OriginalSourceIssuanceLimits,using a:inout A) throws(OriginalSourceIssuanceFailure) -> OriginalOffsetLawReceipt<S,C,F> {
         let source=copy source,child=copy child,field=copy field
         do {
-            return try OriginalSourceProofAdmission<A>.withBorrow(&a) { usage in
+            return try a.withProofScope { usage in
                 try compose(source:source,child:child,field:field,limits:limits,using:&usage)
             }
         } catch { throw .init(preserving:error) }
     }
     private func compose<A:ExactScalarAdmission & ~Copyable>(source:OriginalSourceBinding<S>,
         child:OriginalRationalChartReceipt<S.Child,C,F>,field f:F,limits:OriginalSourceIssuanceLimits,
-        using a:inout OriginalSourceProofAdmission<A>) throws -> OriginalOffsetLawReceipt<S,C,F> {
+        using a:inout A) throws -> OriginalOffsetLawReceipt<S,C,F> {
         try a.checkpoint();try source.require(limits)
         guard limits.remainingSourceDepth>0 else { throw OriginalSourceIssuanceFailure.sourceDepthLimit }
         try child.source.require(.init(remainingSourceDepth:limits.remainingSourceDepth-1))
@@ -51,7 +51,7 @@ public struct DefaultOriginalOffsetLawIssuer<S:OriginalOffsetSourceReading,C:Sen
             }
         }
         let ring=try ExactPolynomialDomain(field:f,variableCount:3,using:&a)
-        func embed(_ p:ExactPolynomial<F>,_ a:inout OriginalSourceProofAdmission<A>) throws -> ExactPolynomial<F> {
+        func embed(_ p:ExactPolynomial<F>,_ a:inout A) throws -> ExactPolynomial<F> {
             try a.admitDepth(value:p.depth.value,coefficient:p.depth.coefficient)
             try a.retainStorage(bytes:exactScalarPayloadBytes(count:p.termCount,of:ExactPolynomialTerm<F.Value>.self))
             var terms:[ExactPolynomialTerm<F.Value>]=[];terms.reserveCapacity(p.termCount)

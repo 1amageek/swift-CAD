@@ -22,29 +22,42 @@ struct IsoparamFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
     }
 
     func evaluateValidated(feature: FeatureNode, context: EvaluationContext) throws -> ValidatedFeatureEvaluation {
-        try FeatureEvaluationBoundary.evaluateValidated(featureID: feature.id, tolerance: context.tolerance) {
-            try isoparam(feature: feature, context: context)
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try evaluateValidated(feature: feature, context: context, using: &execution)
+    }
+
+    func evaluate(feature: FeatureNode, context: EvaluationContext,
+        using execution: inout OriginalQueryExecution) throws -> EvaluationResult {
+        try evaluateValidated(feature: feature, context: context, using: &execution).result
+    }
+
+    func evaluateValidated(feature: FeatureNode, context: EvaluationContext,
+        using execution: inout OriginalQueryExecution) throws -> ValidatedFeatureEvaluation {
+        try FeatureEvaluationBoundary.evaluateValidated(featureID: feature.id,
+            tolerance: context.tolerance, using: &execution) { execution in
+            try isoparam(feature: feature, context: context, using: &execution)
         }
     }
 
-    private func isoparam(feature: FeatureNode, context: EvaluationContext) throws -> EvaluationResult {
+    private func isoparam(feature: FeatureNode, context: EvaluationContext, using execution: inout OriginalQueryExecution) throws -> EvaluationResult {
         guard case let .isoparam(isoparam) = feature.operation else {
             throw failure(.invalidInput, feature.id, context, "Isoparam evaluator requires an isoparam feature.")
         }
-        try FeatureEvaluationBoundary.validateRequest(featureID: feature.id, tolerance: context.tolerance) {
+        try FeatureEvaluationBoundary.validateRequest(featureID: feature.id, tolerance: context.tolerance, using: &execution) {
             try isoparam.validate()
         }
-        try FeatureEvaluationBoundary.validateExactInput(context, featureID: feature.id, tolerance: context.tolerance)
+        try FeatureEvaluationBoundary.validateExactInput(context, featureID: feature.id, tolerance: context.tolerance, using: &execution)
         let tolerance = context.tolerance
         let bodyID = try context.bodyID(generatedBy: isoparam.target.featureID)
         guard case let .face(faceID) = try subshapeResolver.topologyReference(
-            for: isoparam.face, model: context.brep, subshapes: context.subshapes, lineage: context.lineage, tolerance: tolerance
-        ), let face = context.brep.faces[faceID], let original = context.brep.geometry.surfaces[face.surfaceID] else {
+            for: isoparam.face, model: context.brep, subshapes: context.subshapes, lineage: context.lineage, tolerance: tolerance, maximumSubdivisionDepth: 32,
+            remainingSourceDepth: 16, maximumAlgebraicDepth: 32, using: &execution), let face = context.brep.faces[faceID], let original = context.brep.geometry.surfaces[face.surfaceID] else {
             throw failure(.missingReference, feature.id, context, "Isoparam's face is not a face of its body.")
         }
         let subshapes = context.subshapes.entries
-        let bounds = try BRepFaceCurveClipper.parameterBounds(of: faceID, model: context.brep, sourceSubshapes: subshapes, tolerance: tolerance)
+        let bounds = try BRepFaceCurveClipper.parameterBounds(of: faceID, model: context.brep, sourceSubshapes: subshapes, tolerance: tolerance, using: &execution)
         let across = isoparam.direction == .u ? bounds.u : bounds.v
+        try execution.retainStorage(count: isoparam.fractions.count * 2, stride: MemoryLayout<Double>.stride)
         let values = isoparam.fractions.sorted().map { across.lowerBound + $0 * (across.upperBound - across.lowerBound) }
         var imprinting = context
         var surface = original
@@ -53,7 +66,7 @@ struct IsoparamFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
                 throw failure(.invalidInput, feature.id, context, "Subdivide splits a control net; this face's surface has none.")
             }
             for value in values {
-                spline = try knotted(spline, direction: isoparam.direction, at: value, tolerance: tolerance)
+                spline = try knotted(spline, direction: isoparam.direction, at: value, tolerance: tolerance, using: &execution)
             }
             surface = .bSpline(spline)
             imprinting.brep.geometry.surfaces[face.surfaceID] = surface
@@ -61,7 +74,7 @@ struct IsoparamFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
         let along = isoparam.direction == .u ? bounds.v : bounds.u
         let span = try reach(of: along, within: isoparam.direction == .u ? surface.vDomain : surface.uDomain, tolerance: tolerance)
         var curves: [BRepFaceImprinter.Curve] = []
-        let faceParents = context.subshapeIDs(for: .face(faceID))
+        let faceParents = try context.subshapeIDs(for: .face(faceID), using: &execution)
         for (index, value) in values.enumerated() {
             let line: SurfaceParameterCurve = isoparam.direction == .u
                 ? .constantU(u: value, vStart: span.lowerBound, vEnd: span.upperBound)
@@ -69,13 +82,14 @@ struct IsoparamFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
             let pieces = try BRepFaceCurveClipper().clip(
                 line, to: faceID, stableID: "isoparam:\(index)", parentSubshapeIDs: faceParents,
                 model: imprinting.brep, sourceSubshapes: subshapes, tolerance: tolerance
-            )
+            , using: &execution)
+            try execution.retainKernelValues(count: pieces.count * 2, stride: MemoryLayout<BRepFaceImprinter.Curve>.stride)
             curves += pieces.map { BRepFaceImprinter.Curve(faceID: faceID, edge: $0) }
         }
         guard curves.isEmpty == false else {
             throw failure(.invalidInput, feature.id, context, "No Isoparam line crosses the face.")
         }
-        return try BRepFaceImprinter().imprint(curves, on: bodyID, featureID: feature.id, context: imprinting)
+        return try BRepFaceImprinter().imprint(curves, on: bodyID, featureID: feature.id, context: imprinting, using: &execution)
     }
 
     /// The face's extent along the lines, reaching a twentieth past each end so the lines cross
@@ -96,14 +110,15 @@ struct IsoparamFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
     }
 
     /// `spline` with the knot `value` in `direction` repeated as many times as its degree there.
-    private func knotted(_ spline: BSplineSurface3D, direction: SurfaceParameterDirection, at value: Double, tolerance: ModelingTolerance) throws -> BSplineSurface3D {
+    private func knotted(_ spline: BSplineSurface3D, direction: SurfaceParameterDirection, at value: Double, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> BSplineSurface3D {
         var result = spline
         let degree = direction == .u ? spline.uDegree : spline.vDegree
         func multiplicity() -> Int {
             (direction == .u ? result.uKnots : result.vKnots).filter { abs($0 - value) <= tolerance.angle }.count
         }
         while multiplicity() < degree {
-            result = try result.insertingKnot(direction: direction, value: value, tolerance: tolerance)
+            try execution.consumeWork(1)
+            result = try result.insertingKnot(direction: direction, value: value, tolerance: tolerance, using: &execution)
         }
         return result
     }

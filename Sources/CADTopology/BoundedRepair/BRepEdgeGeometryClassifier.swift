@@ -6,63 +6,73 @@ public struct BRepEdgeGeometryClassifier: Sendable {
     private let maximumSubdivisionDepth: Int
     private let remainingSourceDepth: Int
     private let maximumAlgebraicDepth: Int?
-    private let consumeStorage: (@Sendable (Int) throws -> Void)?
-    private let consumeWork: (@Sendable (Int) throws -> Void)?
 
     public init(maximumSubdivisionDepth: Int = 32, remainingSourceDepth: Int = 16,
-        consumeWork: (@Sendable (Int) throws -> Void)? = nil,
-        consumeStorage: (@Sendable (Int) throws -> Void)? = nil, maximumAlgebraicDepth: Int? = nil) {
+        maximumAlgebraicDepth: Int? = nil) {
         self.maximumSubdivisionDepth = min(32, maximumSubdivisionDepth)
         self.remainingSourceDepth = min(16, remainingSourceDepth)
-        self.consumeWork = consumeWork
-        self.consumeStorage = consumeStorage
         self.maximumAlgebraicDepth = maximumAlgebraicDepth
     }
 
-    private func charge() throws {
+    private func charge(using execution: inout OriginalQueryExecution) throws {
         try CurrentTaskCancellationChecker().checkCancellation()
         guard maximumSubdivisionDepth >= 0, remainingSourceDepth >= 0,
             maximumAlgebraicDepth.map({ (0...32).contains($0) }) ?? true else {
             throw GeometryConversionError.invalidInput("Original edge classification requires nonnegative caller depths.")
         }
-        try consumeWork?(0)
+        try execution.consumeWork(1)
     }
     public func kind(curve: Curve3D, from start: Double, to end: Double,
         tolerance: ModelingTolerance) throws -> BRepEdgeGeometryKind {
-        try tolerance.validate(); try charge()
-        if consumeWork != nil || consumeStorage != nil || maximumAlgebraicDepth != nil
-            || remainingSourceDepth != 16 || maximumSubdivisionDepth != 32 {
-            try curve.validate(tolerance: tolerance,
-                remainingSourceDepth: remainingSourceDepth,
-                maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: { depth in try consumeWork?(depth) },
-                consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
-        } else { try curve.validate(tolerance: tolerance) }
-        return try classifiedKind(curve: curve, from: start, to: end, tolerance: tolerance)
+        let budget = try OriginalQueryBudget()
+        var execution = OriginalQueryExecution(budget: budget,
+            limits: try .init(maximumValueDepth: maximumAlgebraicDepth ?? 32,
+                maximumCoefficientDepth: maximumAlgebraicDepth ?? 32,
+                remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth))
+        return try kind(curve: curve, from: start, to: end, tolerance: tolerance, using: &execution)
+    }
+
+    public func kind(curve: Curve3D, from start: Double, to end: Double,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> BRepEdgeGeometryKind {
+        try tolerance.validate(); try charge(using: &execution)
+        try curve.validate(tolerance: tolerance,
+            remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth,
+            maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
+        return try classifiedKind(curve: curve, from: start, to: end, tolerance: tolerance, using: &execution)
     }
 
     /// Uses the complete world-source admission without applying its SI metric
     /// again to an unscaled local descendant of a retained spatial word.
+    @inline(never)
     private func classifiedKind(curve: Curve3D, from start: Double, to end: Double,
-        tolerance: ModelingTolerance) throws -> BRepEdgeGeometryKind {
-        try charge()
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> BRepEdgeGeometryKind {
+        try charge(using: &execution)
         guard start.isFinite, end.isFinite, start != end else { throw GeometryError.invalidDistance(abs(end-start)) }
         if case .rigidImage(let image) = curve {
-            return try classifiedKind(curve: image.source, from: start, to: end, tolerance: tolerance)
+            return try classifiedKind(curve: image.source, from: start, to: end, tolerance: tolerance, using: &execution)
         }
         if case .affineImage(let image) = curve {
-            return try classifiedKind(curve: image.source, from: start, to: end, tolerance: tolerance)
+            return try classifiedKind(curve: image.source, from: start, to: end, tolerance: tolerance, using: &execution)
         }
         if case .originalAffineWord(let image) = curve {
-            return try classifiedKind(curve: image.source, from: start, to: end, tolerance: tolerance)
+            return try classifiedKind(curve: image.source, from: start, to: end, tolerance: tolerance, using: &execution)
         }
         if case .originalAngularTransport(let image) = curve, image.transport.isIntrinsic {
-            return try classifiedKind(curve: image.source, from: start, to: end, tolerance: tolerance)
+            return try classifiedKind(curve: image.source, from: start, to: end, tolerance: tolerance, using: &execution)
         }
+        return try classifiedSourceKind(curve: curve, from: start, to: end,
+            tolerance: tolerance, using: &execution)
+    }
+
+    // Keep non-wrapper temporaries out of every transparent wrapper recursion frame.
+    @inline(never)
+    private func classifiedSourceKind(curve: Curve3D, from start: Double, to end: Double,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> BRepEdgeGeometryKind {
         if case .parameterImage(let image) = curve {
             var nativeSource = image.source
             var sourceDepth = 0
             while sourceDepth < remainingSourceDepth {
-                try charge()
+                try charge(using: &execution)
                 switch nativeSource {
                 case .parameterImage(let child): nativeSource = child.source
                 case .rigidImage(let child): nativeSource = child.source
@@ -73,40 +83,34 @@ public struct BRepEdgeGeometryClassifier: Sendable {
                 sourceDepth += 1
             }
             if case .bSpline = nativeSource {
-                if try CurveTrim(startParameter: start, endParameter: end).coversOriginalCurvePeriod(on: curve, consumeWork: consumeWork,
-                    remainingSourceDepth: remainingSourceDepth, consumeStorage: consumeStorage,
-                    maximumAlgebraicDepth: maximumAlgebraicDepth ?? 32) {
+                if try CurveTrim(startParameter: start, endParameter: end).coversOriginalCurvePeriod(on: curve, remainingSourceDepth: remainingSourceDepth,
+                    maximumAlgebraicDepth: maximumAlgebraicDepth ?? 32, using: &execution) {
                     return .closed
                 }
-                var usage = OriginalSourceProofAdmission(consumeWork: consumeWork, consumeStorage: consumeStorage,
-                maximumAlgebraicDepth: maximumAlgebraicDepth)
                 if try OriginalCurveEndpointPositionRelation.prove(first: curve, at: start,
                     second: curve, at: end, remainingSourceDepth: remainingSourceDepth,
-                    maximumSubdivisionDepth: maximumSubdivisionDepth, tolerance: tolerance, usage: &usage,
+                    maximumSubdivisionDepth: maximumSubdivisionDepth, tolerance: tolerance, usage: &execution,
                     maximumAlgebraicDepth: maximumAlgebraicDepth) != nil {
                     return .closed
                 }
             }
-            var parameterUsage = OriginalSourceProofAdmission(consumeWork: consumeWork,
-                consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
             let whole = try image.sourceParameterBoundsAssumingValidatedOriginalRelation(
-                over: ScalarInterval(lower: min(start,end), upper: max(start,end)), usage: &parameterUsage)
-            let sourceKind = try classifiedKind(curve: image.source, from: whole.lower, to: whole.upper, tolerance: tolerance)
+                over: ScalarInterval(lower: min(start,end), upper: max(start,end)), usage: &execution)
+            let sourceKind = try classifiedKind(curve: image.source, from: whole.lower, to: whole.upper, tolerance: tolerance, using: &execution)
             if sourceKind == .singular { return .singular }
             if try CurveTrim(startParameter: start, endParameter: end).coversOriginalCurvePeriod(
-                on: curve, consumeWork: consumeWork, remainingSourceDepth: remainingSourceDepth,
-                consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth ?? 32) { return .closed }
+                on: curve, remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth ?? 32, using: &execution) { return .closed }
             let first = try image.sourceParameterBoundsAssumingValidatedOriginalRelation(
-                over: ScalarInterval(lower: start, upper: start), usage: &parameterUsage)
+                over: ScalarInterval(lower: start, upper: start), usage: &execution)
             let last = try image.sourceParameterBoundsAssumingValidatedOriginalRelation(
-                over: ScalarInterval(lower: end, upper: end), usage: &parameterUsage)
+                over: ScalarInterval(lower: end, upper: end), usage: &execution)
             guard first.lower == first.upper, last.lower == last.upper else { return .open }
-            return try classifiedKind(curve: image.source, from: first.lower, to: last.lower, tolerance: tolerance)
+            return try classifiedKind(curve: image.source, from: first.lower, to: last.lower, tolerance: tolerance, using: &execution)
         }
-        if case .surfaceLift(let lift) = curve, try singular(lift.parameterCurve, on: lift.surface, tolerance: tolerance) { return .singular }
+        if case .surfaceLift(let lift) = curve, try singular(lift.parameterCurve, on: lift.surface, tolerance: tolerance, using: &execution) { return .singular }
         switch curve.parameterDomain {
         case .periodic(let period):
-            if try exactPeriod(from: start, to: end, period: period) { return .closed }
+            if try exactPeriod(from: start, to: end, period: period, using: &execution) { return .closed }
         case .closed(let lower, let upper):
             if min(start,end) == lower, max(start,end) == upper {
                 switch curve {
@@ -114,25 +118,25 @@ public struct BRepEdgeGeometryClassifier: Sendable {
                     if spline.isPeriodic { return .closed }
                     if spline.controlPoints.first == spline.controlPoints.last,
                         try clampedBoundaryIndex(lower, degree: spline.degree, knots: spline.knots,
-                            count: spline.controlPoints.count) == 0,
+                            count: spline.controlPoints.count, using: &execution) == 0,
                         try clampedBoundaryIndex(upper, degree: spline.degree, knots: spline.knots,
-                            count: spline.controlPoints.count) == spline.controlPoints.count - 1 {
+                            count: spline.controlPoints.count, using: &execution) == spline.controlPoints.count - 1 {
                         return .closed
                     }
 
-                case .rigidImage(let image): return try classifiedKind(curve: image.source,from:start,to:end,tolerance:tolerance)
-                case .affineImage(let image): return try classifiedKind(curve: image.source,from:start,to:end,tolerance:tolerance)
+                case .rigidImage(let image): return try classifiedKind(curve: image.source,from:start,to:end,tolerance:tolerance, using: &execution)
+                case .affineImage(let image): return try classifiedKind(curve: image.source,from:start,to:end,tolerance:tolerance, using: &execution)
                 case .surfaceLift(let lift):
                     if case .originalImage(let image) = lift.parameterCurve,
                         lift.surface == .parameterImage(image.targetImage),
                         abs(image.endFraction - image.startFraction) == 1 {
-                        return try classifiedKind(curve: .surfaceLift(image.source), from: 0, to: 1, tolerance: tolerance)
+                        return try classifiedKind(curve: .surfaceLift(image.source), from: 0, to: 1, tolerance: tolerance, using: &execution)
                     }
                     let a = try lift.parameterCurve.startParameter(tolerance:tolerance)
                     let b = try lift.parameterCurve.endParameter(tolerance:tolerance)
-                    if try originalChartPeriodCloses(from: a, to: b, on: lift.surface)
-                        || originalGeneratorCloses(from: a, to: b, on: lift.surface, tolerance: tolerance) { return .closed }
-                    if try originalNativeLiftCloses(lift, tolerance: tolerance) { return .closed }
+                    if try originalChartPeriodCloses(from: a, to: b, on: lift.surface, using: &execution)
+                        || originalGeneratorCloses(from: a, to: b, on: lift.surface, tolerance: tolerance, using: &execution) { return .closed }
+                    if try originalNativeLiftCloses(lift, tolerance: tolerance, using: &execution) { return .closed }
                 default: break
                 }
             }
@@ -146,11 +150,9 @@ public struct BRepEdgeGeometryClassifier: Sendable {
             hasRetainedEndpointAuthority = false
         }
         if hasRetainedEndpointAuthority {
-            var usage = OriginalSourceProofAdmission(consumeWork: consumeWork, consumeStorage: consumeStorage,
-                maximumAlgebraicDepth: maximumAlgebraicDepth)
             if try OriginalCurveEndpointPositionRelation.prove(first: curve, at: start,
                 second: curve, at: end, remainingSourceDepth: remainingSourceDepth,
-                maximumSubdivisionDepth: maximumSubdivisionDepth, tolerance: tolerance, usage: &usage,
+                maximumSubdivisionDepth: maximumSubdivisionDepth, tolerance: tolerance, usage: &execution,
                     maximumAlgebraicDepth: maximumAlgebraicDepth) != nil {
                 return .closed
             }
@@ -158,26 +160,35 @@ public struct BRepEdgeGeometryClassifier: Sendable {
         return .open
     }
     public func kind(of edge: Edge, in model: BRepModel, tolerance: ModelingTolerance) throws -> BRepEdgeGeometryKind {
+        let budget = try OriginalQueryBudget()
+        var execution = OriginalQueryExecution(budget: budget,
+            limits: try .init(maximumValueDepth: maximumAlgebraicDepth ?? 32,
+                maximumCoefficientDepth: maximumAlgebraicDepth ?? 32,
+                remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth))
+        return try kind(of: edge, in: model, tolerance: tolerance, using: &execution)
+    }
+
+    public func kind(of edge: Edge, in model: BRepModel, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> BRepEdgeGeometryKind {
         guard let curve = model.geometry.curves[edge.curveID], let trim = edge.trim else { return .open }
-        return try kind(curve:curve,from:trim.startParameter,to:trim.endParameter,tolerance:tolerance)
+        return try kind(curve:curve,from:trim.startParameter,to:trim.endParameter,tolerance:tolerance, using: &execution)
     }
     private func singular(_ curve: SurfaceParameterCurve, on surface: Surface3D,
-        tolerance: ModelingTolerance) throws -> Bool {
-        try charge()
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Bool {
+        try charge(using: &execution)
         if case .originalImage(let image) = curve {
             guard surface == .parameterImage(image.targetImage) else { return false }
-            return try singular(image.source.parameterCurve, on: image.source.surface, tolerance: tolerance)
+            return try singular(image.source.parameterCurve, on: image.source.surface, tolerance: tolerance, using: &execution)
         }
         if case .originalAffineWord(let image) = curve {
             guard surface == .procedural(.originalAffineWord(image.target)) else { return false }
-            return try singular(image.source.parameterCurve, on: image.source.surface, tolerance: tolerance)
+            return try singular(image.source.parameterCurve, on: image.source.surface, tolerance: tolerance, using: &execution)
         }
         if case .procedural(.originalAffineWord(let image)) = surface {
-            return try singular(curve, on: image.source, tolerance: tolerance)
+            return try singular(curve, on: image.source, tolerance: tolerance, using: &execution)
         }
         if case .procedural(.offset(let offset)) = surface {
             guard let equivalent = try offset.exactChartPreservingSurface(tolerance: tolerance) else { return false }
-            return try singular(curve, on: equivalent, tolerance: tolerance)
+            return try singular(curve, on: equivalent, tolerance: tolerance, using: &execution)
         }
         if case .procedural(.originalImage(let image)) = surface {
             switch curve {
@@ -188,11 +199,11 @@ public struct BRepEdgeGeometryClassifier: Sendable {
                 if image.swapAxes {
                     guard native.v.lower == native.v.upper else { return false }
                     return try singular(.constantV(v: native.v.lower, uStart: native.u.lower,
-                        uEnd: native.u.upper), on: image.source, tolerance: tolerance)
+                        uEnd: native.u.upper), on: image.source, tolerance: tolerance, using: &execution)
                 }
                 guard native.u.lower == native.u.upper else { return false }
                 return try singular(.constantU(u: native.u.lower, vStart: native.v.lower,
-                    vEnd: native.v.upper), on: image.source, tolerance: tolerance)
+                    vEnd: native.v.upper), on: image.source, tolerance: tolerance, using: &execution)
             case .constantV(let v, let start, let end):
                 let native = try image.sourceParameterBounds(over: SurfaceParameterBox(
                     u: ScalarInterval(lower: min(start,end), upper: max(start,end)),
@@ -200,19 +211,19 @@ public struct BRepEdgeGeometryClassifier: Sendable {
                 if image.swapAxes {
                     guard native.u.lower == native.u.upper else { return false }
                     return try singular(.constantU(u: native.u.lower, vStart: native.v.lower,
-                        vEnd: native.v.upper), on: image.source, tolerance: tolerance)
+                        vEnd: native.v.upper), on: image.source, tolerance: tolerance, using: &execution)
                 }
                 guard native.v.lower == native.v.upper else { return false }
                 return try singular(.constantV(v: native.v.lower, uStart: native.u.lower,
-                    uEnd: native.u.upper), on: image.source, tolerance: tolerance)
+                    uEnd: native.u.upper), on: image.source, tolerance: tolerance, using: &execution)
             case .periodicTranslation(let base, let uShift, let vShift):
                 switch base {
                 case .constantU(let u, let a, let b):
                     return try singular(.constantU(u: u+uShift, vStart: a+vShift, vEnd: b+vShift),
-                        on: surface, tolerance: tolerance)
+                        on: surface, tolerance: tolerance, using: &execution)
                 case .constantV(let v, let a, let b):
                     return try singular(.constantV(v: v+vShift, uStart: a+uShift, uEnd: b+uShift),
-                        on: surface, tolerance: tolerance)
+                        on: surface, tolerance: tolerance, using: &execution)
                 default: return false
                 }
             default: return false
@@ -222,10 +233,10 @@ public struct BRepEdgeGeometryClassifier: Sendable {
         case .constantU(let u,let a,let b):
             guard a != b,case .bSpline(let spline) = surface,let firstRow = spline.controlPoints.first,
                 let index = try clampedBoundaryIndex(u,degree: spline.uDegree,knots: spline.uKnots,
-                    count: spline.uControlPointCount) else { return false }
+                    count: spline.uControlPointCount, using: &execution) else { return false }
             let point = firstRow[index]
-            for row in spline.controlPoints { try charge(); if row[index] != point { return false } }
-            for row in spline.weights { try charge(); if !row[index].isFinite || row[index] <= 0 { return false } }
+            for row in spline.controlPoints { try charge(using: &execution); if row[index] != point { return false } }
+            for row in spline.weights { try charge(using: &execution); if !row[index].isFinite || row[index] <= 0 { return false } }
             return true
         case .constantV(let v,let a,let b):
             guard a != b else { return false }
@@ -234,21 +245,22 @@ public struct BRepEdgeGeometryClassifier: Sendable {
                 if v == 1 { return revolution.hasOriginalAxisEndpoint(atEnd: true) }
                 return false
             }
-            if SurfaceParameterTopology(surface:surface).uSingularVValues.contains(v) { return true }
+            let topology = try SurfaceParameterTopology(surface: surface, using: &execution)
+            if topology.uSingularVValues.contains(v) { return true }
             guard case .bSpline(let spline) = surface,
                 let index = try clampedBoundaryIndex(v,degree: spline.vDegree,knots: spline.vKnots,
-                    count: spline.vControlPointCount) else { return false }
+                    count: spline.vControlPointCount, using: &execution) else { return false }
             let row = spline.controlPoints[index]
             guard let point = row.first else { return false }
-            for control in row { try charge(); if control != point { return false } }
-            for weight in spline.weights[index] { try charge(); if !weight.isFinite || weight <= 0 { return false } }
+            for control in row { try charge(using: &execution); if control != point { return false } }
+            for weight in spline.weights[index] { try charge(using: &execution); if !weight.isFinite || weight <= 0 { return false } }
             return true
         case .periodicTranslation(let base,let uShift,let vShift):
             switch base {
             case .constantU(let u,let a,let b):
-                return try singular(.constantU(u: u+uShift,vStart: a+vShift,vEnd: b+vShift),on: surface,tolerance: tolerance)
+                return try singular(.constantU(u: u+uShift,vStart: a+vShift,vEnd: b+vShift),on: surface,tolerance: tolerance, using: &execution)
             case .constantV(let v,let a,let b):
-                return try singular(.constantV(v: v+vShift,uStart: a+uShift,uEnd: b+uShift),on: surface,tolerance: tolerance)
+                return try singular(.constantV(v: v+vShift,uStart: a+uShift,uEnd: b+uShift),on: surface,tolerance: tolerance, using: &execution)
             default: return false
             }
         default: return false
@@ -257,7 +269,7 @@ public struct BRepEdgeGeometryClassifier: Sendable {
 
     /// Position closure consumes the original producer and every incident endpoint side.
     private func originalNativeLiftCloses(_ lift: SurfaceLiftCurve3D,
-        tolerance: ModelingTolerance) throws -> Bool {
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Bool {
         guard lift.exactBSplineImage == nil, case .bSpline(let surface) = lift.surface,
             !surface.isUPeriodic, !surface.isVPeriodic else { return false }
         switch lift.parameterCurve {
@@ -269,40 +281,38 @@ public struct BRepEdgeGeometryClassifier: Sendable {
         }
         let first = try lift.parameterCurve.startParameter(tolerance:tolerance)
         let last = try lift.parameterCurve.endParameter(tolerance:tolerance)
-        var usage = OriginalSourceProofAdmission(consumeWork:consumeWork,consumeStorage:consumeStorage,
-            maximumAlgebraicDepth:maximumAlgebraicDepth)
-        func position(_ point: SurfaceParameter, using usage: inout OriginalSourceProofAdmission)
+        func position(_ point: SurfaceParameter, using execution: inout OriginalQueryExecution)
             throws -> [ExactRationalCoefficient] {
-            let u = try ExactRationalCoefficient.originalDouble(point.u,usage:&usage)
-            let v = try ExactRationalCoefficient.originalDouble(point.v,usage:&usage)
+            let u = try ExactRationalCoefficient.originalDouble(point.u,usage:&execution)
+            let v = try ExactRationalCoefficient.originalDouble(point.v,usage:&execution)
             var retained: [ExactRationalCoefficient]?
             for ui in surface.uDegree..<surface.uControlPointCount {
                 for vi in surface.vDegree..<surface.vControlPointCount {
-                    try usage.consumeExactWork(1)
+                    try execution.consumeWork(1)
                     guard surface.uKnots[ui] < surface.uKnots[ui+1],
                         surface.vKnots[vi] < surface.vKnots[vi+1] else { continue }
-                    let ul = try ExactRationalCoefficient.originalDouble(surface.uKnots[ui],usage:&usage)
-                    let uh = try ExactRationalCoefficient.originalDouble(surface.uKnots[ui+1],usage:&usage)
-                    let vl = try ExactRationalCoefficient.originalDouble(surface.vKnots[vi],usage:&usage)
-                    let vh = try ExactRationalCoefficient.originalDouble(surface.vKnots[vi+1],usage:&usage)
-                    if try u.subtracting(ul,usage:&usage).isNegative || uh.subtracting(u,usage:&usage).isNegative
-                        || v.subtracting(vl,usage:&usage).isNegative || vh.subtracting(v,usage:&usage).isNegative { continue }
+                    let ul = try ExactRationalCoefficient.originalDouble(surface.uKnots[ui],usage:&execution)
+                    let uh = try ExactRationalCoefficient.originalDouble(surface.uKnots[ui+1],usage:&execution)
+                    let vl = try ExactRationalCoefficient.originalDouble(surface.vKnots[vi],usage:&execution)
+                    let vh = try ExactRationalCoefficient.originalDouble(surface.vKnots[vi+1],usage:&execution)
+                    if try u.subtracting(ul,usage:&execution).isNegative || uh.subtracting(u,usage:&execution).isNegative
+                        || v.subtracting(vl,usage:&execution).isNegative || vh.subtracting(v,usage:&execution).isNegative { continue }
                     let law = try OriginalRationalSurfaceHomogeneous(source:surface,uSpanIndex:ui,vSpanIndex:vi,
-                        tolerance:tolerance,usage:&usage)
-                    let weight = try law.homogeneous[3].evaluated(atU:u,v:v,usage:&usage)
+                        tolerance:tolerance,usage:&execution)
+                    let weight = try law.homogeneous[3].evaluated(atU:u,v:v,usage:&execution)
                     guard weight.isPositive else {
                         throw GeometryConversionError.invalidInput("Original lifted endpoint has no positive homogeneous weight.")
                     }
-                    try RationalAlgebraStorage.retain(3,of:ExactRationalCoefficient.self,usage:&usage)
+                    try RationalAlgebraStorage.retain(3,of:ExactRationalCoefficient.self,usage:&execution)
                     var coordinates: [ExactRationalCoefficient] = []; coordinates.reserveCapacity(3)
                     for axis in 0..<3 {
-                        coordinates.append(try law.homogeneous[axis].evaluated(atU:u,v:v,usage:&usage)
-                            .divided(by:weight,usage:&usage))
+                        coordinates.append(try law.homogeneous[axis].evaluated(atU:u,v:v,usage:&execution)
+                            .divided(by:weight,usage:&execution))
                     }
                     if let retained {
                         for axis in 0..<3 {
-                            try usage.consumeExactWork(1)
-                            guard try retained[axis].subtracting(coordinates[axis],usage:&usage).isZero else {
+                            try execution.consumeWork(1)
+                            guard try retained[axis].subtracting(coordinates[axis],usage:&execution).isZero else {
                                 throw GeometryConversionError.invalidInput("Original lifted endpoint incident position laws disagree.")
                             }
                         }
@@ -314,10 +324,10 @@ public struct BRepEdgeGeometryClassifier: Sendable {
             }
             return retained
         }
-        let a = try position(first,using:&usage), b = try position(last,using:&usage)
+        let a = try position(first,using:&execution), b = try position(last,using:&execution)
         for axis in 0..<3 {
-            try usage.consumeExactWork(1)
-            if try !a[axis].subtracting(b[axis],usage:&usage).isZero {
+            try execution.consumeWork(1)
+            if try !a[axis].subtracting(b[axis],usage:&execution).isZero {
                 try CurrentTaskCancellationChecker().checkCancellation()
                 return false
             }
@@ -327,7 +337,7 @@ public struct BRepEdgeGeometryClassifier: Sendable {
     }
 
     private func originalGeneratorCloses(from first: SurfaceParameter, to last: SurfaceParameter,
-        on surface: Surface3D, tolerance: ModelingTolerance) throws -> Bool {
+        on surface: Surface3D, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Bool {
         var source = surface
         var start = SurfaceParameterBox(u: try ScalarInterval(lower: first.u, upper: first.u),
             v: try ScalarInterval(lower: first.v, upper: first.v))
@@ -337,7 +347,7 @@ public struct BRepEdgeGeometryClassifier: Sendable {
         var depth = 0
         while true {
             guard depth < remainingSourceDepth else { return false }
-            depth += 1; try charge()
+            depth += 1; try charge(using: &execution)
             switch source {
             case .procedural(.originalImage(let image)):
                 start = try image.sourceParameterBounds(over: start, tolerance: tolerance)
@@ -355,57 +365,53 @@ public struct BRepEdgeGeometryClassifier: Sendable {
         }
     }
 
-    private func exactPeriod(from start: Double, to end: Double, period: Double) throws -> Bool {
-        var usage = OriginalSourceProofAdmission(consumeWork: consumeWork, consumeStorage: consumeStorage,
-                maximumAlgebraicDepth: maximumAlgebraicDepth)
-        let difference = try ExactRationalCoefficient.originalDouble(end, usage: &usage)
-            .subtracting(.originalDouble(start, usage: &usage), usage: &usage)
+    private func exactPeriod(from start: Double, to end: Double, period: Double, using execution: inout OriginalQueryExecution) throws -> Bool {
+        let difference = try ExactRationalCoefficient.originalDouble(end, usage: &execution)
+            .subtracting(.originalDouble(start, usage: &execution), usage: &execution)
         let magnitude = difference.isNegative ? difference.negated : difference
-        return try magnitude.subtracting(.originalDouble(period, usage: &usage), usage: &usage).isZero
+        return try magnitude.subtracting(.originalDouble(period, usage: &execution), usage: &execution).isZero
     }
 
     private func originalChartPeriodCloses(from start: SurfaceParameter, to end: SurfaceParameter,
-        on surface: Surface3D) throws -> Bool {
-        var usage = OriginalSourceProofAdmission(consumeWork: consumeWork, consumeStorage: consumeStorage,
-                maximumAlgebraicDepth: maximumAlgebraicDepth)
+        on surface: Surface3D, using execution: inout OriginalQueryExecution) throws -> Bool {
         var source = surface
-        var u = try ExactRationalCoefficient.originalDouble(end.u, usage: &usage)
-            .subtracting(.originalDouble(start.u, usage: &usage), usage: &usage)
-        var v = try ExactRationalCoefficient.originalDouble(end.v, usage: &usage)
-            .subtracting(.originalDouble(start.v, usage: &usage), usage: &usage)
+        var u = try ExactRationalCoefficient.originalDouble(end.u, usage: &execution)
+            .subtracting(.originalDouble(start.u, usage: &execution), usage: &execution)
+        var v = try ExactRationalCoefficient.originalDouble(end.v, usage: &execution)
+            .subtracting(.originalDouble(start.v, usage: &execution), usage: &execution)
         var depth = 0
         while true {
             guard depth < remainingSourceDepth else { return false }
             depth += 1
-            try usage.visitExactCell(depth: 0)
+            try execution.consumeWork(1)
             switch source {
             case .procedural(.originalImage(let image)):
-                let mappedU = try u.multiplied(by: image.uParameterGain.exactCoefficient(usage: &usage), usage: &usage)
-                let mappedV = try v.multiplied(by: image.vParameterGain.exactCoefficient(usage: &usage), usage: &usage)
+                let mappedU = try u.multiplied(by: image.uParameterGain.exactCoefficient(usage: &execution), usage: &execution)
+                let mappedV = try v.multiplied(by: image.vParameterGain.exactCoefficient(usage: &execution), usage: &execution)
                 u = image.swapAxes ? mappedV : mappedU
                 v = image.swapAxes ? mappedU : mappedV
                 source = image.source
             case .procedural(.originalAffineWord(let image)): source = image.source
             case .procedural(.offset(let offset)): source = offset.source
             default:
-                let topology = SurfaceParameterTopology(surface: source)
+                let topology = try SurfaceParameterTopology(surface: source, using: &execution)
                 if v.isZero, let period = topology.uPeriod {
                     let magnitude = u.isNegative ? u.negated : u
-                    if try magnitude.subtracting(.originalDouble(period, usage: &usage), usage: &usage).isZero { return true }
+                    if try magnitude.subtracting(.originalDouble(period, usage: &execution), usage: &execution).isZero { return true }
                 }
                 if u.isZero, let period = topology.vPeriod {
                     let magnitude = v.isNegative ? v.negated : v
-                    if try magnitude.subtracting(.originalDouble(period, usage: &usage), usage: &usage).isZero { return true }
+                    if try magnitude.subtracting(.originalDouble(period, usage: &execution), usage: &execution).isZero { return true }
                 }
                 return false
             }
         }
     }
 
-    private func clampedBoundaryIndex(_ parameter: Double,degree: Int,knots: [Double],count: Int) throws -> Int? {
+    private func clampedBoundaryIndex(_ parameter: Double,degree: Int,knots: [Double],count: Int, using execution: inout OriginalQueryExecution) throws -> Int? {
         guard degree >= 0,count > degree,knots.count == count+degree+1 else { return nil }
         func matches(_ values: ArraySlice<Double>) throws -> Bool {
-            for value in values { try charge(); if value != parameter { return false } }
+            for value in values { try charge(using: &execution); if value != parameter { return false } }
             return true
         }
         if parameter == knots[degree], try matches(knots.prefix(degree+1)) { return 0 }

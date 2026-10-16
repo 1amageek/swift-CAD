@@ -18,7 +18,7 @@ package struct OriginalNonvanishingSectorPolynomial: Sendable {
     }
 
     /// Nil refuses this sufficient theorem; it does not classify the original relation.
-    package static func prepare<B: RationalAlgebraAdmitting>(_ original: ExactIntersectionPolynomial,
+    package static func prepare<B: ExactScalarAdmission & ~Copyable>(_ original: ExactIntersectionPolynomial,
         partition: OriginalRationalIntersectionCells, baseCell: Int,
         maximumDepth: Int, usage: inout B) throws -> Self? {
         try intersectionAlgebraStep(&usage)

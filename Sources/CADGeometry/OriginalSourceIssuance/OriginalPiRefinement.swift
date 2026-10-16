@@ -13,6 +13,33 @@ struct OriginalPiRefinement {
     var sum5: ExactRationalCoefficient
     var sum239: ExactRationalCoefficient
     var index = 0
+    /// Sealed exact Machin bounds from an attained source refinement step.
+    struct Evidence {
+        let interval: OriginalPhysicalAngleInterval
+        let coefficientDepth: Int
+        fileprivate init(interval: OriginalPhysicalAngleInterval, coefficientDepth: Int) {
+            self.interval = interval; self.coefficientDepth = coefficientDepth
+        }
+        func admitProof<A: ExactScalarAdmission & ~Copyable>(using a: inout A)
+            throws(ExactScalarFailure) {
+            try a.checkpoint()
+            try a.admitDepth(value: 0, coefficient: coefficientDepth)
+            try a.checkpoint()
+        }
+    }
+
+    mutating func nextEvidence<A: ExactScalarAdmission & ~Copyable>(_ a: inout A) throws -> Evidence {
+        let depth = index.addingReportingOverflow(1)
+        guard !depth.overflow else { throw ExactScalarFailure.countOverflow }
+        try a.checkpoint()
+        try a.visitCell(axis: .coefficient, depth: depth.partialValue)
+        try a.admitDepth(value: 0, coefficient: depth.partialValue)
+        let bounds = try next(&a)
+        guard index == depth.partialValue else { throw ExactScalarFailure.invalidEvidence }
+        try a.checkpoint()
+        return Evidence(interval: bounds, coefficientDepth: index)
+    }
+
     init<A: ExactScalarAdmission & ~Copyable>(_ a: inout A) throws {
         let one = try q.integer(1,using:&a)
         power5 = try q.dividing(one,q.integer(5,using:&a),using:&a)

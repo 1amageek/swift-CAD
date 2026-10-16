@@ -18,10 +18,16 @@ public struct CoedgeGeometrySignature: Hashable, Sendable {
     }
 
     public func validate(on surface: Surface3D) throws {
-        try edge.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(on: surface, using: &execution)
+    }
+
+    public func validate(on surface: Surface3D, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try edge.validate(using: &execution)
         try surfaceParameterCurve.validate(
             on: surface,
-            tolerance: GeometrySignatureValidation.tolerance
+            tolerance: GeometrySignatureValidation.tolerance, using: &execution
         )
     }
 

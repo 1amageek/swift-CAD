@@ -7,11 +7,11 @@ package struct OriginalPipeStartPose: Sendable {
     package let tangent: Vector3D
 
     package init(span: ExactBSplineCurveSpan, featureID: FeatureID,
-        tolerance: ModelingTolerance, admission: GeometryConversionAdmission) throws {
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
         let source = try OriginalCurveConstructionSource(chart: span.originalChart,
-            domain: ScalarInterval(lower: 0, upper: 1), tolerance: tolerance, admission: admission)
+            domain: ScalarInterval(lower: 0, upper: 1), tolerance: tolerance, using: &execution)
         let jet = try source.enclosure(over: ScalarInterval(lower: 0, upper: 0),
-            tolerance: tolerance, admission: admission)
+            tolerance: tolerance, using: &execution)
         func bound(_ p: CoordinateEnclosure3D) -> IntervalVector3DBounds {
             .init(x: .init(lower: p.x.lower, upper: p.x.upper),
                 y: .init(lower: p.y.lower, upper: p.y.upper),
@@ -29,7 +29,7 @@ package struct OriginalPipeStartPose: Sendable {
             y: direction.z * .exact(tangent.x) - direction.x * .exact(tangent.z),
             z: direction.x * .exact(tangent.y) - direction.y * .exact(tangent.x))
         let sine = try CertifiedRotationTrigonometry.evaluate(.exact(min(tolerance.angle, Double.pi * 0.5)),
-            tolerance: tolerance, consumeWork: { try admission.chargeWork() }).sine
+            tolerance: tolerance, using: &execution).sine
         let tangentLength = IntervalVector3DBounds(x: .exact(tangent.x),
             y: .exact(tangent.y), z: .exact(tangent.z)).lengthLowerBound
         guard displacement.lengthUpperBound <= tolerance.distance * 0.125,

@@ -7,9 +7,9 @@ public struct PreparedOriginalAffineOperationWord: Hashable, Sendable {
     public var orientationSign: Int { source.orientationSign }
 
     /// Exposes immutable exact field authority to same-package original producers.
-    package func originalNormalizedFrame<B: RationalAlgebraAdmitting>(usage: inout B) throws
+    package func originalNormalizedFrame<B: ExactScalarAdmission & ~Copyable>(usage: inout B) throws
         -> (frame: OriginalRationalNormalizedFrame, maximumAlgebraicDepth: Int)? {
-        try usage.consumeExactWork(1)
+        try usage.consumeWork(1)
         guard let frame = source.normalizedFrame else { return nil }
         try OriginalAffineRationalMatrix.retain(1,
             of: (frame: OriginalRationalNormalizedFrame, maximumAlgebraicDepth: Int).self, usage: &usage)
@@ -32,7 +32,7 @@ public struct PreparedOriginalAffineOperationWord: Hashable, Sendable {
         }
         return source.coefficients[row * 4 + 3]
     }
-    public func coefficientEnclosure<B: RationalAlgebraAdmitting>(row: Int, column: Int,
+    public func coefficientEnclosure<B: ExactScalarAdmission & ~Copyable>(row: Int, column: Int,
         usage: inout B) throws -> ScalarInterval {
         guard (0..<3).contains(row), (0..<4).contains(column) else {
             throw rationalAlgebraFailure("Original affine coefficient index is out of range.")
@@ -47,7 +47,7 @@ public struct PreparedOriginalAffineOperationWord: Hashable, Sendable {
         return try ScalarInterval(lower: interval.lower, upper: interval.upper)
     }
     /// Applies raw direction and raw scale before final outward conversion.
-    public func enclosure<B: RationalAlgebraAdmitting>(ofOriginalVector vector: Vector3D,
+    public func enclosure<B: ExactScalarAdmission & ~Copyable>(ofOriginalVector vector: Vector3D,
         originalScale: Double, usage: inout B) throws -> CoordinateEnclosure3D {
         try vector.validate()
         guard originalScale.isFinite else { throw GeometryError.invalidCoordinate(originalScale) }
@@ -58,14 +58,14 @@ public struct PreparedOriginalAffineOperationWord: Hashable, Sendable {
         return .init(x: x, y: y, z: z)
     }
 
-    private func scaledVectorInterval<B: RationalAlgebraAdmitting>(row: Int, vector: Vector3D,
+    private func scaledVectorInterval<B: ExactScalarAdmission & ~Copyable>(row: Int, vector: Vector3D,
         scale: ExactRationalCoefficient, usage: inout B) throws -> ScalarInterval {
         let result: OutwardScalarInterval
         if let frame = source.normalizedFrame {
             var sum = try OriginalSingularFieldElement.constant(.zero, in: frame.context,
                 maximumDepth: source.maximumDepth, usage: &usage)
             for column in 0..<3 {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 let component = column == 0 ? vector.x : column == 1 ? vector.y : vector.z
                 let original = try ExactRationalCoefficient.originalDouble(component, usage: &usage)
                     .multiplied(by: scale, usage: &usage)
@@ -80,7 +80,7 @@ public struct PreparedOriginalAffineOperationWord: Hashable, Sendable {
         } else {
             var sum = ExactRationalCoefficient.zero
             for column in 0..<3 {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 let component = column == 0 ? vector.x : column == 1 ? vector.y : vector.z
                 let original = try ExactRationalCoefficient.originalDouble(component, usage: &usage)
                     .multiplied(by: scale, usage: &usage)
@@ -92,7 +92,7 @@ public struct PreparedOriginalAffineOperationWord: Hashable, Sendable {
         return try .init(lower: result.lower, upper: result.upper)
     }
 
-    public func applying<B: RationalAlgebraAdmitting>(to point: Point3D, usage: inout B) throws -> Point3D {
+    public func applying<B: ExactScalarAdmission & ~Copyable>(to point: Point3D, usage: inout B) throws -> Point3D {
         if let frame = source.normalizedFrame {
             let values = try frame.applying(to: Vector3D(x: point.x, y: point.y, z: point.z), asPoint: true,
                 maximumDepth: source.maximumDepth, usage: &usage)
@@ -106,7 +106,7 @@ public struct PreparedOriginalAffineOperationWord: Hashable, Sendable {
         let z = try scalar(row: 2, input: Vector3D(x: point.x, y: point.y, z: point.z), isPosition: true, usage: &usage)
         return Point3D(x: x, y: y, z: z)
     }
-    public func applying<B: RationalAlgebraAdmitting>(to vector: Vector3D, usage: inout B) throws -> Vector3D {
+    public func applying<B: ExactScalarAdmission & ~Copyable>(to vector: Vector3D, usage: inout B) throws -> Vector3D {
         if let frame = source.normalizedFrame {
             let values = try frame.applying(to: vector, asPoint: false, maximumDepth: source.maximumDepth, usage: &usage)
             let x = try OriginalAffineFieldAction.rounded(values[0], maximumDepth: source.maximumDepth, usage: &usage)
@@ -119,11 +119,11 @@ public struct PreparedOriginalAffineOperationWord: Hashable, Sendable {
         let z = try scalar(row: 2, input: vector, isPosition: false, usage: &usage)
         return Vector3D(x: x, y: y, z: z)
     }
-    private func scalar<B: RationalAlgebraAdmitting>(row: Int, input: Vector3D,
+    private func scalar<B: ExactScalarAdmission & ~Copyable>(row: Int, input: Vector3D,
         isPosition: Bool, usage: inout B) throws -> Double {
         var value: ExactRationalCoefficient = isPosition ? source.coefficients[row * 4 + 3] : .zero
         for column in 0..<3 {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             let scalar = column == 0 ? input.x : column == 1 ? input.y : input.z
             let original = try ExactRationalCoefficient.originalDouble(scalar, usage: &usage)
             value = try value.adding(source.coefficients[row * 4 + column].multiplied(by: original, usage: &usage), usage: &usage)
@@ -131,14 +131,14 @@ public struct PreparedOriginalAffineOperationWord: Hashable, Sendable {
         return try OriginalAffineRationalMatrix.rounded(value, usage: &usage)
     }
     /// Computes exact extrema before outward conversion, including cancellation.
-    public func enclosure<B: RationalAlgebraAdmitting>(of input: CoordinateEnclosure3D,
+    public func enclosure<B: ExactScalarAdmission & ~Copyable>(of input: CoordinateEnclosure3D,
         isPosition: Bool, usage: inout B) throws -> CoordinateEnclosure3D {
         let x = try interval(row: 0, input: input, isPosition: isPosition, usage: &usage)
         let y = try interval(row: 1, input: input, isPosition: isPosition, usage: &usage)
         let z = try interval(row: 2, input: input, isPosition: isPosition, usage: &usage)
         return CoordinateEnclosure3D(x: x, y: y, z: z)
     }
-    private func interval<B: RationalAlgebraAdmitting>(row: Int, input: CoordinateEnclosure3D,
+    private func interval<B: ExactScalarAdmission & ~Copyable>(row: Int, input: CoordinateEnclosure3D,
         isPosition: Bool, usage: inout B) throws -> ScalarInterval {
         if let frame = source.normalizedFrame {
             return try OriginalAffineFieldAction.interval(frame, row: row, input: input, isPosition: isPosition,
@@ -147,12 +147,12 @@ public struct PreparedOriginalAffineOperationWord: Hashable, Sendable {
         return try rationalInterval(row: row, input: input, isPosition: isPosition,
             coefficients: source.coefficients, usage: &usage)
     }
-    private func rationalInterval<B: RationalAlgebraAdmitting>(row: Int, input: CoordinateEnclosure3D,
+    private func rationalInterval<B: ExactScalarAdmission & ~Copyable>(row: Int, input: CoordinateEnclosure3D,
         isPosition: Bool, coefficients: [ExactRationalCoefficient], usage: inout B) throws -> ScalarInterval {
         var lower: ExactRationalCoefficient = isPosition ? coefficients[row * 4 + 3] : .zero
         var upper = lower
         for column in 0..<3 {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             let interval = column == 0 ? input.x : column == 1 ? input.y : input.z
             let coefficient = coefficients[row * 4 + column]
             let low = try ExactRationalCoefficient.originalDouble(coefficient.isNegative ? interval.upper : interval.lower, usage: &usage)
@@ -164,7 +164,7 @@ public struct PreparedOriginalAffineOperationWord: Hashable, Sendable {
         return try ScalarInterval(lower: lo.lower, upper: hi.upper)
     }
     /// Transports an original cross-product normal by Cof(A), including reflections.
-    public func applyingCofactor<B: RationalAlgebraAdmitting>(to input: CoordinateEnclosure3D,
+    public func applyingCofactor<B: ExactScalarAdmission & ~Copyable>(to input: CoordinateEnclosure3D,
         usage: inout B) throws -> CoordinateEnclosure3D {
         let x: ScalarInterval, y: ScalarInterval, z: ScalarInterval
         if source.isRational {
@@ -180,13 +180,13 @@ public struct PreparedOriginalAffineOperationWord: Hashable, Sendable {
     }
 
     /// Rigorous Frobenius upper bounds, with exact products before final square roots.
-    public func conditionBounds<B: RationalAlgebraAdmitting>(usage: inout B)
+    public func conditionBounds<B: ExactScalarAdmission & ~Copyable>(usage: inout B)
         throws -> (linearNormUpper: Double, cofactorConditionUpper: Double) {
         if source.isRational {
             var a = ExactRationalCoefficient.zero, c = ExactRationalCoefficient.zero
             for row in 0..<3 {
                 for column in 0..<3 {
-                    try usage.consumeExactWork(1)
+                    try usage.consumeWork(1)
                     let x = source.coefficients[row * 4 + column], y = source.cofactorCoefficients[row * 4 + column]
                     a = try a.adding(x.multiplied(by: x, usage: &usage), usage: &usage)
                     c = try c.adding(y.multiplied(by: y, usage: &usage), usage: &usage)
@@ -206,7 +206,7 @@ public struct PreparedOriginalAffineOperationWord: Hashable, Sendable {
         var c = a
         for row in 0..<3 {
             for column in 0..<3 {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 let x = try OriginalAffineFieldAction.coefficient(frame, row: row, column: column, maximumDepth: depth, usage: &usage)
                 let y = source.normalizedCofactors[row * 3 + column]
                 a = try a.adding(x.multiplied(by: x, maximumDepth: depth, usage: &usage), maximumDepth: depth, usage: &usage)
@@ -222,14 +222,14 @@ public struct PreparedOriginalAffineOperationWord: Hashable, Sendable {
     }
 
     /// Proves the exact image equals an authored binary point, without rounded equality.
-    public func maps<B: RationalAlgebraAdmitting>(_ original: Point3D, exactlyTo target: Point3D,
+    public func maps<B: ExactScalarAdmission & ~Copyable>(_ original: Point3D, exactlyTo target: Point3D,
         usage: inout B) throws -> Bool {
         try original.validate(); try target.validate()
         if let frame = source.normalizedFrame {
             let values = try frame.applying(to: Vector3D(x: original.x, y: original.y, z: original.z),
                 asPoint: true, maximumDepth: source.maximumDepth, usage: &usage)
             for row in 0..<3 {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 let scalar = row == 0 ? target.x : row == 1 ? target.y : target.z
                 let rational = try ExactRationalCoefficient.originalDouble(scalar, usage: &usage)
                 switch try OriginalAffineFieldAction.compare(values[row], with: rational,
@@ -243,7 +243,7 @@ public struct PreparedOriginalAffineOperationWord: Hashable, Sendable {
         for row in 0..<3 {
             var value = source.coefficients[row * 4 + 3]
             for column in 0..<3 {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 let scalar = column == 0 ? original.x : column == 1 ? original.y : original.z
                 let rational = try ExactRationalCoefficient.originalDouble(scalar, usage: &usage)
                 value = try value.adding(source.coefficients[row * 4 + column].multiplied(by: rational, usage: &usage), usage: &usage)

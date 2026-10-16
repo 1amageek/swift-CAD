@@ -7,7 +7,7 @@ import Testing
 @Suite("Curve support identity registry")
 struct CurveSupportIdentityRegistryTests {
     @Test(.timeLimit(.minutes(1)))
-    func sharesIdentityAcrossExactLinearRepresentationsAndSubspans() {
+    func sharesIdentityAcrossExactLinearRepresentationsAndSubspans() throws {
         let analytic = edge(
             stableID: "analytic",
             curve: .line(Line3D(origin: .origin, direction: .unitX)),
@@ -46,21 +46,24 @@ struct CurveSupportIdentityRegistryTests {
             start: Point3D(x: 3.0, y: 0.0, z: 0.0),
             end: Point3D(x: 1.0, y: 0.0, z: 0.0)
         )
+        var execution = OriginalQueryExecution(budget: try .init(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32,
+                remainingSourceDepth: 16, maximumSubdivisionDepth: 32))
         var registry = CurveSupportIdentityRegistry()
 
-        let analyticIdentity = registry.identity(
+        let analyticIdentity = try registry.identity(
             for: analytic,
-            tolerance: .standard
+            tolerance: .standard, using: &execution
         )
 
-        #expect(registry.identity(for: bSpline, tolerance: .standard)
+        #expect(try registry.identity(for: bSpline, tolerance: .standard, using: &execution)
             == analyticIdentity)
-        #expect(registry.identity(for: reversedBSpline, tolerance: .standard)
+        #expect(try registry.identity(for: reversedBSpline, tolerance: .standard, using: &execution)
             == analyticIdentity)
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func keepsParallelDistinctSupportsSeparate() {
+    func keepsParallelDistinctSupportsSeparate() throws {
         let first = edge(
             stableID: "first",
             curve: .line(Line3D(origin: .origin, direction: .unitX)),
@@ -80,10 +83,13 @@ struct CurveSupportIdentityRegistryTests {
             start: Point3D(x: 0.0, y: 0.001, z: 0.0),
             end: Point3D(x: 1.0, y: 0.001, z: 0.0)
         )
+        var execution = OriginalQueryExecution(budget: try .init(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32,
+                remainingSourceDepth: 16, maximumSubdivisionDepth: 32))
         var registry = CurveSupportIdentityRegistry()
 
-        #expect(registry.identity(for: first, tolerance: .standard)
-            != registry.identity(for: second, tolerance: .standard))
+        #expect(try registry.identity(for: first, tolerance: .standard, using: &execution)
+            != registry.identity(for: second, tolerance: .standard, using: &execution))
     }
 
     private func edge(

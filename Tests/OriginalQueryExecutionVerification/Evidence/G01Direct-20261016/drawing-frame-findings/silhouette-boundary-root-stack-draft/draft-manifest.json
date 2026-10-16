@@ -1,0 +1,36 @@
+{
+  "status": "DRAFT ONLY - NOT APPLIED - NO COMPILER",
+  "originalFiles": {
+    "Sources/CADGeometry/SurfaceSilhouette/OriginalSurfaceSilhouetteCurve.swift": "86365787c01650fe9c666b2e83499f4e27ab8cead6bac91a54776d2924b628f7",
+    "Sources/CADGeometry/SurfaceSilhouette/DESIGN.md": "15d03e83a9c393cfa7b9d4841faa2b1d65c9e93374ba05292f8a16e57ac75c69"
+  },
+  "draftFiles": {
+    "OriginalSurfaceSilhouetteCurve.swift": "0e88c63677950c373a947ad2107ce5fbad775411ed921d64bd23bde99080bac4",
+    "DESIGN.md": "fa13d57def4b4e944aa7945b28589a5b8d52db0f9f61b5363c3535455464fd8e",
+    "draft.patch": "ebfd6c522c208b57e257209a29ba1f60f846093270732cc8eb3bc5e4f0323339"
+  },
+  "bodyComparisons": [
+    {
+      "name": "fieldAtlasBoundaryIsSame",
+      "bodyEqualIgnoringWhitespace": true,
+      "bodySHA256": "adbdcff5ac51a2ad51af0c00cac01d189fc20990a6ff5477f25039a891c4d4c2"
+    },
+    {
+      "name": "rationalAtlasBoundaryIsSame",
+      "bodyEqualIgnoringWhitespace": true,
+      "bodySHA256": "c7b77c2ef42aa989ff14b2edd18b3e4b485d17e35105a21da37ca0f83fe2efee"
+    },
+    {
+      "name": "regularBoundaryIsSame",
+      "bodyEqualIgnoringWhitespace": true,
+      "bodySHA256": "2a925f0ac5721436a5dd757df270bd52588a9608b53b2d0d9d3f9afc0e4e41ba"
+    }
+  ],
+  "sourceQueryOperationCountsUnchanged": true,
+  "allOtherOriginalFunctionsExactTextEqual": true,
+  "pending": [
+    "actual measured old frame/path",
+    "parent approval before source apply",
+    "new Native frames and same Drawing runtime"
+  ]
+}

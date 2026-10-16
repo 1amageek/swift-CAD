@@ -1,0 +1,39 @@
+(node:34610) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+START G01 query ordinary singleton swapped=false
+STAGE G01 query produced ordinary singleton swapped=false
+STAGE G01 check reader singleton swapped=false
+STAGE G01 check chart singleton swapped=false
+STAGE G01 check metadata singleton swapped=false
+PASS G01 query ordinary singleton swapped=false
+START G01 query ordinary singleton swapped=true
+STAGE G01 query produced ordinary singleton swapped=true
+STAGE G01 check reader singleton swapped=true
+STAGE G01 check chart singleton swapped=true
+STAGE G01 check metadata singleton swapped=true
+PASS G01 query ordinary singleton swapped=true
+START G01 query ordinary wide swapped=false
+STAGE G01 query produced ordinary wide swapped=false
+STAGE G01 check reader wide swapped=false
+STAGE G01 check chart wide swapped=false
+STAGE G01 check metadata wide swapped=false
+PASS G01 query ordinary wide swapped=false
+START G01 query ordinary wide swapped=true
+STAGE G01 query produced ordinary wide swapped=true
+STAGE G01 check reader wide swapped=true
+STAGE G01 check chart wide swapped=true
+STAGE G01 check metadata wide swapped=true
+PASS G01 query ordinary wide swapped=true
+START G01 query ordinary regression swapped=false
+STAGE G01 query produced ordinary regression swapped=false
+STAGE G01 check reader regression swapped=false
+STAGE G01 check chart regression swapped=false
+STAGE G01 check metadata regression swapped=false
+PASS G01 query ordinary regression swapped=false
+START G01 query ordinary regression swapped=true
+STAGE G01 query produced ordinary regression swapped=true
+STAGE G01 check reader regression swapped=true
+STAGE G01 check chart regression swapped=true
+STAGE G01 check metadata regression swapped=true
+PASS G01 query ordinary regression swapped=true
+PASS G01 public ordinary

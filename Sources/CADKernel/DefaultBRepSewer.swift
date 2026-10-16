@@ -17,12 +17,30 @@ public struct DefaultBRepSewer: BRepSewing {
     _ request: BRepSewingRequest,
     tolerance: ModelingTolerance
   ) throws -> BRepSewingResult {
-    try request.validate(tolerance: tolerance)
-    let draft = try assemble(request, tolerance: tolerance)
+    var execution = OriginalQueryExecution(
+      budget: try OriginalQueryBudget(),
+      limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32)
+    )
+    return try sew(request, tolerance: tolerance, using: &execution)
+  }
+
+  public func sew(
+    _ request: BRepSewingRequest,
+    tolerance: ModelingTolerance,
+    using execution: inout OriginalQueryExecution
+  ) throws -> BRepSewingResult {
+    try execution.consumeWork(1)
+    try request.validate(tolerance: tolerance, using: &execution)
+    let draft = try assemble(request, tolerance: tolerance, using: &execution)
+    let limits = execution.effectiveLimits
     let validatedBRep = try ValidatedBRepModel(
       draft.brep,
       tolerance: tolerance,
-      validationLevel: .exact
+      validationLevel: .exact,
+      maximumSubdivisionDepth: min(32, limits.maximumSubdivisionDepth),
+      remainingSourceDepth: min(16, limits.remainingSourceDepth),
+      maximumAlgebraicDepth: min(32, limits.maximumValueDepth, limits.maximumCoefficientDepth),
+      using: &execution
     )
     return BRepSewingResult(
       validatedBRep: validatedBRep,
@@ -35,8 +53,10 @@ public struct DefaultBRepSewer: BRepSewing {
 
   private func assemble(
     _ request: BRepSewingRequest,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance,
+    using execution: inout OriginalQueryExecution
   ) throws -> BRepSewingDraft {
+    try execution.consumeWork(1)
     var topologyIDs = FeatureTopologyIDAllocator(
       featureID: request.featureID,
       topologyNamespace: request.topologyNamespace
@@ -49,6 +69,7 @@ public struct DefaultBRepSewer: BRepSewing {
     var stableReferences: [BRepSewingStableKey: TopologyReference] = [:]
 
     for shell in request.shells.sorted(by: { $0.stableID < $1.stableID }) {
+      try execution.consumeWork(1)
       var vertices: [VertexRecord] = []
       var edges: [EdgeRecord] = []
       var faceRecords: [FaceRecord] = []
@@ -57,9 +78,11 @@ public struct DefaultBRepSewer: BRepSewing {
         records: &vertices,
         model: &model,
         topologyIDs: &topologyIDs,
-        tolerance: tolerance
+        tolerance: tolerance,
+        using: &execution
       )
       for patch in shell.patches.sorted(by: { $0.stableID < $1.stableID }) {
+        try execution.consumeWork(1)
         let surfaceID = topologyIDs.nextSurfaceID()
         let faceID = topologyIDs.nextFaceID()
         model.geometry.surfaces[surfaceID] = patch.surface
@@ -70,9 +93,11 @@ public struct DefaultBRepSewer: BRepSewing {
           return $0.stableID < $1.stableID
         }
         for loop in orderedLoops {
+          try execution.consumeWork(1)
           let loopID = topologyIDs.nextLoopID()
           var coedges: [Coedge] = []
           for sewingEdge in loop.edges {
+            try execution.consumeWork(1)
             guard
               let endpointIDs = connectivity.endpointIDs[
                 sewingEdge.stableID
@@ -90,7 +115,7 @@ public struct DefaultBRepSewer: BRepSewing {
             let endVertexID = endpointIDs.end
             let geometryKind = try BRepEdgeGeometryClassifier().kind(
               curve: sewingEdge.curve, from: sewingEdge.startParameter,
-              to: sewingEdge.endParameter, tolerance: tolerance)
+              to: sewingEdge.endParameter, tolerance: tolerance, using: &execution)
             guard startVertexID != endVertexID || geometryKind != .open else {
               throw KernelError(
                 phase: .topology,
@@ -108,7 +133,8 @@ public struct DefaultBRepSewer: BRepSewing {
               records: &edges,
               model: &model,
               topologyIDs: &topologyIDs,
-              tolerance: tolerance
+              tolerance: tolerance,
+              using: &execution
             )
             stableReferences[.edge(sewingEdge.stableID)] = .edge(use.edgeID)
             stableReferences[.startVertex(edge: sewingEdge.stableID)] = .vertex(startVertexID)
@@ -139,7 +165,8 @@ public struct DefaultBRepSewer: BRepSewing {
         edges,
         bodyKind: request.bodyKind,
         model: model,
-        tolerance: tolerance
+        tolerance: tolerance,
+        using: &execution
       )
       let shellID = topologyIDs.nextShellID()
       model.shells[shellID] = Shell(
@@ -224,22 +251,27 @@ public struct DefaultBRepSewer: BRepSewing {
     records: inout [VertexRecord],
     model: inout BRepModel,
     topologyIDs: inout FeatureTopologyIDAllocator,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance,
+    using execution: inout OriginalQueryExecution
   ) throws -> SewingConnectivity {
+    try execution.consumeWork(1)
     var slots: [EndpointSlot] = []
     var uses: [InputEdgeUse] = []
     var endpointSlots: [String: EndpointSlotPair] = [:]
-    var disjointSet = DisjointSet(count: 0)
+    var disjointSet = try DisjointSet(count: 0, using: &execution)
 
     let orderedPatches = shell.patches.sorted { $0.stableID < $1.stableID }
     for patch in orderedPatches {
+      try execution.consumeWork(1)
       let orderedLoops = patch.loops.sorted {
         if $0.role != $1.role { return $0.role == .outer }
         return $0.stableID < $1.stableID
       }
       for loop in orderedLoops {
+        try execution.consumeWork(1)
         var loopPairs: [EndpointSlotPair] = []
         for edge in loop.edges {
+          try execution.consumeWork(1)
           let start = slots.count
           slots.append(
             EndpointSlot(
@@ -254,11 +286,11 @@ public struct DefaultBRepSewer: BRepSewing {
               parents: edge.endVertexParentSubshapeIDs,
               stableKey: "\(edge.stableID):end"
             ))
-          disjointSet.appendPair()
+          try disjointSet.appendPair(using: &execution)
           let geometryKind = try BRepEdgeGeometryClassifier().kind(
-            curve: edge.curve, from: edge.startParameter, to: edge.endParameter, tolerance: tolerance)
+            curve: edge.curve, from: edge.startParameter, to: edge.endParameter, tolerance: tolerance, using: &execution)
           if geometryKind != .open {
-            disjointSet.union(start, end)
+            try disjointSet.union(start, end, using: &execution)
           }
           let pair = EndpointSlotPair(start: start, end: end)
           endpointSlots[edge.stableID] = pair
@@ -266,9 +298,11 @@ public struct DefaultBRepSewer: BRepSewing {
           uses.append(InputEdgeUse(edge: edge, slots: pair))
         }
         for index in loopPairs.indices {
-          disjointSet.union(
+          try execution.consumeWork(1)
+          try disjointSet.union(
             loopPairs[index].end,
-            loopPairs[(index + 1) % loopPairs.count].start
+            loopPairs[(index + 1) % loopPairs.count].start,
+            using: &execution
           )
         }
       }
@@ -278,18 +312,19 @@ public struct DefaultBRepSewer: BRepSewing {
     // endpoint comparisons dominate after eliminating full edge-value copies.
     let pairs = uses.map { $0.slots }
     for firstIndex in pairs.indices {
-      try CurrentTaskCancellationChecker().checkCancellation()
+      try execution.checkpoint()
       let first = pairs[firstIndex]
       // Singular parameter boundaries have no physical span to share. Preserve each
       // face's own original UV law, even when two boundaries map to the same point.
       if try BRepEdgeGeometryClassifier().kind(curve: uses[firstIndex].edge.curve,
         from: uses[firstIndex].edge.startParameter, to: uses[firstIndex].edge.endParameter,
-        tolerance: tolerance) == .singular { continue }
+        tolerance: tolerance, using: &execution) == .singular { continue }
       for secondIndex in (firstIndex + 1)..<pairs.count {
+        try execution.consumeWork(1)
         let second = pairs[secondIndex]
         if try BRepEdgeGeometryClassifier().kind(curve: uses[secondIndex].edge.curve,
           from: uses[secondIndex].edge.startParameter, to: uses[secondIndex].edge.endParameter,
-          tolerance: tolerance) == .singular { continue }
+          tolerance: tolerance, using: &execution) == .singular { continue }
         let forwardEndpointsAgree = endpointsAgree(
           first,
           second,
@@ -302,11 +337,12 @@ public struct DefaultBRepSewer: BRepSewing {
             CurveSpanDefinition(uses[secondIndex].edge),
             record: CurveSpanDefinition(uses[firstIndex].edge),
             orientation: .forward,
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
           )
         {
-          disjointSet.union(first.start, second.start)
-          disjointSet.union(first.end, second.end)
+          try disjointSet.union(first.start, second.start, using: &execution)
+          try disjointSet.union(first.end, second.end, using: &execution)
           continue
         }
         let reversedEndpointsAgree = endpointsAgree(
@@ -321,21 +357,24 @@ public struct DefaultBRepSewer: BRepSewing {
             CurveSpanDefinition(uses[secondIndex].edge),
             record: CurveSpanDefinition(uses[firstIndex].edge),
             orientation: .reversed,
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
           )
         {
-          disjointSet.union(first.start, second.end)
-          disjointSet.union(first.end, second.start)
+          try disjointSet.union(first.start, second.end, using: &execution)
+          try disjointSet.union(first.end, second.start, using: &execution)
         }
       }
     }
 
     var groupedSlots: [Int: [Int]] = [:]
     for slot in slots.indices {
-      groupedSlots[disjointSet.find(slot), default: []].append(slot)
+      try execution.consumeWork(1)
+      groupedSlots[try disjointSet.find(slot, using: &execution), default: []].append(slot)
     }
     var vertexIDByRoot: [Int: VertexID] = [:]
     for root in groupedSlots.keys.sorted() {
+      try execution.consumeWork(1)
       guard let members = groupedSlots[root],
         let canonicalIndex = members.min(by: {
           slots[$0].stableKey < slots[$1].stableKey
@@ -346,6 +385,7 @@ public struct DefaultBRepSewer: BRepSewing {
       let canonicalPoint = slots[canonicalIndex].point
       var parents: Set<SubshapeID> = []
       for member in members {
+        try execution.consumeWork(1)
         let gap = (slots[member].point - canonicalPoint).length
         guard gap <= tolerance.distance else {
           throw KernelError(
@@ -372,8 +412,9 @@ public struct DefaultBRepSewer: BRepSewing {
 
     var endpointIDs: [String: EndpointVertexPair] = [:]
     for (stableID, pair) in endpointSlots {
-      guard let start = vertexIDByRoot[disjointSet.find(pair.start)],
-        let end = vertexIDByRoot[disjointSet.find(pair.end)]
+      try execution.consumeWork(1)
+      guard let start = vertexIDByRoot[try disjointSet.find(pair.start, using: &execution)],
+        let end = vertexIDByRoot[try disjointSet.find(pair.end, using: &execution)]
       else {
         throw KernelError(
           phase: .topology,
@@ -425,19 +466,23 @@ public struct DefaultBRepSewer: BRepSewing {
     records: inout [EdgeRecord],
     model: inout BRepModel,
     topologyIDs: inout FeatureTopologyIDAllocator,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance,
+    using execution: inout OriginalQueryExecution
   ) throws -> EdgeUse {
+    try execution.consumeWork(1)
     let kind = try BRepEdgeGeometryClassifier().kind(curve: sewingEdge.curve,
-      from: sewingEdge.startParameter, to: sewingEdge.endParameter, tolerance: tolerance)
+      from: sewingEdge.startParameter, to: sewingEdge.endParameter, tolerance: tolerance, using: &execution)
     for index in records.indices {
+      try execution.consumeWork(1)
       if kind == .singular { continue }
       var matchedOrientation: Orientation?
       for orientation in [Orientation.forward, .reversed] {
+        try execution.consumeWork(1)
         let endpointsMatch = orientation == .forward
           ? records[index].startVertexID == startVertexID && records[index].endVertexID == endVertexID
           : records[index].startVertexID == endVertexID && records[index].endVertexID == startVertexID
         if endpointsMatch, try isProvablySameCurveSpan(CurveSpanDefinition(sewingEdge),
-          record: records[index].span, orientation: orientation, tolerance: tolerance) {
+          record: records[index].span, orientation: orientation, tolerance: tolerance, using: &execution) {
           matchedOrientation = orientation
           break
         }
@@ -456,7 +501,8 @@ public struct DefaultBRepSewer: BRepSewing {
           canonicalSpan: records[index].span,
           faceSurface: faceSurface,
           orientation: orientation,
-          tolerance: tolerance
+          tolerance: tolerance,
+          using: &execution
         )
       )
     }
@@ -498,8 +544,10 @@ public struct DefaultBRepSewer: BRepSewing {
     canonicalSpan: CurveSpanDefinition,
     faceSurface: Surface3D,
     orientation: Orientation,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance,
+    using execution: inout OriginalQueryExecution
   ) throws -> SurfaceParameterCurve {
+    try execution.consumeWork(1)
     guard case .certifiedImplicit(let candidatePcurve) = parameterCurve,
       case .implicit(let candidateIntersection) = candidateCurve,
       case .implicit(let canonicalIntersection) = canonicalSpan.curve
@@ -509,7 +557,8 @@ public struct DefaultBRepSewer: BRepSewing {
     guard candidatePcurve.intersection == candidateIntersection,
       try candidateIntersection.certifiesSameComponent(
         as: canonicalIntersection,
-        tolerance: tolerance
+        tolerance: tolerance,
+        using: &execution
       )
     else {
       throw KernelError(
@@ -548,7 +597,8 @@ public struct DefaultBRepSewer: BRepSewing {
         role: role,
         startFraction: startFraction,
         endFraction: endFraction,
-        tolerance: tolerance
+        tolerance: tolerance,
+        using: &execution
       ))
   }
 
@@ -556,13 +606,16 @@ public struct DefaultBRepSewer: BRepSewing {
     _ edge: CurveSpanDefinition,
     record: CurveSpanDefinition,
     orientation: Orientation,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance,
+    using execution: inout OriginalQueryExecution
   ) throws -> Bool {
-    try CurveSpanCoincidenceMatcher().matches(
+    try execution.consumeWork(1)
+    return try CurveSpanCoincidenceMatcher().matches(
       edge,
       record,
       orientation: orientation,
-      tolerance: tolerance
+      tolerance: tolerance,
+      using: &execution
     )
   }
 
@@ -570,11 +623,14 @@ public struct DefaultBRepSewer: BRepSewing {
     _ edges: [EdgeRecord],
     bodyKind: BodyKind,
     model: BRepModel,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance,
+    using execution: inout OriginalQueryExecution
   ) throws {
+    try execution.consumeWork(1)
     for edge in edges {
+      try execution.consumeWork(1)
       if try BRepEdgeGeometryClassifier().kind(curve: edge.span.curve,
-        from: edge.span.startParameter, to: edge.span.endParameter, tolerance: tolerance) == .singular {
+        from: edge.span.startParameter, to: edge.span.endParameter, tolerance: tolerance, using: &execution) == .singular {
         guard edge.orientations.count == 1 else {
           throw KernelError(phase: .topology, code: .nonManifoldResult, tolerance: tolerance,
             message: "A singular sewing boundary must retain exactly one face-local parameter use.")
@@ -713,28 +769,33 @@ public struct DefaultBRepSewer: BRepSewing {
     private var parents: [Int]
     private var ranks: [UInt8]
 
-    init(count: Int) {
+    init(count: Int, using execution: inout OriginalQueryExecution) throws {
+      try execution.retainStorage(count: count, stride: MemoryLayout<Int>.stride + MemoryLayout<UInt8>.stride)
       parents = Array(0..<count)
       ranks = Array(repeating: 0, count: count)
     }
 
-    mutating func appendPair() {
+    mutating func appendPair(using execution: inout OriginalQueryExecution) throws {
+      try execution.consumeWork(1)
+      try execution.retainStorage(count: 2, stride: MemoryLayout<Int>.stride + MemoryLayout<UInt8>.stride)
       parents.append(parents.count)
       ranks.append(0)
       parents.append(parents.count)
       ranks.append(0)
     }
 
-    mutating func find(_ element: Int) -> Int {
+    mutating func find(_ element: Int, using execution: inout OriginalQueryExecution) throws -> Int {
+      try execution.consumeWork(1)
       if parents[element] != element {
-        parents[element] = find(parents[element])
+        parents[element] = try find(parents[element], using: &execution)
       }
       return parents[element]
     }
 
-    mutating func union(_ first: Int, _ second: Int) {
-      let firstRoot = find(first)
-      let secondRoot = find(second)
+    mutating func union(_ first: Int, _ second: Int, using execution: inout OriginalQueryExecution) throws {
+      try execution.consumeWork(1)
+      let firstRoot = try find(first, using: &execution)
+      let secondRoot = try find(second, using: &execution)
       guard firstRoot != secondRoot else { return }
       if ranks[firstRoot] < ranks[secondRoot] {
         parents[firstRoot] = secondRoot

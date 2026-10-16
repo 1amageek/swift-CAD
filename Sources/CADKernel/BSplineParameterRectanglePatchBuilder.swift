@@ -14,6 +14,18 @@ struct BSplineParameterRectanglePatchBuilder {
         parentSubshapeIDs: [SubshapeID],
         tolerance: ModelingTolerance
     ) throws -> BRepSewingFacePatch {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try patch(surface, stableID: stableID, orientation: orientation,
+            parentSubshapeIDs: parentSubshapeIDs, tolerance: tolerance, using: &execution)
+    }
+
+    func patch(_ surface: BSplineSurface3D, stableID: String, orientation: Orientation,
+        parentSubshapeIDs: [SubshapeID], tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> BRepSewingFacePatch {
+        try execution.consumeWork(1)
+        try execution.retainKernelValues(count: 4,
+            stride: MemoryLayout<SurfaceParameter>.stride + MemoryLayout<SurfaceParameterCurve>.stride
+                + MemoryLayout<BRepSewingEdge>.stride)
         guard let a = surface.uKnots.first, let b = surface.uKnots.last, let c = surface.vKnots.first, let d = surface.vKnots.last else {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance, message: "A B-spline patch has no parameter rectangle.")
         }
@@ -28,10 +40,10 @@ struct BSplineParameterRectanglePatchBuilder {
             let (start, end): (Double, Double)
             switch side {
             case let .constantU(u, vStart, vEnd):
-                curve = try surface.vIsoparametricCurve(atU: u, tolerance: tolerance)
+                curve = try surface.vIsoparametricCurve(atU: u, tolerance: tolerance, using: &execution)
                 (start, end) = (vStart, vEnd)
             case let .constantV(v, uStart, uEnd):
-                curve = try surface.uIsoparametricCurve(atV: v, tolerance: tolerance)
+                curve = try surface.uIsoparametricCurve(atV: v, tolerance: tolerance, using: &execution)
                 (start, end) = (uStart, uEnd)
             default:
                 throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance, message: "A patch side is not isoparametric.")
@@ -39,14 +51,16 @@ struct BSplineParameterRectanglePatchBuilder {
             let next = corners[(index + 1) % 4]
             return BRepSewingEdge(
                 stableID: "\(stableID):side:\(index)", curve: .bSpline(curve), startParameter: start, endParameter: end,
-                startPoint: try wrapped.differentialGeometry(u: corners[index].u, v: corners[index].v, tolerance: tolerance).position,
-                endPoint: try wrapped.differentialGeometry(u: next.u, v: next.v, tolerance: tolerance).position,
+                startPoint: try wrapped.differentialGeometry(u: corners[index].u, v: corners[index].v, tolerance: tolerance, using: &execution).position,
+                endPoint: try wrapped.differentialGeometry(u: next.u, v: next.v, tolerance: tolerance, using: &execution).position,
                 surfaceParameterCurve: side, parentSubshapeIDs: parentSubshapeIDs
             )
         }
-        return BRepSewingFacePatch(
+        let patch = BRepSewingFacePatch(
             stableID: stableID, surface: wrapped, orientation: orientation,
             loops: [BRepSewingLoop(stableID: "\(stableID):outer", role: .outer, edges: edges)], parentSubshapeIDs: parentSubshapeIDs
         )
+        try execution.checkpoint()
+        return patch
     }
 }

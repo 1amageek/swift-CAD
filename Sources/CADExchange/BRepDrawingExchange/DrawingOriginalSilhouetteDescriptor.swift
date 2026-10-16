@@ -23,14 +23,14 @@ struct DrawingOriginalSilhouetteDescriptor: Encodable {
         case origin, horizontal, vertical, normal, pointsPerMeter, translation
         case maximumDeviationPaperPoints, maximumParameterWidth
     }
-    static func complete(_ original: OriginalSilhouetteDrawingPath, usage: inout DrawingExchangeUsage) throws -> String {
-        var lower = original.silhouetteOwner
-        guard original.admission.belongsToSameInvocation(as: usage, silhouetteUsage: lower) else {
+    static func complete(_ original: OriginalSilhouetteDrawingPath, usage: DrawingExchangeOwner, using execution: inout OriginalQueryExecution) throws -> String {
+        let lower = original.silhouetteOwner
+        guard original.admission.belongsToSameInvocation(as: usage, silhouetteContext: lower) else {
             throw ExportError.invalidMesh("Original silhouette descriptor belongs to a different invocation.")
         }
-        return try DrawingSilhouetteDescriptorEncoding.complete(Self(original: original), drawing: usage, lower: &lower,
-            tolerance: original.span.curve.original.certificationTolerance) { sink, lower in
-            try original.span.curve.writeOriginalProvenance(to: sink, usage: &lower)
+        return try DrawingSilhouetteDescriptorEncoding.complete(Self(original: original), drawing: usage, lower: lower,
+            tolerance: original.span.curve.original.certificationTolerance, using: &execution) { sink, execution in
+            try original.span.curve.writeOriginalProvenance(to: sink, using: &execution)
         }
     }
 }

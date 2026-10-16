@@ -9,7 +9,7 @@ package struct OriginalFieldPlaneCoordinateComponent: Sendable {
     package let sourceDomain: SurfaceParameterBox
     package let sourceDepth: Int
 
-    package static func proven<B: RationalAlgebraAdmitting>(original: OriginalSingularFieldPlanePolynomial,
+    package static func proven<B: ExactScalarAdmission & ~Copyable>(original: OriginalSingularFieldPlanePolynomial,
         fixedAlongU: Bool, at root: OriginalSingularFieldRoot, over domain: SurfaceParameterBox,
         inheritedDepth: Int, maximumDepth: Int, usage: inout B) throws -> Self? {
         guard !original.isZero, original.context === root.polynomial.context,
@@ -31,7 +31,7 @@ package struct OriginalFieldPlaneCoordinateComponent: Sendable {
             guard case .zero = try retained.sign(of: coefficient, maximumDepth: maximumDepth, usage: &usage) else { return nil }
         }
         let depth = max(inheritedDepth, retained.isolation.depth)
-        try usage.visitExactCell(depth: depth)
+        try usage.visitCell(axis: .value, depth: depth)
         let value = try retained.value(maximumDepth: maximumDepth, usage: &usage)
         try RationalAlgebraStorage.retain(1, of: Self.self, usage: &usage)
         return Self(original: original, fixedAlongU: fixedAlongU, fixedRoot: retained,
@@ -39,7 +39,7 @@ package struct OriginalFieldPlaneCoordinateComponent: Sendable {
     }
 
     /// Preserves the native source axes; a constant coordinate is not discarded.
-    package func originalParameters<B: RationalAlgebraAdmitting>(atFreeParameter parameter: ExactRationalCoefficient,
+    package func originalParameters<B: ExactScalarAdmission & ~Copyable>(atFreeParameter parameter: ExactRationalCoefficient,
         maximumDepth: Int, usage: inout B) throws -> (u: OriginalSingularFieldElement, v: OriginalSingularFieldElement) {
         let freeDomain = fixedAlongU ? sourceDomain.v : sourceDomain.u
         let low = try ExactRationalCoefficient.originalDouble(freeDomain.lower, usage: &usage)
@@ -55,7 +55,7 @@ package struct OriginalFieldPlaneCoordinateComponent: Sendable {
         return fixedAlongU ? (fixedValue, free) : (free, fixedValue)
     }
 
-    package static func all<B: RationalAlgebraAdmitting>(original: OriginalSingularFieldPlanePolynomial,
+    package static func all<B: ExactScalarAdmission & ~Copyable>(original: OriginalSingularFieldPlanePolynomial,
         over domain: SurfaceParameterBox, inheritedDepth: Int, maximumDepth: Int,
         usage: inout B) throws -> [Self] {
         var result: [Self] = []

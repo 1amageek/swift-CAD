@@ -1,27 +1,71 @@
 import CADCore
 @testable import CADGeometry
 import Testing
+import Synchronization
 
 @Suite("Original authored-U supporting plane authority")
 struct OriginalAuthoredSupportingPlaneEquationTests {
     private enum Failure: Error, Equatable { case work, storage, unexpectedCell }
-    private struct Budget: RationalAlgebraAdmitting, Sendable {
-        var work = 0, words = 0, workCalls = 0, storageCalls = 0
-        var cancelAtWorkCall: Int?, cancelAtStorageCall: Int?
-        var maximumWork = 10_000_000, maximumWords = 10_000_000
-        mutating func consumeExactWork(_ count: Int) throws {
-            try CurrentTaskCancellationChecker().checkCancellation()
-            guard count >= 0, count <= maximumWork - work else { throw Failure.work }
-            work += count; workCalls += 1
-            if workCalls == cancelAtWorkCall { withUnsafeCurrentTask { $0?.cancel() } }
+    private final class Observation: Sendable {
+        struct State: Sendable { var work = 0; var words = 0; var workCalls = 0; var storageCalls = 0 }
+        private let state = Mutex(State())
+        let maximumWork: Int
+        let maximumWords: Int
+        let cancelAtWorkCall: Int?
+        let cancelAtStorageCall: Int?
+        init(maximumWork: Int, maximumWords: Int, cancelAtWorkCall: Int?, cancelAtStorageCall: Int?) {
+            self.maximumWork = maximumWork; self.maximumWords = maximumWords
+            self.cancelAtWorkCall = cancelAtWorkCall; self.cancelAtStorageCall = cancelAtStorageCall
         }
-        mutating func retainExactStorage(_ count: Int) throws {
-            try CurrentTaskCancellationChecker().checkCancellation()
-            guard count >= 0, count <= maximumWords - words else { throw Failure.storage }
-            words += count; storageCalls += 1
-            if storageCalls == cancelAtStorageCall { withUnsafeCurrentTask { $0?.cancel() } }
+        var snapshot: State { state.withLock { $0 } }
+        func work(_ count: Int) throws {
+            let cancel = try state.withLock { value in
+                guard count >= 0, count <= maximumWork - value.work else { throw Failure.work }
+                value.work += count; value.workCalls += 1
+                return value.workCalls == cancelAtWorkCall
+            }
+            if cancel { withUnsafeCurrentTask { $0?.cancel() } }
         }
-        mutating func visitExactCell(depth: Int) throws { throw Failure.unexpectedCell }
+        func storage(_ bytes: Int) throws {
+            let count = try geometryTestStorageWords(bytes)
+            let cancel = try state.withLock { value in
+                guard count <= maximumWords - value.words else { throw Failure.storage }
+                value.words += count; value.storageCalls += 1
+                return value.storageCalls == cancelAtStorageCall
+            }
+            if cancel { withUnsafeCurrentTask { $0?.cancel() } }
+        }
+    }
+    // Concrete source factories and generic coefficient checks share this one execution.
+    private struct Budget: ~Copyable, GeometryScalarTestAdmission, Sendable {
+        var execution: OriginalQueryExecution
+        private let observation: Observation
+        var proofScopes: ExactScalarProofScopes {
+            _read { yield execution.proofScopes }
+            _modify { yield &execution.proofScopes }
+        }
+        var work: Int { observation.snapshot.work }
+        var words: Int { observation.snapshot.words }
+        var workCalls: Int { observation.snapshot.workCalls }
+        var storageCalls: Int { observation.snapshot.storageCalls }
+        init(maximumWork: Int = 10_000_000, maximumWords: Int = 10_000_000,
+            cancelAtWorkCall: Int? = nil, cancelAtStorageCall: Int? = nil) throws {
+            let observer = Observation(maximumWork: maximumWork, maximumWords: maximumWords,
+                cancelAtWorkCall: cancelAtWorkCall, cancelAtStorageCall: cancelAtStorageCall)
+            observation = observer
+            execution = OriginalQueryExecution(budget: try OriginalQueryBudget(consumeWorkUnits: { try observer.work($0) },
+                consumeStorageBytes: { try observer.storage($0) }),
+                limits: try .init(maximumValueDepth: 0, maximumCoefficientDepth: 0))
+        }
+        mutating func checkpoint() throws(ExactScalarFailure) { try execution.checkpoint() }
+        mutating func consumeWork(_ count: Int) throws(ExactScalarFailure) { try execution.consumeWork(count) }
+        mutating func retainStorage(bytes: Int) throws(ExactScalarFailure) { try execution.retainStorage(bytes: bytes) }
+        mutating func admitDepth(value: Int, coefficient: Int) throws(ExactScalarFailure) {
+            try execution.admitDepth(value: value, coefficient: coefficient)
+        }
+        mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
+            throw .admissionRejected(Failure.unexpectedCell)
+        }
     }
     private let delta = 1e-12
     private let tolerance = ModelingTolerance.standard
@@ -38,7 +82,7 @@ struct OriginalAuthoredSupportingPlaneEquationTests {
             controlPoints: [.origin, .init(x: 1, y: 0, z: delta)], weights: [1, 1])
         return try .init(source: .bSpline(native), start: .authored(2), end: .authored(4),
             nativeSpanIndex: 1, maximumParameterWidth: tolerance.relative, maximumSubdivisionDepth: 0,
-            tolerance: tolerance, storageByteStride: MemoryLayout<UInt32>.stride, usage: &usage,
+            tolerance: tolerance, usage: &usage.execution,
             maximumSpanCount: 1, remainingSourceDepth: 0, maximumAlgebraicDepth: 0)
     }
     private func image() throws -> OriginalImageSurface3D {
@@ -52,7 +96,7 @@ struct OriginalAuthoredSupportingPlaneEquationTests {
     @Test(.timeLimit(.minutes(1)))
     func authoredPlaneEquationRetainsToleratedNonorthogonalU() throws {
         try plane.validate(tolerance: tolerance)
-        var usage = Budget()
+        var usage = try Budget()
         let support = try equation(usage: &usage)
         let d = try ExactRationalCoefficient.originalDouble(delta, usage: &usage)
         #expect(support.normal.x == d.negated)
@@ -70,7 +114,7 @@ struct OriginalAuthoredSupportingPlaneEquationTests {
 
     @Test(.timeLimit(.minutes(1)))
     func authoredPlaneDerivativeProjectionPreservesOriginalChartTangent() throws {
-        var usage = Budget()
+        var usage = try Budget()
         let constraint = OriginalPlaneDerivativeConstraint(surface: .plane(plane), order: .curvature)
         let projection = try OriginalPlaneDerivativeProjection(constraints: [constraint], derivativeOrder: 1,
             remainingSourceDepth: 0, tolerance: tolerance, usage: &usage)
@@ -81,7 +125,7 @@ struct OriginalAuthoredSupportingPlaneEquationTests {
         let original = try traversal(usage: &usage)
         let connector = try OriginalPlaneDerivativeCurve3D(source: original,
             startConstraints: [constraint], endConstraints: [constraint], tolerance: tolerance,
-            usage: &usage, remainingSourceDepth: 1)
+            remainingSourceDepth: 1, using: &usage.execution)
         #expect(connector.source == original && connector.source.source == original.source)
         #expect(connector.startConstraints == [constraint] && connector.endConstraints == [constraint])
         #expect(connector.domain == .closed(0, 1))
@@ -92,7 +136,7 @@ struct OriginalAuthoredSupportingPlaneEquationTests {
             #expect(try support.polynomial(piece.homogeneous, includeOffset: true, usage: &usage).isZero)
         }
         for atEnd in [false, true] {
-            let tangent = try connector.projectedOriginalDerivative(u, atEnd: atEnd, order: 1, usage: &usage)
+            let tangent = try connector.projectedOriginalDerivative(u, atEnd: atEnd, order: 1, using: &usage)
             #expect(tangent.x == u.x && tangent.y == u.y && tangent.z == u.z)
         }
     }
@@ -100,7 +144,7 @@ struct OriginalAuthoredSupportingPlaneEquationTests {
     @Test(.timeLimit(.minutes(1)))
     func authoredPlaneEquationRetainsExactAffineTransportAndSource() throws {
         let retained = try image()
-        var usage = Budget()
+        var usage = try Budget()
         let support = try equation(.parameterImage(retained), usage: &usage)
         #expect(retained.source == .plane(plane) && retained.uGain == -2 && retained.vGain == 4)
         // Power-of-two scaling makes these binary point coefficients exact images.
@@ -115,31 +159,31 @@ struct OriginalAuthoredSupportingPlaneEquationTests {
 
     @Test(.timeLimit(.minutes(1)))
     func authoredPlaneEquationMalformedSourcesRemainTyped() throws {
-        var usage = Budget()
+        var usage = try Budget()
         let degenerate = Plane3D(origin: .origin, normal: .unitZ, uDirection: .unitZ)
-        #expect(throws: GeometryConversionError.self) { _ = try equation(.plane(degenerate), usage: &usage) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is GeometryConversionError }) { _ = try equation(.plane(degenerate), usage: &usage) }
         let nonfinite = Plane3D(origin: .origin, normal: .unitZ, uDirection: .init(x: 1, y: 0, z: .infinity))
-        #expect(throws: KernelError.self) { _ = try equation(.plane(nonfinite), usage: &usage) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { _ = try equation(.plane(nonfinite), usage: &usage) }
         let retained = try image()
-        #expect(throws: GeometryConversionError.self) { _ = try equation(.parameterImage(retained), depth: 0, usage: &usage) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is GeometryConversionError }) { _ = try equation(.parameterImage(retained), depth: 0, usage: &usage) }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func authoredPlaneEquationUsesIndependentCallerWorkAndStorage() throws {
-        var successful = Budget()
+        var successful = try Budget()
         _ = try equation(usage: &successful)
         #expect(successful.work > 0 && successful.words > 0)
-        var work = Budget(maximumWork: successful.work - 1)
-        #expect(throws: Failure.work) { _ = try equation(usage: &work) }
+        var work = try Budget(maximumWork: successful.work - 1)
+        geometryTestExpectFailure({ if case .work? = geometryTestOriginalFailure($0) as? Failure { true } else { false } }) { _ = try equation(usage: &work) }
         #expect(work.words > 0)
-        var storage = Budget(maximumWords: successful.words - 1)
-        #expect(throws: Failure.storage) { _ = try equation(usage: &storage) }
+        var storage = try Budget(maximumWords: successful.words - 1)
+        geometryTestExpectFailure({ if case .storage? = geometryTestOriginalFailure($0) as? Failure { true } else { false } }) { _ = try equation(usage: &storage) }
         #expect(storage.work > 0)
     }
 
     @Test(.timeLimit(.minutes(1)))
     func nilUAndDirectAnalyticEquationsRetainRawNormal() throws {
-        var usage = Budget()
+        var usage = try Budget()
         let raw = Vector3D(x: 0.25, y: -0.5, z: 2)
         let origin = Point3D(x: 4, y: 2, z: 1)
         let legacy = try equation(.plane(.init(origin: origin, normal: raw)), usage: &usage)
@@ -153,27 +197,27 @@ struct OriginalAuthoredSupportingPlaneEquationTests {
 
     @Test(.timeLimit(.minutes(1)), arguments: ["work", "storage"])
     func authoredPlaneEquationTerminalCallbackCancellationPropagates(boundary: String) async throws {
-        var measured = Budget()
+        var measured = try Budget()
         _ = try equation(usage: &measured)
         let lastWork = measured.workCalls, lastStorage = measured.storageCalls
         #expect(lastWork > 0 && lastStorage > 0)
         let task = Task {
-            var usage = Budget(cancelAtWorkCall: boundary == "work" ? lastWork : nil,
+            var usage = try Budget(cancelAtWorkCall: boundary == "work" ? lastWork : nil,
                 cancelAtStorageCall: boundary == "storage" ? lastStorage : nil)
             // The selected final callback cancels and returns normally. The
             // successful issuer must check cancellation before publishing.
             return try equation(usage: &usage)
         }
-        await #expect(throws: CancellationError.self) { _ = try await task.value }
+        await geometryTestExpectFailure({ geometryTestIsCancelled($0) }) { _ = try await task.value }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func authoredPlaneEquationCancellationPropagates() async throws {
         let task = Task {
             withUnsafeCurrentTask { $0?.cancel() }
-            var usage = Budget()
+            var usage = try Budget()
             return try equation(usage: &usage)
         }
-        await #expect(throws: CancellationError.self) { _ = try await task.value }
+        await geometryTestExpectFailure({ geometryTestIsCancelled($0) }) { _ = try await task.value }
     }
 }

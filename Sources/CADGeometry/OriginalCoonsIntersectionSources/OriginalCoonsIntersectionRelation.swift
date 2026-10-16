@@ -10,7 +10,7 @@ package struct OriginalCoonsIntersectionRelation: Sendable {
 
 extension OriginalCoonsSurfacePolynomial {
     /// CS uses (native curve t, original normalized Coons u/v).
-    package func curveRelation<B: RationalAlgebraAdmitting>(curve: OriginalRationalCurvePolynomial,
+    package func curveRelation<B: ExactScalarAdmission & ~Copyable>(curve: OriginalRationalCurvePolynomial,
         curveDomain: OriginalRationalParameterDomain, usage: inout B) throws -> OriginalCoonsIntersectionRelation {
         let native = try OriginalRationalParameterDomain(lower: curve.lowerParameter,
             upper: curve.upperParameter, usage: &usage)
@@ -25,7 +25,7 @@ extension OriginalCoonsSurfacePolynomial {
     }
 
     /// SSI uses (original normalized Coons u/v, native surface s/t).
-    package func surfaceRelation<B: RationalAlgebraAdmitting>(surface: OriginalRationalSurfacePolynomial,
+    package func surfaceRelation<B: ExactScalarAdmission & ~Copyable>(surface: OriginalRationalSurfacePolynomial,
         usage: inout B) throws -> OriginalCoonsIntersectionRelation {
         let s = try OriginalRationalParameterDomain(surface.domain.u, usage: &usage)
         let t = try OriginalRationalParameterDomain(surface.domain.v, usage: &usage)

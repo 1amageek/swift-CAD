@@ -54,6 +54,12 @@ public struct SurfaceSurfaceIntersectionDerivedRepresentation: Hashable, Sendabl
   }
 
   public func validate(tolerance: ModelingTolerance) throws {
+    var execution = try OriginalQueryExecution.independentGeometry()
+    try validate(tolerance: tolerance, using: &execution)
+  }
+
+  public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+    try execution.consumeWork(1)
     try tolerance.validate()
     try certificationTolerance.validate()
     guard certificationTolerance.distance <= tolerance.distance,
@@ -68,7 +74,7 @@ public struct SurfaceSurfaceIntersectionDerivedRepresentation: Hashable, Sendabl
           "A derived intersection representation cannot satisfy a stricter tolerance than its stored certification tolerance."
       )
     }
-    try curve.validate(tolerance: tolerance)
+    try curve.validate(tolerance: tolerance, using: &execution)
     guard maximumResidualUpperBound.isFinite,
       maximumResidualUpperBound >= 0.0,
       maximumResidualUpperBound <= tolerance.distance

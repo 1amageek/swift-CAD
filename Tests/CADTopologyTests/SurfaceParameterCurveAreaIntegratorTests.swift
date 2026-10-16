@@ -767,6 +767,7 @@ struct SurfaceParameterCurveAreaIntegratorTests {
 
     @Test(.timeLimit(.minutes(1)))
     func certificateBackedPcurvesProduceBoundedCoverageEnclosures() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
         let tolerance = ModelingTolerance(
             distance: 1.0e-8,
             angle: 1.0e-10,
@@ -819,7 +820,7 @@ struct SurfaceParameterCurveAreaIntegratorTests {
                     for: curve,
                     maximumWidth: 0.05,
                     tolerance: curve == projected ? tolerance : .standard
-                )
+                , using: &execution)
             #expect(enclosures.isEmpty == false)
             #expect(enclosures.allSatisfy { $0.maximumWidth <= 0.05 })
             #expect(abs(enclosures[0].lowerFraction) <= 1.0e-12)
@@ -836,7 +837,7 @@ struct SurfaceParameterCurveAreaIntegratorTests {
                     toNormalizedFraction: 0.75,
                     maximumWidth: 0.05,
                     tolerance: curve == projected ? tolerance : .standard
-                )
+                , using: &execution)
             #expect(partial.isEmpty == false)
             #expect(partial.allSatisfy { $0.maximumWidth <= 0.05 })
             #expect(abs(partial[0].lowerFraction - 0.25) <= 1.0e-12)

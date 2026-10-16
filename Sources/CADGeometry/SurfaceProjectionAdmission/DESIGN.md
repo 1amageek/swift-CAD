@@ -29,15 +29,14 @@ caller domain + cumulative admission -> original immutable preparation
 
 ## Contracts and Invariants
 
-Every visited cell and refinement step debits the same caller admission. Nested
-original preparation subtracts the visited parent depth. Bounds include closed
+Every visited cell and refinement step debits the same exclusive `inout OriginalQueryExecution`. The direct public projection ports replace escaping work callbacks; no invocation object or child total-work owner is retained. Nested original preparation retains the independently selected source-expression depth; geometric cell refinement spends only geometric depth. The caller supplies independent source, geometric and algebra ceilings, with historical local defaults of 16, 32 and 32 respectively. Bounds include closed
 endpoints and native one-sided jets without asserting C1. Source position
 rounding is enclosed when admitting any candidate distance. Exclusion uses
 outward lower distances and conservative tolerance comparisons.
 
 ## State, Ownership, and Lifecycle
 
-Invocation callbacks and prepared original surfaces are immutable values.
+Original-proof selection, explicit local caps and prepared original surfaces are immutable values.
 Cumulative state remains in the caller's Mutex; all targets use the same API.
 
 ## Failure, Concurrency, and Constraints

@@ -13,18 +13,24 @@ import CADGeometry
 
 /// Evaluates supported exact torus-cylinder Boolean volumes.
 struct TorusCylinderBooleanVolumeEvaluator {
+    func volume(of shell: Shell, in model: BRepModel, tolerance: ModelingTolerance) throws -> Double? {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try volume(of: shell, in: model, tolerance: tolerance, using: &execution)
+    }
+
     func volume(
         of shell: Shell,
         in model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Double? {
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard let groups = try surfaceGroups(
             of: shell,
             in: model,
-            tolerance: tolerance
-        ), let torusOrientation = uniformOrientation(groups.torusFaces),
-           let cylinderOrientation = uniformOrientation(groups.cylinderFaces) else {
+            tolerance: tolerance, using: &execution
+        ), let torusOrientation = try uniformOrientation(groups.torusFaces, using: &execution),
+           let cylinderOrientation = try uniformOrientation(groups.cylinderFaces, using: &execution) else {
             return nil
         }
         let axesAreParallel = groups.torus.axis.cross(
@@ -50,7 +56,7 @@ struct TorusCylinderBooleanVolumeEvaluator {
                 torus: groups.torus,
                 cylinder: groups.cylinder,
                 radialOffset: radialOffset,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         } else {
             let radialOffset = radialDistance(
@@ -64,7 +70,7 @@ struct TorusCylinderBooleanVolumeEvaluator {
             overlap = try centeredNonParallelOverlappingVolume(
                 torus: groups.torus,
                 cylinder: groups.cylinder,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         }
         let torusVolume = 2.0 * Double.pi * Double.pi
@@ -81,7 +87,7 @@ struct TorusCylinderBooleanVolumeEvaluator {
         case (.forward, .forward, true):
             guard let cylinderVolume = try finiteCylinderVolume(
                 groups,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             ) else {
                 return nil
             }
@@ -89,7 +95,7 @@ struct TorusCylinderBooleanVolumeEvaluator {
         case (.reversed, .forward, true):
             guard let cylinderVolume = try finiteCylinderVolume(
                 groups,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             ) else {
                 return nil
             }
@@ -102,14 +108,16 @@ struct TorusCylinderBooleanVolumeEvaluator {
     private func surfaceGroups(
         of shell: Shell,
         in model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> SurfaceGroups? {
+        try execution.consumeWork(1)
         var torus: Torus?
         var cylinder: Cylinder?
         var torusFaces: [Face] = []
         var cylinderFaces: [Face] = []
         var planes: [Plane] = []
-        for faceID in shell.faceIDs.sorted() {
+        for faceID in try OriginalParameterQueryStorage.ordered(shell.faceIDs, using: &execution, less: <) {
+            try execution.consumeWork(1)
             guard let face = model.faces[faceID],
                   let surface = model.geometry.surfaces[face.surfaceID] else {
                 throw TopologyError.missingReference(
@@ -118,43 +126,43 @@ struct TorusCylinderBooleanVolumeEvaluator {
             }
             switch surface {
             case let .analytic(.torus(center, axis, majorRadius, minorRadius)):
-                guard recordTorus(
+                guard try recordTorus(
                     center: center,
                     axis: axis,
                     majorRadius: majorRadius,
                     minorRadius: minorRadius,
                     existing: &torus,
-                    tolerance: tolerance
+                    tolerance: tolerance, using: &execution
                 ) else {
                     return nil
                 }
-                torusFaces.append(face)
+                try OriginalParameterQueryStorage.append(face, to: &torusFaces, using: &execution)
             case let .cylinder(value):
-                guard recordCylinder(
+                guard try recordCylinder(
                     origin: value.origin,
                     axis: value.axis,
                     radius: value.radius,
                     existing: &cylinder,
-                    tolerance: tolerance
+                    tolerance: tolerance, using: &execution
                 ) else {
                     return nil
                 }
-                cylinderFaces.append(face)
+                try OriginalParameterQueryStorage.append(face, to: &cylinderFaces, using: &execution)
             case let .analytic(.cylinder(origin, axis, radius)):
-                guard recordCylinder(
+                guard try recordCylinder(
                     origin: origin,
                     axis: axis,
                     radius: radius,
                     existing: &cylinder,
-                    tolerance: tolerance
+                    tolerance: tolerance, using: &execution
                 ) else {
                     return nil
                 }
-                cylinderFaces.append(face)
+                try OriginalParameterQueryStorage.append(face, to: &cylinderFaces, using: &execution)
             case let .plane(value):
-                planes.append(Plane(origin: value.origin, normal: value.normal, face: face))
+                try OriginalParameterQueryStorage.append(Plane(origin: value.origin, normal: value.normal, face: face), to: &planes, using: &execution)
             case let .analytic(.plane(origin, normal)):
-                planes.append(Plane(origin: origin, normal: normal, face: face))
+                try OriginalParameterQueryStorage.append(Plane(origin: origin, normal: normal, face: face), to: &planes, using: &execution)
             case .bSpline, .analytic, .procedural:
                 return nil
             }
@@ -179,8 +187,9 @@ struct TorusCylinderBooleanVolumeEvaluator {
         majorRadius: Double,
         minorRadius: Double,
         existing: inout Torus?,
-        tolerance: ModelingTolerance
-    ) -> Bool {
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+    ) throws -> Bool {
+        try execution.consumeWork(1)
         if let existing {
             return center.isApproximatelyEqual(
                 to: existing.center,
@@ -203,8 +212,9 @@ struct TorusCylinderBooleanVolumeEvaluator {
         axis: Vector3D,
         radius: Double,
         existing: inout Cylinder?,
-        tolerance: ModelingTolerance
-    ) -> Bool {
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+    ) throws -> Bool {
+        try execution.consumeWork(1)
         if let existing {
             let offset = origin - existing.origin
             let radialOffset = offset - existing.axis * offset.dot(existing.axis)
@@ -234,13 +244,14 @@ struct TorusCylinderBooleanVolumeEvaluator {
         torus: Torus,
         cylinder: Cylinder,
         radialOffset: Double,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Double {
-        let breakpoints = crossSectionBreakpoints(
+        try execution.consumeWork(1)
+        let breakpoints = try crossSectionBreakpoints(
             torus: torus,
             cylinderRadius: cylinder.radius,
             radialOffset: radialOffset,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         let characteristicLength = max(
             torus.majorRadius + torus.minorRadius,
@@ -260,7 +271,7 @@ struct TorusCylinderBooleanVolumeEvaluator {
                     minorRadius: torus.minorRadius
                 )
             },
-            secondRadiusAt: { _ in cylinder.radius }
+            secondRadiusAt: { _ in cylinder.radius }, using: &execution
         )
         let innerVolume = try integrator.volume(
             breakpoints: breakpoints,
@@ -273,7 +284,7 @@ struct TorusCylinderBooleanVolumeEvaluator {
                     minorRadius: torus.minorRadius
                 )
             },
-            secondRadiusAt: { _ in cylinder.radius }
+            secondRadiusAt: { _ in cylinder.radius }, using: &execution
         )
         let volume = outerVolume - innerVolume
         guard volume.isFinite,
@@ -292,8 +303,9 @@ struct TorusCylinderBooleanVolumeEvaluator {
     private func centeredNonParallelOverlappingVolume(
         torus: Torus,
         cylinder: Cylinder,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Double {
+        try execution.consumeWork(1)
         let characteristicLength = max(
             torus.majorRadius + torus.minorRadius,
             cylinder.radius,
@@ -303,15 +315,15 @@ struct TorusCylinderBooleanVolumeEvaluator {
             tolerance.distance * characteristicLength * characteristicLength * 400.0,
             Double.ulpOfOne * pow(characteristicLength, 3.0) * 8_192.0
         )
-        let coarse = centeredCompositeVolume(
+        let coarse = try centeredCompositeVolume(
             resolution: 256,
             torus: torus,
-            cylinder: cylinder
+            cylinder: cylinder, using: &execution
         )
-        let fine = centeredCompositeVolume(
+        let fine = try centeredCompositeVolume(
             resolution: 512,
             torus: torus,
-            cylinder: cylinder
+            cylinder: cylinder, using: &execution
         )
         let error = abs(fine - coarse)
         guard error <= targetError else {
@@ -329,18 +341,21 @@ struct TorusCylinderBooleanVolumeEvaluator {
     private func centeredCompositeVolume(
         resolution: Int,
         torus: Torus,
-        cylinder: Cylinder
-    ) -> Double {
+        cylinder: Cylinder, using execution: inout OriginalQueryExecution
+    ) throws -> Double {
+        try execution.consumeWork(1)
         let alignment = torus.axis.dot(cylinder.axis)
         let transverseAlignment = sqrt(max(0.0, 1.0 - alignment * alignment))
         let meridianStep = 2.0 * Double.pi / Double(resolution)
         let radialStep = torus.minorRadius / Double(resolution)
         var result = 0.0
         for meridianIndex in 0..<resolution {
+            try execution.consumeWork(1)
             let meridianAngle = (Double(meridianIndex) + 0.5) * meridianStep
             let meridianCosine = cos(meridianAngle)
             let meridianSine = sin(meridianAngle)
             for radialIndex in 0..<resolution {
+                try execution.consumeWork(1)
                 let radial = (Double(radialIndex) + 0.5) * radialStep
                 let centerlineRadius = torus.majorRadius
                     + radial * meridianCosine
@@ -399,33 +414,36 @@ struct TorusCylinderBooleanVolumeEvaluator {
         torus: Torus,
         cylinderRadius: Double,
         radialOffset: Double,
-        tolerance: ModelingTolerance
-    ) -> [Double] {
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+    ) throws -> [Double] {
+        try execution.consumeWork(1)
+        try execution.retainStorage(bytes: 2 * MemoryLayout<Double>.stride)
         var values = [-torus.minorRadius, torus.minorRadius]
         for transitionRadius in [
             abs(radialOffset - cylinderRadius),
             radialOffset + cylinderRadius,
         ] {
             let outerMeridianRadius = transitionRadius - torus.majorRadius
-            appendAxialBreakpoints(
+            try appendAxialBreakpoints(
                 meridianRadius: outerMeridianRadius,
                 minorRadius: torus.minorRadius,
                 tolerance: tolerance,
-                to: &values
+                to: &values, using: &execution
             )
             let innerMeridianRadius = torus.majorRadius - transitionRadius
-            appendAxialBreakpoints(
+            try appendAxialBreakpoints(
                 meridianRadius: innerMeridianRadius,
                 minorRadius: torus.minorRadius,
                 tolerance: tolerance,
-                to: &values
+                to: &values, using: &execution
             )
         }
-        values.sort()
+        try OriginalParameterQueryStorage.sort(&values, using: &execution, less: <)
         var result: [Double] = []
         for value in values {
+            try execution.consumeWork(1)
             if result.last.map({ abs($0 - value) <= tolerance.distance }) != true {
-                result.append(value)
+                try OriginalParameterQueryStorage.append(value, to: &result, using: &execution)
             }
         }
         return result
@@ -435,8 +453,9 @@ struct TorusCylinderBooleanVolumeEvaluator {
         meridianRadius: Double,
         minorRadius: Double,
         tolerance: ModelingTolerance,
-        to values: inout [Double]
-    ) {
+        to values: inout [Double], using execution: inout OriginalQueryExecution
+    ) throws {
+        try execution.consumeWork(1)
         guard meridianRadius > tolerance.distance,
               meridianRadius < minorRadius - tolerance.distance else {
             return
@@ -445,8 +464,8 @@ struct TorusCylinderBooleanVolumeEvaluator {
             0.0,
             minorRadius * minorRadius - meridianRadius * meridianRadius
         ))
-        values.append(-axialParameter)
-        values.append(axialParameter)
+        try OriginalParameterQueryStorage.append(-axialParameter, to: &values, using: &execution)
+        try OriginalParameterQueryStorage.append(axialParameter, to: &values, using: &execution)
     }
 
     private func meridianRadius(
@@ -461,32 +480,33 @@ struct TorusCylinderBooleanVolumeEvaluator {
 
     private func finiteCylinderVolume(
         _ groups: SurfaceGroups,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Double? {
+        try execution.consumeWork(1)
         var coordinates: [Double] = []
         let torusCenterCoordinate = (groups.torus.center - groups.cylinder.origin)
             .dot(groups.cylinder.axis)
         for plane in groups.planes {
+            try execution.consumeWork(1)
             let normal = try plane.normal.normalized(tolerance: tolerance.distance)
             guard plane.face.orientation == .forward,
                   abs(abs(normal.dot(groups.cylinder.axis)) - 1.0) <= tolerance.angle else {
                 return nil
             }
-            coordinates.append(
+            try OriginalParameterQueryStorage.append(
                 (plane.origin - groups.cylinder.origin).dot(groups.cylinder.axis)
-            )
+            , to: &coordinates, using: &execution)
         }
         guard coordinates.count == 2,
-              let lower = coordinates.min(),
-              let upper = coordinates.max(),
-              upper - lower > tolerance.distance,
-              lower < torusCenterCoordinate
+              let bounds = try OriginalParameterQueryStorage.extrema(coordinates, using: &execution, projection: { value, execution in value }),
+              bounds.upper - bounds.lower > tolerance.distance,
+              bounds.lower < torusCenterCoordinate
                 - torusAxialExtent(groups: groups) - tolerance.distance,
-              upper > torusCenterCoordinate
+              bounds.upper > torusCenterCoordinate
                 + torusAxialExtent(groups: groups) + tolerance.distance else {
             return nil
         }
-        return Double.pi * groups.cylinder.radius * groups.cylinder.radius * (upper - lower)
+        return Double.pi * groups.cylinder.radius * groups.cylinder.radius * (bounds.upper - bounds.lower)
     }
 
     private func torusAxialExtent(groups: SurfaceGroups) -> Double {
@@ -508,10 +528,11 @@ struct TorusCylinderBooleanVolumeEvaluator {
         return (offset - axis * offset.dot(axis)).length
     }
 
-    private func uniformOrientation(_ faces: [Face]) -> Orientation? {
-        let orientations = Set(faces.map({ $0.orientation }))
-        guard orientations.count == 1 else { return nil }
-        return orientations.first
+    private func uniformOrientation(_ faces: [Face], using execution: inout OriginalQueryExecution) throws -> Orientation? {
+        try execution.consumeWork(1)
+        guard let reference = faces.first,
+              try OriginalParameterQueryStorage.allSatisfy(faces, using: &execution, predicate: { face, execution in face.orientation == reference.orientation }) else { return nil }
+        return reference.orientation
     }
 
     private struct Torus {

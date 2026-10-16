@@ -11,45 +11,45 @@ public struct OriginalIGESMatrixSource: Equatable, Sendable {
         adjustments: [OriginalIGESPlacementAdjustment] = []) {
         self.coefficients = coefficients; self.form = form; self.lengthUnit = lengthUnit; self.adjustments = adjustments
     }
-    public func originalOperationWord<B: RationalAlgebraAdmitting>(tolerance: ModelingTolerance,
-        maximumAlgebraicDepth: Int, usage: inout B) throws -> OriginalAffineOperationWord {
+    public func originalOperationWord(tolerance: ModelingTolerance,
+        maximumAlgebraicDepth: Int, using execution: inout OriginalQueryExecution) throws -> OriginalAffineOperationWord {
         guard coefficients.count == 12, form == 0 || form == 1 else { throw invalid("Original IGES matrix requires twelve coefficients and its actual orthogonal form.") }
-        try RationalAlgebraStorage.retain(12, of: ExactRationalCoefficient.self, usage: &usage)
+        try RationalAlgebraStorage.retain(12, of: ExactRationalCoefficient.self, usage: &execution)
         var exact: [ExactRationalCoefficient] = []; exact.reserveCapacity(12)
-        let gain = try OriginalIGESScalarSource.lengthGain(lengthUnit, usage: &usage)
+        let gain = try OriginalIGESScalarSource.lengthGain(lengthUnit, using: &execution)
         for index in coefficients.indices {
-            let value = try OriginalIGESScalarSource.coefficient(coefficients[index], usage: &usage)
-            exact.append(index % 4 == 3 ? try value.multiplied(by: gain, usage: &usage) : value)
+            let value = try OriginalIGESScalarSource.coefficient(coefficients[index], using: &execution)
+            exact.append(index % 4 == 3 ? try value.multiplied(by: gain, usage: &execution) : value)
         }
-        func dot(_ a: Int, _ b: Int, usage: inout B) throws -> ExactRationalCoefficient {
+        func dot(_ a: Int, _ b: Int, using execution: inout OriginalQueryExecution) throws -> ExactRationalCoefficient {
             var result = ExactRationalCoefficient.zero
-            for row in 0..<3 { result = try result.adding(exact[row * 4 + a].multiplied(by: exact[row * 4 + b], usage: &usage), usage: &usage) }
+            for row in 0..<3 { result = try result.adding(exact[row * 4 + a].multiplied(by: exact[row * 4 + b], usage: &execution), usage: &execution) }
             return result
         }
         for axis in 0..<3 {
-            guard try dot(axis, axis, usage: &usage) == .one else { throw invalid("Original IGES matrix has a nonunit exact column.") }
-            for other in 0..<axis { guard try dot(axis, other, usage: &usage).isZero else { throw invalid("Original IGES matrix has nonorthogonal exact columns.") } }
+            guard try dot(axis, axis, using: &execution) == .one else { throw invalid("Original IGES matrix has a nonunit exact column.") }
+            for other in 0..<axis { guard try dot(axis, other, using: &execution).isZero else { throw invalid("Original IGES matrix has nonorthogonal exact columns.") } }
         }
-        let source = try OriginalRationalAffineSource(coefficients: exact, usage: &usage)
+        let source = try OriginalRationalAffineSource(coefficients: exact, usage: &execution)
         var word = try OriginalAffineOperationWord(operation: .rationalForward(source), tolerance: tolerance,
-            maximumDepth: maximumAlgebraicDepth, usage: &usage)
+            maximumDepth: maximumAlgebraicDepth, usage: &execution)
         guard word.orientationSign == (form == 0 ? 1 : -1) else { throw invalid("Original IGES matrix determinant contradicts its declared form.") }
         for adjustment in adjustments {
-            word = try adjustment.applying(to: word, tolerance: tolerance, maximumAlgebraicDepth: maximumAlgebraicDepth, usage: &usage)
+            word = try adjustment.applying(to: word, tolerance: tolerance, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
         }
         return word
     }
-    public func derivedAffineTransform<B: RationalAlgebraAdmitting>(tolerance: ModelingTolerance,
-        maximumAlgebraicDepth: Int, usage: inout B) throws -> AffineTransform3D {
+    public func derivedAffineTransform(tolerance: ModelingTolerance,
+        maximumAlgebraicDepth: Int, using execution: inout OriginalQueryExecution) throws -> AffineTransform3D {
         try OriginalIGESScalarSource.view(of: originalOperationWord(tolerance: tolerance,
-            maximumAlgebraicDepth: maximumAlgebraicDepth, usage: &usage), usage: &usage)
+            maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution), using: &execution)
     }
-    public func adjusted<B: RationalAlgebraAdmitting>(by displacement: Vector3D, conjugates: Bool, usage: inout B) throws -> Self {
+    public func adjusted(by displacement: Vector3D, conjugates: Bool, using execution: inout OriginalQueryExecution) throws -> Self {
         try displacement.validate()
         let count = adjustments.count.addingReportingOverflow(1)
         guard !count.overflow else { throw IndependentShapeSourceError.resourceLimitExceeded("Original IGES matrix adjustment count overflows.") }
-        try usage.consumeExactWork(count.partialValue)
-        try RationalAlgebraStorage.retain(count.partialValue, of: OriginalIGESPlacementAdjustment.self, usage: &usage)
+        try execution.consumeWork(count.partialValue)
+        try RationalAlgebraStorage.retain(count.partialValue, of: OriginalIGESPlacementAdjustment.self, usage: &execution)
         return .init(coefficients: coefficients, form: form, lengthUnit: lengthUnit,
             adjustments: adjustments + [.init(displacement: displacement, conjugates: conjugates)])
     }

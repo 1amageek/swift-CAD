@@ -1,0 +1,11 @@
+􀟈  Test run started.
+􀄵  Swift Standard Library Version: 6.4
+􀄵  Swift Compiler Version: 6.4
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀄵  OS Version: 27.0.1 (26A434)
+􀟈  Suite "Canonical construction admission" (aka 'CanonicalConstructionAdmissionTests') started.
+􀟈  Test callbackBoundariesPublishRawRefusalsBeforeClassifyingThem() started.
+􁁛  Test callbackBoundariesPublishRawRefusalsBeforeClassifyingThem() passed after 0.001 seconds.
+􁁛  Suite "Canonical construction admission" (aka 'CanonicalConstructionAdmissionTests') passed after 0.001 seconds.
+􁁛  Test run with 1 test in 1 suite passed after 0.001 seconds.

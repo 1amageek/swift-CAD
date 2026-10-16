@@ -18,7 +18,7 @@ public struct OriginalCoincidentConeSnapshotProvider: OriginalSourceSnapshotting
         throws(OriginalSourceIssuanceFailure) -> OriginalSourceSnapshot<OriginalCoincidentConeSnapshot> {
         let input=copy input
         do {
-            return try OriginalSourceProofAdmission<A>.withBorrow(&a) { a in
+            return try a.withProofScope { a in
                 try a.checkpoint();try a.consumeWork(1)
                 guard limits.remainingSourceDepth>=1 else { throw OriginalSourceIssuanceFailure.sourceDepthLimit }
                 guard let angle=Self.angle(input) else { throw OriginalSourceIssuanceFailure.unsupportedRepresentation }

@@ -14,6 +14,7 @@ struct RigidImageSurfaceParameterCurveCertificationTests {
 
     @Test(.timeLimit(.minutes(1)))
     func directlyEvaluablePcurvesProduceCompleteCertifiedEnclosures() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
         let curves: [SurfaceParameterCurve] = [
             .affine(
                 origin: Point2D(x: -0.3, y: 0.2),
@@ -52,13 +53,14 @@ struct RigidImageSurfaceParameterCurveCertificationTests {
                 for: curve,
                 maximumWidth: 0.04,
                 tolerance: tolerance
-            )
+            , using: &execution)
             try verify(enclosures: enclosures, contain: curve)
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func affineRigidImageMapsEnclosuresAndGreenAreaWithoutProjection() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
         let surface = Surface3D.plane(Plane3D(
             origin: Point3D(x: 0.2, y: -0.1, z: 0.3),
             normal: Vector3D.unitZ
@@ -86,7 +88,7 @@ struct RigidImageSurfaceParameterCurveCertificationTests {
                 for: curve,
                 maximumWidth: 0.03,
                 tolerance: tolerance
-            )
+            , using: &execution)
         try verify(enclosures: enclosures, contain: curve)
 
         let reversed = SurfaceParameterCurve.rigidImage(
@@ -99,7 +101,7 @@ struct RigidImageSurfaceParameterCurveCertificationTests {
                 toNormalizedFraction: 0.8,
                 maximumWidth: 0.03,
                 tolerance: tolerance
-            )
+            , using: &execution)
         try verify(
             enclosures: partial,
             contain: reversed,
@@ -126,6 +128,7 @@ struct RigidImageSurfaceParameterCurveCertificationTests {
 
     @Test(.timeLimit(.minutes(1)))
     func rotatedSphereHasContinuousCertifiedChartEnclosuresAndArea() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
         let surface = Surface3D.analytic(.sphere(
             center: Point3D(x: -0.1, y: 0.2, z: 0.3),
             radius: 0.9
@@ -162,7 +165,7 @@ struct RigidImageSurfaceParameterCurveCertificationTests {
                 for: decoded,
                 maximumWidth: 0.035,
                 tolerance: tolerance
-            )
+            , using: &execution)
         try verify(enclosures: enclosures, contain: decoded)
         let sampledLongitudes = try (0...1_024).map { index in
             try decoded.parameter(

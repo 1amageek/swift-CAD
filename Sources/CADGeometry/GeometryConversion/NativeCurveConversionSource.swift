@@ -2,42 +2,33 @@ import CADCore
 
 public struct NativeCurveConversionSource: GeometryCurveConversionSource {
     public let curve: Curve3D
-    private let prepared: PreparedCurveDifferentialEncloser?
-    private let boundedPreparationTolerance: ModelingTolerance?
-    private let boundedPreparationAdmission: GeometryConversionAdmission?
+    private let prepared: PreparedCurveDifferentialEncloser
+    private let receipt: OriginalGeometryPreparationReceipt
+    private let receiptLimits: OriginalQueryExecutionLimits
 
     public init(_ curve: Curve3D, tolerance: ModelingTolerance) throws {
-        self.curve = curve
-        boundedPreparationTolerance = nil
-        boundedPreparationAdmission = nil
-        try curve.validate(tolerance: tolerance)
-        prepared = try PreparedCurveDifferentialEncloser(curve: curve, tolerance: tolerance)
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try OriginalQueryExecutionLimits(maximumValueDepth: 32, maximumCoefficientDepth: 32))
+        try self.init(curve, tolerance: tolerance, using: &execution)
     }
+
     public init(_ curve: Curve3D, tolerance: ModelingTolerance,
-        admission: GeometryConversionAdmission) throws {
+        using execution: inout OriginalQueryExecution) throws {
         self.curve = curve
-        boundedPreparationTolerance = tolerance
-        boundedPreparationAdmission = admission
-        try curve.validateOriginalSource(tolerance: tolerance,
-            remainingSourceDepth: admission.remainingSourceDepth,
-            maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
-            consumeWork: { _ in try admission.chargeWork() },
-            consumeStorage: { try admission.chargeStorage(bytes: $0) },
-            maximumAlgebraicDepth: admission.maximumAlgebraicDepth)
-        prepared = try PreparedCurveDifferentialEncloser(curve: curve, tolerance: tolerance,
-            remainingSourceDepth: admission.remainingSourceDepth,
-            maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
-            consumeWork: { try admission.chargeWork() },
-            consumeStorage: { try admission.chargeStorage(bytes: $0) }, maximumAlgebraicDepth: admission.maximumAlgebraicDepth)
+        receiptLimits = execution.effectiveLimits
+        let preparation = try execution.withPreparationScope { execution in
+            try PreparedCurveDifferentialEncloser(curve: curve, tolerance: tolerance, using: &execution)
+        }
+        prepared = preparation.result
+        receipt = try OriginalGeometryPreparationReceipt(tolerance: tolerance,
+            depth: preparation.depth, using: &execution)
     }
 
     public func validate(over parameters: ScalarInterval, tolerance: ModelingTolerance,
-        admission: GeometryConversionAdmission) throws {
-        try admission.chargeWork()
-        guard let boundedPreparationAdmission,
-            boundedPreparationAdmission.belongsToSameInvocation(as: admission),
-            boundedPreparationTolerance == tolerance, prepared != nil,
-            parameters.lower.isFinite, parameters.upper.isFinite,
+        using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try receipt.admit(tolerance: tolerance, using: &execution)
+        guard parameters.lower.isFinite, parameters.upper.isFinite,
             parameters.lower <= parameters.upper else {
             throw GeometryConversionError.invalidInput("Bounded native source requires its paid preparation and finite closed chart.")
         }
@@ -49,20 +40,18 @@ public struct NativeCurveConversionSource: GeometryCurveConversionSource {
     }
 
     public func enclosure(over parameters: ScalarInterval, tolerance: ModelingTolerance,
-        admission: GeometryConversionAdmission) throws -> CurveDifferentialEnclosure {
-        try validate(over: parameters, tolerance: tolerance, admission: admission)
-        guard let prepared else { throw GeometryConversionError.invalidInput("Original source preparation is unavailable.") }
+        using execution: inout OriginalQueryExecution) throws -> CurveDifferentialEnclosure {
+        try validate(over: parameters, tolerance: tolerance, using: &execution)
         let receipt = try prepared.closedNativeJets(over: parameters, tolerance: tolerance,
-            maximumSpanCount: admission.maximumSpanCount,
-            maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
-            remainingSourceDepth: admission.remainingSourceDepth,
-            consumeWork: { try admission.chargeWork() },
-            consumeStorage: { try admission.chargeStorage(bytes: $0) })
+            maximumSpanCount: execution.effectiveLimits.maximumSpans,
+            maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth,
+            remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+            using: &execution)
         guard let first = receipt.spans.first else {
             throw GeometryConversionError.invalidInput("Original bounded source has no owning closed cover.")
         }
         var jet = first.jet
-        for span in receipt.spans.dropFirst() { try admission.chargeWork(); jet = jet.union(span.jet) }
+        for span in receipt.spans.dropFirst() { try execution.consumeWork(1); jet = jet.union(span.jet) }
         return try DefaultCurveDifferentialEncloser().publicEnclosure(jet, tolerance: tolerance)
     }
 
@@ -72,10 +61,10 @@ public struct NativeCurveConversionSource: GeometryCurveConversionSource {
     // non-binary joins and lifted/implicit critical covers require their retained
     // station-law producer before complete drawing-domain admission.
     public func owningParameterCover(over parameters: ScalarInterval, tolerance: ModelingTolerance,
-        admission: GeometryConversionAdmission) throws -> [ScalarInterval] {
-        try validate(over: parameters, tolerance: tolerance, admission: admission)
+        using execution: inout OriginalQueryExecution) throws -> [ScalarInterval] {
+        try validate(over: parameters, tolerance: tolerance, using: &execution)
         func supports(_ source: Curve3D, remaining: Int) throws -> Bool {
-            try admission.chargeWork()
+            try execution.consumeWork(1)
             switch source {
             case .bSpline, .line, .circle, .analytic(.line), .analytic(.circle), .analytic(.ellipse),
                  .analytic(.arc), .analytic(.hyperbola), .analytic(.parabola), .originalAngularTransport: return true
@@ -96,21 +85,20 @@ public struct NativeCurveConversionSource: GeometryCurveConversionSource {
             default: return false
             }
         }
-        guard try supports(curve, remaining: admission.remainingSourceDepth), let prepared else {
+        guard try supports(curve, remaining: execution.effectiveLimits.remainingSourceDepth) else {
             throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
                 message: "Original drawing source needs its retained mapped owning station cover.")
         }
         let receipt = try prepared.closedNativeJets(over: parameters, tolerance: tolerance,
-            maximumSpanCount: admission.maximumSpanCount, maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
-            remainingSourceDepth: admission.remainingSourceDepth, consumeWork: { try admission.chargeWork() },
-            consumeStorage: { try admission.chargeStorage(bytes: $0) })
+            maximumSpanCount: execution.effectiveLimits.maximumSpans, maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth,
+            remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth, using: &execution)
         let count = receipt.spans.count
         let bytes = count.multipliedReportingOverflow(by: MemoryLayout<ScalarInterval>.stride)
         guard !bytes.overflow else { throw GeometryConversionError.resourceLimitExceeded("Original owning cover storage overflows.") }
-        try admission.chargeStorage(bytes: bytes.partialValue)
+        try execution.retainStorage(bytes: bytes.partialValue)
         var result: [ScalarInterval] = []; result.reserveCapacity(count)
         for span in receipt.spans {
-            try admission.chargeWork()
+            try execution.consumeWork(1)
             guard span.parameters.lower < span.parameters.upper else { continue }
             result.append(span.parameters)
         }
@@ -119,7 +107,7 @@ public struct NativeCurveConversionSource: GeometryCurveConversionSource {
         }
         if result.count > 1 {
             for index in 1..<result.count {
-                try admission.chargeWork()
+                try execution.consumeWork(1)
                 guard result[index - 1].upper == result[index].lower else {
                     throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
                         message: "Original native owner cuts require an exact common station carrier.")
@@ -140,16 +128,27 @@ public struct NativeCurveConversionSource: GeometryCurveConversionSource {
         }
     }
     public func validate(over parameters: ScalarInterval, tolerance: ModelingTolerance) throws {
-        try tolerance.validate()
-        guard parameters.width > 0, parameters.width.isFinite,
-              try curve.parameterDomain.containsSpan(from: parameters.lower, to: parameters.upper, tolerance: tolerance) else {
-            throw GeometryConversionError.invalidInput("Curve conversion requires a finite, positive, contained parameter interval.")
-        }
+        var execution = independentReader()
+        try validate(over: parameters, tolerance: tolerance, using: &execution)
     }
+
     public func pointAndDerivative(at parameter: Double, tolerance: ModelingTolerance) throws -> (point: Point3D, derivative: Vector3D) {
-        let value = try curve.differentialGeometry(at: parameter, tolerance: tolerance)
-        return (value.position, value.firstDerivative)
+        var execution = independentReader()
+        return try pointAndDerivative(at: parameter, tolerance: tolerance, using: &execution)
     }
+
+    public func pointAndDerivative(at parameter: Double, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> (point: Point3D, derivative: Vector3D) {
+        let value = try enclosure(over: .init(lower: parameter, upper: parameter), tolerance: tolerance, using: &execution)
+        return (.init(x: value.position.x.midpoint, y: value.position.y.midpoint, z: value.position.z.midpoint),
+            .init(x: value.firstDerivative.x.midpoint, y: value.firstDerivative.y.midpoint, z: value.firstDerivative.z.midpoint))
+    }
+
+    private func independentReader() -> OriginalQueryExecution {
+        // A later ordinary reader shares cumulative admission, never query-local scopes.
+        OriginalQueryExecution(budget: receipt.budget, limits: receiptLimits)
+    }
+
     static func stablePeriodicInterval(_ parameters: ScalarInterval, domain: ParameterDomain, tolerance: ModelingTolerance) throws -> ScalarInterval {
         let scale = max(1, abs(parameters.lower), abs(parameters.upper), parameters.width)
         let resolution = max(domain.parameterResolution(tolerance: tolerance),
@@ -164,27 +163,7 @@ public struct NativeCurveConversionSource: GeometryCurveConversionSource {
         return try ScalarInterval(lower: lower, upper: upper)
     }
     public func enclosure(over parameters: ScalarInterval, tolerance: ModelingTolerance) throws -> CurveDifferentialEnclosure {
-        // Periodic extraction must expand the requested cycle before restricting it.
-        let jet: SurfaceIntervalVectorJet
-        if let prepared {
-            let original = try prepared.closedNativeJets(over: parameters, tolerance: tolerance,
-                consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
-            guard let first = original.spans.first else {
-                throw GeometryConversionError.invalidInput("Native conversion source has no original closed owning cover.")
-            }
-            // Separate original owning sides supply a derivative hull, not a
-            // continuity certificate for a general lifted or implicit join.
-            jet = original.spans.dropFirst().reduce(first.jet) { $0.union($1.jet) }
-        } else {
-            jet = try DefaultCurveDifferentialEncloser().thirdOrderIntervalJet(
-                of: curve, over: Self.stablePeriodicInterval(parameters, domain: curve.parameterDomain, tolerance: tolerance), tolerance: tolerance)
-        }
-        func coordinates(_ key: (SurfaceIntervalJet) -> OutwardScalarInterval) throws -> CoordinateEnclosure3D {
-            let x = key(jet.x), y = key(jet.y), z = key(jet.z)
-            return try CoordinateEnclosure3D(x: ScalarInterval(lower: x.lower, upper: x.upper),
-                y: ScalarInterval(lower: y.lower, upper: y.upper), z: ScalarInterval(lower: z.lower, upper: z.upper))
-        }
-        return try CurveDifferentialEnclosure(position: coordinates({ $0.value }),
-            firstDerivative: coordinates({ $0.derivativeU }), secondDerivative: coordinates({ $0.secondDerivativeUU }))
+        var execution = independentReader()
+        return try enclosure(over: parameters, tolerance: tolerance, using: &execution)
     }
 }

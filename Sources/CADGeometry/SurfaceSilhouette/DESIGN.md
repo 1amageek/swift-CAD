@@ -53,30 +53,11 @@ caps, work callback and byte admission. It never substitutes the uncorrected nat
 construction or derives a support plane from numerical endpoint samples.
 
 
-`SurfaceSilhouetteUsage.maximumSourceDepth` is an immutable independent structural
-source cap, defaulting to the existing intrinsic 16 and admitting 0...16. Recursive
-source visits consume scalar work and this cap; they never debit a UV subdivision
-cell or coefficient root depth. The public drawing caller forwards its actual source
-cap to the same live invocation owner. The public producer validates the original surface through its bounded source
-provider, then applies the existing `SurfaceParameterBox.validateAssumingSurfaceValidated`
-domain contract. Original parameter images additionally admit their exact gain/offset
-native-box membership; their displayed transformed Double endpoints alone are not
-a closed-domain proof. It does not invoke the unbounded surface validator again.
-Prepared surface and pcurve providers receive
-source, geometric subdivision and algebra caps separately, including actual byte
-callbacks. Retained source values and all three counter domains remain common across
-targets.
+Original silhouette operations pass the actual noncopyable `OriginalQueryExecution` directly. A standalone context configures one common root; a composed drawing context retains an immutable persistent contribution handle in that same budget. The common budget's single Mutex owns both global and contribution counts. Selected work, cell, word-storage and independent depth ceilings persist through extraction, refinement and provenance; attaching a retained handle never resets or refunds them. Every cell, including scalar value/coefficient cells and explicit geometric cells, counts once for each active distinct handle. Structural source visits charge work without consuming a cell.
 
-Escaping Taylor storage callbacks retain the existing invocation accounting owner
-through `SurfaceSilhouetteUsage.preparationStorageCallback`. They never capture a
-borrowed `inout` usage value or create a separate allowance. Byte admission reaches
-the same mutex-protected counters and external admission as original coefficient
-preparation; copies of the usage facade share that owner.
+The handle's immutable execution policy preserves independent source, geometric, value and coefficient bounds. `effectiveLimits` is the intersection of the root policy and active handle policies; the root policy remains unchanged. Main source algorithms use those effective bounds. Scalar-only helpers borrow the same execution through ExactScalarAdmission and lexical proof scopes. Storage adds the original UInt32-word work contribution without creating records. Source, result and provenance owners retain all active contribution handles before publishing retained receipts, and attach them for later queries against the same original budget. A foreign budget or lost required handle fails explicitly.
 
-Generic exact polynomial Taylor operations borrow their caller's storage callback
-with `withoutActuallyEscaping` only during synchronous value construction. Taylor
-values retain coefficient buffers, never the callback. No borrowed accounting value
-survives the borrow scope.
+Native token serialization retains the immutable contribution handle and admits raw token records/work plus numeric storage work directly through the same common budget. It never captures a borrowed inout execution or runs external callbacks under a serialization lock. Original surface validation and exact provenance traversal still receive the same original execution directly. The format owner stages the complete descriptor before publication.
 
 
 Ordered-field coordinate components retain exact fixed-axis roots and partition their
@@ -695,6 +676,31 @@ change native parameters, or repeat root isolation. This avoids splitting out
 coordinate factors before primitive crossings are recorded; coordinate and
 non-coordinate incidences belong to one complete original chart publication.
 
+The bounded exception is a full original rational numerator and its square-free
+law whose complete canonical coefficient sets both contain exactly one nonzero
+linear term on the same U or V axis, with only an optional constant term. Every
+record of both sets consumes caller work and a checkpoint before this selection.
+That source has no complementary component or crossing to assemble: it retains
+its original rational authority and uses the existing complete monotone graph,
+trim and projected-native readers. The rational scalar jet is differentiated
+from the retained square-free law; the original surface/native chart and normal
+regularity guards remain unchanged. Empty/zero, constant, mixed, two-axis and
+nonlinear original laws retain the common-field route without retry. In
+particular, an original repeated numerator such as U squared is not admitted
+merely because its square-free law is linear. This is a source capability guard,
+not a budget, caller-context, numerical-residual or source-type preference.
+
+[SurfaceSilhouetteRationalCoordinateSelectionTests](../../../Tests/CADGeometryTests/SurfaceSilhouetteRationalCoordinateSelectionTests.swift)
+construct actual native source receipts for both admitted axes and the rejected
+coefficient shapes. The real DocumentDrawing canonical admission tests own
+whole-UV arch publication, both projected endpoint contacts, cumulative resource
+boundaries and cancellation; selection fixtures do not replace that evidence.
+
+[SurfaceSilhouetteCurrentPortable](../../../Tests/OriginalQueryExecutionVerification/SurfaceSilhouetteCurrentPortable.swift)
+owns the finite Geometry-only selector, original arch, retained trim and reader
+controls on ASAN, ordinary WASM and Embedded. It consumes the same production
+proofs; projected screen contacts remain owned by the DocumentDrawing tests.
+
 ## Shared Invocation Accounting
 
 Every `SurfaceSilhouetteUsage` copy retains one immutable accounting owner. The
@@ -732,3 +738,205 @@ Each external SurfaceSilhouetteAdmission owns a distinct immutable identity allo
 SurfaceSilhouetteUsage.sharesAccountingOwner compares the identical retained live accounting reference, independently of sharesAdmission. Two new usages supplied the same external token share its enclosing admission but do not share local cell/work/storage counters; page issuers must prove both relationships. Copies of an issued usage retain the same local accounting owner across targets.
 
 External silhouette admission optionally reports each genuine parameter/coefficient cell visit to the enclosing invocation entity quota. The existing scalar-work callback still reports that visit once; the cell callback does not imply another work debit. Local cell reservation remains synchronized and the external callback runs outside the lock before the algorithm visits its admitted cell. A rejected outer admission propagates and retains the already consumed local reservation, preventing retries from resetting counters.
+
+### Direct higher source helpers
+Higher native continuity, analytic and procedural Taylor helpers pass the same `OriginalQueryExecution` directly to their source/jet dependencies. Scalar-only polynomial helpers borrow `ExactScalarAdmission & ~Copyable`. Explicit source depth, native span counts and geometric subdivision remain independent; an optional algebraic ceiling applies as an additional proof scope to both original scalar axes without deriving one axis from another. Helpers retain no callback reconstruction, copied allowance or mutable cumulative ledger.
+
+[SurfaceSilhouetteExecutionTests](../../../Tests/CADGeometryTests/SurfaceSilhouetteExecutionTests.swift) owns persistent N/N+1 work refusal, independent value/coefficient axes, and rounded lower word storage. Its Native decoder continuation suite verifies the same root, source cell policy and full byte remainder after decoder-only attribution ends. Actual geometric source and drawing success/coverage/publication remain integration-owner evidence.
+
+Structural source comparison callers borrow the same original execution directly
+for the retained surface, pcurve and source-translation traversals. Callback
+allowance reconstruction is not part of source admission; structural visits
+remain work-only and preserve the original independent cell/depth policies.
+
+### Native worker stack ownership
+
+The public producer owns source/view/domain preflight and the existing early-zero
+returns. Nonzero closed-domain preparation and traversal execute in private
+non-inlined scopes. The unchanged native cover builder, one-cell dispatcher and
+existing atlas, cusp, finite-locus, critical and monotone branches own separate
+local frames. All scopes borrow the same execution, pending cover, output arrays
+and caches; no new source law, proof result, budget, copied source buffer or
+intermediate publication is introduced. A branch continuation means only that
+the former cell-loop continue was reached, not a separate proof approval.
+
+Original branch order, root ownership, chart boundaries, scalar/geometric/source
+depths, storage/work debits and cancellation remain unchanged. Final publication
+still requires exhausting the same pending complete cover and assembling the
+same retained singular stations/components. The measured native public frame
+exceeded the ordinary worker stack before any early-zero branch could run.
+Verification uses the actual Drawing caller/unchanged input on that worker and
+checks the new accepted native prologues; thread stack size, actors and query
+ceilings are not substitutes for this responsibility split.
+
+The one-cell dispatcher delegates each of its four existing subdivision sites to
+a private non-inlined append scope. That scope owns exactly the former returned
+child pair and the two ordered pending appends, borrowing the same cell, pending
+array and execution. Scalar-excluded cells therefore do not reserve unused child
+pair temporaries in their dispatcher frame. No child, depth, source field, work
+or storage operation is added or removed from an executed subdivision. The
+measured dispatcher frame and full worker call chain, followed by the unchanged
+Drawing cases, own validation of this mechanical adjustment.
+
+Field-atlas publication retains its atomic initializer preflight, selected original
+field and final provenance ownership. Private non-inlined stage helpers own the
+existing incidence, regular-strip, complete-endpoint-incidence, original-station
+and coordinate-station local frames. Each helper borrows the same execution and
+original mutable output arrays, with unchanged endpoint root laws, exact UV
+comparisons, count order, source depths and storage/work admission. Empty stage
+collections have exactly their former zero iterations and do not reserve an
+unused stage frame. No result is published before all original stages complete.
+The rational-atlas overload is unchanged. Actual native prologues and the same
+Drawing worker input verify this measured field-atlas publication frame change.
+
+Endpoint root identity dispatch retains its paid full surface/view preflight and
+original branch order. Private non-inlined scopes own the existing ordered-field
+atlas, rational atlas and regular graph equality local frames. Each scope uses
+the same execution and retained endpoints, proves the same complete original UV
+identity and, where required, one-sided spatial partial/normal continuity. The
+regular graph path retains free and dependent coordinate tests, periodic guards
+and whole-edge authority. No self-identity, sampled XYZ, overlapping bounds or
+new result bypass substitutes for those proofs. Actual worker Drawing component
+assembly and native prologues verify the measured endpoint frame adjustment.
+
+Trim partitioning keeps its retained curve contribution scope and complete
+surface/tolerance preflight. Private non-inlined stages own the existing
+traversal transport, per-boundary-span equations, complete root cuts, admitted
+preimages and final sectors. Their explicit parameters name the same original
+authority tuple, mutable coefficient context, cuts/events/overlaps and execution;
+no new scalar source, reconstructed root or accounting callback is introduced.
+Every original chart/traversal/denominator cut and continuous overlap remains
+ordered and admitted before the same atomic partition publication. Stage body
+inverses and the actual Drawing worker, including endpoint contacts/resource
+refusal/cancellation, verify the measured trim-closure frame adjustment.
+
+### Rational World Native Word Capability
+
+A Native span's `exactSourcePolynomial` remains the original base Native
+homogeneous law and basis provenance for Native Taylor and join consumers. For
+a complete chain of chart-preserving original spatial words with exact rational
+actions, the field may additionally retain a world rational polynomial. It
+applies every retained outer-to-inner image in reverse order through the owning
+rational polynomial action. Weight, domain and Native span ancestry stay original;
+XYZ, normal and silhouette coefficients are world values. The field retains the
+world surface, query context, complete image list and original Native receipt.
+The polynomial's `source` property denotes Native basis ancestry, never a fitted
+world Native surface or permission to discard parent word authority.
+
+```text
+retained world source and all parent words
+  -> admitted Native base polynomial (unchanged)
+  -> reversed complete rational word action
+  -> world rational zero law -> existing rational/field selector
+  -> field-owned projected rational capability
+```
+
+The new word capability requires a bare Native leaf, no offset composition and
+no collapsed Native pole normal. Each word is inspected on the same admission;
+the math owner's exact twelve-coefficient action remains the arithmetic gate.
+Unsupported word/offset/pole compositions retain their existing ordered-field
+or procedural path and are not promoted to projected rational authority. Direct
+Native projected behavior remains the existing contract. A curve requests the
+field-owned capability, whose polynomial and selected nonzero rational zero law
+must both be present; a surface enum label alone cannot supply world coordinates.
+
+The existing rational coordinate selector remains unchanged: only a complete
+pure affine coordinate law keeps its rational atlas; other shapes retain common
+field authority. Branch copies preserve both the Native base and world polynomial
+bindings. All coefficient operations, allocation, source preparation and queries
+use the composing execution and retain its original independent depth limits.
+
+[SurfaceSilhouetteRationalWordAuthorityTests](../../../Tests/CADGeometryTests/SurfaceSilhouetteRationalWordAuthorityTests.swift)
+must exercise identity and nonidentity rational words, complete reversed word
+composition, exact world XYZ/normal/zero incidence, the unchanged Native base,
+caller depth/resource/cancellation refusal and absence of offset projected
+capability. Source implementation is not whole projected Drawing or M4 coverage;
+Root owns actual Native and portable caller verification.
+
+### Original Scalar-Only Newton Reads
+
+The regular graph Newton loop reads the original scalar zero law twice per
+iteration and requests the full spatial D0–D3 jet only after contraction. A field
+with retained direct-Native or complete rational-world polynomial authority may
+read that same scalar law without constructing an unused fourth-order spatial
+Taylor table and reapplying every spatial word. This path requires the retained
+Native span/source, no offset and no collapsed pole preparation. All other fields
+use their existing full evaluation and scalar projection.
+
+The scalar reader enters the same query-context budget/contribution scope,
+checks the same cancellation and whole-chart containment guards, and calls
+`OriginalNativeSpan.validate` on the original Native source, query box and Native
+preparation tolerance before using its exact zero law. The Native preparation
+validated finite strictly positive stored weights and original knot spans; the
+nonnegative partition-of-unity B-spline basis therefore has strictly positive W
+on the entire closed owning chart. Every admitted spatial word preserves W and
+UV. The retained exact polynomial preparation and span binding supply source
+definedness; a numerator is not accepted without that original authority.
+
+```text
+Newton scalar read
+  -> same budget/context + closed Native source/span/tolerance guard
+  -> unchanged admitted scalar zero law D0–D3
+final graph read -> unchanged full spatial and scalar evaluation
+```
+
+The producer's normal-regularity check and final full spatial derivative query
+remain unchanged. Invalid box/source/tolerance, foreign budget, exhausted work or
+cancellation throws. There is no changed root solver, formula, tolerance, depth
+or cap, and no failed-proof fallback. The concrete shear microdiagnostic used
+separate cold admissions on the same whole chart: scalar authority consumed 90
+work/216 bytes, while full evaluation's scalar projection consumed 1,746,426
+work/186,072 bytes. All ten D0–D3 scalar interval bounds were bit-identical. This
+measures unnecessary spatial work; Root's seven-oracle client and actual Drawing
+runtime own the final behavior and resource result for this change.
+
+
+### Borrowed Original Polynomial Taylor Vectors
+
+`OriginalPolynomialSurfaceTaylor.vector` accepts an `ArraySlice` of exactly three
+original polynomial values. It indexes from the slice's actual `startIndex` and
+uses the existing exact derivative, factorial scaling and interval-enclosure
+algorithm. The Array entry borrows its full slice and delegates; neither entry
+materializes or copies the polynomial coefficient payload. All existing Taylor
+allocation, coefficient visits and cancellation use the same caller admission.
+This is a polynomial evaluator, not an implicit homogeneous division: a world
+XYZ/W consumer may pass XYZ directly only after its own exact canonical W=1
+proof, retained Native owner/domain/depth admission and no-offset/no-pole guards.
+Other weights retain their existing native Bernstein quotient path. Requested
+order four remains available even when a later spatial result exposes D0–D3.
+
+### Exact Unit-Weight World Polynomial Taylor Selection
+
+A field-owned world rational polynomial may supply spatial Taylor coefficients
+directly only when an admitted exact canonical check proves its homogeneous W
+is the single constant coefficient one. Its retained world Hx, Hy and Hz are then
+the exact original positions on the unchanged Native UV chart. The evaluator
+passes their borrowed three-element slice to the existing polynomial Taylor
+algorithm through order four. That algorithm retains the same exact derivative,
+factorial scaling, outward enclosure and caller admission laws; no quotient or
+rounded transformed Native tensor is introduced.
+
+The selection additionally requires the existing Native span/source, no offset
+and no collapsed pole. It runs inside the original query context and unchanged
+closed-domain/cancellation gate, and revalidates the original Native source,
+box and Native tolerance through the same caller before reading world fields.
+The constant proof charges its shape, exponent and original rational limb visits.
+This selects an evaluator, not source coverage: rational word capability is not
+restricted to W=1. All other denominators continue through the unchanged live
+Native Bernstein plus word evaluator. A selected proof/calculation failure throws
+and never falls back. Final original scalar/normal processing stays unchanged.
+
+```text
+retained world polynomial + paid exact W == 1
+  -> same Native source/closed-span guard
+  -> borrowed world XYZ polynomial Taylor (existing algorithm)
+other W/source -> existing Native Bernstein + word evaluation
+```
+
+The causal endpoint diagnostic on the original shear root U=3/8,V=0 paid
+5,663,389 work for full spatial evaluation, exceeding the original public query
+remainder after its whole-range read. The same guarded scalar read paid 237 work
+and matched every scalar D0–D3 bound. This selection closes only that measured
+redundant world-evaluation cost. The owning word-authority tests additionally
+check independent identity/shear/nested spatial D1–D3 values; Root owns fresh
+Native client, actual Drawing and target runtime evidence.

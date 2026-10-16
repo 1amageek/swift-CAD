@@ -1,0 +1,382 @@
+{
+  "geometry-silhouette-stack-draft/draft.patch": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-silhouette-stack-draft/draft.patch",
+    "sha256": "1c1542504f5058cf78e946b0789f26a855aa021fdd95869f1cec9b721c904b30"
+  },
+  "geometry-silhouette-stack-draft/child-tuples.patch": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-silhouette-stack-draft/child-tuples.patch",
+    "sha256": "006d5ca783363fc9ca716e7b5fdace7794f87dfa6ea86467ddf0100f43fe4dc0"
+  },
+  "geometry-silhouette-stack-draft/draft-manifest.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-silhouette-stack-draft/draft-manifest.json",
+    "sha256": "d956a03d10e2bbce913c408b60d52546c583cc1d18e953a5c2d1694b20c236d2"
+  },
+  "geometry-silhouette-stack-draft/body-comparison.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-silhouette-stack-draft/body-comparison.json",
+    "sha256": "0156d37c7d875e01b910edbd3dc0437eb2b56b68d4e57d158b41cb7866cc0951"
+  },
+  "geometry-silhouette-stack-draft/source-freeze.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-silhouette-stack-draft/source-freeze.json",
+    "sha256": "014223598cd36c429dfb873c6c9196910d5aa512770460050ef9a4c232b8dc11"
+  },
+  "geometry-silhouette-stack-draft/source-freeze-r2.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-silhouette-stack-draft/source-freeze-r2.json",
+    "sha256": "41f1beedc69e77767e56918bc59fde3cf2025b9db6e29af99ff8b46f4a9ba606"
+  },
+  "field-atlas-publication-stack-draft/draft.patch": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/field-atlas-publication-stack-draft/draft.patch",
+    "sha256": "a458770b11761061294a070c768d4377815d0cac6d6667122cf706923254abbe"
+  },
+  "field-atlas-publication-stack-draft/draft-manifest.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/field-atlas-publication-stack-draft/draft-manifest.json",
+    "sha256": "fafa327fa738b154503e85a39aaec1aa388df43390e69db9efbc85a3f093f4e7"
+  },
+  "field-atlas-publication-stack-draft/source-freeze.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/field-atlas-publication-stack-draft/source-freeze.json",
+    "sha256": "8bd4aa148cb4fac430e7f921f2afb28bfdfa122ea42083327ef73f8253c360ea"
+  },
+  "rational-coordinate-selection/source-freeze.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/rational-coordinate-selection/source-freeze.json",
+    "sha256": "66a02fecbb9856a9a43f4a9eb7ecf26eb4094654577120dc4150687285aa33b1"
+  },
+  "rational-coordinate-selection/selection.patch": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/rational-coordinate-selection/selection.patch",
+    "sha256": "016b0ab8a66a1fbb42aa3d885f058799b0a876faa7ceba415a6e550887c3d420"
+  },
+  "silhouette-boundary-root-stack-draft/draft.patch": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/silhouette-boundary-root-stack-draft/draft.patch",
+    "sha256": "ebfd6c522c208b57e257209a29ba1f60f846093270732cc8eb3bc5e4f0323339"
+  },
+  "silhouette-boundary-root-stack-draft/draft-manifest.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/silhouette-boundary-root-stack-draft/draft-manifest.json",
+    "sha256": "5c4804e4c5574a783c000e72a873813f45ea4c505ebba3a5361df0b2a7106505"
+  },
+  "silhouette-boundary-root-stack-draft/source-freeze.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/silhouette-boundary-root-stack-draft/source-freeze.json",
+    "sha256": "e9a4f9ed4b5787d053f7f662d86b28a8cc3260dae4e656dfa3d52fe8f77a4cee"
+  },
+  "affine-harmonic-native-entry-source-r1/source-freeze.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/affine-harmonic-native-entry-source-r1/source-freeze.json",
+    "sha256": "e2e875ef0164c10b68ec354ea1f378e65083cf78890af370bef33eb5309b2778"
+  },
+  "native-debug-unlock-r1/preparation.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-debug-unlock-r1/preparation.json",
+    "sha256": "bab8210730dabcdec331a601bb97f67a143c53fedde8bb82c4de8086f32051d2"
+  },
+  "native-debug-unlock-r1/commands-r2.lldb": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-debug-unlock-r1/commands-r2.lldb",
+    "sha256": "5a8513e2d9406663c2b41e55a143dabfaa512dbab5c61560fb7d0f05cf4691a5"
+  },
+  "native-debug-unlock-r1/syntax-only-r2.lldb": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-debug-unlock-r1/syntax-only-r2.lldb",
+    "sha256": "3f8c4b6c200fa78d83294022d4573d9f322842602cf89e9f66274909c4935a50"
+  },
+  "native-debug-unlock-r1/diagnostic-results.xml": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-debug-unlock-r1/diagnostic-results.xml",
+    "sha256": "6edbe77098b9cbc5d4d33c4279d3def109144c23b8014d646fdd7793d16b20b3"
+  },
+  "native-debug-unlock-r1/AtlasConstructor-entry-and-fault.txt": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-debug-unlock-r1/AtlasConstructor-entry-and-fault.txt",
+    "sha256": "cabcf0bd050f79d8b9ac153822722461edfcea7c19de3c1e83850a4a7c4a07df"
+  },
+  "native-debug-unlock-r1/environment-r3.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-debug-unlock-r1/environment-r3.json",
+    "sha256": "3ebd705ea0c85378b3da9bda0a1e2423630fbf8981b9275a78a07866113768ca"
+  },
+  "native-debug-unlock-r1/syntax-only-r3.lldb": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-debug-unlock-r1/syntax-only-r3.lldb",
+    "sha256": "833940c8d8341e8886bcfb93aeb2cc634f7ca6bc02e918c5db0289aee5ba84b7"
+  },
+  "native-debug-unlock-r1/commands-r3.lldb": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-debug-unlock-r1/commands-r3.lldb",
+    "sha256": "3157ba522a51626d4fc87f98eff1d9590faac3d33e359f18d850d22d801ba98d"
+  },
+  "native-debug-unlock-r1/runtime-r3.log": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-debug-unlock-r1/runtime-r3.log",
+    "sha256": "7087cf22b6edb6f6344d78929a8bf90ecb6de41dd9169a2e72bb2e5f04a012f9"
+  },
+  "native-debug-unlock-r1/runtime-r2.log": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-debug-unlock-r1/runtime-r2.log",
+    "sha256": "5c7cfcb35620b8ee3399f294b498aefdfe326da76c2bf07d6098c9525dcde941"
+  },
+  "native-debug-unlock-r1/AtlasConstructor-offline-finding.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-debug-unlock-r1/AtlasConstructor-offline-finding.json",
+    "sha256": "511f8b54c41ebb3de91514b369c78af57dccc84e474f474a3b1708d45bbd8387"
+  },
+  "native-debug-unlock-r1/commands.lldb": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-debug-unlock-r1/commands.lldb",
+    "sha256": "1e96314d7729325b73d8e85ffed2d733dbf1ea32d9c3989e8ed6477e32071a24"
+  },
+  "native-debug-unlock-r1/runtime.log": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-debug-unlock-r1/runtime.log",
+    "sha256": "c002905e8024b8517b886c0480e00d46a591196b4d7971112c7edc1e4ff3ba8c"
+  },
+  "native-debug-unlock-r1/diagnostic-receipt-r2.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-debug-unlock-r1/diagnostic-receipt-r2.json",
+    "sha256": "36701ae784cfec8ada228b9502d14a0cc15573b37e2c4e7c4a0c5c3bd741dc97"
+  },
+  "native-debug-unlock-r1/diagnostic-receipt.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-debug-unlock-r1/diagnostic-receipt.json",
+    "sha256": "bc01a49754e9f07c70e8c2451bf3d577b870301ff63d442a622c68182611e612"
+  },
+  "native-debug-unlock-r1/diagnostic-receipt-r3.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-debug-unlock-r1/diagnostic-receipt-r3.json",
+    "sha256": "724e0d0c78ff5d34face7248ac3731df387ee275a361075338f3de2dbe21692c"
+  },
+  "drawing-native-after-silhouette-r1/swiftpm-testing-helper-2026-10-16-121341.ips": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-silhouette-r1/swiftpm-testing-helper-2026-10-16-121341.ips",
+    "sha256": "22de29dc2f690f6ad685e4368826c7374bed27b4b5e214772c2bbb26cf24a3eb"
+  },
+  "drawing-native-after-silhouette-r1/test-build-and-list.log": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-silhouette-r1/test-build-and-list.log",
+    "sha256": "103c4e9b87974a3f607f5f81ac7cf91524866791a07bc96ba428882ea7990eb5"
+  },
+  "drawing-native-after-silhouette-r1/results.xml": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-silhouette-r1/results.xml",
+    "sha256": "6edbe77098b9cbc5d4d33c4279d3def109144c23b8014d646fdd7793d16b20b3"
+  },
+  "drawing-native-after-silhouette-r1/test-runtime.log": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-silhouette-r1/test-runtime.log",
+    "sha256": "59db393ae63885e7580588a9794015cb61687fbf726e5d4eb67e772eadc8b4bf"
+  },
+  "drawing-native-after-silhouette-r1/Silhouette-outlined-helper-entry-prologues.txt": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-silhouette-r1/Silhouette-outlined-helper-entry-prologues.txt",
+    "sha256": "860b677511b84c85bc22ce1f4115a0bd9fddd78374e01bebf2ec59b11cf21bc7"
+  },
+  "drawing-native-after-silhouette-r1/Silhouette-outlined-helper-entry-frames.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-silhouette-r1/Silhouette-outlined-helper-entry-frames.json",
+    "sha256": "4e158eb3127d10199fbb4665f70e047e79e306f4a27eb7fb6fcc0a31eef8b32a"
+  },
+  "drawing-native-after-silhouette-r1/compiler-version.log": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-silhouette-r1/compiler-version.log",
+    "sha256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c"
+  },
+  "drawing-native-after-silhouette-r1/SilhouetteCell-actual-chain-frames.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-silhouette-r1/SilhouetteCell-actual-chain-frames.json",
+    "sha256": "209a6731e478b5a39a8a4dc0a693ade25789aa3eb6f7b68eb63b5e647f2e4674"
+  },
+  "drawing-native-after-silhouette-r1/SilhouetteCell-duplicate-frame-classification.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-silhouette-r1/SilhouetteCell-duplicate-frame-classification.json",
+    "sha256": "a3c62111a4d59bab7b08499edb13a26147bd0cf3304f96b60e65993823bd0b68"
+  },
+  "drawing-native-after-silhouette-r1/SilhouetteCell-actual-chain-prologues-and-fault.txt": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-silhouette-r1/SilhouetteCell-actual-chain-prologues-and-fault.txt",
+    "sha256": "0884c7078f466923adfcb6347d37a1d6cfc8243a46c54a05e1226a7e669c04a8"
+  },
+  "drawing-native-after-silhouette-r1/receipt.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-silhouette-r1/receipt.json",
+    "sha256": "1444854b5a2c572410a9772f58aa9dd9735ccbf76e0c919bece57328afc91d13"
+  },
+  "drawing-native-after-silhouette-r2/test-build-and-list.log": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-silhouette-r2/test-build-and-list.log",
+    "sha256": "07fca95ab378dc84ec3ce37fd269cc2ef69bc090b1141da7cb5eb825b01cc8d8"
+  },
+  "drawing-native-after-silhouette-r2/swiftpm-testing-helper-2026-10-16-122458.ips": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-silhouette-r2/swiftpm-testing-helper-2026-10-16-122458.ips",
+    "sha256": "fe2e7705b9f09bcc9f973ac01fe127c5a0cbb46b145facf34e15dede1b809937"
+  },
+  "drawing-native-after-silhouette-r2/EndpointMutex-actual-chain-frames.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-silhouette-r2/EndpointMutex-actual-chain-frames.json",
+    "sha256": "f4bae5c191aeda2153464ad4644713fe568c5af0b8c734b56895195e7dced949"
+  },
+  "drawing-native-after-silhouette-r2/results.xml": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-silhouette-r2/results.xml",
+    "sha256": "6edbe77098b9cbc5d4d33c4279d3def109144c23b8014d646fdd7793d16b20b3"
+  },
+  "drawing-native-after-silhouette-r2/EndpointMutex-actual-chain-prologues.txt": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-silhouette-r2/EndpointMutex-actual-chain-prologues.txt",
+    "sha256": "6e58ae495de7315a3e60dac60b94fa65ab5627aefad6ba5044a76771c0035892"
+  },
+  "drawing-native-after-silhouette-r2/test-runtime.log": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-silhouette-r2/test-runtime.log",
+    "sha256": "f342f91d51229356091b37e81bde00d2e969a93a9509947a71e33b74133e07c9"
+  },
+  "drawing-native-after-silhouette-r2/compiler-version.log": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-silhouette-r2/compiler-version.log",
+    "sha256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c"
+  },
+  "drawing-native-after-silhouette-r2/receipt.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-silhouette-r2/receipt.json",
+    "sha256": "36e41825c6e15ad4defd29e1b942c5f43356772cd01ce9631ba30009caeab6ac"
+  },
+  "drawing-native-after-field-atlas-r1/AffineHarmonic-actual-chain-frames.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-field-atlas-r1/AffineHarmonic-actual-chain-frames.json",
+    "sha256": "28d1541082dcda7dca01c0164d51496388607f917baddf94b491426f446b9d86"
+  },
+  "drawing-native-after-field-atlas-r1/swiftpm-testing-helper-2026-10-16-125521.ips": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-field-atlas-r1/swiftpm-testing-helper-2026-10-16-125521.ips",
+    "sha256": "5d426dc7ad9f11302771a2b9fcf7f345d9499892975b32112906b82daeb7f2d2"
+  },
+  "drawing-native-after-field-atlas-r1/test-build-and-list.log": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-field-atlas-r1/test-build-and-list.log",
+    "sha256": "a259f6fd8a17e1fff828fe5d75072f0ae99a488db45c02c7133d2e8ceaa62b1f"
+  },
+  "drawing-native-after-field-atlas-r1/AffineHarmonic-actual-chain-prologues.txt": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-field-atlas-r1/AffineHarmonic-actual-chain-prologues.txt",
+    "sha256": "8c921943a973b42da26a1e2b9135a0ecce1031a8876254a345f7524567289eae"
+  },
+  "drawing-native-after-field-atlas-r1/results.xml": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-field-atlas-r1/results.xml",
+    "sha256": "6edbe77098b9cbc5d4d33c4279d3def109144c23b8014d646fdd7793d16b20b3"
+  },
+  "drawing-native-after-field-atlas-r1/test-runtime.log": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-field-atlas-r1/test-runtime.log",
+    "sha256": "77d0ea11643f2622bba7e6b508119765265ae94d39ac7c5a0c86b87475b68e70"
+  },
+  "drawing-native-after-field-atlas-r1/compiler-version.log": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-field-atlas-r1/compiler-version.log",
+    "sha256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c"
+  },
+  "drawing-native-after-field-atlas-r1/receipt.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-field-atlas-r1/receipt.json",
+    "sha256": "4ede6cf4c25766d29f6edb136dad26bc7cee3ac0dfb63a0b6b303ad1e24e50d4"
+  },
+  "drawing-native-after-harmonic-r1/SingularField-current-chain-frames.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-harmonic-r1/SingularField-current-chain-frames.json",
+    "sha256": "daf4eaa5cc7dd0db13a780f4977d29983e3b7404cd091059ad3ba8563460c780"
+  },
+  "drawing-native-after-harmonic-r1/test-build-and-list.log": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-harmonic-r1/test-build-and-list.log",
+    "sha256": "0868ac4ba8a7a95afa80349d3e927fb6fe8604c661546b1925b9f6cd5b020e65"
+  },
+  "drawing-native-after-harmonic-r1/results.xml": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-harmonic-r1/results.xml",
+    "sha256": "6edbe77098b9cbc5d4d33c4279d3def109144c23b8014d646fdd7793d16b20b3"
+  },
+  "drawing-native-after-harmonic-r1/swiftpm-testing-helper-2026-10-16-130952.ips": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-harmonic-r1/swiftpm-testing-helper-2026-10-16-130952.ips",
+    "sha256": "c062e94cb5187a77f61b8d844cf739b193a3778da25258e330cee5b1fa7ed851"
+  },
+  "drawing-native-after-harmonic-r1/test-runtime.log": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-harmonic-r1/test-runtime.log",
+    "sha256": "e59a006f296be0c8a98ff5f85cabeeb3404c26e3fe02b12bec47b6b19dd7a507"
+  },
+  "drawing-native-after-harmonic-r1/compiler-version.log": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-harmonic-r1/compiler-version.log",
+    "sha256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c"
+  },
+  "drawing-native-after-harmonic-r1/SingularField-current-chain-prologues.txt": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-harmonic-r1/SingularField-current-chain-prologues.txt",
+    "sha256": "ddf68661833f45318c2f8f8b43ab2af155b904205b6db84ed1167a0e011141e9"
+  },
+  "drawing-native-after-harmonic-r1/receipt.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-harmonic-r1/receipt.json",
+    "sha256": "5ab6d2c0644a2ca22362385bd2014e83cdb56933b0ebd0e44738f64eb90f503f"
+  },
+  "drawing-native-rational-coordinate-r1/swiftpm-testing-helper-2026-10-16-134216.ips": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-rational-coordinate-r1/swiftpm-testing-helper-2026-10-16-134216.ips",
+    "sha256": "8cfe8c8b4f84465125813de5f4f89bdc15f891bb9fe4a94b519130c73fcd5287"
+  },
+  "drawing-native-rational-coordinate-r1/test-build-and-list.log": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-rational-coordinate-r1/test-build-and-list.log",
+    "sha256": "318d0e45e1d47447a94699b70f9747a1d86f03dbdb730cfe81c6f87253332ff6"
+  },
+  "drawing-native-rational-coordinate-r1/results.xml": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-rational-coordinate-r1/results.xml",
+    "sha256": "6edbe77098b9cbc5d4d33c4279d3def109144c23b8014d646fdd7793d16b20b3"
+  },
+  "drawing-native-rational-coordinate-r1/BoundaryRoot-current-chain-frames.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-rational-coordinate-r1/BoundaryRoot-current-chain-frames.json",
+    "sha256": "fa6ddfadfda34842482121d0f3061795dfb39269672edca622f130fdfd264ea0"
+  },
+  "drawing-native-rational-coordinate-r1/test-runtime.log": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-rational-coordinate-r1/test-runtime.log",
+    "sha256": "27611a5fe068263b2534ce4138c9d5f62c3a18cf368798d8c8a08e4a6b853c8d"
+  },
+  "drawing-native-rational-coordinate-r1/compiler-version.log": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-rational-coordinate-r1/compiler-version.log",
+    "sha256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c"
+  },
+  "drawing-native-rational-coordinate-r1/BoundaryRoot-current-chain-prologues.txt": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-rational-coordinate-r1/BoundaryRoot-current-chain-prologues.txt",
+    "sha256": "563e5cfc9a4d519d10faf84363cd9d58513a9c2eb982b9508acd511eb454f64b"
+  },
+  "drawing-native-rational-coordinate-r1/receipt.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-rational-coordinate-r1/receipt.json",
+    "sha256": "45ded02ba7ab7b50afd77a3751c33fb6200a5661aa8e1b6cb1f222b48e13c578"
+  },
+  "drawing-native-after-boundary-root-r1/swiftpm-testing-helper-2026-10-16-134954.ips": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-boundary-root-r1/swiftpm-testing-helper-2026-10-16-134954.ips",
+    "sha256": "f331e7a10947ce0e21deaeb05adb3a7ce2429567028386aa73c64dd14df21ec5"
+  },
+  "drawing-native-after-boundary-root-r1/test-build-and-list.log": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-boundary-root-r1/test-build-and-list.log",
+    "sha256": "e32100fa58472b9fe6031edca4714b64ce21ca0e1c7e2f16accee7b5309e1c77"
+  },
+  "drawing-native-after-boundary-root-r1/TaskPointer-current-chain-frames.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-boundary-root-r1/TaskPointer-current-chain-frames.json",
+    "sha256": "680a3da577a8c76c79f364296b13f65e199e4878286507615c4319c697c450ec"
+  },
+  "drawing-native-after-boundary-root-r1/results.xml": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-boundary-root-r1/results.xml",
+    "sha256": "6edbe77098b9cbc5d4d33c4279d3def109144c23b8014d646fdd7793d16b20b3"
+  },
+  "drawing-native-after-boundary-root-r1/test-runtime.log": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-boundary-root-r1/test-runtime.log",
+    "sha256": "e08956abe3423efaeca16841bd5ac1e32702d925a2d1d26c4b4784f2dcf8c07e"
+  },
+  "drawing-native-after-boundary-root-r1/compiler-version.log": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-boundary-root-r1/compiler-version.log",
+    "sha256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c"
+  },
+  "drawing-native-after-boundary-root-r1/TaskPointer-current-chain-prologues.txt": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-boundary-root-r1/TaskPointer-current-chain-prologues.txt",
+    "sha256": "259ab247b2dea64575dc05e7c61d34c63d66d844c3ad347ac18f28a97fb59bef"
+  },
+  "drawing-native-after-boundary-root-r1/receipt.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-boundary-root-r1/receipt.json",
+    "sha256": "0eaaf45c367ca1bd81865989868d6cb6e1ec1a560c5b1deb1e7f79f4a87efc3d"
+  },
+  "drawing-isolated-arch-diagnostic-r1/swiftpm-testing-helper-2026-10-16-135121.ips": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-isolated-arch-diagnostic-r1/swiftpm-testing-helper-2026-10-16-135121.ips",
+    "sha256": "b52cf0ab100d101c17585616da05ac0cf81fd432e2562d17793e0a31e96465de"
+  },
+  "drawing-isolated-arch-diagnostic-r1/TrimPartition-current-chain-frames.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-isolated-arch-diagnostic-r1/TrimPartition-current-chain-frames.json",
+    "sha256": "155596161fd73365e90305b3b7cafc4428ecad0af35c9c18a7aefe2c6d42c2ea"
+  },
+  "drawing-isolated-arch-diagnostic-r1/stages.log": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-isolated-arch-diagnostic-r1/stages.log",
+    "sha256": "a7da93ee24c95bf7bcf0c41700590d8f67f494d942fd6055ce79183628a6e34b"
+  },
+  "drawing-isolated-arch-diagnostic-r1/TrimPartition-current-chain-prologues.txt": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-isolated-arch-diagnostic-r1/TrimPartition-current-chain-prologues.txt",
+    "sha256": "8389a4c1d2a5d7f6a846be0034499da3879211ffadfd626d80ba6751466fe96e"
+  },
+  "drawing-isolated-arch-diagnostic-r1/diagnostic-results.xml": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-isolated-arch-diagnostic-r1/diagnostic-results.xml",
+    "sha256": "6edbe77098b9cbc5d4d33c4279d3def109144c23b8014d646fdd7793d16b20b3"
+  },
+  "drawing-isolated-arch-diagnostic-r1/runtime.log": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-isolated-arch-diagnostic-r1/runtime.log",
+    "sha256": "b06ac6f27921fc008052cf6193510f4a76e6af9e9669cffedea2bddca633e3b9"
+  },
+  "drawing-isolated-arch-diagnostic-r1/receipt.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-isolated-arch-diagnostic-r1/receipt.json",
+    "sha256": "38981622086a3f9aa18cdc31b3d3e44aa50d27b3f581b5fe1c11375d9ace0fb5"
+  },
+  "drawing-isolated-arch-diagnostic-r1/TrimPartition-fault-window.txt": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-isolated-arch-diagnostic-r1/TrimPartition-fault-window.txt",
+    "sha256": "084f5e98ae31afb03d79f02e34e3ffec9ff2b0d56608b33f5ec6dc2a961c150e"
+  },
+  "rational-coordinate-native-focused-r1/test-build-and-list.log": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/rational-coordinate-native-focused-r1/test-build-and-list.log",
+    "sha256": "dfa8c15cb839bd0919d4c28947f4aafef96640d05569f137548cbcc355815e71"
+  },
+  "rational-coordinate-native-focused-r1/results.xml": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/rational-coordinate-native-focused-r1/results.xml",
+    "sha256": "9c30a508c25112e11f8d01c4f9e1aca5b17a276e470ec72c798d7dc897f45db3"
+  },
+  "rational-coordinate-native-focused-r1/test-runtime.log": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/rational-coordinate-native-focused-r1/test-runtime.log",
+    "sha256": "dd522639012b9d1a14ab0c11cf1d28c2decb3120f1396a2ea8614118a4acce06"
+  },
+  "rational-coordinate-native-focused-r1/compiler-version.log": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/rational-coordinate-native-focused-r1/compiler-version.log",
+    "sha256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c"
+  },
+  "rational-coordinate-native-focused-r1/receipt.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/rational-coordinate-native-focused-r1/receipt.json",
+    "sha256": "f56dc50e3a2b7089c9a54eb499441dda62fe11fd27a63aee879845557c4ae411"
+  }
+}

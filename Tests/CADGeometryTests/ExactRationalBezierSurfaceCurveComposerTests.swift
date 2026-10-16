@@ -29,7 +29,7 @@ struct ExactRationalBezierSurfaceCurveComposerTests {
             parameterCurve: parameterCurve,
             tolerance: .standard
         )
-        let lift = SurfaceLiftCurve3D(
+        let lift = try SurfaceLiftCurve3D(
             surface: .bSpline(surface),
             parameterCurve: .bSpline(parameterCurve),
             exactBSplineImage: exact

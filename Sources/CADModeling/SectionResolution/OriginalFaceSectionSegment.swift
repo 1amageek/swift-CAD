@@ -11,7 +11,7 @@ package struct OriginalFaceSectionSegment: Sendable {
 
     package init(edgeID: EdgeID, curve: Curve3D, startParameter: Double,
         endParameter: Double, tolerance: ModelingTolerance,
-        admission: GeometryConversionAdmission? = nil) throws {
+        using execution: inout OriginalQueryExecution) throws {
         guard startParameter.isFinite, endParameter.isFinite,
               startParameter != endParameter,
               try curve.parameterDomain.containsSpan(from: startParameter,
@@ -20,9 +20,7 @@ package struct OriginalFaceSectionSegment: Sendable {
                 message: "A face section boundary requires its original finite directed trim.")
         }
         self.edgeID = edgeID
-        if let admission {
-            source = try OriginalCurveSpanSource(curve: curve, tolerance: tolerance, admission: admission)
-        } else { source = OriginalCurveSpanSource(curve: curve) }
+        source = try OriginalCurveSpanSource(curve: curve, tolerance: tolerance, using: &execution)
         self.startParameter = startParameter
         self.endParameter = endParameter
     }

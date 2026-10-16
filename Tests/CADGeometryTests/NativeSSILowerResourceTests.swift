@@ -4,7 +4,8 @@ import Testing
 
 @Suite(.timeLimit(.minutes(1)))
 struct NativeSSILowerResourceTests {
-    private struct Admission: RationalAlgebraAdmitting {
+    private struct Admission: ~Copyable, GeometryScalarTestAdmission {
+        var proofScopes = ExactScalarProofScopes()
         var work = 0
         var storage = 0
         var visits = 0
@@ -14,26 +15,59 @@ struct NativeSSILowerResourceTests {
         var maximumVisits = 262_144
         var maximumDepth = 32
         var maximumCoefficientDepth = 32
-        mutating func consumeExactWork(_ count: Int) throws {
+        mutating func consumeWork(_ count: Int) throws(ExactScalarFailure) {
+            try checkpoint()
+            try proofScopes.checkWork(count)
+            do {
             guard count >= 0, count <= maximumWork - work else { throw failure() }
             work += count
+        
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            proofScopes.recordWork(count)
+            try checkpoint()
         }
-        mutating func retainExactStorage(_ count: Int) throws {
+        mutating func retainStorage(bytes: Int) throws(ExactScalarFailure) {
+            try checkpoint()
+            let count = try geometryTestStorageWords(bytes)
+            do {
             guard count >= 0, count <= maximumStorage - storage else { throw failure() }
             storage += count
+        
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            try checkpoint()
         }
-        mutating func visitExactCell(depth: Int) throws {
-            guard (0...maximumDepth).contains(depth), visits < maximumVisits else { throw failure() }
-            visits += 1
-        }
-        mutating func visitCoefficientCell(depth: Int) throws {
-            guard (0...maximumCoefficientDepth).contains(depth), coefficientVisits < maximumVisits else { throw failure() }
-            coefficientVisits += 1
-        }
+        
+        
         private func failure() -> KernelError {
             KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: nil,
                 message: "Native SSI lower proof exhausted an independent original allowance.")
         }
+            mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
+            try admitDepth(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+            let mapped = try proofScopes.mapped(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+            do {
+                switch (axis == .coefficient || proofScopes.exactDepthResource == .coefficientDepth) ? ExactScalarRootAxis.coefficient : .value {
+                case .value:
+                    let depth = mapped.value
+
+            guard (0...maximumDepth).contains(depth), visits < maximumVisits else { throw failure() }
+            visits += 1
+        
+                case .coefficient:
+                    let depth = mapped.coefficient
+
+            guard (0...maximumCoefficientDepth).contains(depth), coefficientVisits < maximumVisits else { throw failure() }
+            coefficientVisits += 1
+        
+                }
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            try checkpoint()
+        }
+        var maximumTestValueDepth: Int { maximumDepth }
+        var maximumTestCoefficientDepth: Int { maximumCoefficientDepth }
     }
 
     @Test func projectionPreservesDistinctCutsRepeatedSupportAndRawSources() throws {
@@ -57,14 +91,14 @@ struct NativeSSILowerResourceTests {
         #expect(usage.visits == 0 && usage.coefficientVisits == 0)
         #expect(usage.work > 0 && usage.storage > 0)
         var work = Admission(); work.maximumWork = 0
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try ExactIntersectionProjection.prepare(sources: sources, variableCount: 2, axis: 1, usage: &work)
         }
         var storage = Admission(); storage.maximumStorage = 0
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try ExactIntersectionProjection.prepare(sources: sources, variableCount: 2, axis: 1, usage: &storage)
         }
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try ExactIntersectionProjection.prepare(sources: sources, variableCount: 3, axis: 1, usage: &construction)
         }
     }
@@ -110,14 +144,14 @@ struct NativeSSILowerResourceTests {
             #expect(usage.visits == reference.visits && usage.coefficientVisits == 0)
         }
         var depth = Admission(); depth.maximumDepth = 4
-        #expect(throws: KernelError.self) { try value.sign(maximumDepth: 4, usage: &depth) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try value.sign(maximumDepth: 4, usage: &depth) }
         var cells = Admission(); cells.maximumVisits = 0
-        #expect(throws: KernelError.self) { try value.sign(maximumDepth: 32, usage: &cells) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try value.sign(maximumDepth: 32, usage: &cells) }
         var work = Admission(); work.maximumWork = 0
-        #expect(throws: KernelError.self) { try value.sign(maximumDepth: 32, usage: &work) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try value.sign(maximumDepth: 32, usage: &work) }
         let (_, coefficientValue, _, _, _) = try rootFixture(coefficient: true, usage: &preparation)
         var coefficient = Admission(); coefficient.maximumCoefficientDepth = 4
-        #expect(throws: KernelError.self) { try coefficientValue.sign(maximumDepth: 0, usage: &coefficient) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try coefficientValue.sign(maximumDepth: 0, usage: &coefficient) }
         #expect(coefficient.visits == 0)
     }
 
@@ -126,18 +160,18 @@ struct NativeSSILowerResourceTests {
         let (root, value, coordinate, unit, _) = try rootFixture(usage: &usage)
         let rootZeroDenominator = OriginalSingularFieldElement(context: value.context,
             storage: .extended(unit, root.polynomial))
-        #expect(throws: KernelError.self) { try rootZeroDenominator.sign(maximumDepth: 32, usage: &usage) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try rootZeroDenominator.sign(maximumDepth: 32, usage: &usage) }
         let zero = try OriginalSingularFieldPolynomial(context: unit.context,
             coefficients: [], maximumDepth: 32, usage: &usage)
         let invalid = OriginalSingularFieldElement(context: value.context, storage: .extended(coordinate, zero))
-        #expect(throws: KernelError.self) { try invalid.sign(maximumDepth: 32, usage: &usage) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try invalid.sign(maximumDepth: 32, usage: &usage) }
         let foreign = try OriginalSingularFieldContext(usage: &usage)
         let foreignUnit = try OriginalSingularFieldPolynomial(context: foreign,
             coefficients: [.constant(.one, in: foreign, maximumDepth: 32, usage: &usage)],
             maximumDepth: 32, usage: &usage)
         let unrelated = OriginalSingularFieldElement(context: value.context, storage: .extended(coordinate, foreignUnit))
         var query = Admission(); query.maximumVisits = 0
-        #expect(throws: KernelError.self) { try unrelated.sign(maximumDepth: 32, usage: &query) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try unrelated.sign(maximumDepth: 32, usage: &query) }
         #expect(query.visits == 0 && query.work == 0)
     }
 
@@ -165,8 +199,8 @@ struct NativeSSILowerResourceTests {
             Issue.record("A rational leading coefficient was incorrectly issued as a source guard."); return
         }
         let selectedLaw = closure.originalPredicates[reduction.equationIndex]
-        let selectedLeading = try #require(try selectedLaw.axisCoefficients(at: 5, usage: &usage).last)
-        #expect(retained == (try #require(try selectedLeading.leading(usage: &usage)).coefficient))
+        let selectedLeading = try geometryTestRequire(try selectedLaw.axisCoefficients(at: 5, usage: &usage).last)
+        #expect(retained == (try geometryTestRequire(try selectedLeading.leading(usage: &usage)).coefficient))
         #expect(reduction.candidateCoordinate == 5)
         #expect(closure.candidateCoordinateMap == [4, 5, 2])
         #expect(proof.tower.variableCount == 5)
@@ -204,7 +238,7 @@ struct NativeSSILowerResourceTests {
         }
         let ideal = try ExactIntersectionIdeal.prepare(equations: generators, variableCount: 6, usage: &usage)
         var reduced = original
-        let oriented = try #require(try OriginalPositiveGuardPolynomialReduction.prepare(polynomials: &reduced,
+        let oriented = try geometryTestRequire(try OriginalPositiveGuardPolynomialReduction.prepare(polynomials: &reduced,
             original: original, source: closure.source, candidateCoordinates: candidateMap, candidateCoordinate: 5,
             ideal: ideal, radiusIndex: closure.source.signs.count, usage: &usage))
         guard case .rationalLeadingCoefficient(let coefficient) = oriented.authority else {
@@ -216,18 +250,18 @@ struct NativeSSILowerResourceTests {
         var foreign = original
         foreign[oriented.equationIndex] = try .coordinate(variableCount: 6, at: 5, usage: &usage)
         var invalid = foreign
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try OriginalPositiveGuardPolynomialReduction.prepare(polynomials: &invalid,
                 original: foreign, source: closure.source, candidateCoordinates: candidateMap, candidateCoordinate: 5,
                 ideal: ideal, radiusIndex: closure.source.signs.count, usage: &usage)
         }
         var noWork = Admission(); noWork.maximumWork = 0
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try OriginalIntersectionCellClosure.prepare(partition: partition, cellIndex: interior,
                 allowAffineProofs: false, allowFiniteBranchProofs: false, maximumDepth: 32, usage: &noWork)
         }
         var noStorage = Admission(); noStorage.maximumStorage = 0
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try OriginalIntersectionCellClosure.prepare(partition: partition, cellIndex: interior,
                 allowAffineProofs: false, allowFiniteBranchProofs: false, maximumDepth: 32, usage: &noStorage)
         }
@@ -283,7 +317,7 @@ struct NativeSSILowerResourceTests {
         let ideal = try ExactIntersectionIdeal.prepare(equations: generators, variableCount: 6, usage: &usage)
         let boundOriginal = original
         var reduced = original
-        let reduction = try #require(try OriginalPositiveGuardPolynomialReduction.prepare(polynomials: &reduced,
+        let reduction = try geometryTestRequire(try OriginalPositiveGuardPolynomialReduction.prepare(polynomials: &reduced,
             original: original, source: source, candidateCoordinates: candidateMap, candidateCoordinate: 5,
             ideal: ideal, radiusIndex: source.signs.count, usage: &usage))
         #expect(original == boundOriginal && ideal.originalEquations == generators)
@@ -328,7 +362,7 @@ struct NativeSSILowerResourceTests {
         var foreign = original
         foreign[reduction.equationIndex] = try .coordinate(variableCount: 6, at: 4, usage: &usage)
         var invalid = foreign
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try OriginalPositiveGuardPolynomialReduction.prepare(polynomials: &invalid, original: foreign,
                 source: source, candidateCoordinates: [4, 5, 2], candidateCoordinate: 5,
                 ideal: ideal, radiusIndex: source.signs.count, usage: &usage)
@@ -337,7 +371,7 @@ struct NativeSSILowerResourceTests {
             var bounded = Admission()
             if storageRefusal { bounded.maximumStorage = 0 } else { bounded.maximumWork = 0 }
             var predicates = original
-            #expect(throws: KernelError.self) {
+            geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
                 try OriginalPositiveGuardPolynomialReduction.prepare(polynomials: &predicates,
                     original: original, source: source, candidateCoordinates: [4, 5, 2],
                     candidateCoordinate: 5, ideal: ideal, radiusIndex: source.signs.count, usage: &bounded)
@@ -346,7 +380,7 @@ struct NativeSSILowerResourceTests {
         let task = Task {
             withUnsafeCurrentTask { $0?.cancel() }
             var cancelled = Admission(), predicates = original
-            #expect(throws: CancellationError.self) {
+            geometryTestExpectFailure({ geometryTestIsCancelled($0) }) {
                 try OriginalPositiveGuardPolynomialReduction.prepare(polynomials: &predicates,
                     original: original, source: source, candidateCoordinates: [4, 5, 2],
                     candidateCoordinate: 5, ideal: ideal, radiusIndex: source.signs.count, usage: &cancelled)
@@ -365,11 +399,9 @@ struct NativeSSILowerResourceTests {
         let box = SurfaceParameterBox(u: try .init(lower: -1, upper: 1), v: try .init(lower: -1, upper: 1))
         func original(_ surface: BSplineSurface3D) throws -> OriginalRationalSurfacePolynomial {
             let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: surface, tolerance: .standard,
-                consumeWork: { try usage.consumeExactWork(1) },
-                consumeStorage: { try RationalAlgebraStorage.retainBytes($0, usage: &usage) })
+                using: &usage)
             let spans = try prepared.originalNativeSpans(over: box, tolerance: .standard, maximumSpanCount: 1,
-                consumeWork: { try usage.consumeExactWork(1) },
-                consumeStorage: { try RationalAlgebraStorage.retainBytes($0, usage: &usage) })
+                using: &usage)
             return try .init(source: surface, native: spans[0], domain: box, view: .init(x: 0, y: 0, z: 1),
                 tolerance: .standard, usage: &usage)
         }
@@ -392,7 +424,7 @@ struct NativeSSILowerResourceTests {
         let branches = partition.solutionCells.filter { partition.cells[$0].dimension == 2 }
         #expect(branches.count == 4)
         for index in branches {
-            let proof = try #require(try OriginalFiniteBranchClosure.prepare(partition: partition,
+            let proof = try geometryTestRequire(try OriginalFiniteBranchClosure.prepare(partition: partition,
                 cellIndex: index, maximumDepth: 32, usage: &usage))
             let prefix = try #require(proof.affinePrefix)
             #expect(proof.freeAxis == 1 && prefix.baseAxis == 1 && prefix.sourcePath.count == 4)
@@ -427,7 +459,7 @@ struct NativeSSILowerResourceTests {
             sheets.append((branchSign, prefix.sourcePath[1], proof.includedCells))
         }
         for positive in sheets where positive.sign == .positive {
-            let negative = try #require(sheets.first { $0.sign == .negative && $0.base == positive.base })
+            let negative = try geometryTestRequire(sheets.first { $0.sign == .negative && $0.base == positive.base })
             let shared = positive.cells.filter { negative.cells.contains($0) }
             #expect(shared.count == 3)
             for index in shared {
@@ -439,22 +471,22 @@ struct NativeSSILowerResourceTests {
         for storageRefusal in [false, true] {
             var bounded = Admission()
             if storageRefusal { bounded.maximumStorage = 0 } else { bounded.maximumWork = 0 }
-            #expect(throws: KernelError.self) {
+            geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
                 try OriginalFiniteBranchClosure.prepare(partition: partition, cellIndex: source,
                     maximumDepth: 32, usage: &bounded)
             }
         }
         var depth = Admission()
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try OriginalFiniteBranchClosure.prepare(partition: partition, cellIndex: source, maximumDepth: 0, usage: &depth)
         }
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try OriginalFiniteBranchClosure.prepare(partition: partition, cellIndex: -1, maximumDepth: 32, usage: &usage)
         }
         let task = Task {
             withUnsafeCurrentTask { $0?.cancel() }
             var cancelled = Admission()
-            #expect(throws: CancellationError.self) {
+            geometryTestExpectFailure({ geometryTestIsCancelled($0) }) {
                 try OriginalFiniteBranchClosure.prepare(partition: partition, cellIndex: source,
                     maximumDepth: 32, usage: &cancelled)
             }
@@ -467,7 +499,7 @@ struct NativeSSILowerResourceTests {
             maximumDepth: 32, usage: &pruning)
         #expect(!pruned.excludedDomainPrefixes.isEmpty)
         for index in pruned.solutionCells where pruned.cells[index].dimension == 2 {
-            let proof = try #require(try OriginalFiniteBranchClosure.prepare(partition: pruned,
+            let proof = try geometryTestRequire(try OriginalFiniteBranchClosure.prepare(partition: pruned,
                 cellIndex: index, maximumDepth: 32, usage: &pruning))
             #expect(proof.includedCells.count == 9)
         }
@@ -524,8 +556,8 @@ struct NativeSSILowerResourceTests {
         let task = Task {
             withUnsafeCurrentTask { $0?.cancel() }
             var usage = Admission()
-            #expect(throws: CancellationError.self) { try value.sign(maximumDepth: 32, usage: &usage) }
-            #expect(throws: CancellationError.self) {
+            geometryTestExpectFailure({ geometryTestIsCancelled($0) }) { try value.sign(maximumDepth: 32, usage: &usage) }
+            geometryTestExpectFailure({ geometryTestIsCancelled($0) }) {
                 try ExactIntersectionProjection.prepare(sources: [law], variableCount: 2, axis: 1, usage: &usage)
             }
         }

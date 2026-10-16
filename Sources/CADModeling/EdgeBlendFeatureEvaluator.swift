@@ -106,7 +106,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                 let model = try BRepBodyModelReplacer().replacing(bodyID: bodyID, with: sewn.bodyID, from: sewn.brep, in: context.brep)
                 try model.validate(level: .volumetric, tolerance: context.tolerance)
                 let scope = try BodyTopologyScope(bodyID: bodyID, model: context.brep)
-                return EvaluationResult(brep: model, subshapes: sewn.subshapes, removedSubshapeIDs: scope.subshapeIDs(in: context.subshapes),
+                return EvaluationResult(brep: model, subshapes: sewn.subshapes, removedSubshapeIDs: try scope.subshapeIDs(in: context.subshapes),
                                         lineage: sewn.lineage)
             }
         }
@@ -152,7 +152,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                 with: result.bodyID, from: result.brep, in: context.brep)
             try model.validate(level: .volumetric, tolerance: context.tolerance)
             return EvaluationResult(brep: model, subshapes: result.subshapes,
-                removedSubshapeIDs: scope.subshapeIDs(in: context.subshapes), lineage: result.lineage)
+                removedSubshapeIDs: try scope.subshapeIDs(in: context.subshapes), lineage: result.lineage)
         }
         let selected = fillet.edges[0]
         let selection = try scopedEdgeSelection(
@@ -292,7 +292,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         return (
             edgeID,
             sourceEdgeIDs,
-            bodyScope.subshapeIDs(in: context.subshapes)
+            try bodyScope.subshapeIDs(in: context.subshapes)
         )
     }
 
@@ -337,7 +337,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         let cylinder = Surface3D.cylinder(Cylinder3D(origin: lowerCenter, axis: axis, radius: radius))
         let lowerCircle = Curve3D.circle(Circle3D(center: lowerCenter, normal: axis, radius: radius))
         let upperCircle = Curve3D.circle(Circle3D(center: upperCenter, normal: axis, radius: radius))
-        let incidentParents = incidentFaceIDs.flatMap { subshapeIDs(for: .face($0), context: context) }
+        let incidentParents = try incidentFaceIDs.flatMap { try subshapeIDs(for: .face($0), context: context) }
         var patches: [BRepSewingFacePatch] = []
         var lowerArc: ArcBoundary?
         var upperArc: ArcBoundary?
@@ -362,7 +362,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                 continue
             }
             let oriented = try orientedPlane(faceID, model: model, featureID: featureID, tolerance: context.tolerance)
-            let faceParents = subshapeIDs(for: .face(faceID), context: context)
+            let faceParents = try subshapeIDs(for: .face(faceID), context: context)
             let straightSided = try model.faces[faceID]?.loops.allSatisfy({ loopID in
                 guard let loop = model.loops[loopID] else { throw TopologyError.missingReference("Missing fillet loop.") }
                 return loop.coedges.allSatisfy { coedge in
@@ -473,7 +473,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             featureID: featureID,
             bodyKind: .solid,
             shells: [BRepSewingShell(stableID: "shell:0", patches: patches)],
-            bodyParentSubshapeIDs: subshapeIDs(for: .body(bodyID), context: context)
+            bodyParentSubshapeIDs: try subshapeIDs(for: .body(bodyID), context: context)
         )
     }
 
@@ -547,7 +547,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                 start: start,
                 end: end,
                 surface: surface,
-                parents: sourceEdgeParents(
+                parents: try sourceEdgeParents(
                     start: start,
                     end: end,
                     selectedEdgeID: edgeID,
@@ -602,7 +602,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                 start: boundary[index],
                 end: boundary[index + 1],
                 surface: surface,
-                parents: sourceEdgeParents(
+                parents: try sourceEdgeParents(
                     start: boundary[index],
                     end: boundary[index + 1],
                     sourceEdgeIDs: sourceEdgeIDs,
@@ -962,14 +962,14 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         model: BRepModel,
         context: EvaluationContext,
         allowsSelectedFallback: Bool = true
-    ) -> [SubshapeID] {
+    ) throws -> [SubshapeID] {
         for edgeID in sourceEdgeIDs.sorted() {
             guard let edge = model.edges[edgeID] else { continue }
             guard let first = model.vertices[edge.startVertexID]?.point,
                   let second = model.vertices[edge.endVertexID]?.point,
                   point(start, on: first, second, tolerance: context.tolerance),
                   point(end, on: first, second, tolerance: context.tolerance) else { continue }
-            let parents = subshapeIDs(for: .edge(edge.id), context: context)
+            let parents = try subshapeIDs(for: .edge(edge.id), context: context)
             if parents.isEmpty == false { return parents }
         }
         guard allowsSelectedFallback,
@@ -1001,8 +1001,8 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         return parameter >= -tolerance.distance / length && parameter <= 1.0 + tolerance.distance / length
     }
 
-    private func subshapeIDs(for reference: TopologyReference, context: EvaluationContext) -> [SubshapeID] {
-        context.subshapeIDs(for: reference)
+    private func subshapeIDs(for reference: TopologyReference, context: EvaluationContext) throws -> [SubshapeID] {
+        try context.subshapeIDs(for: reference)
     }
 
     package func evaluateG2(
@@ -1070,7 +1070,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             let sewn = try sewer.sew(request, tolerance: tolerance)
             let model = try BRepBodyModelReplacer().replacing(bodyID: bodyID, with: sewn.bodyID, from: sewn.brep, in: staged.brep)
             let step = EvaluationResult(brep: model, subshapes: sewn.subshapes,
-                                        removedSubshapeIDs: scope.subshapeIDs(in: staged.subshapes), lineage: sewn.lineage)
+                                        removedSubshapeIDs: try scope.subshapeIDs(in: staged.subshapes), lineage: sewn.lineage)
             if last {
                 try model.validate(level: .volumetric, tolerance: tolerance)
                 return try stages.publish(step, featureID: feature.id)
@@ -1219,7 +1219,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                                               section: .round(radius), context: staged)
             let sewn = try sewer.sew(request, tolerance: tolerance)
             let next = try BRepBodyModelReplacer().replacing(bodyID: bodyID, with: sewn.bodyID, from: sewn.brep, in: staged.brep)
-            stages.apply(EvaluationResult(brep: next, subshapes: sewn.subshapes, removedSubshapeIDs: scope.subshapeIDs(in: staged.subshapes),
+            stages.apply(EvaluationResult(brep: next, subshapes: sewn.subshapes, removedSubshapeIDs: try scope.subshapeIDs(in: staged.subshapes),
                                           lineage: sewn.lineage))
             bodyID = sewn.bodyID
         }
@@ -1300,7 +1300,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         let sewn = try sewer.sew(request, tolerance: tolerance)
         let next = try BRepBodyModelReplacer().replacing(bodyID: bodyID, with: sewn.bodyID, from: sewn.brep, in: staged.brep)
         try next.validate(level: .volumetric, tolerance: tolerance)
-        return try stages.publish(EvaluationResult(brep: next, subshapes: sewn.subshapes, removedSubshapeIDs: scope.subshapeIDs(in: staged.subshapes),
+        return try stages.publish(EvaluationResult(brep: next, subshapes: sewn.subshapes, removedSubshapeIDs: try scope.subshapeIDs(in: staged.subshapes),
                                                    lineage: sewn.lineage), featureID: feature.id)
     }
 
@@ -1397,7 +1397,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         let firstSewn = try sewer.sew(first, tolerance: tolerance)
         stages.apply(EvaluationResult(
             brep: try BRepBodyModelReplacer().replacing(bodyID: bodyID, with: firstSewn.bodyID, from: firstSewn.brep, in: context.brep),
-            subshapes: firstSewn.subshapes, removedSubshapeIDs: scope.subshapeIDs(in: context.subshapes), lineage: firstSewn.lineage))
+            subshapes: firstSewn.subshapes, removedSubshapeIDs: try scope.subshapeIDs(in: context.subshapes), lineage: firstSewn.lineage))
         bodyID = firstSewn.bodyID
         // The sharp edge left from the first limit to the edge's end, blended from the second.
         let staged = stages.context
@@ -1426,7 +1426,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         let model = try BRepBodyModelReplacer().replacing(bodyID: bodyID, with: secondSewn.bodyID, from: secondSewn.brep, in: staged.brep)
         try model.validate(level: model.bodies[secondSewn.bodyID]?.kind == .solid ? .volumetric : .exact, tolerance: tolerance)
         return try stages.publish(EvaluationResult(brep: model, subshapes: secondSewn.subshapes,
-                                                   removedSubshapeIDs: stagedScope.subshapeIDs(in: staged.subshapes), lineage: secondSewn.lineage),
+                                                   removedSubshapeIDs: try stagedScope.subshapeIDs(in: staged.subshapes), lineage: secondSewn.lineage),
                                   featureID: feature.id)
     }
 
@@ -1686,7 +1686,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             let sewn = try sewer.sew(request, tolerance: tolerance)
             let model = try BRepBodyModelReplacer().replacing(bodyID: bodyID, with: sewn.bodyID, from: sewn.brep, in: staged.brep)
             let step = EvaluationResult(brep: model, subshapes: sewn.subshapes,
-                                        removedSubshapeIDs: scope.subshapeIDs(in: staged.subshapes), lineage: sewn.lineage)
+                                        removedSubshapeIDs: try scope.subshapeIDs(in: staged.subshapes), lineage: sewn.lineage)
             if last {
                 try model.validate(level: kind == .solid ? .volumetric : .exact, tolerance: tolerance)
                 return try stages.publish(step, featureID: feature.id)
@@ -1780,7 +1780,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             var capped = 0
             for (faceIndex, faceID) in shell.faceIDs.enumerated() {
                 let stableID = "source-face:\(faceIndex)"
-                let faceParents = subshapeIDs(for: .face(faceID), context: context)
+                let faceParents = try subshapeIDs(for: .face(faceID), context: context)
                 // The faces beside the edges are cut back along their contact lines.
                 var cuts: [(origin: Point3D, normal: Vector3D, distance: Double, link: Int)] = []
                 for (index, link) in links.enumerated() {
@@ -1834,7 +1834,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                             abs((start - cut.origin).dot(cut.normal) - cut.distance) <= tolerance.distance
                                 && abs((end - cut.origin).dot(cut.normal) - cut.distance) <= tolerance.distance
                         }
-                        let parents = contact.map { [links[$0.link].subshapeID] }
+                        let parents = try contact.map { [links[$0.link].subshapeID] }
                             ?? sourceEdgeParents(start: start, end: end, sourceEdgeIDs: sourceEdgeIDs, model: model, context: context,
                                                  allowsSelectedFallback: false)
                         return try lineEdge(stableID: "\(prefix):edge:\(index)", start: start, end: end, surface: surface,
@@ -1856,7 +1856,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             }
             return BRepSewingRequest(featureID: featureID, bodyKind: body.kind == .sheet ? .sheet : .solid,
                                      shells: [BRepSewingShell(stableID: "shell:0", patches: patches)],
-                                     bodyParentSubshapeIDs: subshapeIDs(for: .body(bodyID), context: context))
+                                     bodyParentSubshapeIDs: try subshapeIDs(for: .body(bodyID), context: context))
         }
         for link in links {
             let secondOutward = try orientedPlane(link.faces.second, model: model, featureID: featureID, tolerance: tolerance).outward
@@ -1932,7 +1932,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                 }
                 chamfers.append(BRepSewingFacePatch(stableID: "chamfer:\(index)", surface: surface, orientation: .forward,
                                                     loops: [BRepSewingLoop(stableID: "chamfer:\(index):outer", role: .outer, edges: edges)],
-                                                    parentSubshapeIDs: [link.faces.first, link.faces.second].flatMap { subshapeIDs(for: .face($0), context: context) }))
+                                                    parentSubshapeIDs: try [link.faces.first, link.faces.second].flatMap { try subshapeIDs(for: .face($0), context: context) }))
             }
             return try finish(chamfers, freeEnds: freeEnds, setbacks: setbacks)
         }
@@ -2034,13 +2034,13 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                 patches.append(try orientedPatch(stableID: "blend:\(index)", surface: surface, edges: edges,
                                                  facing: try surface.normal(u: middleU, v: middleV, tolerance: tolerance)
                                                     .dot(middle - (base + link.axis * middleV)) >= 0,
-                                                 parents: [link.faces.first, link.faces.second].flatMap { subshapeIDs(for: .face($0), context: context) },
+                                                 parents: try [link.faces.first, link.faces.second].flatMap { try subshapeIDs(for: .face($0), context: context) },
                                                  tolerance: tolerance))
             }
             for (number, ball) in balls.enumerated() {
                 patches.append(try spherePatch(number: number, ball.center, radius: r, ball.uses.compactMap { use in
                     use.atStart ? circles[use.index]?.start : circles[use.index]?.end
-                }, parents: subshapeIDs(for: .vertex(ball.vertexID), context: context), tolerance: tolerance))
+                }, parents: try subshapeIDs(for: .vertex(ball.vertexID), context: context), tolerance: tolerance))
             }
             return try finish(patches, freeEnds: freeEnds, setbacks: angles.map { (r / tan($0 / 2), r / tan($0 / 2)) })
         }
@@ -2179,7 +2179,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             guard zip(lower.reach, upper.reach).allSatisfy({ $0 + $1 < link.length - tolerance.distance }) else {
                 throw refuse("A blend's section must fit its edges between their corners.")
             }
-            let parents = [link.faces.first, link.faces.second].flatMap { subshapeIDs(for: .face($0), context: context) }
+            let parents = try [link.faces.first, link.faces.second].flatMap { try subshapeIDs(for: .face($0), context: context) }
             func line(_ start: Point3D, _ end: Point3D, u: Double, from v0: Double, to v1: Double, _ name: String) throws -> BRepSewingEdge {
                 let delta = end - start
                 return BRepSewingEdge(stableID: "blend:\(index):\(name)",
@@ -2213,7 +2213,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                                              parents: parents, tolerance: tolerance))
         }
         for (number, octant) in octants.enumerated() {
-            let parents = subshapeIDs(for: .vertex(octant.vertexID), context: context)
+            let parents = try subshapeIDs(for: .vertex(octant.vertexID), context: context)
             patches.append(try octantPatch(number: number, octant.center, octant.links.map { use in
                 let curve = use.atStart ? curves[use.index]?.start : curves[use.index]?.end
                 return (outward(use.index, atStart: use.atStart), curve)
@@ -2498,12 +2498,12 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         try upperCurve.validate(tolerance: context.tolerance)
         try blendDefinition.validate(tolerance: context.tolerance)
         let blendSurface = Surface3D.bSpline(blendDefinition)
-        let incidentParents = incidentFaceIDs.flatMap { subshapeIDs(for: .face($0), context: context) }
+        let incidentParents = try incidentFaceIDs.flatMap { try subshapeIDs(for: .face($0), context: context) }
         var patches: [BRepSewingFacePatch] = []
         var lowerCap: BSplineCapBoundary?
         var upperCap: BSplineCapBoundary?
         for (faceIndex, faceID) in shell.faceIDs.enumerated() {
-            let faceParents = subshapeIDs(for: .face(faceID), context: context)
+            let faceParents = try subshapeIDs(for: .face(faceID), context: context)
             let stableID = "source-face:\(faceIndex)"
             if faceID == incidentFaceIDs[0] || faceID == incidentFaceIDs[1] {
                 // The faces beside the edge are cut back along their straight outline.
@@ -2620,7 +2620,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             featureID: featureID,
             bodyKind: isSheet ? .sheet : .solid,
             shells: [BRepSewingShell(stableID: "shell:0", patches: patches)],
-            bodyParentSubshapeIDs: subshapeIDs(for: .body(bodyID), context: context)
+            bodyParentSubshapeIDs: try subshapeIDs(for: .body(bodyID), context: context)
         )
     }
 
@@ -2684,7 +2684,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         try model.validate(level: .volumetric, tolerance: tolerance)
         let identity = try DefaultCarriedTopologyIdentityBuilder().identity(featureID: featureID, bodyID: initialBodyID, model: model, context: context)
         let scope = try BodyTopologyScope(bodyID: initialBodyID, model: context.brep)
-        return EvaluationResult(brep: model, subshapes: identity.subshapes, removedSubshapeIDs: scope.subshapeIDs(in: context.subshapes),
+        return EvaluationResult(brep: model, subshapes: identity.subshapes, removedSubshapeIDs: try scope.subshapeIDs(in: context.subshapes),
                                 lineage: identity.lineage)
     }
 
@@ -2741,7 +2741,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         for (faceIndex, faceID) in shell.faceIDs.enumerated() where faceID != layout.centerFaceID {
             let oriented = try orientedPlane(faceID, model: model, featureID: featureID, tolerance: tolerance)
             let polygon = try outerPolygon(faceID, model: model, featureID: featureID, tolerance: tolerance)
-            let parents = subshapeIDs(for: .face(faceID), context: context)
+            let parents = try subshapeIDs(for: .face(faceID), context: context)
             let stableID = "source-face:\(faceIndex)"
             if faceID == layout.leftFaceID || faceID == layout.rightFaceID {
                 let isLeft = faceID == layout.leftFaceID
@@ -2782,12 +2782,12 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         patches.append(try g2SurfacePatch(
             surface: .bSpline(definition), definition: definition, lowerCurve: lowerCurve, upperCurve: upperCurve,
             lowerCap: lowerCap, upperCap: upperCap, height: height, selectedSubshapeID: selected.0,
-            faceParents: [layout.leftFaceID, layout.centerFaceID, layout.rightFaceID].flatMap { subshapeIDs(for: .face($0), context: context) },
+            faceParents: try [layout.leftFaceID, layout.centerFaceID, layout.rightFaceID].flatMap { try subshapeIDs(for: .face($0), context: context) },
             firstOutward: leftOutward, tolerance: tolerance
         ))
         let request = BRepSewingRequest(featureID: featureID, bodyKind: .solid,
             shells: [BRepSewingShell(stableID: "shell:0", patches: patches)],
-            bodyParentSubshapeIDs: subshapeIDs(for: .body(bodyID), context: context))
+            bodyParentSubshapeIDs: try subshapeIDs(for: .body(bodyID), context: context))
         let result = try sewer.sew(request, tolerance: tolerance)
         let replaced = try BRepBodyModelReplacer().replacing(bodyID: bodyID, with: result.bodyID, from: result.brep, in: model)
         try replaced.validate(level: .volumetric, tolerance: tolerance)
@@ -2826,7 +2826,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         let surface = Surface3D.plane(plane.plane)
         var edges = try (0..<(boundary.count - 1)).map { index in
             try lineEdge(stableID: "\(stableID):edge:\(index)", start: boundary[index], end: boundary[index + 1], surface: surface,
-                parents: sourceEdgeParents(start: boundary[index], end: boundary[index + 1], sourceEdgeIDs: sourceEdgeIDs,
+                parents: try sourceEdgeParents(start: boundary[index], end: boundary[index + 1], sourceEdgeIDs: sourceEdgeIDs,
                                            model: model, context: context, allowsSelectedFallback: false),
                 tolerance: tolerance)
         }

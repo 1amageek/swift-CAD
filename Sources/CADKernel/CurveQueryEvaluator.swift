@@ -62,6 +62,15 @@ public struct CurveQueryEvaluator: Sendable {
         _ reference: CurveOutputReference,
         in document: EvaluatedDocument
     ) throws -> EvaluatedCurve {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try resolve(reference, in: document, using: &execution)
+    }
+
+    public func resolve(
+        _ reference: CurveOutputReference,
+        in document: EvaluatedDocument
+    , using execution: inout OriginalQueryExecution) throws -> EvaluatedCurve {
+        try execution.consumeWork(1)
         try reference.validate()
         guard let curves = document.curves[reference.featureID] else {
             throw FeatureEvaluationError.missingInput("Curve output feature could not be resolved.")
@@ -70,7 +79,7 @@ public struct CurveQueryEvaluator: Sendable {
             throw FeatureEvaluationError.missingInput("Curve output index could not be resolved.")
         }
         let curve = curves[reference.curveIndex]
-        try curve.validate(tolerance: tolerance)
+        try curve.validate(tolerance: tolerance, using: &execution)
         return curve
     }
 
@@ -90,23 +99,41 @@ public struct CurveQueryEvaluator: Sendable {
         of reference: CurveOutputReference,
         in document: EvaluatedDocument
     ) throws -> CurveQueryPoint {
-        let curve = try resolve(reference, in: document)
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try midpoint(of: reference, in: document, using: &execution)
+    }
+
+    public func midpoint(
+        of reference: CurveOutputReference,
+        in document: EvaluatedDocument
+    , using execution: inout OriginalQueryExecution) throws -> CurveQueryPoint {
+        try execution.consumeWork(1)
+        let curve = try resolve(reference, in: document, using: &execution)
         if case .unbounded = curve.parameterDomain {
             return try polylinePoint(
                 at: CurveParameterReference(curve: reference, parameter: 0.5),
                 curve: curve
-            )
+            , using: &execution)
         }
         let parameter = midpointParameter(for: curve)
-        return try point(at: CurveParameterReference(curve: reference, parameter: parameter), in: document)
+        return try point(at: CurveParameterReference(curve: reference, parameter: parameter), in: document, using: &execution)
     }
 
     public func point(
         at reference: CurveParameterReference,
         in document: EvaluatedDocument
     ) throws -> CurveQueryPoint {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try point(at: reference, in: document, using: &execution)
+    }
+
+    public func point(
+        at reference: CurveParameterReference,
+        in document: EvaluatedDocument
+    , using execution: inout OriginalQueryExecution) throws -> CurveQueryPoint {
+        try execution.consumeWork(1)
         try reference.validate()
-        let curve = try resolve(reference.curve, in: document)
+        let curve = try resolve(reference.curve, in: document, using: &execution)
         guard try curve.parameterDomain.contains(reference.parameter, tolerance: tolerance) else {
             throw GeometryError.invalidDistance(reference.parameter)
         }
@@ -114,7 +141,7 @@ public struct CurveQueryEvaluator: Sendable {
             let geometry = try exactCurve.differentialGeometry(
                 at: reference.parameter,
                 tolerance: tolerance
-            )
+            , using: &execution)
             return CurveQueryPoint(
                 reference: reference,
                 point: geometry.position,
@@ -123,7 +150,7 @@ public struct CurveQueryEvaluator: Sendable {
                 isExact: true
             )
         }
-        return try polylinePoint(at: reference, curve: curve)
+        return try polylinePoint(at: reference, curve: curve, using: &execution)
     }
 
     public func closestPoint(
@@ -297,8 +324,17 @@ public struct CurveQueryEvaluator: Sendable {
         _ reference: CurveKnotReference,
         in document: EvaluatedDocument
     ) throws -> Double {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try knot(reference, in: document, using: &execution)
+    }
+
+    public func knot(
+        _ reference: CurveKnotReference,
+        in document: EvaluatedDocument
+    , using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
         try reference.validate()
-        let curve = try exactBSpline(for: reference.curve, in: document)
+        let curve = try exactBSpline(for: reference.curve, in: document, using: &execution)
         guard reference.knotIndex < curve.knots.count else {
             throw FeatureEvaluationError.missingInput("Curve knot index could not be resolved.")
         }
@@ -309,8 +345,17 @@ public struct CurveQueryEvaluator: Sendable {
         _ reference: CurveSpanReference,
         in document: EvaluatedDocument
     ) throws -> CurveSpanQueryResult {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try span(reference, in: document, using: &execution)
+    }
+
+    public func span(
+        _ reference: CurveSpanReference,
+        in document: EvaluatedDocument
+    , using execution: inout OriginalQueryExecution) throws -> CurveSpanQueryResult {
+        try execution.consumeWork(1)
         try reference.validate()
-        let curve = try exactBSpline(for: reference.curve, in: document)
+        let curve = try exactBSpline(for: reference.curve, in: document, using: &execution)
         var ordinal = 0
         let lowerIndex = curve.degree
         let upperIndex = curve.knots.count - curve.degree - 1
@@ -318,6 +363,7 @@ public struct CurveQueryEvaluator: Sendable {
             throw FeatureEvaluationError.emptyResult("Curve has no queryable knot spans.")
         }
         for index in lowerIndex..<upperIndex {
+            try execution.consumeWork(1)
             let lower = curve.knots[index]
             let upper = curve.knots[index + 1]
             guard upper - lower > tolerance.distance else {
@@ -370,7 +416,16 @@ public struct CurveQueryEvaluator: Sendable {
         for reference: CurveOutputReference,
         in document: EvaluatedDocument
     ) throws -> BSplineCurve3D {
-        let evaluatedCurve = try resolve(reference, in: document)
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try exactBSpline(for: reference, in: document, using: &execution)
+    }
+
+    private func exactBSpline(
+        for reference: CurveOutputReference,
+        in document: EvaluatedDocument
+    , using execution: inout OriginalQueryExecution) throws -> BSplineCurve3D {
+        try execution.consumeWork(1)
+        let evaluatedCurve = try resolve(reference, in: document, using: &execution)
         guard let exactCurve = evaluatedCurve.exactCurve else {
             throw KernelError(
                 phase: .validation,
@@ -379,25 +434,34 @@ public struct CurveQueryEvaluator: Sendable {
                 message: "Curve subobject query requires exact curve geometry."
             )
         }
-        return try exactBSpline(from: exactCurve)
+        return try exactBSpline(from: exactCurve, using: &execution)
     }
 
     private func exactBSpline(from curve: Curve3D) throws -> BSplineCurve3D {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try exactBSpline(from: curve, using: &execution)
+    }
+
+    private func exactBSpline(from curve: Curve3D, using execution: inout OriginalQueryExecution) throws -> BSplineCurve3D {
+        try execution.consumeWork(1)
+        try execution.admitSourceDepth(0)
         switch curve {
         case let .bSpline(curve):
             return curve
         case let .rigidImage(image):
-            return try image.transform.applying(
-                to: exactBSpline(from: image.source),
-                tolerance: tolerance
-            )
+            let native = try execution.withSourceDepthOffset(1) { execution in
+                try exactBSpline(from: image.source, using: &execution)
+            }
+            return try image.transform.applying(to: native, tolerance: tolerance, using: &execution)
         case let .affineImage(image):
-            return try image.transform.applying(
-                to: exactBSpline(from: image.source),
-                tolerance: tolerance
-            )
+            let native = try execution.withSourceDepthOffset(1) { execution in
+                try exactBSpline(from: image.source, using: &execution)
+            }
+            return try image.transform.applying(to: native, tolerance: tolerance, using: &execution)
         case .originalAffineWord(let image):
-            return try exactBSpline(from: image.source)
+            return try execution.withSourceDepthOffset(1) { execution in
+                try exactBSpline(from: image.source, using: &execution)
+            }
         case .line,
              .circle,
              .analytic,
@@ -878,9 +942,19 @@ public struct CurveQueryEvaluator: Sendable {
         at reference: CurveParameterReference,
         curve: EvaluatedCurve
     ) throws -> CurveQueryPoint {
-        let targetDistance = try polylineLength(curve.points) * reference.parameter
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try polylinePoint(at: reference, curve: curve, using: &execution)
+    }
+
+    private func polylinePoint(
+        at reference: CurveParameterReference,
+        curve: EvaluatedCurve
+    , using execution: inout OriginalQueryExecution) throws -> CurveQueryPoint {
+        try execution.consumeWork(1)
+        let targetDistance = try polylineLength(curve.points, using: &execution) * reference.parameter
         var traversedDistance = 0.0
         for index in 0..<(curve.points.count - 1) {
+            try execution.consumeWork(1)
             let start = curve.points[index]
             let end = curve.points[index + 1]
             let segment = end - start
@@ -906,8 +980,15 @@ public struct CurveQueryEvaluator: Sendable {
     }
 
     private func polylineLength(_ points: [Point3D]) throws -> Double {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try polylineLength(points, using: &execution)
+    }
+
+    private func polylineLength(_ points: [Point3D], using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
         var length = 0.0
         for index in 0..<(points.count - 1) {
+            try execution.consumeWork(1)
             let segmentLength = (points[index + 1] - points[index]).length
             guard segmentLength.isFinite else {
                 throw GeometryError.invalidDistance(segmentLength)

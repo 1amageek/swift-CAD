@@ -11,26 +11,59 @@ public struct DocumentAssemblyValidator: DocumentAssemblyValidating {
     public func expand(_ assembly: DocumentAssembly, in graph: DesignGraph,
                        tolerance: ModelingTolerance,
                        limits: AssemblyResourceLimits = .standard) throws -> AssemblyExpansionResult {
-        try limits.validate(); try tolerance.validate(); try Task.checkCancellation()
+        try limits.validate()
+        var execution = try OriginalQueryExecution(
+            budget: OriginalQueryBudget(workLimit: limits.maximumWork, sourceTextByteLimit: limits.maximumTextBytes, recordLimit: limits.maximumRecords,
+                allocationPolicy: .bytes),
+            limits: .init(maximumValueDepth: limits.maximumAlgebraicDepth,
+                maximumCoefficientDepth: limits.maximumAlgebraicDepth,
+                remainingSourceDepth: limits.maximumDepth))
+        return try expand(assembly, in: graph, tolerance: tolerance, limits: limits, using: &execution)
+    }
+
+    public func expand(_ assembly: DocumentAssembly, in graph: DesignGraph,
+        tolerance: ModelingTolerance, limits: AssemblyResourceLimits,
+        using execution: inout OriginalQueryExecution) throws -> AssemblyExpansionResult {
+        try limits.validate(); try tolerance.validate()
+        let startingWork = execution.localWork
+        let result = try execution.withAllocationScope(policy: .bytes,
+            recordLimit: limits.maximumRecords, sourceTextByteLimit: limits.maximumTextBytes, workLimit: limits.maximumWork) { execution in
+            try expandSource(assembly, in: graph, tolerance: tolerance, limits: limits, using: &execution)
+        }
+        return AssemblyExpansionResult(occurrences: result.occurrences,
+            consumedWork: execution.localWork - startingWork)
+    }
+
+    private func expandSource(_ assembly: DocumentAssembly, in graph: DesignGraph,
+        tolerance: ModelingTolerance, limits: AssemblyResourceLimits,
+        using execution: inout OriginalQueryExecution) throws -> AssemblyExpansionResult {
+        try limits.validate(); try tolerance.validate(); try execution.checkpoint()
+        let startingWork = execution.localWork
+        let startingRecords = execution.localRecords
         guard !assembly.roots.isEmpty else { throw AssemblyError.invalidSource("Assembly requires at least one root occurrence.") }
-        var records = 0
+        var records: Int { execution.localRecords - startingRecords }
         for count in [assembly.roots.count, assembly.products.count, assembly.formations.count, assembly.definitions.count] {
             guard count <= limits.maximumRecords - records else { throw AssemblyError.resourceLimitExceeded("source records") }
-            records += count
+            try execution.consumeRecords(count)
         }
         guard assembly.roots.count <= limits.maximumOccurrences else { throw AssemblyError.resourceLimitExceeded("source records") }
         guard records <= limits.maximumWork else { throw AssemblyError.resourceLimitExceeded("source work") }
-        var sourceWork = records, textBytes = 0
+        try execution.consumeWork(records)
+        var sourceWork: Int { execution.localWork - startingWork }
+        let startingTextBytes = execution.localSourceTextBytes
+        var textBytes: Int { execution.localSourceTextBytes - startingTextBytes }
         func text(_ value: String?) throws {
             guard let value else { return }
-            // Incremental byte traversal stops at the caller ceiling without allocating a copy.
+            var count = 0
+            let workRemaining = limits.maximumWork - sourceWork
             for _ in value.utf8 {
-                guard textBytes < limits.maximumTextBytes, sourceWork < limits.maximumWork else {
+                guard count < limits.maximumTextBytes - textBytes, count < workRemaining else {
                     throw AssemblyError.resourceLimitExceeded("source text/work")
                 }
-                textBytes += 1; sourceWork += 1
-                if textBytes.isMultiple(of: 1024) { try Task.checkCancellation() }
+                count += 1
+                if count.isMultiple(of: 1024) { try execution.checkpoint() }
             }
+            try execution.chargeSourceText(work: count, storageBytes: count)
         }
         var products = Set<AssemblyProductID>()
         for product in assembly.products {
@@ -61,9 +94,9 @@ public struct DocumentAssemblyValidator: DocumentAssemblyValidating {
                 throw AssemblyError.resourceLimitExceeded("source records")
             }
             let additional = definition.children.count + definition.features.count
-            records += additional
+            try execution.consumeRecords(additional)
             guard additional <= limits.maximumWork - sourceWork else { throw AssemblyError.resourceLimitExceeded("source work") }
-            sourceWork += additional
+            try execution.consumeWork(additional)
             try text(definition.identifier); try text(definition.definitionDescription)
             guard formations[definition.formationID] != nil else { throw AssemblyError.invalidSource("Missing product formation.") }
             usedFormations.insert(definition.formationID)
@@ -96,14 +129,14 @@ public struct DocumentAssemblyValidator: DocumentAssemblyValidating {
                   directFactorCount <= (limits.maximumWork - sourceWork) / 14 else {
                 throw AssemblyError.resourceLimitExceeded("original placement source records")
             }
-            records += directFactorCount; sourceWork += directFactorCount * 14
+            try execution.consumeRecords(directFactorCount); try execution.consumeWork(directFactorCount * 14)
             func stepSource(_ source: OriginalSTEPPlacementSource) throws {
                 func element(_ value: OriginalSTEPPlacementElement?) throws {
                     guard let value else { return }
                     guard records < limits.maximumRecords, sourceWork < limits.maximumWork else {
                         throw AssemblyError.resourceLimitExceeded("original STEP placement records")
                     }
-                    records += 1; sourceWork += 1
+                    try execution.consumeRecords(1); try execution.consumeWork(1)
                     try text(value.name)
                 }
                 switch source {
@@ -116,7 +149,7 @@ public struct DocumentAssemblyValidator: DocumentAssemblyValidating {
                       source.adjustments.count <= limits.maximumWork - sourceWork else {
                     throw AssemblyError.resourceLimitExceeded("original STEP adjustment records")
                 }
-                records += source.adjustments.count; sourceWork += source.adjustments.count
+                try execution.consumeRecords(source.adjustments.count); try execution.consumeWork(source.adjustments.count)
             }
             if case .step(let source) = occurrence.placement { try stepSource(source) }
             else if case .word(let word) = occurrence.placement {
@@ -124,15 +157,13 @@ public struct DocumentAssemblyValidator: DocumentAssemblyValidating {
                     if case .step(let source) = factor.originalPlacement { try stepSource(source) }
                 }
             }
-            try occurrence.placement.validate(tolerance: tolerance, maximumAlgebraicDepth: limits.maximumAlgebraicDepth, maximumSourceDepth: limits.maximumDepth) {
-                try Task.checkCancellation()
-                guard sourceWork < limits.maximumWork else { throw AssemblyError.resourceLimitExceeded("original placement validation") }
-                sourceWork += 1
-            }
+            try occurrence.placement.validate(tolerance: tolerance,
+                maximumAlgebraicDepth: limits.maximumAlgebraicDepth,
+                maximumSourceDepth: limits.maximumDepth, using: &execution)
         }
         var result: [ExpandedAssemblyOccurrence] = []
         var reached = Set<AssemblyDefinitionID>()
-        var work = sourceWork
+        var work: Int { execution.localWork - startingWork }
         var stack = assembly.roots.sorted { $1.id < $0.id }.map {
             (occurrence: $0, path: [AssemblyOccurrenceID](), ancestors: Set<AssemblyDefinitionID>(),
              parent: [AssemblyPlacementFactor]())
@@ -146,7 +177,7 @@ public struct DocumentAssemblyValidator: DocumentAssemblyValidating {
                   item.path.count + 1 <= limits.maximumWork - min(work, limits.maximumWork) else {
                 throw AssemblyError.resourceLimitExceeded("occurrence expansion")
             }
-            work += item.path.count + 1
+            try execution.consumeWork(item.path.count + 1)
             let path = item.path + [item.occurrence.id]
             // Retain the original source word instead of rounded composed columns.
             // Fourteen scalar/operation records per factor are admitted before its array copy.
@@ -158,7 +189,7 @@ public struct DocumentAssemblyValidator: DocumentAssemblyValidating {
             guard !factorCount.overflow, !retention.overflow, retention.partialValue <= limits.maximumWork - work else {
                 throw AssemblyError.resourceLimitExceeded("original placement word storage")
             }
-            work += retention.partialValue
+            try execution.consumeWork(retention.partialValue)
             var factors = item.parent
             factors.reserveCapacity(factorCount.partialValue)
             if case .word(let word) = item.occurrence.placement { factors.append(contentsOf: word.factors) }
@@ -181,6 +212,6 @@ public struct DocumentAssemblyValidator: DocumentAssemblyValidating {
         guard reached.count == definitions.count else {
             throw AssemblyError.invalidSource("Assembly contains an unreachable definition.")
         }
-        return AssemblyExpansionResult(occurrences: result, consumedWork: work)
+        return AssemblyExpansionResult(occurrences: result, consumedWork: execution.localWork - startingWork)
     }
 }

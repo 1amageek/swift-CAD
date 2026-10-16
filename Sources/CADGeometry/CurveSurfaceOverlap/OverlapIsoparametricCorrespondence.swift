@@ -40,7 +40,7 @@ struct OverlapIsoparametricCorrespondence: Sendable, Equatable {
     func boundarySourceParameters(uValues: [Double], vValues: [Double], surface: Surface3D,
                                   tolerance: ModelingTolerance) throws -> [Double] {
         guard periodic == nil else {
-            throw boundaryFailure(.invalidInput, "Periodic boundary enumeration requires the invocation budget.", tolerance)
+            throw boundaryFailure(.invalidInput, "Periodic boundary enumeration requires the invocation policy.", tolerance)
         }
         let domain = variesU ? surface.uDomain : surface.vDomain
         let resolver = SurfaceParameterRangeResolver()
@@ -75,7 +75,7 @@ struct OverlapIsoparametricCorrespondence: Sendable, Equatable {
 
     func boundarySourceParameters(uValues: [Double], vValues: [Double], surface: Surface3D,
                                   tolerance: ModelingTolerance,
-                                  budget: inout OverlapProofBudget) throws -> [Double] {
+                                  policy: OverlapProofPolicy, using execution: inout OriginalQueryExecution) throws -> [Double] {
         guard let periodic else {
             return try boundarySourceParameters(uValues: uValues, vValues: vValues,
                 surface: surface, tolerance: tolerance)
@@ -90,8 +90,9 @@ struct OverlapIsoparametricCorrespondence: Sendable, Equatable {
             image = .exact(sum) - OutwardScalarInterval(lower: source.lower, upper: source.upper)
         } else { image = OutwardScalarInterval(lower: source.lower, upper: source.upper) }
         var cuts: [Double] = []
+        var cutsCapacity = 0
         for boundary in (variesU ? uValues : vValues) {
-            try budget.work(4)
+            try policy.work(4, using: &execution)
             guard let quotient = (image - .exact(boundary)).divided(by: .exact(period)), quotient.isFinite else {
                 throw boundaryFailure(.resourceLimitExceeded, "Periodic boundary cycle bounds are not finite.", tolerance)
             }
@@ -100,21 +101,21 @@ struct OverlapIsoparametricCorrespondence: Sendable, Equatable {
             let count = upper - lower + 1
             guard lower.isFinite, upper.isFinite, abs(lower) <= 9_007_199_254_740_991,
                   abs(upper) <= 9_007_199_254_740_991, count.isFinite,
-                  count > 0, count <= Double(budget.options.maximumCandidateCount) else {
-                throw boundaryFailure(.resourceLimitExceeded, "Periodic boundary copies exceed the finite candidate budget.", tolerance)
+                  count > 0, count <= Double(policy.options.maximumCandidateCount) else {
+                throw boundaryFailure(.resourceLimitExceeded, "Periodic boundary copies exceed the finite candidate policy.", tolerance)
             }
             // Every possible incident copy is charged before evaluation or array growth.
-            try budget.storage(Int(count))
+            try policy.storage(Int(count), using: &execution)
             var cycle = lower
             while cycle <= upper {
-                try budget.work(3)
+                try policy.work(3, using: &execution)
                 guard (cycle * 134_217_729).isFinite, (period * 134_217_729).isFinite else {
                     throw boundaryFailure(.resourceLimitExceeded, "Periodic boundary product has no exact finite expansion.", tolerance)
                 }
                 let shift = cycle * period
-                let product = FloatingPointExpansion.product([cycle], [period])
-                guard shift.isFinite, FloatingPointExpansion.sign(
-                    FloatingPointExpansion.subtract(product, [shift])) == .zero else {
+                let product = try FloatingPointExpansion.product([cycle], [period], using: &execution)
+                guard shift.isFinite, try FloatingPointExpansion.sign(
+                    FloatingPointExpansion.subtract(product, [shift], using: &execution), using: &execution) == .zero else {
                     throw boundaryFailure(.resourceLimitExceeded, "Periodic boundary cycle translation is not exactly representable.", tolerance)
                 }
                 let copy = boundary + shift
@@ -149,7 +150,7 @@ struct OverlapIsoparametricCorrespondence: Sendable, Equatable {
                           resolver.resolvedParameter(coordinate, domain: domain, requestedRange: requested, tolerance: tolerance) != nil else {
                         throw boundaryFailure(.intersectionFailure, "A periodic inverse boundary exceeds existing chart rounding admission.", tolerance)
                     }
-                    cuts.append(parameter)
+                    try CertifiedAnalyticCurveEvaluation.append(parameter, to: &cuts, using: &execution, capacity: &cutsCapacity)
                 }
                 if cycle == upper { break }
                 let next = cycle + 1

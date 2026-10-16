@@ -19,14 +19,15 @@ func nearlyUnitWeightsRetainRationalDerivativeCertificate() throws {
 
 @Test(.timeLimit(.minutes(1)))
 func quadraticBasisMatchesGeneralRecurrenceAndRationalCurve() throws {
+    var execution = try OriginalQueryExecution.independentGeometry()
     let knots: [Double] = [2, 2, 2, 5, 5, 5]
     for index in 0...100 {
         let t = 2 + 3 * Double(index) / 100
         for order in 0...3 {
-            let actual = BSplineBasis.nonzeroValues(parameter: t, degree: 2,
-                derivativeOrder: order, knots: knots, count: 3)
-            let expected = BSplineBasis.derivativeValues(parameter: t, degree: 2,
-                derivativeOrder: order, knots: knots, count: 3)
+            let actual = try BSplineBasis.nonzeroValues(parameter: t, degree: 2,
+                derivativeOrder: order, knots: knots, count: 3, using: &execution)
+            let expected = try BSplineBasis.derivativeValues(parameter: t, degree: 2,
+                derivativeOrder: order, knots: knots, count: 3, using: &execution)
             #expect(actual.startIndex == 0)
             for (a, b) in zip(actual.values, expected) { #expect(abs(a - b) < 1e-13) }
         }

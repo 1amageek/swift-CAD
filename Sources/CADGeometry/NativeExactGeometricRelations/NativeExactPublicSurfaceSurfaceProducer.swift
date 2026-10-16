@@ -5,7 +5,7 @@ struct NativeExactPublicSurfaceSurfaceProducer {
     func resolve(first: Surface3D, second: Surface3D,
         firstBox: SurfaceParameterBox? = nil, secondBox: SurfaceParameterBox? = nil,
         options: SurfaceSurfaceIntersectionOptions, tolerance: ModelingTolerance,
-        includeRelations: Bool = false, admission: SurfaceSurfaceQueryAdmission = .legacy
+        includeRelations: Bool = false, using usage: inout OriginalQueryExecution
     ) throws -> SurfaceSurfaceIntersectionResult? {
         guard case .bSpline(let source) = first, case .bSpline(let target) = second,
             !source.isUPeriodic, !source.isVPeriodic, !target.isUPeriodic, !target.isVPeriodic,
@@ -19,38 +19,38 @@ struct NativeExactPublicSurfaceSurfaceProducer {
             target.vControlPointCount == target.vDegree + 1 else { return nil }
         do {
             try options.validate(tolerance: tolerance)
-            var usage = try NativeSurfaceSurfacePointAllowance(options: options, admission: admission)
-            try usage.consumeExactWork(1)
-            guard admission.remainingSourceDepth > 0, admission.maximumSpanCount > 0 else {
+            usage.context = usage.context.at(stage: .source)
+            try usage.consumeWork(1)
+            guard usage.effectiveLimits.remainingSourceDepth > 0, usage.effectiveLimits.maximumSpans > 0 else {
                 throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
                     message: "Native exact SSI preparation exhausted original source or span admission.")
             }
-            try source.validate(tolerance: tolerance, consumeWork: { try usage.consumeExactWork(1) })
-            try target.validate(tolerance: tolerance, consumeWork: { try usage.consumeExactWork(1) })
+            try source.validate(tolerance: tolerance, using: &usage)
+            try target.validate(tolerance: tolerance, using: &usage)
             try requireSingleSpan(source.uKnots, degree: source.uDegree, tolerance: tolerance, using: &usage)
             try requireSingleSpan(source.vKnots, degree: source.vDegree, tolerance: tolerance, using: &usage)
             try requireSingleSpan(target.uKnots, degree: target.uDegree, tolerance: tolerance, using: &usage)
             try requireSingleSpan(target.vKnots, degree: target.vDegree, tolerance: tolerance, using: &usage)
-            var exactAdmission = NativeExactPublicAdmission(usage: usage,
-                maximumDepth: usage.maximumAlgebraicDepth)
+            usage.context = usage.context.at(stage: .relation)
             let exact = try DefaultNativeExactGeometricRelationResolver().exactGeometricRelation(
                 first: source, second: target, firstDomain: firstBox, secondDomain: secondBox,
                 tolerance: tolerance, maximumPolynomialDegree: Int.max, maximumExtensionLevel: Int.max,
-                limits: NativeExactPublicLimits.unboundedStructure(), using: &exactAdmission)
+                limits: NativeExactPublicLimits.unboundedStructure(), using: &usage)
+            usage.context = usage.context.at(stage: .publication)
             let result = try NativeExactSurfaceSurfacePublisher.publish(exact,
-                options: options, using: &exactAdmission)
+                options: options, using: &usage)
             guard includeRelations || !exact.hasPositiveDimensionalSolutions else {
                 throw KernelError(phase: .geometry, code: .nonDiscreteIntersection, tolerance: tolerance,
                     message: "The complete original Native surface product contains positive-dimensional parameter solutions.")
             }
-            try exactAdmission.checkpoint()
+            try usage.checkpoint()
             return result
-        } catch { throw NativeExactGeometryPublicationFailure.published(error, tolerance: tolerance) }
+        } catch { throw NativeExactGeometryPublicationFailure.published(error, tolerance: tolerance, context: usage.context) }
     }
 
     private func requireSingleSpan(_ knots: [Double], degree: Int, tolerance: ModelingTolerance,
-        using usage: inout NativeSurfaceSurfacePointAllowance) throws {
-        try usage.consumeExactWork(1)
+        using usage: inout OriginalQueryExecution) throws {
+        try usage.consumeWork(1)
         guard degree >= 0, degree < Int.max / 2, knots.count == 2 * (degree + 1),
             knots.indices.contains(degree + 1) else {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,

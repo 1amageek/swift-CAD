@@ -5,7 +5,7 @@ import L2
 #endif
 
 extension ExactRealCellDomain: ExactRealCellSelecting {
- func truth(_ predicate: ExactRealCellPredicate<Base>, signs: [ExactSign], _ a: inout ExactCellBorrowedAdmission) throws -> Bool {
+ func truth<A: ExactScalarAdmission & ~Copyable>(_ predicate: ExactRealCellPredicate<Base>, signs: [ExactSign], _ a: inout A) throws -> Bool {
   try ExactCellAccess.admit(predicate.depth,&a)
   try ExactCellAccess.storage(predicate.instructions.count,Bool.self,&a)
   var stack: [Bool] = []; stack.reserveCapacity(predicate.instructions.count)
@@ -36,7 +36,7 @@ extension ExactRealCellDomain: ExactRealCellSelecting {
     if try truth(predicate,signs:partition.owner.records[index].signs,&a) {
      try ExactCellAccess.storage(1,Int.self,&a); selected.append(index)
     }
-   }; return .init(partition:partition,predicate:predicate,selected:selected,depth:a.depth)
+   }; return .init(partition:partition,predicate:predicate,selected:selected,depth:(try a.depth))
   }
  }
 }

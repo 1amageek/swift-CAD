@@ -133,7 +133,7 @@ public struct FaceMatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
         return EvaluationResult(
             brep: model,
             subshapes: identity.subshapes,
-            removedSubshapeIDs: bodyScope.subshapeIDs(in: context.subshapes),
+            removedSubshapeIDs: try bodyScope.subshapeIDs(in: context.subshapes),
             lineage: identity.lineage
         )
     }

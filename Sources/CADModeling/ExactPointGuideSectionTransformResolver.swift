@@ -5,11 +5,21 @@ import Foundation
 
 package struct ExactPointGuideSectionTransformResolver: Sendable {
     private let tolerance: ModelingTolerance
-    private let admission: GeometryConversionAdmission?
 
-    package init(tolerance: ModelingTolerance, admission: GeometryConversionAdmission? = nil) {
+    package init(tolerance: ModelingTolerance) {
         self.tolerance = tolerance
-        self.admission = admission
+    }
+
+    package func resolve(
+        section: ResolvedModelingSection,
+        pathStart: Point3D,
+        pathEnd: Point3D,
+        guides: [EvaluatedCurve],
+        distanceFraction: Double,
+        featureID: FeatureID?
+    ) throws -> ExactSectionTransform2D {
+        var execution = try CurvedSweepSourceBudget(tolerance: tolerance).execution()
+        return try resolve(section: section, pathStart: pathStart, pathEnd: pathEnd, guides: guides, distanceFraction: distanceFraction, featureID: featureID, using: &execution)
     }
 
     /// The section's end transform for straight guides along a straight path: one guide turns and
@@ -23,21 +33,21 @@ package struct ExactPointGuideSectionTransformResolver: Sendable {
         guides: [EvaluatedCurve],
         distanceFraction: Double,
         featureID: FeatureID?
-    ) throws -> ExactSectionTransform2D {
+    , using execution: inout OriginalQueryExecution) throws -> ExactSectionTransform2D {
         try tolerance.validate()
-        let spanBuilder = ExactBSplineCurveSpanBuilder(tolerance: tolerance, admission: admission)
+        let spanBuilder = try ExactBSplineCurveSpanBuilder(tolerance: tolerance, using: &execution)
         let sectionSpans: [ExactBSplineCurveSpan]
         let sectionPlane: SketchPlane
         switch section {
         case .profile, .face, .constructedRegion:
-            sectionSpans = try spanBuilder.loopSpans(from: section).flatMap { $0 }
+            sectionSpans = try spanBuilder.loopSpans(from: section, using: &execution).flatMap { $0 }
             sectionPlane = try section.plane()
         case .curve(let curve):
             guard let plane = curve.plane else {
                 throw KernelError(phase: .geometry, code: .sweepGuideContactUnavailable, featureID: featureID, tolerance: tolerance,
                                   message: "Exact point-guide Sweep requires section-plane metadata.")
             }
-            sectionSpans = try spanBuilder.sectionSpans(from: curve)
+            sectionSpans = try spanBuilder.sectionSpans(from: curve, using: &execution)
             sectionPlane = plane
         }
         guard (1...2).contains(guides.count) else {
@@ -51,7 +61,7 @@ package struct ExactPointGuideSectionTransformResolver: Sendable {
         }
         let pairs = try guides.map { guide in
             try contact(sectionSpans: sectionSpans, sectionPlane: sectionPlane, pathStart: pathStart, pathEnd: pathEnd,
-                        guide: guide, distanceFraction: distanceFraction, featureID: featureID, spanBuilder: spanBuilder)
+                        guide: guide, distanceFraction: distanceFraction, featureID: featureID, spanBuilder: spanBuilder, using: &execution)
         }
         let transform: ExactSectionTransform2D
         if pairs.count == 1 {
@@ -91,17 +101,17 @@ package struct ExactPointGuideSectionTransformResolver: Sendable {
         distanceFraction: Double,
         featureID: FeatureID?,
         spanBuilder: ExactBSplineCurveSpanBuilder
-    ) throws -> (source: Point2D, target: Point2D) {
+    , using execution: inout OriginalQueryExecution) throws -> (source: Point2D, target: Point2D) {
         guard distanceFraction.isFinite,
               distanceFraction > 0.0,
               distanceFraction <= 1.0 else {
             throw FeatureEvaluationError.invalidDistance(distanceFraction)
         }
-        let guideSpans = try spanBuilder.sectionSpans(from: guide)
+        let guideSpans = try spanBuilder.sectionSpans(from: guide, using: &execution)
         let guideEndpoints = try certifiedStraightGuideEndpoints(
             guideSpans,
             featureID: featureID
-        )
+        , using: &execution)
         let guideEnd = guideEndpoints.start
             + (guideEndpoints.end - guideEndpoints.start) * distanceFraction
         let plane = try ExactSweepSectionPlane(
@@ -114,7 +124,7 @@ package struct ExactPointGuideSectionTransformResolver: Sendable {
         try validateInSectionPlane(targetOffset, plane: plane, featureID: featureID, role: "end")
         let pathAnchor = plane.orthogonalProjection(pathStart)
         let contact = pathAnchor + sourceOffset
-        try validateContact(contact, on: sectionSpans, featureID: featureID)
+        try validateContact(contact, on: sectionSpans, featureID: featureID, using: &execution)
         let source = plane.localOffset(from: pathAnchor, to: contact)
         let target = plane.localOffset(targetOffset)
         let targetLengthSquared = target.x * target.x + target.y * target.y
@@ -135,7 +145,7 @@ package struct ExactPointGuideSectionTransformResolver: Sendable {
     private func certifiedStraightGuideEndpoints(
         _ spans: [ExactBSplineCurveSpan],
         featureID: FeatureID?
-    ) throws -> (start: Point3D, end: Point3D) {
+    , using execution: inout OriginalQueryExecution) throws -> (start: Point3D, end: Point3D) {
         guard let first = spans.first,
               let last = spans.last else {
             throw KernelError(
@@ -212,18 +222,18 @@ package struct ExactPointGuideSectionTransformResolver: Sendable {
         _ contact: Point3D,
         on spans: [ExactBSplineCurveSpan],
         featureID: FeatureID?
-    ) throws {
+    , using execution: inout OriginalQueryExecution) throws {
         for span in spans {
             let curve = Curve3D.bSpline(span.curve)
             do {
                 let projection = try curve.parameterProjection(
                     of: contact,
                     tolerance: tolerance
-                )
+                , using: &execution)
                 let projected = try curve.point(
                     at: projection.parameter,
                     tolerance: tolerance
-                )
+                , using: &execution)
                 if (projected - contact).length <= tolerance.distance {
                     return
                 }

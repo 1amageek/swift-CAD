@@ -41,6 +41,92 @@ struct SurfaceLiftDifferentialBounder {
         let vvv: Double
     }
 
+    func secondDerivativeMagnitude(
+        lift: SurfaceLiftCurve3D,
+        interval: ScalarInterval,
+        tolerance: ModelingTolerance
+    ) throws -> Double? {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try secondDerivativeMagnitude(lift: lift, interval: interval, tolerance: tolerance, using: &execution)
+    }
+
+    func firstDerivativeMagnitude(
+        lift: SurfaceLiftCurve3D,
+        interval: ScalarInterval,
+        tolerance: ModelingTolerance
+    ) throws -> Double? {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try firstDerivativeMagnitude(lift: lift, interval: interval, tolerance: tolerance, using: &execution)
+    }
+
+    func certificationInterval(
+        containing interval: ScalarInterval,
+        tolerance: ModelingTolerance
+    ) throws -> ScalarInterval {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try certificationInterval(containing: interval, tolerance: tolerance, using: &execution)
+    }
+
+    func breakParameters(
+        lift: SurfaceLiftCurve3D,
+        within interval: ScalarInterval,
+        tolerance: ModelingTolerance
+    ) throws -> [Double] {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try breakParameters(lift: lift, within: interval, tolerance: tolerance, using: &execution)
+    }
+
+    func parameterBounds(
+        _ curve: SurfaceParameterCurve,
+        tolerance: ModelingTolerance
+    ) throws -> ParameterBounds? {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try parameterBounds(curve, tolerance: tolerance, using: &execution)
+    }
+
+    func bSplineSupportBounds(
+        lift: SurfaceLiftCurve3D,
+        interval: ScalarInterval,
+        tolerance: ModelingTolerance
+    ) throws -> BoundingBox3D? {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try bSplineSupportBounds(lift: lift, interval: interval, tolerance: tolerance, using: &execution)
+    }
+
+    func implicitParameterBounds(
+        _ curve: CertifiedImplicitSurfaceParameterCurve,
+        tolerance: ModelingTolerance,
+        prepared: ImplicitCurveIntervalJetEncloser? = nil
+    ) throws -> (u: CertifiedImplicitParameterIntervalJet.Coordinate,
+                 v: CertifiedImplicitParameterIntervalJet.Coordinate) {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try implicitParameterBounds(curve, tolerance: tolerance, prepared: prepared, using: &execution)
+    }
+
+    func closedRange(_ interval: ScalarInterval, domain: ParameterDomain,
+                     tolerance: ModelingTolerance) throws -> ScalarInterval {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try closedRange(interval, domain: domain, tolerance: tolerance, using: &execution)
+    }
+
+    func nondegenerateRange(
+        _ interval: ScalarInterval,
+        domain: ParameterDomain,
+        tolerance: ModelingTolerance
+    ) throws -> ScalarInterval {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try nondegenerateRange(interval, domain: domain, tolerance: tolerance, using: &execution)
+    }
+
+    func thirdDerivativeMagnitude(
+        lift: SurfaceLiftCurve3D,
+        interval: ScalarInterval,
+        tolerance: ModelingTolerance
+    ) throws -> Double? {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try thirdDerivativeMagnitude(lift: lift, interval: interval, tolerance: tolerance, using: &execution)
+    }
+
     func derivativeMagnitudeBoundsAreIntervalInvariant(
         lift: SurfaceLiftCurve3D
     ) -> Bool {
@@ -51,15 +137,16 @@ struct SurfaceLiftDifferentialBounder {
         lift: SurfaceLiftCurve3D,
         interval: ScalarInterval,
         tolerance: ModelingTolerance
-    ) throws -> Double? {
+    , using execution: inout OriginalQueryExecution) throws -> Double? {
+        try execution.consumeWork(1)
         if case .originalAffineWord(let image) = lift.parameterCurve {
-            guard let jet = try image.modelSpaceIntervalJet(over: interval, tolerance: tolerance) else { return nil }
+            guard let jet = try image.modelSpaceIntervalJet(over: interval, tolerance: tolerance, using: &execution) else { return nil }
             return IntervalVector3DBounds(x: jet.x.thirdDerivativeUUU, y: jet.y.thirdDerivativeUUU,
                 z: jet.z.thirdDerivativeUUU).lengthUpperBound
         }
         if case .originalImage(let image) = lift.parameterCurve {
             guard let original = try thirdDerivativeMagnitude(lift: image.source,
-                interval: image.mappedRange(interval), tolerance: tolerance) else { return nil }
+                interval: image.mappedRange(interval), tolerance: tolerance, using: &execution) else { return nil }
             let gain = (OutwardScalarInterval.exact(image.endFraction) - .exact(image.startFraction)).absoluteUpperBound
             var scale = image.targetImage.transform.linearMagnitudeUpperBound
             for _ in 0..<3 { scale = upperProduct(scale, gain) }
@@ -70,7 +157,7 @@ struct SurfaceLiftDifferentialBounder {
             interval: interval,
             order: .third,
             tolerance: tolerance
-        ) {
+        , using: &execution) {
             return vectorMagnitude(bound)
         }
         if case let .rigidImage(image) = lift.parameterCurve {
@@ -78,12 +165,12 @@ struct SurfaceLiftDifferentialBounder {
                 interval,
                 through: image,
                 tolerance: tolerance
-            )
+            , using: &execution)
             guard let sourceBound = try thirdDerivativeMagnitude(
                 lift: image.source,
                 interval: mapped,
                 tolerance: tolerance
-            ) else {
+            , using: &execution) else {
                 return nil
             }
             let scale = abs(image.endFraction - image.startFraction)
@@ -95,17 +182,17 @@ struct SurfaceLiftDifferentialBounder {
         let certificationInterval = try certificationInterval(
             containing: interval,
             tolerance: tolerance
-        )
+        , using: &execution)
         let localCurve = try lift.parameterCurve.subcurveForParameterBounds(
             fromNormalizedFraction: certificationInterval.lower,
             toNormalizedFraction: certificationInterval.upper,
             tolerance: tolerance
-        )
+        , using: &execution)
         if case .certifiedAnalyticPair = lift.parameterCurve,
            case let .certifiedAnalyticPair(curve) = localCurve {
             let localBounds = try curve.spatialDifferentialMagnitudeBounds(
                 tolerance: tolerance
-            )
+            , using: &execution)
             guard let localThird = localBounds.third else {
                 return nil
             }
@@ -130,22 +217,22 @@ struct SurfaceLiftDifferentialBounder {
             guard let parameterDerivatives = try parameterDerivativeBounds(
                 localCurve,
                 tolerance: tolerance
-            ), let parameterBounds = try parameterBounds(
+            , using: &execution), let parameterBounds = try parameterBounds(
                 localCurve,
                 tolerance: tolerance
-            ) else {
+            , using: &execution) else {
                 return nil
             }
             let surfaceDerivatives = try surfaceDerivativeBounds(
                 surface: lift.surface,
                 parameters: parameterBounds,
                 tolerance: tolerance
-            )
+            , using: &execution)
             let surfaceThird = try surfaceThirdDerivativeBounds(
                 surface: lift.surface,
                 parameters: parameterBounds,
                 tolerance: tolerance
-            )
+            , using: &execution)
             let firstU = parameterDerivatives.firstU
             let firstV = parameterDerivatives.firstV
             let secondU = parameterDerivatives.secondU
@@ -218,15 +305,16 @@ struct SurfaceLiftDifferentialBounder {
         lift: SurfaceLiftCurve3D,
         interval: ScalarInterval,
         tolerance: ModelingTolerance
-    ) throws -> Double? {
+    , using execution: inout OriginalQueryExecution) throws -> Double? {
+        try execution.consumeWork(1)
         if case .originalAffineWord(let image) = lift.parameterCurve {
-            guard let jet = try image.modelSpaceIntervalJet(over: interval, tolerance: tolerance) else { return nil }
+            guard let jet = try image.modelSpaceIntervalJet(over: interval, tolerance: tolerance, using: &execution) else { return nil }
             return IntervalVector3DBounds(x: jet.x.secondDerivativeUU, y: jet.y.secondDerivativeUU,
                 z: jet.z.secondDerivativeUU).lengthUpperBound
         }
         if case .originalImage(let image) = lift.parameterCurve {
             guard let original = try secondDerivativeMagnitude(lift: image.source,
-                interval: image.mappedRange(interval), tolerance: tolerance) else { return nil }
+                interval: image.mappedRange(interval), tolerance: tolerance, using: &execution) else { return nil }
             let gain = (OutwardScalarInterval.exact(image.endFraction) - .exact(image.startFraction)).absoluteUpperBound
             var scale = image.targetImage.transform.linearMagnitudeUpperBound
             for _ in 0..<2 { scale = upperProduct(scale, gain) }
@@ -237,7 +325,7 @@ struct SurfaceLiftDifferentialBounder {
             interval: interval,
             order: .second,
             tolerance: tolerance
-        ) {
+        , using: &execution) {
             return vectorMagnitude(bound)
         }
         if case let .rigidImage(image) = lift.parameterCurve {
@@ -245,12 +333,12 @@ struct SurfaceLiftDifferentialBounder {
                 interval,
                 through: image,
                 tolerance: tolerance
-            )
+            , using: &execution)
             guard let sourceBound = try secondDerivativeMagnitude(
                 lift: image.source,
                 interval: mapped,
                 tolerance: tolerance
-            ) else {
+            , using: &execution) else {
                 return nil
             }
             let scale = abs(image.endFraction - image.startFraction)
@@ -259,18 +347,18 @@ struct SurfaceLiftDifferentialBounder {
         let certificationInterval = try certificationInterval(
             containing: interval,
             tolerance: tolerance
-        )
+        , using: &execution)
         let localCurve = try lift.parameterCurve.subcurveForParameterBounds(
             fromNormalizedFraction: certificationInterval.lower,
             toNormalizedFraction: certificationInterval.upper,
             tolerance: tolerance
-        )
+        , using: &execution)
         if case .certifiedAnalyticPair = lift.parameterCurve,
            case let .certifiedAnalyticPair(curve) = localCurve {
             let localBounds = try curve
                 .spatialDifferentialMagnitudeBounds(
                     tolerance: tolerance
-                )
+                , using: &execution)
             let intervalScaleSquared = (
                 certificationInterval.width.nextDown
                     * certificationInterval.width.nextDown
@@ -294,17 +382,17 @@ struct SurfaceLiftDifferentialBounder {
         guard let parameterDerivatives = try parameterDerivativeBounds(
             localCurve,
             tolerance: tolerance
-        ), let parameterBounds = try parameterBounds(
+        , using: &execution), let parameterBounds = try parameterBounds(
             localCurve,
             tolerance: tolerance
-        ) else {
+        , using: &execution) else {
             return nil
         }
         let surfaceDerivatives = try surfaceDerivativeBounds(
             surface: lift.surface,
             parameters: parameterBounds,
             tolerance: tolerance
-        )
+        , using: &execution)
         let localBound = upperSum(
             upperSum(
                 upperProduct(
@@ -358,15 +446,16 @@ struct SurfaceLiftDifferentialBounder {
         lift: SurfaceLiftCurve3D,
         interval: ScalarInterval,
         tolerance: ModelingTolerance
-    ) throws -> Double? {
+    , using execution: inout OriginalQueryExecution) throws -> Double? {
+        try execution.consumeWork(1)
         if case .originalAffineWord(let image) = lift.parameterCurve {
-            guard let jet = try image.modelSpaceIntervalJet(over: interval, tolerance: tolerance) else { return nil }
+            guard let jet = try image.modelSpaceIntervalJet(over: interval, tolerance: tolerance, using: &execution) else { return nil }
             return IntervalVector3DBounds(x: jet.x.derivativeU, y: jet.y.derivativeU,
                 z: jet.z.derivativeU).lengthUpperBound
         }
         if case .originalImage(let image) = lift.parameterCurve {
             guard let original = try firstDerivativeMagnitude(lift: image.source,
-                interval: image.mappedRange(interval), tolerance: tolerance) else { return nil }
+                interval: image.mappedRange(interval), tolerance: tolerance, using: &execution) else { return nil }
             let gain = (OutwardScalarInterval.exact(image.endFraction) - .exact(image.startFraction)).absoluteUpperBound
             var scale = image.targetImage.transform.linearMagnitudeUpperBound
             for _ in 0..<1 { scale = upperProduct(scale, gain) }
@@ -377,7 +466,7 @@ struct SurfaceLiftDifferentialBounder {
             interval: interval,
             order: .first,
             tolerance: tolerance
-        ) {
+        , using: &execution) {
             return vectorMagnitude(bound)
         }
         if case let .rigidImage(image) = lift.parameterCurve {
@@ -385,12 +474,12 @@ struct SurfaceLiftDifferentialBounder {
                 interval,
                 through: image,
                 tolerance: tolerance
-            )
+            , using: &execution)
             guard let sourceBound = try firstDerivativeMagnitude(
                 lift: image.source,
                 interval: mapped,
                 tolerance: tolerance
-            ) else {
+            , using: &execution) else {
                 return nil
             }
             return upperProduct(
@@ -401,18 +490,18 @@ struct SurfaceLiftDifferentialBounder {
         let certificationInterval = try certificationInterval(
             containing: interval,
             tolerance: tolerance
-        )
+        , using: &execution)
         let localCurve = try lift.parameterCurve.subcurveForParameterBounds(
             fromNormalizedFraction: certificationInterval.lower,
             toNormalizedFraction: certificationInterval.upper,
             tolerance: tolerance
-        )
+        , using: &execution)
         if case .certifiedAnalyticPair = lift.parameterCurve,
            case let .certifiedAnalyticPair(curve) = localCurve {
             let localBounds = try curve
                 .spatialDifferentialMagnitudeBounds(
                     tolerance: tolerance
-                )
+                , using: &execution)
             let width = certificationInterval.width.nextDown
             guard width > 0.0 else {
                 throw resourceFailure(
@@ -432,17 +521,17 @@ struct SurfaceLiftDifferentialBounder {
         guard let parameterDerivatives = try parameterDerivativeBounds(
             localCurve,
             tolerance: tolerance
-        ), let parameterBounds = try parameterBounds(
+        , using: &execution), let parameterBounds = try parameterBounds(
             localCurve,
             tolerance: tolerance
-        ) else {
+        , using: &execution) else {
             return nil
         }
         let surfaceDerivatives = try surfaceDerivativeBounds(
             surface: lift.surface,
             parameters: parameterBounds,
             tolerance: tolerance
-        )
+        , using: &execution)
         let localBound = upperSum(
             upperProduct(
                 surfaceDerivatives.firstU,
@@ -466,7 +555,8 @@ struct SurfaceLiftDifferentialBounder {
     func certificationInterval(
         containing interval: ScalarInterval,
         tolerance: ModelingTolerance
-    ) throws -> ScalarInterval {
+    , using execution: inout OriginalQueryExecution) throws -> ScalarInterval {
+        try execution.consumeWork(1)
         guard interval.lower >= -tolerance.relative,
               interval.upper <= 1.0 + tolerance.relative else {
             let domainExcess = max(
@@ -544,20 +634,25 @@ struct SurfaceLiftDifferentialBounder {
         lift: SurfaceLiftCurve3D,
         within interval: ScalarInterval,
         tolerance: ModelingTolerance
-    ) throws -> [Double] {
+    , using execution: inout OriginalQueryExecution) throws -> [Double] {
+        try execution.consumeWork(1)
         let normalizedBreaks: [Double]
         switch lift.parameterCurve {
         case .originalAffineWord(let image):
-            let original = try breakParameters(lift: image.source, within: image.mappedRange(interval), tolerance: tolerance)
+            let original = try breakParameters(lift: image.source, within: image.mappedRange(interval), tolerance: tolerance, using: &execution)
+            try execution.retainStorage(count: original.count, stride: MemoryLayout<Double>.stride)
             normalizedBreaks = original.map { ($0 - image.startFraction) / (image.endFraction - image.startFraction) }
         case .originalImage(let image):
-            let original = try breakParameters(lift: image.source, within: image.mappedRange(interval), tolerance: tolerance)
+            let original = try breakParameters(lift: image.source, within: image.mappedRange(interval), tolerance: tolerance, using: &execution)
+            try execution.retainStorage(count: original.count, stride: MemoryLayout<Double>.stride)
             normalizedBreaks = original.map { ($0 - image.startFraction) / (image.endFraction - image.startFraction) }
 
         case let .polyline(points):
+            try execution.retainStorage(count: max(0, points.count - 1), stride: MemoryLayout<Double>.stride)
             var lengths: [Double] = []
             var totalLength = 0.0
             for index in 1..<points.count {
+                try execution.consumeWork(1)
                 let length = hypot(
                     points[index].u - points[index - 1].u,
                     points[index].v - points[index - 1].v
@@ -569,12 +664,16 @@ struct SurfaceLiftDifferentialBounder {
                 throw GeometryError.invalidDistance(totalLength)
             }
             var accumulated = 0.0
+            try execution.retainStorage(count: max(0, lengths.count - 1), stride: MemoryLayout<Double>.stride)
             normalizedBreaks = lengths.dropLast().map { length in
                 accumulated += length
                 return accumulated / totalLength
             }
         case let .originalBSplineContinuation(curve):
             let span = curve.endParameter - curve.startParameter
+            try execution.retainStorage(count: curve.original.knots.count, stride: MemoryLayout<Double>.stride)
+            try execution.retainStorage(count: curve.original.knots.count, stride: MemoryLayout<Double>.stride)
+            try execution.retainStorage(count: curve.original.knots.count, stride: MemoryLayout<Double>.stride)
             normalizedBreaks = curve.original.knots.map { ($0 - curve.startParameter) / span }
                 .filter { $0 > 0 && $0 < 1 }.sorted()
         case let .bSpline(curve):
@@ -587,8 +686,10 @@ struct SurfaceLiftDifferentialBounder {
                 )
             }
             let width = upper - lower
+            try execution.retainStorage(count: curve.knots.count, stride: MemoryLayout<Double>.stride)
             var result: [Double] = []
             for knot in curve.knots where knot > lower && knot < upper {
+                try execution.consumeWork(1)
                 let value = (knot - lower) / width
                 if let last = result.last,
                    abs(value - last) <= tolerance.relative {
@@ -606,13 +707,14 @@ struct SurfaceLiftDifferentialBounder {
                 interval,
                 through: image,
                 tolerance: tolerance
-            )
+            , using: &execution)
             let sourceBreaks = try breakParameters(
                 lift: image.source,
                 within: sourceInterval,
                 tolerance: tolerance
-            )
+            , using: &execution)
             let span = image.endFraction - image.startFraction
+            try execution.retainStorage(count: sourceBreaks.count, stride: MemoryLayout<Double>.stride)
             normalizedBreaks = sourceBreaks.map {
                 ($0 - image.startFraction) / span
             }
@@ -624,7 +726,7 @@ struct SurfaceLiftDifferentialBounder {
                 ),
                 within: interval,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .periodicTranslation(base, _, _):
             return try breakParameters(
                 lift: SurfaceLiftCurve3D(
@@ -633,10 +735,12 @@ struct SurfaceLiftDifferentialBounder {
                 ),
                 within: interval,
                 tolerance: tolerance
-            )
+            , using: &execution)
         }
-        return normalizedBreaks.filter {
-            $0 > interval.lower + tolerance.relative
+        try execution.retainStorage(count: normalizedBreaks.count, stride: MemoryLayout<Double>.stride)
+        return try normalizedBreaks.filter {
+            try execution.consumeWork(1)
+            return $0 > interval.lower + tolerance.relative
                 && $0 < interval.upper - tolerance.relative
         }
     }
@@ -644,25 +748,28 @@ struct SurfaceLiftDifferentialBounder {
     func parameterBounds(
         _ curve: SurfaceParameterCurve,
         tolerance: ModelingTolerance
-    ) throws -> ParameterBounds? {
+    , using execution: inout OriginalQueryExecution) throws -> ParameterBounds? {
+        try execution.consumeWork(1)
         switch curve {
         case .originalAffineWord(let image):
-            guard let jet = try image.intervalJet(over: ScalarInterval(lower: 0, upper: 1), tolerance: tolerance) else { return nil }
+            guard let jet = try image.intervalJet(over: ScalarInterval(lower: 0, upper: 1), tolerance: tolerance, using: &execution) else { return nil }
             return ParameterBounds(u: try ScalarInterval(lower: jet.u.value.lower, upper: jet.u.value.upper),
                 v: try ScalarInterval(lower: jet.v.value.lower, upper: jet.v.value.upper))
         case .originalImage(let image):
-            guard let jet = try image.intervalJet(over: ScalarInterval(lower: 0, upper: 1), tolerance: tolerance) else { return nil }
+            guard let jet = try image.intervalJet(over: ScalarInterval(lower: 0, upper: 1), tolerance: tolerance, using: &execution) else { return nil }
             return ParameterBounds(u: try ScalarInterval(lower: jet.u.value.lower, upper: jet.u.value.upper),
                 v: try ScalarInterval(lower: jet.v.value.lower, upper: jet.v.value.upper))
 
         case .affine, .constantU, .constantV:
+            try execution.retainStorage(count: 2, stride: MemoryLayout<Double>.stride)
+            try execution.retainStorage(count: 2, stride: MemoryLayout<SurfaceParameter>.stride)
             let endpoints = try [0.0, 1.0].map {
                 try curve.parameter(
                     atNormalizedFraction: $0,
                     tolerance: tolerance
-                )
+                , using: &execution)
             }
-            return try bounds(points: endpoints)
+            return try bounds(points: endpoints, using: &execution)
         case let .harmonic(center, cosine, sine, _, _):
             let uAmplitude = hypot(cosine.x, sine.x)
             let vAmplitude = hypot(cosine.y, sine.y)
@@ -677,15 +784,16 @@ struct SurfaceLiftDifferentialBounder {
                 )
             )
         case let .polyline(points):
-            return try bounds(points: points)
+            return try bounds(points: points, using: &execution)
         case let .originalBSplineContinuation(curve):
-            let jet = try curve.intervalJet(over: ScalarInterval(lower: 0, upper: 1), tolerance: tolerance)
+            let jet = try curve.intervalJet(over: ScalarInterval(lower: 0, upper: 1), tolerance: tolerance, using: &execution)
             return ParameterBounds(u: try ScalarInterval(lower: jet.u.value.lower, upper: jet.u.value.upper),
                 v: try ScalarInterval(lower: jet.v.value.lower, upper: jet.v.value.upper))
         case let .bSpline(curve):
+            try execution.retainStorage(count: curve.controlPoints.count, stride: MemoryLayout<SurfaceParameter>.stride)
             return try bounds(points: curve.controlPoints.map {
                 SurfaceParameter(u: $0.x, v: $0.y)
-            })
+            }, using: &execution)
         case .certifiedAnalyticPair:
             throw KernelError(
                 phase: .geometry,
@@ -694,7 +802,7 @@ struct SurfaceLiftDifferentialBounder {
                 message: "A certified analytic-pair pcurve belongs to analytic support surfaces and cannot bound a B-spline support."
             )
         case let .certifiedImplicit(curve):
-            let jet = try implicitParameterBounds(curve, tolerance: tolerance)
+            let jet = try implicitParameterBounds(curve, tolerance: tolerance, using: &execution)
             return ParameterBounds(u: jet.u.value, v: jet.v.value)
         case .sphericalGreatCircle, .certifiedAnalyticImplicit,
              .projectedAnalytic, .rigidImage:
@@ -703,12 +811,12 @@ struct SurfaceLiftDifferentialBounder {
             return try parameterBounds(
                 image.source,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .periodicTranslation(base, uShift, vShift):
             guard let baseBounds = try parameterBounds(
                 base,
                 tolerance: tolerance
-            ) else {
+            , using: &execution) else {
                 return nil
             }
             return ParameterBounds(
@@ -728,20 +836,23 @@ struct SurfaceLiftDifferentialBounder {
         lift: SurfaceLiftCurve3D,
         interval: ScalarInterval,
         tolerance: ModelingTolerance
-    ) throws -> BoundingBox3D? {
+    , using execution: inout OriginalQueryExecution) throws -> BoundingBox3D? {
+        try execution.consumeWork(1)
         if case let .rigidImage(image) = lift.parameterCurve {
             let sourceInterval = try mappedInterval(
                 interval,
                 through: image,
                 tolerance: tolerance
-            )
+            , using: &execution)
             guard let sourceBounds = try bSplineSupportBounds(
                 lift: image.source,
                 interval: sourceInterval,
                 tolerance: tolerance
-            ) else {
+            , using: &execution) else {
                 return nil
             }
+            try execution.retainStorage(count: 8, stride: MemoryLayout<Point3D>.stride)
+            try execution.retainStorage(count: 8, stride: MemoryLayout<Point3D>.stride)
             return try BoundingBox3D(
                 points: boundingBoxCorners(sourceBounds).map(image.transform.applying(to:))
             ).expanded(by: tolerance.distance)
@@ -751,30 +862,34 @@ struct SurfaceLiftDifferentialBounder {
             fromNormalizedFraction: interval.lower,
             toNormalizedFraction: interval.upper,
             tolerance: tolerance
-        )
+        , using: &execution)
         guard let parameters = try parameterBounds(
             localCurve,
             tolerance: tolerance
-        ) else {
+        , using: &execution) else {
             return nil
         }
         let uRange = try nondegenerateRange(
             parameters.u,
             domain: surface.uDomain,
             tolerance: tolerance
-        )
+        , using: &execution)
         let vRange = try nondegenerateRange(
             parameters.v,
             domain: surface.vDomain,
             tolerance: tolerance
-        )
+        , using: &execution)
         let trimmed = try surface.trimmed(
             uFrom: uRange.lower,
             uTo: uRange.upper,
             vFrom: vRange.lower,
             vTo: vRange.upper,
             tolerance: tolerance
-        )
+        , using: &execution)
+        for row in trimmed.controlPoints {
+            try execution.consumeWork(1)
+            try execution.retainStorage(count: row.count, stride: MemoryLayout<Point3D>.stride)
+        }
         return try BoundingBox3D(
             points: trimmed.controlPoints.flatMap { $0 }
         ).expanded(by: tolerance.distance)
@@ -783,16 +898,17 @@ struct SurfaceLiftDifferentialBounder {
     private func parameterDerivativeBounds(
         _ curve: SurfaceParameterCurve,
         tolerance: ModelingTolerance
-    ) throws -> ParameterDerivativeBounds? {
+    , using execution: inout OriginalQueryExecution) throws -> ParameterDerivativeBounds? {
+        try execution.consumeWork(1)
         switch curve {
         case .originalAffineWord(let image):
-            guard let jet = try image.intervalJet(over: ScalarInterval(lower: 0, upper: 1), tolerance: tolerance) else { return nil }
+            guard let jet = try image.intervalJet(over: ScalarInterval(lower: 0, upper: 1), tolerance: tolerance, using: &execution) else { return nil }
             return ParameterDerivativeBounds(firstU: jet.u.derivativeU.absoluteUpperBound,
                 firstV: jet.v.derivativeU.absoluteUpperBound, secondU: jet.u.secondDerivativeUU.absoluteUpperBound,
                 secondV: jet.v.secondDerivativeUU.absoluteUpperBound, thirdU: jet.u.thirdDerivativeUUU.absoluteUpperBound,
                 thirdV: jet.v.thirdDerivativeUUU.absoluteUpperBound)
         case .originalImage(let image):
-            guard let jet = try image.intervalJet(over: ScalarInterval(lower: 0, upper: 1), tolerance: tolerance) else { return nil }
+            guard let jet = try image.intervalJet(over: ScalarInterval(lower: 0, upper: 1), tolerance: tolerance, using: &execution) else { return nil }
             return ParameterDerivativeBounds(firstU: jet.u.derivativeU.absoluteUpperBound,
                 firstV: jet.v.derivativeU.absoluteUpperBound, secondU: jet.u.secondDerivativeUU.absoluteUpperBound,
                 secondV: jet.v.secondDerivativeUU.absoluteUpperBound, thirdU: jet.u.thirdDerivativeUUU.absoluteUpperBound,
@@ -851,13 +967,13 @@ struct SurfaceLiftDifferentialBounder {
                 thirdV: 0.0
             )
         case let .originalBSplineContinuation(curve):
-            let jet = try curve.intervalJet(over: ScalarInterval(lower: 0, upper: 1), tolerance: tolerance)
+            let jet = try curve.intervalJet(over: ScalarInterval(lower: 0, upper: 1), tolerance: tolerance, using: &execution)
             return ParameterDerivativeBounds(firstU: jet.u.derivativeU.absoluteUpperBound,
                 firstV: jet.v.derivativeU.absoluteUpperBound, secondU: jet.u.secondDerivativeUU.absoluteUpperBound,
                 secondV: jet.v.secondDerivativeUU.absoluteUpperBound, thirdU: jet.u.thirdDerivativeUUU.absoluteUpperBound,
                 thirdV: jet.v.thirdDerivativeUUU.absoluteUpperBound)
         case let .bSpline(curve):
-            let patches = try curve.rationalBezierPatches(tolerance: tolerance)
+            let patches = try curve.rationalBezierPatches(tolerance: tolerance, using: &execution)
             guard case let .closed(lower, upper) = curve.domain,
                   patches.isEmpty == false else {
                 throw KernelError(
@@ -879,6 +995,10 @@ struct SurfaceLiftDifferentialBounder {
                 thirdV: 0.0
             )
             for patch in patches {
+                try execution.consumeWork(1)
+                try execution.retainStorage(count: 2, stride: MemoryLayout<[Double]>.stride)
+                try execution.retainStorage(count: patch.controlPoints.count, stride: MemoryLayout<Double>.stride)
+                try execution.retainStorage(count: patch.controlPoints.count, stride: MemoryLayout<Double>.stride)
                 let bound = try RationalBezierCurveDerivativeBound(
                     coordinates: [
                         patch.controlPoints.map({ $0.x }),
@@ -887,7 +1007,7 @@ struct SurfaceLiftDifferentialBounder {
                     weights: patch.weights,
                     parameterWidth: patch.upper - patch.lower,
                     tolerance: tolerance
-                )
+                , using: &execution)
                 result = ParameterDerivativeBounds(
                     firstU: max(result.firstU, upperProduct(bound.first[0], domainWidth)),
                     firstV: max(result.firstV, upperProduct(bound.first[1], domainWidth)),
@@ -918,7 +1038,7 @@ struct SurfaceLiftDifferentialBounder {
                 message: "Certified analytic-pair differentiation must use its spatial certificate."
             )
         case let .certifiedImplicit(curve):
-            let jet = try implicitParameterBounds(curve, tolerance: tolerance)
+            let jet = try implicitParameterBounds(curve, tolerance: tolerance, using: &execution)
             let scale = abs(curve.endFraction - curve.startFraction).nextUp
             let squared = upperProduct(scale, scale)
             let cubed = upperProduct(squared, scale)
@@ -939,12 +1059,12 @@ struct SurfaceLiftDifferentialBounder {
             return try parameterDerivativeBounds(
                 image.source,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .periodicTranslation(base, _, _):
             return try parameterDerivativeBounds(
                 base,
                 tolerance: tolerance
-            )
+            , using: &execution)
         }
     }
 
@@ -952,15 +1072,16 @@ struct SurfaceLiftDifferentialBounder {
         _ curve: CertifiedImplicitSurfaceParameterCurve,
         tolerance: ModelingTolerance,
         prepared: ImplicitCurveIntervalJetEncloser? = nil
-    ) throws -> (u: CertifiedImplicitParameterIntervalJet.Coordinate,
+    , using execution: inout OriginalQueryExecution) throws -> (u: CertifiedImplicitParameterIntervalJet.Coordinate,
                  v: CertifiedImplicitParameterIntervalJet.Coordinate) {
+        try execution.consumeWork(1)
         let encloser = try prepared ?? ImplicitCurveIntervalJetEncloser(
-            intersection: curve.intersection, tolerance: tolerance)
+            intersection: curve.intersection, tolerance: tolerance, using: &execution)
         let lower = min(curve.startFraction, curve.endFraction)
         let upper = max(curve.startFraction, curve.endFraction)
         func enclosed(_ lower: Double, _ upper: Double) throws -> CertifiedImplicitParameterIntervalJet {
             try encloser.parameterIntervalJet(of: curve.intersection,
-                over: ScalarInterval(lower: lower, upper: upper), tolerance: tolerance)
+                over: ScalarInterval(lower: lower, upper: upper), tolerance: tolerance, using: &execution)
         }
         let first = try enclosed(lower >= 1 ? lower - 1 : lower,
                                  lower >= 1 ? upper - 1 : min(upper, 1))
@@ -985,7 +1106,8 @@ struct SurfaceLiftDifferentialBounder {
         _ interval: ScalarInterval,
         through image: RigidImageSurfaceParameterCurve,
         tolerance: ModelingTolerance
-    ) throws -> ScalarInterval {
+    , using execution: inout OriginalQueryExecution) throws -> ScalarInterval {
+        try execution.consumeWork(1)
         let span = image.endFraction - image.startFraction
         let first = image.startFraction + span * interval.lower
         let second = image.startFraction + span * interval.upper
@@ -1009,7 +1131,8 @@ struct SurfaceLiftDifferentialBounder {
         surface: Surface3D,
         parameters: ParameterBounds,
         tolerance: ModelingTolerance
-    ) throws -> SurfaceDerivativeBounds {
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceDerivativeBounds {
+        try execution.consumeWork(1)
         switch CanonicalAnalyticSurface(surface) {
         case .plane:
             return SurfaceDerivativeBounds(
@@ -1063,7 +1186,7 @@ struct SurfaceLiftDifferentialBounder {
                 let bound = try CubicSurfaceResidualCertifier.SurfaceDerivativeBounds(
                     surface: surface,
                     tolerance: tolerance
-                )
+                , using: &execution)
                 return SurfaceDerivativeBounds(
                     firstU: bound.tangentU,
                     firstV: bound.tangentV,
@@ -1075,28 +1198,28 @@ struct SurfaceLiftDifferentialBounder {
             if case let .procedural(procedural) = surface {
                 if let exact = try procedural.exactChartPreservingSurface(
                     tolerance: tolerance
-                ) {
+                , using: &execution) {
                     return try surfaceDerivativeBounds(
                         surface: exact,
                         parameters: parameters,
                         tolerance: tolerance
-                    )
+                    , using: &execution)
                 }
                 let uRange = try nondegenerateRange(
                     parameters.u,
                     domain: surface.uDomain,
                     tolerance: tolerance
-                )
+                , using: &execution)
                 let vRange = try nondegenerateRange(
                     parameters.v,
                     domain: surface.vDomain,
                     tolerance: tolerance
-                )
+                , using: &execution)
                 let jet = try DefaultSurfaceDifferentialEncloser().intervalJet(
                     of: surface,
                     over: SurfaceParameterBox(u: uRange, v: vRange),
                     tolerance: tolerance
-                )
+                , using: &execution)
                 return SurfaceDerivativeBounds(
                     firstU: magnitudeUpperBound(x: jet.x.derivativeU, y: jet.y.derivativeU, z: jet.z.derivativeU),
                     firstV: magnitudeUpperBound(x: jet.x.derivativeV, y: jet.y.derivativeV, z: jet.z.derivativeV),
@@ -1125,15 +1248,16 @@ struct SurfaceLiftDifferentialBounder {
         interval: ScalarInterval,
         order: ExactDerivativeOrder,
         tolerance: ModelingTolerance
-    ) throws -> [Double]? {
+    , using execution: inout OriginalQueryExecution) throws -> [Double]? {
+        try execution.consumeWork(1)
         if let certificate = lift.exactDerivativeCertificate {
             switch order {
             case .first:
-                return certificate.firstDerivativeBounds(over: interval)
+                return try certificate.firstDerivativeBounds(over: interval, using: &execution)
             case .second:
-                return certificate.secondDerivativeBounds(over: interval)
+                return try certificate.secondDerivativeBounds(over: interval, using: &execution)
             case .third:
-                return certificate.thirdDerivativeBounds(over: interval)
+                return try certificate.thirdDerivativeBounds(over: interval, using: &execution)
             }
         }
         guard let curve = lift.exactBSplineImage,
@@ -1157,8 +1281,12 @@ struct SurfaceLiftDifferentialBounder {
                 from: interval.lower,
                 to: interval.upper,
                 tolerance: tolerance
-            )
+            , using: &execution)
         }
+        try execution.retainStorage(count: 3, stride: MemoryLayout<[Double]>.stride)
+        try execution.retainStorage(count: patch.controlPoints.count, stride: MemoryLayout<Double>.stride)
+        try execution.retainStorage(count: patch.controlPoints.count, stride: MemoryLayout<Double>.stride)
+        try execution.retainStorage(count: patch.controlPoints.count, stride: MemoryLayout<Double>.stride)
         let bound = try RationalBezierCurveDerivativeBound(
             coordinates: [
                 patch.controlPoints.map({ $0.x }),
@@ -1168,7 +1296,7 @@ struct SurfaceLiftDifferentialBounder {
             weights: patch.weights,
             parameterWidth: patch.upper - patch.lower,
             tolerance: tolerance
-        )
+        , using: &execution)
         switch order {
         case .first:
             return bound.first
@@ -1188,22 +1316,23 @@ struct SurfaceLiftDifferentialBounder {
         surface: Surface3D,
         parameters: ParameterBounds,
         tolerance: ModelingTolerance
-    ) throws -> SurfaceThirdDerivativeBounds {
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceThirdDerivativeBounds {
+        try execution.consumeWork(1)
         let uRange = try nondegenerateRange(
             parameters.u,
             domain: surface.uDomain,
             tolerance: tolerance
-        )
+        , using: &execution)
         let vRange = try nondegenerateRange(
             parameters.v,
             domain: surface.vDomain,
             tolerance: tolerance
-        )
+        , using: &execution)
         let jet = try DefaultSurfaceDifferentialEncloser().intervalJet(
             of: surface,
             over: SurfaceParameterBox(u: uRange, v: vRange),
             tolerance: tolerance
-        )
+        , using: &execution)
         return SurfaceThirdDerivativeBounds(
             uuu: magnitudeUpperBound(
                 x: jet.x.thirdDerivativeUUU,
@@ -1248,18 +1377,20 @@ struct SurfaceLiftDifferentialBounder {
         return hypot(hypot(xMagnitude, yMagnitude), zMagnitude).nextUp
     }
 
-    private func bounds(points: [SurfaceParameter]) throws -> ParameterBounds {
-        guard points.isEmpty == false,
-              let minimumU = points.map({ $0.u }).min(),
-              let maximumU = points.map({ $0.u }).max(),
-              let minimumV = points.map({ $0.v }).min(),
-              let maximumV = points.map({ $0.v }).max() else {
-            throw KernelError(
-                phase: .geometry,
-                code: .invalidInput,
-                tolerance: nil,
-                message: "Surface-lift parameter bounds require at least one finite point."
-            )
+    private func bounds(points: [SurfaceParameter], using execution: inout OriginalQueryExecution) throws -> ParameterBounds {
+        try execution.consumeWork(1)
+        guard let first = points.first else {
+            throw KernelError(phase: .geometry, code: .invalidInput, tolerance: nil,
+                message: "Surface-lift parameter bounds require at least one finite point.")
+        }
+        var minimumU = first.u, maximumU = first.u
+        var minimumV = first.v, maximumV = first.v
+        for point in points.dropFirst() {
+            try execution.consumeWork(1)
+            if point.u < minimumU { minimumU = point.u }
+            if point.u > maximumU { maximumU = point.u }
+            if point.v < minimumV { minimumV = point.v }
+            if point.v > maximumV { maximumV = point.v }
         }
         return ParameterBounds(
             u: try ScalarInterval(
@@ -1276,7 +1407,8 @@ struct SurfaceLiftDifferentialBounder {
     /// Removes only outward arithmetic overhang from a validated native chart.
     /// Modeling tolerance does not authorize a new source-domain intersection.
     func closedRange(_ interval: ScalarInterval, domain: ParameterDomain,
-                     tolerance: ModelingTolerance) throws -> ScalarInterval {
+                     tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> ScalarInterval {
+        try execution.consumeWork(1)
         guard case let .closed(domainLower,domainUpper) = domain else { return interval }
         let margin = Double.ulpOfOne * max(1,abs(domainLower),abs(domainUpper)) * 64
         let lower = max(interval.lower,domainLower)
@@ -1293,7 +1425,8 @@ struct SurfaceLiftDifferentialBounder {
         _ interval: ScalarInterval,
         domain: ParameterDomain,
         tolerance: ModelingTolerance
-    ) throws -> ScalarInterval {
+    , using execution: inout OriginalQueryExecution) throws -> ScalarInterval {
+        try execution.consumeWork(1)
         let domainLower: Double
         let domainUpper: Double
         switch domain {

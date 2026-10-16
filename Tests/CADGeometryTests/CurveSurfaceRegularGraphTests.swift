@@ -108,39 +108,44 @@ struct CurveSurfaceRegularGraphTests {
         // two spans cost 15+8+8+12=43; three spans cost 21+10+8+12=51.
         var options = try graphOptions()
         options.maximumSubdivisionCells = 43
-        var exact = OverlapProofBudget(options: options,tolerance: .standard)
-        let two = try #require(OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(degreeFoldSource()),
-            surface: target,range: axis,pair: pair,box: box,target: jet,budget: &exact))
+        var exactExecution = try OriginalQueryExecution.independentGeometry()
+        let exact = try OverlapProofPolicy(options: options,tolerance: .standard, using: &exactExecution)
+        let two = try geometryTestRequire(OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(degreeFoldSource()),
+            surface: target,range: axis,pair: pair,box: box,target: jet,policy: exact, using: &exactExecution))
         #expect(two.curve == degreeFoldSource() && two.exactEndpoint(at: 1)?.u == 1)
-        try expectFailure(.resourceLimitExceeded) { try exact.work() }
+        try expectFailure(.resourceLimitExceeded) { try exact.work(using: &exactExecution) }
         options.maximumSubdivisionCells = 42
-        var short = OverlapProofBudget(options: options,tolerance: .standard)
+        var shortExecution = try OriginalQueryExecution.independentGeometry()
+        let short = try OverlapProofPolicy(options: options,tolerance: .standard, using: &shortExecution)
         try expectFailure(.resourceLimitExceeded) {
             _ = try OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(degreeFoldSource()),
-                surface: target,range: axis,pair: pair,box: box,target: jet,budget: &short)
+                surface: target,range: axis,pair: pair,box: box,target: jet,policy: short, using: &shortExecution)
         }
         options.maximumSubdivisionCells = 102
-        var cumulative = OverlapProofBudget(options: options,tolerance: .standard)
+        var cumulativeExecution = try OriginalQueryExecution.independentGeometry()
+        let cumulative = try OverlapProofPolicy(options: options,tolerance: .standard, using: &cumulativeExecution)
         let three = threeDegreeFoldSpans()
         for span in [try ScalarInterval(lower: 0,upper: 0.25),try ScalarInterval(lower: 0.25,upper: 0.75)] {
             #expect(try OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(three),
-                surface: target,range: span,pair: pair,box: box,target: jet,budget: &cumulative) != nil)
+                surface: target,range: span,pair: pair,box: box,target: jet,policy: cumulative, using: &cumulativeExecution) != nil)
         }
-        try expectFailure(.resourceLimitExceeded) { try cumulative.work() }
+        try expectFailure(.resourceLimitExceeded) { try cumulative.work(using: &cumulativeExecution) }
         options.maximumSubdivisionCells = 101
-        var afterFirst = OverlapProofBudget(options: options,tolerance: .standard)
+        var afterFirstExecution = try OriginalQueryExecution.independentGeometry()
+        let afterFirst = try OverlapProofPolicy(options: options,tolerance: .standard, using: &afterFirstExecution)
         #expect(try OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(three),
-            surface: target,range: ScalarInterval(lower: 0,upper: 0.25),pair: pair,box: box,target: jet,budget: &afterFirst) != nil)
+            surface: target,range: ScalarInterval(lower: 0,upper: 0.25),pair: pair,box: box,target: jet,policy: afterFirst, using: &afterFirstExecution) != nil)
         try expectFailure(.resourceLimitExceeded) {
             _ = try OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(three),
-                surface: target,range: ScalarInterval(lower: 0.25,upper: 0.75),pair: pair,box: box,target: jet,budget: &afterFirst)
+                surface: target,range: ScalarInterval(lower: 0.25,upper: 0.75),pair: pair,box: box,target: jet,policy: afterFirst, using: &afterFirstExecution)
         }
-        var unsupported = OverlapProofBudget(options: try graphOptions(),tolerance: .standard)
+        var unsupportedExecution = try OriginalQueryExecution.independentGeometry()
+        let unsupported = try OverlapProofPolicy(options: try graphOptions(),tolerance: .standard, using: &unsupportedExecution)
         let ordinary = BSplineCurve3D(degree: 2,knots: [0,0,0,0.5,1,1,1],
             controlPoints: [Point3D(x: 0,y: 0,z: 0),Point3D(x: 0.25,y: 0.25,z: 0),
                             Point3D(x: 0.75,y: 0.75,z: 0.5),Point3D(x: 1,y: 1,z: 1)])
         #expect(try OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(ordinary),
-            surface: target,range: axis,pair: pair,box: box,target: jet,budget: &unsupported) == nil)
+            surface: target,range: axis,pair: pair,box: box,target: jet,policy: unsupported, using: &unsupportedExecution) == nil)
         var whole = try graphOptions()
         whole.curveRange = axis
         try expectFailure(.unsupportedCapability) {
@@ -177,7 +182,7 @@ struct CurveSurfaceRegularGraphTests {
         task.cancel()
         continuation.yield()
         continuation.finish()
-        await #expect(throws: CancellationError.self) { _ = try await task.value }
+        await geometryTestExpectFailure({ geometryTestIsCancelled($0) }) { _ = try await task.value }
     }
 
     @Test(.timeLimit(.minutes(1)), arguments: [false, true])
@@ -274,9 +279,10 @@ struct CurveSurfaceRegularGraphTests {
             let (reversed, target, range, lowerU, lowerV) = fixture
             let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: target, tolerance: .standard)
             let options = try graphOptions()
-            var preparation = OverlapProofBudget(options: options, tolerance: .standard)
-            let independence = try #require(OverlapRegularGraphClosedDomainAuthority.TargetIndependence.certificate(
-                prepared: prepared, budget: &preparation))
+            var preparationExecution = try OriginalQueryExecution.independentGeometry()
+            let preparation = try OverlapProofPolicy(options: options, tolerance: .standard, using: &preparationExecution)
+            let independence = try geometryTestRequire(OverlapRegularGraphClosedDomainAuthority.TargetIndependence.certificate(
+                prepared: prepared, policy: preparation, using: &preparationExecution))
             let root = OverlapRegularGraphRootCertifier(
                 curve: try PreparedCurveDifferentialEncloser(curve: .bSpline(rationalEndpointSource(reversed: reversed)), tolerance: .standard),
                 coordinateIndependence: independence, tolerance: .standard)
@@ -284,9 +290,10 @@ struct CurveSurfaceRegularGraphTests {
                 v: try ScalarInterval(lower: lowerV, upper: 1))
             #expect(range.lower > 0 && range.upper < 1)
             #expect(candidate.u.upper == 1 && candidate.v.upper == 1)
-            var budget = OverlapProofBudget(options: options, tolerance: .standard)
-            let proof = try #require(root.proof(range: range, box: candidate,
-                pair: .init(first: 0, second: 1), budget: &budget))
+            var budgetExecution = try OriginalQueryExecution.independentGeometry()
+            let budget = try OverlapProofPolicy(options: options, tolerance: .standard, using: &budgetExecution)
+            let proof = try geometryTestRequire(root.proof(range: range, box: candidate,
+                pair: .init(first: 0, second: 1), policy: budget, using: &budgetExecution))
             #expect(proof.closedDomain != nil && proof.closedDomain?.range == range)
             #expect(proof.box.u.lower >= candidate.u.lower && proof.box.u.upper <= candidate.u.upper)
             #expect(proof.box.v.lower >= candidate.v.lower && proof.box.v.upper <= candidate.v.upper)
@@ -311,17 +318,19 @@ struct CurveSurfaceRegularGraphTests {
         let source = rationalEndpointSource(), target = rationalMultispanEndpointSurface()
         let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: target, tolerance: .standard)
         let options = try graphOptions()
-        var preparation = OverlapProofBudget(options: options, tolerance: .standard)
-        let independence = try #require(OverlapRegularGraphClosedDomainAuthority.TargetIndependence.certificate(
-            prepared: prepared, budget: &preparation))
+        var preparationExecution = try OriginalQueryExecution.independentGeometry()
+        let preparation = try OverlapProofPolicy(options: options, tolerance: .standard, using: &preparationExecution)
+        let independence = try geometryTestRequire(OverlapRegularGraphClosedDomainAuthority.TargetIndependence.certificate(
+            prepared: prepared, policy: preparation, using: &preparationExecution))
         let root = OverlapRegularGraphRootCertifier(
             curve: try PreparedCurveDifferentialEncloser(curve: .bSpline(source), tolerance: .standard),
             coordinateIndependence: independence, tolerance: .standard)
         let range = try ScalarInterval(lower: 1.0 / 3 - 1e-6, upper: 1.0 / 3 + 1e-6)
         let axis = try ScalarInterval(lower: 0.49999, upper: 0.50001)
         let box = SurfaceParameterBox(u: axis, v: axis), pair = OverlapRegularGraphCell.Pair(first: 0, second: 1)
-        var budget = OverlapProofBudget(options: options, tolerance: .standard)
-        let proof = try #require(root.proof(range: range, box: box, pair: pair, budget: &budget))
+        var budgetExecution = try OriginalQueryExecution.independentGeometry()
+        let budget = try OverlapProofPolicy(options: options, tolerance: .standard, using: &budgetExecution)
+        let proof = try geometryTestRequire(root.proof(range: range, box: box, pair: pair, policy: budget, using: &budgetExecution))
         #expect(!proof.authority.isSmooth && proof.u.count == 1 && proof.v.count == 1 && proof.residual.count == 1)
         #expect(proof.residual[0].absoluteUpperBound > ModelingTolerance.standard.distance)
         #expect(proof.sourcePositionWidthLowerBound > (OutwardScalarInterval.exact(ModelingTolerance.standard.distance) * .exact(2)).upper)
@@ -330,14 +339,14 @@ struct CurveSurfaceRegularGraphTests {
         #expect(first.lower <= 0 && first.upper >= 0)
         let cell = OverlapRegularGraphCell(range: range, box: box, pair: pair, derivativeU: proof.u[0],
             derivativeV: proof.v[0], maximumDeviation: .infinity, authority: proof.authority)
-        let residual = try root.collarResidual(cell: cell, proof: proof, budget: &budget)
+        let residual = try root.collarResidual(cell: cell, proof: proof, policy: budget, using: &budgetExecution)
         #expect(residual.lower <= 0 && residual.upper >= 0)
         #expect(residual.absoluteUpperBound <= ModelingTolerance.standard.distance)
         #expect(residual.lower >= proof.residual[0].lower && residual.upper <= proof.residual[0].upper)
         let unrelated = OverlapRegularGraphCell(range: range, box: box, pair: .init(first: 0, second: 2),
             derivativeU: proof.u[0], derivativeV: proof.v[0], maximumDeviation: .infinity, authority: proof.authority)
         try expectFailure(.intersectionFailure) {
-            _ = try root.collarResidual(cell: unrelated, proof: proof, budget: &budget)
+            _ = try root.collarResidual(cell: unrelated, proof: proof, policy: budget, using: &budgetExecution)
         }
         for t in [range.lower, 1.0 / 3, range.upper] {
             let h = 2 * t / (1 + t)
@@ -350,25 +359,28 @@ struct CurveSurfaceRegularGraphTests {
         exactOptions.maximumIterations = 1
         let fee = 1 + root.jetWork * 4 + target.uKnots.count + target.vKnots.count
         exactOptions.maximumSubdivisionCells = fee
-        var exactCenter = OverlapProofBudget(options: exactOptions, tolerance: .standard)
-        let bounded = try root.collarResidual(cell: cell, proof: proof, budget: &exactCenter)
+        var exactCenterExecution = try OriginalQueryExecution.independentGeometry()
+        let exactCenter = try OverlapProofPolicy(options: exactOptions, tolerance: .standard, using: &exactCenterExecution)
+        let bounded = try root.collarResidual(cell: cell, proof: proof, policy: exactCenter, using: &exactCenterExecution)
         #expect(bounded.lower <= 0 && bounded.upper >= 0)
-        try expectFailure(.resourceLimitExceeded) { try exactCenter.work() }
+        try expectFailure(.resourceLimitExceeded) { try exactCenter.work(using: &exactCenterExecution) }
         exactOptions.maximumSubdivisionCells = fee - 1
-        var incompleteCenter = OverlapProofBudget(options: exactOptions, tolerance: .standard)
+        var incompleteCenterExecution = try OriginalQueryExecution.independentGeometry()
+        let incompleteCenter = try OverlapProofPolicy(options: exactOptions, tolerance: .standard, using: &incompleteCenterExecution)
         try expectFailure(.resourceLimitExceeded) {
-            _ = try root.collarResidual(cell: cell, proof: proof, budget: &incompleteCenter)
+            _ = try root.collarResidual(cell: cell, proof: proof, policy: incompleteCenter, using: &incompleteCenterExecution)
         }
         let (stream, continuation) = AsyncStream<Void>.makeStream()
         let task = Task {
             for await _ in stream { break }
-            var cancelledBudget = OverlapProofBudget(options: options, tolerance: .standard)
-            return try root.collarResidual(cell: cell, proof: proof, budget: &cancelledBudget)
+            var cancelledBudgetExecution = try OriginalQueryExecution.independentGeometry()
+            let cancelledBudget = try OverlapProofPolicy(options: options, tolerance: .standard, using: &cancelledBudgetExecution)
+            return try root.collarResidual(cell: cell, proof: proof, policy: cancelledBudget, using: &cancelledBudgetExecution)
         }
         task.cancel()
         continuation.yield()
         continuation.finish()
-        await #expect(throws: CancellationError.self) { _ = try await task.value }
+        await geometryTestExpectFailure({ geometryTestIsCancelled($0) }) { _ = try await task.value }
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -392,20 +404,22 @@ struct CurveSurfaceRegularGraphTests {
         var options = try graphOptions()
         // Ten knots, seven checks for each of nine controls, and nine exact products.
         options.maximumSubdivisionCells = 82
-        var exact = OverlapProofBudget(options: options, tolerance: .standard)
-        let independence = try #require(OverlapRegularGraphClosedDomainAuthority.TargetIndependence.certificate(
-            prepared: prepared, budget: &exact))
-        try expectFailure(.resourceLimitExceeded) { try exact.work() }
+        var exactExecution = try OriginalQueryExecution.independentGeometry()
+        let exact = try OverlapProofPolicy(options: options, tolerance: .standard, using: &exactExecution)
+        let independence = try geometryTestRequire(OverlapRegularGraphClosedDomainAuthority.TargetIndependence.certificate(
+            prepared: prepared, policy: exact, using: &exactExecution))
+        try expectFailure(.resourceLimitExceeded) { try exact.work(using: &exactExecution) }
         options.maximumSubdivisionCells = 81
-        var insufficient = OverlapProofBudget(options: options, tolerance: .standard)
+        var insufficientExecution = try OriginalQueryExecution.independentGeometry()
+        let insufficient = try OverlapProofPolicy(options: options, tolerance: .standard, using: &insufficientExecution)
         try expectFailure(.resourceLimitExceeded) {
-            _ = try OverlapRegularGraphClosedDomainAuthority.TargetIndependence.certificate(prepared: prepared, budget: &insufficient)
+            _ = try OverlapRegularGraphClosedDomainAuthority.TargetIndependence.certificate(prepared: prepared, policy: insufficient, using: &insufficientExecution)
         }
         let original = try prepared.intervalJet(over: box, tolerance: .standard)
         let root = OverlapRegularGraphRootCertifier(
             curve: try PreparedCurveDifferentialEncloser(curve: .bSpline(source), tolerance: .standard),
             coordinateIndependence: independence, tolerance: .standard)
-        let tightened = try root.targetJet(over: box)
+        let tightened = try root.targetJet(over: box, using: &exactExecution)
         func unchanged(_ first: OutwardScalarInterval, _ second: OutwardScalarInterval) {
             #expect(first.lower == second.lower && first.upper == second.upper)
         }
@@ -435,16 +449,18 @@ struct CurveSurfaceRegularGraphTests {
         }
         // Reuse scans only the original source: nine coordinates/weights and six knots.
         options.maximumSubdivisionCells = 15
-        var reuse = OverlapProofBudget(options: options, tolerance: .standard)
-        let authority = try #require(OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(source),
-            independence: independence, range: range, pair: pair, box: box, target: tightened, budget: &reuse))
+        var reuseExecution = try OriginalQueryExecution.independentGeometry()
+        let reuse = try OverlapProofPolicy(options: options, tolerance: .standard, using: &reuseExecution)
+        let authority = try geometryTestRequire(OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(source),
+            independence: independence, range: range, pair: pair, box: box, target: tightened, policy: reuse, using: &reuseExecution))
         #expect(authority.exactEndpoint(at: 0)?.u == 0 && authority.exactEndpoint(at: 1)?.v == 1)
-        try expectFailure(.resourceLimitExceeded) { try reuse.work() }
+        try expectFailure(.resourceLimitExceeded) { try reuse.work(using: &reuseExecution) }
         options.maximumSubdivisionCells = 14
-        var shortReuse = OverlapProofBudget(options: options, tolerance: .standard)
+        var shortReuseExecution = try OriginalQueryExecution.independentGeometry()
+        let shortReuse = try OverlapProofPolicy(options: options, tolerance: .standard, using: &shortReuseExecution)
         try expectFailure(.resourceLimitExceeded) {
             _ = try OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(source), independence: independence,
-                range: range, pair: pair, box: box, target: tightened, budget: &shortReuse)
+                range: range, pair: pair, box: box, target: tightened, policy: shortReuse, using: &shortReuseExecution)
         }
     }
 
@@ -453,9 +469,10 @@ struct CurveSurfaceRegularGraphTests {
         var target = rationalMultispanEndpointSurface()
         let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: target, tolerance: .standard)
         let range = try ScalarInterval(lower: 0, upper: 1), box = SurfaceParameterBox(u: range, v: range)
-        var budget = OverlapProofBudget(options: try graphOptions(), tolerance: .standard)
-        let independence = try #require(OverlapRegularGraphClosedDomainAuthority.TargetIndependence.certificate(
-            prepared: prepared, budget: &budget))
+        var budgetExecution = try OriginalQueryExecution.independentGeometry()
+        let budget = try OverlapProofPolicy(options: try graphOptions(), tolerance: .standard, using: &budgetExecution)
+        let independence = try geometryTestRequire(OverlapRegularGraphClosedDomainAuthority.TargetIndependence.certificate(
+            prepared: prepared, policy: budget, using: &budgetExecution))
         let original = try prepared.intervalJet(over: box, tolerance: .standard)
         let inconsistentX = SurfaceIntervalJet(value: original.x.value,
             derivativeU: original.x.derivativeU, derivativeV: .exact(1),
@@ -468,15 +485,17 @@ struct CurveSurfaceRegularGraphTests {
         }
         target.weights[1][1] = (81.0 / 64).nextUp
         let falseFactor = try PreparedBSplineSurfaceDifferentialEncloser(surface: target, tolerance: .standard)
-        var falseBudget = OverlapProofBudget(options: try graphOptions(), tolerance: .standard)
+        var falseBudgetExecution = try OriginalQueryExecution.independentGeometry()
+        let falseBudget = try OverlapProofPolicy(options: try graphOptions(), tolerance: .standard, using: &falseBudgetExecution)
         #expect(try OverlapRegularGraphClosedDomainAuthority.TargetIndependence.certificate(
-            prepared: falseFactor, budget: &falseBudget) == nil)
+            prepared: falseFactor, policy: falseBudget, using: &falseBudgetExecution) == nil)
         target = rationalMultispanEndpointSurface()
         target.controlPoints[1][0].x = 0.125
         let coupled = try PreparedBSplineSurfaceDifferentialEncloser(surface: target, tolerance: .standard)
-        var coupledBudget = OverlapProofBudget(options: try graphOptions(), tolerance: .standard)
-        let coupledIdentity = try #require(OverlapRegularGraphClosedDomainAuthority.TargetIndependence.certificate(
-            prepared: coupled, budget: &coupledBudget))
+        var coupledBudgetExecution = try OriginalQueryExecution.independentGeometry()
+        let coupledBudget = try OverlapProofPolicy(options: try graphOptions(), tolerance: .standard, using: &coupledBudgetExecution)
+        let coupledIdentity = try geometryTestRequire(OverlapRegularGraphClosedDomainAuthority.TargetIndependence.certificate(
+            prepared: coupled, policy: coupledBudget, using: &coupledBudgetExecution))
         let coupledOriginal = try coupled.intervalJet(over: box, tolerance: .standard)
         let coupledIntersection = try coupledIdentity.intersecting(coupledOriginal, tolerance: .standard)
         #expect(coupledIntersection.x.derivativeV.lower == coupledOriginal.x.derivativeV.lower)
@@ -493,13 +512,14 @@ struct CurveSurfaceRegularGraphTests {
         let (stream, continuation) = AsyncStream<Void>.makeStream()
         let task = Task {
             for await _ in stream { break }
-            var budget = OverlapProofBudget(options: options, tolerance: .standard)
-            return try OverlapRegularGraphClosedDomainAuthority.TargetIndependence.certificate(prepared: prepared, budget: &budget)
+            var budgetExecution = try OriginalQueryExecution.independentGeometry()
+            let budget = try OverlapProofPolicy(options: options, tolerance: .standard, using: &budgetExecution)
+            return try OverlapRegularGraphClosedDomainAuthority.TargetIndependence.certificate(prepared: prepared, policy: budget, using: &budgetExecution)
         }
         task.cancel()
         continuation.yield()
         continuation.finish()
-        await #expect(throws: CancellationError.self) { _ = try await task.value }
+        await geometryTestExpectFailure({ geometryTestIsCancelled($0) }) { _ = try await task.value }
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -513,18 +533,20 @@ struct CurveSurfaceRegularGraphTests {
         // 9 source coordinates + 6 source knots + 10 target knots + 27 tensor coordinates,
         // followed by all nine exact original tensor factor comparisons: 61 units.
         options.maximumSubdivisionCells = 61
-        var exact = OverlapProofBudget(options: options, tolerance: .standard)
-        let authority = try #require(OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(source),
-            surface: target, range: range, pair: pair, box: box, target: targetJet, budget: &exact))
+        var exactExecution = try OriginalQueryExecution.independentGeometry()
+        let exact = try OverlapProofPolicy(options: options, tolerance: .standard, using: &exactExecution)
+        let authority = try geometryTestRequire(OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(source),
+            surface: target, range: range, pair: pair, box: box, target: targetJet, policy: exact, using: &exactExecution))
         let (first, second) = try #require(authority.mapping.separableAxes)
         #expect(first.variesU && !second.variesU)
         #expect(authority.exactEndpoint(at: 0)?.u == 0 && authority.exactEndpoint(at: 1)?.v == 1)
-        try expectFailure(.resourceLimitExceeded) { try exact.work() }
+        try expectFailure(.resourceLimitExceeded) { try exact.work(using: &exactExecution) }
         options.maximumSubdivisionCells = 60
-        var insufficient = OverlapProofBudget(options: options, tolerance: .standard)
+        var insufficientExecution = try OriginalQueryExecution.independentGeometry()
+        let insufficient = try OverlapProofPolicy(options: options, tolerance: .standard, using: &insufficientExecution)
         try expectFailure(.resourceLimitExceeded) {
             _ = try OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(source), surface: target,
-                range: range, pair: pair, box: box, target: targetJet, budget: &insufficient)
+                range: range, pair: pair, box: box, target: targetJet, policy: insufficient, using: &insufficientExecution)
         }
         var falseFactor = target
         falseFactor.weights[1][1] = (81.0 / 64).nextUp
@@ -533,9 +555,10 @@ struct CurveSurfaceRegularGraphTests {
         for original in [falseFactor, coupled] {
             let jet = try PreparedBSplineSurfaceDifferentialEncloser(surface: original, tolerance: .standard)
                 .intervalJet(over: box, tolerance: .standard)
-            var refusal = OverlapProofBudget(options: try graphOptions(), tolerance: .standard)
+            var refusalExecution = try OriginalQueryExecution.independentGeometry()
+            let refusal = try OverlapProofPolicy(options: try graphOptions(), tolerance: .standard, using: &refusalExecution)
             #expect(try OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(source), surface: original,
-                range: range, pair: pair, box: box, target: jet, budget: &refusal) == nil)
+                range: range, pair: pair, box: box, target: jet, policy: refusal, using: &refusalExecution) == nil)
         }
     }
 
@@ -550,14 +573,15 @@ struct CurveSurfaceRegularGraphTests {
         let (stream, continuation) = AsyncStream<Void>.makeStream()
         let task = Task {
             for await _ in stream { break }
-            var budget = OverlapProofBudget(options: options, tolerance: .standard)
+            var budgetExecution = try OriginalQueryExecution.independentGeometry()
+            let budget = try OverlapProofPolicy(options: options, tolerance: .standard, using: &budgetExecution)
             return try OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(source), surface: target,
-                range: range, pair: pair, box: box, target: targetJet, budget: &budget)
+                range: range, pair: pair, box: box, target: targetJet, policy: budget, using: &budgetExecution)
         }
         task.cancel()
         continuation.yield()
         continuation.finish()
-        await #expect(throws: CancellationError.self) { _ = try await task.value }
+        await geometryTestExpectFailure({ geometryTestIsCancelled($0) }) { _ = try await task.value }
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -676,17 +700,19 @@ struct CurveSurfaceRegularGraphTests {
         var options = try graphOptions()
         // Original structural scan is 35, plus four original tensor comparisons.
         options.maximumSubdivisionCells = 39
-        var exact = OverlapProofBudget(options: options, tolerance: .standard)
-        let authority = try #require(OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(source),
-            surface: target, range: range, pair: pair, box: box, target: targetJet, budget: &exact))
+        var exactExecution = try OriginalQueryExecution.independentGeometry()
+        let exact = try OverlapProofPolicy(options: options, tolerance: .standard, using: &exactExecution)
+        let authority = try geometryTestRequire(OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(source),
+            surface: target, range: range, pair: pair, box: box, target: targetJet, policy: exact, using: &exactExecution))
         let (first, second) = try #require(authority.mapping.separableAxes)
         #expect(first.variesU && !second.variesU)
         #expect(authority.exactEndpoint(at: 0)?.u == 0 && authority.exactEndpoint(at: 1)?.v == 1)
         options.maximumSubdivisionCells = 38
-        var insufficient = OverlapProofBudget(options: options, tolerance: .standard)
+        var insufficientExecution = try OriginalQueryExecution.independentGeometry()
+        let insufficient = try OverlapProofPolicy(options: options, tolerance: .standard, using: &insufficientExecution)
         try expectFailure(.resourceLimitExceeded) {
             _ = try OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(source), surface: target,
-                range: range, pair: pair, box: box, target: targetJet, budget: &insufficient)
+                range: range, pair: pair, box: box, target: targetJet, policy: insufficient, using: &insufficientExecution)
         }
         var falseFactor = target
         falseFactor.weights = [[1, 1 + Double.ulpOfOne], [1 - Double.ulpOfOne, 1]]
@@ -700,22 +726,25 @@ struct CurveSurfaceRegularGraphTests {
         for original in [falseFactor, coupled] {
             let jet = try PreparedBSplineSurfaceDifferentialEncloser(surface: original, tolerance: .standard)
                 .intervalJet(over: box, tolerance: .standard)
-            var refusal = OverlapProofBudget(options: try graphOptions(), tolerance: .standard)
+            var refusalExecution = try OriginalQueryExecution.independentGeometry()
+            let refusal = try OverlapProofPolicy(options: try graphOptions(), tolerance: .standard, using: &refusalExecution)
             #expect(try OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(source), surface: original,
-                range: range, pair: pair, box: box, target: jet, budget: &refusal) == nil)
+                range: range, pair: pair, box: box, target: jet, policy: refusal, using: &refusalExecution) == nil)
         }
         let multispanJet = try PreparedBSplineSurfaceDifferentialEncloser(surface: multispan, tolerance: .standard)
             .intervalJet(over: box, tolerance: .standard)
-        var admitted = OverlapProofBudget(options: try graphOptions(), tolerance: .standard)
-        let multispanAuthority = try #require(OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(source),
-            surface: multispan, range: range, pair: pair, box: box, target: multispanJet, budget: &admitted))
+        var admittedExecution = try OriginalQueryExecution.independentGeometry()
+        let admitted = try OverlapProofPolicy(options: try graphOptions(), tolerance: .standard, using: &admittedExecution)
+        let multispanAuthority = try geometryTestRequire(OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(source),
+            surface: multispan, range: range, pair: pair, box: box, target: multispanJet, policy: admitted, using: &admittedExecution))
         #expect(multispanAuthority.surface == multispan)
         #expect(multispanAuthority.exactEndpoint(at: 0)?.u == 0 && multispanAuthority.exactEndpoint(at: 1)?.v == 1)
         var periodic = target
         periodic.isUPeriodic = true
-        var periodicBudget = OverlapProofBudget(options: try graphOptions(), tolerance: .standard)
+        var periodicBudgetExecution = try OriginalQueryExecution.independentGeometry()
+        let periodicBudget = try OverlapProofPolicy(options: try graphOptions(), tolerance: .standard, using: &periodicBudgetExecution)
         #expect(try OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(source), surface: periodic,
-            range: range, pair: pair, box: box, target: targetJet, budget: &periodicBudget) == nil)
+            range: range, pair: pair, box: box, target: targetJet, policy: periodicBudget, using: &periodicBudgetExecution) == nil)
         var publicOptions = try graphOptions()
         publicOptions.curveRange = range
         try expectFailure(.unsupportedCapability) {
@@ -747,14 +776,16 @@ struct CurveSurfaceRegularGraphTests {
         var options = try graphOptions()
         options.maximumIterations = 1
         options.maximumSubdivisionCells = root.jetWork * 8 + 2 * (target.uKnots.count + target.vKnots.count) + 39
-        var budget = OverlapProofBudget(options: options, tolerance: .standard)
-        let first = try #require(root.proof(range: range, box: box, pair: pair, budget: &budget))
+        var budgetExecution = try OriginalQueryExecution.independentGeometry()
+        let budget = try OverlapProofPolicy(options: options, tolerance: .standard, using: &budgetExecution)
+        let first = try geometryTestRequire(root.proof(range: range, box: box, pair: pair, policy: budget, using: &budgetExecution))
         #expect(first.closedDomain?.range == range && first.closedDomain?.pair == pair)
         #expect(first.box.u.lower == 0 && first.box.u.upper == 1 && first.box.v.lower == 0 && first.box.v.upper == 1)
         #expect(first.residual[0].absoluteUpperBound > ModelingTolerance.standard.distance)
         options.maximumIterations = 2
-        var insufficient = OverlapProofBudget(options: options, tolerance: .standard)
-        try expectFailure(.resourceLimitExceeded) { _ = try root.proof(range: range, box: box, pair: pair, budget: &insufficient) }
+        var insufficientExecution = try OriginalQueryExecution.independentGeometry()
+        let insufficient = try OverlapProofPolicy(options: options, tolerance: .standard, using: &insufficientExecution)
+        try expectFailure(.resourceLimitExceeded) { _ = try root.proof(range: range, box: box, pair: pair, policy: insufficient, using: &insufficientExecution) }
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -822,7 +853,7 @@ struct CurveSurfaceRegularGraphTests {
         task.cancel()
         continuation.yield()
         continuation.finish()
-        await #expect(throws: CancellationError.self) { _ = try await task.value }
+        await geometryTestExpectFailure({ geometryTestIsCancelled($0) }) { _ = try await task.value }
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -834,8 +865,9 @@ struct CurveSurfaceRegularGraphTests {
             tolerance: .standard)
         let range = try ScalarInterval(lower: 0, upper: 0.125), axis = try ScalarInterval(lower: 0, upper: 0.75)
         let box = SurfaceParameterBox(u: axis, v: axis), pair = OverlapRegularGraphCell.Pair(first: 0, second: 1)
-        var budget = OverlapProofBudget(options: options, tolerance: .standard)
-        let original = try #require(root.proof(range: range, box: box, pair: pair, budget: &budget))
+        var budgetExecution = try OriginalQueryExecution.independentGeometry()
+        let budget = try OverlapProofPolicy(options: options, tolerance: .standard, using: &budgetExecution)
+        let original = try geometryTestRequire(root.proof(range: range, box: box, pair: pair, policy: budget, using: &budgetExecution))
         #expect(original.closedDomain != nil)
         // This is also the provisional-cell consumer used by smooth Taylor classification.
         let cell = OverlapRegularGraphCell(range: range, box: box, pair: pair,
@@ -843,7 +875,7 @@ struct CurveSurfaceRegularGraphTests {
             authority: original.authority)
         let t = 0.00001, h = 4 * t / (1 + t)
         let expected = 2 * h / (1 + (1 + 4 * h).squareRoot())
-        let point = try root.pointProof(at: t, cell: cell, budget: &budget)
+        let point = try root.pointProof(at: t, cell: cell, policy: budget, using: &budgetExecution)
         #expect(point.closedDomain?.range == (try ScalarInterval(lower: t.nextDown, upper: t.nextUp)))
         #expect(point.box.u.lower <= expected && point.box.u.upper >= expected)
         #expect(point.box.v.lower <= expected && point.box.v.upper >= expected)
@@ -947,9 +979,10 @@ struct CurveSurfaceRegularGraphTests {
         let range = try ScalarInterval(lower: 0, upper: 1), box = SurfaceParameterBox(u: range, v: range)
         let pair = OverlapRegularGraphCell.Pair(first: 0, second: 1)
         let jet = try prepared.intervalJet(over: box, tolerance: .standard)
-        var budget = OverlapProofBudget(options: try graphOptions(), tolerance: .standard)
-        let authority = try #require(OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(source),
-            surface: target, range: range, pair: pair, box: box, target: jet, budget: &budget))
+        var budgetExecution = try OriginalQueryExecution.independentGeometry()
+        let budget = try OverlapProofPolicy(options: try graphOptions(), tolerance: .standard, using: &budgetExecution)
+        let authority = try geometryTestRequire(OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(source),
+            surface: target, range: range, pair: pair, box: box, target: jet, policy: budget, using: &budgetExecution))
         let (first, second) = try #require(authority.mapping.separableAxes)
         #expect(first.variesU && !second.variesU)
         #expect(authority.exactEndpoint(at: 0)?.u == 0 && authority.exactEndpoint(at: 1)?.v == 1)
@@ -963,28 +996,32 @@ struct CurveSurfaceRegularGraphTests {
         for (c, s) in [(source, nonunit), (source, coupled), (outside, target)] {
             let original = try PreparedBSplineSurfaceDifferentialEncloser(surface: s, tolerance: .standard)
             let originalJet = try original.intervalJet(over: box, tolerance: .standard)
-            var refusal = OverlapProofBudget(options: try graphOptions(), tolerance: .standard)
+            var refusalExecution = try OriginalQueryExecution.independentGeometry()
+            let refusal = try OverlapProofPolicy(options: try graphOptions(), tolerance: .standard, using: &refusalExecution)
             #expect(try OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(c), surface: s,
-                range: range, pair: pair, box: box, target: originalJet, budget: &refusal) == nil)
+                range: range, pair: pair, box: box, target: originalJet, policy: refusal, using: &refusalExecution) == nil)
         }
         let singular = closedEndpointSurface(rankZero: true)
         let singularJet = try PreparedBSplineSurfaceDifferentialEncloser(surface: singular, tolerance: .standard)
             .intervalJet(over: box, tolerance: .standard)
-        var singularBudget = OverlapProofBudget(options: try graphOptions(), tolerance: .standard)
+        var singularBudgetExecution = try OriginalQueryExecution.independentGeometry()
+        let singularBudget = try OverlapProofPolicy(options: try graphOptions(), tolerance: .standard, using: &singularBudgetExecution)
         #expect(try OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(source), surface: singular,
-            range: range, pair: pair, box: box, target: singularJet, budget: &singularBudget) == nil)
+            range: range, pair: pair, box: box, target: singularJet, policy: singularBudget, using: &singularBudgetExecution) == nil)
         let scan = source.controlPointCount * 3 + source.knots.count + target.uKnots.count + target.vKnots.count
             + target.uControlPointCount * target.vControlPointCount * 3
         var scanOptions = try graphOptions()
         scanOptions.maximumSubdivisionCells = scan
-        var exactScan = OverlapProofBudget(options: scanOptions, tolerance: .standard)
-        _ = try #require(OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(source), surface: target,
-            range: range, pair: pair, box: box, target: jet, budget: &exactScan))
+        var exactScanExecution = try OriginalQueryExecution.independentGeometry()
+        let exactScan = try OverlapProofPolicy(options: scanOptions, tolerance: .standard, using: &exactScanExecution)
+        _ = try geometryTestRequire(OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(source), surface: target,
+            range: range, pair: pair, box: box, target: jet, policy: exactScan, using: &exactScanExecution))
         scanOptions.maximumSubdivisionCells = scan - 1
-        var insufficientScan = OverlapProofBudget(options: scanOptions, tolerance: .standard)
+        var insufficientScanExecution = try OriginalQueryExecution.independentGeometry()
+        let insufficientScan = try OverlapProofPolicy(options: scanOptions, tolerance: .standard, using: &insufficientScanExecution)
         try expectFailure(.resourceLimitExceeded) {
             _ = try OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(source), surface: target,
-                range: range, pair: pair, box: box, target: jet, budget: &insufficientScan)
+                range: range, pair: pair, box: box, target: jet, policy: insufficientScan, using: &insufficientScanExecution)
         }
     }
 
@@ -1031,16 +1068,18 @@ struct CurveSurfaceRegularGraphTests {
         oneIteration.maximumIterations = 1
         // Failed strict K, charged original-domain scan/jet, then the first IVT-owned image.
         oneIteration.maximumSubdivisionCells = root.jetWork * 8 + 2 * (target.uKnots.count + target.vKnots.count) + scan
-        var budget = OverlapProofBudget(options: oneIteration, tolerance: .standard)
-        let proof = try #require(root.proof(range: range, box: box, pair: pair, budget: &budget))
+        var budgetExecution = try OriginalQueryExecution.independentGeometry()
+        let budget = try OverlapProofPolicy(options: oneIteration, tolerance: .standard, using: &budgetExecution)
+        let proof = try geometryTestRequire(root.proof(range: range, box: box, pair: pair, policy: budget, using: &budgetExecution))
         #expect(proof.closedDomain != nil && proof.closedDomain?.range == range && proof.closedDomain?.pair == pair)
         #expect(proof.box.u.lower == 0 && proof.box.u.upper == 1 && proof.box.v.lower == 0 && proof.box.v.upper == 1)
         #expect(proof.residual[0].absoluteUpperBound > ModelingTolerance.standard.distance)
         var twoIterations = oneIteration
         twoIterations.maximumIterations = 2
-        var exhausted = OverlapProofBudget(options: twoIterations, tolerance: .standard)
+        var exhaustedExecution = try OriginalQueryExecution.independentGeometry()
+        let exhausted = try OverlapProofPolicy(options: twoIterations, tolerance: .standard, using: &exhaustedExecution)
         try expectFailure(.resourceLimitExceeded) {
-            _ = try root.proof(range: range, box: box, pair: pair, budget: &exhausted)
+            _ = try root.proof(range: range, box: box, pair: pair, policy: exhausted, using: &exhaustedExecution)
         }
     }
 
@@ -1095,7 +1134,7 @@ struct CurveSurfaceRegularGraphTests {
         task.cancel()
         continuation.yield()
         continuation.finish()
-        await #expect(throws: CancellationError.self) { _ = try await task.value }
+        await geometryTestExpectFailure({ geometryTestIsCancelled($0) }) { _ = try await task.value }
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -1110,8 +1149,9 @@ struct CurveSurfaceRegularGraphTests {
         let box = SurfaceParameterBox(u: axis, v: axis), pair = OverlapRegularGraphCell.Pair(first: 0, second: 1)
         var initialOnly = options
         initialOnly.maximumIterations = 1
-        var initialBudget = OverlapProofBudget(options: initialOnly, tolerance: .standard)
-        let initial = try #require(root.proof(range: range, box: box, pair: pair, budget: &initialBudget))
+        var initialBudgetExecution = try OriginalQueryExecution.independentGeometry()
+        let initialBudget = try OverlapProofPolicy(options: initialOnly, tolerance: .standard, using: &initialBudgetExecution)
+        let initial = try geometryTestRequire(root.proof(range: range, box: box, pair: pair, policy: initialBudget, using: &initialBudgetExecution))
         #expect(!initial.authority.isSmooth && initial.residual.count == 1)
         let maximumWidth = OutwardScalarInterval.exact(ModelingTolerance.standard.distance) * .exact(2)
         #expect(initial.sourcePositionWidthLowerBound > maximumWidth.upper)
@@ -1120,8 +1160,9 @@ struct CurveSurfaceRegularGraphTests {
         var exactInitialWork = options
         // Only the strict certificate fits, despite the original full iteration allowance.
         exactInitialWork.maximumSubdivisionCells = root.jetWork * 4 + target.uKnots.count + target.vKnots.count
-        var budget = OverlapProofBudget(options: exactInitialWork, tolerance: .standard)
-        let unchanged = try #require(root.proof(range: range, box: box, pair: pair, budget: &budget))
+        var budgetExecution = try OriginalQueryExecution.independentGeometry()
+        let budget = try OverlapProofPolicy(options: exactInitialWork, tolerance: .standard, using: &budgetExecution)
+        let unchanged = try geometryTestRequire(root.proof(range: range, box: box, pair: pair, policy: budget, using: &budgetExecution))
         #expect(unchanged.box == initial.box && unchanged.authority == initial.authority)
         #expect(unchanged.sourcePositionWidthLowerBound == initial.sourcePositionWidthLowerBound)
         #expect(unchanged.residual[0].lower == initial.residual[0].lower
@@ -1145,12 +1186,14 @@ struct CurveSurfaceRegularGraphTests {
         let box = SurfaceParameterBox(u: axis, v: axis), pair = OverlapRegularGraphCell.Pair(first: 0, second: 1)
         var firstOnly = options
         firstOnly.maximumIterations = 1
-        var firstBudget = OverlapProofBudget(options: firstOnly, tolerance: .standard)
-        let first = try #require(root.proof(range: range, box: box, pair: pair, budget: &firstBudget))
+        var firstBudgetExecution = try OriginalQueryExecution.independentGeometry()
+        let firstBudget = try OverlapProofPolicy(options: firstOnly, tolerance: .standard, using: &firstBudgetExecution)
+        let first = try geometryTestRequire(root.proof(range: range, box: box, pair: pair, policy: firstBudget, using: &firstBudgetExecution))
         #expect(first.residual[0].absoluteUpperBound > ModelingTolerance.standard.distance)
         #expect(first.residual[0].absoluteLowerBound <= ModelingTolerance.standard.distance)
-        var budget = OverlapProofBudget(options: options, tolerance: .standard)
-        let refined = try #require(root.proof(range: range, box: box, pair: pair, budget: &budget))
+        var budgetExecution = try OriginalQueryExecution.independentGeometry()
+        let budget = try OverlapProofPolicy(options: options, tolerance: .standard, using: &budgetExecution)
+        let refined = try geometryTestRequire(root.proof(range: range, box: box, pair: pair, policy: budget, using: &budgetExecution))
         let lower = finiteKnotInverse(range.lower / (1 + range.lower))
         let upper = finiteKnotInverse(range.upper / (1 + range.upper))
         // h and the literal piecewise-linear inverse are increasing on this full interval.
@@ -1181,20 +1224,23 @@ struct CurveSurfaceRegularGraphTests {
         let axis = try ScalarInterval(lower: 0.4999990202481862, upper: 0.5000007934872713)
         let box = SurfaceParameterBox(u: axis, v: axis), pair = OverlapRegularGraphCell.Pair(first: 0, second: 1)
         let wrongAxis = try ScalarInterval(lower: 0.1, upper: 0.2)
-        var unrestricted = OverlapProofBudget(options: options, tolerance: .standard)
+        var unrestrictedExecution = try OriginalQueryExecution.independentGeometry()
+        let unrestricted = try OverlapProofPolicy(options: options, tolerance: .standard, using: &unrestrictedExecution)
         #expect(try root.proof(range: range, box: SurfaceParameterBox(u: wrongAxis, v: wrongAxis),
-            pair: pair, budget: &unrestricted) == nil)
+            pair: pair, policy: unrestricted, using: &unrestrictedExecution) == nil)
         var limited = options
         // The initial strict K proof and its position residual fit exactly.
         limited.maximumSubdivisionCells = root.jetWork * 4 + target.uKnots.count + target.vKnots.count
         var initialOnly = limited
         initialOnly.maximumIterations = 1
-        var initialBudget = OverlapProofBudget(options: initialOnly, tolerance: .standard)
-        let initial = try #require(root.proof(range: range, box: box, pair: pair, budget: &initialBudget))
+        var initialBudgetExecution = try OriginalQueryExecution.independentGeometry()
+        let initialBudget = try OverlapProofPolicy(options: initialOnly, tolerance: .standard, using: &initialBudgetExecution)
+        let initial = try geometryTestRequire(root.proof(range: range, box: box, pair: pair, policy: initialBudget, using: &initialBudgetExecution))
         #expect(initial.residual[0].absoluteUpperBound > ModelingTolerance.standard.distance)
-        var exhausted = OverlapProofBudget(options: limited, tolerance: .standard)
+        var exhaustedExecution = try OriginalQueryExecution.independentGeometry()
+        let exhausted = try OverlapProofPolicy(options: limited, tolerance: .standard, using: &exhaustedExecution)
         try expectFailure(.resourceLimitExceeded) {
-            _ = try root.proof(range: range, box: box, pair: pair, budget: &exhausted)
+            _ = try root.proof(range: range, box: box, pair: pair, policy: exhausted, using: &exhaustedExecution)
         }
     }
 
@@ -1210,21 +1256,23 @@ struct CurveSurfaceRegularGraphTests {
         let (stream, continuation) = AsyncStream<Void>.makeStream()
         let task = Task {
             for await _ in stream { break }
-            var budget = OverlapProofBudget(options: options, tolerance: .standard)
+            var budgetExecution = try OriginalQueryExecution.independentGeometry()
+            let budget = try OverlapProofPolicy(options: options, tolerance: .standard, using: &budgetExecution)
             _ = try root.proof(range: range, box: SurfaceParameterBox(u: axis, v: axis),
-                pair: .init(first: 0, second: 1), budget: &budget)
+                pair: .init(first: 0, second: 1), policy: budget, using: &budgetExecution)
         }
         task.cancel()
         continuation.yield()
         continuation.finish()
-        await #expect(throws: CancellationError.self) { _ = try await task.value }
+        await geometryTestExpectFailure({ geometryTestIsCancelled($0) }) { _ = try await task.value }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func broadSourceQuotientUsesACompleteDerivativeCoverBeforeTransverseAdmission() throws {
         let source = sourceCurve(), target = finiteKnotSurface(), options = try graphOptions()
-        var budget = OverlapProofBudget(options: options, tolerance: .standard)
-        try budget.preparation(curve: source, surface: target)
+        var budgetExecution = try OriginalQueryExecution.independentGeometry()
+        let budget = try OverlapProofPolicy(options: options, tolerance: .standard, using: &budgetExecution)
+        try budget.preparation(curve: source, surface: target, using: &budgetExecution)
         let root = OverlapRegularGraphRootCertifier(
             curve: try PreparedCurveDifferentialEncloser(curve: .bSpline(source), tolerance: .standard),
             surface: try PreparedBSplineSurfaceDifferentialEncloser(surface: target, tolerance: .standard),
@@ -1235,7 +1283,7 @@ struct CurveSurfaceRegularGraphTests {
         let original = try root.curve.thirdOrderIntervalJet(over: range, tolerance: .standard)
         #expect(original.x.derivativeU.lower < 0 && original.x.derivativeU.upper > 0)
         #expect(original.y.derivativeU.lower < 0 && original.y.derivativeU.upper > 0)
-        let proof = try #require(root.proof(range: range, box: box, pair: .init(first: 0, second: 1), budget: &budget))
+        let proof = try geometryTestRequire(root.proof(range: range, box: box, pair: .init(first: 0, second: 1), policy: budget, using: &budgetExecution))
         #expect(proof.authority == .collar(u: .init(first: 0.25, last: 0.5, count: 2), v: nil))
         #expect(proof.u.count == 1 && proof.v.count == 1 && proof.residual.count == 1)
         #expect(proof.box.u.lower > box.u.lower && proof.box.u.upper < box.u.upper)
@@ -1264,22 +1312,25 @@ struct CurveSurfaceRegularGraphTests {
         var workLimited = options
         // The strict original chart and cover preflight fit; the next lower jet must be charged.
         workLimited.maximumSubdivisionCells = root.jetWork * 3 + target.uKnots.count + target.vKnots.count + 2
-        var work = OverlapProofBudget(options: workLimited, tolerance: .standard)
+        var workExecution = try OriginalQueryExecution.independentGeometry()
+        let work = try OverlapProofPolicy(options: workLimited, tolerance: .standard, using: &workExecution)
         try expectFailure(.resourceLimitExceeded) {
-            _ = try root.proof(range: range, box: box, pair: .init(first: 0, second: 1), budget: &work)
+            _ = try root.proof(range: range, box: box, pair: .init(first: 0, second: 1), policy: work, using: &workExecution)
         }
         var depthLimited = options
         depthLimited.maximumSubdivisionDepth = 0
-        var depth = OverlapProofBudget(options: depthLimited, tolerance: .standard)
+        var depthExecution = try OriginalQueryExecution.independentGeometry()
+        let depth = try OverlapProofPolicy(options: depthLimited, tolerance: .standard, using: &depthExecution)
         try expectFailure(.resourceLimitExceeded) {
-            _ = try root.proof(range: range, box: box, pair: .init(first: 0, second: 1), budget: &depth)
+            _ = try root.proof(range: range, box: box, pair: .init(first: 0, second: 1), policy: depth, using: &depthExecution)
         }
         var iterationLimited = options
         iterationLimited.maximumIterations = 1
-        var iterations = OverlapProofBudget(options: iterationLimited, tolerance: .standard)
+        var iterationsExecution = try OriginalQueryExecution.independentGeometry()
+        let iterations = try OverlapProofPolicy(options: iterationLimited, tolerance: .standard, using: &iterationsExecution)
         // Without a complete finer cover the original transverse guard still refuses.
         try expectFailure(.unsupportedCapability) {
-            _ = try root.proof(range: range, box: box, pair: .init(first: 0, second: 1), budget: &iterations)
+            _ = try root.proof(range: range, box: box, pair: .init(first: 0, second: 1), policy: iterations, using: &iterationsExecution)
         }
     }
 
@@ -1354,8 +1405,9 @@ struct CurveSurfaceRegularGraphTests {
     @Test(.timeLimit(.minutes(1)))
     func finiteCollarSummariesRetainAllOriginalCornerJacobians() throws {
         let source = sourceCurve(), target = finiteKnotSurface(tensor: true), options = try graphOptions()
-        var budget = OverlapProofBudget(options: options, tolerance: .standard)
-        try budget.preparation(curve: source, surface: target)
+        var budgetExecution = try OriginalQueryExecution.independentGeometry()
+        let budget = try OverlapProofPolicy(options: options, tolerance: .standard, using: &budgetExecution)
+        try budget.preparation(curve: source, surface: target, using: &budgetExecution)
         let root = OverlapRegularGraphRootCertifier(
             curve: try PreparedCurveDifferentialEncloser(curve: .bSpline(source), tolerance: .standard),
             surface: try PreparedBSplineSurfaceDifferentialEncloser(surface: target, tolerance: .standard),
@@ -1364,11 +1416,11 @@ struct CurveSurfaceRegularGraphTests {
             v: try ScalarInterval(lower: 0.15, upper: 0.65))
         let summary = OverlapRegularGraphAtlas.AxisKnots(first: 0.25, last: 0.5, count: 2)
         #expect(try OverlapRegularGraphAtlas.authority(over: multipleBox, surface: target,
-            tolerance: .standard, budget: &budget) == .collar(u: summary, v: summary))
+            tolerance: .standard, policy: budget, using: &budgetExecution) == .collar(u: summary, v: summary))
         let station = 0.45
         // This fresh strict root proof spans both native knots on both axes.
-        let multiple = try #require(root.proof(range: ScalarInterval(lower: station.nextDown, upper: station.nextUp),
-            box: multipleBox, pair: .init(first: 0, second: 1), budget: &budget))
+        let multiple = try geometryTestRequire(root.proof(range: ScalarInterval(lower: station.nextDown, upper: station.nextUp),
+            box: multipleBox, pair: .init(first: 0, second: 1), policy: budget, using: &budgetExecution))
         #expect(multiple.authority == .collar(u: summary, v: summary))
         #expect(multiple.box.u.lower > multipleBox.u.lower && multiple.box.u.upper < multipleBox.u.upper)
         #expect(multiple.box.v.lower > multipleBox.v.lower && multiple.box.v.upper < multipleBox.v.upper)
@@ -1383,9 +1435,9 @@ struct CurveSurfaceRegularGraphTests {
             #expect(minor.lower > 0 && minor.lower <= lowerSlope * lowerSlope && minor.upper >= upperSlope * upperSlope)
             let range = try ScalarInterval(lower: t - 1e-8, upper: t + 1e-8)
             let pair = OverlapRegularGraphCell.Pair(first: 0, second: 1)
-            let box = try #require(root.trialBox(range: range, pair: pair,
-                seed: SurfaceParameter(u: knot, v: knot), budget: &budget))
-            let proof = try #require(root.proof(range: range, box: box, pair: pair, budget: &budget))
+            let box = try geometryTestRequire(root.trialBox(range: range, pair: pair,
+                seed: SurfaceParameter(u: knot, v: knot), policy: budget, using: &budgetExecution))
+            let proof = try geometryTestRequire(root.proof(range: range, box: box, pair: pair, policy: budget, using: &budgetExecution))
             let one = OverlapRegularGraphAtlas.AxisKnots(first: knot, last: knot, count: 1)
             #expect(proof.authority == .collar(u: one, v: one))
             #expect(proof.u.count == 1 && proof.v.count == 1 && proof.residual.count == 1)
@@ -1414,8 +1466,9 @@ struct CurveSurfaceRegularGraphTests {
                     Point3D(x: constantU ? 0.125 : $0, y: constantU ? $0 : 0.125, z: 0.125 * $0)
                 }, weights: [1, 2, 4])
             let target = finiteKnotSurface(tensor: true), options = try graphOptions()
-            var budget = OverlapProofBudget(options: options, tolerance: .standard)
-            try budget.preparation(curve: source, surface: target)
+            var budgetExecution = try OriginalQueryExecution.independentGeometry()
+            let budget = try OverlapProofPolicy(options: options, tolerance: .standard, using: &budgetExecution)
+            try budget.preparation(curve: source, surface: target, using: &budgetExecution)
             let root = OverlapRegularGraphRootCertifier(
                 curve: try PreparedCurveDifferentialEncloser(curve: .bSpline(source), tolerance: .standard),
                 surface: try PreparedBSplineSurfaceDifferentialEncloser(surface: target, tolerance: .standard),
@@ -1423,10 +1476,10 @@ struct CurveSurfaceRegularGraphTests {
             let t = 1.0 / 7.0
             let range = try ScalarInterval(lower: t - 1e-8, upper: t + 1e-8)
             let pair = OverlapRegularGraphCell.Pair(first: 0, second: 1)
-            let box = try #require(root.trialBox(range: range, pair: pair,
-                seed: SurfaceParameter(u: 0.25, v: 0.25), budget: &budget))
+            let box = try geometryTestRequire(root.trialBox(range: range, pair: pair,
+                seed: SurfaceParameter(u: 0.25, v: 0.25), policy: budget, using: &budgetExecution))
             try expectFailure(.unsupportedCapability) {
-                _ = try root.proof(range: range, box: box, pair: pair, budget: &budget)
+                _ = try root.proof(range: range, box: box, pair: pair, policy: budget, using: &budgetExecution)
             }
             try expectFailure(.unsupportedCapability) {
                 _ = try intersector.intersectionResult(curve: .bSpline(source), surface: .bSpline(target),
@@ -1442,8 +1495,9 @@ struct CurveSurfaceRegularGraphTests {
         let fold = BSplineSurface3D(uDegree: 1, vDegree: 1, uKnots: knots, vKnots: knots,
             controlPoints: values.map { y in folded.map { x in Point3D(x: x, y: y, z: x * y) } })
         let source = sourceCurve(), options = try graphOptions()
-        var budget = OverlapProofBudget(options: options, tolerance: .standard)
-        try budget.preparation(curve: source, surface: fold)
+        var budgetExecution = try OriginalQueryExecution.independentGeometry()
+        let budget = try OverlapProofPolicy(options: options, tolerance: .standard, using: &budgetExecution)
+        try budget.preparation(curve: source, surface: fold, using: &budgetExecution)
         let root = OverlapRegularGraphRootCertifier(
             curve: try PreparedCurveDifferentialEncloser(curve: .bSpline(source), tolerance: .standard),
             surface: try PreparedBSplineSurfaceDifferentialEncloser(surface: fold, tolerance: .standard),
@@ -1452,7 +1506,7 @@ struct CurveSurfaceRegularGraphTests {
         let box = SurfaceParameterBox(u: try ScalarInterval(lower: 0.5 - 1e-6, upper: 0.5 + 1e-6),
             v: try ScalarInterval(lower: 0.5 - 1e-6, upper: 0.5 + 1e-6))
         #expect(try root.proof(range: ScalarInterval(lower: t.nextDown, upper: t.nextUp),
-            box: box, pair: .init(first: 0, second: 1), budget: &budget) == nil)
+            box: box, pair: .init(first: 0, second: 1), policy: budget, using: &budgetExecution) == nil)
         let target = finiteKnotSurface(tensor: true)
         for field in 0..<4 {
             var limited = options
@@ -1473,7 +1527,7 @@ struct CurveSurfaceRegularGraphTests {
         task.cancel()
         continuation.yield()
         continuation.finish()
-        await #expect(throws: CancellationError.self) { _ = try await task.value }
+        await geometryTestExpectFailure({ geometryTestIsCancelled($0) }) { _ = try await task.value }
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -1537,8 +1591,9 @@ struct CurveSurfaceRegularGraphTests {
     func originalC1KnotUsesFirstOrderCollarDespiteSecondDerivativeJump() throws {
         for swapped in [false, true] {
             let source = sourceCurve(), target = c1KnotSurface(swapped: swapped), options = try graphOptions()
-            var budget = OverlapProofBudget(options: options, tolerance: .standard)
-            try budget.preparation(curve: source, surface: target)
+            var budgetExecution = try OriginalQueryExecution.independentGeometry()
+            let budget = try OverlapProofPolicy(options: options, tolerance: .standard, using: &budgetExecution)
+            try budget.preparation(curve: source, surface: target, using: &budgetExecution)
             let root = OverlapRegularGraphRootCertifier(
                 curve: try PreparedCurveDifferentialEncloser(curve: .bSpline(source), tolerance: .standard),
                 surface: try PreparedBSplineSurfaceDifferentialEncloser(surface: target, tolerance: .standard),
@@ -1553,8 +1608,8 @@ struct CurveSurfaceRegularGraphTests {
             #expect(second.lower <= 2 && second.upper >= 4)
             let first = swapped ? point.x.derivativeV : point.x.derivativeU
             #expect(first.lower <= 1 && first.upper >= 1)
-            let box = try #require(root.trialBox(range: range, pair: pair, seed: seed, budget: &budget))
-            let proof = try #require(root.proof(range: range, box: box, pair: pair, budget: &budget))
+            let box = try geometryTestRequire(root.trialBox(range: range, pair: pair, seed: seed, policy: budget, using: &budgetExecution))
+            let proof = try geometryTestRequire(root.proof(range: range, box: box, pair: pair, policy: budget, using: &budgetExecution))
             let nativeKnot = OverlapRegularGraphAtlas.AxisKnots(first: 0.5, last: 0.5, count: 1)
             #expect(proof.authority == .collar(u: swapped ? nil : nativeKnot, v: swapped ? nativeKnot : nil))
             #expect(proof.u.count == 1 && proof.v.count == 1 && proof.residual.count == 1)
@@ -1646,7 +1701,7 @@ struct CurveSurfaceRegularGraphTests {
         task.cancel()
         continuation.yield()
         continuation.finish()
-        await #expect(throws: CancellationError.self) { _ = try await task.value }
+        await geometryTestExpectFailure({ geometryTestIsCancelled($0) }) { _ = try await task.value }
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -1654,8 +1709,9 @@ struct CurveSurfaceRegularGraphTests {
         for swapped in [false, true] {
             let source = sourceCurve(), target = knotSurface(swapped: swapped)
             let options = try graphOptions()
-            var budget = OverlapProofBudget(options: options, tolerance: .standard)
-            try budget.preparation(curve: source, surface: target)
+            var budgetExecution = try OriginalQueryExecution.independentGeometry()
+            let budget = try OverlapProofPolicy(options: options, tolerance: .standard, using: &budgetExecution)
+            try budget.preparation(curve: source, surface: target, using: &budgetExecution)
             let root = OverlapRegularGraphRootCertifier(
                 curve: try PreparedCurveDifferentialEncloser(curve: .bSpline(source), tolerance: .standard),
                 surface: try PreparedBSplineSurfaceDifferentialEncloser(surface: target, tolerance: .standard),
@@ -1666,13 +1722,13 @@ struct CurveSurfaceRegularGraphTests {
             let box = SurfaceParameterBox(u: swapped ? linear : nonlinear, v: swapped ? nonlinear : linear)
             let pair = OverlapRegularGraphCell.Pair(first: 0, second: 1)
             let station = try ScalarInterval(lower: t.nextDown, upper: t.nextUp)
-            let first = try #require(root.proof(range: station, box: box, pair: pair, budget: &budget))
+            let first = try geometryTestRequire(root.proof(range: station, box: box, pair: pair, policy: budget, using: &budgetExecution))
             let firstNonlinear = swapped ? first.box.v : first.box.u
             let firstLinear = swapped ? first.box.u : first.box.v
             #expect(firstNonlinear.width > 1e-6 && firstLinear.width < 1e-12)
             let cell = OverlapRegularGraphCell(range: try ScalarInterval(lower: 0.1875, upper: 0.1984375),
                 box: box, pair: pair, derivativeU: first.u[0], derivativeV: first.v[0], maximumDeviation: .infinity)
-            let refined = try root.pointProof(at: t, cell: cell, budget: &budget)
+            let refined = try root.pointProof(at: t, cell: cell, policy: budget, using: &budgetExecution)
             let refinedNonlinear = swapped ? refined.box.v : refined.box.u
             let refinedLinear = swapped ? refined.box.u : refined.box.v
             // On this original native span S=(u*u,v,u*u*v), so the root is independent.
@@ -1701,21 +1757,24 @@ struct CurveSurfaceRegularGraphTests {
             box: SurfaceParameterBox(u: try ScalarInterval(lower: 0.7, upper: 0.72),
                 v: try ScalarInterval(lower: 0.8, upper: 0.82)), pair: pair,
             derivativeU: .exact(1), derivativeV: .exact(1), maximumDeviation: .infinity)
-        var budget = OverlapProofBudget(options: options, tolerance: .standard)
+        var budgetExecution = try OriginalQueryExecution.independentGeometry()
+        let budget = try OverlapProofPolicy(options: options, tolerance: .standard, using: &budgetExecution)
         #expect(try root.proof(range: ScalarInterval(lower: t.nextDown, upper: t.nextUp),
-            box: unrelated.box, pair: pair, budget: &budget) == nil)
+            box: unrelated.box, pair: pair, policy: budget, using: &budgetExecution) == nil)
         try expectFailure(.intersectionFailure) {
-            _ = try root.pointProof(at: t, cell: unrelated, budget: &budget)
+            _ = try root.pointProof(at: t, cell: unrelated, policy: budget, using: &budgetExecution)
         }
         var limited = options
         // One first certificate fits; its next localization must charge the same budget.
         limited.maximumSubdivisionCells = root.jetWork * 4 + target.uKnots.count + target.vKnots.count
-        var oneCertificate = OverlapProofBudget(options: limited, tolerance: .standard)
-        _ = try #require(root.proof(range: ScalarInterval(lower: t.nextDown, upper: t.nextUp),
-            box: box, pair: pair, budget: &oneCertificate))
-        var exhausted = OverlapProofBudget(options: limited, tolerance: .standard)
+        var oneCertificateExecution = try OriginalQueryExecution.independentGeometry()
+        let oneCertificate = try OverlapProofPolicy(options: limited, tolerance: .standard, using: &oneCertificateExecution)
+        _ = try geometryTestRequire(root.proof(range: ScalarInterval(lower: t.nextDown, upper: t.nextUp),
+            box: box, pair: pair, policy: oneCertificate, using: &oneCertificateExecution))
+        var exhaustedExecution = try OriginalQueryExecution.independentGeometry()
+        let exhausted = try OverlapProofPolicy(options: limited, tolerance: .standard, using: &exhaustedExecution)
         try expectFailure(.resourceLimitExceeded) {
-            _ = try root.pointProof(at: t, cell: cell, budget: &exhausted)
+            _ = try root.pointProof(at: t, cell: cell, policy: exhausted, using: &exhaustedExecution)
         }
     }
 
@@ -1733,13 +1792,14 @@ struct CurveSurfaceRegularGraphTests {
         let (stream, continuation) = AsyncStream<Void>.makeStream()
         let task = Task {
             for await _ in stream { break }
-            var budget = OverlapProofBudget(options: options, tolerance: .standard)
-            _ = try root.pointProof(at: 0.1904773712158203, cell: cell, budget: &budget)
+            var budgetExecution = try OriginalQueryExecution.independentGeometry()
+            let budget = try OverlapProofPolicy(options: options, tolerance: .standard, using: &budgetExecution)
+            _ = try root.pointProof(at: 0.1904773712158203, cell: cell, policy: budget, using: &budgetExecution)
         }
         task.cancel()
         continuation.yield()
         continuation.finish()
-        await #expect(throws: CancellationError.self) { _ = try await task.value }
+        await geometryTestExpectFailure({ geometryTestIsCancelled($0) }) { _ = try await task.value }
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -1804,8 +1864,9 @@ struct CurveSurfaceRegularGraphTests {
     func knotCollarExposesOnlyOneSidedFirstDerivativeAuthority() throws {
         let source = sourceCurve(), target = knotSurface()
         let options = try graphOptions()
-        var budget = OverlapProofBudget(options: options, tolerance: .standard)
-        try budget.preparation(curve: source, surface: target)
+        var budgetExecution = try OriginalQueryExecution.independentGeometry()
+        let budget = try OverlapProofPolicy(options: options, tolerance: .standard, using: &budgetExecution)
+        try budget.preparation(curve: source, surface: target, using: &budgetExecution)
         let root = OverlapRegularGraphRootCertifier(
             curve: try PreparedCurveDifferentialEncloser(curve: .bSpline(source), tolerance: .standard),
             surface: try PreparedBSplineSurfaceDifferentialEncloser(surface: target, tolerance: .standard),
@@ -1813,9 +1874,9 @@ struct CurveSurfaceRegularGraphTests {
         let t = 1.0 / 3.0
         let range = try ScalarInterval(lower: t - 1e-8, upper: t + 1e-8)
         let pair = OverlapRegularGraphCell.Pair(first: 0, second: 1)
-        let box = try #require(root.trialBox(range: range, pair: pair,
-            seed: SurfaceParameter(u: 0.5, v: 0.25), budget: &budget))
-        let proof = try #require(root.proof(range: range, box: box, pair: pair, budget: &budget))
+        let box = try geometryTestRequire(root.trialBox(range: range, pair: pair,
+            seed: SurfaceParameter(u: 0.5, v: 0.25), policy: budget, using: &budgetExecution))
+        let proof = try geometryTestRequire(root.proof(range: range, box: box, pair: pair, policy: budget, using: &budgetExecution))
         #expect(proof.authority == .collar(u: .init(first: 0.5, last: 0.5, count: 1), v: nil))
         #expect(proof.u.count == 1 && proof.v.count == 1 && proof.residual.count == 1)
         // At the crossing, h'=9/16; f' is one on the left and two on the right.
@@ -1874,8 +1935,9 @@ struct CurveSurfaceRegularGraphTests {
         fold.controlPoints[1][3] = Point3D(x: 0, y: 1, z: 0)
         fold.controlPoints[1][4] = Point3D(x: -0.25, y: 1, z: -0.25)
         let source = sourceCurve(), options = try graphOptions()
-        var budget = OverlapProofBudget(options: options, tolerance: .standard)
-        try budget.preparation(curve: source, surface: fold)
+        var budgetExecution = try OriginalQueryExecution.independentGeometry()
+        let budget = try OverlapProofPolicy(options: options, tolerance: .standard, using: &budgetExecution)
+        try budget.preparation(curve: source, surface: fold, using: &budgetExecution)
         let root = OverlapRegularGraphRootCertifier(
             curve: try PreparedCurveDifferentialEncloser(curve: .bSpline(source), tolerance: .standard),
             surface: try PreparedBSplineSurfaceDifferentialEncloser(surface: fold, tolerance: .standard),
@@ -1884,7 +1946,7 @@ struct CurveSurfaceRegularGraphTests {
         let box = SurfaceParameterBox(u: try ScalarInterval(lower: 0.5 - 1e-6, upper: 0.5 + 1e-6),
             v: try ScalarInterval(lower: 0.25 - 1e-6, upper: 0.25 + 1e-6))
         #expect(try root.proof(range: ScalarInterval(lower: t.nextDown, upper: t.nextUp),
-            box: box, pair: .init(first: 0, second: 1), budget: &budget) == nil)
+            box: box, pair: .init(first: 0, second: 1), policy: budget, using: &budgetExecution) == nil)
         for field in 0..<4 {
             var limited = options
             switch field {
@@ -1905,8 +1967,9 @@ struct CurveSurfaceRegularGraphTests {
             controlPoints: [Point3D(x: 0, y: 0.5, z: 0), Point3D(x: 0.25, y: 0.5, z: 0.125),
                             Point3D(x: 0.5, y: 0.5, z: 0.25)], weights: [1, 2, 4])
         let target = targetSurface(), options = try graphOptions()
-        var budget = OverlapProofBudget(options: options, tolerance: .standard)
-        try budget.preparation(curve: source, surface: target)
+        var budgetExecution = try OriginalQueryExecution.independentGeometry()
+        let budget = try OverlapProofPolicy(options: options, tolerance: .standard, using: &budgetExecution)
+        try budget.preparation(curve: source, surface: target, using: &budgetExecution)
         let root = OverlapRegularGraphRootCertifier(
             curve: try PreparedCurveDifferentialEncloser(curve: .bSpline(source), tolerance: .standard),
             surface: try PreparedBSplineSurfaceDifferentialEncloser(surface: target, tolerance: .standard),
@@ -1915,12 +1978,12 @@ struct CurveSurfaceRegularGraphTests {
         let u = (h + (h * h + 4 * h).squareRoot()) / 2
         let range = try ScalarInterval(lower: t - 1e-4, upper: t + 1e-4)
         let pair = OverlapRegularGraphCell.Pair(first: 0, second: 1)
-        let box = try #require(root.trialBox(range: range, pair: pair,
-            seed: SurfaceParameter(u: u, v: 0.5), budget: &budget))
-        let whole = try #require(root.proof(range: range, box: box, pair: pair, budget: &budget))
+        let box = try geometryTestRequire(root.trialBox(range: range, pair: pair,
+            seed: SurfaceParameter(u: u, v: 0.5), policy: budget, using: &budgetExecution))
+        let whole = try geometryTestRequire(root.proof(range: range, box: box, pair: pair, policy: budget, using: &budgetExecution))
         let cell = OverlapRegularGraphCell(range: range, box: box, pair: pair,
             derivativeU: whole.u[0], derivativeV: whole.v[0], maximumDeviation: .infinity)
-        let point = try root.pointProof(at: t, cell: cell, budget: &budget)
+        let point = try root.pointProof(at: t, cell: cell, policy: budget, using: &budgetExecution)
         #expect(point.residual[0].lower <= 0 && point.residual[0].upper >= 0)
         #expect(point.residual[0].absoluteUpperBound <= ModelingTolerance.standard.distance)
         for derivative in point.residual.dropFirst() {
@@ -1933,8 +1996,9 @@ struct CurveSurfaceRegularGraphTests {
     func trialTubeContainsIndependentHomogeneousValueUncertainty() throws {
         let source = sourceCurve(), target = targetSurface()
         let options = try graphOptions()
-        var budget = OverlapProofBudget(options: options, tolerance: .standard)
-        try budget.preparation(curve: source, surface: target)
+        var budgetExecution = try OriginalQueryExecution.independentGeometry()
+        let budget = try OverlapProofPolicy(options: options, tolerance: .standard, using: &budgetExecution)
+        try budget.preparation(curve: source, surface: target, using: &budgetExecution)
         let root = OverlapRegularGraphRootCertifier(
             curve: try PreparedCurveDifferentialEncloser(curve: .bSpline(source), tolerance: .standard),
             surface: try PreparedBSplineSurfaceDifferentialEncloser(surface: target, tolerance: .standard),
@@ -1954,11 +2018,11 @@ struct CurveSurfaceRegularGraphTests {
         let derivativeBox = SurfaceParameterBox(u: try ScalarInterval(lower: u - uMotion * range.width, upper: u + uMotion * range.width),
             v: try ScalarInterval(lower: h - vMotion * range.width, upper: h + vMotion * range.width))
         let pair = OverlapRegularGraphCell.Pair(first: 0, second: 1)
-        #expect(try root.proof(range: range, box: derivativeBox, pair: pair, budget: &budget) == nil)
-        let box = try #require(root.trialBox(range: range, pair: pair, seed: seed, budget: &budget))
+        #expect(try root.proof(range: range, box: derivativeBox, pair: pair, policy: budget, using: &budgetExecution) == nil)
+        let box = try geometryTestRequire(root.trialBox(range: range, pair: pair, seed: seed, policy: budget, using: &budgetExecution))
         #expect(box.u.lower <= derivativeBox.u.lower && box.u.upper >= derivativeBox.u.upper)
         #expect(box.v.lower <= derivativeBox.v.lower && box.v.upper >= derivativeBox.v.upper)
-        let proof = try #require(root.proof(range: range, box: box, pair: pair, budget: &budget))
+        let proof = try geometryTestRequire(root.proof(range: range, box: box, pair: pair, policy: budget, using: &budgetExecution))
         #expect(proof.box.u.lower > box.u.lower && proof.box.u.upper < box.u.upper)
         #expect(proof.box.v.lower > box.v.lower && proof.box.v.upper < box.v.upper)
     }
@@ -1967,8 +2031,9 @@ struct CurveSurfaceRegularGraphTests {
     func exactPreparedCenterSupportsStrictSeedContraction() throws {
         let source = sourceCurve(), target = targetSurface()
         let options = try graphOptions()
-        var budget = OverlapProofBudget(options: options, tolerance: .standard)
-        try budget.preparation(curve: source, surface: target)
+        var budgetExecution = try OriginalQueryExecution.independentGeometry()
+        let budget = try OverlapProofPolicy(options: options, tolerance: .standard, using: &budgetExecution)
+        try budget.preparation(curve: source, surface: target, using: &budgetExecution)
         let root = OverlapRegularGraphRootCertifier(
             curve: try PreparedCurveDifferentialEncloser(curve: .bSpline(source), tolerance: .standard),
             surface: try PreparedBSplineSurfaceDifferentialEncloser(surface: target, tolerance: .standard),
@@ -1984,8 +2049,8 @@ struct CurveSurfaceRegularGraphTests {
         #expect(point.y.value.upper - point.y.value.lower < whole.y.value.upper - whole.y.value.lower)
         let minor = whole.x.derivativeU * whole.y.derivativeV - whole.x.derivativeV * whole.y.derivativeU
         #expect(minor.lower > 0)
-        let proof = try #require(root.proof(range: ScalarInterval(lower: t.nextDown, upper: t.nextUp),
-            box: box, pair: .init(first: 0, second: 1), budget: &budget))
+        let proof = try geometryTestRequire(root.proof(range: ScalarInterval(lower: t.nextDown, upper: t.nextUp),
+            box: box, pair: .init(first: 0, second: 1), policy: budget, using: &budgetExecution))
         #expect(proof.box.u.lower > box.u.lower && proof.box.u.upper < box.u.upper)
         #expect(proof.box.v.lower > box.v.lower && proof.box.v.upper < box.v.upper)
     }
@@ -2247,13 +2312,17 @@ struct CurveSurfaceRegularGraphTests {
                          options supplied: CurveSurfaceIntersectionOptions? = nil) throws -> OverlapRegularGraphCertifier.Result {
         let options: CurveSurfaceIntersectionOptions
         if let supplied { options = supplied } else { options = try graphOptions() }
-        var budget = OverlapProofBudget(options: options, tolerance: .standard)
+        var budgetExecution = try OriginalQueryExecution.independentGeometry()
+        let budget = try OverlapProofPolicy(options: options, tolerance: .standard, using: &budgetExecution)
         return try OverlapRegularGraphCertifier().resolve(curve: curve, surface: surface,
-            range: #require(options.curveRange), options: options, tolerance: .standard, budget: &budget)
+            range: #require(options.curveRange), options: options, tolerance: .standard, policy: budget, using: &budgetExecution)
     }
 
     private func expectFailure(_ code: KernelErrorCode, _ operation: () throws -> Void) throws {
         do { try operation(); Issue.record("The proof must explicitly refuse this input.") }
-        catch let error as KernelError { #expect(error.code == code) }
+        catch {
+            let published = OriginalQueryFailure.published(error, context: .unspecified, tolerance: .standard)
+            #expect(OriginalQueryFailure.classification(of: published)?.code == code)
+        }
     }
 }

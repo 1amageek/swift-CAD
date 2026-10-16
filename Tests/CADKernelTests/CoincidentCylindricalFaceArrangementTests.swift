@@ -14,6 +14,7 @@ struct CoincidentCylindricalFaceArrangementTests {
     // builds, matching the other exact cylinder boolean suites.
     @Test(.timeLimit(.minutes(3)))
     func partiallyOverlappingCylinderTrimsProduceExactIntersectionPatch() throws {
+        var execution = try OriginalQueryExecution.kernelOriginal()
         let target = try cylindricalSheet(
             lowerU: 0.2,
             upperU: 2.2,
@@ -46,7 +47,8 @@ struct CoincidentCylindricalFaceArrangementTests {
             uvSplitGraph: BooleanUVSplitGraph(splits: [split]),
             model: model,
             operands: .volumes(targetBodyIDs: [], toolBodyID: BodyID()),
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
         )
         #expect(resolution.forcedActions.isEmpty)
         #expect(resolution.partiallyCoincidentPairs.count == 1)
@@ -59,7 +61,8 @@ struct CoincidentCylindricalFaceArrangementTests {
             model: model,
             sourceSubshapes: sourceSubshapes,
             operands: .volumes(targetBodyIDs: [], toolBodyID: BodyID()),
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
         )
         #expect(arrangement.constantActions[toolFaceID] == .discard)
         let targetBoundaries = arrangement.boundaries.filter {
@@ -75,7 +78,8 @@ struct CoincidentCylindricalFaceArrangementTests {
             boundaries: targetBoundaries,
             model: model,
             sourceSubshapes: sourceSubshapes,
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
         )
 
         #expect(result.isPartitioned)

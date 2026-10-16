@@ -2,58 +2,37 @@ import CADCore
 
 /// Proves a stored UV shift belongs to the original support's periodic lattice.
 package enum OriginalSurfacePeriodShift {
-  private struct BorrowedWork: RationalAlgebraAdmitting {
-    let consume: () throws -> Void
-    mutating func consumeExactWork(_ count: Int) throws {
-      guard count >= 0 else { throw GeometryConversionError.invalidInput("Original period proof work is negative.") }
-      for _ in 0..<count { try CurrentTaskCancellationChecker().checkCancellation(); try consume() }
-    }
-    mutating func retainExactStorage(_ count: Int) throws { try consumeExactWork(count) }
-    mutating func visitExactCell(depth: Int) throws { try consume() }
-  }
-
-  package static func proves(on surface: Surface3D, uShift: Double, vShift: Double,
-    remainingSourceDepth: Int, maximumSubdivisionDepth: Int, tolerance: ModelingTolerance,
-    consumeWork: () throws -> Void) throws -> Bool {
-    try withoutActuallyEscaping(consumeWork) { consume in
-      var usage = BorrowedWork(consume: consume)
-      return try proves(on: surface, uShift: uShift, vShift: vShift,
-        remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth,
-        tolerance: tolerance, usage: &usage)
-    }
-  }
-
-  package static func proves<B: RationalAlgebraAdmitting>(on surface: Surface3D,
+  package static func proves(on surface: Surface3D,
     uShift: Double, vShift: Double, remainingSourceDepth: Int,
-    maximumSubdivisionDepth: Int, tolerance: ModelingTolerance, usage: inout B) throws -> Bool {
+    maximumSubdivisionDepth: Int, tolerance: ModelingTolerance, using usage: inout OriginalQueryExecution) throws -> Bool {
     guard uShift.isFinite, vShift.isFinite, remainingSourceDepth >= 0,
       maximumSubdivisionDepth >= 0 else {
       throw GeometryConversionError.invalidInput("Original period shift needs finite stored shifts and caller source admission.")
     }
     try surface.validateOriginalSource(tolerance: tolerance,
       remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth,
-      consumeWork: { _ in try usage.consumeExactWork(1) })
+      using: &usage)
     let u = try ExactRationalCoefficient.originalDouble(uShift, usage: &usage)
     let v = try ExactRationalCoefficient.originalDouble(vShift, usage: &usage)
     return try proves(on: surface, u: u, v: v, depth: remainingSourceDepth, usage: &usage)
   }
 
-  package static func proves<B: RationalAlgebraAdmitting>(on surface: Surface3D,
+  package static func proves(on surface: Surface3D,
     u: ExactRationalCoefficient, v: ExactRationalCoefficient, remainingSourceDepth: Int,
-    maximumSubdivisionDepth: Int, tolerance: ModelingTolerance, usage: inout B) throws -> Bool {
+    maximumSubdivisionDepth: Int, tolerance: ModelingTolerance, using usage: inout OriginalQueryExecution) throws -> Bool {
     guard remainingSourceDepth >= 0, maximumSubdivisionDepth >= 0 else {
       throw GeometryConversionError.invalidInput("Original exact period shift requires caller depth admission.")
     }
     try surface.validateOriginalSource(tolerance: tolerance,
       remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth,
-      consumeWork: { _ in try usage.consumeExactWork(1) })
+      using: &usage)
     return try proves(on: surface, u: u, v: v, depth: remainingSourceDepth, usage: &usage)
   }
 
-  private static func proves<B: RationalAlgebraAdmitting>(on surface: Surface3D,
+  private static func proves<B: ExactScalarAdmission & ~Copyable>(on surface: Surface3D,
     u: ExactRationalCoefficient, v: ExactRationalCoefficient, depth: Int,
     usage: inout B) throws -> Bool {
-    try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(1)
+    try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeWork(1)
     func childDepth() throws -> Int {
       guard depth > 0 else {
         throw GeometryConversionError.resourceLimitExceeded("Original period shift exhausted caller source depth.")
@@ -67,7 +46,7 @@ package enum OriginalSurfacePeriodShift {
       if shift.isZero { return true }
       guard let period, period.isPositive else { return false }
       let quotient = try shift.divided(by: period, usage: &usage)
-      try usage.consumeExactWork(1)
+      try usage.consumeWork(1)
       return quotient.canonicalDenominatorWords == [1]
     }
     let pu: ExactRationalCoefficient?, pv: ExactRationalCoefficient?

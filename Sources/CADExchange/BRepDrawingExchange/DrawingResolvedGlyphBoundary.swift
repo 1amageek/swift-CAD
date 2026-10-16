@@ -8,16 +8,17 @@ public struct DrawingResolvedGlyphBoundary: Sendable {
     public let boundary: OriginalPlanarNonzeroBoundary
 
     public init(original: DrawingGlyphOutline, boundary: OriginalPlanarNonzeroBoundary,
-                usage: inout DrawingExchangeUsage) throws {
+                usage: DrawingExchangeOwner, using execution: inout OriginalQueryExecution) throws {
+        try usage.validateExecution(execution)
         guard original.fillRule == .nonzero, boundary.plane.origin.z == 0,
               boundary.plane.normal.x == 0, boundary.plane.normal.y == 0,
               boundary.plane.normal.z != 0 else {
             throw ExportError.invalidMesh("Resolved glyph boundary requires its original nonzero paper-plane law.")
         }
-        try BRepDrawingExchange(resourceLimits: usage.resources.limits).validateGlyph(original, resources: &usage.resources)
+        try BRepDrawingExchange(resourceLimits: usage.resources.limits).validateGlyph(original, resources: usage.resources)
         var contourIndex = 0, segmentIndex = 0
         var start: Point2D?, current: Point2D?
-        func match(_ controls: [Point2D], usage: inout DrawingExchangeUsage) throws {
+        func match(_ controls: [Point2D], usage: DrawingExchangeOwner, using execution: inout OriginalQueryExecution) throws {
             guard boundary.source.contours.indices.contains(contourIndex),
                   boundary.source.contours[contourIndex].segments.indices.contains(segmentIndex) else {
                 throw ExportError.invalidMesh("Resolved glyph boundary omitted an original contour edge.")
@@ -46,16 +47,16 @@ public struct DrawingResolvedGlyphBoundary: Sendable {
             case .move(let point): start = point; current = point; segmentIndex = 0
             case .line(let end):
                 guard let from = current else { throw ExportError.invalidMesh("Glyph edge has no current original point.") }
-                try match([from, end], usage: &usage); current = end
+                try match([from, end], usage: usage, using: &execution); current = end
             case .quadratic(let control, let end):
                 guard let from = current else { throw ExportError.invalidMesh("Glyph quadratic has no current original point.") }
-                try match([from, control, end], usage: &usage); current = end
+                try match([from, control, end], usage: usage, using: &execution); current = end
             case .cubic(let first, let second, let end):
                 guard let from = current else { throw ExportError.invalidMesh("Glyph cubic has no current original point.") }
-                try match([from, first, second, end], usage: &usage); current = end
+                try match([from, first, second, end], usage: usage, using: &execution); current = end
             case .close:
                 guard let first = start, let last = current else { throw ExportError.invalidMesh("Glyph close has no original start.") }
-                if last != first { try match([last, first], usage: &usage) }
+                if last != first { try match([last, first], usage: usage, using: &execution) }
                 guard boundary.source.contours.indices.contains(contourIndex),
                       segmentIndex == boundary.source.contours[contourIndex].segments.count else {
                     throw ExportError.invalidMesh("Resolved glyph boundary added a foreign contour edge.")

@@ -45,7 +45,7 @@ package final class NativeSurfaceSourceCornerZeroSetProof: Sendable {
         let factors: [ExactBivariatePolynomial]
     }
 
-    package static func prepare<B: RationalAlgebraAdmitting>(chart: NativeSurfaceSurfaceSourceChart,
+    package static func prepare<B: ExactScalarAdmission & ~Copyable>(chart: NativeSurfaceSurfaceSourceChart,
         usage: inout B) throws -> NativeSurfaceSourceCornerZeroSetProof? {
         try intersectionAlgebraStep(&usage)
         try NativeSurfaceSourceZeroSetProof.validateChart(chart, usage: &usage)
@@ -72,7 +72,7 @@ package final class NativeSurfaceSourceCornerZeroSetProof: Sendable {
                 }
                 let counterpartIdentity = try counterpart.homogeneous[3].scaled(by: constant, usage: &usage)
                 try RationalAlgebraStorage.retain(2, of: ExactIntersectionPolynomial.self, usage: &usage)
-                try usage.consumeExactWork(2)
+                try usage.consumeWork(2)
                 let consequences = try [ExactIntersectionPolynomial.embedding(candidate.factors[0], variableCount: 4,
                     uCoordinate: role * 2, vCoordinate: role * 2 + 1, usage: &usage),
                     .embedding(candidate.factors[1], variableCount: 4, uCoordinate: role * 2,
@@ -95,7 +95,7 @@ package final class NativeSurfaceSourceCornerZeroSetProof: Sendable {
         return nil
     }
 
-    package func validate<B: RationalAlgebraAdmitting>(chart: NativeSurfaceSurfaceSourceChart,
+    package func validate<B: ExactScalarAdmission & ~Copyable>(chart: NativeSurfaceSurfaceSourceChart,
         usage: inout B) throws {
         try NativeSurfaceSourceZeroSetProof.validateChart(chart, usage: &usage)
         try NativeSurfaceSourceZeroSetProof.matching(originalChart.first, chart.first, usage: &usage)
@@ -115,10 +115,10 @@ package final class NativeSurfaceSourceCornerZeroSetProof: Sendable {
         try CurrentTaskCancellationChecker().checkCancellation()
     }
 
-    private static func corner<B: RationalAlgebraAdmitting>(_ n: ExactBivariatePolynomial,
+    private static func corner<B: ExactScalarAdmission & ~Copyable>(_ n: ExactBivariatePolynomial,
         domain: SurfaceParameterBox, usage: inout B) throws -> Candidate? {
         try RationalAlgebraStorage.retain(4, of: ExactRationalCoefficient.self, usage: &usage)
-        try usage.consumeExactWork(4)
+        try usage.consumeWork(4)
         let bounds = try [ExactRationalCoefficient.originalDouble(domain.u.lower, usage: &usage),
             .originalDouble(domain.u.upper, usage: &usage), .originalDouble(domain.v.lower, usage: &usage),
             .originalDouble(domain.v.upper, usage: &usage)]
@@ -134,7 +134,7 @@ package final class NativeSurfaceSourceCornerZeroSetProof: Sendable {
         let one = try ExactBivariatePolynomial.constant(.one, usage: &usage)
         let left = try one.subtracting(a, usage: &usage), lower = try one.subtracting(b, usage: &usage)
         try RationalAlgebraStorage.retain(4, of: ExactBivariatePolynomial.self, usage: &usage)
-        try usage.consumeExactWork(4)
+        try usage.consumeWork(4)
         let basis = try [left.multiplied(by: lower, usage: &usage), a.multiplied(by: lower, usage: &usage),
             left.multiplied(by: b, usage: &usage), a.multiplied(by: b, usage: &usage)]
         try RationalAlgebraStorage.retain(4, of: ExactRationalCoefficient.self, usage: &usage)
@@ -160,7 +160,7 @@ package final class NativeSurfaceSourceCornerZeroSetProof: Sendable {
         let original = try n.scaled(by: orientation > 0 ? .one : .one.negated, usage: &usage)
         guard try original.subtracting(reconstruction, usage: &usage).isZero else { return nil }
         try RationalAlgebraStorage.retain(2, of: ExactBivariatePolynomial.self, usage: &usage)
-        try usage.consumeExactWork(2)
+        try usage.consumeWork(2)
         let factors = try [u.subtracting(.constant(bounds[zeroCorner % 2], usage: &usage), usage: &usage),
             v.subtracting(.constant(bounds[2 + zeroCorner / 2], usage: &usage), usage: &usage)]
         return .init(orientation: orientation, zeroCorner: zeroCorner, original: original,

@@ -4,24 +4,22 @@ extension SurfaceParameterCurve {
     /// Complete normalized value hull, without demanding higher join continuity.
     package func originalParameterBounds(on surface: Surface3D? = nil, over range: ScalarInterval, tolerance: ModelingTolerance,
         maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
-        consumeWork: () throws -> Void, consumeStorage: ((Int) throws -> Void)? = nil,
-        maximumAlgebraicDepth: Int? = nil)
+        maximumAlgebraicDepth: Int? = nil, using execution: inout OriginalQueryExecution)
         throws -> SurfaceParameterBox {
         if let surface {
             try validateOriginalSource(on: surface, tolerance: tolerance, remainingSourceDepth: remainingSourceDepth,
                 maximumSubdivisionDepth: maximumSubdivisionDepth,
-                consumeWork: { _ in try consumeWork() }, consumeStorage: consumeStorage,
-                maximumAlgebraicDepth: maximumAlgebraicDepth)
+                maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
         } else {
-            try consumeWork(); try tolerance.validate()
+            try execution.consumeWork(1); try tolerance.validate()
             switch self {
             case .bSpline(let original):
-                try original.validate(tolerance: tolerance, consumeWork: consumeWork)
+                try original.validate(tolerance: tolerance, using: &execution)
             case .originalBSplineContinuation(let original):
                 guard original.certificationTolerance == tolerance else {
                     throw GeometryConversionError.invalidInput("Original continuation query requires its retained tolerance.")
                 }
-                try original.original.validate(tolerance: tolerance, consumeWork: consumeWork)
+                try original.original.validate(tolerance: tolerance, using: &execution)
             case .affine, .constantU, .constantV, .harmonic, .polyline:
                 // These standalone 2D value producers validate their finite
                 // original coefficient/point law without a surface relation.
@@ -38,7 +36,7 @@ extension SurfaceParameterCurve {
         let value = try OriginalParameterCurveHigherTaylor.enclosure(self, over: range, order: 0,
             tolerance: tolerance, maximumSpanCount: maximumSpanCount,
             maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
-            consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+            maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
         let u = try value.u.coefficient(0, 0), v = try value.v.coefficient(0, 0)
         return try .init(u: .init(lower: u.lower, upper: u.upper), v: .init(lower: v.lower, upper: v.upper))
     }

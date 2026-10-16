@@ -29,6 +29,31 @@ public struct MassPropertyEvaluator: MassPropertyMeasuring {
     public func measure(_ components: [MassPropertyComponent], in document: EvaluatedDocument,
         options: BRepVolumeMomentOptions, modelLengthUnit: LengthUnit,
         reference: Point3D = .origin) throws -> MassPropertyMeasurement {
+        var execution = try DefaultBRepVolumeMomentMeasurer.originalExecution(options: options)
+        return try measure(components, in: document, options: options,
+            modelLengthUnit: modelLengthUnit, reference: reference, using: &execution)
+    }
+
+    public func measure(_ components: [MassPropertyComponent], in document: EvaluatedDocument,
+        options: BRepVolumeMomentOptions, modelLengthUnit: LengthUnit,
+        reference: Point3D = .origin, using execution: inout OriginalQueryExecution) throws -> MassPropertyMeasurement {
+        try options.validate()
+        let requestContribution = try execution.makeContributionHandle(workLimit: options.maximumWork,
+            allocationPolicy: execution.effectiveAllocationPolicy,
+            executionLimits: .init(maximumValueDepth: 32, maximumCoefficientDepth: 32,
+                remainingSourceDepth: 16, maximumSubdivisionDepth: options.maximumSubdivisionDepth))
+        let result = try execution.withContributionScope(requestContribution) { execution in
+            try measureComponents(components, in: document, options: options,
+                modelLengthUnit: modelLengthUnit, reference: reference,
+                requestContribution: requestContribution, using: &execution)
+        }
+        try execution.checkpoint()
+        return result
+    }
+
+    private func measureComponents(_ components: [MassPropertyComponent], in document: EvaluatedDocument,
+        options: BRepVolumeMomentOptions, modelLengthUnit: LengthUnit, reference: Point3D,
+        requestContribution: OriginalQueryContributionHandle, using execution: inout OriginalQueryExecution) throws -> MassPropertyMeasurement {
         try tolerance.validate(); try reference.validate()
         guard !components.isEmpty, options.absoluteAccuracy.isFinite, options.absoluteAccuracy > 0,
             options.relativeAccuracy.isFinite, options.relativeAccuracy >= 0,
@@ -37,19 +62,19 @@ public struct MassPropertyEvaluator: MassPropertyMeasuring {
             components.count <= options.maximumWork else {
             throw failure("Mass composition requires components admitted by the original work/depth ceilings.")
         }
-        var remainingWork = options.maximumWork
+        var remainingWork: Int { max(0, options.maximumWork - requestContribution.snapshot.work) }
         var retainedMoments: [BodyID: BRepVolumeMoments] = [:]
         let resolved: ResolvedProductAttributes?
         if components.contains(where: { $0.densityKilogramsPerCubicMeter == nil }) {
             guard remainingWork > 0 else { throw budgetFailure() }
             let standard = ProductAttributeLimits.standard
+            let available = remainingWork
             let result = try attributes.resolve(document, limits: ProductAttributeLimits(
                 maximumRecords: min(standard.maximumRecords, remainingWork),
                 maximumTargets: min(standard.maximumTargets, remainingWork),
                 maximumDepth: standard.maximumDepth,
-                maximumTextBytes: standard.maximumTextBytes, maximumWork: remainingWork))
-            guard result.consumedWork >= 0, result.consumedWork <= remainingWork else { throw budgetFailure() }
-            remainingWork -= result.consumedWork
+                maximumTextBytes: standard.maximumTextBytes, maximumWork: available), using: &execution)
+            guard result.consumedWork >= 0, result.consumedWork <= available else { throw budgetFailure() }
             resolved = result
         } else { resolved = nil }
         let scale = modelLengthUnit.metersPerUnit
@@ -57,16 +82,16 @@ public struct MassPropertyEvaluator: MassPropertyMeasuring {
         var first = Array(repeating: Bounds.exact(0), count: 3)
         var second = Array(repeating: Array(repeating: Bounds.exact(0), count: 3), count: 3)
         for component in components {
-            try Task.checkCancellation(); try component.placement.validate(tolerance: tolerance)
+            try execution.checkpoint(); try component.placement.validate(tolerance: tolerance)
             guard remainingWork > 0 else { throw budgetFailure() }
-            remainingWork -= 1
+            try execution.consumeWork(1)
             guard document.brep.bodies[component.bodyID] != nil else { throw failure("Mass component body is missing.") }
             let density: Double
             if let supplied = component.densityKilogramsPerCubicMeter { density = supplied }
             else {
                 guard let resolved else { throw failure("Mass composition lost requested effective density authority.") }
                 guard resolved.values.count <= remainingWork else { throw budgetFailure() }
-                remainingWork -= resolved.values.count
+                try execution.consumeWork(resolved.values.count)
                 let matching = resolved.values.filter { $0.key.topology == .body(component.bodyID) }
                 guard matching.count == 1, let properties = matching.first?.value else { throw failure("Mass body requires one resolved physical-property owner.") }
                 if case .density(let value) = properties.properties[.density]?.value { density = value.kilogramsPerCubicMeter }
@@ -77,6 +102,7 @@ public struct MassPropertyEvaluator: MassPropertyMeasuring {
             if let retained = retainedMoments[component.bodyID] { moments = retained }
             else {
                 guard remainingWork > 0 else { throw budgetFailure() }
+                let available = remainingWork
                 let request = BRepVolumeMomentOptions(absoluteAccuracy: options.absoluteAccuracy,
                     relativeAccuracy: options.relativeAccuracy, maximumWork: remainingWork,
                     maximumSubdivisionDepth: options.maximumSubdivisionDepth)
@@ -84,13 +110,12 @@ public struct MassPropertyEvaluator: MassPropertyMeasuring {
                     guard certificate.tolerance == tolerance, certificate.validationLevel != .modeling else {
                         throw failure("Mass integration requires the original exact receipt at the configured tolerance.")
                     }
-                    moments = try momentMeasurer.moments(of: component.bodyID, in: certificate, options: request)
+                    moments = try momentMeasurer.moments(of: component.bodyID, in: certificate, options: request, using: &execution)
                 } else {
                     moments = try momentMeasurer.moments(of: component.bodyID, in: document.brep,
-                        options: request, tolerance: tolerance)
+                        options: request, tolerance: tolerance, using: &execution)
                 }
-                guard moments.consumedWork > 0, moments.consumedWork <= remainingWork else { throw budgetFailure() }
-                remainingWork -= moments.consumedWork
+                guard moments.consumedWork > 0, moments.consumedWork <= available else { throw budgetFailure() }
                 retainedMoments[component.bodyID] = moments
             }
             let coefficients = moments.enclosures.map { Bounds($0) }
@@ -99,11 +124,7 @@ public struct MassPropertyEvaluator: MassPropertyMeasuring {
             if let affine = component.affinePlacement {
                 try affine.validate()
                 basisX = affine.basisX; basisY = affine.basisY; basisZ = affine.basisZ; offset = affine.translation
-                let originalDeterminant = try affine.originalDeterminantBounds(consumeWork: {
-                    try Task.checkCancellation()
-                    guard remainingWork > 0 else { throw budgetFailure() }
-                    remainingWork -= 1
-                })
+                let originalDeterminant = try affine.originalDeterminantBounds(using: &execution)
                 let determinant = Bounds(originalDeterminant)
                 guard determinant.lower > 0 || determinant.upper < 0 else {
                     throw failure("Original affine determinant enclosure cannot define a positive material volume scale.")

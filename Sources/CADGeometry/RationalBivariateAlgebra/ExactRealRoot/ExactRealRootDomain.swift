@@ -22,10 +22,10 @@ public struct ExactRealRootDomain<F: ExactScalarArithmetic & ExactScalarOrdering
             let input = try ExactPolynomialDomain(field: field, variableCount: variableCount, using: &usage)
             let univariate = try ExactPolynomialDomain(field: field, variableCount: 1, using: &usage)
             try ExactRootAccess.owner((F, ExactPolynomialDomain<F>, ExactPolynomialDomain<F>, ExactScalarDepth).self, &usage)
-            return ExactRealRootContext(field: field, input: input, univariate: univariate, depth: usage.depth)
+            return ExactRealRootContext(field: field, input: input, univariate: univariate, depth: (try usage.depth))
         }
     }
-    func require(_ source: ExactRealRootSource<F>, _ a: inout ExactRootBorrowedAdmission) throws {
+    func require<A: ExactScalarAdmission & ~Copyable>(_ source: ExactRealRootSource<F>, _ a: inout A) throws {
         guard source.context === context else { throw ExactRealRootFailure.incompatibleDomain }
         try ExactRootAccess.admit(source.depth, &a)
     }
@@ -47,7 +47,7 @@ public struct ExactRealRootDomain<F: ExactScalarArithmetic & ExactScalarOrdering
             }
             let law = try context.univariate.polynomial(terms: terms, using: &a)
             return ExactRealRootSource(context: context, original: copy polynomial, variable: variable,
-                refinementAxis: refinementAxis, law: law, depth: a.depth)
+                refinementAxis: refinementAxis, law: law, depth: (try a.depth))
         }
     }
     public func domain<A: ExactScalarAdmission & ~Copyable>(lower: ExactRealRootBound<F.Value>,
@@ -60,24 +60,27 @@ public struct ExactRealRootDomain<F: ExactScalarArithmetic & ExactScalarOrdering
     public func emptyDomain<A: ExactScalarAdmission & ~Copyable>(using admission: inout A
     ) throws(ExactRealRootFailure) -> ExactRealRootInterval<F.Value> {
         try ExactRootAccess.run(&admission, inherited: context.depth) { a in
+            let depth=try a.depth
             let interval: ExactParameterInterval<F.Value> = try ExactRootAccess.parameterDomain {
                 () throws(ExactParameterDomainFailure) -> ExactParameterInterval<F.Value> in
-                try .empty(depth: a.depth, using: &a)
+                try .empty(depth: depth, using: &a)
             }
             return ExactRealRootInterval(retaining: interval)
         }
     }
-    func interval(_ lo: ExactRealRootBound<F.Value>, _ hi: ExactRealRootBound<F.Value>,
-        _ il: Bool, _ iu: Bool, _ a: inout ExactRootBorrowedAdmission) throws -> ExactRealRootInterval<F.Value> {
+    func interval<A: ExactScalarAdmission & ~Copyable>(_ lo: ExactRealRootBound<F.Value>, _ hi: ExactRealRootBound<F.Value>,
+        _ il: Bool, _ iu: Bool, _ a: inout A) throws -> ExactRealRootInterval<F.Value> {
+        let inputDepth=try a.depth
         let result: ExactParameterInterval<F.Value> = try ExactRootAccess.parameterDomain { () throws(ExactParameterDomainFailure) -> ExactParameterInterval<F.Value> in
             try .checked(field: context.field, lower: lo.domainBound, upper: hi.domainBound,
-                includesLower: il, includesUpper: iu, depth: a.depth, using: &a)
+                includesLower: il, includesUpper: iu, depth: inputDepth, using: &a)
         }
         // Scalar validation may discover retained coefficient depths. Preserve them
         // in the shared interval without resetting the exclusive caller admission.
+        let attainedDepth=try a.depth
         let retained = try ExactRootAccess.parameterDomain {
             () throws(ExactParameterDomainFailure) -> ExactParameterInterval<F.Value> in
-            try result.retainingDepth(a.depth, using: &a)
+            try result.retainingDepth(attainedDepth, using: &a)
         }
         return ExactRealRootInterval(retaining: retained)
     }

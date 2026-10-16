@@ -506,6 +506,24 @@ pair scan remains O(n²); this removes repeated large-value copies, not the
 quadratic search. Existing sewing success/refusal tests and the complete gear
 path verify the change; phase timing separates sewing/evaluation from meshing.
 
+### Canonical Sewer Execution Binding
+
+`DefaultBRepSewer` supplies the actual direct `BRepSewing` witness. Its ordinary
+entry creates one original query execution and delegates to the same assembly
+body. Request validation, source edge-kind and complete curve-span proofs,
+implicit component/pcurve transfer, endpoint union traversal and final exact
+B-rep validation borrow that execution. Final validation retains its original
+source-depth 16, subdivision 32 and algebra 32 ceilings, intersected with the
+caller. The main stable ordering, endpoint slots, disjoint-set union/rank law,
+face/coedge construction, manifold checks and issued parent lineage remain
+unchanged; no independent canonical-parent initializer or new lineage solver is
+introduced. Endpoint distance remains the explicit sewing acceptance policy,
+not evidence of original intersection or transitive geometric identity. Complete
+source span proof is still required before distinct edges share topology.
+This finite witness binding does not complete all sewing families or redefine
+intersection authority. Existing sewing success/refusal and same-execution
+budget/cancellation fixtures own behavioral verification after module integration.
+
 Planar boundary simplification retains an invocation-local circular index list.
 Removing a point invalidates only its two neighbors' chord checks; traversal
 returns to the previous neighbor instead of restarting at the loop origin.
@@ -1564,3 +1582,129 @@ UV remain retained; this gate is not a completed Boolean clipping claim.
 Apex sphere-cone stratified symbolic output joins the existing original
 material-refinement refusal gate; unconverted finite splitting cannot discard
 the apex full-U fibre or original regular arc source correspondence.
+
+## Canonical Geometry caller composition
+
+The delivery candidate consumes Geometry's canonical ExactScalarAdmission and
+OriginalQueryExecution contracts. Existing Kernel callers of removed Geometry
+admissions and callback overloads pass the original execution through their
+selected mathematical body and retained-owner readers. Ordinary entry points
+create one execution; nested operations borrow it. This integration preserves
+existing formulas, branch selection, local ceilings and typed failure meaning.
+It does not establish independent document, mass, mesh or drawing feature
+acceptance. The owning component designs state each changed caller boundary;
+the package integration gate must compile the extracted candidate and execute
+the public G01 path before delivery is claimed.
+
+The module-level interior sampler shares its existing station/offset traversal between spatial containment and an explicitly supplied original-parameter session. The caller owns proof that the generated parameter and session refer to the same original face/model. [Shared Boundary Face Rebuild](SharedBoundaryFaceRebuild/DESIGN.md) owns the complete native parameter-law gate for its `.given` route; [Finite Face Containment](FiniteFaceContainment/DESIGN.md) owns whole-loop classification and retained session admission. An unavailable parameter witness fails explicitly instead of selecting spatial projection.
+
+### Default Boolean consumer caller binding
+
+`ExactBRepBooleanEvaluator`, `DefaultBooleanUVFaceSplitter` and
+`DefaultBooleanRegionClassifier` implement the actual non-generic direct
+requirements with one borrowed `OriginalQueryExecution`. Their ordinary entries
+create one operation execution and forward to that same implementation. Plans,
+UV contact registration, original containment and ray sessions, arrangements,
+face-patch materialization and sewing receive that execution through their real
+callee edges. Local source, subdivision and algebra ceilings remain independent;
+diagnostic entry/stage metadata never selects mathematics or numerical limits.
+Body topology removal preserves the existing traversal, mutation order, missing-reference
+errors and subshape IDs. Its ordinary entry creates one execution; the admitted entry
+passes the same execution through reference collection and the actual model mutation.
+Resource and cancellation failures remain throwing at this boundary.
+
+```text
+ordinary entry -> one execution -> default direct witness
+admitted entry -----------------> default direct witness
+    -> source validation / clipping / classification
+    -> retained session readmission / arrangement / materialization
+    -> selected sewing request / existing sewing witness -> cancellation check
+```
+
+Retained classification and containment payloads keep their immutable source,
+issuing budget, effective limits, attained preparation depth and selected
+contribution handles. Readers preflight depth before paid reattachment and keep
+the same handles active around the actual query body. Ordinary retained readers
+resume their issuing budget rather than allocating a replacement budget.
+
+The original MAIN mathematical formulas, branch selection, winding/parity,
+periodic seams, material inversion, contact ordering and accepted materialization
+strategies are preserved. A raw Boolean graph remains a constructive input:
+structural validation and actual raw-source validation do not certify its
+intersection completeness. A validated model authorizes that immutable model's
+source only. These caller bindings neither create an original graph authority
+nor complete general Boolean clipping, generated lineage or M7 acceptance.
+Source-family gaps keep their existing explicit failures and incomplete markers.
+
+The binding inventory records each selected source path and its exact lower
+callee edge. Focused verification must distinguish the concrete direct witness
+from a protocol fallback, retain cumulative work/storage refusal and cancellation,
+and exercise retained contribution readmission. Package compilation establishes
+API coherence only; broader Boolean mathematics requires its existing behavioral
+owners' separate evidence.
+
+Specialized orthogonal request generation retains its existing occupied-grid,
+connected-component, exterior/void-shell and planar-cycle algorithms. Actual
+cell/edge visits and lower source projection, planar predicates and sewing borrow
+the same execution as the Boolean evaluator. Local grid ceiling 1,000,000 and all
+existing tolerance comparisons remain unchanged; overflow is explicit failure.
+
+### Boolean generated-output lineage authority
+
+BooleanTopologyLineageBuilder validates and retains complete issued sewing
+lineage. Every published output must already be covered by that provenance.
+When generated-output correspondence is absent, the canonical caller path fails
+with unsupportedCapability until an original source-bound producer exists.
+Distance/angular tolerance, callback presence and diagnostic execution entry
+never establish parent identity. The old unproved matching implementation is
+removed; this does not implement a new Boolean history producer or close its
+required source-family coverage. Focused binding checks cover complete retained
+provenance, absent provenance under both entry contexts, resource refusal and
+cancellation.
+
+[BooleanLineageCanonicalBindingTests](../../Tests/CADKernelTests/BooleanLineageCanonicalBindingTests.swift)
+owns those narrow source-authority and failure controls. The fixture is source
+ready; its actual execution awaits the candidate integration compiler slot.
+
+The edge-offset imprint dependency keeps the existing completion, representative
+point, two-pass arrangement and neighbour-face algorithms. Its direct operations
+borrow the edge-offset execution through native pcurve reads, intersections,
+subdivision, closest proposals and final sewing/model validation. Ordinary
+compatibility entries create one execution and call those same bodies; they do
+not duplicate the former unmetered implementation.
+
+SweepEvaluationPlanService binds its existing original span/section and certified
+plan consumers to one execution. The ordinary plan creates its existing curved
+source envelope; direct planning selects the same GeometryConversionRequirements
+work, scalar-storage, depth20, scalar32 and native-span limits as a contribution.
+The existing planning branches, guide retention and numeric/capability decisions
+remain unchanged. Document/sketch extraction and display path-frame preparation
+remain ordinary providers with an explicit incomplete-accounting marker; this
+API binding does not add sweep capability or claim complete preflight accounting.
+
+### Sweep Original Path Authority
+Both ordinary and direct SweepEvaluationPlanService entries resolve selected
+section/path laws through the original-source constructor contract. Execution
+context and accounting capability do not select display trim/reversal semantics.
+Display sample reconstructions cannot authorize original source or traversal;
+missing original construction propagates explicit unsupported. Existing
+display-only resolveCurve consumers outside Sweep are not migrated by this
+binding, and unsupported required inputs remain unconverted.
+
+| Input | Prior Sweep preparation | Canonical Sweep preparation |
+|---|---|---|
+| Whole original source | Retained native law | Same retained native law and source guards |
+| Selected or reversed section in orderedPathSegments | Ordinary display trim/reversal could reconstruct samples | Original parameter-image/trim receipt retains native traversal; missing constructor refuses |
+| Selected or reversed section in plan | Original admission selected source preparation | Same original preparation through the borrowed execution |
+
+The display-only API is not a fallback for either Sweep entry. This narrow
+authority change requires actual selected/reversed-source behavioral evidence
+in the integration gate; it does not establish whole U1 completion.
+
+The native Kernel binding gate requires the existing actual consumer body to
+borrow OriginalQueryExecution through changed containment, arrangement, source
+validation and scalar readers. Ordinary operation entries root once. Pure
+structural/interpolation helpers keep their existing signatures; throwing
+topology getters propagate failure. Existing formulas, ordering, selected domains
+and independent local ceilings remain authoritative. This is API/caller repair,
+not new feature or whole-resource completion evidence.

@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 import CADIR
 import CADModeling
 
@@ -24,13 +25,30 @@ public struct BooleanExactRegionSelectionGraph: Sendable {
         operands: BooleanOperandContext,
         tolerance: ModelingTolerance
     ) throws {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        try validate(operation: operation, featureID: featureID, classificationGraph: classificationGraph,
+            operands: operands, tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(
+        operation: BooleanOperation,
+        featureID: FeatureID,
+        classificationGraph: BooleanClassificationGraph,
+        operands: BooleanOperandContext,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution
+    ) throws {
         try decisions.validate(
             operation: operation,
             classificationGraph: classificationGraph,
             rule: operands.rule,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
-        try sewingRequest.validate(tolerance: tolerance)
+        try execution.consumeWork(1)
+        try sewingRequest.validate(tolerance: tolerance, using: &execution)
+        try execution.consumeWork(stableSubshapes.count)
+        try execution.retainKernelValues(count: stableSubshapes.count, stride: MemoryLayout<BRepSewingStableKey>.stride)
         guard sewingRequest.featureID == featureID,
               sewingRequest.bodyKind == operands.resultBodyKind,
               Set(stableSubshapes.values).count == stableSubshapes.count else {

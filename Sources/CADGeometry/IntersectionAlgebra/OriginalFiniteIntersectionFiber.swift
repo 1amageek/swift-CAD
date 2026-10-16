@@ -17,31 +17,15 @@ package struct OriginalFiniteIntersectionFiber: Sendable {
     }
 
     /// Holds the exclusively borrowed ledger value, never a fresh allowance.
-    private struct Admission<B: RationalAlgebraAdmitting>: RationalAlgebraAdmitting {
-        var base: B
-        mutating func consumeExactWork(_ count: Int) throws {
-            try CurrentTaskCancellationChecker().checkCancellation(); try base.consumeExactWork(count)
-        }
-        mutating func retainExactStorage(_ count: Int) throws {
-            try CurrentTaskCancellationChecker().checkCancellation(); try base.retainExactStorage(count)
-        }
-        mutating func visitExactCell(depth: Int) throws {
-            try CurrentTaskCancellationChecker().checkCancellation(); try base.visitExactCell(depth: depth)
-        }
-        mutating func visitCoefficientCell(depth: Int) throws {
-            try CurrentTaskCancellationChecker().checkCancellation(); try base.visitCoefficientCell(depth: depth)
-        }
-    }
 
-    package static func prepare<B: RationalAlgebraAdmitting>(ideal: ExactIntersectionIdeal,
+
+    package static func prepare<B: ExactScalarAdmission & ~Copyable>(ideal: ExactIntersectionIdeal,
         domains: [ScalarInterval?], maximumDepth: Int, usage: inout B) throws -> Self {
-        var admission = Admission(base: usage)
-        defer { usage = admission.base }
         return try prepareAdmitted(ideal: ideal, domains: domains,
-            maximumDepth: maximumDepth, usage: &admission)
+            maximumDepth: maximumDepth, usage: &usage)
     }
 
-    private static func prepareAdmitted<B: RationalAlgebraAdmitting>(ideal: ExactIntersectionIdeal,
+    private static func prepareAdmitted<B: ExactScalarAdmission & ~Copyable>(ideal: ExactIntersectionIdeal,
         domains: [ScalarInterval?], maximumDepth: Int, usage: inout B) throws -> Self {
         try intersectionAlgebraStep(&usage)
         guard domains.count == ideal.variableCount, maximumDepth >= 0,
@@ -125,7 +109,7 @@ package struct OriginalFiniteIntersectionFiber: Sendable {
         return Self(ideal: ideal, domains: domains, points: prefixes)
     }
 
-    private static func contains<B: RationalAlgebraAdmitting>(_ value: OriginalSingularFieldElement,
+    private static func contains<B: ExactScalarAdmission & ~Copyable>(_ value: OriginalSingularFieldElement,
         in domain: ScalarInterval?, maximumDepth: Int, usage: inout B) throws -> Bool {
         guard let domain else { return true }
         let lower = try OriginalSingularFieldElement.constant(.originalDouble(domain.lower, usage: &usage),

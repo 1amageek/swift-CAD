@@ -1,125 +1,153 @@
 import CADCore
+
 #if !hasFeature(Embedded)
-import Foundation
+  import Foundation
 #elseif canImport(Darwin)
-import Darwin
+  import Darwin
 #elseif canImport(Glibc)
-import Glibc
+  import Glibc
 #elseif canImport(WASILibc)
-import WASILibc
+  import WASILibc
 #else
-#error("CADGeometry numeric algorithms require the target C math module.")
+  #error("CADGeometry numeric algorithms require the target C math module.")
 #endif
 
 /// A monotone canonical graph interval covered by one local span of a
 /// certified implicit pcurve. Closed curves may require two segments when an
 /// unwrapped traversal crosses the canonical `0...1` seam.
 package struct CertifiedImplicitCurveTraversalSegment: Sendable, Hashable {
-    package let curveLowerFraction: Double
-    package let curveUpperFraction: Double
-    package let canonicalLowerFraction: Double
-    package let canonicalUpperFraction: Double
-    package let direction: SurfaceParameterCurveDirection
+  package let curveLowerFraction: Double
+  package let curveUpperFraction: Double
+  package let canonicalLowerFraction: Double
+  package let canonicalUpperFraction: Double
+  package let direction: SurfaceParameterCurveDirection
 
-    package init(
-        curveLowerFraction: Double,
-        curveUpperFraction: Double,
-        canonicalLowerFraction: Double,
-        canonicalUpperFraction: Double,
-        direction: SurfaceParameterCurveDirection
-    ) {
-        self.curveLowerFraction = curveLowerFraction
-        self.curveUpperFraction = curveUpperFraction
-        self.canonicalLowerFraction = canonicalLowerFraction
-        self.canonicalUpperFraction = canonicalUpperFraction
-        self.direction = direction
-    }
+  package init(
+    curveLowerFraction: Double,
+    curveUpperFraction: Double,
+    canonicalLowerFraction: Double,
+    canonicalUpperFraction: Double,
+    direction: SurfaceParameterCurveDirection
+  ) {
+    self.curveLowerFraction = curveLowerFraction
+    self.curveUpperFraction = curveUpperFraction
+    self.canonicalLowerFraction = canonicalLowerFraction
+    self.canonicalUpperFraction = canonicalUpperFraction
+    self.direction = direction
+  }
 
-    package var orientationMultiplier: Double {
-        direction == .forward ? 1.0 : -1.0
-    }
+  package var orientationMultiplier: Double {
+    direction == .forward ? 1.0 : -1.0
+  }
 
-    package func curveFractionRange(
-        forCanonicalLower lower: Double,
-        upper: Double
-    ) -> (lower: Double, upper: Double) {
-        let canonicalSpan = canonicalUpperFraction - canonicalLowerFraction
-        let curveSpan = curveUpperFraction - curveLowerFraction
-        switch direction {
-        case .forward:
-            return (
-                curveLowerFraction
-                    + (lower - canonicalLowerFraction) / canonicalSpan * curveSpan,
-                curveLowerFraction
-                    + (upper - canonicalLowerFraction) / canonicalSpan * curveSpan
-            )
-        case .reversed:
-            return (
-                curveLowerFraction
-                    + (canonicalUpperFraction - upper) / canonicalSpan * curveSpan,
-                curveLowerFraction
-                    + (canonicalUpperFraction - lower) / canonicalSpan * curveSpan
-            )
-        }
+  package func curveFractionRange<A: ExactScalarAdmission & ~Copyable>(
+    forCanonicalLower lower: Double,
+    upper: Double, using execution: inout A
+  ) throws -> (lower: Double, upper: Double) {
+    try execution.consumeWork(1)
+    let canonicalSpan = canonicalUpperFraction - canonicalLowerFraction
+    let curveSpan = curveUpperFraction - curveLowerFraction
+    switch direction {
+    case .forward:
+      return (
+        curveLowerFraction
+          + (lower - canonicalLowerFraction) / canonicalSpan * curveSpan,
+        curveLowerFraction
+          + (upper - canonicalLowerFraction) / canonicalSpan * curveSpan
+      )
+    case .reversed:
+      return (
+        curveLowerFraction
+          + (canonicalUpperFraction - upper) / canonicalSpan * curveSpan,
+        curveLowerFraction
+          + (canonicalUpperFraction - lower) / canonicalSpan * curveSpan
+      )
     }
+  }
 }
 
-package extension CertifiedImplicitSurfaceParameterCurve {
-    func canonicalTraversalSegments(
-        tolerance: ModelingTolerance
-    ) throws -> [CertifiedImplicitCurveTraversalSegment] {
+extension CertifiedImplicitSurfaceParameterCurve {
+  package func canonicalTraversalSegments(
+    tolerance: ModelingTolerance
+  ) throws -> [CertifiedImplicitCurveTraversalSegment] {
+    var execution = try OriginalQueryExecution.surfaceSurface(
+      options: .init(),
+      context: .init(operation: .surfaceSurface, entry: .ordinary, stage: .membership))
+    return try canonicalTraversalSegments(tolerance: tolerance, using: &execution)
+  }
+
+  package func canonicalTraversalSegments(
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+  ) throws -> [CertifiedImplicitCurveTraversalSegment] {
+    do {
+      return try execution.withProofScope { execution in
+        try execution.consumeWork(1)
+
         try tolerance.validate()
-        try intersection.validate(tolerance: tolerance)
+        try intersection.validate(tolerance: tolerance, using: &execution)
         let displacement = endFraction - startFraction
         guard displacement.isFinite,
-              abs(displacement) > tolerance.relative else {
-            throw GeometryError.invalidDistance(displacement)
+          abs(displacement) > tolerance.relative
+        else {
+          throw GeometryError.invalidDistance(displacement)
         }
 
+        try execution.retainStorage(count: 3, stride: MemoryLayout<Double>.stride)
         var globalBreaks = [startFraction]
         if min(startFraction, endFraction) < 1.0,
-           max(startFraction, endFraction) > 1.0 {
-            globalBreaks.append(1.0)
+          max(startFraction, endFraction) > 1.0
+        {
+          globalBreaks.append(1.0)
         }
         globalBreaks.append(endFraction)
 
+        try execution.retainStorage(
+          count: globalBreaks.count - 1,
+          stride: MemoryLayout<CertifiedImplicitCurveTraversalSegment>.stride)
         var result: [CertifiedImplicitCurveTraversalSegment] = []
         result.reserveCapacity(globalBreaks.count - 1)
         for index in 1..<globalBreaks.count {
-            let globalStart = globalBreaks[index - 1]
-            let globalEnd = globalBreaks[index]
-            let midpoint = globalStart + (globalEnd - globalStart) * 0.5
-            let periodOffset = midpoint >= 1.0 ? 1.0 : 0.0
-            let canonicalStart = min(max(globalStart - periodOffset, 0.0), 1.0)
-            let canonicalEnd = min(max(globalEnd - periodOffset, 0.0), 1.0)
-            let canonicalSpan = abs(canonicalEnd - canonicalStart)
-            guard canonicalSpan > 0.0 else {
-                throw KernelError(
-                    phase: .geometry,
-                    code: .intersectionFailure,
-                    tolerance: tolerance,
-                    message: "A certified implicit pcurve produced an empty canonical traversal segment."
-                )
-            }
-            let firstCurveFraction = (globalStart - startFraction) / displacement
-            let secondCurveFraction = (globalEnd - startFraction) / displacement
-            result.append(CertifiedImplicitCurveTraversalSegment(
-                curveLowerFraction: min(firstCurveFraction, secondCurveFraction),
-                curveUpperFraction: max(firstCurveFraction, secondCurveFraction),
-                canonicalLowerFraction: min(canonicalStart, canonicalEnd),
-                canonicalUpperFraction: max(canonicalStart, canonicalEnd),
-                direction: canonicalStart < canonicalEnd ? .forward : .reversed
+          try execution.consumeWork(1)
+          let globalStart = globalBreaks[index - 1]
+          let globalEnd = globalBreaks[index]
+          let midpoint = globalStart + (globalEnd - globalStart) * 0.5
+          let periodOffset = midpoint >= 1.0 ? 1.0 : 0.0
+          let canonicalStart = min(max(globalStart - periodOffset, 0.0), 1.0)
+          let canonicalEnd = min(max(globalEnd - periodOffset, 0.0), 1.0)
+          let canonicalSpan = abs(canonicalEnd - canonicalStart)
+          guard canonicalSpan > 0.0 else {
+            throw KernelError(
+              phase: .geometry,
+              code: .intersectionFailure,
+              tolerance: tolerance,
+              message: "A certified implicit pcurve produced an empty canonical traversal segment."
+            )
+          }
+          let firstCurveFraction = (globalStart - startFraction) / displacement
+          let secondCurveFraction = (globalEnd - startFraction) / displacement
+          result.append(
+            CertifiedImplicitCurveTraversalSegment(
+              curveLowerFraction: min(firstCurveFraction, secondCurveFraction),
+              curveUpperFraction: max(firstCurveFraction, secondCurveFraction),
+              canonicalLowerFraction: min(canonicalStart, canonicalEnd),
+              canonicalUpperFraction: max(canonicalStart, canonicalEnd),
+              direction: canonicalStart < canonicalEnd ? .forward : .reversed
             ))
         }
 
         guard result.isEmpty == false else {
-            throw KernelError(
-                phase: .geometry,
-                code: .intersectionFailure,
-                tolerance: tolerance,
-                message: "A certified implicit pcurve produced no canonical traversal segments."
-            )
+          throw KernelError(
+            phase: .geometry,
+            code: .intersectionFailure,
+            tolerance: tolerance,
+            message: "A certified implicit pcurve produced no canonical traversal segments."
+          )
         }
         return result
+
+      }
+    } catch {
+      throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance)
     }
+  }
 }

@@ -75,6 +75,15 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
     func fullBranchCylinderSpatialDifferentialMagnitudeBounds(
         tolerance: ModelingTolerance
     ) throws -> SpatialDifferentialMagnitudeBounds {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try fullBranchCylinderSpatialDifferentialMagnitudeBounds(tolerance: tolerance, using: &execution)
+    }
+
+    func fullBranchCylinderSpatialDifferentialMagnitudeBounds(
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> SpatialDifferentialMagnitudeBounds {
+        try execution.consumeWork(1)
         guard case let .cylinderCylinder(curve) = intersection.definition,
               curve.componentKind == .negativeFullBranch
                 || curve.componentKind == .positiveFullBranch else {
@@ -94,6 +103,15 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
     func cylinderSpatialDifferentialMagnitudeBounds(
         tolerance: ModelingTolerance
     ) throws -> SpatialDifferentialMagnitudeBounds {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try cylinderSpatialDifferentialMagnitudeBounds(tolerance: tolerance, using: &execution)
+    }
+
+    func cylinderSpatialDifferentialMagnitudeBounds(
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> SpatialDifferentialMagnitudeBounds {
+        try execution.consumeWork(1)
         guard case let .cylinderCylinder(curve) = intersection.definition else {
             throw KernelError(
                 phase: .geometry,
@@ -115,11 +133,20 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
     func spatialDifferentialMagnitudeBounds(
         tolerance: ModelingTolerance
     ) throws -> SpatialDifferentialMagnitudeBounds {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try spatialDifferentialMagnitudeBounds(tolerance: tolerance, using: &execution)
+    }
+
+    func spatialDifferentialMagnitudeBounds(
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> SpatialDifferentialMagnitudeBounds {
+        try execution.consumeWork(1)
         switch intersection.definition {
         case .cylinderCylinder:
             return try cylinderSpatialDifferentialMagnitudeBounds(
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .boundedPlaneCone(curve):
             let source = try curve.spatialDifferentialMagnitudeBounds(
                 fromNormalizedFraction: min(startFraction, endFraction),

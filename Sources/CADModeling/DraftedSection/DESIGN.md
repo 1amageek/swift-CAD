@@ -305,11 +305,7 @@ of Loft's declared section correspondence traversal lock. Original drafted
 walls replace the prior tensor between converted endpoint sections. Capped thin
 material and sharp original wall-joint retrimming remain separate premises.
 
-`AdmittedDraftedSectionCurveSource` is deprecated and has no production caller:
-caller-admitted `DraftedSectionPairBuilder.pair` returns through the persistent
-source path before its legacy construction branch. The retained adapter is only
-for migration comparison until the deferred source-wide behavioral verification;
-its final retain/remove decision is required before the task release.
+The deprecated, unused `AdmittedDraftedSectionCurveSource` comparison adapter is removed; production continues through the persistent original drafted curve source.
 
 Original curve-sheet selection consumes `OriginalEvaluatedCurveGeometry` under
 this same admission. A full periodic source retains its declared authored turn;
@@ -323,3 +319,17 @@ The [authored section planarity tests](../../../Tests/CADModelingTests/OriginalA
 exercise complete closed native traversals on the chart, raw-normal-plane curves
 outside the authored chart allowance, and typed independent admission failures.
 They verify section support admission, not final extrusion publication.
+
+## Canonical Native Offset Binding
+
+The native B-spline construction input retains the existing endpoint-span offset
+law `C + shift * (T cross N)`, including its original finite continuation. Both
+ordinary and borrowed-execution builders call the native
+`PlanarCurveOffsetApproximator` core. Neither an admission object nor execution
+context selects a different support law. The general admitted curve source
+continues to own its separate explicit trim contract.
+
+The [canonical execution contract](../../CADGeometry/OriginalQueryExecution/DESIGN.md)
+owns resource transport.
+[CanonicalConstructionAdmissionTests](../../../Tests/CADModelingTests/CanonicalConstructionAdmissionTests.swift)
+checks native offset/continuation and shared-body output.

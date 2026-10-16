@@ -6,7 +6,7 @@ package struct OriginalSingularGermPoint: Sendable {
     package let localU: OriginalSingularFieldElement
     package let localV: OriginalSingularFieldElement
 
-    package static func proven<B: RationalAlgebraAdmitting>(originalU: ExactRationalCoefficient,
+    package static func proven<B: ExactScalarAdmission & ~Copyable>(originalU: ExactRationalCoefficient,
         originalV: ExactAlgebraicRealRoot, in germ: OriginalSingularResolution.Germ,
         maximumDepth: Int, usage: inout B) throws -> Self? {
         let fiber = try OriginalSingularFieldRoot.retaining(originalV, in: germ.strictTransform.context,
@@ -19,7 +19,7 @@ package struct OriginalSingularGermPoint: Sendable {
             sourceDepth: fiber.isolation.depth, maximumDepth: maximumDepth, usage: &usage)
     }
 
-    package static func proven<B: RationalAlgebraAdmitting>(originalU: ExactRationalCoefficient,
+    package static func proven<B: ExactScalarAdmission & ~Copyable>(originalU: ExactRationalCoefficient,
         originalV: OriginalSingularFieldRoot, in germ: OriginalSingularResolution.Germ,
         maximumDepth: Int, usage: inout B) throws -> Self? {
         let fiber = try OriginalSingularFieldRoot.retaining(originalV, in: germ.strictTransform.context,
@@ -31,7 +31,7 @@ package struct OriginalSingularGermPoint: Sendable {
             sourceDepth: fiber.isolation.depth, maximumDepth: maximumDepth, usage: &usage)
     }
 
-    private static func proven<B: RationalAlgebraAdmitting>(originalU u: OriginalSingularFieldElement,
+    private static func proven<B: ExactScalarAdmission & ~Copyable>(originalU u: OriginalSingularFieldElement,
         originalV v: OriginalSingularFieldElement, in germ: OriginalSingularResolution.Germ,
         sourceDepth: Int, maximumDepth: Int, usage: inout B) throws -> Self? {
         let context = v.context
@@ -44,7 +44,7 @@ package struct OriginalSingularGermPoint: Sendable {
         var x = try u.subtracting(centerU, maximumDepth: maximumDepth, usage: &usage)
         var y = try v.subtracting(centerV, maximumDepth: maximumDepth, usage: &usage)
         for step in germ.steps {
-            try usage.visitExactCell(depth: max(step.sourceDepth, sourceDepth))
+            try usage.visitCell(axis: .value, depth: max(step.sourceDepth, sourceDepth))
             switch step.direction {
             case .finite:
                 if case .zero = try x.sign(maximumDepth: maximumDepth, usage: &usage) { return nil }
@@ -73,7 +73,7 @@ package struct OriginalSingularGermPoint: Sendable {
         return Self(germ: germ, originalU: u, originalV: v, localU: x, localV: y)
     }
 
-    package func belongs<B: RationalAlgebraAdmitting>(to chart: OriginalSingularRegularChart,
+    package func belongs<B: ExactScalarAdmission & ~Copyable>(to chart: OriginalSingularRegularChart,
         strictly: Bool, maximumDepth: Int, usage: inout B) throws -> Bool {
         guard chart.germ.strictTransform.context === germ.strictTransform.context else {
             throw rationalAlgebraFailure("Original local membership uses an unrelated germ field.")

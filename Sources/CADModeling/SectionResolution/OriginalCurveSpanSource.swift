@@ -4,22 +4,22 @@ import CADGeometry
 /// Immutable lifetime owner shared by construction views of one original curve.
 package final class OriginalCurveSpanSource: Sendable {
     package let curve: Curve3D
-    package let admission: GeometryConversionAdmission?
+    package let budget: OriginalQueryBudget?
+    package let limits: OriginalQueryExecutionLimits?
+    package let contributions: [OriginalQueryContributionHandle]
     package let prepared: PreparedCurveDifferentialEncloser?
     package let preparationTolerance: ModelingTolerance?
 
     package init(curve: Curve3D) {
-        self.curve = curve; admission = nil; prepared = nil; preparationTolerance = nil
+        self.curve = curve; contributions = []; budget = nil; limits = nil; prepared = nil; preparationTolerance = nil
     }
 
     package init(curve: Curve3D, tolerance: ModelingTolerance,
-        admission: GeometryConversionAdmission) throws {
-        self.curve = curve; self.admission = admission; preparationTolerance = tolerance
+        using execution: inout OriginalQueryExecution) throws {
+        self.curve = curve; budget = execution.budget; limits = execution.effectiveLimits; contributions = try execution.retainActiveContributionHandles(); preparationTolerance = tolerance
         prepared = try PreparedCurveDifferentialEncloser(curve: curve,
-            tolerance: tolerance, remainingSourceDepth: admission.remainingSourceDepth,
-            maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
-            consumeWork: { try admission.chargeWork() },
-            consumeStorage: { try admission.chargeStorage(bytes: $0) },
-            maximumAlgebraicDepth: admission.maximumAlgebraicDepth)
+            tolerance: tolerance, remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+            maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth,
+            maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth, using: &execution)
     }
 }

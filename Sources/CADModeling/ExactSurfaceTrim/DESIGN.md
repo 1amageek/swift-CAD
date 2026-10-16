@@ -28,3 +28,14 @@ Existing subdivision depth 32 and 131,072 flat spans remain unchanged. Missing s
 
 ## Verification and Change Impact
 Deferred behavior covers foreign signed-ratio and swapped charts, original spline continuation, reversed loops, holes, tangencies, invalid area and budget exhaustion. Recheck original enclosure and area consumers when pcurve laws change. Source changes do not establish behavioral verification.
+
+## Canonical Geometry API Binding
+
+Existing construction proposals retain their authored formulas. Original trim
+membership and flattening require whole-source enclosure under the caller's
+execution. The historical rational proposal for a plain harmonic pcurve does not
+issue an original UV chord-tube receipt; that validation branch now refuses with
+typed unsupported and an incomplete marker. The harmonic construction producer
+remains available, but a rational proposal cannot authorize original trim
+publication. This binding does not introduce a new harmonic winding proof or
+complete that source family.

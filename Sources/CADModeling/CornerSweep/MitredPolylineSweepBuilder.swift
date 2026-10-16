@@ -40,10 +40,16 @@ package struct MitredPolylineSweepBuilder {
     package static func applies(_ options: SweepOptions, pathSpans: [ExactBSplineCurveSpan], tolerance: ModelingTolerance, sourceBudget: CurvedSweepSourceBudget? = nil) throws -> Bool {
         guard options.alignment == .normal, pathSpans.count >= 2 else { return false }
         let invocation = try sourceBudget ?? CurvedSweepSourceBudget(tolerance: tolerance)
-        let admission = try invocation.conversionAdmission()
+        var execution = try invocation.execution()
+        return try applies(options, pathSpans: pathSpans, tolerance: tolerance, using: &execution)
+    }
+
+    package static func applies(_ options: SweepOptions, pathSpans: [ExactBSplineCurveSpan],
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Bool {
+        guard options.alignment == .normal, pathSpans.count >= 2 else { return false }
         let builder = MitredPolylineSweepBuilder(tolerance: tolerance)
         return try zip(pathSpans, pathSpans.dropFirst()).contains { before, after in
-            builder.smooth(try builder.tangent(of: before, atEnd: true, admission: admission), try builder.tangent(of: after, atEnd: false, admission: admission)) == false
+            builder.smooth(try builder.tangent(of: before, atEnd: true, using: &execution), try builder.tangent(of: after, atEnd: false, using: &execution)) == false
         }
     }
 
@@ -53,29 +59,29 @@ package struct MitredPolylineSweepBuilder {
     }
 
     /// Whether the retained original span is a straight segment.
-    private func isStraight(_ span: ExactBSplineCurveSpan, admission: GeometryConversionAdmission) throws -> Bool {
-        try OriginalSweepPathLinearity(tolerance: tolerance, admission: admission)
-            .containsOnlyLinearArms([span])
+    private func isStraight(_ span: ExactBSplineCurveSpan, using execution: inout OriginalQueryExecution) throws -> Bool {
+        try OriginalSweepPathLinearity(tolerance: tolerance)
+            .containsOnlyLinearArms([span], using: &execution)
     }
 
     /// A span's unit tangent at its start or end, along its run.
-    private func tangent(of span: ExactBSplineCurveSpan, atEnd: Bool, admission: GeometryConversionAdmission) throws -> Vector3D {
-        if try isStraight(span, admission: admission) { return try (span.endPoint - span.startPoint).normalized(tolerance: tolerance.distance) }
+    private func tangent(of span: ExactBSplineCurveSpan, atEnd: Bool, using execution: inout OriginalQueryExecution) throws -> Vector3D {
+        if try isStraight(span, using: &execution) { return try (span.endPoint - span.startPoint).normalized(tolerance: tolerance.distance) }
         guard case let .closed(lower, upper) = span.curve.domain else {
             throw KernelError(phase: .evaluation, code: .invalidInput, tolerance: tolerance, message: "A sweep path span is unbounded.")
         }
-        let jet = try Curve3D.bSpline(span.curve).differentialGeometry(at: atEnd ? upper : lower, tolerance: tolerance)
+        let jet = try Curve3D.bSpline(span.curve).differentialGeometry(at: atEnd ? upper : lower, tolerance: tolerance, using: &execution)
         return try jet.firstDerivative.normalized(tolerance: tolerance.distance)
     }
 
     /// The path's legs in order: straight spans running on one way are one straight leg, curved
     /// spans running on smoothly one curved leg.
-    private func legs(of spans: [ExactBSplineCurveSpan], admission: GeometryConversionAdmission) throws -> [Leg] {
+    private func legs(of spans: [ExactBSplineCurveSpan], using execution: inout OriginalQueryExecution) throws -> [Leg] {
         var legs: [Leg] = []
         for span in spans {
-            try admission.chargeWork()
-            let straight = try isStraight(span, admission: admission)
-            let (startTangent, endTangent) = (try tangent(of: span, atEnd: false, admission: admission), try tangent(of: span, atEnd: true, admission: admission))
+            try execution.consumeWork(1)
+            let straight = try isStraight(span, using: &execution)
+            let (startTangent, endTangent) = (try tangent(of: span, atEnd: false, using: &execution), try tangent(of: span, atEnd: true, using: &execution))
             if let last = legs.last, last.isStraight == straight, smooth(last.endTangent, startTangent) {
                 legs[legs.count - 1].spans.append(span)
                 legs[legs.count - 1].end = span.endPoint
@@ -89,7 +95,7 @@ package struct MitredPolylineSweepBuilder {
     }
 
     /// The direction of an open section made of straight spans along one line, nil otherwise.
-    private func straightSectionDirection(_ loops: [[ExactBSplineCurveSpan]]) throws -> Vector3D? {
+    private func straightSectionDirection(_ loops: [[ExactBSplineCurveSpan]], using execution: inout OriginalQueryExecution) throws -> Vector3D? {
         let points = loops.flatMap { $0.flatMap { $0.curve.controlPoints } }
         guard let first = points.first, let far = points.max(by: { ($0 - first).length < ($1 - first).length }),
               (far - first).length > tolerance.distance else { return nil }
@@ -124,8 +130,21 @@ package struct MitredPolylineSweepBuilder {
         try tolerance.validate()
         let options = sweep.options
         let sourceBudget = try sourceBudget ?? CurvedSweepSourceBudget(tolerance: tolerance)
-        let admission = try sourceBudget.conversionAdmission()
-        try admission.chargeWork()
+        var execution = try sourceBudget.execution()
+        return try request(sectionLoops: sectionLoops, sectionIsClosed: sectionIsClosed,
+            profilePlane: profilePlane, pathSpans: pathSpans, pathIsClosed: pathIsClosed,
+            sweep: sweep, values: values, featureID: featureID, guidesAreEmpty: guidesAreEmpty,
+            sourceBudget: sourceBudget, using: &execution)
+    }
+
+    package func request(sectionLoops: [[ExactBSplineCurveSpan]], sectionIsClosed: Bool,
+        profilePlane: SketchPlane, pathSpans: [ExactBSplineCurveSpan], pathIsClosed: Bool,
+        sweep: SweepFeature, values: SweepOptionValues, featureID: FeatureID,
+        guidesAreEmpty: Bool = true, sourceBudget: CurvedSweepSourceBudget,
+        using execution: inout OriginalQueryExecution) throws -> Request {
+        try tolerance.validate()
+        let options = sweep.options
+        try execution.consumeWork(1)
         guard !pathSpans.isEmpty, !sectionLoops.isEmpty else {
             throw failure(.invalidInput, "Corner Sweep requires original path and section spans.", featureID)
         }
@@ -155,13 +174,13 @@ package struct MitredPolylineSweepBuilder {
         let patches = ExactLinearSectionSweepFacePatchBuilder(tolerance: tolerance)
         let sectionPlane = try ExactSweepSectionPlane(profilePlane, tolerance: tolerance).plane
         for loop in sectionLoops {
-            try admission.chargeWork(loop.count)
+            try execution.consumeWork(loop.count)
             try patches.validateSectionContinuity(loop, isClosed: sectionIsClosed)
             try patches.validateProfileSpans(loop, on: sectionPlane)
         }
         // Legs: straight spans running on one way are one straight leg, curved spans running on
         // smoothly one curved leg; a corner is where the path's tangent turns between two legs.
-        var legs = try self.legs(of: pathSpans, admission: admission)
+        var legs = try self.legs(of: pathSpans, using: &execution)
         if pathIsClosed, legs.count > 1, let first = legs.first, let last = legs.last,
            smooth(last.endTangent, first.startTangent), first.isStraight == last.isStraight {
             // The closing leg runs on into the first: one leg through the path's start.
@@ -174,7 +193,7 @@ package struct MitredPolylineSweepBuilder {
         // arm (a line drawn in the path's plane), it is taken in the plane through it square to
         // that one, so it sweeps a flat ribbon along the path.
         if sectionIsClosed == false, abs(normal.dot(legs[0].startTangent)) <= max(tolerance.relative, sin(tolerance.angle)),
-           let line = try straightSectionDirection(sectionLoops) {
+           let line = try straightSectionDirection(sectionLoops, using: &execution) {
             normal = try line.cross(normal).normalized(tolerance: tolerance.distance)
         }
         func cornerBefore(_ index: Int, in legs: [Leg]) -> Bool {
@@ -193,7 +212,7 @@ package struct MitredPolylineSweepBuilder {
             }
             legs = Array(legs[nearest...] + legs[..<nearest])
             if abs(normal.dot(legs[legs.count - 1].endTangent)) > abs(normal.dot(legs[0].startTangent)) {
-                legs = try legs.reversed().map { try $0.reversed(tolerance: tolerance) }
+                legs = try legs.reversed().map { try $0.reversed(tolerance: tolerance, using: &execution) }
             }
         }
         let legCount = legs.count
@@ -219,7 +238,7 @@ package struct MitredPolylineSweepBuilder {
         let origin = legs[0].start
         /// A curved leg's sweep: the certified curved plan of the section placed where the leg
         /// starts by the frame `rotation`, and the frame it carries the section to at the leg's end.
-        func curvedSweep(_ leg: Leg, rotation: Rotation, loops: [[ExactBSplineCurveSpan]])
+        func curvedSweep(_ leg: Leg, rotation: Rotation, loops: [[ExactBSplineCurveSpan]], using execution: inout OriginalQueryExecution)
             throws -> (plan: CertifiedCurvedPathSweepPlan, carried: Rotation) {
             let placed = try loops.map { loop in
                 try loop.map { span in
@@ -227,7 +246,7 @@ package struct MitredPolylineSweepBuilder {
                         degree: span.curve.degree, knots: span.curve.knots,
                         controlPoints: span.curve.controlPoints.map { leg.start + rotation.applied(to: $0 - origin) },
                         weights: span.curve.weights
-                    ), tolerance: tolerance)
+                    ), tolerance: tolerance, using: &execution)
                 }
             }
             guard let anchor = placed.first?.first?.startPoint else {
@@ -237,7 +256,7 @@ package struct MitredPolylineSweepBuilder {
                 sectionLoops: placed, sectionIsClosed: sectionIsClosed,
                 profilePlane: .plane(Plane3D(origin: anchor, normal: rotation.applied(to: normal))),
                 pathSpans: leg.spans, sweep: sweep, values: values, sourceBudget: sourceBudget, featureID: featureID, tolerance: tolerance
-            )
+            , using: &execution)
             // The frame the plan carries the section in: its first loop's rows at the leg's two
             // ends, each read as the tangent there and the section's farthest point across it.
             let starts = try plan.surfaces[0][0].flatMap { try $0.uIsoparametricCurve(atV: 0, tolerance: tolerance).controlPoints }
@@ -267,7 +286,7 @@ package struct MitredPolylineSweepBuilder {
         }
         /// The frame at each leg's start (the least rotations through the corners, the curved
         /// sweeps' frames along curved legs) and at the path's end, with each curved leg's plan.
-        func frames(_ loops: [[ExactBSplineCurveSpan]]) throws -> (starts: [Rotation], end: Rotation, plans: [Int: CertifiedCurvedPathSweepPlan]) {
+        func frames(_ loops: [[ExactBSplineCurveSpan]], using execution: inout OriginalQueryExecution) throws -> (starts: [Rotation], end: Rotation, plans: [Int: CertifiedCurvedPathSweepPlan]) {
             var starts: [Rotation] = []
             var plans: [Int: CertifiedCurvedPathSweepPlan] = [:]
             var current = Rotation.identity
@@ -277,14 +296,14 @@ package struct MitredPolylineSweepBuilder {
                 }
                 starts.append(current)
                 if leg.isStraight == false {
-                    let (plan, carried) = try curvedSweep(leg, rotation: current, loops: loops)
+                    let (plan, carried) = try curvedSweep(leg, rotation: current, loops: loops, using: &execution)
                     plans[index] = plan
                     current = carried.composed(with: current)
                 }
             }
             return (starts, current, plans)
         }
-        let firstFrames = try frames(sectionLoops)
+        let firstFrames = try frames(sectionLoops, using: &execution)
         let rotations = firstFrames.starts
         if pathIsClosed {
             let closing = corners[0]
@@ -311,7 +330,7 @@ package struct MitredPolylineSweepBuilder {
             }
             var cumulative = [0.0]
             for leg in legs {
-                try admission.chargeWork()
+                try execution.consumeWork(1)
                 let length = (leg.end - leg.start).length
                 guard length.isFinite, length > tolerance.distance else {
                     throw failure(.invalidInput, "A scaled Sweep arm requires a finite positive original length.", featureID)
@@ -343,28 +362,24 @@ package struct MitredPolylineSweepBuilder {
             }
         }
         var remainingPlaneVisits = 65_536
-        func consumePlaneWork() throws {
-            try admission.chargeWork()
-            guard remainingPlaneVisits > 0 else {
-                throw failure(.resourceLimitExceeded,
-                    "Corner Sweep original plane proof exhausted its request budget.", featureID)
-            }
-            remainingPlaneVisits -= 1
+        let loops = try scopedProof(remainingWork: &remainingPlaneVisits, using: &execution) { execution in
+            try splitSections(sectionLoops, origin: origin,
+                across: roundCorners.values.map { $0.inner }, using: &execution)
         }
-        let loops = try splitSections(sectionLoops, origin: origin, across: roundCorners.values.map { $0.inner },
-            consumeWork: consumePlaneWork, admission: admission)
         // The curved legs' plans over the section as split (their frames do not depend on it).
-        let plans = loops.map { $0.count } == sectionLoops.map { $0.count } ? firstFrames.plans : try frames(loops).plans
+        let plans = loops.map { $0.count } == sectionLoops.map { $0.count } ? firstFrames.plans : try frames(loops, using: &execution).plans
         /// Whether a section span lies on the outer side of round corner `j`.
-        func isOuter(_ span: ExactBSplineCurveSpan, corner j: Int) throws -> Bool {
+        func isOuter(_ span: ExactBSplineCurveSpan, corner j: Int, using execution: inout OriginalQueryExecution) throws -> Bool {
             guard let corner = roundCorners[j] else { return false }
-            return try originalSpanPlaneSide(span.curve, origin: origin,
-                normal: corner.inner, featureID: featureID, consumeWork: consumePlaneWork) == .negative
+            return try scopedProof(remainingWork: &remainingPlaneVisits, using: &execution) { execution in
+                try originalSpanPlaneSide(span.curve, origin: origin,
+                    normal: corner.inner, featureID: featureID, using: &execution) == .negative
+            }
         }
         /// Where a section point on straight leg `leg` meets the leg's start (`end` false) or end:
         /// the section carried there by the leg's frame, at a corner pushed along the leg onto the
         /// mitre plane, or for the outside of a round corner onto the plane across the leg.
-        func place(_ point: Point3D, leg: Int, end: Bool, outer: Bool) throws -> Point3D {
+        func place(_ point: Point3D, leg: Int, end: Bool, outer: Bool, using execution: inout OriginalQueryExecution) throws -> Point3D {
             let offset = rotations[leg].applied(to: point - origin) * cornerScales[end ? leg + 1 : leg]
             let direction = legs[leg].startTangent
             let anchor = end ? legs[leg].end : legs[leg].start
@@ -388,7 +403,7 @@ package struct MitredPolylineSweepBuilder {
         // each curved leg's, its plan's rows. Side faces are numbered along the path.
         var sides: [[BRepSewingFacePatch]] = loops.map { _ in [] }
         let windingSigns = try loops.map { loop in
-            sectionIsClosed ? try patches.profileWindingSign(loop, normal: normal, featureID: featureID) : 1.0
+            sectionIsClosed ? try patches.profileWindingSign(loop, normal: normal, featureID: featureID, using: &execution) : 1.0
         }
         let orientations: [Orientation] = windingSigns.map { sign in
             sectionIsClosed ? (sign * (advance > 0 ? 1 : -1) > 0 ? .forward : .reversed) : .forward
@@ -427,22 +442,22 @@ package struct MitredPolylineSweepBuilder {
             for (loopIndex, loop) in loops.enumerated() {
                 let orientation = orientations[loopIndex]
                 for (spanIndex, span) in loop.enumerated() {
-                    try admission.chargeWork()
-                    let outerAtStart = try isOuter(span, corner: leg)
-                    let outerAtEnd = (leg + 1 < legCount || pathIsClosed) ? try isOuter(span, corner: endCorner) : false
+                    try execution.consumeWork(1)
+                    let outerAtStart = try isOuter(span, corner: leg, using: &execution)
+                    let outerAtEnd = (leg + 1 < legCount || pathIsClosed) ? try isOuter(span, corner: endCorner, using: &execution) : false
                     let bytes = span.curve.controlPoints.count.multipliedReportingOverflow(by: 2 * MemoryLayout<Point3D>.stride)
                     guard !bytes.overflow else { throw failure(.resourceLimitExceeded, "Corner Sweep row payload overflows.", featureID) }
-                    try admission.chargeStorage(bytes: bytes.partialValue)
+                    try execution.retainStorage(bytes: bytes.partialValue)
                     // After a curved leg the leg starts on that leg's last row.
                     let starts = try leg > 0 && plans[leg - 1] != nil
                         ? legEndRows[leg - 1][loopIndex][spanIndex].controlPoints
                         : span.curve.controlPoints.map {
-                            try admission.chargeWork()
-                            return try place($0, leg: leg, end: false, outer: outerAtStart)
+                            try execution.consumeWork(1)
+                            return try place($0, leg: leg, end: false, outer: outerAtStart, using: &execution)
                         }
                     let ends = try span.curve.controlPoints.map {
-                        try admission.chargeWork()
-                        return try place($0, leg: leg, end: true, outer: outerAtEnd)
+                        try execution.consumeWork(1)
+                        return try place($0, leg: leg, end: true, outer: outerAtEnd, using: &execution)
                     }
                     // The leg must run forward from its start to its end at every point.
                     for (start, end) in zip(starts, ends) where (end - start).dot(legs[leg].startTangent) <= tolerance.distance {
@@ -473,14 +488,14 @@ package struct MitredPolylineSweepBuilder {
         for j in roundCorners.keys.sorted() {
             guard let corner = roundCorners[j] else { continue }
             for (loopIndex, loop) in loops.enumerated() {
-                for (spanIndex, span) in loop.enumerated() where try isOuter(span, corner: j) {
+                for (spanIndex, span) in loop.enumerated() where try isOuter(span, corner: j, using: &execution) {
                     let stableID = loopIndex == 0
                         ? "sweep:corner:\(j):profile:\(spanIndex)"
                         : "sweep:corner:\(j):inner:\(loopIndex - 1):profile:\(spanIndex)"
                     sides[loopIndex].append(try revolvedPatch(
                         legEndRows[corner.before][loopIndex][spanIndex], about: corner,
                         orientation: orientations[loopIndex], stableID: stableID, patches: patches,
-                        admission: admission
+                        using: &execution
                     ))
                     cornerFaceIDs.append(stableID)
                 }
@@ -489,10 +504,10 @@ package struct MitredPolylineSweepBuilder {
         let includesCaps = options.resultKind == .solid && !pathIsClosed
         var caps: [BRepSewingFacePatch] = []
         if includesCaps {
-            caps.append(try cap(startRows, normal: normal, outerWinding: windingSigns[0], advance: advance, atEnd: false, patches: patches))
+            caps.append(try cap(startRows, normal: normal, outerWinding: windingSigns[0], advance: advance, atEnd: false, patches: patches, using: &execution))
             if values.endScale != 0 {
                 caps.append(try cap(endRows, normal: firstFrames.end.applied(to: normal), outerWinding: windingSigns[0],
-                    advance: advance, atEnd: true, patches: patches))
+                    advance: advance, atEnd: true, patches: patches, using: &execution))
             }
         }
         let request: BRepSewingRequest
@@ -512,8 +527,7 @@ package struct MitredPolylineSweepBuilder {
     /// `normals`, so every piece lies on one side of each.
     private func splitSections(
         _ loops: [[ExactBSplineCurveSpan]], origin: Point3D, across normals: [Vector3D],
-        consumeWork: () throws -> Void,
-        admission: GeometryConversionAdmission
+        using execution: inout OriginalQueryExecution
     ) throws -> [[ExactBSplineCurveSpan]] {
         var planes: [Vector3D] = []
         for normal in normals where !planes.contains(where: { $0 == normal || $0 == -normal }) {
@@ -525,12 +539,12 @@ package struct MitredPolylineSweepBuilder {
         return try loops.map { loop in
             try loop.flatMap { span -> [ExactBSplineCurveSpan] in
                 let curve = Curve3D.bSpline(span.curve)
-                let bounds = try ExactLinearSectionSweepFacePatchBuilder(tolerance: tolerance).closedBounds(span.curve.domain)
+                let bounds = try ExactLinearSectionSweepFacePatchBuilder(tolerance: tolerance).closedBounds(span.curve.domain, using: &execution)
                 var roots: [Double] = []
                 for normal in planes {
-                    try consumeWork()
+                    try execution.consumeWork(1)
                     let signs = try originalControlPlaneSigns(span.curve, origin: origin, normal: normal,
-                        consumeWork: consumeWork)
+                        using: &execution)
                     if signs.allSatisfy({ $0 == .zero || $0 == .positive })
                         || signs.allSatisfy({ $0 == .zero || $0 == .negative }) { continue }
                     // FIXME(INCOMPLETE_IMPLEMENTATION): Production Round Sweep
@@ -540,7 +554,7 @@ package struct MitredPolylineSweepBuilder {
                     let contacts = try intersector.intersections(curve: curve,
                         surface: .plane(Plane3D(origin: origin, normal: normal)),
                         options: .init(curveRange: ScalarInterval(lower: bounds.lower, upper: bounds.upper)),
-                        tolerance: tolerance)
+                        tolerance: tolerance, using: &execution)
                     guard contacts.count <= remainingContacts else {
                         throw KernelError(phase: .geometry, code: .resourceLimitExceeded,
                             tolerance: tolerance, message: "Round Sweep split contacts exhausted their request budget.")
@@ -555,24 +569,24 @@ package struct MitredPolylineSweepBuilder {
                 guard !cuts.isEmpty else { return [span] }
                 let breaks = [bounds.lower] + cuts + [bounds.upper]
                 return try zip(breaks, breaks.dropFirst()).map { lower, upper in
-                    try consumeWork()
-                    return try ExactBSplineCurveSpan(curve: span.curve.trimmed(from: lower, to: upper, tolerance: tolerance),
+                    try execution.consumeWork(1)
+                    return try ExactBSplineCurveSpan(curve: span.curve.trimmed(from: lower, to: upper, tolerance: tolerance, using: &execution),
                         tolerance: tolerance,
                         originalChart: span.originalChart.restricted(from: lower, to: upper,
-                            in: span.curve.domain, tolerance: tolerance), admission: admission)
+                            in: span.curve.domain, tolerance: tolerance, using: &execution), using: &execution)
                 }
             }
         }
     }
 
     private func originalControlPlaneSigns(_ curve: BSplineCurve3D, origin: Point3D,
-        normal: Vector3D, consumeWork: () throws -> Void) throws -> [RobustSign] {
+        normal: Vector3D, using execution: inout OriginalQueryExecution) throws -> [RobustSign] {
         guard curve.weights.allSatisfy({ $0.isFinite && $0 > 0 }) else {
             throw KernelError(phase: .geometry, code: .invalidInput,
                 tolerance: tolerance, message: "Original split-side hull requires positive native weights.")
         }
         return try curve.controlPoints.map { point in
-            try OriginalPointPlaneSide().sign(point: point, origin: origin, normal: normal, consumeWork: consumeWork)
+            try OriginalPointPlaneSide().sign(point: point, origin: origin, normal: normal, using: &execution)
         }
     }
 
@@ -581,26 +595,26 @@ package struct MitredPolylineSweepBuilder {
     // Production Round Sweep must not infer an exact pole from a numeric trimmed endpoint;
     // full completion also requires original contact-chart and whole pole-normal receipts.
     private func originalSpanPlaneSide(_ curve: BSplineCurve3D, origin: Point3D,
-        normal: Vector3D, featureID: FeatureID, consumeWork: () throws -> Void) throws -> RobustSign {
-        let signs = try originalControlPlaneSigns(curve, origin: origin, normal: normal, consumeWork: consumeWork)
+        normal: Vector3D, featureID: FeatureID, using execution: inout OriginalQueryExecution) throws -> RobustSign {
+        let signs = try originalControlPlaneSigns(curve, origin: origin, normal: normal, using: &execution)
         if signs.allSatisfy({ $0 == .zero }) { return .zero }
         if signs.allSatisfy({ $0 == .zero || $0 == .positive }) { return .positive }
         if signs.allSatisfy({ $0 == .zero || $0 == .negative }) { return .negative }
-        let bounds = try ExactLinearSectionSweepFacePatchBuilder(tolerance: tolerance).closedBounds(curve.domain)
+        let bounds = try ExactLinearSectionSweepFacePatchBuilder(tolerance: tolerance).closedBounds(curve.domain, using: &execution)
         let startsOnPlane = signs.first == .zero
             && curve.knots.prefix(curve.degree + 1).allSatisfy({ $0 == bounds.lower })
         let endsOnPlane = signs.last == .zero
             && curve.knots.suffix(curve.degree + 1).allSatisfy({ $0 == bounds.upper })
         let source = try NativeCurveDerivativeEncloser(curve: .bSpline(curve),
-            tolerance: tolerance, consumeWork: consumeWork)
+            tolerance: tolerance, using: &execution)
         var stack: [(lower: Double, upper: Double, depth: Int)] = [(bounds.lower, bounds.upper, 0)]
         var retainedSide: RobustSign?
         func projection(_ values: [OutwardScalarInterval]) -> OutwardScalarInterval {
             values[0] * .exact(normal.x) + values[1] * .exact(normal.y) + values[2] * .exact(normal.z)
         }
         while let cell = stack.popLast() {
-            try consumeWork()
-            let jet = try source.derivatives(over: ScalarInterval(lower: cell.lower, upper: cell.upper), tolerance: tolerance)
+            try execution.consumeWork(1)
+            let jet = try source.derivatives(over: ScalarInterval(lower: cell.lower, upper: cell.upper), tolerance: tolerance, using: &execution)
             let position = jet.derivative(0)
             let value = projection([position[0] - .exact(origin.x),
                 position[1] - .exact(origin.y), position[2] - .exact(origin.z)])
@@ -642,7 +656,7 @@ package struct MitredPolylineSweepBuilder {
     private func revolvedPatch(
         _ row: BSplineCurve3D, about corner: RoundCorner, orientation: Orientation, stableID: String,
         patches: ExactLinearSectionSweepFacePatchBuilder,
-        admission: GeometryConversionAdmission
+        using execution: inout OriginalQueryExecution
     ) throws -> BRepSewingFacePatch {
         let pieces = corner.angle > 0.5 * Double.pi + tolerance.angle ? 2 : 1
         let step = corner.angle / Double(pieces)
@@ -652,39 +666,34 @@ package struct MitredPolylineSweepBuilder {
         var rows: [[Point3D]] = []
         var weights: [[Double]] = []
         var remainingAxisComponents = 65_536
-        func isOriginalAxisPoint(_ point: Point3D) throws -> Bool {
-            try OriginalPointLineIncidence().contains(point: point, origin: corner.point,
-                direction: corner.axis, consumeWork: {
-                    try admission.chargeWork()
-                    guard remainingAxisComponents > 0 else {
-                        throw KernelError(phase: .geometry, code: .resourceLimitExceeded,
-                            tolerance: tolerance, message: "Round Sweep axis incidence exhausted its component budget.")
-                    }
-                    remainingAxisComponents -= 1
-                })
+        func isOriginalAxisPoint(_ point: Point3D, using execution: inout OriginalQueryExecution) throws -> Bool {
+            try scopedProof(remainingWork: &remainingAxisComponents, using: &execution) { execution in
+                try OriginalPointLineIncidence().contains(point: point, origin: corner.point,
+                    direction: corner.axis, using: &execution)
+            }
         }
         for piece in 0...pieces {
-            try admission.chargeWork()
+            try execution.consumeWork(1)
             let bytes = row.controlPoints.count.multipliedReportingOverflow(by: MemoryLayout<Point3D>.stride)
             guard !bytes.overflow else {
                 throw KernelError(phase: .geometry, code: .resourceLimitExceeded,
                     tolerance: tolerance, message: "Round Sweep row payload overflows.")
             }
-            try admission.chargeStorage(bytes: bytes.partialValue)
+            try execution.retainStorage(bytes: bytes.partialValue)
             let angle = step * Double(piece)
             rows.append(try row.controlPoints.map { point in
-                try admission.chargeWork()
+                try execution.consumeWork(1)
                 if piece == 0 { return point }
-                if try isOriginalAxisPoint(point) { return point }
+                if try isOriginalAxisPoint(point, using: &execution) { return point }
                 let center = corner.point + corner.axis * (point - corner.point).dot(corner.axis)
                 return center + turned(point - center, by: angle)
             })
             weights.append(row.weights)
             guard piece < pieces else { break }
-            try admission.chargeStorage(bytes: bytes.partialValue)
+            try execution.retainStorage(bytes: bytes.partialValue)
             rows.append(try row.controlPoints.map { point in
-                try admission.chargeWork()
-                if try isOriginalAxisPoint(point) { return point }
+                try execution.consumeWork(1)
+                if try isOriginalAxisPoint(point, using: &execution) { return point }
                 let center = corner.point + corner.axis * (point - corner.point).dot(corner.axis)
                 let offset = point - center
                 return center + (turned(offset, by: angle) + turned(offset, by: angle + step)) * (1 / (1 + cos(step)))
@@ -694,9 +703,9 @@ package struct MitredPolylineSweepBuilder {
                 throw KernelError(phase: .geometry, code: .resourceLimitExceeded,
                     tolerance: tolerance, message: "Round Sweep weight payload overflows.")
             }
-            try admission.chargeStorage(bytes: weightBytes.partialValue)
+            try execution.retainStorage(bytes: weightBytes.partialValue)
             weights.append(try row.weights.map { value in
-                try admission.chargeWork()
+                try execution.consumeWork(1)
                 return value * cos(0.5 * step)
             })
         }
@@ -704,8 +713,8 @@ package struct MitredPolylineSweepBuilder {
         let surface = BSplineSurface3D(uDegree: row.degree, vDegree: 2, uKnots: row.knots, vKnots: vKnots,
                                        controlPoints: rows, weights: weights)
         try surface.validate(tolerance: tolerance)
-        let u = try patches.closedBounds(surface.uDomain)
-        let v = try patches.closedBounds(surface.vDomain)
+        let u = try patches.closedBounds(surface.uDomain, using: &execution)
+        let v = try patches.closedBounds(surface.vDomain, using: &execution)
         let host = Surface3D.bSpline(surface)
         let boundary: [(curve: BSplineCurve3D, reversed: Bool, pcurve: SurfaceParameterCurve, name: String)] = [
             (try surface.uIsoparametricCurve(atV: v.lower, tolerance: tolerance), false,
@@ -733,14 +742,14 @@ package struct MitredPolylineSweepBuilder {
     private func cap(
         _ rows: [[BSplineCurve3D]], normal: Vector3D, outerWinding: Double, advance: Double, atEnd: Bool,
         patches: ExactLinearSectionSweepFacePatchBuilder
-    ) throws -> BRepSewingFacePatch {
+    , using execution: inout OriginalQueryExecution) throws -> BRepSewingFacePatch {
         let stableID = atEnd ? "sweep:cap:end" : "sweep:cap:start"
         let reversed = !atEnd
         let boundarySign = reversed ? -outerWinding : outerWinding
         let desiredSign = (atEnd ? 1.0 : -1.0) * (advance > 0 ? 1 : -1)
         guard let first = rows.first?.first else { throw FeatureEvaluationError.emptyResult("A mitred sweep's cap has no section span.") }
         let surface = Surface3D.plane(Plane3D(
-            origin: try Curve3D.bSpline(first).point(at: patches.closedBounds(first.domain).lower, tolerance: tolerance),
+            origin: try Curve3D.bSpline(first).point(at: patches.closedBounds(first.domain, using: &execution).lower, tolerance: tolerance),
             normal: normal * boundarySign
         ))
         let loops = try rows.enumerated().map { loopIndex, loop in
@@ -748,14 +757,23 @@ package struct MitredPolylineSweepBuilder {
             let ordered = reversed ? Array(loop.indices.reversed()) : Array(loop.indices)
             return BRepSewingLoop(stableID: "\(prefix):loop", role: loopIndex == 0 ? .outer : .inner, edges: try ordered.map { index in
                 try patches.exactEdge(loop[index], reversed: reversed,
-                    surfaceParameterCurve: try patches.planarPcurve(loop[index], reversed: reversed, on: surface),
-                    stableID: "\(prefix):edge:\(index)")
+                    surfaceParameterCurve: try patches.planarPcurve(loop[index], reversed: reversed, on: surface, using: &execution),
+                    stableID: "\(prefix):edge:\(index)", using: &execution)
             })
         }
         let patch = BRepSewingFacePatch(stableID: stableID, surface: surface,
             orientation: boundarySign == desiredSign ? .forward : .reversed, loops: loops)
         try patch.validate(tolerance: tolerance)
         return patch
+    }
+
+    private func scopedProof<Result>(remainingWork: inout Int,
+        using execution: inout OriginalQueryExecution,
+        _ body: (inout OriginalQueryExecution) throws -> Result) throws -> Result {
+        let before = execution.localWork
+        defer { remainingWork -= execution.localWork - before }
+        return try execution.withConversionScope(maximumWorkUnits: remainingWork,
+            maximumScalarCount: Int.max, maximumCertificationBoxes: Int.max, body)
     }
 
     private func failure(_ code: KernelErrorCode, _ message: String, _ featureID: FeatureID) -> KernelError {
@@ -785,8 +803,8 @@ private struct Leg {
     var endTangent: Vector3D
 
     /// The leg run the other way.
-    func reversed(tolerance: ModelingTolerance) throws -> Leg {
-        Leg(spans: try spans.reversed().map { try ExactBSplineCurveSpan(curve: $0.curve.reversed(tolerance: tolerance), tolerance: tolerance) },
+    func reversed(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Leg {
+        Leg(spans: try spans.reversed().map { try ExactBSplineCurveSpan(curve: $0.curve.reversed(tolerance: tolerance), tolerance: tolerance, using: &execution) },
             isStraight: isStraight, start: end, end: start, startTangent: endTangent * -1, endTangent: startTangent * -1)
     }
 }

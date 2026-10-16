@@ -10,22 +10,16 @@ package struct OriginalBoundedSelectionAngleResolver: Sendable {
     let maximumSubdivisionDepth: Int
     let remainingSourceDepth: Int
     let maximumAlgebraicDepth: Int
-    let consumeWork: @Sendable (Int) throws -> Void
-    let consumeStorage: (@Sendable (Int) throws -> Void)?
 
     package init(tolerance: ModelingTolerance, maximumSubdivisionDepth: Int,
-        remainingSourceDepth: Int, maximumAlgebraicDepth: Int,
-        consumeWork: @escaping @Sendable (Int) throws -> Void,
-        consumeStorage: (@Sendable (Int) throws -> Void)?) {
+        remainingSourceDepth: Int, maximumAlgebraicDepth: Int) {
         self.tolerance = tolerance; self.maximumSubdivisionDepth = maximumSubdivisionDepth
         self.remainingSourceDepth = remainingSourceDepth; self.maximumAlgebraicDepth = maximumAlgebraicDepth
-        self.consumeWork = { depth in try Task.checkCancellation(); try consumeWork(depth) }
-        self.consumeStorage = consumeStorage
     }
 
-    package func resolve(_ selection: SelectionReference, in document: EvaluatedDocument)
+    package func resolve(_ selection: SelectionReference, in document: EvaluatedDocument, using execution: inout OriginalQueryExecution)
         throws -> (point: SelectionMeasurementPoint, bounds: CoordinateEnclosure3D) {
-        try tolerance.validate(); try selection.validate(); try consumeWork(0)
+        try tolerance.validate(); try execution.consumeWork(1)
         guard (0...32).contains(maximumSubdivisionDepth), (0...16).contains(remainingSourceDepth),
             (0...32).contains(maximumAlgebraicDepth) else { throw failure() }
         switch selection {
@@ -33,13 +27,12 @@ package struct OriginalBoundedSelectionAngleResolver: Sendable {
             let resolved: SelectionReference
             switch try document.originalTopologyReference(for: stable, tolerance: tolerance,
                 maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
-                consumeWork: consumeWork, consumeStorage: consumeStorage,
-                maximumAlgebraicDepth: maximumAlgebraicDepth) {
+                maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution) {
             case .edge: resolved = .edge(.whole(EdgeReference(subshape: stable)))
             case .face: resolved = .surface(.whole(SurfaceReference(subshape: stable)))
             case .body, .vertex: throw failure()
             }
-            var result = try resolve(resolved, in: document)
+            var result = try resolve(resolved, in: document, using: &execution)
             result.point.selection = selection
             return result
         case .edge(let reference):
@@ -48,15 +41,15 @@ package struct OriginalBoundedSelectionAngleResolver: Sendable {
             switch reference { case .whole(let value): edge = value; case .parameter(let value): edge = value.edge }
             let source = try query.resolveOriginalGeometry(edge, in: document,
                 maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
-                consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+                maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
             let station: Double
             switch reference {
-            case .whole: station = try middle(source.startParameter, source.endParameter)
+            case .whole: station = try middle(source.startParameter, source.endParameter, using: &execution)
             case .parameter(let value): station = value.parameter
             }
             guard try source.contains(parameter: station, tolerance: tolerance) else { throw failure() }
             return try curve(source.curve, station: station,
-                sign: source.endParameter < source.startParameter ? -1 : 1, selection: selection)
+                sign: source.endParameter < source.startParameter ? -1 : 1, selection: selection, using: &execution)
         case .curve(let reference):
             let query = CurveQueryEvaluator(tolerance: tolerance)
             let output: CurveOutputReference
@@ -69,7 +62,7 @@ package struct OriginalBoundedSelectionAngleResolver: Sendable {
             }
             let source = try query.resolveOriginalGeometry(output, in: document,
                 maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
-                consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+                maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
             let station: Double
             switch reference {
             case .whole:
@@ -82,31 +75,29 @@ package struct OriginalBoundedSelectionAngleResolver: Sendable {
                     throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
                         message: "Original unbounded whole-angle station needs its admitted support projection.")
                 }
-                station = try middle(source.startParameter, source.endParameter)
+                station = try middle(source.startParameter, source.endParameter, using: &execution)
             case .parameter(let value): station = value.parameter
             case .span(let value):
                 let span = try query.spanOriginal(value, source: source,
-                    remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork)
-                station = try middle(span.lowerParameter, span.upperParameter)
+                    remainingSourceDepth: remainingSourceDepth, using: &execution)
+                station = try middle(span.lowerParameter, span.upperParameter, using: &execution)
             case .knot(let value): station = try query.knotOriginal(value, source: source,
-                remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork)
+                remainingSourceDepth: remainingSourceDepth, using: &execution)
             case .center, .controlPoint: throw failure()
             }
             guard try source.parameterDomain.contains(station, tolerance: tolerance) else { throw failure() }
-            return try curve(source.curve, station: station, sign: 1, selection: selection)
+            return try curve(source.curve, station: station, sign: 1, selection: selection, using: &execution)
         case .surface(.parameter(let station)):
             let source = try SurfaceQueryEvaluator(tolerance: tolerance).resolveOriginalGeometry(
                 station.surface, in: document, maximumSubdivisionDepth: maximumSubdivisionDepth,
-                remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork,
-                consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+                remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
             return try surface(source, station: SurfaceParameter(u: station.u, v: station.v),
-                selection: selection, in: document)
+                selection: selection, in: document, using: &execution)
         case .surface(.trim(let trim)):
             let source = try SurfaceQueryEvaluator(tolerance: tolerance).trimOriginal(trim,
                 in: document, maximumSubdivisionDepth: maximumSubdivisionDepth,
-                remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork,
-                consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
-            return try curve(source.liftedCurve, station: 0.5, sign: 1, selection: selection)
+                remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
+            return try curve(source.liftedCurve, station: 0.5, sign: 1, selection: selection, using: &execution)
         case .surface:
             // FIXME(INCOMPLETE_IMPLEMENTATION): The bounded public angle route
             // still needs the original representative-face projection and exact
@@ -119,21 +110,19 @@ package struct OriginalBoundedSelectionAngleResolver: Sendable {
     }
 
     private func curve(_ source: Curve3D, station: Double, sign: Double,
-        selection: SelectionReference) throws -> (point: SelectionMeasurementPoint, bounds: CoordinateEnclosure3D) {
+        selection: SelectionReference, using execution: inout OriginalQueryExecution) throws -> (point: SelectionMeasurementPoint, bounds: CoordinateEnclosure3D) {
         let prepared = try PreparedCurveDifferentialEncloser(curve: source, tolerance: tolerance,
             remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth,
-            consumeWork: { try consumeWork(0) }, consumeStorage: consumeStorage,
-            maximumAlgebraicDepth: maximumAlgebraicDepth)
+            maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
         let range = try ScalarInterval(lower: station, upper: station)
         let original = try prepared.closedNativeJets(over: range, tolerance: tolerance,
             maximumSpanCount: 1_048_576, maximumSubdivisionDepth: maximumSubdivisionDepth,
-            remainingSourceDepth: remainingSourceDepth, consumeWork: { try consumeWork(0) },
-            consumeStorage: consumeStorage)
+            remainingSourceDepth: remainingSourceDepth, using: &execution)
         var x: OutwardScalarInterval?, y: OutwardScalarInterval?, z: OutwardScalarInterval?
         let precedingPolyline: Bool
         if case .originalPolyline = source { precedingPolyline = true } else { precedingPolyline = false }
         for owner in original.spans {
-            try consumeWork(0)
+            try execution.consumeWork(1)
             if precedingPolyline { guard let _ = owner.originalPolylineOwner else { throw failure() } }
             x = x.map { $0.union(owner.jet.x.derivativeU) } ?? owner.jet.x.derivativeU
             y = y.map { $0.union(owner.jet.y.derivativeU) } ?? owner.jet.y.derivativeU
@@ -143,34 +132,32 @@ package struct OriginalBoundedSelectionAngleResolver: Sendable {
         guard let x, let y, let z else { throw failure() }
         let bounds = try OriginalSelectionAngleBounds.scaled(.init(x: .init(lower: x.lower, upper: x.upper),
             y: .init(lower: y.lower, upper: y.upper), z: .init(lower: z.lower, upper: z.upper)), sign: sign,
-            consumeWork: { try consumeWork(0) })
+            using: &execution)
         let position = try prepared.positionBounds(over: range, tolerance: tolerance,
             maximumSpanCount: 262_144, maximumSubdivisionDepth: maximumSubdivisionDepth,
-            remainingSourceDepth: remainingSourceDepth, consumeWork: { try consumeWork(0) },
-            consumeStorage: consumeStorage)
-        return try result(position: position, direction: bounds, normal: false, selection: selection)
+            remainingSourceDepth: remainingSourceDepth, using: &execution)
+        return try result(position: position, direction: bounds, normal: false, selection: selection, using: &execution)
     }
 
     private func surface(_ source: ResolvedOriginalSurfaceGeometry, station: SurfaceParameter,
-        selection: SelectionReference, in document: EvaluatedDocument)
+        selection: SelectionReference, in document: EvaluatedDocument, using execution: inout OriginalQueryExecution)
         throws -> (point: SelectionMeasurementPoint, bounds: CoordinateEnclosure3D) {
         let box = SurfaceParameterBox(u: try .init(lower: station.u, upper: station.u),
             v: try .init(lower: station.v, upper: station.v))
         let prepared = try PreparedSurfaceDifferentialEncloser(surface: source.surface, tolerance: tolerance,
             remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth,
-            consumeWork: { try consumeWork(0) }, consumeStorage: consumeStorage,
-            maximumAlgebraicDepth: maximumAlgebraicDepth)
+            maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
         var support = source.surface, native = box, sourceDepth = remainingSourceDepth
         while true {
-            try consumeWork(0)
+            try execution.consumeWork(1)
             switch support {
             case .procedural(.originalImage(let image)):
                 guard sourceDepth > 0 else { throw failure() }; sourceDepth -= 1
-                native = try image.nativeBox(native, consumeWork: { try consumeWork(0) },
-                    consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+                try execution.admitSourceDepth(remainingSourceDepth - sourceDepth)
+                native = try image.nativeBox(native, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
                 support = image.source
             case .procedural(.originalAffineWord(let image)):
-                guard sourceDepth > 0 else { throw failure() }; sourceDepth -= 1; support = image.source
+                guard sourceDepth > 0 else { throw failure() }; sourceDepth -= 1; try execution.admitSourceDepth(remainingSourceDepth - sourceDepth); support = image.source
             default: break
             }
             if case .procedural(.originalImage) = support { continue }
@@ -180,19 +167,19 @@ package struct OriginalBoundedSelectionAngleResolver: Sendable {
         var nappe: OriginalAnalyticPoleNormal.ConeNappe?
         if case .analytic(.cone) = support, native.v.lower == 0, native.v.upper == 0 {
             var extent = try FaceParameterExtentResolver(maximumSubdivisionDepth: maximumSubdivisionDepth,
-                consumeWork: consumeWork, consumeStorage: consumeStorage, remainingSourceDepth: remainingSourceDepth,
-                maximumAlgebraicDepth: maximumAlgebraicDepth).bounds(for: source.faceID, in: document.brep, tolerance: tolerance)
+                remainingSourceDepth: remainingSourceDepth,
+                maximumAlgebraicDepth: maximumAlgebraicDepth).bounds(for: source.faceID, in: document.brep, tolerance: tolerance, using: &execution)
             var extentSource = source.surface, depth = remainingSourceDepth
             while true {
-                try consumeWork(0)
+                try execution.consumeWork(1)
                 switch extentSource {
                 case .procedural(.originalImage(let image)):
                     guard depth > 0 else { throw failure() }; depth -= 1
-                    extent = try image.nativeBox(extent, consumeWork: { try consumeWork(0) },
-                        consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+                    try execution.admitSourceDepth(remainingSourceDepth - depth)
+                    extent = try image.nativeBox(extent, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
                     extentSource = image.source
                 case .procedural(.originalAffineWord(let image)):
-                    guard depth > 0 else { throw failure() }; depth -= 1; extentSource = image.source
+                    guard depth > 0 else { throw failure() }; depth -= 1; try execution.admitSourceDepth(remainingSourceDepth - depth); extentSource = image.source
                 default: break
                 }
                 if case .procedural(.originalImage) = extentSource { continue }
@@ -203,35 +190,33 @@ package struct OriginalBoundedSelectionAngleResolver: Sendable {
             else if extent.v.upper <= 0, extent.v.lower < 0 { nappe = .negative }
             else { throw failure() }
         }
-        var usage = OriginalSourceProofAdmission(consumeWork: consumeWork, consumeStorage: consumeStorage,
-            maximumAlgebraicDepth: maximumAlgebraicDepth)
         let normal = try prepared.unitNormalBounds(over: box, tolerance: tolerance,
             maximumSpanCount: 262_144, maximumSubdivisionDepth: maximumSubdivisionDepth,
             remainingSourceDepth: remainingSourceDepth, coneNappe: nappe,
-            storageByteStride: MemoryLayout<UInt32>.stride, usage: &usage)
+            storageByteStride: MemoryLayout<UInt32>.stride, using: &execution)
         let bounds = CoordinateEnclosure3D(x: try .init(lower: normal.x.lower, upper: normal.x.upper),
             y: try .init(lower: normal.y.lower, upper: normal.y.upper),
             z: try .init(lower: normal.z.lower, upper: normal.z.upper))
         let position = try prepared.positionBounds(over: box, tolerance: tolerance,
             maximumSpanCount: 262_144, maximumSubdivisionDepth: maximumSubdivisionDepth,
-            remainingSourceDepth: remainingSourceDepth, consumeWork: { try consumeWork(0) }, consumeStorage: consumeStorage)
-        return try result(position: position, direction: bounds, normal: true, selection: selection)
+            remainingSourceDepth: remainingSourceDepth, using: &execution)
+        return try result(position: position, direction: bounds, normal: true, selection: selection, using: &execution)
     }
 
     private func result(position: IntervalVector3DBounds, direction: CoordinateEnclosure3D,
-        normal: Bool, selection: SelectionReference)
+        normal: Bool, selection: SelectionReference, using execution: inout OriginalQueryExecution)
         throws -> (point: SelectionMeasurementPoint, bounds: CoordinateEnclosure3D) {
-        try consumeWork(0)
+        try execution.consumeWork(1)
         let point = Point3D(x: position.x.midpoint, y: position.y.midpoint, z: position.z.midpoint)
         try point.validate()
         let vector = try OriginalSelectionAngleBounds.representative(direction, tolerance: tolerance,
-            consumeWork: { try consumeWork(0) })
+            using: &execution)
         return (SelectionMeasurementPoint(selection: selection, point: point,
             tangent: normal ? nil : vector, normal: normal ? vector : nil), direction)
     }
 
-    private func middle(_ first: Double, _ last: Double) throws -> Double {
-        try consumeWork(0)
+    private func middle(_ first: Double, _ last: Double, using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
         let result = first * 0.5 + last * 0.5
         guard result.isFinite else { throw failure() }
         return result

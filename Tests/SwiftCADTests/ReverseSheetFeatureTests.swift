@@ -127,7 +127,7 @@ struct ReverseSheetFeatureTests {
         )
         let evaluated = try evaluate(builder)
         let resolver = OpenBoundaryLoopResolver()
-        #expect(resolver.boundaryEdgeIDs(in: try body(of: joined, in: evaluated), model: evaluated.brep).count == 6)
-        #expect(resolver.boundaryEdgeIDs(in: try body(of: box, in: evaluated), model: evaluated.brep).isEmpty)
+        #expect(try resolver.boundaryEdgeIDs(in: try body(of: joined, in: evaluated), model: evaluated.brep).count == 6)
+        #expect(try resolver.boundaryEdgeIDs(in: try body(of: box, in: evaluated), model: evaluated.brep).isEmpty)
     }
 }

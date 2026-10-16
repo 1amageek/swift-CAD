@@ -20,7 +20,7 @@ public struct OriginalAffinePcurveSnapshotProvider: OriginalSourceSnapshotting {
         throws(OriginalSourceIssuanceFailure) -> OriginalSourceSnapshot<OriginalAffinePcurveSnapshot> {
         let input=copy input
         do {
-            return try OriginalSourceProofAdmission<A>.withBorrow(&admission) { a in
+            return try admission.withProofScope { a in
                 try a.checkpoint(); try a.consumeWork(1); try tolerance.validate()
                 let f=field, ring=try ExactPolynomialDomain(field:f,variableCount:1,using:&a)
                 let zero=try f.integer(0,using:&a),one=try f.integer(1,using:&a),t=try ring.variable(0,using:&a)

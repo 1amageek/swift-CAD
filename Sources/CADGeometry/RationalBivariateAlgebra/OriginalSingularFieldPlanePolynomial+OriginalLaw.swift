@@ -1,6 +1,6 @@
 /// Preserves an original rational law in a retained descendant ordered field.
 extension OriginalSingularFieldPlanePolynomial {
-    package static func original<B: RationalAlgebraAdmitting>(_ source: ExactBivariatePolynomial,
+    package static func original<B: ExactScalarAdmission & ~Copyable>(_ source: ExactBivariatePolynomial,
         in context: OriginalSingularFieldContext, maximumDepth: Int, usage: inout B) throws -> Self {
         try RationalAlgebraStorage.retain(source.coefficients.count,
             of: (ExactBivariatePolynomial.Power, OriginalSingularFieldElement).self, usage: &usage)
@@ -13,13 +13,13 @@ extension OriginalSingularFieldPlanePolynomial {
 }
 
 extension OriginalSingularFieldPlanePolynomial {
-    package func differentiated<B: RationalAlgebraAdmitting>(alongU: Bool,
+    package func differentiated<B: ExactScalarAdmission & ~Copyable>(alongU: Bool,
         maximumDepth: Int, usage: inout B) throws -> Self {
         try RationalAlgebraStorage.retain(coefficients.count,
             of: (ExactBivariatePolynomial.Power, OriginalSingularFieldElement).self, usage: &usage)
         var result: [ExactBivariatePolynomial.Power: OriginalSingularFieldElement] = [:]
         for (power, value) in try orderedTerms(usage: &usage) {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             let degree = alongU ? power.u : power.v
             if degree == 0 { continue }
             let scale = try OriginalSingularFieldElement.constant(.natural(degree, usage: &usage),

@@ -266,7 +266,7 @@ struct BoundedBRepRepairEngine {
     func restoreCharts(model:inout BRepModel,tolerance:ModelingTolerance,changes:inout[BRepRepairChange])throws{
         for face in model.faces.values.sorted(by:{$0.id<$1.id}){
             guard let surface=model.geometry.surfaces[face.surfaceID]else{continue}
-            let topology=SurfaceParameterTopology(surface:surface)
+            let topology=try SurfaceParameterTopology(surface:surface)
             guard topology.uPeriod != nil || topology.vPeriod != nil else{continue}
             for id in face.loops{
                 try CurrentTaskCancellationChecker().checkCancellation()

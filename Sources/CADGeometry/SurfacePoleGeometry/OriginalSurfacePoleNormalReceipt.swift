@@ -54,7 +54,7 @@ package struct OriginalSurfacePoleNormalReceipt: Sendable {
 
     /// Complete source-owning coverage of a closed station across native joins.
     package init(panels:[OriginalSurfacePoleNormalPanel],over requested:SurfaceParameterBox,
-        consumeWork:()throws->Void) throws {
+        using execution: inout OriginalQueryExecution) throws {
         guard let first = panels.first else {
             throw GeometryConversionError.invalidInput("Original pole normal coverage is empty.")
         }
@@ -64,7 +64,7 @@ package struct OriginalSurfacePoleNormalReceipt: Sendable {
         }
         let target = alongV ? requested.v : requested.u
         for panel in panels {
-            try consumeWork()
+            try execution.consumeWork(1)
             let fixed = alongV ? panel.parameters.u : panel.parameters.v
             let targetFixed = alongV ? requested.u : requested.v
             let interval = alongV ? panel.parameters.v : panel.parameters.u
@@ -74,7 +74,7 @@ package struct OriginalSurfacePoleNormalReceipt: Sendable {
             }
         }
         let sortLevels = panels.count <= 1 ? 0 : Int.bitWidth-(panels.count-1).leadingZeroBitCount
-        for _ in 0..<panels.count*(sortLevels+1) { try consumeWork() }
+        for _ in 0..<panels.count*(sortLevels+1) { try execution.consumeWork(1) }
         let ordered = panels.sorted {
             (alongV ? $0.parameters.v.lower : $0.parameters.u.lower) <
             (alongV ? $1.parameters.v.lower : $1.parameters.u.lower)
@@ -82,7 +82,7 @@ package struct OriginalSurfacePoleNormalReceipt: Sendable {
         var covered = target.lower
         var field:IntervalVector3DBounds?
         for panel in ordered {
-            try consumeWork()
+            try execution.consumeWork(1)
             let interval = alongV ? panel.parameters.v : panel.parameters.u
             guard interval.lower <= covered else {
                 throw GeometryConversionError.invalidInput("Original pole station coverage leaves a native parameter gap.")
@@ -111,10 +111,10 @@ package struct OriginalSurfacePoleNormalReceipt: Sendable {
     }
 
     /// Exact word cofactor acts on the complete original station cone.
-    package func transformed<B: RationalAlgebraAdmitting>(through image: OriginalAffineWordSurface3D,
+    package func transformed<B: ExactScalarAdmission & ~Copyable>(through image: OriginalAffineWordSurface3D,
         tolerance: ModelingTolerance, usage: inout B) throws -> Self {
-        try GeometryStructuralComparisonWork.charge(surface: surface, using: { try usage.consumeExactWork($0) })
-        try GeometryStructuralComparisonWork.charge(surface: image.source, using: { try usage.consumeExactWork($0) })
+        try GeometryStructuralComparisonWork.charge(surface: surface, using: &usage)
+        try GeometryStructuralComparisonWork.charge(surface: image.source, using: &usage)
         guard surface == image.source, self.tolerance == tolerance else {
             throw GeometryConversionError.invalidInput("Original word normal has a different source or tolerance binding.")
         }

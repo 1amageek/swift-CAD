@@ -3,7 +3,7 @@ package struct OriginalAffineCellClosure: Sendable {
     package let includedCells: [Int]
     private init(includedCells: [Int]) { self.includedCells = includedCells }
 
-    package static func prepare<B: RationalAlgebraAdmitting>(partition: OriginalRationalIntersectionCells,
+    package static func prepare<B: ExactScalarAdmission & ~Copyable>(partition: OriginalRationalIntersectionCells,
         source: OriginalIntersectionCellCondition, maximumDepth: Int, usage: inout B) throws -> Self? {
         try intersectionAlgebraStep(&usage)
         guard source.variableCount == partition.tower.variableCount,

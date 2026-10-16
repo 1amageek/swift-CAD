@@ -56,7 +56,9 @@ retained `sourceDepth`, with only the remaining caller depth available. Source
 isolation and rational endpoint operations already carry causal depth and pass
 through without a second mapping. Coefficient visits preserve their independent
 domain and cap; transporting parameter roots creates no coefficient-root visits.
-Every phase checks cancellation and forwards paid work/storage to the same caller.
+Every phase checks cancellation and directly consumes paid work and bytes from
+the same noncopyable caller admission. Query-local proof scopes preserve the
+independent depth limits and seeded mapping without copied forwarding allowances.
 The legacy fresh initializer rejects inadmissible original depth domains before
 any work, storage or root visit, then guards both caps throughout fresh isolation
 with identity depth admission. Cancellation from the last paid callback is checked

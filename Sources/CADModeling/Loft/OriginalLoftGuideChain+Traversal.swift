@@ -2,12 +2,11 @@ import CADCore
 import CADGeometry
 
 extension OriginalLoftGuideChain {
-    package func originalConnector<B: RationalAlgebraAdmitting>(from start: OriginalLoftGuideContact,
-        to end: OriginalLoftGuideContact, admission: GeometryConversionAdmission,
-        usage: inout B) throws -> OriginalGuideTraversalChain3D {
+    package func originalConnector(from start: OriginalLoftGuideContact,
+        to end: OriginalLoftGuideContact, using usage: inout OriginalQueryExecution) throws -> OriginalGuideTraversalChain3D {
         guard start.segmentIndex <= end.segmentIndex,
             try orderedBounds(start, tolerance: tolerance).upper < orderedBounds(end, tolerance: tolerance).lower,
-            admission.remainingSourceDepth > 1 else {
+            usage.effectiveLimits.remainingSourceDepth > 1 else {
             throw KernelError(phase: .geometry, code: .ambiguousSelection, tolerance: tolerance,
                 message: "Original guide connector requires strictly ordered retained events and source descent.")
         }
@@ -34,17 +33,17 @@ extension OriginalLoftGuideChain {
                 let capacity = admittedCapacity == 0 ? 1 : doubled.partialValue
                 try RationalAlgebraStorage.retain(capacity, of: OriginalCurveRootSpan3D.self, usage: &usage)
                 try RationalAlgebraStorage.retain(capacity, of: Int.self, usage: &usage)
-                try usage.consumeExactWork(try checkedCopyCount(traversals.count))
+                try usage.consumeWork(try checkedCopyCount(traversals.count))
                 traversals.reserveCapacity(capacity); ordinals.reserveCapacity(capacity)
                 admittedCapacity = capacity
             }
             traversals.append(try OriginalCurveRootSpan3D(source: source, start: first, end: last,
                 nativeSpanIndex: owner, maximumParameterWidth: tolerance.relative,
-                maximumSubdivisionDepth: admission.maximumSubdivisionDepth, tolerance: tolerance,
-                storageByteStride: MemoryLayout<UInt32>.stride, usage: &usage,
-                maximumSpanCount: admission.maximumSpanCount,
-                remainingSourceDepth: admission.remainingSourceDepth-1,
-                maximumAlgebraicDepth: admission.maximumAlgebraicDepth ?? 32))
+                maximumSubdivisionDepth: usage.effectiveLimits.maximumSubdivisionDepth, tolerance: tolerance,
+                usage: &usage,
+                maximumSpanCount: usage.effectiveLimits.maximumSpans,
+                remainingSourceDepth: usage.effectiveLimits.remainingSourceDepth-1,
+                maximumAlgebraicDepth: usage.effectiveLimits.maximumValueDepth))
             ordinals.append(ordinal)
         }
         func owner(_ endpoint: OriginalCurveRootEndpoint, atStart: Bool, reversed: Bool,
@@ -52,11 +51,11 @@ extension OriginalLoftGuideChain {
             switch endpoint {
             case .algebraic(let root):
                 guard root.source == spline else { throw GeometryConversionError.invalidInput("Original guide endpoint belongs to another source.") }
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 return root.spanIndex
             case .authored(let parameter):
                 for index in spline.degree..<spline.controlPointCount {
-                    try usage.consumeExactWork(1)
+                    try usage.consumeWork(1)
                     let a = spline.knots[index], b = spline.knots[index+1]
                     guard a < b else { continue }
                     let takesUpperSide = atStart != reversed
@@ -66,7 +65,7 @@ extension OriginalLoftGuideChain {
             }
         }
         for ordinal in start.segmentIndex...end.segmentIndex {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             let original = segments[ordinal], raw = try source(at: ordinal, tolerance: tolerance)
             let first: OriginalCurveRootEndpoint = ordinal == start.segmentIndex ? firstEndpoint
                 : .authored(original.isReversed ? raw.parameters.upper : raw.parameters.lower)
@@ -82,7 +81,7 @@ extension OriginalLoftGuideChain {
                 }
                 var index = firstOwner
                 while true {
-                    try usage.consumeExactWork(1)
+                    try usage.consumeWork(1)
                     if spline.knots[index] < spline.knots[index+1] {
                         let a: OriginalCurveRootEndpoint = index == firstOwner ? first
                             : .authored(spline.knots[index + (original.isReversed ? 1 : 0)])
@@ -108,8 +107,8 @@ extension OriginalLoftGuideChain {
             stations.append(try numerator.divided(by: count, usage: &usage))
         }
         return try OriginalGuideTraversalChain3D(traversals: traversals, stations: stations,
-            sourceSegmentOrdinals: ordinals, remainingSourceDepth: admission.remainingSourceDepth,
-            tolerance: tolerance, usage: &usage)
+            sourceSegmentOrdinals: ordinals, remainingSourceDepth: usage.effectiveLimits.remainingSourceDepth,
+            tolerance: tolerance, using: &usage)
     }
 
     private func checkedCopyCount(_ count: Int) throws -> Int {

@@ -1,0 +1,23 @@
+(node:75371) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+START G01 query admitted wide swapped=false
+USAGE G01 admitted wide swapped=false work=7635762 bytes=5545780
+STAGE G01 query produced admitted wide swapped=false
+STAGE G01 check reader wide swapped=false
+STAGE G01 check chart wide swapped=false
+STAGE G01 check metadata wide swapped=false
+START G01 query admitted wide swapped=true
+USAGE G01 admitted wide swapped=true work=7978641 bytes=5723972
+STAGE G01 query produced admitted wide swapped=true
+STAGE G01 check reader wide swapped=true
+STAGE G01 check chart wide swapped=true
+STAGE G01 check metadata wide swapped=true
+PASS G01 member u=0.93 swapped=false
+PASS G01 member u=1.0 swapped=false
+PASS G01 member u=1.5 swapped=false
+PASS G01 member u=2.0 swapped=false
+PASS G01 member u=0.93 swapped=true
+PASS G01 member u=1.0 swapped=true
+PASS G01 member u=1.5 swapped=true
+PASS G01 member u=2.0 swapped=true
+PASS G01 public readers

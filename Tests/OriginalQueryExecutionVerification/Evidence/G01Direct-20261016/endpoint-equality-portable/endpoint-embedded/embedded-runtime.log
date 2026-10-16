@@ -1,0 +1,5 @@
+(node:94686) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS Native endpoint exact positions and lifetime
+PASS Native endpoint exact source and cumulative work
+PASS Native endpoint cancellation

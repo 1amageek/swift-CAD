@@ -1,0 +1,270 @@
+{
+  "binary": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-silhouette-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests",
+  "binarySHA256": "96e6a39781ff431edd6776acc805c990a23266fa01e7dd43e1b1100f7b9dfdd9",
+  "ipsSHA256": "22de29dc2f690f6ad685e4368826c7374bed27b4b5e214772c2bbb26cf24a3eb",
+  "exception": {
+    "codes": "0x0000000000000002, 0x000000016b56add0",
+    "message": "Could not determine thread index for stack guard region",
+    "rawCodes": [
+      2,
+      6095810000
+    ],
+    "type": "EXC_BAD_ACCESS",
+    "signal": "SIGBUS",
+    "subtype": "KERN_PROTECTION_FAILURE at 0x000000016b56add0"
+  },
+  "frames": [
+    {
+      "frame": "DefaultSurfaceSilhouetteProducer.processCell(cell:domain:tolerance:sourceAuthority:pending:criticalSourceCache:planeRealLocusCache:curves:excluded:coincident:contacts:algebraicContacts:originalPlaneAtlases:using:)",
+      "symbol": "_$s11CADGeometry32DefaultSurfaceSilhouetteProducerV11processCell33_9BA4431057C25E404349C321699D6735LL4cell6domain9tolerance15sourceAuthority7pending19criticalSourceCache014planeRealLocusU06curves8excluded10coincident8contacts17algebraicContacts20originalPlaneAtlases5usingyAC7PendingAELLVz_AA0C12ParameterBoxV7CADCore17ModelingToleranceVAA0cdT11PreparationVSayAUGzSDyAC08CriticalT3KeyAELLVSayAA27ExactBivariateCriticalPointVGGzSDyA3_AC05PlanewX0AELLOGzSayAA08OriginalcD5CurveVGzSayAWGzA14_zSayAA0cD7ContactVGzSayAA0cD16AlgebraicContactVGzSayAA0cD10PlaneAtlasVGzAA22OriginalQueryExecutionVztKF",
+      "address": "0x1cf92cc",
+      "imageOffset": "0x1d21fa0",
+      "symbolLocation": 167124,
+      "entryFrameBytes": 351808
+    },
+    {
+      "frame": "DefaultSurfaceSilhouetteProducer.processCell(cell:domain:tolerance:sourceAuthority:pending:criticalSourceCache:planeRealLocusCache:curves:excluded:coincident:contacts:algebraicContacts:originalPlaneAtlases:using:)",
+      "symbol": "_$s11CADGeometry32DefaultSurfaceSilhouetteProducerV11processCell33_9BA4431057C25E404349C321699D6735LL4cell6domain9tolerance15sourceAuthority7pending19criticalSourceCache014planeRealLocusU06curves8excluded10coincident8contacts17algebraicContacts20originalPlaneAtlases5usingyAC7PendingAELLVz_AA0C12ParameterBoxV7CADCore17ModelingToleranceVAA0cdT11PreparationVSayAUGzSDyAC08CriticalT3KeyAELLVSayAA27ExactBivariateCriticalPointVGGzSDyA3_AC05PlanewX0AELLOGzSayAA08OriginalcD5CurveVGzSayAWGzA14_zSayAA0cD7ContactVGzSayAA0cD16AlgebraicContactVGzSayAA0cD10PlaneAtlasVGzAA22OriginalQueryExecutionVztKF",
+      "address": "0x1cf92cc",
+      "imageOffset": "0x1d21f7c",
+      "symbolLocation": 167088,
+      "entryFrameBytes": 351808
+    },
+    {
+      "frame": "DefaultSurfaceSilhouetteProducer.closedDomainSilhouette(of:over:view:tolerance:using:)",
+      "symbol": "_$s11CADGeometry32DefaultSurfaceSilhouetteProducerV012closedDomainD033_9BA4431057C25E404349C321699D6735LL2of4over4view9tolerance5usingAA0cD8EnvelopeVAA9Surface3DO_AA0C12ParameterBoxV7CADCore8Vector3DVAQ17ModelingToleranceVAA22OriginalQueryExecutionVztKF",
+      "address": "0x1ccec2c",
+      "imageOffset": "0x1ccf0f8",
+      "symbolLocation": 1228,
+      "entryFrameBytes": 92528
+    },
+    {
+      "frame": "DefaultSurfaceSilhouetteProducer.silhouette(of:over:view:tolerance:using:)",
+      "symbol": "_$s11CADGeometry32DefaultSurfaceSilhouetteProducerV10silhouette2of4over4view9tolerance5usingAA0cD8EnvelopeVAA9Surface3DO_AA0C12ParameterBoxV7CADCore8Vector3DVAP17ModelingToleranceVAA22OriginalQueryExecutionVztKF",
+      "address": "0x1cca45c",
+      "imageOffset": "0x1ccb378",
+      "symbolLocation": 3868,
+      "entryFrameBytes": 35104
+    },
+    {
+      "frame": "protocol witness for SurfaceSilhouetteProducing.silhouette(of:over:view:tolerance:using:) in conformance DefaultSurfaceSilhouetteProducer",
+      "symbol": "_$s11CADGeometry32DefaultSurfaceSilhouetteProducerVAA0cD9ProducingA2aDP10silhouette2of4over4view9tolerance5usingAA0cD8EnvelopeVAA9Surface3DO_AA0C12ParameterBoxV7CADCore8Vector3DVAR17ModelingToleranceVAA22OriginalQueryExecutionVztKFTW",
+      "address": "0x1d481a0",
+      "imageOffset": "0x1d481d0",
+      "symbolLocation": 48,
+      "entryFrameBytes": 304
+    },
+    {
+      "frame": "BRepDrawingSilhouetteProducer.extract(_:in:placement:onto:maximumSourceFaces:maximumProjectedSpans:maximumControlPointCount:maximumBoundaryCurveCount:using:)",
+      "symbol": "_$s9CADKernel29BRepDrawingSilhouetteProducerV7extract33_45515EBCE735E3D06E49191B278BE829LL_2in9placement4onto18maximumSourceFaces0P14ProjectedSpans0P17ControlPointCount0p13BoundaryCurveW05usingAA0bC11SilhouettesV11CADTopology0B5ModelV_AA17EvaluatedDocumentVAA0bC9PlacementVSg11CADGeometry27OrthographicProjectionFrameVS4iAX22OriginalQueryExecutionVztKF",
+      "address": "0x4cbdd84",
+      "imageOffset": "0x4cbf12c",
+      "symbolLocation": 5032,
+      "entryFrameBytes": 74464
+    },
+    {
+      "frame": "BRepDrawingSilhouetteProducer.silhouettes(in:onto:maximumSourceFaces:maximumProjectedSpans:maximumControlPointCount:maximumBoundaryCurveCount:using:)",
+      "symbol": "_$s9CADKernel29BRepDrawingSilhouetteProducerV11silhouettes2in4onto18maximumSourceFaces0I14ProjectedSpans0I17ControlPointCount0i13BoundaryCurveP05usingAA0bC11SilhouettesVAA17EvaluatedDocumentV_11CADGeometry27OrthographicProjectionFrameVS4iAP22OriginalQueryExecutionVztKF",
+      "address": "0x4cbdc24",
+      "imageOffset": "0x4cbdd1c",
+      "symbolLocation": 248,
+      "entryFrameBytes": 2352
+    },
+    {
+      "frame": "protocol witness for BRepDrawingSilhouetteProducing.silhouettes(in:onto:maximumSourceFaces:maximumProjectedSpans:maximumControlPointCount:maximumBoundaryCurveCount:using:) in conformance BRepDrawingSilhouetteProducer",
+      "symbol": "_$s9CADKernel29BRepDrawingSilhouetteProducerVAA0bcD9ProducingA2aDP11silhouettes2in4onto18maximumSourceFaces0J14ProjectedSpans0J17ControlPointCount0j13BoundaryCurveQ05usingAA0bC11SilhouettesVAA17EvaluatedDocumentV_11CADGeometry27OrthographicProjectionFrameVS4iAR22OriginalQueryExecutionVztKFTW",
+      "address": "0x4cd0f2c",
+      "imageOffset": "0x4cd0f48",
+      "symbolLocation": 28,
+      "entryFrameBytes": 1184
+    },
+    {
+      "frame": "DocumentDrawingSilhouetteProducer.silhouettes(document:currentEvaluation:onto:maximumSourceFaces:maximumProjectedSpans:maximumControlPointCount:maximumBoundaryCurveCount:using:)",
+      "symbol": "_$s8SwiftCAD33DocumentDrawingSilhouetteProducerV11silhouettes8document17currentEvaluation4onto18maximumSourceFaces0L14ProjectedSpans0L17ControlPointCount0l13BoundaryCurveS05using9CADKernel04BRepD11SilhouettesV5CADIR11CADDocumentV_AM09EvaluatedC0V11CADGeometry27OrthographicProjectionFrameVS4iAU22OriginalQueryExecutionVztKF",
+      "address": "0x6287fb0",
+      "imageOffset": "0x6288118",
+      "symbolLocation": 360,
+      "entryFrameBytes": 4656
+    },
+    {
+      "frame": "protocol witness for DocumentDrawingSilhouetteProducing.silhouettes(document:currentEvaluation:onto:maximumSourceFaces:maximumProjectedSpans:maximumControlPointCount:maximumBoundaryCurveCount:using:) in conformance DocumentDrawingSilhouetteProducer",
+      "symbol": "_$s8SwiftCAD33DocumentDrawingSilhouetteProducerVAA0cdE9ProducingA2aDP11silhouettes8document17currentEvaluation4onto18maximumSourceFaces0M14ProjectedSpans0M17ControlPointCount0m13BoundaryCurveT05using9CADKernel04BRepD11SilhouettesV5CADIR11CADDocumentV_AO09EvaluatedC0V11CADGeometry27OrthographicProjectionFrameVS4iAW22OriginalQueryExecutionVztKFTW",
+      "address": "0x628832c",
+      "imageOffset": "0x6288348",
+      "symbolLocation": 28,
+      "entryFrameBytes": 1184
+    },
+    {
+      "frame": "DocumentDrawingCanonicalAdmissionTests.unplacedSilhouettes(_:source:curved:using:)",
+      "symbol": "_$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V19unplacedSilhouettes33_9F58DFE84BC2AA973B67A16FE6063CCDLL_6source6curved5using9CADKernel04BRepdH0V8SwiftCAD0cD19SilhouetteProducing_p_AC6SourceAELLVSb11CADGeometry22OriginalQueryExecutionVztKF",
+      "address": "0x8714",
+      "imageOffset": "0x887c",
+      "symbolLocation": 360,
+      "entryFrameBytes": 8880
+    },
+    {
+      "frame": "DocumentDrawingCanonicalAdmissionTests.query(_:curved:using:)",
+      "symbol": "_$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V5query33_9F58DFE84BC2AA973B67A16FE6063CCDLL_6curved5using9CADKernel04BRepD17ProjectedContactsVAC6SourceAELLV_Sb11CADGeometry22OriginalQueryExecutionVztKF",
+      "address": "0x62ac",
+      "imageOffset": "0x71bc",
+      "symbolLocation": 3856,
+      "entryFrameBytes": 9184
+    },
+    {
+      "frame": "DocumentDrawingCanonicalAdmissionTests.planarWholeExclusionUsesTheRealDrawingWitnesses()",
+      "symbol": "_$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V031planarWholeExclusionUsesTheRealD9WitnessesyyYaKFTY2_",
+      "address": "0x10e18",
+      "imageOffset": "0x10f4c",
+      "symbolLocation": 308,
+      "entryFrameBytes": 656
+    },
+    {
+      "frame": "static DocumentDrawingCanonicalAdmissionTests.$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V031planarWholeExclusionUsesTheRealD9Witnesses4TestfMp_17Z81eeaf2d173f9dc3fMu_@Sendable ()",
+      "symbol": "_$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V04$s12a8Tests033cdeF80B0V031planarWholeExclusionUsesTheRealD9Witnesses4TestfMp_17Z81eeaf2d173f9dc3fMu_33_9F58DFE84BC2AA973B67A16FE6063CCDLLyyYaYbKFZTQ3_",
+      "address": "0x109c4",
+      "imageOffset": "0x109c5",
+      "symbolLocation": 1,
+      "entryFrameBytes": 48
+    },
+    {
+      "frame": "implicit closure #1 in static DocumentDrawingCanonicalAdmissionTests.$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V031planarWholeExclusionUsesTheRealD9Witnesses4TestfMp_25generator81eeaf2d173f9dc3fMu_@Sendable ()",
+      "symbol": "_$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V04$s12a8Tests033cdeF88B0V031planarWholeExclusionUsesTheRealD9Witnesses4TestfMp_25generator81eeaf2d173f9dc3fMu_33_9F58DFE84BC2AA973B67A16FE6063CCDLL7Testing4TestVyYaYbFZyyYaYbKcfu_TQ0_",
+      "address": "0x11a0c",
+      "imageOffset": "0x11a0d",
+      "symbolLocation": 1,
+      "entryFrameBytes": 48
+    },
+    {
+      "frame": "partial apply for implicit closure #1 in static DocumentDrawingCanonicalAdmissionTests.$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V031planarWholeExclusionUsesTheRealD9Witnesses4TestfMp_25generator81eeaf2d173f9dc3fMu_@Sendable ()",
+      "symbol": "_$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V04$s12a8Tests033cdeF88B0V031planarWholeExclusionUsesTheRealD9Witnesses4TestfMp_25generator81eeaf2d173f9dc3fMu_33_9F58DFE84BC2AA973B67A16FE6063CCDLL7Testing4TestVyYaYbFZyyYaYbKcfu_TATQ0_",
+      "address": "0x75050",
+      "imageOffset": "0x75051",
+      "symbolLocation": 1,
+      "entryFrameBytes": 32
+    }
+  ],
+  "sumIncludingDuplicateEntryFrameBytes": 934240,
+  "threadState": {
+    "x": [
+      {
+        "value": 6095945616
+      },
+      {
+        "value": 6096168752
+      },
+      {
+        "value": 8382853864,
+        "symbolLocation": 0,
+        "symbol": "type metadata for Int"
+      },
+      {
+        "value": 8382823752,
+        "symbolLocation": 0,
+        "symbol": "protocol witness table for Int"
+      },
+      {
+        "value": 6968189804,
+        "symbolLocation": 0,
+        "symbol": "associated conformance descriptor for Collection.Collection.Index: Comparable"
+      },
+      {
+        "value": 525139533024
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 6095777240
+      },
+      {
+        "value": 6095814176
+      },
+      {
+        "value": 6963814532,
+        "symbolLocation": 0,
+        "symbol": "protocol witness for Collection.endIndex.getter in conformance [A]"
+      },
+      {
+        "value": 6096066984
+      },
+      {
+        "value": 16
+      },
+      {
+        "value": 8
+      },
+      {
+        "value": 18
+      },
+      {
+        "value": 9223372036854775826
+      },
+      {
+        "value": 9223372058329612287
+      },
+      {
+        "value": 9223372049739677695
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 6095797912
+      },
+      {
+        "value": 6096066968
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 9335128294621814039
+      },
+      {
+        "value": 12016970261703593018
+      },
+      {
+        "value": 9223372041557020272
+      }
+    ],
+    "flavor": "ARM_THREAD_STATE64",
+    "lr": {
+      "value": 4628258684
+    },
+    "cpsr": {
+      "value": 2147483648
+    },
+    "fp": {
+      "value": 6096119952
+    },
+    "sp": {
+      "value": 6095768160
+    },
+    "esr": {
+      "value": 2449473607,
+      "description": "(Data Abort) byte write Translation fault"
+    },
+    "pc": {
+      "value": 4628258720,
+      "matchesCrashFrame": 1
+    },
+    "far": {
+      "value": 6095810000
+    }
+  }
+}

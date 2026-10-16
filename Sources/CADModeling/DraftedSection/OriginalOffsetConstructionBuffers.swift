@@ -3,21 +3,20 @@ import CADGeometry
 
 /// Caller-paid scalar construction buffers with in-place exact sorting/deduplication.
 package struct OriginalOffsetConstructionBuffers: Sendable {
-    package let admission: GeometryConversionAdmission
-    package func retain<T>(_ count: Int, of: T.Type) throws {
+    package func retain<T>(_ count: Int, of: T.Type, using execution: inout OriginalQueryExecution) throws {
         let bytes = count.multipliedReportingOverflow(by: MemoryLayout<T>.stride)
         guard count >= 0, !bytes.overflow else {
             throw GeometryConversionError.resourceLimitExceeded("Offset construction storage overflowed.")
         }
-        try admission.chargeStorage(bytes: bytes.partialValue)
+        try execution.retainStorage(bytes: bytes.partialValue)
     }
-    package func sortedUnique(_ values: [Double]) throws -> [Double] {
-        try retain(values.count, of: Double.self)
+    package func sortedUnique(_ values: [Double], using execution: inout OriginalQueryExecution) throws -> [Double] {
+        try retain(values.count, of: Double.self, using: &execution)
         var values = values
         func sift(_ start: Int, _ end: Int) throws {
             var root = start
             while root < end / 2 {
-                try admission.chargeWork()
+                try execution.consumeWork(1)
                 let left = root * 2 + 1
                 guard left < end else { break }
                 var child = left
@@ -29,12 +28,12 @@ package struct OriginalOffsetConstructionBuffers: Sendable {
         if values.count > 1 {
             for index in stride(from: values.count / 2 - 1, through: 0, by: -1) { try sift(index, values.count) }
             for end in stride(from: values.count - 1, through: 1, by: -1) {
-                try admission.chargeWork(); values.swapAt(0, end); try sift(0, end)
+                try execution.consumeWork(1); values.swapAt(0, end); try sift(0, end)
             }
         }
         var retained = 0
         for index in values.indices {
-            try admission.chargeWork()
+            try execution.consumeWork(1)
             if retained == 0 || values[index] != values[retained - 1] {
                 values[retained] = values[index]; retained += 1
             }
@@ -42,13 +41,17 @@ package struct OriginalOffsetConstructionBuffers: Sendable {
         values.removeLast(values.count - retained)
         return values
     }
-    package func knots(_ breaks: [Double]) throws -> [Double] {
-        try retain(breaks.count + 6, of: Double.self)
+    package func knots(_ breaks: [Double], using execution: inout OriginalQueryExecution) throws -> [Double] {
+        let capacity = breaks.count.addingReportingOverflow(6)
+        guard breaks.count >= 2, !capacity.overflow else {
+            throw GeometryConversionError.resourceLimitExceeded("Offset knot storage exceeds its finite capacity.")
+        }
+        try retain(capacity.partialValue, of: Double.self, using: &execution)
         var result: [Double] = []
-        result.reserveCapacity(breaks.count + 6)
-        for _ in 0..<4 { try admission.chargeWork(); result.append(breaks[0]) }
-        for point in breaks.dropFirst().dropLast() { try admission.chargeWork(); result.append(point) }
-        for _ in 0..<4 { try admission.chargeWork(); result.append(breaks[breaks.count - 1]) }
+        result.reserveCapacity(capacity.partialValue)
+        for _ in 0..<4 { try execution.consumeWork(1); result.append(breaks[0]) }
+        for point in breaks.dropFirst().dropLast() { try execution.consumeWork(1); result.append(point) }
+        for _ in 0..<4 { try execution.consumeWork(1); result.append(breaks[breaks.count - 1]) }
         return result
     }
 }

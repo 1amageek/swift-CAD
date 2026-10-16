@@ -22,7 +22,7 @@ public struct DefaultOriginalPlaneGraphCompiler<S: OriginalPlaneSourceReading>: 
         throws(NativeExactRelationFailure) -> OriginalIssuedPlaneGraph<S> {
         let original = copy cover, field = copy field
         do {
-            return try OriginalSourceProofAdmission<A>.withBorrow(&admission) { a in
+            return try admission.withProofScope() { a in
                 try a.checkpoint(); try original.source.require(limits.source)
                 guard limits.maximumCharts >= 1 else { throw OriginalDomainIdentityFailure.chartLimit }
                 guard original.effective.arity == 2 else { throw NativeExactRelationFailure.invalidDomain }

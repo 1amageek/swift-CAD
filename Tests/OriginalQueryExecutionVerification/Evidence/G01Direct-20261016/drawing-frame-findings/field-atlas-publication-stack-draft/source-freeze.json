@@ -1,0 +1,50 @@
+{
+  "status": "source-ready-frozen-no-compiler",
+  "sourceRoots": [
+    "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD"
+  ],
+  "files": {
+    "Sources/CADGeometry/SurfaceSilhouette/SurfaceSilhouettePlaneAtlasPublication.swift": "7292c569d42f0d183f4d4039d60dda7a8f6e19ce30f2764f20c47ed6aee79212",
+    "Sources/CADGeometry/SurfaceSilhouette/DESIGN.md": "1682477e044279f3b9be71e343cc1b9238f9a3db91e3401c686592211623bd22"
+  },
+  "fiveActualOriginalMovedBodyComparisons": [
+    {
+      "name": "appendFieldIncidences",
+      "actualMovedBodyEqualsOriginalIgnoringWhitespace": true,
+      "bodySHA256": "035cec9149feda539597493064b001a7a9813aa1b1c9ac1acc0ddcb3cc993618"
+    },
+    {
+      "name": "appendFieldStrips",
+      "actualMovedBodyEqualsOriginalIgnoringWhitespace": true,
+      "bodySHA256": "c30b3f478d094cf5934598cd42feb41333fda03edf214875aa774068e44648a7"
+    },
+    {
+      "name": "retainCompleteFieldIncidence",
+      "actualMovedBodyEqualsOriginalIgnoringWhitespace": true,
+      "bodySHA256": "5fcaebb4a63694762d2495315ba55e67d105c90fda2ae849a5db87d67c7c800b"
+    },
+    {
+      "name": "appendFieldStations",
+      "actualMovedBodyEqualsOriginalIgnoringWhitespace": true,
+      "bodySHA256": "6fcfaeecf4e601239a0735fd124fcde1073086278af9614133c9984e44629d30"
+    },
+    {
+      "name": "appendCoordinateStations",
+      "actualMovedBodyEqualsOriginalIgnoringWhitespace": true,
+      "bodySHA256": "6850cb1113feb99d38adff1f9005f63e99acb1cf4f5edcc2cd0c8de5bb2e5014"
+    }
+  ],
+  "rationalOverloadExactTextEqual": true,
+  "sourceAndAccountingOperationOccurrencesUnchanged": true,
+  "explicitCopyCountUnchanged": true,
+  "measuredActualFieldCtorBeforeSPBytes": 367024,
+  "exactFaultInstruction": "entry+472 str xzr,[x13,#0x2be8]",
+  "mechanicalPatchSHA256": "a458770b11761061294a070c768d4377815d0cac6d6667122cf706923254abbe",
+  "pending": [
+    "Native semantic/object compiler",
+    "new actual Field ctor/stage frames",
+    "same Drawing3 worker runtime"
+  ],
+  "note": "Prior Mutex abort cause remains unproven; this fixes only separate debugger-observed field atlas constructor stack finding."
+}

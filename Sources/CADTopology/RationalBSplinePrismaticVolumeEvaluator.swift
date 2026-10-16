@@ -14,15 +14,22 @@ import WASILibc
 /// Evaluates an axis-aligned rational B-spline prism after proving that every
 /// side control net is an exact translation between two planar caps.
 struct RationalBSplinePrismaticVolumeEvaluator {
+    func volume(of shell: Shell, in model: BRepModel, tolerance: ModelingTolerance) throws -> Double? {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try volume(of: shell, in: model, tolerance: tolerance, using: &execution)
+    }
+
     func volume(
         of shell: Shell,
         in model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Double? {
+        try execution.consumeWork(1)
         try tolerance.validate()
         var faces: [FaceSurface] = []
-        faces.reserveCapacity(shell.faceIDs.count)
+        try OriginalParameterQueryStorage.reserve(shell.faceIDs.count, in: &faces, using: &execution)
         for faceID in shell.faceIDs {
+            try execution.consumeWork(1)
             guard let face = model.faces[faceID],
                   let geometry = model.geometry.surfaces[face.surfaceID] else {
                 throw TopologyError.missingReference(
@@ -32,36 +39,37 @@ struct RationalBSplinePrismaticVolumeEvaluator {
             guard case let .bSpline(surface) = geometry else {
                 return nil
             }
-            faces.append(FaceSurface(face: face, surface: surface))
+            try OriginalParameterQueryStorage.append(FaceSurface(face: face, surface: surface), to: &faces, using: &execution)
         }
+        try execution.retainStorage(bytes: 3 * MemoryLayout<Axis>.stride)
         for axis in Axis.allCases {
-            let caps = faces.compactMap { candidate in
-                planarCoordinate(of: candidate.surface, axis: axis).map {
+            try execution.consumeWork(1)
+            let caps = (try OriginalParameterQueryStorage.compactMap(faces, using: &execution) { candidate, execution in
+                try planarCoordinate(of: candidate.surface, axis: axis, using: &execution).map {
                     Cap(face: candidate.face, surface: candidate.surface, coordinate: $0)
                 }
-            }
+            })
             guard caps.count == 2 else { continue }
-            let orderedCaps = caps.sorted { $0.coordinate < $1.coordinate }
+            let orderedCaps = try OriginalParameterQueryStorage.ordered(caps, using: &execution) { $0.coordinate < $1.coordinate }
             let lower = orderedCaps[0]
             let upper = orderedCaps[1]
             let height = upper.coordinate - lower.coordinate
             guard height > tolerance.distance,
-                  model.vertices.values.allSatisfy({ vertex in
+                  (try OriginalParameterQueryStorage.allSatisfy(model.vertices.values, using: &execution) { vertex, execution in
                       let coordinate = axis.coordinate(of: vertex.point)
                       return coordinate == lower.coordinate
                           || coordinate == upper.coordinate
                   }) else {
                 continue
             }
-            let capFaceIDs = Set([lower.face.id, upper.face.id])
-            let sides = faces.filter { !capFaceIDs.contains($0.face.id) }
+            let sides = (try OriginalParameterQueryStorage.filter(faces, using: &execution) { item, execution in item.face.id != lower.face.id && item.face.id != upper.face.id })
             guard !sides.isEmpty,
-                  sides.allSatisfy({
-                      isExactTranslatedSide(
-                          $0.surface,
+                  (try OriginalParameterQueryStorage.allSatisfy(sides, using: &execution) { item, execution in
+                      try isExactTranslatedSide(
+                          item.surface,
                           axis: axis,
                           lower: lower.coordinate,
-                          upper: upper.coordinate
+                          upper: upper.coordinate, using: &execution
                       )
                   }) else {
                 continue
@@ -71,7 +79,7 @@ struct RationalBSplinePrismaticVolumeEvaluator {
                 lowerCoordinate: lower.coordinate,
                 axis: axis,
                 model: model,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             ) else {
                 continue
             }
@@ -112,8 +120,9 @@ struct RationalBSplinePrismaticVolumeEvaluator {
         lowerCoordinate: Double,
         axis: Axis,
         model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> TrimmedParametricSurfaceVolumeEvaluator.VolumeBounds? {
+        try execution.consumeWork(1)
         let loopCount = cap.face.loops.count
         guard loopCount > 0 else { return nil }
         var lower = 0.0
@@ -121,12 +130,13 @@ struct RationalBSplinePrismaticVolumeEvaluator {
         let requestedWidth = tolerance.distance / (3.0 * Double(loopCount))
         let reference = axis.point(at: lowerCoordinate)
         for loopID in cap.face.loops {
+            try execution.consumeWork(1)
             guard let loop = model.loops[loopID], !loop.coedges.isEmpty else {
                 throw TopologyError.missingReference(
                     "Rational prism cap references a missing or empty loop."
                 )
             }
-            let curves = try loop.coedges.map { coedge -> SurfaceParameterCurve in
+            let curves = try OriginalParameterQueryStorage.map(loop.coedges, using: &execution) { coedge, execution -> SurfaceParameterCurve in
                 guard let curve = coedge.surfaceParameterCurve else {
                     throw KernelError(
                         phase: .topology,
@@ -144,7 +154,7 @@ struct RationalBSplinePrismaticVolumeEvaluator {
                     role: loop.role,
                     reference: reference,
                     requestedWidth: requestedWidth,
-                    tolerance: tolerance
+                    tolerance: tolerance, using: &execution
                 ) else {
                 return nil
             }
@@ -159,14 +169,15 @@ struct RationalBSplinePrismaticVolumeEvaluator {
 
     private func planarCoordinate(
         of surface: BSplineSurface3D,
-        axis: Axis
-    ) -> Double? {
+        axis: Axis, using execution: inout OriginalQueryExecution
+    ) throws -> Double? {
+        try execution.consumeWork(1)
         guard let coordinate = surface.controlPoints.first?.first.map({
             axis.coordinate(of: $0)
-        }), surface.controlPoints.allSatisfy({ row in
-            !row.isEmpty && row.allSatisfy {
-                axis.coordinate(of: $0) == coordinate
-            }
+        }), (try OriginalParameterQueryStorage.allSatisfy(surface.controlPoints, using: &execution) { row, execution in
+            try !row.isEmpty && (try OriginalParameterQueryStorage.allSatisfy(row, using: &execution) { item, execution in
+                axis.coordinate(of: item) == coordinate
+            })
         }) else {
             return nil
         }
@@ -177,8 +188,9 @@ struct RationalBSplinePrismaticVolumeEvaluator {
         _ surface: BSplineSurface3D,
         axis: Axis,
         lower: Double,
-        upper: Double
-    ) -> Bool {
+        upper: Double, using execution: inout OriginalQueryExecution
+    ) throws -> Bool {
+        try execution.consumeWork(1)
         if surface.vDegree == 1,
            surface.vControlPointCount == 2,
            let first = surface.controlPoints.first,
@@ -187,12 +199,12 @@ struct RationalBSplinePrismaticVolumeEvaluator {
            surface.weights.count == 2,
            surface.weights[0].count == surface.weights[1].count,
            surface.weights[0].count == first.count {
-            return zip(first.indices, surface.weights[0].indices).allSatisfy {
+            return try OriginalParameterQueryStorage.allSatisfy(zip(first.indices, surface.weights[0].indices), using: &execution) { item, execution in
                 translatedPairIsExact(
-                    first[$0.0],
-                    second[$0.0],
-                    firstWeight: surface.weights[0][$0.1],
-                    secondWeight: surface.weights[1][$0.1],
+                    first[item.0],
+                    second[item.0],
+                    firstWeight: surface.weights[0][item.1],
+                    secondWeight: surface.weights[1][item.1],
                     axis: axis,
                     lower: lower,
                     upper: upper
@@ -201,10 +213,10 @@ struct RationalBSplinePrismaticVolumeEvaluator {
         }
         if surface.uDegree == 1,
            surface.uControlPointCount == 2,
-           surface.controlPoints.allSatisfy({ $0.count == 2 }),
+           (try OriginalParameterQueryStorage.allSatisfy(surface.controlPoints, using: &execution) { item, execution in item.count == 2 }),
            surface.weights.count == surface.controlPoints.count,
-           surface.weights.allSatisfy({ $0.count == 2 }) {
-            return surface.controlPoints.indices.allSatisfy { index in
+           (try OriginalParameterQueryStorage.allSatisfy(surface.weights, using: &execution) { item, execution in item.count == 2 }) {
+            return (try OriginalParameterQueryStorage.allSatisfy(surface.controlPoints.indices, using: &execution) { index, execution in
                 translatedPairIsExact(
                     surface.controlPoints[index][0],
                     surface.controlPoints[index][1],
@@ -214,7 +226,7 @@ struct RationalBSplinePrismaticVolumeEvaluator {
                     lower: lower,
                     upper: upper
                 )
-            }
+            })
         }
         return false
     }

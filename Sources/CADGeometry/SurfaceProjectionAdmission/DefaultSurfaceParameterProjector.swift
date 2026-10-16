@@ -4,38 +4,40 @@ public struct DefaultSurfaceParameterProjector: SurfaceParameterProjecting {
     public init() {}
     public func projection(of point:Point3D,on surface:Surface3D,over domain:SurfaceParameterBox,
         options:SurfaceParameterProjectionOptions,tolerance:ModelingTolerance,
-        maximumSubdivisionDepth:Int,consumeWork:@escaping @Sendable(Int)throws->Void) throws -> SurfaceParameterProjection {
+        maximumSubdivisionDepth:Int, remainingSourceDepth:Int = 16, maximumAlgebraicDepth:Int = 32, using execution:inout OriginalQueryExecution) throws -> SurfaceParameterProjection {
         try options.validate(tolerance:tolerance)
-        let invocation = try CurveSurfaceQueryInvocation(maximumSubdivisionDepth:maximumSubdivisionDepth,
-            maximumSpanCount:min(262_144,options.maximumSubdivisionCells),remainingSourceDepth:maximumSubdivisionDepth,
-            consumeWork:consumeWork)
-        try invocation.consumeFixedWork()
+        try execution.consumeWork(1)
         let prepared = try PreparedSurfaceDifferentialEncloser(surface:surface,tolerance:tolerance,
-            remainingSourceDepth:maximumSubdivisionDepth,maximumSubdivisionDepth:maximumSubdivisionDepth,
-            consumeWork:invocation.consumeFixedWork)
+            remainingSourceDepth:min(remainingSourceDepth, execution.effectiveLimits.remainingSourceDepth),
+            maximumSubdivisionDepth:min(maximumSubdivisionDepth, execution.effectiveLimits.maximumSubdivisionDepth),
+            maximumAlgebraicDepth:min(maximumAlgebraicDepth, execution.effectiveLimits.maximumValueDepth, execution.effectiveLimits.maximumCoefficientDepth), using:&execution)
         try domain.validateAssumingSurfaceValidated(for:surface,tolerance:tolerance)
         var limits = options
         limits.maximumSubdivisionDepth = min(options.maximumSubdivisionDepth,maximumSubdivisionDepth)
-        return try ProceduralSurfaceParameterProjector(invocation:invocation,originalDomain:domain,
-            originalPreparation:prepared).closestProjection(of:point,on:surface,options:limits,tolerance:tolerance)
+        return try ProceduralSurfaceParameterProjector(originalDomain:domain,
+            originalPreparation:prepared,originalProof:true,
+            maximumSpanCount:min(262_144,options.maximumSubdivisionCells,execution.effectiveLimits.maximumSpans),
+            maximumSubdivisionDepth:min(maximumSubdivisionDepth, execution.effectiveLimits.maximumSubdivisionDepth),
+            remainingSourceDepth:min(remainingSourceDepth, execution.effectiveLimits.remainingSourceDepth)).closestProjection(of:point,on:surface,options:limits,tolerance:tolerance,using:&execution)
     }
     public func projectionResult(of point:Point3D,on surface:Surface3D,over domain:SurfaceParameterBox,
         options:SurfaceParameterProjectionOptions,tolerance:ModelingTolerance,
-        maximumSubdivisionDepth:Int,consumeWork:@escaping @Sendable(Int)throws->Void) throws -> SurfaceParameterProjectionResult {
+        maximumSubdivisionDepth:Int, remainingSourceDepth:Int = 16, maximumAlgebraicDepth:Int = 32, using execution:inout OriginalQueryExecution) throws -> SurfaceParameterProjectionResult {
         try options.validate(tolerance:tolerance); try point.validate()
-        let invocation = try CurveSurfaceQueryInvocation(maximumSubdivisionDepth:maximumSubdivisionDepth,
-            maximumSpanCount:min(262_144,options.maximumSubdivisionCells),remainingSourceDepth:maximumSubdivisionDepth,
-            consumeWork:consumeWork)
-        try invocation.consumeFixedWork()
+        try execution.consumeWork(1)
         let prepared = try PreparedSurfaceDifferentialEncloser(surface:surface,tolerance:tolerance,
-            remainingSourceDepth:maximumSubdivisionDepth,maximumSubdivisionDepth:maximumSubdivisionDepth,
-            consumeWork:invocation.consumeFixedWork)
+            remainingSourceDepth:min(remainingSourceDepth, execution.effectiveLimits.remainingSourceDepth),
+            maximumSubdivisionDepth:min(maximumSubdivisionDepth, execution.effectiveLimits.maximumSubdivisionDepth),
+            maximumAlgebraicDepth:min(maximumAlgebraicDepth, execution.effectiveLimits.maximumValueDepth, execution.effectiveLimits.maximumCoefficientDepth), using:&execution)
         try domain.validateAssumingSurfaceValidated(for:surface,tolerance:tolerance)
         var limits = options
         limits.maximumSubdivisionDepth = min(options.maximumSubdivisionDepth,maximumSubdivisionDepth)
-        return try ProceduralSurfaceParameterProjector(invocation:invocation,originalDomain:domain,
-            originalPreparation:prepared).boundedProjectionResult(of:point,on:surface,
+        return try ProceduralSurfaceParameterProjector(originalDomain:domain,
+            originalPreparation:prepared,originalProof:true,
+            maximumSpanCount:min(262_144,options.maximumSubdivisionCells,execution.effectiveLimits.maximumSpans),
+            maximumSubdivisionDepth:min(maximumSubdivisionDepth, execution.effectiveLimits.maximumSubdivisionDepth),
+            remainingSourceDepth:min(remainingSourceDepth, execution.effectiveLimits.remainingSourceDepth)).boundedProjectionResult(of:point,on:surface,
             uBounds:domain.u.lower...domain.u.upper,vBounds:domain.v.lower...domain.v.upper,
-            options:limits,tolerance:tolerance)
+            options:limits,tolerance:tolerance,using:&execution)
     }
 }

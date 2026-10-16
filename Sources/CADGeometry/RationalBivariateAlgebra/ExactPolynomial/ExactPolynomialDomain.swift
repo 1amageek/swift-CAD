@@ -34,7 +34,7 @@ public struct ExactPolynomialDomain<F: ExactScalarArithmetic & ExactScalarOrderi
         context = try ExactPolynomialAccess.query(&admission, inherited: value.depth) { _ in value.context }
     }
     func query<A: ExactScalarAdmission & ~Copyable, R>(_ admission: inout A,
-        _ first: Polynomial? = nil, _ second: Polynomial? = nil, _ body: (inout ExactPolynomialAdmission<A>) throws -> R
+        _ first: Polynomial? = nil, _ second: Polynomial? = nil, _ body: (inout A) throws -> R
     ) throws(ExactPolynomialFailure) -> R {
         try ExactPolynomialAccess.query(&admission, inherited: context.depth) { usage in
             if let input = first {
@@ -55,16 +55,16 @@ public struct ExactPolynomialDomain<F: ExactScalarArithmetic & ExactScalarOrderi
         guard index >= 0, index < variableCount else { throw .invalidVariable }
     }
     func wrap<A: ExactScalarAdmission & ~Copyable>(_ terms: [ExactPolynomialTerm<Coefficient>],
-        _ usage: inout ExactPolynomialAdmission<A>) throws -> Polynomial {
+        _ usage: inout A) throws -> Polynomial {
         Polynomial(context: context, terms: terms, depth: try usage.depth)
     }
-    func powers<A: ExactScalarAdmission & ~Copyable>(_ usage: inout ExactPolynomialAdmission<A>) throws -> [Int] {
+    func powers<A: ExactScalarAdmission & ~Copyable>(_ usage: inout A) throws -> [Int] {
         try usage.consumeWork(variableCount)
         try ExactPolynomialAccess.storage(variableCount, Int.self, &usage)
         return [Int](repeating: 0, count: variableCount)
     }
     func canonical<A: ExactScalarAdmission & ~Copyable>(_ terms: [ExactPolynomialTerm<Coefficient>],
-        _ usage: inout ExactPolynomialAdmission<A>) throws -> Polynomial {
+        _ usage: inout A) throws -> Polynomial {
         for term in terms {
             try usage.consumeWork(try ExactPolynomialAccess.count(variableCount, 1))
             guard term.powers.count == variableCount else { throw ExactPolynomialFailure.invalidExponent }
@@ -96,7 +96,7 @@ public struct ExactPolynomialDomain<F: ExactScalarArithmetic & ExactScalarOrderi
         try query(&admission) { try wrap([], &$0) }
     }
     func constant<A: ExactScalarAdmission & ~Copyable>(_ coefficient: borrowing Coefficient,
-        _ usage: inout ExactPolynomialAdmission<A>) throws -> Polynomial {
+        _ usage: inout A) throws -> Polynomial {
         // Ownership and depth are checked even if the coefficient is zero.
         if try field.sign(of: coefficient, using: &usage) == .zero { return try wrap([], &usage) }
         try ExactPolynomialAccess.storage(1, ExactPolynomialTerm<Coefficient>.self, &usage)
@@ -132,7 +132,7 @@ public struct ExactPolynomialDomain<F: ExactScalarArithmetic & ExactScalarOrderi
         }
     }
     func degree<A: ExactScalarAdmission & ~Copyable>(_ value: borrowing Polynomial, _ variable: Int,
-        _ usage: inout ExactPolynomialAdmission<A>) throws -> Int? {
+        _ usage: inout A) throws -> Int? {
         try requireVariable(variable)
         var result: Int? = nil
         for term in value.terms { try usage.consumeWork(1); result = max(result ?? 0, term.powers[variable]) }

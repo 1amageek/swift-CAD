@@ -7,6 +7,8 @@ import Testing
 struct OriginalPeriodicC0TessellationTests {
     @Test(.timeLimit(.minutes(1)), arguments: ["u", "v", "both"], ["base", "negative", "crossing", "shifted", "full"])
     func originalDiamondTensorRetainsEveryLiftAndClosedSide(axes: String, chart: String) throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
         var surface = try fixture(axes: axes)
         if chart == "shifted" {
             if surface.isUPeriodic { surface.uPeriodicOrigin = 8 }
@@ -23,8 +25,8 @@ struct OriginalPeriodicC0TessellationTests {
         }
         let query = try box(surface.isUPeriodic ? interval : (0, 1),
                             surface.isVPeriodic ? interval : (0, 1))
-        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: surface, tolerance: .standard)
-        let spans = try prepared.originalNativeSpans(over: query, tolerance: .standard)
+        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: surface, tolerance: .standard, using: &execution)
+        let spans = try prepared.originalNativeSpans(over: query, tolerance: .standard, using: &execution)
         let positive = spans.filter {
             min(query.u.upper, $0.uBounds.upper) > max(query.u.lower, $0.uBounds.lower)
                 && min(query.v.upper, $0.vBounds.upper) > max(query.v.lower, $0.vBounds.lower)
@@ -37,17 +39,17 @@ struct OriginalPeriodicC0TessellationTests {
             let v0 = max(query.v.lower, span.vBounds.lower), v1 = min(query.v.upper, span.vBounds.upper)
             area += (u1 - u0) * (v1 - v0)
             let closed = try box((u0, u1), (v0, v1))
-            let enclosure = try span.intervalJet(overClosedBox: closed, on: surface, tolerance: .standard)
+            let enclosure = try span.intervalJet(overClosedBox: closed, on: surface, tolerance: .standard, using: &execution)
             for u in [u0, (u0 + u1) / 2, u1] {
                 for v in [v0, (v0 + v1) / 2, v1] {
                     let expected = literal(u: u, v: v, span: span, axes: axes)
-                    let jet = try span.pointJet(u: u, v: v, on: surface, tolerance: .standard)
+                    let jet = try span.pointJet(u: u, v: v, on: surface, tolerance: .standard, using: &execution)
                     check(jet, contains: expected)
                     check(enclosure, contains: expected)
                     let n = try expected.du.cross(expected.dv).normalized(tolerance: 1e-300)
-                    #expect((try surface.normal(u: u, v: v, owning: span, tolerance: .standard) - n).length <= 1e-12)
+                    #expect((try surface.normal(u: u, v: v, owning: span, tolerance: .standard, using: &execution) - n).length <= 1e-12)
                     #expect((try surface.point(u: u, v: v, tolerance: .standard) - expected.point).length <= 1e-12)
-                    let value = try span.pointValue(u: u, v: v, on: surface, tolerance: .standard)
+                    let value = try span.pointValue(u: u, v: v, on: surface, tolerance: .standard, using: &execution)
                     #expect(contains(value.x, expected.point.x) && contains(value.y, expected.point.y) && contains(value.z, expected.point.z))
                 }
             }
@@ -59,10 +61,10 @@ struct OriginalPeriodicC0TessellationTests {
             let seam = chart == "negative" || chart == "full" ? 0.0 : (chart == "shifted" ? 8.0 : 4.0)
             let corner = try box(surface.isUPeriodic ? (seam, seam) : (0.5, 0.5),
                                  surface.isVPeriodic ? (seam, seam) : (0.5, 0.5))
-            let owners = try prepared.originalNativeSpans(over: corner, tolerance: .standard)
+            let owners = try prepared.originalNativeSpans(over: corner, tolerance: .standard, using: &execution)
             #expect(owners.count == (axes == "both" ? 4 : 2))
             let normals = try owners.map {
-                try surface.normal(u: corner.u.lower, v: corner.v.lower, owning: $0, tolerance: .standard)
+                try surface.normal(u: corner.u.lower, v: corner.v.lower, owning: $0, tolerance: .standard, using: &execution)
             }
             for i in normals.indices { for j in normals.indices where j > i {
                 #expect((normals[i] - normals[j]).length > 0.1)
@@ -73,32 +75,36 @@ struct OriginalPeriodicC0TessellationTests {
 
     @Test(.timeLimit(.minutes(1)), arguments: ["u", "v", "both"])
     func ordinaryNormalStillChoosesCanonicalRightSeam(axes: String) throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
         let surface = try fixture(axes: axes)
         let u = surface.isUPeriodic ? 4.0 : 0.5, v = surface.isVPeriodic ? 4.0 : 0.5
-        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: surface, tolerance: .standard)
-        let owners = try prepared.originalNativeSpans(over: box((u, u), (v, v)), tolerance: .standard)
+        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: surface, tolerance: .standard, using: &execution)
+        let owners = try prepared.originalNativeSpans(over: box((u, u), (v, v)), tolerance: .standard, using: &execution)
         let right = try #require(owners.first {
             (!surface.isUPeriodic || $0.uBounds.lower == u) && (!surface.isVPeriodic || $0.vBounds.lower == v)
         })
         #expect((try surface.normal(u: u, v: v, tolerance: .standard)
-            - surface.normal(u: u, v: v, owning: right, tolerance: .standard)).length <= 1e-12)
+            - surface.normal(u: u, v: v, owning: right, tolerance: .standard, using: &execution)).length <= 1e-12)
     }
 
     @Test(.timeLimit(.minutes(1)), arguments: ["source", "tolerance", "outside", "cycle"])
     func tokensRefuseForeignAuthorityWithoutSelectingNearbySide(failure: String) throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
         let surface = try fixture(axes: "both")
-        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: surface, tolerance: .standard)
-        let token = try #require(try prepared.originalNativeSpans(over: box((3.5, 4.5), (-0.5, 0.5)), tolerance: .standard)
+        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: surface, tolerance: .standard, using: &execution)
+        let token = try geometryTestRequire(try prepared.originalNativeSpans(over: box((3.5, 4.5), (-0.5, 0.5)), tolerance: .standard, using: &execution)
             .first { $0.uBounds.lower == 3 && $0.vBounds.lower == -1 })
         var requested = surface, tolerance = ModelingTolerance.standard
         if failure == "source" { requested.controlPoints[0][0].z = 0.125 }
         if failure == "tolerance" { tolerance.distance *= 0.5 }
         let u = failure == "outside" ? 4.25 : (failure == "cycle" ? -0.25 : 3.75)
         expectCode(.invalidInput) {
-            _ = try token.pointJet(u: u, v: -0.25, on: requested, tolerance: tolerance)
+            _ = try token.pointJet(u: u, v: -0.25, on: requested, tolerance: tolerance, using: &execution)
         }
         expectCode(.invalidInput) {
-            _ = try requested.normal(u: u, v: -0.25, owning: token, tolerance: tolerance)
+            _ = try requested.normal(u: u, v: -0.25, owning: token, tolerance: tolerance, using: &execution)
         }
     }
 
@@ -151,14 +157,16 @@ struct OriginalPeriodicC0TessellationTests {
 
     @Test(.timeLimit(.minutes(1)))
     func collapsedOriginalPanelHasNoInventedSelectedNormal() throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
         var surface = try fixture(axes: "both")
         surface.controlPoints = surface.controlPoints.map { $0.map { _ in Point3D.origin } }
         try surface.validate(tolerance: .standard)
-        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: surface, tolerance: .standard)
-        let token = try #require(try prepared.originalNativeSpans(over: box((3.5, 4.5), (-0.5, 0.5)), tolerance: .standard)
+        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: surface, tolerance: .standard, using: &execution)
+        let token = try geometryTestRequire(try prepared.originalNativeSpans(over: box((3.5, 4.5), (-0.5, 0.5)), tolerance: .standard, using: &execution)
             .first { $0.uBounds.lower == 3 && $0.vBounds.lower == -1 })
         expectCode(.singularSystem) {
-            _ = try surface.normal(u: 3.75, v: -0.25, owning: token, tolerance: .standard)
+            _ = try surface.normal(u: 3.75, v: -0.25, owning: token, tolerance: .standard, using: &execution)
         }
     }
 

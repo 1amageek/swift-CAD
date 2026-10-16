@@ -1,0 +1,15 @@
+{
+  "faultPC": "0x1d21fa0",
+  "faultInstruction": "str x0, [x8, #0x7ff8]",
+  "SP": 6095768160,
+  "FP": 6096119952,
+  "SPtoFPBytes": 351792,
+  "faultAddress": 6095810000,
+  "faultAddressRelativeToSP": "0xa370",
+  "rawLR": "0x1d21f7c",
+  "precedingCallAddress": "0x1d21f78",
+  "precedingCallTarget": "OutwardScalarInterval.excludesZero",
+  "classification": "The duplicate symbol is consistent with the raw link register retained after the leaf call; the observed instruction sequence does not call processCell recursively. Count the current processCell frame once. No broader unwind-corruption claim is made.",
+  "deduplicatedActualEntryFrameBytes": 582432,
+  "sourceUnchanged": true
+}

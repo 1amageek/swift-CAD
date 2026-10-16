@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="TestResults" errors="0" tests="1" failures="0" skipped="0" time="0.015651875">
+    <testcase classname="FocusedTests.SurfaceSilhouetteRationalCoordinateSelectionTests" name="actualNativeSourceRetainsOnlyItsAdmittedRationalLaw(_:)" time="0.015279417" />
+  </testsuite>
+</testsuites>

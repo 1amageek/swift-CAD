@@ -33,6 +33,13 @@ struct BRepFaceImprinter {
         featureID: FeatureID,
         context: EvaluationContext
     ) throws -> EvaluationResult {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try imprint(curves, on: bodyID, featureID: featureID, context: context, using: &execution)
+    }
+
+    func imprint(_ curves: [Curve], on bodyID: BodyID, featureID: FeatureID,
+        context: EvaluationContext, using execution: inout OriginalQueryExecution) throws -> EvaluationResult {
+        try execution.checkpoint()
         let model = context.brep
         let tolerance = context.tolerance
         let subshapes = context.subshapes.entries
@@ -73,7 +80,7 @@ struct BRepFaceImprinter {
         for faceID in boundariesByFace.keys.sorted() {
             let preview = try builder.build(
                 faceID: faceID, boundaries: boundariesByFace[faceID] ?? [], model: model,
-                sourceSubshapes: subshapes, tolerance: tolerance
+                sourceSubshapes: subshapes, tolerance: tolerance, using: &execution
             )
             points += preview.patches.flatMap { $0.loops.flatMap(\.edges).flatMap { [$0.startPoint, $0.endPoint] } }
         }
@@ -86,7 +93,7 @@ struct BRepFaceImprinter {
                 if let boundaries = boundariesByFace[faceID] {
                     let arranged = try builder.build(
                         faceID: faceID, boundaries: boundaries, model: model, sourceSubshapes: subshapes,
-                        sharedSubdivisionPoints: sharedPoints, tolerance: tolerance
+                        sharedSubdivisionPoints: sharedPoints, tolerance: tolerance, using: &execution
                     )
                     guard arranged.isPartitioned else {
                         throw failure(.invalidInput, featureID, tolerance, "An imprinted curve does not divide its face.")
@@ -95,12 +102,12 @@ struct BRepFaceImprinter {
                 } else if neighbours.contains(faceID) {
                     patches += try builder.build(
                         faceID: faceID, boundaries: [], model: model, sourceSubshapes: subshapes,
-                        forcedAction: .keep, sharedSubdivisionPoints: sharedPoints, tolerance: tolerance
+                        forcedAction: .keep, sharedSubdivisionPoints: sharedPoints, tolerance: tolerance, using: &execution
                     ).patches
                 } else {
                     patches.append(try SourceBRepFacePatchBuilder().build(
                         faceID: faceID, stableID: "imprint:face:\(faceID)", from: model,
-                        sourceSubshapes: subshapes, tolerance: tolerance
+                        sourceSubshapes: subshapes, tolerance: tolerance, using: &execution
                     ).patch)
                 }
             }
@@ -125,14 +132,15 @@ struct BRepFaceImprinter {
         let bodySubshapes = subshapes.filter { $0.value == .body(bodyID) }.map(\.key)
         let sewn = try sewer.sew(
             BRepSewingRequest(featureID: featureID, bodyTopology: topology, shells: sewingShells, bodyParentSubshapeIDs: bodySubshapes),
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
-        let replaced = try BRepBodyModelReplacer().replacing(bodyID: bodyID, with: sewn.bodyID, from: sewn.brep, in: model)
-        try replaced.validate(level: .exact, tolerance: tolerance)
+        let replaced = try BRepBodyModelReplacer().replacing(bodyID: bodyID, with: sewn.bodyID, from: sewn.brep, in: model, using: &execution)
+        try replaced.validate(level: .exact, tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
         return EvaluationResult(
             brep: replaced,
             subshapes: sewn.subshapes,
-            removedSubshapeIDs: try BodyTopologyScope(bodyID: bodyID, model: model).subshapeIDs(in: context.subshapes),
+            removedSubshapeIDs: try BodyTopologyScope(bodyID: bodyID, model: model, using: &execution).subshapeIDs(in: context.subshapes, using: &execution),
             lineage: sewn.lineage
         )
     }

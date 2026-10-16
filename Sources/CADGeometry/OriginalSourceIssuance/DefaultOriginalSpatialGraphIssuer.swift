@@ -17,7 +17,7 @@ public struct DefaultOriginalSpatialGraphIssuer<S: OriginalSpatialSourceReading,
         throws(OriginalSourceIssuanceFailure) -> OriginalParametricGraphReceipt<S,F,OriginalSpatialGraphEvidence<S.Child,F,E>> {
         let source=copy source,child=copy child,field=child.field
         do {
-            return try OriginalSourceProofAdmission<A>.withBorrow(&admission) { a in
+            return try admission.withProofScope { a in
                 try a.checkpoint();try a.consumeWork(1);try source.require(limits)
                 guard source.original.originalChild.owner === child.source.owner else { throw OriginalSourceIssuanceFailure.foreignBinding }
                 guard limits.remainingSourceDepth>0 else { throw OriginalSourceIssuanceFailure.sourceDepthLimit }

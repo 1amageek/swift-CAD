@@ -3,8 +3,8 @@ import CADGeometry
 
 /// Composes a foreign physical angular chart inside its retained spatial frame.
 package enum IndependentShapeAngularSurfaceSelection {
-    package static func physical<B: RationalAlgebraAdmitting>(local: Surface3D, gain: ExactRationalCoefficient,
-        tolerance: ModelingTolerance, usage: inout B) throws -> Surface3D {
+    package static func physical(local: Surface3D, gain: ExactRationalCoefficient,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Surface3D {
         let primitive = try IndependentShapeOriginalSurfacePrimitive.read(local)
         let raw: Surface3D
         let orientation: OriginalImageSurface3D?
@@ -19,7 +19,7 @@ package enum IndependentShapeAngularSurfaceSelection {
         }
         let angular = Surface3D.procedural(.originalAngularTransport(try OriginalAngularTransportSurface3D(
             source: raw, uTransport: .physicalRadians(gain: gain, offset: .zero),
-            vTransport: vertical, tolerance: tolerance, usage: &usage)))
+            vTransport: vertical, tolerance: tolerance, usage: &execution)))
         if let orientation {
             return .procedural(.originalImage(orientation.replacingSourceKeepingChart(with: angular)))
         }

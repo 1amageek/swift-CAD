@@ -32,6 +32,15 @@ public extension SurfaceParameterCurve {
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterCurveDifferential {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try differentialGeometry(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+    func differentialGeometry(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceParameterCurveDifferential {
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard fraction.isFinite,
               fraction >= -tolerance.distance,
@@ -150,7 +159,7 @@ public extension SurfaceParameterCurve {
                 points: points,
                 fraction: clampedFraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .bSpline(curve):
             guard case let .closed(lower, upper) = curve.domain else {
                 throw GeometryError.invalidDistance(0.0)
@@ -160,7 +169,7 @@ public extension SurfaceParameterCurve {
             let geometry = try curve.differentialGeometry(
                 at: curveParameter,
                 tolerance: tolerance
-            )
+            , using: &execution)
             return SurfaceParameterCurveDifferential(
                 parameter: SurfaceParameter(
                     u: geometry.position.x,
@@ -179,46 +188,46 @@ public extension SurfaceParameterCurve {
             return try curve.differential(
                 atNormalizedFraction: clampedFraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .certifiedAnalyticImplicit(curve):
             return try curve.differential(
                 atNormalizedFraction: clampedFraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .certifiedAnalyticPair(curve):
             return try curve.differential(
                 atNormalizedFraction: clampedFraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .originalBSplineContinuation(curve):
-            return try curve.differential(atNormalizedFraction: clampedFraction, tolerance: tolerance)
+            return try curve.differential(atNormalizedFraction: clampedFraction, tolerance: tolerance, using: &execution)
         case let .projectedAnalytic(curve):
             return try curve.differential(
                 atNormalizedFraction: clampedFraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .originalAffineWord(curve):
-            return try curve.differential(atNormalizedFraction: clampedFraction, tolerance: tolerance)
+            return try curve.differential(atNormalizedFraction: clampedFraction, tolerance: tolerance, using: &execution)
         case let .originalImage(curve):
             return try curve.differential(
                 atNormalizedFraction: clampedFraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .rigidImage(curve):
             return try curve.differential(
                 atNormalizedFraction: clampedFraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .offsetSurfaceImage(curve):
             return try curve.differential(
                 atNormalizedFraction: clampedFraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .periodicTranslation(base, uShift, vShift):
             var differential = try base.differentialGeometry(
                 atNormalizedFraction: clampedFraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
             differential.parameter = SurfaceParameter(
                 u: differential.parameter.u + uShift,
                 v: differential.parameter.v + vShift
@@ -231,17 +240,21 @@ public extension SurfaceParameterCurve {
         points: [SurfaceParameter],
         fraction: Double,
         tolerance: ModelingTolerance
-    ) throws -> SurfaceParameterCurveDifferential {
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceParameterCurveDifferential {
+        try execution.consumeWork(1)
         guard points.count >= 2 else {
             throw GeometryError.invalidDistance(Double(points.count))
         }
+        try OriginalCoefficientAllocation.reserve(count: max(0, points.count - 1),
+            of: (start: SurfaceParameter, end: SurfaceParameter, length: Double).self, using: &execution)
         var segments: [(
             start: SurfaceParameter,
             end: SurfaceParameter,
             length: Double
-        )] = []
+        )] = []; segments.reserveCapacity(max(0, points.count - 1))
         var totalLength = 0.0
         for index in 1..<points.count {
+            try execution.consumeWork(1)
             let start = points[index - 1]
             let end = points[index]
             let length = hypot(end.u - start.u, end.v - start.v)
@@ -256,6 +269,7 @@ public extension SurfaceParameterCurve {
         let targetLength = totalLength * fraction
         var accumulatedLength = 0.0
         for (index, segment) in segments.enumerated() {
+            try execution.consumeWork(1)
             let upperLength = accumulatedLength + segment.length
             if targetLength <= upperLength || index == segments.count - 1 {
                 let localFraction = min(max(

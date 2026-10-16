@@ -44,7 +44,7 @@ and trigonometric ranges; exact singleton values do not alter nearby values.
 
 ## Failure, Concurrency, and Constraints
 
-All fields are immutable. Caller work callbacks account for phase composition;
+All fields are immutable. The composing admission accounts for phase composition;
 there is no private traversal budget. Nonfinite phase/derivative arithmetic fails
 through the consuming original provider. Source-normalization roles apply to
 the analytic sphere, original ideal closed conics, their authored circular arcs,
@@ -83,7 +83,7 @@ The phase derivative gain applies once per angular differentiation. Source
 normalization/basis authority is unchanged by the phase contract; an exact
 normalized STEP word keeps its separate original frame authority.
 
-Bounded harmonic evaluation charges each actual dyadic modular-reduction iteration and trigonometric endpoint/extremum visit through the composing work callback. Fixed scalar range accumulation creates no temporary arrays. Legacy numerical wrappers preserve their existing cancellation/accounting policy; harmonic source enclosure semantics and phase gain remain unchanged.
+Bounded harmonic evaluation charges each actual dyadic modular-reduction iteration and trigonometric endpoint/extremum visit through the composing admission. Fixed scalar range accumulation creates no temporary arrays. Standalone numerical entries root one independent execution and use the same direct body; harmonic source enclosure semantics and phase gain remain unchanged.
 
 ## Authored Physical-Radian Transport
 
@@ -134,3 +134,44 @@ outside support or an unresolved boundary propagates failure. Normalized arcs
 include all retained integral turns when checking whole latitude support. Cone
 longitude transports retain scalar V and the separately authored physical slope;
 the shared harmonic coefficient producer owns their evaluation.
+
+## Direct Original Query Calling
+
+The [module direct execution contract](../DESIGN.md#u1-direct-execution-ownership)
+governs caller composition. Scalar source construction consumes the original
+`inout A: ExactScalarAdmission & ~Copyable`, with explicit work units, checked
+allocation bytes, independent value/coefficient scope observations and unchanged
+source laws. Geometry query composition uses the same original execution;
+ordinary conveniences create one cumulative owner only at their real entry.
+Callback-to-admission reconstruction, copied budget writeback and cancellation-
+only legacy allowances are removed. Actual structural and parameter guards,
+original source ownership and scoped identities remain required.
+
+### Direct Source Execution
+
+Pure original word/coefficient operations receive the original generic
+`inout A: ExactScalarAdmission & ~Copyable`. General geometry construction,
+validation and retained queries receive the original `inout OriginalQueryExecution`.
+Actual lower calculations keep that same object; no legacy, validation or borrowed
+admission is reconstructed from resource callbacks. Configured capabilities
+remain independent of attained proof metadata. Actual payload bytes are checked
+and admitted before materialization; failures and cancellation publish no partial
+source or complete query. Ordinary numerical entry points may create one explicit
+independent execution and delegate to the direct operation. Source-only generic
+branches consume their genuine Native/word law without acquiring a general
+geometry capability.
+
+```text
+Original caller execution -> source validation/query -> original lower operation
+generic caller A -> pure Native/word coefficient law -> retained source proof
+```
+
+Owning behavioral success, guard rejection, independent budgets/depth, terminal
+cancellation and retained lifetime must execute through the actual direct path.
+Syntax or signature checks alone are not completion evidence.
+
+Angular coefficient preparation observes the attained local scalar proof depth
+on the composing admission. The immutable source retains that depth alongside
+its cached coefficients, and cached interval/derivative queries re-admit it before
+use. Source equality and hashes exclude this operational metadata. No mutable
+shared refinement state is introduced.

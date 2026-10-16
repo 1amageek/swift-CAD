@@ -9,6 +9,7 @@ struct RationalRevolutionProfileMomentBuilderTests {
 
     @Test(.timeLimit(.minutes(1)))
     func multiSpanProfileRetainsEveryExactMomentSpan() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
         let profile = BSplineCurve2D(
             degree: 1,
             knots: [0.0, 0.0, 0.5, 1.0, 1.0],
@@ -22,7 +23,7 @@ struct RationalRevolutionProfileMomentBuilderTests {
         let patches = try RationalRevolutionProfileMomentBuilder().patches(
             for: profile,
             tolerance: tolerance
-        )
+        , using: &execution)
         #expect(patches.count == 2)
 
         let total = try CertifiedAnalyticPcurveFluxIntegrator()
@@ -30,7 +31,7 @@ struct RationalRevolutionProfileMomentBuilderTests {
                 for: patches,
                 requestedWidth: 1.0e-12,
                 tolerance: tolerance
-            )
+            , using: &execution)
         let expected = 7.0 / 3.0
         #expect(total.lower <= expected)
         #expect(total.upper >= expected)
@@ -39,6 +40,7 @@ struct RationalRevolutionProfileMomentBuilderTests {
 
     @Test(.timeLimit(.minutes(1)))
     func rationalMultiSpanMomentMatchesProfilePointwise() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
         let profile = BSplineCurve2D(
             degree: 2,
             knots: [0.0, 0.0, 0.0, 0.5, 1.0, 1.0, 1.0],
@@ -54,7 +56,7 @@ struct RationalRevolutionProfileMomentBuilderTests {
         let patches = try RationalRevolutionProfileMomentBuilder().patches(
             for: profile,
             tolerance: tolerance
-        )
+        , using: &execution)
         #expect(patches.count == 2)
 
         for patch in patches {

@@ -15,16 +15,19 @@ import WASILibc
 struct OriginalCorrespondenceCoefficientResidual {
     func upperBound(curve: BSplineCurve3D, start: Double, end: Double,
                     surface: Surface3D, parameterCurve: SurfaceParameterCurve,
-                    budget: inout OriginalCorrespondenceBudget) throws -> Double? {
+                    policy: OriginalCorrespondencePolicy, using execution: inout OriginalQueryExecution) throws -> Double? {
         if case let .plane(plane) = surface, case let .bSpline(parameter) = parameterCurve,
            curve.degree == parameter.degree, curve.knots == parameter.knots,
            curve.weights == parameter.weights,
            start == curve.knots[curve.degree], end == curve.knots[curve.controlPointCount],
            curve.controlPointCount == parameter.controlPointCount {
-            let basis = try plane.parameterBasis(tolerance: budget.tolerance)
+            let basis = try plane.parameterBasis(tolerance: policy.tolerance)
             var maximum = 0.0
             for index in curve.controlPoints.indices {
-                try CurrentTaskCancellationChecker().checkCancellation()
+                try execution.checkpoint()
+                try execution.consumeWork(1)
+                try OriginalCoefficientAllocation.reserve(count: 3, of: OriginalCorrespondenceScalarJet.self, using: &execution)
+                try OriginalCoefficientAllocation.reserve(count: 3, of: Double.self, using: &execution)
                 let p = parameter.controlPoints[index]
                 let lifted = [
                     OriginalCorrespondenceScalarJet.constant(plane.origin.x)
@@ -46,7 +49,7 @@ struct OriginalCorrespondenceCoefficientResidual {
                 }
                 let bound = sqrt(max(0, squared.upper)).nextUp
                 guard bound.isFinite else {
-                    throw OriginalCorrespondenceBudget.failure(.resourceLimitExceeded, budget.tolerance,
+                    throw OriginalCorrespondencePolicy.failure(.resourceLimitExceeded, policy.tolerance,
                         "Original planar coefficient residual exceeded finite arithmetic.")
                 }
                 maximum = max(maximum, bound)
@@ -61,7 +64,7 @@ struct OriginalCorrespondenceCoefficientResidual {
             if v == support.vKnots[1] { row = 0 }
             else if v == support.vKnots[2] { row = 1 }
             else { return nil }
-            try CurrentTaskCancellationChecker().checkCancellation()
+            try execution.checkpoint()
             guard curve.controlPoints == support.controlPoints[row], curve.weights == support.weights[row] else { return nil }
             return 0
         }

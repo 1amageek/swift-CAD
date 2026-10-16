@@ -8,4 +8,9 @@ public protocol OriginalCurveSurfaceCorrespondenceCertifying: Sendable {
         options: CurveSurfaceCorrespondenceValidationOptions,
         tolerance: ModelingTolerance
     ) throws -> OriginalCurveSurfaceCorrespondenceCertificate
+    func certify(curve: Curve3D, from startParameter: Double, to endParameter: Double,
+        surface: Surface3D, parameterCurve: SurfaceParameterCurve,
+        options: CurveSurfaceCorrespondenceValidationOptions, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> OriginalCurveSurfaceCorrespondenceCertificate
+
 }

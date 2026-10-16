@@ -3,20 +3,37 @@ import CADCore
 /// Bounded Taylor evaluation on [-1, 1], followed by four double-angle steps.
 /// Inputs are enclosed real angles, not unverified libm outputs.
 package enum CertifiedRotationTrigonometry {
-    package static func inverseTangent(
+    package static func inverseTangent(_ value: OutwardScalarInterval,
+        tolerance: ModelingTolerance) throws -> OutwardScalarInterval {
+        var execution = try ordinaryExecution()
+        return try inverseTangent(value, tolerance: tolerance, using: &execution)
+    }
+
+    package static func evaluate(_ angle: OutwardScalarInterval,
+        tolerance: ModelingTolerance) throws -> (cosine: OutwardScalarInterval, sine: OutwardScalarInterval) {
+        var execution = try ordinaryExecution()
+        return try evaluate(angle, tolerance: tolerance, using: &execution)
+    }
+
+    private static func ordinaryExecution() throws -> OriginalQueryExecution {
+        try .init(budget: OriginalQueryBudget(),
+            limits: .init(maximumValueDepth: Int.max, maximumCoefficientDepth: Int.max))
+    }
+
+    package static func inverseTangent<A: ExactScalarAdmission & ~Copyable>(
         _ value: OutwardScalarInterval,
         tolerance: ModelingTolerance,
-        consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() }
+        using execution: inout A
     ) throws -> OutwardScalarInterval {
-        try consumeWork()
+        try execution.consumeWork(1)
         guard value.isFinite, value.lower >= 0, value.upper <= 16 else {
             throw KernelError(phase: .geometry, code: .invalidInput,
                 tolerance: tolerance, message: "Certified inverse tangent requires an interval in [0, 16].")
         }
-        if value.upper == 0 { return .exact(0) }
+        if value.upper == 0 { try execution.checkpoint(); return .exact(0) }
         var x = value
         for _ in 0..<5 {
-            try consumeWork()
+            try execution.consumeWork(1)
             let squared = .exact(1) + x * x
             let root = OutwardScalarInterval(lower: squared.lower.squareRoot().nextDown,
                 upper: squared.upper.squareRoot().nextUp)
@@ -34,7 +51,7 @@ package enum CertifiedRotationTrigonometry {
         var power = x
         var sum = x
         for index in 1..<20 {
-            try consumeWork()
+            try execution.consumeWork(1)
             power = power * negativeSquare
             guard let term = power.divided(by: .exact(Double(2 * index + 1))) else {
                 throw KernelError(phase: .geometry, code: .resourceLimitExceeded,
@@ -42,20 +59,21 @@ package enum CertifiedRotationTrigonometry {
             }
             sum = sum + term
         }
+        try execution.checkpoint()
         return (sum + OutwardScalarInterval(lower: -0x1p-164, upper: 0x1p-164)) * .exact(32)
     }
 
-    package static func evaluate(
+    package static func evaluate<A: ExactScalarAdmission & ~Copyable>(
         _ angle: OutwardScalarInterval,
         tolerance: ModelingTolerance,
-        consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() }
+        using execution: inout A
     ) throws -> (cosine: OutwardScalarInterval, sine: OutwardScalarInterval) {
-        try consumeWork()
+        try execution.consumeWork(1)
         guard angle.isFinite, angle.lower >= -16, angle.upper <= 16 else {
             throw KernelError(phase: .geometry, code: .unsupportedCapability,
                 tolerance: tolerance, message: "Certified rotation supports absolute source angles up to 16 radians.")
         }
-        if angle.lower == 0, angle.upper == 0 { return (.exact(1), .exact(0)) }
+        if angle.lower == 0, angle.upper == 0 { try execution.checkpoint(); return (.exact(1), .exact(0)) }
         let x = angle * .exact(0.0625)
         let negativeSquare = -(x * x)
         var sineTerm = x
@@ -63,7 +81,7 @@ package enum CertifiedRotationTrigonometry {
         var sine = sineTerm
         var cosine = cosineTerm
         for index in 1..<20 {
-            try consumeWork()
+            try execution.consumeWork(1)
             // Positive integer denominators cannot contain zero.
             guard let nextSine = (sineTerm * negativeSquare).divided(by: .exact(Double((2 * index) * (2 * index + 1)))),
                   let nextCosine = (cosineTerm * negativeSquare).divided(by: .exact(Double((2 * index - 1) * (2 * index)))) else {
@@ -80,7 +98,7 @@ package enum CertifiedRotationTrigonometry {
         sine = sine + remainder
         cosine = cosine + remainder
         for _ in 0..<4 {
-            try consumeWork()
+            try execution.consumeWork(1)
             let nextSine = .exact(2) * sine * cosine
             cosine = cosine * cosine - sine * sine
             sine = nextSine
@@ -89,6 +107,7 @@ package enum CertifiedRotationTrigonometry {
             throw KernelError(phase: .geometry, code: .resourceLimitExceeded,
                 tolerance: tolerance, message: "Rotation Taylor enclosure overflowed.")
         }
+        try execution.checkpoint()
         return (cosine, sine)
     }
 }

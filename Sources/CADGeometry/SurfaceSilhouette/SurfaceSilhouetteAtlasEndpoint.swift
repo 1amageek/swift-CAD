@@ -9,7 +9,7 @@ struct SurfaceSilhouetteAtlasEndpoint: Sendable {
     let original: ExactBivariatePolynomial
     let location: Location
 
-    func originalFieldParameters(usage: inout SurfaceSilhouetteUsage)
+    func originalFieldParameters(usage: inout OriginalQueryExecution)
         throws -> (u: OriginalSingularFieldElement, v: OriginalSingularFieldElement) {
         switch location {
         case .station(let root, _):
@@ -22,30 +22,30 @@ struct SurfaceSilhouetteAtlasEndpoint: Sendable {
         case .fiber(let u, let root):
             let context = try OriginalSingularFieldContext(usage: &usage)
             let v = try OriginalSingularFieldRoot.retaining(root, in: context,
-                maximumDepth: usage.maximumDepth, usage: &usage).value(maximumDepth: usage.maximumDepth, usage: &usage)
-            return (try .constant(u, in: v.context, maximumDepth: usage.maximumDepth, usage: &usage), v)
+                maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage).value(maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
+            return (try .constant(u, in: v.context, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage), v)
         }
     }
 
-    func sign(of expression: ExactBivariatePolynomial, usage: inout SurfaceSilhouetteUsage)
+    func sign(of expression: ExactBivariatePolynomial, usage: inout OriginalQueryExecution)
         throws -> ExactAlgebraicRealRoot.Sign {
         switch location {
         case .station(let root, _):
-            return try root.sign(of: expression, maximumDepth: usage.maximumDepth, usage: &usage)
+            return try root.sign(of: expression, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
         case .fiber(let u, let v):
             let substituted = try expression.restricted(alongU: true, station: u, usage: &usage)
-            return try v.sign(of: substituted, maximumDepth: usage.maximumDepth, usage: &usage)
+            return try v.sign(of: substituted, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
         }
     }
 
-    func hasSameValue(as other: Self, usage: inout SurfaceSilhouetteUsage) throws -> Bool {
+    func hasSameValue(as other: Self, usage: inout OriginalQueryExecution) throws -> Bool {
         switch (location, other.location) {
         case (.station(let a, _), .station(let b, _)):
-            return try a.hasSameValue(as: b, maximumDepth: usage.maximumDepth, usage: &usage)
+            return try a.hasSameValue(as: b, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
         case (.fiber(let u, let v), .fiber(let x, let y)):
             guard u == x else { return false }
             return try ExactMonotoneGraphEndpoint.algebraic(v).hasSameValue(as: .algebraic(y),
-                maximumDepth: usage.maximumDepth, usage: &usage)
+                maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
         case (.station, .fiber(let u, let v)):
             return try matches(u: u, v: v, usage: &usage)
         case (.fiber, .station):
@@ -53,13 +53,13 @@ struct SurfaceSilhouetteAtlasEndpoint: Sendable {
         }
     }
 
-    func hasSameValue(as point: ExactMonotoneGraphPoint, usage: inout SurfaceSilhouetteUsage) throws -> Bool {
+    func hasSameValue(as point: ExactMonotoneGraphPoint, usage: inout OriginalQueryExecution) throws -> Bool {
         switch location {
         case .fiber(let u, let v):
             return try point.coordinateIs(.authored(u), alongU: true,
-                maximumDepth: usage.maximumDepth, usage: &usage)
+                maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
                 && point.coordinateIs(.algebraic(v), alongU: false,
-                    maximumDepth: usage.maximumDepth, usage: &usage)
+                    maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
         case .station:
             guard try coordinateIs(point.freeEndpoint, alongU: point.freeAlongU, usage: &usage),
                 case .zero = try sign(of: point.original, usage: &usage) else { return false }
@@ -78,17 +78,17 @@ struct SurfaceSilhouetteAtlasEndpoint: Sendable {
         }
     }
 
-    func hasSameValue(as point: ExactPolynomialParameterPoint, usage: inout SurfaceSilhouetteUsage) throws -> Bool {
+    func hasSameValue(as point: ExactPolynomialParameterPoint, usage: inout OriginalQueryExecution) throws -> Bool {
         let u = try OriginalPolynomialCoordinateRoot.coordinate(point.u, at: point.parameter,
-            maximumDepth: usage.maximumDepth, usage: &usage)
+            maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
         let v = try OriginalPolynomialCoordinateRoot.coordinate(point.v, at: point.parameter,
-            maximumDepth: usage.maximumDepth, usage: &usage)
+            maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
         return try coordinateIs(u, alongU: true, usage: &usage)
             && coordinateIs(v, alongU: false, usage: &usage)
     }
 
     private func coordinateIs(_ endpoint: ExactMonotoneGraphEndpoint, alongU: Bool,
-        usage: inout SurfaceSilhouetteUsage) throws -> Bool {
+        usage: inout OriginalQueryExecution) throws -> Bool {
         let coordinate = try ExactBivariatePolynomial.coordinate(alongU: alongU, usage: &usage)
         switch endpoint {
         case .authored(let value):
@@ -114,7 +114,7 @@ struct SurfaceSilhouetteAtlasEndpoint: Sendable {
         }
     }
 
-    func certifiesStationIncidence(with other: Self, usage: inout SurfaceSilhouetteUsage) throws -> Bool {
+    func certifiesStationIncidence(with other: Self, usage: inout OriginalQueryExecution) throws -> Bool {
         guard original == other.original,
             case .station(_, let first) = location,
             case .station(_, let second) = other.location,
@@ -122,7 +122,7 @@ struct SurfaceSilhouetteAtlasEndpoint: Sendable {
         return try hasSameValue(as: other, usage: &usage)
     }
 
-    func isSingularStation(usage: inout SurfaceSilhouetteUsage) throws -> Bool {
+    func isSingularStation(usage: inout OriginalQueryExecution) throws -> Bool {
         guard case .station = location else { return false }
         let u = try original.differentiated(alongU: true, usage: &usage)
         let v = try original.differentiated(alongU: false, usage: &usage)
@@ -131,13 +131,13 @@ struct SurfaceSilhouetteAtlasEndpoint: Sendable {
         return false
     }
 
-    func coordinateEquals(_ value: Double, alongU: Bool, usage: inout SurfaceSilhouetteUsage) throws -> Bool {
+    func coordinateEquals(_ value: Double, alongU: Bool, usage: inout OriginalQueryExecution) throws -> Bool {
         try coordinateIs(.authored(.originalDouble(value, usage: &usage)), alongU: alongU, usage: &usage)
     }
 
     func hasSameValue(as other: Self, translatingOther translation: (alongU: Bool, amount: ExactRationalCoefficient),
-        usage: inout SurfaceSilhouetteUsage) throws -> Bool {
-        func transportedSign(_ expression: ExactBivariatePolynomial, usage: inout SurfaceSilhouetteUsage)
+        usage: inout OriginalQueryExecution) throws -> Bool {
+        func transportedSign(_ expression: ExactBivariatePolynomial, usage: inout OriginalQueryExecution)
             throws -> ExactAlgebraicRealRoot.Sign {
             try sign(of: OriginalSurfaceSilhouetteField.transported(expression,
                 translation: translation, usage: &usage), usage: &usage)
@@ -167,7 +167,7 @@ struct SurfaceSilhouetteAtlasEndpoint: Sendable {
             case .zero = try transportedSign(fiber, usage: &usage) else { return false }
         func inside(_ coordinate: ExactBivariatePolynomial, lower: ExactRationalCoefficient,
             upper: ExactRationalCoefficient, excludesLower: Bool, excludesUpper: Bool,
-            usage: inout SurfaceSilhouetteUsage) throws -> Bool {
+            usage: inout OriginalQueryExecution) throws -> Bool {
             let lo = try coordinate.subtracting(.constant(lower, usage: &usage), usage: &usage)
             let hi = try coordinate.subtracting(.constant(upper, usage: &usage), usage: &usage)
             switch try transportedSign(lo, usage: &usage) {
@@ -189,7 +189,7 @@ struct SurfaceSilhouetteAtlasEndpoint: Sendable {
     }
 
     private func matches(u: ExactRationalCoefficient, v: ExactAlgebraicRealRoot,
-        usage: inout SurfaceSilhouetteUsage) throws -> Bool {
+        usage: inout OriginalQueryExecution) throws -> Bool {
         let x = try ExactBivariatePolynomial.coordinate(alongU: true, usage: &usage)
             .subtracting(.constant(u, usage: &usage), usage: &usage)
         guard case .zero = try sign(of: x, usage: &usage),

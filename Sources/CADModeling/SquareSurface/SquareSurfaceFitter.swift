@@ -102,10 +102,10 @@ package struct SquareSurfaceFitter {
                                            count: (alongU ? space.uDegree : space.vDegree) + 1) {
                 let scale = (weight * wt).squareRoot()
                 let (u, v) = alongU ? (t, fixedParameter) : (fixedParameter, t)
-                let bu = uBasis.derivatives(at: u, order: 1), bv = vBasis.derivatives(at: v, order: 1)
+                let bu = try uBasis.derivatives(at: u, order: 1), bv = try vBasis.derivatives(at: v, order: 1)
                 let value = FairSurfaceSystem.product(bu, bv, du: 0, dv: 0, nu: nu)
                 let denominator = weightSum(value, space: space, nu: nu)
-                let local = jet(space, u: u, v: v, uBasis: uBasis, vBasis: vBasis)
+                let local = try jet(space, u: u, v: v, uBasis: uBasis, vBasis: vBasis)
                 let point = local.point - .origin
                 if boundary.constraint == .loose {
                     rows.addScalar(value.map { ($0.0, $0.1 * scale / denominator) },
@@ -122,10 +122,10 @@ package struct SquareSurfaceFitter {
                     break
                 case .adjacent:
                     // The neighbouring sides' derivatives at the side's corners, blended along it.
-                    let first = alongU ? jet(space, u: 0, v: v, uBasis: uBasis, vBasis: vBasis).v
-                        : jet(space, u: u, v: 0, uBasis: uBasis, vBasis: vBasis).u
-                    let last = alongU ? jet(space, u: 1, v: v, uBasis: uBasis, vBasis: vBasis).v
-                        : jet(space, u: u, v: 1, uBasis: uBasis, vBasis: vBasis).u
+                    let first = alongU ? try jet(space, u: 0, v: v, uBasis: uBasis, vBasis: vBasis).v
+                        : try jet(space, u: u, v: 0, uBasis: uBasis, vBasis: vBasis).u
+                    let last = alongU ? try jet(space, u: 1, v: v, uBasis: uBasis, vBasis: vBasis).v
+                        : try jet(space, u: u, v: 1, uBasis: uBasis, vBasis: vBasis).u
                     let target = first * (1 - t) + last * t + offset
                     rows.addScalar(coefficients, target: [target.x * scale, target.y * scale, target.z * scale])
                 case .normal, .next:
@@ -147,7 +147,7 @@ package struct SquareSurfaceFitter {
             let scale = (weight / Double(guides.count)).squareRoot()
             for guide in guides {
                 let projected = try exactSheet.parameterProjection(of: guide, tolerance: tolerance)
-                let value = FairSurfaceSystem.product(uBasis.derivatives(at: projected.u, order: 0), vBasis.derivatives(at: projected.v, order: 0),
+                let value = FairSurfaceSystem.product(try uBasis.derivatives(at: projected.u, order: 0), try vBasis.derivatives(at: projected.v, order: 0),
                                                       du: 0, dv: 0, nu: nu)
                 let denominator = weightSum(value, space: space, nu: nu)
                 rows.addScalar(value.map { ($0.0, $0.1 * scale / denominator) },
@@ -210,7 +210,7 @@ package struct SquareSurfaceFitter {
         let (gu, gv) = (grevilles(uKnots, options.uDegree), grevilles(vKnots, options.vDegree))
         func solver(_ knots: [Double], _ degree: Int, _ at: [Double]) throws -> SurfaceFittingQR {
             let basis = FairSurfaceSystem.Basis(knots: knots, degree: degree, count: at.count)
-            let matrix = at.flatMap { basis.derivatives(at: $0, order: 0)[0] }
+            let matrix = try at.flatMap { try basis.derivatives(at: $0, order: 0)[0] }
             return try SurfaceFittingQR(coefficients: matrix, rows: at.count, columns: at.count,
                                         relativeRankTolerance: 1e-12, maximumElements: 1 << 20)
         }
@@ -249,7 +249,7 @@ package struct SquareSurfaceFitter {
         var sum = Vector3D.zero
         for a in 0...4 {
             for b in 0...4 {
-                let local = jet(surface, u: Double(a) / 4, v: Double(b) / 4, uBasis: uBasis, vBasis: vBasis)
+                let local = try jet(surface, u: Double(a) / 4, v: Double(b) / 4, uBasis: uBasis, vBasis: vBasis)
                 let normal = local.u.cross(local.v)
                 if normal.length > 0 { sum = sum + normal * (1 / normal.length) }
             }
@@ -265,10 +265,10 @@ package struct SquareSurfaceFitter {
     }
 
     /// The sheet's point and first derivatives at (u, v), from its rational net.
-    private func jet(_ surface: BSplineSurface3D, u: Double, v: Double, uBasis: FairSurfaceSystem.Basis, vBasis: FairSurfaceSystem.Basis)
+    private func jet(_ surface: BSplineSurface3D, u: Double, v: Double, uBasis: FairSurfaceSystem.Basis, vBasis: FairSurfaceSystem.Basis) throws
         -> (point: Point3D, u: Vector3D, v: Vector3D) {
         let nu = surface.uControlPointCount
-        let bu = uBasis.derivatives(at: u, order: 1), bv = vBasis.derivatives(at: v, order: 1)
+        let bu = try uBasis.derivatives(at: u, order: 1), bv = try vBasis.derivatives(at: v, order: 1)
         func sum(_ du: Int, _ dv: Int) -> (Vector3D, Double) {
             var a = Vector3D.zero, w = 0.0
             for (k, value) in FairSurfaceSystem.product(bu, bv, du: du, dv: dv, nu: nu) {

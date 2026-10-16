@@ -35,10 +35,9 @@ original Curve3D + directed trim + pcurve + support + tolerance/options
 
 ## Contracts and Invariants
 
-The bounded affine-word correspondence norm path requires an explicit caller
-storage callback before preparing its exact transported norm. Missing storage
-authority fails explicitly; it is not replaced by an uncharged closure. The
-unchanged structural identity path retains no new norm payload.
+The bounded affine-word correspondence norm path admits its exact temporary
+payload through the composing execution before allocation. The structural
+identity path retains no new norm payload.
 
 - Spatial curves are finite nonperiodic clamped native B-splines of degree 1...6.
   Every interior knot has multiplicity exactly the degree, so each original
@@ -265,15 +264,16 @@ repair a missing pcurve. Those production domains remain separate requirements.
 
 ### Reverse original station transfer
 
-The prepared station correspondence also resolves an authored lifted fraction onto the complete directed spatial native trim. Its original lifted singleton bounds select a transverse coordinate. Exhaustive native interval exclusion, a strict endpoint sign bracket and a same-sign whole derivative prove one physical station branch; whole XYZ bounds control the requested deviation. The immutable inverse receipt retains both original sources, the lifted fraction, native parameter interval, direction and tolerance. Every preparation, owning-span union and search cell consumes the composing callback. Stationary/critical global atlases remain separately required; no numerical projection or shared normalized fraction proves correspondence.
+The prepared station correspondence also resolves an authored lifted fraction onto the complete directed spatial native trim. Its original lifted singleton bounds select a transverse coordinate. Exhaustive native interval exclusion, a strict endpoint sign bracket and a same-sign whole derivative prove one physical station branch; whole XYZ bounds control the requested deviation. The immutable inverse receipt retains both original sources, the lifted fraction, native parameter interval, direction and tolerance. Every preparation, owning-span union and search cell consumes the composing execution. Stationary/critical global atlases remain separately required; no numerical projection or shared normalized fraction proves correspondence.
 
 
 ### Bounded Void Validator Composition
 
 The invocation-aware void facade composes original prepared spatial/lift source
 bounds under explicit caller span, subdivision and source-depth limits. Work is
-one actual visit per callback; storage callbacks reserve bytes before preparation
-and traversal allocations. Legacy void entry points keep their historical policy.
+charged to the original execution; checked payload admission precedes preparation
+and traversal allocations. Ordinary entries retain their declared tolerance policy
+and root one independent execution into the same direct body.
 Identical hosted SurfaceLift laws prove zero residual structurally after paid
 source comparison. Identical retained affine curve/surface images with the
 original image pcurve recurse to the original correspondence, then multiply the
@@ -342,4 +342,169 @@ targets remain typed incomplete in the bounded relation port.
 
 ### Independent Caller Admission for Residual Proof
 
-The bounded correspondence witness forwards optional byte storage unchanged and accepts an optional independently selected algebra depth in 0...32. Source validation, prepared curve and hosted lift preparation, recursive original-word transport and exact C0 admission consume that same invocation. Positional continuity is issued by the original curve traversal producer; native spline type alone does not establish continuity across full-multiplicity knots. A missing lift join issuer disables derivative mean-value tightening while complete original position boxes remain usable. No no-op byte callback substitutes for absent storage admission.
+The bounded correspondence witness requires direct byte admission and accepts an optional independently selected algebra depth in 0...32. Source validation, prepared curve and hosted lift preparation, recursive original-word transport and exact C0 admission consume that same invocation. Positional continuity is issued by the original curve traversal producer; native spline type alone does not establish continuity across full-multiplicity knots. A missing lift join issuer disables derivative mean-value tightening while complete original position boxes remain usable. No independent admission substitutes for the composing execution.
+
+## Direct Original Query Calling
+
+The [module direct execution contract](../DESIGN.md#u1-direct-execution-ownership)
+governs caller composition. Scalar source construction consumes the original
+`inout A: ExactScalarAdmission & ~Copyable`, with explicit work units, checked
+allocation bytes, independent value/coefficient scope observations and unchanged
+source laws. Geometry query composition uses the same original execution;
+ordinary conveniences create one cumulative owner only at their real entry.
+Callback-to-admission reconstruction, copied budget writeback and cancellation-
+only legacy allowances are removed. Actual structural and parameter guards,
+original source ownership and scoped identities remain required.
+
+### Direct Source Execution
+
+Pure original word/coefficient operations receive the original generic
+`inout A: ExactScalarAdmission & ~Copyable`. General geometry construction,
+validation and retained queries receive the original `inout OriginalQueryExecution`.
+Actual lower calculations keep that same object; no legacy, validation or borrowed
+admission is reconstructed from resource callbacks. Configured capabilities
+remain independent of attained proof metadata. Actual payload bytes are checked
+and admitted before materialization; failures and cancellation publish no partial
+source or complete query. Ordinary numerical entry points may create one explicit
+independent execution and delegate to the direct operation. Source-only generic
+branches consume their genuine Native/word law without acquiring a general
+geometry capability.
+
+```text
+Original caller execution -> source validation/query -> original lower operation
+generic caller A -> pure Native/word coefficient law -> retained source proof
+```
+
+Owning behavioral success, guard rejection, independent budgets/depth, terminal
+cancellation and retained lifetime must execute through the actual direct path.
+Syntax or signature checks alone are not completion evidence.
+
+The ordinary validator retains its declared tolerance-based correspondence policy and
+roots one independent execution only at its standalone entry. Its direct dispatcher
+and every numerical helper use the composing execution. The bounded original-source
+residual proof remains a separate declared policy with explicit span, subdivision,
+and source ceilings; it does not infer coincidence from proximity. Station inversion
+retains immutable prepared source owners and re-admits those receipts through the
+query execution before original closed-jet traversal. Temporary frontier and
+candidate payloads are admitted before growth; cancellation and exhausted cover
+remain explicit failures.
+
+The bounded 256-entry cone/torus numerical correspondence cache retains immutable
+entries containing the complete policy key, actual attained preparation depth,
+and original budget identity. Lookup is only a candidate; source validation and
+common retained-preparation readmission occur on the current execution outside
+the Mutex. Entry insertion admits checked ownership payload before mutation. The
+cache records the existing numerical correspondence policy and grants no original
+source equality or coincidence authority.
+
+| Target | Cache storage | Isolation | Read / mutation | Release |
+|---|---|---|---|---|
+| Native | Dictionary of immutable entries | `Mutex` | Lookup / bounded insertion under the same lock | Strong entries survive eviction while retained by a query |
+| WASM | Dictionary of immutable entries | `Mutex` | Same source paths | Same owner contract; target runtime verification required |
+| Embedded WASM | Dictionary of immutable entries | `Mutex` | Same source paths | Same owner contract; target runtime verification required |
+
+### Original Correspondence Contribution Ownership
+
+The original coefficient certifier and retained binding validator no longer own a
+mutable `OriginalCorrespondenceBudget`. `OriginalCorrespondencePolicy` contains
+immutable options/tolerance and two immutable contribution authorities issued by
+the caller's existing execution. The common budget's single Mutex owns their
+accepted counts. No child budget, credit or copied counter exists.
+
+| Existing quantity | Authority | Included operations |
+|---|---|---|
+| `consumedCellCount` | proof-work contribution | Explicit original preparation/traversal record debits |
+| `sourceScalarCount` | source-scalar contribution | Explicit original source payload scalar visits |
+| Numeric work / allocated bytes | original execution | Actual lower coefficient, basis, interval, buffer and arithmetic operations |
+
+Both historical contributions independently retain `maximumCellCount`; neither
+absorbs unrelated lower numeric work or allocation-secondary billing. Each actual
+record or source debit attaches only its owning authority for that operation and
+uses the same execution. Contribution metadata is admitted by the parent before
+the new authority exists. The selected allocation policy preserves ambient byte,
+word or work billing. Published certificate counts are immutable snapshots of
+these actual accepted contributions.
+
+The temporary-scalar check retains its original peak rule: admitted source scalar
+count plus the requested simultaneous temporary capacity must fit the selected
+ceiling. It does not increment source admission or supply spendable storage;
+actual buffer bytes still require ordinary execution admission before allocation.
+The selected subdivision depth and inspected-cell metadata keep their separate
+meanings. Final certification and binding validation check cancellation after
+their last source/calculation operation.
+
+[Contribution tests](../../../Tests/CADGeometryTests/OriginalCorrespondenceContributionTests.swift)
+exercise both independent N/N−1 ceilings, original planar coefficient proof,
+retained binding, ambient UInt32 allocation billing and cancellation through the
+actual direct producer. Target runtime evidence remains required.
+
+### Exact Unit Native Boundary Correspondence
+
+The bounded void facade reuses the original endpoint basis law for a narrowly
+selected native tensor: U degree 1 or 2, V degree 1, one nonperiodic unit-clamped
+Bernstein patch, unit weights, and nil periodic origins. Its curve is also one
+unit-clamped nonperiodic native patch with unit weights. The complete directed
+trim and constant-U/V pcurve endpoints must be exactly 0 and 1; the fixed
+coordinate must be exactly an original boundary 0 or 1.
+
+At a clamped endpoint the fixed-axis basis has one coefficient exactly one and
+all others exactly zero. Consequently the complete original tensor restriction
+is its stored boundary row or column, with the same varying-axis degree, knots,
+control points and weights. Exact equality of that complete native curve law
+proves zero deviation for every point of the closed fraction domain. Reversed
+stored controls use the Bernstein identity `B_i(1-f) = B_(p-i)(f)` and must match
+the independently directed spatial trim and pcurve traversal. No station,
+residual tolerance, numerical extraction or approximate knot equality proves
+this identity.
+
+The facade performs every existing curve, surface and pcurve source validation
+and depth admission before testing this law. It checks the complete patch shape,
+all knots and weights, periodic/domain metadata, the selected boundary controls
+and directed maps through the same execution. Comparisons have explicit work
+charges and borrow stored rows/columns; they allocate no arrays or new source
+coefficients. A successful structural proof checks cancellation immediately
+before returning zero. Resource, source-depth and cancellation failures throw.
+A nonmatching payload or map declines only this zero proof and continues the
+existing complete residual/deviation policy; it is not absence or a topology
+identity. The general-family incomplete marker remains applicable.
+
+The concrete pre-fix Native diagnostic exhausted work at 8,388,608 with
+117,647,596 admitted bytes for the authored quadratic arch bottom boundary,
+after the actual iso producer used 107 work and 128 bytes. The owning
+[Native boundary tests](../../../Tests/CADGeometryTests/OriginalNativeBoundaryCorrespondenceTests.swift)
+cover all four boundaries, both directed trims and reversed stored curves,
+near/foreign payload-map decline, exact work N/N-1, zero-byte comparison,
+cumulative caller budgets, mapped source-depth refusal and entry/terminal
+cancellation. Native actual caller and portable evidence are required; source
+comparison and fixture existence alone do not close this finding or all Native
+correspondence families.
+
+### Bounded Correspondence Frame Ownership
+
+The bounded entry owns the original debit/checkpoint/options/finite-input guards,
+independent depth selection and curve-then-surface-then-pcurve source validations.
+Only after those validations do non-inlined private source-zero, original-word
+transport, original-affine transport and residual-proof bodies run in their
+original order. The zero body retains the complete unit Native boundary theorem
+and paid identical SurfaceLift law. Each transport keeps its original recursive
+call to the same validated entry; its suspended frame does not retain unrelated
+residual frontier or other-family payload locals. The residual helper owns the
+unchanged prepared source/lift, continuity, interval, subdivision and cell proof.
+
+```text
+entry: original admission + all three source validations
+  -> exact Native/hosted zero law
+  -> original-word transport -> recursive validated entry
+  -> original-affine transport -> recursive validated entry
+  -> original whole-use residual proof
+```
+
+Private optional transport results distinguish only an unchanged nonmatching
+branch from its existing result. Resource, invalid-source, cancellation and proof
+failures still throw; nil is not absence or failed-proof fallback. No tolerance,
+source-depth decrement, acceptance transport, fee, allocation, iteration or
+source lifetime changes. Every old executable body is moved verbatim and the
+original function must be recoverable by stitching those bodies in order. The
+general-family incomplete marker remains on the public entry. Root owns actual
+Native frame measurements and the placed Drawing/resource/cancellation gate;
+source equivalence alone is not runtime completion evidence.

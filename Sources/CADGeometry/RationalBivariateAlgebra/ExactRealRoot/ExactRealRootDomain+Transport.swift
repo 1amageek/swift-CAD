@@ -12,7 +12,7 @@ extension ExactRealRootDomain: ExactRealRootTransporting where F: ExactScalarImp
             let originalDomain = ExactRealRootDomain(context: root.source.context)
             try originalDomain.admitted(root, &a)
             if root.source.context === context {
-                return .init(original: root, transferred: root, depth: a.depth)
+                return .init(original: root, transferred: root, depth: (try a.depth))
             }
             let original = try polynomials.importing(root.source.original, using: &a)
             let source = try bind(original, variable: root.source.variable,
@@ -32,7 +32,7 @@ extension ExactRealRootDomain: ExactRealRootTransporting where F: ExactScalarImp
             let divisor = try sourceForLaw(law, variable: root.source.variable,
                 axis: root.source.refinementAxis, &a)
             let refined = try refine(transferred, usingDefiningDivisor: divisor, using: &a)
-            return .init(original: root, transferred: refined, depth: a.depth)
+            return .init(original: root, transferred: refined, depth: (try a.depth))
         }
     }
 }

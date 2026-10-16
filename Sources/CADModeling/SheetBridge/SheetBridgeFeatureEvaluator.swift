@@ -209,7 +209,7 @@ public struct SheetBridgeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         augmented.curves[curveB] = [sectionB]
         func continuity(_ source: FeatureID, _ edge: EdgeID) throws -> SurfaceEdgeContinuity? {
             guard bridge.shape == .curvature else { return nil }
-            guard let subshapeID = augmented.subshapeIDs(for: .edge(edge)).first else {
+            guard let subshapeID = try augmented.subshapeIDs(for: .edge(edge)).first else {
                 throw failure(.missingReference, "A bridged edge has no identity.")
             }
             let reference = StableSubshapeReference(subshapeID: subshapeID, geometrySignature: try SubshapeGeometrySignatureBuilder(
@@ -350,7 +350,7 @@ public struct SheetBridgeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             augmented.curves[curveB] = [sectionB]
             func continuity(_ source: FeatureID, _ edge: EdgeID) throws -> SurfaceEdgeContinuity? {
                 guard bridge.shape == .curvature else { return nil }
-                guard let subshapeID = context.subshapeIDs(for: .edge(edge)).first else {
+                guard let subshapeID = try context.subshapeIDs(for: .edge(edge)).first else {
                     throw failure(.missingReference, "A bridged edge has no identity.")
                 }
                 let reference = StableSubshapeReference(subshapeID: subshapeID, geometrySignature: try SubshapeGeometrySignatureBuilder(

@@ -1,7 +1,7 @@
 import CADCore
 
 extension SurfaceSilhouetteProvenanceEmitter {
-    mutating func write(_ value: OriginalSingularFieldRoot, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: OriginalSingularFieldRoot, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "fieldRoot"), usage: &usage)
         try field("polynomial", usage: &usage); try write(value.polynomial, usage: &usage)
         try field("isolation", usage: &usage); try write(value.isolation, usage: &usage)
@@ -15,7 +15,7 @@ extension SurfaceSilhouetteProvenanceEmitter {
         }
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: OriginalSingularResolution.Step.Direction, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: OriginalSingularResolution.Step.Direction, usage: inout OriginalQueryExecution) throws {
         switch value {
         case .vertical: try emit(.text("vertical"), usage: &usage)
         case .finite(let root):
@@ -24,13 +24,13 @@ extension SurfaceSilhouetteProvenanceEmitter {
             try emit(.endRecord, usage: &usage)
         }
     }
-    mutating func write(_ value: SurfaceSilhouetteRamifiedParameterImage.Identity, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: SurfaceSilhouetteRamifiedParameterImage.Identity, usage: inout OriginalQueryExecution) throws {
         switch value {
         case .rational(let original): try write(original, usage: &usage)
         case .field(let original): try write(original, usage: &usage)
         }
     }
-    mutating func write(_ value: SurfaceSilhouetteAtlasEndpoint, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: SurfaceSilhouetteAtlasEndpoint, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "rationalAtlasEndpoint"), usage: &usage)
         try field("original", usage: &usage); try write(value.original, usage: &usage)
         try field("location", usage: &usage)
@@ -46,7 +46,7 @@ extension SurfaceSilhouetteProvenanceEmitter {
         }
         try emit(.endRecord, usage: &usage); try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: SurfaceSilhouetteFieldAtlasEndpoint, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: SurfaceSilhouetteFieldAtlasEndpoint, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "fieldAtlasEndpoint"), usage: &usage)
         try field("original", usage: &usage); try write(value.original, usage: &usage)
         try field("completeIncidenceCount", usage: &usage); try write(value.completeIncidenceCount, usage: &usage)
@@ -64,7 +64,7 @@ extension SurfaceSilhouetteProvenanceEmitter {
         try emit(.endRecord, usage: &usage); try emit(.endRecord, usage: &usage)
     }
     mutating func write(_ value: PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan,
-        usage: inout SurfaceSilhouetteUsage) throws {
+        usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "nativeSurfaceSpan"), usage: &usage)
         try field("source", usage: &usage); try write(Surface3D.bSpline(value.surface), usage: &usage)
         try field("uSpanIndex", usage: &usage); try write(value.uSpanIndex, usage: &usage)
@@ -80,7 +80,7 @@ extension SurfaceSilhouetteProvenanceEmitter {
         try field("tolerance", usage: &usage); try write(value.tolerance, usage: &usage)
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: OriginalExactBSplinePoleNormal, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: OriginalExactBSplinePoleNormal, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "originalPoleNormal"), usage: &usage)
         try field("span", usage: &usage); try write(value.span, usage: &usage)
         try field("direction", usage: &usage)
@@ -90,7 +90,7 @@ extension SurfaceSilhouetteProvenanceEmitter {
         for coefficient in value.coefficients { try write(coefficient, usage: &usage) }
         try emit(.endArray, usage: &usage); try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: OriginalFieldSurfaceNormalLaw, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: OriginalFieldSurfaceNormalLaw, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "originalFieldNormal"), usage: &usage)
         try field("homogeneous", usage: &usage); try emit(.beginArray(count: value.originalHomogeneous.count), usage: &usage)
         for coefficient in value.originalHomogeneous { try write(coefficient, usage: &usage) }
@@ -103,7 +103,7 @@ extension SurfaceSilhouetteProvenanceEmitter {
         try field("maximumAlgebraicDepth", usage: &usage); try write(value.maximumAlgebraicDepth, usage: &usage)
         try emit(.endRecord, usage: &usage)
     }
-    mutating func write(_ value: OriginalRationalSurfacePolynomial, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: OriginalRationalSurfacePolynomial, usage: inout OriginalQueryExecution) throws {
         try emit(.beginRecord(type: "originalSurfacePolynomial"), usage: &usage)
         try field("source", usage: &usage); try write(Surface3D.bSpline(value.source), usage: &usage)
         try field("domain", usage: &usage); try write(value.domain, usage: &usage)
@@ -121,7 +121,7 @@ extension SurfaceSilhouetteProvenanceEmitter {
 }
 
 extension SurfaceSilhouetteProvenanceEmitter {
-    mutating func write(_ value: SurfaceSilhouetteTrimEndpoint, usage: inout SurfaceSilhouetteUsage) throws {
+    mutating func write(_ value: SurfaceSilhouetteTrimEndpoint, usage: inout OriginalQueryExecution) throws {
         try value.writeOriginalProvenance(to: &self, usage: &usage)
     }
 }

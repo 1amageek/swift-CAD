@@ -58,7 +58,7 @@ public struct FaceMoveFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalu
             featureID: feature.id,
             context: context
         )
-        let replacedSubshapeIDs = bodyScope.subshapeIDs(in: context.subshapes)
+        let replacedSubshapeIDs = try bodyScope.subshapeIDs(in: context.subshapes)
         var model = context.brep
         // The face's vertices all move by the displacement; the face keeps its plane and only the
         // faces around it are re-solved, as planes or bilinear patches where a quad warps.

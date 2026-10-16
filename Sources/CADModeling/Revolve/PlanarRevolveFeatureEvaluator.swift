@@ -43,18 +43,28 @@ public struct PlanarRevolveFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         feature: FeatureNode,
         context: EvaluationContext
     ) throws -> ValidatedFeatureEvaluation {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try evaluateValidated(feature: feature, context: context, using: &execution)
+    }
+
+    // FIXME(INCOMPLETE_IMPLEMENTATION): The feature dispatcher uses this entry
+    // for the selected original source construction. Existing request/expression
+    // or staged feature branches still need their own direct contract; this
+    // binding must not be counted as complete whole-feature U1 accounting.
+    package func evaluateValidated(feature: FeatureNode, context: EvaluationContext,
+        using execution: inout OriginalQueryExecution) throws -> ValidatedFeatureEvaluation {
         try FeatureEvaluationBoundary.evaluateValidated(
             featureID: feature.id,
-            tolerance: context.tolerance
-        ) {
-            try evaluateUnvalidated(feature: feature, context: context)
+            tolerance: context.tolerance, using: &execution
+        ) { execution in
+            try evaluateUnvalidated(feature: feature, context: context, using: &execution)
         }
     }
 
     private func evaluateUnvalidated(
         feature: FeatureNode,
         context: EvaluationContext
-    ) throws -> EvaluationResult {
+    , using execution: inout OriginalQueryExecution) throws -> EvaluationResult {
         try context.tolerance.validate()
         guard case let .revolve(revolve) = feature.operation else {
             throw KernelError(
@@ -124,7 +134,7 @@ public struct PlanarRevolveFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         var result = try tool(
             revolve, angle: angle, faceProfile: faceProfile, wallThickness: wallThickness,
             featureID: feature.id, context: stages.context
-        )
+        , using: &execution)
         if revolve.operation != .newBody {
             guard let booleanApplicator,
                   let operation = SweepBooleanOperation(rawValue: revolve.operation.rawValue) else {
@@ -159,7 +169,7 @@ public struct PlanarRevolveFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         wallThickness: Double?,
         featureID: FeatureID,
         context: EvaluationContext
-    ) throws -> EvaluationResult {
+    , using execution: inout OriginalQueryExecution) throws -> EvaluationResult {
         var profile: Profile
         switch revolve.section {
         case .face:
@@ -169,15 +179,15 @@ public struct PlanarRevolveFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             profile = faceProfile
         case .curve(let reference):
             let section = try ResolvedModelingSection.resolveCurve(reference,
-                from: context.curves[reference.featureID], tolerance: context.tolerance)
+                from: context.curves[reference.featureID], tolerance: context.tolerance, using: &execution)
             guard revolve.resultKind == .solid else {
                 return try CurvedRevolveBodyBuilder.buildSheet(axis: revolve.axis, angle: angle,
-                    section: section, featureID: featureID, context: context, sewer: sewer)
+                    section: section, featureID: featureID, context: context, sewer: sewer, using: &execution)
             }
-            let region = try solidProfile(of: section, axis: revolve.axis, featureID: featureID, context: context)
+            let region = try solidProfile(of: section, axis: revolve.axis, featureID: featureID, context: context, using: &execution)
             return try CurvedRevolveBodyBuilder(
-                axis: revolve.axis, angle: angle, profile: region, featureID: featureID, context: context, sewer: sewer
-            ).build(from: region, resultKind: .solid)
+                axis: revolve.axis, angle: angle, profile: region, featureID: featureID, context: context, sewer: sewer, using: &execution
+            ).build(from: region, resultKind: .solid, using: &execution)
         case .profile(let reference):
             profile = try ResolvedModelingSection.resolveProfile(reference,
                 from: context.profiles[reference.featureID])
@@ -185,7 +195,7 @@ public struct PlanarRevolveFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         if let wallThickness {
             let rings = try ExactDraftedProfileBoundaryBuilder(tolerance: context.tolerance).wallProfiles(
                 from: profile, planeNormal: try normal(of: profile.plane, tolerance: context.tolerance), thickness: wallThickness
-            )
+            , using: &execution)
             // A section with holes walls each loop into a ring of its own: the rings revolve into one
             // body, a solid for each.
             guard let first = rings.first else {
@@ -194,8 +204,8 @@ public struct PlanarRevolveFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             }
             if rings.count > 1 {
                 return try CurvedRevolveBodyBuilder(
-                    axis: revolve.axis, angle: angle, profile: first, featureID: featureID, context: context, sewer: sewer
-                ).build(fromRings: rings, resultKind: .solid)
+                    axis: revolve.axis, angle: angle, profile: first, featureID: featureID, context: context, sewer: sewer, using: &execution
+                ).build(fromRings: rings, resultKind: .solid, using: &execution)
             }
             profile = first
         }
@@ -213,15 +223,14 @@ public struct PlanarRevolveFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             }
         }
         for point in originalLinearEndpoints {
-            if try OriginalPointLineIncidence().contains(point: point, origin: revolve.axis.origin,
-                direction: revolve.axis.direction, consumeWork: {
-                    guard remainingAxisComponents > 0 else {
-                        throw KernelError(phase: .geometry, code: .resourceLimitExceeded,
-                            featureID: featureID, tolerance: context.tolerance,
-                            message: "Revolve original axis-boundary admission exhausted its component budget.")
-                    }
-                    remainingAxisComponents -= 1
-                }) {
+            let before = execution.localWork
+            let isOnAxis = try execution.withConversionScope(maximumWorkUnits: remainingAxisComponents,
+                maximumScalarCount: Int.max, maximumCertificationBoxes: Int.max) { execution in
+                try OriginalPointLineIncidence().contains(point: point, origin: revolve.axis.origin,
+                    direction: revolve.axis.direction, using: &execution)
+            }
+            remainingAxisComponents -= execution.localWork - before
+            if isOnAxis {
                 retainsOriginalAxisBoundary = true
                 break
             }
@@ -262,27 +271,27 @@ public struct PlanarRevolveFeatureEvaluator: FeatureEvaluating, ValidatedFeature
                 profile: profile,
                 featureID: featureID,
                 context: context,
-                sewer: sewer
-            ).build(from: profile, resultKind: revolve.resultKind)
+                sewer: sewer, using: &execution
+            ).build(from: profile, resultKind: revolve.resultKind, using: &execution)
         }
         return try RevolveBodyBuilder(
             axis: revolve.axis,
             angle: angle,
             profile: profile,
             featureID: featureID,
-            context: context
-        ).build(from: profile)
+            context: context, using: &execution
+        ).build(from: profile, using: &execution)
     }
 
     /// A curve read as the region it bounds with the axis: a closed planar curve on its own, an
     /// open one closed along the axis between its ends, which must both lie on it.
-    private func solidProfile(of curve: EvaluatedCurve, axis: RevolveAxis, featureID: FeatureID, context: EvaluationContext) throws -> Profile {
+    private func solidProfile(of curve: EvaluatedCurve, axis: RevolveAxis, featureID: FeatureID, context: EvaluationContext, using execution: inout OriginalQueryExecution) throws -> Profile {
         let tolerance = context.tolerance
         guard let plane = curve.plane else {
             throw KernelError(phase: .evaluation, code: .invalidInput, featureID: featureID, tolerance: tolerance,
                               message: "A curve revolves into a solid only when it is planar.")
         }
-        let spans = try ExactBSplineCurveSpanBuilder(tolerance: tolerance).sectionSpans(from: curve)
+        let spans = try ExactBSplineCurveSpanBuilder(tolerance: tolerance).sectionSpans(from: curve, using: &execution)
         guard let first = spans.first, let last = spans.last else { throw SketchError.openProfile }
         var segments = spans.map { ProfileBoundarySegment.spline(ProfileSplineSegment(curve: $0.curve)) }
         var vertices: [Point3D] = []

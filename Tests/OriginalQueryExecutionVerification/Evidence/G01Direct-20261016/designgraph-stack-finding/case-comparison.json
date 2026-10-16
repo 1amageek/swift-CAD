@@ -1,0 +1,74 @@
+{
+  "beforeSHA256": "14cdce69aeba7a8c5423d0f47ca317a718a31bd4b385fb900d2a40925dda5935",
+  "afterSHA256": "0d02a59bd376ce6867cedf6b505355447ce303607a8edd46dd4b8a6252bc16b7",
+  "caseCount": 68,
+  "caseOrderPreserved": true,
+  "unchangedCaseBodies": 60,
+  "duplicateInputOutputGuardsPreserved": true,
+  "movedBodies": [
+    {
+      "case": "involuteGear",
+      "helper": "validateInvoluteGearContract",
+      "bodyByteEqualAfterIndentation": true,
+      "originalBodySHA256": "c31e97797f4f9a60dc339635f4b110c879628d38d8ab7170e94c3d837c18a33f",
+      "movedBodySHA256": "c31e97797f4f9a60dc339635f4b110c879628d38d8ab7170e94c3d837c18a33f",
+      "addedPayloadGuard": true
+    },
+    {
+      "case": "spatialPath",
+      "helper": "validateSpatialPathContract",
+      "bodyByteEqualAfterIndentation": true,
+      "originalBodySHA256": "bcd526993f1325c4f52c1d24621b3f3316bc0b29f008a4b3cb5c13eb0cf52348",
+      "movedBodySHA256": "bcd526993f1325c4f52c1d24621b3f3316bc0b29f008a4b3cb5c13eb0cf52348",
+      "addedPayloadGuard": true
+    },
+    {
+      "case": "edgeCurve",
+      "helper": "validateEdgeCurveContract",
+      "bodyByteEqualAfterIndentation": true,
+      "originalBodySHA256": "36b8ef426f8a52a4caf14a7c0f02e5621c5f8920d5b72f1cc5aabe0a71d894a1",
+      "movedBodySHA256": "36b8ef426f8a52a4caf14a7c0f02e5621c5f8920d5b72f1cc5aabe0a71d894a1",
+      "addedPayloadGuard": false
+    },
+    {
+      "case": "sheetBridge",
+      "helper": "validateSheetBridgeContract",
+      "bodyByteEqualAfterIndentation": true,
+      "originalBodySHA256": "ae42eadd48efde72e34d04aa51f2769f72813d65e2a83dabfdcc616312a1cf48",
+      "movedBodySHA256": "ae42eadd48efde72e34d04aa51f2769f72813d65e2a83dabfdcc616312a1cf48",
+      "addedPayloadGuard": false
+    },
+    {
+      "case": "curvePatch",
+      "helper": "validateCurvePatchContract",
+      "bodyByteEqualAfterIndentation": true,
+      "originalBodySHA256": "73550cb73c81ba310cbe12d53ad94afeec60b6bc36fdbab026b32cc307cf656d",
+      "movedBodySHA256": "73550cb73c81ba310cbe12d53ad94afeec60b6bc36fdbab026b32cc307cf656d",
+      "addedPayloadGuard": false
+    },
+    {
+      "case": "squareSurface",
+      "helper": "validateSquareSurfaceContract",
+      "bodyByteEqualAfterIndentation": true,
+      "originalBodySHA256": "4e2af72bf107a2ac29bfa9bf6453be68fcf82cf54438ccf7f24f2812aabf7688",
+      "movedBodySHA256": "4e2af72bf107a2ac29bfa9bf6453be68fcf82cf54438ccf7f24f2812aabf7688",
+      "addedPayloadGuard": false
+    },
+    {
+      "case": "xnurbs",
+      "helper": "validateXNurbsContract",
+      "bodyByteEqualAfterIndentation": true,
+      "originalBodySHA256": "fb92d3e40aeb46edb5210718bd7ec43a7004b5b327b01264327e085ebaf58ab5",
+      "movedBodySHA256": "fb92d3e40aeb46edb5210718bd7ec43a7004b5b327b01264327e085ebaf58ab5",
+      "addedPayloadGuard": false
+    },
+    {
+      "case": "constrainedSurface",
+      "helper": "validateConstrainedSurfaceContract",
+      "bodyByteEqualAfterIndentation": true,
+      "originalBodySHA256": "9876d24ea04334eb4da2f066aa673a5d7ad3de83370c0f0da13aab8a0cc98366",
+      "movedBodySHA256": "9876d24ea04334eb4da2f066aa673a5d7ad3de83370c0f0da13aab8a0cc98366",
+      "addedPayloadGuard": true
+    }
+  ]
+}

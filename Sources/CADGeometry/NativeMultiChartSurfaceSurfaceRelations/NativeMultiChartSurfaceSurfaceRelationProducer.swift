@@ -5,7 +5,7 @@ struct NativeMultiChartSurfaceSurfaceRelationProducer {
     func resolve(first: Surface3D, second: Surface3D,
         firstBox: SurfaceParameterBox? = nil, secondBox: SurfaceParameterBox? = nil,
         options: SurfaceSurfaceIntersectionOptions, tolerance: ModelingTolerance,
-        includeRelations: Bool = false, admission: SurfaceSurfaceQueryAdmission = .legacy) throws -> SurfaceSurfaceIntersectionResult? {
+        includeRelations: Bool = false, using usage: inout OriginalQueryExecution) throws -> SurfaceSurfaceIntersectionResult? {
         guard case .bSpline(let source) = first, case .bSpline(let target) = second,
             !source.isUPeriodic, !source.isVPeriodic, !target.isUPeriodic, !target.isVPeriodic else { return nil }
         guard source.uDegree >= 0, source.uDegree < Int.max, source.vDegree >= 0, source.vDegree < Int.max,
@@ -14,13 +14,13 @@ struct NativeMultiChartSurfaceSurfaceRelationProducer {
         guard source.uControlPointCount != source.uDegree + 1 || source.vControlPointCount != source.vDegree + 1
             || target.uControlPointCount != target.uDegree + 1 || target.vControlPointCount != target.vDegree + 1 else { return nil }
         try options.validate(tolerance: tolerance)
-        var usage = try NativeSurfaceSurfacePointAllowance(options: options, admission: admission)
-        try usage.consumeExactWork(1)
-        guard admission.remainingSourceDepth > 0 else {
+        usage.context = usage.context.at(stage: .source)
+        try usage.consumeWork(1)
+        guard usage.effectiveLimits.remainingSourceDepth > 0 else {
             throw failure(.resourceLimitExceeded, "Native multi-chart SSI preparation exhausted original source depth.", tolerance)
         }
-        try source.validate(tolerance: tolerance, consumeWork: { try usage.consumeExactWork(1) })
-        try target.validate(tolerance: tolerance, consumeWork: { try usage.consumeExactWork(1) })
+        try source.validate(tolerance: tolerance, using: &usage)
+        try target.validate(tolerance: tolerance, using: &usage)
         let firstNative = SurfaceParameterBox(
             u: try .init(lower: source.uKnots[source.uDegree], upper: source.uKnots[source.uControlPointCount]),
             v: try .init(lower: source.vKnots[source.vDegree], upper: source.vKnots[source.vControlPointCount]))
@@ -28,14 +28,14 @@ struct NativeMultiChartSurfaceSurfaceRelationProducer {
             u: try .init(lower: target.uKnots[target.uDegree], upper: target.uKnots[target.uControlPointCount]),
             v: try .init(lower: target.vKnots[target.vDegree], upper: target.vKnots[target.vControlPointCount]))
         let firstPrepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: source, tolerance: tolerance,
-            consumeWork: { try usage.consumeExactWork(1) }, consumeStorage: { try usage.retainBytes($0) })
+            using: &usage)
         let secondPrepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: target, tolerance: tolerance,
-            consumeWork: { try usage.consumeExactWork(1) }, consumeStorage: { try usage.retainBytes($0) })
-        let maximumSpans = min(admission.maximumSpanCount, PreparedBSplineSurfaceDifferentialEncloser.maximumOriginalNativeSpanCount)
+            using: &usage)
+        let maximumSpans = min(usage.effectiveLimits.maximumSpans, PreparedBSplineSurfaceDifferentialEncloser.maximumOriginalNativeSpanCount)
         let firstSpans = try firstPrepared.originalIntersectionNativeSpans(over: firstNative, tolerance: tolerance,
-            maximumSpanCount: maximumSpans, consumeWork: { try usage.consumeExactWork(1) }, consumeStorage: { try usage.retainBytes($0) })
+            maximumSpanCount: maximumSpans, using: &usage)
         let secondSpans = try secondPrepared.originalIntersectionNativeSpans(over: secondNative, tolerance: tolerance,
-            maximumSpanCount: maximumSpans, consumeWork: { try usage.consumeExactWork(1) }, consumeStorage: { try usage.retainBytes($0) })
+            maximumSpanCount: maximumSpans, using: &usage)
         let chartCount = try rationalAlgebraCount(firstSpans.count, secondSpans.count, multiply: true)
         guard chartCount > 0, chartCount <= maximumSpans else {
             throw failure(.resourceLimitExceeded, "Native SSI tensor chart product exceeds its cumulative span admission.", tolerance)
@@ -72,13 +72,14 @@ struct NativeMultiChartSurfaceSurfaceRelationProducer {
                     second: secondLaw, system: system, nativeDomains: domains))
             }
         }
+        usage.context = usage.context.at(stage: .relation)
         let common = try NativeSurfaceSurfaceCommonCoverage.prepare(charts: charts, nativeDomains: native,
             requestedDomains: requested, effectiveDomains: effective, maximumComponentCount: options.maximumSeedCount,
-            maximumDepth: usage.maximumAlgebraicDepth, tolerance: tolerance, usage: &usage)
+            maximumDepth: usage.effectiveLimits.maximumValueDepth, tolerance: tolerance, usage: &usage)
         let coverage = NativeSurfaceSurfaceCoverage.common(common), partition = common.partition
         var hasPositive = false, isolatedCount = 0
         for index in partition.solutionCells {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             if partition.cells[index].dimension > 0 { hasPositive = true }
         }
         guard includeRelations || !hasPositive else {
@@ -87,19 +88,19 @@ struct NativeMultiChartSurfaceSurfaceRelationProducer {
         let sourceMapProof = includeRelations && hasPositive
             ? try NativeSurfaceSurfaceChartInjectionProof.prepare(charts: charts, usage: &usage) : nil
         let relation = includeRelations ? try NativeSurfaceSurfaceRelationPublisher.publish(first: source, second: target,
-            tolerance: tolerance, coverage: coverage, maximumDepth: usage.maximumAlgebraicDepth, sourceMapProof: sourceMapProof, usage: &usage) : nil
+            tolerance: tolerance, coverage: coverage, maximumDepth: usage.effectiveLimits.maximumValueDepth, sourceMapProof: sourceMapProof, usage: &usage) : nil
         try RationalAlgebraStorage.retain(partition.cells.count, of: Bool.self, usage: &usage)
         var isolated = Array(repeating: false, count: partition.cells.count)
         for component in common.connected.components {
-            try usage.consumeExactWork(component.cellIndexes.count)
+            try usage.consumeWork(component.cellIndexes.count)
             if component.cellIndexes.allSatisfy({ partition.cells[$0].dimension == 0 }) {
                 isolatedCount = try rationalAlgebraCount(isolatedCount, component.cellIndexes.count)
-                for index in component.cellIndexes { try usage.consumeExactWork(1); isolated[index] = true }
+                for index in component.cellIndexes { try usage.consumeWork(1); isolated[index] = true }
             }
         }
         try RationalAlgebraStorage.retain(isolatedCount, of: Int.self, usage: &usage)
         var indices: [Int] = []; indices.reserveCapacity(isolatedCount)
-        for index in partition.solutionCells { try usage.consumeExactWork(1); if isolated[index] { indices.append(index) } }
+        for index in partition.solutionCells { try usage.consumeWork(1); if isolated[index] { indices.append(index) } }
         let parameterCount = try rationalAlgebraCount(isolatedCount, 4, multiply: true)
         try RationalAlgebraStorage.retain(isolatedCount, of: SurfaceSurfaceIntersectionPoint.self, usage: &usage)
         try RationalAlgebraStorage.retain(parameterCount, of: OriginalSingularFieldValueIsolation.self, usage: &usage)
@@ -130,12 +131,12 @@ struct NativeMultiChartSurfaceSurfaceRelationProducer {
         try RationalAlgebraStorage.retain(indices.count, of: SurfaceSurfaceIntersection.self, usage: &usage)
         var intersections: [SurfaceSurfaceIntersection] = []; intersections.reserveCapacity(indices.count)
         for ordinal in points.indices {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             guard let receipt else { throw rationalAlgebraFailure("Native SSI isolated point lost its complete owner.") }
             intersections.append(.point(.init(numerical: points[ordinal], originalNativePoint: try receipt.point(at: ordinal))))
         }
         try RationalAlgebraStorage.retain(1, of: SurfaceSurfaceIntersectionResult.self, usage: &usage)
-        try CurrentTaskCancellationChecker().checkCancellation()
+        try usage.checkpoint()
         return .init(intersections: intersections, originalNativePoints: receipt, originalNativeRelations: relation)
     }
     private func failure(_ code: KernelErrorCode, _ message: String, _ tolerance: ModelingTolerance) -> KernelError {

@@ -25,7 +25,7 @@ original determinant. Deep words do not create deep curve/surface source trees.
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
 | [CADGeometry](../DESIGN.md) | parent | original image dispatch | Composes this action with an original child source | Child-source depth is separate from word length |
-| [Rational Bivariate Algebra](../RationalBivariateAlgebra/DESIGN.md) | depends on | originalDouble, exact arithmetic and RationalAlgebraAdmitting | Derives exact cofactor and composition authority | Same work/storage ledger for every limb and output |
+| [Rational Bivariate Algebra](../RationalBivariateAlgebra/DESIGN.md) | depends on | originalDouble, exact arithmetic and ExactScalarAdmission | Derives exact cofactor and composition authority | Same work/storage ledger for every limb and output |
 | [Document Assembly](../../CADIR/DocumentAssembly/DESIGN.md) | used by | original ordered placement operations | Maps root-to-leaf source words into application order | No rounded inverse/composed matrix |
 | [Assembly Evaluation](../../CADKernel/AssemblyEvaluation/DESIGN.md) | used by | prepared image action and orientation | Places all original body sources | BRep validation stays with its owner |
 
@@ -50,7 +50,7 @@ branch publishes partially initialized caches or weakens stored ownership.
   inverse or composed columns are promoted to source. Source equality/hashing
   and codecs use only original factors, excluding derived caches.
 - Every factor, scalar/limb traversal and retained array is admitted through the
-  composing caller's `RationalAlgebraAdmitting` before execution/allocation.
+  composing caller's `ExactScalarAdmission` before execution/allocation.
   No private/default allowance or counter reset is created. Factor count consumes
   work/storage; only actual original curve/surface nesting consumes source depth.
 - Prepared action reuse retains the original word and exact immutable cache.
@@ -85,7 +85,7 @@ unsafe pointer, callback under a lock, or platform-dependent state is introduced
 
 All operations throw typed KernelError/Native codec failures. Rational arithmetic
 checks finite source, overflowed storage counts and division by zero. The same
-caller callback enforces cancellation/work/storage. Native decoding requires the
+caller admission enforces cancellation/work/storage. Native decoding requires the
 existing NativeRationalSourceDecodingContext; a missing context or unavailable
 synchronization capability is a typed refusal, never a fresh allowance.
 
@@ -297,3 +297,38 @@ Native and Portable source continue to retain factors rather than this derived
 publication view. Deferred evidence includes decimal matrix round trips, exact
 inverse/composition cancellation, algebraic refusal and lowered publication
 work/storage failures.
+
+## Direct Original Query Calling
+
+The [module direct execution contract](../DESIGN.md#u1-direct-execution-ownership)
+governs caller composition. Scalar source construction consumes the original
+`inout A: ExactScalarAdmission & ~Copyable`, with explicit work units, checked
+allocation bytes, independent value/coefficient scope observations and unchanged
+source laws. Geometry query composition uses the same original execution;
+ordinary conveniences create one cumulative owner only at their real entry.
+Callback-to-admission reconstruction, copied budget writeback and cancellation-
+only legacy allowances are removed. Actual structural and parameter guards,
+original source ownership and scoped identities remain required.
+
+### Direct Source Execution
+
+Pure original word/coefficient operations receive the original generic
+`inout A: ExactScalarAdmission & ~Copyable`. General geometry construction,
+validation and retained queries receive the original `inout OriginalQueryExecution`.
+Actual lower calculations keep that same object; no legacy, validation or borrowed
+admission is reconstructed from resource callbacks. Configured capabilities
+remain independent of attained proof metadata. Actual payload bytes are checked
+and admitted before materialization; failures and cancellation publish no partial
+source or complete query. Ordinary numerical entry points may create one explicit
+independent execution and delegate to the direct operation. Source-only generic
+branches consume their genuine Native/word law without acquiring a general
+geometry capability.
+
+```text
+Original caller execution -> source validation/query -> original lower operation
+generic caller A -> pure Native/word coefficient law -> retained source proof
+```
+
+Owning behavioral success, guard rejection, independent budgets/depth, terminal
+cancellation and retained lifetime must execute through the actual direct path.
+Syntax or signature checks alone are not completion evidence.

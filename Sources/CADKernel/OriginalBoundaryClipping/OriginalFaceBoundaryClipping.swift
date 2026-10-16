@@ -7,5 +7,5 @@ public protocol OriginalFaceBoundaryClipping: Sendable {
     func clip(_ source: OriginalNativeBoundaryDomain.Source, to faceID: FaceID,
         in original: ValidatedBRepModel, selection: OriginalNativeBoundaryDomain.Selection,
         maximumDepth: Int, maximumCoefficientDepth: Int,
-        usage: OriginalRelationUsage) throws -> OriginalFaceClippedParameters
+        using admission: inout OriginalQueryExecution) throws -> OriginalFaceClippedParameters
 }

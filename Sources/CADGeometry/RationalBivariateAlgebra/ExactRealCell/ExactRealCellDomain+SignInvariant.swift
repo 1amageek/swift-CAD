@@ -42,7 +42,7 @@ extension ExactRealCellDomain {
      try ExactCellAccess.storage(1, ExactRealCellSignInvariant<Base>.self, &a)
      return .init(partition: partition, polynomial: polynomial, projectionLaw: law,
       quotient: division.quotient, remainder: division.remainder, axis: axis, lawIndex: index,
-      orientation: orientation, depth: a.depth)
+      orientation: orientation, depth: (try a.depth))
     }
    }
    return nil

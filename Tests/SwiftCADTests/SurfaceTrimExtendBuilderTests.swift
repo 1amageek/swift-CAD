@@ -189,6 +189,9 @@ struct SurfaceTrimExtendBuilderTests {
             .projectedAnalytic,
             .rigidImage,
             .offsetSurfaceImage,
+            .originalBSplineContinuation,
+            .originalAffineWord,
+            .originalImage,
             .periodicTranslation:
             false
           }

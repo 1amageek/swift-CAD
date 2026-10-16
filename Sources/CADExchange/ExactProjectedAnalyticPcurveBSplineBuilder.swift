@@ -5,8 +5,10 @@ import Foundation
 struct ExactProjectedAnalyticPcurveBSplineBuilder {
     func build(
         _ projected: ProjectedAnalyticSurfaceParameterCurve,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution
     ) throws -> BSplineCurve2D {
+        try execution.checkpoint()
         try tolerance.validate()
         guard isPlanar(projected.surface) else {
             throw KernelError(
@@ -23,7 +25,7 @@ struct ExactProjectedAnalyticPcurveBSplineBuilder {
             curve: projected.curve,
             interval: interval,
             maximumSpanCount: 4_096,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         ) else {
             throw KernelError(
                 phase: .exchange,
@@ -34,11 +36,13 @@ struct ExactProjectedAnalyticPcurveBSplineBuilder {
         }
         let directed = projected.endParameter >= projected.startParameter
             ? ascending
-            : try ascending.reversed(tolerance: tolerance)
+            : try ascending.reversed(tolerance: tolerance, using: &execution)
+        try execution.retainStorage(count: directed.controlPoints.count, stride: MemoryLayout<Point2D>.stride)
         let parameterControlPoints = try directed.controlPoints.map { point in
+            try execution.consumeWork(1)
             let parameter = try projected.surface.parameterProjection(
                 of: point,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
             return Point2D(x: parameter.u, y: parameter.v)
         }
@@ -48,22 +52,22 @@ struct ExactProjectedAnalyticPcurveBSplineBuilder {
             controlPoints: parameterControlPoints,
             weights: directed.weights
         )
-        try result.validate(tolerance: tolerance)
+        try result.validate(tolerance: tolerance, using: &execution)
         let expectedStart = try projected.parameter(
             atNormalizedFraction: 0.0,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         let expectedEnd = try projected.parameter(
             atNormalizedFraction: 1.0,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         let actualStart = try result.point(
             at: try lowerDomainBound(result),
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         let actualEnd = try result.point(
             at: try upperDomainBound(result),
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         guard hypot(actualStart.x - expectedStart.u, actualStart.y - expectedStart.v)
                 <= tolerance.distance,
@@ -76,6 +80,7 @@ struct ExactProjectedAnalyticPcurveBSplineBuilder {
                 message: "Exact projected analytic p-curve conversion failed endpoint verification."
             )
         }
+        try execution.checkpoint()
         return result
     }
 
@@ -113,6 +118,11 @@ struct ExactProjectedAnalyticPcurveBSplineBuilder {
         case .procedural(.originalImage(let image)):
             return isPlanar(image.source)
         case .procedural(.ruled), .procedural(.rollingBall), .procedural(.originalRevolution), .procedural(.originalCoons), .procedural(.originalAffineWord):
+            return false
+        // FIXME(INCOMPLETE_IMPLEMENTATION): These original source laws have no admitted planar neutral transfer carrier.
+        // The STEP/IGES projected pcurve caller must refuse until faithful source/chart conversion is proved.
+        case .procedural(.originalAngularTransport), .procedural(.originalBoundaryCorrected),
+             .procedural(.originalPlaneDerivative), .procedural(.originalDrafted):
             return false
         }
     }

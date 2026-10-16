@@ -27,7 +27,7 @@ package struct OriginalRationalIntersectionStrata: Sendable {
         self.equationIdeal = equationIdeal; self.jacobian = jacobian; self.partition = partition; self.strata = strata
     }
 
-    package static func prepare<B: RationalAlgebraAdmitting>(equations: [ExactIntersectionPolynomial],
+    package static func prepare<B: ExactScalarAdmission & ~Copyable>(equations: [ExactIntersectionPolynomial],
         variableCount: Int, domains: [ScalarInterval?], thomEncoding: Bool = false, pruneExcludedPrefixes: Bool = false, maximumDepth: Int, usage: inout B) throws -> Self {
         try intersectionAlgebraStep(&usage)
         try RationalAlgebraStorage.retain(domains.count, of: OriginalRationalParameterDomain.self, usage: &usage)
@@ -37,7 +37,7 @@ package struct OriginalRationalIntersectionStrata: Sendable {
             thomEncoding: thomEncoding, pruneExcludedPrefixes: pruneExcludedPrefixes, maximumDepth: maximumDepth, usage: &usage)
     }
 
-    package static func prepare<B: RationalAlgebraAdmitting>(equations: [ExactIntersectionPolynomial],
+    package static func prepare<B: ExactScalarAdmission & ~Copyable>(equations: [ExactIntersectionPolynomial],
         variableCount: Int, exactDomains: [OriginalRationalParameterDomain], nonzeroPolynomials: [ExactIntersectionPolynomial] = [],
         thomEncoding: Bool = false, pruneExcludedPrefixes: Bool = false, maximumDepth: Int, usage: inout B) throws -> Self {
         return try prepareOriginal(equations: equations, ideal: nil, variableCount: variableCount,
@@ -45,7 +45,7 @@ package struct OriginalRationalIntersectionStrata: Sendable {
             thomEncoding: thomEncoding, pruneExcludedPrefixes: pruneExcludedPrefixes, maximumDepth: maximumDepth, usage: &usage)
     }
 
-    package static func prepare<B: RationalAlgebraAdmitting>(ideal: ExactIntersectionIdeal,
+    package static func prepare<B: ExactScalarAdmission & ~Copyable>(ideal: ExactIntersectionIdeal,
         exactDomains: [OriginalRationalParameterDomain], nonzeroPolynomials: [ExactIntersectionPolynomial],
         thomEncoding: Bool = false, originalRankEquations: [ExactIntersectionPolynomial]? = nil,
         isolatedOnly: Bool = false, preferIsolatedCells: Bool = false,
@@ -56,7 +56,7 @@ package struct OriginalRationalIntersectionStrata: Sendable {
             isolatedOnly: isolatedOnly, preferIsolatedCells: preferIsolatedCells, maximumDepth: maximumDepth, usage: &usage)
     }
 
-    private static func prepareOriginal<B: RationalAlgebraAdmitting>(equations: [ExactIntersectionPolynomial],
+    private static func prepareOriginal<B: ExactScalarAdmission & ~Copyable>(equations: [ExactIntersectionPolynomial],
         ideal: ExactIntersectionIdeal?, variableCount: Int, exactDomains: [OriginalRationalParameterDomain],
         nonzeroPolynomials: [ExactIntersectionPolynomial], thomEncoding: Bool, pruneExcludedPrefixes: Bool,
         isolatedOnly: Bool = false, preferIsolatedCells: Bool = false, maximumDepth: Int, usage: inout B) throws -> Self {
@@ -113,7 +113,7 @@ package struct OriginalRationalIntersectionStrata: Sendable {
         return Self(equationIdeal: ideal, jacobian: jacobian, partition: partition, strata: strata)
     }
 
-    private static func prepareIsolated<B: RationalAlgebraAdmitting>(equations: [ExactIntersectionPolynomial],
+    private static func prepareIsolated<B: ExactScalarAdmission & ~Copyable>(equations: [ExactIntersectionPolynomial],
         ideal: ExactIntersectionIdeal?, variableCount: Int, partition: OriginalRationalIntersectionCells,
         maximumDepth: Int, usage: inout B) throws -> Self {
         let jacobian = try ExactIntersectionJacobian.prepare(equations: equations, variableCount: variableCount, usage: &usage)
@@ -128,12 +128,10 @@ package struct OriginalRationalIntersectionStrata: Sendable {
         var strata: [Stratum] = []; strata.reserveCapacity(partition.solutionCells.count)
         for index in partition.solutionCells {
             let cell = partition.cells[index]
-            var admission = OriginalSourceScalarAdmission(base: usage, maximumDepth: maximumDepth,
-                maximumCoefficientDepth: partition.maximumCoefficientDepth,
-                originalParameterDepth: cell.context.depth, originalCoefficientDepth: cell.context.coefficientDepth,
-                inheritedParameterDepth: cell.admissionDepth, inheritedCoefficientDepth: cell.coefficientAdmissionDepth,
-                parameterDepth: cell.admissionDepth, coefficientDepth: cell.coefficientAdmissionDepth)
-            defer { usage = admission.base }
+            let evaluated=try intersectionSourceCalculation(originalParameterDepth:cell.context.depth,
+                originalCoefficientDepth:cell.context.coefficientDepth,inheritedParameterDepth:cell.admissionDepth,
+                inheritedCoefficientDepth:cell.coefficientAdmissionDepth,maximumDepth:maximumDepth,
+                maximumCoefficientDepth:partition.maximumCoefficientDepth,usage:&usage) { admission in
             let availableDepth = try rationalAlgebraCount(cell.context.depth, maximumDepth - cell.admissionDepth)
             try RationalAlgebraStorage.retain(witnesses.count, of: ExactAlgebraicRealRoot.Sign.self, usage: &admission)
             var signs: [ExactAlgebraicRealRoot.Sign] = []; signs.reserveCapacity(witnesses.count)
@@ -147,9 +145,10 @@ package struct OriginalRationalIntersectionStrata: Sendable {
             }
             // A zero-dimensional cell is one exact tuple, so these original
             // indexed minor signs prove its rank without further partitioning.
-            strata.append(.init(cellIndex: index, originalJacobianRank: rank, isolatedRankSigns: signs,
-                rankAdmissionDepth: admission.parameterDepth,
-                rankCoefficientAdmissionDepth: admission.coefficientDepth))
+            return (rank,signs)
+            }
+            strata.append(.init(cellIndex:index,originalJacobianRank:evaluated.value.0,isolatedRankSigns:evaluated.value.1,
+                rankAdmissionDepth:evaluated.parameterDepth,rankCoefficientAdmissionDepth:evaluated.coefficientDepth))
         }
         return Self(equationIdeal: ideal, jacobian: jacobian, partition: partition, strata: strata)
     }

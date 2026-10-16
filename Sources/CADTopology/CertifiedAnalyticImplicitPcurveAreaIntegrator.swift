@@ -11,13 +11,18 @@ import WASILibc
 #endif
 
 struct CertifiedAnalyticImplicitPcurveAreaIntegrator {
-    func bounds(
-        for curve: CertifiedAnalyticImplicitSurfaceParameterCurve,
-        uShift: Double,
-        tolerance: ModelingTolerance
-    ) throws -> SurfaceParameterAreaBounds {
+    func bounds(for curve: CertifiedAnalyticImplicitSurfaceParameterCurve,
+        uShift: Double, tolerance: ModelingTolerance) throws -> SurfaceParameterAreaBounds {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try bounds(for: curve, uShift: uShift, tolerance: tolerance, using: &execution)
+    }
+
+    func bounds(for curve: CertifiedAnalyticImplicitSurfaceParameterCurve,
+        uShift: Double, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> SurfaceParameterAreaBounds {
+        try execution.checkpoint()
         let intersection = curve.intersection
-        try intersection.validate(tolerance: tolerance)
+        try intersection.validate(tolerance: tolerance, using: &execution)
         let implicit = intersection.implicitCurve
         guard implicit.cells.isEmpty == false else {
             throw KernelError(
@@ -32,6 +37,7 @@ struct CertifiedAnalyticImplicitPcurveAreaIntegrator {
         let cellCount = implicit.cells.count
         var result = SurfaceParameterAreaBounds.zero
         for (index, cell) in implicit.cells.enumerated() {
+            try execution.visitGeometricCell(depth: 0)
             let cellStart = Double(index) / Double(cellCount)
             let cellEnd = Double(index + 1) / Double(cellCount)
             let overlapStart = max(ascendingStart, cellStart)
@@ -46,11 +52,11 @@ struct CertifiedAnalyticImplicitPcurveAreaIntegrator {
                 toNormalizedFraction: localUpper,
                 firstSurface: implicit.firstSurface,
                 secondSurface: implicit.secondSurface,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
             let enclosure = try curve.parameterEnclosure(
                 for: subcell,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
             result = result.adding(intervalProductBounds(
                 lower: (enclosure.u.lower + uShift).nextDown,
@@ -59,6 +65,7 @@ struct CertifiedAnalyticImplicitPcurveAreaIntegrator {
                 scalarUpper: enclosure.vDerivative.upper
             ))
         }
+        try execution.checkpoint()
         guard curve.startFraction <= curve.endFraction else {
             return SurfaceParameterAreaBounds(
                 lower: (-result.upper).nextDown,
@@ -74,15 +81,11 @@ struct CertifiedAnalyticImplicitPcurveAreaIntegrator {
         scalarLower: Double,
         scalarUpper: Double
     ) -> SurfaceParameterAreaBounds {
-        let products = [
-            lower * scalarLower,
-            lower * scalarUpper,
-            upper * scalarLower,
-            upper * scalarUpper,
-        ]
+        let a = lower * scalarLower, b = lower * scalarUpper
+        let c = upper * scalarLower, d = upper * scalarUpper
         return SurfaceParameterAreaBounds(
-            lower: (products.min() ?? -.infinity).nextDown,
-            upper: (products.max() ?? .infinity).nextUp
+            lower: min(min(a, b), min(c, d)).nextDown,
+            upper: max(max(a, b), max(c, d)).nextUp
         )
     }
 }

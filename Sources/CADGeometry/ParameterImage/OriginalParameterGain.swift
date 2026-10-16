@@ -44,10 +44,10 @@ public enum OriginalParameterGain: Hashable, Sendable {
         }
     }
 
-    public static func originalDifference<B: RationalAlgebraAdmitting>(originalLower: Double,
+    public static func originalDifference<B: ExactScalarAdmission & ~Copyable>(originalLower: Double,
         originalUpper: Double, periodicTranslation: OriginalParameterPeriodicTranslation,
         usage: inout B) throws -> Self {
-        try CurrentTaskCancellationChecker().checkCancellation(); try usage.visitExactCell(depth: 0)
+        try CurrentTaskCancellationChecker().checkCancellation(); try usage.visitCell(axis: .value, depth: 0)
         try periodicTranslation.validate()
         let coefficient = try ExactRationalCoefficient.originalDouble(originalUpper, usage: &usage)
             .subtracting(.originalDouble(originalLower, usage: &usage), usage: &usage)
@@ -60,21 +60,21 @@ public enum OriginalParameterGain: Hashable, Sendable {
             periodicTranslation: periodicTranslation, coefficient: coefficient, bounds: bounds))
     }
 
-    public static func originalProduct<B: RationalAlgebraAdmitting>(
+    public static func originalProduct<B: ExactScalarAdmission & ~Copyable>(
         factors: [OriginalParameterGain], usage: inout B) throws -> Self {
         guard !factors.isEmpty else {
             throw GeometryConversionError.invalidInput("An original gain product needs retained source factors.")
         }
-        try usage.visitExactCell(depth: 0)
+        try usage.visitCell(axis: .value, depth: 0)
         var originals: [OriginalParameterGain] = []
         var coefficient = ExactRationalCoefficient.one
         for factor in factors {
-            try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(1); try factor.validate()
+            try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeWork(1); try factor.validate()
             let next: [OriginalParameterGain]
             if case .product(let product) = factor { next = product.factors } else { next = [factor] }
-            try usage.retainExactStorage(next.count)
+            try usage.retainStorage(bytes: exactScalarPayloadBytes(count: next.count, of: UInt32.self))
             for original in next {
-                try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(1)
+                try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeWork(1)
                 coefficient = try coefficient.multiplied(by: original.exactCoefficient(usage: &usage), usage: &usage)
                 originals.append(original)
             }
@@ -86,8 +86,8 @@ public enum OriginalParameterGain: Hashable, Sendable {
         return .product(.init(factors: originals, coefficient: coefficient, bounds: bounds))
     }
 
-    public func exactCoefficient<B: RationalAlgebraAdmitting>(usage: inout B) throws -> ExactRationalCoefficient {
-        try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(1)
+    public func exactCoefficient<B: ExactScalarAdmission & ~Copyable>(usage: inout B) throws -> ExactRationalCoefficient {
+        try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeWork(1)
         switch self {
         case .binary(let value): return try .originalDouble(value, usage: &usage)
         case .ratio(let numerator, let denominator):
@@ -98,7 +98,7 @@ public enum OriginalParameterGain: Hashable, Sendable {
         }
     }
 
-    public func applied<B: RationalAlgebraAdmitting>(to value: Double, usage: inout B) throws -> Double {
+    public func applied<B: ExactScalarAdmission & ~Copyable>(to value: Double, usage: inout B) throws -> Double {
         let result = try exactCoefficient(usage: &usage)
             .multiplied(by: .originalDouble(value, usage: &usage), usage: &usage)
             .outwardInterval(usage: &usage)
@@ -106,14 +106,14 @@ public enum OriginalParameterGain: Hashable, Sendable {
         return result.midpoint
     }
 
-    public func inverseApplied<B: RationalAlgebraAdmitting>(to value: Double, usage: inout B) throws -> Double {
+    public func inverseApplied<B: ExactScalarAdmission & ~Copyable>(to value: Double, usage: inout B) throws -> Double {
         let result = try ExactRationalCoefficient.originalDouble(value, usage: &usage)
             .divided(by: exactCoefficient(usage: &usage), usage: &usage).outwardInterval(usage: &usage)
         guard result.isFinite else { throw GeometryConversionError.resourceLimitExceeded("Original inverse gain evaluation exceeds finite arithmetic.") }
         return result.midpoint
     }
 
-    public func isEquivalent<B: RationalAlgebraAdmitting>(to other: Self, usage: inout B) throws -> Bool {
+    public func isEquivalent<B: ExactScalarAdmission & ~Copyable>(to other: Self, usage: inout B) throws -> Bool {
         try exactCoefficient(usage: &usage) == other.exactCoefficient(usage: &usage)
     }
 
@@ -192,9 +192,9 @@ extension OriginalParameterGain: Codable {
             guard #available(macOS 15.0, iOS 18.0, visionOS 2.0, watchOS 11.0, tvOS 18.0, *) else {
                 throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable
             }
-            var usage = try NativeRationalSourceDecodingContext.allowance(from: decoder)
+            var usage = try NativeRationalSourceDecodingContext.execution(from: decoder)
             try OriginalAffineWordDecodingContext.validateSourceNesting(from: decoder)
-            try usage.visitExactCell(depth: 0)
+            try usage.visitCell(axis: .value, depth: 0)
             try container.validateOnlyExpectedKeys([.kind, .originalLower, .originalUpper, .periodicTranslation], in: decoder)
             let lower = try container.decode(Double.self, forKey: .originalLower)
             let upper = try container.decode(Double.self, forKey: .originalUpper)
@@ -205,15 +205,15 @@ extension OriginalParameterGain: Codable {
             guard #available(macOS 15.0, iOS 18.0, visionOS 2.0, watchOS 11.0, tvOS 18.0, *) else {
                 throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable
             }
-            var usage = try NativeRationalSourceDecodingContext.allowance(from: decoder)
+            var usage = try NativeRationalSourceDecodingContext.execution(from: decoder)
             try OriginalAffineWordDecodingContext.validateSourceNesting(from: decoder)
             try container.validateOnlyExpectedKeys([.kind, .factors], in: decoder)
             var source = try container.nestedUnkeyedContainer(forKey: .factors)
             guard let count = source.count else { throw NativeRationalSourceDecodingError.unboundedWordContainer }
-            try usage.consumeExactWork(count); try usage.retainExactStorage(count)
+            try usage.consumeWork(count); try usage.retainStorage(bytes: exactScalarPayloadBytes(count: count, of: UInt32.self))
             var factors: [OriginalParameterGain] = []; factors.reserveCapacity(count)
             while !source.isAtEnd {
-                try usage.visitExactCell(depth: 0)
+                try usage.visitCell(axis: .value, depth: 0)
                 let originalDecoder = try source.superDecoder()
                 try OriginalAffineWordDecodingContext.validateSourceNesting(from: originalDecoder)
                 let fields = try originalDecoder.container(keyedBy: CodingKeys.self)

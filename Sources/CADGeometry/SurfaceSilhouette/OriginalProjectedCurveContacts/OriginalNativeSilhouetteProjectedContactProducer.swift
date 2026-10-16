@@ -6,18 +6,33 @@ public struct OriginalNativeSilhouetteProjectedContactProducer: SurfaceSilhouett
 
     public func partition(edge: BSplineCurve3D, spanIndex: Int, over range: ScalarInterval,
         silhouette: OriginalSurfaceSilhouetteTrimmedCurve, frame: OrthographicProjectionFrame,
-        usage: inout SurfaceSilhouetteUsage) throws -> SurfaceSilhouetteProjectedPartition {
+        using execution: inout OriginalQueryExecution) throws -> SurfaceSilhouetteProjectedPartition {
+        return try silhouette.original.queryContext.withExecution(using: &execution) { execution in
         try partition(edge: .bSpline(edge), spanIndex: spanIndex, over: range,
-            silhouette: silhouette, frame: frame, usage: &usage)
+            silhouette: silhouette, frame: frame, using: &execution)
+    
+        }
     }
 
     public func partition(edge: Curve3D, spanIndex: Int, over range: ScalarInterval,
         silhouette: OriginalSurfaceSilhouetteTrimmedCurve, frame: OrthographicProjectionFrame,
-        usage: inout SurfaceSilhouetteUsage) throws -> SurfaceSilhouetteProjectedPartition {
+        using execution: inout OriginalQueryExecution) throws -> SurfaceSilhouetteProjectedPartition {
+        return try silhouette.original.queryContext.withExecution(using: &execution) { execution in
         let pair = try OriginalProjectedNativePolynomialPair(edge: edge, spanIndex: spanIndex,
-            over: range, silhouette: silhouette, frame: frame, usage: &usage)
+            over: range, silhouette: silhouette, frame: frame, usage: &execution)
+        return try Self.partitionAfterPair(pair, over: range,
+            silhouette: silhouette, using: &execution)
+    
+        }
+    }
+
+    @inline(never)
+    private static func partitionAfterPair(_ pair: OriginalProjectedNativePolynomialPair,
+        over range: ScalarInterval,
+        silhouette: OriginalSurfaceSilhouetteTrimmedCurve,
+        using execution: inout OriginalQueryExecution) throws -> SurfaceSilhouetteProjectedPartition {
         var equations: [ExactBivariatePolynomial] = []
-        try RationalAlgebraStorage.retain(5, of: ExactBivariatePolynomial.self, usage: &usage)
+        try RationalAlgebraStorage.retain(5, of: ExactBivariatePolynomial.self, usage: &execution)
         equations.reserveCapacity(5); equations.append(pair.zeroLaw)
         if let eliminated = pair.eliminated {
             equations.append(eliminated)
@@ -26,11 +41,11 @@ public struct OriginalNativeSilhouetteProjectedContactProducer: SurfaceSilhouett
             if let vertical = pair.vertical.coefficients.first { equations.append(vertical) }
         }
         let domain = try Self.isolationDomain(silhouette.original.chart,
-            equations: &equations, usage: &usage)
+            equations: &equations, usage: &execution)
         let roots: [ExactBivariateSystemRoot]
         do {
             roots = try ExactBivariateSystemSolver.isolatedRoots(of: equations, over: domain,
-                maximumDepth: usage.maximumDepth, usage: &usage)
+                maximumDepth: execution.effectiveLimits.maximumSubdivisionDepth, usage: &execution)
         } catch let classification as ExactBivariateSystemClassification {
             switch classification {
             case .positiveDimensionalOriginalIdeal:
@@ -38,48 +53,48 @@ public struct OriginalNativeSilhouetteProjectedContactProducer: SurfaceSilhouett
                 // path must decompose original positive-dimensional screen incidence
                 // and lift its real common edge sections before declaring coverage.
                 // Finite-ideal classification is not a substitute for overlap output.
-                let locus = try OriginalProjectedNativeLocus(original: pair, domain: domain, usage: &usage)
+                let locus = try OriginalProjectedNativeLocus(original: pair, domain: domain, usage: &execution)
                 throw OriginalProjectedNativeSectionFailure(originalLocus: locus)
             }
         }
         var contacts: [SurfaceSilhouetteProjectedContact] = []
         var cuts: [SurfaceSilhouetteTrimEndpoint] = []
-        let context = try OriginalSingularFieldContext(usage: &usage)
+        let context = try OriginalSingularFieldContext(usage: &execution)
         for index in 0..<2 {
             let endpoint = index == 0 ? range.lower : range.upper
-            try RationalAlgebraStorage.retain(1, of: SurfaceSilhouetteTrimEndpoint.self, usage: &usage)
-            cuts.append(.init(try .constant(.originalDouble(endpoint, usage: &usage), in: context,
-                maximumDepth: usage.maximumDepth, usage: &usage), depth: 0))
+            try RationalAlgebraStorage.retain(1, of: SurfaceSilhouetteTrimEndpoint.self, usage: &execution)
+            cuts.append(try .init(.constant(.originalDouble(endpoint, usage: &execution), in: context,
+                maximumDepth: execution.effectiveLimits.maximumSubdivisionDepth, usage: &execution), depth: 0, using: &execution))
         }
         var wholeRange = false
         for root in roots {
-            let fiber = try OriginalProjectedNativeFiber(original: pair, at: root, usage: &usage)
+            let fiber = try OriginalProjectedNativeFiber(original: pair, at: root, usage: &execution)
             if fiber.parameters.isEmpty { continue }
             let branchParameters = try silhouette.original.projectedOriginalParameters(at: root,
-                in: fiber.context, usage: &usage)
+                in: fiber.context, usage: &execution)
             for parameter in branchParameters {
-                try RationalAlgebraStorage.retain(1, of: SurfaceSilhouetteTrimEndpoint.self, usage: &usage)
-                let branch = SurfaceSilhouetteTrimEndpoint(parameter, depth: parameter.context.depth)
-                if try branch.compare(to: silhouette.lower, usage: &usage) < 0 { continue }
-                if try branch.compare(to: silhouette.upper, usage: &usage) > 0 { continue }
+                try RationalAlgebraStorage.retain(1, of: SurfaceSilhouetteTrimEndpoint.self, usage: &execution)
+                let branch = try SurfaceSilhouetteTrimEndpoint(parameter, depth: parameter.context.depth, using: &execution)
+                if try branch.compare(to: silhouette.lower, using: &execution) < 0 { continue }
+                if try branch.compare(to: silhouette.upper, using: &execution) > 0 { continue }
                 for edgeParameter in fiber.parameters {
                     switch edgeParameter {
                     case .wholeNativeRange:
                         wholeRange = true
-                        try RationalAlgebraStorage.retain(1, of: SurfaceSilhouetteProjectedContact.self, usage: &usage)
+                        try RationalAlgebraStorage.retain(1, of: SurfaceSilhouetteProjectedContact.self, usage: &execution)
                         contacts.append(.init(edgeParameter: nil, silhouetteParameter: branch,
                             edgeMultiplicity: 0, wholeRange: true, originalUV: root, originalFiber: fiber,
                             depthDifference: nil))
                     case .isolated(_, let value, let multiplicity):
-                        try RationalAlgebraStorage.retain(1, of: SurfaceSilhouetteTrimEndpoint.self, usage: &usage)
-                        let station = SurfaceSilhouetteTrimEndpoint(value, depth: value.context.depth)
-                        try RationalAlgebraStorage.retain(1, of: SurfaceSilhouetteProjectedContact.self, usage: &usage)
+                        try RationalAlgebraStorage.retain(1, of: SurfaceSilhouetteTrimEndpoint.self, usage: &execution)
+                        let station = try SurfaceSilhouetteTrimEndpoint(value, depth: value.context.depth, using: &execution)
+                        try RationalAlgebraStorage.retain(1, of: SurfaceSilhouetteProjectedContact.self, usage: &execution)
                         let depth = try OriginalProjectedNativeDepth.difference(original: pair,
-                            at: value, uvContext: fiber.context, usage: &usage)
+                            at: value, uvContext: fiber.context, usage: &execution)
                         contacts.append(.init(edgeParameter: station, silhouetteParameter: branch,
                             edgeMultiplicity: multiplicity, wholeRange: false, originalUV: root, originalFiber: fiber,
                             depthDifference: depth))
-                        try Self.insert(station, into: &cuts, usage: &usage)
+                        try Self.insert(station, into: &cuts, usage: &execution)
                     }
                 }
             }
@@ -88,22 +103,22 @@ public struct OriginalNativeSilhouetteProjectedContactProducer: SurfaceSilhouett
         if !wholeRange {
             for index in 1..<cuts.count {
                 let lower = cuts[index - 1], upper = cuts[index]
-                let witness = try lower.interiorWitness(before: upper, usage: &usage)
-                try RationalAlgebraStorage.retain(1, of: SurfaceSilhouetteProjectedPartition.Sector.self, usage: &usage)
+                let witness = try lower.interiorWitness(before: upper, using: &execution)
+                try RationalAlgebraStorage.retain(1, of: SurfaceSilhouetteProjectedPartition.Sector.self, usage: &execution)
                 sectors.append(.init(lower: lower, upper: upper, originalInteriorWitness: witness))
             }
         }
-        try RationalAlgebraStorage.retain(1, of: SurfaceSilhouetteProjectedPartition.self, usage: &usage)
-        return .init(edge: edge, spanIndex: spanIndex, original: pair, contacts: contacts,
+        try RationalAlgebraStorage.retain(1, of: SurfaceSilhouetteProjectedPartition.self, usage: &execution)
+        return .init(original: pair, contacts: contacts,
             cuts: cuts, sectors: sectors, wholeRange: wholeRange)
     }
 
     private static func insert(_ station: SurfaceSilhouetteTrimEndpoint,
-        into cuts: inout [SurfaceSilhouetteTrimEndpoint], usage: inout SurfaceSilhouetteUsage) throws {
+        into cuts: inout [SurfaceSilhouetteTrimEndpoint], usage: inout OriginalQueryExecution) throws {
         var index = 0
         while index < cuts.count {
-            try usage.consumeWork()
-            let comparison = try station.compare(to: cuts[index], usage: &usage)
+            try usage.consumeWork(1)
+            let comparison = try station.compare(to: cuts[index], using: &usage)
             if comparison == 0 { return }
             if comparison < 0 { break }
             index += 1
@@ -115,7 +130,7 @@ public struct OriginalNativeSilhouetteProjectedContactProducer: SurfaceSilhouett
     }
 
     private static func isolationDomain(_ original: SurfaceParameterBox,
-        equations: inout [ExactBivariatePolynomial], usage: inout SurfaceSilhouetteUsage)
+        equations: inout [ExactBivariatePolynomial], usage: inout OriginalQueryExecution)
         throws -> SurfaceParameterBox {
         func axis(_ range: ScalarInterval, alongU: Bool) throws -> ScalarInterval {
             if range.width > 0 { return range }

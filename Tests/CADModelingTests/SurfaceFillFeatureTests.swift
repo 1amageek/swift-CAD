@@ -199,4 +199,11 @@ private struct UnusedSurfaceFillSewer: BRepSewing {
     ) throws -> BRepSewingResult {
         throw GeometryError.invalidDistance(0.0)
     }
+
+    func sew(_ request: BRepSewingRequest, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> BRepSewingResult {
+        try execution.checkpoint()
+        return try sew(request, tolerance: tolerance)
+    }
+
 }

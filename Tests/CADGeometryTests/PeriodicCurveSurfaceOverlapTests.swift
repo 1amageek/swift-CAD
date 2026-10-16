@@ -140,20 +140,22 @@ struct PeriodicCurveSurfaceOverlapTests {
         // First trial: 1 orientation+2 trial storage+24 basis/control work+1 owner=28.
         // Two boundary copies: 4 bounds+1 storage+3 inversion each=16.
         options.maximumSubdivisionCells = 152
-        var budget = OverlapProofBudget(options: options, tolerance: .standard)
-        let proof = try #require(OverlapIsoparametricMembershipCertifier().certificate(curve: source,
-            surface: target, range: range, options: options, tolerance: .standard, budget: &budget))
+        var budgetExecution = try OriginalQueryExecution.independentGeometry()
+        let budget = try OverlapProofPolicy(options: options, tolerance: .standard, using: &budgetExecution)
+        let proof = try geometryTestRequire(OverlapIsoparametricMembershipCertifier().certificate(curve: source,
+            surface: target, range: range, options: options, tolerance: .standard, policy: budget, using: &budgetExecution))
         let cuts = try proof.correspondence.boundarySourceParameters(uValues: [-0.25, 0.25], vValues: [],
-            surface: .bSpline(target), tolerance: .standard, budget: &budget)
+            surface: .bSpline(target), tolerance: .standard, policy: budget, using: &budgetExecution)
         #expect(cuts == [3.75, 4.25])
-        try expectFailure(.resourceLimitExceeded) { try budget.work() }
+        try expectFailure(.resourceLimitExceeded) { try budget.work(using: &budgetExecution) }
         options.maximumSubdivisionCells = 151
-        var insufficient = OverlapProofBudget(options: options, tolerance: .standard)
-        let retained = try #require(OverlapIsoparametricMembershipCertifier().certificate(curve: source,
-            surface: target, range: range, options: options, tolerance: .standard, budget: &insufficient))
+        var insufficientExecution = try OriginalQueryExecution.independentGeometry()
+        let insufficient = try OverlapProofPolicy(options: options, tolerance: .standard, using: &insufficientExecution)
+        let retained = try geometryTestRequire(OverlapIsoparametricMembershipCertifier().certificate(curve: source,
+            surface: target, range: range, options: options, tolerance: .standard, policy: insufficient, using: &insufficientExecution))
         try expectFailure(.resourceLimitExceeded) {
             _ = try retained.correspondence.boundarySourceParameters(uValues: [-0.25, 0.25], vValues: [],
-                surface: .bSpline(target), tolerance: .standard, budget: &insufficient)
+                surface: .bSpline(target), tolerance: .standard, policy: insufficient, using: &insufficientExecution)
         }
         var storage = try self.options(range: (3.5, 4.5), varying: (-0.25, 0.25))
         storage.maximumCandidateCount = 4
@@ -207,29 +209,32 @@ struct PeriodicCurveSurfaceOverlapTests {
         let task = Task {
             for await _ in stream { break }
             let options = CurveSurfaceIntersectionOptions(curveRange: range)
-            var budget = OverlapProofBudget(options: options, tolerance: .standard)
+            var budgetExecution = try OriginalQueryExecution.independentGeometry()
+            let budget = try OverlapProofPolicy(options: options, tolerance: .standard, using: &budgetExecution)
             return try OverlapIsoparametricMembershipCertifier().certificate(curve: source,
-                surface: target, range: range, options: options, tolerance: .standard, budget: &budget)
+                surface: target, range: range, options: options, tolerance: .standard, policy: budget, using: &budgetExecution)
         }
         task.cancel()
         continuation.yield()
         continuation.finish()
-        await #expect(throws: CancellationError.self) { _ = try await task.value }
+        await geometryTestExpectFailure({ geometryTestIsCancelled($0) }) { _ = try await task.value }
         let options = CurveSurfaceIntersectionOptions(curveRange: range)
-        var preparation = OverlapProofBudget(options: options, tolerance: .standard)
-        let proof = try #require(OverlapIsoparametricMembershipCertifier().certificate(curve: source,
-            surface: target, range: range, options: options, tolerance: .standard, budget: &preparation))
+        var preparationExecution = try OriginalQueryExecution.independentGeometry()
+        let preparation = try OverlapProofPolicy(options: options, tolerance: .standard, using: &preparationExecution)
+        let proof = try geometryTestRequire(OverlapIsoparametricMembershipCertifier().certificate(curve: source,
+            surface: target, range: range, options: options, tolerance: .standard, policy: preparation, using: &preparationExecution))
         let (cuts, cutContinuation) = AsyncStream<Void>.makeStream()
         let boundaryTask = Task {
             for await _ in cuts { break }
-            var budget = OverlapProofBudget(options: options, tolerance: .standard)
+            var budgetExecution = try OriginalQueryExecution.independentGeometry()
+            let budget = try OverlapProofPolicy(options: options, tolerance: .standard, using: &budgetExecution)
             return try proof.correspondence.boundarySourceParameters(uValues: [-0.25, 0.25], vValues: [],
-                surface: .bSpline(target), tolerance: .standard, budget: &budget)
+                surface: .bSpline(target), tolerance: .standard, policy: budget, using: &budgetExecution)
         }
         boundaryTask.cancel()
         cutContinuation.yield()
         cutContinuation.finish()
-        await #expect(throws: CancellationError.self) { _ = try await boundaryTask.value }
+        await geometryTestExpectFailure({ geometryTestIsCancelled($0) }) { _ = try await boundaryTask.value }
     }
 
     private func query(variesU: Bool = true, options: CurveSurfaceIntersectionOptions) throws -> CurveSurfaceIntersectionResult {
@@ -277,8 +282,12 @@ struct PeriodicCurveSurfaceOverlapTests {
             y: scale * (first * controls[segment].1 + second * controls[segment + 1].1) / denominator, z: upper ? 1 : 0)
     }
 
-    private func expectFailure(_ code: KernelErrorCode, _ operation: () throws -> Void) throws {
+    private func expectFailure(_ code: KernelErrorCode, label: String = "periodic source",
+        _ operation: () throws -> Void) throws {
         do { try operation(); Issue.record("The periodic isocurve must explicitly refuse unavailable authority.") }
-        catch let error as KernelError { #expect(error.code == code) }
+        catch {
+            let published = OriginalQueryFailure.published(error, context: .unspecified, tolerance: .standard)
+            #expect(OriginalQueryFailure.classification(of: published)?.code == code, "\(label)")
+        }
     }
 }

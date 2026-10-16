@@ -18,14 +18,16 @@ struct PeriodicBSplineCurveTests {
 
     @Test(.timeLimit(.minutes(1)))
     func periodicValuesMatchTheIndependentUnwrappedBasisAcrossCycles() throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
         for rational in [false, true] {
             let cyclic = try curve(rational: rational)
-            let prepared = try ValidatedCurve3D(.bSpline(cyclic), tolerance: tolerance)
+            let prepared = try ValidatedCurve3D(.bSpline(cyclic), tolerance: tolerance, using: &execution)
             #expect(prepared.parameterDomain == .periodic(period: 5))
             for index in 0..<41 {
                 let parameter = 3 + (Double(index) + 0.25) * 5 / 41
-                let basis = BSplineBasis.values(parameter: parameter, degree: cyclic.degree,
-                    knots: cyclic.knots, count: cyclic.controlPointCount)
+                let basis = try BSplineBasis.values(parameter: parameter, degree: cyclic.degree,
+                    knots: cyclic.knots, count: cyclic.controlPointCount, using: &execution)
                 var numerator = Vector3D.zero
                 var denominator = 0.0
                 for (i, value) in basis.enumerated() {
@@ -36,7 +38,7 @@ struct PeriodicBSplineCurveTests {
                 }
                 let expected = Point3D.origin + numerator / denominator
                 for cycle in -3...3 {
-                    let actual = try prepared.point(at: parameter + Double(cycle) * 5)
+                    let actual = try prepared.point(at: parameter + Double(cycle) * 5, using: &execution)
                     #expect((actual - expected).length < 1e-12)
                 }
             }

@@ -41,48 +41,66 @@ struct QuadraticHeightFieldTangencyCertificate: Sendable {
         second: BSplineSurface3D,
         tolerance: ModelingTolerance
     ) throws -> QuadraticHeightFieldTangencyCertificate? {
-        if let context = ExactPlaneHeightFieldContext(surface: first),
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try certified(first: first, second: second, tolerance: tolerance, using: &execution)
+    }
+
+
+    static func certified(
+        first: BSplineSurface3D,
+        second: BSplineSurface3D,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> QuadraticHeightFieldTangencyCertificate? {
+        try execution.consumeWork(1)
+        try first.validate(tolerance: tolerance, using: &execution)
+        try second.validate(tolerance: tolerance, using: &execution)
+
+        if let context = try ExactPlaneHeightFieldContext(surface: first, using: &execution),
            let certificate = try heightCertificate(
                context: context,
                heightSurface: second,
                planeIsFirst: true,
                tolerance: tolerance
-           ) {
+           , using: &execution) {
             return certificate
         }
-        if let context = ExactPlaneHeightFieldContext(surface: second),
+        if let context = try ExactPlaneHeightFieldContext(surface: second, using: &execution),
            let certificate = try heightCertificate(
                context: context,
                heightSurface: first,
                planeIsFirst: false,
                tolerance: tolerance
-           ) {
+           , using: &execution) {
             return certificate
         }
         return nil
     }
+
+
 
     private static func heightCertificate(
         context: ExactPlaneHeightFieldContext,
         heightSurface: BSplineSurface3D,
         planeIsFirst: Bool,
         tolerance: ModelingTolerance
-    ) throws -> QuadraticHeightFieldTangencyCertificate? {
-        guard ExactPlaneHeightFieldContext.isSingleSpan(heightSurface),
-              ExactPlaneHeightFieldContext.hasConstantWeights(heightSurface),
+    , using execution: inout OriginalQueryExecution) throws -> QuadraticHeightFieldTangencyCertificate? {
+        try execution.consumeWork(1)
+
+        guard try ExactPlaneHeightFieldContext.isSingleSpan(heightSurface, using: &execution),
+              try ExactPlaneHeightFieldContext.hasConstantWeights(heightSurface, using: &execution),
               heightSurface.uDegree <= 2,
               heightSurface.vDegree <= 2,
               heightSurface.uDegree > 0,
               heightSurface.vDegree > 0 else {
             return nil
         }
-        guard let heightControls = context.exactHeightControls(
+        guard let heightControls = try context.exactHeightControls(
             for: heightSurface
-        ), let height = ExactQuadraticPolynomial2D(
+        , using: &execution), let height = try ExactQuadraticPolynomial2D(
             bernsteinControlExpansions: heightControls,
             uDegree: heightSurface.uDegree,
             vDegree: heightSurface.vDegree
-        ), let classified = height.classifiedZeroSet() else {
+        , using: &execution), let classified = try height.classifiedZeroSet(using: &execution) else {
             return nil
         }
         switch classified {
@@ -94,7 +112,7 @@ struct QuadraticHeightFieldTangencyCertificate: Sendable {
                     planeIsFirst: planeIsFirst,
                     certificateName: "quadratic tangency",
                     tolerance: tolerance
-                ))
+                , using: &execution))
             )
         case let .line(line):
             guard let contact = try segment(
@@ -103,7 +121,7 @@ struct QuadraticHeightFieldTangencyCertificate: Sendable {
                 context: context,
                 planeIsFirst: planeIsFirst,
                 tolerance: tolerance
-            ) else {
+            , using: &execution) else {
                 return nil
             }
             return QuadraticHeightFieldTangencyCertificate(
@@ -116,20 +134,22 @@ struct QuadraticHeightFieldTangencyCertificate: Sendable {
                 context: context,
                 planeIsFirst: planeIsFirst,
                 tolerance: tolerance
-            ), let secondSegment = try segment(
+            , using: &execution), let secondSegment = try segment(
                 line: secondLine,
                 surface: heightSurface,
                 context: context,
                 planeIsFirst: planeIsFirst,
                 tolerance: tolerance
-            ) else {
+            , using: &execution) else {
                 return nil
             }
             return QuadraticHeightFieldTangencyCertificate(
-                kind: .branching([firstSegment, secondSegment])
+                kind: .branching(try CertifiedAnalyticCurveEvaluation.values(firstSegment, secondSegment, using: &execution))
             )
         }
     }
+
+
 
     private static func segment(
         line: ExactQuadraticPolynomial2D.Line,
@@ -137,11 +157,13 @@ struct QuadraticHeightFieldTangencyCertificate: Sendable {
         context: ExactPlaneHeightFieldContext,
         planeIsFirst: Bool,
         tolerance: ModelingTolerance
-    ) throws -> Segment? {
-        guard let endpoints = clippedLineEndpoints(
+    , using execution: inout OriginalQueryExecution) throws -> Segment? {
+        try execution.consumeWork(1)
+
+        guard let endpoints = try clippedLineEndpoints(
             origin: line.origin,
             direction: line.direction
-        ) else {
+        , using: &execution) else {
             return nil
         }
         return Segment(
@@ -151,32 +173,38 @@ struct QuadraticHeightFieldTangencyCertificate: Sendable {
                 planeIsFirst: planeIsFirst,
                 certificateName: "quadratic tangency",
                 tolerance: tolerance
-            ),
+            , using: &execution),
             midpointWitness: try context.verifiedWitness(
                 on: surface,
                 normalized: midpoint(endpoints.lower, endpoints.upper),
                 planeIsFirst: planeIsFirst,
                 certificateName: "quadratic tangency",
                 tolerance: tolerance
-            ),
+            , using: &execution),
             upperWitness: try context.verifiedWitness(
                 on: surface,
                 normalized: endpoints.upper,
                 planeIsFirst: planeIsFirst,
                 certificateName: "quadratic tangency",
                 tolerance: tolerance
-            )
+            , using: &execution)
         )
     }
+
+
 
     private static func clippedLineEndpoints(
         origin: Point2D,
         direction: Point2D
-    ) -> (lower: Point2D, upper: Point2D)? {
+    , using execution: inout OriginalQueryExecution) throws -> (lower: Point2D, upper: Point2D)? {
+        try execution.consumeWork(1)
+
         let directionTolerance = Double.ulpOfOne * 4_096.0
         var candidates: [(parameter: Double, point: Point2D)] = []
+        var candidateCapacity = 0
         if abs(direction.x) > directionTolerance {
             for boundary in [0.0, 1.0] {
+                try execution.consumeWork(1)
                 let parameter = (boundary - origin.x) / direction.x
                 let point = Point2D(
                     x: boundary,
@@ -184,12 +212,13 @@ struct QuadraticHeightFieldTangencyCertificate: Sendable {
                 )
                 if point.y >= -directionTolerance,
                    point.y <= 1.0 + directionTolerance {
-                    candidates.append((parameter, clamped(point)))
+                    try CertifiedAnalyticCurveEvaluation.append((parameter, clamped(point)), to: &candidates, using: &execution, capacity: &candidateCapacity)
                 }
             }
         }
         if abs(direction.y) > directionTolerance {
             for boundary in [0.0, 1.0] {
+                try execution.consumeWork(1)
                 let parameter = (boundary - origin.y) / direction.y
                 let point = Point2D(
                     x: origin.x + direction.x * parameter,
@@ -197,16 +226,22 @@ struct QuadraticHeightFieldTangencyCertificate: Sendable {
                 )
                 if point.x >= -directionTolerance,
                    point.x <= 1.0 + directionTolerance {
-                    candidates.append((parameter, clamped(point)))
+                    try CertifiedAnalyticCurveEvaluation.append((parameter, clamped(point)), to: &candidates, using: &execution, capacity: &candidateCapacity)
                 }
             }
         }
-        candidates.sort { $0.parameter < $1.parameter }
+        candidates = try CertifiedAnalyticCurveEvaluation.sorted(candidates, using: &execution) { $0.parameter < $1.parameter }
         var unique: [(parameter: Double, point: Point2D)] = []
-        for candidate in candidates where unique.contains(where: {
-            distance($0.point, candidate.point) <= directionTolerance
-        }) == false {
-            unique.append(candidate)
+        var uniqueCapacity = 0
+        for candidate in candidates {
+            try execution.consumeWork(1)
+            let duplicate = try unique.contains { previous in
+                try execution.consumeWork(1)
+                return distance(previous.point, candidate.point) <= directionTolerance
+            }
+            if !duplicate {
+                try CertifiedAnalyticCurveEvaluation.append(candidate, to: &unique, using: &execution, capacity: &uniqueCapacity)
+            }
         }
         guard let lower = unique.first?.point,
               let upper = unique.last?.point,

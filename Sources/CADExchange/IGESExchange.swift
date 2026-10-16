@@ -49,10 +49,11 @@ public struct IGESExchange: Sendable, CertifiedDocumentGeometryExchanging {
         permitsCurveReports: Bool, to sink: any ByteSink) throws -> ExchangeGeometryConversionReport {
         try brep.validate(level: .exact, tolerance: tolerance)
         let ledger = try ExchangeConversionLedger(limits: resourceLimits, format: .iges)
+        var execution = try ledger.execution()
         let surfaces = try ExchangeSurfaceConversionPlanner().plan(stores: [brep.geometry], policy: policy,
-            format: .iges, tolerance: tolerance, limits: resourceLimits, ledger: ledger)
+            format: .iges, tolerance: tolerance, limits: resourceLimits, ledger: ledger, using: &execution)
         let curves = try ExchangeCurveConversionPlanner().plan(breps: [brep], independent: nil, policy: policy,
-            tolerance: tolerance, ledger: ledger, surfaceOverrides: surfaces.overrides)
+            tolerance: tolerance, ledger: ledger, using: &execution, surfaceOverrides: surfaces.overrides)
         guard permitsCurveReports || curves.guarantees.isEmpty else {
             throw IndependentShapeExchangeError.unsupportedSemantics("The legacy surface-only result cannot report a curve conversion; use writeConverting.")
         }
@@ -78,10 +79,11 @@ public struct IGESExchange: Sendable, CertifiedDocumentGeometryExchanging {
                 units: units ?? document.units, policy: policy, permitsCurveReports: permitsCurveReports, to: sink)
         }
         let ledger = try ExchangeConversionLedger(limits: resourceLimits, format: .iges)
+        var execution = try ledger.execution()
         let surfaces = try ExchangeSurfaceConversionPlanner().plan(stores: [independent.geometry], policy: policy,
-            format: .iges, tolerance: tolerance, limits: resourceLimits, ledger: ledger)
+            format: .iges, tolerance: tolerance, limits: resourceLimits, ledger: ledger, using: &execution)
         let curves = try ExchangeCurveConversionPlanner().plan(breps: [], independent: independent, policy: policy,
-            tolerance: tolerance, ledger: ledger, surfaceOverrides: surfaces.overrides)
+            tolerance: tolerance, ledger: ledger, using: &execution, surfaceOverrides: surfaces.overrides)
         guard permitsCurveReports || curves.guarantees.isEmpty else {
             throw IndependentShapeExchangeError.unsupportedSemantics("The legacy surface-only result cannot report a curve conversion; use writeConverting.")
         }
@@ -129,9 +131,10 @@ public struct IGESExchange: Sendable, CertifiedDocumentGeometryExchanging {
                 // Retain every real selected source owner before a mixed document can publish.
                 throw IndependentShapeExchangeError.unsupportedSemantics("Mixed independent and feature/product IGES source is not implemented.")
             }
-            var usage = try IndependentShapeExchangeUsage(limits:resourceLimits,format:.iges,processing:processingBudgetOverride ?? ExchangeProcessingBudget(maximumDuration: resourceLimits.maximumProcessingDuration),consumedEntities:0,consumedWork:0,consumedBytes:0)
-            try usage.validateDocument(document,tolerance:tolerance)
-            try ExactIGESWriter(resourceLimits:resourceLimits,tolerance:tolerance,surfaceOverrides:surfaceOverrides,curveConversions:curveConversions,processingBudget:processingBudgetOverride,allowsReportedPlacementProjection:allowsReportedPlacementProjection,allowsReportedGroupProjection:allowsReportedGroupProjection).writeIndependent(source,units:outputUnits,to:sink,usage:&usage)
+            var usage = try IndependentShapeExchangeOwner(limits:resourceLimits,format:.iges,processing:processingBudgetOverride ?? ExchangeProcessingBudget(maximumDuration: resourceLimits.maximumProcessingDuration),consumedEntities:0,consumedWork:0,consumedBytes:0)
+        var execution = try usage.execution()
+            try usage.validateDocument(document,tolerance:tolerance, using: &execution)
+            try ExactIGESWriter(resourceLimits:resourceLimits,tolerance:tolerance,surfaceOverrides:surfaceOverrides,curveConversions:curveConversions,processingBudget:processingBudgetOverride,allowsReportedPlacementProjection:allowsReportedPlacementProjection,allowsReportedGroupProjection:allowsReportedGroupProjection).writeIndependent(source,units:outputUnits,to:sink,usage:usage, using: &execution)
         } else {
             guard document.assembly == nil, document.productAttributes.isEmpty else {
                 throw IndependentShapeExchangeError.unsupportedSemantics("IGES does not retain this product source/attribute graph.")

@@ -14,34 +14,31 @@ import WASILibc
 extension SurfaceParameterCurve {
     package func validate(on surface: Surface3D, tolerance: ModelingTolerance,
         remainingSourceDepth: Int, maximumSubdivisionDepth: Int,
-        consumeWork: @Sendable (Int) throws -> Void,
-        consumeStorage: (@Sendable (Int) throws -> Void)? = nil,
-        maximumAlgebraicDepth: Int? = nil) throws {
+        maximumAlgebraicDepth: Int? = nil, atSourceDepth sourceDepth: Int = 0, using execution: inout OriginalQueryExecution) throws {
         try validateOriginalSource(on: surface, tolerance: tolerance, remainingSourceDepth: remainingSourceDepth,
-            maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: consumeWork, consumeStorage: consumeStorage,
-                maximumAlgebraicDepth: maximumAlgebraicDepth)
+            maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, atSourceDepth: sourceDepth, using: &execution)
     }
 
     func validateOriginalSource(on surface: Surface3D, tolerance: ModelingTolerance,
         remainingSourceDepth: Int, maximumSubdivisionDepth: Int,
-        consumeWork: (Int) throws -> Void,
-        consumeStorage: ((Int) throws -> Void)? = nil,
-        maximumAlgebraicDepth: Int? = nil) throws {
+        maximumAlgebraicDepth: Int? = nil, atSourceDepth sourceDepth: Int = 0, using execution: inout OriginalQueryExecution) throws {
         guard remainingSourceDepth >= 0, maximumSubdivisionDepth >= 0,
-            maximumAlgebraicDepth.map({ (0...32).contains($0) }) ?? true else {
+            maximumAlgebraicDepth.map({ $0 >= 0 }) ?? true else {
             throw GeometryConversionError.resourceLimitExceeded("Original pcurve validation exhausted caller depth.")
         }
-        try consumeWork(0); try CurrentTaskCancellationChecker().checkCancellation(); try tolerance.validate()
+        let selectedMaximum = try maximumAlgebraicDepth.map { try ExactScalarDepth(value: $0, coefficient: $0) }
+        return try execution.withProofScope(maximum: selectedMaximum) { execution in
+        try execution.admitSourceDepth(sourceDepth)
+        try execution.consumeWork(1); try CurrentTaskCancellationChecker().checkCancellation(); try tolerance.validate()
         func source(_ curve: SurfaceParameterCurve, on support: Surface3D) throws {
             guard remainingSourceDepth > 0 else {
                 throw GeometryConversionError.resourceLimitExceeded("Original pcurve descendant exhausted source depth.")
             }
             try curve.validateOriginalSource(on: support, tolerance: tolerance, remainingSourceDepth: remainingSourceDepth - 1,
-                maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: consumeWork, consumeStorage: consumeStorage,
-                maximumAlgebraicDepth: maximumAlgebraicDepth)
+                maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, atSourceDepth: sourceDepth + 1, using: &execution)
         }
         func parameter(_ value: SurfaceParameter) throws {
-            try consumeWork(0); try value.validate()
+            try execution.consumeWork(1); try value.validate()
             guard try surface.uDomain.contains(value.u, tolerance: tolerance),
                   try surface.vDomain.contains(value.v, tolerance: tolerance) else {
                 throw GeometryError.invalidDistance(0)
@@ -51,7 +48,7 @@ extension SurfaceParameterCurve {
         case .affine, .constantU, .constantV, .harmonic, .sphericalGreatCircle:
             // These finite scalar laws have a fixed number of extrema and no
             // recursively prepared numerical producer or private proof ledger.
-            try validate(on: surface, tolerance: tolerance)
+            try validate(on: surface, tolerance: tolerance, using: &execution)
         case .polyline(let values):
             guard values.count >= 2 else { throw GeometryError.invalidDistance(Double(values.count)) }
             var length = 0.0, previous: SurfaceParameter?
@@ -65,15 +62,11 @@ extension SurfaceParameterCurve {
             }
             guard length > Double.ulpOfOne else { throw GeometryError.invalidDistance(length) }
         case .bSpline(let curve):
-            try curve.validate(tolerance: tolerance, consumeWork: { try consumeWork(0) })
+            try curve.validate(tolerance: tolerance, using: &execution)
             try surface.uDomain.validate(tolerance: tolerance)
             try surface.vDomain.validate(tolerance: tolerance)
-            let contained = try withoutActuallyEscaping(consumeWork) { visit in
-                var usage = OriginalGeometryValidationAdmission(consumeWork: visit,
-                    consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
-                return try OriginalQuadraticPcurveContainment.contains(curve,
-                    u: surface.uDomain, v: surface.vDomain, using: &usage)
-            }
+            let contained = try OriginalQuadraticPcurveContainment.contains(curve,
+                    u: surface.uDomain, v: surface.vDomain, using: &execution)
             if contained == true {
                 try CurrentTaskCancellationChecker().checkCancellation()
                 return
@@ -83,15 +76,9 @@ extension SurfaceParameterCurve {
             guard remainingSourceDepth > 0 else {
                 throw GeometryConversionError.resourceLimitExceeded("Original word pcurve exhausted source depth.")
             }
-            func comparisonWork(_ count: Int) throws {
-                guard count >= 0 else {
-                    throw GeometryConversionError.invalidInput("Original chart comparison requires nonnegative work.")
-                }
-                for _ in 0..<count { try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork(0) }
-            }
-            try GeometryStructuralComparisonWork.charge(surface: surface, using: comparisonWork)
-            try GeometryStructuralComparisonWork.charge(surface: image.source.surface, using: comparisonWork)
-            try GeometryStructuralComparisonWork.charge(surface: image.target.source, using: comparisonWork)
+            try GeometryStructuralComparisonWork.charge(surface: surface, using: &execution)
+            try GeometryStructuralComparisonWork.charge(surface: image.source.surface, using: &execution)
+            try GeometryStructuralComparisonWork.charge(surface: image.target.source, using: &execution)
             guard surface == .procedural(.originalAffineWord(image.target)),
                 image.source.surface == image.target.source,
                 image.startFraction.isFinite, image.endFraction.isFinite,
@@ -102,8 +89,7 @@ extension SurfaceParameterCurve {
             }
             try Surface3D.procedural(.originalAffineWord(image.target)).validateOriginalSource(
                 tolerance: tolerance, remainingSourceDepth: remainingSourceDepth - 1,
-                maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: consumeWork, consumeStorage: consumeStorage,
-                maximumAlgebraicDepth: maximumAlgebraicDepth)
+                maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, atSourceDepth: sourceDepth + 1, using: &execution)
             try source(image.source.parameterCurve, on: image.source.surface)
         case .originalImage(let image):
             guard surface == .parameterImage(image.targetImage), image.source.surface == image.targetImage.source,
@@ -115,17 +101,14 @@ extension SurfaceParameterCurve {
             }
             try Surface3D.parameterImage(image.targetImage).validateOriginalSource(tolerance: tolerance,
                 remainingSourceDepth: remainingSourceDepth - 1,
-                maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: consumeWork, consumeStorage: consumeStorage,
-                maximumAlgebraicDepth: maximumAlgebraicDepth)
+                maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, atSourceDepth: sourceDepth + 1, using: &execution)
             try source(image.source.parameterCurve, on: image.source.surface)
         case .certifiedImplicit(let chart):
             try chart.intersection.validateCertificationContract(tolerance: tolerance)
             if maximumAlgebraicDepth != nil {
                 try Curve3D.implicit(chart.intersection).validateOriginalSource(tolerance: tolerance,
                     remainingSourceDepth: remainingSourceDepth,
-                    maximumSubdivisionDepth: maximumSubdivisionDepth,
-                    consumeWork: consumeWork, consumeStorage: consumeStorage,
-                    maximumAlgebraicDepth: maximumAlgebraicDepth)
+                    maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, atSourceDepth: sourceDepth, using: &execution)
             }
             // Only admitted immutable constructors/decoders can create this
             // chart; validation consumes its original hosting/trim witness.
@@ -148,11 +131,9 @@ extension SurfaceParameterCurve {
                 throw GeometryConversionError.resourceLimitExceeded("Original projected pcurve exhausted source depth.")
             }
             try chart.curve.validateOriginalSource(tolerance: tolerance, remainingSourceDepth: remainingSourceDepth - 1,
-                maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: consumeWork, consumeStorage: consumeStorage,
-                maximumAlgebraicDepth: maximumAlgebraicDepth)
+                maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, atSourceDepth: sourceDepth + 1, using: &execution)
             try chart.surface.validateOriginalSource(tolerance: tolerance, remainingSourceDepth: remainingSourceDepth - 1,
-                maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: consumeWork, consumeStorage: consumeStorage,
-                maximumAlgebraicDepth: maximumAlgebraicDepth)
+                maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, atSourceDepth: sourceDepth + 1, using: &execution)
             try chart.validate(on: surface, tolerance: tolerance)
         case .rigidImage(let image):
             try image.transform.validate(tolerance: tolerance)
@@ -166,21 +147,19 @@ extension SurfaceParameterCurve {
             // Transform/target equality was proven by the immutable source
             // constructor. Replaying a rounded tensor transform is unnecessary.
             try image.source.surface.validateOriginalSource(tolerance: tolerance, remainingSourceDepth: remainingSourceDepth - 1,
-                maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: consumeWork, consumeStorage: consumeStorage,
-                maximumAlgebraicDepth: maximumAlgebraicDepth)
+                maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, atSourceDepth: sourceDepth + 1, using: &execution)
             try source(image.source.parameterCurve, on: image.source.surface)
         case .periodicTranslation(let base, let u, let v):
             try source(base, on: surface)
             guard u.isFinite, v.isFinite else { throw GeometryError.invalidDistance(0) }
-            try withoutActuallyEscaping(consumeWork) { visit in
-                var usage = OriginalGeometryValidationAdmission(consumeWork: visit, consumeStorage: consumeStorage)
+
                 guard try OriginalSurfacePeriodShift.proves(on: surface, uShift: u, vShift: v,
                     remainingSourceDepth: remainingSourceDepth,
                     maximumSubdivisionDepth: maximumSubdivisionDepth,
-                    tolerance: tolerance, usage: &usage) else {
+                    tolerance: tolerance, using: &execution) else {
                     throw GeometryConversionError.invalidInput("Original pcurve shift is not in the support period lattice.")
                 }
-            }
+
         case .originalBSplineContinuation(let chart):
             guard chart.certificationTolerance == tolerance, chart.startParameter.isFinite,
                   chart.endParameter.isFinite, chart.startParameter != chart.endParameter,
@@ -190,14 +169,13 @@ extension SurfaceParameterCurve {
             guard remainingSourceDepth > 0 else {
                 throw GeometryConversionError.resourceLimitExceeded("Original continuation exhausted source depth.")
             }
-            try chart.original.validate(tolerance: tolerance, consumeWork: { try consumeWork(0) })
+            try chart.original.validate(tolerance: tolerance, using: &execution)
             let cover = try chart.originalParameterBounds(over: .init(lower: 0, upper: 1),
                 tolerance: tolerance, maximumSpanCount: chart.original.controlPoints.count,
                 maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
-                consumeWork: { try consumeWork(0) }, consumeStorage: consumeStorage,
-                maximumAlgebraicDepth: maximumAlgebraicDepth)
+                maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
             for (value, domain) in [(cover.u, surface.uDomain), (cover.v, surface.vDomain)] {
-                try consumeWork(0)
+                try execution.consumeWork(1)
                 guard value.lower.isFinite, value.upper.isFinite else {
                     throw GeometryConversionError.resourceLimitExceeded("Original continuation support bounds are nonfinite.")
                 }
@@ -210,14 +188,22 @@ extension SurfaceParameterCurve {
             try image.validateOriginalRelation(on: surface, tolerance: tolerance,
                 remainingSourceDepth: remainingSourceDepth,
                 maximumSubdivisionDepth: maximumSubdivisionDepth,
-                consumeWork: { try consumeWork(0) })
-        case .certifiedAnalyticImplicit, .certifiedAnalyticPair:
-            // FIXME(INCOMPLETE_IMPLEMENTATION): These callable manual BRep
-            // validation branches still require original analytic
-            // certificate proof loops to accept the composing ledger.
-            // No private allowance or outer phase debit can authorize success.
-            throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
-                message: "Original pcurve proof validation requires caller-admitted lower producers.")
+                using: &execution)
+        case .certifiedAnalyticImplicit(let certified):
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Existing analytic certificate
+            // validation is caller-admitted; original exact source correspondence
+            // and complete coverage remain separate certified-family obligations.
+            try execution.withSourceDepthOffset(sourceDepth) { execution in
+                try certified.validate(on: surface, tolerance: tolerance, using: &execution)
+            }
+        case .certifiedAnalyticPair(let certified):
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Existing analytic certificate
+            // validation is caller-admitted; original exact source correspondence
+            // and complete coverage remain separate certified-family obligations.
+            try execution.withSourceDepthOffset(sourceDepth) { execution in
+                try certified.validate(on: surface, tolerance: tolerance, using: &execution)
+            }
+        }
         }
     }
 }

@@ -18,6 +18,27 @@ struct ImplicitSurfaceParameterThirdDerivativeSolver {
         tolerance: ModelingTolerance,
         diagnosticContext: String
     ) throws -> Point2D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try solve(surface: surface, firstParameterDerivative: first,
+            secondParameterDerivative: second, knownThirdParameterDerivative: knownThird,
+            solvedCoordinate: solvedCoordinate, implicitGradient: implicitGradient,
+            implicitHessian: implicitHessian, implicitThirdDifferential: implicitThirdDifferential,
+            tolerance: tolerance, diagnosticContext: diagnosticContext, using: &execution)
+    }
+
+    func solve<A: ExactScalarAdmission & ~Copyable>(
+        surface: SurfaceParameterThirdOrderDerivatives,
+        firstParameterDerivative first: Point2D,
+        secondParameterDerivative second: Point2D,
+        knownThirdParameterDerivative knownThird: Point2D,
+        solvedCoordinate: SolvedCoordinate,
+        implicitGradient: Vector3D,
+        implicitHessian: (Vector3D, Vector3D) -> Double,
+        implicitThirdDifferential: (Vector3D, Vector3D, Vector3D) -> Double,
+        tolerance: ModelingTolerance,
+        diagnosticContext: String, using execution: inout A
+    ) throws -> Point2D {
+        try execution.consumeWork(1)
         let solvedTangent: Vector3D
         switch solvedCoordinate {
         case .u:
@@ -44,21 +65,25 @@ struct ImplicitSurfaceParameterThirdDerivativeSolver {
             )
         }
 
+        try execution.consumeWork(1)
         let spatialFirst = SurfaceParameterThirdOrderChainRule.firstDerivative(
             surface: surface,
             parameter: first
         )
+        try execution.consumeWork(1)
         let spatialSecond = SurfaceParameterThirdOrderChainRule.secondDerivative(
             surface: surface,
             firstParameterDerivative: first,
             secondParameterDerivative: second
         )
+        try execution.consumeWork(1)
         let knownSpatialThird = SurfaceParameterThirdOrderChainRule.thirdDerivative(
             surface: surface,
             firstParameterDerivative: first,
             secondParameterDerivative: second,
             thirdParameterDerivative: knownThird
         )
+        try execution.consumeWork(1)
         let knownImplicitThird = implicitGradient.dot(knownSpatialThird)
             + 3.0 * implicitHessian(spatialSecond, spatialFirst)
             + implicitThirdDifferential(
@@ -89,6 +114,7 @@ struct ImplicitSurfaceParameterThirdDerivativeSolver {
                 message: "\(diagnosticContext) failed implicit third-derivative reconstruction."
             )
         }
+        try execution.checkpoint()
         return result
     }
 }

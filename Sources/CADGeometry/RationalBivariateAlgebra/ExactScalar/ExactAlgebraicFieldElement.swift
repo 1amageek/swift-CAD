@@ -2,14 +2,14 @@
 struct ExactAlgebraicFieldElement: Sendable {
     let numerator: ExactBivariatePolynomial
     let denominator: ExactBivariatePolynomial
-    init<B: RationalAlgebraAdmitting>(polynomial: ExactBivariatePolynomial, usage: inout B) throws {
+    init<B: ExactScalarAdmission & ~Copyable>(polynomial: ExactBivariatePolynomial, usage: inout B) throws {
         guard polynomial.vDegree <= 0 else { throw exactScalarBackendFailure("Algebraic field coefficient must belong to Q[u].") }
         numerator = polynomial; denominator = try .constant(.one, usage: &usage)
     }
     private init(numerator: ExactBivariatePolynomial, denominator: ExactBivariatePolynomial) {
         self.numerator = numerator; self.denominator = denominator
     }
-    func sign<B: RationalAlgebraAdmitting>(at root: ExactAlgebraicRealRoot,
+    func sign<B: ExactScalarAdmission & ~Copyable>(at root: ExactAlgebraicRealRoot,
         maximumDepth: Int, usage: inout B) throws -> ExactAlgebraicRealRoot.Sign {
         let n = try root.sign(of: numerator, maximumDepth: maximumDepth, usage: &usage)
         if case .zero = n { return .zero }
@@ -20,22 +20,22 @@ struct ExactAlgebraicFieldElement: Sendable {
         default: return .negative
         }
     }
-    func adding<B: RationalAlgebraAdmitting>(_ other: Self, usage: inout B) throws -> Self {
+    func adding<B: ExactScalarAdmission & ~Copyable>(_ other: Self, usage: inout B) throws -> Self {
         try Self(numerator: numerator.multiplied(by: other.denominator, usage: &usage)
             .adding(other.numerator.multiplied(by: denominator, usage: &usage), usage: &usage),
             denominator: denominator.multiplied(by: other.denominator, usage: &usage))
     }
-    func negated<B: RationalAlgebraAdmitting>(usage: inout B) throws -> Self {
+    func negated<B: ExactScalarAdmission & ~Copyable>(usage: inout B) throws -> Self {
         try Self(numerator: numerator.scaled(by: .one.negated, usage: &usage), denominator: denominator)
     }
-    func subtracting<B: RationalAlgebraAdmitting>(_ other: Self, usage: inout B) throws -> Self {
+    func subtracting<B: ExactScalarAdmission & ~Copyable>(_ other: Self, usage: inout B) throws -> Self {
         try adding(other.negated(usage: &usage), usage: &usage)
     }
-    func multiplied<B: RationalAlgebraAdmitting>(by other: Self, usage: inout B) throws -> Self {
+    func multiplied<B: ExactScalarAdmission & ~Copyable>(by other: Self, usage: inout B) throws -> Self {
         try Self(numerator: numerator.multiplied(by: other.numerator, usage: &usage),
             denominator: denominator.multiplied(by: other.denominator, usage: &usage))
     }
-    func divided<B: RationalAlgebraAdmitting>(by other: Self, at root: ExactAlgebraicRealRoot,
+    func divided<B: ExactScalarAdmission & ~Copyable>(by other: Self, at root: ExactAlgebraicRealRoot,
         maximumDepth: Int, usage: inout B) throws -> Self {
         if case .zero = try other.sign(at: root, maximumDepth: maximumDepth, usage: &usage) {
             throw exactScalarBackendFailure("Exact algebraic field division by a zero source value.")

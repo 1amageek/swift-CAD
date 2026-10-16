@@ -15,20 +15,20 @@ public struct OriginalDraftedCurve3D: Hashable, Sendable {
     private let sineSquared: OutwardScalarInterval
     private struct Cell { let range: ScalarInterval; let depth: Int }
 
-    public init<B: RationalAlgebraAdmitting>(generator: OriginalCurveRootSpan3D,
+    public init<B: ExactScalarAdmission & ~Copyable>(generator: OriginalCurveRootSpan3D,
         normal: Vector3D, axis: Vector3D, pull: Vector3D, height: Double, angle: Double,
         remainingSourceDepth: Int, tolerance: ModelingTolerance, usage: inout B) throws {
-        try usage.consumeExactWork(1)
+        try usage.consumeWork(1)
         try tolerance.validate()
         guard tolerance == generator.certificationTolerance, height.isFinite,
             angle.isFinite, abs(angle) < Double.pi * 0.5, remainingSourceDepth > 0 else {
             throw GeometryConversionError.invalidInput("Original draft requires its finite heights, physical angle and retained source capabilities.")
         }
-        unitNormal = try Self.unit(normal, consumeWork: { try usage.consumeExactWork(1) })
-        unitAxis = try Self.unit(axis, consumeWork: { try usage.consumeExactWork(1) })
-        unitPull = try Self.unit(pull, consumeWork: { try usage.consumeExactWork(1) })
+        unitNormal = try Self.unit(normal, using: &usage)
+        unitAxis = try Self.unit(axis, using: &usage)
+        unitPull = try Self.unit(pull, using: &usage)
         let sine = try CertifiedRotationTrigonometry.evaluate(.exact(angle), tolerance: tolerance,
-            consumeWork: { try usage.consumeExactWork(1) }).sine
+            using: &usage).sine
         sineSquared = angle == 0 ? .exact(0) : sine * sine
         let depth = generator.remainingSourceDepth.addingReportingOverflow(1)
         guard !depth.overflow else { throw GeometryConversionError.resourceLimitExceeded("Original draft source depth overflows.") }
@@ -41,6 +41,7 @@ public struct OriginalDraftedCurve3D: Hashable, Sendable {
     package var maximumSpanCount: Int { min(4096, generator.maximumSpanCount) }
     package var maximumSubdivisionDepth: Int { min(32, generator.maximumSubdivisionDepth) }
     package var remainingSourceDepth: Int { retainedSourceDepth }
+    package var sourceProofDepth: Int { generator.sourceProofDepth + 2 }
     public static func == (a: Self, b: Self) -> Bool {
         a.generator == b.generator && a.normal == b.normal && a.axis == b.axis &&
             a.pull == b.pull && a.height == b.height && a.angle == b.angle
@@ -56,24 +57,29 @@ public struct OriginalDraftedCurve3D: Hashable, Sendable {
         }
     }
 
+    public func validate(tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try execution.admitSourceDepth(sourceProofDepth)
+        try validate(tolerance: tolerance)
+    }
+
     package func intervalTaylorJet(over parameters: ScalarInterval, throughOrder order: Int,
         tolerance: ModelingTolerance, maximumSpanCount: Int, maximumSubdivisionDepth: Int,
-        remainingSourceDepth: Int, consumeWork: () throws -> Void,
-        consumeStorage: ((Int) throws -> Void)? = nil) throws -> SurfaceAreaIntervalTaylorVectorJet {
+        remainingSourceDepth: Int, using execution: inout OriginalQueryExecution) throws -> SurfaceAreaIntervalTaylorVectorJet {
         let law = try rulingJet(over: parameters, throughOrder: order, tolerance: tolerance,
             maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-            remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage)
+            remainingSourceDepth: remainingSourceDepth, using: &execution)
         return try law.position.adding(law.ruling.scaled(by: .exact(height),
-            consumeWork: consumeWork, consumeStorage: consumeStorage),
-            consumeWork: consumeWork, consumeStorage: consumeStorage)
+            using: &execution),
+            using: &execution)
     }
 
     /// Continuous original derivative authority, rather than synthetic owner counting.
     package func hasOriginalFirstOrderContinuity(over parameters: ScalarInterval,
         tolerance: ModelingTolerance, maximumSpanCount: Int, maximumSubdivisionDepth: Int,
-        remainingSourceDepth: Int, consumeWork: () throws -> Void,
-        consumeStorage: ((Int) throws -> Void)? = nil) throws -> Bool {
-        try validate(tolerance: tolerance); try consumeWork()
+        remainingSourceDepth: Int, using execution: inout OriginalQueryExecution) throws -> Bool {
+        try validate(tolerance: tolerance, using: &execution); try execution.consumeWork(1)
         guard parameters.lower >= 0, parameters.upper <= 1, remainingSourceDepth > 0,
             maximumSpanCount > 0, maximumSubdivisionDepth >= 0 else {
             throw GeometryConversionError.invalidInput("Original draft continuity exceeds its retained source capabilities.")
@@ -85,20 +91,48 @@ public struct OriginalDraftedCurve3D: Hashable, Sendable {
             maximumSpanCount: min(maximumSpanCount, self.maximumSpanCount),
             maximumSubdivisionDepth: min(maximumSubdivisionDepth, self.maximumSubdivisionDepth),
             remainingSourceDepth: min(depth-1, generator.remainingSourceDepth),
-            consumeWork: consumeWork, consumeStorage: consumeStorage) else { return false }
+            using: &execution) else { return false }
         _ = try rulingJet(over: range, throughOrder: 1, tolerance: tolerance,
             maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-            remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage)
+            remainingSourceDepth: remainingSourceDepth, using: &execution)
         return true
     }
 
     /// Closed source coefficients; subdivision refines bounds, never the source branch.
     package func rulingJet(over parameters: ScalarInterval, throughOrder order: Int,
         tolerance: ModelingTolerance, maximumSpanCount: Int, maximumSubdivisionDepth: Int,
-        remainingSourceDepth: Int, consumeWork: () throws -> Void,
-        consumeStorage: ((Int) throws -> Void)? = nil)
+        remainingSourceDepth: Int, using execution: inout OriginalQueryExecution)
         throws -> (position: SurfaceAreaIntervalTaylorVectorJet, ruling: SurfaceAreaIntervalTaylorVectorJet) {
-        try validate(tolerance: tolerance); try consumeWork()
+        try execution.admitSourceDepth(sourceProofDepth)
+        return try rulingJet(over: parameters, throughOrder: order, tolerance: tolerance,
+            maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
+            remainingSourceDepth: remainingSourceDepth, using: &execution) { range, order, sourceDepth, subdivisionDepth, execution in
+                try generator.intervalTaylorJet(over: range, throughOrder: order, tolerance: tolerance,
+                    maximumSpanCount: min(maximumSpanCount, self.maximumSpanCount),
+                    maximumSubdivisionDepth: subdivisionDepth, remainingSourceDepth: sourceDepth, using: &execution)
+            }
+    }
+
+    /// Source-only Native proof uses the same ruling driver and every original guard.
+    package func nativeRulingJet<A: ExactScalarAdmission & ~Copyable>(over parameters: ScalarInterval,
+        throughOrder order: Int, tolerance: ModelingTolerance, maximumSpanCount: Int,
+        maximumSubdivisionDepth: Int, remainingSourceDepth: Int, using a: inout A)
+        throws -> (position: SurfaceAreaIntervalTaylorVectorJet, ruling: SurfaceAreaIntervalTaylorVectorJet) {
+        try rulingJet(over: parameters, throughOrder: order, tolerance: tolerance,
+            maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
+            remainingSourceDepth: remainingSourceDepth, using: &a) { range, order, sourceDepth, subdivisionDepth, a in
+                try generator.nativeTaylorJet(over: range, throughOrder: order, tolerance: tolerance,
+                    maximumSpanCount: min(maximumSpanCount, self.maximumSpanCount),
+                    maximumSubdivisionDepth: subdivisionDepth, remainingSourceDepth: sourceDepth, using: &a)
+            }
+    }
+
+    private func rulingJet<A: ExactScalarAdmission & ~Copyable>(over parameters: ScalarInterval,
+        throughOrder order: Int, tolerance: ModelingTolerance, maximumSpanCount: Int,
+        maximumSubdivisionDepth: Int, remainingSourceDepth: Int, using execution: inout A,
+        generatorJet: (ScalarInterval, Int, Int, Int, inout A) throws -> SurfaceAreaIntervalTaylorVectorJet)
+        throws -> (position: SurfaceAreaIntervalTaylorVectorJet, ruling: SurfaceAreaIntervalTaylorVectorJet) {
+        try validate(tolerance: tolerance); try execution.consumeWork(1)
         let higher = order.addingReportingOverflow(1)
         guard !higher.overflow, order >= 0, parameters.lower >= 0, parameters.upper <= 1,
             maximumSpanCount > 0, maximumSubdivisionDepth >= 0, remainingSourceDepth > 0 else {
@@ -107,49 +141,37 @@ public struct OriginalDraftedCurve3D: Hashable, Sendable {
         let sourceDepth = min(remainingSourceDepth, retainedSourceDepth)
         let depthLimit = min(maximumSubdivisionDepth, self.maximumSubdivisionDepth)
         if angle == 0, pull == axis {
-            try consumeWork()
+            try execution.consumeWork(1)
             let clearance = unitNormal.x*unitAxis.x + unitNormal.y*unitAxis.y + unitNormal.z*unitAxis.z
             if clearance.lower > 0 || clearance.upper < 0 {
-                var remaining = 65_536
-                func visit() throws {
-                    guard remaining > 0 else {
-                        throw GeometryConversionError.resourceLimitExceeded("Original translation exhausted its unchanged query work allowance.")
-                    }
-                    remaining -= 1; try consumeWork()
-                }
-                let original = try generator.intervalTaylorJet(over: parameters, throughOrder: order,
-                    tolerance: tolerance, consumeWork: visit,
-                    maximumSpanCount: min(maximumSpanCount,self.maximumSpanCount),
-                    remainingSourceDepth: min(sourceDepth-1,generator.remainingSourceDepth),
-                    consumeStorage: consumeStorage, maximumSubdivisionDepth: depthLimit)
+                return try execution.withProofScope(maximumWorkUnits: 65_536) { execution in
+                let original = try generatorJet(parameters, order,
+                    min(sourceDepth-1,generator.remainingSourceDepth), depthLimit, &execution)
                 func constant(_ value: OutwardScalarInterval) throws -> SurfaceAreaIntervalTaylorScalarJet {
                     try .constant(value, order: order, axis: .u, tolerance: tolerance,
-                        consumeWork: visit, consumeStorage: consumeStorage)
+                        using: &execution)
                 }
                 let ruling = try SurfaceAreaIntervalTaylorVectorJet(x: constant(unitAxis.x),
                     y: constant(unitAxis.y), z: constant(unitAxis.z))
                 return (original,ruling)
+                }
             }
         }
-        try OriginalCoefficientAllocation.reserve(count: depthLimit + 1, of: Cell.self, consumeStorage: consumeStorage)
+        try OriginalCoefficientAllocation.reserve(count: depthLimit + 1, of: Cell.self, using: &execution)
         var pending: [Cell] = []; pending.reserveCapacity(depthLimit + 1)
         pending.append(.init(range: parameters, depth: 0))
         var position: SurfaceAreaIntervalTaylorVectorJet?
         var ruling: SurfaceAreaIntervalTaylorVectorJet?
-        var remaining = 65_536
-        func visit() throws {
-            guard remaining > 0 else { throw GeometryConversionError.resourceLimitExceeded("Original draft exhausted its unchanged query allowance.") }
-            remaining -= 1; try consumeWork()
-        }
+        return try execution.withProofScope(maximumWorkUnits: 65_536) { execution in
         func union(_ a: SurfaceAreaIntervalTaylorVectorJet?, _ b: SurfaceAreaIntervalTaylorVectorJet)
             throws -> SurfaceAreaIntervalTaylorVectorJet {
             guard let a else { return b }
             func scalar(_ a: SurfaceAreaIntervalTaylorScalarJet, _ b: SurfaceAreaIntervalTaylorScalarJet)
                 throws -> SurfaceAreaIntervalTaylorScalarJet {
                 var result = try SurfaceAreaIntervalTaylorScalarJet(order: order, axis: .u,
-                    tolerance: tolerance, consumeWork: visit, consumeStorage: consumeStorage)
+                    tolerance: tolerance, using: &execution)
                 for k in 0...order {
-                    try visit()
+                    try execution.consumeWork(1)
                     let x = try a.coefficient(k,0), y = try b.coefficient(k,0)
                     try result.set(.init(lower: min(x.lower,y.lower), upper: max(x.upper,y.upper)),k,0)
                 }
@@ -158,16 +180,13 @@ public struct OriginalDraftedCurve3D: Hashable, Sendable {
             return try .init(x: scalar(a.x,b.x), y: scalar(a.y,b.y), z: scalar(a.z,b.z))
         }
         while let cell = pending.popLast() {
-            try visit()
-            let raw = try generator.intervalTaylorJet(over: cell.range, throughOrder: higher.partialValue,
-                tolerance: tolerance, consumeWork: visit,
-                maximumSpanCount: min(maximumSpanCount,self.maximumSpanCount),
-                remainingSourceDepth: min(sourceDepth-1,generator.remainingSourceDepth),
-                consumeStorage: consumeStorage, maximumSubdivisionDepth: depthLimit-cell.depth)
-            let original = try raw.truncated(to: order, consumeWork: visit, consumeStorage: consumeStorage)
-            let velocity = try raw.differentiated(alongU: true, consumeWork: visit, consumeStorage: consumeStorage)
+            try execution.consumeWork(1)
+            let raw = try generatorJet(cell.range, higher.partialValue,
+                min(sourceDepth-1,generator.remainingSourceDepth), depthLimit-cell.depth, &execution)
+            let original = try raw.truncated(to: order, using: &execution)
+            let velocity = try raw.differentiated(alongU: true, using: &execution)
             if let direction = try self.ruling(velocity: velocity, order: order, tolerance: tolerance,
-                consumeWork: visit, consumeStorage: consumeStorage) {
+                using: &execution) {
                 position = try union(position,original); ruling = try union(ruling,direction)
             } else {
                 let middle = cell.range.midpoint
@@ -180,28 +199,28 @@ public struct OriginalDraftedCurve3D: Hashable, Sendable {
         }
         guard let position, let ruling else { throw GeometryConversionError.invalidInput("Original draft has no complete original owning cover.") }
         return (position,ruling)
+        }
     }
 
-    private func ruling(velocity: SurfaceAreaIntervalTaylorVectorJet, order: Int,
-        tolerance: ModelingTolerance, consumeWork work: () throws -> Void,
-        consumeStorage storage: ((Int) throws -> Void)?) throws -> SurfaceAreaIntervalTaylorVectorJet? {
+    private func ruling<A: ExactScalarAdmission & ~Copyable>(velocity: SurfaceAreaIntervalTaylorVectorJet, order: Int,
+        tolerance: ModelingTolerance, using execution: inout A) throws -> SurfaceAreaIntervalTaylorVectorJet? {
         typealias S = SurfaceAreaIntervalTaylorScalarJet
         typealias V = SurfaceAreaIntervalTaylorVectorJet
         func constant(_ x: OutwardScalarInterval) throws -> S {
-            try .constant(x,order:order,axis:.u,tolerance:tolerance,consumeWork:work,consumeStorage:storage)
+            try .constant(x,order:order,axis:.u,tolerance:tolerance,using:&execution)
         }
         func vector(_ x: IntervalVector3DBounds) throws -> V { try .init(x:constant(x.x),y:constant(x.y),z:constant(x.z)) }
-        func add(_ a:S,_ b:S) throws -> S { try a.adding(b,consumeWork:work,consumeStorage:storage) }
-        func sub(_ a:S,_ b:S) throws -> S { try a.subtracting(b,consumeWork:work,consumeStorage:storage) }
-        func mul(_ a:S,_ b:S) throws -> S { try a.multiplied(by:b,consumeWork:work,consumeStorage:storage) }
-        func scale(_ a:S,_ b:Double) throws -> S { try a.scaled(by:.exact(b),consumeWork:work,consumeStorage:storage) }
+        func add(_ a:S,_ b:S) throws -> S { try a.adding(b,using:&execution) }
+        func sub(_ a:S,_ b:S) throws -> S { try a.subtracting(b,using:&execution) }
+        func mul(_ a:S,_ b:S) throws -> S { try a.multiplied(by:b,using:&execution) }
+        func scale(_ a:S,_ b:Double) throws -> S { try a.scaled(by:.exact(b),using:&execution) }
         func dot(_ a:V,_ b:V) throws -> S { try add(add(mul(a.x,b.x),mul(a.y,b.y)),mul(a.z,b.z)) }
         let speedSquared = try dot(velocity,velocity)
         guard try speedSquared.coefficient(0,0).lower > 0 else { return nil }
-        let tangent = try velocity.normalized(consumeWork:work,consumeStorage:storage)
+        let tangent = try velocity.normalized(using:&execution)
         let n = try vector(unitNormal), a = try vector(unitAxis), p = try vector(unitPull)
-        let across = try tangent.cross(n,consumeWork:work,consumeStorage:storage)
-        let q = try tangent.cross(a,consumeWork:work,consumeStorage:storage)
+        let across = try tangent.cross(n,using:&execution)
+        let q = try tangent.cross(a,using:&execution)
         let np = try dot(n,p), qp = try dot(q,p)
         let s2 = try constant(sineSquared)
         let quadratic = try sub(mul(np,np),s2)
@@ -215,10 +234,10 @@ public struct OriginalDraftedCurve3D: Hashable, Sendable {
         if angle == 0 {
             guard try np.coefficient(0,0).lower > 0 || np.coefficient(0,0).upper < 0 else { return nil }
             if pull == axis {
-                try work()
+                try execution.consumeWork(1)
                 return a
             }
-            k = try mul(qp,np.reciprocal(consumeWork:work,consumeStorage:storage))
+            k = try mul(qp,np.reciprocal(using:&execution))
         } else {
             let linear = try scale(sub(mul(s2,dot(q,n)),mul(qp,np)),2)
             let term = try sub(mul(qp,qp),mul(s2,dot(q,q)))
@@ -229,16 +248,16 @@ public struct OriginalDraftedCurve3D: Hashable, Sendable {
                     message:"Original draft proves its selected quadratic ruling has no real root.")
             }
             guard d.lower > 0 else { return nil }
-            let root = try discriminant.squareRoot(consumeWork:work,consumeStorage:storage)
+            let root = try discriminant.squareRoot(using:&execution)
             k = try scale(mul(add(scale(linear,-1),scale(root,angle >= 0 ? -1 : 1)),
-                quadratic.reciprocal(consumeWork:work,consumeStorage:storage)),0.5)
+                quadratic.reciprocal(using:&execution)),0.5)
         }
-        return try a.adding(across.multiplied(by:k,consumeWork:work,consumeStorage:storage),
-            consumeWork:work,consumeStorage:storage)
+        return try a.adding(across.multiplied(by:k,using:&execution),
+            using:&execution)
     }
 
-    private static func unit(_ raw: Vector3D, consumeWork: () throws -> Void) throws -> IntervalVector3DBounds {
-        try consumeWork()
+    private static func unit<A: ExactScalarAdmission & ~Copyable>(_ raw: Vector3D, using execution: inout A) throws -> IntervalVector3DBounds {
+        try execution.consumeWork(1)
         let scale = max(abs(raw.x),max(abs(raw.y),abs(raw.z)))
         guard scale.isFinite, scale > 0,
             let x = OutwardScalarInterval.exact(raw.x).divided(by:.exact(scale)),
@@ -254,10 +273,23 @@ public struct OriginalDraftedCurve3D: Hashable, Sendable {
         return .init(x:x*inverse,y:y*inverse,z:z*inverse)
     }
 
+    package func independentExecution() throws -> OriginalQueryExecution {
+        OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try OriginalQueryExecutionLimits(maximumValueDepth: generator.maximumAlgebraicDepth,
+                maximumCoefficientDepth: generator.maximumAlgebraicDepth,
+                remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth))
+    }
+
     public func point(at parameter: Double, tolerance: ModelingTolerance) throws -> Point3D {
+        var execution = try independentExecution()
+        return try point(at: parameter, tolerance: tolerance, using: &execution)
+    }
+
+    public func point(at parameter: Double, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> Point3D {
         let q = try intervalTaylorJet(over:.init(lower:parameter,upper:parameter),throughOrder:0,
             tolerance:tolerance,maximumSpanCount:maximumSpanCount,maximumSubdivisionDepth:maximumSubdivisionDepth,
-            remainingSourceDepth:remainingSourceDepth,consumeWork:{ try CurrentTaskCancellationChecker().checkCancellation() })
+            remainingSourceDepth:remainingSourceDepth,using:&execution)
         let x = try q.x.coefficient(0,0), y = try q.y.coefficient(0,0), z = try q.z.coefficient(0,0)
         let result = Point3D(x:x.midpoint,y:y.midpoint,z:z.midpoint)
         guard IntervalVector3DBounds(x:x - .exact(result.x),y:y - .exact(result.y),z:z - .exact(result.z)).lengthUpperBound <= tolerance.distance else {

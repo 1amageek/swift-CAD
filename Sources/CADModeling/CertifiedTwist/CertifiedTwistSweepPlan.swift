@@ -13,7 +13,6 @@ package struct CertifiedTwistSweepPlan: Sendable {
     package let positionErrorUpperBound: Double
     package let profilePlane: SketchPlane
     package let terminalSectionCollapsed: Bool
-    package let admission: GeometryConversionAdmission
 
     /// Whether the options ask for a certified twist: a twist law, or an allowance with a twist
     /// angle that is not a literal zero. An allowance alone asks for no twist; it bounds whichever
@@ -25,18 +24,31 @@ package struct CertifiedTwistSweepPlan: Sendable {
         return true
     }
 
+    package init(profile: Profile, pathSegments: [EvaluatedCurvePathSegment],
+        sweep: SweepFeature, values: SweepOptionValues, tolerance: ModelingTolerance) throws {
+        var execution = try CurvedSweepSourceBudget(tolerance: tolerance).execution()
+        try self.init(profile: profile, pathSegments: pathSegments, sweep: sweep,
+            values: values, tolerance: tolerance, using: &execution)
+    }
+
+    package init(section: ResolvedModelingSection, pathSegments: [EvaluatedCurvePathSegment],
+        sweep: SweepFeature, values: SweepOptionValues, tolerance: ModelingTolerance) throws {
+        var execution = try CurvedSweepSourceBudget(tolerance: tolerance).execution()
+        try self.init(section: section, pathSegments: pathSegments, sweep: sweep,
+            values: values, tolerance: tolerance, using: &execution)
+    }
+
     package init(
         profile: Profile,
         pathSegments: [EvaluatedCurvePathSegment],
         sweep: SweepFeature,
         values: SweepOptionValues,
         tolerance: ModelingTolerance,
-        admission: GeometryConversionAdmission? = nil
+        using execution: inout OriginalQueryExecution
     ) throws {
-        let admission = try admission ?? CurvedSweepSourceBudget(tolerance: tolerance).conversionAdmission()
-        try self.init(sectionLoops: try ExactBSplineCurveSpanBuilder(tolerance: tolerance, admission: admission).profileLoopSpans(from: profile),
+        try self.init(sectionLoops: try ExactBSplineCurveSpanBuilder(tolerance: tolerance, using: &execution).profileLoopSpans(from: profile, using: &execution),
                       sectionIsClosed: true, profilePlane: profile.plane, pathSegments: pathSegments, sweep: sweep,
-                      values: values, tolerance: tolerance, admission: admission)
+                      values: values, tolerance: tolerance, using: &execution)
     }
 
     /// The plan for a resolved section: a profile's loops, or a curve as one open or closed loop.
@@ -46,17 +58,16 @@ package struct CertifiedTwistSweepPlan: Sendable {
         sweep: SweepFeature,
         values: SweepOptionValues,
         tolerance: ModelingTolerance,
-        admission: GeometryConversionAdmission? = nil
+        using execution: inout OriginalQueryExecution
     ) throws {
-        let admission = try admission ?? CurvedSweepSourceBudget(tolerance: tolerance).conversionAdmission()
-        let spans = ExactBSplineCurveSpanBuilder(tolerance: tolerance, admission: admission)
+        let spans = try ExactBSplineCurveSpanBuilder(tolerance: tolerance, using: &execution)
         switch section {
         case .profile, .face, .constructedRegion:
-            try self.init(sectionLoops: try spans.loopSpans(from: section), sectionIsClosed: true,
-                          profilePlane: try section.plane(), pathSegments: pathSegments, sweep: sweep, values: values, tolerance: tolerance, admission: admission)
+            try self.init(sectionLoops: try spans.loopSpans(from: section, using: &execution), sectionIsClosed: true,
+                          profilePlane: try section.plane(), pathSegments: pathSegments, sweep: sweep, values: values, tolerance: tolerance, using: &execution)
         case .curve(let curve):
-            try self.init(sectionLoops: [try spans.sectionSpans(from: curve)], sectionIsClosed: curve.isClosed,
-                          profilePlane: try section.plane(), pathSegments: pathSegments, sweep: sweep, values: values, tolerance: tolerance, admission: admission)
+            try self.init(sectionLoops: [try spans.sectionSpans(from: curve, using: &execution)], sectionIsClosed: curve.isClosed,
+                          profilePlane: try section.plane(), pathSegments: pathSegments, sweep: sweep, values: values, tolerance: tolerance, using: &execution)
         }
     }
 
@@ -68,11 +79,10 @@ package struct CertifiedTwistSweepPlan: Sendable {
         sweep: SweepFeature,
         values: SweepOptionValues,
         tolerance: ModelingTolerance,
-        admission: GeometryConversionAdmission? = nil
+        using execution: inout OriginalQueryExecution
     ) throws {
         try tolerance.validate()
-        let admission = try admission ?? CurvedSweepSourceBudget(tolerance: tolerance).conversionAdmission()
-        try admission.chargeWork()
+        try execution.consumeWork(1)
         guard sweep.options.resultKind == .sheet || sectionIsClosed else {
             throw Self.failure("A solid twisted sweep needs a closed section.", tolerance)
         }
@@ -82,12 +92,12 @@ package struct CertifiedTwistSweepPlan: Sendable {
               sweep.options.booleanOperation == .newBody else {
             throw Self.failure("Certified twist requires an explicit positive allowance, a nonnegative original linear scale, no guides and new-body output.", tolerance)
         }
-        let spanBuilder = ExactBSplineCurveSpanBuilder(tolerance: tolerance, admission: admission)
-        let originalPath = try spanBuilder.pathSpans(from: pathSegments)
+        let spanBuilder = try ExactBSplineCurveSpanBuilder(tolerance: tolerance, using: &execution)
+        let originalPath = try spanBuilder.pathSpans(from: pathSegments, using: &execution)
         // Whole original incidence and directed speed prove the linear locus;
         // no construction control net establishes the original path law.
         guard originalPath.count == 1, let path = originalPath.first,
-              try OriginalSweepPathLinearity(tolerance: tolerance, admission: admission).isStraight(originalPath) else {
+              try OriginalSweepPathLinearity(tolerance: tolerance).isStraight(originalPath, using: &execution) else {
             throw Self.failure("Certified twist initially requires one exact linear path span.", tolerance)
         }
         let start = path.startPoint
@@ -124,17 +134,17 @@ package struct CertifiedTwistSweepPlan: Sendable {
         case .plane(let value): sourcePlane = value
         }
         let originalPathSource = try OriginalCurveConstructionSource(chart: path.originalChart,
-            domain: ScalarInterval(lower: 0, upper: 1), tolerance: tolerance, admission: admission)
+            domain: ScalarInterval(lower: 0, upper: 1), tolerance: tolerance, using: &execution)
         let originalStart = try originalPathSource.enclosure(over: ScalarInterval(lower: 0, upper: 0),
-            tolerance: tolerance, admission: admission).position
+            tolerance: tolerance, using: &execution).position
         let originalEnd = try originalPathSource.enclosure(over: ScalarInterval(lower: 1, upper: 1),
-            tolerance: tolerance, admission: admission).position
+            tolerance: tolerance, using: &execution).position
         let arithmetic = try CertifiedTwistCoordinates(start: originalStart, fullEnd: originalEnd,
-            fraction: values.distanceFraction, plane: sourcePlane, tolerance: tolerance, admission: admission)
+            fraction: values.distanceFraction, plane: sourcePlane, tolerance: tolerance, using: &execution)
         var originalSectionError = 0.0
         for loop in loops {
             for span in loop {
-                try admission.chargeWork()
+                try execution.consumeWork(1)
                 originalSectionError = max(originalSectionError,
                     span.correspondence.guarantee?.positionErrorUpperBound ?? 0)
             }
@@ -143,17 +153,17 @@ package struct CertifiedTwistSweepPlan: Sendable {
         for loop in loops {
             for span in loop {
                 for point in span.curve.controlPoints {
-                    radius = max(radius, try arithmetic.radialBound(point))
+                    radius = max(radius, try arithmetic.radialBound(point, using: &execution))
                 }
             }
         }
         radius = (OutwardScalarInterval.exact(radius) + .exact(originalSectionError)).upper
         guard radius.isFinite else { throw Self.exhausted(tolerance) }
-        try Self.retain(positions.count - 1, of: Int.self, admission: admission, tolerance: tolerance)
+        try Self.retain(positions.count - 1, of: Int.self, using: &execution, tolerance: tolerance)
         var divisions = Array(repeating: 1, count: positions.count - 1)
         for index in divisions.indices {
             while true {
-                try admission.chargeWork()
+                try execution.consumeWork(1)
                 let delta = (OutwardScalarInterval.exact(angles[index + 1]) - .exact(angles[index]))
                     * .exact(1 / Double(divisions[index]))
                 let remainder = Self.remainder(radius: (OutwardScalarInterval.exact(radius) * .exact(max(1, values.endScale))).upper, delta: delta)
@@ -166,17 +176,17 @@ package struct CertifiedTwistSweepPlan: Sendable {
         let intervalCount = divisions.reduce(0, +)
         typealias SurfaceIntervals = [[BSplineSurface3D]]
         typealias SurfaceRow = [BSplineSurface3D]
-        try Self.retain(loops.count, of: SurfaceIntervals.self, admission: admission, tolerance: tolerance)
+        try Self.retain(loops.count, of: SurfaceIntervals.self, using: &execution, tolerance: tolerance)
         var built: [[[BSplineSurface3D]]] = []
         built.reserveCapacity(loops.count)
         for _ in loops {
-            try admission.chargeWork()
-            try Self.retain(intervalCount, of: SurfaceRow.self, admission: admission, tolerance: tolerance)
+            try execution.consumeWork(1)
+            try Self.retain(intervalCount, of: SurfaceRow.self, using: &execution, tolerance: tolerance)
             var intervals: [[BSplineSurface3D]] = []
             intervals.reserveCapacity(intervalCount)
             built.append(intervals)
         }
-        try Self.retain(intervalCount, of: ExactBSplineCurveSpan.self, admission: admission, tolerance: tolerance)
+        try Self.retain(intervalCount, of: ExactBSplineCurveSpan.self, using: &execution, tolerance: tolerance)
         var paths: [ExactBSplineCurveSpan] = []
         paths.reserveCapacity(intervalCount)
         var maximumError = 0.0
@@ -187,9 +197,9 @@ package struct CertifiedTwistSweepPlan: Sendable {
             let angleStart = OutwardScalarInterval.exact(angles[lawIndex])
             let angleWidth = OutwardScalarInterval.exact(angles[lawIndex + 1]) - angleStart
             for index in 0..<count {
-                try admission.chargeWork()
-                try Self.retain(30, of: OutwardScalarInterval.self, admission: admission, tolerance: tolerance)
-                try admission.chargeWork(30)
+                try execution.consumeWork(1)
+                try Self.retain(30, of: OutwardScalarInterval.self, using: &execution, tolerance: tolerance)
+                try execution.consumeWork(30)
                 let lowerRatio = Double(index) / Double(count)
                 let upperRatio = Double(index + 1) / Double(count)
                 // Dyadic subdivision makes these ratios exactly representable.
@@ -199,8 +209,8 @@ package struct CertifiedTwistSweepPlan: Sendable {
                 let a1 = index + 1 == count ? .exact(angles[lawIndex + 1]) : angleStart + angleWidth * .exact(upperRatio)
                 let delta = angleWidth * .exact(1 / Double(count))
                 let width = lawWidth * .exact(1 / Double(count))
-                let t0 = try CertifiedRotationTrigonometry.evaluate(a0, tolerance: tolerance, consumeWork: { try admission.chargeWork() })
-                let t1 = try CertifiedRotationTrigonometry.evaluate(a1, tolerance: tolerance, consumeWork: { try admission.chargeWork() })
+                let t0 = try CertifiedRotationTrigonometry.evaluate(a0, tolerance: tolerance, using: &execution)
+                let t1 = try CertifiedRotationTrigonometry.evaluate(a1, tolerance: tolerance, using: &execution)
                 let remainder = Self.remainder(radius: (OutwardScalarInterval.exact(radius) * .exact(max(1, values.endScale))).upper, delta: delta)
                 let third = OutwardScalarInterval(lower: (1.0 / 3).nextDown, upper: (1.0 / 3).nextUp)
                 let cosine = [t0.cosine, t0.cosine - t0.sine * delta * third,
@@ -227,27 +237,27 @@ package struct CertifiedTwistSweepPlan: Sendable {
                     throw Self.failure("Rotation coefficients cannot certify a nonsingular transform.", tolerance)
                 }
                 for (loopIndex, spans) in loops.enumerated() {
-                    try Self.retain(spans.count, of: BSplineSurface3D.self, admission: admission, tolerance: tolerance)
+                    try Self.retain(spans.count, of: BSplineSurface3D.self, using: &execution, tolerance: tolerance)
                     var row: [BSplineSurface3D] = []
                     row.reserveCapacity(spans.count)
                     for span in spans {
-                        try admission.chargeWork()
-                        try Self.retain(5, of: [Point3D].self, admission: admission, tolerance: tolerance)
+                        try execution.consumeWork(1)
+                        try Self.retain(5, of: [Point3D].self, using: &execution, tolerance: tolerance)
                         var controls: [[Point3D]] = []
                         controls.reserveCapacity(5)
                         var numeric = 0.0
                         for j in 0..<5 {
-                            try Self.retain(span.curve.controlPointCount, of: Point3D.self, admission: admission, tolerance: tolerance)
+                            try Self.retain(span.curve.controlPointCount, of: Point3D.self, using: &execution, tolerance: tolerance)
                             var controlRow: [Point3D] = []
                             controlRow.reserveCapacity(span.curve.controlPointCount)
                             for point in span.curve.controlPoints {
                                 let enclosure = try arithmetic.transformed(point, station: station[j],
-                                    cosine: scaledCosine[j], sine: scaledSine[j], scale: scale[j])
+                                    cosine: scaledCosine[j], sine: scaledSine[j], scale: scale[j], using: &execution)
                                 let terminal = values.endScale == 0 && lawIndex == divisions.count - 1 && index + 1 == count && j == 4
-                                try Self.retain(3, of: Double.self, admission: admission, tolerance: tolerance)
+                                try Self.retain(3, of: Double.self, using: &execution, tolerance: tolerance)
                                 let chosen: [Double]
                                 if terminal {
-                                    chosen = try arithmetic.pathPoint(station: s1).map { $0.midpoint }
+                                    chosen = try arithmetic.pathPoint(station: s1, using: &execution).map { $0.midpoint }
                                 } else {
                                     chosen = enclosure.map { $0.midpoint }
                                 }
@@ -267,24 +277,22 @@ package struct CertifiedTwistSweepPlan: Sendable {
                             throw Self.failure("Requested positional allowance is below the certified coefficient and Hermite error.", tolerance)
                         }
                         maximumError = max(maximumError, error)
-                        try Self.retain(10, of: Double.self, admission: admission, tolerance: tolerance)
-                        try Self.retain(5, of: [Double].self, admission: admission, tolerance: tolerance)
+                        try Self.retain(10, of: Double.self, using: &execution, tolerance: tolerance)
+                        try Self.retain(5, of: [Double].self, using: &execution, tolerance: tolerance)
                         let surface = BSplineSurface3D(uDegree: span.curve.degree, vDegree: 4,
                             uKnots: span.curve.knots, vKnots: [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
                             controlPoints: controls, weights: Array(repeating: span.curve.weights, count: 5))
                         try Surface3D.bSpline(surface).validateOriginalSource(tolerance: tolerance,
-                            remainingSourceDepth: admission.remainingSourceDepth,
-                            maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
-                            consumeWork: { _ in try admission.chargeWork() },
-                            consumeStorage: { try admission.chargeStorage(bytes: $0) })
+                            remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+                            maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth, using: &execution)
                         row.append(surface)
                     }
                     built[loopIndex].append(row)
                 }
-                try Self.retain(4, of: Double.self, admission: admission, tolerance: tolerance)
-                try Self.retain(2, of: Point3D.self, admission: admission, tolerance: tolerance)
+                try Self.retain(4, of: Double.self, using: &execution, tolerance: tolerance)
+                try Self.retain(2, of: Point3D.self, using: &execution, tolerance: tolerance)
                 paths.append(try ExactBSplineCurveSpan(curve: BSplineCurve3D(degree: 1,
-                    knots: [0, 0, 1, 1], controlPoints: [start + direction * s0.midpoint, start + direction * s1.midpoint]), tolerance: tolerance, admission: admission))
+                    knots: [0, 0, 1, 1], controlPoints: [start + direction * s0.midpoint, start + direction * s1.midpoint]), tolerance: tolerance, using: &execution))
             }
         }
         profileSpanLoops = loops
@@ -294,14 +302,13 @@ package struct CertifiedTwistSweepPlan: Sendable {
         surfaces = built
         positionErrorUpperBound = maximumError
         terminalSectionCollapsed = values.endScale == 0
-        self.admission = admission
     }
 
     private static func retain<T>(_ count: Int, of: T.Type,
-        admission: GeometryConversionAdmission, tolerance: ModelingTolerance) throws {
+        using execution: inout OriginalQueryExecution, tolerance: ModelingTolerance) throws {
         let bytes = count.multipliedReportingOverflow(by: MemoryLayout<T>.stride)
         guard count >= 0, !bytes.overflow else { throw exhausted(tolerance) }
-        try admission.chargeStorage(bytes: bytes.partialValue)
+        try execution.retainStorage(bytes: bytes.partialValue)
     }
 
     private static func remainder(radius: Double, delta: OutwardScalarInterval) -> Double {

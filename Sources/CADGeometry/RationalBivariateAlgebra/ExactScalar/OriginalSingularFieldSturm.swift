@@ -2,7 +2,7 @@
 struct OriginalSingularFieldSturm: Sendable {
     let source: OriginalSingularFieldPolynomial
     let chain: [OriginalSingularFieldPolynomial]
-    init<B: RationalAlgebraAdmitting>(_ original: OriginalSingularFieldPolynomial,
+    init<B: ExactScalarAdmission & ~Copyable>(_ original: OriginalSingularFieldPolynomial,
         maximumDepth: Int, usage: inout B) throws {
         guard !original.isZero else { throw exactScalarBackendFailure("Original tower Sturm law is zero.") }
         if original.degree == 1 {
@@ -38,19 +38,19 @@ struct OriginalSingularFieldSturm: Sendable {
         }
         chain = values
     }
-    func sign<B: RationalAlgebraAdmitting>(_ polynomial: OriginalSingularFieldPolynomial,
+    func sign<B: ExactScalarAdmission & ~Copyable>(_ polynomial: OriginalSingularFieldPolynomial,
         at station: ExactRationalCoefficient, maximumDepth: Int, usage: inout B) throws -> ExactAlgebraicRealRoot.Sign {
         let value = try OriginalSingularFieldElement.constant(station, in: polynomial.context, maximumDepth: maximumDepth, usage: &usage)
         return try polynomial.evaluated(at: value, maximumDepth: maximumDepth, usage: &usage)
             .sign(maximumDepth: maximumDepth, usage: &usage)
     }
-    func variations<B: RationalAlgebraAdmitting>(at station: ExactRationalCoefficient,
+    func variations<B: ExactScalarAdmission & ~Copyable>(at station: ExactRationalCoefficient,
         maximumDepth: Int, usage: inout B) throws -> Int {
         let value = try OriginalSingularFieldElement.constant(station, in: source.context,
             maximumDepth: maximumDepth, usage: &usage)
         return try variations(at: value, maximumDepth: maximumDepth, usage: &usage)
     }
-    func variations<B: RationalAlgebraAdmitting>(at station: OriginalSingularFieldElement,
+    func variations<B: ExactScalarAdmission & ~Copyable>(at station: OriginalSingularFieldElement,
         maximumDepth: Int, usage: inout B) throws -> Int {
         guard station.context === source.context else {
             throw exactScalarBackendFailure("Original Sturm station has a foreign ordered-field owner.")
@@ -68,7 +68,7 @@ struct OriginalSingularFieldSturm: Sendable {
         }
         return changes
     }
-    func count<B: RationalAlgebraAdmitting>(lower: ExactRationalCoefficient, upper: ExactRationalCoefficient,
+    func count<B: ExactScalarAdmission & ~Copyable>(lower: ExactRationalCoefficient, upper: ExactRationalCoefficient,
         excludesLower: Bool, excludesUpper: Bool, maximumDepth: Int, usage: inout B) throws -> Int {
         let order = try upper.subtracting(lower, usage: &usage)
         guard !order.isNegative else { throw exactScalarBackendFailure("Original tower root interval is reversed.") }

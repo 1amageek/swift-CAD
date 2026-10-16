@@ -10,7 +10,7 @@ struct OriginalSurfaceLiftGraphProducer<S: OriginalLiftGraphSourceReading> {
     typealias Graph=OriginalParametricGraphReceipt<S,Field,OriginalSurfaceLiftGraphEvidence<S>>
     func issue<A: ExactScalarAdmission & ~Copyable>(source: OriginalSourceBinding<S>,
         evidence: OriginalSurfaceLiftGraphEvidence<S>,offset: Field.Value,span: Field.Value,
-        using a: inout OriginalSourceProofAdmission<A>) throws -> Graph {
+        using a: inout A) throws -> Graph {
         let f=evidence.surface.field
         let ring=try ExactPolynomialDomain(field:f,variableCount:3,using:&a)
         let zero=try f.integer(0,using:&a),one=try f.integer(1,using:&a)

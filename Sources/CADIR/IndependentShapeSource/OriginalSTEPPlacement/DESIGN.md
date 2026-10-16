@@ -81,3 +81,13 @@ behavior for direct STEP placement roots: the translation word prepends the
 world displacement and retains the complete original STEP factor and local
 definitions without flattening the original law. This focused fixture does not
 claim the unrelated legacy assembly test suite is current or green.
+
+## Canonical Admission Binding
+
+The required source caller passes the borrowed `OriginalQueryExecution` into the
+existing placement validation, retained source adjustment, or imported image body.
+The authored transform, inversion, adjustment order, source units, and exact model
+validation remain the authorities defined above. Ordinary entry points create one
+execution and use that body. This binding follows the
+[Geometry execution contract](../../../CADGeometry/OriginalQueryExecution/DESIGN.md)
+and does not change Document evaluation or source laws.

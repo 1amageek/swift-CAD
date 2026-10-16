@@ -1,0 +1,95 @@
+{
+  "scope": "Structural surface metering only; no whole-Drawing/G01/U1 claim.",
+  "status": "ASAN and normal WASM passed; Embedded intentionally not started pending Root next changed-source Native boundary.",
+  "nativeAuthority": {
+    "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-structural-surface-r1/receipt.json",
+    "sha256": "53a65398fd6a177d3a9e604c743ed8391a0d16ab0c919132b91225e211f5958c"
+  },
+  "results": [
+    {
+      "lane": "asan",
+      "receipt": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/structural-surface-portable-asan-r1/receipt.json",
+      "receiptSHA256": "27222a476566157f07e7d490495f1ab9ea71e9ba24958a49ca1f6b17804a84c0",
+      "matchedOracleLines": [
+        "PASS structural surface original debit sequences",
+        "PASS structural surface exact and cumulative work",
+        "PASS structural surface checked overflow",
+        "PASS structural surface cancellation"
+      ],
+      "elapsedSeconds": 125.45628812500217,
+      "phases": [
+        {
+          "name": "asan-compile",
+          "elapsedSeconds": 120.16437616699841,
+          "peakRSSBytes": 6957481984,
+          "wallLimitSeconds": 1199.999994165999
+        },
+        {
+          "name": "asan-link",
+          "elapsedSeconds": 2.277759167001932,
+          "peakRSSBytes": 790446080,
+          "wallLimitSeconds": 1079.1527499580043
+        },
+        {
+          "name": "asan-runtime",
+          "elapsedSeconds": 1.1657905839965679,
+          "peakRSSBytes": 933888,
+          "wallLimitSeconds": 120
+        }
+      ]
+    },
+    {
+      "lane": "wasm",
+      "receipt": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/structural-surface-portable-wasm-r1/receipt.json",
+      "receiptSHA256": "6897449be152accfe63f8ee286a37ecdd076eff5f700a40ce20c3c0e15f87ee6",
+      "matchedOracleLines": [
+        "PASS structural surface original debit sequences",
+        "PASS structural surface exact and cumulative work",
+        "PASS structural surface checked overflow",
+        "PASS structural surface cancellation"
+      ],
+      "elapsedSeconds": 114.3627157499941,
+      "phases": [
+        {
+          "name": "wasm-compile",
+          "elapsedSeconds": 110.79300120800326,
+          "peakRSSBytes": 6444236800,
+          "wallLimitSeconds": 1199.9999949580015
+        },
+        {
+          "name": "wasm-link",
+          "elapsedSeconds": 1.6008817090041703,
+          "peakRSSBytes": 767442944,
+          "wallLimitSeconds": 1088.5640354999996
+        },
+        {
+          "name": "wasm-runtime",
+          "elapsedSeconds": 0.22787220899772365,
+          "peakRSSBytes": 933888,
+          "wallLimitSeconds": 120
+        }
+      ]
+    }
+  ],
+  "counts": {
+    "freshGeometry": 2,
+    "freshCore": 0,
+    "g01RuntimeGroups": 0
+  },
+  "finalIntegrity": {
+    "inputs": 2246,
+    "snapshots": 4492,
+    "products": 18,
+    "logs": 6,
+    "drift": []
+  },
+  "sourceFreeze": {
+    "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/structural-surface-work-source-r1/source-freeze.json",
+    "sha256": "86e383a9274c31991e5cb48c0362b53013ce85e96f477b138786fcc912aaad13"
+  },
+  "fixtureCorrection": {
+    "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/structural-surface-work-source-r1/fixture-freeze-r2.json",
+    "sha256": "2ec82f2242b649cb9be19407e8f59ae5d9b3879dee6ba47acbaf39496b7d7759"
+  },
+  "remainingGate": "Embedded metering behavior plus Root whole-Drawing execution after the next minimal silhouette source frame fix."
+}

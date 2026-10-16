@@ -1,8 +1,9 @@
 import Foundation
 import CADCore
+import CADGeometry
 
 extension BRepDrawingExchange {
-    func validateGlyph(_ glyph: DrawingGlyphOutline, resources: inout SharedExchangeResourceAccountant) throws {
+    func validateGlyph(_ glyph: DrawingGlyphOutline, resources: SharedExchangeResourceAccountant) throws {
         try resources.recordIterations(glyph.text.utf8.count + glyph.fontPostScriptName.utf8.count + glyph.identity.utf8.count)
         guard !glyph.identity.isEmpty, !glyph.fontPostScriptName.isEmpty,
               glyph.fontSize.isFinite, glyph.fontSize > 0 else { throw ExportError.invalidMesh("Glyph run lacks original font, size or source identity.") }
@@ -40,10 +41,10 @@ extension BRepDrawingExchange {
     }
 
     func writeSVGGlyph(_ glyph: DrawingGlyphOutline, options: DrawingExchangeOptions, to sink: any ByteSink,
-                       resources: inout SharedExchangeResourceAccountant) throws {
-        let identity = try xmlAttribute(glyph.identity, resources: &resources)
-        let text = try xmlAttribute(glyph.text, resources: &resources)
-        let font = try xmlAttribute(glyph.fontPostScriptName, resources: &resources)
+                       resources: SharedExchangeResourceAccountant) throws {
+        let identity = try xmlAttribute(glyph.identity, resources: resources)
+        let text = try xmlAttribute(glyph.text, resources: resources)
+        let font = try xmlAttribute(glyph.fontPostScriptName, resources: resources)
         let color = options.styles.annotation
         let rule = glyph.fillRule == .evenOdd ? "evenodd" : "nonzero"
         try sink.writeUTF8("<path data-source-id=\"\(identity)\" data-original-text=\"\(text)\" data-font-postscript=\"\(font)\" data-font-size-pt=\"\(stepNumber(glyph.fontSize))\" fill=\"\(svgColor(color.red, color.green, color.blue))\" fill-rule=\"\(rule)\" d=\"")
@@ -66,13 +67,13 @@ extension BRepDrawingExchange {
 
     func writeDXFGlyph(_ glyph: DrawingGlyphOutline, resolved: DrawingResolvedGlyphBoundary? = nil,
                        maximumDeviation: Double? = nil, options: DrawingExchangeOptions, to sink: any ByteSink,
-                       resources: inout SharedExchangeResourceAccountant) throws {
+                       resources: SharedExchangeResourceAccountant, using execution: inout OriginalQueryExecution) throws {
         if glyph.fillRule == .nonzero, !glyph.commands.isEmpty {
             guard let resolved, let maximumDeviation, try resolved.matches(glyph, resources: resources) else {
                 throw ExportError.invalidMesh("DXF nonzero glyph requires a matching original true boundary receipt and caller deviation.")
             }
             try writeDXFResolvedGlyph(resolved, maximumDeviation: maximumDeviation,
-                options: options, to: sink, resources: &resources)
+                options: options, to: sink, resources: resources, using: &execution)
             return
         }
         let color = options.styles.annotation
@@ -132,17 +133,17 @@ extension BRepDrawingExchange {
             // A whitespace run is a nongeometric source record, not a fabricated visible glyph.
             try sink.writeUTF8("0\nTEXT\n100\nAcDbEntity\n8\nAnnotation\n100\nAcDbText\n10\n0\n20\n0\n40\n\(stepNumber(try options.outputLength(paperPoints: glyph.fontSize)))\n1\n \n")
         }
-        try writeDXFGlyphProvenance(glyph, to: sink, resources: &resources)
+        try writeDXFGlyphProvenance(glyph, to: sink, resources: resources)
     }
 
     func writeDXFGlyphProvenance(_ glyph: DrawingGlyphOutline, to sink: any ByteSink,
-                                 resources: inout SharedExchangeResourceAccountant) throws {
+                                 resources: SharedExchangeResourceAccountant) throws {
         try sink.writeUTF8("1001\nSWIFTCAD\n")
-        try writeDXFIdentity(glyph.identity, to: sink, resources: &resources)
+        try writeDXFIdentity(glyph.identity, to: sink, resources: resources)
         try sink.writeUTF8("1000\noriginalGlyphText\n")
-        try writeDXFIdentity(glyph.text, to: sink, resources: &resources)
+        try writeDXFIdentity(glyph.text, to: sink, resources: resources)
         try sink.writeUTF8("1000\noriginalGlyphPostScriptFont\n")
-        try writeDXFIdentity(glyph.fontPostScriptName, to: sink, resources: &resources)
+        try writeDXFIdentity(glyph.fontPostScriptName, to: sink, resources: resources)
         try sink.writeUTF8("1000\noriginalGlyphSizePaperPoints\n1040\n\(stepNumber(glyph.fontSize))\n1000\noriginalGlyphFillRule\n1000\n\(glyph.fillRule == .nonzero ? "nonzero" : "evenOdd")\n")
         for command in glyph.commands {
             try resources.recordIterations()

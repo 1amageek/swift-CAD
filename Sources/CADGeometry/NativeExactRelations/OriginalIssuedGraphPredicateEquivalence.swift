@@ -24,7 +24,7 @@ public struct OriginalIssuedGraphPredicateEquivalence: Sendable {
         throws(NativeExactRelationFailure) -> Self? {
         let first=copy first,second=copy second
         do {
-            return try OriginalSourceProofAdmission.withBorrow(&admission) { a in
+            return try admission.withProofScope() { a -> Self? in
                 try a.checkpoint();try a.consumeWork(1)
                 guard first.source.variableCount == second.source.variableCount else { return nil }
                 typealias Cells=ExactRealCellDomain<OriginalExactScalarDomain>

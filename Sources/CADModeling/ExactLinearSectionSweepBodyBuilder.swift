@@ -8,18 +8,15 @@ package struct ExactLinearSectionSweepBodyBuilder: Sendable {
     private let featureID: FeatureID
     private let context: EvaluationContext
     private let sewer: any BRepSewing
-    private let admission: GeometryConversionAdmission?
 
     package init(
         featureID: FeatureID,
         context: EvaluationContext,
-        sewer: any BRepSewing,
-        admission: GeometryConversionAdmission? = nil
+        sewer: any BRepSewing
     ) {
         self.featureID = featureID
         self.context = context
         self.sewer = sewer
-        self.admission = admission
     }
 
     package func build(
@@ -29,20 +26,8 @@ package struct ExactLinearSectionSweepBodyBuilder: Sendable {
         resultKind: SweepResultKind,
         endTransform: ExactSectionTransform2D = .identity
     ) throws -> EvaluationResult {
-        try context.tolerance.validate()
-        let spanBuilder = ExactBSplineCurveSpanBuilder(
-            tolerance: context.tolerance, admission: admission
-        )
-        return try build(
-            sectionSpanLoops: spanBuilder.profileLoopSpans(from: profile),
-            sectionIsClosed: true,
-            profilePlane: profile.plane,
-            pathSegments: pathSegments,
-            pathEndPoint: pathEndPoint,
-            resultKind: resultKind,
-            endTransform: endTransform,
-            spanBuilder: spanBuilder
-        )
+        var execution = try CurvedSweepSourceBudget(tolerance: context.tolerance).execution()
+        return try build(profile: profile, pathSegments: pathSegments, pathEndPoint: pathEndPoint, resultKind: resultKind, endTransform: endTransform, using: &execution)
     }
 
     package func build(
@@ -50,46 +35,22 @@ package struct ExactLinearSectionSweepBodyBuilder: Sendable {
         pathSegments: [EvaluatedCurvePathSegment], pathEndPoint: Point3D,
         resultKind: SweepResultKind, endTransform: ExactSectionTransform2D = .identity
     ) throws -> EvaluationResult {
-        let spanBuilder = ExactBSplineCurveSpanBuilder(tolerance: context.tolerance, admission: admission)
-        return try build(sectionSpanLoops: spanBuilder.faceLoopSpans(from: faceSection),
-            sectionIsClosed: true, profilePlane: faceSection.plane,
-            pathSegments: pathSegments, pathEndPoint: pathEndPoint,
-            resultKind: resultKind, endTransform: endTransform, spanBuilder: spanBuilder)
+        var execution = try CurvedSweepSourceBudget(tolerance: context.tolerance).execution()
+        return try build(faceSection: faceSection, pathSegments: pathSegments, pathEndPoint: pathEndPoint, resultKind: resultKind, endTransform: endTransform, using: &execution)
     }
 
     package func build(constructedRegion: ResolvedBoundaryRegion,
         pathSegments: [EvaluatedCurvePathSegment], pathEndPoint: Point3D,
         resultKind: SweepResultKind, endTransform: ExactSectionTransform2D = .identity
     ) throws -> EvaluationResult {
-        let spanBuilder = ExactBSplineCurveSpanBuilder(tolerance: context.tolerance, admission: admission)
-        return try build(sectionSpanLoops: spanBuilder.constructedRegionLoopSpans(from: constructedRegion),
-            sectionIsClosed: true, profilePlane: constructedRegion.plane,
-            pathSegments: pathSegments, pathEndPoint: pathEndPoint, resultKind: resultKind,
-            endTransform: endTransform, spanBuilder: spanBuilder)
+        var execution = try CurvedSweepSourceBudget(tolerance: context.tolerance).execution()
+        return try build(constructedRegion: constructedRegion, pathSegments: pathSegments, pathEndPoint: pathEndPoint, resultKind: resultKind, endTransform: endTransform, using: &execution)
     }
 
     package func buildTranslatedFace(_ section: ResolvedFaceSection, axis: Vector3D,
         lowerHeight: Double, distance: Double, resultKind: SweepResultKind) throws -> EvaluationResult {
-        let admission = try admission ?? CurvedSweepSourceBudget(tolerance: context.tolerance).conversionAdmission()
-        let plane = try ExactSweepSectionPlane(section.plane, tolerance: context.tolerance).plane
-        let start = plane.origin + axis * lowerHeight
-        let end = start + axis * distance
-        let rawPath = Curve3D.line(Line3D(origin: start, direction: axis))
-        try admission.chargeStorage(bytes: 4 * MemoryLayout<Double>.stride + 2 * MemoryLayout<Point3D>.stride)
-        let path = try ExactBSplineCurveSpan(curve: BSplineCurve3D(degree: 1,
-            knots: [0, 0, 1, 1], controlPoints: [start, end]),
-            tolerance: context.tolerance, originalChart: OriginalCurveSpanParameterChart(
-                curve: rawPath, startParameter: 0, endParameter: distance), admission: admission)
-        let loops = try ExactBSplineCurveSpanBuilder(tolerance: context.tolerance, admission: admission)
-            .faceLoopSpans(from: section)
-        try admission.chargeStorage(bytes: MemoryLayout<ExactBSplineCurveSpan>.stride)
-        let request = try ExactLinearSectionSweepFacePatchBuilder(tolerance: context.tolerance,
-            admission: admission).request(profileSpanLoops: loops, pathSpans: [path],
-                profilePlane: section.plane, sectionIsClosed: true, resultKind: resultKind,
-                featureID: featureID, authoredPathAnchor: plane.origin)
-        try admission.chargeStorage(bytes: loops.count * MemoryLayout<Int>.stride)
-        return try evaluationResult(request: request, profileSpanCounts: loops.map { $0.count },
-            pathSpanCount: 1, includesCaps: resultKind == .solid)
+        var execution = try CurvedSweepSourceBudget(tolerance: context.tolerance).execution()
+        return try buildTranslatedFace(section, axis: axis, lowerHeight: lowerHeight, distance: distance, resultKind: resultKind, using: &execution)
     }
 
     package func buildSheet(
@@ -98,6 +59,112 @@ package struct ExactLinearSectionSweepBodyBuilder: Sendable {
         pathEndPoint: Point3D,
         endTransform: ExactSectionTransform2D = .identity
     ) throws -> EvaluationResult {
+        var execution = try CurvedSweepSourceBudget(tolerance: context.tolerance).execution()
+        return try buildSheet(section: section, pathSegments: pathSegments, pathEndPoint: pathEndPoint, endTransform: endTransform, using: &execution)
+    }
+
+    package func buildTranslatedSheet(
+        section: EvaluatedCurve, startOffset: Vector3D, endOffset: Vector3D
+    ) throws -> EvaluationResult {
+        var execution = try CurvedSweepSourceBudget(tolerance: context.tolerance).execution()
+        return try buildTranslatedSheet(section: section, startOffset: startOffset, endOffset: endOffset, using: &execution)
+    }
+
+    package func buildCertifiedTwist(
+        _ plan: CertifiedTwistSweepPlan,
+        resultKind: SweepResultKind
+    ) throws -> EvaluationResult {
+        var execution = try CurvedSweepSourceBudget(tolerance: context.tolerance).execution()
+        return try buildCertifiedTwist(plan, resultKind: resultKind, using: &execution)
+    }
+
+    package func buildMitred(_ mitred: MitredPolylineSweepBuilder.Request) throws -> EvaluationResult {
+        var execution = try CurvedSweepSourceBudget(tolerance: context.tolerance).execution()
+        return try buildMitred(mitred, using: &execution)
+    }
+
+    package func buildCertifiedCurvedPath(
+        _ plan: CertifiedCurvedPathSweepPlan,
+        resultKind: SweepResultKind
+    ) throws -> EvaluationResult {
+        var execution = try CurvedSweepSourceBudget(tolerance: context.tolerance).execution()
+        return try buildCertifiedCurvedPath(plan, resultKind: resultKind, using: &execution)
+    }
+
+    package func build(
+        profile: Profile,
+        pathSegments: [EvaluatedCurvePathSegment],
+        pathEndPoint: Point3D,
+        resultKind: SweepResultKind,
+        endTransform: ExactSectionTransform2D = .identity
+    , using execution: inout OriginalQueryExecution) throws -> EvaluationResult {
+        try context.tolerance.validate()
+        let spanBuilder = try ExactBSplineCurveSpanBuilder(
+            tolerance: context.tolerance, using: &execution
+        )
+        return try build(
+            sectionSpanLoops: spanBuilder.profileLoopSpans(from: profile, using: &execution),
+            sectionIsClosed: true,
+            profilePlane: profile.plane,
+            pathSegments: pathSegments,
+            pathEndPoint: pathEndPoint,
+            resultKind: resultKind,
+            endTransform: endTransform,
+            spanBuilder: spanBuilder
+        , using: &execution)
+    }
+
+    package func build(
+        faceSection: ResolvedFaceSection,
+        pathSegments: [EvaluatedCurvePathSegment], pathEndPoint: Point3D,
+        resultKind: SweepResultKind, endTransform: ExactSectionTransform2D = .identity
+    , using execution: inout OriginalQueryExecution) throws -> EvaluationResult {
+        let spanBuilder = try ExactBSplineCurveSpanBuilder(tolerance: context.tolerance, using: &execution)
+        return try build(sectionSpanLoops: spanBuilder.faceLoopSpans(from: faceSection, using: &execution),
+            sectionIsClosed: true, profilePlane: faceSection.plane,
+            pathSegments: pathSegments, pathEndPoint: pathEndPoint,
+            resultKind: resultKind, endTransform: endTransform, spanBuilder: spanBuilder, using: &execution)
+    }
+
+    package func build(constructedRegion: ResolvedBoundaryRegion,
+        pathSegments: [EvaluatedCurvePathSegment], pathEndPoint: Point3D,
+        resultKind: SweepResultKind, endTransform: ExactSectionTransform2D = .identity
+    , using execution: inout OriginalQueryExecution) throws -> EvaluationResult {
+        let spanBuilder = try ExactBSplineCurveSpanBuilder(tolerance: context.tolerance, using: &execution)
+        return try build(sectionSpanLoops: spanBuilder.constructedRegionLoopSpans(from: constructedRegion, using: &execution),
+            sectionIsClosed: true, profilePlane: constructedRegion.plane,
+            pathSegments: pathSegments, pathEndPoint: pathEndPoint, resultKind: resultKind,
+            endTransform: endTransform, spanBuilder: spanBuilder, using: &execution)
+    }
+
+    package func buildTranslatedFace(_ section: ResolvedFaceSection, axis: Vector3D,
+        lowerHeight: Double, distance: Double, resultKind: SweepResultKind, using execution: inout OriginalQueryExecution) throws -> EvaluationResult {
+        let plane = try ExactSweepSectionPlane(section.plane, tolerance: context.tolerance).plane
+        let start = plane.origin + axis * lowerHeight
+        let end = start + axis * distance
+        let rawPath = Curve3D.line(Line3D(origin: start, direction: axis))
+        try execution.retainStorage(bytes: 4 * MemoryLayout<Double>.stride + 2 * MemoryLayout<Point3D>.stride)
+        let path = try ExactBSplineCurveSpan(curve: BSplineCurve3D(degree: 1,
+            knots: [0, 0, 1, 1], controlPoints: [start, end]),
+            tolerance: context.tolerance, originalChart: OriginalCurveSpanParameterChart(
+                curve: rawPath, startParameter: 0, endParameter: distance), using: &execution)
+        let loops = try ExactBSplineCurveSpanBuilder(tolerance: context.tolerance, using: &execution)
+            .faceLoopSpans(from: section, using: &execution)
+        try execution.retainStorage(bytes: MemoryLayout<ExactBSplineCurveSpan>.stride)
+        let request = try ExactLinearSectionSweepFacePatchBuilder(tolerance: context.tolerance).request(profileSpanLoops: loops, pathSpans: [path],
+                profilePlane: section.plane, sectionIsClosed: true, resultKind: resultKind,
+                featureID: featureID, authoredPathAnchor: plane.origin, using: &execution)
+        try execution.retainStorage(bytes: loops.count * MemoryLayout<Int>.stride)
+        return try evaluationResult(request: request, profileSpanCounts: loops.map { $0.count },
+            pathSpanCount: 1, includesCaps: resultKind == .solid, using: &execution)
+    }
+
+    package func buildSheet(
+        section: EvaluatedCurve,
+        pathSegments: [EvaluatedCurvePathSegment],
+        pathEndPoint: Point3D,
+        endTransform: ExactSectionTransform2D = .identity
+    , using execution: inout OriginalQueryExecution) throws -> EvaluationResult {
         try context.tolerance.validate()
         guard let profilePlane = section.plane else {
             throw KernelError(
@@ -108,11 +175,11 @@ package struct ExactLinearSectionSweepBodyBuilder: Sendable {
                 message: "Exact linear section Sweep sheet sections require profile-plane metadata."
             )
         }
-        let spanBuilder = ExactBSplineCurveSpanBuilder(
-            tolerance: context.tolerance, admission: admission
+        let spanBuilder = try ExactBSplineCurveSpanBuilder(
+            tolerance: context.tolerance, using: &execution
         )
         return try build(
-            sectionSpanLoops: [spanBuilder.sectionSpans(from: section)],
+            sectionSpanLoops: [spanBuilder.sectionSpans(from: section, using: &execution)],
             sectionIsClosed: section.isClosed,
             profilePlane: profilePlane,
             pathSegments: pathSegments,
@@ -120,18 +187,18 @@ package struct ExactLinearSectionSweepBodyBuilder: Sendable {
             resultKind: .sheet,
             endTransform: endTransform,
             spanBuilder: spanBuilder
-        )
+        , using: &execution)
     }
 
     package func buildTranslatedSheet(
         section: EvaluatedCurve, startOffset: Vector3D, endOffset: Vector3D
-    ) throws -> EvaluationResult {
-        let spans = try ExactBSplineCurveSpanBuilder(tolerance: context.tolerance, admission: admission).sectionSpans(from: section)
+    , using execution: inout OriginalQueryExecution) throws -> EvaluationResult {
+        let spans = try ExactBSplineCurveSpanBuilder(tolerance: context.tolerance, using: &execution).sectionSpans(from: section, using: &execution)
         let request = try ExactLinearSectionSweepFacePatchBuilder(tolerance: context.tolerance)
             .translatedSheetRequest(spans: spans, isClosed: section.isClosed,
-                startOffset: startOffset, endOffset: endOffset, featureID: featureID)
+                startOffset: startOffset, endOffset: endOffset, featureID: featureID, using: &execution)
         return try evaluationResult(request: request, profileSpanCounts: [spans.count],
-            pathSpanCount: 1, includesCaps: false)
+            pathSpanCount: 1, includesCaps: false, using: &execution)
     }
 
     private func build(
@@ -143,13 +210,13 @@ package struct ExactLinearSectionSweepBodyBuilder: Sendable {
         resultKind: SweepResultKind,
         endTransform: ExactSectionTransform2D,
         spanBuilder: ExactBSplineCurveSpanBuilder
-    ) throws -> EvaluationResult {
+    , using execution: inout OriginalQueryExecution) throws -> EvaluationResult {
         let pathSpans = try spanBuilder.pathSpans(
             from: pathSegments,
             endingAt: pathEndPoint
-        )
+        , using: &execution)
         let request = try ExactLinearSectionSweepFacePatchBuilder(
-            tolerance: context.tolerance, admission: admission
+            tolerance: context.tolerance
         ).request(
             profileSpanLoops: sectionSpanLoops,
             pathSpans: pathSpans,
@@ -158,54 +225,53 @@ package struct ExactLinearSectionSweepBodyBuilder: Sendable {
             resultKind: resultKind,
             endTransform: endTransform,
             featureID: featureID
-        )
+        , using: &execution)
         return try evaluationResult(request: request, profileSpanCounts: sectionSpanLoops.map { $0.count },
             pathSpanCount: pathSpans.count, includesCaps: resultKind == .solid,
-            includesEndCap: !endTransform.isTerminalCollapse)
+            includesEndCap: !endTransform.isTerminalCollapse, using: &execution)
     }
 
     package func buildCertifiedTwist(
         _ plan: CertifiedTwistSweepPlan,
         resultKind: SweepResultKind
-    ) throws -> EvaluationResult {
-        let request = try ExactLinearSectionSweepFacePatchBuilder(tolerance: context.tolerance,
-            admission: plan.admission).request(
+    , using execution: inout OriginalQueryExecution) throws -> EvaluationResult {
+        let request = try ExactLinearSectionSweepFacePatchBuilder(tolerance: context.tolerance).request(
             profileSpanLoops: plan.profileSpanLoops, pathSpans: plan.pathSpans,
             profilePlane: plan.profilePlane, sectionIsClosed: plan.sectionIsClosed, resultKind: resultKind,
             featureID: featureID, certifiedTwist: plan
-        )
+        , using: &execution)
         return try evaluationResult(request: request, profileSpanCounts: plan.profileSpanLoops.map { $0.count },
             pathSpanCount: plan.pathSpans.count, includesCaps: resultKind == .solid,
-            includesEndCap: !plan.terminalSectionCollapsed)
+            includesEndCap: !plan.terminalSectionCollapsed, using: &execution)
     }
 
-    package func buildMitred(_ mitred: MitredPolylineSweepBuilder.Request) throws -> EvaluationResult {
+    package func buildMitred(_ mitred: MitredPolylineSweepBuilder.Request, using execution: inout OriginalQueryExecution) throws -> EvaluationResult {
         try evaluationResult(request: mitred.request, profileSpanCounts: mitred.profileSpanCounts,
             pathSpanCount: mitred.armCount, includesCaps: mitred.includesCaps, extraSideFaceIDs: mitred.cornerFaceIDs,
-            includesEndCap: mitred.includesEndCap)
+            includesEndCap: mitred.includesEndCap, using: &execution)
     }
 
     package func buildCertifiedCurvedPath(
         _ plan: CertifiedCurvedPathSweepPlan,
         resultKind: SweepResultKind
-    ) throws -> EvaluationResult {
+    , using execution: inout OriginalQueryExecution) throws -> EvaluationResult {
         let request = try CertifiedCurvedPathSweepFacePatchBuilder(tolerance: context.tolerance)
-            .request(plan, resultKind: resultKind, featureID: featureID)
+            .request(plan, resultKind: resultKind, featureID: featureID, using: &execution)
         return try evaluationResult(request: request, profileSpanCounts: plan.profileSpanLoops.map { $0.count },
             pathSpanCount: plan.pieceCount, includesCaps: resultKind == .solid && plan.pathIsClosed == false,
-            includesEndCap: !plan.terminalSectionCollapsed)
+            includesEndCap: !plan.terminalSectionCollapsed, using: &execution)
     }
 
     private func evaluationResult(
         request: BRepSewingRequest, profileSpanCounts: [Int], pathSpanCount: Int, includesCaps: Bool,
         extraSideFaceIDs: [String] = [], includesEndCap: Bool = true
-    ) throws -> EvaluationResult {
-        let sewn = try sewer.sew(request, tolerance: context.tolerance)
-        let combined = try BRepModelCombiner().combined([context.brep, sewn.brep])
+    , using execution: inout OriginalQueryExecution) throws -> EvaluationResult {
+        let sewn = try sewer.sew(request, tolerance: context.tolerance, using: &execution)
+        let combined = try BRepModelCombiner().combined([context.brep, sewn.brep], using: &execution)
         let subshapes = try semanticSubshapes(sewn: sewn, profileSpanCounts: profileSpanCounts,
             pathSpanCount: pathSpanCount, includesCaps: includesCaps, extraSideFaceIDs: extraSideFaceIDs, includesEndCap: includesEndCap)
         return EvaluationResult(brep: combined, subshapes: subshapes,
-            lineage: try GeneratedTopologyLineageBuilder().build(featureID: featureID, subshapes: subshapes))
+            lineage: try GeneratedTopologyLineageBuilder().build(featureID: featureID, subshapes: subshapes, using: &execution))
     }
 
     private func semanticSubshapes(

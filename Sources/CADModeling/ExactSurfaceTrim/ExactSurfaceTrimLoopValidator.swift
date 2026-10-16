@@ -13,6 +13,10 @@ package struct ExactSurfaceTrimLoopValidation: Sendable {
 }
 
 public struct ExactSurfaceTrimLoopValidator: Sendable {
+    private typealias FlatBoundarySpan = (start: Point2D, end: Point2D,
+        uBounds: ScalarInterval, vBounds: ScalarInterval, tubeRadius: Double)
+    private struct HarmonicCell { let lower: Double; let upper: Double; let depth: Int }
+
     private struct FlatSpan {
         let start: Point2D
         let end: Point2D
@@ -28,8 +32,8 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
         let role: SurfaceTrimLoopRole
         let spans: [FlatSpan]
 
-        var polygon: [Point2D] {
-            spans.map(\.start)
+        func polygon(using execution: inout OriginalQueryExecution) throws -> [Point2D] {
+            try OriginalParameterQueryStorage.map(spans, using: &execution) { span, execution in span.start }
         }
     }
 
@@ -37,6 +41,18 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
     private let maximumFlatSpanCount = 131_072
 
     public init() {}
+
+    public func normalizationReversesLoop(_ loop: SurfaceTrimLoop, on surface: Surface3D,
+        inside bounds: RectangularSurfaceParameterBounds, tolerance: ModelingTolerance) throws -> Bool {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try normalizationReversesLoop(loop, on: surface, inside: bounds, tolerance: tolerance, using: &execution)
+    }
+
+    package func validate(_ requestedLoops: [SurfaceTrimLoop], on surface: Surface3D,
+        inside bounds: RectangularSurfaceParameterBounds, tolerance: ModelingTolerance) throws -> ExactSurfaceTrimLoopValidation {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try validate(requestedLoops, on: surface, inside: bounds, tolerance: tolerance, using: &execution)
+    }
 
     /// Whether orientation normalization reverses the authored loop.
     ///
@@ -49,9 +65,10 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
         on surface: Surface3D,
         inside bounds: RectangularSurfaceParameterBounds,
         tolerance: ModelingTolerance
-    ) throws -> Bool {
+    , using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.consumeWork(1)
         try tolerance.validate()
-        try surface.validate(tolerance: tolerance)
+        try surface.validate(tolerance: tolerance, using: &execution)
         return try orientationReversalRequired(
             loop,
             on: surface,
@@ -60,7 +77,7 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
                 tolerance: tolerance
             ),
             tolerance: tolerance
-        )
+        , using: &execution)
     }
 
     package func validate(
@@ -68,24 +85,26 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
         on surface: Surface3D,
         inside bounds: RectangularSurfaceParameterBounds,
         tolerance: ModelingTolerance
-    ) throws -> ExactSurfaceTrimLoopValidation {
+    , using execution: inout OriginalQueryExecution) throws -> ExactSurfaceTrimLoopValidation {
+        try execution.consumeWork(1)
         try tolerance.validate()
-        try surface.validate(tolerance: tolerance)
+        try surface.validate(tolerance: tolerance, using: &execution)
         let parameterTolerance = try parameterTolerance(
             bounds: bounds,
             tolerance: tolerance
         )
-        let normalizedLoops = try requestedLoops.map { loop in
+        let normalizedLoops = try OriginalParameterQueryStorage.map(requestedLoops, using: &execution) { loop, execution in
             try normalized(
                 loop,
                 on: surface,
                 parameterTolerance: parameterTolerance,
                 tolerance: tolerance
-            )
+            , using: &execution)
         }
         var flatLoops: [FlatLoop] = []
         var totalFlatSpanCount = 0
         for (loopIndex, loop) in normalizedLoops.enumerated() {
+            try execution.consumeWork(1)
             let flat = try flattened(
                 loop,
                 loopIndex: loopIndex,
@@ -93,7 +112,7 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
                 bounds: bounds,
                 maximumDeviation: parameterTolerance * 0.125,
                 tolerance: tolerance
-            )
+            , using: &execution)
             totalFlatSpanCount += flat.spans.count
             guard totalFlatSpanCount <= maximumFlatSpanCount else {
                 throw failure(
@@ -103,18 +122,18 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
                     "Exact surface trim boundary certification exceeded its adaptive span budget."
                 )
             }
-            flatLoops.append(flat)
+            try OriginalParameterQueryStorage.append(flat, to: &flatLoops, using: &execution)
         }
         try validateNonIntersecting(
             flatLoops,
             clearance: parameterTolerance * 0.25,
             tolerance: tolerance
-        )
+        , using: &execution)
         try validateLoopContainment(
             flatLoops,
             clearance: parameterTolerance * 0.25,
             tolerance: tolerance
-        )
+        , using: &execution)
         let minimumArea = max(
             parameterTolerance * parameterTolerance,
             Double.ulpOfOne * 4_096.0
@@ -125,7 +144,7 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
             of: normalizedLoops,
             parameterTolerance: parameterTolerance,
             tolerance: tolerance
-        ) { lower, upper in
+        , using: &execution) { lower, upper in
             (lower > minimumArea || upper <= minimumArea)
                 && (sourceArea - upper > minimumArea || sourceArea - lower <= minimumArea)
         }
@@ -140,7 +159,7 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
             of: [outerLoop],
             parameterTolerance: parameterTolerance,
             tolerance: tolerance
-        ) { lower, upper in
+        , using: &execution) { lower, upper in
             upper - lower <= parameterTolerance
         }
         guard area.lower > minimumArea else {
@@ -173,19 +192,20 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
         on surface: Surface3D,
         parameterTolerance: Double,
         tolerance: ModelingTolerance
-    ) throws -> SurfaceTrimLoop {
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceTrimLoop {
+        try execution.consumeWork(1)
         guard try orientationReversalRequired(
             loop,
             on: surface,
             parameterTolerance: parameterTolerance,
             tolerance: tolerance
-        ) else {
+        , using: &execution) else {
             return loop
         }
         return SurfaceTrimLoop(
             role: loop.role,
-            parameterCurves: try loop.parameterCurves.reversed().map {
-                try $0.reversed(tolerance: tolerance)
+            parameterCurves: try OriginalParameterQueryStorage.map(loop.parameterCurves.reversed(), using: &execution) { curve, execution in
+                try curve.reversed(tolerance: tolerance, using: &execution)
             }
         )
     }
@@ -195,22 +215,24 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
         on surface: Surface3D,
         parameterTolerance: Double,
         tolerance: ModelingTolerance
-    ) throws -> Bool {
+    , using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.consumeWork(1)
         try loop.validate(tolerance: tolerance)
         for curve in loop.parameterCurves {
-            try curve.validate(on: surface, tolerance: tolerance)
+            try execution.consumeWork(1)
+            try curve.validate(on: surface, tolerance: tolerance, using: &execution)
         }
         try validateClosure(
             loop.parameterCurves,
             on: surface,
             parameterTolerance: parameterTolerance,
             tolerance: tolerance
-        )
+        , using: &execution)
         let area = try parameterArea(
             of: [loop],
             parameterTolerance: parameterTolerance,
             tolerance: tolerance
-        ) { lower, upper in
+        , using: &execution) { lower, upper in
             lower > 0.0 || upper < 0.0
         }
         let expectedPositive = loop.role == .outer
@@ -239,11 +261,13 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
         on surface: Surface3D,
         parameterTolerance: Double,
         tolerance: ModelingTolerance
-    ) throws {
+    , using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         for index in curves.indices {
-            let end = try curves[index].endParameter(tolerance: tolerance)
+            try execution.consumeWork(1)
+            let end = try curves[index].endParameter(tolerance: tolerance, using: &execution)
             let next = try curves[(index + 1) % curves.count]
-                .startParameter(tolerance: tolerance)
+                .startParameter(tolerance: tolerance, using: &execution)
             let closesInParameters = end.isApproximatelyEqual(
                 to: next,
                 tolerance: parameterTolerance
@@ -252,12 +276,12 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
                 u: end.u,
                 v: end.v,
                 tolerance: tolerance
-            )
+            , using: &execution)
             let nextPoint = try surface.point(
                 u: next.u,
                 v: next.v,
                 tolerance: tolerance
-            )
+            , using: &execution)
             guard closesInParameters || endPoint.isApproximatelyEqual(
                 to: nextPoint,
                 tolerance: tolerance.distance
@@ -279,7 +303,8 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
         bounds: RectangularSurfaceParameterBounds,
         maximumDeviation: Double,
         tolerance: ModelingTolerance
-    ) throws -> FlatLoop {
+    , using execution: inout OriginalQueryExecution) throws -> FlatLoop {
+        try execution.consumeWork(1)
         var spans: [(
             start: Point2D,
             end: Point2D,
@@ -288,15 +313,25 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
             tubeRadius: Double
         )] = []
         for curve in loop.parameterCurves {
+            try execution.consumeWork(1)
             if requiresCertifiedEnclosure(curve) {
+                // FIXME(INCOMPLETE_IMPLEMENTATION): Surface Trim reaches this
+                // original harmonic branch before boundary publication. The old
+                // rational proposal has no whole original UV chord-tube receipt;
+                // this source family must remain unsupported until that proof exists.
+                if case .harmonic = curve {
+                    throw failure(.unsupportedCapability, tolerance: tolerance,
+                        "Original harmonic trim requires a complete original UV chord-tube proof.")
+                }
                 let enclosures = try CertifiedSurfaceParameterCurveEncloser()
                     .enclosures(
                         for: curve,
                         on: surface,
                         maximumWidth: maximumDeviation,
                         tolerance: tolerance
-                    )
+                    , using: &execution)
                 for enclosure in enclosures {
+                    try execution.consumeWork(1)
                     let aligned = try aligned(
                         enclosure,
                         to: bounds,
@@ -308,15 +343,15 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
                         in: bounds,
                         tolerance: maximumDeviation,
                         modelingTolerance: tolerance
-                    )
+                    , using: &execution)
                     let startParameter = try curve.parameter(
                         atNormalizedFraction: enclosure.lowerFraction,
                         tolerance: tolerance
-                    )
+                    , using: &execution)
                     let endParameter = try curve.parameter(
                         atNormalizedFraction: enclosure.upperFraction,
                         tolerance: tolerance
-                    )
+                    , using: &execution)
                     let start = try alignedPoint(
                         startParameter,
                         in: aligned,
@@ -338,7 +373,7 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
                             "A certified surface trim pcurve cell collapses within tolerance."
                         )
                     }
-                    spans.append((
+                    try OriginalParameterQueryStorage.append((
                         start: start,
                         end: end,
                         uBounds: aligned.u,
@@ -347,17 +382,18 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
                             aligned.u.width,
                             aligned.v.width
                         ).nextUp
-                    ))
+                    ), to: &spans, using: &execution)
                 }
                 continue
             }
-            for patch in try rationalPatches(for: curve, tolerance: tolerance) {
+            for patch in try rationalPatches(for: curve, tolerance: tolerance, using: &execution) {
+                try execution.consumeWork(1)
                 try validateContained(
                     patch,
                     in: bounds,
                     tolerance: maximumDeviation,
                     modelingTolerance: tolerance
-                )
+                , using: &execution)
                 try appendFlatSpans(
                     patch,
                     loopIndex: loopIndex,
@@ -365,7 +401,7 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
                     depth: 0,
                     spans: &spans,
                     tolerance: tolerance
-                )
+                , using: &execution)
             }
         }
         guard spans.count >= 3 else {
@@ -379,8 +415,9 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
         return FlatLoop(
             loopIndex: loopIndex,
             role: loop.role,
-            spans: spans.enumerated().map { index, span in
-                FlatSpan(
+            spans: try OriginalParameterQueryStorage.map(spans.enumerated(), using: &execution) { entry, execution in
+                let (index, span) = entry
+                return FlatSpan(
                     start: span.start,
                     end: span.end,
                     uBounds: span.uBounds,
@@ -396,7 +433,8 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
     private func rationalPatches(
         for curve: SurfaceParameterCurve,
         tolerance: ModelingTolerance
-    ) throws -> [RationalBezierCurvePatch2D] {
+    , using execution: inout OriginalQueryExecution) throws -> [RationalBezierCurvePatch2D] {
+        try execution.consumeWork(1)
         switch curve {
         case let .affine(origin, direction, startParameter, endParameter):
             return try linearPatches(
@@ -411,39 +449,27 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
                     ),
                 ],
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .constantU(u, vStart, vEnd):
             return try linearPatches(
                 points: [Point2D(x: u, y: vStart), Point2D(x: u, y: vEnd)],
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .constantV(v, uStart, uEnd):
             return try linearPatches(
                 points: [Point2D(x: uStart, y: v), Point2D(x: uEnd, y: v)],
                 tolerance: tolerance
-            )
-        case let .harmonic(
-            center,
-            cosine,
-            sine,
-            startParameter,
-            endParameter
-        ):
-            return try ExactHarmonicBSplineCurve2DBuilder().build(
-                center: center,
-                cosine: cosine,
-                sine: sine,
-                startParameter: startParameter,
-                endParameter: endParameter,
-                tolerance: tolerance
-            ).rationalBezierPatches(tolerance: tolerance)
+            , using: &execution)
+        case .harmonic:
+            throw failure(.invalidInput, tolerance: tolerance,
+                "Original harmonic trims require their retained original chord-tube proof.")
         case let .polyline(parameters):
             return try linearPatches(
-                points: parameters.map { Point2D(x: $0.u, y: $0.v) },
+                points: try OriginalParameterQueryStorage.map(parameters, using: &execution) { point, execution in Point2D(x: point.u, y: point.v) },
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .bSpline(curve):
-            return try curve.rationalBezierPatches(tolerance: tolerance)
+            return try curve.rationalBezierPatches(tolerance: tolerance, using: &execution)
         case .originalBSplineContinuation, .originalImage, .originalAffineWord, .sphericalGreatCircle, .certifiedImplicit,
              .certifiedAnalyticImplicit, .certifiedAnalyticPair,
              .projectedAnalytic, .rigidImage:
@@ -456,12 +482,12 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
             return try rationalPatches(
                 for: image.source,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .periodicTranslation(base, uShift, vShift):
-            return try rationalPatches(
-                for: base,
-                tolerance: tolerance
-            ).map { $0.translated(u: uShift, v: vShift) }
+            let original = try rationalPatches(for: base, tolerance: tolerance, using: &execution)
+            return try OriginalParameterQueryStorage.map(original, using: &execution) { patch, execution in
+                try patch.translated(u: uShift, v: vShift, using: &execution)
+            }
         }
     }
 
@@ -469,13 +495,13 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
         _ curve: SurfaceParameterCurve
     ) -> Bool {
         switch curve {
-        case .originalBSplineContinuation, .originalImage, .originalAffineWord, .sphericalGreatCircle, .certifiedImplicit,
+        case .harmonic, .originalBSplineContinuation, .originalImage, .originalAffineWord, .sphericalGreatCircle, .certifiedImplicit,
              .certifiedAnalyticImplicit, .certifiedAnalyticPair,
              .projectedAnalytic, .rigidImage:
             true
         case let .offsetSurfaceImage(image):
             requiresCertifiedEnclosure(image.source)
-        case .affine, .constantU, .constantV, .harmonic, .polyline, .bSpline:
+        case .affine, .constantU, .constantV, .polyline, .bSpline:
             false
         case let .periodicTranslation(base, _, _):
             requiresCertifiedEnclosure(base)
@@ -485,7 +511,8 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
     private func linearPatches(
         points: [Point2D],
         tolerance: ModelingTolerance
-    ) throws -> [RationalBezierCurvePatch2D] {
+    , using execution: inout OriginalQueryExecution) throws -> [RationalBezierCurvePatch2D] {
+        try execution.consumeWork(1)
         guard points.count >= 2 else {
             throw failure(
                 .invalidInput,
@@ -494,12 +521,13 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
                 "Surface trim polyline requires at least two parameter points."
             )
         }
-        return try (1..<points.count).flatMap { index in
-            try BSplineCurve2D(
+        return try OriginalParameterQueryStorage.flatMap(1..<points.count, using: &execution) { index, execution in
+            try execution.retainStorage(bytes: 4 * MemoryLayout<Double>.stride + 2 * MemoryLayout<Point2D>.stride)
+            return try BSplineCurve2D(
                 degree: 1,
                 knots: [0.0, 0.0, 1.0, 1.0],
                 controlPoints: [points[index - 1], points[index]]
-            ).rationalBezierPatches(tolerance: tolerance)
+            ).rationalBezierPatches(tolerance: tolerance, using: &execution)
         }
     }
 
@@ -508,8 +536,9 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
         in bounds: RectangularSurfaceParameterBounds,
         tolerance: Double,
         modelingTolerance: ModelingTolerance
-    ) throws {
-        guard patch.controlPoints.allSatisfy({ point in
+    , using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        guard try OriginalParameterQueryStorage.allSatisfy(patch.controlPoints, using: &execution, predicate: { point, execution in
             point.x >= bounds.lowerU - tolerance
                 && point.x <= bounds.upperU + tolerance
                 && point.y >= bounds.lowerV - tolerance
@@ -528,7 +557,8 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
         in bounds: RectangularSurfaceParameterBounds,
         tolerance: Double,
         modelingTolerance: ModelingTolerance
-    ) throws {
+    , using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         guard enclosure.u.lower >= bounds.lowerU - tolerance,
               enclosure.u.upper <= bounds.upperU + tolerance,
               enclosure.v.lower >= bounds.lowerV - tolerance,
@@ -661,7 +691,9 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
             tubeRadius: Double
         )],
         tolerance: ModelingTolerance
-    ) throws {
+    , using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try execution.admitGeometricDepth(depth)
         guard let start = patch.controlPoints.first,
               let end = patch.controlPoints.last else {
             throw failure(
@@ -672,8 +704,8 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
         }
         let chordLength = hypot(end.x - start.x, end.y - start.y)
         guard chordLength > maximumDeviation else {
-            if patch.controlPoints.allSatisfy({
-                hypot($0.x - start.x, $0.y - start.y) <= maximumDeviation
+            if try OriginalParameterQueryStorage.allSatisfy(patch.controlPoints, using: &execution, predicate: { point, execution in
+                hypot(point.x - start.x, point.y - start.y) <= maximumDeviation
             }) {
                 throw failure(
                     .singularGeometry,
@@ -690,7 +722,8 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
                     "Surface trim pcurve flatness certification exceeded its subdivision depth."
                 )
             }
-            for child in try patch.subdivided(tolerance: tolerance) {
+            for child in try patch.subdivided(tolerance: tolerance, using: &execution) {
+                try execution.consumeWork(1)
                 try appendFlatSpans(
                     child,
                     loopIndex: loopIndex,
@@ -698,18 +731,19 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
                     depth: depth + 1,
                     spans: &spans,
                     tolerance: tolerance
-                )
+                , using: &execution)
             }
             return
         }
-        let flatness = patch.controlPoints.map {
-            distance($0, toSegmentFrom: start, to: end)
-        }.max() ?? .infinity
+        let flatness = try OriginalParameterQueryStorage.reduce(patch.controlPoints,
+            initial: -Double.infinity, using: &execution) { maximum, point, execution in
+                max(maximum, distance(point, toSegmentFrom: start, to: end))
+            }
         if flatness <= maximumDeviation,
-           hasMonotoneChordProjection(patch, start: start, end: end) {
-            let uValues = patch.controlPoints.map(\.x)
-            let vValues = patch.controlPoints.map(\.y)
-            spans.append((
+           try hasMonotoneChordProjection(patch, start: start, end: end, using: &execution) {
+            let uValues = try OriginalParameterQueryStorage.map(patch.controlPoints, using: &execution) { point, execution in point.x }
+            let vValues = try OriginalParameterQueryStorage.map(patch.controlPoints, using: &execution) { point, execution in point.y }
+            try OriginalParameterQueryStorage.append((
                 start: start,
                 end: end,
                 uBounds: try ScalarInterval(
@@ -721,7 +755,7 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
                     upper: (vValues.max() ?? end.y).nextUp
                 ),
                 tubeRadius: flatness.nextUp
-            ))
+            ), to: &spans, using: &execution)
             return
         }
         guard depth < maximumSubdivisionDepth else {
@@ -732,7 +766,8 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
                 "Surface trim pcurve flatness certification exceeded its subdivision depth."
             )
         }
-        for child in try patch.subdivided(tolerance: tolerance) {
+        for child in try patch.subdivided(tolerance: tolerance, using: &execution) {
+            try execution.consumeWork(1)
             try appendFlatSpans(
                 child,
                 loopIndex: loopIndex,
@@ -740,7 +775,7 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
                 depth: depth + 1,
                 spans: &spans,
                 tolerance: tolerance
-            )
+            , using: &execution)
         }
     }
 
@@ -748,11 +783,13 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
         _ patch: RationalBezierCurvePatch2D,
         start: Point2D,
         end: Point2D
-    ) -> Bool {
+    , using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.consumeWork(1)
         let dx = end.x - start.x
         let dy = end.y - start.y
         var previous = -Double.infinity
         for point in patch.controlPoints {
+            try execution.consumeWork(1)
             let projection = (point.x - start.x) * dx
                 + (point.y - start.y) * dy
             guard projection.isFinite,
@@ -768,16 +805,19 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
         _ loops: [FlatLoop],
         clearance: Double,
         tolerance: ModelingTolerance
-    ) throws {
+    , using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         let predicateTolerance = ModelingTolerance(
             distance: clearance,
             angle: tolerance.angle,
             relative: tolerance.relative
         )
         let predicates = AdaptivePlanarPredicateEvaluator()
-        let spans = loops.flatMap(\.spans)
+        let spans = try OriginalParameterQueryStorage.flatMap(loops, using: &execution) { loop, execution in loop.spans }
         for firstIndex in spans.indices {
+            try execution.consumeWork(1)
             for secondIndex in spans.indices where secondIndex > firstIndex {
+                try execution.consumeWork(1)
                 let first = spans[firstIndex]
                 let second = spans[secondIndex]
                 if areAdjacent(first, second, loops: loops) {
@@ -786,7 +826,7 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
                         second,
                         clearance: clearance,
                         tolerance: tolerance
-                    )
+                    , using: &execution)
                     continue
                 }
                 if areSeparatedByCertifiedBounds(
@@ -808,7 +848,7 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
                     second.start,
                     second.end,
                     tolerance: predicateTolerance
-                ) || chordDistance.nextDown <= requiredSeparation {
+                , using: &execution) || chordDistance.nextDown <= requiredSeparation {
                     throw failure(
                         .classificationFailure,
                         residual: chordDistance,
@@ -854,7 +894,8 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
         _ second: FlatSpan,
         clearance: Double,
         tolerance: ModelingTolerance
-    ) throws {
+    , using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         let joinsInSequence = first.sequenceIndex + 1 == second.sequenceIndex
         let firstJoin = joinsInSequence ? first.end : first.start
         let secondJoin = joinsInSequence ? second.start : second.end
@@ -905,7 +946,8 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
         _ loops: [FlatLoop],
         clearance: Double,
         tolerance: ModelingTolerance
-    ) throws {
+    , using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         guard let outer = loops.first(where: { $0.role == .outer }) else {
             throw failure(
                 .invalidInput,
@@ -919,20 +961,21 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
             relative: tolerance.relative
         )
         let predicates = AdaptivePlanarPredicateEvaluator()
-        let innerLoops = loops.filter { $0.role == .inner }
+        let innerLoops = try OriginalParameterQueryStorage.filter(loops, using: &execution) { loop, execution in loop.role == .inner }
         for inner in innerLoops {
+            try execution.consumeWork(1)
             let witness = try interiorWitness(
                 for: inner,
                 clearance: clearance,
                 predicates: predicates,
                 tolerance: predicateTolerance,
                 modelingTolerance: tolerance
-            )
+            , using: &execution)
             guard try predicates.classify(
                 witness,
-                in: outer.polygon,
+                in: outer.polygon(using: &execution),
                 tolerance: predicateTolerance
-            ) == .inside else {
+            , using: &execution) == .inside else {
                 throw failure(
                     .classificationFailure,
                     tolerance: tolerance,
@@ -940,11 +983,12 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
                 )
             }
             for other in innerLoops where other.loopIndex != inner.loopIndex {
+                try execution.consumeWork(1)
                 let classification = try predicates.classify(
                     witness,
-                    in: other.polygon,
+                    in: other.polygon(using: &execution),
                     tolerance: predicateTolerance
-                )
+                , using: &execution)
                 guard classification == .outside else {
                     throw failure(
                         .classificationFailure,
@@ -962,8 +1006,11 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
         predicates: AdaptivePlanarPredicateEvaluator,
         tolerance: ModelingTolerance,
         modelingTolerance: ModelingTolerance
-    ) throws -> Point2D {
+    , using execution: inout OriginalQueryExecution) throws -> Point2D {
+        try execution.consumeWork(1)
+        let polygon = try loop.polygon(using: &execution)
         for span in loop.spans {
+            try execution.consumeWork(1)
             let dx = span.end.x - span.start.x
             let dy = span.end.y - span.start.y
             let length = hypot(dx, dy)
@@ -981,9 +1028,9 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
             )
             if try predicates.classify(
                 candidate,
-                in: loop.polygon,
+                in: polygon,
                 tolerance: tolerance
-            ) == .inside {
+            , using: &execution) == .inside {
                 return candidate
             }
         }
@@ -1003,10 +1050,14 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
         of loops: [SurfaceTrimLoop],
         parameterTolerance: Double,
         tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution,
         isConclusive: (_ lower: Double, _ upper: Double) -> Bool
     ) throws -> (lower: Double, upper: Double) {
-        let curveCount = loops.reduce(into: 0) { count, loop in
-            count += loop.parameterCurves.count
+        try execution.consumeWork(1)
+        let curveCount = try OriginalParameterQueryStorage.reduce(loops, initial: 0, using: &execution) { count, loop, execution in
+            let sum = count.addingReportingOverflow(loop.parameterCurves.count)
+            guard !sum.overflow else { throw ExactScalarFailure.countOverflow }
+            return sum.partialValue
         }
         let floorCurveWidth = max(
             parameterTolerance * parameterTolerance
@@ -1018,16 +1069,19 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
             1.0e-6 / Double(max(curveCount, 1))
         )
         while true {
+            try execution.consumeWork(1)
             var lower = 0.0
             var upper = 0.0
             for loop in loops {
+                try execution.consumeWork(1)
                 for curve in loop.parameterCurves {
+                    try execution.consumeWork(1)
                     let contribution = try SurfaceParameterCurveAreaIntegrator().bounds(
                         for: curve,
                         uShift: 0.0,
                         requestedWidth: requestedCurveWidth,
                         tolerance: tolerance
-                    )
+                    , using: &execution)
                     lower = (lower + contribution.lower).nextDown
                     upper = (upper + contribution.upper).nextUp
                 }

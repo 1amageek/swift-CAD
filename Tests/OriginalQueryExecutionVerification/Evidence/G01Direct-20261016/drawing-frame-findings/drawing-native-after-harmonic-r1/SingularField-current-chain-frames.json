@@ -1,0 +1,482 @@
+{
+  "binarySHA256": "459f9848b9f50bbce2b0c29ee211f71a4625fa668bd5e394032fa8ccc82aa840",
+  "ipsSHA256": "c062e94cb5187a77f61b8d844cf739b193a3778da25258e330cee5b1fa7ed851",
+  "exception": {
+    "codes": "0x0000000000000002, 0x000000016fe6bfa0",
+    "message": "Could not determine thread index for stack guard region",
+    "rawCodes": [
+      2,
+      6172360608
+    ],
+    "type": "EXC_BAD_ACCESS",
+    "signal": "SIGBUS",
+    "subtype": "KERN_PROTECTION_FAILURE at 0x000000016fe6bfa0"
+  },
+  "frames": [
+    {
+      "frame": "OriginalQueryBudget.checked(axis:used:requested:limit:)",
+      "symbol": "_$s11CADGeometry19OriginalQueryBudgetC7checked33_6D6690DCFEC788E8B6547019386E27FALL4axis4used9requested5limitAC9RejectionAELLVSgAA0bC12ResourceAxisO_S3iSgtF",
+      "address": "0x142cea4",
+      "location": 16,
+      "entryFrameBytes": 336,
+      "sourceFile": null,
+      "sourceLine": null
+    },
+    {
+      "frame": "closure #1 in OriginalQueryBudget.debit(work:bytes:cells:records:sourceTextBytes:contribution:contributions:context:admitted:)",
+      "symbol": "_$s11CADGeometry19OriginalQueryBudgetC5debit33_6D6690DCFEC788E8B6547019386E27FALL4work5bytes5cells7records15sourceTextBytes12contribution13contributions7context8admittedySi_S4iAA0bC18ContributionHandleVSgSayAPGAA0bC14FailureContextVyyXEtAA011ExactScalarY0OYKFAC9RejectionAELLVSgAC5StateAELLVzYuYTXEfU_",
+      "address": "0x142bb88",
+      "location": 396,
+      "entryFrameBytes": 6448,
+      "sourceFile": null,
+      "sourceLine": null
+    },
+    {
+      "frame": "OriginalQueryBudget.debit(work:bytes:cells:records:sourceTextBytes:contribution:contributions:context:admitted:)",
+      "symbol": "_$s11CADGeometry19OriginalQueryBudgetC5debit33_6D6690DCFEC788E8B6547019386E27FALL4work5bytes5cells7records15sourceTextBytes12contribution13contributions7context8admittedySi_S4iAA0bC18ContributionHandleVSgSayAPGAA0bC14FailureContextVyyXEtAA011ExactScalarY0OYKF",
+      "address": "0x142a224",
+      "location": 1064,
+      "entryFrameBytes": 2112,
+      "sourceFile": null,
+      "sourceLine": null
+    },
+    {
+      "frame": "OriginalQueryBudget.admitting(work:bytes:cells:records:sourceTextBytes:contributions:context:_:)",
+      "symbol": "_$s11CADGeometry19OriginalQueryBudgetC9admitting4work5bytes5cells7records15sourceTextBytes13contributions7context_ySi_S4iSayAA0bC18ContributionHandleVGAA0bC14FailureContextVyyXEtAA011ExactScalarQ0OYKF",
+      "address": "0x142ba44",
+      "location": 240,
+      "entryFrameBytes": 576,
+      "sourceFile": null,
+      "sourceLine": null
+    },
+    {
+      "frame": "OriginalQueryExecution.consumeWork(_:)",
+      "symbol": "_$s11CADGeometry22OriginalQueryExecutionV11consumeWorkyySiAA18ExactScalarFailureOYKF",
+      "address": "0x43bcb8",
+      "location": 400,
+      "entryFrameBytes": 752,
+      "sourceFile": null,
+      "sourceLine": null
+    },
+    {
+      "frame": "protocol witness for ExactScalarAdmission.consumeWork(_:) in conformance OriginalQueryExecution",
+      "symbol": "_$s11CADGeometry22OriginalQueryExecutionVAA20ExactScalarAdmissionA2aDP11consumeWorkyySiAA0eF7FailureOYKFTW",
+      "address": "0x1438c38",
+      "location": 16,
+      "entryFrameBytes": 48,
+      "sourceFile": null,
+      "sourceLine": null
+    },
+    {
+      "frame": "OriginalSingularFieldElement.embedded<A>(in:maximumDepth:usage:)",
+      "symbol": "_$s11CADGeometry28OriginalSingularFieldElementV8embedded2in12maximumDepth5usageAcA0bcD7ContextC_SixztKAA20ExactScalarAdmissionRzRi_zlF",
+      "address": "0x8b78d8",
+      "location": 324,
+      "entryFrameBytes": 1520,
+      "sourceFile": null,
+      "sourceLine": null
+    },
+    {
+      "frame": "OriginalSingularFieldElement.multiplied<A>(by:maximumDepth:usage:)",
+      "symbol": "_$s11CADGeometry28OriginalSingularFieldElementV10multiplied2by12maximumDepth5usageA2C_SixztKAA20ExactScalarAdmissionRzRi_zlF",
+      "address": "0x947ebc",
+      "location": 516,
+      "entryFrameBytes": 3440,
+      "sourceFile": null,
+      "sourceLine": null
+    },
+    {
+      "frame": "OriginalSingularFieldRoot.linearSign<A>(_:maximumDepth:usage:)",
+      "symbol": "_$s11CADGeometry25OriginalSingularFieldRootV10linearSign33_E6CDA615DADD234487A8958FBAFE6ED5LL_12maximumDepth5usageAA018ExactAlgebraicRealE0V0G0OAA0bcD10PolynomialV_SixztKAA0Q15ScalarAdmissionRzRi_zlF",
+      "address": "0x1a59ca4",
+      "location": 452,
+      "entryFrameBytes": 5152,
+      "sourceFile": null,
+      "sourceLine": null
+    },
+    {
+      "frame": "OriginalSingularFieldRoot.sign<A>(of:maximumDepth:usage:)",
+      "symbol": "_$s11CADGeometry25OriginalSingularFieldRootV4sign2of12maximumDepth5usageAA018ExactAlgebraicRealE0V4SignOAA0bcD10PolynomialV_SixztKAA0K15ScalarAdmissionRzRi_zlF",
+      "address": "0xd4fbec",
+      "location": 1024,
+      "entryFrameBytes": 3920,
+      "sourceFile": null,
+      "sourceLine": null
+    },
+    {
+      "frame": "operandSign #1 <A>(_:usage:) in OriginalSingularFieldElement.sign<A>(maximumDepth:usage:)",
+      "symbol": "_$s11CADGeometry28OriginalSingularFieldElementV4sign12maximumDepth5usageAA22ExactAlgebraicRealRootV4SignOSi_xztKAA0J15ScalarAdmissionRzRi_zlF07operandN0L__AfjA0bcD10PolynomialV_xztKAaKRzRi_zlF",
+      "address": "0x1a4ada8",
+      "location": 1032,
+      "entryFrameBytes": 704,
+      "sourceFile": null,
+      "sourceLine": null
+    },
+    {
+      "frame": "OriginalSingularFieldElement.sign<A>(maximumDepth:usage:)",
+      "symbol": "_$s11CADGeometry28OriginalSingularFieldElementV4sign12maximumDepth5usageAA22ExactAlgebraicRealRootV4SignOSi_xztKAA0J15ScalarAdmissionRzRi_zlF",
+      "address": "0x8addf8",
+      "location": 4552,
+      "entryFrameBytes": 5952,
+      "sourceFile": null,
+      "sourceLine": null
+    },
+    {
+      "frame": "OriginalSingularFieldPolynomial.init<A>(context:coefficients:maximumDepth:usage:)",
+      "symbol": "_$s11CADGeometry31OriginalSingularFieldPolynomialV7context12coefficients12maximumDepth5usageAcA0bcD7ContextC_SayAA0bcD7ElementVGSixztKcAA20ExactScalarAdmissionRzRi_zlufC",
+      "address": "0x941088",
+      "location": 1164,
+      "entryFrameBytes": 1328,
+      "sourceFile": null,
+      "sourceLine": null
+    },
+    {
+      "frame": "OriginalSingularFieldElement.embedded<A>(in:maximumDepth:usage:)",
+      "symbol": "_$s11CADGeometry28OriginalSingularFieldElementV8embedded2in12maximumDepth5usageAcA0bcD7ContextC_SixztKAA20ExactScalarAdmissionRzRi_zlF",
+      "address": "0x8b78d8",
+      "location": 1940,
+      "entryFrameBytes": 1520,
+      "sourceFile": null,
+      "sourceLine": null
+    },
+    {
+      "frame": "OriginalSingularFieldElement.embedded<A>(in:maximumDepth:usage:)",
+      "symbol": "_$s11CADGeometry28OriginalSingularFieldElementV8embedded2in12maximumDepth5usageAcA0bcD7ContextC_SixztKAA20ExactScalarAdmissionRzRi_zlF",
+      "address": "0x8b78d8",
+      "location": 812,
+      "entryFrameBytes": 1520,
+      "sourceFile": null,
+      "sourceLine": null
+    },
+    {
+      "frame": "OriginalSingularFieldTransport.applying<A>(to:in:maximumDepth:usage:)",
+      "symbol": "_$s11CADGeometry30OriginalSingularFieldTransportV8applying2to2in12maximumDepth5usageAA0bcD7ElementVAJ_AA0bcD7ContextCSixztKAA20ExactScalarAdmissionRzRi_zlF",
+      "address": "0x88e334",
+      "location": 768,
+      "entryFrameBytes": 5120,
+      "sourceFile": null,
+      "sourceLine": null
+    },
+    {
+      "frame": "OriginalSingularFieldTransport.transportedEvaluation<A>(_:at:maximumDepth:usage:)",
+      "symbol": "_$s11CADGeometry30OriginalSingularFieldTransportV21transportedEvaluation33_726ABCB70B6B7977A792D7305A738F38LL_2at12maximumDepth5usageAA0bcD7ElementVAA0bcD10PolynomialV_AJSixztKAA20ExactScalarAdmissionRzRi_zlF",
+      "address": "0x1a5de50",
+      "location": 836,
+      "entryFrameBytes": 1280,
+      "sourceFile": null,
+      "sourceLine": null
+    },
+    {
+      "frame": "OriginalSingularFieldTransport.applying<A>(to:in:maximumDepth:usage:)",
+      "symbol": "_$s11CADGeometry30OriginalSingularFieldTransportV8applying2to2in12maximumDepth5usageAA0bcD7ElementVAJ_AA0bcD7ContextCSixztKAA20ExactScalarAdmissionRzRi_zlF",
+      "address": "0x88e334",
+      "location": 4812,
+      "entryFrameBytes": 5120,
+      "sourceFile": null,
+      "sourceLine": null
+    },
+    {
+      "frame": "SurfaceSilhouetteFieldAtlasEndpoint.hasSameValue(as:usage:)",
+      "symbol": "_$s11CADGeometry35SurfaceSilhouetteFieldAtlasEndpointV12hasSameValue2as5usageSbAC_AA22OriginalQueryExecutionVztKF",
+      "address": "0x1dac0e8",
+      "location": 1140,
+      "entryFrameBytes": 2656,
+      "sourceFile": null,
+      "sourceLine": null
+    },
+    {
+      "frame": "count #1 (_:usage:) in static SurfaceSilhouettePlaneAtlasPublication.retainCompleteFieldIncidence(atlas:firstCurveIndex:curves:stationCurves:stationEnds:usage:)",
+      "symbol": "_$s11CADGeometry38SurfaceSilhouettePlaneAtlasPublicationV28retainCompleteFieldIncidence33_333382B8A7CB4ED789A01956EE16C2E0LL5atlas15firstCurveIndex6curves13stationCurves0X4Ends5usageyAA08OriginalidE0V_SiSayAA08OriginalbcU0VGzSaySaySiGGzSaySaySbGGzAA22OriginalQueryExecutionVztKFZ5countL__AKSiAA0bciE8EndpointV_AVztKF",
+      "address": "0x1e36c70",
+      "location": 740,
+      "entryFrameBytes": 42144,
+      "sourceFile": null,
+      "sourceLine": null
+    },
+    {
+      "frame": "static SurfaceSilhouettePlaneAtlasPublication.retainCompleteFieldIncidence(atlas:firstCurveIndex:curves:stationCurves:stationEnds:usage:)",
+      "symbol": "_$s11CADGeometry38SurfaceSilhouettePlaneAtlasPublicationV28retainCompleteFieldIncidence33_333382B8A7CB4ED789A01956EE16C2E0LL5atlas15firstCurveIndex6curves13stationCurves0X4Ends5usageyAA08OriginalidE0V_SiSayAA08OriginalbcU0VGzSaySaySiGGzSaySaySbGGzAA22OriginalQueryExecutionVztKFZ",
+      "address": "0x1e323bc",
+      "location": 600,
+      "entryFrameBytes": 54048,
+      "sourceFile": null,
+      "sourceLine": null
+    },
+    {
+      "frame": "SurfaceSilhouettePlaneAtlasPublication.init(field:atlas:firstCurveIndex:usage:)",
+      "symbol": "_$s11CADGeometry38SurfaceSilhouettePlaneAtlasPublicationV5field5atlas15firstCurveIndex5usageAcA08OriginalbC5FieldV_AA0mndE0VSiAA0M14QueryExecutionVztKcfC",
+      "address": "0x1cd9558",
+      "location": 2004,
+      "entryFrameBytes": 19648,
+      "sourceFile": null,
+      "sourceLine": null
+    },
+    {
+      "frame": "DefaultSurfaceSilhouetteProducer.fieldAtlas(cell:regular:f:domain:tolerance:pending:curves:excluded:coincident:contacts:algebraicContacts:originalPlaneAtlases:using:)",
+      "symbol": "_$s11CADGeometry32DefaultSurfaceSilhouetteProducerV10fieldAtlas33_9BA4431057C25E404349C321699D6735LL4cell7regular1f6domain9tolerance7pending6curves8excluded10coincident8contacts17algebraicContacts20originalPlaneAtlases5usingSbAC7PendingAELLVz_SbAA0cD9ScalarJetVAA0C12ParameterBoxV7CADCore17ModelingToleranceVSayATGzSayAA08OriginalcD5CurveVGzSayAXGzA4_zSayAA0cD7ContactVGzSayAA0cD16AlgebraicContactVGzSayAA0cdyG0VGzAA22OriginalQueryExecutionVztKF",
+      "address": "0x1cd8af8",
+      "location": 836,
+      "entryFrameBytes": 40816,
+      "sourceFile": null,
+      "sourceLine": null
+    },
+    {
+      "frame": "DefaultSurfaceSilhouetteProducer.processCell(cell:domain:tolerance:sourceAuthority:pending:criticalSourceCache:planeRealLocusCache:curves:excluded:coincident:contacts:algebraicContacts:originalPlaneAtlases:using:)",
+      "symbol": "_$s11CADGeometry32DefaultSurfaceSilhouetteProducerV11processCell33_9BA4431057C25E404349C321699D6735LL4cell6domain9tolerance15sourceAuthority7pending19criticalSourceCache014planeRealLocusU06curves8excluded10coincident8contacts17algebraicContacts20originalPlaneAtlases5usingyAC7PendingAELLVz_AA0C12ParameterBoxV7CADCore17ModelingToleranceVAA0cdT11PreparationVSayAUGzSDyAC08CriticalT3KeyAELLVSayAA27ExactBivariateCriticalPointVGGzSDyA3_AC05PlanewX0AELLOGzSayAA08OriginalcD5CurveVGzSayAWGzA14_zSayAA0cD7ContactVGzSayAA0cD16AlgebraicContactVGzSayAA0cD10PlaneAtlasVGzAA22OriginalQueryExecutionVztKF",
+      "address": "0x1cfdab0",
+      "location": 5432,
+      "entryFrameBytes": 98368,
+      "sourceFile": null,
+      "sourceLine": null
+    },
+    {
+      "frame": "DefaultSurfaceSilhouetteProducer.closedDomainSilhouette(of:over:view:tolerance:using:)",
+      "symbol": "_$s11CADGeometry32DefaultSurfaceSilhouetteProducerV012closedDomainD033_9BA4431057C25E404349C321699D6735LL2of4over4view9tolerance5usingAA0cD8EnvelopeVAA9Surface3DO_AA0C12ParameterBoxV7CADCore8Vector3DVAQ17ModelingToleranceVAA22OriginalQueryExecutionVztKF",
+      "address": "0x1ccef40",
+      "location": 1228,
+      "entryFrameBytes": 92528,
+      "sourceFile": null,
+      "sourceLine": null
+    },
+    {
+      "frame": "DefaultSurfaceSilhouetteProducer.silhouette(of:over:view:tolerance:using:)",
+      "symbol": "_$s11CADGeometry32DefaultSurfaceSilhouetteProducerV10silhouette2of4over4view9tolerance5usingAA0cD8EnvelopeVAA9Surface3DO_AA0C12ParameterBoxV7CADCore8Vector3DVAP17ModelingToleranceVAA22OriginalQueryExecutionVztKF",
+      "address": "0x1cca770",
+      "location": 3868,
+      "entryFrameBytes": 35104,
+      "sourceFile": null,
+      "sourceLine": null
+    },
+    {
+      "frame": "protocol witness for SurfaceSilhouetteProducing.silhouette(of:over:view:tolerance:using:) in conformance DefaultSurfaceSilhouetteProducer",
+      "symbol": "_$s11CADGeometry32DefaultSurfaceSilhouetteProducerVAA0cD9ProducingA2aDP10silhouette2of4over4view9tolerance5usingAA0cD8EnvelopeVAA9Surface3DO_AA0C12ParameterBoxV7CADCore8Vector3DVAR17ModelingToleranceVAA22OriginalQueryExecutionVztKFTW",
+      "address": "0x1d0de34",
+      "location": 48,
+      "entryFrameBytes": 304,
+      "sourceFile": null,
+      "sourceLine": null
+    },
+    {
+      "frame": "BRepDrawingSilhouetteProducer.extract(_:in:placement:onto:maximumSourceFaces:maximumProjectedSpans:maximumControlPointCount:maximumBoundaryCurveCount:using:)",
+      "symbol": "_$s9CADKernel29BRepDrawingSilhouetteProducerV7extract33_45515EBCE735E3D06E49191B278BE829LL_2in9placement4onto18maximumSourceFaces0P14ProjectedSpans0P17ControlPointCount0p13BoundaryCurveW05usingAA0bC11SilhouettesV11CADTopology0B5ModelV_AA17EvaluatedDocumentVAA0bC9PlacementVSg11CADGeometry27OrthographicProjectionFrameVS4iAX22OriginalQueryExecutionVztKF",
+      "address": "0x4c88ae4",
+      "location": 5032,
+      "entryFrameBytes": 74464,
+      "sourceFile": null,
+      "sourceLine": null
+    },
+    {
+      "frame": "BRepDrawingSilhouetteProducer.silhouettes(in:onto:maximumSourceFaces:maximumProjectedSpans:maximumControlPointCount:maximumBoundaryCurveCount:using:)",
+      "symbol": "_$s9CADKernel29BRepDrawingSilhouetteProducerV11silhouettes2in4onto18maximumSourceFaces0I14ProjectedSpans0I17ControlPointCount0i13BoundaryCurveP05usingAA0bC11SilhouettesVAA17EvaluatedDocumentV_11CADGeometry27OrthographicProjectionFrameVS4iAP22OriginalQueryExecutionVztKF",
+      "address": "0x4c88984",
+      "location": 248,
+      "entryFrameBytes": 2352,
+      "sourceFile": null,
+      "sourceLine": null
+    },
+    {
+      "frame": "protocol witness for BRepDrawingSilhouetteProducing.silhouettes(in:onto:maximumSourceFaces:maximumProjectedSpans:maximumControlPointCount:maximumBoundaryCurveCount:using:) in conformance BRepDrawingSilhouetteProducer",
+      "symbol": "_$s9CADKernel29BRepDrawingSilhouetteProducerVAA0bcD9ProducingA2aDP11silhouettes2in4onto18maximumSourceFaces0J14ProjectedSpans0J17ControlPointCount0j13BoundaryCurveQ05usingAA0bC11SilhouettesVAA17EvaluatedDocumentV_11CADGeometry27OrthographicProjectionFrameVS4iAR22OriginalQueryExecutionVztKFTW",
+      "address": "0x4c9bc8c",
+      "location": 28,
+      "entryFrameBytes": 1184,
+      "sourceFile": null,
+      "sourceLine": null
+    },
+    {
+      "frame": "DocumentDrawingSilhouetteProducer.silhouettes(document:currentEvaluation:onto:maximumSourceFaces:maximumProjectedSpans:maximumControlPointCount:maximumBoundaryCurveCount:using:)",
+      "symbol": "_$s8SwiftCAD33DocumentDrawingSilhouetteProducerV11silhouettes8document17currentEvaluation4onto18maximumSourceFaces0L14ProjectedSpans0L17ControlPointCount0l13BoundaryCurveS05using9CADKernel04BRepD11SilhouettesV5CADIR11CADDocumentV_AM09EvaluatedC0V11CADGeometry27OrthographicProjectionFrameVS4iAU22OriginalQueryExecutionVztKF",
+      "address": "0x6252d10",
+      "location": 360,
+      "entryFrameBytes": 4656,
+      "sourceFile": null,
+      "sourceLine": null
+    },
+    {
+      "frame": "protocol witness for DocumentDrawingSilhouetteProducing.silhouettes(document:currentEvaluation:onto:maximumSourceFaces:maximumProjectedSpans:maximumControlPointCount:maximumBoundaryCurveCount:using:) in conformance DocumentDrawingSilhouetteProducer",
+      "symbol": "_$s8SwiftCAD33DocumentDrawingSilhouetteProducerVAA0cdE9ProducingA2aDP11silhouettes8document17currentEvaluation4onto18maximumSourceFaces0M14ProjectedSpans0M17ControlPointCount0m13BoundaryCurveT05using9CADKernel04BRepD11SilhouettesV5CADIR11CADDocumentV_AO09EvaluatedC0V11CADGeometry27OrthographicProjectionFrameVS4iAW22OriginalQueryExecutionVztKFTW",
+      "address": "0x625308c",
+      "location": 28,
+      "entryFrameBytes": 1184,
+      "sourceFile": null,
+      "sourceLine": null
+    },
+    {
+      "frame": "DocumentDrawingCanonicalAdmissionTests.unplacedSilhouettes(_:source:curved:using:)",
+      "symbol": "_$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V19unplacedSilhouettes33_9F58DFE84BC2AA973B67A16FE6063CCDLL_6source6curved5using9CADKernel04BRepdH0V8SwiftCAD0cD19SilhouetteProducing_p_AC6SourceAELLVSb11CADGeometry22OriginalQueryExecutionVztKF",
+      "address": "0x8714",
+      "location": 360,
+      "entryFrameBytes": 8880,
+      "sourceFile": "DocumentDrawingCanonicalAdmissionTests.swift",
+      "sourceLine": 117
+    },
+    {
+      "frame": "DocumentDrawingCanonicalAdmissionTests.query(_:curved:using:)",
+      "symbol": "_$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V5query33_9F58DFE84BC2AA973B67A16FE6063CCDLL_6curved5using9CADKernel04BRepD17ProjectedContactsVAC6SourceAELLV_Sb11CADGeometry22OriginalQueryExecutionVztKF",
+      "address": "0x62ac",
+      "location": 3856,
+      "entryFrameBytes": 9184,
+      "sourceFile": "DocumentDrawingCanonicalAdmissionTests.swift",
+      "sourceLine": 85
+    },
+    {
+      "frame": "DocumentDrawingCanonicalAdmissionTests.originalArchAndProjectedEndpointContactsShareExactResourceBoundaries()",
+      "symbol": "_$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V68originalArchAndProjectedEndpointContactsShareExactResourceBoundariesyyYaKFTY2_",
+      "address": "0x123e0",
+      "location": 360,
+      "entryFrameBytes": 1584,
+      "sourceFile": "DocumentDrawingCanonicalAdmissionTests.swift",
+      "sourceLine": 254
+    },
+    {
+      "frame": "static DocumentDrawingCanonicalAdmissionTests.$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V68originalArchAndProjectedEndpointContactsShareExactResourceBoundaries4TestfMp_17Z30d1832921727c0ffMu_@Sendable ()",
+      "symbol": "_$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V04$s12a8Tests033cdeF105B0V68originalArchAndProjectedEndpointContactsShareExactResourceBoundaries4TestfMp_17Z30d1832921727c0ffMu_33_9F58DFE84BC2AA973B67A16FE6063CCDLLyyYaYbKFZTQ3_",
+      "address": "0x11f3c",
+      "location": 1,
+      "entryFrameBytes": 48,
+      "sourceFile": "@__swiftmacro_12FocusedTests033DocumentDrawingCanonicalAdmissionB0V68originalArchAndProjectedEndpointContactsShareExactResourceBoundaries4TestfMp_.swift",
+      "sourceLine": 4
+    },
+    {
+      "frame": "implicit closure #1 in static DocumentDrawingCanonicalAdmissionTests.$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V68originalArchAndProjectedEndpointContactsShareExactResourceBoundaries4TestfMp_25generator30d1832921727c0ffMu_@Sendable ()",
+      "symbol": "_$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V04$s12a8Tests033cdeF113B0V68originalArchAndProjectedEndpointContactsShareExactResourceBoundaries4TestfMp_25generator30d1832921727c0ffMu_33_9F58DFE84BC2AA973B67A16FE6063CCDLL7Testing4TestVyYaYbFZyyYaYbKcfu_TQ0_",
+      "address": "0x1431c",
+      "location": 1,
+      "entryFrameBytes": 48,
+      "sourceFile": "@__swiftmacro_12FocusedTests033DocumentDrawingCanonicalAdmissionB0V68originalArchAndProjectedEndpointContactsShareExactResourceBoundaries4TestfMp_.swift",
+      "sourceLine": null
+    },
+    {
+      "frame": "partial apply for implicit closure #1 in static DocumentDrawingCanonicalAdmissionTests.$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V68originalArchAndProjectedEndpointContactsShareExactResourceBoundaries4TestfMp_25generator30d1832921727c0ffMu_@Sendable ()",
+      "symbol": "_$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V04$s12a8Tests033cdeF113B0V68originalArchAndProjectedEndpointContactsShareExactResourceBoundaries4TestfMp_25generator30d1832921727c0ffMu_33_9F58DFE84BC2AA973B67A16FE6063CCDLL7Testing4TestVyYaYbFZyyYaYbKcfu_TATQ0_",
+      "address": "0x77844",
+      "location": 1,
+      "entryFrameBytes": 32,
+      "sourceFile": "/<compiler-generated>",
+      "sourceLine": null
+    }
+  ],
+  "sumKnownEntryFrameBytes": 536080,
+  "threadState": {
+    "x": [
+      {
+        "value": 0
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 1
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 6172369648
+      },
+      {
+        "value": 6172364592
+      },
+      {
+        "value": 8349023672,
+        "symbolLocation": 0,
+        "symbol": "_swiftEmptyArrayStorage"
+      },
+      {
+        "value": 532325417312
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 1
+      },
+      {
+        "value": 1
+      },
+      {
+        "value": 8382853864,
+        "symbolLocation": 0,
+        "symbol": "type metadata for Int"
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 6621280912,
+        "symbolLocation": 0,
+        "symbol": "_platform_memset"
+      },
+      {
+        "value": 8589934592,
+        "objc-selector": "etSessionEndPolicy:"
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 6172757632
+      },
+      {
+        "value": 532325417184
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 9673150078677726310
+      },
+      {
+        "value": 3577481364023969138
+      },
+      {
+        "value": 9223372041480076240
+      }
+    ],
+    "flavor": "ARM_THREAD_STATE64",
+    "lr": {
+      "value": 4542135572
+    },
+    "cpsr": {
+      "value": 1610612736
+    },
+    "fp": {
+      "value": 6172360848
+    },
+    "sp": {
+      "value": 6172360528
+    },
+    "esr": {
+      "value": 2449473607,
+      "description": "(Data Abort) byte write Translation fault"
+    },
+    "pc": {
+      "value": 4542140084,
+      "matchesCrashFrame": 1
+    },
+    "far": {
+      "value": 6172360608
+    }
+  }
+}

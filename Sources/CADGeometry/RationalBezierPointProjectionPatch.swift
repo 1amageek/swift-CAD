@@ -34,16 +34,15 @@ struct RationalBezierPointProjectionPatch: Sendable {
         }
 
         static func * (lhs: OutwardInterval, rhs: OutwardInterval) -> OutwardInterval {
-            let products = [
-                lhs.lower * rhs.lower,
-                lhs.lower * rhs.upper,
-                lhs.upper * rhs.lower,
-                lhs.upper * rhs.upper,
-            ]
-            return OutwardInterval(
-                lower: (products.min() ?? -.infinity).nextDown,
-                upper: (products.max() ?? .infinity).nextUp
-            )
+            let first = lhs.lower * rhs.lower
+            let second = lhs.lower * rhs.upper
+            let third = lhs.upper * rhs.lower
+            let fourth = lhs.upper * rhs.upper
+            var lower = first, upper = first
+            if second < lower { lower = second }; if upper < second { upper = second }
+            if third < lower { lower = third }; if upper < third { upper = third }
+            if fourth < lower { lower = fourth }; if upper < fourth { upper = fourth }
+            return OutwardInterval(lower: lower.nextDown, upper: upper.nextUp)
         }
 
         static func / (lhs: OutwardInterval, rhs: OutwardInterval) -> OutwardInterval {
@@ -119,19 +118,16 @@ struct RationalBezierPointProjectionPatch: Sendable {
     let vLower: Double
     let vUpper: Double
 
-    init(patch: RationalBezierSurfacePatch3D) {
-        controlNet = patch.controlPoints.indices.map { vIndex in
-            patch.controlPoints[vIndex].indices.map { uIndex in
-                HomogeneousPoint(
-                    point: patch.controlPoints[vIndex][uIndex],
-                    weight: patch.weights[vIndex][uIndex]
-                )
+    init<A: ExactScalarAdmission & ~Copyable>(patch: RationalBezierSurfacePatch3D,
+        using execution: inout A) throws {
+        try execution.consumeWork(1)
+        controlNet = try OriginalCoefficientAllocation.map(elements: patch.controlPoints.indices, using: &execution) { vIndex, execution in
+            try OriginalCoefficientAllocation.map(elements: patch.controlPoints[vIndex].indices, using: &execution) { uIndex, _ in
+                HomogeneousPoint(point: patch.controlPoints[vIndex][uIndex], weight: patch.weights[vIndex][uIndex])
             }
         }
-        uLower = patch.uLower
-        uUpper = patch.uUpper
-        vLower = patch.vLower
-        vUpper = patch.vUpper
+        uLower = patch.uLower; uUpper = patch.uUpper
+        vLower = patch.vLower; vUpper = patch.vUpper
     }
 
     private init(
@@ -148,14 +144,17 @@ struct RationalBezierPointProjectionPatch: Sendable {
         self.vUpper = vUpper
     }
 
-    func boundingBox(tolerance: ModelingTolerance) throws -> BoundingBox3D {
+    func boundingBox<A: ExactScalarAdmission & ~Copyable>(tolerance: ModelingTolerance,
+        using execution: inout A) throws -> BoundingBox3D {
+        try execution.consumeWork(1)
         var minimumX = Double.infinity
         var minimumY = Double.infinity
         var minimumZ = Double.infinity
         var maximumX = -Double.infinity
         var maximumY = -Double.infinity
         var maximumZ = -Double.infinity
-        for control in controlNet.flatMap({ $0 }) {
+        for row in controlNet { for control in row {
+            try execution.consumeWork(1)
             let bounds = try control.cartesianBounds(tolerance: tolerance)
             minimumX = min(minimumX, bounds.x.lower)
             minimumY = min(minimumY, bounds.y.lower)
@@ -164,83 +163,82 @@ struct RationalBezierPointProjectionPatch: Sendable {
             maximumY = max(maximumY, bounds.y.upper)
             maximumZ = max(maximumZ, bounds.z.upper)
         }
+        }
         return try BoundingBox3D(
             minimum: Point3D(x: minimumX, y: minimumY, z: minimumZ),
             maximum: Point3D(x: maximumX, y: maximumY, z: maximumZ)
         )
     }
 
-    func subdivided() -> [RationalBezierPointProjectionPatch] {
-        let quadrants = subdivided(controlNet: controlNet)
+    func subdivided<A: ExactScalarAdmission & ~Copyable>(using execution: inout A) throws -> [RationalBezierPointProjectionPatch] {
+        try execution.consumeWork(1)
+        let quadrants = try subdivided(controlNet: controlNet, using: &execution)
         let uMiddle = uLower + (uUpper - uLower) * 0.5
         let vMiddle = vLower + (vUpper - vLower) * 0.5
-        let bounds = [
-            (uLower, uMiddle, vLower, vMiddle),
-            (uMiddle, uUpper, vLower, vMiddle),
-            (uLower, uMiddle, vMiddle, vUpper),
-            (uMiddle, uUpper, vMiddle, vUpper),
-        ]
-        return bounds.indices.map { index in
-            RationalBezierPointProjectionPatch(
-                controlNet: quadrants[index],
-                uLower: bounds[index].0,
-                uUpper: bounds[index].1,
-                vLower: bounds[index].2,
-                vUpper: bounds[index].3
-            )
+        return try OriginalCoefficientAllocation.map(elements: 0..<4, using: &execution) { index, _ in
+            RationalBezierPointProjectionPatch(controlNet: quadrants[index],
+                uLower: index.isMultiple(of: 2) ? uLower : uMiddle,
+                uUpper: index.isMultiple(of: 2) ? uMiddle : uUpper,
+                vLower: index < 2 ? vLower : vMiddle,
+                vUpper: index < 2 ? vMiddle : vUpper)
         }
     }
 
-    private func subdivided(
-        controlNet: [[HomogeneousPoint]]
-    ) -> [[[HomogeneousPoint]]] {
-        var uLowerRows: [[HomogeneousPoint]] = []
-        var uUpperRows: [[HomogeneousPoint]] = []
+    private func subdivided<A: ExactScalarAdmission & ~Copyable>(controlNet: [[HomogeneousPoint]],
+        using execution: inout A) throws -> [[[HomogeneousPoint]]] {
+        try execution.consumeWork(1)
+        try OriginalCoefficientAllocation.reserve(count: controlNet.count, of: [HomogeneousPoint].self, using: &execution)
+        try OriginalCoefficientAllocation.reserve(count: controlNet.count, of: [HomogeneousPoint].self, using: &execution)
+        var uLowerRows: [[HomogeneousPoint]] = []; uLowerRows.reserveCapacity(controlNet.count)
+        var uUpperRows: [[HomogeneousPoint]] = []; uUpperRows.reserveCapacity(controlNet.count)
         for row in controlNet {
-            let halves = split(row)
-            uLowerRows.append(halves.lower)
-            uUpperRows.append(halves.upper)
+            try execution.consumeWork(1)
+            let halves = try split(row, using: &execution)
+            uLowerRows.append(halves.lower); uUpperRows.append(halves.upper)
         }
-        let lowerUHalves = splitColumns(uLowerRows)
-        let upperUHalves = splitColumns(uUpperRows)
-        return [
-            lowerUHalves.lower,
-            upperUHalves.lower,
-            lowerUHalves.upper,
-            upperUHalves.upper,
-        ]
+        let lowerUHalves = try splitColumns(uLowerRows, using: &execution)
+        let upperUHalves = try splitColumns(uUpperRows, using: &execution)
+        try OriginalCoefficientAllocation.reserve(count: 4, of: [[HomogeneousPoint]].self, using: &execution)
+        return [lowerUHalves.lower, upperUHalves.lower, lowerUHalves.upper, upperUHalves.upper]
     }
 
-    private func splitColumns(
-        _ values: [[HomogeneousPoint]]
-    ) -> (lower: [[HomogeneousPoint]], upper: [[HomogeneousPoint]]) {
+    private func splitColumns<A: ExactScalarAdmission & ~Copyable>(_ values: [[HomogeneousPoint]],
+        using execution: inout A) throws -> (lower: [[HomogeneousPoint]], upper: [[HomogeneousPoint]]) {
+        try execution.consumeWork(1)
         guard let firstRow = values.first else { return ([], []) }
-        var lowerColumns: [[HomogeneousPoint]] = []
-        var upperColumns: [[HomogeneousPoint]] = []
+        try OriginalCoefficientAllocation.reserve(count: firstRow.count, of: [HomogeneousPoint].self, using: &execution)
+        try OriginalCoefficientAllocation.reserve(count: firstRow.count, of: [HomogeneousPoint].self, using: &execution)
+        var lowerColumns: [[HomogeneousPoint]] = []; lowerColumns.reserveCapacity(firstRow.count)
+        var upperColumns: [[HomogeneousPoint]] = []; upperColumns.reserveCapacity(firstRow.count)
         for columnIndex in firstRow.indices {
-            let halves = split(values.map { $0[columnIndex] })
-            lowerColumns.append(halves.lower)
-            upperColumns.append(halves.upper)
+            try execution.consumeWork(1)
+            let column = try OriginalCoefficientAllocation.map(elements: values, using: &execution) { row, _ in row[columnIndex] }
+            let halves = try split(column, using: &execution)
+            lowerColumns.append(halves.lower); upperColumns.append(halves.upper)
         }
-        return (
-            values.indices.map { rowIndex in lowerColumns.map { $0[rowIndex] } },
-            values.indices.map { rowIndex in upperColumns.map { $0[rowIndex] } }
-        )
+        let lower = try OriginalCoefficientAllocation.map(elements: values.indices, using: &execution) { rowIndex, execution in
+            try OriginalCoefficientAllocation.map(elements: lowerColumns, using: &execution) { column, _ in column[rowIndex] }
+        }
+        let upper = try OriginalCoefficientAllocation.map(elements: values.indices, using: &execution) { rowIndex, execution in
+            try OriginalCoefficientAllocation.map(elements: upperColumns, using: &execution) { column, _ in column[rowIndex] }
+        }
+        return (lower, upper)
     }
 
-    private func split(
-        _ values: [HomogeneousPoint]
-    ) -> (lower: [HomogeneousPoint], upper: [HomogeneousPoint]) {
+    private func split<A: ExactScalarAdmission & ~Copyable>(_ values: [HomogeneousPoint],
+        using execution: inout A) throws -> (lower: [HomogeneousPoint], upper: [HomogeneousPoint]) {
+        try execution.consumeWork(1)
         guard values.count > 1 else { return (values, values) }
-        var levels = [values]
+        try OriginalCoefficientAllocation.reserve(count: values.count, of: [HomogeneousPoint].self, using: &execution)
+        var levels: [[HomogeneousPoint]] = []; levels.reserveCapacity(values.count); levels.append(values)
         while let previous = levels.last, previous.count > 1 {
-            levels.append((0..<(previous.count - 1)).map { index in
+            try execution.consumeWork(1)
+            levels.append(try OriginalCoefficientAllocation.map(elements: 0..<(previous.count - 1), using: &execution) { index, _ in
                 previous[index].midpoint(with: previous[index + 1])
             })
         }
-        return (
-            levels.map { $0[0] },
-            levels.reversed().map { $0[$0.count - 1] }
-        )
+        let lower = try OriginalCoefficientAllocation.map(elements: levels, using: &execution) { level, _ in level[0] }
+        let upper = try OriginalCoefficientAllocation.map(elements: levels.reversed(), using: &execution) { level, _ in level[level.count - 1] }
+        return (lower, upper)
     }
 }

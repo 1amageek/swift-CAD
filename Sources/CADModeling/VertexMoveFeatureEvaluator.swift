@@ -62,7 +62,7 @@ public struct VertexMoveFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
             featureID: feature.id,
             context: context
         )
-        let replacedSubshapeIDs = bodyScope.subshapeIDs(in: context.subshapes)
+        let replacedSubshapeIDs = try bodyScope.subshapeIDs(in: context.subshapes)
         guard try isPolyhedralSingleShellSolid(bodyID, model: context.brep) else {
             // Sheets and bodies with curved faces keep their topology: only the faces around the
             // vertex are re-solved, as planes or, where a four-sided face warps, bilinear patches.
@@ -218,7 +218,7 @@ public struct VertexMoveFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
                 )
             }
             let outward = face.orientation == .forward ? plane.normal : -plane.normal
-            let faceParents = subshapeIDs(for: .face(faceID), context: context)
+            let faceParents = try subshapeIDs(for: .face(faceID), context: context)
             let polygons: [[BoundaryVertex]]
             if isPlanar(boundary.map(\.point), tolerance: context.tolerance.distance) {
                 polygons = [boundary]
@@ -248,7 +248,7 @@ public struct VertexMoveFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
             featureID: featureID,
             bodyKind: .solid,
             shells: [BRepSewingShell(stableID: "vertexMove:shell", patches: patches)],
-            bodyParentSubshapeIDs: subshapeIDs(for: .body(bodyID), context: context)
+            bodyParentSubshapeIDs: try subshapeIDs(for: .body(bodyID), context: context)
         )
     }
 
@@ -347,9 +347,9 @@ public struct VertexMoveFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
                     SurfaceParameter(u: startUV.u, v: startUV.v),
                     SurfaceParameter(u: endUV.u, v: endUV.v),
                 ]),
-                parentSubshapeIDs: sourceEdgeID.map { subshapeIDs(for: .edge($0), context: context) } ?? [],
-                startVertexParentSubshapeIDs: subshapeIDs(for: .vertex(start.sourceVertexID), context: context),
-                endVertexParentSubshapeIDs: subshapeIDs(for: .vertex(end.sourceVertexID), context: context)
+                parentSubshapeIDs: try sourceEdgeID.map { try subshapeIDs(for: .edge($0), context: context) } ?? [],
+                startVertexParentSubshapeIDs: try subshapeIDs(for: .vertex(start.sourceVertexID), context: context),
+                endVertexParentSubshapeIDs: try subshapeIDs(for: .vertex(end.sourceVertexID), context: context)
             )
         }
         return BRepSewingFacePatch(
@@ -393,8 +393,8 @@ public struct VertexMoveFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
         return normal
     }
 
-    private func subshapeIDs(for reference: TopologyReference, context: EvaluationContext) -> [SubshapeID] {
-        context.subshapeIDs(for: reference)
+    private func subshapeIDs(for reference: TopologyReference, context: EvaluationContext) throws -> [SubshapeID] {
+        try context.subshapeIDs(for: reference)
     }
 
     private func error(

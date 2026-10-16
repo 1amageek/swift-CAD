@@ -1,0 +1,36 @@
+--- before
++++ after
+@@ -111,12 +111,25 @@
+         }
+     }
+ 
++    @inline(never)
+     package static func charge<A: ExactScalarAdmission & ~Copyable>(
+         surface: Surface3D,
+         using execution: inout A
+     ) throws {
+         try checkCancellation()
+         try execution.consumeWork(1)
++        if case .bSpline(let native) = surface {
++            try Self.charge(surface: native, using: &execution)
++            return
++        }
++        try chargeNonNativeSurfacePayload(surface: surface, using: &execution)
++    }
++
++    @inline(never)
++    private static func chargeNonNativeSurfacePayload<A: ExactScalarAdmission & ~Copyable>(
++        surface: Surface3D,
++        using execution: inout A
++    ) throws {
+         switch surface {
+         case .plane:
+             try execution.consumeWork(4)
+@@ -601,6 +614,7 @@
+         try execution.consumeWork(2)
+     }
+ 
++    @inline(never)
+     private static func charge<A: ExactScalarAdmission & ~Copyable>(
+         surface: BSplineSurface3D,
+         using execution: inout A

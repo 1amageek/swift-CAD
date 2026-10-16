@@ -25,10 +25,10 @@ enum OriginalAffineWordCoefficientImport {
             if let retained = normalized {
                 let depth = ExactScalarDepth(uncheckedValue: retained.frame.context.depth,
                     coefficient: retained.frame.context.coefficientDepth)
-                try usage.visitCoefficientCell(depth: depth.coefficient)
-                try usage.visitExactCell(depth: depth.value)
+                try usage.visitCell(axis: .coefficient, depth: depth.coefficient)
+                try usage.visitCell(axis: .value, depth: depth.value)
                 for row in 0..<3 { for column in 0..<4 {
-                    try usage.consumeExactWork(1)
+                    try usage.consumeWork(1)
                     let value = try OriginalAffineFieldAction.coefficient(retained.frame,
                         row: row, column: column, maximumDepth: maximumDepth, usage: &usage)
                     values.append(.init(original: value, depth: depth))
@@ -37,7 +37,7 @@ enum OriginalAffineWordCoefficientImport {
                 let rational = try prepared.exactRationalCoefficients(usage: &usage)
                 let context = try OriginalSingularFieldContext(usage: &usage)
                 for coefficient in rational {
-                    try usage.consumeExactWork(1)
+                    try usage.consumeWork(1)
                     values.append(.init(original: try .constant(coefficient, in: context,
                         maximumDepth: maximumDepth, usage: &usage), depth: .zero))
                 }

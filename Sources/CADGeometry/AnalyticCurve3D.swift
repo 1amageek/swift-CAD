@@ -209,6 +209,12 @@ public enum AnalyticCurve3D: Equatable, Hashable, Sendable {
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try tolerance.validate()
         switch self {
         case let .line(origin, direction):
@@ -246,11 +252,11 @@ public enum AnalyticCurve3D: Equatable, Hashable, Sendable {
                 throw GeometryError.invalidRadius(minorRadius)
             }
         case let .hyperbola(curve):
-            try curve.validate(tolerance: tolerance)
+            try curve.validate(tolerance: tolerance, using: &execution)
         case let .parabola(curve):
-            try curve.validate(tolerance: tolerance)
+            try curve.validate(tolerance: tolerance, using: &execution)
         case let .planeTorus(curve):
-            try curve.validate(tolerance: tolerance)
+            try curve.validate(tolerance: tolerance, using: &execution)
         }
         try parameterDomain.validate()
     }
@@ -259,10 +265,19 @@ public enum AnalyticCurve3D: Equatable, Hashable, Sendable {
         at parameter: Double,
         tolerance: ModelingTolerance
     ) throws -> DifferentialGeometry {
-        try validate(tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try differentialGeometry(at: parameter, tolerance: tolerance, using: &execution)
+    }
+
+    public func differentialGeometry(
+        at parameter: Double,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+    ) throws -> DifferentialGeometry {
+        try execution.consumeWork(1)
+        try validate(tolerance: tolerance, using: &execution)
         return try differentialGeometryAssumingValid(
             at: parameter,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
     }
 
@@ -270,6 +285,15 @@ public enum AnalyticCurve3D: Equatable, Hashable, Sendable {
         at parameter: Double,
         tolerance: ModelingTolerance
     ) throws -> DifferentialGeometry {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try differentialGeometryAssumingValid(at: parameter, tolerance: tolerance, using: &execution)
+    }
+
+    package func differentialGeometryAssumingValid(
+        at parameter: Double,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+    ) throws -> DifferentialGeometry {
+        try execution.consumeWork(1)
         guard parameter.isFinite else {
             throw GeometryError.invalidDistance(parameter)
         }
@@ -288,7 +312,7 @@ public enum AnalyticCurve3D: Equatable, Hashable, Sendable {
                 normal: normal,
                 radius: radius,
                 parameter: parameter,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         case let .arc(center, normal, radius, startAngle, endAngle):
             guard parameterDomain.contains(parameter, tolerance: tolerance.angle) else {
@@ -301,12 +325,12 @@ public enum AnalyticCurve3D: Equatable, Hashable, Sendable {
                 normal: normal,
                 radius: radius,
                 parameter: parameter,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         case let .ellipse(center, normal, majorAxis, majorRadius, minorRadius):
             let minorAxis = try normal.cross(majorAxis).normalized(tolerance: tolerance.distance)
-            let sine = CanonicalSphereAngularPhase.candidate(at: parameter, cosine: false)
-            let cosine = CanonicalSphereAngularPhase.candidate(at: parameter, cosine: true)
+            let sine = (try CanonicalSphereAngularPhase.candidate(at: parameter, cosine: false, using: &execution))
+            let cosine = (try CanonicalSphereAngularPhase.candidate(at: parameter, cosine: true, using: &execution))
             let scale = CanonicalSphereAngularPhase.scaleBounds.midpoint
             let position = center
                 + majorAxis * (majorRadius * cosine)
@@ -317,13 +341,13 @@ public enum AnalyticCurve3D: Equatable, Hashable, Sendable {
                 - minorAxis * (minorRadius * sine)) * (scale * scale)
             return try Self.makeDifferential(position, first, second, tolerance: tolerance)
         case let .hyperbola(curve):
-            return try curve.differentialGeometry(at: parameter, tolerance: tolerance)
+            return try curve.differentialGeometry(at: parameter, tolerance: tolerance, using: &execution)
         case let .parabola(curve):
-            return try curve.differentialGeometry(at: parameter, tolerance: tolerance)
+            return try curve.differentialGeometry(at: parameter, tolerance: tolerance, using: &execution)
         case let .planeTorus(curve):
             let geometry = try curve.differentialGeometry(
                 at: parameter,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
             return try Self.makeDifferential(
                 geometry.position,
@@ -338,19 +362,28 @@ public enum AnalyticCurve3D: Equatable, Hashable, Sendable {
         at parameter: Double,
         tolerance: ModelingTolerance
     ) throws -> Point3D {
-        try differentialGeometry(at: parameter, tolerance: tolerance).position
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try point(at: parameter, tolerance: tolerance, using: &execution)
     }
 
-    private func circularDifferential(
+    public func point(
+        at parameter: Double,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+    ) throws -> Point3D {
+        try execution.consumeWork(1)
+        return try differentialGeometry(at: parameter, tolerance: tolerance, using: &execution).position
+    }
+
+    private func circularDifferential<A: ExactScalarAdmission & ~Copyable>(
         center: Point3D,
         normal: Vector3D,
         radius: Double,
         parameter: Double,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout A
     ) throws -> DifferentialGeometry {
         let basis = try analyticOrthonormalBasis(normal, tolerance: tolerance)
-        let sine = CanonicalSphereAngularPhase.candidate(at: parameter, cosine: false)
-        let cosine = CanonicalSphereAngularPhase.candidate(at: parameter, cosine: true)
+        let sine = (try CanonicalSphereAngularPhase.candidate(at: parameter, cosine: false, using: &execution))
+        let cosine = (try CanonicalSphereAngularPhase.candidate(at: parameter, cosine: true, using: &execution))
         let scale = CanonicalSphereAngularPhase.scaleBounds.midpoint
         let radial = basis.u * cosine + basis.v * sine
         let first = (-basis.u * sine + basis.v * cosine) * (radius * scale)

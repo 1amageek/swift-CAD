@@ -1,5 +1,6 @@
 import HashTreeCollections
 import CADCore
+import CADGeometry
 
 /// Selects a deterministic, geometry-derived origin for shell flux integrals.
 /// Topology identifiers are intentionally excluded because generated UUID order
@@ -7,27 +8,36 @@ import CADCore
 package struct BRepShellReferencePointResolver {
     package init() {}
 
+    package func referencePoint(for shell: Shell, in model: BRepModel, context: String) throws -> Point3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try referencePoint(for: shell, in: model, context: context, using: &execution)
+    }
+
     package func referencePoint(
         for shell: Shell,
         in model: BRepModel,
-        context: String
+        context: String, using execution: inout OriginalQueryExecution
     ) throws -> Point3D {
         var minimum: Point3D?
         var maximum: Point3D?
 
         for faceID in shell.faceIDs {
+
+            try execution.consumeWork(1)
             guard let face = model.faces[faceID] else {
                 throw TopologyError.missingReference(
                     "\(context) references a missing face."
                 )
             }
             for loopID in face.loops {
+                try execution.consumeWork(1)
                 guard let loop = model.loops[loopID] else {
                     throw TopologyError.missingReference(
                         "\(context) references a missing loop."
                     )
                 }
                 for coedge in loop.coedges {
+                    try execution.consumeWork(1)
                     guard let edge = model.edges[coedge.edgeID],
                           let start = model.vertices[edge.startVertexID]?.point,
                           let end = model.vertices[edge.endVertexID]?.point else {

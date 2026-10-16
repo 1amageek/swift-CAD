@@ -105,3 +105,13 @@ owns corner identity, negative orientation, full identity refusal, extra zero co
 opposite sign, foreign source/domain/owner and final-decline cancellation. The original
 mixed public fixture is the performance evidence; its region, curve and isolated
 point, original UV identities, closed joins and component ceiling remain required.
+
+## Direct Execution Admission
+
+Source arithmetic borrows `A: ExactScalarAdmission & ~Copyable`; composed query
+operations borrow `inout OriginalQueryExecution`. Source validation, native span
+validation, structural comparisons and exact refinement receive that same admission.
+The [execution owner](../OriginalQueryExecution/DESIGN.md) defines cumulative
+work and actual byte accounting, independent depth axes, cancellation and lexical
+proof scopes. Retained geometry and relation evidence stay immutable; no callback
+adapter, copied counter or second allowance supplies arithmetic authority.

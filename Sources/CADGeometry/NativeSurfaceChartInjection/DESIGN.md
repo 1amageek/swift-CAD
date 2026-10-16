@@ -88,3 +88,13 @@ SSI methods exercise complete joins, all UVs, mixtures, fibers and public failur
 The extra retained optional proof reference changes receipt storage accounting;
 existing retained-fiber lifetime and independent-storage/final-cancellation methods
 must be rechecked. Parent dispatch contracts remain unchanged.
+
+## Direct Execution Admission
+
+Source arithmetic borrows `A: ExactScalarAdmission & ~Copyable`; composed query
+operations borrow `inout OriginalQueryExecution`. Source validation, native span
+validation, structural comparisons and exact refinement receive that same admission.
+The [execution owner](../OriginalQueryExecution/DESIGN.md) defines cumulative
+work and actual byte accounting, independent depth axes, cancellation and lexical
+proof scopes. Retained geometry and relation evidence stay immutable; no callback
+adapter, copied counter or second allowance supplies arithmetic authority.

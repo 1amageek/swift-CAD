@@ -46,5 +46,10 @@ positive/negative signs can certify positive-weight control hull half-spaces.
 Affine volume scaling exposes a determinant interval from exact original column
 rational arithmetic. Every input Double is an exact dyadic coefficient; cancellation
 is resolved before outward conversion. Singular source matrices fail explicitly.
-The same caller callback admits all exact work/storage with lexical lifetime;
+The original `inout` admission consumes all actual exact work and checked allocation bytes;
 no rounded determinant or independent exact-algebra allowance is substituted.
+
+Direct line and plane predicates use generic `ExactScalarAdmission & ~Copyable`.
+Their expansion buffers are admitted before allocation, and no private usage,
+word-count forwarding ledger or callback reconstruction is retained. Fixed
+coordinate iteration keeps source equality distinct from numerical proximity.

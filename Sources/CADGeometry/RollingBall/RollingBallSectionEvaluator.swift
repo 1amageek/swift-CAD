@@ -24,11 +24,13 @@ public struct RollingBallSectionEvaluator: RollingBallSectionEvaluating {
         second: OffsetSurface3D,
         intersection: SurfaceSurfaceIntersectionCurve,
         tolerance: ModelingTolerance,
-        correspondenceValidator: any CurveSurfaceCorrespondenceValidating = DefaultCurveSurfaceCorrespondenceValidator()
+        correspondenceValidator: any CurveSurfaceCorrespondenceValidating = DefaultCurveSurfaceCorrespondenceValidator(),
+        using execution: inout OriginalQueryExecution
     ) throws {
+        try execution.consumeWork(1)
         try tolerance.validate()
-        try first.validate(tolerance: tolerance)
-        try second.validate(tolerance: tolerance)
+        try first.validate(tolerance: tolerance, using: &execution)
+        try second.validate(tolerance: tolerance, using: &execution)
         guard abs(first.distance) > tolerance.distance,
               abs(first.distance) == abs(second.distance) else {
             throw KernelError(
@@ -36,7 +38,7 @@ public struct RollingBallSectionEvaluator: RollingBallSectionEvaluating {
                 message: "Rolling-ball offsets require equal, positive radius magnitudes."
             )
         }
-        try intersection.validate(tolerance: tolerance)
+        try intersection.validate(tolerance: tolerance, using: &execution)
         self.first = first
         self.second = second
         self.intersection = intersection
@@ -48,8 +50,9 @@ public struct RollingBallSectionEvaluator: RollingBallSectionEvaluating {
         on role: SurfaceIntersectionSurfaceRole,
         fromCurveParameter lower: Double,
         toCurveParameter upper: Double,
-        options: CurveSurfaceCorrespondenceValidationOptions
-    ) throws -> SurfaceLiftCurve3D {
+        options: CurveSurfaceCorrespondenceValidationOptions,
+        using execution: inout OriginalQueryExecution) throws -> SurfaceLiftCurve3D {
+        try execution.consumeWork(1)
         try options.validate(tolerance: tolerance)
         guard options.maximumDeviation.map({ $0 <= tolerance.distance }) ?? true else {
             throw KernelError(
@@ -62,14 +65,14 @@ public struct RollingBallSectionEvaluator: RollingBallSectionEvaluating {
             ? intersection.firstSurfaceParameterCurve : intersection.secondSurfaceParameterCurve
         let trimmed = try source.trimmed(
             from: lower, to: upper, curveDomain: intersection.curve.parameterDomain,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         try correspondenceValidator.validate(
             curve: intersection.curve, from: lower, to: upper,
             surface: .procedural(.offset(offset)), parameterCurve: trimmed,
-            options: options, tolerance: tolerance
+            options: options, tolerance: tolerance, using: &execution
         )
-        let image = try offset.parameterCurvePullback(transporting: trimmed, tolerance: tolerance)
+        let image = try offset.parameterCurvePullback(transporting: trimmed, tolerance: tolerance, using: &execution)
         // The image factory already validated this exact destination and pcurve.
         return SurfaceLiftCurve3D(
             surface: offset.source, parameterCurve: .offsetSurfaceImage(image)
@@ -83,15 +86,16 @@ public struct RollingBallSectionEvaluator: RollingBallSectionEvaluating {
     public func blendSurface(
         fromCurveParameter lower: Double,
         toCurveParameter upper: Double,
-        options: CurveSurfaceCorrespondenceValidationOptions
-    ) throws -> RollingBallBlendSurface3D {
+        options: CurveSurfaceCorrespondenceValidationOptions,
+        using execution: inout OriginalQueryExecution) throws -> RollingBallBlendSurface3D {
+        try execution.consumeWork(1)
         let firstRail = try contactCurve(on: .first, fromCurveParameter: lower,
-                                         toCurveParameter: upper, options: options)
+                                         toCurveParameter: upper, options: options, using: &execution)
         let secondRail = try contactCurve(on: .second, fromCurveParameter: lower,
-                                          toCurveParameter: upper, options: options)
+                                          toCurveParameter: upper, options: options, using: &execution)
         let centerParameters = try intersection.firstSurfaceParameterCurve.trimmed(
             from: lower, to: upper, curveDomain: intersection.curve.parameterDomain,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         let center = SurfaceLiftCurve3D(surface: .procedural(.offset(first)), parameterCurve: centerParameters)
         return RollingBallBlendSurface3D(
@@ -100,26 +104,27 @@ public struct RollingBallSectionEvaluator: RollingBallSectionEvaluating {
         )
     }
 
-    public func section(atCurveParameter parameter: Double) throws -> RollingBallSection {
+    public func section(atCurveParameter parameter: Double, using execution: inout OriginalQueryExecution) throws -> RollingBallSection {
+        try execution.consumeWork(1)
         let correspondence = try intersection.evaluatedCorrespondenceAssumingValidated(
             atCurveParameter: parameter,
             firstSurface: .procedural(.offset(first)),
             secondSurface: .procedural(.offset(second)),
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         let firstParameter = correspondence.parameters.first
         let secondParameter = correspondence.parameters.second
         let firstPoint = try first.source.point(
-            u: firstParameter.u, v: firstParameter.v, tolerance: tolerance
+            u: firstParameter.u, v: firstParameter.v, tolerance: tolerance, using: &execution
         )
         let secondPoint = try second.source.point(
-            u: secondParameter.u, v: secondParameter.v, tolerance: tolerance
+            u: secondParameter.u, v: secondParameter.v, tolerance: tolerance, using: &execution
         )
         let firstNormal = try first.source.normal(
-            u: firstParameter.u, v: firstParameter.v, tolerance: tolerance
+            u: firstParameter.u, v: firstParameter.v, tolerance: tolerance, using: &execution
         )
         let secondNormal = try second.source.normal(
-            u: secondParameter.u, v: secondParameter.v, tolerance: tolerance
+            u: secondParameter.u, v: secondParameter.v, tolerance: tolerance, using: &execution
         )
         let radius = abs(first.distance)
         let center = firstPoint + firstNormal * first.distance
@@ -152,17 +157,19 @@ public struct RollingBallSectionEvaluator: RollingBallSectionEvaluating {
                 message: "Rolling-ball contacts do not share the supplied offset intersection."
             )
         }
+        try execution.retainStorage(count: 9, stride: MemoryLayout<Double>.stride)
+        try execution.retainStorage(count: 3, stride: MemoryLayout<Point3D>.stride)
         let arc = BSplineCurve3D(
             degree: 2,
             knots: [0, 0, 0, 1, 1, 1],
             controlPoints: [start, center + (a + b) * (radius / denominator), end],
             weights: [1, sqrt(denominator * 0.5), 1]
         )
-        try arc.validate(tolerance: tolerance)
+        try arc.validate(tolerance: tolerance, using: &execution)
         // Large coordinate cancellation must not turn a valid contact normal
         // into a non-tangent stored arc, even when the endpoints still fit.
-        let startTangent = try arc.differentialGeometry(at: 0, tolerance: tolerance).tangent
-        let endTangent = try arc.differentialGeometry(at: 1, tolerance: tolerance).tangent
+        let startTangent = try arc.differentialGeometry(at: 0, tolerance: tolerance, using: &execution).tangent
+        let endTangent = try arc.differentialGeometry(at: 1, tolerance: tolerance, using: &execution).tangent
         guard abs(startTangent.dot(firstNormal)) <= angularThreshold,
               abs(endTangent.dot(secondNormal)) <= angularThreshold else {
             throw KernelError(
@@ -177,4 +184,38 @@ public struct RollingBallSectionEvaluator: RollingBallSectionEvaluating {
             arc: arc, maximumContactResidual: residual
         )
     }
+    public func contactCurve(
+        on role: SurfaceIntersectionSurfaceRole,
+        fromCurveParameter lower: Double,
+        toCurveParameter upper: Double,
+        options: CurveSurfaceCorrespondenceValidationOptions
+    ) throws -> SurfaceLiftCurve3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try contactCurve(on: role, fromCurveParameter: lower, toCurveParameter: upper, options: options, using: &execution)
+    }
+
+    public func blendSurface(
+        fromCurveParameter lower: Double,
+        toCurveParameter upper: Double,
+        options: CurveSurfaceCorrespondenceValidationOptions
+    ) throws -> RollingBallBlendSurface3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try blendSurface(fromCurveParameter: lower, toCurveParameter: upper, options: options, using: &execution)
+    }
+
+    public func section(atCurveParameter parameter: Double) throws -> RollingBallSection {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try section(atCurveParameter: parameter, using: &execution)
+    }
+
+    public init(
+        first: OffsetSurface3D, second: OffsetSurface3D,
+        intersection: SurfaceSurfaceIntersectionCurve, tolerance: ModelingTolerance,
+        correspondenceValidator: any CurveSurfaceCorrespondenceValidating = DefaultCurveSurfaceCorrespondenceValidator()
+    ) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try self.init(first: first, second: second, intersection: intersection, tolerance: tolerance,
+            correspondenceValidator: correspondenceValidator, using: &execution)
+    }
+
 }

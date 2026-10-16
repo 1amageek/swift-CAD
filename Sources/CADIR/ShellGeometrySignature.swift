@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 import CADTopology
 
 public struct ShellGeometrySignature: Hashable, Sendable {
@@ -11,6 +12,12 @@ public struct ShellGeometrySignature: Hashable, Sendable {
     }
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         guard faces.isEmpty == false else {
             throw KernelError(
                 phase: .validation,
@@ -20,7 +27,7 @@ public struct ShellGeometrySignature: Hashable, Sendable {
             )
         }
         for face in faces {
-            try face.validate()
+            try face.validate(using: &execution)
         }
     }
 

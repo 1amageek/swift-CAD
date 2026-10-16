@@ -129,3 +129,78 @@ resulting native free-coordinate values join the same source projection cuts.
 A ramified forward endpoint solves only its original unique transverse graph at
 the supplied exact free value, verifies original local membership and composes
 its original UV maps; it never inverts a rounded native point.
+
+Direct queries and source visitation borrow `OriginalQueryExecution` and retain/attach the issuing persistent contribution handles defined by the [parent execution contract](../DESIGN.md). Original root, source parameter, branch and coverage laws remain unchanged; no callback or copied allowance re-establishes admission.
+
+### Pair Construction and Partition Frame Ownership
+
+The Curve3D partition entry enters the same silhouette query context and first
+constructs its original projected polynomial pair on the composing execution.
+Only after that complete pair exists does a non-inlined private helper execute
+the original post-pair equation, isolation, real-fiber, cut/contact and sector
+publication body. The helper retains the same pair, edge, range, span index and
+silhouette owners; it introduces no array materialization or additional source
+preparation. The BSpline convenience entry keeps its existing nested context and
+Curve3D delegation.
+
+```text
+same query-context scope -> original pair construction
+  -> non-inlined original post-pair partition body -> atomic partition
+```
+
+Every original expression, allocation/debit, guard, cancellation point, ordered
+field owner, typed failure and publication order remains unchanged. The enclosing
+context stays active across both phases. This separates simultaneous stack-frame
+scratch lifetime only: pair construction no longer suspends a live post-pair
+solver frame. No mutable stored state, target condition, callback, budget or owner
+cycle is added. All targets keep the same source and inout execution contract.
+
+The concrete normal-worker stack estimate was 529,888 bytes with the old
+169,632-byte Geometry partition closure suspended during pair construction.
+Source inverse stitching must reconstruct the complete old producer byte-for-byte.
+Root owns fresh Native prologue and the same actual Drawing/resource/cancellation
+execution; source equivalence or compile success alone does not prove the caller
+fits its worker stack or that all projected families are complete.
+
+### Single Original Pair Ownership at Publication
+
+A published partition retains its complete immutable original polynomial pair as
+its sole source authority. `originalEdge`, `originalSpanIndex`, `nativeRange`,
+`silhouette` and `frame` are read-only computed views of that pair. They do not
+store a second Curve3D, silhouette traversal or frame. The only construction site
+builds the pair from the same edge/span arguments; its rational curve law retains
+the complete original curve through Native, rigid, affine and original-word
+construction, with the original span index unchanged. The pair directly retains
+the exact requested edge range, silhouette and projection frame. Every existing
+public getter therefore returns the same original value and lifetime as before.
+
+```text
+complete original pair
+  -> immutable public source views
+  -> contacts / cuts / sectors retained in the partition
+```
+
+The private post-pair helper keeps its original ordinary immutable pair argument
+contract for repeated fiber reads. The partition initializer consumes its
+pair/array arguments into the result at publication. No heap wrapper, array
+materialization, new source receipt or duplicated stored field is introduced. Contact/root/fiber/cut/sector
+algorithms, order, cancellation and typed failures are unchanged. The existing
+single `RationalAlgebraStorage.retain(1, of: SurfaceSilhouetteProjectedPartition)`
+remains at the same publication point and charges its actual new stride. Removed
+duplicate source payload bytes are not charged as if still stored; no previously
+accepted debit is refunded and no ceiling is raised.
+
+All getters are immutable on Native, WASM and Embedded. Existing value/COW owners
+keep the same original source alive through publication and later reads; there is
+no shared mutable state, callback cycle or target-specific ownership branch.
+This is a public source-value-preserving layout change, not a new identity law.
+The component has no public memberwise initializer, Codable representation or
+frozen-layout contract. Root rebuilds dependent clients and owns the unchanged
+seven-oracle source/read/resource tests and actual Drawing caller gate.
+
+The concrete prior publication chain reserved 546,336 bytes before external
+runtime overhead, including the 99,616-byte result initializer beneath the
+147,248-byte post-pair helper. Removing redundant result payload and passing
+last-use ownership directly addresses those copies without another helper frame.
+Actual new Native prologues and caller behavior remain required; source layout
+reasoning alone is not a stack-fit success claim.

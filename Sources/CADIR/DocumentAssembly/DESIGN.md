@@ -57,6 +57,17 @@ flowchart LR
 
 ## Contracts and Invariants
 
+### Caller-Owned Product Lookup
+
+`AssemblyProductLookingUp.product(for:in:maximumWork:using:)` retains the existing
+definition-to-formation-to-product lookup and its full-table work units. It checks
+the original local work ceiling before debiting the same caller execution, and
+checks cancellation while traversing each real table. Missing definition,
+formation, and product retain their existing typed errors and lookup order. The
+ordinary entry creates one independent execution and invokes the same body.
+Injected conformers without a direct lookup refuse explicitly; an ordinary
+fallback cannot reset the composing product resolver's allowance.
+
 - The development source envelope uses
   [SchemaVersion.current](../../CADCore/SchemaVersion.swift), owned by CADCore.
   `assembly` is required in encoded
@@ -262,3 +273,13 @@ their structural maximumDepth; Native/STEP callers forward their source nesting
 ceiling. These visits charge work at depth zero rather than substituting source
 nesting for field ancestry. No descriptor codec or placement facade invents a
 private source-depth ceiling.
+
+## Canonical Admission Binding
+
+The required source caller passes the borrowed `OriginalQueryExecution` into the
+existing placement validation, retained source adjustment, or imported image body.
+The authored transform, inversion, adjustment order, source units, and exact model
+validation remain the authorities defined above. Ordinary entry points create one
+execution and use that body. This binding follows the
+[Geometry execution contract](../../CADGeometry/OriginalQueryExecution/DESIGN.md)
+and does not change Document evaluation or source laws.

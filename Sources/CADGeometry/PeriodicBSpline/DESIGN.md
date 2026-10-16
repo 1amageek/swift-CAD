@@ -32,6 +32,16 @@ Curve3D/ValidatedCurve3D -> point and parameter derivatives -> caller
 
 ## Contracts and Invariants
 
+Curve and tensor knot expansion, refinement, finite restriction and homogeneous segment
+extraction compose the [module's direct execution contract](../DESIGN.md#direct-original-query-execution).
+Their numeric implementations receive the caller's original generic admission;
+each actual loop and checked typed allocation uses that same owner. Expansion
+options retain their independent control-count and insertion-work ceilings.
+Public throwing factory/edit conveniences establish one root execution
+and call the same numeric implementation. Composing queries use the direct entry.
+This accounting migration does not promote floating arithmetic agreement or
+sampled locus checks into original equality or complete-intersection evidence.
+
 - Degree p is positive; cycle knots contain N+1 nondecreasing values, N > 0.
 - Positive finite weights and repeated controls/weights define one homogeneous cycle.
 - Translated knots agree within floating arithmetic resolution, not modeling distance.
@@ -271,3 +281,15 @@ complete fundamental-span hull. Each receipt owns the original curve, requested
 interval, tolerance and separate native one-sided jets; unions establish bounds
 without implying knot smoothness. Native span scans and retained output are
 charged through the supplied caller work owner.
+
+## Direct Periodic Native Queries
+
+Prepared native coefficient readers pass the same scalar execution through conservative fundamental-axis coverage and original periodic derivative-continuity validation. Original knot runs are scanned in place; every actual scan and returned interval allocation is charged by its owner. Ordinary entry conveniences create one independent root and invoke the identical numerical body. The existing finite-resolution representative law, complete-cycle conservative cover and C0 refusal remain unchanged.
+
+```text
+prepared original coefficients -> periodic axis cover
+                              -> original knot continuity scan
+                              -> same execution / caller budget
+```
+
+The direct port requires focused native periodic behavioral regression after the whole direct geometry API graph compiles. Syntax acceptance does not establish coverage or failure behavior.

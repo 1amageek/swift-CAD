@@ -36,15 +36,11 @@ package struct OriginalDraftedCoordinateProjection: Sendable {
             let prepared=try ExactScalarNumericAccess.withAdmission(&a) { usage in
                 try wall.validate(tolerance:wall.certificationTolerance)
                 // This is source guard admission, not equality from an enclosure.
-                func storage(_ bytes:Int) throws { try RationalAlgebraStorage.retainBytes(bytes,usage:&usage) }
-                _ = try withoutActuallyEscaping(storage) { storage in
-                    try wall.start.rulingJet(over:.init(lower:0,upper:1),throughOrder:0,
+                _ = try wall.start.nativeRulingJet(over:.init(lower:0,upper:1),throughOrder:0,
                     tolerance:wall.certificationTolerance,maximumSpanCount:wall.maximumSpanCount,
                     maximumSubdivisionDepth:wall.maximumSubdivisionDepth,
                     remainingSourceDepth:min(wall.remainingSourceDepth,limits.remainingSourceDepth)-1,
-                    consumeWork:{ try usage.consumeExactWork(1) },
-                    consumeStorage:storage)
-                }
+                    using:&usage)
                 let pieces=try OriginalSplineTraversalPolynomialPiece.pieces(wall.start.generator,usage:&usage)
                 guard pieces.count<=wall.maximumSpanCount else { throw OriginalSourceIssuanceFailure.chartLimit }
                 typealias Q=ExactRationalCoefficient
@@ -57,7 +53,7 @@ package struct OriginalDraftedCoordinateProjection: Sendable {
                 try RationalAlgebraStorage.retain(pieces.count,of:Cell.self,usage:&usage)
                 var cells:[Cell]=[];cells.reserveCapacity(pieces.count)
                 for piece in pieces {
-                    try usage.consumeExactWork(1)
+                    try usage.consumeWork(1)
                     try RationalAlgebraStorage.retain(4,of:P.self,usage:&usage)
                     let z=try piece.homogeneous[2].adding(piece.homogeneous[3].multiplied(by:height,usage:&usage),usage:&usage)
                     cells.append(.init(lower:piece.lower,upper:piece.upper,

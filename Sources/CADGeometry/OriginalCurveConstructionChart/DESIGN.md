@@ -99,6 +99,31 @@ Affine chart owners retain the original source; their outward normalized cuts
 remain localization, rather than exact native partition endpoints.
 
 Smoothness queries forward an explicitly selected algebra cap to retained
-RootSpan endpoints. Parameter-law preparation records its algebra policy; a
-stricter later policy requires a real cache rebinding capability and otherwise
-fails explicitly, rather than using broad cached owners as proof.
+RootSpan endpoints. Parameter-law preparation records attained proof depths in
+its immutable receipt. A stricter later policy readmits those actual depths;
+it succeeds only when the retained proof fits, without repeating preparation.
+`OriginalCoonsDirectExecutionTests` owns the broad-preparation/zero-scalar-reader
+success and the too-shallow source-reader failure.
+
+
+## Direct Query Execution Ownership
+
+This component follows the [module direct execution contract](../DESIGN.md) through its existing owner hierarchy. High-level retained geometry preparation and queries borrow the same concrete `OriginalQueryExecution`; pure original rational/source arithmetic borrows generic `ExactScalarAdmission & ~Copyable`. Original corner, join, supporting-plane, native adjacent-chart and M6 guard proofs retain their existing mathematics and authority. Work/storage callbacks, private borrowed ledgers and private allowances are removed rather than reconstructed. Explicit source/span/geometric policies remain independent of scalar proof ceilings; optional scalar caps create local proof scopes on the same owner. Actual typed retained buffers and actual loops are charged before their operation, without proxy prepayment. Ordinary roots invoke the same body once; retained readers keep immutable source/policy/common budget and re-admit actual proof evidence for later queries.
+
+Focused syntax parsing only establishes preparatory source validity. Existing behavioral tests and M6/source-proof receipts require the new direct implementation path to compile and execute before this migration is complete.
+
+
+### Retained Preparation Proof
+
+Persistent endpoint, corner, projection and chart caches retain one immutable
+operation-local preparation receipt. It records attained scalar, source,
+geometric and transport depths; configured policy ceilings are not evidence.
+Each authored child edge is admitted with the common execution source offset
+once. A child receipt remains relative to its own root. A reader applies its
+current offset once and readmits the actual receipt before cached values are
+consumed, without replaying original preparation work or scratch allocations.
+Pure rational issuers readmit the scalar part and rely on their original source
+binding for source-tree authority. Derived receipts do not participate in source
+equality or serialization. High retained constructors and queries use the
+concrete common execution; rational expression helpers remain generic over the
+same scalar admission owner.

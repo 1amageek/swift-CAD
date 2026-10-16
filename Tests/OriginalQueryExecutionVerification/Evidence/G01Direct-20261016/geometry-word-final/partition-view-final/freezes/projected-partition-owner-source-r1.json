@@ -1,0 +1,54 @@
+{
+  "scope": "Remove duplicate immutable result source storage and transfer last-use pair/arrays; no algorithm/source math/solver/policy/cap change.",
+  "roots": [
+    "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD"
+  ],
+  "files": {
+    "Sources/CADGeometry/SurfaceSilhouette/OriginalProjectedCurveContacts/SurfaceSilhouetteProjectedPartition.swift": {
+      "beforeSHA256": "398c064f31874d46c5bb4cf6cda6bdb5a5096d99a536e8a70060511ecd210aab",
+      "afterSHA256": "279f41629412b7bdb4122ec8994cd1a103975a20966a812ea4c066c06e8b1e9b",
+      "patchSHA256": "ad7358de104ef2358cdc0ae57c83fa8a1b5bcdd369db812cff45e8190a08d2fa"
+    },
+    "Sources/CADGeometry/SurfaceSilhouette/OriginalProjectedCurveContacts/OriginalNativeSilhouetteProjectedContactProducer.swift": {
+      "beforeSHA256": "f099f5f7bff20bd17392bc9f868ab8933cbd04d2af60f406850ef8b0506cc5d8",
+      "afterSHA256": "44c729bfad137833e704dc12c0d524fcef62a4b004826d96c8e381d42cdc1402",
+      "patchSHA256": "2669f0fcf2392669d6410b753da489ad77081c42933b44c9566ad9b74ff2643a"
+    }
+  },
+  "designSHA256": "a463a4d23187c286931bc25a05b07f70e3cc2072471d59cea134b5fff38d90f8",
+  "callerInventory": "Only OriginalNativeSilhouetteProjectedContactProducer constructs this result. Its OriginalProjectedNativePolynomialPair is built from exactly the same edge/span. OriginalRationalCurvePolynomial retains originalCurve unchanged for bare Native and each retained rigid/affine/word layer; spanIndex is copied unchanged through recursion. Pair.edgeRange/silhouette/frame store the exact original parameters.",
+  "getters": {
+    "originalEdge": "originalEquations.edge.originalCurve",
+    "originalSpanIndex": "originalEquations.edge.spanIndex",
+    "nativeRange": "originalEquations.edgeRange",
+    "silhouette": "originalEquations.silhouette",
+    "frame": "originalEquations.frame"
+  },
+  "inverseProof": "Reversing only the five stored-to-computed property declarations and internal initializer reconstructs entire old Partition file byte-for-byte. Restoring only private helper ownership/redundant edge-span arguments and final init argument labels reconstructs entire old Producer byte-for-byte. All solver/equation/root/fiber/cut/sector/allocation/cancel expressions are unchanged.",
+  "resourceContract": "The existing single retain of SurfaceSilhouetteProjectedPartition.self stays at the same publication point, charging actual new MemoryLayout stride through same execution. No new allocation, uncharged owner or refund.",
+  "targetMatrix": {
+    "Native": {
+      "storage": "Single immutable OriginalProjectedNativePolynomialPair + unchanged result arrays/wholeRange flag",
+      "isolation": "No shared mutable producer/result state",
+      "reads": "Same read-only public getter values projected through retained pair",
+      "mutation": "None; function-local solver arrays unchanged",
+      "lifetime": "Pair and arrays consumed into immutable result; existing COW/backing owners retained; no heap wrapper/cycle"
+    },
+    "WASM": {
+      "storage": "Single immutable OriginalProjectedNativePolynomialPair + unchanged result arrays/wholeRange flag",
+      "isolation": "No shared mutable producer/result state",
+      "reads": "Same read-only public getter values projected through retained pair",
+      "mutation": "None; function-local solver arrays unchanged",
+      "lifetime": "Pair and arrays consumed into immutable result; existing COW/backing owners retained; no heap wrapper/cycle"
+    },
+    "Embedded": {
+      "storage": "Single immutable OriginalProjectedNativePolynomialPair + unchanged result arrays/wholeRange flag",
+      "isolation": "No shared mutable producer/result state",
+      "reads": "Same read-only public getter values projected through retained pair",
+      "mutation": "None; function-local solver arrays unchanged",
+      "lifetime": "Pair and arrays consumed into immutable result; existing COW/backing owners retained; no heap wrapper/cycle"
+    }
+  },
+  "verification": "No compiler/fixture edits. Root owns new Native prologue plus existing source/read/N-N1/cancel and Drawing runtime."
+}

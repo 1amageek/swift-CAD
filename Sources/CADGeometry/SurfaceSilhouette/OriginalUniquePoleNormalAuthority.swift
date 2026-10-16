@@ -22,7 +22,7 @@ public struct OriginalUniquePoleNormalAuthority: Sendable {
         self.collapsedPoint = collapsedPoint; self.reference = reference; self.panels = panels
     }
 
-    package static func prepare<B: RationalAlgebraAdmitting>(source: BSplineSurface3D,
+    package static func prepare<B: ExactScalarAdmission & ~Copyable>(source: BSplineSurface3D,
         boundary: SurfaceParameterBoundary, prepared: PreparedBSplineSurfaceDifferentialEncloser,
         maximumSpanCount: Int, maximumSubdivisionDepth: Int, tolerance: ModelingTolerance,
         usage: inout B) throws -> Self? {
@@ -42,7 +42,7 @@ public struct OriginalUniquePoleNormalAuthority: Sendable {
         let pole = OriginalBSplinePoleNormal(surface: source, tolerance: tolerance, prepared: prepared)
         let direction: OriginalBSplinePoleNormal.Direction = alongU ? .constantU : .constantV
         let native = try prepared.originalNativeSpans(over: whole, tolerance: tolerance,
-            maximumSpanCount: min(262_144, maximumSpanCount), consumeWork: { try usage.consumeExactWork(1) })
+            maximumSpanCount: min(262_144, maximumSpanCount), using: &usage)
         guard !native.isEmpty else {
             throw GeometryConversionError.invalidInput("Whole original pole normal has no original native cover.")
         }
@@ -50,19 +50,19 @@ public struct OriginalUniquePoleNormalAuthority: Sendable {
         var originalPoint: Point3D?
         let originalStation = try ExactRationalCoefficient.originalDouble(station, usage: &usage)
         for span in native {
-            try usage.visitExactCell(depth: 0)
+            try usage.visitCell(axis: .value, depth: 0)
             let bounds = alongU ? span.vBounds : span.uBounds
             let low = max(free.lower, bounds.lower), high = min(free.upper, bounds.upper)
             if low >= high { continue }
             let interval = try ScalarInterval(lower: low, upper: high)
             let local = SurfaceParameterBox(u: alongU ? fixed : interval, v: alongU ? interval : fixed)
             try span.validate(on: source, over: local, tolerance: tolerance,
-                consumeWork: { try usage.consumeExactWork(1) })
+                using: &usage)
             let point: Point3D
             do {
                 point = try pole.collapsedPoint(at: .init(u: alongU ? station : interval.midpoint,
                     v: alongU ? interval.midpoint : station), direction: direction,
-                    consumeWork: { try usage.consumeExactWork(1) })
+                    using: &usage)
             } catch let error as KernelError where error.code == .invalidInput {
                 // Only the original collapse recognizer's explicit noncollapse
                 // result authorizes absence of this optional source proof.
@@ -74,7 +74,7 @@ public struct OriginalUniquePoleNormalAuthority: Sendable {
             guard let normal = try pole.prepareExactPanelIfCollapsed(over: local, owning: span, usage: &usage),
                 normal.coefficients.count == 3 else { return nil }
             if reference == nil {
-                try usage.retainExactStorage(3)
+                try RationalAlgebraStorage.retain(3, of: UInt32.self, usage: &usage)
                 var value: [ExactRationalCoefficient] = []
                 let u = try ExactRationalCoefficient.originalDouble(alongU ? station : interval.midpoint, usage: &usage)
                 let v = try ExactRationalCoefficient.originalDouble(alongU ? interval.midpoint : station, usage: &usage)
@@ -83,7 +83,7 @@ public struct OriginalUniquePoleNormalAuthority: Sendable {
                 reference = value
             }
             guard let reference else { throw rationalAlgebraFailure("Original pole reference publication lost its source value.") }
-            try usage.retainExactStorage(3)
+            try RationalAlgebraStorage.retain(3, of: UInt32.self, usage: &usage)
             for (a, b) in [(0, 1), (1, 2), (2, 0)] {
                 let cross = try normal.coefficients[a].scaled(by: reference[b], usage: &usage)
                     .subtracting(normal.coefficients[b].scaled(by: reference[a], usage: &usage), usage: &usage)
@@ -103,17 +103,17 @@ public struct OriginalUniquePoleNormalAuthority: Sendable {
             let midpoint = try lower.adding(upper, usage: &usage)
                 .divided(by: .natural(2, usage: &usage), usage: &usage)
             guard try dot.evaluated(atU: midpoint, v: .zero, usage: &usage).isPositive else { return nil }
-            try usage.retainExactStorage(1)
+            try RationalAlgebraStorage.retain(1, of: UInt32.self, usage: &usage)
             panels.append(Panel(span: span, boundaryDomain: local, normal: normal))
         }
         guard !panels.isEmpty, let reference, let originalPoint else { return nil }
         let sorting = try rationalAlgebraCount(panels.count, panels.count)
-        try usage.consumeExactWork(sorting)
+        try usage.consumeWork(sorting)
         // Insertion sorting exposes every actual comparison to the same ledger.
         for i in 1..<panels.count {
             var j = i
             while j > 0 {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 let a = alongU ? panels[j - 1].boundaryDomain.v : panels[j - 1].boundaryDomain.u
                 let b = alongU ? panels[j].boundaryDomain.v : panels[j].boundaryDomain.u
                 if a.lower <= b.lower { break }
@@ -122,7 +122,7 @@ public struct OriginalUniquePoleNormalAuthority: Sendable {
         }
         var covered = free.lower
         for panel in panels {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             let interval = alongU ? panel.boundaryDomain.v : panel.boundaryDomain.u
             guard interval.lower <= covered else {
                 throw GeometryConversionError.invalidInput("Whole original pole normal cover has a source-domain gap.")
@@ -136,7 +136,7 @@ public struct OriginalUniquePoleNormalAuthority: Sendable {
             collapsedPoint: originalPoint, reference: reference, panels: panels)
     }
 
-    package func normalTaylor<B: RationalAlgebraAdmitting>(over box: SurfaceParameterBox,
+    package func normalTaylor<B: ExactScalarAdmission & ~Copyable>(over box: SurfaceParameterBox,
         owning span: PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan,
         throughOrder order: Int, usage: inout B) throws -> SurfaceAreaIntervalTaylorVectorJet {
         let polynomials = try coefficients(over: box, owning: span, usage: &usage)
@@ -145,13 +145,13 @@ public struct OriginalUniquePoleNormalAuthority: Sendable {
         return try OriginalPolynomialSurfaceTaylor.normalized(original, usage: &usage)
     }
 
-    package func coefficients<B: RationalAlgebraAdmitting>(over box: SurfaceParameterBox,
+    package func coefficients<B: ExactScalarAdmission & ~Copyable>(over box: SurfaceParameterBox,
         owning span: PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan,
         usage: inout B) throws -> [ExactBivariatePolynomial] {
         try span.validate(on: source, over: box, tolerance: tolerance,
-            consumeWork: { try usage.consumeExactWork(1) })
+            using: &usage)
         for panel in panels {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             if panel.span.uSpanIndex == span.uSpanIndex, panel.span.vSpanIndex == span.vSpanIndex,
                 panel.span.uCycle == span.uCycle, panel.span.vCycle == span.vCycle,
                 panel.span.originalUTranslation == span.originalUTranslation,
@@ -162,7 +162,7 @@ public struct OriginalUniquePoleNormalAuthority: Sendable {
         throw GeometryConversionError.invalidInput("Unique original pole normal query uses an unadmitted owning native span.")
     }
     func writeOriginalProvenance(to emitter: inout SurfaceSilhouetteProvenanceEmitter,
-        usage: inout SurfaceSilhouetteUsage) throws {
+        usage: inout OriginalQueryExecution) throws {
         try emitter.emit(.beginRecord(type: "wholeUniquePoleNormal"), usage: &usage)
         try emitter.field("source", usage: &usage); try emitter.write(Surface3D.bSpline(source), usage: &usage)
         try emitter.field("boundary", usage: &usage); try emitter.emit(.text(boundary.rawValue), usage: &usage)

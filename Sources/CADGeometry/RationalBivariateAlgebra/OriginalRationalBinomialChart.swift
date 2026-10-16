@@ -7,7 +7,7 @@ package struct OriginalRationalBinomialChart: Sendable {
     package let chartV: ExactBivariatePolynomial
     package let swapped: Bool
 
-    package static func candidates<B: RationalAlgebraAdmitting>(original: ExactBivariatePolynomial,
+    package static func candidates<B: ExactScalarAdmission & ~Copyable>(original: ExactBivariatePolynomial,
         usage: inout B) throws -> [Self] {
         var result: [Self] = []
         for swapped in [false, true] {
@@ -34,7 +34,7 @@ package struct OriginalRationalBinomialChart: Sendable {
                     try b.composed(withU: u, v: v, usage: &usage).subtracting(y, usage: &usage).isZero else {
                     throw rationalAlgebraFailure("Original binomial chart failed exact inverse-coordinate identity.")
                 }
-                try usage.retainExactStorage(1)
+                try RationalAlgebraStorage.retain(1, of: Self.self, usage: &usage)
                 result.append(Self(transformed: transformed, originalU: u, originalV: v,
                     chartU: a, chartV: b, swapped: swapped))
             }

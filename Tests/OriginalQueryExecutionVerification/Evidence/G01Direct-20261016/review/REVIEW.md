@@ -1,0 +1,97 @@
+# G01 first vertical production review
+
+Status: the single comprehensive source review and the targeted G01-R1/new measured-premise source checks are complete; no unresolved source-level finding remains in the checked r5 paths. Actual regression controls and overall public Native/ASAN/WASM/Embedded evidence remain pending. This is not a claim of G01 or U1 completion. Historical findings below retain their original snapshot context; the r5 section states the current source disposition.
+
+## Fixed scope and snapshot
+
+The reviewed unit is the aligned original sphere/cone finite request, both source orders: sphere U[-2,-1], V[-1,0], cone V[3,4], and cone U singleton[0.5,0.5], wide[0.5,2], previous selected[1,2]. Per-query limits remain 8,388,608 work, 268,435,456 bytes, source depth1, geometric depth8, coefficient/value depth32, spans262,144. Source/primitive authority and mathematical physical pi are distinct from binary64 label period B.
+
+`source-review-snapshot.json` records reviewed file bytes and initial application hashes. The one initial manifest difference is the parent-reported visibility-only change from public to private preparation storage in CutReceipt; the readmission implementation is unchanged. Subsequent finding fixes must be identified separately and receive only the targeted follow-up check.
+
+No production source, design, PROGRESS, build product or test was changed by this review. No compiler or runtime was launched. Prior isolated factory attempt4, endpoint attempt10 and first-order Taylor attempt1 are diagnostic premises only; they cannot establish actual production dispatch or portable public behavior.
+
+## Concrete finding
+
+### G01-R1 — P1: selected Arc public readers bypass the source-depth ceiling (initial snapshot; source fix checked below)
+
+Owner: `Sources/CADGeometry/OriginalSourceIssuance/OriginalBoundedSphereConeSurfaceFiniteArcReceipt.swift`, public `admitProof` at initial reviewed line98 and public `contains`, `accepts`, `position` immediately below it.
+
+Public path: actual selected [1,2] result -> `.originalBoundedSphereCone(component)` -> `component.relation.finiteArc` -> `arc.admitProof(using: &reader)` (or `arc.position(coneU: retainedRawFieldValue, using: &reader)`). Construct an independent reader with source depth0, scalar depths32 and sufficient work/storage. The source binding has sourceDepth1. The current `admitProof` performs only checkpoint, scalar `admitDepth`, checkpoint, so this direct reader returns successfully. `OriginalQueryExecution.admitDepth` checks only value/coefficient axes; it does not check source depth. The generic `ExactScalarAdmission` has no source-axis requirement. Therefore this public path cannot enforce the documented source-depth readmission rule. The relation wrapper's proper source admission does not protect callers using the publicly retained Arc directly.
+
+`NativeExactRelations/DESIGN.md`, retained finite cuts, explicitly requires independent readers to re-admit source/scalar/geometric evidence. Cut and BoundaryRoot readers meet this rule through their preparation `withRead` boundary. The selected-only Cut factory returns Arc assembly before creating a preparation receipt, so its direct public reader also lacks the same preparation/contribution boundary. For the concrete [1,2] case geometric ancestry may be0; no separate nonzero-geometric-depth counterexample is claimed.
+
+Minimal correction: give the public Arc geometry reader a concrete OriginalQueryExecution boundary, source limits and source-depth admission, retaining the applicable preparation evidence; scalar-only implementation helpers can be internal. Do not add metadata casts, a fresh execution, or a source/geometry-to-scalar mapping. Add a public selected Arc direct-reader source0 rejection control plus an allowed-source reader control. Runtime reproduction is not claimed yet: the missing source check is determined directly by the complete short execution path.
+
+## Checked proof composition
+
+| Invariant | Actual implementation path | Source-review result |
+|---|---|---|
+| Same original quantitative law | BoundaryJetProvider reissues the immutable sphere/cone child bindings over Q; physical coefficients remain coordinate functions | Original child owner, intrinsic angular axes, exact B and physical-angle bit identity checked before jet construction |
+| Closed and singleton source evaluation | Session.intervalJet -> intrinsic harmonic functions -> exact source polynomial -> outward interval jet | Original raw boxes, order, binding owner, coefficient depth and full scalar depth carried; integration checks every receipt before consumption |
+| All-root source necessity | Candidate CellProof retains slant root enclosure and monotone latitude bounds | Bounds clip only proved necessary slant/latitude ranges; original sphere/cone requests stay retained in candidate and root.requestedBox |
+| All-root Krawczyk necessity | analyzeGauge sourceNecessaryCover -> existing affinePredictorKrawczykBox -> K(X) intersect unit cube -> nativeGaugeBounds | Any finite preconditioner is used for necessity; no determinant-exclusion assumption is used to infer existence. Nonfinite/inverse/no-progress cases remain unresolved |
+| Induction over contractions | BoundaryRoot.issue records each input/retained box and uses one borrowed Session and execution | Initial source necessity and each gauge necessity preserve every original root. Unique/empty classification is applied only after this induction; isolation remains separate from original request |
+| Existence and uniqueness | Existing gauge strict inclusion, or closed inclusion plus strict contraction, with uniform minor excluding zero | Necessary-only contraction cannot issue a root. No arbitrary leaf or rounded root midpoint establishes uniqueness |
+| Exact raw transport | normalizedPointJet evaluates outward original affine-station enclosures; derivative columns scale by outward original box widths | Center evaluation is not replaced by a rounded native point. nativeGaugeBounds reuses the same outward affine conversion and clips against original request |
+| Whole requested cover | FiniteCut pending stack, cursor and ordered excluded/candidate/selected phases | No siblings are dropped after finding a root. Unfinished leaves, unsupported arrangements, resource exhaustion and unresolved endpoint fail atomically |
+| Candidate interior and branch | Source decision proves D>0, one fixed slant branch inside full cone V, other branch excluded, positive inverse chart, all but one sphere guard inside | Candidate union checks owner, branch, cycles, full sphere/slant scopes and adjacency. Only upper sphere-azimuth candidate with excluded and selected incidence is accepted |
+| Cut continuity and connectedness | D>0 continuous slant graph; positive-X inverse chart; single boundary root over full candidate; selected trailing cover | Proved excluded/selected incident cells and unique interior crossing determine the accepted single cut. Other arrangements explicitly refuse rather than publish partial coverage |
+| Exact XYZ and four UV | BoundaryRoot.Position -> same root Coordinate projections and cone originalLaw; selected positions -> original ordered slant expression and source inverse laws | Implicit root is never manufactured as Field.Value. All boundary XYZ/UV refer to the same retained root proof; authored binary64 member labels remain distinct inputs |
+| Independent ceilings | Concrete execution source/geometric/scalar admission; min-intersection of caller/local limits; resource failures propagated | Root/Cut preserve source and scalar axes, ancestry depth and span/work/storage limits. The initial selected Arc exception G01-R1 is corrected by the targeted source fix below |
+| Cache identity and reuse | Session three fixed harmonic slots; Pi Evidence; physical continuation | Keys include source identity, intrinsic axis, exact lower/upper bit patterns and coefficient depth. Hits admit full retained scalar depth; changed intervals/refinement miss. No execution/callback is stored |
+| Taylor enclosure | normalizedLabelCore intersects Lipschitz enclosure with first-order expansion and remainder ±R²/2 | Both intervals enclose the same full phase domain; no source equality is inferred from numerical closeness |
+| Lifetime/concurrency | Immutable Sendable proof owners; exclusive noncopyable Session and coefficient continuation | Root/cut projections retain bindings and preparation after local session destruction. No conditional shared-state/storage/concurrency branch in reviewed mutable session path |
+| Cancellation and publication | checkpoint before/after public production/read boundaries; catches publish typed original failures | Root/Cut perform terminal checks; public producer publishes only after complete result allocation and final checkpoint. Raw resource/cancel failures do not become empty results |
+| Previous whole and selected behavior | Existing whole section/slant/UV implementation; selected-proof union assembly | Whole relation uses existing original half-angle family. Finite section calls remain explicitly unsupported where inverse membership is unproved; selected [1,2] uses checked Arc assembly, not a legacy solver retry |
+| Ordinary/admitted/prepared dispatch | DefaultSurfaceSurfaceIntersector+Result concrete bounded ordinary requirement -> one surfaceSurface execution -> admitted originalIntersectionResult -> public bounded producer; PreparedOriginalSurfaceIntersectionPair retains original relation | Actual concrete witness exists and is a protocol requirement. Prepared uses retained same-source authority. Source review alone does not prove runtime witness selection or resource success |
+
+## Evidence and remaining acceptance boundary
+
+| Evidence | What it establishes | Current review acceptance |
+|---|---|---|
+| Initial production apply manifest | Production file mapping from draft and byte identities | Read; reviewed SHA recorded |
+| Factory attempt4 | Isolated complete finite cut factory observations | Diagnostic only; not public dispatch |
+| Endpoint attempt10 | Retained endpoint draft ownership/projection and failure controls | Diagnostic only; not production reader acceptance |
+| Taylor first-order1 | Focused harmonic enclosure change | Diagnostic only; not whole public proof |
+| Native semantic module gate | Parent is running/collecting it | No runtime conclusion from compile success |
+| Actual production public Native runtime | Required empty/cut/selected, both orders, ordinary/admitted/prepared and reader failures | Pending parent evidence |
+| Actual production ASAN/WASM/Embedded runtime | Target-specific lifetime, witness and portable execution semantics | Pending parent evidence |
+| G01-R1 targeted fix and controls | Direct selected Arc readers enforce the same independent source/readmission contract | Source fix checked through r5; actual controls pending |
+
+No additional mathematical source-counterexample was found in the fixed first vertical scope. This statement is limited to source analysis; resource success, public witness behavior, portable runtime and final review acceptance remain unproved until the listed actual receipts arrive.
+
+## G01-R1 finding-only source recheck
+
+The single targeted recheck found the source cause corrected. `R1-finding-only-snapshot.json` pins this fix snapshot. This is not another general review or a runtime acceptance claim.
+
+- The assembled Arc receipt moved to NativeExactRelations; the old SourceIssuance implementation file is removed. Its retained preparation is private and immutable.
+- Both internal checked assemblers require the already issued typed preparation and concrete execution. All three actual Cut call sites pass the same preparation; no new execution, solver, certificate or recomputation is introduced.
+- Cut.resolve creates the existing preparation receipt immediately after the original preparation scope, before its selected-only return. Cut.position passes the already retained parent receipt to single-cell assembly.
+- All four public Arc readers use concrete OriginalQueryExecution and the same private withRead boundary. That boundary re-enters applicable retained contribution scopes, checkpoints, admits source.sourceDepth, admits the preparation's scalar/source/geometric/transport evidence, admits Arc scalar proof depth, performs the operation, then checks final cancellation.
+- In particular the minimal source0 counterexample now reaches admitSourceDepth(1) before returning any successful value. The execution's independent source ceiling rejects it; scalar admission cannot substitute for it.
+- position encloses the entire original source-law arithmetic and descriptor allocation inside retained withRead and its original proof scope. The arithmetic from its first original coefficient through position construction is identical to factory attempt4 after whitespace normalization. Nested contains also uses the admitted boundary.
+- Existing preparation semantics deliberately reconnect contribution handles only to their own budget. Independent readers re-admit retained evidence against their own execution; the fix does not copy or replace an unrelated budget.
+
+No unresolved source-level G01-R1 defect remains in the checked path. Direct Arc low-source/allowed-source and other failure controls must still execute through the actual production module. Overall review remains pending actual public/portable receipts, and the existing review is not expanded.
+
+## New G01-R1 prepaid-scope counterexample: limited r4 follow-up
+
+This extra limited check is justified by a new concrete counterexample from the first finding fix: Arc.position and both Relation.member methods opened a paid scalar proof scope before the source-depth refusal. A fresh source0 reader with zero storage could therefore fail storage admission before reporting the independent source refusal. This is a new observed premise for G01-R1, not a second overall review. `admitDepth` itself does not consume work/cells/storage; no such charge is assumed here. A successful fresh retained-preparation admission can allocate its identity-cache storage, so source1 plus zero storage is not a valid success oracle.
+
+The r4 source fix places Arc.withRead outside position.withProofScope, and places full Relation.admitProof before both member proof scopes. Scalar evidence is explicitly re-recorded inside each scope. For a fresh independent-budget source0 reader, preparation.withContributionScopes skips foreign-budget handles; the next source admission rejects before preparation-cache storage and before proof-scope storage. The corrected independent source0/zero-storage ordering is established by source tracing, with actual runtime controls pending.
+
+In the historical r4 snapshot, the same-budget replay path could still reattach a retained contribution before the inner source check. Obtain Arc under withContributionScope(handle), construct a new execution with the same public original budget and source0 limits (the public init starts with an empty contribution stack), then call Arc.position. Preparation.withContributionScopes calls execution.withContributionScopes, which can retainStorage for its stack before withRead's source admission. This is contribution-scope storage, not the already corrected scalar proof-scope storage. The source0 ceiling still rejected later; this was an admission-order issue rather than false geometric success. The parent confirmed this belongs to the existing R1 invariant and corrected it in the r5 prefix described below; it required no scope expansion or separate authorization. No new runtime or source edit was performed by this review.
+
+## Targeted new measured-premise check: unused full support and R1 preflight prefix
+
+The parent reported actual r4 ASAN profiling of unused post-publication half-angle interval/set construction at 225,060 and 225,063 work units, which pushed ordinary WIDE REVERSED publication (cone U[0.5,2]) above the unchanged8M work ceiling. The actual r4 ASAN and Embedded failure recorded relation work used8,388,607, requested7, limit8,388,608. Reverse singleton passed before this failure; earlier buffered stdout did not establish a singleton failure. Prelude, Z exclusion and duplicate local guard costs were measured separately and were not the cause. This new measured premise justifies checking the exact support-materialization change; it does not reopen the original mathematical review. The parent will supply final runtime receipts. `measured-cost-and-R1-prefix-r5-snapshot.json` pins the checked source batch.
+
+The source-level change meets the scoped invariants: public Relation.resolve has its fixed existing parameters and delegates to private purpose publication; only internal prepare can request private purpose preparation. Both use the same private resolver and borrowed execution. A nonempty unbounded publication always retains a complete halfAngleSupport, reusing an already nonnil prepared support or constructing the original interval/set once. Finite and empty public relations and unpublished internal preparation omit that unused set, while retaining the cheap original half-angle domain. The optional stored-property stride is accounted for, and all actual production support readers were checked. Full section rejects finite/empty scope before unwrapping support and does not introduce a deferred per-section reconstruction. Internal preparation remains private storage of PreparedOriginalSurfaceIntersectionPair; no public unchecked boolean can publish an incomplete whole family. No geometric branch, complete-cover count or original formula changes in this cost fix.
+
+The identified same-budget R1 ordering path is now corrected at all three retained reader boundaries: Arc/Cut/BoundaryRoot preflight their retained source/scalar/geometric/transport requirements before preparation.withContributionScopes can reattach a paid stack. These calls are pure admission checks (no work/cell/storage charge). The existing in-contribution checks, preparation admission, actual reader body and final checkpoint remain in place, enforcing contribution-effective ceilings after reconnection. Root includes retained provider/source/candidate scalar maxima; Arc/Cut include retained source/preparation/receipt scalar maxima. The concrete same-budget replay source0 counterexample now rejects at the prefix before storage reattachment.
+
+No unresolved source-level finding remains in these two fixed paths. Actual direct Arc/source0 and same-budget contribution/zero-storage regression controls, full support t=0.75 at unchanged8M, and final public/portable runtime remain pending. No compiler/runtime or source change was performed by this review.
+
+## Factual record correction
+
+The measured r4 stop above is ordinary wide reversed cone U[0.5,2], not reverse singleton. Reverse singleton passed. This correction changes no source review conclusion and performs no additional review or execution. The r5 frozen input authority is `.build/g01-production-r5-inputs-20261016/source-receipt.json`, SHA256 `9e53985fc37d90c8622a4aa98c695c21a723e0a34bbaeceb5ac4e44c294141b4` (verified from retained bytes), with parent-reported fixture prefix `b07f`. This is an inputs-only receipt, not compile or runtime success. R1 source fixes remain checked; final actual regression/public/portable runtime evidence remains pending.

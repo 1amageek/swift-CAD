@@ -29,8 +29,8 @@ package struct OriginalSurfaceStationCorrespondence: OriginalSurfaceStationCorre
         surface: Surface3D, parameterCurve: SurfaceParameterCurve,
         tolerance: ModelingTolerance, maximumSpanCount: Int = Int.max,
         maximumSubdivisionDepth: Int = 32, remainingSourceDepth: Int = Int.max,
-        consumeWork: () throws -> Void) throws {
-        try consumeWork()
+        using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard maximumSpanCount > 0, maximumSubdivisionDepth >= 0,
               maximumSubdivisionDepth <= 32, remainingSourceDepth >= 0 else {
@@ -52,11 +52,11 @@ package struct OriginalSurfaceStationCorrespondence: OriginalSurfaceStationCorre
         self.tolerance = tolerance
         spatial = try PreparedCurveDifferentialEncloser(curve: curve, tolerance: tolerance,
             remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth,
-            consumeWork: consumeWork)
+            using: &execution)
         lifted = try PreparedCurveDifferentialEncloser(curve: .surfaceLift(.init(
             surface: surface, parameterCurve: parameterCurve)), tolerance: tolerance,
             remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth,
-            consumeWork: consumeWork)
+            using: &execution)
     }
 
     // FIXME(INCOMPLETE_IMPLEMENTATION): This original station producer closes
@@ -64,9 +64,9 @@ package struct OriginalSurfaceStationCorrespondence: OriginalSurfaceStationCorre
     // Global stationary/critical branch atlases and missing-pcurve reconstruction
     // remain required before this port represents every mandatory correspondence.
     package func resolve(stationParameter: Double, maximumDeviation: Double,
-        maximumSubdivisionDepth: Int, consumeWork: () throws -> Void) throws
+        maximumSubdivisionDepth: Int, using execution: inout OriginalQueryExecution) throws
         -> OriginalSurfaceStationCorrespondenceReceipt {
-        try CurrentTaskCancellationChecker().checkCancellation()
+        try execution.checkpoint()
         guard stationParameter.isFinite,
               stationParameter >= min(startParameter, endParameter),
               stationParameter <= max(startParameter, endParameter),
@@ -75,7 +75,7 @@ package struct OriginalSurfaceStationCorrespondence: OriginalSurfaceStationCorre
             throw Self.failure(.invalidInput, tolerance, "Original station inverse inputs are outside their retained directed use.")
         }
         let station = try jet(spatial, over: ScalarInterval(lower: stationParameter,
-            upper: stationParameter), consumeWork: consumeWork)
+            upper: stationParameter), using: &execution)
         func receipt(_ fractions: ScalarInterval, _ bound: Double, _ orientation: Int)
             -> OriginalSurfaceStationCorrespondenceReceipt {
             .init(curve: curve, startParameter: startParameter, endParameter: endParameter,
@@ -87,33 +87,47 @@ package struct OriginalSurfaceStationCorrespondence: OriginalSurfaceStationCorre
             let fraction = stationParameter == startParameter ? 0.0 : 1.0
             let range = try ScalarInterval(lower: fraction, upper: fraction)
             let bound = upperDistance(try jet(lifted, over: range,
-                consumeWork: consumeWork), station)
+                using: &execution), station)
             guard bound <= maximumDeviation else {
                 throw Self.failure(.topologyFailure, tolerance, "Authored original use endpoint does not match the spatial edge endpoint.")
             }
             return receipt(range, bound, 1)
         }
+        try OriginalCoefficientAllocation.reserve(count: 3, of: SurfaceIntervalJet.self, using: &execution)
         let coordinates = [station.x, station.y, station.z]
-        let axes = coordinates.indices.filter { coordinates[$0].derivativeU.lower > 0
-            || coordinates[$0].derivativeU.upper < 0 }
-        guard let axis = axes.max(by: { strength(coordinates[$0].derivativeU)
-            < strength(coordinates[$1].derivativeU) }) else {
+        var selected: Int?
+        for axis in coordinates.indices {
+            try execution.consumeWork(1)
+            let derivative = coordinates[axis].derivativeU
+            if derivative.lower > 0 || derivative.upper < 0 {
+                if let previous = selected {
+                    if strength(derivative) > strength(coordinates[previous].derivativeU) { selected = axis }
+                } else { selected = axis }
+            }
+        }
+        guard let axis = selected else {
             throw Self.failure(.singularGeometry, tolerance, "Original spatial station has no certified transverse coordinate.")
         }
         let target = coordinates[axis].value
         struct Cell { let range: ScalarInterval; let depth: Int }
-        var pending = [Cell(range: try ScalarInterval(lower: 0, upper: 1), depth: 0)]
+        try OriginalCoefficientAllocation.reserve(count: maximumSubdivisionDepth + 2, of: Cell.self, using: &execution)
+        var pending: [Cell] = []
+        pending.reserveCapacity(maximumSubdivisionDepth + 2)
+        pending.append(Cell(range: try ScalarInterval(lower: 0, upper: 1), depth: 0))
         var candidates: [ScalarInterval] = []
+        var candidateCapacity = 0
         var achieved = 0.0
         while let cell = pending.popLast() {
-            try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
-            let image = try jet(lifted, over: cell.range, consumeWork: consumeWork)
+            try execution.visitGeometricCell(depth: cell.depth)
+            try execution.checkpoint(); try execution.consumeWork(1)
+            let image = try jet(lifted, over: cell.range, using: &execution)
             let residual = component(image, axis).value - target
             if residual.lower > 0 || residual.upper < 0
                 || lowerDistance(image, station) > maximumDeviation { continue }
             let bound = upperDistance(image, station)
             if bound <= maximumDeviation {
-                try consumeWork()
+                try execution.consumeWork(1)
+                try OriginalCoefficientAllocation.reserveAppend(to: &candidates, capacity: &candidateCapacity, using: &execution)
                 candidates.append(cell.range)
                 achieved = max(achieved, bound)
                 continue
@@ -134,7 +148,7 @@ package struct OriginalSurfaceStationCorrespondence: OriginalSurfaceStationCorre
         // DFS visits fractions in increasing order; no unpaid sorting or seed selection.
         var lower = first.lower, upper = first.upper
         for range in candidates.dropFirst() {
-            try consumeWork()
+            try execution.consumeWork(1)
             guard range.lower <= upper else {
                 throw Self.failure(.ambiguousSelection, tolerance, "Original station has multiple separated pcurve branches.")
             }
@@ -142,11 +156,11 @@ package struct OriginalSurfaceStationCorrespondence: OriginalSurfaceStationCorre
         }
         let range = try ScalarInterval(lower: lower, upper: upper)
         let derivative = component(try jet(lifted, over: range,
-            consumeWork: consumeWork), axis).derivativeU
+            using: &execution), axis).derivativeU
         let low = component(try jet(lifted, over: ScalarInterval(lower: lower,
-            upper: lower), consumeWork: consumeWork), axis).value - target
+            upper: lower), using: &execution), axis).value - target
         let high = component(try jet(lifted, over: ScalarInterval(lower: upper,
-            upper: upper), consumeWork: consumeWork), axis).value - target
+            upper: upper), using: &execution), axis).value - target
         let sign: Int
         if derivative.lower > 0, low.upper < 0, high.lower > 0 { sign = 1 }
         else if derivative.upper < 0, low.lower > 0, high.upper < 0 { sign = -1 }
@@ -162,16 +176,16 @@ package struct OriginalSurfaceStationCorrespondence: OriginalSurfaceStationCorre
     // transverse original branches for mesh station propagation. General
     // stationary/critical correspondence still needs a complete retained atlas.
     package func resolve(liftFraction: Double, maximumDeviation: Double,
-        maximumSubdivisionDepth: Int, consumeWork: () throws -> Void) throws
+        maximumSubdivisionDepth: Int, using execution: inout OriginalQueryExecution) throws
         -> OriginalSurfaceStationInverseReceipt {
-        try CurrentTaskCancellationChecker().checkCancellation()
+        try execution.checkpoint()
         guard liftFraction.isFinite, liftFraction >= 0, liftFraction <= 1,
               maximumDeviation.isFinite, maximumDeviation > 0,
               maximumSubdivisionDepth >= 0, maximumSubdivisionDepth <= 32 else {
             throw Self.failure(.invalidInput, tolerance, "Original reverse station inputs lie outside their retained use.")
         }
         let station = try jet(lifted, over: .init(lower: liftFraction, upper: liftFraction),
-            consumeWork: consumeWork)
+            using: &execution)
         func receipt(_ native: ScalarInterval, _ bound: Double, _ orientation: Int)
             -> OriginalSurfaceStationInverseReceipt {
             .init(curve: curve, startParameter: startParameter, endParameter: endParameter,
@@ -182,16 +196,17 @@ package struct OriginalSurfaceStationCorrespondence: OriginalSurfaceStationCorre
         if liftFraction == 0 || liftFraction == 1 {
             let parameter = liftFraction == 0 ? startParameter : endParameter
             let range = try ScalarInterval(lower: parameter, upper: parameter)
-            let bound = upperDistance(try jet(spatial, over: range, consumeWork: consumeWork), station)
+            let bound = upperDistance(try jet(spatial, over: range, using: &execution), station)
             guard bound <= maximumDeviation else {
                 throw Self.failure(.topologyFailure, tolerance, "Original lifted endpoint differs from its directed spatial endpoint.")
             }
             return receipt(range, bound, 1)
         }
+        try OriginalCoefficientAllocation.reserve(count: 3, of: SurfaceIntervalJet.self, using: &execution)
         let coordinates = [station.x, station.y, station.z]
         var selected: Int?
         for axis in coordinates.indices {
-            try consumeWork()
+            try execution.consumeWork(1)
             let derivative = coordinates[axis].derivativeU
             if derivative.lower > 0 || derivative.upper < 0 {
                 if let previous = selected {
@@ -204,19 +219,25 @@ package struct OriginalSurfaceStationCorrespondence: OriginalSurfaceStationCorre
         }
         let target = coordinates[axis].value
         struct Cell { let range: ScalarInterval; let depth: Int }
-        try consumeWork()
-        var pending = [Cell(range: try .init(lower: min(startParameter, endParameter),
-            upper: max(startParameter, endParameter)), depth: 0)]
+        try execution.consumeWork(1)
+        try OriginalCoefficientAllocation.reserve(count: maximumSubdivisionDepth + 2, of: Cell.self, using: &execution)
+        var pending: [Cell] = []
+        pending.reserveCapacity(maximumSubdivisionDepth + 2)
+        pending.append(Cell(range: try .init(lower: min(startParameter, endParameter),
+            upper: max(startParameter, endParameter)), depth: 0))
         var candidates: [ScalarInterval] = []
+        var candidateCapacity = 0
         var achieved = 0.0
         while let cell = pending.popLast() {
-            try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
-            let image = try jet(spatial, over: cell.range, consumeWork: consumeWork)
+            try execution.visitGeometricCell(depth: cell.depth)
+            try execution.checkpoint(); try execution.consumeWork(1)
+            let image = try jet(spatial, over: cell.range, using: &execution)
             let residual = component(image, axis).value - target
             if residual.lower > 0 || residual.upper < 0 || lowerDistance(image, station) > maximumDeviation { continue }
             let bound = upperDistance(image, station)
             if bound <= maximumDeviation {
-                try consumeWork()
+                try execution.consumeWork(1)
+                try OriginalCoefficientAllocation.reserveAppend(to: &candidates, capacity: &candidateCapacity, using: &execution)
                 candidates.append(cell.range)
                 achieved = max(achieved, bound)
                 continue
@@ -226,9 +247,9 @@ package struct OriginalSurfaceStationCorrespondence: OriginalSurfaceStationCorre
                   middle > cell.range.lower, middle < cell.range.upper else {
                 throw Self.failure(.resourceLimitExceeded, tolerance, "Reverse original station did not close its whole physical bound.")
             }
-            try consumeWork()
+            try execution.consumeWork(1)
             pending.append(.init(range: try .init(lower: middle, upper: cell.range.upper), depth: cell.depth + 1))
-            try consumeWork()
+            try execution.consumeWork(1)
             pending.append(.init(range: try .init(lower: cell.range.lower, upper: middle), depth: cell.depth + 1))
         }
         guard let first = candidates.first else {
@@ -236,16 +257,16 @@ package struct OriginalSurfaceStationCorrespondence: OriginalSurfaceStationCorre
         }
         var lower = first.lower, upper = first.upper
         for range in candidates.dropFirst() {
-            try consumeWork()
+            try execution.consumeWork(1)
             guard range.lower <= upper else {
                 throw Self.failure(.ambiguousSelection, tolerance, "Original lifted station has separated spatial native branches.")
             }
             lower = min(lower, range.lower); upper = max(upper, range.upper)
         }
         let range = try ScalarInterval(lower: lower, upper: upper)
-        let derivative = component(try jet(spatial, over: range, consumeWork: consumeWork), axis).derivativeU
-        let low = component(try jet(spatial, over: .init(lower: lower, upper: lower), consumeWork: consumeWork), axis).value - target
-        let high = component(try jet(spatial, over: .init(lower: upper, upper: upper), consumeWork: consumeWork), axis).value - target
+        let derivative = component(try jet(spatial, over: range, using: &execution), axis).derivativeU
+        let low = component(try jet(spatial, over: .init(lower: lower, upper: lower), using: &execution), axis).value - target
+        let high = component(try jet(spatial, over: .init(lower: upper, upper: upper), using: &execution), axis).value - target
         let spatialSign: Int
         if derivative.lower > 0, low.upper < 0, high.lower > 0 { spatialSign = 1 }
         else if derivative.upper < 0, low.lower > 0, high.upper < 0 { spatialSign = -1 }
@@ -258,16 +279,16 @@ package struct OriginalSurfaceStationCorrespondence: OriginalSurfaceStationCorre
     }
 
     private func jet(_ owner: PreparedCurveDifferentialEncloser, over range: ScalarInterval,
-        consumeWork: () throws -> Void) throws -> SurfaceIntervalVectorJet {
+        using execution: inout OriginalQueryExecution) throws -> SurfaceIntervalVectorJet {
         let receipt = try owner.closedNativeJets(over: range, tolerance: tolerance,
             maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: preparationDepth,
-            remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork)
+            remainingSourceDepth: remainingSourceDepth, using: &execution)
         guard let first = receipt.spans.first else {
             throw Self.failure(.classificationFailure, tolerance, "Original station source has no owning closed span.")
         }
         var result = first.jet
         for span in receipt.spans.dropFirst() {
-            try consumeWork()
+            try execution.consumeWork(1)
             result = result.union(span.jet)
         }
         return result

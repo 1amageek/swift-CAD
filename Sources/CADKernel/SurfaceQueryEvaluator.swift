@@ -236,8 +236,18 @@ public struct SurfaceQueryEvaluator: Sendable {
         _ reference: SurfaceReference,
         in document: some SurfaceQueryModel
     ) throws -> ResolvedSurface {
-        try reference.validate()
-        let topologyReference = try document.topologyReference(for: reference.subshape)
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try resolve(reference, in: document, using: &execution)
+    }
+
+    public func resolve(
+        _ reference: SurfaceReference,
+        in document: some SurfaceQueryModel,
+        using execution: inout OriginalQueryExecution
+    ) throws -> ResolvedSurface {
+        try execution.consumeWork(1)
+        let topologyReference = try document.originalTopologyReference(for: reference.subshape, tolerance: tolerance,
+            maximumSubdivisionDepth: 32, remainingSourceDepth: 16, maximumAlgebraicDepth: 32, using: &execution)
         guard case let .face(faceID) = topologyReference else {
             throw KernelError(
                 phase: .evaluation,
@@ -253,7 +263,7 @@ public struct SurfaceQueryEvaluator: Sendable {
         guard let surface = document.brep.geometry.surfaces[face.surfaceID] else {
             throw FeatureEvaluationError.missingInput("Surface query references a missing surface.")
         }
-        try surface.validate(tolerance: tolerance)
+        try surface.validate(tolerance: tolerance, using: &execution)
         return ResolvedSurface(
             reference: reference,
             faceID: faceID,
@@ -266,8 +276,18 @@ public struct SurfaceQueryEvaluator: Sendable {
         at reference: SurfaceParameterReference,
         in document: some SurfaceQueryModel
     ) throws -> SurfaceQueryFrame {
-        try reference.validate()
-        let resolved = try resolve(reference.surface, in: document)
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try frame(at: reference, in: document, using: &execution)
+    }
+
+    public func frame(
+        at reference: SurfaceParameterReference,
+        in document: some SurfaceQueryModel
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceQueryFrame {
+        try execution.consumeWork(1)
+        guard reference.u.isFinite else { throw GeometryError.invalidCoordinate(reference.u) }
+        guard reference.v.isFinite else { throw GeometryError.invalidCoordinate(reference.v) }
+        let resolved = try resolve(reference.surface, in: document, using: &execution)
         guard try resolved.surface.uDomain.contains(reference.u, tolerance: tolerance),
               try resolved.surface.vDomain.contains(reference.v, tolerance: tolerance) else {
             throw GeometryError.invalidDistance(0.0)
@@ -276,7 +296,7 @@ public struct SurfaceQueryEvaluator: Sendable {
             u: reference.u,
             v: reference.v,
             tolerance: tolerance
-        )
+        , using: &execution)
         return SurfaceQueryFrame(reference: reference, geometry: geometry)
     }
 
@@ -286,9 +306,21 @@ public struct SurfaceQueryEvaluator: Sendable {
         in document: some SurfaceQueryModel,
         options: SurfaceProjectionOptions = SurfaceProjectionOptions()
     ) throws -> SurfaceProjectionResult {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try closestPoint(to: point, on: reference, in: document, options: options, using: &execution)
+    }
+
+    public func closestPoint(
+        to point: Point3D,
+        on reference: SurfaceReference,
+        in document: some SurfaceQueryModel,
+        options: SurfaceProjectionOptions = SurfaceProjectionOptions(),
+        using execution: inout OriginalQueryExecution
+    ) throws -> SurfaceProjectionResult {
+        try execution.consumeWork(1)
         try point.validate()
         try options.validate(tolerance: tolerance)
-        let resolved = try resolve(reference, in: document)
+        let resolved = try resolve(reference, in: document, using: &execution)
         var unrestrictedOptions = options
         unrestrictedOptions.respectsTrimBounds = false
         let supportProjection: SurfaceProjectionResult = switch resolved.surface {
@@ -298,13 +330,13 @@ public struct SurfaceQueryEvaluator: Sendable {
                 plane: plane,
                 resolved: resolved,
                 model: document.brep,
-                options: unrestrictedOptions
+                options: unrestrictedOptions, using: &execution
             )
         case let .cylinder(cylinder):
             try closestPointOnCylinder(
                 point,
                 cylinder: cylinder,
-                reference: reference
+                reference: reference, using: &execution
             )
         case let .analytic(surface):
             try closestPointOnAnalyticSurface(
@@ -312,14 +344,14 @@ public struct SurfaceQueryEvaluator: Sendable {
                 surface: surface,
                 resolved: resolved,
                 model: document.brep,
-                options: unrestrictedOptions
+                options: unrestrictedOptions, using: &execution
             )
         case let .bSpline(surface):
             try closestPointOnBSpline(
                 point,
                 surface: surface,
                 reference: reference,
-                options: unrestrictedOptions
+                options: unrestrictedOptions, using: &execution
             )
         case let .procedural(.offset(offset)):
             try closestPointOnProceduralOffset(
@@ -327,23 +359,24 @@ public struct SurfaceQueryEvaluator: Sendable {
                 offset: offset,
                 resolved: resolved,
                 model: document.brep,
-                options: unrestrictedOptions
+                options: unrestrictedOptions, using: &execution
             )
         case let .procedural(procedural):
             try closestPointOnBoundedProceduralSurface(
                 point,
                 procedural: procedural,
                 resolved: resolved,
-                options: unrestrictedOptions
+                options: unrestrictedOptions, using: &execution
             )
         }
         guard options.respectsTrimBounds else {
+            try execution.checkpoint()
             return supportProjection
         }
         let containment = try faceDomainResolver.makeContainmentSession(
             for: resolved.faceID,
             in: document.brep,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         let supportParameter = SurfaceParameter(
             u: supportProjection.parameterReference.u,
@@ -351,8 +384,9 @@ public struct SurfaceQueryEvaluator: Sendable {
         )
         if try containment.contains(
             supportParameter,
-            on: resolved.faceID
+            on: resolved.faceID, using: &execution
         ) {
+            try execution.checkpoint()
             return supportProjection
         }
         let boundary = try faceDomainResolver.closestBoundaryProjection(
@@ -362,7 +396,7 @@ public struct SurfaceQueryEvaluator: Sendable {
             surface: resolved.surface,
             in: document.brep,
             maximumIterations: options.limits.maximumIterations,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         return try projectionResult(
             sourcePoint: point,
@@ -373,7 +407,7 @@ public struct SurfaceQueryEvaluator: Sendable {
             ),
             surface: resolved.surface,
             iterations: boundary.iterations,
-            converged: true
+            converged: true, using: &execution
         )
     }
 
@@ -384,10 +418,23 @@ public struct SurfaceQueryEvaluator: Sendable {
         in document: some SurfaceQueryModel,
         options: SurfaceDirectionalProjectionOptions = SurfaceDirectionalProjectionOptions()
     ) throws -> SurfaceDirectionalProjectionResult {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try project(point, along: direction, onto: reference, in: document,
+            options: options, using: &execution)
+    }
+
+    public func project(
+        _ point: Point3D,
+        along direction: Vector3D,
+        onto reference: SurfaceReference,
+        in document: some SurfaceQueryModel,
+        options: SurfaceDirectionalProjectionOptions = SurfaceDirectionalProjectionOptions(),
+        using execution: inout OriginalQueryExecution
+    ) throws -> SurfaceDirectionalProjectionResult {
         try point.validate()
         try options.validate(tolerance: tolerance)
         let unitDirection = try direction.normalized(tolerance: tolerance.distance)
-        let resolved = try resolve(reference, in: document)
+        let resolved = try resolve(reference, in: document, using: &execution)
         switch resolved.surface {
         case let .plane(plane):
             return try projectOntoPlane(
@@ -397,7 +444,7 @@ public struct SurfaceQueryEvaluator: Sendable {
                 resolved: resolved,
                 model: document.brep,
                 options: options
-            )
+            , using: &execution)
         case let .cylinder(cylinder):
             return try projectOntoCylinder(
                 point,
@@ -406,7 +453,7 @@ public struct SurfaceQueryEvaluator: Sendable {
                 resolved: resolved,
                 model: document.brep,
                 options: options
-            )
+            , using: &execution)
         case let .analytic(surface):
             return try projectOntoAnalyticSurface(
                 point,
@@ -415,7 +462,7 @@ public struct SurfaceQueryEvaluator: Sendable {
                 resolved: resolved,
                 model: document.brep,
                 options: options
-            )
+            , using: &execution)
         case .bSpline:
             return try projectOntoGeneralSurface(
                 point,
@@ -424,7 +471,7 @@ public struct SurfaceQueryEvaluator: Sendable {
                 resolved: resolved,
                 model: document.brep,
                 options: options
-            )
+            , using: &execution)
         case let .procedural(.offset(offset)):
             return try projectOntoProceduralOffset(
                 point,
@@ -433,7 +480,7 @@ public struct SurfaceQueryEvaluator: Sendable {
                 resolved: resolved,
                 model: document.brep,
                 options: options
-            )
+            , using: &execution)
         case .procedural(.ruled), .procedural(.rollingBall),
              .procedural(.originalImage), .procedural(.originalRevolution), .procedural(.originalAffineWord),
              .procedural(.originalCoons), .procedural(.originalBoundaryCorrected),
@@ -445,7 +492,7 @@ public struct SurfaceQueryEvaluator: Sendable {
                 resolved: resolved,
                 model: document.brep,
                 options: options
-            )
+            , using: &execution)
         }
     }
 
@@ -468,8 +515,19 @@ public struct SurfaceQueryEvaluator: Sendable {
         _ reference: SurfaceKnotReference,
         in document: some SurfaceQueryModel
     ) throws -> Double {
-        try reference.validate()
-        let surface = try exactBSpline(for: reference.surface, in: document)
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try knot(reference, in: document, using: &execution)
+    }
+
+    public func knot(
+        _ reference: SurfaceKnotReference,
+        in document: some SurfaceQueryModel
+    , using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
+        guard reference.knotIndex >= 0 else {
+            throw FeatureEvaluationError.invalidGraph("Surface knot reference index must not be negative.")
+        }
+        let surface = try exactBSpline(for: reference.surface, in: document, using: &execution)
         let knots = knotVector(for: reference.direction, surface: surface)
         guard reference.knotIndex < knots.count else {
             throw FeatureEvaluationError.missingInput("Surface knot index could not be resolved.")
@@ -481,8 +539,19 @@ public struct SurfaceQueryEvaluator: Sendable {
         _ reference: SurfaceSpanReference,
         in document: some SurfaceQueryModel
     ) throws -> SurfaceSpanQueryResult {
-        try reference.validate()
-        let surface = try exactBSpline(for: reference.surface, in: document)
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try span(reference, in: document, using: &execution)
+    }
+
+    public func span(
+        _ reference: SurfaceSpanReference,
+        in document: some SurfaceQueryModel
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceSpanQueryResult {
+        try execution.consumeWork(1)
+        guard reference.spanIndex >= 0 else {
+            throw FeatureEvaluationError.invalidGraph("Surface span reference index must not be negative.")
+        }
+        let surface = try exactBSpline(for: reference.surface, in: document, using: &execution)
         let knots = knotVector(for: reference.direction, surface: surface)
         let degree = degree(for: reference.direction, surface: surface)
         var ordinal = 0
@@ -513,8 +582,22 @@ public struct SurfaceQueryEvaluator: Sendable {
         _ reference: SurfaceTrimReference,
         in document: some SurfaceQueryModel
     ) throws -> SurfaceTrimQueryResult {
-        try reference.validate()
-        let resolved = try resolve(reference.surface, in: document)
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try trimCurve(reference, in: document, using: &execution)
+    }
+
+    public func trimCurve(
+        _ reference: SurfaceTrimReference,
+        in document: some SurfaceQueryModel
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceTrimQueryResult {
+        try execution.consumeWork(1)
+        guard reference.loopIndex >= 0 else {
+            throw FeatureEvaluationError.invalidGraph("Surface trim loop index must not be negative.")
+        }
+        guard reference.edgeIndex >= 0 else {
+            throw FeatureEvaluationError.invalidGraph("Surface trim edge index must not be negative.")
+        }
+        let resolved = try resolve(reference.surface, in: document, using: &execution)
         guard let face = document.brep.faces[resolved.faceID] else {
             throw FeatureEvaluationError.missingInput("Surface trim query references a missing face.")
         }
@@ -544,8 +627,8 @@ public struct SurfaceQueryEvaluator: Sendable {
             surface: resolved.surface,
             startPoint: startPoint,
             endPoint: endPoint
-        )
-        try parameters.curve.validate(on: resolved.surface, tolerance: tolerance)
+        , using: &execution)
+        try parameters.curve.validate(on: resolved.surface, tolerance: tolerance, using: &execution)
         return SurfaceTrimQueryResult(
             reference: reference,
             loopID: loopID,
@@ -562,7 +645,16 @@ public struct SurfaceQueryEvaluator: Sendable {
         for reference: SurfaceReference,
         in document: some SurfaceQueryModel
     ) throws -> BSplineSurface3D {
-        let resolved = try resolve(reference, in: document)
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try exactBSpline(for: reference, in: document, using: &execution)
+    }
+
+    private func exactBSpline(
+        for reference: SurfaceReference,
+        in document: some SurfaceQueryModel
+    , using execution: inout OriginalQueryExecution) throws -> BSplineSurface3D {
+        try execution.consumeWork(1)
+        let resolved = try resolve(reference, in: document, using: &execution)
         guard case let .bSpline(surface) = resolved.surface else {
             throw KernelError(
                 phase: .validation,
@@ -582,6 +674,19 @@ public struct SurfaceQueryEvaluator: Sendable {
         startPoint: Point3D,
         endPoint: Point3D
     ) throws -> (curve: SurfaceParameterCurve, start: SurfaceParameter, end: SurfaceParameter) {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try trimParameters(for: edge, orientedEdge: orientedEdge, curve: curve, surface: surface, startPoint: startPoint, endPoint: endPoint, using: &execution)
+    }
+
+    private func trimParameters(
+        for edge: Edge,
+        orientedEdge: Coedge,
+        curve: Curve3D,
+        surface: Surface3D,
+        startPoint: Point3D,
+        endPoint: Point3D
+    , using execution: inout OriginalQueryExecution) throws -> (curve: SurfaceParameterCurve, start: SurfaceParameter, end: SurfaceParameter) {
+        try execution.consumeWork(1)
         if let surfaceParameterCurve = orientedEdge.surfaceParameterCurve {
             return try exactTrimParameters(
                 surfaceParameterCurve,
@@ -591,18 +696,18 @@ public struct SurfaceQueryEvaluator: Sendable {
                 orientedEdge: orientedEdge,
                 startPoint: startPoint,
                 endPoint: endPoint
-            )
+            , using: &execution)
         }
 
-        let start = try surfaceParameter(for: startPoint, on: surface)
-        let end = try surfaceParameter(for: endPoint, on: surface)
+        let start = try surfaceParameter(for: startPoint, on: surface, using: &execution)
+        let end = try surfaceParameter(for: endPoint, on: surface, using: &execution)
 
         if case .line = curve {
-            return (compactParameterCurve(from: start, to: end), start, end)
+            return (try compactParameterCurve(from: start, to: end, using: &execution), start, end)
         }
 
         guard let trim = edge.trim else {
-            return (compactParameterCurve(from: start, to: end), start, end)
+            return (try compactParameterCurve(from: start, to: end, using: &execution), start, end)
         }
 
         let startCurveParameter: Double
@@ -618,12 +723,14 @@ public struct SurfaceQueryEvaluator: Sendable {
 
         let sampleCount = 17
         var points: [SurfaceParameter] = []
+        try execution.retainStorage(count: sampleCount, stride: MemoryLayout<SurfaceParameter>.stride)
         points.reserveCapacity(sampleCount)
         for index in 0..<sampleCount {
+            try execution.consumeWork(1)
             let fraction = Double(index) / Double(sampleCount - 1)
             let curveParameter = startCurveParameter + (endCurveParameter - startCurveParameter) * fraction
-            let point = try curve.point(at: curveParameter, tolerance: tolerance)
-            points.append(try surfaceParameter(for: point, on: surface))
+            let point = try curve.point(at: curveParameter, tolerance: tolerance, using: &execution)
+            points.append(try surfaceParameter(for: point, on: surface, using: &execution))
         }
         return (.polyline(points), start, end)
     }
@@ -637,11 +744,25 @@ public struct SurfaceQueryEvaluator: Sendable {
         startPoint: Point3D,
         endPoint: Point3D
     ) throws -> (curve: SurfaceParameterCurve, start: SurfaceParameter, end: SurfaceParameter) {
-        try parameterCurve.validate(on: surface, tolerance: tolerance)
-        let start = try parameterCurve.parameter(atNormalizedFraction: 0.0, tolerance: tolerance)
-        let end = try parameterCurve.parameter(atNormalizedFraction: 1.0, tolerance: tolerance)
-        let surfaceStart = try surface.point(u: start.u, v: start.v, tolerance: tolerance)
-        let surfaceEnd = try surface.point(u: end.u, v: end.v, tolerance: tolerance)
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try exactTrimParameters(parameterCurve, on: surface, curve: curve, edge: edge, orientedEdge: orientedEdge, startPoint: startPoint, endPoint: endPoint, using: &execution)
+    }
+
+    private func exactTrimParameters(
+        _ parameterCurve: SurfaceParameterCurve,
+        on surface: Surface3D,
+        curve: Curve3D,
+        edge: Edge,
+        orientedEdge: Coedge,
+        startPoint: Point3D,
+        endPoint: Point3D
+    , using execution: inout OriginalQueryExecution) throws -> (curve: SurfaceParameterCurve, start: SurfaceParameter, end: SurfaceParameter) {
+        try execution.consumeWork(1)
+        try parameterCurve.validate(on: surface, tolerance: tolerance, using: &execution)
+        let start = try parameterCurve.parameter(atNormalizedFraction: 0.0, tolerance: tolerance, using: &execution)
+        let end = try parameterCurve.parameter(atNormalizedFraction: 1.0, tolerance: tolerance, using: &execution)
+        let surfaceStart = try surface.point(u: start.u, v: start.v, tolerance: tolerance, using: &execution)
+        let surfaceEnd = try surface.point(u: end.u, v: end.v, tolerance: tolerance, using: &execution)
         guard startPoint.isApproximatelyEqual(to: surfaceStart, tolerance: tolerance.distance),
               endPoint.isApproximatelyEqual(to: surfaceEnd, tolerance: tolerance.distance) else {
             throw FeatureEvaluationError.invalidGraph("Surface trim parameter curve endpoints do not match edge vertices.")
@@ -654,7 +775,7 @@ public struct SurfaceQueryEvaluator: Sendable {
             orientedEdge: orientedEdge,
             startPoint: startPoint,
             endPoint: endPoint
-        )
+        , using: &execution)
         return (parameterCurve, start, end)
     }
 
@@ -667,6 +788,20 @@ public struct SurfaceQueryEvaluator: Sendable {
         startPoint: Point3D,
         endPoint: Point3D
     ) throws {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try validateExactTrimSamples(parameterCurve, on: surface, curve: curve, edge: edge, orientedEdge: orientedEdge, startPoint: startPoint, endPoint: endPoint, using: &execution)
+    }
+
+    private func validateExactTrimSamples(
+        _ parameterCurve: SurfaceParameterCurve,
+        on surface: Surface3D,
+        curve: Curve3D,
+        edge: Edge,
+        orientedEdge: Coedge,
+        startPoint: Point3D,
+        endPoint: Point3D
+    , using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         let startCurveParameter: Double
         let endCurveParameter: Double
         if let trim = edge.trim {
@@ -684,19 +819,20 @@ public struct SurfaceQueryEvaluator: Sendable {
         }
         let sampleCount = 9
         for index in 0..<sampleCount {
+            try execution.consumeWork(1)
             let fraction = Double(index) / Double(sampleCount - 1)
             let curvePoint: Point3D
             if edge.trim != nil {
                 let curveParameter = startCurveParameter + (endCurveParameter - startCurveParameter) * fraction
-                curvePoint = try curve.point(at: curveParameter, tolerance: tolerance)
+                curvePoint = try curve.point(at: curveParameter, tolerance: tolerance, using: &execution)
             } else {
                 guard case .line = curve else {
                     throw FeatureEvaluationError.invalidGraph("Surface trim parameter curve requires a trimmed non-linear edge.")
                 }
                 curvePoint = interpolated(startPoint, endPoint, fraction: fraction)
             }
-            let parameter = try parameterCurve.parameter(atNormalizedFraction: fraction, tolerance: tolerance)
-            let surfacePoint = try surface.point(u: parameter.u, v: parameter.v, tolerance: tolerance)
+            let parameter = try parameterCurve.parameter(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+            let surfacePoint = try surface.point(u: parameter.u, v: parameter.v, tolerance: tolerance, using: &execution)
             guard curvePoint.isApproximatelyEqual(to: surfacePoint, tolerance: tolerance.distance) else {
                 throw FeatureEvaluationError.invalidGraph("Surface trim parameter curve does not match edge geometry.")
             }
@@ -715,6 +851,7 @@ public struct SurfaceQueryEvaluator: Sendable {
         from start: SurfaceParameter,
         to end: SurfaceParameter
     ) -> SurfaceParameterCurve {
+
         if abs(start.u - end.u) <= tolerance.distance {
             return .constantU(u: start.u, vStart: start.v, vEnd: end.v)
         }
@@ -724,21 +861,42 @@ public struct SurfaceQueryEvaluator: Sendable {
         return .polyline([start, end])
     }
 
+    private func compactParameterCurve(
+        from start: SurfaceParameter,
+        to end: SurfaceParameter
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceParameterCurve {
+        try execution.consumeWork(1)
+        if abs(start.u - end.u) <= tolerance.distance {
+            return .constantU(u: start.u, vStart: start.v, vEnd: end.v)
+        }
+        if abs(start.v - end.v) <= tolerance.distance {
+            return .constantV(v: start.v, uStart: start.u, uEnd: end.u)
+        }
+        try execution.retainStorage(count: 2, stride: MemoryLayout<SurfaceParameter>.stride)
+        return .polyline([start, end])
+    }
+
     private func surfaceParameter(for point: Point3D, on surface: Surface3D) throws -> SurfaceParameter {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try surfaceParameter(for: point, on: surface, using: &execution)
+    }
+
+    private func surfaceParameter(for point: Point3D, on surface: Surface3D, using execution: inout OriginalQueryExecution) throws -> SurfaceParameter {
+        try execution.consumeWork(1)
         switch surface {
         case let .plane(plane):
             return try planeParameter(for: point, on: plane)
         case let .cylinder(cylinder):
             return try cylinderParameter(for: point, on: cylinder)
         case let .analytic(surface):
-            return try analyticSurfaceParameter(for: point, on: surface)
+            return try analyticSurfaceParameter(for: point, on: surface, using: &execution)
         case let .bSpline(surface):
-            return try bSplineBoundaryParameter(for: point, on: surface)
+            return try bSplineBoundaryParameter(for: point, on: surface, using: &execution)
         case .procedural:
             let projection = try surface.parameterProjection(
                 of: point,
                 tolerance: tolerance
-            )
+            , using: &execution)
             return SurfaceParameter(u: projection.u, v: projection.v)
         }
     }
@@ -748,11 +906,13 @@ public struct SurfaceQueryEvaluator: Sendable {
         offset: OffsetSurface3D,
         resolved: ResolvedSurface,
         model: BRepModel,
-        options: SurfaceProjectionOptions
+        options: SurfaceProjectionOptions,
+        using execution: inout OriginalQueryExecution
     ) throws -> SurfaceProjectionResult {
+        try execution.consumeWork(1)
         let proceduralSurface = Surface3D.procedural(.offset(offset))
         if let equivalent = try offset.exactChartPreservingSurface(
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         ) {
             let equivalentResult: SurfaceProjectionResult
             switch equivalent {
@@ -762,13 +922,13 @@ public struct SurfaceQueryEvaluator: Sendable {
                     plane: plane,
                     resolved: resolved,
                     model: model,
-                    options: options
+                    options: options, using: &execution
                 )
             case let .cylinder(cylinder):
                 equivalentResult = try closestPointOnCylinder(
                     point,
                     cylinder: cylinder,
-                    reference: resolved.reference
+                    reference: resolved.reference, using: &execution
                 )
             case let .analytic(analytic):
                 equivalentResult = try closestPointOnAnalyticSurface(
@@ -776,14 +936,14 @@ public struct SurfaceQueryEvaluator: Sendable {
                     surface: analytic,
                     resolved: resolved,
                     model: model,
-                    options: options
+                    options: options, using: &execution
                 )
             case let .bSpline(spline):
                 equivalentResult = try closestPointOnBSpline(
                     point,
                     surface: spline,
                     reference: resolved.reference,
-                    options: options
+                    options: options, using: &execution
                 )
             case .procedural:
                 throw KernelError(
@@ -798,7 +958,7 @@ public struct SurfaceQueryEvaluator: Sendable {
                 reference: equivalentResult.parameterReference,
                 surface: proceduralSurface,
                 iterations: equivalentResult.iterations,
-                converged: equivalentResult.converged
+                converged: equivalentResult.converged, using: &execution
             )
         }
         let projection = try offset.closestParameterProjection(
@@ -809,7 +969,7 @@ public struct SurfaceQueryEvaluator: Sendable {
                 maximumSubdivisionCells: options.limits.maximumSubdivisionCells,
                 maximumCandidateCount: options.limits.maximumCandidateCount
             ),
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         return try projectionResult(
             sourcePoint: point,
@@ -820,7 +980,7 @@ public struct SurfaceQueryEvaluator: Sendable {
             ),
             surface: proceduralSurface,
             iterations: projection.iterations,
-            converged: true
+            converged: true, using: &execution
         )
     }
 
@@ -828,8 +988,10 @@ public struct SurfaceQueryEvaluator: Sendable {
         _ point: Point3D,
         procedural: ProceduralSurface3D,
         resolved: ResolvedSurface,
-        options: SurfaceProjectionOptions
+        options: SurfaceProjectionOptions,
+        using execution: inout OriginalQueryExecution
     ) throws -> SurfaceProjectionResult {
+        try execution.consumeWork(1)
         let projection = try procedural.closestParameterProjection(
             of: point,
             options: SurfaceParameterProjectionOptions(
@@ -838,7 +1000,7 @@ public struct SurfaceQueryEvaluator: Sendable {
                 maximumSubdivisionCells: options.limits.maximumSubdivisionCells,
                 maximumCandidateCount: options.limits.maximumCandidateCount
             ),
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         return try projectionResult(
             sourcePoint: point,
@@ -849,7 +1011,7 @@ public struct SurfaceQueryEvaluator: Sendable {
             ),
             surface: resolved.surface,
             iterations: projection.iterations,
-            converged: true
+            converged: true, using: &execution
         )
     }
 
@@ -860,10 +1022,11 @@ public struct SurfaceQueryEvaluator: Sendable {
         resolved: ResolvedSurface,
         model: BRepModel,
         options: SurfaceDirectionalProjectionOptions
-    ) throws -> SurfaceDirectionalProjectionResult {
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceDirectionalProjectionResult {
+        try execution.consumeWork(1)
         let proceduralSurface = Surface3D.procedural(.offset(offset))
         if let equivalent = try offset.exactChartPreservingSurface(
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         ) {
             let equivalentResult: SurfaceDirectionalProjectionResult
             switch equivalent {
@@ -875,7 +1038,7 @@ public struct SurfaceQueryEvaluator: Sendable {
                     resolved: resolved,
                     model: model,
                     options: options
-                )
+                , using: &execution)
             case let .cylinder(cylinder):
                 // The chart-preserving equivalent shares the offset face's parameters, so its
                 // trim applies unchanged.
@@ -886,7 +1049,7 @@ public struct SurfaceQueryEvaluator: Sendable {
                     resolved: resolved,
                     model: model,
                     options: options
-                )
+                , using: &execution)
             case let .analytic(analytic):
                 equivalentResult = try projectOntoAnalyticSurface(
                     point,
@@ -895,7 +1058,7 @@ public struct SurfaceQueryEvaluator: Sendable {
                     resolved: resolved,
                     model: model,
                     options: options
-                )
+                , using: &execution)
             case let .bSpline(spline):
                 equivalentResult = try projectOntoGeneralSurface(
                     point,
@@ -904,7 +1067,7 @@ public struct SurfaceQueryEvaluator: Sendable {
                     resolved: resolved,
                     model: model,
                     options: options
-                )
+                , using: &execution)
             case .procedural:
                 throw KernelError(
                     phase: .geometry,
@@ -921,7 +1084,7 @@ public struct SurfaceQueryEvaluator: Sendable {
                 surface: proceduralSurface,
                 iterations: equivalentResult.iterations,
                 converged: equivalentResult.converged
-            )
+            , using: &execution)
         }
 
         return try projectOntoGeneralSurface(
@@ -931,7 +1094,7 @@ public struct SurfaceQueryEvaluator: Sendable {
             resolved: resolved,
             model: model,
             options: options
-        )
+        , using: &execution)
     }
 
     private func projectOntoGeneralSurface(
@@ -941,13 +1104,14 @@ public struct SurfaceQueryEvaluator: Sendable {
         resolved: ResolvedSurface,
         model: BRepModel,
         options: SurfaceDirectionalProjectionOptions
-    ) throws -> SurfaceDirectionalProjectionResult {
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceDirectionalProjectionResult {
+        try execution.consumeWork(1)
         let searchDomain = try faceDomainResolver.directionalSearchDomain(
             from: point,
             direction: direction,
             on: resolved.faceID,
             in: model,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         let intersections = try DefaultCurveSurfaceIntersector().intersections(
             curve: .line(Line3D(origin: point, direction: direction)),
@@ -961,34 +1125,35 @@ public struct SurfaceQueryEvaluator: Sendable {
                 maximumIterations: options.limits.maximumIterations,
                 maximumCandidateCount: options.limits.maximumCandidateCount
             ),
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         let containment = options.respectsTrimBounds
             ? try faceDomainResolver.makeContainmentSession(
                 for: resolved.faceID,
                 in: model,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
             : nil
         var accepted: [CurveSurfaceIntersection] = []
-        for intersection in intersections where options.range.accepts(
-            intersection.curveParameter,
-            tolerance: tolerance
-        ) {
+        for intersection in intersections {
+            try execution.consumeWork(1)
+            guard options.range.accepts(intersection.curveParameter, tolerance: tolerance) else { continue }
             if let containment,
                try containment.contains(
                    SurfaceParameter(
                        u: intersection.surfaceU,
                        v: intersection.surfaceV
                    ),
-                   on: resolved.faceID
+                   on: resolved.faceID, using: &execution
                ) == false {
                 continue
             }
+            try execution.retainStorage(count: 1, stride: MemoryLayout<CurveSurfaceIntersection>.stride)
             accepted.append(intersection)
         }
-        guard let selected = accepted.min(by: { lhs, rhs in
-            switch options.range {
+        guard let selected = try accepted.min(by: { lhs, rhs in
+            try execution.consumeWork(1)
+            return switch options.range {
             case .line:
                 abs(lhs.curveParameter) < abs(rhs.curveParameter)
             case .ray:
@@ -1011,14 +1176,23 @@ public struct SurfaceQueryEvaluator: Sendable {
             surface: surface,
             iterations: selected.iterations,
             converged: selected.residual <= tolerance.distance
-        )
+        , using: &execution)
     }
 
     private func analyticSurfaceParameter(
         for point: Point3D,
         on surface: AnalyticSurface3D
     ) throws -> SurfaceParameter {
-        try surface.validate(tolerance: tolerance)
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try analyticSurfaceParameter(for: point, on: surface, using: &execution)
+    }
+
+    private func analyticSurfaceParameter(
+        for point: Point3D,
+        on surface: AnalyticSurface3D
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceParameter {
+        try execution.consumeWork(1)
+        try surface.validate(tolerance: tolerance, using: &execution)
         switch surface {
         case let .plane(origin, normal):
             let offset = point - origin
@@ -1110,27 +1284,38 @@ public struct SurfaceQueryEvaluator: Sendable {
         for point: Point3D,
         on surface: BSplineSurface3D
     ) throws -> SurfaceParameter {
-        try surface.validate(tolerance: tolerance)
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try bSplineBoundaryParameter(for: point, on: surface, using: &execution)
+    }
+
+    private func bSplineBoundaryParameter(
+        for point: Point3D,
+        on surface: BSplineSurface3D
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceParameter {
+        try execution.consumeWork(1)
+        try surface.validate(tolerance: tolerance, using: &execution)
         let uBounds = try parameterBounds(for: surface.uDomain)
         let vBounds = try parameterBounds(for: surface.vDomain)
+        try execution.retainStorage(count: 4, stride: MemoryLayout<SurfaceBoundaryCorner>.stride)
         let corners = try [
             SurfaceBoundaryCorner(
                 parameter: SurfaceParameter(u: uBounds.lower, v: vBounds.lower),
-                point: surface.point(u: uBounds.lower, v: vBounds.lower, tolerance: tolerance)
+                point: surface.point(u: uBounds.lower, v: vBounds.lower, tolerance: tolerance, using: &execution)
             ),
             SurfaceBoundaryCorner(
                 parameter: SurfaceParameter(u: uBounds.upper, v: vBounds.lower),
-                point: surface.point(u: uBounds.upper, v: vBounds.lower, tolerance: tolerance)
+                point: surface.point(u: uBounds.upper, v: vBounds.lower, tolerance: tolerance, using: &execution)
             ),
             SurfaceBoundaryCorner(
                 parameter: SurfaceParameter(u: uBounds.upper, v: vBounds.upper),
-                point: surface.point(u: uBounds.upper, v: vBounds.upper, tolerance: tolerance)
+                point: surface.point(u: uBounds.upper, v: vBounds.upper, tolerance: tolerance, using: &execution)
             ),
             SurfaceBoundaryCorner(
                 parameter: SurfaceParameter(u: uBounds.lower, v: vBounds.upper),
-                point: surface.point(u: uBounds.lower, v: vBounds.upper, tolerance: tolerance)
+                point: surface.point(u: uBounds.lower, v: vBounds.upper, tolerance: tolerance, using: &execution)
             ),
         ]
+        try execution.retainStorage(count: 4, stride: MemoryLayout<(SurfaceBoundaryCorner, SurfaceBoundaryCorner)>.stride)
         let segments = [
             (corners[0], corners[1]),
             (corners[1], corners[2]),
@@ -1140,6 +1325,7 @@ public struct SurfaceQueryEvaluator: Sendable {
 
         var best: SurfaceBoundaryProjection?
         for segment in segments {
+            try execution.consumeWork(1)
             let projection = boundaryProjection(point, from: segment.0, to: segment.1)
             if let currentBest = best {
                 if projection.distance < currentBest.distance {
@@ -1226,8 +1412,10 @@ public struct SurfaceQueryEvaluator: Sendable {
         plane: Plane3D,
         resolved: ResolvedSurface,
         model: BRepModel,
-        options: SurfaceProjectionOptions
+        options: SurfaceProjectionOptions,
+        using execution: inout OriginalQueryExecution
     ) throws -> SurfaceProjectionResult {
+        try execution.consumeWork(1)
         try plane.validate(tolerance: tolerance)
         let (basisU, basisV) = try planeBasis(for: plane.normal)
         let offset = point - plane.origin
@@ -1240,9 +1428,9 @@ public struct SurfaceQueryEvaluator: Sendable {
             model: model,
             basisU: basisU,
             basisV: basisV
-           ),
-           trimDomain.contains(projected, tolerance: tolerance) == false {
-            resultPoint = trimDomain.closestBoundaryPoint(to: projected)
+           , using: &execution),
+           try trimDomain.contains(projected, tolerance: tolerance, using: &execution) == false {
+            resultPoint = try trimDomain.closestBoundaryPoint(to: projected, using: &execution)
         } else {
             resultPoint = projected
         }
@@ -1255,15 +1443,17 @@ public struct SurfaceQueryEvaluator: Sendable {
             ),
             surface: .plane(plane),
             iterations: 0,
-            converged: true
+            converged: true, using: &execution
         )
     }
 
     private func closestPointOnCylinder(
         _ point: Point3D,
         cylinder: Cylinder3D,
-        reference: SurfaceReference
+        reference: SurfaceReference,
+        using execution: inout OriginalQueryExecution
     ) throws -> SurfaceProjectionResult {
+        try execution.consumeWork(1)
         try cylinder.validate(tolerance: tolerance)
         let axis = try cylinder.axis.normalized(tolerance: tolerance.distance)
         let (radialU, radialV) = try planeBasis(for: axis)
@@ -1282,7 +1472,7 @@ public struct SurfaceQueryEvaluator: Sendable {
             reference: SurfaceParameterReference(surface: reference, u: angle, v: height),
             surface: .cylinder(cylinder),
             iterations: 0,
-            converged: true
+            converged: true, using: &execution
         )
     }
 
@@ -1291,9 +1481,11 @@ public struct SurfaceQueryEvaluator: Sendable {
         surface: AnalyticSurface3D,
         resolved: ResolvedSurface,
         model: BRepModel,
-        options: SurfaceProjectionOptions
+        options: SurfaceProjectionOptions,
+        using execution: inout OriginalQueryExecution
     ) throws -> SurfaceProjectionResult {
-        try surface.validate(tolerance: tolerance)
+        try execution.consumeWork(1)
+        try surface.validate(tolerance: tolerance, using: &execution)
         let parameter: SurfaceParameter
         switch surface {
         case let .plane(origin, normal):
@@ -1307,9 +1499,9 @@ public struct SurfaceQueryEvaluator: Sendable {
                 model: model,
                 basisU: basisU,
                 basisV: basisV
-               ),
-               trimDomain.contains(projected, tolerance: tolerance) == false {
-                let boundary = trimDomain.closestBoundaryPoint(to: projected)
+               , using: &execution),
+               try trimDomain.contains(projected, tolerance: tolerance, using: &execution) == false {
+                let boundary = try trimDomain.closestBoundaryPoint(to: projected, using: &execution)
                 parameter = SurfaceParameter(u: boundary.u, v: boundary.v)
             } else {
                 parameter = SurfaceParameter(u: projected.u, v: projected.v)
@@ -1376,7 +1568,7 @@ public struct SurfaceQueryEvaluator: Sendable {
             ),
             surface: .analytic(surface),
             iterations: 0,
-            converged: true
+            converged: true, using: &execution
         )
     }
 
@@ -1384,8 +1576,10 @@ public struct SurfaceQueryEvaluator: Sendable {
         _ point: Point3D,
         surface: BSplineSurface3D,
         reference: SurfaceReference,
-        options: SurfaceProjectionOptions
+        options: SurfaceProjectionOptions,
+        using execution: inout OriginalQueryExecution
     ) throws -> SurfaceProjectionResult {
+        try execution.consumeWork(1)
         let projection = try surface.closestParameterProjection(
             of: point,
             options: SurfaceParameterProjectionOptions(
@@ -1394,7 +1588,7 @@ public struct SurfaceQueryEvaluator: Sendable {
                 maximumSubdivisionCells: options.limits.maximumSubdivisionCells,
                 maximumCandidateCount: options.limits.maximumCandidateCount
             ),
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
 
         return try projectionResult(
@@ -1406,7 +1600,7 @@ public struct SurfaceQueryEvaluator: Sendable {
             ),
             surface: .bSpline(surface),
             iterations: projection.iterations,
-            converged: true
+            converged: true, using: &execution
         )
     }
 
@@ -1417,7 +1611,8 @@ public struct SurfaceQueryEvaluator: Sendable {
         resolved: ResolvedSurface,
         model: BRepModel,
         options: SurfaceDirectionalProjectionOptions
-    ) throws -> SurfaceDirectionalProjectionResult {
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceDirectionalProjectionResult {
+        try execution.consumeWork(1)
         try plane.validate(tolerance: tolerance)
         let normal = try plane.normal.normalized(tolerance: tolerance.distance)
         let denominator = direction.dot(normal)
@@ -1439,13 +1634,13 @@ public struct SurfaceQueryEvaluator: Sendable {
                 model: model,
                 basisU: basisU,
                 basisV: basisV
-            ) {
-                guard trimDomain.contains(projected, tolerance: tolerance) else {
+            , using: &execution) {
+                guard try trimDomain.contains(projected, tolerance: tolerance, using: &execution) else {
                     throw FeatureEvaluationError.emptyResult("Projection point lies outside the face trim bounds.")
                 }
             } else {
                 // A trim with curved edges is read in the surface's own parameters.
-                try requireInsideFaceTrim(projectedPoint, surface: .plane(plane), resolved: resolved, model: model)
+                try requireInsideFaceTrim(projectedPoint, surface: .plane(plane), resolved: resolved, model: model, using: &execution)
             }
         }
         return try directionalProjectionResult(
@@ -1460,7 +1655,7 @@ public struct SurfaceQueryEvaluator: Sendable {
             surface: .plane(plane),
             iterations: 0,
             converged: true
-        )
+        , using: &execution)
     }
 
     private func projectOntoCylinder(
@@ -1470,7 +1665,8 @@ public struct SurfaceQueryEvaluator: Sendable {
         resolved: ResolvedSurface,
         model: BRepModel,
         options: SurfaceDirectionalProjectionOptions
-    ) throws -> SurfaceDirectionalProjectionResult {
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceDirectionalProjectionResult {
+        try execution.consumeWork(1)
         let range = options.range
         try cylinder.validate(tolerance: tolerance)
         let axis = try cylinder.axis.normalized(tolerance: tolerance.distance)
@@ -1498,13 +1694,11 @@ public struct SurfaceQueryEvaluator: Sendable {
             let rawAngle = atan2(projectedRadial.dot(radialV), projectedRadial.dot(radialU))
             return SurfaceParameter(u: rawAngle >= 0.0 ? rawAngle : rawAngle + Double.pi * 2.0, v: height)
         }
-        let candidates = try trimContainedDistances([
-            (-quadraticB - root) / denominator,
-            (-quadraticB + root) / denominator,
-        ].filter { value in
-            value.isFinite && range.accepts(value, tolerance: tolerance)
-        }, parameter: parameter, resolved: resolved, model: model, options: options)
-        guard let signedDistance = bestSignedDistance(candidates, range: range) else {
+        try execution.retainStorage(count: 2, stride: MemoryLayout<Double>.stride)
+        let roots = [(-quadraticB - root) / denominator, (-quadraticB + root) / denominator]
+        let ranged = try rangedDistances(roots, range: range, using: &execution)
+        let candidates = try trimContainedDistances(ranged, parameter: { distance, _ in parameter(at: distance) }, resolved: resolved, model: model, options: options, using: &execution)
+        guard let signedDistance = try bestSignedDistance(candidates, range: range, using: &execution) else {
             throw FeatureEvaluationError.emptyResult("Cylinder projection is outside the requested direction range or the face trim.")
         }
         let projected = parameter(at: signedDistance)
@@ -1516,7 +1710,7 @@ public struct SurfaceQueryEvaluator: Sendable {
             surface: .cylinder(cylinder),
             iterations: 0,
             converged: true
-        )
+        , using: &execution)
     }
 
     private func projectOntoAnalyticSurface(
@@ -1526,8 +1720,9 @@ public struct SurfaceQueryEvaluator: Sendable {
         resolved: ResolvedSurface,
         model: BRepModel,
         options: SurfaceDirectionalProjectionOptions
-    ) throws -> SurfaceDirectionalProjectionResult {
-        try surface.validate(tolerance: tolerance)
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceDirectionalProjectionResult {
+        try execution.consumeWork(1)
+        try surface.validate(tolerance: tolerance, using: &execution)
         let candidates: [Double]
         switch surface {
         case let .plane(origin, normal):
@@ -1535,6 +1730,7 @@ public struct SurfaceQueryEvaluator: Sendable {
             guard abs(denominator) > tolerance.angle else {
                 throw FeatureEvaluationError.emptyResult("Projection direction is parallel to the plane.")
             }
+            try execution.retainStorage(count: 1, stride: MemoryLayout<Double>.stride)
             candidates = [(origin - point).dot(normal) / denominator]
         case let .cylinder(origin, axis, radius):
             let offset = point - origin
@@ -1544,7 +1740,7 @@ public struct SurfaceQueryEvaluator: Sendable {
                 a: radialDirection.dot(radialDirection),
                 b: 2.0 * radialPoint.dot(radialDirection),
                 c: radialPoint.dot(radialPoint) - radius * radius
-            )
+            , using: &execution)
         case let .cone(apex, axis, halfAngle):
             let offset = point - apex
             let axialPoint = offset.dot(axis)
@@ -1558,14 +1754,14 @@ public struct SurfaceQueryEvaluator: Sendable {
                     radialPoint.dot(radialDirection) - axialPoint * axialDirection * tangentSquared
                 ),
                 c: radialPoint.dot(radialPoint) - axialPoint * axialPoint * tangentSquared
-            )
+            , using: &execution)
         case let .sphere(center, radius):
             let offset = point - center
             candidates = try quadraticRoots(
                 a: direction.dot(direction),
                 b: 2.0 * offset.dot(direction),
                 c: offset.dot(offset) - radius * radius
-            )
+            , using: &execution)
         case let .torus(center, axis, majorRadius, minorRadius):
             let offset = point - center
             let directionSquared = direction.dot(direction)
@@ -1580,6 +1776,7 @@ public struct SurfaceQueryEvaluator: Sendable {
             let radial1 = 2.0 * (pointDirection - axialPoint * axialDirection)
             let radial2 = directionSquared - axialDirection * axialDirection
             let majorFactor = 4.0 * majorRadius * majorRadius
+            try execution.retainStorage(count: 5, stride: MemoryLayout<Double>.stride)
             let coefficients = [
                 q0 * q0 - majorFactor * radial0,
                 2.0 * q0 * q1 - majorFactor * radial1,
@@ -1590,25 +1787,23 @@ public struct SurfaceQueryEvaluator: Sendable {
             candidates = try RealPolynomialRootSolver(
                 rootTolerance: max(tolerance.distance * 0.001, Double.ulpOfOne * 64.0),
                 residualTolerance: max(tolerance.angle * 0.001, Double.ulpOfOne * 64.0)
-            ).realRoots(coefficients: coefficients)
+            ).realRoots(coefficients: coefficients, using: &execution)
         }
-        var accepted = candidates.filter { candidate in
-            candidate.isFinite && options.range.accepts(candidate, tolerance: tolerance)
-        }
+        var accepted = try rangedDistances(candidates, range: options.range, using: &execution)
         // A plane's trim is checked on its own trim domain below; every other analytic surface
         // meets the line more than once, so only the meetings inside the face may be chosen.
         if case .plane = surface {} else {
-            accepted = try trimContainedDistances(accepted, parameter: { distance in
-                try analyticSurfaceParameter(for: point + direction * distance, on: surface)
-            }, resolved: resolved, model: model, options: options)
+            accepted = try trimContainedDistances(accepted, parameter: { distance, execution in
+                try analyticSurfaceParameter(for: point + direction * distance, on: surface, using: &execution)
+            }, resolved: resolved, model: model, options: options, using: &execution)
         }
-        guard let signedDistance = bestSignedDistance(accepted, range: options.range) else {
+        guard let signedDistance = try bestSignedDistance(accepted, range: options.range, using: &execution) else {
             throw FeatureEvaluationError.emptyResult(
                 "Projection does not intersect the analytic surface in the requested range."
             )
         }
         let projectedPoint = point + direction * signedDistance
-        let parameter = try analyticSurfaceParameter(for: projectedPoint, on: surface)
+        let parameter = try analyticSurfaceParameter(for: projectedPoint, on: surface, using: &execution)
 
         if options.respectsTrimBounds,
            case let .plane(origin, normal) = surface {
@@ -1619,13 +1814,13 @@ public struct SurfaceQueryEvaluator: Sendable {
                 model: model,
                 basisU: basisU,
                 basisV: basisV
-            ) {
-                guard trimDomain.contains(PlanarTrimPoint2D(u: parameter.u, v: parameter.v), tolerance: tolerance) else {
+            , using: &execution) {
+                guard try trimDomain.contains(PlanarTrimPoint2D(u: parameter.u, v: parameter.v), tolerance: tolerance, using: &execution) else {
                     throw FeatureEvaluationError.emptyResult("Projection point lies outside the face trim bounds.")
                 }
             } else {
                 // A trim with curved edges is read in the surface's own parameters.
-                try requireInsideFaceTrim(projectedPoint, surface: .analytic(surface), resolved: resolved, model: model)
+                try requireInsideFaceTrim(projectedPoint, surface: .analytic(surface), resolved: resolved, model: model, using: &execution)
             }
         }
 
@@ -1641,7 +1836,7 @@ public struct SurfaceQueryEvaluator: Sendable {
             surface: .analytic(surface),
             iterations: 0,
             converged: true
-        )
+        , using: &execution)
     }
 
     private func projectionResult(
@@ -1651,12 +1846,27 @@ public struct SurfaceQueryEvaluator: Sendable {
         iterations: Int,
         converged: Bool
     ) throws -> SurfaceProjectionResult {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try projectionResult(sourcePoint: sourcePoint, reference: reference, surface: surface,
+            iterations: iterations, converged: converged, using: &execution)
+    }
+
+    private func projectionResult(
+        sourcePoint: Point3D,
+        reference: SurfaceParameterReference,
+        surface: Surface3D,
+        iterations: Int,
+        converged: Bool,
+        using execution: inout OriginalQueryExecution
+    ) throws -> SurfaceProjectionResult {
+        try execution.consumeWork(1)
         let geometry = try surface.differentialGeometry(
             u: reference.u,
             v: reference.v,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         let frame = SurfaceQueryFrame(reference: reference, geometry: geometry)
+        try execution.checkpoint()
         return SurfaceProjectionResult(
             sourcePoint: sourcePoint,
             frame: frame,
@@ -1673,7 +1883,8 @@ public struct SurfaceQueryEvaluator: Sendable {
         surface: Surface3D,
         iterations: Int,
         converged: Bool
-    ) throws -> SurfaceDirectionalProjectionResult {
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceDirectionalProjectionResult {
+        try execution.consumeWork(1)
         guard converged else {
             throw KernelError(
                 phase: .evaluation,
@@ -1685,7 +1896,7 @@ public struct SurfaceQueryEvaluator: Sendable {
         let geometry = try surface.differentialGeometry(
             u: reference.u,
             v: reference.v,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         let frame = SurfaceQueryFrame(reference: reference, geometry: geometry)
         let result = SurfaceDirectionalProjectionResult(
@@ -1727,12 +1938,13 @@ public struct SurfaceQueryEvaluator: Sendable {
     /// inside the face's trim.
     private func requireInsideFaceTrim(
         _ point: Point3D, surface: Surface3D, resolved: ResolvedSurface, model: BRepModel
-    ) throws {
-        let parameter = try surface.parameterProjection(of: point, tolerance: tolerance)
+    , using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        let parameter = try surface.parameterProjection(of: point, tolerance: tolerance, using: &execution)
         let containment = try faceDomainResolver.makeContainmentSession(
-            for: resolved.faceID, in: model, tolerance: tolerance
+            for: resolved.faceID, in: model, tolerance: tolerance, using: &execution
         )
-        guard try containment.contains(SurfaceParameter(u: parameter.u, v: parameter.v), on: resolved.faceID) else {
+        guard try containment.contains(SurfaceParameter(u: parameter.u, v: parameter.v), on: resolved.faceID, using: &execution) else {
             throw FeatureEvaluationError.emptyResult("Projection point lies outside the face trim bounds.")
         }
     }
@@ -1741,33 +1953,58 @@ public struct SurfaceQueryEvaluator: Sendable {
     /// the query ignores the trim.
     private func trimContainedDistances(
         _ distances: [Double],
-        parameter: (Double) throws -> SurfaceParameter,
+        parameter: (Double, inout OriginalQueryExecution) throws -> SurfaceParameter,
         resolved: ResolvedSurface,
         model: BRepModel,
         options: SurfaceDirectionalProjectionOptions
-    ) throws -> [Double] {
+    , using execution: inout OriginalQueryExecution) throws -> [Double] {
+        try execution.consumeWork(1)
         guard options.respectsTrimBounds, !distances.isEmpty else { return distances }
         let containment = try faceDomainResolver.makeContainmentSession(
             for: resolved.faceID,
             in: model,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
-        return try distances.filter { distance in
-            try containment.contains(try parameter(distance), on: resolved.faceID)
+        var accepted: [Double] = []
+        for distance in distances {
+            try execution.consumeWork(1)
+            let candidate = try parameter(distance, &execution)
+            if try containment.contains(candidate, on: resolved.faceID, using: &execution) {
+                try execution.retainStorage(count: 1, stride: MemoryLayout<Double>.stride)
+                accepted.append(distance)
+            }
         }
+        return accepted
+    }
+
+    private func rangedDistances(_ candidates: [Double], range: SurfaceDirectionalProjectionRange,
+        using execution: inout OriginalQueryExecution) throws -> [Double] {
+        var accepted: [Double] = []
+        for candidate in candidates {
+            try execution.consumeWork(1)
+            guard candidate.isFinite && range.accepts(candidate, tolerance: tolerance) else { continue }
+            try execution.retainStorage(count: 1, stride: MemoryLayout<Double>.stride)
+            accepted.append(candidate)
+        }
+        return accepted
     }
 
     private func bestSignedDistance(
         _ candidates: [Double],
         range: SurfaceDirectionalProjectionRange
-    ) -> Double? {
+    , using execution: inout OriginalQueryExecution) throws -> Double? {
+        try execution.consumeWork(1)
         switch range {
         case .line:
-            return candidates.min { lhs, rhs in
-                abs(lhs) < abs(rhs)
+            return try candidates.min { lhs, rhs in
+                try execution.consumeWork(1)
+                return abs(lhs) < abs(rhs)
             }
         case .ray:
-            return candidates.min()
+            return try candidates.min { lhs, rhs in
+                try execution.consumeWork(1)
+                return lhs < rhs
+            }
         }
     }
 
@@ -1777,16 +2014,19 @@ public struct SurfaceQueryEvaluator: Sendable {
         model: BRepModel,
         basisU: Vector3D,
         basisV: Vector3D
-    ) throws -> PlanarTrimDomain? {
+    , using execution: inout OriginalQueryExecution) throws -> PlanarTrimDomain? {
+        try execution.consumeWork(1)
         guard let face = model.faces[faceID] else {
             throw FeatureEvaluationError.missingInput("Surface trim query references a missing face.")
         }
         var loops: [PlanarTrimLoop] = []
         for loopID in face.loops {
+            try execution.consumeWork(1)
             guard let loop = model.loops[loopID] else {
                 throw FeatureEvaluationError.missingInput("Surface trim query references a missing loop.")
             }
             for orientedEdge in loop.edges {
+                try execution.consumeWork(1)
                 guard let edge = model.edges[orientedEdge.edgeID],
                       let curve = model.geometry.curves[edge.curveID] else {
                     throw FeatureEvaluationError.missingInput("Surface trim query references missing edge geometry.")
@@ -1795,13 +2035,16 @@ public struct SurfaceQueryEvaluator: Sendable {
                     return nil
                 }
             }
-            let points = try model.orderedPoints(for: loopID)
+            let points = try model.orderedPoints(for: loopID, using: &execution)
             guard points.count >= 3 else {
                 return nil
             }
+            try execution.retainStorage(count: 1, stride: MemoryLayout<PlanarTrimLoop>.stride)
+            try execution.retainStorage(count: points.count, stride: MemoryLayout<PlanarTrimPoint2D>.stride)
             loops.append(PlanarTrimLoop(
                 role: loop.role,
-                points: points.map { point in
+                points: try points.map { point in
+                    try execution.consumeWork(1)
                     let offset = point - plane.origin
                     return PlanarTrimPoint2D(u: offset.dot(basisU), v: offset.dot(basisV))
                 }
@@ -1841,15 +2084,21 @@ public struct SurfaceQueryEvaluator: Sendable {
         return remainder >= 0.0 ? remainder : remainder + period
     }
 
-    private func quadraticRoots(a: Double, b: Double, c: Double) throws -> [Double] {
+    private func quadraticRoots(a: Double, b: Double, c: Double, using execution: inout OriginalQueryExecution) throws -> [Double] {
+        try execution.consumeWork(1)
         guard a.isFinite, b.isFinite, c.isFinite else {
             throw GeometryError.invalidDistance(a.isFinite ? (b.isFinite ? c : b) : a)
         }
         let coefficientTolerance = max(Double.ulpOfOne, tolerance.angle)
         if abs(a) <= coefficientTolerance {
             if abs(b) <= coefficientTolerance {
-                return abs(c) <= tolerance.distance ? [0.0] : []
+                if abs(c) <= tolerance.distance {
+                    try execution.retainStorage(count: 1, stride: MemoryLayout<Double>.stride)
+                    return [0.0]
+                }
+                return []
             }
+            try execution.retainStorage(count: 1, stride: MemoryLayout<Double>.stride)
             return [-c / b]
         }
         let discriminant = b * b - 4.0 * a * c
@@ -1860,13 +2109,16 @@ public struct SurfaceQueryEvaluator: Sendable {
         }
         let root = sqrt(max(discriminant, 0.0))
         if root <= coefficientTolerance {
+            try execution.retainStorage(count: 1, stride: MemoryLayout<Double>.stride)
             return [-b / (2.0 * a)]
         }
         let signedRoot = b >= 0.0 ? root : -root
         let q = -0.5 * (b + signedRoot)
         guard abs(q) > coefficientTolerance else {
+            try execution.retainStorage(count: 1, stride: MemoryLayout<Double>.stride)
             return [-b / (2.0 * a)]
         }
+        try execution.retainStorage(count: 2, stride: MemoryLayout<Double>.stride)
         return [q / a, c / q]
     }
 
@@ -1883,10 +2135,11 @@ public struct SurfaceQueryEvaluator: Sendable {
 private struct PlanarTrimDomain: Sendable, Hashable {
     var loops: [PlanarTrimLoop]
 
-    func contains(_ point: PlanarTrimPoint2D, tolerance: ModelingTolerance) -> Bool {
+    func contains(_ point: PlanarTrimPoint2D, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Bool {
         var insideOuter = false
         for loop in loops where loop.role == .outer {
-            let containment = loop.containment(of: point, tolerance: tolerance)
+            try execution.consumeWork(1)
+            let containment = try loop.containment(of: point, tolerance: tolerance, using: &execution)
             if containment.isOnBoundary {
                 return true
             }
@@ -1899,7 +2152,8 @@ private struct PlanarTrimDomain: Sendable, Hashable {
         }
 
         for loop in loops where loop.role == .inner {
-            let containment = loop.containment(of: point, tolerance: tolerance)
+            try execution.consumeWork(1)
+            let containment = try loop.containment(of: point, tolerance: tolerance, using: &execution)
             if containment.isOnBoundary {
                 return true
             }
@@ -1910,11 +2164,12 @@ private struct PlanarTrimDomain: Sendable, Hashable {
         return true
     }
 
-    func closestBoundaryPoint(to point: PlanarTrimPoint2D) -> PlanarTrimPoint2D {
-        var bestPoint = loops[0].closestBoundaryPoint(to: point)
+    func closestBoundaryPoint(to point: PlanarTrimPoint2D, using execution: inout OriginalQueryExecution) throws -> PlanarTrimPoint2D {
+        var bestPoint = try loops[0].closestBoundaryPoint(to: point, using: &execution)
         var bestDistance = bestPoint.squaredDistance(to: point)
         for loop in loops.dropFirst() {
-            let candidate = loop.closestBoundaryPoint(to: point)
+            try execution.consumeWork(1)
+            let candidate = try loop.closestBoundaryPoint(to: point, using: &execution)
             let distance = candidate.squaredDistance(to: point)
             if distance < bestDistance {
                 bestPoint = candidate
@@ -1931,10 +2186,11 @@ private struct PlanarTrimLoop: Sendable, Hashable {
 
     func containment(
         of point: PlanarTrimPoint2D,
-        tolerance: ModelingTolerance
-    ) -> PlanarTrimContainment {
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+    ) throws -> PlanarTrimContainment {
         var isInside = false
         for index in points.indices {
+            try execution.consumeWork(1)
             let start = points[index]
             let end = points[(index + 1) % points.count]
             if squaredDistance(point, toSegmentFrom: start, to: end) <= tolerance.distance * tolerance.distance {
@@ -1952,10 +2208,11 @@ private struct PlanarTrimLoop: Sendable, Hashable {
         return PlanarTrimContainment(isInside: isInside, isOnBoundary: false)
     }
 
-    func closestBoundaryPoint(to point: PlanarTrimPoint2D) -> PlanarTrimPoint2D {
+    func closestBoundaryPoint(to point: PlanarTrimPoint2D, using execution: inout OriginalQueryExecution) throws -> PlanarTrimPoint2D {
         var bestPoint = closestPoint(point, toSegmentFrom: points[0], to: points[1])
         var bestDistance = bestPoint.squaredDistance(to: point)
         for index in points.indices {
+            try execution.consumeWork(1)
             let candidate = closestPoint(
                 point,
                 toSegmentFrom: points[index],

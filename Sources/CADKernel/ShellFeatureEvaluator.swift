@@ -158,7 +158,7 @@ public struct ShellFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluati
         )
         // The walled body replaces the solid, its faces tracing through the copies to the solid's.
         result.brep = try BRepBodySubmodelExtractor().extract(bodyIDs: Set(result.brep.bodies.keys).subtracting([bodyID]), from: result.brep)
-        result.removedSubshapeIDs.formUnion(scope.subshapeIDs(in: context.subshapes))
+        result.removedSubshapeIDs.formUnion(try scope.subshapeIDs(in: context.subshapes))
         result.lineage = composed(result.lineage, through: outer.lineage.merging(cavity.lineage) { current, _ in current })
         result.validatedBRep = nil
         return result

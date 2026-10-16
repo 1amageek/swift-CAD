@@ -17,10 +17,10 @@ public struct ExactRationalCoefficient: Equatable, Sendable {
     public var canonicalDenominatorWords: [UInt32] { denominator.words }
 
     /// Reconstructs canonical original source parts under the composing caller ledger.
-    public init<B: RationalAlgebraAdmitting>(canonicalSign: Int,
+    public init<B: ExactScalarAdmission & ~Copyable>(canonicalSign: Int,
         numeratorWords: [UInt32], denominatorWords: [UInt32], usage: inout B) throws {
-        try usage.consumeExactWork(try exactScalarCount(numeratorWords.count, denominatorWords.count))
-        try usage.retainExactStorage(try exactScalarCount(numeratorWords.count, denominatorWords.count))
+        try usage.consumeWork(try exactScalarCount(numeratorWords.count, denominatorWords.count))
+        try usage.retainStorage(bytes: exactScalarPayloadBytes(count: try exactScalarCount(numeratorWords.count, denominatorWords.count), of: UInt32.self))
         guard (-1...1).contains(canonicalSign), numeratorWords.last != 0,
               !denominatorWords.isEmpty, denominatorWords.last != 0 else {
             throw ExactScalarFailure.invalidSource
@@ -38,7 +38,7 @@ public struct ExactRationalCoefficient: Equatable, Sendable {
 
     public var negated: Self { Self(sign: -sign, numerator: numerator, denominator: denominator) }
 
-    public static func originalDouble<B: RationalAlgebraAdmitting>(_ value: Double,
+    public static func originalDouble<B: ExactScalarAdmission & ~Copyable>(_ value: Double,
                                                                    usage: inout B) throws -> Self {
         guard value.isFinite else { throw ExactScalarFailure.invalidSource }
         if value == 0 { return .zero }
@@ -46,17 +46,17 @@ public struct ExactRationalCoefficient: Equatable, Sendable {
         let exponentBits = Int((bits >> 52) & 0x7ff)
         let mantissa = bits & 0x000f_ffff_ffff_ffff | (exponentBits == 0 ? 0 : 1 << 52)
         let exponent = exponentBits == 0 ? -1074 : exponentBits - 1023 - 52
-        try usage.retainExactStorage(2)
+        try usage.retainStorage(bytes: exactScalarPayloadBytes(count: 2, of: UInt32.self))
         let magnitude = ExactNaturalMagnitude([UInt32(truncatingIfNeeded: mantissa), UInt32(mantissa >> 32)])
         let n = exponent >= 0 ? try magnitude.shifted(by: exponent, usage: &usage) : magnitude
         let d = exponent < 0 ? try ExactNaturalMagnitude.one.shifted(by: -exponent, usage: &usage) : .one
         return try reduced(sign: bits >> 63 == 0 ? 1 : -1, numerator: n, denominator: d, usage: &usage)
     }
-    static func originalInteger<I: BinaryInteger, B: RationalAlgebraAdmitting>(_ source: I, usage: inout B) throws -> Self {
+    static func originalInteger<I: BinaryInteger, B: ExactScalarAdmission & ~Copyable>(_ source: I, usage: inout B) throws -> Self {
         if source == 0 { return .zero }
         let words = source.magnitude.words
         let count = try exactScalarCount(words.count, UInt.bitWidth / 32, multiply: true)
-        try usage.consumeExactWork(count); try usage.retainExactStorage(count)
+        try usage.consumeWork(count); try usage.retainStorage(bytes: exactScalarPayloadBytes(count: count, of: UInt32.self))
         var output: [UInt32] = []; output.reserveCapacity(count)
         for word in words {
             output.append(UInt32(truncatingIfNeeded: word))
@@ -65,14 +65,14 @@ public struct ExactRationalCoefficient: Equatable, Sendable {
         return Self(sign: source < 0 ? -1 : 1, numerator: ExactNaturalMagnitude(output), denominator: .one)
     }
 
-    static func natural<B: RationalAlgebraAdmitting>(_ value: Int, usage: inout B) throws -> Self {
+    static func natural<B: ExactScalarAdmission & ~Copyable>(_ value: Int, usage: inout B) throws -> Self {
         guard value >= 0 else { throw exactScalarBackendFailure("Negative exact polynomial exponent.") }
-        let bits = UInt64(value); try usage.retainExactStorage(2)
+        let bits = UInt64(value); try usage.retainStorage(bytes: exactScalarPayloadBytes(count: 2, of: UInt32.self))
         return Self(sign: 1, numerator: ExactNaturalMagnitude([UInt32(truncatingIfNeeded: bits), UInt32(bits >> 32)]), denominator: .one)
     }
-    private static func reduced<B: RationalAlgebraAdmitting>(sign: Int,
+    private static func reduced<B: ExactScalarAdmission & ~Copyable>(sign: Int,
         numerator: ExactNaturalMagnitude, denominator: ExactNaturalMagnitude, usage: inout B) throws -> Self {
-        try usage.consumeExactWork(exactScalarCount(numerator.words.count, denominator.words.count))
+        try usage.consumeWork(exactScalarCount(numerator.words.count, denominator.words.count))
         guard !denominator.isZero else { throw exactScalarBackendFailure("Exact rational division by zero.") }
         if numerator.isZero { return .zero }
         if denominator == .one { return Self(sign: sign, numerator: numerator, denominator: .one) }
@@ -90,18 +90,18 @@ public struct ExactRationalCoefficient: Equatable, Sendable {
         guard n.1.isZero, d.1.isZero else { throw exactScalarBackendFailure("Inconsistent exact rational reduction.") }
         return Self(sign: sign, numerator: n.0, denominator: d.0)
     }
-    private static func dividedMagnitude<B: RationalAlgebraAdmitting>(_ value: ExactNaturalMagnitude,
+    private static func dividedMagnitude<B: ExactScalarAdmission & ~Copyable>(_ value: ExactNaturalMagnitude,
         by divisor: ExactNaturalMagnitude, usage: inout B) throws -> ExactNaturalMagnitude {
         if divisor == .one { return value }
         let result = try value.quotientAndRemainder(dividingBy: divisor, usage: &usage)
         guard result.1.isZero else { throw exactScalarBackendFailure("Canonical rational cancellation has a nonzero remainder.") }
         return result.0
     }
-    public func adding<B: RationalAlgebraAdmitting>(_ other: Self, usage: inout B) throws -> Self {
-        try exactScalarTaskCheckpoint()
+    public func adding<B: ExactScalarAdmission & ~Copyable>(_ other: Self, usage: inout B) throws -> Self {
+        try usage.checkpoint()
         let firstWords = try exactScalarCount(numerator.words.count, denominator.words.count)
         let secondWords = try exactScalarCount(other.numerator.words.count, other.denominator.words.count)
-        try usage.consumeExactWork(exactScalarCount(firstWords, secondWords))
+        try usage.consumeWork(exactScalarCount(firstWords, secondWords))
         if isZero { return other }; if other.isZero { return self }
         if denominator == other.denominator {
             let magnitude: ExactNaturalMagnitude, resultSign: Int
@@ -123,7 +123,7 @@ public struct ExactRationalCoefficient: Equatable, Sendable {
         else if lhs.compared(to: rhs) >= 0 { magnitude = try lhs.subtracting(rhs, usage: &usage); sign = self.sign }
         else { magnitude = try rhs.subtracting(lhs, usage: &usage); sign = other.sign }
         if magnitude.isZero {
-            try exactScalarTaskCheckpoint()
+            try usage.checkpoint()
             return .zero
         }
         // Canonical operands make the combined numerator coprime to both
@@ -133,17 +133,17 @@ public struct ExactRationalCoefficient: Equatable, Sendable {
         let remainingDenominator = try Self.dividedMagnitude(other.denominator, by: cancellation, usage: &usage)
         let resultDenominator = try secondScale == .one ? remainingDenominator
             : secondScale.multiplied(by: remainingDenominator, usage: &usage)
-        try exactScalarTaskCheckpoint()
+        try usage.checkpoint()
         return Self(sign: sign, numerator: resultNumerator, denominator: resultDenominator)
     }
-    public func subtracting<B: RationalAlgebraAdmitting>(_ other: Self, usage: inout B) throws -> Self {
+    public func subtracting<B: ExactScalarAdmission & ~Copyable>(_ other: Self, usage: inout B) throws -> Self {
         try adding(other.negated, usage: &usage)
     }
-    public func multiplied<B: RationalAlgebraAdmitting>(by other: Self, usage: inout B) throws -> Self {
-        try exactScalarTaskCheckpoint()
+    public func multiplied<B: ExactScalarAdmission & ~Copyable>(by other: Self, usage: inout B) throws -> Self {
+        try usage.checkpoint()
         let firstWords = try exactScalarCount(numerator.words.count, denominator.words.count)
         let secondWords = try exactScalarCount(other.numerator.words.count, other.denominator.words.count)
-        try usage.consumeExactWork(exactScalarCount(firstWords, secondWords))
+        try usage.consumeWork(exactScalarCount(firstWords, secondWords))
         if isZero || other.isZero { return .zero }
         if numerator == .one && denominator == .one { return sign > 0 ? other : other.negated }
         if other.numerator == .one && other.denominator == .one { return other.sign > 0 ? self : negated }
@@ -157,11 +157,11 @@ public struct ExactRationalCoefficient: Equatable, Sendable {
             numerator: firstNumerator.multiplied(by: secondNumerator, usage: &usage),
             denominator: firstDenominator.multiplied(by: secondDenominator, usage: &usage))
     }
-    public func divided<B: RationalAlgebraAdmitting>(by other: Self, usage: inout B) throws -> Self {
-        try exactScalarTaskCheckpoint()
+    public func divided<B: ExactScalarAdmission & ~Copyable>(by other: Self, usage: inout B) throws -> Self {
+        try usage.checkpoint()
         let firstWords = try exactScalarCount(numerator.words.count, denominator.words.count)
         let secondWords = try exactScalarCount(other.numerator.words.count, other.denominator.words.count)
-        try usage.consumeExactWork(exactScalarCount(firstWords, secondWords))
+        try usage.consumeWork(exactScalarCount(firstWords, secondWords))
         guard !other.isZero else { throw exactScalarBackendFailure("Exact rational division by zero.") }
         if isZero { return .zero }
         if other.numerator == .one && other.denominator == .one { return other.sign > 0 ? self : negated }
@@ -172,7 +172,7 @@ public struct ExactRationalCoefficient: Equatable, Sendable {
 
 extension ExactRationalCoefficient {
     /// Exact floor/ceiling on a dyadic grid, using the existing integer backend.
-    static func dyadicNeighbours<B: RationalAlgebraAdmitting>(_ value: Self, fractionalBits: Int,
+    static func dyadicNeighbours<B: ExactScalarAdmission & ~Copyable>(_ value: Self, fractionalBits: Int,
         usage: inout B) throws -> (lower: Self, upper: Self) {
         guard fractionalBits >= 0 else { throw ExactScalarFailure.invalidSource }
         let scaled = try value.numerator.shifted(by: fractionalBits, usage: &usage)

@@ -1,0 +1,41 @@
+{
+  "checks": [
+    {
+      "name": "free-preimage",
+      "wholeOriginalEqualsActualHelperInverseIgnoringWhitespace": true,
+      "originalBodySHA256": "38aeae57832032e138985807caa6b35c1d6e890d418f7964d6b2423f49709cd3"
+    },
+    {
+      "name": "admitted",
+      "wholeOriginalEqualsActualHelperInverseIgnoringWhitespace": true,
+      "originalBodySHA256": "2a798ec8a5ef44dd995b42dbadc11c56824750832ac05db8393efcf69928143c"
+    },
+    {
+      "name": "cuts",
+      "wholeOriginalEqualsActualHelperInverseIgnoringWhitespace": true,
+      "originalBodySHA256": "2165918b601804526c7b0a6104bf694087985f69795ceab26246b78b97b87e7c"
+    },
+    {
+      "name": "span",
+      "wholeOriginalEqualsActualHelperInverseIgnoringWhitespace": true,
+      "originalBodySHA256": "e517cccc41a8dccbcd66d7aa05f97757d8500f658a8398286bd3a24119fbe6f5"
+    },
+    {
+      "name": "traversal",
+      "wholeOriginalEqualsActualHelperInverseIgnoringWhitespace": true,
+      "originalBodySHA256": "465af6a72d5d8d738b4550d4e1158c79f0013b7f2a64118bd16590ccb5a6fb22"
+    },
+    {
+      "name": "publication",
+      "wholeOriginalEqualsActualHelperInverseIgnoringWhitespace": true,
+      "originalBodySHA256": "a884457c3fe2ef3f73a3c79e18b6e333b43e64e0461b2e4977a41f94a078b98e"
+    },
+    {
+      "name": "whole-partition",
+      "wholeOriginalEqualsActualHelperInverseIgnoringWhitespace": true,
+      "originalBodySHA256": "ef481c312986fc398de3748bfc8efc7cc53e1bee8b99d33d5683f4dff8f7696a"
+    }
+  ],
+  "mechanicalInverse": "only explicit helper calls/captures/returned existing locals are substituted; no source statement rewritten",
+  "unchangedScope": "curve.queryContext.withExecution remains outermost around source guards, all stages and finalpublication"
+}

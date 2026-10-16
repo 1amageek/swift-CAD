@@ -17,7 +17,7 @@ public struct DefaultOriginalFiniteRetainedSurfaceLiftGraphPreparer<S: OriginalL
         maximumCharts: Int,limits: OriginalSourceIssuanceLimits,using admission: inout A)
         throws(OriginalSourceIssuanceFailure) -> OriginalFiniteRetainedSurfaceLiftGraphs<S> {
         do {
-            return try OriginalSourceProofAdmission<A>.withBorrow(&admission) { a in
+            return try admission.withProofScope { a in
                 try a.checkpoint();try source.require(limits)
                 guard limits.remainingSourceDepth>0 else { throw OriginalSourceIssuanceFailure.sourceDepthLimit }
                 guard maximumCharts>=0 else { throw OriginalSourceIssuanceFailure.chartLimit }
@@ -38,7 +38,7 @@ public struct DefaultOriginalFiniteRetainedSurfaceLiftGraphPreparer<S: OriginalL
                         try f.compare(upper,one,using:&a) == .equal else { throw OriginalSourceIssuanceFailure.invalidChart }
                 }
                 func validate<C: Sendable,K: Sendable>(_ law: OriginalRationalChartReceipt<C,K,OriginalExactScalarDomain>,
-                    source: OriginalSourceBinding<C>,arity: Int,_ a: inout OriginalSourceProofAdmission<A>) throws {
+                    source: OriginalSourceBinding<C>,arity: Int,_ a: inout A) throws {
                     try a.consumeWork(1);try law.admitProof(using:&a)
                     guard source.owns(law.chart),law.polynomials.variableCount == arity,law.support.count == arity,
                         law.homogeneous.count == 4,law.parameterTransport.numerators.count == arity,

@@ -2,15 +2,22 @@ import CADCore
 import CADGeometry
 import CADIR
 import CADModeling
+import CADTopology
 
 /// Removes duplicate arranged regions, retaining complete boundary provenance.
 struct CoincidentFacePatchMerger {
     func merge(_ patches: [BRepSewingFacePatch], tolerance: ModelingTolerance) throws -> [BRepSewingFacePatch] {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try merge(patches, tolerance: tolerance, using: &execution)
+    }
+
+    func merge(_ patches: [BRepSewingFacePatch], tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> [BRepSewingFacePatch] {
         var kept: [BRepSewingFacePatch] = []
+        try execution.retainKernelValues(count: patches.count, stride: MemoryLayout<BRepSewingFacePatch>.stride)
         for patch in patches.sorted(by: { $0.stableID < $1.stableID }) {
             var merged = false
             for index in kept.indices {
-                guard let correspondence = try correspondingLoops(kept[index], patch, tolerance: tolerance) else { continue }
+                guard let correspondence = try correspondingLoops(kept[index], patch, tolerance: tolerance, using: &execution) else { continue }
                 let original = kept[index]
                 let loops = original.loops.enumerated().map { ordinal, loop in
                     let other = patch.loops[correspondence[ordinal].loop]
@@ -35,13 +42,13 @@ struct CoincidentFacePatchMerger {
                 merged = true
                 break
             }
-            if !merged { kept.append(patch) }
+            if !merged { try OriginalParameterQueryStorage.append(patch, to: &kept, using: &execution) }
         }
         return kept
     }
 
     private func correspondingLoops(_ first: BRepSewingFacePatch, _ second: BRepSewingFacePatch,
-                                    tolerance: ModelingTolerance) throws -> [(loop: Int, edges: [Int])]? {
+                                    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> [(loop: Int, edges: [Int])]? {
         guard first.loops.count == second.loops.count else { return nil }
         var usedLoops = Set<Int>()
         var correspondence: [(loop: Int, edges: [Int])] = []
@@ -55,36 +62,36 @@ struct CoincidentFacePatchMerger {
                 for edge in loop.edges {
                     var edgeMatch: Int?
                     for edgeIndex in other.edges.indices where !usedEdges.contains(edgeIndex) {
-                        if try sameTrim(edge, other.edges[edgeIndex], tolerance: tolerance) {
+                        if try sameTrim(edge, other.edges[edgeIndex], tolerance: tolerance, using: &execution) {
                             edgeMatch = edgeIndex
                             break
                         }
                     }
                     guard let edgeMatch else { break }
-                    usedEdges.insert(edgeMatch)
-                    matchedEdges.append(edgeMatch)
+                    try OriginalParameterQueryStorage.insert(edgeMatch, in: &usedEdges, using: &execution)
+                    try OriginalParameterQueryStorage.append(edgeMatch, to: &matchedEdges, using: &execution)
                 }
                 if matchedEdges.count == loop.edges.count { match = (index, matchedEdges); break }
             }
             guard let match else { return nil }
-            usedLoops.insert(match.loop)
-            correspondence.append(match)
+            try OriginalParameterQueryStorage.insert(match.loop, in: &usedLoops, using: &execution)
+            try OriginalParameterQueryStorage.append(match, to: &correspondence, using: &execution)
         }
         if first.surface != second.surface {
-            guard try DefaultSurfaceSurfaceIntersector().intersections(first: first.surface, second: second.surface,
-                tolerance: tolerance).contains(where: { if case .coincident = $0 { return true }; return false }) else { return nil }
+            guard try DefaultSurfaceSurfaceIntersector().intersections(first: first.surface, second: second.surface, options: .init(),
+                tolerance: tolerance, using: &execution).contains(where: { if case .coincident = $0 { return true }; return false }) else { return nil }
         }
         return correspondence
     }
 
     private func sameTrim(_ first: BRepSewingEdge, _ second: BRepSewingEdge,
-                          tolerance: ModelingTolerance) throws -> Bool {
+                          tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Bool {
         let same = (first.startPoint - second.startPoint).length <= tolerance.distance &&
             (first.endPoint - second.endPoint).length <= tolerance.distance
         let reversed = (first.startPoint - second.endPoint).length <= tolerance.distance &&
             (first.endPoint - second.startPoint).length <= tolerance.distance
         guard same || reversed else { return false }
-        if case .coincident = try ExactTrimEdgeIntersector().intersections(first, second, tolerance: tolerance) { return true }
+        if case .coincident = try ExactTrimEdgeIntersector().intersections(first, second, tolerance: tolerance, using: &execution) { return true }
         return false
     }
 }

@@ -23,7 +23,7 @@ public struct DefaultOriginalSpatialChartIssuer<Source: OriginalSpatialSourceRea
     ) throws(OriginalSourceIssuanceFailure) -> OriginalRationalChartReceipt<Source, Selection, Field> where C.Field == Field {
         let source=copy source,chart=copy chart,field=copy field,coefficients=copy coefficients
         do {
-            return try OriginalSourceProofAdmission<A>.withBorrow(&admission) { admission in
+            return try admission.withProofScope { admission in
                 try admission.checkpoint(); try admission.consumeWork(1); try source.require(limits)
                 guard source.owns(chart), source.original.originalChild.owns(chart.selection.child.chart) else {
                     throw OriginalSourceIssuanceFailure.foreignBinding

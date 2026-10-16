@@ -11,6 +11,9 @@ struct RectangularBooleanClipContactRefiner {
         let point: Point3D
     }
 
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Boolean UV splitting uses this numerical
+    // contact proposal; residual/bisection stopping does not certify an original
+    // root. Retained source root authority is required before exact completion.
     func refine(
         parameter: Double,
         intersection: SurfaceSurfaceIntersectionCurve,
@@ -19,7 +22,8 @@ struct RectangularBooleanClipContactRefiner {
         pair: BooleanFacePairCandidate,
         model: BRepModel,
         tolerance: ModelingTolerance
-    ) throws -> Contact? {
+    , using execution: inout OriginalQueryExecution) throws -> Contact? {
+        try execution.consumeWork(1)
         if case .unbounded = intersection.curve.parameterDomain {
             return nil
         }
@@ -31,7 +35,7 @@ struct RectangularBooleanClipContactRefiner {
             pair: pair,
             model: model,
             tolerance: tolerance
-        )
+        , using: &execution)
     }
 
     private func refineBounded(
@@ -42,13 +46,14 @@ struct RectangularBooleanClipContactRefiner {
         pair: BooleanFacePairCandidate,
         model: BRepModel,
         tolerance: ModelingTolerance
-    ) throws -> Contact? {
+    , using execution: inout OriginalQueryExecution) throws -> Contact? {
+        try execution.consumeWork(1)
         guard let boundary = try boundary(
             faceID: boundaryFaceID,
             edgeID: boundaryEdgeID,
             model: model,
             tolerance: tolerance
-        ) else {
+        , using: &execution) else {
             return nil
         }
         let role: SurfaceIntersectionSurfaceRole
@@ -65,7 +70,7 @@ struct RectangularBooleanClipContactRefiner {
             role: role,
             boundary: boundary,
             tolerance: tolerance
-        )
+        , using: &execution)
     }
 
     func refineNearestBoundary(
@@ -74,7 +79,8 @@ struct RectangularBooleanClipContactRefiner {
         pair: BooleanFacePairCandidate,
         model: BRepModel,
         tolerance: ModelingTolerance
-    ) throws -> Contact? {
+    , using execution: inout OriginalQueryExecution) throws -> Contact? {
+        try execution.consumeWork(1)
         if case .unbounded = intersection.curve.parameterDomain {
             return nil
         }
@@ -88,9 +94,11 @@ struct RectangularBooleanClipContactRefiner {
                       face: face,
                       model: model,
                       tolerance: tolerance
-                  ) else {
+                  , using: &execution) else {
                 continue
             }
+            try execution.retainKernelValues(count: 4,
+                stride: MemoryLayout<(SurfaceIntersectionSurfaceRole, Boundary)>.stride)
             candidates.append(contentsOf: [
                 (role, .u(domain.uLower)),
                 (role, .u(domain.uUpper)),
@@ -103,6 +111,8 @@ struct RectangularBooleanClipContactRefiner {
             domain: intersection.curve.parameterDomain,
             tolerance: tolerance
         )
+        try execution.retainKernelValues(count: candidates.count,
+            stride: MemoryLayout<(Contact, Double)>.stride)
         let evaluated = try candidates.compactMap { candidate -> (
             contact: Contact,
             fractionDistance: Double
@@ -113,7 +123,7 @@ struct RectangularBooleanClipContactRefiner {
                 role: candidate.role,
                 boundary: candidate.boundary,
                 tolerance: tolerance
-            ) else {
+            , using: &execution) else {
                 return nil
             }
             let fraction = try normalizedFraction(
@@ -143,21 +153,24 @@ struct RectangularBooleanClipContactRefiner {
         edgeID: EdgeID,
         model: BRepModel,
         tolerance: ModelingTolerance
-    ) throws -> Boundary? {
+    , using execution: inout OriginalQueryExecution) throws -> Boundary? {
+        try execution.consumeWork(1)
         guard let face = model.faces[faceID],
               try ExactRectangularPcurveDomainResolver().resolve(
                   face: face,
                   model: model,
                   tolerance: tolerance
-              ) != nil else {
+              , using: &execution) != nil else {
             return nil
         }
         for loopID in face.loops {
+            try execution.consumeWork(1)
             guard let loop = model.loops[loopID] else { return nil }
             for coedge in loop.coedges where coedge.edgeID == edgeID {
+                try execution.consumeWork(1)
                 guard let pcurve = coedge.surfaceParameterCurve else { return nil }
-                let start = try pcurve.startParameter(tolerance: tolerance)
-                let end = try pcurve.endParameter(tolerance: tolerance)
+                let start = try pcurve.startParameter(tolerance: tolerance, using: &execution)
+                let end = try pcurve.endParameter(tolerance: tolerance, using: &execution)
                 let scale = max(
                     abs(start.u), abs(start.v), abs(end.u), abs(end.v), 1.0
                 )
@@ -183,7 +196,8 @@ struct RectangularBooleanClipContactRefiner {
         role: SurfaceIntersectionSurfaceRole,
         boundary: Boundary,
         tolerance: ModelingTolerance
-    ) throws -> Contact? {
+    , using execution: inout OriginalQueryExecution) throws -> Contact? {
+        try execution.consumeWork(1)
         let domain = intersection.curve.parameterDomain
         let initialFraction = try normalizedFraction(
             parameter,
@@ -196,7 +210,7 @@ struct RectangularBooleanClipContactRefiner {
             role: role,
             boundary: boundary,
             tolerance: tolerance
-        )
+        , using: &execution)
         let boundaryValue = boundary.value
         let scale = max(abs(boundaryValue), 1.0)
         let acceptance = max(
@@ -218,20 +232,21 @@ struct RectangularBooleanClipContactRefiner {
         )
         var fraction = initialFraction
         for _ in 0..<24 {
+            try execution.consumeWork(1)
             let differential = try parameterCurve(
                 intersection: intersection,
                 role: role
             ).differentialGeometry(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
             let value = boundary.coordinate(differential.parameter) - boundaryValue
             if abs(value) <= numericalResolution {
                 return try contact(
                     fraction: fraction,
                     intersection: intersection,
                     tolerance: tolerance
-                )
+                , using: &execution)
             }
             let derivative = boundary.coordinate(differential.firstDerivative)
             guard abs(derivative) > numericalResolution else { break }
@@ -245,6 +260,7 @@ struct RectangularBooleanClipContactRefiner {
 
         var halfWidth = 1.0 / 16_777_216.0
         for _ in 0..<16 {
+            try execution.consumeWork(1)
             let lower = canonicalFraction(initialFraction - halfWidth, domain: domain)
             let upper = canonicalFraction(initialFraction + halfWidth, domain: domain)
             if lower <= upper {
@@ -254,27 +270,27 @@ struct RectangularBooleanClipContactRefiner {
                     role: role,
                     boundary: boundary,
                     tolerance: tolerance
-                )
+                , using: &execution)
                 let upperResidual = try residual(
                     fraction: upper,
                     intersection: intersection,
                     role: role,
                     boundary: boundary,
                     tolerance: tolerance
-                )
+                , using: &execution)
                 if lowerResidual == 0.0 {
                     return try contact(
                         fraction: lower,
                         intersection: intersection,
                         tolerance: tolerance
-                    )
+                    , using: &execution)
                 }
                 if upperResidual == 0.0 {
                     return try contact(
                         fraction: upper,
                         intersection: intersection,
                         tolerance: tolerance
-                    )
+                    , using: &execution)
                 }
                 if (lowerResidual < 0.0) != (upperResidual < 0.0) {
                     let root = try bisectedRoot(
@@ -286,12 +302,12 @@ struct RectangularBooleanClipContactRefiner {
                         boundary: boundary,
                         numericalResolution: numericalResolution,
                         tolerance: tolerance
-                    )
+                    , using: &execution)
                     return try contact(
                         fraction: root,
                         intersection: intersection,
                         tolerance: tolerance
-                    )
+                    , using: &execution)
                 }
             }
             halfWidth *= 2.0
@@ -308,11 +324,13 @@ struct RectangularBooleanClipContactRefiner {
         boundary: Boundary,
         numericalResolution: Double,
         tolerance: ModelingTolerance
-    ) throws -> Double {
+    , using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
         var low = lower
         var high = upper
         var lowResidual = lowerResidual
         for _ in 0..<80 {
+            try execution.consumeWork(1)
             let middle = low + (high - low) * 0.5
             let middleResidual = try residual(
                 fraction: middle,
@@ -320,7 +338,7 @@ struct RectangularBooleanClipContactRefiner {
                 role: role,
                 boundary: boundary,
                 tolerance: tolerance
-            )
+            , using: &execution)
             if abs(middleResidual) <= numericalResolution
                 || high - low <= Double.ulpOfOne * 64.0 {
                 return middle
@@ -341,12 +359,13 @@ struct RectangularBooleanClipContactRefiner {
         role: SurfaceIntersectionSurfaceRole,
         boundary: Boundary,
         tolerance: ModelingTolerance
-    ) throws -> Double {
-        let parameter = try intersection.surfaceParameter(
-            on: role,
-            atNormalizedFraction: fraction,
-            tolerance: tolerance
-        )
+    , using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
+        let curveParameter = try curveParameter(fraction: fraction,
+            domain: intersection.curve.parameterDomain, tolerance: tolerance)
+        let pair = try intersection.surfaceParameterPair(atCurveParameter: curveParameter,
+            tolerance: tolerance, using: &execution)
+        let parameter = role == .first ? pair.first : pair.second
         return boundary.coordinate(parameter) - boundary.value
     }
 
@@ -354,7 +373,8 @@ struct RectangularBooleanClipContactRefiner {
         fraction: Double,
         intersection: SurfaceSurfaceIntersectionCurve,
         tolerance: ModelingTolerance
-    ) throws -> Contact {
+    , using execution: inout OriginalQueryExecution) throws -> Contact {
+        try execution.consumeWork(1)
         let parameter = try curveParameter(
             fraction: fraction,
             domain: intersection.curve.parameterDomain,
@@ -365,7 +385,7 @@ struct RectangularBooleanClipContactRefiner {
             point: try intersection.curve.point(
                 at: parameter,
                 tolerance: tolerance
-            )
+            , using: &execution)
         )
     }
 

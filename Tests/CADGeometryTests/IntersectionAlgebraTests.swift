@@ -6,28 +6,60 @@ import Testing
 struct IntersectionAlgebraTests {
     private typealias Polynomial = ExactIntersectionPolynomial
 
-    private struct Admission: RationalAlgebraAdmitting {
+    private struct Admission: ~Copyable, GeometryScalarTestAdmission {
+        var proofScopes = ExactScalarProofScopes()
         var work = 0
         var storage = 0
         var maximumWork = 10_000_000
         var maximumStorage = 10_000_000
-        mutating func consumeExactWork(_ count: Int) throws {
+        mutating func consumeWork(_ count: Int) throws(ExactScalarFailure) {
+            try checkpoint()
+            try proofScopes.checkWork(count)
+            do {
             guard count >= 0, count <= maximumWork - work else { throw exhausted() }
             work += count
+        
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            proofScopes.recordWork(count)
+            try checkpoint()
         }
-        mutating func retainExactStorage(_ count: Int) throws {
+        mutating func retainStorage(bytes: Int) throws(ExactScalarFailure) {
+            try checkpoint()
+            let count = try geometryTestStorageWords(bytes)
+            do {
             guard count >= 0, count <= maximumStorage - storage else { throw exhausted() }
             storage += count
+        
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            try checkpoint()
         }
-        mutating func visitExactCell(depth: Int) throws {
-            throw rationalAlgebraFailure("Exact ideal preparation must not invent geometric root cells.")
-        }
-        mutating func visitCoefficientCell(depth: Int) throws {
-            throw rationalAlgebraFailure("Rational ideal preparation must not invent coefficient extensions.")
-        }
+        
+        
         private func exhausted() -> KernelError {
             KernelError(phase: .geometry, code: .resourceLimitExceeded,
                 tolerance: nil, message: "Original test caller exhausted its independent allowance.")
+        }
+            mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
+            try admitDepth(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+            let mapped = try proofScopes.mapped(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+            do {
+                switch (axis == .coefficient || proofScopes.exactDepthResource == .coefficientDepth) ? ExactScalarRootAxis.coefficient : .value {
+                case .value:
+                    let depth = mapped.value
+
+            throw rationalAlgebraFailure("Exact ideal preparation must not invent geometric root cells.")
+        
+                case .coefficient:
+                    let depth = mapped.coefficient
+
+            throw rationalAlgebraFailure("Rational ideal preparation must not invent coefficient extensions.")
+        
+                }
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            try checkpoint()
         }
     }
 
@@ -157,16 +189,16 @@ struct IntersectionAlgebraTests {
         let derivative = try term.differentiated(at: 3, usage: &usage)
         let expected = try original.multiplied(by: .natural(3, usage: &usage), usage: &usage)
         #expect(try derivative.evaluated(at: [.one, .one, .one, .one], usage: &usage) == expected)
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try Polynomial.monomial(variableCount: 3, powers: (0, 0, 0, 1, 0),
                 coefficient: .one, usage: &usage)
         }
         let other = try Polynomial.constant(variableCount: 3, value: .one, usage: &usage)
-        #expect(throws: KernelError.self) { try term.adding(other, usage: &usage) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try term.adding(other, usage: &usage) }
         let maximum = try Polynomial.monomial(variableCount: 4, powers: (Int.max, 0, 0, 0, 0),
             coefficient: .one, usage: &usage)
         let x = try Polynomial.coordinate(variableCount: 4, at: 0, usage: &usage)
-        #expect(throws: KernelError.self) { try maximum.multiplied(by: x, usage: &usage) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try maximum.multiplied(by: x, usage: &usage) }
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -174,12 +206,12 @@ struct IntersectionAlgebraTests {
         var preparation = Admission()
         let x = try Polynomial.coordinate(variableCount: 3, at: 0, usage: &preparation)
         var exhaustedWork = Admission(maximumWork: 0)
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try ExactIntersectionIdeal.prepare(equations: [x], variableCount: 3, usage: &exhaustedWork)
         }
         #expect(exhaustedWork.storage == 0)
         var exhaustedStorage = Admission(maximumStorage: 0)
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try ExactIntersectionIdeal.prepare(equations: [x], variableCount: 3, usage: &exhaustedStorage)
         }
         #expect(exhaustedStorage.work > 0)
@@ -195,7 +227,7 @@ struct IntersectionAlgebraTests {
             do {
                 _ = try ExactIntersectionIdeal.prepare(equations: [x], variableCount: 3, usage: &usage)
                 return false
-            } catch is CancellationError {
+            } catch let error where geometryTestIsCancelled(error) {
                 return usage.work == 0 && usage.storage == 0
             } catch { return false }
         }.value

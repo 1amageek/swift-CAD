@@ -14,6 +14,28 @@ import CADCore
 struct CoaxialTorusCylinderSurfaceIntersector {
     private let verifier = SurfaceSurfaceIntersectionVerifier()
 
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Ordinary SSI dispatch reaches this direct entry.
+    // The former numerical/tolerance branches did not establish original common-set
+    // authority. U4 must supply complete original source/UV coverage before success.
+    func intersections(
+        torus: CanonicalAnalyticSurface.Torus,
+        cylinder: CanonicalAnalyticSurface.Cylinder,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution
+    ) throws -> [SurfaceSurfaceIntersection] {
+        execution.context = execution.context.at(stage: .relation)
+        do {
+            try execution.checkpoint()
+            throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+                message: "CoaxialTorusCylinderSurfaceIntersector requires complete original source relation authority.")
+        } catch { throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance) }
+    }
+
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Existing candidate/source helper methods call
+    // this ordinary publication entry. It performs no numeric solve or fallback;
+    // U4 must provide source-bound relation proof and direct execution before success.
     func intersections(
         torus: CanonicalAnalyticSurface.Torus,
         cylinder: CanonicalAnalyticSurface.Cylinder,
@@ -21,45 +43,8 @@ struct CoaxialTorusCylinderSurfaceIntersector {
         secondSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws -> [SurfaceSurfaceIntersection] {
-        let radialOffset = AnalyticAxisRelation.radialOffset(
-            from: cylinder.origin,
-            axis: cylinder.axis,
-            to: torus.center
-        )
-        guard AnalyticAxisRelation.areParallel(torus.axis, cylinder.axis, tolerance: tolerance),
-              radialOffset.length <= tolerance.distance else {
-            throw KernelError(
-                phase: .geometry,
-                code: .invalidInput,
-                tolerance: tolerance,
-                message: "Coaxial torus-cylinder intersection requires coincident parallel axes."
-            )
-        }
-
-        let radialDifference = cylinder.radius - torus.majorRadius
-        let heightSquared = torus.minorRadius * torus.minorRadius
-            - radialDifference * radialDifference
-        let squaredTolerance = tolerance.distance * tolerance.distance
-        guard heightSquared >= -squaredTolerance else { return [] }
-        let height = sqrt(max(0.0, heightSquared))
-        let tangentIntersection = height <= tolerance.distance
-        var signs = [-1.0]
-        if !tangentIntersection {
-            signs.append(1.0)
-        }
-        return try signs.map { sign in
-            try verifier.curve(
-                .circle(Circle3D(
-                    center: torus.center + torus.axis * (sign * height),
-                    normal: torus.axis,
-                    radius: cylinder.radius
-                )),
-                kind: tangentIntersection ? .tangent : .transverse,
-                firstSurface: firstSurface,
-                secondSurface: secondSurface,
-                sampleParameters: SurfaceSurfaceIntersectionVerifier.closedCurveSamples,
-                tolerance: tolerance
-            )
-        }
+        try CurrentTaskCancellationChecker().checkCancellation()
+        throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+            message: "CoaxialTorusCylinderSurfaceIntersector has no ordinary original-proof publication.")
     }
 }

@@ -16,11 +16,11 @@ package struct OriginalRationalIntersectionIncidence: Sendable {
         self.partition = partition; self.closures = closures; self.attachments = attachments
     }
 
-    package func connectedComponents<B: RationalAlgebraAdmitting>(usage: inout B) throws -> OriginalRationalParameterComponents {
+    package func connectedComponents<B: ExactScalarAdmission & ~Copyable>(usage: inout B) throws -> OriginalRationalParameterComponents {
         try .prepare(incidence: self, usage: &usage)
     }
 
-    package static func prepare<B: RationalAlgebraAdmitting>(partition: OriginalRationalIntersectionCells,
+    package static func prepare<B: ExactScalarAdmission & ~Copyable>(partition: OriginalRationalIntersectionCells,
         allowAffineClosureProofs: Bool = true, allowFiniteBranchClosureProofs: Bool = true,
         maximumDepth: Int, usage: inout B) throws -> Self {
         try intersectionAlgebraStep(&usage)

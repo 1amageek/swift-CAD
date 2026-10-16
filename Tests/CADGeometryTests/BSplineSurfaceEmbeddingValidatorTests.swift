@@ -103,13 +103,13 @@ struct BSplineSurfaceEmbeddingValidatorTests {
         }
     }
 
-    @Test func polynomialInteriorBoundsDoNotDependOnBoundaryRequests() {
+    @Test func polynomialInteriorBoundsDoNotDependOnBoundaryRequests() throws {
         let patch = RationalBezierSurfacePatch3D(
             controlPoints: [[.origin, Point3D(x: 2, y: 0, z: 0)],
                             [Point3D(x: 0, y: 3, z: 0), Point3D(x: 2, y: 3, z: 6)]],
             weights: [[1, 1], [1, 1]], uLower: 0, uUpper: 2, vLower: 0, vUpper: 3)
-        let interior = RationalBezierSurfaceDifferentialBounds(patch: patch)
-        let boundary = RationalBezierSurfaceDifferentialBounds(patch: patch,
+        let interior = try RationalBezierSurfaceDifferentialBounds(patch: patch)
+        let boundary = try RationalBezierSurfaceDifferentialBounds(patch: patch,
             stationaryBoundaries: Set(SurfaceParameterBoundary.allCases))
         for (a, b) in [(interior.tangentUNumerator, boundary.tangentUNumerator),
                        (interior.tangentVNumerator, boundary.tangentVNumerator),

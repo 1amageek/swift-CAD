@@ -21,42 +21,40 @@ struct SurfaceAreaNativeNumericChartEncloser: Sendable {
         return false
     }
 
-    init(curve: BSplineCurve2D, tolerance: ModelingTolerance,
-         consumeWork: () throws -> Void, consumeStorage: ((Int) throws -> Void)? = nil) throws {
-        try curve.validate(tolerance:tolerance,consumeWork:consumeWork)
+    init(curve: BSplineCurve2D, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try curve.validate(tolerance:tolerance, using: &execution)
         original = curve
         preparationTolerance = tolerance
         lower = curve.knots[curve.degree]
         upper = curve.knots[curve.controlPointCount]
         // The retained 3D row has three scalar coordinates and one point owner.
         // Both tensor rows retain this same immutable COW row and source weights.
-        try OriginalCoefficientAllocation.reserve(count:curve.controlPoints.count,of:Point3D.self,consumeStorage:consumeStorage)
+        try OriginalCoefficientAllocation.reserve(count:curve.controlPoints.count,of:Point3D.self, using: &execution)
         var row: [Point3D] = []
         row.reserveCapacity(curve.controlPoints.count)
         for point in curve.controlPoints {
-            for _ in 0..<4 { try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork() }
+            for _ in 0..<4 { try CurrentTaskCancellationChecker().checkCancellation(); try execution.consumeWork(1) }
             row.append(Point3D(x:point.x,y:point.y,z:0))
         }
         // Actual tensor row owners, knot scalars and surface metadata precede allocation.
-        for _ in 0..<12 { try consumeWork() }
-        try OriginalCoefficientAllocation.reserve(count:2,of:[Point3D].self,consumeStorage:consumeStorage)
-        try OriginalCoefficientAllocation.reserve(count:2,of:[Double].self,consumeStorage:consumeStorage)
-        try OriginalCoefficientAllocation.reserve(count:4,of:Double.self,consumeStorage:consumeStorage)
+        for _ in 0..<12 { try execution.consumeWork(1) }
+        try OriginalCoefficientAllocation.reserve(count:2,of:[Point3D].self, using: &execution)
+        try OriginalCoefficientAllocation.reserve(count:2,of:[Double].self, using: &execution)
+        try OriginalCoefficientAllocation.reserve(count:4,of:Double.self, using: &execution)
         let tensor = BSplineSurface3D(uDegree:curve.degree,vDegree:1,
             uKnots:curve.knots,vKnots:[0,0,1,1],
             controlPoints:[row,row],weights:[curve.weights,curve.weights])
-        partition = try SurfaceAreaNativeSpanPartition(surface:tensor,tolerance:tolerance,consumeWork:consumeWork,consumeStorage:consumeStorage)
+        partition = try SurfaceAreaNativeSpanPartition(surface:tensor,tolerance:tolerance, using: &execution)
     }
 
-    func intervalProof(over fraction: ScalarInterval, tolerance: ModelingTolerance,
-                       consumeWork: () throws -> Void, consumeStorage: ((Int) throws -> Void)? = nil) throws -> SurfaceAreaParameterChartEncloser.IntervalProof {
+    func intervalProof(over fraction: ScalarInterval, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> SurfaceAreaParameterChartEncloser.IntervalProof {
         guard tolerance == preparationTolerance, fraction.lower >= 0, fraction.upper <= 1 else {
             throw Self.failure(.invalidInput,tolerance,"Original numeric trim requires its prepared tolerance and normalized fraction.")
         }
         try CurrentTaskCancellationChecker().checkCancellation()
         // Three interval arithmetic outputs, the original fraction pair, and
         // the closed native query pair are admitted before construction.
-        for _ in 0..<7 { try consumeWork() }
+        for _ in 0..<7 { try execution.consumeWork(1) }
         let slope = OutwardScalarInterval.exact(upper) - .exact(lower)
         let parameter = OutwardScalarInterval.exact(lower)
             + slope * OutwardScalarInterval(lower:fraction.lower,upper:fraction.upper)
@@ -70,17 +68,17 @@ struct SurfaceAreaNativeNumericChartEncloser: Sendable {
         let station = try ScalarInterval(lower:0,upper:0)
         var result: SurfaceAreaParameterChartEncloser.IntervalProof?
         for span in partition.spans {
-            try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
+            try CurrentTaskCancellationChecker().checkCancellation(); try execution.consumeWork(1)
             let a = max(query.lower,span.uBounds.lower), b = min(query.upper,span.uBounds.upper)
             guard a <= b else { continue }
             // A positive-width piece owns its closed endpoints from that side.
             // A singleton join retains both original one-sided owners below.
             if query.lower < query.upper, a == b { continue }
             let box = SurfaceParameterBox(u:try ScalarInterval(lower:a,upper:b),v:station)
-            let native = try partition.intervalJet(of:span,over:box,tolerance:tolerance,consumeWork:consumeWork,consumeStorage:consumeStorage)
+            let native = try partition.intervalJet(of:span,over:box,tolerance:tolerance, using: &execution)
             // Two slope-power outputs/transitions and two ten-field unary
             // jets plus their six derivative products precede evaluation.
-            for _ in 0..<30 { try consumeWork() }
+            for _ in 0..<30 { try execution.consumeWork(1) }
             let square = slope*slope, cube = square*slope
             func normalized(_ jet: SurfaceIntervalJet) -> SurfaceIntervalJet {
                 let zero = OutwardScalarInterval.exact(0)
@@ -91,7 +89,7 @@ struct SurfaceAreaNativeNumericChartEncloser: Sendable {
             }
             let piece = SurfaceAreaParameterChartEncloser.IntervalProof.smooth(u:normalized(native.x),v:normalized(native.y))
             if let previous = result {
-                for _ in 0..<4 { try consumeWork() }
+                for _ in 0..<4 { try execution.consumeWork(1) }
                 result = previous.unionValues(piece)
             } else { result = piece }
         }

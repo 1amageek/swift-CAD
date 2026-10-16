@@ -14,10 +14,19 @@ import WASILibc
 extension BSplineCurve3D {
     /// Constructs a cycle with N independent controls and N+1 cycle knots.
     /// The basis uses the periodic extension, rather than clamped end knots.
-    public static func periodic(
+    public static func periodic(degree: Int, cycleKnots: [Double], controlPoints: [Point3D],
+        weights: [Double]? = nil, tolerance: ModelingTolerance) throws -> BSplineCurve3D {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try OriginalQueryExecutionLimits(maximumValueDepth: 32, maximumCoefficientDepth: 32))
+        return try periodic(degree: degree, cycleKnots: cycleKnots, controlPoints: controlPoints,
+            weights: weights, tolerance: tolerance, using: &execution)
+    }
+
+    public static func periodic<A: ExactScalarAdmission & ~Copyable>(
         degree: Int, cycleKnots: [Double], controlPoints: [Point3D],
-        weights: [Double]? = nil, tolerance: ModelingTolerance
+        weights: [Double]? = nil, tolerance: ModelingTolerance, using execution: inout A
     ) throws -> BSplineCurve3D {
+        try execution.consumeWork(1)
         let count = controlPoints.count
         let (extendedCount, overflow) = count.addingReportingOverflow(degree)
         let (knotCount, knotOverflow) = extendedCount.addingReportingOverflow(degree)
@@ -27,18 +36,23 @@ extension BSplineCurve3D {
               lower.isFinite, upper.isFinite, upper > lower else {
             throw invalidCycle(tolerance)
         }
+        if weights == nil { try execution.retainStorage(bytes: exactScalarPayloadBytes(count: count, of: Double.self)) }
         let cycleWeights = weights ?? Array(repeating: 1.0, count: count)
         guard cycleWeights.count == count else { throw invalidCycle(tolerance) }
         let period = upper - lower
         guard period.isFinite else { throw invalidCycle(tolerance) }
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: count, of: Double.self))
         let extendedKnots = try Self.translatedPeriodicKnots(degree: degree,
             cycleKnots: Array(cycleKnots.dropLast()), period: period,
-            independentControlCount: count, firstCycle: 0, tolerance: tolerance)
+            independentControlCount: count, firstCycle: 0, tolerance: tolerance, using: &execution)
         var points = controlPoints
         var extendedWeights = cycleWeights
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: extendedCount, of: Point3D.self))
         points.reserveCapacity(extendedCount)
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: extendedCount, of: Double.self))
         extendedWeights.reserveCapacity(extendedCount)
         for index in 0..<degree {
+            try execution.consumeWork(1)
             points.append(controlPoints[index % count])
             extendedWeights.append(cycleWeights[index % count])
         }
@@ -46,14 +60,15 @@ extension BSplineCurve3D {
             degree: degree, knots: extendedKnots, controlPoints: points,
             weights: extendedWeights, isPeriodic: true, periodicOrigin: lower
         )
-        try curve.validate(tolerance: tolerance)
+        try curve.validate(tolerance: tolerance, using: &execution)
         return curve
     }
 
-    static func translatedPeriodicKnots(
+    static func translatedPeriodicKnots<A: ExactScalarAdmission & ~Copyable>(
         degree: Int, cycleKnots: [Double], period: Double,
-        independentControlCount: Int, firstCycle: Double, tolerance: ModelingTolerance
+        independentControlCount: Int, firstCycle: Double, tolerance: ModelingTolerance, using execution: inout A
     ) throws -> [Double] {
+        try execution.consumeWork(1)
         let (last, overflow) = independentControlCount.addingReportingOverflow(degree)
         let (total, totalOverflow) = last.addingReportingOverflow(degree + 1)
         guard !overflow, !totalOverflow else {
@@ -62,8 +77,10 @@ extension BSplineCurve3D {
         }
         let count = cycleKnots.count
         var result: [Double] = []
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: total, of: Double.self))
         result.reserveCapacity(total)
         for index in -degree...last {
+            try execution.consumeWork(1)
             let quotient = index >= 0 ? index / count : (index + 1) / count - 1
             let remainder = index - quotient * count
             let translated = cycleKnots[remainder] + (firstCycle + Double(quotient)) * period
@@ -121,9 +138,9 @@ extension BSplineCurve3D {
         return try Self.representative(parameter, origin: lower, period: period, tolerance: tolerance)
     }
 
-    func validatePeriodicity(tolerance: ModelingTolerance,
-        consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() }) throws {
-        try consumeWork()
+    func validatePeriodicity<A: ExactScalarAdmission & ~Copyable>(tolerance: ModelingTolerance,
+        using execution: inout A) throws {
+        try execution.consumeWork(1)
         guard isPeriodic else {
             guard periodicOrigin == nil else { throw Self.invalidCycle(tolerance) }
             return
@@ -132,27 +149,27 @@ extension BSplineCurve3D {
         guard count > 0, degree >= 1, degree < knots.count else { throw Self.invalidCycle(tolerance) }
         var seamMultiplicity = 0
         for knot in knots {
-            try consumeWork()
+            try execution.consumeWork(1)
             if knot == knots[degree] { seamMultiplicity += 1 }
         }
         guard degree >= seamMultiplicity else { throw Self.invalidCycle(tolerance) }
         for index in count..<controlPointCount {
-            try consumeWork(); try consumeWork(); try consumeWork(); try consumeWork()
+            try execution.consumeWork(1); try execution.consumeWork(1); try execution.consumeWork(1); try execution.consumeWork(1)
             guard controlPoints[index] == controlPoints[index % count],
                   weights[index] == weights[index % count] else { throw Self.invalidCycle(tolerance) }
         }
         try Self.validatePeriodicAxis(degree: degree, knots: knots,
             controlPointCount: controlPointCount, origin: periodicOrigin, tolerance: tolerance,
-            consumeWork: consumeWork)
+            using: &execution)
     }
 
     /// Checks original cyclic knots in place under the composing caller's admission.
-    static func validatePeriodicAxis(
+    static func validatePeriodicAxis<A: ExactScalarAdmission & ~Copyable>(
         degree: Int, knots: [Double], controlPointCount: Int, origin: Double?,
         tolerance: ModelingTolerance,
-        consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() }
+        using execution: inout A
     ) throws {
-        try consumeWork()
+        try execution.consumeWork(1)
         let independent = controlPointCount.subtractingReportingOverflow(degree)
         guard !independent.overflow, independent.partialValue > 0, degree >= 1,
             degree < knots.count, controlPointCount >= 0, controlPointCount < knots.count else {
@@ -161,13 +178,13 @@ extension BSplineCurve3D {
         let count = independent.partialValue
         var multiplicity = 0
         for knot in knots {
-            try consumeWork()
+            try execution.consumeWork(1)
             if knot == knots[degree] { multiplicity += 1 }
         }
         guard degree >= multiplicity else { throw invalidCycle(tolerance) }
         let period = knots[controlPointCount] - knots[degree]
         for index in 0..<(knots.count - count) {
-            try consumeWork(); try consumeWork()
+            try execution.consumeWork(1); try execution.consumeWork(1)
             let expected = knots[index] + period
             let actual = knots[index + count]
             let resolution = max(abs(expected), abs(actual), period, 1) * Double.ulpOfOne * 16
@@ -176,7 +193,7 @@ extension BSplineCurve3D {
             }
         }
         let lower = origin ?? knots[degree]
-        try consumeWork()
+        try execution.consumeWork(1)
         try ParameterDomain.closed(lower, lower + period).validate(tolerance: tolerance)
     }
 

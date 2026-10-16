@@ -66,7 +66,7 @@ public struct FaceOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
         let faceIDs = try offset.faces.map {
             try targetFaceID($0, bodyScope: bodyScope, featureID: feature.id, context: context)
         }
-        let replacedSubshapeIDs = bodyScope.subshapeIDs(in: context.subshapes)
+        let replacedSubshapeIDs = try bodyScope.subshapeIDs(in: context.subshapes)
         // Grow (Moving or Fixed): planar faces facing one way pushed out, each past a parallel
         // wall of its body facing the same way, fill up to their walls (each face extruded and
         // joined), then Moving pushes the walls they became part of on by the rest of the distance.

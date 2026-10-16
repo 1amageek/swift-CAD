@@ -19,28 +19,28 @@ struct SurfaceSilhouetteRamifiedParameterImage: Hashable, Sendable {
     let refinementDepth: Int
 
     init(resolution: OriginalSingularResolution, germOrdinal: Int,
-        clip: OriginalSingularRegularChartClip, spanOrdinal: Int, usage: inout SurfaceSilhouetteUsage) throws {
+        clip: OriginalSingularRegularChartClip, spanOrdinal: Int, usage: inout OriginalQueryExecution) throws {
         identity = try .rational(.init(resolution: resolution, germOrdinal: germOrdinal, clip: clip,
             spanOrdinal: spanOrdinal, usage: &usage))
         original = clip.chart; sourceDomain = clip.sourceDomain
         let span = clip.spans[spanOrdinal]
         var first = clip.stations[span.lowerStation].endpoint, last = clip.stations[span.upperStation].endpoint
-        _ = try OriginalSingularFieldEndpoint.between(&first, &last, maximumDepth: usage.maximumDepth, usage: &usage)
+        _ = try OriginalSingularFieldEndpoint.between(&first, &last, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
         start = first; end = last; retainedStart = nil; retainedEnd = nil; originAtUpperEnd = nil; coefficientWidth = .one
         refinementDepth = max(original.sourceDepth, max(first.depth, last.depth))
         normalizedDomain = try .init(lower: 0, upper: 1)
     }
     init(resolution: OriginalSingularResolution, attachment: OriginalSingularHalfBranchAttachment,
         chart: OriginalSingularRegularChart, sourceDomain: SurfaceParameterBox,
-        usage: inout SurfaceSilhouetteUsage) throws {
+        usage: inout OriginalQueryExecution) throws {
         identity = try .rational(.init(resolution: resolution, germOrdinal: attachment.chartIndex,
             attachment: attachment, chart: chart, sourceDomain: sourceDomain, usage: &usage))
         original = chart; self.sourceDomain = sourceDomain
         let point = attachment.originalLocalPoint
         let free = chart.freeAlongU ? point.localU : point.localV
         let zero = try OriginalSingularFieldElement.constant(.zero, in: free.context,
-            maximumDepth: usage.maximumDepth, usage: &usage)
-        switch try free.sign(maximumDepth: usage.maximumDepth, usage: &usage) {
+            maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
+        switch try free.sign(maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage) {
         case .zero: throw rationalAlgebraFailure("Original nonexceptional half-branch has no positive local traversal.")
         case .positive: retainedStart = zero; retainedEnd = free; originAtUpperEnd = false
         case .negative: retainedStart = free; retainedEnd = zero; originAtUpperEnd = true
@@ -51,7 +51,7 @@ struct SurfaceSilhouetteRamifiedParameterImage: Hashable, Sendable {
     }
     init(resolution: OriginalFieldSingularResolution, attachment: OriginalFieldHalfBranchAttachment,
         chart: OriginalSingularRegularChart, sourceDomain: SurfaceParameterBox,
-        usage: inout SurfaceSilhouetteUsage) throws {
+        usage: inout OriginalQueryExecution) throws {
         guard attachment.chartIndex >= 0, attachment.chartIndex < resolution.germs.count,
             resolution.germs[attachment.chartIndex].strictTransform.context === chart.germ.strictTransform.context else {
             throw rationalAlgebraFailure("Original field half-chart lost its issued resolution leaf.")
@@ -65,8 +65,8 @@ struct SurfaceSilhouetteRamifiedParameterImage: Hashable, Sendable {
         let point = attachment.originalLocalPoint
         let free = chart.freeAlongU ? point.localU : point.localV
         let zero = try OriginalSingularFieldElement.constant(.zero, in: free.context,
-            maximumDepth: usage.maximumDepth, usage: &usage)
-        switch try free.sign(maximumDepth: usage.maximumDepth, usage: &usage) {
+            maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
+        switch try free.sign(maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage) {
         case .zero: throw rationalAlgebraFailure("Original field half-chart has no positive traversal.")
         case .positive: retainedStart = zero; retainedEnd = free; originAtUpperEnd = false
         case .negative: retainedStart = free; retainedEnd = zero; originAtUpperEnd = true
@@ -86,35 +86,35 @@ struct SurfaceSilhouetteRamifiedParameterImage: Hashable, Sendable {
     static func == (a: Self, b: Self) -> Bool { a.identity == b.identity }
     func hash(into hasher: inout Hasher) { hasher.combine(identity) }
 
-    func refined(usage: inout SurfaceSilhouetteUsage) throws -> Self {
-        guard refinementDepth < usage.maximumDepth else { throw rationalAlgebraFailure("Original ramified refinement exhausted causal depth.") }
+    func refined(usage: inout OriginalQueryExecution) throws -> Self {
+        guard refinementDepth < usage.effectiveLimits.maximumSubdivisionDepth else { throw rationalAlgebraFailure("Original ramified refinement exhausted causal depth.") }
         func endpoint(_ value: OriginalSingularFieldEndpoint) throws -> OriginalSingularFieldEndpoint {
             switch value { case .authored: value
-            case .algebraic(let root): try .algebraic(root.refinedOnce(maximumDepth: usage.maximumDepth, usage: &usage)) }
+            case .algebraic(let root): try .algebraic(root.refinedOnce(maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)) }
         }
         let first = try endpoint(start), last = try endpoint(end)
         let depth = max(try rationalAlgebraCount(refinementDepth, 1), max(first.depth, last.depth))
-        try usage.consumeCell(depth: depth)
+        try usage.visitSilhouetteCell(depth: depth)
         return try .init(copy: self, start: first, end: last,
             coefficientWidth: coefficientWidth.divided(by: .natural(2, usage: &usage), usage: &usage), depth: depth)
     }
 
     func enclosure(over parameter: ScalarInterval, field: OriginalSurfaceSilhouetteField,
-        usage: inout SurfaceSilhouetteUsage) throws -> SurfaceSilhouetteCurveEnclosure {
+        usage: inout OriginalQueryExecution) throws -> SurfaceSilhouetteCurveEnclosure {
         guard parameter.lower >= 0, parameter.upper <= 1 else { throw rationalAlgebraFailure("Original ramified query exceeds its normalized source traversal.") }
         let slope: OutwardScalarInterval
         let startBounds: OutwardScalarInterval, endBounds: OutwardScalarInterval
         if let retainedStart, let retainedEnd {
-            let gain = try retainedEnd.subtracting(retainedStart, maximumDepth: usage.maximumDepth, usage: &usage)
-            guard case .positive = try gain.sign(maximumDepth: usage.maximumDepth, usage: &usage) else {
+            let gain = try retainedEnd.subtracting(retainedStart, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
+            guard case .positive = try gain.sign(maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage) else {
                 throw rationalAlgebraFailure("Original half-chart traversal slope is not exactly positive.")
             }
             startBounds = try retainedStart.enclosure(maximumWidth: coefficientWidth, inheritedDepth: refinementDepth,
-                maximumDepth: usage.maximumDepth, usage: &usage)
+                maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
             endBounds = try retainedEnd.enclosure(maximumWidth: coefficientWidth, inheritedDepth: refinementDepth,
-                maximumDepth: usage.maximumDepth, usage: &usage)
+                maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
             slope = try gain.enclosure(maximumWidth: coefficientWidth, inheritedDepth: refinementDepth,
-                maximumDepth: usage.maximumDepth, usage: &usage)
+                maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
         } else {
             let lowerSlope = try end.lower.subtracting(start.upper, usage: &usage)
             let upperSlope = try end.upper.subtracting(start.lower, usage: &usage)
@@ -133,7 +133,7 @@ struct SurfaceSilhouetteRamifiedParameterImage: Hashable, Sendable {
             throw rationalAlgebraFailure("Original ramified image missed its retained local graph.")
         }
         let result = try original.enclosure(over: .init(lower: free.lower, upper: free.upper),
-            maximumCoefficientWidth: coefficientWidth, maximumDepth: usage.maximumDepth,
+            maximumCoefficientWidth: coefficientWidth, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth,
             inheritedDepth: refinementDepth, usage: &usage)
         guard let u = OutwardScalarInterval(lower: result.originalParameters.u.lower, upper: result.originalParameters.u.upper)
                 .intersection(with: .init(lower: sourceDomain.u.lower, upper: sourceDomain.u.upper)),
@@ -143,7 +143,7 @@ struct SurfaceSilhouetteRamifiedParameterImage: Hashable, Sendable {
         }
         let parameters = try SurfaceParameterBox(u: .init(lower: u.lower, upper: u.upper), v: .init(lower: v.lower, upper: v.upper))
         let spatial = try field.evaluate(over: parameters, usage: &usage).spatial
-        try usage.retain(20)
+        try RationalAlgebraStorage.retain(20, of: UInt32.self, usage: &usage)
         var uv = result.originalDerivatives
         uv[0] = try .init(x: parameters.u, y: parameters.v)
         var power = OutwardScalarInterval.exact(1)

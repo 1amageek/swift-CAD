@@ -4,7 +4,7 @@ import CADCore
 public struct DefaultOriginalCurveRootBoundaryClassifier: OriginalCurveRootBoundaryClassifying {
     public init() {}
 
-    public func roots<B: RationalAlgebraAdmitting>(of source: BSplineCurve3D,
+    public func roots<B: ExactScalarAdmission & ~Copyable>(of source: BSplineCurve3D,
         constraint: OriginalCurveIncidenceConstraint, maximumSpanCount: Int,
         maximumSubdivisionDepth: Int, tolerance: ModelingTolerance,
         usage: inout B) throws -> OriginalCurveRootClassification {
@@ -18,14 +18,14 @@ public struct DefaultOriginalCurveRootBoundaryClassifier: OriginalCurveRootBound
             tolerance: tolerance, usage: &usage)
     }
 
-    public func roots<B: RationalAlgebraAdmitting>(of source: BSplineCurve3D, over trim: ScalarInterval,
+    public func roots<B: ExactScalarAdmission & ~Copyable>(of source: BSplineCurve3D, over trim: ScalarInterval,
         constraint: OriginalCurveIncidenceConstraint, maximumSpanCount: Int,
         maximumSubdivisionDepth: Int, tolerance: ModelingTolerance,
         usage: inout B) throws -> OriginalCurveRootClassification {
         guard maximumSpanCount > 0, maximumSubdivisionDepth >= 0 else {
             throw GeometryConversionError.invalidInput("Original root classification needs explicit caller span and depth admission.")
         }
-        try source.validate(tolerance: tolerance)
+        try source.validate(tolerance: tolerance, using:&usage)
         guard trim.lower.isFinite, trim.upper.isFinite, trim.lower <= trim.upper,
               trim.lower >= source.knots[source.degree], trim.upper <= source.knots[source.controlPoints.count] else {
             throw GeometryConversionError.invalidInput("Original root trim exceeds its exact base-native source domain.")
@@ -33,7 +33,7 @@ public struct DefaultOriginalCurveRootBoundaryClassifier: OriginalCurveRootBound
         var roots: [OriginalCurveRootBoundary] = [], coincident: [ScalarInterval] = []
         var spans = 0
         for index in source.degree..<source.controlPoints.count {
-            try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(1)
+            try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeWork(1)
             guard source.knots[index] < source.knots[index + 1] else { continue }
             let lower = max(source.knots[index], trim.lower), upper = min(source.knots[index + 1], trim.upper)
             guard lower <= upper else { continue }
@@ -49,7 +49,7 @@ public struct DefaultOriginalCurveRootBoundaryClassifier: OriginalCurveRootBound
                 common = try common.map { try ExactBivariateGCD().univariateGCD($0, numerator, usage: &usage) } ?? numerator
             }
             guard let common else {
-                try usage.retainExactStorage(1)
+                try RationalAlgebraStorage.retain(1, of: ScalarInterval.self, usage:&usage)
                 coincident.append(try ScalarInterval(lower: lower, upper: upper))
                 continue
             }
@@ -57,7 +57,7 @@ public struct DefaultOriginalCurveRootBoundaryClassifier: OriginalCurveRootBound
             if lower == upper {
                 let station = try ExactRationalCoefficient.originalDouble(lower, usage: &usage)
                 if try common.evaluated(atU: station, v: .zero, usage: &usage).isZero {
-                    try usage.retainExactStorage(1)
+                    try RationalAlgebraStorage.retain(1, of: OriginalCurveRootBoundary.self, usage:&usage)
                     roots.append(try OriginalCurveRootBoundary(source: source, spanIndex: index,
                         constraint: constraint, isolationLower: station, isolationUpper: station,
                         maximumSubdivisionDepth: maximumSubdivisionDepth, tolerance: tolerance, usage: &usage))
@@ -68,7 +68,7 @@ public struct DefaultOriginalCurveRootBoundaryClassifier: OriginalCurveRootBound
                 lower: .originalDouble(lower, usage: &usage), upper: .originalDouble(upper, usage: &usage),
                 maximumDepth: maximumSubdivisionDepth, usage: &usage)
             for root in isolated {
-                try usage.retainExactStorage(1)
+                try RationalAlgebraStorage.retain(1, of: OriginalCurveRootBoundary.self, usage:&usage)
                 roots.append(try OriginalCurveRootBoundary(source: source, spanIndex: index,
                     constraint: constraint, isolation: root,
                     maximumSubdivisionDepth: maximumSubdivisionDepth, tolerance: tolerance, usage: &usage))

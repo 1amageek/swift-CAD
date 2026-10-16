@@ -12,7 +12,7 @@ package enum ExactMonotoneGraphEndpoint: Sendable {
     package var depth: Int {
         switch self { case .authored: 0; case .algebraic(let value): value.isolation.isolationDepth }
     }
-    package func refined<B: RationalAlgebraAdmitting>(maximumWidth: ExactRationalCoefficient,
+    package func refined<B: ExactScalarAdmission & ~Copyable>(maximumWidth: ExactRationalCoefficient,
         maximumDepth: Int, usage: inout B) throws -> Self {
         switch self {
         case .authored: return self
@@ -20,7 +20,7 @@ package enum ExactMonotoneGraphEndpoint: Sendable {
             maximumDepth: maximumDepth, usage: &usage))
         }
     }
-    package func sign<B: RationalAlgebraAdmitting>(of expression: ExactBivariatePolynomial,
+    package func sign<B: ExactScalarAdmission & ~Copyable>(of expression: ExactBivariatePolynomial,
         maximumDepth: Int, usage: inout B) throws -> ExactAlgebraicRealRoot.Sign {
         switch self {
         case .authored(let station):
@@ -55,7 +55,7 @@ package enum ExactMonotoneGraphEndpoint: Sendable {
             hasher.combine(value.isolation.isolationDepth)
         }
     }
-    package func hasSameValue<B: RationalAlgebraAdmitting>(as other: Self,
+    package func hasSameValue<B: ExactScalarAdmission & ~Copyable>(as other: Self,
         maximumDepth: Int, usage: inout B) throws -> Bool {
         switch (self, other) {
         case let (.authored(a), .authored(b)): return a == b

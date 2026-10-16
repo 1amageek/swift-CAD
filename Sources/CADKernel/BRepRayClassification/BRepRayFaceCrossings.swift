@@ -18,36 +18,10 @@ struct BRepRayFaceCrossings: Sendable {
 
     let intersector: any CurveSurfaceIntersecting
     let facePointContainment: any FacePointContainmentTesting
-    let maximumSubdivisionDepth: Int?
-    let consumeWork: (@Sendable (Int) throws -> Void)?
-    let consumeStorage: (@Sendable (Int) throws -> Void)?
-    let remainingSourceDepth: Int?
-    let maximumAlgebraicDepth: Int
-
     init(intersector: any CurveSurfaceIntersecting,
-        facePointContainment: any FacePointContainmentTesting,
-        maximumSubdivisionDepth: Int? = nil,
-        consumeWork: (@Sendable (Int) throws -> Void)? = nil,
-        consumeStorage: (@Sendable (Int) throws -> Void)? = nil,
-        remainingSourceDepth: Int? = nil, maximumAlgebraicDepth: Int = 32) {
+        facePointContainment: any FacePointContainmentTesting) {
         self.intersector = intersector
         self.facePointContainment = facePointContainment
-        self.maximumSubdivisionDepth = maximumSubdivisionDepth
-        self.consumeWork = consumeWork
-        self.consumeStorage = consumeStorage
-        self.remainingSourceDepth = remainingSourceDepth
-        self.maximumAlgebraicDepth = maximumAlgebraicDepth
-    }
-
-    private func consume() throws {
-        try Task.checkCancellation()
-        if let consumeWork {
-            guard let maximumSubdivisionDepth, (0...32).contains(maximumSubdivisionDepth) else {
-                throw KernelError(phase: .classification, code: .invalidInput, tolerance: nil,
-                    message: "Bounded ray classification requires its caller depth ceiling.")
-            }
-            try consumeWork(0)
-        }
     }
 
     /// The distinct transverse crossings of the ray from `point` along the unit `direction`
@@ -60,15 +34,15 @@ struct BRepRayFaceCrossings: Sendable {
         model: BRepModel,
         containmentSession: (any FacePointContainmentSession)?,
         faceParameterBounds: [FaceID: SurfaceParameterBox]? = nil,
-        tolerance: ModelingTolerance
-    ) throws -> [Crossing] {
-        try consume()
+        tolerance: ModelingTolerance,
+    using execution: inout OriginalQueryExecution) throws -> [Crossing] {
+        try execution.consumeWork(1)
         let ray = Curve3D.line(Line3D(origin: point, direction: direction))
         let range = try ScalarInterval(lower: tolerance.distance * 2.0, upper: upperBound)
         var crossings: [Crossing] = []
         var crossingCapacity = 0
         for faceID in faceIDs {
-            try consume()
+            try execution.consumeWork(1)
             guard let face = model.faces[faceID],
                   let surface = model.geometry.surfaces[face.surfaceID] else {
                 throw KernelError(
@@ -80,29 +54,19 @@ struct BRepRayFaceCrossings: Sendable {
             }
             let parameters = try faceParameterBounds?[faceID] ?? Self.parameterBounds(
                 for: faceID, surface: surface, model: model, tolerance: tolerance,
-                maximumSubdivisionDepth: maximumSubdivisionDepth ?? 48, consumeWork: consumeWork,
-                consumeStorage: consumeStorage, remainingSourceDepth: remainingSourceDepth ?? 16,
-                maximumAlgebraicDepth: maximumAlgebraicDepth)
+                maximumSubdivisionDepth: min(48, execution.effectiveLimits.maximumSubdivisionDepth),
+                remainingSourceDepth: min(16, execution.effectiveLimits.remainingSourceDepth),
+                maximumAlgebraicDepth: min(32, execution.effectiveLimits.maximumValueDepth,
+                    execution.effectiveLimits.maximumCoefficientDepth), using: &execution)
             let options = CurveSurfaceIntersectionOptions(
                     curveRange: range,
                     surfaceURange: parameters.u,
                     surfaceVRange: parameters.v
                 )
-            let intersections: [CurveSurfaceIntersection]
-            if let consumeWork, let maximumSubdivisionDepth {
-                intersections = try intersector.intersections(curve: ray, surface: surface,
-                    options: options, tolerance: tolerance,
-                    maximumSpanCount: options.maximumSubdivisionCells,
-                    maximumSubdivisionDepth: maximumSubdivisionDepth,
-                    remainingSourceDepth: remainingSourceDepth ?? 16,
-                    consumeWork: consumeWork, consumeStorage: consumeStorage,
-                    maximumAlgebraicDepth: maximumAlgebraicDepth)
-            } else {
-                intersections = try intersector.intersections(curve: ray, surface: surface,
-                    options: options, tolerance: tolerance)
-            }
+            let intersections = try intersector.intersections(curve: ray, surface: surface,
+                options: options, tolerance: tolerance, using: &execution)
             for intersection in intersections {
-                try consume()
+                try execution.consumeWork(1)
                 let parameter = SurfaceParameter(u: intersection.surfaceU, v: intersection.surfaceV)
                 guard try contains(
                     parameter,
@@ -111,7 +75,7 @@ struct BRepRayFaceCrossings: Sendable {
                     model: model,
                     containmentSession: containmentSession,
                     tolerance: tolerance
-                ) else {
+                , using: &execution) else {
                     continue
                 }
                 if intersection.kind == .mixed {
@@ -123,14 +87,14 @@ struct BRepRayFaceCrossings: Sendable {
                 // A ray through an edge meets both faces it bounds at one point: one crossing.
                 // Two faces lying on each other with opposite normals (solids touching along a
                 // face) are two crossings at one point: out of one and into the other.
-                let normal = try orientedNormal(of: face, surface: surface, at: parameter, tolerance: tolerance)
+                let normal = try orientedNormal(of: face, surface: surface, at: parameter, tolerance: tolerance, using: &execution)
                 let isRepeat = try crossings.contains { existing in
-                    try consume()
+                    try execution.consumeWork(1)
                     guard (existing.point - intersection.point).length <= tolerance.distance else { return false }
                     return existing.normal.dot(normal) > -1 + tolerance.angle
                 }
                 if isRepeat == false {
-                    if consumeWork != nil, crossings.count == crossingCapacity {
+                    if crossings.count == crossingCapacity {
                         let next = crossingCapacity == 0
                             ? (partialValue: 1, overflow: false)
                             : crossingCapacity.multipliedReportingOverflow(by: 2)
@@ -139,7 +103,7 @@ struct BRepRayFaceCrossings: Sendable {
                             throw KernelError(phase: .classification, code: .resourceLimitExceeded,
                                 tolerance: tolerance, message: "Original ray crossing storage overflows.")
                         }
-                        try consumeStorage?(bytes.partialValue)
+                        try execution.retainStorage(bytes: bytes.partialValue)
                         crossings.reserveCapacity(next.partialValue)
                         crossingCapacity = next.partialValue
                     }
@@ -153,63 +117,37 @@ struct BRepRayFaceCrossings: Sendable {
                 }
             }
         }
-        if consumeWork != nil {
             for index in crossings.indices.dropFirst() {
                 var position = index
                 while position > 0 {
-                    try consume()
+                    try execution.consumeWork(1)
                     if crossings[position - 1].distance <= crossings[position].distance { break }
                     crossings.swapAt(position - 1, position)
                     position -= 1
                 }
             }
-            return crossings
-        }
-        return crossings.sorted { $0.distance < $1.distance }
+        return crossings
     }
 
     /// Complete authored trim extent, with bounded-domain authority retained.
     static func parameterBounds(for faceID: FaceID, surface: Surface3D,
         model: BRepModel, tolerance: ModelingTolerance,
         maximumSubdivisionDepth: Int = 48,
-        consumeWork: (@Sendable (Int) throws -> Void)? = nil,
-        consumeStorage: (@Sendable (Int) throws -> Void)? = nil,
-        remainingSourceDepth: Int = 16, maximumAlgebraicDepth: Int = 32) throws -> SurfaceParameterBox {
+        remainingSourceDepth: Int = 16, maximumAlgebraicDepth: Int = 32, using execution: inout OriginalQueryExecution) throws -> SurfaceParameterBox {
         try OriginalFaceParameterBounds.resolve(for: faceID, surface: surface,
             model: model, tolerance: tolerance, maximumSubdivisionDepth: maximumSubdivisionDepth,
-            consumeWork: consumeWork, consumeStorage: consumeStorage,
-            remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth)
+            remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
     }
 
     private func orientedNormal(
         of face: Face,
         surface: Surface3D,
         at parameter: SurfaceParameter,
-        tolerance: ModelingTolerance
-    ) throws -> Vector3D {
-        try consume()
-        let geometric: Vector3D
-        if let consumeWork, let maximumSubdivisionDepth {
-            let prepared = try PreparedSurfaceDifferentialEncloser(surface: surface,
-                tolerance: tolerance, remainingSourceDepth: remainingSourceDepth ?? maximumSubdivisionDepth,
-                maximumSubdivisionDepth: maximumSubdivisionDepth,
-                consumeWork: { try consumeWork(0) }, consumeStorage: consumeStorage,
-                maximumAlgebraicDepth: remainingSourceDepth == nil ? nil : maximumAlgebraicDepth)
-            let jet = try prepared.intervalJet(overClosedBox: SurfaceParameterBox(
-                u: ScalarInterval(lower: parameter.u, upper: parameter.u),
-                v: ScalarInterval(lower: parameter.v, upper: parameter.v)), tolerance: tolerance,
-                maximumSpanCount: 262_144, maximumSubdivisionDepth: maximumSubdivisionDepth,
-                remainingSourceDepth: remainingSourceDepth ?? maximumSubdivisionDepth,
-                consumeWork: { try consumeWork(0) }, consumeStorage: consumeStorage)
-            let u = Vector3D(x: jet.x.derivativeU.midpoint, y: jet.y.derivativeU.midpoint,
-                z: jet.z.derivativeU.midpoint)
-            let v = Vector3D(x: jet.x.derivativeV.midpoint, y: jet.y.derivativeV.midpoint,
-                z: jet.z.derivativeV.midpoint)
-            geometric = try u.cross(v).normalized(tolerance: tolerance.distance)
-        } else {
-            geometric = try surface.normal(u: parameter.u, v: parameter.v, tolerance: tolerance)
-                .normalized(tolerance: tolerance.distance)
-        }
+        tolerance: ModelingTolerance,
+    using execution: inout OriginalQueryExecution) throws -> Vector3D {
+        try execution.consumeWork(1)
+        let geometric = try surface.normal(u: parameter.u, v: parameter.v,
+            tolerance: tolerance, using: &execution).normalized(tolerance: tolerance.distance)
         return face.orientation == .forward ? geometric : geometric * -1.0
     }
 
@@ -220,31 +158,22 @@ struct BRepRayFaceCrossings: Sendable {
         faceBounds: [FaceID: BoundingBox3D],
         model: BRepModel,
         containmentSession: (any FacePointContainmentSession)?,
-        tolerance: ModelingTolerance
-    ) throws -> Bool {
+        tolerance: ModelingTolerance,
+    using execution: inout OriginalQueryExecution) throws -> Bool {
         for faceID in faceIDs {
-            try consume()
+            try execution.consumeWork(1)
             if let bounds = faceBounds[faceID], bounds.contains(point, tolerance: tolerance.distance) == false {
                 continue
             }
             do {
                 let contained: Bool
                 if let containmentSession {
-                    contained = try containmentSession.contains(point, on: faceID)
+                    contained = try containmentSession.contains(point, on: faceID, using: &execution)
                 } else {
-                    contained = try facePointContainment.contains(point, on: faceID, in: model, tolerance: tolerance)
+                    contained = try facePointContainment.contains(point, on: faceID, in: model, tolerance: tolerance, using: &execution)
                 }
                 if contained { return true }
-            } catch let error as KernelError where consumeWork == nil && error.code == .intersectionFailure {
-                continue
-            } catch GeometryError.invalidVectorLength {
-                guard consumeWork == nil else {
-                    throw KernelError(phase: .classification, code: .classificationFailure,
-                        tolerance: tolerance,
-                        message: "Bounded original face containment could not establish a regular source witness.")
-                }
-                continue
-            }
+            } catch { throw error }
         }
         return false
     }
@@ -275,16 +204,16 @@ struct BRepRayFaceCrossings: Sendable {
         on faceID: FaceID,
         model: BRepModel,
         containmentSession: (any FacePointContainmentSession)?,
-        tolerance: ModelingTolerance
-    ) throws -> Bool {
-        try consume()
-        if let decision = try containmentSession?.containsParameter(parameter, on: faceID) {
+        tolerance: ModelingTolerance,
+    using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.consumeWork(1)
+        if let decision = try containmentSession?.containsParameter(parameter, on: faceID, using: &execution) {
             return decision
         }
         if let containmentSession {
-            return try containmentSession.contains(fallbackPoint, on: faceID)
+            return try containmentSession.contains(fallbackPoint, on: faceID, using: &execution)
         }
-        return try facePointContainment.contains(fallbackPoint, on: faceID, in: model, tolerance: tolerance)
+        return try facePointContainment.contains(fallbackPoint, on: faceID, in: model, tolerance: tolerance, using: &execution)
     }
 
 }

@@ -3,7 +3,7 @@ package struct OriginalFieldPolynomialRange: Sendable {
     package let lower: OriginalSingularFieldElement
     package let upper: OriginalSingularFieldElement
 
-    package init<B: RationalAlgebraAdmitting>(original: OriginalSingularFieldPlanePolynomial,
+    package init<B: ExactScalarAdmission & ~Copyable>(original: OriginalSingularFieldPlanePolynomial,
         lower: ExactRationalCoefficient, upper: ExactRationalCoefficient,
         maximumDepth: Int, usage: inout B) throws {
         guard original.vDegree <= 0, !(try upper.subtracting(lower, usage: &usage)).isNegative else {
@@ -35,7 +35,7 @@ package struct OriginalFieldPolynomialRange: Sendable {
         try RationalAlgebraStorage.retain(count, of: OriginalSingularFieldElement.self, usage: &usage)
         var powers = [OriginalSingularFieldElement](repeating: zero, count: count)
         for term in try local.orderedTerms(usage: &usage) {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             guard term.key.v == 0 else { throw rationalAlgebraFailure("Original field curve has a second parameter.") }
             powers[term.key.u] = term.value
         }
@@ -43,7 +43,7 @@ package struct OriginalFieldPolynomialRange: Sendable {
         for index in 0...degree {
             var value = zero, ratio = ExactRationalCoefficient.one
             for power in 0...index {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 let scale = try OriginalSingularFieldElement.constant(ratio, in: context,
                     maximumDepth: maximumDepth, usage: &usage)
                 value = try value.adding(powers[power].multiplied(by: scale,
@@ -70,7 +70,7 @@ package struct OriginalFieldPolynomialRange: Sendable {
         self.lower = lower; self.upper = upper
     }
 
-    package func divided<B: RationalAlgebraAdmitting>(by positive: Self,
+    package func divided<B: ExactScalarAdmission & ~Copyable>(by positive: Self,
         maximumDepth: Int, usage: inout B) throws -> Self {
         guard lower.context === positive.lower.context,
               case .positive = try positive.lower.sign(maximumDepth: maximumDepth, usage: &usage) else {
@@ -79,7 +79,7 @@ package struct OriginalFieldPolynomialRange: Sendable {
         var minimum = try lower.divided(by: positive.lower, maximumDepth: maximumDepth, usage: &usage)
         var maximum = minimum
         for corner in 1...3 {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             let numerator = corner < 2 ? lower : upper
             let denominator = corner & 1 == 0 ? positive.lower : positive.upper
             let value = try numerator.divided(by: denominator, maximumDepth: maximumDepth, usage: &usage)
@@ -91,7 +91,7 @@ package struct OriginalFieldPolynomialRange: Sendable {
         return Self(lower: minimum, upper: maximum)
     }
 
-    package func outward<B: RationalAlgebraAdmitting>(maximumCoefficientWidth: ExactRationalCoefficient,
+    package func outward<B: ExactScalarAdmission & ~Copyable>(maximumCoefficientWidth: ExactRationalCoefficient,
         maximumDepth: Int, usage: inout B) throws -> OutwardScalarInterval {
         let a = try lower.enclosure(maximumWidth: maximumCoefficientWidth,
             maximumDepth: maximumDepth, usage: &usage)

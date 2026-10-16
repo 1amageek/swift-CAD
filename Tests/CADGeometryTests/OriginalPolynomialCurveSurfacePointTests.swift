@@ -28,18 +28,25 @@ struct OriginalPolynomialCurveSurfacePointTests {
         return .init(startBoundary: .bSpline(a), endBoundary: .bSpline(b), uDomain: .closed(-1,1))
     }
 
-    private func usage() -> OriginalRelationUsage {
-        .init(consumeWork: { _ in }, retainStorage: { _ in }, visitCell: { _ in }, visitCoefficientCell: { _ in })
+    private func usage() throws -> OriginalQueryExecution {
+        try .independentGeometry()
     }
 
     private func admitted(curve: BSplineCurve3D, surface: RuledSurface3D,
         options: CurveSurfaceIntersectionOptions = .init()) throws -> CurveSurfaceIntersectionResult {
         let work = Mutex(0), bytes = Mutex(0)
-        let result = try DefaultCurveSurfaceIntersector().intersectionResult(curve: .bSpline(curve),
-            surface: .procedural(.ruled(surface)), options: options, tolerance: tolerance,
-            maximumSpanCount: 1, maximumSubdivisionDepth: 0, remainingSourceDepth: 1,
-            consumeWork: { _ in work.withLock { $0 += 1 } },
-            consumeStorage: { amount in bytes.withLock { $0 += amount } }, maximumAlgebraicDepth: 32)
+        let result = try geometryTestWithQuery(maximumSpanCount: 1,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            maximumAlgebraicDepth: 32,
+            consumeWorkUnits: { _ in work.withLock { $0 += 1 } },
+            consumeStorageBytes: { amount in bytes.withLock { $0 += amount } }) { queryExecution in
+            try DefaultCurveSurfaceIntersector().intersectionResult(curve: .bSpline(curve),
+            surface: .procedural(.ruled(surface)),
+            options: options,
+            tolerance: tolerance,
+            using: &queryExecution)
+        }
         #expect(work.withLock { $0 } > 0 && bytes.withLock { $0 } > 0)
         print("Original curve/ruled admitted work=\(work.withLock { $0 }) bytes=\(bytes.withLock { $0 })")
         return result
@@ -59,10 +66,19 @@ struct OriginalPolynomialCurveSurfacePointTests {
         #expect(try admitted(curve: curve, surface: surface).points == result.points)
         #expect(try solver.intersections(curve: .bSpline(curve), surface: .procedural(.ruled(surface)),
             options: .init(), tolerance: tolerance) == result.points)
-        #expect(try solver.intersections(curve: .bSpline(curve), surface: .procedural(.ruled(surface)),
-            options: .init(), tolerance: tolerance, maximumSpanCount: 1, maximumSubdivisionDepth: 0,
-            remainingSourceDepth: 1, consumeWork: { _ in }, consumeStorage: { _ in }, maximumAlgebraicDepth: 32) == result.points)
-        var budget = usage()
+        #expect(try geometryTestWithQuery(maximumSpanCount: 1,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            maximumAlgebraicDepth: 32,
+            consumeWorkUnits: { _ in },
+            consumeStorageBytes: { _ in }) { queryExecution in
+            try solver.intersections(curve: .bSpline(curve),
+            surface: .procedural(.ruled(surface)),
+            options: .init(),
+            tolerance: tolerance,
+            using: &queryExecution)
+        } == result.points)
+        var budget = try usage()
         let third = try ExactRationalCoefficient.one.divided(by: .originalDouble(3, usage: &budget), usage: &budget)
         let tuple = try receipt.point(at: 0)
         #expect(try tuple.compareParameter(axis: 0, to: third, in: receipt, maximumAlgebraicDepth: 32, usage: &budget) == .zero)
@@ -80,13 +96,13 @@ struct OriginalPolynomialCurveSurfacePointTests {
         #expect(result.points[0].curveParameter == result.points[1].curveParameter)
         #expect(result.points[0].surfaceU == -0.5 && result.points[1].surfaceU == 0.5)
         #expect(try admitted(curve: curve, surface: surface).points == result.points)
-        var budget = usage()
+        var budget = try usage()
         for ordinal in 0..<2 {
             let station = try ExactRationalCoefficient.originalDouble(ordinal == 0 ? -0.5 : 0.5, usage: &budget)
             #expect(try receipt.point(at: ordinal).compareParameter(axis: 1, to: station,
                 in: receipt, maximumAlgebraicDepth: 32, usage: &budget) == .zero)
         }
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestKernelFailure($0) != nil }) {
             try solver.intersectionResult(curve: .bSpline(curve), surface: .procedural(.ruled(surface)),
                 options: .init(maximumCandidateCount: 1), tolerance: tolerance)
         }
@@ -142,19 +158,31 @@ struct OriginalPolynomialCurveSurfacePointTests {
             do {
                 if discrete {
                     if admitted {
-                        _ = try solver.intersections(curve: .bSpline(curve), surface: .procedural(.ruled(mixed)), options: .init(), tolerance: tolerance,
-                            maximumSpanCount: 1, maximumSubdivisionDepth: 0, remainingSourceDepth: 1,
-                            consumeWork: { _ in }, consumeStorage: { _ in }, maximumAlgebraicDepth: 32)
+                        _ = try geometryTestWithQuery(maximumSpanCount: 1,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            maximumAlgebraicDepth: 32,
+            consumeWorkUnits: { _ in },
+            consumeStorageBytes: { _ in }) { queryExecution in
+            try solver.intersections(curve: .bSpline(curve),
+            surface: .procedural(.ruled(mixed)),
+            options: .init(),
+            tolerance: tolerance,
+            using: &queryExecution)
+        }
                     } else { _ = try solver.intersections(curve: .bSpline(curve), surface: .procedural(.ruled(mixed)), options: .init(), tolerance: tolerance) }
                 } else if admitted { _ = try self.admitted(curve: curve, surface: mixed) }
                 else { _ = try solver.intersectionResult(curve: .bSpline(curve), surface: .procedural(.ruled(mixed)), tolerance: tolerance) }
                 Issue.record("A positive or mixed original relation escaped the bounded isolated contract.")
-            } catch let error as KernelError { #expect(error.code == .nonDiscreteIntersection) }
+            } catch let caught where geometryTestKernelFailure(caught) != nil {
+            let error = geometryTestKernelFailure(caught)!
+            #expect(error.code == .nonDiscreteIntersection) }
         }
     }
 
     @Test(.timeLimit(.minutes(2)))
     func releasedInputsRetainOriginalTupleAndRejectForeignOwner() throws {
+        var readerExecution = try usage()
         let solver = DefaultCurveSurfaceIntersector()
         let receipt = try { () throws -> OriginalPolynomialCurveSurfacePoints in
             var curve = vertical(), surface = plane()
@@ -169,8 +197,8 @@ struct OriginalPolynomialCurveSurfacePointTests {
         #expect(receipt.owns(handle) && !foreign.owns(handle))
         #expect(throws: GeometryConversionError.self) { try handle.parameter(axis: 0, in: foreign) }
         let coordinate = try handle.parameter(axis: 1, in: receipt)
-        let bounds = try coordinate.enclosed(maximumDepth: 32, maximumCoefficientDepth: 0, usage: usage())
-        var budget = usage()
+        let bounds = try coordinate.enclosed(maximumDepth: 32, maximumCoefficientDepth: 0, usage: &readerExecution)
+        var budget = try usage()
         let three = try ExactRationalCoefficient.originalDouble(3, usage: &budget)
         #expect(bounds.lower == three && bounds.upper == three)
         #expect(try handle.compareParameter(axis: 1, to: three, in: receipt, maximumAlgebraicDepth: 32, usage: &budget) == .zero)
@@ -182,23 +210,30 @@ struct OriginalPolynomialCurveSurfacePointTests {
         let irrational = BSplineCurve3D(degree: 2, knots: [0,0,0,1,1,1], controlPoints: [
             .init(x: 0,y: 0.5,z: -0.5), .init(x: 0.5,y: 0.5,z: -0.5), .init(x: 1,y: 0.5,z: 0.5)])
         #expect(throws: (any Error).self) {
+            try geometryTestWithQuery(maximumSpanCount: 1,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: mode == 2 ? 0 : 1,
+            maximumAlgebraicDepth: mode == 3 ? 0 : 32,
+            consumeWorkUnits: { _ in if mode == 0 { throw exhausted } },
+            consumeStorageBytes: { _ in if mode == 1 { throw exhausted } }) { queryExecution in
             try DefaultCurveSurfaceIntersector().intersectionResult(curve: .bSpline(mode == 3 ? irrational : vertical()),
-                surface: .procedural(.ruled(plane())), tolerance: tolerance, maximumSpanCount: 1,
-                maximumSubdivisionDepth: 0, remainingSourceDepth: mode == 2 ? 0 : 1,
-                consumeWork: { _ in if mode == 0 { throw exhausted } },
-                consumeStorage: { _ in if mode == 1 { throw exhausted } }, maximumAlgebraicDepth: mode == 3 ? 0 : 32)
+            surface: .procedural(.ruled(plane())),
+            tolerance: tolerance,
+            using: &queryExecution)
+        }
         }
     }
 
     @Test(.timeLimit(.minutes(2)))
     func sourceAndRefinementCeilingsRemainExplicit() throws {
+        var readerExecution = try usage()
         let solver = DefaultCurveSurfaceIntersector()
         let irrational = BSplineCurve3D(degree: 2, knots: [0,0,0,1,1,1], controlPoints: [
             .init(x: 0,y: 0.5,z: -0.5), .init(x: 0.5,y: 0.5,z: -0.5), .init(x: 1,y: 0.5,z: 0.5)])
         for options in [CurveSurfaceIntersectionOptions(maximumSubdivisionCells: 1),
             CurveSurfaceIntersectionOptions(maximumPolynomialDegree: 1),
             CurveSurfaceIntersectionOptions(maximumIterations: 1)] {
-            #expect(throws: KernelError.self) {
+            geometryTestExpectFailure({ geometryTestKernelFailure($0) != nil }) {
                 try solver.intersectionResult(curve: .bSpline(irrational), surface: .procedural(.ruled(plane())),
                     options: options, tolerance: tolerance)
             }
@@ -206,21 +241,23 @@ struct OriginalPolynomialCurveSurfacePointTests {
         let full = try solver.intersectionResult(curve: .bSpline(irrational), surface: .procedural(.ruled(plane())), tolerance: tolerance)
         let receipt = try #require(full.originalPolynomialPoints)
         let handle = try receipt.point(at: 0)
-        var rejected = OriginalRelationUsage(consumeWork: { _ in
+        var rejected = GeometryTestScalarRecorder(observeWork: { _ in
             throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: nil, message: "Exact query work exhausted.")
-        }, retainStorage: { _ in }, visitCell: { _ in }, visitCoefficientCell: { _ in })
-        #expect(throws: KernelError.self) {
+        }, observeStorageWords: { _ in }, observeValueCell: { _ in }, observeCoefficientCell: { _ in })
+        geometryTestExpectFailure({ geometryTestKernelFailure($0) != nil }) {
             try handle.compareParameter(axis: 0, to: .zero, in: receipt, maximumAlgebraicDepth: 32, usage: &rejected)
         }
         #expect(throws: (any Error).self) {
-            try handle.parameter(axis: 0, in: receipt).enclosed(maximumDepth: 0, maximumCoefficientDepth: 0, usage: usage())
+            try handle.parameter(axis: 0, in: receipt).enclosed(maximumDepth: 0, maximumCoefficientDepth: 0, usage: &readerExecution)
         }
         let multi = BSplineCurve3D(degree: 1, knots: [0,0,0.5,1,1], controlPoints: [
             .init(x: 0.5,y: 0.5,z: -1), .init(x: 0.5,y: 0.5,z: 0), .init(x: 0.5,y: 0.5,z: 1)])
         do {
             _ = try solver.intersectionResult(curve: .bSpline(multi), surface: .procedural(.ruled(plane())), tolerance: tolerance)
             Issue.record("An uncomposed multiple-span curve escaped the bounded checkpoint.")
-        } catch let error as KernelError { #expect(error.code == .unsupportedCapability) }
+        } catch let caught where geometryTestKernelFailure(caught) != nil {
+            let error = geometryTestKernelFailure(caught)!
+            #expect(error.code == .unsupportedCapability) }
     }
 
     @Test(.timeLimit(.minutes(2)), arguments: [false,true], [false,true])
@@ -229,13 +266,31 @@ struct OriginalPolynomialCurveSurfacePointTests {
         let options = CurveSurfaceIntersectionOptions(surfaceURange: empty ? try .init(lower: 5,upper: 6) : nil)
         @Sendable func query(_ storage: @escaping @Sendable (Int) throws -> Void) throws -> [CurveSurfaceIntersection] {
             if discrete {
-                return try solver.intersections(curve: curve, surface: surface, options: options, tolerance: tolerance,
-                    maximumSpanCount: 1, maximumSubdivisionDepth: 0, remainingSourceDepth: 1,
-                    consumeWork: { _ in }, consumeStorage: storage, maximumAlgebraicDepth: 32)
+                return try geometryTestWithQuery(maximumSpanCount: 1,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            maximumAlgebraicDepth: 32,
+            consumeWorkUnits: { _ in },
+            consumeStorageBytes: storage) { queryExecution in
+            try solver.intersections(curve: curve,
+            surface: surface,
+            options: options,
+            tolerance: tolerance,
+            using: &queryExecution)
+        }
             }
-            let result = try solver.intersectionResult(curve: curve, surface: surface, options: options, tolerance: tolerance,
-                maximumSpanCount: 1, maximumSubdivisionDepth: 0, remainingSourceDepth: 1,
-                consumeWork: { _ in }, consumeStorage: storage, maximumAlgebraicDepth: 32)
+            let result = try geometryTestWithQuery(maximumSpanCount: 1,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            maximumAlgebraicDepth: 32,
+            consumeWorkUnits: { _ in },
+            consumeStorageBytes: storage) { queryExecution in
+            try solver.intersectionResult(curve: curve,
+            surface: surface,
+            options: options,
+            tolerance: tolerance,
+            using: &queryExecution)
+        }
             #expect(result.originalPolynomialPoints?.count == (empty ? 0 : 1))
             return result.points
         }
@@ -249,6 +304,6 @@ struct OriginalPolynomialCurveSurfacePointTests {
             }
         }
         do { _ = try await operation.value; Issue.record("Final cancellation returned a successful original polynomial receipt.") }
-        catch is CancellationError { #expect(visits.withLock { $0 } == finalCall) }
+        catch where geometryTestIsCancelled(error) { #expect(visits.withLock { $0 } == finalCall) }
     }
 }

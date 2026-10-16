@@ -27,7 +27,7 @@ package final class NativeSurfaceSurfaceChartInjectionProof: Sendable {
         self.charts = charts; self.maps = maps
     }
 
-    package static func prepare<B: RationalAlgebraAdmitting>(charts: [NativeSurfaceSurfaceSourceChart],
+    package static func prepare<B: ExactScalarAdmission & ~Copyable>(charts: [NativeSurfaceSurfaceSourceChart],
         usage: inout B) throws -> NativeSurfaceSurfaceChartInjectionProof? {
         try intersectionAlgebraStep(&usage)
         guard !charts.isEmpty else {
@@ -62,7 +62,7 @@ package final class NativeSurfaceSurfaceChartInjectionProof: Sendable {
     }
 
     /// Every source binding is checked; no chart-zero or representative binding is used.
-    package func validate<B: RationalAlgebraAdmitting>(charts candidate: [NativeSurfaceSurfaceSourceChart],
+    package func validate<B: ExactScalarAdmission & ~Copyable>(charts candidate: [NativeSurfaceSurfaceSourceChart],
         usage: inout B) throws {
         try intersectionAlgebraStep(&usage)
         guard candidate.count == charts.count, maps.count == charts.count else {
@@ -105,11 +105,11 @@ package final class NativeSurfaceSurfaceChartInjectionProof: Sendable {
         }
     }
 
-    private static func validateOwner<B: RationalAlgebraAdmitting>(
+    private static func validateOwner<B: ExactScalarAdmission & ~Copyable>(
         _ owner: PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan,
         law: OriginalRationalSurfacePolynomial, usage: inout B) throws {
         try owner.validate(on: law.source, over: law.domain, tolerance: owner.tolerance,
-            consumeWork: { try usage.consumeExactWork(1) })
+            using: &usage)
         try intersectionAlgebraStep(&usage)
         guard !law.source.isUPeriodic, !law.source.isVPeriodic,
             owner.uCycle == 0, owner.vCycle == 0,
@@ -125,7 +125,7 @@ package final class NativeSurfaceSurfaceChartInjectionProof: Sendable {
             }
         } }
     }
-    private static func validateDomains<B: RationalAlgebraAdmitting>(_ chart: NativeSurfaceSurfaceSourceChart,
+    private static func validateDomains<B: ExactScalarAdmission & ~Copyable>(_ chart: NativeSurfaceSurfaceSourceChart,
         usage: inout B) throws {
         guard chart.nativeDomains.count == 4 else { throw rationalAlgebraFailure("Chart injection lost its original native domains.") }
         for axis in 0..<4 {
@@ -136,15 +136,15 @@ package final class NativeSurfaceSurfaceChartInjectionProof: Sendable {
             guard try sameDomain(expected, chart.nativeDomains[axis], usage: &usage) else { throw rationalAlgebraFailure("Chart injection native domain differs from its source law.") }
         }
     }
-    private static func sameDomain<B: RationalAlgebraAdmitting>(_ first: OriginalRationalParameterDomain,
+    private static func sameDomain<B: ExactScalarAdmission & ~Copyable>(_ first: OriginalRationalParameterDomain,
         _ second: OriginalRationalParameterDomain, usage: inout B) throws -> Bool {
         guard let a = first.lower, let b = first.upper, let c = second.lower, let d = second.upper else { return false }
         return try a.subtracting(c, usage: &usage).isZero && b.subtracting(d, usage: &usage).isZero
     }
-    private static func matching<B: RationalAlgebraAdmitting>(_ original: OriginalRationalSurfacePolynomial,
+    private static func matching<B: ExactScalarAdmission & ~Copyable>(_ original: OriginalRationalSurfacePolynomial,
         _ candidate: OriginalRationalSurfacePolynomial, usage: inout B) throws {
-        try GeometryStructuralComparisonWork.charge(surface: .bSpline(original.source), using: { try usage.consumeExactWork($0) })
-        try GeometryStructuralComparisonWork.charge(surface: .bSpline(candidate.source), using: { try usage.consumeExactWork($0) })
+        try GeometryStructuralComparisonWork.charge(surface: .bSpline(original.source), using: &usage)
+        try GeometryStructuralComparisonWork.charge(surface: .bSpline(candidate.source), using: &usage)
         try intersectionAlgebraStep(&usage)
         guard original.source == candidate.source, original.domain.u == candidate.domain.u,
             original.domain.v == candidate.domain.v, original.uSpanIndex == candidate.uSpanIndex,
@@ -157,13 +157,13 @@ package final class NativeSurfaceSurfaceChartInjectionProof: Sendable {
             }
         }
     }
-    private static func map<B: RationalAlgebraAdmitting>(_ law: OriginalRationalSurfacePolynomial,
+    private static func map<B: ExactScalarAdmission & ~Copyable>(_ law: OriginalRationalSurfacePolynomial,
         usage: inout B) throws -> Map? {
         guard let u = try coordinate(law, alongU: true, excluding: nil, usage: &usage),
             let v = try coordinate(law, alongU: false, excluding: u.xyzAxis, usage: &usage) else { return nil }
         return .init(u: u, v: v)
     }
-    private static func coordinate<B: RationalAlgebraAdmitting>(_ law: OriginalRationalSurfacePolynomial,
+    private static func coordinate<B: ExactScalarAdmission & ~Copyable>(_ law: OriginalRationalSurfacePolynomial,
         alongU: Bool, excluding: Int?, usage: inout B) throws -> Coordinate? {
         let weight = law.homogeneous[3]
         var otherPower: Int?
@@ -201,7 +201,7 @@ package final class NativeSurfaceSurfaceChartInjectionProof: Sendable {
         return nil
     }
     /// A coefficient slice only proposes a map; the full cross identity proves it.
-    private static func slice<B: RationalAlgebraAdmitting>(_ law: ExactBivariatePolynomial,
+    private static func slice<B: ExactScalarAdmission & ~Copyable>(_ law: ExactBivariatePolynomial,
         alongU: Bool, otherPower: Int, usage: inout B) throws -> (ExactRationalCoefficient, ExactRationalCoefficient)? {
         var slope = ExactRationalCoefficient.zero, intercept = ExactRationalCoefficient.zero
         for (power, value) in law.originalCoefficients {

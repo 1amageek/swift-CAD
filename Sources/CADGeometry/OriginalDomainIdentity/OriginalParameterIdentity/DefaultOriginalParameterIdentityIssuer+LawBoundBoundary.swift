@@ -14,7 +14,7 @@ extension DefaultOriginalParameterIdentityIssuer: OriginalLawBoundParameterIdent
         throws(OriginalDomainIdentityFailure) -> OriginalParameterIdentity<S,F> {
         let declaration = copy declaration,scope = copy scope,rightFrame = copy rightFrame
         return try OriginalDomainAccess.run(&admission) { a in
-            try OriginalSourceProofAdmission<A>.withBorrow(&a) { tracked in
+            try a.withProofScope { tracked in
                 try lawBoundBoundary(declaration,scope:scope,rightFrame:rightFrame,
                     permutation:permutation,gains:gains,offsets:offsets,limits:limits,&tracked)
             }
@@ -70,7 +70,7 @@ extension DefaultOriginalParameterIdentityIssuer: OriginalLawBoundParameterIdent
     private func lawBoundBoundary<L: Sendable,R: Sendable,A: ExactScalarAdmission & ~Copyable>(
         _ declaration: OriginalRationalSourceBoundaryDeclaration<S,L,R,F>,scope: OriginalParameterSelection<S,F>,
         rightFrame: OriginalParameterFrame<S,F>,permutation p: [Int],gains g: [F.Value],offsets o: [F.Value],
-        limits: OriginalDomainIdentityLimits,_ a: inout OriginalSourceProofAdmission<A>) throws -> OriginalParameterIdentity<S,F> {
+        limits: OriginalDomainIdentityLimits,_ a: inout A) throws -> OriginalParameterIdentity<S,F> {
         let left = declaration.left,right = declaration.right,n = scope.arity
         try left.admitProof(using:&a); try right.admitProof(using:&a)
         try validate(left,scope:scope,limits:limits,&a)

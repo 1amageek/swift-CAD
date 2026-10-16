@@ -18,7 +18,7 @@ public struct OriginalBoundedSphereConeSurfaceMember: Sendable {
     public var coneHalfAngle: Field.Value { section.halfAngle }
     /// Sphere U is B/(2*pi)*atan2(-(X-Ox),Y-Oy)+sphereLabelOffset.
     /// The principal atan2 branch is (-pi,pi]; every integer B lift is retained.
-    public func sphereAzimuthArguments<A: ExactScalarAdmission & ~Copyable>(limits: OriginalDomainIdentityLimits, using a: inout A)
+    public func sphereAzimuthArguments(limits: OriginalDomainIdentityLimits, using a: inout OriginalQueryExecution)
         throws -> (sine: Field.Value, cosine: Field.Value) {
         try section.relation.admitProof(limits: limits, using: &a)
         let center=section.relation.source.original.sphereCenter
@@ -26,21 +26,21 @@ public struct OriginalBoundedSphereConeSurfaceMember: Sendable {
             try field.subtracting(y,field.binary64(exactly:center.y,using:&a),using:&a))
     }
     /// Sphere V is B/(2*pi)*asin((Z-Oz)/R), on the original canonical latitude branch.
-    public func sphereLatitudeSine<A: ExactScalarAdmission & ~Copyable>(limits: OriginalDomainIdentityLimits, using a: inout A) throws -> Field.Value {
+    public func sphereLatitudeSine(limits: OriginalDomainIdentityLimits, using a: inout OriginalQueryExecution) throws -> Field.Value {
         try section.relation.admitProof(limits: limits, using: &a); try a.admitDepth(value: proofDepth.value, coefficient: proofDepth.coefficient)
         let source=section.relation.source.original
         return try field.dividing(field.subtracting(z,field.binary64(exactly:source.sphereCenter.z,using:&a),using:&a),
             field.binary64(exactly:source.sphereRadius,using:&a),using:&a)
     }
-    public func firstUV<A: ExactScalarAdmission & ~Copyable>(limits: OriginalDomainIdentityLimits, using a: inout A)
+    public func firstUV(limits: OriginalDomainIdentityLimits, using a: inout OriginalQueryExecution)
         throws -> OriginalBoundedSphereConeSurfaceUV {
         try uv(isSphere: sphereIsFirst, limits: limits, using: &a)
     }
-    public func secondUV<A: ExactScalarAdmission & ~Copyable>(limits: OriginalDomainIdentityLimits, using a: inout A)
+    public func secondUV(limits: OriginalDomainIdentityLimits, using a: inout OriginalQueryExecution)
         throws -> OriginalBoundedSphereConeSurfaceUV {
         try uv(isSphere: !sphereIsFirst, limits: limits, using: &a)
     }
-    private func uv<A: ExactScalarAdmission & ~Copyable>(isSphere: Bool, limits: OriginalDomainIdentityLimits, using a: inout A)
+    private func uv(isSphere: Bool, limits: OriginalDomainIdentityLimits, using a: inout OriginalQueryExecution)
         throws -> OriginalBoundedSphereConeSurfaceUV {
         try section.relation.admitProof(limits: limits, using: &a)
         try a.admitDepth(value: proofDepth.value, coefficient: proofDepth.coefficient)

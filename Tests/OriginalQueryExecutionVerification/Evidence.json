@@ -1,0 +1,138 @@
+{
+  "scope": "Actual common OriginalQueryExecution and RobustPredicates behavior only; 27 Core + 63 Geometry source files plus exact verified production L0 modules/objects. No whole CADCore/CADGeometry/CADKernel completion claim.",
+  "canonicalReceipt": ".build/u1-common-verified-20261015-084300/receipt.json",
+  "canonicalReceiptSHA256": "e9646609dadf36cba8d54ce5dfa2934d060637e57429fff720113d0e19f428b3",
+  "reproduce": [
+    "python3",
+    "Tests/OriginalQueryExecutionVerification/verify.py",
+    "--output",
+    "<fresh-output-directory>"
+  ],
+  "sourceInventories": [
+    "Tests/OriginalQueryExecutionVerification/CoreSources.txt",
+    "Tests/OriginalQueryExecutionVerification/GeometrySources.txt"
+  ],
+  "lowerSourceInputCount": 235,
+  "sourcesUnchanged": true,
+  "lanes": {
+    "native": {
+      "compileLinkRuntime": "passed",
+      "seconds": 4.20534329200018,
+      "sampledPeakAggregateRSSBytes": 233996288,
+      "runtimePassLines": [
+        "PASS root/child persistent text ceilings, atomic rejection, duplicate attachment and exact text bytes",
+        "PASS classifier concrete witness overload",
+        "PASS known classifier witness and retained concrete original failure classification",
+        "PASS independent depth/cell ceilings and retained preparation lifetime",
+        "PASS admitted exact 2D/3D predicates, tolerance, underflow/overflow-safe exact source signs and rejection",
+        "PASS preparation/conversion descendant cleanup preserves original error and restores scopes",
+        "PASS true 3D cancellation branch, exact work/storage N and N-1, and binary expansion oracle",
+        "PASS direct original execution: totals, overflow, callback reentry, local scopes, retained evidence, shared cells/records and cancellation"
+      ],
+      "artifactSHA256": "eec3b3298f8d8c88473efdfd44c28050d6c6051c0b6c396c117c69c035b3e1df"
+    },
+    "asan": {
+      "compileLinkRuntime": "passed",
+      "seconds": 4.194757415999902,
+      "sampledPeakAggregateRSSBytes": 306806784,
+      "runtimePassLines": [
+        "PASS root/child persistent text ceilings, atomic rejection, duplicate attachment and exact text bytes",
+        "PASS classifier concrete witness overload",
+        "PASS known classifier witness and retained concrete original failure classification",
+        "PASS independent depth/cell ceilings and retained preparation lifetime",
+        "PASS admitted exact 2D/3D predicates, tolerance, underflow/overflow-safe exact source signs and rejection",
+        "PASS preparation/conversion descendant cleanup preserves original error and restores scopes",
+        "PASS true 3D cancellation branch, exact work/storage N and N-1, and binary expansion oracle",
+        "PASS direct original execution: totals, overflow, callback reentry, local scopes, retained evidence, shared cells/records and cancellation"
+      ],
+      "artifactSHA256": "88b10944aefa22a13f695d2a7a8820ba7d9a985c72926b0fcacbb96ad88f51aa"
+    },
+    "wasm": {
+      "compileLinkRuntime": "passed",
+      "seconds": 4.721950291999747,
+      "sampledPeakAggregateRSSBytes": 283574272,
+      "runtimePassLines": [
+        "PASS root/child persistent text ceilings, atomic rejection, duplicate attachment and exact text bytes",
+        "PASS classifier concrete witness overload",
+        "PASS known classifier witness and retained concrete original failure classification",
+        "PASS independent depth/cell ceilings and retained preparation lifetime",
+        "PASS admitted exact 2D/3D predicates, tolerance, underflow/overflow-safe exact source signs and rejection",
+        "PASS preparation/conversion descendant cleanup preserves original error and restores scopes",
+        "PASS true 3D cancellation branch, exact work/storage N and N-1, and binary expansion oracle",
+        "PASS direct original execution: totals, overflow, callback reentry, local scopes, retained evidence, shared cells/records and cancellation"
+      ],
+      "artifactSHA256": "6de996db4794dda4da15d5286e8ab3c04d4caaa019983acbed4581362af050a9"
+    },
+    "embedded": {
+      "compileLinkRuntime": "passed",
+      "seconds": 7.316302624999935,
+      "sampledPeakAggregateRSSBytes": 386482176,
+      "runtimePassLines": [
+        "PASS root/child persistent text ceilings, atomic rejection, duplicate attachment and exact text bytes",
+        "PASS classifier concrete witness overload",
+        "PASS known classifier witness and retained concrete original failure classification",
+        "PASS independent depth/cell ceilings and retained preparation lifetime",
+        "PASS admitted exact 2D/3D predicates, tolerance, underflow/overflow-safe exact source signs and rejection",
+        "PASS preparation/conversion descendant cleanup preserves original error and restores scopes",
+        "PASS true 3D cancellation branch, exact work/storage N and N-1, and binary expansion oracle",
+        "PASS direct original execution: totals, overflow, callback reentry, local scopes, retained evidence, shared cells/records and cancellation"
+      ],
+      "artifactSHA256": "e92fc18f8208f202b5eac3c722f460dd1de6906f16b98e3963da8bbb8a2f0338"
+    }
+  },
+  "ownershipMatrix": [
+    {
+      "state": "Budget totals and contribution counters including source text",
+      "storageAllTargets": "Mutex<State>",
+      "readAllTargets": "snapshot and contributionSnapshot via state.withLock",
+      "mutationAllTargets": "debit and issuingContributionHandle via state.withLock",
+      "releaseAllTargets": "Budget reference lifetime; no stream or asynchronous shutdown",
+      "conditionalSynchronizationBranches": 0
+    },
+    {
+      "state": "Execution counters, source offsets and lexical scopes",
+      "storageAllTargets": "Exclusive noncopyable OriginalQueryExecution value",
+      "readAllTargets": "Exclusive query owner",
+      "mutationAllTargets": "Mutating admission methods on the same value",
+      "releaseAllTargets": "Lexical cleanup and value destruction release retained owners",
+      "conditionalSynchronizationBranches": 0
+    },
+    {
+      "state": "Persistent contribution handle",
+      "storageAllTargets": "Immutable Sendable handle retaining the same budget",
+      "readAllTargets": "Budget contributionSnapshot under Mutex",
+      "mutationAllTargets": "No handle mutation; budget owns all counters",
+      "releaseAllTargets": "Reference retention of the original budget",
+      "conditionalSynchronizationBranches": 0
+    }
+  ],
+  "fixedBehavioralCounterexamples": [
+    "3D authored positive determinant at axis coordinates 1e-200 was incorrectly erased by expansion underflow; exact rational fallback now preserves positive/negative/zero and tolerance.",
+    "2D determinant -3283980011921799 at equal absolute tolerance incorrectly passed the filter; outward tolerance plus error bound now requests exact comparison.",
+    "3D determinant 7693130806237696 at equal tolerance incorrectly passed the filter; exact comparison returns indeterminate."
+  ],
+  "limitations": [
+    "WASI runs use a cooperative single-threaded runtime; these executions do not establish multi-threaded WASM mutex semantics.",
+    "Sub-second runtimes can finish between memory samples; zero sampled runtime RSS does not mean zero allocation.",
+    "Ordinary CS/SSI policy factories and other Geometry/Kernel paths are outside this focused closure."
+  ],
+  "rootReview": {
+    "kind": "One comprehensive review of the stable common execution component",
+    "reviewedInvariants": [
+      "Same Mutex-backed cumulative owner on all targets",
+      "Independent work/bytes/text/cells/records and depth axes",
+      "Atomic refusal and accepted debit retention after callbacks",
+      "Callbacks outside the shared-state lock",
+      "Exclusive lexical scope cleanup and retained receipt lifetime",
+      "Exact authored orientation and threshold comparison",
+      "Concrete failure discovery across the real Embedded module boundary"
+    ],
+    "currentInputsChecked": 96,
+    "unchangedLowerInputsChecked": 235,
+    "lowerObjectsChecked": 226,
+    "compiledProductsAndLogsChecked": 40,
+    "hashMismatches": 0,
+    "actionableFindings": [],
+    "limits": "Common 90-production-source closure only. Whole Geometry/Topology/IR/Modeling/Kernel and changed public callers remain unverified. No coherent U1 commit or main integration yet."
+  }
+}

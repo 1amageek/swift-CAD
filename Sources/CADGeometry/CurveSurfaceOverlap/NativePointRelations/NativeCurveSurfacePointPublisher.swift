@@ -15,12 +15,12 @@ import WASILibc
 /// Publishes certified representatives from complete original zero-dimensional CS cells.
 struct NativeCurveSurfacePointPublisher {
     private func value(_ polynomial: ExactBivariatePolynomial, curve: Bool,
-        cell: OriginalRationalIntersectionCells.Cell, usage: inout NativeCurveSurfacePointAllowance)
+        cell: OriginalRationalIntersectionCells.Cell, usage: inout OriginalQueryExecution)
         throws -> OriginalSingularFieldElement {
         let embedded = try ExactIntersectionPolynomial.embedding(polynomial, variableCount: 3,
             uCoordinate: curve ? 0 : 1, vCoordinate: curve ? 1 : 2, usage: &usage)
         return try OriginalIntersectionFieldEvaluation.evaluated(embedded, context: cell.context,
-            coordinates: cell.coordinates, maximumDepth: usage.maximumAlgebraicDepth, usage: &usage)
+            coordinates: cell.coordinates, maximumDepth: usage.effectiveLimits.maximumValueDepth, usage: &usage)
     }
 
     func publish(cell: OriginalRationalIntersectionCells.Cell,
@@ -31,11 +31,11 @@ struct NativeCurveSurfacePointPublisher {
         nativeDomains: (ScalarInterval, ScalarInterval, ScalarInterval),
         retainingParameters: inout [OriginalSingularFieldValueIsolation],
         retainingLocalizations: inout [NativeCurveSurfaceScalarLocalization?],
-        usage: inout NativeCurveSurfacePointAllowance) throws -> CurveSurfaceIntersection {
+        usage: inout OriginalQueryExecution) throws -> CurveSurfaceIntersection {
         guard surfaceHomogeneous.count == 4, surfaceNormalNumerators.count == 3 else {
             throw rationalAlgebraFailure("Original CS publication requires complete homogeneous and normal laws.")
         }
-        let depth = usage.maximumAlgebraicDepth
+        let depth = usage.effectiveLimits.maximumValueDepth
         let weight = try value(curve.homogeneous[3], curve: true, cell: cell, usage: &usage)
         try RationalAlgebraStorage.retain(6, of: OriginalSingularFieldValueIsolation.self, usage: &usage)
         var isolations: [OriginalSingularFieldValueIsolation] = []; isolations.reserveCapacity(6)
@@ -69,7 +69,7 @@ struct NativeCurveSurfacePointPublisher {
         // at the exact root, even if outward parameter endpoints leave the domain.
         var minimumWeight = Double.infinity, maximumWeight = 0.0
         for weight in curve.source.weights {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             minimumWeight = min(minimumWeight, weight); maximumWeight = max(maximumWeight, weight)
         }
         let intervalWeight = OutwardScalarInterval(lower: minimumWeight, upper: maximumWeight)
@@ -111,7 +111,7 @@ struct NativeCurveSurfacePointPublisher {
         try RationalAlgebraStorage.retain(6, of: OutwardScalarInterval.self, usage: &usage)
         var bounds: [OutwardScalarInterval] = []; bounds.reserveCapacity(6)
         for iteration in 0..<options.maximumIterations {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             bounds.removeAll(keepingCapacity: true)
             for index in isolations.indices {
                 if index < 3, let localization = localizations[index] {
@@ -148,7 +148,7 @@ struct NativeCurveSurfacePointPublisher {
                 bounds[1].upper - bounds[1].lower <= tolerance.distance,
                 bounds[2].upper - bounds[2].lower <= tolerance.distance {
                 for axis in 0..<3 {
-                    try usage.consumeExactWork(1); retainingParameters.append(isolations[axis])
+                    try usage.consumeWork(1); retainingParameters.append(isolations[axis])
                     retainingLocalizations.append(localizations[axis])
                 }
                 return try .init(point: point, curveParameter: parameters.0, surfaceU: parameters.1,
@@ -160,7 +160,7 @@ struct NativeCurveSurfacePointPublisher {
     }
 
     private func rationalPosition(_ homogeneous: [ExactBivariatePolynomial], u: Double, v: Double,
-        usage: inout NativeCurveSurfacePointAllowance) throws -> (OutwardScalarInterval, OutwardScalarInterval, OutwardScalarInterval) {
+        usage: inout OriginalQueryExecution) throws -> (OutwardScalarInterval, OutwardScalarInterval, OutwardScalarInterval) {
         let a = try ExactRationalCoefficient.originalDouble(u, usage: &usage)
         let b = try ExactRationalCoefficient.originalDouble(v, usage: &usage)
         let weight = try homogeneous[3].evaluated(atU: a, v: b, usage: &usage)
@@ -201,9 +201,9 @@ struct NativeCurveSurfacePointPublisher {
 
     private func classify(cell: OriginalRationalIntersectionCells.Cell,
         curve: OriginalRationalCurvePolynomial, surfaceNormalNumerators: [ExactBivariatePolynomial],
-        tolerance: ModelingTolerance, usage: inout NativeCurveSurfacePointAllowance)
+        tolerance: ModelingTolerance, usage: inout OriginalQueryExecution)
         throws -> CurveSurfaceIntersectionKind {
-        let depth = usage.maximumAlgebraicDepth
+        let depth = usage.effectiveLimits.maximumValueDepth
         let zero = try OriginalSingularFieldElement.constant(.zero, in: cell.context, maximumDepth: depth, usage: &usage)
         let derivativeWeight = try curve.homogeneous[3].differentiated(alongU: true, usage: &usage)
         var tangentSquared = zero, normalSquared = zero, dot = zero

@@ -27,9 +27,10 @@ struct PeriodicBSplineSurfaceEditingTests {
     }
 
     private func check(_ actual: BSplineSurface3D, _ source: BSplineSurface3D,
-                       u: Double, v: Double, second: Bool = true) throws {
-        let a = try actual.surfaceDerivatives(u: u, v: v, tolerance: tolerance)
-        let b = try source.surfaceDerivatives(u: u, v: v, tolerance: tolerance)
+                       u: Double, v: Double, second: Bool = true,
+                       using execution: inout OriginalQueryExecution) throws {
+        let a = try actual.surfaceDerivatives(u: u, v: v, tolerance: tolerance, using: &execution)
+        let b = try source.surfaceDerivatives(u: u, v: v, tolerance: tolerance, using: &execution)
         #expect((a.position - b.position).length < 2e-10)
         #expect((a.tangentU - b.tangentU).length < 2e-9)
         #expect((a.tangentV - b.tangentV).length < 2e-9)
@@ -42,6 +43,8 @@ struct PeriodicBSplineSurfaceEditingTests {
 
     @Test(.timeLimit(.minutes(1)))
     func seamCrossingAndMultiplePeriodsRetainTheTensorLocusAndMixedJets() throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
         for rational in [false, true] {
             let source = try surface(rational: rational)
                 .changingPeriodicOrigin(direction: .u, to: 3.25, tolerance: tolerance)
@@ -56,7 +59,7 @@ struct PeriodicBSplineSurfaceEditingTests {
                 for j in 0...12 {
                     for i in 0...12 {
                         try check(trimmed, source, u: u0 + (u1 - u0) * Double(i) / 12,
-                            v: v0 + (v1 - v0) * Double(j) / 12)
+                            v: v0 + (v1 - v0) * Double(j) / 12, using: &execution)
                     }
                 }
             }
@@ -66,6 +69,8 @@ struct PeriodicBSplineSurfaceEditingTests {
 
     @Test(.timeLimit(.minutes(1)))
     func bothRefinementDirectionsRetainCyclesOriginsAndTranslatedRepresentatives() throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
         for rational in [false, true] {
             let source = try surface(rational: rational).changingPeriodicOrigin(direction: .v, to: 3.25, tolerance: tolerance)
             for direction: SurfaceParameterDirection in [.u, .v] {
@@ -78,7 +83,7 @@ struct PeriodicBSplineSurfaceEditingTests {
                     #expect(refined.vControlPointCount == source.vControlPointCount + (direction == .v ? 1 : 0))
                     for j in 0...8 {
                         for i in 0...8 {
-                            try check(refined, source, u: -3.75 + Double(i), v: 0.25 + Double(j))
+                            try check(refined, source, u: -3.75 + Double(i), v: 0.25 + Double(j), using: &execution)
                         }
                     }
                 }
@@ -91,6 +96,8 @@ struct PeriodicBSplineSurfaceEditingTests {
 
     @Test(.timeLimit(.minutes(1)))
     func onePeriodicAxisAndNonClampedOpenAxisRestrictExactly() throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
         for (uPeriodic, vPeriodic) in [(true, false), (false, true)] {
             var source = try surface(uPeriodic: uPeriodic, vPeriodic: vPeriodic)
             let nonClamped: [Double] = [-2, -1, -0.5, 0, 1, 1.5, 2, 3]
@@ -102,24 +109,26 @@ struct PeriodicBSplineSurfaceEditingTests {
             for j in 0...8 {
                 for i in 0...8 {
                     try check(trimmed, source, u: u0 + (u1 - u0) * Double(i) / 8,
-                        v: v0 + (v1 - v0) * Double(j) / 8)
+                        v: v0 + (v1 - v0) * Double(j) / 8, using: &execution)
                 }
             }
             let refined = try source.insertingKnot(direction: uPeriodic ? .v : .u, value: 0.4, tolerance: tolerance)
-            try check(refined, source, u: uPeriodic ? 4.25 : 0.4, v: vPeriodic ? 4.25 : 0.4)
+            try check(refined, source, u: uPeriodic ? 4.25 : 0.4, v: vPeriodic ? 4.25 : 0.4, using: &execution)
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func repeatedSeamsAndDegreeGreaterThanCycleCountRemainExact() throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
         for source in [try surface(repeated: true), try surface(degree: 5)] {
             let trimmed = try source.trimmed(uFrom: 3.25, uTo: 4.75, vFrom: -0.25, vTo: 0.75, tolerance: tolerance)
             for (u, v) in [(3.25, -0.25), (3.9, -0.1), (4, 0), (4.1, 0.1), (4.75, 0.75)] {
-                try check(trimmed, source, u: u, v: v)
+                try check(trimmed, source, u: u, v: v, using: &execution)
             }
             let refined = try source.insertingKnot(direction: .u, value: 0, tolerance: tolerance)
                 .insertingKnot(direction: .v, value: 4, tolerance: tolerance)
-            try check(refined, source, u: 4.25, v: -0.25)
+            try check(refined, source, u: 4.25, v: -0.25, using: &execution)
             if source.uDegree == 3 {
                 #expect(refined.periodicSeamContinuityOrder(direction: .u) == 0)
                 #expect(throws: KernelError.self) { try refined.insertingKnot(direction: .u, value: 8, tolerance: tolerance) }
@@ -129,12 +138,14 @@ struct PeriodicBSplineSurfaceEditingTests {
 
     @Test(.timeLimit(.minutes(1)))
     func tensorBudgetsAccountForAllLinesAndSimultaneouslyOwnedNets() throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
         let source = try surface(degree: 2)
         // One line needs 37 controls and 231 work units. Six lines need 1,386
         // work units; the output and conservative transient slots need 338 controls.
         let refine = PeriodicBSplineExpansionOptions(maximumControlPointCount: 338, maximumKnotInsertionWork: 1_386)
         let refined = try source.insertingKnot(direction: .u, value: 1.25, expansionOptions: refine, tolerance: tolerance)
-        try check(refined, source, u: 1.25, v: 1.25)
+        try check(refined, source, u: 1.25, v: 1.25, using: &execution)
         for options in [PeriodicBSplineExpansionOptions(maximumControlPointCount: 337),
                         .init(maximumKnotInsertionWork: 1_385), .init(maximumKnotInsertionWork: 231)] {
             do {
@@ -146,7 +157,7 @@ struct PeriodicBSplineSurfaceEditingTests {
         // intermediate and 324 output slots; its peak allowance is 576 and work 1,488.
         let trim = PeriodicBSplineExpansionOptions(maximumControlPointCount: 576, maximumKnotInsertionWork: 1_488)
         let trimmed = try source.trimmed(uFrom: 0, uTo: 4, vFrom: 0, vTo: 4, expansionOptions: trim, tolerance: tolerance)
-        try check(trimmed, source, u: 1.25, v: 1.25)
+        try check(trimmed, source, u: 1.25, v: 1.25, using: &execution)
         for options in [PeriodicBSplineExpansionOptions(maximumControlPointCount: 575),
                         .init(maximumKnotInsertionWork: 1_487), .init(maximumControlPointCount: 36)] {
             do {

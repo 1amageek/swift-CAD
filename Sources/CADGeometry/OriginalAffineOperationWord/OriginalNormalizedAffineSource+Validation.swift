@@ -1,12 +1,12 @@
 import CADCore
 
 extension OriginalNormalizedAffineSource {
-    func validateOriginalPayload<B: RationalAlgebraAdmitting>(usage: inout B) throws {
-        try usage.consumeExactWork(9)
+    func validateOriginalPayload<B: ExactScalarAdmission & ~Copyable>(usage: inout B) throws {
+        try usage.consumeWork(9)
         try location.validate()
-        if let axis1 { try usage.consumeExactWork(3); try axis1.validate() }
-        if let axis2 { try usage.consumeExactWork(3); try axis2.validate() }
-        if let axis3 { try usage.consumeExactWork(3); try axis3.validate() }
+        if let axis1 { try usage.consumeWork(3); try axis1.validate() }
+        if let axis2 { try usage.consumeWork(3); try axis2.validate() }
+        if let axis3 { try usage.consumeWork(3); try axis3.validate() }
         if let scale {
             guard scale.isFinite, scale > 0 else { throw rationalAlgebraFailure("Original normalized scale must be finite and positive.") }
         }
@@ -19,13 +19,13 @@ extension OriginalNormalizedAffineSource {
         try gainPayload(lengthGain, usage: &usage)
         try gainPayload(linearGain, usage: &usage)
         for adjustment in adjustments {
-            try usage.consumeExactWork(4)
+            try usage.consumeWork(4)
             try adjustment.displacement.validate()
         }
     }
-    private func gainPayload<B: RationalAlgebraAdmitting>(_ gain: ExactRationalCoefficient, usage: inout B) throws {
-        try usage.consumeExactWork(1)
-        for _ in gain.canonicalNumeratorWords { try usage.consumeExactWork(1) }
-        for _ in gain.canonicalDenominatorWords { try usage.consumeExactWork(1) }
+    private func gainPayload<B: ExactScalarAdmission & ~Copyable>(_ gain: ExactRationalCoefficient, usage: inout B) throws {
+        try usage.consumeWork(1)
+        for _ in gain.canonicalNumeratorWords { try usage.consumeWork(1) }
+        for _ in gain.canonicalDenominatorWords { try usage.consumeWork(1) }
     }
 }

@@ -1,14 +1,15 @@
 import CADCore
+
 #if !hasFeature(Embedded)
-import Foundation
+  import Foundation
 #elseif canImport(Darwin)
-import Darwin
+  import Darwin
 #elseif canImport(Glibc)
-import Glibc
+  import Glibc
 #elseif canImport(WASILibc)
-import WASILibc
+  import WASILibc
 #else
-#error("CADGeometry numeric algorithms require the target C math module.")
+  #error("CADGeometry numeric algorithms require the target C math module.")
 #endif
 
 /// A complete graph certificate for an internal isocurve that is the unique intersection with a
@@ -60,21 +61,37 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
   private let source: SourceSurface
   private let plane: ExactPlanePatch
 
+  /// The sealed V-middle theorem retains this original U law without Cartesian contraction.
+  func originalMiddleCurve(
+    tolerance: ModelingTolerance,
+    using execution: inout OriginalQueryExecution
+  ) throws -> BSplineCurve3D {
+    try execution.consumeWork(1)
+    let surface = source.surface
+    let curve = BSplineCurve3D(
+      degree: surface.uDegree, knots: surface.uKnots,
+      controlPoints: surface.controlPoints[2], weights: surface.weights[2],
+      isPeriodic: surface.isUPeriodic, periodicOrigin: surface.uPeriodicOrigin)
+    try curve.validate(tolerance: tolerance, using: &execution)
+    return curve
+  }
+
   static func certified(
     first: BSplineSurface3D,
     second: BSplineSurface3D,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> ExactIsoparametricPlanarIntersectionGraph? {
+    try execution.consumeWork(1)
     try tolerance.validate()
-    if let plane = exactPlanePatch(second),
-      let source = exactSourceSurface(first, intersecting: plane)
+    if let plane = try exactPlanePatch(second, using: &execution),
+      let source = try exactSourceSurface(first, intersecting: plane, using: &execution)
     {
-      return make(source: source, plane: plane, sourceIsFirst: true)
+      return try make(source: source, plane: plane, sourceIsFirst: true, using: &execution)
     }
-    if let plane = exactPlanePatch(first),
-      let source = exactSourceSurface(second, intersecting: plane)
+    if let plane = try exactPlanePatch(first, using: &execution),
+      let source = try exactSourceSurface(second, intersecting: plane, using: &execution)
     {
-      return make(source: source, plane: plane, sourceIsFirst: false)
+      return try make(source: source, plane: plane, sourceIsFirst: false, using: &execution)
     }
     return nil
   }
@@ -85,8 +102,9 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
     parameterBox: SurfaceIntersectionParameterBox,
     freeParameter: SurfaceIntersectionParameterCoordinate,
     first: BSplineSurface3D,
-    second: BSplineSurface3D
-  ) -> Bool {
+    second: BSplineSurface3D, using execution: inout OriginalQueryExecution
+  ) throws -> Bool {
+    try execution.consumeWork(1)
     let sourceU = sourceIsFirst ? parameterBox.firstU : parameterBox.secondU
     let sourceV = sourceIsFirst ? parameterBox.firstV : parameterBox.secondV
     let planeU = sourceIsFirst ? parameterBox.secondU : parameterBox.firstU
@@ -104,6 +122,7 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
       return false
     }
     for cell in cells where cell.freeParameter == freeParameter {
+      try execution.consumeWork(1)
       if sourceU.lower == cell.sourceULower,
         sourceU.upper == cell.sourceUUpper
       {
@@ -116,8 +135,9 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
   func normalizedParameterPair(
     in cell: Cell,
     at fraction: Double,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> SurfaceIntersectionParameterPair {
+    try execution.consumeWork(1)
     guard fraction.isFinite,
       fraction >= -tolerance.relative,
       fraction <= 1.0 + tolerance.relative
@@ -131,22 +151,18 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
     let point = try source.surface.point(
       u: sourceU,
       v: source.fixedV,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
     let planeParameters = try planarParameters(
       for: point,
-      tolerance: tolerance
-    )
-    let sourceNormalized = [
-      Self.normalizedParameter(sourceU, in: source.surface.uDomain),
-      Self.normalizedParameter(source.fixedV, in: source.surface.vDomain),
-    ]
-    let planeNormalized = [planeParameters.u, planeParameters.v]
+      tolerance: tolerance, using: &execution)
+    let sourceNormalizedU = Self.normalizedParameter(sourceU, in: source.surface.uDomain)
+    let sourceNormalizedV = Self.normalizedParameter(source.fixedV, in: source.surface.vDomain)
+    try OriginalCoefficientAllocation.reserve(count: 4, of: Double.self, using: &execution)
     return try SurfaceIntersectionParameterPair(
       values: sourceIsFirst
-        ? sourceNormalized + planeNormalized
-        : planeNormalized + sourceNormalized
-    )
+        ? [sourceNormalizedU, sourceNormalizedV, planeParameters.u, planeParameters.v]
+        : [planeParameters.u, planeParameters.v, sourceNormalizedU, sourceNormalizedV])
   }
 
   func actualParameterPair(
@@ -154,13 +170,15 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
     at fraction: Double,
     first: BSplineSurface3D,
     second: BSplineSurface3D,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> SurfaceIntersectionParameterPair {
+    try execution.consumeWork(1)
     let normalized = try normalizedParameterPair(
       in: cell,
       at: fraction,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     ).values
+    try OriginalCoefficientAllocation.reserve(count: 4, of: Double.self, using: &execution)
     return try SurfaceIntersectionParameterPair(values: [
       Self.actualParameter(normalized[0], in: first.uDomain),
       Self.actualParameter(normalized[1], in: first.vDomain),
@@ -177,35 +195,44 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
     upperAnchor: SurfaceIntersectionParameterPair,
     first: BSplineSurface3D,
     second: BSplineSurface3D,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> Bool {
+    try execution.consumeWork(1)
     for cell in cells where cell.freeParameter == freeParameter {
+      try execution.consumeWork(1)
       guard
-        Self.matches(
+        try Self.matches(
           parameterBox,
           normalizedBounds: cell.normalizedBounds,
           first: first,
           second: second,
-          tolerance: tolerance
-        )
+          tolerance: tolerance, using: &execution)
       else {
         continue
       }
-      let expected = try [0.0, 0.5, 1.0].map {
+      try OriginalCoefficientAllocation.reserve(count: 3, of: Double.self, using: &execution)
+      let expected = try OriginalCoefficientAllocation.map(
+        elements: [0.0, 0.5, 1.0], using: &execution
+      ) { element, execution in
         try actualParameterPair(
           in: cell,
-          at: $0,
+          at: element,
           first: first,
           second: second,
-          tolerance: tolerance
-        )
+          tolerance: tolerance, using: &execution)
       }
-      return zip([lowerAnchor, midpointAnchor, upperAnchor], expected)
+      try OriginalCoefficientAllocation.reserve(
+        count: 3, of: SurfaceIntersectionParameterPair.self, using: &execution)
+      return try
+        (zip([lowerAnchor, midpointAnchor, upperAnchor], expected)
         .allSatisfy { stored, reproduced in
-          zip(stored.values, reproduced.values).allSatisfy {
-            abs($0.0 - $0.1) <= tolerance.relative
-          }
-        }
+          try execution.consumeWork(1)
+          return try
+            (zip(stored.values, reproduced.values).allSatisfy {
+              try execution.consumeWork(1)
+              return abs($0.0 - $0.1) <= tolerance.relative
+            })
+        })
     }
     return false
   }
@@ -219,8 +246,9 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
     upperAnchor: SurfaceIntersectionParameterPair,
     first: BSplineSurface3D,
     second: BSplineSurface3D,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> [ScalarInterval]? {
+    try execution.consumeWork(1)
     guard
       try certifies(
         parameterBox: parameterBox,
@@ -230,26 +258,21 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
         upperAnchor: upperAnchor,
         first: first,
         second: second,
-        tolerance: tolerance
-      ),
-      let cell = cells.first(where: {
-        $0.freeParameter == freeParameter
+        tolerance: tolerance, using: &execution),
+      let cell = try cells.first(where: {
+        try $0.freeParameter == freeParameter
           && Self.matches(
             parameterBox,
             normalizedBounds: $0.normalizedBounds,
             first: first,
             second: second,
-            tolerance: tolerance
-          )
+            tolerance: tolerance, using: &execution)
       })
     else {
       return nil
     }
 
-    let sourceCurve = try source.surface.uIsoparametricCurve(
-      atV: source.fixedV,
-      tolerance: tolerance
-    )
+    let sourceCurve = try originalMiddleCurve(tolerance: tolerance, using: &execution)
     let sourceInterval = try ScalarInterval(
       lower: cell.sourceULower,
       upper: cell.sourceUUpper
@@ -257,7 +280,7 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
     let patches = try BSplineCurveBezierDecomposer().curvePatches(
       curve: sourceCurve,
       intersecting: sourceInterval,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
     guard patches.count == 1,
       let sourcePatch = patches.first,
@@ -274,7 +297,7 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
       tolerance: tolerance
     )
     let sourceScale = OutwardScalarInterval(
-      parameterBox.interval(for: freeParameter).width
+      try parameterBox.interval(for: freeParameter).width
     )
     let tangent = IntervalVector3DBounds(
       x: sourceJet.x.derivativeU * sourceScale,
@@ -283,9 +306,8 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
     )
     let affineDerivative = try affineCoordinateDerivativeBounds(
       tangent: tangent,
-      tolerance: tolerance
-    )
-    let planarJacobian = try planarMapJacobianBounds(tolerance: tolerance)
+      tolerance: tolerance, using: &execution)
+    let planarJacobian = try planarMapJacobianBounds(tolerance: tolerance, using: &execution)
     guard
       let planeUNormalized =
         (affineDerivative.u * planarJacobian.dv.y
@@ -313,13 +335,15 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
     let planeU =
       planeUNormalized
       * OutwardScalarInterval(
-        parameterBox.interval(for: planeUCoordinate).width
+        try parameterBox.interval(for: planeUCoordinate).width
       )
     let planeV =
       planeVNormalized
       * OutwardScalarInterval(
-        parameterBox.interval(for: planeVCoordinate).width
+        try parameterBox.interval(for: planeVCoordinate).width
       )
+    try OriginalCoefficientAllocation.reserve(
+      count: 4, of: OutwardScalarInterval.self, using: &execution)
     let forward =
       sourceIsFirst
       ? [sourceU, zero, planeU, planeV]
@@ -327,16 +351,25 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
     let directed =
       direction == .forward
       ? forward
-      : forward.map { Self.negated($0) }
-    guard directed.allSatisfy({ $0.isFinite }) else {
+      : try OriginalCoefficientAllocation.map(elements: forward, using: &execution) {
+        element, execution in Self.negated(element)
+      }
+    guard
+      try
+        (directed.allSatisfy({
+          try execution.consumeWork(1)
+          return $0.isFinite
+        }))
+    else {
       throw Self.certificateFailure(
         tolerance: tolerance,
         message:
           "An exact isoparametric-planar graph derivative exceeded finite interval arithmetic."
       )
     }
-    return try directed.map {
-      try ScalarInterval(lower: $0.lower, upper: $0.upper)
+    return try OriginalCoefficientAllocation.map(elements: directed, using: &execution) {
+      element, execution in
+      try ScalarInterval(lower: element.lower, upper: element.upper)
     }
   }
 
@@ -351,8 +384,9 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
     toNormalizedFraction upperFraction: Double,
     first: BSplineSurface3D,
     second: BSplineSurface3D,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> CertifiedImplicitIntersectionGraphSubcell? {
+    try execution.consumeWork(1)
     guard lowerFraction.isFinite,
       upperFraction.isFinite,
       lowerFraction >= 0.0,
@@ -366,17 +400,15 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
         upperAnchor: upperAnchor,
         first: first,
         second: second,
-        tolerance: tolerance
-      ),
-      let cell = cells.first(where: {
-        $0.freeParameter == freeParameter
+        tolerance: tolerance, using: &execution),
+      let cell = try cells.first(where: {
+        try $0.freeParameter == freeParameter
           && Self.matches(
             parameterBox,
             normalizedBounds: $0.normalizedBounds,
             first: first,
             second: second,
-            tolerance: tolerance
-          )
+            tolerance: tolerance, using: &execution)
       })
     else {
       return nil
@@ -396,10 +428,7 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
     let sourceUpper =
       cell.sourceULower
       + (cell.sourceUUpper - cell.sourceULower) * directedUpper
-    let sourceCurve = try source.surface.uIsoparametricCurve(
-      atV: source.fixedV,
-      tolerance: tolerance
-    )
+    let sourceCurve = try originalMiddleCurve(tolerance: tolerance, using: &execution)
     let sourceInterval = try ScalarInterval(
       lower: sourceLower,
       upper: sourceUpper
@@ -407,7 +436,7 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
     let patches = try BSplineCurveBezierDecomposer().curvePatches(
       curve: sourceCurve,
       intersecting: sourceInterval,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
     guard patches.count == 1, let sourcePatch = patches.first else {
       throw Self.certificateFailure(
@@ -426,38 +455,33 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
         y: sourceJet.y.value,
         z: sourceJet.z.value
       ),
-      tolerance: tolerance
-    )
+      tolerance: tolerance, using: &execution)
     let normalizedPlane = try inversePlanarMapBounds(
       affineU: affine.u,
       affineV: affine.v,
-      tolerance: tolerance
-    )
+      tolerance: tolerance, using: &execution)
     let normalizedPlaneU = normalizedPlane.u
     let normalizedPlaneV = normalizedPlane.v
     let sourceU = try containingInterval(
       sourceLower,
       sourceUpper,
       in: source.surface.uDomain,
-      tolerance: tolerance
-    )
+      tolerance: tolerance, using: &execution)
     let sourceV = try containingInterval(
       source.fixedV,
       source.fixedV,
       in: source.surface.vDomain,
-      tolerance: tolerance
-    )
+      tolerance: tolerance, using: &execution)
     let planeSurface = sourceIsFirst ? second : first
     let planeU = try actualInterval(
       normalizedPlaneU,
       in: planeSurface.uDomain,
-      tolerance: tolerance
-    )
+      tolerance: tolerance, using: &execution)
     let planeV = try actualInterval(
       normalizedPlaneV,
       in: planeSurface.vDomain,
-      tolerance: tolerance
-    )
+      tolerance: tolerance, using: &execution)
+    try OriginalCoefficientAllocation.reserve(count: 4, of: ScalarInterval.self, using: &execution)
     let intervals =
       sourceIsFirst
       ? [sourceU, sourceV, planeU, planeV]
@@ -473,13 +497,11 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
     )
     let affineDerivative = try affineCoordinateDerivativeBounds(
       tangent: tangent,
-      tolerance: tolerance
-    )
+      tolerance: tolerance, using: &execution)
     let planarJacobian = try planarMapJacobianBounds(
       u: normalizedPlaneU,
       v: normalizedPlaneV,
-      tolerance: tolerance
-    )
+      tolerance: tolerance, using: &execution)
     guard
       let planeUNormalized =
         (affineDerivative.u * planarJacobian.dv.y
@@ -496,6 +518,8 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
     let zero = OutwardScalarInterval(0.0)
     let planeUDomainWidth = Self.domainWidth(planeSurface.uDomain)
     let planeVDomainWidth = Self.domainWidth(planeSurface.vDomain)
+    try OriginalCoefficientAllocation.reserve(
+      count: 8, of: OutwardScalarInterval.self, using: &execution)
     let sourceDerivatives = [
       OutwardScalarInterval(sourceSpan * traversalSign),
       zero,
@@ -508,7 +532,13 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
       sourceIsFirst
       ? sourceDerivatives + planeDerivatives
       : planeDerivatives + sourceDerivatives
-    guard derivativeIntervals.allSatisfy({ $0.isFinite }) else {
+    guard
+      try
+        (derivativeIntervals.allSatisfy({
+          try execution.consumeWork(1)
+          return $0.isFinite
+        }))
+    else {
       throw Self.certificateFailure(
         tolerance: tolerance,
         message: "An exact isoparametric-planar subcell derivative exceeded finite arithmetic."
@@ -521,8 +551,10 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
         secondU: intervals[2],
         secondV: intervals[3]
       ),
-      parameterDerivativeBounds: try derivativeIntervals.map {
-        try ScalarInterval(lower: $0.lower, upper: $0.upper)
+      parameterDerivativeBounds: try OriginalCoefficientAllocation.map(
+        elements: derivativeIntervals, using: &execution
+      ) { element, execution in
+        try ScalarInterval(lower: element.lower, upper: element.upper)
       }
     )
   }
@@ -531,8 +563,9 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
     curve: CertifiedImplicitSurfaceParameterCurve,
     surface: BSplineSurface3D,
     reference: Point3D,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> CertifiedPlanarAffineFluxTraversal? {
+    try execution.consumeWork(1)
     let planeSurface =
       sourceIsFirst
       ? curve.intersection.secondSurface
@@ -547,19 +580,18 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
       return nil
     }
 
-    let sourceCurve = try source.surface.uIsoparametricCurve(
-      atV: source.fixedV,
-      tolerance: tolerance
-    )
+    let sourceCurve = try originalMiddleCurve(tolerance: tolerance, using: &execution)
     let sourcePatches = try BSplineCurveBezierDecomposer().curvePatches(
       curve: sourceCurve,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
     guard sourcePatches.count == cells.count,
-      zip(sourcePatches, cells).allSatisfy({ patch, cell in
-        patch.lower == cell.sourceULower
-          && patch.upper == cell.sourceUUpper
-      })
+      try
+        (zip(sourcePatches, cells).allSatisfy({ patch, cell in
+          try execution.consumeWork(1)
+          return patch.lower == cell.sourceULower
+            && patch.upper == cell.sourceUUpper
+        }))
     else {
       throw Self.certificateFailure(
         tolerance: tolerance,
@@ -568,12 +600,14 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
     }
 
     let traversalSegments = try curve.canonicalTraversalSegments(
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
     let cellCount = Double(cells.count)
     var resultPatches: [CertifiedPlanarAffineFluxTraversal.Patch] = []
     for traversal in traversalSegments {
+      try execution.consumeWork(1)
       for index in cells.indices {
+        try execution.consumeWork(1)
         let cellLower = Double(index) / cellCount
         let cellUpper = Double(index + 1) / cellCount
         let overlapLower = max(
@@ -594,11 +628,12 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
           1.0
         )
         let patch = sourcePatches[index]
-        let controls = try patch.controlPoints.indices.map { controlIndex in
+        let controls = try OriginalCoefficientAllocation.map(
+          elements: patch.controlPoints.indices, using: &execution
+        ) { controlIndex, execution in
           let affine = try affineCoordinates(
             of: patch.controlPoints[controlIndex],
-            tolerance: tolerance
-          )
+            tolerance: tolerance, using: &execution)
           let weight = OutwardScalarInterval(patch.weights[controlIndex])
           return AffineHomogeneousControl(
             x: affine.u * weight,
@@ -610,26 +645,34 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
           controls,
           lower: localLower,
           upper: localUpper,
-          tolerance: tolerance
-        )
+          tolerance: tolerance, using: &execution)
         if traversal.direction == .reversed {
           restricted.reverse()
         }
+        if resultPatches.count == resultPatches.capacity {
+          let doubled = resultPatches.capacity.multipliedReportingOverflow(by: 2)
+          guard !doubled.overflow else { throw ExactScalarFailure.countOverflow }
+          let capacity = max(1, doubled.partialValue)
+          try OriginalCoefficientAllocation.reserve(
+            count: capacity, of: CertifiedPlanarAffineFluxTraversal.Patch.self, using: &execution)
+          resultPatches.reserveCapacity(capacity)
+        }
         resultPatches.append(
           CertifiedPlanarAffineFluxTraversal.Patch(
-            controls: try restricted.map {
+            controls: try OriginalCoefficientAllocation.map(elements: restricted, using: &execution)
+            { element, execution in
               CertifiedPlanarAffineFluxTraversal.HomogeneousControl(
                 x: try ScalarInterval(
-                  lower: $0.x.lower,
-                  upper: $0.x.upper
+                  lower: element.x.lower,
+                  upper: element.x.upper
                 ),
                 y: try ScalarInterval(
-                  lower: $0.y.lower,
-                  upper: $0.y.upper
+                  lower: element.y.lower,
+                  upper: element.y.upper
                 ),
                 weight: try ScalarInterval(
-                  lower: $0.weight.lower,
-                  upper: $0.weight.upper
+                  lower: element.weight.lower,
+                  upper: element.weight.upper
                 )
               )
             }
@@ -642,13 +685,12 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
         message: "An exact planar flux traversal produced no active curve patches."
       )
     }
-    let relative = Self.exactDifference(plane.origin, reference)
-    let scaleNumerator = Self.interval(
-      Self.exactTriple(
+    let relative = try Self.exactDifference(plane.origin, reference, using: &execution)
+    let scaleNumerator = try Self.interval(
+      try Self.exactTriple(
         plane.exactU,
         plane.exactV,
-        relative
-      ))
+        relative, using: &execution), using: &execution)
     guard
       let scale = scaleNumerator.divided(
         by: OutwardScalarInterval(3.0)
@@ -685,22 +727,21 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
 
   private func affineCoordinates(
     of point: Point3D,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> (u: OutwardScalarInterval, v: OutwardScalarInterval) {
-    let relative = Self.exactDifference(point, plane.origin)
-    let dotU = Self.exactDot(relative, plane.exactU)
-    let dotV = Self.exactDot(relative, plane.exactV)
-    let uNumerator = FloatingPointExpansion.subtract(
-      FloatingPointExpansion.product(dotU, plane.gramVV),
-      FloatingPointExpansion.product(dotV, plane.gramUV)
-    )
-    let vNumerator = FloatingPointExpansion.subtract(
-      FloatingPointExpansion.product(dotV, plane.gramUU),
-      FloatingPointExpansion.product(dotU, plane.gramUV)
-    )
-    let determinant = Self.interval(plane.gramDeterminant)
-    guard let u = Self.interval(uNumerator).divided(by: determinant),
-      let v = Self.interval(vNumerator).divided(by: determinant),
+    try execution.consumeWork(1)
+    let relative = try Self.exactDifference(point, plane.origin, using: &execution)
+    let dotU = try Self.exactDot(relative, plane.exactU, using: &execution)
+    let dotV = try Self.exactDot(relative, plane.exactV, using: &execution)
+    let uNumerator = try FloatingPointExpansion.subtract(
+      try FloatingPointExpansion.product(dotU, plane.gramVV, using: &execution),
+      try FloatingPointExpansion.product(dotV, plane.gramUV, using: &execution), using: &execution)
+    let vNumerator = try FloatingPointExpansion.subtract(
+      try FloatingPointExpansion.product(dotV, plane.gramUU, using: &execution),
+      try FloatingPointExpansion.product(dotU, plane.gramUV, using: &execution), using: &execution)
+    let determinant = try Self.interval(plane.gramDeterminant, using: &execution)
+    guard let u = try Self.interval(uNumerator, using: &execution).divided(by: determinant),
+      let v = try Self.interval(vNumerator, using: &execution).divided(by: determinant),
       u.isFinite,
       v.isFinite
     else {
@@ -716,8 +757,9 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
     _ controls: [AffineHomogeneousControl],
     lower: Double,
     upper: Double,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> [AffineHomogeneousControl] {
+    try execution.consumeWork(1)
     guard controls.count >= 2,
       lower >= 0.0,
       upper <= 1.0,
@@ -731,9 +773,9 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
     let upperControls =
       upper == 1.0
       ? controls
-      : splitControls(
+      : try splitControls(
         controls,
-        parameter: OutwardScalarInterval(lower: upper, upper: upper)
+        parameter: OutwardScalarInterval(lower: upper, upper: upper), using: &execution
       ).lower
     guard lower > 0.0 else { return upperControls }
     guard
@@ -747,23 +789,31 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
         message: "An exact planar flux traversal could not normalize its Bezier restriction."
       )
     }
-    return splitControls(
+    return try splitControls(
       upperControls,
-      parameter: normalizedLower
+      parameter: normalizedLower, using: &execution
     ).upper
   }
 
   private func splitControls(
     _ controls: [AffineHomogeneousControl],
-    parameter: OutwardScalarInterval
-  ) -> (
+    parameter: OutwardScalarInterval, using execution: inout OriginalQueryExecution
+  ) throws -> (
     lower: [AffineHomogeneousControl],
     upper: [AffineHomogeneousControl]
   ) {
-    var levels = [controls]
+    try execution.consumeWork(1)
+    try OriginalCoefficientAllocation.reserve(
+      count: controls.count, of: [AffineHomogeneousControl].self, using: &execution)
+    var levels: [[AffineHomogeneousControl]] = []
+    levels.reserveCapacity(controls.count)
+    levels.append(controls)
     while let previous = levels.last, previous.count > 1 {
+      try execution.consumeWork(1)
       levels.append(
-        (0..<(previous.count - 1)).map { index in
+        try OriginalCoefficientAllocation.map(
+          elements: (0..<(previous.count - 1)), using: &execution
+        ) { index, execution in
           previous[index].interpolated(
             to: previous[index + 1],
             parameter: parameter
@@ -771,19 +821,27 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
         })
     }
     return (
-      levels.map { $0[0] },
-      levels.reversed().map { $0[$0.count - 1] }
+      try OriginalCoefficientAllocation.map(elements: levels, using: &execution) {
+        element, execution in element[0]
+      },
+      try OriginalCoefficientAllocation.map(elements: levels.reversed(), using: &execution) {
+        element, execution in element[element.count - 1]
+      }
     )
   }
 
   private static func make(
     source: SourceSurface,
     plane: ExactPlanePatch,
-    sourceIsFirst: Bool
-  ) -> ExactIsoparametricPlanarIntersectionGraph {
+    sourceIsFirst: Bool, using execution: inout OriginalQueryExecution
+  ) throws -> ExactIsoparametricPlanarIntersectionGraph {
+    try execution.consumeWork(1)
     let fixedV = normalizedParameter(source.fixedV, in: source.surface.vDomain)
     let lowerV = normalizedParameter(source.lowerV, in: source.surface.vDomain)
-    let cells = source.uSpans.map { span in
+    let cells = try OriginalCoefficientAllocation.map(elements: source.uSpans, using: &execution) {
+      span, execution in
+      try OriginalCoefficientAllocation.reserve(
+        count: 8, of: (lower: Double, upper: Double).self, using: &execution)
       let sourceBounds = [
         (
           lower: normalizedParameter(span.lower, in: source.surface.uDomain),
@@ -814,14 +872,18 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
 
   private static func exactSourceSurface(
     _ surface: BSplineSurface3D,
-    intersecting plane: ExactPlanePatch
-  ) -> SourceSurface? {
+    intersecting plane: ExactPlanePatch, using execution: inout OriginalQueryExecution
+  ) throws -> SourceSurface? {
+    try execution.consumeWork(1)
     guard surface.vDegree == 2,
       surface.vControlPointCount == 5,
       surface.vKnots.count == 8,
-      surface.weights.flatMap({ $0 }).allSatisfy({
-        $0.isFinite && $0 > 0.0
-      })
+      try
+        (OriginalCoefficientAllocation.flatten(rows: surface.weights, using: &execution).allSatisfy(
+          {
+            try execution.consumeWork(1)
+            return $0.isFinite && $0 > 0.0
+          }))
     else {
       return nil
     }
@@ -845,37 +907,73 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
     else {
       return nil
     }
-    let signs = surface.controlPoints.map { row in
-      row.map {
-        FloatingPointExpansion.sign(planeValue($0, plane: plane))
+    let signs = try OriginalCoefficientAllocation.map(
+      elements: surface.controlPoints, using: &execution
+    ) { row, execution in
+      try OriginalCoefficientAllocation.map(elements: row, using: &execution) {
+        element, execution in
+        try FloatingPointExpansion.sign(
+          try planeValue(element, plane: plane, using: &execution), using: &execution)
       }
     }
     let crossesForward =
-      signs[0].allSatisfy({ $0 == .negative })
-      && signs[1].allSatisfy({ $0 == .negative })
-      && signs[3].allSatisfy({ $0 == .positive })
-      && signs[4].allSatisfy({ $0 == .positive })
+      try
+      (signs[0].allSatisfy({
+        try execution.consumeWork(1)
+        return $0 == .negative
+      }))
+      && (signs[1].allSatisfy({
+          try execution.consumeWork(1)
+          return $0 == .negative
+        }))
+      && (signs[3].allSatisfy({
+          try execution.consumeWork(1)
+          return $0 == .positive
+        }))
+      && (signs[4].allSatisfy({
+          try execution.consumeWork(1)
+          return $0 == .positive
+        }))
     let crossesReverse =
-      signs[0].allSatisfy({ $0 == .positive })
-      && signs[1].allSatisfy({ $0 == .positive })
-      && signs[3].allSatisfy({ $0 == .negative })
-      && signs[4].allSatisfy({ $0 == .negative })
-    guard signs[2].allSatisfy({ $0 == .zero }),
+      try
+      (signs[0].allSatisfy({
+        try execution.consumeWork(1)
+        return $0 == .positive
+      }))
+      && (signs[1].allSatisfy({
+          try execution.consumeWork(1)
+          return $0 == .positive
+        }))
+      && (signs[3].allSatisfy({
+          try execution.consumeWork(1)
+          return $0 == .negative
+        }))
+      && (signs[4].allSatisfy({
+          try execution.consumeWork(1)
+          return $0 == .negative
+        }))
+    guard
+      try
+        (signs[2].allSatisfy({
+          try execution.consumeWork(1)
+          return $0 == .zero
+        })),
       crossesForward || crossesReverse
     else {
       return nil
     }
     guard
-      surface.controlPoints[2].allSatisfy({
-        exactAffineCoordinatesContain($0, plane: plane)
-      })
+      try
+        (surface.controlPoints[2].allSatisfy({
+          try execution.consumeWork(1)
+          return try exactAffineCoordinatesContain($0, plane: plane, using: &execution)
+        }))
     else {
       return nil
     }
-    let uSpans = nonzeroSpans(
+    let uSpans = try nonzeroSpans(
       knots: surface.uKnots,
-      degree: surface.uDegree
-    )
+      degree: surface.uDegree, using: &execution)
     guard uSpans.isEmpty == false else { return nil }
     return SourceSurface(
       surface: surface,
@@ -886,8 +984,9 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
   }
 
   private static func exactPlanePatch(
-    _ surface: BSplineSurface3D
-  ) -> ExactPlanePatch? {
+    _ surface: BSplineSurface3D, using execution: inout OriginalQueryExecution
+  ) throws -> ExactPlanePatch? {
+    try execution.consumeWork(1)
     guard surface.uDegree == 1,
       surface.vDegree == 1,
       surface.uControlPointCount == 2,
@@ -898,7 +997,8 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
       return nil
     }
     let weights = surface.weights
-    let flatWeights = weights.flatMap { $0 }
+    let flatWeights = try OriginalCoefficientAllocation.flatten(rows: weights, using: &execution)
+    try OriginalCoefficientAllocation.reserve(count: 4, of: Double.self, using: &execution)
     let jacobianCoefficients = [
       flatWeights[0] * flatWeights[1] * flatWeights[2],
       flatWeights[0] * flatWeights[1] * flatWeights[3],
@@ -906,12 +1006,16 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
       flatWeights[1] * flatWeights[2] * flatWeights[3],
     ]
     guard
-      flatWeights.allSatisfy({
-        $0.isFinite && $0 > 0.0
-      }),
-      jacobianCoefficients.allSatisfy({
-        $0.isFinite && $0 > 0.0
-      })
+      try
+        (flatWeights.allSatisfy({
+          try execution.consumeWork(1)
+          return $0.isFinite && $0 > 0.0
+        })),
+      try
+        (jacobianCoefficients.allSatisfy({
+          try execution.consumeWork(1)
+          return $0.isFinite && $0 > 0.0
+        }))
     else {
       return nil
     }
@@ -919,26 +1023,29 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
     let p10 = surface.controlPoints[0][1]
     let p01 = surface.controlPoints[1][0]
     let p11 = surface.controlPoints[1][1]
-    let exactU = exactDifference(p10, p00)
-    let exactV = exactDifference(p01, p00)
-    let parallelogramResidual = exactDifference(
-      exactDifference(p11, p10),
-      exactDifference(p01, p00)
-    )
+    let exactU = try exactDifference(p10, p00, using: &execution)
+    let exactV = try exactDifference(p01, p00, using: &execution)
+    let parallelogramResidual = try exactDifference(
+      try exactDifference(p11, p10, using: &execution),
+      try exactDifference(p01, p00, using: &execution), using: &execution)
+    try OriginalCoefficientAllocation.reserve(count: 3, of: [Double].self, using: &execution)
     guard
-      [parallelogramResidual.x, parallelogramResidual.y, parallelogramResidual.z]
-        .allSatisfy({ FloatingPointExpansion.sign($0) == .zero })
+      try
+        ([parallelogramResidual.x, parallelogramResidual.y, parallelogramResidual.z]
+        .allSatisfy({
+          try execution.consumeWork(1)
+          return try FloatingPointExpansion.sign($0, using: &execution) == .zero
+        }))
     else {
       return nil
     }
-    let gramUU = exactDot(exactU, exactU)
-    let gramUV = exactDot(exactU, exactV)
-    let gramVV = exactDot(exactV, exactV)
-    let determinant = FloatingPointExpansion.subtract(
-      FloatingPointExpansion.product(gramUU, gramVV),
-      FloatingPointExpansion.product(gramUV, gramUV)
-    )
-    guard FloatingPointExpansion.sign(determinant) == .positive else {
+    let gramUU = try exactDot(exactU, exactU, using: &execution)
+    let gramUV = try exactDot(exactU, exactV, using: &execution)
+    let gramVV = try exactDot(exactV, exactV, using: &execution)
+    let determinant = try FloatingPointExpansion.subtract(
+      try FloatingPointExpansion.product(gramUU, gramVV, using: &execution),
+      try FloatingPointExpansion.product(gramUV, gramUV, using: &execution), using: &execution)
+    guard try FloatingPointExpansion.sign(determinant, using: &execution) == .positive else {
       return nil
     }
     return ExactPlanePatch(
@@ -957,8 +1064,9 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
 
   private func planarParameters(
     for point: Point3D,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> (u: Double, v: Double) {
+    try execution.consumeWork(1)
     let offset = point - plane.origin
     let uu = plane.u.dot(plane.u)
     let uv = plane.u.dot(plane.v)
@@ -979,8 +1087,7 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
     let parameters = try inversePlanarMap(
       affineU: affineU,
       affineV: affineV,
-      tolerance: tolerance
-    )
+      tolerance: tolerance, using: &execution)
     let u = parameters.u
     let v = parameters.v
     guard u.isFinite,
@@ -1002,17 +1109,18 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
   private func inversePlanarMap(
     affineU: Double,
     affineV: Double,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> (u: Double, v: Double) {
+    try execution.consumeWork(1)
     var u = min(max(affineU, 0.0), 1.0)
     var v = min(max(affineV, 0.0), 1.0)
     var previousResidual = Double.infinity
     for _ in 0..<32 {
-      let evaluation = Self.planarMap(
+      try execution.consumeWork(1)
+      let evaluation = try Self.planarMap(
         u: u,
         v: v,
-        weights: plane.weights
-      )
+        weights: plane.weights, using: &execution)
       let residualU = evaluation.u - affineU
       let residualV = evaluation.v - affineV
       let residual = hypot(residualU, residualV)
@@ -1040,13 +1148,13 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
       var accepted: (u: Double, v: Double, residual: Double)?
       var scale = 1.0
       for _ in 0..<16 {
+        try execution.consumeWork(1)
         let candidateU = min(max(u + deltaU * scale, 0.0), 1.0)
         let candidateV = min(max(v + deltaV * scale, 0.0), 1.0)
-        let candidate = Self.planarMap(
+        let candidate = try Self.planarMap(
           u: candidateU,
           v: candidateV,
-          weights: plane.weights
-        )
+          weights: plane.weights, using: &execution)
         let candidateResidual = hypot(
           candidate.u - affineU,
           candidate.v - affineV
@@ -1078,8 +1186,9 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
   private static func planarMap(
     u: Double,
     v: Double,
-    weights: [[Double]]
-  ) -> (u: Double, v: Double, du: Point2D, dv: Point2D) {
+    weights: [[Double]], using execution: inout OriginalQueryExecution
+  ) throws -> (u: Double, v: Double, du: Point2D, dv: Point2D) {
+    try execution.consumeWork(1)
     let a = weights[0][0]
     let b = weights[0][1]
     let c = weights[1][0]
@@ -1118,10 +1227,11 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
 
   private func affineCoordinateDerivativeBounds(
     tangent: IntervalVector3DBounds,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> (u: OutwardScalarInterval, v: OutwardScalarInterval) {
-    let exactU = Self.intervalVector(plane.exactU)
-    let exactV = Self.intervalVector(plane.exactV)
+    try execution.consumeWork(1)
+    let exactU = try Self.intervalVector(plane.exactU, using: &execution)
+    let exactV = try Self.intervalVector(plane.exactV, using: &execution)
     let dotU =
       tangent.x * exactU.x
       + tangent.y * exactU.y
@@ -1130,10 +1240,10 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
       tangent.x * exactV.x
       + tangent.y * exactV.y
       + tangent.z * exactV.z
-    let gramUU = Self.interval(plane.gramUU)
-    let gramUV = Self.interval(plane.gramUV)
-    let gramVV = Self.interval(plane.gramVV)
-    let determinant = Self.interval(plane.gramDeterminant)
+    let gramUU = try Self.interval(plane.gramUU, using: &execution)
+    let gramUV = try Self.interval(plane.gramUV, using: &execution)
+    let gramVV = try Self.interval(plane.gramVV, using: &execution)
+    let determinant = try Self.interval(plane.gramDeterminant, using: &execution)
     guard determinant.lower > 0.0,
       let u = (dotU * gramVV - dotV * gramUV).divided(by: determinant),
       let v = (dotV * gramUU - dotU * gramUV).divided(by: determinant)
@@ -1148,8 +1258,9 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
 
   private func affineCoordinateBounds(
     position: IntervalVector3DBounds,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> (u: OutwardScalarInterval, v: OutwardScalarInterval) {
+    try execution.consumeWork(1)
     let relative = IntervalVector3DBounds(
       x: position.x - OutwardScalarInterval(plane.origin.x),
       y: position.y - OutwardScalarInterval(plane.origin.y),
@@ -1157,15 +1268,15 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
     )
     return try affineCoordinateDerivativeBounds(
       tangent: relative,
-      tolerance: tolerance
-    )
+      tolerance: tolerance, using: &execution)
   }
 
   private func inversePlanarMapBounds(
     affineU: OutwardScalarInterval,
     affineV: OutwardScalarInterval,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> (u: OutwardScalarInterval, v: OutwardScalarInterval) {
+    try execution.consumeWork(1)
     let targetU = OutwardScalarInterval(
       lower: max(0.0, affineU.lower),
       upper: min(1.0, affineU.upper)
@@ -1191,13 +1302,11 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
     let center = try inversePlanarMap(
       affineU: targetMidpointU,
       affineV: targetMidpointV,
-      tolerance: tolerance
-    )
-    let centerMap = Self.planarMap(
+      tolerance: tolerance, using: &execution)
+    let centerMap = try Self.planarMap(
       u: center.u,
       v: center.v,
-      weights: plane.weights
-    )
+      weights: plane.weights, using: &execution)
     let centerDeterminant =
       centerMap.du.x * centerMap.dv.y
       - centerMap.dv.x * centerMap.du.y
@@ -1218,12 +1327,14 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
     // from the computed center to any target point, the inverse derivative
     // is J^-1. A global interval bound for J^-1 therefore gives a certified
     // Lipschitz box without a resolution-dependent two-dimensional search.
-    let weights = plane.weights.flatMap { $0 }
+    let weights = try OriginalCoefficientAllocation.flatten(rows: plane.weights, using: &execution)
     let weightHull = OutwardScalarInterval.enclosing(weights)
     let a = OutwardScalarInterval(plane.weights[0][0])
     let b = OutwardScalarInterval(plane.weights[0][1])
     let c = OutwardScalarInterval(plane.weights[1][0])
     let d = OutwardScalarInterval(plane.weights[1][1])
+    try OriginalCoefficientAllocation.reserve(
+      count: 4, of: OutwardScalarInterval.self, using: &execution)
     let determinantNumerator = OutwardScalarInterval.enclosing([
       a * b * c,
       a * b * d,
@@ -1286,11 +1397,11 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
     )
     let one = OutwardScalarInterval(lower: 1.0, upper: 1.0)
     for _ in 0..<16 {
+      try execution.consumeWork(1)
       let jacobian = try planarMapJacobianBounds(
         u: u,
         v: v,
-        tolerance: tolerance
-      )
+        tolerance: tolerance, using: &execution)
       let residualU = OutwardScalarInterval(centerMap.u) - targetU
       let residualV = OutwardScalarInterval(centerMap.v) - targetV
       let baseU =
@@ -1349,8 +1460,9 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
   private func actualInterval(
     _ normalized: OutwardScalarInterval,
     in domain: ParameterDomain,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> ScalarInterval {
+    try execution.consumeWork(1)
     guard case .closed(let lower, let upper) = domain else {
       throw Self.certificateFailure(
         tolerance: tolerance,
@@ -1361,16 +1473,16 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
       lower + (upper - lower) * normalized.lower,
       lower + (upper - lower) * normalized.upper,
       in: domain,
-      tolerance: tolerance
-    )
+      tolerance: tolerance, using: &execution)
   }
 
   private func containingInterval(
     _ requestedLower: Double,
     _ requestedUpper: Double,
     in domain: ParameterDomain,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> ScalarInterval {
+    try execution.consumeWork(1)
     guard case .closed(let domainLower, let domainUpper) = domain else {
       throw Self.certificateFailure(
         tolerance: tolerance,
@@ -1404,28 +1516,29 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
   }
 
   private func planarMapJacobianBounds(
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> (
     du: (x: OutwardScalarInterval, y: OutwardScalarInterval),
     dv: (x: OutwardScalarInterval, y: OutwardScalarInterval),
     determinant: OutwardScalarInterval
   ) {
-    try planarMapJacobianBounds(
+    try execution.consumeWork(1)
+    return try planarMapJacobianBounds(
       u: OutwardScalarInterval(lower: 0.0, upper: 1.0),
       v: OutwardScalarInterval(lower: 0.0, upper: 1.0),
-      tolerance: tolerance
-    )
+      tolerance: tolerance, using: &execution)
   }
 
   private func planarMapJacobianBounds(
     u: OutwardScalarInterval,
     v: OutwardScalarInterval,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> (
     du: (x: OutwardScalarInterval, y: OutwardScalarInterval),
     dv: (x: OutwardScalarInterval, y: OutwardScalarInterval),
     determinant: OutwardScalarInterval
   ) {
+    try execution.consumeWork(1)
     let one = OutwardScalarInterval(lower: 1.0, upper: 1.0)
     let a = OutwardScalarInterval(plane.weights[0][0])
     let b = OutwardScalarInterval(plane.weights[0][1])
@@ -1437,7 +1550,7 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
     let upperVWeight = c * (one - u) + d * u
     let evaluatedDenominator = (one - u) * lowerUWeight + u * upperUWeight
     let weightHull = OutwardScalarInterval.enclosing(
-      plane.weights.flatMap { $0 }
+      try OriginalCoefficientAllocation.flatten(rows: plane.weights, using: &execution)
     )
     let denominator = OutwardScalarInterval(
       lower: max(evaluatedDenominator.lower, weightHull.lower),
@@ -1468,6 +1581,8 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
       )
     }
 
+    try OriginalCoefficientAllocation.reserve(
+      count: 4, of: OutwardScalarInterval.self, using: &execution)
     let jacobianNumerator = OutwardScalarInterval.enclosing([
       a * b * c,
       a * b * d,
@@ -1492,25 +1607,30 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
   }
 
   private static func intervalVector(
-    _ value: ExpansionVector3
-  ) -> (
+    _ value: ExpansionVector3, using execution: inout OriginalQueryExecution
+  ) throws -> (
     x: OutwardScalarInterval,
     y: OutwardScalarInterval,
     z: OutwardScalarInterval
   ) {
-    (
-      x: interval(value.x),
-      y: interval(value.y),
-      z: interval(value.z)
+    try execution.consumeWork(1)
+    return (
+      x: try interval(value.x, using: &execution),
+      y: try interval(value.y, using: &execution),
+      z: try interval(value.z, using: &execution)
     )
   }
 
-  private static func interval(_ expansion: [Double]) -> OutwardScalarInterval {
-    expansion.reduce(
-      OutwardScalarInterval(lower: 0.0, upper: 0.0)
-    ) { result, component in
-      result + OutwardScalarInterval(component)
+  private static func interval(_ expansion: [Double], using execution: inout OriginalQueryExecution)
+    throws -> OutwardScalarInterval
+  {
+    try execution.consumeWork(1)
+    var result = OutwardScalarInterval(lower: 0.0, upper: 0.0)
+    for component in expansion {
+      try execution.consumeWork(1)
+      result = result + OutwardScalarInterval(component)
     }
+    return result
   }
 
   private static func domainWidth(_ domain: ParameterDomain) -> Double {
@@ -1529,55 +1649,58 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
 
   private static func exactAffineCoordinatesContain(
     _ point: Point3D,
-    plane: ExactPlanePatch
-  ) -> Bool {
-    let relative = exactDifference(point, plane.origin)
-    let dotU = exactDot(relative, plane.exactU)
-    let dotV = exactDot(relative, plane.exactV)
-    let uNumerator = FloatingPointExpansion.subtract(
-      FloatingPointExpansion.product(dotU, plane.gramVV),
-      FloatingPointExpansion.product(dotV, plane.gramUV)
-    )
-    let vNumerator = FloatingPointExpansion.subtract(
-      FloatingPointExpansion.product(dotV, plane.gramUU),
-      FloatingPointExpansion.product(dotU, plane.gramUV)
-    )
-    return isNonnegative(uNumerator)
+    plane: ExactPlanePatch, using execution: inout OriginalQueryExecution
+  ) throws -> Bool {
+    try execution.consumeWork(1)
+    let relative = try exactDifference(point, plane.origin, using: &execution)
+    let dotU = try exactDot(relative, plane.exactU, using: &execution)
+    let dotV = try exactDot(relative, plane.exactV, using: &execution)
+    let uNumerator = try FloatingPointExpansion.subtract(
+      try FloatingPointExpansion.product(dotU, plane.gramVV, using: &execution),
+      try FloatingPointExpansion.product(dotV, plane.gramUV, using: &execution), using: &execution)
+    let vNumerator = try FloatingPointExpansion.subtract(
+      try FloatingPointExpansion.product(dotV, plane.gramUU, using: &execution),
+      try FloatingPointExpansion.product(dotU, plane.gramUV, using: &execution), using: &execution)
+    return try isNonnegative(uNumerator, using: &execution)
       && isNonnegative(
-        FloatingPointExpansion.subtract(
+        try FloatingPointExpansion.subtract(
           plane.gramDeterminant,
-          uNumerator
-        ))
-      && isNonnegative(vNumerator)
+          uNumerator, using: &execution), using: &execution)
+      && isNonnegative(vNumerator, using: &execution)
       && isNonnegative(
-        FloatingPointExpansion.subtract(
+        try FloatingPointExpansion.subtract(
           plane.gramDeterminant,
-          vNumerator
-        ))
+          vNumerator, using: &execution), using: &execution)
   }
 
   private static func planeValue(
     _ point: Point3D,
-    plane: ExactPlanePatch
-  ) -> [Double] {
-    exactTriple(
+    plane: ExactPlanePatch, using execution: inout OriginalQueryExecution
+  ) throws -> [Double] {
+    try execution.consumeWork(1)
+    return try exactTriple(
       plane.exactU,
       plane.exactV,
-      exactDifference(point, plane.origin)
-    )
+      try exactDifference(point, plane.origin, using: &execution), using: &execution)
   }
 
   private static func nonzeroSpans(
     knots: [Double],
-    degree: Int
-  ) -> [(lower: Double, upper: Double)] {
+    degree: Int, using execution: inout OriginalQueryExecution
+  ) throws -> [(lower: Double, upper: Double)] {
+    try execution.consumeWork(1)
     guard degree >= 0,
       knots.count >= 2 * (degree + 1)
     else {
       return []
     }
+    let capacity = knots.count - 2 * degree - 1
+    try OriginalCoefficientAllocation.reserve(
+      count: capacity, of: (lower: Double, upper: Double).self, using: &execution)
     var result: [(lower: Double, upper: Double)] = []
+    result.reserveCapacity(capacity)
     for index in degree..<(knots.count - degree - 1) {
+      try execution.consumeWork(1)
       let lower = knots[index]
       let upper = knots[index + 1]
       if lower.isFinite,
@@ -1611,20 +1734,24 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
     normalizedBounds: [(lower: Double, upper: Double)],
     first: BSplineSurface3D,
     second: BSplineSurface3D,
-    tolerance: ModelingTolerance
-  ) -> Bool {
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+  ) throws -> Bool {
+    try execution.consumeWork(1)
+    try OriginalCoefficientAllocation.reserve(count: 4, of: ParameterDomain.self, using: &execution)
     let domains = [first.uDomain, first.vDomain, second.uDomain, second.vDomain]
-    return zip(
-      parameterBox.intervals,
-      zip(normalizedBounds, domains)
-    ).allSatisfy { interval, expectedAndDomain in
-      let expected = expectedAndDomain.0
-      let domain = expectedAndDomain.1
-      let lower = actualParameter(expected.lower, in: domain)
-      let upper = actualParameter(expected.upper, in: domain)
-      return abs(interval.lower - lower) <= tolerance.relative
-        && abs(interval.upper - upper) <= tolerance.relative
-    }
+    return try
+      (zip(
+        parameterBox.intervals,
+        zip(normalizedBounds, domains)
+      ).allSatisfy { interval, expectedAndDomain in
+        try execution.consumeWork(1)
+        let expected = expectedAndDomain.0
+        let domain = expectedAndDomain.1
+        let lower = actualParameter(expected.lower, in: domain)
+        let upper = actualParameter(expected.upper, in: domain)
+        return abs(interval.lower - lower) <= tolerance.relative
+          && abs(interval.upper - upper) <= tolerance.relative
+      })
   }
 
   private static func normalizedParameter(
@@ -1645,67 +1772,67 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
 
   private static func exactDifference(
     _ lhs: Point3D,
-    _ rhs: Point3D
-  ) -> ExpansionVector3 {
-    ExpansionVector3(
-      x: FloatingPointExpansion.difference(lhs.x, rhs.x),
-      y: FloatingPointExpansion.difference(lhs.y, rhs.y),
-      z: FloatingPointExpansion.difference(lhs.z, rhs.z)
+    _ rhs: Point3D, using execution: inout OriginalQueryExecution
+  ) throws -> ExpansionVector3 {
+    try execution.consumeWork(1)
+    return ExpansionVector3(
+      x: try FloatingPointExpansion.difference(lhs.x, rhs.x, using: &execution),
+      y: try FloatingPointExpansion.difference(lhs.y, rhs.y, using: &execution),
+      z: try FloatingPointExpansion.difference(lhs.z, rhs.z, using: &execution)
     )
   }
 
   private static func exactDifference(
     _ lhs: ExpansionVector3,
-    _ rhs: ExpansionVector3
-  ) -> ExpansionVector3 {
-    ExpansionVector3(
-      x: FloatingPointExpansion.subtract(lhs.x, rhs.x),
-      y: FloatingPointExpansion.subtract(lhs.y, rhs.y),
-      z: FloatingPointExpansion.subtract(lhs.z, rhs.z)
+    _ rhs: ExpansionVector3, using execution: inout OriginalQueryExecution
+  ) throws -> ExpansionVector3 {
+    try execution.consumeWork(1)
+    return ExpansionVector3(
+      x: try FloatingPointExpansion.subtract(lhs.x, rhs.x, using: &execution),
+      y: try FloatingPointExpansion.subtract(lhs.y, rhs.y, using: &execution),
+      z: try FloatingPointExpansion.subtract(lhs.z, rhs.z, using: &execution)
     )
   }
 
   private static func exactDot(
     _ lhs: ExpansionVector3,
-    _ rhs: ExpansionVector3
-  ) -> [Double] {
-    FloatingPointExpansion.sum(
-      FloatingPointExpansion.sum(
-        FloatingPointExpansion.product(lhs.x, rhs.x),
-        FloatingPointExpansion.product(lhs.y, rhs.y)
-      ),
-      FloatingPointExpansion.product(lhs.z, rhs.z)
-    )
+    _ rhs: ExpansionVector3, using execution: inout OriginalQueryExecution
+  ) throws -> [Double] {
+    try execution.consumeWork(1)
+    return try FloatingPointExpansion.sum(
+      try FloatingPointExpansion.sum(
+        try FloatingPointExpansion.product(lhs.x, rhs.x, using: &execution),
+        try FloatingPointExpansion.product(lhs.y, rhs.y, using: &execution), using: &execution),
+      try FloatingPointExpansion.product(lhs.z, rhs.z, using: &execution), using: &execution)
   }
 
   private static func exactTriple(
     _ first: ExpansionVector3,
     _ second: ExpansionVector3,
-    _ third: ExpansionVector3
-  ) -> [Double] {
-    let crossX = FloatingPointExpansion.subtract(
-      FloatingPointExpansion.product(second.y, third.z),
-      FloatingPointExpansion.product(second.z, third.y)
-    )
-    let crossY = FloatingPointExpansion.subtract(
-      FloatingPointExpansion.product(second.z, third.x),
-      FloatingPointExpansion.product(second.x, third.z)
-    )
-    let crossZ = FloatingPointExpansion.subtract(
-      FloatingPointExpansion.product(second.x, third.y),
-      FloatingPointExpansion.product(second.y, third.x)
-    )
-    return FloatingPointExpansion.sum(
-      FloatingPointExpansion.sum(
-        FloatingPointExpansion.product(first.x, crossX),
-        FloatingPointExpansion.product(first.y, crossY)
-      ),
-      FloatingPointExpansion.product(first.z, crossZ)
-    )
+    _ third: ExpansionVector3, using execution: inout OriginalQueryExecution
+  ) throws -> [Double] {
+    try execution.consumeWork(1)
+    let crossX = try FloatingPointExpansion.subtract(
+      try FloatingPointExpansion.product(second.y, third.z, using: &execution),
+      try FloatingPointExpansion.product(second.z, third.y, using: &execution), using: &execution)
+    let crossY = try FloatingPointExpansion.subtract(
+      try FloatingPointExpansion.product(second.z, third.x, using: &execution),
+      try FloatingPointExpansion.product(second.x, third.z, using: &execution), using: &execution)
+    let crossZ = try FloatingPointExpansion.subtract(
+      try FloatingPointExpansion.product(second.x, third.y, using: &execution),
+      try FloatingPointExpansion.product(second.y, third.x, using: &execution), using: &execution)
+    return try FloatingPointExpansion.sum(
+      try FloatingPointExpansion.sum(
+        try FloatingPointExpansion.product(first.x, crossX, using: &execution),
+        try FloatingPointExpansion.product(first.y, crossY, using: &execution), using: &execution),
+      try FloatingPointExpansion.product(first.z, crossZ, using: &execution), using: &execution)
   }
 
-  private static func isNonnegative(_ value: [Double]) -> Bool {
-    let sign = FloatingPointExpansion.sign(value)
+  private static func isNonnegative(
+    _ value: [Double], using execution: inout OriginalQueryExecution
+  ) throws -> Bool {
+    try execution.consumeWork(1)
+    let sign = try FloatingPointExpansion.sign(value, using: &execution)
     return sign == .positive || sign == .zero
   }
 

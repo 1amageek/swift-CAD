@@ -9,10 +9,11 @@ extension BRepDrawingExchange {
                       options: DrawingExchangeOptions = .init(), to sink: any ByteSink) throws {
         try options.validate()
         guard [.dxf, .svg, .pdf].contains(format) else { throw ImportError.unsupportedFormat(format.displayName) }
-        try section.validateCurrent(evaluated)
+        let resources = try SharedExchangeResourceAccountant(limits: resourceLimits, format: format)
+        var execution = try DrawingExchangeOwner(resources: resources).execution()
+        try section.validateCurrent(evaluated, using: &execution)
         try evaluated.validate()
         let tolerance = evaluated.configuration.tolerance
-        var resources = try SharedExchangeResourceAccountant(limits: resourceLimits, format: format)
         try resources.recordEntities(section.retainedPreparationEntities)
         try resources.recordIterations(section.consumedPreparationWork)
         try resources.recordEntities(section.components.count)
@@ -20,9 +21,9 @@ extension BRepDrawingExchange {
         let placementIdentity = section.placement.map { "\($0.identity):" } ?? ""
         var paths: [BRepDrawingOutputPath] = []
         func append(_ curve: Curve3D, _ start: Double, _ end: Double, _ identity: String) throws {
-            try GeometryStructuralComparisonWork.charge(curve: curve) { try resources.recordIterations($0) }
-            let projected = try DefaultOrthographicCurveProjector().project(curve, onto: section.frame, tolerance: tolerance)
-            let points = try linearize(projected, from: start, to: end, options: options, resources: &resources)
+            try GeometryStructuralComparisonWork.charge(curve: curve, using: &execution)
+            let projected = try DefaultOrthographicCurveProjector().project(curve, onto: section.frame, tolerance: tolerance, using: &execution)
+            let points = try linearize(projected, from: start, to: end, options: options, resources: resources, using: &execution)
             paths.append(.init(points: points, layer: "Section", identity: identity, startParameter: start, endParameter: end))
         }
         for component in section.components {
@@ -56,18 +57,16 @@ extension BRepDrawingExchange {
                 paths.append(.init(points: [point], layer: "SectionContact", identity: identity, startParameter: nil, endParameter: nil))
             case .coincident:
                 try section.visitCoincidentContours(componentOrdinal: component.ordinal, in: evaluated,
-                    consumeUse: { curve in
-                        try resources.recordEntities(); try resources.recordIterations()
-                        try GeometryStructuralComparisonWork.charge(curve: curve) { try resources.recordIterations($0) }
-                    }, visit: { loopID, index, edge in
+                    using: &execution, visit: { loopID, index, edge, execution in
+                        try resources.recordEntities()
                         let start = edge.startParameter, end = edge.endParameter
-                        let points = try linearize(edge.curve, from: start, to: end, options: options, resources: &resources)
+                        let points = try linearize(edge.curve, from: start, to: end, options: options, resources: resources, using: &execution)
                         paths.append(.init(points: points, layer: "SectionCoplanarBoundary", identity: "\(identity):\(loopID):\(index)", startParameter: start, endParameter: end))
                     })
             }
         }
         for segment in hatchSegments {
-            try segment.validateCurrent(evaluated, for: section)
+            try segment.validateCurrent(evaluated, for: section, using: &execution)
             try resources.recordIterations(); try resources.checkTime()
             guard let body = evaluated.brep.bodies[segment.bodyID], body.material == segment.materialID,
                   segment.row >= 0, segment.start.x.isFinite, segment.start.y.isFinite,
@@ -77,21 +76,21 @@ extension BRepDrawingExchange {
                   horizontal.contains(segment.start.x), horizontal.contains(segment.end.x), vertical.contains(segment.start.y) else {
                 throw ExportError.invalidMesh("Hatch span disagrees with its retained source, material, or section envelope.")
             }
-            var usage = DrawingExchangeUsage(resources: resources)
+            let usage = DrawingExchangeOwner(resources: resources)
             let original = try segment.originalCurve(in: evaluated, for: section,
                 maximumSourceDepth: usage.maximumNesting,
                 maximumSubdivisionDepth: usage.maximumCurveSubdivisionDepth,
-                maximumAlgebraicDepth: usage.maximumAlgebraicDepth, usage: &usage)
-            try GeometryStructuralComparisonWork.charge(curve: original) { try resources.recordIterations($0) }
-            let projected = try DefaultOrthographicCurveProjector().project(original, onto: section.frame, tolerance: tolerance)
-            let points = try linearize(projected, from: 0, to: 1, options: options, resources: &resources)
+                maximumAlgebraicDepth: usage.maximumAlgebraicDepth, using: &execution)
+            try GeometryStructuralComparisonWork.charge(curve: original, using: &execution)
+            let projected = try DefaultOrthographicCurveProjector().project(original, onto: section.frame, tolerance: tolerance, using: &execution)
+            let points = try linearize(projected, from: 0, to: 1, options: options, resources: resources, using: &execution)
             let identity = "\(placementIdentity)\(segment.bodyID):\(segment.materialID?.description ?? "none"):\(segment.row)"
             paths.append(.init(points: points, layer: "SectionHatch", identity: identity, startParameter: 0, endParameter: 1))
         }
         try resources.recordEntities(regions.count)
         var filled: [BRepDrawingOutputRegion] = []
         for region in regions {
-            try region.validateCurrent(evaluated, for: section)
+            try region.validateCurrent(evaluated, for: section, using: &execution)
             try resources.checkTime()
             guard let body = evaluated.brep.bodies[region.bodyID], body.material == region.materialID,
                   !region.sourceFaceIDs.isEmpty, region.sourceFaceIDs.allSatisfy({ evaluated.brep.faces[$0] != nil }),
@@ -107,9 +106,9 @@ extension BRepDrawingExchange {
                 var previousEnd: Point3D?
                 for edge in loop.edges {
                     if let previousEnd, (previousEnd - edge.startPoint).length > tolerance.distance { throw ExportError.invalidMesh("Section region boundary is disconnected.") }
-                    try GeometryStructuralComparisonWork.charge(curve: edge.curve) { try resources.recordIterations($0) }
-                    let curve = try DefaultOrthographicCurveProjector().project(edge.curve, onto: section.frame, tolerance: tolerance)
-                    let piece = try linearize(curve, from: edge.startParameter, to: edge.endParameter, options: options, resources: &resources)
+                    try GeometryStructuralComparisonWork.charge(curve: edge.curve, using: &execution)
+                    let curve = try DefaultOrthographicCurveProjector().project(edge.curve, onto: section.frame, tolerance: tolerance, using: &execution)
+                    let piece = try linearize(curve, from: edge.startParameter, to: edge.endParameter, options: options, resources: resources, using: &execution)
                     try resources.recordBytes(piece.count * MemoryLayout<Point2D>.stride)
                     if points.isEmpty { points.append(contentsOf: piece) } else { points.append(contentsOf: piece.dropFirst()) }
                     previousEnd = edge.endPoint
@@ -122,6 +121,6 @@ extension BRepDrawingExchange {
             }
             filled.append(.init(identity: "\(placementIdentity)\(region.bodyID):\(region.materialID?.description ?? "none")", loops: loops, outer: outer))
         }
-        try publish(paths, regions: filled, as: format, options: options, resources: &resources, to: sink)
+        try publish(paths, regions: filled, as: format, options: options, resources: resources, to: sink, using: &execution)
     }
 }

@@ -17,14 +17,14 @@ public struct DefaultOriginalCoonsChartIssuer<Source: OriginalCoonsSourceReading
     ) throws(OriginalSourceIssuanceFailure) -> OriginalRationalChartReceipt<Source, Selection, Field> {
         let source = copy source, chart = copy chart, field = copy field
         do {
-            return try OriginalSourceProofAdmission<A>.withBorrow(&admission) { usage in
+            return try admission.withProofScope { usage in
                 try Self.compose(source: source, chart: chart, field: field, limits: limits, using: &usage)
             }
         } catch { throw .init(preserving: error) }
     }
     private static func compose<A: ExactScalarAdmission & ~Copyable>(
         source: borrowing OriginalSourceBinding<Source>, chart: borrowing OriginalSourceChart<Source, Selection>,
-        field: borrowing Field, limits: OriginalSourceIssuanceLimits, using admission: inout OriginalSourceProofAdmission<A>
+        field: borrowing Field, limits: OriginalSourceIssuanceLimits, using admission: inout A
     ) throws -> OriginalRationalChartReceipt<Source, Selection, Field> {
         try admission.checkpoint(); try admission.consumeWork(1); try source.require(limits)
         guard source.owns(chart) else { throw OriginalSourceIssuanceFailure.foreignBinding }
@@ -50,7 +50,7 @@ public struct DefaultOriginalCoonsChartIssuer<Source: OriginalCoonsSourceReading
         }
         let zero = try field.integer(0, using: &admission), one = try field.integer(1, using: &admission)
         func intersection(_ a: OriginalSourceParameterInterval<Field.Value>,
-            _ b: OriginalSourceParameterInterval<Field.Value>, _ usage: inout OriginalSourceProofAdmission<A>
+            _ b: OriginalSourceParameterInterval<Field.Value>, _ usage: inout A
         ) throws -> OriginalSourceParameterInterval<Field.Value> {
             var lower = zero, upper = one
             for index in 0..<2 {

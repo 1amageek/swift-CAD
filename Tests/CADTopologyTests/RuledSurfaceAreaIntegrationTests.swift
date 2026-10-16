@@ -136,22 +136,23 @@ struct RuledSurfaceAreaIntegrationTests {
 
     @Test(.timeLimit(.minutes(1)), arguments: [false, true])
     func originalFoldedRuledNativeSpansRetainOneSidedFieldsAndCrossFoldValueProof(_ weighted: Bool) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
         let source = support(weighted: weighted)
-        let prepared = try PreparedSurfaceAreaIntegrand(surface: source, tolerance: tolerance)
+        let prepared = try PreparedSurfaceAreaIntegrand(surface: source, tolerance: tolerance, using: &execution)
         #expect(prepared.surface == source)
         #expect(prepared.hasNativeDensityJumps)
         let box = SurfaceParameterBox(u: try ScalarInterval(lower: 0, upper: 1),
             v: try ScalarInterval(lower: 0, upper: 1))
-        let optionalDomains = try prepared.nativeRectangleDomains(over: box, maximumCount: 2, tolerance: tolerance)
+        let optionalDomains = try prepared.nativeRectangleDomains(over: box, maximumCount: 2, tolerance: tolerance, using: &execution)
         let domains = try #require(optionalDomains)
         #expect(domains.count == 2)
         let full = try prepared.rectangularTranslationBounds(rectangle: box,
-            fraction: ScalarInterval(lower: 0, upper: 1), reference: .origin, tolerance: tolerance)
+            fraction: ScalarInterval(lower: 0, upper: 1), reference: .origin, tolerance: tolerance, using: &execution)
         #expect(full.allSatisfy { $0.derivativeU == nil && $0.secondUU == nil })
         for (index, domain) in domains.enumerated() {
             let fields = try prepared.rectangularTranslationBounds(rectangle: domain.rectangle,
                 fraction: ScalarInterval(lower: 0.5, upper: 0.5), reference: .origin,
-                tolerance: tolerance, domain: domain)
+                tolerance: tolerance, domain: domain, using: &execution)
             let length = index == 0 ? 0.0074 : sqrt(0.0126 * 0.0126 + 0.02 * 0.02)
             let speed = weighted ? 8.0 / 9 : 1
             let density = 0.03 * length * speed
@@ -165,28 +166,29 @@ struct RuledSurfaceAreaIntegrationTests {
             }
         }
         // Equal physical strip images do not transfer native knot/weight ownership.
-        let foreign = try PreparedSurfaceAreaIntegrand(surface: support(weighted: !weighted), tolerance: tolerance)
+        let foreign = try PreparedSurfaceAreaIntegrand(surface: support(weighted: !weighted), tolerance: tolerance, using: &execution)
         do {
             _ = try foreign.rectangularTranslationBounds(rectangle: domains[0].rectangle,
                 fraction: ScalarInterval(lower: 0.5, upper: 0.5), reference: .origin,
-                tolerance: tolerance, domain: domains[0])
+                tolerance: tolerance, domain: domains[0], using: &execution)
             Issue.record("A native ruled span was accepted by another original denominator owner.")
         } catch let error as KernelError { #expect(error.code == .invalidInput) }
     }
 
     @Test(.timeLimit(.minutes(1)), arguments: [false, true])
     func originalRuledRectangleIntegralContainsIndependentPartialFourFields(_ weighted: Bool) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
         let source = support(weighted: weighted)
-        let prepared = try PreparedSurfaceAreaIntegrand(surface: source, tolerance: tolerance)
+        let prepared = try PreparedSurfaceAreaIntegrand(surface: source, tolerance: tolerance, using: &execution)
         let box = SurfaceParameterBox(u: try ScalarInterval(lower: 0, upper: 1),
             v: try ScalarInterval(lower: 0.25, upper: 0.75))
-        let optionalDomains = try prepared.nativeRectangleDomains(over: box, maximumCount: 2, tolerance: tolerance)
+        let optionalDomains = try prepared.nativeRectangleDomains(over: box, maximumCount: 2, tolerance: tolerance, using: &execution)
         let domains = try #require(optionalDomains)
         let reference = Point3D(x: 0.003, y: -0.004, z: 0.005)
         for (index, domain) in domains.enumerated() {
             let optional = try prepared.originalRuledRectangleIntegral(rectangle: domain.rectangle,
                 fraction: ScalarInterval(lower: 0.25, upper: 0.75), reference: reference,
-                tolerance: tolerance, domain: domain)
+                tolerance: tolerance, domain: domain, using: &execution)
             let fields = try #require(optional)
             let length = index == 0 ? 0.0074 : sqrt(0.0126 * 0.0126 + 0.02 * 0.02)
             // Original weights (1,2) and (2,1) yield h differences 16/35;
@@ -205,21 +207,26 @@ struct RuledSurfaceAreaIntegrationTests {
             do {
                 _ = try prepared.originalRuledRectangleIntegral(rectangle: domain.rectangle,
                     fraction: ScalarInterval(lower: -0.125, upper: 0.5), reference: reference,
-                    tolerance: tolerance, domain: domain)
+                    tolerance: tolerance, domain: domain, using: &execution)
                 Issue.record("An outside fraction acquired original rectangle authority.")
             } catch let error as KernelError { #expect(error.code == .invalidInput) }
             do {
                 _ = try prepared.originalRuledRectangleIntegral(rectangle: domain.rectangle,
                     fraction: ScalarInterval(lower: 0, upper: 1), reference: reference,
-                    tolerance: ModelingTolerance(distance: 2e-6, angle: 1e-9, relative: 1e-6), domain: domain)
+                    tolerance: ModelingTolerance(distance: 2e-6, angle: 1e-9, relative: 1e-6), domain: domain, using: &execution)
                 Issue.record("A different preparation tolerance acquired original rectangle authority.")
-            } catch let error as KernelError { #expect(error.code == .invalidInput) }
+            } catch let error as KernelError {
+                #expect(error.code == .invalidInput)
+            } catch let error as GeometryConversionError {
+                guard case .invalidInput(let reason) = error else { throw error }
+                #expect(reason == "Original preparation requires its retained tolerance.")
+            }
             let foreign = SurfaceAreaNativeSpanDomain(rectangle: domain.rectangle, radialRange: nil,
                 index: 1 - domain.index, source: domain.source, curve: nil, anchor: nil)
             do {
                 _ = try prepared.originalRuledRectangleIntegral(rectangle: domain.rectangle,
                     fraction: ScalarInterval(lower: 0, upper: 1), reference: reference,
-                    tolerance: tolerance, domain: foreign)
+                    tolerance: tolerance, domain: foreign, using: &execution)
                 Issue.record("Another native owning side acquired original rectangle authority.")
             } catch let error as KernelError { #expect(error.code == .invalidInput) }
         }
@@ -227,6 +234,7 @@ struct RuledSurfaceAreaIntegrationTests {
 
     @Test(.timeLimit(.minutes(1)))
     func originalRuledInteriorTranslationPerturbationCannotAcquireRectangleIntegral() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
         guard case .procedural(.ruled(let original)) = support(weighted: true),
               case .bSpline(var end) = original.endBoundary else {
             Issue.record("The independent fixture lost its original rational rails.")
@@ -236,16 +244,16 @@ struct RuledSurfaceAreaIntegrationTests {
         end.controlPoints[1] = Point3D(x: control.x, y: control.y.nextUp, z: control.z)
         let source = Surface3D.procedural(.ruled(RuledSurface3D(
             startBoundary: original.startBoundary, endBoundary: .bSpline(end))))
-        let prepared = try PreparedSurfaceAreaIntegrand(surface: source, tolerance: tolerance)
+        let prepared = try PreparedSurfaceAreaIntegrand(surface: source, tolerance: tolerance, using: &execution)
         #expect(prepared.surface == source)
         let box = SurfaceParameterBox(u: try ScalarInterval(lower: 0, upper: 1),
             v: try ScalarInterval(lower: 0, upper: 1))
-        let optional = try prepared.nativeRectangleDomains(over: box, maximumCount: 2, tolerance: tolerance)
+        let optional = try prepared.nativeRectangleDomains(over: box, maximumCount: 2, tolerance: tolerance, using: &execution)
         let domains = try #require(optional)
         for domain in domains {
             let integral = try prepared.originalRuledRectangleIntegral(rectangle: domain.rectangle,
                 fraction: ScalarInterval(lower: 0, upper: 1), reference: .origin,
-                tolerance: tolerance, domain: domain)
+                tolerance: tolerance, domain: domain, using: &execution)
             #expect(integral == nil)
         }
     }

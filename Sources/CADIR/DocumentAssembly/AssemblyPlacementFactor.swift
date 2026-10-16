@@ -9,9 +9,9 @@ public enum AssemblyPlacementFactor: Equatable, Sendable {
     public var originalPlacement: AssemblyPlacement {
         switch self { case .forward(let source), .inverse(let source): source }
     }
-    public func validate(tolerance: ModelingTolerance, maximumAlgebraicDepth: Int = 32, maximumSourceDepth: Int, consumeWork: @escaping () throws -> Void) throws {
+    public func validate(tolerance: ModelingTolerance, maximumAlgebraicDepth: Int = 32, maximumSourceDepth: Int, using execution: inout OriginalQueryExecution) throws {
         guard case .word = originalPlacement else {
-            try originalPlacement.validate(tolerance: tolerance, maximumAlgebraicDepth: maximumAlgebraicDepth, maximumSourceDepth: maximumSourceDepth, consumeWork: consumeWork)
+            try originalPlacement.validate(tolerance: tolerance, maximumAlgebraicDepth: maximumAlgebraicDepth, maximumSourceDepth: maximumSourceDepth, using: &execution)
             return
         }
         throw AssemblyError.invalidSource("A placement factor must retain a direct rigid or affine source.")

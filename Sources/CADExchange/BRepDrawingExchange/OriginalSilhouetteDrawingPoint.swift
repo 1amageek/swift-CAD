@@ -15,15 +15,16 @@ public struct OriginalSilhouetteDrawingPoint: Sendable {
     public let translation: Point2D
     public let maximumDeviation: Double
     public let point: Point2D
-    let accountingOwner: DrawingExchangeUsage
-    let silhouetteOwner: SurfaceSilhouetteUsage
+    let accountingOwner: DrawingExchangeOwner
+    let silhouetteOwner: SurfaceSilhouetteContext
     let admission: DrawingSilhouetteAdmission
 
     public static func project(_ original: BRepDrawingSilhouettes, selector: Selector,
         pointsPerMeter: Double, translation: Point2D, maximumDeviation: Double,
-        admission: DrawingSilhouetteAdmission, usage: inout DrawingExchangeUsage,
-        silhouetteUsage: inout SurfaceSilhouetteUsage) throws -> Self {
-        guard admission.belongsToSameInvocation(as: usage, silhouetteUsage: silhouetteUsage),
+        admission: DrawingSilhouetteAdmission, usage: DrawingExchangeOwner,
+        silhouetteContext: SurfaceSilhouetteContext, using execution: inout OriginalQueryExecution) throws -> Self {
+        try usage.validateExecution(execution)
+        guard admission.belongsToSameInvocation(as: usage, silhouetteContext: silhouetteContext),
             pointsPerMeter.isFinite, pointsPerMeter > 0, translation.x.isFinite, translation.y.isFinite,
             maximumDeviation.isFinite, maximumDeviation > 0 else {
             throw ExportError.invalidMesh("Original silhouette point paper map or invocation is invalid.")
@@ -58,18 +59,18 @@ public struct OriginalSilhouetteDrawingPoint: Sendable {
         try usage.charge(bytes: MemoryLayout<Self>.stride)
         return .init(original: original, selector: selector, bodyID: body, faceID: face, pointsPerMeter: pointsPerMeter,
             translation: translation, maximumDeviation: maximumDeviation, point: point, accountingOwner: usage,
-            silhouetteOwner: silhouetteUsage, admission: admission)
+            silhouetteOwner: silhouetteContext, admission: admission)
     }
     func writeOriginalProvenance(to sink: any SurfaceSilhouetteProvenanceWriting,
-        usage: inout SurfaceSilhouetteUsage) throws {
+        using execution: inout OriginalQueryExecution) throws {
         switch selector {
-        case .contact(let index): try original.contacts[index].source.writeOriginalProvenance(to: sink, usage: &usage)
-        case .algebraicContact(let index): try original.algebraicContacts[index].source.writeOriginalProvenance(to: sink, usage: &usage)
+        case .contact(let index): try original.contacts[index].source.writeOriginalProvenance(to: sink, using: &execution)
+        case .algebraicContact(let index): try original.algebraicContacts[index].source.writeOriginalProvenance(to: sink, using: &execution)
         case .atlasStation(let index):
             let station = original.atlasStations[index]
-            try station.source.writeOriginalProvenance(admittedContact: station.admittedContact, to: sink, usage: &usage)
-        case .singularStation(let index): try original.singularStations[index].source.writeOriginalProvenance(to: sink, usage: &usage)
-        case .collapsedCurve(let index): try original.collapsedCurves[index].curve.writeOriginalProvenance(to: sink, usage: &usage)
+            try station.source.writeOriginalProvenance(admittedContact: station.admittedContact, to: sink, using: &execution)
+        case .singularStation(let index): try original.singularStations[index].source.writeOriginalProvenance(to: sink, using: &execution)
+        case .collapsedCurve(let index): try original.collapsedCurves[index].curve.writeOriginalProvenance(to: sink, using: &execution)
         }
     }
 }

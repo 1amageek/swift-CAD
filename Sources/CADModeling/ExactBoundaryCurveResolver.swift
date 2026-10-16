@@ -14,6 +14,18 @@ package struct ExactBoundaryCurveResolver: Sendable {
         tolerance: ModelingTolerance,
         featureID: FeatureID
     ) throws -> BSplineCurve3D {
+    var execution = try OriginalQueryExecution.independentGeometry()
+    return try curve(edgeID: edgeID, followsStoredDirection: followsStoredDirection, model: model, tolerance: tolerance, featureID: featureID, using: &execution)
+  }
+
+  package func curve(
+        edgeID: EdgeID,
+        followsStoredDirection: Bool,
+        model: BRepModel,
+        tolerance: ModelingTolerance,
+        featureID: FeatureID
+    , using execution: inout OriginalQueryExecution) throws -> BSplineCurve3D {
+    try execution.consumeWork(1)
         guard let edge = model.edges[edgeID],
               let curve = model.geometry.curves[edge.curveID],
               let start = model.vertices[edge.startVertexID]?.point,
@@ -26,8 +38,8 @@ package struct ExactBoundaryCurveResolver: Sendable {
             startParameter = trim.startParameter
             endParameter = trim.endParameter
         } else {
-            startParameter = try curve.parameterProjection(of: start, tolerance: tolerance).parameter
-            endParameter = try curve.parameterProjection(of: end, tolerance: tolerance).parameter
+            startParameter = try curve.parameterProjection(of: start, tolerance: tolerance, using: &execution).parameter
+            endParameter = try curve.parameterProjection(of: end, tolerance: tolerance, using: &execution).parameter
         }
         guard startParameter != endParameter else {
             throw KernelError.unsupportedEvaluation(
@@ -45,23 +57,19 @@ package struct ExactBoundaryCurveResolver: Sendable {
             curve: curve,
             interval: interval,
             maximumSpanCount: 4_096,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         ) {
             spline = exact
         } else {
-            let source = try NativeCurveConversionSource(curve, tolerance: tolerance)
-            spline = try CertifiedGeometryConverter().approximateCurve(
-                source: source, over: interval,
-                requirements: GeometryConversionRequirements(
-                    maximumPositionError: tolerance.distance * 0.25,
-                    maximumTangentAngle: tolerance.angle,
-                    maximumCurvatureError: tolerance.distance
-                ), tolerance: tolerance
-            ).curve
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Nonrepresentable original boundary laws have no exact B-spline conversion here.
+            // SurfaceFill and source-boundary consumers reach this branch; success requires an exact source-preserving
+            // representation accepted by the consuming patch contract and verified over its complete trim.
+            throw KernelError.unsupportedEvaluation(featureID: featureID, tolerance: tolerance,
+                message: "The original boundary curve has no supported exact B-spline representation.")
         }
         let increasingParameterFollowsStoredDirection = startParameter < endParameter
         if increasingParameterFollowsStoredDirection != followsStoredDirection {
-            spline = try spline.reversed(tolerance: tolerance)
+            spline = try spline.reversed(tolerance: tolerance, using: &execution)
         }
         let expectedStart = followsStoredDirection ? start : end
         let expectedEnd = followsStoredDirection ? end : start
@@ -72,8 +80,8 @@ package struct ExactBoundaryCurveResolver: Sendable {
                 message: "A source boundary curve must have a finite closed parameter domain."
             )
         }
-        let startResidual = try (spline.point(at: lower, tolerance: tolerance) - expectedStart).length
-        let endResidual = try (spline.point(at: upper, tolerance: tolerance) - expectedEnd).length
+        let startResidual = try (spline.point(at: lower, tolerance: tolerance, using: &execution) - expectedStart).length
+        let endResidual = try (spline.point(at: upper, tolerance: tolerance, using: &execution) - expectedEnd).length
         let residual = max(startResidual, endResidual)
         guard residual <= tolerance.distance else {
             throw KernelError(

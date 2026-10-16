@@ -1,0 +1,31 @@
+{
+  "scope": "Source-bound rational spatial-word Native silhouette polynomial connection. No whole M4/Drawing/U1 claim; no compiler/runtime performed.",
+  "roots": [
+    "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD"
+  ],
+  "files": {
+    "Sources/CADGeometry/SurfaceSilhouette/OriginalSurfaceSilhouetteField.swift": "b39af647069368f01568a977abb77fc162e94a297bd14ad00af84c0c6f82b8d1",
+    "Sources/CADGeometry/SurfaceSilhouette/OriginalSurfaceSilhouetteCurve.swift": "6744337417f13e9f2a014903766ccf6595cad98a63a233752c48f48c6e2ff96c",
+    "Sources/CADGeometry/SurfaceSilhouette/DESIGN.md": "9f7a95f4567181f9699dbb1ec9b3daf77c48fbb3578f48312e6bebef48973f93",
+    "Tests/CADGeometryTests/SurfaceSilhouetteRationalWordAuthorityTests.swift": "270010d43582e25669a9251561968c72c7b163a48155291e669f5e984825d9ae"
+  },
+  "mathDependency": {
+    "source": "Sources/CADGeometry/RationalBivariateAlgebra/OriginalRationalSurfacePolynomial.swift",
+    "sha256": "761425f77572df8784c10e3a299b09034520f5765d14924e4cfbe35c99ef42b4",
+    "api": "applying(prepared:view:usage:) throws -> Self"
+  },
+  "sourceBinding": "Native exactSourcePolynomial stays base law. Eligible actual root is originalAffineWord, Native leaf, no offsets and no collapsed pole, every prepared word rational. World polynomial is separate and applied inner-to-outer through all retained sourceAuthority.nativeWordImages.reversed(). Original surface/sourceAuthority/queryContext/Native receipt remain in field and branch copies. NativeWordLaw retained for existing world guards; fieldZeroSetAuthority nil only on rational-world branch.",
+  "projectedCapability": "field.projectedRationalAuthority returns only checked world/direct-Native polynomial plus selected nonzero rational zero law. Curve getter removes only surface-case gate in favor of this field-owned capability. No raw child XYZ, identity unwrap or UV inversion.",
+  "unchangedChecks": {
+    "rationalSelector": {
+      "unchangedSHA256": "bb3bb8b9c9958c4ead4469f205b24dce8efd2002ced23432f6daf01633d677b7",
+      "prior": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-final-portable-asan-r1/snapshot/Sources/CADGeometry/SurfaceSilhouette/OriginalSurfaceSilhouetteField.swift"
+    },
+    "nativeWorldTaylor": {
+      "unchangedSHA256": "b77918b9ae56242e7b5c77e26b60583219713ebdc5df9b348b8b75a3bb2f0f02",
+      "prior": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-final-portable-asan-r1/snapshot/Sources/CADGeometry/SurfaceSilhouette/OriginalSurfaceSilhouetteField.swift"
+    }
+  },
+  "tests": "Native identity, independent nonidentity shear (root3/8 vs child1/2), nested outer translation composition, exact world XYZ/normal, unchanged base and spans, actualN/N-1 work, cancellation, independent coefficient-depth0 refusal, zero-offset root capability decline. Pending actual Root gate."
+}

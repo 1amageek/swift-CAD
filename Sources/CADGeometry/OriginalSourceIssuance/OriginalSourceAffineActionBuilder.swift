@@ -7,11 +7,11 @@ import L1
 enum OriginalSourceAffineActionBuilder {
     static func issue<S: Sendable,F: ExactScalarArithmetic & ExactScalarOrdering,A: ExactScalarAdmission & ~Copyable>(
         source: OriginalSourceBinding<S>,field: F,limits: OriginalSourceIssuanceLimits,using a: inout A,
-        coefficient: (Int,Int,inout OriginalSourceProofAdmission<A>) throws -> F.Value
+        coefficient: (Int,Int,inout A) throws -> F.Value
     ) throws(OriginalSourceIssuanceFailure) -> OriginalSourceAffineActionReceipt<S,F> {
         do {
             try a.checkpoint();try a.consumeWork(1);try source.require(limits)
-            let result = try OriginalSourceProofAdmission.withBorrow(&a) { usage in
+            let result = try a.withProofScope { usage in
                 try usage.retainStorage(bytes:exactScalarPayloadBytes(count:12,of:F.Value.self))
                 var values: [F.Value] = [];values.reserveCapacity(12)
                 for row in 0..<3 { for column in 0..<4 {

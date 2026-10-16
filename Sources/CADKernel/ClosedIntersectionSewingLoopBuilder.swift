@@ -15,7 +15,8 @@ struct ClosedIntersectionSewingLoopBuilder {
     firstStableID: String,
     secondStableID: String,
     tolerance: ModelingTolerance
-  ) throws -> (first: BRepSewingLoop, second: BRepSewingLoop) {
+  , using execution: inout OriginalQueryExecution) throws -> (first: BRepSewingLoop, second: BRepSewingLoop) {
+        try execution.consumeWork(1)
     try tolerance.validate()
     guard firstStableID.isEmpty == false,
       secondStableID.isEmpty == false,
@@ -36,7 +37,7 @@ struct ClosedIntersectionSewingLoopBuilder {
         role: .outer,
         curveDirection: .forward,
         tolerance: tolerance
-      ),
+      , using: &execution),
       try loop(
         for: closedIntersection,
         surfaceSide: .second,
@@ -44,7 +45,7 @@ struct ClosedIntersectionSewingLoopBuilder {
         role: .outer,
         curveDirection: .reversed,
         tolerance: tolerance
-      )
+      , using: &execution)
     )
   }
 
@@ -55,7 +56,8 @@ struct ClosedIntersectionSewingLoopBuilder {
     role: LoopRole,
     curveDirection: Orientation,
     tolerance: ModelingTolerance
-  ) throws -> BRepSewingLoop {
+  , using execution: inout OriginalQueryExecution) throws -> BRepSewingLoop {
+        try execution.consumeWork(1)
     try tolerance.validate()
     guard stableID.isEmpty == false else {
       throw KernelError(
@@ -68,23 +70,23 @@ struct ClosedIntersectionSewingLoopBuilder {
     let bounds = try parameterBounds(
       closedIntersection.intersection.curve.parameterDomain,
       tolerance: tolerance
-    )
+    , using: &execution)
     let midpoint = bounds.lower + (bounds.upper - bounds.lower) * 0.5
     let curve = closedIntersection.intersection.curve
     let firstPoint = try curve.pointAssumingValid(
       at: bounds.lower,
       tolerance: tolerance
-    )
+    , using: &execution)
     let midpointPoint = try curve.pointAssumingValid(
       at: midpoint,
       tolerance: tolerance
-    )
+    , using: &execution)
     let certifiedClosure = closedIntersection.intersection.truth
       .certifiedComponentClosure
     let evaluatedEndPoint = try curve.pointAssumingValid(
       at: bounds.upper,
       tolerance: tolerance
-    )
+    , using: &execution)
     let endPoint =
       certifiedClosure == true
       ? firstPoint
@@ -120,13 +122,13 @@ struct ClosedIntersectionSewingLoopBuilder {
       to: midpoint,
       curveDomain: curve.parameterDomain,
       tolerance: tolerance
-    )
+    , using: &execution)
     let upperPcurve = try pcurve.trimmed(
       from: midpoint,
       to: bounds.upper,
       curveDomain: curve.parameterDomain,
       tolerance: tolerance
-    )
+    , using: &execution)
     let edges: [BRepSewingEdge]
     switch curveDirection {
     case .forward:
@@ -159,7 +161,7 @@ struct ClosedIntersectionSewingLoopBuilder {
           endParameter: midpoint,
           startPoint: endPoint,
           endPoint: midpointPoint,
-          surfaceParameterCurve: try upperPcurve.reversed(tolerance: tolerance)
+          surfaceParameterCurve: try upperPcurve.reversed(tolerance: tolerance, using: &execution)
         ),
         BRepSewingEdge(
           stableID: "\(stableID):edge:0",
@@ -168,7 +170,7 @@ struct ClosedIntersectionSewingLoopBuilder {
           endParameter: bounds.lower,
           startPoint: midpointPoint,
           endPoint: firstPoint,
-          surfaceParameterCurve: try lowerPcurve.reversed(tolerance: tolerance)
+          surfaceParameterCurve: try lowerPcurve.reversed(tolerance: tolerance, using: &execution)
         ),
       ]
     }
@@ -178,7 +180,8 @@ struct ClosedIntersectionSewingLoopBuilder {
   private func parameterBounds(
     _ domain: ParameterDomain,
     tolerance: ModelingTolerance
-  ) throws -> (lower: Double, upper: Double) {
+  , using execution: inout OriginalQueryExecution) throws -> (lower: Double, upper: Double) {
+        try execution.consumeWork(1)
     switch domain {
     case .closed(let lower, let upper):
       return (lower, upper)

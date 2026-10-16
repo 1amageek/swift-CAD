@@ -5,18 +5,17 @@ import CADKernel
 /// Bounded paper-point proposals retain each original algebraic root span.
 struct ResolvedGlyphBoundaryLinearizer {
     func linearize(_ boundary: OriginalPlanarNonzeroBoundary, maximumDeviation: Double,
-                   resources: SharedExchangeResourceAccountant) throws -> [[Point2D]] {
+                   resources: SharedExchangeResourceAccountant, using execution: inout OriginalQueryExecution) throws -> [[Point2D]] {
         guard maximumDeviation.isFinite, maximumDeviation > 0 else {
             throw ExportError.invalidMesh("Resolved glyph requires an explicit paper-point deviation.")
         }
-        func jet(_ span: OriginalCurveRootSpan3D, _ a: Double, _ b: Double) throws -> SurfaceIntervalVectorJet {
+        func jet(_ span: OriginalCurveRootSpan3D, _ a: Double, _ b: Double, using execution: inout OriginalQueryExecution) throws -> SurfaceIntervalVectorJet {
             try resources.checkTime()
             return try span.preparedIntervalJet(over: .init(lower: min(a,b), upper: max(a,b)),
-                tolerance: span.certificationTolerance, consumeWork: { try resources.recordIterations() },
-                consumeStorage: { try resources.recordBytes($0) },
+                tolerance: span.certificationTolerance,
                 maximumSpanCount: resources.limits.maximumEntities,
                 maximumSubdivisionDepth: resources.limits.maximumCurveSubdivisionDepth,
-                remainingSourceDepth: resources.limits.maximumNesting)
+                remainingSourceDepth: resources.limits.maximumNesting, using: &execution)
         }
         func point(_ enclosure: SurfaceIntervalVectorJet) throws -> Point2D {
             guard enclosure.x.value.isFinite, enclosure.y.value.isFinite,
@@ -41,8 +40,8 @@ struct ResolvedGlyphBoundaryLinearizer {
                 try resources.recordIterations()
                 let previous = loop.uses[(index + loop.uses.count - 1) % loop.uses.count]
                 let next = loop.uses[index]
-                let last = try jet(previous.forward ? previous.span : previous.span.reversed(), 1, 1)
-                let first = try jet(next.forward ? next.span : next.span.reversed(), 0, 0)
+                let last = try jet(previous.forward ? previous.span : previous.span.reversed(), 1, 1, using: &execution)
+                let first = try jet(next.forward ? next.span : next.span.reversed(), 0, 0, using: &execution)
                 guard let x = last.x.value.intersection(with: first.x.value),
                       let y = last.y.value.intersection(with: first.y.value) else {
                     throw ExportError.invalidMesh("Resolved glyph exact-event endpoint enclosures disagree.")
@@ -58,12 +57,15 @@ struct ResolvedGlyphBoundaryLinearizer {
                 var pending = [(0.0, 1.0, first, last, 0)]
                 while let (a, b, pa, pb, depth) = pending.popLast() {
                     try resources.recordIterations(); try resources.checkTime()
-                    let whole = try jet(span, a, b)
-                    let ea = error(try jet(span, a, a), pa), eb = error(try jet(span, b, b), pb)
+                    let whole = try jet(span, a, b, using: &execution)
+                    let ea = error(try jet(span, a, a, using: &execution), pa), eb = error(try jet(span, b, b, using: &execution), pb)
                     let second = IntervalVector3DBounds(x: whole.x.secondDerivativeUU,
                         y: whole.y.secondDerivativeUU, z: .exact(0)).lengthUpperBound
                     let width = OutwardScalarInterval.exact(b) - .exact(a)
-                    let bound = OutwardScalarInterval.exact(second) * width * width / .exact(8) + .exact(max(ea,eb))
+                    guard let chordError = (OutwardScalarInterval.exact(second) * width * width).divided(by: .exact(8)) else {
+                        throw ExportError.invalidMesh("Resolved glyph chord error cannot be bounded.")
+                    }
+                    let bound = chordError + .exact(max(ea,eb))
                     guard second.isFinite, ea.isFinite, eb.isFinite, bound.isFinite else {
                         throw ExportError.invalidMesh("Resolved glyph chord error cannot be bounded.")
                     }
@@ -77,7 +79,7 @@ struct ResolvedGlyphBoundaryLinearizer {
                         }
                         let middle = a * 0.5 + b * 0.5
                         guard middle > a, middle < b else { throw ExportError.invalidMesh("Resolved glyph parameter resolution is exhausted.") }
-                        let pm = try point(jet(span, middle, middle))
+                        let pm = try point(jet(span, middle, middle, using: &execution))
                         try resources.recordEntities(2)
                         try resources.recordBytes(2 * MemoryLayout<(Double, Double, Point2D, Point2D, Int)>.stride)
                         pending.append((middle,b,pm,pb,depth+1)); pending.append((a,middle,pa,pm,depth+1))

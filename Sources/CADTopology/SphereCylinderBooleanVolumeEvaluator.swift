@@ -13,18 +13,24 @@ import CADGeometry
 
 /// Evaluates supported exact sphere-cylinder Boolean volumes.
 struct SphereCylinderBooleanVolumeEvaluator {
+    func volume(of shell: Shell, in model: BRepModel, tolerance: ModelingTolerance) throws -> Double? {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try volume(of: shell, in: model, tolerance: tolerance, using: &execution)
+    }
+
     func volume(
         of shell: Shell,
         in model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Double? {
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard let groups = try surfaceGroups(
             of: shell,
             in: model,
-            tolerance: tolerance
-        ), let sphereOrientation = uniformOrientation(groups.sphereFaces),
-           let cylinderOrientation = uniformOrientation(groups.cylinderFaces) else {
+            tolerance: tolerance, using: &execution
+        ), let sphereOrientation = try uniformOrientation(groups.sphereFaces, using: &execution),
+           let cylinderOrientation = try uniformOrientation(groups.cylinderFaces, using: &execution) else {
             return nil
         }
         let centerOffset = groups.sphere.center - groups.cylinder.origin
@@ -43,7 +49,7 @@ struct SphereCylinderBooleanVolumeEvaluator {
                     ) - groups.cylinder.radius
                 },
                 in: model,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
               ),
               let cylinderSide = try selectedSide(
                 of: groups.cylinderFaces,
@@ -51,7 +57,7 @@ struct SphereCylinderBooleanVolumeEvaluator {
                     (point - groups.sphere.center).length - groups.sphere.radius
                 },
                 in: model,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
               ) else {
             return nil
         }
@@ -70,7 +76,7 @@ struct SphereCylinderBooleanVolumeEvaluator {
                 sphereRadius: groups.sphere.radius,
                 cylinderRadius: groups.cylinder.radius,
                 radialOffset: radialOffset,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         }
         let sphereVolume = 4.0 * Double.pi * pow(groups.sphere.radius, 3.0) / 3.0
@@ -84,7 +90,7 @@ struct SphereCylinderBooleanVolumeEvaluator {
             guard let cylinderVolume = try finiteCylinderVolume(
                 groups,
                 axialSphereCenter: axialCenter,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             ) else {
                 return nil
             }
@@ -93,7 +99,7 @@ struct SphereCylinderBooleanVolumeEvaluator {
             guard let cylinderVolume = try finiteCylinderVolume(
                 groups,
                 axialSphereCenter: axialCenter,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             ) else {
                 return nil
             }
@@ -106,14 +112,16 @@ struct SphereCylinderBooleanVolumeEvaluator {
     private func surfaceGroups(
         of shell: Shell,
         in model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> SurfaceGroups? {
+        try execution.consumeWork(1)
         var sphere: Sphere?
         var cylinder: Cylinder?
         var sphereFaces: [Face] = []
         var cylinderFaces: [Face] = []
         var planes: [Plane] = []
-        for faceID in shell.faceIDs.sorted() {
+        for faceID in try OriginalParameterQueryStorage.ordered(shell.faceIDs, using: &execution, less: <) {
+            try execution.consumeWork(1)
             guard let face = model.faces[faceID],
                   let surface = model.geometry.surfaces[face.surfaceID] else {
                 throw TopologyError.missingReference(
@@ -129,33 +137,33 @@ struct SphereCylinderBooleanVolumeEvaluator {
                     return nil
                 }
                 sphere = Sphere(center: center, radius: radius)
-                sphereFaces.append(face)
+                try OriginalParameterQueryStorage.append(face, to: &sphereFaces, using: &execution)
             case let .cylinder(value):
-                guard recordCylinder(
+                guard try recordCylinder(
                     origin: value.origin,
                     axis: value.axis,
                     radius: value.radius,
                     existing: &cylinder,
-                    tolerance: tolerance
+                    tolerance: tolerance, using: &execution
                 ) else {
                     return nil
                 }
-                cylinderFaces.append(face)
+                try OriginalParameterQueryStorage.append(face, to: &cylinderFaces, using: &execution)
             case let .analytic(.cylinder(origin, axis, radius)):
-                guard recordCylinder(
+                guard try recordCylinder(
                     origin: origin,
                     axis: axis,
                     radius: radius,
                     existing: &cylinder,
-                    tolerance: tolerance
+                    tolerance: tolerance, using: &execution
                 ) else {
                     return nil
                 }
-                cylinderFaces.append(face)
+                try OriginalParameterQueryStorage.append(face, to: &cylinderFaces, using: &execution)
             case let .plane(value):
-                planes.append(Plane(origin: value.origin, normal: value.normal, face: face))
+                try OriginalParameterQueryStorage.append(Plane(origin: value.origin, normal: value.normal, face: face), to: &planes, using: &execution)
             case let .analytic(.plane(origin, normal)):
-                planes.append(Plane(origin: origin, normal: normal, face: face))
+                try OriginalParameterQueryStorage.append(Plane(origin: origin, normal: normal, face: face), to: &planes, using: &execution)
             case .bSpline, .analytic, .procedural:
                 return nil
             }
@@ -179,8 +187,9 @@ struct SphereCylinderBooleanVolumeEvaluator {
         axis: Vector3D,
         radius: Double,
         existing: inout Cylinder?,
-        tolerance: ModelingTolerance
-    ) -> Bool {
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+    ) throws -> Bool {
+        try execution.consumeWork(1)
         if let existing {
             let offset = origin - existing.origin
             let radialOffset = offset - existing.axis * offset.dot(existing.axis)
@@ -196,18 +205,22 @@ struct SphereCylinderBooleanVolumeEvaluator {
         of faces: [Face],
         relativeTo signedDistance: (Point3D) -> Double,
         in model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> RegionSide? {
+        try execution.consumeWork(1)
         let boundaryTolerance = tolerance.distance * 4.0
         var sides = Set<RegionSide>()
         for face in faces {
+            try execution.consumeWork(1)
             for loopID in face.loops {
+                try execution.consumeWork(1)
                 guard let loop = model.loops[loopID] else {
                     throw TopologyError.missingReference(
                         "Sphere-cylinder volume references a missing loop."
                     )
                 }
                 for coedge in loop.coedges {
+                    try execution.consumeWork(1)
                     guard let edge = model.edges[coedge.edgeID],
                           let start = model.vertices[edge.startVertexID]?.point,
                           let end = model.vertices[edge.endVertexID]?.point,
@@ -216,22 +229,22 @@ struct SphereCylinderBooleanVolumeEvaluator {
                             "Sphere-cylinder volume references missing boundary geometry."
                         )
                     }
-                    recordSide(
+                    try recordSide(
                         signedDistance(start),
                         boundaryTolerance: boundaryTolerance,
-                        in: &sides
+                        in: &sides, using: &execution
                     )
-                    recordSide(
+                    try recordSide(
                         signedDistance(end),
                         boundaryTolerance: boundaryTolerance,
-                        in: &sides
+                        in: &sides, using: &execution
                     )
                     if let trim = edge.trim {
                         let midpoint = (trim.startParameter + trim.endParameter) * 0.5
-                        recordSide(
-                            signedDistance(try curve.point(at: midpoint, tolerance: tolerance)),
+                        try recordSide(
+                            signedDistance(try curve.point(at: midpoint, tolerance: tolerance, using: &execution)),
                             boundaryTolerance: boundaryTolerance,
-                            in: &sides
+                            in: &sides, using: &execution
                         )
                     }
                 }
@@ -244,52 +257,55 @@ struct SphereCylinderBooleanVolumeEvaluator {
     private func recordSide(
         _ signedDistance: Double,
         boundaryTolerance: Double,
-        in sides: inout Set<RegionSide>
-    ) {
+        in sides: inout Set<RegionSide>, using execution: inout OriginalQueryExecution
+    ) throws {
+        try execution.consumeWork(1)
         if signedDistance < -boundaryTolerance {
-            sides.insert(.inside)
+            try OriginalParameterQueryStorage.insert(.inside, in: &sides, using: &execution)
         } else if signedDistance > boundaryTolerance {
-            sides.insert(.outside)
+            try OriginalParameterQueryStorage.insert(.outside, in: &sides, using: &execution)
         }
     }
 
     private func finiteCylinderVolume(
         _ groups: SurfaceGroups,
         axialSphereCenter: Double,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Double? {
+        try execution.consumeWork(1)
         var coordinates: [Double] = []
         for plane in groups.planes {
+            try execution.consumeWork(1)
             let normal = try plane.normal.normalized(tolerance: tolerance.distance)
             guard plane.face.orientation == .forward,
                   abs(abs(normal.dot(groups.cylinder.axis)) - 1.0) <= tolerance.angle else {
                 return nil
             }
-            coordinates.append(
+            try OriginalParameterQueryStorage.append(
                 (plane.origin - groups.cylinder.origin).dot(groups.cylinder.axis)
-            )
+            , to: &coordinates, using: &execution)
         }
-        guard let lower = coordinates.min(),
-              let upper = coordinates.max(),
-              upper - lower > tolerance.distance,
-              lower < axialSphereCenter - groups.sphere.radius - tolerance.distance,
-              upper > axialSphereCenter + groups.sphere.radius + tolerance.distance else {
+        guard let bounds = try OriginalParameterQueryStorage.extrema(coordinates, using: &execution, projection: { value, execution in value }),
+              bounds.upper - bounds.lower > tolerance.distance,
+              bounds.lower < axialSphereCenter - groups.sphere.radius - tolerance.distance,
+              bounds.upper > axialSphereCenter + groups.sphere.radius + tolerance.distance else {
             return nil
         }
-        return Double.pi * groups.cylinder.radius * groups.cylinder.radius * (upper - lower)
+        return Double.pi * groups.cylinder.radius * groups.cylinder.radius * (bounds.upper - bounds.lower)
     }
 
     private func offsetOverlappingVolume(
         sphereRadius: Double,
         cylinderRadius: Double,
         radialOffset: Double,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Double {
-        let breakpoints = crossSectionBreakpoints(
+        try execution.consumeWork(1)
+        let breakpoints = try crossSectionBreakpoints(
             sphereRadius: sphereRadius,
             cylinderRadius: cylinderRadius,
             radialOffset: radialOffset,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         return try OffsetDiskSectionVolumeIntegrator().volume(
             breakpoints: breakpoints,
@@ -308,7 +324,7 @@ struct SphereCylinderBooleanVolumeEvaluator {
                         - axialParameter * axialParameter
                 ))
             },
-            secondRadiusAt: { _ in cylinderRadius }
+            secondRadiusAt: { _ in cylinderRadius }, using: &execution
         )
     }
 
@@ -316,8 +332,10 @@ struct SphereCylinderBooleanVolumeEvaluator {
         sphereRadius: Double,
         cylinderRadius: Double,
         radialOffset: Double,
-        tolerance: ModelingTolerance
-    ) -> [Double] {
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+    ) throws -> [Double] {
+        try execution.consumeWork(1)
+        try execution.retainStorage(bytes: 2 * MemoryLayout<Double>.stride)
         var values = [-sphereRadius, sphereRadius]
         for sectionRadius in [
             cylinderRadius + radialOffset,
@@ -328,15 +346,16 @@ struct SphereCylinderBooleanVolumeEvaluator {
                 sphereRadius * sphereRadius - sectionRadius * sectionRadius
             ))
             if axialParameter > tolerance.distance {
-                values.append(-axialParameter)
-                values.append(axialParameter)
+                try OriginalParameterQueryStorage.append(-axialParameter, to: &values, using: &execution)
+                try OriginalParameterQueryStorage.append(axialParameter, to: &values, using: &execution)
             }
         }
-        values.sort()
+        try OriginalParameterQueryStorage.sort(&values, using: &execution, less: <)
         var result: [Double] = []
         for value in values {
+            try execution.consumeWork(1)
             if result.last.map({ abs($0 - value) <= tolerance.distance }) != true {
-                result.append(value)
+                try OriginalParameterQueryStorage.append(value, to: &result, using: &execution)
             }
         }
         return result
@@ -351,10 +370,11 @@ struct SphereCylinderBooleanVolumeEvaluator {
         return (offset - axis * offset.dot(axis)).length
     }
 
-    private func uniformOrientation(_ faces: [Face]) -> Orientation? {
-        let orientations = Set(faces.map({ $0.orientation }))
-        guard orientations.count == 1 else { return nil }
-        return orientations.first
+    private func uniformOrientation(_ faces: [Face], using execution: inout OriginalQueryExecution) throws -> Orientation? {
+        try execution.consumeWork(1)
+        guard let reference = faces.first,
+              try OriginalParameterQueryStorage.allSatisfy(faces, using: &execution, predicate: { face, execution in face.orientation == reference.orientation }) else { return nil }
+        return reference.orientation
     }
 
     private enum RegionSide: Hashable {

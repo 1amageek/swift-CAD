@@ -56,23 +56,23 @@ public struct OriginalImageSurface3D: Hashable, Sendable {
     public init(source: Surface3D, uGain: Double = 1, vGain: Double = 1,
         uOffset: Double = 0, vOffset: Double = 0, transform: AffineTransform3D,
         swapAxes: Bool = false, tolerance: ModelingTolerance, remainingSourceDepth: Int,
-        maximumSubdivisionDepth: Int, consumeWork: () throws -> Void) throws {
+        maximumSubdivisionDepth: Int, using execution: inout OriginalQueryExecution) throws {
         try self.init(source: source, uParameterGain: .binary(uGain), vParameterGain: .binary(vGain),
             uOffset: uOffset, vOffset: vOffset, transform: transform, swapAxes: swapAxes,
             tolerance: tolerance, remainingSourceDepth: remainingSourceDepth,
-            maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: consumeWork)
+            maximumSubdivisionDepth: maximumSubdivisionDepth, using: &execution)
     }
 
     public init(source: Surface3D, uParameterGain: OriginalParameterGain,
         vParameterGain: OriginalParameterGain, uOffset: Double = 0, vOffset: Double = 0,
         transform: AffineTransform3D, swapAxes: Bool = false, tolerance: ModelingTolerance,
         remainingSourceDepth: Int, maximumSubdivisionDepth: Int,
-        consumeWork: () throws -> Void) throws {
+        using execution: inout OriginalQueryExecution) throws {
         self.source = source; self.uParameterGain = uParameterGain; self.vParameterGain = vParameterGain
         self.uOffset = uOffset; self.vOffset = vOffset; self.transform = transform; self.swapAxes = swapAxes
         try Surface3D.parameterImage(self).validateOriginalSource(tolerance: tolerance,
             remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth,
-            consumeWork: { _ in try consumeWork() })
+            using: &execution)
     }
 
     public var uDomain: ParameterDomain {
@@ -83,9 +83,14 @@ public struct OriginalImageSurface3D: Hashable, Sendable {
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try OriginalParameterImageMap.validate(gain: uParameterGain, offset: uOffset)
         try OriginalParameterImageMap.validate(gain: vParameterGain, offset: vOffset)
-        try transform.validate(); try source.validate(tolerance: tolerance)
+        try transform.validate(); try source.validateOriginalSource(tolerance: tolerance, remainingSourceDepth: execution.limits.remainingSourceDepth, maximumSubdivisionDepth: execution.limits.maximumSubdivisionDepth, using: &execution)
         try uDomain.validate(tolerance: tolerance); try vDomain.validate(tolerance: tolerance)
     }
 
@@ -96,16 +101,29 @@ public struct OriginalImageSurface3D: Hashable, Sendable {
     }
 
     public func point(u: Double, v: Double, tolerance: ModelingTolerance) throws -> Point3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try point(u: u, v: v, tolerance: tolerance, using: &execution)
+    }
+
+    public func point(u: Double, v: Double, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Point3D {
+        try execution.consumeWork(1)
         let native = try nativeParameter(u: u, v: v)
         return transform.applying(to: try source.pointAssumingValid(u: native.u,
-            v: native.v, tolerance: tolerance))
+            v: native.v, tolerance: tolerance, using: &execution))
     }
 
     public func parameterDerivatives(u: Double, v: Double,
         tolerance: ModelingTolerance) throws -> SurfaceParameterDerivatives {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try parameterDerivatives(u: u, v: v, tolerance: tolerance, using: &execution)
+    }
+
+    public func parameterDerivatives(u: Double, v: Double,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> SurfaceParameterDerivatives {
+        try execution.consumeWork(1)
         let native = try nativeParameter(u: u, v: v)
         let jet = try source.parameterDerivativesAssumingValid(u: native.u, v: native.v,
-            tolerance: tolerance)
+            tolerance: tolerance, using: &execution)
         return .init(position: transform.applying(to: jet.position),
             tangentU: transform.applying(to: swapAxes ? jet.tangentV : jet.tangentU) * uGain,
             tangentV: transform.applying(to: swapAxes ? jet.tangentU : jet.tangentV) * vGain,
@@ -116,9 +134,16 @@ public struct OriginalImageSurface3D: Hashable, Sendable {
 
     public func parameterDerivativesThroughThirdOrder(u: Double, v: Double,
         tolerance: ModelingTolerance) throws -> SurfaceParameterThirdOrderDerivatives {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try parameterDerivativesThroughThirdOrder(u: u, v: v, tolerance: tolerance, using: &execution)
+    }
+
+    public func parameterDerivativesThroughThirdOrder(u: Double, v: Double,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> SurfaceParameterThirdOrderDerivatives {
+        try execution.consumeWork(1)
         let native = try nativeParameter(u: u, v: v)
         let jet = try source.parameterDerivativesThroughThirdOrder(u: native.u,
-            v: native.v, tolerance: tolerance)
+            v: native.v, tolerance: tolerance, using: &execution)
         func vector(_ value: Vector3D, _ a: Int, _ b: Int) -> Vector3D {
             transform.applying(to: value) * (pow(uGain, Double(a)) * pow(vGain, Double(b)))
         }
@@ -136,20 +161,25 @@ public struct OriginalImageSurface3D: Hashable, Sendable {
 
     /// Original native image bounds; exact boundary singleton identities retain zero width.
     public func sourceParameterBounds(over box: SurfaceParameterBox,
-        tolerance: ModelingTolerance, consumeWork: () throws -> Void = {}) throws -> SurfaceParameterBox {
-        try validate(tolerance: tolerance)
-        return try nativeBox(box, consumeWork:consumeWork)
+        tolerance: ModelingTolerance) throws -> SurfaceParameterBox {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try sourceParameterBounds(over: box, tolerance: tolerance, using: &execution)
     }
 
-    func nativeBox(_ box: SurfaceParameterBox, consumeWork: () throws -> Void = {}) throws -> SurfaceParameterBox {
-        let u = try OriginalParameterImageMap.interval(box.u, gain: uParameterGain,
-            offset: uOffset, sourceDomain: swapAxes ? source.vDomain : source.uDomain, consumeWork:consumeWork)
-        let v = try OriginalParameterImageMap.interval(box.v, gain: vParameterGain,
-            offset: vOffset, sourceDomain: swapAxes ? source.uDomain : source.vDomain, consumeWork:consumeWork)
-        return SurfaceParameterBox(u: swapAxes ? v : u, v: swapAxes ? u : v)
+    public func sourceParameterBounds(over box: SurfaceParameterBox,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> SurfaceParameterBox {
+        try Surface3D.parameterImage(self).validateOriginalSource(tolerance: tolerance,
+            remainingSourceDepth: execution.limits.remainingSourceDepth,
+            maximumSubdivisionDepth: execution.limits.maximumSubdivisionDepth, using: &execution)
+        return try nativeBox(box, usage: &execution)
     }
 
-    package func nativeBox<B: RationalAlgebraAdmitting>(_ box: SurfaceParameterBox,
+    func nativeBox(_ box: SurfaceParameterBox) throws -> SurfaceParameterBox {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try nativeBox(box, usage: &execution)
+    }
+
+    package func nativeBox<B: ExactScalarAdmission & ~Copyable>(_ box: SurfaceParameterBox,
         usage: inout B) throws -> SurfaceParameterBox {
         let u = try OriginalParameterImageMap.interval(box.u, gain: uParameterGain,
             offset: uOffset, sourceDomain: swapAxes ? source.vDomain : source.uDomain, usage: &usage)
@@ -158,13 +188,11 @@ public struct OriginalImageSurface3D: Hashable, Sendable {
         return SurfaceParameterBox(u: swapAxes ? v : u, v: swapAxes ? u : v)
     }
 
-    package func nativeBox(_ box: SurfaceParameterBox, consumeWork: () throws -> Void,
-        consumeStorage: ((Int) throws -> Void)?, maximumAlgebraicDepth: Int? = nil)
-        throws -> SurfaceParameterBox {
-        try withoutActuallyEscaping(consumeWork) { work in
-            var usage = OriginalGeometryValidationAdmission(consumeWork: { _ in try work() },
-                consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
-            return try nativeBox(box, usage: &usage)
+    package func nativeBox<A: ExactScalarAdmission & ~Copyable>(_ box: SurfaceParameterBox,
+        maximumAlgebraicDepth: Int? = nil, using execution: inout A) throws -> SurfaceParameterBox {
+        let maximum = try maximumAlgebraicDepth.map { try ExactScalarDepth(value: $0, coefficient: $0) }
+        return try execution.withProofScope(maximum: maximum) { execution in
+            try nativeBox(box, usage: &execution)
         }
     }
 
@@ -190,21 +218,35 @@ public struct OriginalImageSurface3D: Hashable, Sendable {
     }
 
     func intervalJet(over box: SurfaceParameterBox, tolerance: ModelingTolerance) throws -> SurfaceIntervalVectorJet {
-        let prepared = try PreparedSurfaceDifferentialEncloser(surface: source, tolerance: tolerance)
-        return try mappedJet(try prepared.intervalJet(overClosedBox: nativeBox(box), tolerance: tolerance))
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try intervalJet(over: box, tolerance: tolerance, using: &execution)
+    }
+
+    func intervalJet(over box: SurfaceParameterBox, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> SurfaceIntervalVectorJet {
+        let prepared = try PreparedSurfaceDifferentialEncloser(surface: source, tolerance: tolerance, using: &execution)
+        return try mappedJet(prepared.intervalJet(overClosedBox: nativeBox(box, usage: &execution),
+            tolerance: tolerance, using: &execution))
     }
 
     func taylorJet(u: Double, v: Double, throughOrder order: Int,
         tolerance: ModelingTolerance) throws -> SurfaceTaylorVectorJet {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try taylorJet(u: u, v: v, throughOrder: order, tolerance: tolerance, using: &execution)
+    }
+
+    func taylorJet(u: Double, v: Double, throughOrder order: Int,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> SurfaceTaylorVectorJet {
+        try execution.consumeWork(1)
         let native = try nativeParameter(u: u, v: v)
         let original = try source.taylorJet(u: native.u, v: native.v, throughOrder: order,
-            tolerance: tolerance)
-        var x = try SurfaceTaylorScalarJet(order: order)
-        var y = try SurfaceTaylorScalarJet(order: order)
-        var z = try SurfaceTaylorScalarJet(order: order)
+            tolerance: tolerance, using: &execution)
+    var x = try SurfaceTaylorScalarJet(order: order, using: &execution)
+        var y = try SurfaceTaylorScalarJet(order: order, using: &execution)
+        var z = try SurfaceTaylorScalarJet(order: order, using: &execution)
         for total in 0...order {
             for a in 0...total {
-                try CurrentTaskCancellationChecker().checkCancellation()
+                try execution.consumeWork(1)
                 let b = total - a
                 let coefficient = transform.applying(to: Vector3D(x: original.x[swapAxes ? b : a, swapAxes ? a : b],
                     y: original.y[swapAxes ? b : a, swapAxes ? a : b],
@@ -214,9 +256,9 @@ public struct OriginalImageSurface3D: Hashable, Sendable {
                 guard value.isFinite else {
                     throw GeometryConversionError.invalidInput("Original surface image Taylor coefficients are nonfinite.")
                 }
-                try x.setCoefficient(value.x, uOrder: a, vOrder: b)
-                try y.setCoefficient(value.y, uOrder: a, vOrder: b)
-                try z.setCoefficient(value.z, uOrder: a, vOrder: b)
+                try x.setCoefficient(value.x, uOrder: a, vOrder: b, using: &execution)
+                try y.setCoefficient(value.y, uOrder: a, vOrder: b, using: &execution)
+                try z.setCoefficient(value.z, uOrder: a, vOrder: b, using: &execution)
             }
         }
         return try .init(x: x, y: y, z: z)

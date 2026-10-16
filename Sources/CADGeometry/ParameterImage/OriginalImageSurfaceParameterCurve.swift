@@ -10,13 +10,33 @@ public struct OriginalImageSurfaceParameterCurve: Hashable, Sendable {
     public init(source: SurfaceLiftCurve3D, targetImage: OriginalImageSurface3D,
         startFraction: Double = 0, endFraction: Double = 1,
         tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try self.init(source: source, targetImage: targetImage, startFraction: startFraction,
+            endFraction: endFraction, tolerance: tolerance, using: &execution)
+    }
+    public init(source: SurfaceLiftCurve3D, targetImage: OriginalImageSurface3D,
+        startFraction: Double = 0, endFraction: Double = 1,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
         self.source = source; self.targetImage = targetImage
         self.startFraction = startFraction; self.endFraction = endFraction
-        try validate(on: .parameterImage(targetImage), tolerance: tolerance)
+        try validate(on: .parameterImage(targetImage), tolerance: tolerance, using: &execution)
     }
 
     public func validate(on surface: Surface3D, tolerance: ModelingTolerance) throws {
-        try source.validate(tolerance: tolerance); try targetImage.validate(tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(on: surface, tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(on surface: Surface3D, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try Curve3D.surfaceLift(source).validateOriginalSource(tolerance: tolerance,
+            remainingSourceDepth: execution.limits.remainingSourceDepth,
+            maximumSubdivisionDepth: execution.limits.maximumSubdivisionDepth, using: &execution)
+        try Surface3D.parameterImage(targetImage).validateOriginalSource(tolerance: tolerance,
+            remainingSourceDepth: execution.limits.remainingSourceDepth,
+            maximumSubdivisionDepth: execution.limits.maximumSubdivisionDepth, using: &execution)
+        try GeometryStructuralComparisonWork.charge(surface: source.surface, using: &execution)
+        try GeometryStructuralComparisonWork.charge(surface: targetImage.source, using: &execution)
         guard source.surface == targetImage.source, surface == .parameterImage(targetImage),
             startFraction.isFinite, endFraction.isFinite, startFraction >= 0, startFraction <= 1,
             endFraction >= 0, endFraction <= 1, startFraction != endFraction else {
@@ -26,8 +46,15 @@ public struct OriginalImageSurfaceParameterCurve: Hashable, Sendable {
 
     public func parameter(atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance) throws -> SurfaceParameter {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try parameter(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+    public func parameter(atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> SurfaceParameter {
+        try execution.consumeWork(1)
         let parameter = try source.parameterCurve.parameter(atNormalizedFraction:
-            mappedFraction(fraction), tolerance: tolerance)
+            mappedFraction(fraction), tolerance: tolerance, using: &execution)
         let nativeU = targetImage.swapAxes ? parameter.v : parameter.u
         let nativeV = targetImage.swapAxes ? parameter.u : parameter.v
         func foreign(_ native: Double, gain: OriginalParameterGain, offset: Double) throws -> Double {
@@ -44,21 +71,35 @@ public struct OriginalImageSurfaceParameterCurve: Hashable, Sendable {
 
     public func differential(atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance) throws -> SurfaceParameterCurveDifferential {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try differential(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+    public func differential(atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> SurfaceParameterCurveDifferential {
+        try execution.consumeWork(1)
         let original = try source.parameterCurve.differentialGeometry(
-            atNormalizedFraction: mappedFraction(fraction), tolerance: tolerance)
+            atNormalizedFraction: mappedFraction(fraction), tolerance: tolerance, using: &execution)
         let scale = endFraction - startFraction
         func mapped(_ value: Point2D, _ order: Int) -> Point2D {
             let factor = order == 1 ? scale : scale * scale
             return Point2D(x: (targetImage.swapAxes ? value.y : value.x) * factor / targetImage.uGain,
                 y: (targetImage.swapAxes ? value.x : value.y) * factor / targetImage.vGain)
         }
-        return try .init(parameter: parameter(atNormalizedFraction: fraction, tolerance: tolerance),
+        return try .init(parameter: parameter(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution),
             firstDerivative: mapped(original.firstDerivative, 1), secondDerivative: mapped(original.secondDerivative, 2))
     }
 
     package func modelSpaceDifferential(atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance) throws -> SurfaceLiftCurve3D.DifferentialGeometry {
-        let original = try source.differentialGeometry(atNormalizedFraction: mappedFraction(fraction), tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try modelSpaceDifferential(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+    package func modelSpaceDifferential(atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> SurfaceLiftCurve3D.DifferentialGeometry {
+        try execution.consumeWork(1)
+        let original = try source.differentialGeometry(atNormalizedFraction: mappedFraction(fraction), tolerance: tolerance, using: &execution)
         let scale = endFraction - startFraction
         return .init(position: targetImage.transform.applying(to: original.position),
             firstDerivative: targetImage.transform.applying(to: original.firstDerivative) * scale,
@@ -67,8 +108,15 @@ public struct OriginalImageSurfaceParameterCurve: Hashable, Sendable {
 
     func modelSpaceThirdOrder(atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance) throws -> CurveParameterThirdOrderDerivatives {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try modelSpaceThirdOrder(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+    func modelSpaceThirdOrder(atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> CurveParameterThirdOrderDerivatives {
+        try execution.consumeWork(1)
         let original = try Curve3D.surfaceLift(source).parameterDerivativesThroughThirdOrder(
-            at: mappedFraction(fraction), tolerance: tolerance)
+            at: mappedFraction(fraction), tolerance: tolerance, using: &execution)
         let scale = endFraction - startFraction
         return .init(position: targetImage.transform.applying(to: original.position),
             firstDerivative: targetImage.transform.applying(to: original.firstDerivative) * scale,
@@ -78,8 +126,15 @@ public struct OriginalImageSurfaceParameterCurve: Hashable, Sendable {
 
     func thirdDerivative(atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance) throws -> Point2D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try thirdDerivative(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+    func thirdDerivative(atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Point2D {
+        try execution.consumeWork(1)
         let original = try source.parameterCurve.thirdOrderDifferential(
-            atNormalizedFraction: mappedFraction(fraction), on: source.surface, tolerance: tolerance)
+            atNormalizedFraction: mappedFraction(fraction), on: source.surface, tolerance: tolerance, using: &execution)
         let scale = endFraction - startFraction
         let cube = scale * scale * scale
         return Point2D(x: (targetImage.swapAxes ? original.thirdDerivative.y : original.thirdDerivative.x)
@@ -89,86 +144,67 @@ public struct OriginalImageSurfaceParameterCurve: Hashable, Sendable {
     }
 
     public func reversed(tolerance: ModelingTolerance) throws -> Self {
-        try .init(source: source, targetImage: targetImage, startFraction: endFraction,
-            endFraction: startFraction, tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try reversed(tolerance: tolerance, using: &execution)
+    }
+
+    public func reversed(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Self {
+        try execution.consumeWork(1)
+        return try .init(source: source, targetImage: targetImage, startFraction: endFraction,
+            endFraction: startFraction, tolerance: tolerance, using: &execution)
     }
 
     public func subcurve(fromNormalizedFraction lower: Double, toNormalizedFraction upper: Double,
         tolerance: ModelingTolerance) throws -> Self {
-        try .init(source: source, targetImage: targetImage,
-            startFraction: mappedFraction(lower), endFraction: mappedFraction(upper), tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try subcurve(fromNormalizedFraction: lower, toNormalizedFraction: upper, tolerance: tolerance, using: &execution)
+    }
+
+    public func subcurve(fromNormalizedFraction lower: Double, toNormalizedFraction upper: Double,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Self {
+        try execution.consumeWork(1)
+        return try .init(source: source, targetImage: targetImage,
+            startFraction: mappedFraction(lower), endFraction: mappedFraction(upper), tolerance: tolerance, using: &execution)
     }
 
     /// Original foreign UV enclosure with caller-owned source work and depth.
     package func parameterBounds(over range: ScalarInterval, tolerance: ModelingTolerance,
         maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
-        consumeWork: () throws -> Void) throws -> SurfaceParameterBox {
-        let native = try OriginalParameterCurveHigherTaylor.enclosure(source.parameterCurve,
-            over: mappedRange(range), order: 4, tolerance: tolerance,
-            maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-            remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork)
-        func inverse(_ field: SurfaceAreaIntervalTaylorScalarJet, gain: OriginalParameterGain,
-            offset: Double) throws -> ScalarInterval {
-            let value = try field.coefficient(0, 0)
-            return try OriginalParameterImageMap.inverseInterval(
-                ScalarInterval(lower: value.lower, upper: value.upper), gain: gain, offset: offset,
-                consumeWork: consumeWork)
-        }
-        return try .init(u: inverse(targetImage.swapAxes ? native.v : native.u,
-            gain: targetImage.uParameterGain, offset: targetImage.uOffset),
-            v: inverse(targetImage.swapAxes ? native.u : native.v,
-                gain: targetImage.vParameterGain, offset: targetImage.vOffset))
-    }
-
-    package func parameterBounds(over range: ScalarInterval, tolerance: ModelingTolerance,
-        maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
-        consumeWork: () throws -> Void, consumeStorage: ((Int) throws -> Void)?,
-        maximumAlgebraicDepth: Int? = nil) throws -> SurfaceParameterBox {
-        let query = try mappedRange(range, consumeWork: consumeWork,
-            consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+        maximumAlgebraicDepth: Int? = nil, using execution: inout OriginalQueryExecution) throws -> SurfaceParameterBox {
+        let query = try mappedRange(range, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
         let original = try OriginalParameterCurveHigherTaylor.enclosure(source.parameterCurve,
             over: query, order: 0, tolerance: tolerance, maximumSpanCount: maximumSpanCount,
             maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
-            consumeWork: consumeWork, consumeStorage: consumeStorage,
-            maximumAlgebraicDepth: maximumAlgebraicDepth)
+            maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
         let u = try original.u.coefficient(0, 0), v = try original.v.coefficient(0, 0)
         return try SurfaceParameterBox(
             u: inverseParameterInterval(ScalarInterval(lower: targetImage.swapAxes ? v.lower : u.lower,
                 upper: targetImage.swapAxes ? v.upper : u.upper), gain: targetImage.uParameterGain,
-                offset: targetImage.uOffset, consumeWork: consumeWork, consumeStorage: consumeStorage,
-                maximumAlgebraicDepth: maximumAlgebraicDepth),
+                offset: targetImage.uOffset, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution),
             v: inverseParameterInterval(ScalarInterval(lower: targetImage.swapAxes ? u.lower : v.lower,
                 upper: targetImage.swapAxes ? u.upper : v.upper), gain: targetImage.vParameterGain,
-                offset: targetImage.vOffset, consumeWork: consumeWork, consumeStorage: consumeStorage,
-                maximumAlgebraicDepth: maximumAlgebraicDepth))
+                offset: targetImage.vOffset, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution))
     }
 
     package func inverseParameterInterval(_ range: ScalarInterval, gain: OriginalParameterGain,
-        offset: Double, consumeWork: () throws -> Void,
-        consumeStorage: ((Int) throws -> Void)? = nil,
-        maximumAlgebraicDepth: Int? = nil) throws -> ScalarInterval {
-        try withoutActuallyEscaping(consumeWork) { work in
-            var usage = OriginalGeometryValidationAdmission(consumeWork: { _ in try work() },
-                consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
-            return try OriginalParameterImageMap.inverseInterval(range, gain: gain,
-                offset: offset, usage: &usage)
+        offset: Double, maximumAlgebraicDepth: Int? = nil, using execution: inout OriginalQueryExecution) throws -> ScalarInterval {
+        let maximum = try maximumAlgebraicDepth.map { try ExactScalarDepth(value: $0, coefficient: $0) }
+        return try execution.withProofScope(maximum: maximum) { usage in
+            try OriginalParameterImageMap.inverseInterval(range, gain: gain, offset: offset, usage: &usage)
         }
     }
 
-    package func mappedRange(_ range: ScalarInterval, consumeWork: () throws -> Void,
-        consumeStorage: ((Int) throws -> Void)? = nil,
-        maximumAlgebraicDepth: Int? = nil) throws -> ScalarInterval {
+    package func mappedRange(_ range: ScalarInterval, maximumAlgebraicDepth: Int? = nil, using execution: inout OriginalQueryExecution) throws -> ScalarInterval {
         guard range.lower.isFinite, range.upper.isFinite,
             range.lower >= 0, range.upper <= 1, range.lower <= range.upper else {
             throw GeometryConversionError.invalidInput("Original hosted UV range must belong to its normalized chart.")
         }
-        return try withoutActuallyEscaping(consumeWork) { work in
-            var usage = OriginalGeometryValidationAdmission(consumeWork: { _ in try work() },
-                consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+        let maximum = try maximumAlgebraicDepth.map { try ExactScalarDepth(value: $0, coefficient: $0) }
+        return try execution.withProofScope(maximum: maximum) { usage in
             let first = try ExactRationalCoefficient.originalDouble(startFraction, usage: &usage)
             let gain = try ExactRationalCoefficient.originalDouble(endFraction, usage: &usage)
                 .subtracting(first, usage: &usage)
-            func endpoint(_ value: Double, usage: inout OriginalGeometryValidationAdmission)
+            func endpoint(_ value: Double, usage: inout OriginalQueryExecution)
                 throws -> OutwardScalarInterval {
                 try first.adding(gain.multiplied(by: .originalDouble(value, usage: &usage),
                     usage: &usage), usage: &usage).outwardInterval(usage: &usage)
@@ -199,48 +235,38 @@ public struct OriginalImageSurfaceParameterCurve: Hashable, Sendable {
     func intervalJet(over range: ScalarInterval, tolerance: ModelingTolerance,
         preparedImplicit: ImplicitCurveIntervalJetEncloser? = nil)
         throws -> (u: SurfaceIntervalJet, v: SurfaceIntervalJet)? {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try intervalJet(over: range, tolerance: tolerance, preparedImplicit: preparedImplicit, using: &execution)
+    }
+
+    func intervalJet(over range: ScalarInterval, tolerance: ModelingTolerance,
+        preparedImplicit: ImplicitCurveIntervalJetEncloser? = nil, using execution: inout OriginalQueryExecution)
+        throws -> (u: SurfaceIntervalJet, v: SurfaceIntervalJet)? {
+        try execution.consumeWork(1)
         guard let original = try DefaultCurveDifferentialEncloser().parameterJets(source.parameterCurve,
-            over: mappedRange(range), tolerance: tolerance, preparedImplicit: preparedImplicit) else { return nil }
-        return try mappedParameterJets(u: original.u, v: original.v)
+            over: mappedRange(range), tolerance: tolerance, preparedImplicit: preparedImplicit, using: &execution) else { return nil }
+        return try mappedParameterJets(u: original.u, v: original.v, using: &execution)
     }
 
     func mappedParameterJets(u nativeU: SurfaceIntervalJet, v nativeV: SurfaceIntervalJet)
         throws -> (u: SurfaceIntervalJet, v: SurfaceIntervalJet) {
-        let scale = OutwardScalarInterval.exact(endFraction) - .exact(startFraction)
-        func inverse(_ field: SurfaceIntervalJet, gain: OriginalParameterGain, offset: Double) throws -> SurfaceIntervalJet {
-            guard let reciprocal = OutwardScalarInterval.exact(1).divided(by: try gain.interval()) else {
-                throw GeometryConversionError.invalidInput("Original image pcurve inverse gain has no nonzero interval.")
-            }
-            let zero = OutwardScalarInterval.exact(0)
-            return .init(value: (field.value - .exact(offset)) * reciprocal,
-                derivativeU: field.derivativeU * scale * reciprocal, derivativeV: zero,
-                secondDerivativeUU: field.secondDerivativeUU * scale * scale * reciprocal,
-                secondDerivativeUV: zero, secondDerivativeVV: zero,
-                thirdDerivativeUUU: field.thirdDerivativeUUU * scale * scale * scale * reciprocal,
-                thirdDerivativeUUV: zero, thirdDerivativeUVV: zero, thirdDerivativeVVV: zero)
-        }
-        return try (inverse(targetImage.swapAxes ? nativeV : nativeU,
-            gain: targetImage.uParameterGain, offset: targetImage.uOffset),
-            inverse(targetImage.swapAxes ? nativeU : nativeV,
-                gain: targetImage.vParameterGain, offset: targetImage.vOffset))
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try mappedParameterJets(u: nativeU, v: nativeV, using: &execution)
     }
 
     package func mappedParameterJets(u nativeU: SurfaceIntervalJet, v nativeV: SurfaceIntervalJet,
-        consumeWork: () throws -> Void, consumeStorage: ((Int) throws -> Void)? = nil,
-        maximumAlgebraicDepth: Int? = nil) throws -> (u: SurfaceIntervalJet, v: SurfaceIntervalJet) {
+        maximumAlgebraicDepth: Int? = nil, using execution: inout OriginalQueryExecution) throws -> (u: SurfaceIntervalJet, v: SurfaceIntervalJet) {
         let scale = OutwardScalarInterval.exact(endFraction) - .exact(startFraction)
         func inverse(_ field: SurfaceIntervalJet, gain: OriginalParameterGain, offset: Double)
             throws -> SurfaceIntervalJet {
             func derivative(_ bound: OutwardScalarInterval) throws -> OutwardScalarInterval {
                 let mapped = try inverseParameterInterval(ScalarInterval(lower: bound.lower, upper: bound.upper),
-                    gain: gain, offset: 0, consumeWork: consumeWork, consumeStorage: consumeStorage,
-                    maximumAlgebraicDepth: maximumAlgebraicDepth)
+                    gain: gain, offset: 0, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
                 return .init(lower: mapped.lower, upper: mapped.upper)
             }
             let value = try inverseParameterInterval(ScalarInterval(lower: field.value.lower,
-                upper: field.value.upper), gain: gain, offset: offset, consumeWork: consumeWork,
-                consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
-            try consumeWork()
+                upper: field.value.upper), gain: gain, offset: offset, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
+            try execution.consumeWork(1)
             let zero = OutwardScalarInterval.exact(0)
             return .init(value: .init(lower: value.lower, upper: value.upper),
                 derivativeU: try derivative(field.derivativeU * scale), derivativeV: zero,
@@ -257,8 +283,15 @@ public struct OriginalImageSurfaceParameterCurve: Hashable, Sendable {
 
     func modelSpaceIntervalJet(over range: ScalarInterval, tolerance: ModelingTolerance,
         preparedImplicit: ImplicitCurveIntervalJetEncloser? = nil) throws -> SurfaceIntervalVectorJet? {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try modelSpaceIntervalJet(over: range, tolerance: tolerance, preparedImplicit: preparedImplicit, using: &execution)
+    }
+
+    func modelSpaceIntervalJet(over range: ScalarInterval, tolerance: ModelingTolerance,
+        preparedImplicit: ImplicitCurveIntervalJetEncloser? = nil, using execution: inout OriginalQueryExecution) throws -> SurfaceIntervalVectorJet? {
+        try execution.consumeWork(1)
         guard let original = try DefaultCurveDifferentialEncloser().directJet(.surfaceLift(source),
-            parameters: mappedRange(range), tolerance: tolerance, preparedImplicit: preparedImplicit) else { return nil }
+            parameters: mappedRange(range), tolerance: tolerance, preparedImplicit: preparedImplicit, using: &execution) else { return nil }
         let scale = OutwardScalarInterval.exact(endFraction) - .exact(startFraction)
         func component(_ field: SurfaceIntervalJet) -> SurfaceIntervalJet {
             let zero = OutwardScalarInterval.exact(0)

@@ -7,27 +7,29 @@ public struct OriginalAffineWordSurfaceParameterCurve: Hashable, Sendable {
   public let startFraction: Double
   public let endFraction: Double
 
-  /// Legacy numerical/source convenience with cancellation and no new caller ceiling.
+  /// Ordinary construction creates one independent execution.
   public init(source: SurfaceLiftCurve3D, target: OriginalAffineWordSurface3D,
     startFraction: Double = 0, endFraction: Double = 1, tolerance: ModelingTolerance) throws {
-    self.source = source; self.target = target
-    self.startFraction = startFraction; self.endFraction = endFraction
-    try source.validate(tolerance: tolerance); try target.validate(tolerance: tolerance)
-    try binding(on: .procedural(.originalAffineWord(target)), tolerance: tolerance)
+    var execution = try OriginalQueryExecution.independentGeometry()
+    try self.init(source: source, target: target, startFraction: startFraction, endFraction: endFraction,
+      tolerance: tolerance, remainingSourceDepth: execution.limits.remainingSourceDepth,
+      maximumSubdivisionDepth: execution.limits.maximumSubdivisionDepth, usage: &execution)
   }
 
-  public init<B: RationalAlgebraAdmitting>(source: SurfaceLiftCurve3D,
+  public init(source: SurfaceLiftCurve3D,
     target: OriginalAffineWordSurface3D, startFraction: Double = 0, endFraction: Double = 1,
     tolerance: ModelingTolerance, remainingSourceDepth: Int,
-    maximumSubdivisionDepth: Int, usage: inout B) throws {
+    maximumSubdivisionDepth: Int, usage: inout OriginalQueryExecution) throws {
     guard remainingSourceDepth > 0 else { throw GeometryConversionError.resourceLimitExceeded("Original word pcurve needs source admission.") }
     try Curve3D.surfaceLift(source).validateOriginalSource(tolerance: tolerance,
       remainingSourceDepth: remainingSourceDepth - 1, maximumSubdivisionDepth: maximumSubdivisionDepth,
-      consumeWork: { _ in try usage.consumeExactWork(1) })
+      using: &usage)
+    try target.validateOriginalRelation(tolerance: tolerance, remainingSourceDepth: remainingSourceDepth,
+      maximumSubdivisionDepth: maximumSubdivisionDepth, using: &usage)
     self.source = source; self.target = target
     self.startFraction = startFraction; self.endFraction = endFraction
-    try GeometryStructuralComparisonWork.charge(surface: source.surface, using: { try usage.consumeExactWork($0) })
-    try GeometryStructuralComparisonWork.charge(surface: target.source, using: { try usage.consumeExactWork($0) })
+    try GeometryStructuralComparisonWork.charge(surface: source.surface, using: &usage)
+    try GeometryStructuralComparisonWork.charge(surface: target.source, using: &usage)
     try binding(on: .procedural(.originalAffineWord(target)), tolerance: tolerance)
   }
   private func binding(on surface: Surface3D, tolerance: ModelingTolerance) throws {
@@ -38,7 +40,18 @@ public struct OriginalAffineWordSurfaceParameterCurve: Hashable, Sendable {
     }
   }
   public func validate(on surface: Surface3D, tolerance: ModelingTolerance) throws {
-    try source.validate(tolerance: tolerance); try target.validate(tolerance: tolerance)
+      var execution = try OriginalQueryExecution.independentGeometry()
+      try validate(on: surface, tolerance: tolerance, using: &execution)
+  }
+
+  public func validate(on surface: Surface3D, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+      try execution.consumeWork(1)
+    try Curve3D.surfaceLift(source).validateOriginalSource(tolerance: tolerance,
+      remainingSourceDepth: execution.limits.remainingSourceDepth,
+      maximumSubdivisionDepth: execution.limits.maximumSubdivisionDepth, using: &execution)
+    try target.validateOriginalRelation(tolerance: tolerance,
+      remainingSourceDepth: execution.limits.remainingSourceDepth,
+      maximumSubdivisionDepth: execution.limits.maximumSubdivisionDepth, using: &execution)
     try binding(on: surface, tolerance: tolerance)
   }
   private func mappedFraction(_ f: Double) throws -> Double {
@@ -60,10 +73,22 @@ public struct OriginalAffineWordSurfaceParameterCurve: Hashable, Sendable {
     return try .init(lower: clipped.lower, upper: clipped.upper)
   }
   public func parameter(atNormalizedFraction fraction: Double, tolerance: ModelingTolerance) throws -> SurfaceParameter {
-    try source.parameterCurve.parameter(atNormalizedFraction: mappedFraction(fraction), tolerance: tolerance)
+      var execution = try OriginalQueryExecution.independentGeometry()
+      return try parameter(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+  }
+
+  public func parameter(atNormalizedFraction fraction: Double, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> SurfaceParameter {
+      try execution.consumeWork(1)
+    return try source.parameterCurve.parameter(atNormalizedFraction: mappedFraction(fraction), tolerance: tolerance, using: &execution)
   }
   public func differential(atNormalizedFraction fraction: Double, tolerance: ModelingTolerance) throws -> SurfaceParameterCurveDifferential {
-    let q = try source.parameterCurve.differentialGeometry(atNormalizedFraction: mappedFraction(fraction), tolerance: tolerance)
+      var execution = try OriginalQueryExecution.independentGeometry()
+      return try differential(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+  }
+
+  public func differential(atNormalizedFraction fraction: Double, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> SurfaceParameterCurveDifferential {
+      try execution.consumeWork(1)
+    let q = try source.parameterCurve.differentialGeometry(atNormalizedFraction: mappedFraction(fraction), tolerance: tolerance, using: &execution)
     let scale = endFraction - startFraction
     return .init(parameter: q.parameter,
       firstDerivative: .init(x: q.firstDerivative.x * scale, y: q.firstDerivative.y * scale),
@@ -71,46 +96,72 @@ public struct OriginalAffineWordSurfaceParameterCurve: Hashable, Sendable {
         y: q.secondDerivative.y * scale * scale))
   }
   func thirdDerivative(atNormalizedFraction fraction: Double, tolerance: ModelingTolerance) throws -> Point2D {
-    let q = try source.parameterCurve.thirdOrderDifferential(atNormalizedFraction: mappedFraction(fraction), on: source.surface, tolerance: tolerance)
+      var execution = try OriginalQueryExecution.independentGeometry()
+      return try thirdDerivative(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+  }
+
+  func thirdDerivative(atNormalizedFraction fraction: Double, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Point2D {
+      try execution.consumeWork(1)
+    let q = try source.parameterCurve.thirdOrderDifferential(atNormalizedFraction: mappedFraction(fraction), on: source.surface, tolerance: tolerance, using: &execution)
     let s = endFraction - startFraction
     return .init(x: q.thirdDerivative.x * s * s * s,
       y: q.thirdDerivative.y * s * s * s)
   }
   package func parameterBounds(over range: ScalarInterval, tolerance: ModelingTolerance,
     maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
-    consumeWork: () throws -> Void) throws -> SurfaceParameterBox {
+    using execution: inout OriginalQueryExecution) throws -> SurfaceParameterBox {
     let q = try OriginalParameterCurveHigherTaylor.enclosure(source.parameterCurve,
       over: mappedRange(range), order: 0, tolerance: tolerance, maximumSpanCount: maximumSpanCount,
-      maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork)
+      maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth, using: &execution)
     let u = try q.u.coefficient(0, 0), v = try q.v.coefficient(0, 0)
     return try .init(u: .init(lower: u.lower, upper: u.upper), v: .init(lower: v.lower, upper: v.upper))
   }
   package func modelSpaceDifferential(atNormalizedFraction fraction: Double,
     tolerance: ModelingTolerance) throws -> SurfaceLiftCurve3D.DifferentialGeometry {
-    var usage = OriginalAffineImageLegacyUsage()
-    let q = try source.differentialGeometry(atNormalizedFraction: mappedFraction(fraction), tolerance: tolerance)
-    let p = try target.preparedWord.applying(to: q.position, usage: &usage)
-    let a = try target.preparedWord.applying(to: q.firstDerivative, usage: &usage)
-    let b = try target.preparedWord.applying(to: q.secondDerivative, usage: &usage)
+      var execution = try OriginalQueryExecution.independentGeometry()
+      return try modelSpaceDifferential(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+  }
+
+  package func modelSpaceDifferential(atNormalizedFraction fraction: Double,
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> SurfaceLiftCurve3D.DifferentialGeometry {
+      try execution.consumeWork(1)
+    let q = try source.differentialGeometry(atNormalizedFraction: mappedFraction(fraction), tolerance: tolerance, using: &execution)
+    let p = try target.preparedWord.applying(to: q.position, usage: &execution)
+    let a = try target.preparedWord.applying(to: q.firstDerivative, usage: &execution)
+    let b = try target.preparedWord.applying(to: q.secondDerivative, usage: &execution)
     let s = endFraction - startFraction
     return .init(position: p, firstDerivative: a * s, secondDerivative: b * (s * s))
   }
   func modelSpaceThirdOrder(atNormalizedFraction fraction: Double,
     tolerance: ModelingTolerance) throws -> CurveParameterThirdOrderDerivatives {
-    var usage = OriginalAffineImageLegacyUsage()
-    let q = try Curve3D.surfaceLift(source).parameterDerivativesThroughThirdOrder(at: mappedFraction(fraction), tolerance: tolerance)
-    let p = try target.preparedWord.applying(to: q.position, usage: &usage)
-    let a = try target.preparedWord.applying(to: q.firstDerivative, usage: &usage)
-    let b = try target.preparedWord.applying(to: q.secondDerivative, usage: &usage)
-    let c = try target.preparedWord.applying(to: q.thirdDerivative, usage: &usage)
+      var execution = try OriginalQueryExecution.independentGeometry()
+      return try modelSpaceThirdOrder(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+  }
+
+  func modelSpaceThirdOrder(atNormalizedFraction fraction: Double,
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> CurveParameterThirdOrderDerivatives {
+      try execution.consumeWork(1)
+    let q = try Curve3D.surfaceLift(source).parameterDerivativesThroughThirdOrder(at: mappedFraction(fraction), tolerance: tolerance, using: &execution)
+    let p = try target.preparedWord.applying(to: q.position, usage: &execution)
+    let a = try target.preparedWord.applying(to: q.firstDerivative, usage: &execution)
+    let b = try target.preparedWord.applying(to: q.secondDerivative, usage: &execution)
+    let c = try target.preparedWord.applying(to: q.thirdDerivative, usage: &execution)
     let s = endFraction - startFraction
     return .init(position: p, firstDerivative: a * s, secondDerivative: b * (s * s), thirdDerivative: c * (s * s * s))
   }
   func intervalJet(over range: ScalarInterval, tolerance: ModelingTolerance,
     preparedImplicit: ImplicitCurveIntervalJetEncloser? = nil)
     throws -> (u: SurfaceIntervalJet, v: SurfaceIntervalJet)? {
+      var execution = try OriginalQueryExecution.independentGeometry()
+      return try intervalJet(over: range, tolerance: tolerance, preparedImplicit: preparedImplicit, using: &execution)
+  }
+
+  func intervalJet(over range: ScalarInterval, tolerance: ModelingTolerance,
+    preparedImplicit: ImplicitCurveIntervalJetEncloser? = nil, using execution: inout OriginalQueryExecution)
+    throws -> (u: SurfaceIntervalJet, v: SurfaceIntervalJet)? {
+      try execution.consumeWork(1)
     guard let original = try DefaultCurveDifferentialEncloser().parameterJets(source.parameterCurve,
-      over: mappedRange(range), tolerance: tolerance, preparedImplicit: preparedImplicit) else { return nil }
+      over: mappedRange(range), tolerance: tolerance, preparedImplicit: preparedImplicit, using: &execution) else { return nil }
     let gain = OutwardScalarInterval.exact(endFraction) - .exact(startFraction)
     func scaled(_ q: SurfaceIntervalJet) -> SurfaceIntervalJet {
       .init(value: q.value, derivativeU: q.derivativeU * gain, derivativeV: .exact(0),
@@ -124,8 +175,15 @@ public struct OriginalAffineWordSurfaceParameterCurve: Hashable, Sendable {
 
   func modelSpaceIntervalJet(over range: ScalarInterval, tolerance: ModelingTolerance,
     preparedImplicit: ImplicitCurveIntervalJetEncloser? = nil) throws -> SurfaceIntervalVectorJet? {
+      var execution = try OriginalQueryExecution.independentGeometry()
+      return try modelSpaceIntervalJet(over: range, tolerance: tolerance, preparedImplicit: preparedImplicit, using: &execution)
+  }
+
+  func modelSpaceIntervalJet(over range: ScalarInterval, tolerance: ModelingTolerance,
+    preparedImplicit: ImplicitCurveIntervalJetEncloser? = nil, using execution: inout OriginalQueryExecution) throws -> SurfaceIntervalVectorJet? {
+      try execution.consumeWork(1)
     guard let original = try DefaultCurveDifferentialEncloser().directJet(.surfaceLift(source),
-      parameters: mappedRange(range), tolerance: tolerance, preparedImplicit: preparedImplicit) else { return nil }
+      parameters: mappedRange(range), tolerance: tolerance, preparedImplicit: preparedImplicit, using: &execution) else { return nil }
     let gain = OutwardScalarInterval.exact(endFraction) - .exact(startFraction)
     func scaled(_ q: SurfaceIntervalJet) -> SurfaceIntervalJet {
       .init(value: q.value, derivativeU: q.derivativeU * gain, derivativeV: .exact(0),
@@ -134,29 +192,40 @@ public struct OriginalAffineWordSurfaceParameterCurve: Hashable, Sendable {
         thirdDerivativeUUU: q.thirdDerivativeUUU * gain * gain * gain,
         thirdDerivativeUUV: .exact(0), thirdDerivativeUVV: .exact(0), thirdDerivativeVVV: .exact(0))
     }
-    var usage = OriginalAffineImageLegacyUsage()
     return try OriginalAffineWordJetTransport.applying(target.preparedWord,
-      to: .init(x: scaled(original.x), y: scaled(original.y), z: scaled(original.z)), usage: &usage)
+      to: .init(x: scaled(original.x), y: scaled(original.y), z: scaled(original.z)), using: &execution)
   }
 
   public func reversed(tolerance: ModelingTolerance) throws -> Self {
-    .init(retaining: source, target: target, startFraction: endFraction, endFraction: startFraction)
+      var execution = try OriginalQueryExecution.independentGeometry()
+      return try reversed(tolerance: tolerance, using: &execution)
+  }
+
+  public func reversed(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Self {
+      try execution.consumeWork(1)
+    return .init(retaining: source, target: target, startFraction: endFraction, endFraction: startFraction)
   }
   public func subcurve(fromNormalizedFraction lower: Double, toNormalizedFraction upper: Double,
     tolerance: ModelingTolerance) throws -> Self {
+      var execution = try OriginalQueryExecution.independentGeometry()
+      return try subcurve(fromNormalizedFraction: lower, toNormalizedFraction: upper, tolerance: tolerance, using: &execution)
+  }
+
+  public func subcurve(fromNormalizedFraction lower: Double, toNormalizedFraction upper: Double,
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Self {
+      try execution.consumeWork(1)
     guard lower.isFinite, upper.isFinite, lower >= 0, upper <= 1, lower < upper else {
       throw GeometryConversionError.invalidInput("Original word subcurve requires an ordered normalized interval.")
     }
-    var usage = OriginalAffineImageLegacyUsage()
     func retainedEndpoint(_ fraction: Double) throws -> Double {
       if fraction == 0 { return startFraction }
       if fraction == 1 { return endFraction }
-      let start = try ExactRationalCoefficient.originalDouble(startFraction, usage: &usage)
-      let end = try ExactRationalCoefficient.originalDouble(endFraction, usage: &usage)
-      let value = try end.subtracting(start, usage: &usage)
-        .multiplied(by: .originalDouble(fraction, usage: &usage), usage: &usage)
-        .adding(start, usage: &usage)
-      let bounds = try value.outwardInterval(usage: &usage)
+      let start = try ExactRationalCoefficient.originalDouble(startFraction, usage: &execution)
+      let end = try ExactRationalCoefficient.originalDouble(endFraction, usage: &execution)
+      let value = try end.subtracting(start, usage: &execution)
+        .multiplied(by: .originalDouble(fraction, usage: &execution), usage: &execution)
+        .adding(start, usage: &execution)
+      let bounds = try value.outwardInterval(usage: &execution)
       guard bounds.lower == bounds.upper else {
         // FIXME(INCOMPLETE_IMPLEMENTATION): Original word pcurve restrictions
         // are used by trimming and continuation consumers. Nonrepresentable

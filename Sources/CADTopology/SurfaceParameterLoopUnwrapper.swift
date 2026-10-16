@@ -40,8 +40,7 @@ package struct SurfaceParameterLoopUnwrapper {
     // carriers and lower query temporary byte admission remain required for full scope.
     package func unwrap(_ curves: [SurfaceParameterCurve], on surface: Surface3D,
         tolerance: ModelingTolerance, context: String, maximumSubdivisionDepth: Int,
-        remainingSourceDepth: Int, consumeWork: @Sendable (Int) throws -> Void,
-        consumeStorage: (@Sendable (Int) throws -> Void)? = nil) throws -> [UnwrappedCurve] {
+        remainingSourceDepth: Int, using execution: inout OriginalQueryExecution) throws -> [UnwrappedCurve] {
         let parameterTolerance = parameterTolerance(for: surface, tolerance: tolerance)
         return try unwrap(curves, uPeriod: periodicValue(surface.uDomain),
             vPeriod: periodicValue(surface.vDomain),
@@ -49,34 +48,30 @@ package struct SurfaceParameterLoopUnwrapper {
             vClosureTolerance: parameterTolerance.v * 8, on: surface,
             tolerance: tolerance, context: context,
             maximumSubdivisionDepth: maximumSubdivisionDepth,
-            remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork,
-            consumeStorage: consumeStorage)
+            remainingSourceDepth: remainingSourceDepth, using: &execution)
     }
 
     package func unwrap(_ curves: [SurfaceParameterCurve], uPeriod: Double?, vPeriod: Double?,
         uClosureTolerance: Double, vClosureTolerance: Double, on surface: Surface3D,
         tolerance: ModelingTolerance, context: String, maximumSubdivisionDepth: Int,
-        remainingSourceDepth: Int, consumeWork: @Sendable (Int) throws -> Void,
-        consumeStorage: (@Sendable (Int) throws -> Void)? = nil) throws -> [UnwrappedCurve] {
-        return try withoutActuallyEscaping(consumeWork) { consumeWork in
+        remainingSourceDepth: Int, using execution: inout OriginalQueryExecution) throws -> [UnwrappedCurve] {
             try tolerance.validate()
             guard !curves.isEmpty, maximumSubdivisionDepth >= 0, remainingSourceDepth > 0,
                   uClosureTolerance.isFinite, uClosureTolerance > 0,
                   vClosureTolerance.isFinite, vClosureTolerance > 0 else {
                 throw GeometryConversionError.invalidInput("Original loop unwrapping requires nonempty curves and caller chart admission.")
             }
-            func visit() throws { try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork(0) }
+            func visit() throws { try CurrentTaskCancellationChecker().checkCancellation(); try execution.consumeWork(1) }
             func retain(_ count: Int, _ stride: Int) throws {
                 let bytes = count.multipliedReportingOverflow(by: stride)
                 guard count >= 0, !bytes.overflow else {
                     throw GeometryConversionError.resourceLimitExceeded("Original loop storage count overflowed.")
                 }
-                try visit(); try consumeStorage?(bytes.partialValue)
+                try visit(); try execution.retainStorage(bytes: bytes.partialValue)
             }
             let prepared = try PreparedSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance,
                 remainingSourceDepth: remainingSourceDepth,
-                maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: visit,
-                consumeStorage: consumeStorage)
+                maximumSubdivisionDepth: maximumSubdivisionDepth, using: &execution)
             func translated(_ box: SurfaceParameterBox, _ u: Double, _ v: Double) throws -> SurfaceParameterBox {
                 let nativeU = OutwardScalarInterval(lower: box.u.lower, upper: box.u.upper)
                 let nativeV = OutwardScalarInterval(lower: box.v.lower, upper: box.v.upper)
@@ -100,13 +95,12 @@ package struct SurfaceParameterLoopUnwrapper {
                 guard winding.isFinite, candidate.isFinite else {
                     throw GeometryConversionError.resourceLimitExceeded("Original chart winding is not representable.")
                 }
-                var usage = OriginalSourceProofAdmission(consumeWork: consumeWork, consumeStorage: consumeStorage)
                 guard try OriginalSurfacePeriodShift.proves(on: surface,
                     uShift: direction == .u ? candidate : 0,
                     vShift: direction == .v ? candidate : 0,
                     remainingSourceDepth: remainingSourceDepth,
                     maximumSubdivisionDepth: maximumSubdivisionDepth,
-                    tolerance: tolerance, usage: &usage) else {
+                    tolerance: tolerance, using: &execution) else {
                     throw GeometryConversionError.resourceLimitExceeded("Original chart translation is not a stored member of the support period lattice.")
                 }
                 return candidate
@@ -114,7 +108,7 @@ package struct SurfaceParameterLoopUnwrapper {
             func positions(_ box: SurfaceParameterBox) throws -> IntervalVector3DBounds {
                 try prepared.positionBounds(over: box, tolerance: tolerance, maximumSpanCount: 1_048_576,
                     maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
-                    consumeWork: visit)
+                    using: &execution)
             }
             func connects(_ first: SurfaceParameterBox, _ second: SurfaceParameterBox) throws -> Bool {
                 try visit()
@@ -127,9 +121,9 @@ package struct SurfaceParameterLoopUnwrapper {
                         ? .constantU(u: first.u.lower, vStart: first.v.midpoint, vEnd: second.v.midpoint)
                         : .constantV(v: first.v.lower, uStart: first.u.midpoint, uEnd: second.u.midpoint)
                     if try BRepEdgeGeometryClassifier(maximumSubdivisionDepth: maximumSubdivisionDepth,
-                        remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork)
+                        remainingSourceDepth: remainingSourceDepth)
                         .kind(curve: .surfaceLift(.init(surface: surface, parameterCurve: connector)),
-                            from: 0, to: 1, tolerance: tolerance) == .singular { return true }
+                            from: 0, to: 1, tolerance: tolerance, using: &execution) == .singular { return true }
                 }
                 guard u.absoluteUpperBound <= 1.0e-2, v.absoluteUpperBound <= 1.0e-2 else { return false }
                 return try (positions(first) - positions(second)).lengthUpperBound <= tolerance.distance * 8
@@ -144,8 +138,7 @@ package struct SurfaceParameterLoopUnwrapper {
                 try visit()
                 let lift = try curve.continuousChartLift(on: surface, tolerance: tolerance,
                     maximumSpanCount: 1_048_576, maximumSubdivisionDepth: maximumSubdivisionDepth,
-                    remainingSourceDepth: remainingSourceDepth, consumeWork: visit,
-                    consumeStorage: consumeStorage)
+                    remainingSourceDepth: remainingSourceDepth, using: &execution)
                 guard let boxes = lift.originalSampleBounds, boxes.count == 3 else {
                     throw GeometryConversionError.invalidInput("Original chart lift lost its endpoint source boxes.")
                 }
@@ -179,7 +172,6 @@ package struct SurfaceParameterLoopUnwrapper {
                     message: "\(context) does not close under the original chart law.")
             }
             return result
-        }
     }
 
     package func unwrap(

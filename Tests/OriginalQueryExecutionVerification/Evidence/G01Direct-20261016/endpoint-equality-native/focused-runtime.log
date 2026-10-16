@@ -1,0 +1,15 @@
+􀟈  Test run started.
+􀄵  Swift Standard Library Version: 6.4
+􀄵  Swift Compiler Version: 6.4
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀄵  OS Version: 27.0.1 (26A434)
+􀟈  Suite "Original Native endpoint source equality" (aka 'OriginalNativeEndpointPositionRelationTests') started.
+􀟈  Test measuredBudgetDoesNotTurnGeometricAgreementIntoSourceEquality() started.
+􀟈  Test foreignNativeSourcesRemainExactAndRetainTheirCOWPayload() started.
+􀟈  Test sameAndUnequalNativeEndpointsRunOnCooperativeWorkers() started.
+􁁛  Test measuredBudgetDoesNotTurnGeometricAgreementIntoSourceEquality() passed after 0.003 seconds.
+􁁛  Test foreignNativeSourcesRemainExactAndRetainTheirCOWPayload() passed after 0.004 seconds.
+􁁛  Test sameAndUnequalNativeEndpointsRunOnCooperativeWorkers() passed after 0.004 seconds.
+􁁛  Suite "Original Native endpoint source equality" (aka 'OriginalNativeEndpointPositionRelationTests') passed after 0.004 seconds.
+􁁛  Test run with 3 tests in 1 suite passed after 0.005 seconds.

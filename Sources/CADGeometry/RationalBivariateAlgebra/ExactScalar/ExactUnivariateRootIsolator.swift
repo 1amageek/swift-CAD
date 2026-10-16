@@ -11,7 +11,7 @@ public struct ExactUnivariateRootIsolator: Sendable {
     private struct Pending { let lower: ExactRationalCoefficient; let upper: ExactRationalCoefficient; let depth: Int; let count: Int }
     public init() {}
 
-    public func isolate<B: RationalAlgebraAdmitting>(_ polynomial: ExactBivariatePolynomial,
+    public func isolate<B: ExactScalarAdmission & ~Copyable>(_ polynomial: ExactBivariatePolynomial,
         lower: ExactRationalCoefficient, upper: ExactRationalCoefficient,
         maximumDepth: Int, usage: inout B) throws -> [Root] {
         guard polynomial.vDegree <= 0, !polynomial.isZero, maximumDepth >= 0,
@@ -48,7 +48,7 @@ public struct ExactUnivariateRootIsolator: Sendable {
         var pending = [Pending(lower: lower, upper: upper, depth: 0, count: count)]
         let two = try ExactRationalCoefficient.natural(2, usage: &usage)
         while let current = pending.popLast() {
-            try usage.visitExactCell(depth: current.depth)
+            try usage.visitCell(axis: .value, depth: current.depth)
             if current.count == 0 { continue }
             if current.count == 1 {
                 try RationalAlgebraStorage.retain(1, of: Root.self, usage: &usage)
@@ -70,7 +70,7 @@ public struct ExactUnivariateRootIsolator: Sendable {
         return roots
     }
 
-    private func variations<B: RationalAlgebraAdmitting>(_ sequence: [ExactBivariatePolynomial],
+    private func variations<B: ExactScalarAdmission & ~Copyable>(_ sequence: [ExactBivariatePolynomial],
         at station: ExactRationalCoefficient, usage: inout B) throws -> Int {
         var previous = 0, count = 0
         for polynomial in sequence {

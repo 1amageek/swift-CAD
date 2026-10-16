@@ -665,17 +665,11 @@ public struct DesignGraph: Equatable, Sendable {
         guard Set(outputRoles).count == outputRoles.count else {
             throw FeatureEvaluationError.invalidGraph("Feature outputs contain duplicate roles.")
         }
-        switch node.operation {
-        case let .involuteGear(gear):
-            guard node.inputs.isEmpty, outputRoles == [.body] else {
-                throw FeatureEvaluationError.invalidGraph("Gear source requires no feature inputs and one body output.")
-            }
-            try gear.validate(tolerance: tolerance)
-        case let .spatialPath(path):
-            guard node.inputs.isEmpty, outputRoles == [.curve] else {
-                throw FeatureEvaluationError.invalidGraph("Spatial paths have no inputs and exactly one curve output.")
-            }
-            try path.validate(tolerance: tolerance)
+        switch node.operation.kind {
+        case .involuteGear:
+            try validateInvoluteGearContract(node, outputRoles: outputRoles, tolerance: tolerance)
+        case .spatialPath:
+            try validateSpatialPathContract(node, outputRoles: outputRoles, tolerance: tolerance)
         case .sketch:
             try validateSketchContract(node, outputRoles: outputRoles, tolerance: tolerance)
         case .importedBRep:
@@ -691,66 +685,23 @@ public struct DesignGraph: Equatable, Sendable {
         case .pipe:
             try validatePipeContract(node, outputRoles: outputRoles)
         case .edgeCurve:
-            guard case let .edgeCurve(edgeCurve) = node.operation else {
-                throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected an edgeCurve operation.")
-            }
-            try edgeCurve.validate()
-            guard node.inputs == [FeatureInput(featureID: edgeCurve.source, role: edgeCurve.bodyRole)],
-                  nodes[edgeCurve.source]?.outputs.contains(where: { $0.role == edgeCurve.bodyRole }) == true,
-                  outputRoles == [.curve] else {
-                throw FeatureEvaluationError.invalidGraph("Edge curves consume their body and declare one curve output.")
-            }
+            try validateEdgeCurveContract(node, outputRoles: outputRoles)
         case .sheetBridge:
-            guard case let .sheetBridge(bridge) = node.operation else {
-                throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected a sheetBridge operation.")
-            }
-            try bridge.validate()
-            guard node.inputs == bridge.inputs,
-                  bridge.inputs.allSatisfy({ input in nodes[input.featureID]?.outputs.contains(where: { $0.role == .sheet }) == true }),
-                  outputRoles == [.sheet] else {
-                throw FeatureEvaluationError.invalidGraph("A Bridge Surface consumes two sheets and declares one sheet output.")
-            }
+            try validateSheetBridgeContract(node, outputRoles: outputRoles)
         case .curvePatch:
-            guard case let .curvePatch(patch) = node.operation else {
-                throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected a curvePatch operation.")
-            }
-            try patch.validate()
-            guard node.inputs == patch.inputs,
-                  patch.inputs.allSatisfy({ input in nodes[input.featureID]?.outputs.contains(where: { $0.role == .curve }) == true }),
-                  outputRoles == [.sheet] else {
-                throw FeatureEvaluationError.invalidGraph("A curve patch consumes its curves and declares one sheet output.")
-            }
+            try validateCurvePatchContract(node, outputRoles: outputRoles)
         case .squareSurface:
-            guard case let .squareSurface(square) = node.operation else {
-                throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected a squareSurface operation.")
-            }
-            try square.validate()
-            guard node.inputs == square.inputs,
-                  square.inputs.allSatisfy({ input in nodes[input.featureID]?.outputs.contains(where: { $0.role == input.role }) == true }),
-                  outputRoles == [.sheet] else {
-                throw FeatureEvaluationError.invalidGraph("A Square consumes its side curves and continuity bodies and declares one sheet output.")
-            }
+            try validateSquareSurfaceContract(node, outputRoles: outputRoles)
         case .xnurbs:
-            guard case let .xnurbs(xnurbs) = node.operation else {
-                throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected an xnurbs operation.")
-            }
-            try xnurbs.validate()
-            guard node.inputs == xnurbs.inputs,
-                  xnurbs.inputs.allSatisfy({ input in nodes[input.featureID]?.outputs.contains(where: { $0.role == input.role }) == true }),
-                  outputRoles == [.sheet] else {
-                throw FeatureEvaluationError.invalidGraph("An XNURBS consumes its boundary and guide curves and continuity bodies and declares one sheet output.")
-            }
+            try validateXNurbsContract(node, outputRoles: outputRoles)
         case .loft:
             try validateLoftContract(node, outputRoles: outputRoles, tolerance: tolerance)
         case .boolean:
             try validateBooleanContract(node, outputRoles: outputRoles, tolerance: tolerance)
         case .polySpline:
             try validatePolySplineContract(node, outputRoles: outputRoles, tolerance: tolerance)
-        case .constrainedSurface(let surface):
-            try surface.validate(tolerance: tolerance)
-            guard node.inputs.isEmpty, outputRoles == [.sheet] else {
-                throw FeatureEvaluationError.invalidGraph("Constrained Surface requires no inputs and one Sheet output.")
-            }
+        case .constrainedSurface:
+            try validateConstrainedSurfaceContract(node, outputRoles: outputRoles, tolerance: tolerance)
         case .bSplineSurface:
             try validateBSplineSurfaceContract(node, outputRoles: outputRoles, tolerance: tolerance)
         case .patchSurface:
@@ -851,6 +802,104 @@ public struct DesignGraph: Equatable, Sendable {
             try validateSurfaceExtendContract(node, outputRoles: outputRoles, tolerance: tolerance)
         case .surfaceMatch:
             try validateSurfaceMatchContract(node, outputRoles: outputRoles, tolerance: tolerance)
+        }
+    }
+
+    @inline(never)
+    private func validateInvoluteGearContract(_ node: FeatureNode, outputRoles: [FeaturePort], tolerance: ModelingTolerance) throws {
+        guard case let .involuteGear(gear) = node.operation else {
+            throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected a involuteGear operation.")
+        }
+        guard node.inputs.isEmpty, outputRoles == [.body] else {
+            throw FeatureEvaluationError.invalidGraph("Gear source requires no feature inputs and one body output.")
+        }
+        try gear.validate(tolerance: tolerance)
+    }
+
+    @inline(never)
+    private func validateSpatialPathContract(_ node: FeatureNode, outputRoles: [FeaturePort], tolerance: ModelingTolerance) throws {
+        guard case let .spatialPath(path) = node.operation else {
+            throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected a spatialPath operation.")
+        }
+        guard node.inputs.isEmpty, outputRoles == [.curve] else {
+            throw FeatureEvaluationError.invalidGraph("Spatial paths have no inputs and exactly one curve output.")
+        }
+        try path.validate(tolerance: tolerance)
+    }
+
+    @inline(never)
+    private func validateEdgeCurveContract(_ node: FeatureNode, outputRoles: [FeaturePort]) throws {
+        guard case let .edgeCurve(edgeCurve) = node.operation else {
+            throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected an edgeCurve operation.")
+        }
+        try edgeCurve.validate()
+        guard node.inputs == [FeatureInput(featureID: edgeCurve.source, role: edgeCurve.bodyRole)],
+              nodes[edgeCurve.source]?.outputs.contains(where: { $0.role == edgeCurve.bodyRole }) == true,
+              outputRoles == [.curve] else {
+            throw FeatureEvaluationError.invalidGraph("Edge curves consume their body and declare one curve output.")
+        }
+    }
+
+    @inline(never)
+    private func validateSheetBridgeContract(_ node: FeatureNode, outputRoles: [FeaturePort]) throws {
+        guard case let .sheetBridge(bridge) = node.operation else {
+            throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected a sheetBridge operation.")
+        }
+        try bridge.validate()
+        guard node.inputs == bridge.inputs,
+              bridge.inputs.allSatisfy({ input in nodes[input.featureID]?.outputs.contains(where: { $0.role == .sheet }) == true }),
+              outputRoles == [.sheet] else {
+            throw FeatureEvaluationError.invalidGraph("A Bridge Surface consumes two sheets and declares one sheet output.")
+        }
+    }
+
+    @inline(never)
+    private func validateCurvePatchContract(_ node: FeatureNode, outputRoles: [FeaturePort]) throws {
+        guard case let .curvePatch(patch) = node.operation else {
+            throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected a curvePatch operation.")
+        }
+        try patch.validate()
+        guard node.inputs == patch.inputs,
+              patch.inputs.allSatisfy({ input in nodes[input.featureID]?.outputs.contains(where: { $0.role == .curve }) == true }),
+              outputRoles == [.sheet] else {
+            throw FeatureEvaluationError.invalidGraph("A curve patch consumes its curves and declares one sheet output.")
+        }
+    }
+
+    @inline(never)
+    private func validateSquareSurfaceContract(_ node: FeatureNode, outputRoles: [FeaturePort]) throws {
+        guard case let .squareSurface(square) = node.operation else {
+            throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected a squareSurface operation.")
+        }
+        try square.validate()
+        guard node.inputs == square.inputs,
+              square.inputs.allSatisfy({ input in nodes[input.featureID]?.outputs.contains(where: { $0.role == input.role }) == true }),
+              outputRoles == [.sheet] else {
+            throw FeatureEvaluationError.invalidGraph("A Square consumes its side curves and continuity bodies and declares one sheet output.")
+        }
+    }
+
+    @inline(never)
+    private func validateXNurbsContract(_ node: FeatureNode, outputRoles: [FeaturePort]) throws {
+        guard case let .xnurbs(xnurbs) = node.operation else {
+            throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected an xnurbs operation.")
+        }
+        try xnurbs.validate()
+        guard node.inputs == xnurbs.inputs,
+              xnurbs.inputs.allSatisfy({ input in nodes[input.featureID]?.outputs.contains(where: { $0.role == input.role }) == true }),
+              outputRoles == [.sheet] else {
+            throw FeatureEvaluationError.invalidGraph("An XNURBS consumes its boundary and guide curves and continuity bodies and declares one sheet output.")
+        }
+    }
+
+    @inline(never)
+    private func validateConstrainedSurfaceContract(_ node: FeatureNode, outputRoles: [FeaturePort], tolerance: ModelingTolerance) throws {
+        guard case let .constrainedSurface(surface) = node.operation else {
+            throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected a constrainedSurface operation.")
+        }
+        try surface.validate(tolerance: tolerance)
+        guard node.inputs.isEmpty, outputRoles == [.sheet] else {
+            throw FeatureEvaluationError.invalidGraph("Constrained Surface requires no inputs and one Sheet output.")
         }
     }
 

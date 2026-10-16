@@ -1,0 +1,28 @@
+{
+  "sourceRoot": "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD",
+  "scope": "Staged endpoint equality only; candidate production unchanged",
+  "inputs": {
+    "Sources/CADGeometry/OriginalRootSpan/OriginalCurveEndpointPositionRelation.swift": {
+      "baseSHA256": "2e9b76d3a12ed55039c4451d9ea07c9b8928bf5f9f013801460c62334bdb638c",
+      "stagedSHA256": "6405ba51cc173606afe95e45bf8703d98be9fecd35e066ec42ef37fc288bd09c"
+    },
+    "Sources/CADGeometry/OriginalRootSpan/DESIGN.md": {
+      "baseSHA256": "661ecc80a2750a8077dbcd970361c8bc8d84f24ada1616780664be6bbff13edf",
+      "stagedSHA256": "d2297bc8bd70559f508f13b6c64a7383e9a86018d49c0f87affd56b314a31c8a"
+    }
+  },
+  "fixtures": {
+    "Tests/CADGeometryTests/OriginalNativeEndpointPositionRelationTests.swift": {
+      "sha256": "94bb76fcf3eb8be4df4bb70f572acd84baffc162fd655ce1e80d61fb4dfeb97d"
+    },
+    "Tests/OriginalQueryExecutionVerification/OriginalNativeEndpointPositionPortable.swift": {
+      "sha256": "426e6319bc2c77057bde29ff878c60172cc9067abe536e55ba0c9636339cbea4"
+    }
+  },
+  "expectedPortableOutput": [
+    "PASS Native endpoint exact positions and lifetime",
+    "PASS Native endpoint exact source and cumulative work",
+    "PASS Native endpoint cancellation"
+  ],
+  "compilerStatus": "notStarted; staged preparation only"
+}

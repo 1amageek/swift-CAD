@@ -9,10 +9,15 @@ boundary reconciliation and chart-pair separation. Its parent is
 ## Responsibilities and Boundaries
 
 The existing native proof algorithms, local capacities, default limits and
-failure contracts remain the authority. An immutable composing admission
-receipt forwards source work, visited depth and retained slots to the caller.
-The component never owns or resets the caller's cumulative allowance. Loft
-owns the invocation counter shared with its original Coons path.
+failure contracts remain authoritative. The validator stores immutable
+configuration only; every composing operation receives the original
+`OriginalQueryExecution` by `inout`. It neither stores callbacks nor reconstructs
+an admission. The M6 [Original Surface Embedding](../OriginalSurfaceEmbedding/DESIGN.md)
+receipt route owns its existing self-contact capability; its unresolved critical
+or interface cases do not replace the native adjacent/separation proofs.
+The native numerical iso slice preserves the original homogeneous evaluation
+formula and periodic origins. It issues a numerical curve, not original source
+equality; sealed exact iso correspondence belongs to its existing source owner.
 
 ## Related Designs
 
@@ -25,21 +30,23 @@ owns the invocation counter shared with its original Coons path.
 ## Architecture
 
 ```text
-caller invocation ledger
-    -> immutable native admission callbacks
-        -> native source preparation / retained proof fields
-        -> local injectivity and touching-region cover
-        -> adjacent seam algebra / chart-pair subdivision
+caller execution
+    -> native validator configuration
+        -> original native source atlas and homogeneous fields
+        -> local injectivity / whole touching-region cover
+        -> exact seam algebra / complete chart-pair subdivision
     -> validated native surface or explicit failure
 ```
 
 ## Contracts and Invariants
 
-Composing callbacks are admitted before work, cell visits and retained storage.
-All validator continuations, opposite-boundary chart splits and exact seam
-algebra keep the same receipt. Existing local capacities remain independently
-binding; they never replace the caller's cumulative count. Legacy construction
-without a composing receipt preserves its existing local-cap facade.
+All work, geometric cell visits and typed payload admission use the same
+execution. Existing local capacities remain independently binding and never
+replace cumulative caller admission. Standalone operations create one
+independent execution and call the same mathematical body. The adjacent seam
+proof retains its original aggregate ceiling across work, canonical storage
+words and visits; migration must preserve that combined policy without an
+admission wrapper or copied counters.
 A cell's actual retained causal depth is supplied to the caller. Source caches,
 proof data and copied control nets are not free preparation. Legacy Cartesian extraction is a construction image; its sampled rejection
 check is not original-law authority for a positive embedding result. Proof cells
@@ -56,16 +63,17 @@ cell-count ceilings remain unchanged by this byte accounting.
 
 ## State, Ownership, and Lifecycle
 
-Admission callbacks are immutable Sendable values. The caller retains their
-state owner; this component contains no mutable shared counter. Loft's source
-and native paths reference the same Mutex owner on Native, WASM and Embedded.
-There is no target-dependent raw state or unchecked isolation.
+The mutable execution remains query-local. Native configuration and source
+receipts are immutable; retained preparation follows the common actual-depth
+and budget-identity readmission policy. No shared mutable counter, target-specific
+raw state or unchecked isolation is introduced. Resource exhaustion and
+cancellation never publish incomplete coverage as success.
 
 ## Failure, Concurrency, and Constraints
 
 Source rejection, nonfinite geometry, inability to prove embedding, subdivision
 limits, storage/work exhaustion and cancellation remain explicit failures.
-Callback failure propagates before the corresponding lower operation.
+Admission failure propagates before the corresponding lower operation.
 
 ## Verification and Change Impact
 
@@ -114,11 +122,82 @@ existence. Each working interval retains its raw native bounds and exact-real
 chart gain; only the candidate control-net order changes. Free-axis affine
 station equality remains independently required by the current continuation.
 
-The composing retention callback uses canonical UInt32 words (four bytes).
-Existing native reservation sites still supply their intrinsic 64-bit slot
-counts; the admission boundary checks and converts slots to two UInt32 words.
-Raw byte reservations use checked ceiling division by four. Exact algebra
-already supplies UInt32 words and bypasses the slot conversion. Causal shifted
-receipts forward the same canonical callback once. Local native work/cell
-ceilings keep their original values and units; retention accounting does not
-replenish or raise them.
+Direct resource events use checked byte payloads. Numerical slice buffers admit
+Point3D and Double arrays before materialization; exact polynomial arrays use
+their concrete element stride. Existing intrinsic counts are converted only at
+the actual owning allocation boundary. Causal scope mapping is applied once on
+the original execution, and local numeric/geometric depth meanings remain
+separate. Historical callbacks and forwarding allowances are removed only after
+their actual producer paths have been migrated.
+
+### Direct Bernstein preparation
+
+Differential preparation retains one generic mathematical body and its three
+original branches: unit weights with exact stationary factors, bounded-degree
+homogeneous Bernstein products, and the quotient-rule hull fallback. Each
+private coefficient operation receives the original admission. Typed rows, row
+headers, Pascal rows and actual product/Pascal iterations are admitted where
+they occur. The historical phase quotes are removed from this body: a fixed
+product multiplier did not account for the Pascal recurrence's actual work and
+temporary buffers. Degree guards and outward-rounded interval formulas remain
+unchanged. Standalone preparation roots one execution and calls this body.
+
+### Pair difference kernel reservations
+
+The native difference constructor directly admits each concrete nested net
+header and coefficient row. Zero hull tests stream the original coefficients.
+Surface-direction proof meters its coefficient visits and corner comparisons.
+Its four unchanged finite-difference kernels each reserve at most the original
+product-net coefficient count; hull reduction uses scalar extrema without
+component-copy arrays.
+
+The unchanged de Casteljau split retains a conservative source-shaped quote.
+For product-net count `N` and the selected axis length `L`, triangular levels
+contain `N * (L + 1) / 2` coefficients. The bound includes those levels, extracted
+line inputs, both endpoint outputs, both copied result nets, and every nested
+net/level header. The levels array reserves its known length before appending.
+This is an admitted upper bound, not a measurement of actual bytes or work.
+No child producer also debits these quoted private operations. The original
+coefficient formulas and split ordering remain the same.
+
+### Regularity dispatch
+
+Both spline regularity and general outward-jet regularity own one direct body.
+Standalone entries root one independent execution; composing entries pass the
+original execution to source validation, preparation, interval jets and point
+derivatives. The default general validator's producer functions explicitly take
+the same `inout` execution, so they cannot reconstruct or capture a copied
+admission. Every visited cell supplies its actual geometric depth, while local
+cell and subdivision caps retain their original meanings. Singular samples
+remain rejection witnesses, and only whole outward enclosures issue regularity.
+Custom protocol conformers without a direct producer fail explicitly; the
+default implementation retains every existing genuine source branch.
+
+The adjacent seam and exact free-station phases open two separate common
+combined scopes. The accepted first-phase count determines the second scope's
+immutable ceiling. Projection and chart construction between those phases use
+the cumulative caller admission outside that local ceiling. The final accepted
+count determines the continuation's existing pair capacity. Scalar proof-depth
+scopes retain the original pair-depth limit; geometric offsets compose once on
+the same execution for opposite halves and pair descendants.
+
+### Exact predicate dependency
+
+Native seam orientation consumes the generic direct `RobustPredicates` and
+`ExactExpansionArithmetic` contracts. Their expansion producers own coefficient
+scratch admission, checked growth, actual arithmetic visits and cancellation on
+the original admission. Standalone predicate/expansion entries create one
+independent execution and delegate to those same cores. Machine filters and
+exact expansion signs retain their existing uncertainty/tolerance rules; the
+admission migration does not reinterpret an indeterminate sign as zero. Scalar
+admission axes remain independent of geometric subdivision depth. The existing
+Horner sign producer keeps its three-buffer ownership and same-admission port.
+
+Predicate verification is owned by
+[ExactPredicateDirectExecutionTests](../../../Tests/CADGeometryTests/ExactPredicateDirectExecutionTests.swift)
+and [FloatingPointExpansionDirectTests](../../../Tests/CADGeometryTests/FloatingPointExpansionDirectTests.swift).
+The cases retain exact binary-fraction oracles, a machine-cancelled nonzero
+determinant, zero/indeterminate distinctions, an observed work `N` versus `N-1`
+boundary, zero-storage filter versus fallback, cancellation before work, and
+named vector expansion arithmetic. Authoring or parsing these tests does not
+constitute behavioral execution evidence.

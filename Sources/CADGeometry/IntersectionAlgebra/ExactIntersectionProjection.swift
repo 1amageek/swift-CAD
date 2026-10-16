@@ -11,7 +11,7 @@ package struct ExactIntersectionProjection: Sendable {
         self.axis = axis; self.sources = sources; self.polynomials = polynomials
     }
 
-    package func lowered<B: RationalAlgebraAdmitting>(to count: Int,
+    package func lowered<B: ExactScalarAdmission & ~Copyable>(to count: Int,
         sources replacement: [ExactIntersectionPolynomial]? = nil, usage: inout B) throws -> Self {
         try intersectionAlgebraStep(&usage)
         guard axis < count else { throw rationalAlgebraFailure("A retained projection axis is outside its prefix.") }
@@ -22,7 +22,7 @@ package struct ExactIntersectionProjection: Sendable {
         return Self(axis: axis, sources: replacement ?? original, polynomials: projected)
     }
 
-    package static func prepare<B: RationalAlgebraAdmitting>(
+    package static func prepare<B: ExactScalarAdmission & ~Copyable>(
         sources: [ExactIntersectionPolynomial], variableCount: Int, axis: Int,
         usage: inout B) throws -> Self {
         guard (1...ExactIntersectionPolynomial.maximumVariableCount).contains(variableCount), axis >= 0, axis < variableCount else {
@@ -101,7 +101,7 @@ package struct ExactIntersectionProjection: Sendable {
         private var headCapacity = 0
         private var linkCapacity = 0
 
-        func contains<B: RationalAlgebraAdmitting>(_ polynomial: Polynomial, fingerprint: Int,
+        func contains<B: ExactScalarAdmission & ~Copyable>(_ polynomial: Polynomial, fingerprint: Int,
             in result: [Polynomial], usage: inout B) throws -> Bool {
             try intersectionAlgebraStep(&usage)
             var offset = heads[fingerprint] ?? -1
@@ -113,7 +113,7 @@ package struct ExactIntersectionProjection: Sendable {
             return false
         }
 
-        mutating func retain<B: RationalAlgebraAdmitting>(_ fingerprint: Int,
+        mutating func retain<B: ExactScalarAdmission & ~Copyable>(_ fingerprint: Int,
             offset: Int, usage: inout B) throws {
             try intersectionAlgebraStep(&usage)
             guard offset == previous.count else {
@@ -123,7 +123,7 @@ package struct ExactIntersectionProjection: Sendable {
             if required > linkCapacity {
                 let capacity = linkCapacity == 0 ? 16 : try rationalAlgebraCount(linkCapacity, linkCapacity)
                 try RationalAlgebraStorage.retain(capacity, of: Int.self, usage: &usage)
-                try usage.consumeExactWork(previous.count)
+                try usage.consumeWork(previous.count)
                 try CurrentTaskCancellationChecker().checkCancellation()
                 previous.reserveCapacity(capacity)
                 linkCapacity = capacity
@@ -134,7 +134,7 @@ package struct ExactIntersectionProjection: Sendable {
                 // before reserve can replace its previous uniquely owned buffer.
                 try RationalAlgebraStorage.retain(try rationalAlgebraCount(capacity, capacity),
                     of: (Int, Int).self, usage: &usage)
-                try usage.consumeExactWork(heads.count)
+                try usage.consumeWork(heads.count)
                 try CurrentTaskCancellationChecker().checkCancellation()
                 heads.reserveCapacity(capacity)
                 headCapacity = capacity
@@ -144,7 +144,7 @@ package struct ExactIntersectionProjection: Sendable {
         }
     }
 
-    private static func fingerprint<B: RationalAlgebraAdmitting>(_ polynomial: Polynomial,
+    private static func fingerprint<B: ExactScalarAdmission & ~Copyable>(_ polynomial: Polynomial,
         usage: inout B) throws -> Int {
         try intersectionAlgebraStep(&usage)
         var hash = Hasher()
@@ -156,7 +156,7 @@ package struct ExactIntersectionProjection: Sendable {
             let numerator = coefficient.canonicalNumeratorWords
             let denominator = coefficient.canonicalDenominatorWords
             let coefficientCount = try rationalAlgebraCount(numerator.count, denominator.count)
-            try usage.consumeExactWork(try rationalAlgebraCount(
+            try usage.consumeWork(try rationalAlgebraCount(
                 try rationalAlgebraCount(12, power.overflowCount), coefficientCount))
             try CurrentTaskCancellationChecker().checkCancellation()
             hash.combine(power)
@@ -169,7 +169,7 @@ package struct ExactIntersectionProjection: Sendable {
         return hash.finalize()
     }
 
-    private static func insert<B: RationalAlgebraAdmitting>(_ polynomial: Polynomial,
+    private static func insert<B: ExactScalarAdmission & ~Copyable>(_ polynomial: Polynomial,
         into result: inout [Polynomial], index: inout MembershipIndex, usage: inout B) throws {
         try intersectionAlgebraStep(&usage)
         if polynomial.isZero || polynomial.isConstant { return }
@@ -185,7 +185,7 @@ package struct ExactIntersectionProjection: Sendable {
         result.append(normalized)
     }
 
-    private static func insert<B: RationalAlgebraAdmitting>(_ polynomial: Polynomial,
+    private static func insert<B: ExactScalarAdmission & ~Copyable>(_ polynomial: Polynomial,
         into result: inout [Polynomial], usage: inout B) throws {
         try intersectionAlgebraStep(&usage)
         if polynomial.isZero || polynomial.isConstant { return }
@@ -203,7 +203,7 @@ package struct ExactIntersectionProjection: Sendable {
         result.append(normalized)
     }
 
-    private static func insertVerifiedSquareFree<B: RationalAlgebraAdmitting>(_ polynomial: Polynomial,
+    private static func insertVerifiedSquareFree<B: ExactScalarAdmission & ~Copyable>(_ polynomial: Polynomial,
         into result: inout [Polynomial], usage: inout B) throws {
         try intersectionAlgebraStep(&usage)
         if polynomial.isZero || polynomial.isConstant { return }
@@ -215,7 +215,7 @@ package struct ExactIntersectionProjection: Sendable {
         result.append(normalized)
     }
 
-    private static func splitCommonFactors<B: RationalAlgebraAdmitting>(_ basis: inout [Polynomial],
+    private static func splitCommonFactors<B: ExactScalarAdmission & ~Copyable>(_ basis: inout [Polynomial],
         usage: inout B) throws {
         var first = 0
         while first < basis.count {
@@ -227,7 +227,7 @@ package struct ExactIntersectionProjection: Sendable {
                 let a = try basis[first].dividedExactly(by: common, usage: &usage)
                 let b = try basis[second].dividedExactly(by: common, usage: &usage)
                 basis[first] = common
-                try usage.consumeExactWork(basis.count - second)
+                try usage.consumeWork(basis.count - second)
                 basis.remove(at: second)
                 // Exact divisors inherit square-freeness and every earlier unit
                 // GCD proof. Keep the next candidate at the removed position;

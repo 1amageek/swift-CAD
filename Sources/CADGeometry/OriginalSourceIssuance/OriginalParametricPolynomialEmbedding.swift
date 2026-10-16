@@ -7,7 +7,7 @@ import L1
 enum OriginalParametricPolynomialEmbedding {
     static func applying<F: ExactScalarArithmetic & ExactScalarOrdering & ExactScalarImporting,A: ExactScalarAdmission & ~Copyable>(
         _ polynomial: ExactPolynomial<F>,map: [Int],ring: ExactPolynomialDomain<F>,field: F,
-        using a: inout OriginalSourceProofAdmission<A>) throws -> ExactPolynomial<F> where F.Source == F.Value {
+        using a: inout A) throws -> ExactPolynomial<F> where F.Source == F.Value {
         try a.admitDepth(value:polynomial.depth.value,coefficient:polynomial.depth.coefficient)
         guard polynomial.variableCount==map.count else { throw OriginalSourceIssuanceFailure.invalidChart }
         for index in map.indices {

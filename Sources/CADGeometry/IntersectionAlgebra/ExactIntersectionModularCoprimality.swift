@@ -17,13 +17,13 @@ package enum ExactIntersectionModularCoprimality {
         let secondQuotient: [ExactRationalCoefficient]
     }
 
-    package static func certifies<B: RationalAlgebraAdmitting>(
+    package static func certifies<B: ExactScalarAdmission & ~Copyable>(
         _ first: [ExactRationalCoefficient], _ second: [ExactRationalCoefficient],
         usage: inout B) throws -> Bool {
         try prepare(first, second, usage: &usage)?.degree == 0
     }
 
-    package static func prepare<B: RationalAlgebraAdmitting>(
+    package static func prepare<B: ExactScalarAdmission & ~Copyable>(
         _ first: [ExactRationalCoefficient], _ second: [ExactRationalCoefficient],
         usage: inout B) throws -> Probe? {
         try intersectionAlgebraStep(&usage)
@@ -32,7 +32,7 @@ package enum ExactIntersectionModularCoprimality {
         return result
     }
 
-    private static func probe<B: RationalAlgebraAdmitting>(
+    private static func probe<B: ExactScalarAdmission & ~Copyable>(
         _ first: [ExactRationalCoefficient], _ second: [ExactRationalCoefficient],
         usage: inout B) throws -> Probe? {
         guard !first.isEmpty, !second.isEmpty else { return nil }
@@ -82,7 +82,7 @@ package enum ExactIntersectionModularCoprimality {
     }
 
     /// A candidate is sufficient only with both exact quotient receipts.
-    package static func factorReceipt<B: RationalAlgebraAdmitting>(_ probe: Probe,
+    package static func factorReceipt<B: ExactScalarAdmission & ~Copyable>(_ probe: Probe,
         first: [ExactRationalCoefficient], second: [ExactRationalCoefficient],
         denominatorBound: UInt64, usage: inout B) throws -> FactorReceipt? {
         try intersectionAlgebraStep(&usage)
@@ -92,7 +92,7 @@ package enum ExactIntersectionModularCoprimality {
         return result
     }
 
-    private static func reconstructedFactor<B: RationalAlgebraAdmitting>(_ probe: Probe,
+    private static func reconstructedFactor<B: ExactScalarAdmission & ~Copyable>(_ probe: Probe,
         first: [ExactRationalCoefficient], second: [ExactRationalCoefficient],
         denominatorBound: UInt64, usage: inout B) throws -> FactorReceipt? {
         guard probe.degree > 0, first.last == .one, second.last == .one,
@@ -112,7 +112,7 @@ package enum ExactIntersectionModularCoprimality {
         return FactorReceipt(coefficients: candidate, firstQuotient: firstQuotient, secondQuotient: secondQuotient)
     }
 
-    private static func reconstructed<B: RationalAlgebraAdmitting>(_ residue: UInt64,
+    private static func reconstructed<B: ExactScalarAdmission & ~Copyable>(_ residue: UInt64,
         numeratorBound: UInt64, denominatorBound: UInt64, usage: inout B) throws -> ExactRationalCoefficient? {
         // Every scalar remains bounded by this fixed modulus; checked signed
         // recurrences also reject any violated arithmetic invariant explicitly.
@@ -147,7 +147,7 @@ package enum ExactIntersectionModularCoprimality {
         return denominator < 0 ? value.negated : value
     }
 
-    private static func quotient<B: RationalAlgebraAdmitting>(_ source: [ExactRationalCoefficient],
+    private static func quotient<B: ExactScalarAdmission & ~Copyable>(_ source: [ExactRationalCoefficient],
         by divisor: [ExactRationalCoefficient], usage: inout B) throws -> [ExactRationalCoefficient]? {
         guard divisor.last == .one, source.count >= divisor.count else { return nil }
         let count = source.count - divisor.count + 1
@@ -174,7 +174,7 @@ package enum ExactIntersectionModularCoprimality {
         return remainder.isEmpty ? result : nil
     }
 
-    private static func residues<B: RationalAlgebraAdmitting>(_ coefficients: [ExactRationalCoefficient],
+    private static func residues<B: ExactScalarAdmission & ~Copyable>(_ coefficients: [ExactRationalCoefficient],
         usage: inout B) throws -> [UInt64]? {
         try RationalAlgebraStorage.retain(coefficients.count, of: UInt64.self, usage: &usage)
         var result: [UInt64] = []; result.reserveCapacity(coefficients.count)
@@ -190,7 +190,7 @@ package enum ExactIntersectionModularCoprimality {
         return result
     }
 
-    private static func residue<B: RationalAlgebraAdmitting>(_ words: [UInt32], usage: inout B) throws -> UInt64 {
+    private static func residue<B: ExactScalarAdmission & ~Copyable>(_ words: [UInt32], usage: inout B) throws -> UInt64 {
         var result: UInt64 = 0
         for word in words.reversed() {
             try intersectionAlgebraStep(&usage)
@@ -201,13 +201,13 @@ package enum ExactIntersectionModularCoprimality {
         return result
     }
 
-    private static func multiplied<B: RationalAlgebraAdmitting>(_ first: UInt64, _ second: UInt64,
+    private static func multiplied<B: ExactScalarAdmission & ~Copyable>(_ first: UInt64, _ second: UInt64,
         usage: inout B) throws -> UInt64 {
         try intersectionAlgebraStep(&usage)
         return (first * second) % prime
     }
 
-    private static func power<B: RationalAlgebraAdmitting>(_ base: UInt64, exponent: UInt64,
+    private static func power<B: ExactScalarAdmission & ~Copyable>(_ base: UInt64, exponent: UInt64,
         usage: inout B) throws -> UInt64 {
         var result: UInt64 = 1, factor = base, remaining = exponent
         while remaining != 0 {

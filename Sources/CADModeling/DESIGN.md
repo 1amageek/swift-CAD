@@ -405,6 +405,17 @@ sides (arcs) either sum is rational over the product of the sides' weight functi
 `w_b·w_t (u) · w_l·w_r (v)`: `ExactRationalBooleanSum` multiplies each term's factors piece by
 piece in the Bernstein basis and joins the pieces into one exact NURBS whose weights are that
 product, the derivative rows staying polynomial splines in the sides' knots.
+The existing Hermite construction helper has a direct execution entry for Loft.
+Its ordinary entry creates one root and runs the same main construction body.
+Common-basis conversion, retained support rows, point/differential reads,
+refinement, Bernstein rational assembly and candidate continuity checks borrow
+that same execution. Cubic/quintic coefficients, support-selected order, corner
+jets, rational denominator, refinement attempts and native construction-stage
+certificate are unchanged. The shared all-sides helper forwards the execution
+through those same private operations; this is not a Square feature/fitter
+migration or a new final continuity theorem. The lower EdgeContinuity contract
+retains the distinction between candidate and final original-source proof.
+
 `SquareSurfaceTests` own the flat frame in any order, the G1 and G2 sheets between two boxes'
 edges, the round trip, the refusal of rails bending out of the faces' planes, a plate's hole filled
 tangent along all four sides, the refusal across a box's walls, and a plate notch's sheet flat
@@ -1620,3 +1631,147 @@ The proof stays local to the immutable cap builder and carries no retained cache
 Independent degree12 sample-pass/whole-residual-fail coefficients, exact residual success, denominator/regularity and resource/cancellation refusal precede the incoming cube/tetrahedron/icosahedron/open-fan production cases. Existing shared-edge position/normal/curvature observations and closed-solid edge direction counts remain integration evidence; source coefficient enclosure is the continuous authority. Root serializes frozen builds and commits; other draft/ISOAREA/STEP paths and main Wrap work remain separately owned.
 
 Native lower admission5tests pass.020s, including original degree2/8 asymmetric planar nets on allfouredges, the independent collocation alias refusal, degenerate metric, checked storage overflow and cancellation. Native immutable incoming cube/tetrahedron/icosahedron/valence6 fan production4tests pass95.027s under unchanged2/4min limits. Initial actual compile and coefficient-derivative defects were corrected before these results. Other targets remain integration work.
+
+## Canonical Geometry API Binding
+
+This delivery rebinds only existing callers forced by the canonical Geometry API
+cut. The [Geometry admission contract](../CADGeometry/OriginalQueryExecution/DESIGN.md)
+owns the exclusive execution and cumulative resource authority; numerical
+coefficient producers use `ExactScalarAdmission & ~Copyable`. Existing source,
+feature algorithms, local ceilings and independent source/algebra/subdivision
+axes remain authoritative. Ordinary query owners issue one execution and call
+the same implementation; retained values carry immutable policy or preparation,
+never a copied execution or callback ledger.
+
+```text
+existing IR / Modeling caller -> canonical original execution
+    -> unchanged source / numeric producer -> Geometry using witness
+```
+
+Removed admission adapters are replaced through their real owner and actual
+callee chain. Protocol operations invoked through existentials are requirements.
+This binding scope does not include independent Document, Mass, Stage or sewing
+feature changes, nor does it establish their runtime acceptance. Source readiness
+requires a per-file callee-edge inventory. Compilation of the isolated candidate
+and public G01 runtime acceptance remain separate integration gates.
+
+### Required Angle and Body Helper Bindings
+
+Exchange angle resolution consumes `EvaluatedCurve.validate(tolerance:using:)`,
+which retains the existing display-point, exact-domain, parameter, projection,
+endpoint and closure checks. It is distinct from original-source-only validation.
+The selected Kernel body caller consumes direct `BRepBodyModelReplacer` and
+`BRepModelCombiner` operations: original metadata is retained, source bodies are
+extracted under the same execution, and each original identity is checked vacant
+before the existing model-tree insertion. These helpers follow the canonical
+execution contract above; they do not restore, publish or evaluate feature stages.
+
+### Required Finite Helper Closure
+
+The native Modeling module gate additionally requires the existing sewing loop,
+shell and body validation bodies, prismatic/profile conversion, body scope,
+surface-foot and circular-sweep helpers to pass the original execution through
+their actual numeric or source callees. Vacant identities, body metadata, source
+partitions, shell connectivity, tangent/normal laws, and historical local ceilings
+remain unchanged. This is API composition; it does not complete feature request,
+Expression, Stage, or Mass accounting.
+
+Rolling treatment consumes the existing tangent-chain, blend terminal, cap rail
+and edge subdivision bodies under the same execution. Complete native seam
+normal bounds and implicit terminal monotonicity remain their original proof
+authorities; neither source guards nor radius/partition formulas change.
+
+The same finite binding includes alignment collocation, constrained-height basis
+rows, and fair-surface basis derivatives. Their existing basis/QR/refinement
+formulas and matrix ceilings remain unchanged. Ordinary scalar query owners
+issue one execution; an existing direct caller passes its execution to the same
+producer. Throwing derivative and body-scope lookups propagate through existing
+ordinary feature callers without changing their authored constructions.
+
+### Required Convex Operand and Prismatic Segment Bindings
+
+The specialized Boolean caller constructs `ConvexPlanarSolidOperand` and
+`BodyTopologyScope` under its existing execution. The operand retains the
+original one-solid-shell, straight-face-loop, convex-turn, half-space and
+orientation conditions; exact plane/line recognition and ordered point queries
+use that execution. Its sorted face/vertex collections are admitted at their
+actual allocation and traversal boundaries. Prismatic line segment creation is
+pure endpoint validation; circular and native spline segments forward the same
+execution to their source endpoint queries. No new Boolean construction or
+recognition policy is introduced.
+
+### Shell Partitioner Execution Binding
+
+`BRepSewingPatchShellPartitioner` composes its existing deterministic connected
+components and material-wedge pairing with `BRepSewingEdgeFan` under one original
+execution. The fan's source pcurve/frame/point queries retain their original
+stations, angular ordering, front-face predicate and local geometry ceilings.
+Sorting, adjacency, pending/visited collections and output keys are admitted at
+their actual traversal/copy/allocation boundaries. Ordinary entries issue one
+execution and share the direct bodies; this adds no shell construction law.
+Boundary identity must retain the whole oriented original-span authority in
+[Original Curve Span Coincidence](OriginalCurveSpanCoincidence/DESIGN.md); samples
+may only reject a candidate, never authorize a shell connection.
+
+[CanonicalConstructionAdmissionTests](../../Tests/CADModelingTests/CanonicalConstructionAdmissionTests.swift)
+checks native line/span matching and rejects a degree-five source that agrees at
+all five historical stations while departing in their interiors. This evidence
+owns the selected fan boundary admission only; sewing distance does not imply
+exact UV/source identity or differential continuity.
+
+### Carried Metadata Execution Binding
+
+`EvaluationContext.subshapeIDs` owns the existing reference filter and ascending
+SubshapeID order. Its direct query charges each actual entry and retained result,
+and each comparison reads the original UTF-8 role under the caller execution.
+`DefaultCarriedTopologyIdentityBuilder` retains the original body/face/edge/vertex
+traversal, role ordinals, generated/preserved/merged parent law and metadata IDs;
+its source parent queries share that execution. Topology collections, role
+hashing, comparisons and copies are admitted where they occur. No speculative
+quadratic work estimate or child budget stands in for those operations. This
+finite composition does not import Stage or Document evaluation.
+
+The parent filter returns unique sorted keys. Carried publication uses Core's
+checked `canonicalParents` constructor, paying its linear parent validity and
+original role comparisons under the same execution before that allocation-free
+check. A refused canonical lineage is typed invalid input; no parent set/sort is
+silently repeated. The ordinary lookup now throws through only its existing
+metadata callers, preserving their selection branches and collection order.
+
+### Retained Validity Comparison Admission
+
+Feature input replay and validated-result publication retain the existing exact
+validity certificate when model, tolerance and validation-level premises match.
+This is the existing incremental validity authority described by
+[CADKernel](../CADKernel/DESIGN.md), not a new depth or source preparation proof.
+Both model equality edges use `OriginalBRepStructuralComparison.models` under the
+caller execution to admit the original variable-length source graph before exact
+comparison. Cache mismatch preserves the existing validation fallback. All four
+`FeatureEvaluationBoundary` catch paths (validated evaluation, ordinary
+evaluation, request validation and exact input validation) share one failure
+publication helper. It publishes the retained original error and each path's
+actual execution context before reading its resource/cancellation classification.
+Adding missing feature context must not replace the published resource code,
+resource axis or original cause with a generic domain classification. Existing
+nonresource domain mapping, phases and messages retain their original boundary
+behavior. The canonical fixture's callback-failure matrix throws before any
+output, checking raw work refusal, cancellation and a preclassified domain-error
+control at the three callback boundaries.
+[CanonicalConstructionAdmissionTests](../../Tests/CADModelingTests/CanonicalConstructionAdmissionTests.swift)
+uses an independently decoded equal graph to exercise the real input and
+publication paths with a one-unit refusal and exact cumulative N/N-minus-one,
+original-source mismatch fallback, and cancellation. The certificate must be
+issued by the actual exact validator for a reference-closed graph before
+measurement. A standalone nonempty geometry store is not legal exact input:
+source ownership validation rejects its unreferenced definitions. The regression
+authors each square-sheet edge as the exact surface lift of the same native
+plane and constant-U/V affine chart stored on its coedge. Original endpoint
+queries retain the analytic unit rectangle. After validating the original source,
+the existing whole-use structural identity contract in
+[Original Curve-Surface Correspondence](../CADGeometry/OriginalCurveSurfaceCorrespondence/DESIGN.md)
+proves zero deviation for the normalized full use; no validity receipt is
+fabricated and no validation step or allowance is bypassed. Independently
+stored equal graphs and a consistently translated source graph exercise cache
+reuse and genuine validation fallback. The independent-line residual partition
+and generic worker-stack/runtime frontier are outside this comparison regression
+and remain unaccepted.

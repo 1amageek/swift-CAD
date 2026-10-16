@@ -6,7 +6,8 @@ import Testing
 struct IntersectionProjectionFactorRefinementTests {
     private typealias Polynomial = ExactIntersectionPolynomial
     private enum AdmissionFailure: Error, Equatable { case work, storage, depth }
-    private struct Admission: RationalAlgebraAdmitting {
+    private struct Admission: ~Copyable, GeometryScalarTestAdmission {
+        var proofScopes = ExactScalarProofScopes()
         var maximumWork = 80_000_000
         var maximumStorage = 268_435_456
         var work = 0
@@ -15,19 +16,50 @@ struct IntersectionProjectionFactorRefinementTests {
         var allowCells = false
         var cancelAtWork: Int?
         var cancelAtStorage: Int?
-        mutating func consumeExactWork(_ count: Int) throws {
+        mutating func consumeWork(_ count: Int) throws(ExactScalarFailure) {
+            try checkpoint()
+            try proofScopes.checkWork(count)
+            do {
             guard count >= 0, count <= maximumWork - work else { throw AdmissionFailure.work }
             work += count
             if work == cancelAtWork { withUnsafeCurrentTask { $0?.cancel() } }
+        
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            proofScopes.recordWork(count)
+            try checkpoint()
         }
-        mutating func retainExactStorage(_ count: Int) throws {
+        mutating func retainStorage(bytes: Int) throws(ExactScalarFailure) {
+            try checkpoint()
+            let count = try geometryTestStorageWords(bytes)
+            do {
             guard count >= 0, count <= maximumStorage - storage else { throw AdmissionFailure.storage }
             storage += count
             if storage == cancelAtStorage { withUnsafeCurrentTask { $0?.cancel() } }
+        
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            try checkpoint()
         }
-        mutating func visitExactCell(depth: Int) throws {
+        
+            mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
+            try admitDepth(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+            let mapped = try proofScopes.mapped(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+            do {
+                switch (axis == .coefficient || proofScopes.exactDepthResource == .coefficientDepth) ? ExactScalarRootAxis.coefficient : .value {
+                case .value:
+                    let depth = mapped.value
+
             guard allowCells, depth >= 0, depth <= 24 else { throw AdmissionFailure.depth }
             cells += 1
+        
+                case .coefficient:
+                    let depth = mapped.coefficient
+ throw ExactScalarFailure.resourceLimit(.coefficientDepth) 
+                }
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            try checkpoint()
         }
     }
     private struct Fixture: Sendable {
@@ -132,20 +164,20 @@ struct IntersectionProjectionFactorRefinementTests {
             variableCount: 3, axis: 2, usage: &exact)
         #expect(bounded.sources == result.sources && bounded.polynomials == result.polynomials)
         var noWork = Admission(); noWork.maximumWork = measured.work - 1
-        #expect(throws: AdmissionFailure.work) {
+        geometryTestExpectFailure({ if case .work? = geometryTestOriginalFailure($0) as? AdmissionFailure { true } else { false } }) {
             try ExactIntersectionProjection.prepare(sources: laws.sources, variableCount: 3, axis: 2, usage: &noWork)
         }
         #expect(noWork.work <= noWork.maximumWork)
         var noStorage = Admission(); noStorage.maximumStorage = measured.storage - 1
-        #expect(throws: AdmissionFailure.storage) {
+        geometryTestExpectFailure({ if case .storage? = geometryTestOriginalFailure($0) as? AdmissionFailure { true } else { false } }) {
             try ExactIntersectionProjection.prepare(sources: laws.sources, variableCount: 3, axis: 2, usage: &noStorage)
         }
         #expect(noStorage.storage <= noStorage.maximumStorage)
         let wrongRing = try Polynomial.zero(variableCount: 2)
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try ExactIntersectionProjection.prepare(sources: [wrongRing], variableCount: 3, axis: 2, usage: &preparation)
         }
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try ExactIntersectionProjection.prepare(sources: laws.sources, variableCount: 3, axis: 3, usage: &preparation)
         }
     }
@@ -166,7 +198,7 @@ struct IntersectionProjectionFactorRefinementTests {
                 _ = try ExactIntersectionProjection.prepare(sources: laws.sources, variableCount: 3, axis: 2, usage: &usage)
                 Issue.record("A cancelled projection refinement published a completed set.")
                 return false
-            } catch is CancellationError {
+            } catch let error where geometryTestIsCancelled(error) {
                 if callback == 0 { return usage.work == 0 && usage.storage == 0 }
                 return callback == 1 ? usage.work == finalWork : usage.storage == finalStorage
             }

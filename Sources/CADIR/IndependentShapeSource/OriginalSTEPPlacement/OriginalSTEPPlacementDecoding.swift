@@ -9,9 +9,9 @@ package enum OriginalSTEPPlacementDecoding {
             throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable
         }
         try OriginalAffineWordDecodingContext.validateSourceNesting(from: decoder)
-        let allowance = try NativeRationalSourceDecodingContext.allowance(from: decoder)
-        try allowance.visitExactCell(depth: 0)
-        try allowance.consumeExactWork(work)
+        var allowance = try NativeRationalSourceDecodingContext.execution(from: decoder)
+        try allowance.visitCell(axis: .value, depth: 0)
+        try allowance.consumeWork(work)
     }
 
     static func adjustments(from decoder: Decoder) throws -> [OriginalSTEPPlacementAdjustment] {
@@ -23,7 +23,7 @@ package enum OriginalSTEPPlacementDecoding {
             throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable
         }
         try OriginalAffineWordDecodingContext.validateSourceNesting(from: decoder)
-        let allowance = try NativeRationalSourceDecodingContext.allowance(from: decoder)
+        var allowance = try NativeRationalSourceDecodingContext.execution(from: decoder)
         var source = try decoder.unkeyedContainer()
         guard let count = source.count else {
             throw NativeRationalSourceDecodingError.unboundedWordContainer
@@ -34,8 +34,8 @@ package enum OriginalSTEPPlacementDecoding {
         }
         let stride = MemoryLayout<UInt32>.stride
         let words = bytes.partialValue / stride + (bytes.partialValue % stride == 0 ? 0 : 1)
-        try allowance.consumeExactWork(count)
-        try allowance.retainExactStorage(words)
+        try allowance.consumeWork(count)
+        try RationalAlgebraStorage.retain(words, of: UInt32.self, usage: &allowance)
         var result: [Value] = []
         result.reserveCapacity(count)
         while !source.isAtEnd { result.append(try source.decode(Value.self)) }

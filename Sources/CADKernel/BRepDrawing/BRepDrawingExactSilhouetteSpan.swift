@@ -15,8 +15,8 @@ public struct BRepDrawingExactSilhouetteSpan: Sendable {
     public let frame: OrthographicProjectionFrame
 
     public func projectedEnclosure(overNormalized range: ScalarInterval,
-        maximumParameterWidth: ExactRationalCoefficient, usage: inout SurfaceSilhouetteUsage) throws -> CoordinateEnclosure2D {
-        let source = try curve.enclosure(overNormalized: range, maximumParameterWidth: maximumParameterWidth, usage: &usage)
+        maximumParameterWidth: ExactRationalCoefficient, using execution: inout OriginalQueryExecution) throws -> CoordinateEnclosure2D {
+        let source = try curve.enclosure(overNormalized: range, maximumParameterWidth: maximumParameterWidth, using: &execution)
         guard let position = source.spatialDerivatives.first else {
             throw KernelError(phase: .geometry, code: .intersectionFailure, tolerance: nil,
                 message: "Exact trimmed silhouette source has no spatial position enclosure.")

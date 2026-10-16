@@ -41,7 +41,7 @@ public final class OriginalCommonApexConeRelation: Sendable {
         firstBox: SurfaceParameterBox?, secondBox: SurfaceParameterBox?, maximumComponents: Int,
         limits: OriginalDomainIdentityLimits, prepared: OriginalCommonApexConeRelation? = nil,
         using a: inout A) throws -> OriginalCommonApexConeRelation {
-        return try OriginalSourceProofAdmission<A>.withBorrow(&a) { a in
+        return try a.withProofScope() { a in
             try a.checkpoint(); try source.require(limits.source); try requireLimits(limits)
             let s = source.original
             let issuer = DefaultOriginalAnalyticDomainIssuer<OriginalAnalyticCoordinateSnapshot, Field>()
@@ -123,7 +123,7 @@ public final class OriginalCommonApexConeRelation: Sendable {
     }
     public func member<A: ExactScalarAdmission & ~Copyable>(firstU: Field.Value, secondU: Field.Value,
         limits: OriginalDomainIdentityLimits, using a: inout A) throws -> OriginalCommonApexConeMember {
-        try OriginalSourceProofAdmission<A>.withBorrow(&a) { a in
+        try a.withProofScope() { a in
             try admitProof(limits: limits, using: &a)
             let f=source.original.field,zero=try f.integer(0,using:&a)
             guard !isEmpty, try firstFiber.frame.axisDomains[0].contains(firstU,in:firstFiber.axes[0],using:&a),

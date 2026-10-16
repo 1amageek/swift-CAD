@@ -1,6 +1,6 @@
 extension OriginalSingularFieldTransport {
     /// Imports an existing scalar parameter authority without solving its source again.
-    package func originalScalarValue<B: RationalAlgebraAdmitting>(
+    package func originalScalarValue<B: ExactScalarAdmission & ~Copyable>(
         _ endpoint: ExactMonotoneGraphEndpoint, into destination: OriginalSingularFieldContext,
         maximumDepth: Int, usage: inout B) throws -> OriginalSingularFieldElement {
         switch endpoint {

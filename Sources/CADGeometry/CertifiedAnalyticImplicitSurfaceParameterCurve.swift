@@ -32,6 +32,18 @@ public struct CertifiedAnalyticImplicitSurfaceParameterCurve: Hashable, Sendable
         endFraction: Double = 1.0,
         tolerance: ModelingTolerance
     ) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try self.init(intersection: intersection, startFraction: startFraction, endFraction: endFraction, tolerance: tolerance, using: &execution)
+    }
+
+    public init(
+        intersection: CertifiedAnalyticBSplineIntersectionCurve,
+        startFraction: Double = 0.0,
+        endFraction: Double = 1.0,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard startFraction.isFinite,
               endFraction.isFinite,
@@ -49,7 +61,14 @@ public struct CertifiedAnalyticImplicitSurfaceParameterCurve: Hashable, Sendable
     }
 
     public func validate(on surface: Surface3D, tolerance: ModelingTolerance) throws {
-        try intersection.validate(tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(on: surface, tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(on surface: Surface3D, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try intersection.validate(tolerance: tolerance, using: &execution)
         guard surface == intersection.analyticSurface,
               startFraction.isFinite,
               endFraction.isFinite,
@@ -71,26 +90,36 @@ public struct CertifiedAnalyticImplicitSurfaceParameterCurve: Hashable, Sendable
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameter {
-        let mapped = try mappedFraction(fraction, tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try parameter(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+    public func parameter(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> SurfaceParameter {
+        try execution.consumeWork(1)
+        let mapped = try mappedFraction(fraction, tolerance: tolerance, using: &execution)
         let pair = try intersection.implicitCurve.parameterPair(
             atNormalizedFraction: mapped,
             tolerance: tolerance
-        )
+        , using: &execution)
         let point = try intersection.implicitCurve.point(
             atNormalizedFraction: mapped,
             tolerance: tolerance
-        )
+        , using: &execution)
         let internalParameter = intersection.analyticIsFirst ? pair.first : pair.second
         let result = try AnalyticSurfaceRationalParameterMap(
             surface: intersection.analyticSurface,
             periodicSeamOffset: intersection.periodicSeamOffset,
             tolerance: tolerance
-        ).parameter(fromRational: internalParameter, tolerance: tolerance)
+        , using: &execution).parameter(fromRational: internalParameter, tolerance: tolerance, using: &execution)
         let reconstructed = try intersection.analyticSurface.point(
             u: result.u,
             v: result.v,
             tolerance: tolerance
-        )
+        , using: &execution)
         let residual = (reconstructed - point).length
         guard residual <= tolerance.distance else {
             throw KernelError(
@@ -108,6 +137,16 @@ public struct CertifiedAnalyticImplicitSurfaceParameterCurve: Hashable, Sendable
         for subcell: CertifiedImplicitIntersectionGraphSubcell,
         tolerance: ModelingTolerance
     ) throws -> AnalyticSurfaceRationalParameterMap.Enclosure {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try parameterEnclosure(for: subcell, tolerance: tolerance, using: &execution)
+    }
+
+    package func parameterEnclosure(
+        for subcell: CertifiedImplicitIntersectionGraphSubcell,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> AnalyticSurfaceRationalParameterMap.Enclosure {
+        try execution.consumeWork(1)
         let coordinateCount = SurfaceIntersectionParameterCoordinate.allCases.count
         guard subcell.parameterDerivativeBounds.count == coordinateCount else {
             throw KernelError(
@@ -127,33 +166,43 @@ public struct CertifiedAnalyticImplicitSurfaceParameterCurve: Hashable, Sendable
             surface: intersection.analyticSurface,
             periodicSeamOffset: intersection.periodicSeamOffset,
             tolerance: tolerance
-        ).enclosure(
+        , using: &execution).enclosure(
             rationalU: subcell.parameterBox.interval(for: analyticU),
             rationalV: subcell.parameterBox.interval(for: analyticV),
             rationalUDerivative: subcell.parameterDerivativeBounds[analyticU.rawValue],
             rationalVDerivative: subcell.parameterDerivativeBounds[analyticV.rawValue],
             tolerance: tolerance
-        )
+        , using: &execution)
     }
 
     public func differential(
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterCurveDifferential {
-        let mapped = try mappedFraction(fraction, tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try differential(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+    public func differential(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> SurfaceParameterCurveDifferential {
+        try execution.consumeWork(1)
+        let mapped = try mappedFraction(fraction, tolerance: tolerance, using: &execution)
         let parameter = try parameter(
             atNormalizedFraction: fraction,
             tolerance: tolerance
-        )
+        , using: &execution)
         let curveDifferential = try intersection.implicitCurve.differential(
             atNormalizedFraction: mapped,
             tolerance: tolerance
-        )
+        , using: &execution)
         let surfaceDifferential = try intersection.analyticSurface.differentialGeometry(
             u: parameter.u,
             v: parameter.v,
             tolerance: tolerance
-        )
+        , using: &execution)
         let tangentU = surfaceDifferential.tangentU
         let tangentV = surfaceDifferential.tangentV
         let metricUU = tangentU.dot(tangentU)
@@ -197,7 +246,7 @@ public struct CertifiedAnalyticImplicitSurfaceParameterCurve: Hashable, Sendable
             spatialSecondDerivative: curveDifferential.secondDerivative,
             tolerance: tolerance,
             diagnosticContext: "Certified analytic pcurve"
-        )
+        , using: &execution)
         let scale = endFraction - startFraction
         return SurfaceParameterCurveDifferential(
             parameter: parameter,
@@ -216,22 +265,32 @@ public struct CertifiedAnalyticImplicitSurfaceParameterCurve: Hashable, Sendable
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> Point2D {
-        let mapped = try mappedFraction(fraction, tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try thirdDerivative(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+    func thirdDerivative(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Point2D {
+        try execution.consumeWork(1)
+        let mapped = try mappedFraction(fraction, tolerance: tolerance, using: &execution)
         let lower = try differential(
             atNormalizedFraction: fraction,
             tolerance: tolerance
-        )
+        , using: &execution)
         let scale = endFraction - startFraction
         let spatialThird = try intersection.implicitCurve.thirdDerivative(
             atNormalizedFraction: mapped,
             tolerance: tolerance
-        ) * (scale * scale * scale)
+        , using: &execution) * (scale * scale * scale)
         let surface = try intersection.analyticSurface
             .parameterDerivativesThroughThirdOrder(
                 u: lower.parameter.u,
                 v: lower.parameter.v,
                 tolerance: tolerance
-            )
+            , using: &execution)
         return try SurfaceParameterThirdDerivativeSolver().solve(
             surface: surface,
             firstParameterDerivative: lower.firstDerivative,
@@ -239,18 +298,26 @@ public struct CertifiedAnalyticImplicitSurfaceParameterCurve: Hashable, Sendable
             spatialThirdDerivative: spatialThird,
             tolerance: tolerance,
             diagnosticContext: "Certified analytic pcurve"
-        )
+        , using: &execution)
     }
 
     public func reversed(
         tolerance: ModelingTolerance
     ) throws -> CertifiedAnalyticImplicitSurfaceParameterCurve {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try reversed(tolerance: tolerance, using: &execution)
+    }
+
+    public func reversed(
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> CertifiedAnalyticImplicitSurfaceParameterCurve {
+        try execution.consumeWork(1)
         try tolerance.validate()
         return CertifiedAnalyticImplicitSurfaceParameterCurve(
             validatedIntersection: intersection,
             startFraction: endFraction,
-            endFraction: startFraction
-        )
+            endFraction: startFraction)
     }
 
     public func subcurve(
@@ -258,6 +325,17 @@ public struct CertifiedAnalyticImplicitSurfaceParameterCurve: Hashable, Sendable
         toNormalizedFraction upper: Double,
         tolerance: ModelingTolerance
     ) throws -> CertifiedAnalyticImplicitSurfaceParameterCurve {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try subcurve(fromNormalizedFraction: lower, toNormalizedFraction: upper, tolerance: tolerance, using: &execution)
+    }
+
+    public func subcurve(
+        fromNormalizedFraction lower: Double,
+        toNormalizedFraction upper: Double,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> CertifiedAnalyticImplicitSurfaceParameterCurve {
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard lower.isFinite,
               upper.isFinite,
@@ -268,16 +346,16 @@ public struct CertifiedAnalyticImplicitSurfaceParameterCurve: Hashable, Sendable
         }
         return CertifiedAnalyticImplicitSurfaceParameterCurve(
             validatedIntersection: intersection,
-            startFraction: interpolate(
+            startFraction: try interpolate(
                 startFraction,
                 endFraction,
                 fraction: min(max(lower, 0.0), 1.0)
-            ),
-            endFraction: interpolate(
+            , using: &execution),
+            endFraction: try interpolate(
                 startFraction,
                 endFraction,
                 fraction: min(max(upper, 0.0), 1.0)
-            )
+            , using: &execution)
         )
     }
 
@@ -287,43 +365,63 @@ public struct CertifiedAnalyticImplicitSurfaceParameterCurve: Hashable, Sendable
         curveDomain: ParameterDomain,
         tolerance: ModelingTolerance
     ) throws -> CertifiedAnalyticImplicitSurfaceParameterCurve {
-        try subcurve(
-            fromNormalizedFraction: normalizedFraction(
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try trimmed(from: startParameter, to: endParameter, curveDomain: curveDomain, tolerance: tolerance, using: &execution)
+    }
+
+    public func trimmed(
+        from startParameter: Double,
+        to endParameter: Double,
+        curveDomain: ParameterDomain,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> CertifiedAnalyticImplicitSurfaceParameterCurve {
+        try execution.consumeWork(1)
+        return try subcurve(
+            fromNormalizedFraction: try normalizedFraction(
                 startParameter,
                 domain: curveDomain,
                 tolerance: tolerance
-            ),
-            toNormalizedFraction: normalizedFraction(
+            , using: &execution),
+            toNormalizedFraction: try normalizedFraction(
                 endParameter,
                 domain: curveDomain,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             tolerance: tolerance
-        )
+        , using: &execution)
     }
+
+
 
     private func mappedFraction(
         _ fraction: Double,
         tolerance: ModelingTolerance
-    ) throws -> Double {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard fraction.isFinite,
               fraction >= -tolerance.relative,
               fraction <= 1.0 + tolerance.relative else {
             throw GeometryError.invalidDistance(fraction)
         }
-        return interpolate(
+        return try interpolate(
             startFraction,
             endFraction,
             fraction: min(max(fraction, 0.0), 1.0)
-        )
+        , using: &execution)
     }
+
+
 
     private func normalizedFraction(
         _ parameter: Double,
         domain: ParameterDomain,
         tolerance: ModelingTolerance
-    ) throws -> Double {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
         guard case let .closed(lower, upper) = domain,
               parameter.isFinite,
               upper - lower > tolerance.relative else {
@@ -332,12 +430,16 @@ public struct CertifiedAnalyticImplicitSurfaceParameterCurve: Hashable, Sendable
         return (parameter - lower) / (upper - lower)
     }
 
+
+
     private func interpolate(
         _ lower: Double,
         _ upper: Double,
         fraction: Double
-    ) -> Double {
-        lower + (upper - lower) * fraction
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
+        return lower + (upper - lower) * fraction
     }
 
 #if !hasFeature(Embedded)
@@ -350,6 +452,7 @@ public struct CertifiedAnalyticImplicitSurfaceParameterCurve: Hashable, Sendable
 
 #if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
+        var execution = try NativeRationalSourceDecodingContext.validationExecution(from: decoder)
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
             [.intersection, .startFraction, .endFraction],
@@ -364,16 +467,17 @@ public struct CertifiedAnalyticImplicitSurfaceParameterCurve: Hashable, Sendable
             startFraction: container.decode(Double.self, forKey: .startFraction),
             endFraction: container.decode(Double.self, forKey: .endFraction),
             tolerance: intersection.implicitCurve.certificationTolerance
-        )
+        , using: &execution)
     }
 #endif
 
 #if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
+        var execution = try NativeOriginalSourceEncodingContext.execution(from: encoder)
         try validate(
             on: intersection.analyticSurface,
             tolerance: intersection.implicitCurve.certificationTolerance
-        )
+        , using: &execution)
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(intersection, forKey: .intersection)
         try container.encode(startFraction, forKey: .startFraction)

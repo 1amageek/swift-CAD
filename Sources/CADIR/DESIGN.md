@@ -128,6 +128,34 @@ flowchart LR
 
 ## Contracts and Invariants
 
+### Kernel Sampler and Subshape Validation Execution
+
+The product-resolution validation path also forwards one caller execution from
+`ProductAttributeTarget` through `StableSubshapeReference`,
+`SubshapeGeometrySignature`, and the existing body/shell/face/loop/coedge/curve-span
+signature validators. Each actual visit is admitted before validation and all
+Geometry calls use existing direct overloads. Original identity, nonempty
+collection, optional trim, endpoint, surface, and pcurve checks retain their
+original order and `GeometrySignatureValidation.tolerance`. Source validation
+does not replace exact signature equality or live topology resolution.
+
+`SurfaceParameterCurveSampler.sample(_:using:)` and
+`SubshapeIndex.validate(against:lineage:using:)` borrow the caller's existing
+`OriginalQueryExecution`. Their ordinary entries create one independent execution
+and delegate to those same bodies. They do not create an execution inside a
+recursive evaluation or reset a retained source allowance.
+
+| Owner | Preserved behavior | Direct admission |
+|---|---|---|
+| SurfaceParameterCurveSampler | Original knot breakpoints, midpoint subdivision, distance acceptance, append separation, depth and sample-count limits | Every curve parameter evaluation uses the caller execution; knot/recursive work, actual recursion depth, and typed output growth are charged before processing or allocation |
+| SubshapeIndex | Lineage check, duplicate reference rejection, live topology membership, then exact coverage of bodies/faces/edges/vertices | Entry scans, set publication, and final coverage comparison use the same work/storage/cancellation owner |
+
+The sampler remains a numerical containment proposal; its tolerance and samples
+do not establish original-source intersection or identity. Kernel containment and
+assembly callers consume these direct entries. Verification must exercise the
+original sampled values and structural rejection cases together with zero-work,
+storage/depth refusal, and cancellation against the same caller execution.
+
 ### Source-First Full-Requirement Composition
 
 The current implementation phase completes all original requirement source
@@ -564,6 +592,26 @@ machine and bounds peak growth near 1.7 GB through the measured ratio.
 assembly at 18.10 MB, with 7.4x byte headroom; it admits the torus at 6.25e-3
 and refuses it at 3.125e-3.
 
+### Operation Contract Dispatch Frame
+
+`DesignGraph.validateOperationContract` checks duplicate inputs and output roles
+before dispatching on the existing `FeatureOperation.kind` discriminator. Each
+operation payload is extracted only inside its private operation helper; the
+eight formerly inline payload branches use `@inline(never)` to retain that frame
+boundary. Original validation bodies, order, source laws and typed error messages
+are unchanged. The discriminator and helper read the same immutable feature
+value; a mismatched private dispatch fails explicitly rather than skipping a
+contract. Public validation APIs and resource ceilings are unchanged.
+
+The full-enum dispatcher reserved a measured 200,176-byte Native unoptimized
+frame even for an operation whose validation already lived in a helper. The
+existing tag-only dispatch contract avoids retaining every family payload in the
+caller frame; worker-side Drawing source validation must remain on its normal
+execution context. Verification compares every moved case body and unchanged
+case order, then checks the regenerated Native prologue and the actual
+[Document Drawing fixture](../../Tests/SwiftCADTests/DocumentDrawingCanonicalAdmissionTests.swift)
+on the normal worker. This change supplies no new feature-validation algorithm.
+
 ## Runtime Flows
 
 `CADKernel` constructs the signature from one immutable model, and this module
@@ -745,3 +793,29 @@ legacy convenience entry preserves the existing no-additional-source-ceiling
 contract of source fingerprint convenience APIs. Tessellation limits remain an
 independent mesh contract. Kernel's cache design owns traversal, sorting and
 semantic comparison; this relation does not redefine persistent source identity.
+
+## Canonical Geometry API Binding
+
+This delivery rebinds only existing callers forced by the canonical Geometry API
+cut. The [Geometry admission contract](../CADGeometry/OriginalQueryExecution/DESIGN.md)
+owns the exclusive execution and cumulative resource authority; numerical
+coefficient producers use `ExactScalarAdmission & ~Copyable`. Existing source,
+feature algorithms, local ceilings and independent source/algebra/subdivision
+axes remain authoritative. Ordinary query owners issue one execution and call
+the same implementation; retained values carry immutable policy or preparation,
+never a copied execution or callback ledger.
+
+```text
+existing IR / Modeling caller -> canonical original execution
+    -> unchanged source / numeric producer -> Geometry using witness
+```
+
+Removed admission adapters are replaced through their real owner and actual
+callee chain. Protocol operations invoked through existentials are requirements.
+This binding scope does not include independent Document, Mass, Stage or sewing
+feature changes, nor does it establish their runtime acceptance. Source readiness
+requires a per-file callee-edge inventory. Compilation of the isolated candidate
+and public G01 runtime acceptance remain separate integration gates.
+
+### Face Rebuild Request Validation Execution
+`FaceRebuildFeature` and its method validate through one caller-owned execution. The original request guards and `CADIRPersistenceValidation.tolerance` remain unchanged. Stable references and a given native surface use their existing direct validators; ordinary entry creates one owner and delegates. This request binding does not implement Square refitting or support replacement.

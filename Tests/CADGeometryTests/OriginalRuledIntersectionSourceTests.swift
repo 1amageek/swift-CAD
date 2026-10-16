@@ -5,21 +5,53 @@ import Testing
 @Suite("Original single-span Native ruled intersection source")
 struct OriginalRuledIntersectionSourceTests {
     private enum Failure: Error { case work, storage, unexpectedCell }
-    private struct Budget: RationalAlgebraAdmitting {
+    private struct Budget: ~Copyable, GeometryScalarTestAdmission {
+        var proofScopes = ExactScalarProofScopes()
         var work = 0, words = 0, storageCalls = 0
         var maximumWork = 10_000_000, maximumWords = 10_000_000
         var cancelAtStorageCall: Int?
-        mutating func consumeExactWork(_ count: Int) throws {
+        mutating func consumeWork(_ count: Int) throws(ExactScalarFailure) {
+            try checkpoint()
+            try proofScopes.checkWork(count)
+            do {
             guard count >= 0, count <= maximumWork - work else { throw Failure.work }
             work += count
+        
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            proofScopes.recordWork(count)
+            try checkpoint()
         }
-        mutating func retainExactStorage(_ count: Int) throws {
+        mutating func retainStorage(bytes: Int) throws(ExactScalarFailure) {
+            try checkpoint()
+            let count = try geometryTestStorageWords(bytes)
+            do {
             guard count >= 0, count <= maximumWords - words else { throw Failure.storage }
             words += count; storageCalls += 1
             if storageCalls == cancelAtStorageCall { withUnsafeCurrentTask { $0?.cancel() } }
+        
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            try checkpoint()
         }
-        mutating func visitExactCell(depth: Int) throws { throw Failure.unexpectedCell }
-        mutating func visitCoefficientCell(depth: Int) throws { throw Failure.unexpectedCell }
+        
+        
+            mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
+            try admitDepth(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+            let mapped = try proofScopes.mapped(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+            do {
+                switch (axis == .coefficient || proofScopes.exactDepthResource == .coefficientDepth) ? ExactScalarRootAxis.coefficient : .value {
+                case .value:
+                    let depth = mapped.value
+ throw Failure.unexpectedCell 
+                case .coefficient:
+                    let depth = mapped.coefficient
+ throw Failure.unexpectedCell 
+                }
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            try checkpoint()
+        }
     }
     private let tolerance = ModelingTolerance(distance: 1e-9, angle: 1e-10)
 
@@ -137,7 +169,7 @@ struct OriginalRuledIntersectionSourceTests {
         let raw = source()
         var invalid = BSplineCurve3D(degree: 1, knots: [2, 2, 5, 5],
             controlPoints: [.origin, .init(x: 1, y: 0, z: 0)], weights: [0, 1])
-        #expect(throws: GeometryError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is GeometryError }) {
             _ = try issue(.init(startBoundary: .bSpline(invalid), endBoundary: raw.endBoundary,
                 uDomain: raw.uDomain), usage: &usage)
         }
@@ -200,11 +232,9 @@ struct OriginalRuledIntersectionSourceTests {
                 [.init(x: 0, y: 2, z: 0), .init(x: 3, y: 2, z: 0)]])
         let domain = try box(7, 10, -2, 0)
         let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance,
-            consumeWork: { try usage.consumeExactWork(1) },
-            consumeStorage: { try RationalAlgebraStorage.retainBytes($0, usage: &usage) })
+            using: &usage)
         let spans = try prepared.originalIntersectionNativeSpans(over: domain, tolerance: tolerance,
-            consumeWork: { try usage.consumeExactWork(1) },
-            consumeStorage: { try RationalAlgebraStorage.retainBytes($0, usage: &usage) })
+            using: &usage)
         let native = try #require(spans.first)
         let law = try OriginalRationalSurfacePolynomial(source: surface, native: native,
             domain: domain, view: .unitZ, tolerance: tolerance, usage: &usage)
@@ -241,12 +271,12 @@ struct OriginalRuledIntersectionSourceTests {
         var exact = Budget(maximumWork: measured.work, maximumWords: measured.words)
         #expect(try issue(usage: &exact).homogeneous == receipt.homogeneous)
         var shortWork = Budget(maximumWork: measured.work - 1)
-        #expect(throws: Failure.self) { _ = try issue(usage: &shortWork) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is Failure }) { _ = try issue(usage: &shortWork) }
         var shortWords = Budget(maximumWords: measured.words - 1)
-        #expect(throws: Failure.self) { _ = try issue(usage: &shortWords) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is Failure }) { _ = try issue(usage: &shortWords) }
         let before = measured.work
         measured.maximumWork = before
-        #expect(throws: Failure.self) { _ = try issue(usage: &measured) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is Failure }) { _ = try issue(usage: &measured) }
         #expect(measured.work == before)
     }
 
@@ -262,14 +292,14 @@ struct OriginalRuledIntersectionSourceTests {
         var exact = Budget(maximumWork: measured.work, maximumWords: measured.words)
         #expect(try ruled.curveRelation(curve: curve, curveDomain: domain, usage: &exact).relation.variableCount == 3)
         var shortWork = Budget(maximumWork: measured.work - 1)
-        #expect(throws: Failure.self) { _ = try ruled.curveRelation(curve: curve, curveDomain: domain, usage: &shortWork) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is Failure }) { _ = try ruled.curveRelation(curve: curve, curveDomain: domain, usage: &shortWork) }
         var shortWords = Budget(maximumWords: measured.words - 1)
-        #expect(throws: Failure.self) { _ = try ruled.curveRelation(curve: curve, curveDomain: domain, usage: &shortWords) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is Failure }) { _ = try ruled.curveRelation(curve: curve, curveDomain: domain, usage: &shortWords) }
         let finalCall = measured.storageCalls
         let cancelled = try await Task {
             var usage = Budget(cancelAtStorageCall: finalCall)
             do { _ = try ruled.curveRelation(curve: curve, curveDomain: domain, usage: &usage); return false }
-            catch is CancellationError { return true }
+            catch let error where geometryTestIsCancelled(error) { return true }
         }.value
         #expect(cancelled)
     }
@@ -283,7 +313,7 @@ struct OriginalRuledIntersectionSourceTests {
                 if entry { withUnsafeCurrentTask { $0?.cancel() } }
                 var usage = Budget(cancelAtStorageCall: entry ? nil : finalCall)
                 do { _ = try issue(usage: &usage); return false }
-                catch is CancellationError { return true }
+                catch let error where geometryTestIsCancelled(error) { return true }
             }.value
             #expect(cancelled)
         }
@@ -291,7 +321,6 @@ struct OriginalRuledIntersectionSourceTests {
 
     private func expectCode(_ code: KernelErrorCode, _ operation: () throws -> Void) {
         do { try operation(); Issue.record("Original ruled source unexpectedly succeeded.") }
-        catch let error as KernelError { #expect(error.code == code) }
-        catch { Issue.record("Original ruled source returned the wrong failure: \(error)") }
+        catch { #expect(OriginalQueryFailure.classification(of: error)?.code == code) }
     }
 }

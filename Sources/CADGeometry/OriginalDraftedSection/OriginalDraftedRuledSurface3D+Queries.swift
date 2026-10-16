@@ -1,14 +1,20 @@
 import CADCore
 
 extension OriginalDraftedRuledSurface3D {
-    package func intervalJet(over box:SurfaceParameterBox,tolerance:ModelingTolerance) throws -> SurfaceIntervalVectorJet {
-        try intervalJet(over:box,tolerance:tolerance,maximumSpanCount:maximumSpanCount,maximumSubdivisionDepth:maximumSubdivisionDepth,remainingSourceDepth:remainingSourceDepth,consumeWork:{ try CurrentTaskCancellationChecker().checkCancellation() })
+    package func intervalJet(over box:SurfaceParameterBox,tolerance:ModelingTolerance, using execution:inout OriginalQueryExecution) throws -> SurfaceIntervalVectorJet {
+        try intervalJet(over:box,tolerance:tolerance,maximumSpanCount:maximumSpanCount,maximumSubdivisionDepth:maximumSubdivisionDepth,remainingSourceDepth:remainingSourceDepth,using:&execution)
     }
     public func parameterDerivatives(u: Double, v: Double, tolerance: ModelingTolerance)
         throws -> SurfaceParameterDerivatives {
+        var execution = try independentExecution()
+        return try parameterDerivatives(u: u, v: v, tolerance: tolerance, using: &execution)
+    }
+
+    public func parameterDerivatives(u: Double, v: Double, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution)
+        throws -> SurfaceParameterDerivatives {
         let q = try intervalTaylorJet(over:.init(u:.init(lower:u,upper:u),v:.init(lower:v,upper:v)),
             throughOrder:2,tolerance:tolerance,maximumSpanCount:maximumSpanCount,
-            maximumSubdivisionDepth:maximumSubdivisionDepth,remainingSourceDepth:remainingSourceDepth,consumeWork:{ try CurrentTaskCancellationChecker().checkCancellation() })
+            maximumSubdivisionDepth:maximumSubdivisionDepth,remainingSourceDepth:remainingSourceDepth,using:&execution)
         func vector(_ uOrder:Int,_ vOrder:Int,_ scale:Double) throws -> Vector3D {
             .init(x:try q.x.coefficient(uOrder,vOrder).midpoint*scale,
                 y:try q.y.coefficient(uOrder,vOrder).midpoint*scale,
@@ -20,7 +26,13 @@ extension OriginalDraftedRuledSurface3D {
     }
     public func parameterDerivativesThroughThirdOrder(u: Double, v: Double,
         tolerance: ModelingTolerance) throws -> SurfaceParameterThirdOrderDerivatives {
-        let q = try intervalJet(over: .init(u: .init(lower: u, upper: u), v: .init(lower: v, upper: v)), tolerance: tolerance)
+        var execution = try independentExecution()
+        return try parameterDerivativesThroughThirdOrder(u: u, v: v, tolerance: tolerance, using: &execution)
+    }
+
+    public func parameterDerivativesThroughThirdOrder(u: Double, v: Double,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> SurfaceParameterThirdOrderDerivatives {
+        let q = try intervalJet(over: .init(u: .init(lower: u, upper: u), v: .init(lower: v, upper: v)), tolerance: tolerance, using:&execution)
         func vector(_ field: (SurfaceIntervalJet) -> OutwardScalarInterval) -> Vector3D {
             .init(x: field(q.x).midpoint, y: field(q.y).midpoint, z: field(q.z).midpoint)
         }
@@ -33,17 +45,23 @@ extension OriginalDraftedRuledSurface3D {
     }
     func taylorJet(u: Double, v: Double, throughOrder order: Int,
         tolerance: ModelingTolerance) throws -> SurfaceTaylorVectorJet {
+        var execution = try independentExecution()
+        return try taylorJet(u: u, v: v, throughOrder: order, tolerance: tolerance, using: &execution)
+    }
+
+    func taylorJet(u: Double, v: Double, throughOrder order: Int,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> SurfaceTaylorVectorJet {
         guard (0...16).contains(order) else {
             throw GeometryConversionError.invalidInput("Original draft numeric facade retains Taylor order zero through sixteen.")
         }
         let original = try intervalTaylorJet(over: .init(u: .init(lower: u, upper: u), v: .init(lower: v, upper: v)),
             throughOrder: order, tolerance: tolerance, maximumSpanCount: maximumSpanCount,
-            maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth, consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
+            maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth, using:&execution)
         func candidate(_ q: SurfaceAreaIntervalTaylorScalarJet) throws -> SurfaceTaylorScalarJet {
-            var result = try SurfaceTaylorScalarJet(order: order)
+            var result = try SurfaceTaylorScalarJet(order: order, using: &execution)
             for total in 0...order { for a in 0...total {
-                try CurrentTaskCancellationChecker().checkCancellation()
-                try result.setCoefficient(q.coefficient(a, total-a).midpoint, uOrder: a, vOrder: total-a)
+                try execution.consumeWork(1)
+                try result.setCoefficient(q.coefficient(a, total-a).midpoint, uOrder: a, vOrder: total-a, using: &execution)
             } }; return result
         }
         return try .init(x: candidate(original.x), y: candidate(original.y), z: candidate(original.z))

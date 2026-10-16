@@ -382,3 +382,12 @@ Verification owner: Tests/OriginalAffinePairedIdentityVerification, including wh
 boundary laws with unequal germs, independent map permutations/gains, exact strict/
 disconnected/empty scopes, false/foreign action receipts, source/scalar/resource/
 cancellation/lifetime and existing single-cover regression on four fixed lanes.
+
+
+### Direct law-bound boundary observation
+
+`declaredBoundary` uses one lexical scalar proof scope on the caller admission.
+Native source laws, exact substitutions, denominator guards and cross-product
+identities execute directly through that same admission. The returned identity
+retains the actual attained child depth together with its original declaration;
+no copied admission or private work/depth ledger supplies evidence.

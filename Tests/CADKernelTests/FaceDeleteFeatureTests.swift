@@ -80,11 +80,11 @@ struct FaceDeleteFeatureTests {
             $0.key.featureID == deleteFeatureID && $0.value == .body(sourceBodyID)
         })
         let sourceBody = try #require(opening.brep.bodies[sourceBodyID])
-        let boundary = try #require(OpenBoundaryLoopResolver().loops(
+        let boundary = try #require(try OpenBoundaryLoopResolver().loops(
             in: sourceBody,
             model: opening.brep
         ).first { $0.traversals.count == 4 })
-        #expect(OpenBoundaryLoopResolver().isFillableSurfaceBoundary(
+        #expect(try OpenBoundaryLoopResolver().isFillableSurfaceBoundary(
             boundary,
             in: sourceBody,
             model: opening.brep
@@ -181,11 +181,11 @@ struct FaceDeleteFeatureTests {
         )
         let opening = try evaluator.evaluate(document)
         let openingBody = try #require(opening.brep.bodies.values.first)
-        let loop = try #require(OpenBoundaryLoopResolver().loops(
+        let loop = try #require(try OpenBoundaryLoopResolver().loops(
             in: openingBody,
             model: opening.brep
         ).first { $0.traversals.count == 4 })
-        #expect(OpenBoundaryLoopResolver().isFillableSurfaceBoundary(
+        #expect(try OpenBoundaryLoopResolver().isFillableSurfaceBoundary(
             loop,
             in: openingBody,
             model: opening.brep

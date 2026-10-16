@@ -1,0 +1,125 @@
+{
+  "scope": "Current frame-fixed Native G01 and causal caller repairs only; upper caller runtimes and portable verification are separate gates.",
+  "files": {
+    "native-receipt.json": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-public-frame-fixed-native-20261016-r1/receipt.json",
+      "sha256": "4d765b87f16ea838ed19a1cff40b644ddbda41bcec9da2ab008ad2d745525261"
+    },
+    "upper-production-receipt.json": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-native-upper-findings-fixed-20261016-r1/receipt.json",
+      "sha256": "8c6f6206ea18b7a1cadd477f9939710aa55f4586c34d1cf8c4748be537c6a1aa"
+    },
+    "validation-source-freeze.json": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-source-validation-stack-20261016/source-freeze.json",
+      "sha256": "64c2f97bf0201f057c6a95481e30945d4d710f5c87cc389c3feb6ac0761023e4"
+    },
+    "validation-frame-prologue-verification.json": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-source-validation-stack-20261016/frame-prologue-verification.json",
+      "sha256": "27126831b5af998a1869ffa092e86fb2bc1ae4034ae1c626ed68d3bef7847fbf"
+    },
+    "known-native-uv-source-freeze.json": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-known-native-uv-sampling-20261016/source-freeze.json",
+      "sha256": "4b400c425eac8d1aea137c107d2581a85848d0121af1754251190caa2f69f17b"
+    },
+    "validation-finding-delta.patch": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-source-validation-stack-20261016/root-finding-delta.patch",
+      "sha256": "fbf615100f394a3b8b05159108433f279f237f165efa553a38ba9e83e3cc0d23"
+    },
+    "known-native-uv-depth-rejection.json": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-face-rebuild-depth33-debug-20261016-r3/depth-rejection.json",
+      "sha256": "b9195f622e67b7fb4db360b7411f970e16f8ebb5401c23e16166b29c7c564165"
+    },
+    "native/compiler-version.log": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-public-frame-fixed-native-20261016-r1/compiler-version.log",
+      "sha256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c"
+    },
+    "native/fixture-compile-link.log": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-public-frame-fixed-native-20261016-r1/fixture-compile-link.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "native/runtime-admitted.log": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-public-frame-fixed-native-20261016-r1/runtime-admitted.log",
+      "sha256": "7fa68276fb18765ddadfce8e58f636cf57e248a32d7e2fc436b645f42e3fe095"
+    },
+    "native/runtime-full.log": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-public-frame-fixed-native-20261016-r1/runtime-full.log",
+      "sha256": "e4fbc0f2609afcdd8fc87b6776638758676ba0a0f7c03976798d86f935daa6b6"
+    },
+    "native/runtime-ordinary.log": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-public-frame-fixed-native-20261016-r1/runtime-ordinary.log",
+      "sha256": "7c59dd7c23672804650692152121f621016159fd84f8921e632488434153fc2b"
+    },
+    "native/runtime-prepared.log": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-public-frame-fixed-native-20261016-r1/runtime-prepared.log",
+      "sha256": "00cd7915cb0d14999298238c95733d4e062a4c02fb6913e5c62c00f7b277f795"
+    },
+    "native/runtime-readers.log": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-public-frame-fixed-native-20261016-r1/runtime-readers.log",
+      "sha256": "7061157b4225c3d88d03351aaf39a4fdbf707b445f666a02255f670ae2b858fa"
+    },
+    "native/runtime-resources.log": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-public-frame-fixed-native-20261016-r1/runtime-resources.log",
+      "sha256": "9d95120b75371fdf0d5bc873df811bdc7726530fb2ab0c62201753f38edcfb5b"
+    },
+    "kernel-focused-receipt.json": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-known-native-uv-focused-native-20261016-r1/receipt.json",
+      "sha256": "a9e5c5b0f221cb762903fa4a57fd8bda5ef38477d50a99ce50d51295d5171193"
+    },
+    "kernel-focused-runtime.log": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-known-native-uv-focused-native-20261016-r1/test-runtime.log",
+      "sha256": "d8aca488afd3f38530bbbf8b2dcf2bec2dfe41b260a4e21fc1bfd3923a8d7f09"
+    },
+    "kernel-focused-results.xml": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-known-native-uv-focused-native-20261016-r1/results.xml",
+      "sha256": "27c31a2fa21c5a6092a9c0004b0f41f9624ed69edf186deb4c65eb8996f92cce"
+    },
+    "modeling-eight-receipt.json": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-candidate-modeling-findings-final-native-20261016-r12/receipt.json",
+      "sha256": "179ef547bd16ca91fc4ce007c2a917971486a44dafeb08358886caf71f3a86de"
+    },
+    "modeling-eight-runtime.log": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-candidate-modeling-findings-final-native-20261016-r12/test-runtime.log",
+      "sha256": "589a669fac3a7cb61554c2a77419bd9ceecb699f31d7f2c04040c408c6f922bc"
+    },
+    "modeling-eight-results.xml": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-candidate-modeling-findings-final-native-20261016-r12/results.xml",
+      "sha256": "3448db2a7cf8f6d1f5d56660ce04c76deac45f44f7e3f9fd3be275e568e90a09"
+    },
+    "modeling-matrix-receipt.json": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-candidate-modeling-matrix-final-native-20261016-r13/receipt.json",
+      "sha256": "e3b0fe1243f29d5c70e47c32d8f41473a5ab592902d93ad1bccf357ba009b552"
+    },
+    "modeling-matrix-runtime.log": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-candidate-modeling-matrix-final-native-20261016-r13/test-runtime.log",
+      "sha256": "fd36689fbb5a268dcdaada6aab03318efe959e6c40e0aff1bfe392504cfc584e"
+    },
+    "modeling-matrix-results.xml": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-candidate-modeling-matrix-final-native-20261016-r13/results.xml",
+      "sha256": "df0b5d6ba0ccc002794b12d1c0891b78f9777f01fd7b6a713c3a37d029f45699"
+    },
+    "exchange-eleven-receipt.json": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-candidate-exchange-tests-native-20261016-r3/receipt.json",
+      "sha256": "5b75b0ba459c3cb7f9b710000cb1e8f847c71c179c18cc6614450c26cbf00eec"
+    },
+    "exchange-eleven-runtime.log": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-candidate-exchange-tests-native-20261016-r3/test-runtime.log",
+      "sha256": "e6d77ea7b201139146083a3d90d7b861e23644b7bcbfa2d11273ea3eff5032b6"
+    },
+    "exchange-eleven-results.xml": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-candidate-exchange-tests-native-20261016-r3/results.xml",
+      "sha256": "fb657330798d67b146246a69efcb3202ce9f3c31ca4eb78e86004e5b0a62de96"
+    },
+    "exchange-findings-receipt.json": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-candidate-exchange-focused-findings-native-20261016-r1/receipt.json",
+      "sha256": "e4375e8fabf2554f1d4c14cc7eb604127df558ca089df5e60f7888e13d5bc08e"
+    },
+    "exchange-findings-runtime.log": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-candidate-exchange-focused-findings-native-20261016-r1/test-runtime.log",
+      "sha256": "1c11960aa98cc32c9370d68dc98f2d49c4f8ebb490adc57ffb6a8903d63f02e7"
+    },
+    "exchange-findings-results.xml": {
+      "original": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-candidate-exchange-focused-findings-native-20261016-r1/results.xml",
+      "sha256": "0823f3920eb40b53d4ae30701ce1b3d6ec8454dac4325b9ae9cd12872c17d26f"
+    }
+  }
+}

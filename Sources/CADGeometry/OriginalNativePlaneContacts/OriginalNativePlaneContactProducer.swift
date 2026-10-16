@@ -19,7 +19,7 @@ package struct OriginalNativePlaneContactProducer {
         init(polynomial: ExactBivariatePolynomial) { self.polynomial = polynomial }
     }
 
-    private static func samePosition<B: RationalAlgebraAdmitting>(
+    private static func samePosition<B: ExactScalarAdmission & ~Copyable>(
         _ a: OriginalRationalCurvePolynomial, _ b: OriginalRationalCurvePolynomial,
         at station: ExactRationalCoefficient, usage: inout B) throws -> Bool {
         let aw = try a.homogeneous[3].evaluated(atU: station, v: .zero, usage: &usage)
@@ -59,7 +59,7 @@ package struct OriginalNativePlaneContactProducer {
             self.uDenominator = uDenominator; self.vDenominator = vDenominator
         }
 
-        package func planeParameterBounds<B: RationalAlgebraAdmitting>(maximumParameterWidth: Double,
+        package func planeParameterBounds<B: ExactScalarAdmission & ~Copyable>(maximumParameterWidth: Double,
             maximumAlgebraicDepth: Int, usage: inout B) throws -> SurfaceParameterBox {
             let parameter = try boundary.refinedIsolation(maximumWidth: maximumParameterWidth,
                 maximumSubdivisionDepth: maximumAlgebraicDepth, usage: &usage)
@@ -79,12 +79,12 @@ package struct OriginalNativePlaneContactProducer {
                 v: quotient(vNumerator, vDenominator, usage: &usage))
         }
 
-        package func liesIn<B: RationalAlgebraAdmitting>(_ box: SurfaceParameterBox,
+        package func liesIn<B: ExactScalarAdmission & ~Copyable>(_ box: SurfaceParameterBox,
             maximumAlgebraicDepth: Int, usage: inout B) throws -> Bool {
             try liesIn(uRange: box.u, vRange: box.v, maximumAlgebraicDepth: maximumAlgebraicDepth, usage: &usage)
         }
 
-        package func liesIn<B: RationalAlgebraAdmitting>(uRange: ScalarInterval?, vRange: ScalarInterval?,
+        package func liesIn<B: ExactScalarAdmission & ~Copyable>(uRange: ScalarInterval?, vRange: ScalarInterval?,
             maximumAlgebraicDepth: Int, usage: inout B) throws -> Bool {
             for axis in 0..<2 {
                 guard let interval = axis == 0 ? uRange : vRange else { continue }
@@ -102,38 +102,36 @@ package struct OriginalNativePlaneContactProducer {
             return true
         }
 
-        package func nativeKnotStation(invocation: CurveSurfaceQueryInvocation) throws -> Double? {
-            var usage = Usage(invocation: invocation, algebraDepth: invocation.maximumAlgebraicDepth ?? 32)
+        package func nativeKnotStation(using usage: inout OriginalQueryExecution) throws -> Double? {
             for side in 0..<2 {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 let station = owner.payload.curve.knots[boundary.spanIndex + side]
                 let equation = try ExactBivariatePolynomial.coordinate(alongU: true, usage: &usage)
                     .subtracting(.constant(.originalDouble(station, usage: &usage), usage: &usage), usage: &usage)
                 if case .zero = try boundary.sign(of: equation,
-                    maximumSubdivisionDepth: usage.algebraDepth, usage: &usage) { return station }
+                    maximumSubdivisionDepth: usage.effectiveLimits.maximumValueDepth, usage: &usage) { return station }
             }
             return nil
         }
 
         /// The original native multiplicity admission owns C0; sided jets own kind.
         package func mergingNativeKnotEvent(_ next: Isolated,
-            invocation: CurveSurfaceQueryInvocation) throws -> Isolated? {
-            try invocation.consumeFixedWork()
+            using usage: inout OriginalQueryExecution) throws -> Isolated? {
+            try usage.consumeWork(1)
             guard owner === next.owner, boundary.spanIndex != next.boundary.spanIndex,
-                let station = try nativeKnotStation(invocation: invocation),
-                let nextStation = try next.nativeKnotStation(invocation: invocation),
+                let station = try nativeKnotStation(using: &usage),
+                let nextStation = try next.nativeKnotStation(using: &usage),
                 station == nextStation else { return nil }
-            var usage = Usage(invocation: invocation, algebraDepth: invocation.maximumAlgebraicDepth ?? 32)
             let t = try ExactRationalCoefficient.originalDouble(station, usage: &usage)
             guard try OriginalNativePlaneContactProducer.samePosition(originalLaw, next.originalLaw,
                 at: t, usage: &usage) else { return nil }
-            func tangent(_ law: OriginalRationalCurvePolynomial, usage: inout Usage) throws
+            func tangent(_ law: OriginalRationalCurvePolynomial, usage: inout OriginalQueryExecution) throws
                 -> (x: ExactRationalCoefficient, y: ExactRationalCoefficient, z: ExactRationalCoefficient) {
                 let w = try law.homogeneous[3].evaluated(atU: t, v: .zero, usage: &usage)
                 let dw = try law.homogeneous[3].differentiated(alongU: true, usage: &usage)
                     .evaluated(atU: t, v: .zero, usage: &usage)
                 let denominator = try w.multiplied(by: w, usage: &usage)
-                func axis(_ index: Int, usage: inout Usage) throws -> ExactRationalCoefficient {
+                func axis(_ index: Int, usage: inout OriginalQueryExecution) throws -> ExactRationalCoefficient {
                     let x = try law.homogeneous[index].evaluated(atU: t, v: .zero, usage: &usage)
                     let dx = try law.homogeneous[index].differentiated(alongU: true, usage: &usage)
                         .evaluated(atU: t, v: .zero, usage: &usage)
@@ -197,29 +195,27 @@ package struct OriginalNativePlaneContactProducer {
             fileprivate let cutOwner: CutOwner?
 
             package func hasEndpoint(_ isolated: Isolated,
-                invocation: CurveSurfaceQueryInvocation) throws -> Bool {
-                try invocation.consumeFixedWork()
+                using usage: inout OriginalQueryExecution) throws -> Bool {
+                try usage.consumeWork(1)
                 guard contact.owner === isolated.owner else { return false }
                 if contact.spanIndex == isolated.boundary.spanIndex,
                     let cutOwner, let isolatedOwner = isolated.clipOwner,
                     cutOwner === isolatedOwner, let event = isolated.clipEvent {
                     return startEvent == event || endEvent == event
                 }
-                var usage = Usage(invocation: invocation,
-                    algebraDepth: invocation.maximumAlgebraicDepth ?? 32)
                 func equals(_ endpoint: OriginalCurveRootEndpoint,
-                    station: Double, usage: inout Usage) throws -> Bool {
+                    station: Double, usage: inout OriginalQueryExecution) throws -> Bool {
                     switch endpoint {
-                    case .authored(let authored): try usage.consumeExactWork(1); return authored == station
+                    case .authored(let authored): try usage.consumeWork(1); return authored == station
                     case .algebraic(let boundary):
                         let equation = try ExactBivariatePolynomial.coordinate(alongU: true, usage: &usage)
                             .subtracting(.constant(.originalDouble(station, usage: &usage), usage: &usage), usage: &usage)
                         if case .zero = try boundary.sign(of: equation,
-                            maximumSubdivisionDepth: usage.algebraDepth, usage: &usage) { return true }
+                            maximumSubdivisionDepth: usage.effectiveLimits.maximumValueDepth, usage: &usage) { return true }
                         return false
                     }
                 }
-                if let station = try isolated.nativeKnotStation(invocation: invocation) {
+                if let station = try isolated.nativeKnotStation(using: &usage) {
                     return try equals(start, station: station, usage: &usage)
                         || equals(end, station: station, usage: &usage)
                 }
@@ -229,13 +225,13 @@ package struct OriginalNativePlaneContactProducer {
                     let equation = try ExactBivariatePolynomial.coordinate(alongU: true, usage: &usage)
                         .subtracting(.constant(.originalDouble(station, usage: &usage), usage: &usage), usage: &usage)
                     if case .zero = try isolated.boundary.sign(of: equation,
-                        maximumSubdivisionDepth: usage.algebraDepth, usage: &usage) { return true }
+                        maximumSubdivisionDepth: usage.effectiveLimits.maximumValueDepth, usage: &usage) { return true }
                 }
                 return false
             }
 
-            package func joins(_ next: Sector, invocation: CurveSurfaceQueryInvocation) throws -> Bool {
-                try invocation.consumeFixedWork()
+            package func joins(_ next: Sector, using usage: inout OriginalQueryExecution) throws -> Bool {
+                try usage.consumeWork(1)
                 guard contact.owner === next.contact.owner else { return false }
                 if contact.spanIndex == next.contact.spanIndex {
                     if let cutOwner, let nextOwner = next.cutOwner, cutOwner === nextOwner,
@@ -248,18 +244,16 @@ package struct OriginalNativePlaneContactProducer {
                 guard contact.spanIndex < next.contact.spanIndex else { return false }
                 let source = contact.owner.payload.curve
                 let knot = source.knots[contact.spanIndex + 1]
-                try invocation.consumeFixedWork()
+                try usage.consumeWork(1)
                 guard knot == source.knots[next.contact.spanIndex] else { return false }
-                var usage = Usage(invocation: invocation,
-                    algebraDepth: invocation.maximumAlgebraicDepth ?? 32)
-                func equalsKnot(_ endpoint: OriginalCurveRootEndpoint, usage: inout Usage) throws -> Bool {
+                func equalsKnot(_ endpoint: OriginalCurveRootEndpoint, usage: inout OriginalQueryExecution) throws -> Bool {
                     switch endpoint {
-                    case .authored(let station): try usage.consumeExactWork(1); return station == knot
+                    case .authored(let station): try usage.consumeWork(1); return station == knot
                     case .algebraic(let boundary):
                         let equation = try ExactBivariatePolynomial.coordinate(alongU: true, usage: &usage)
                             .subtracting(.constant(.originalDouble(knot, usage: &usage), usage: &usage), usage: &usage)
                         if case .zero = try boundary.sign(of: equation,
-                            maximumSubdivisionDepth: usage.algebraDepth, usage: &usage) { return true }
+                            maximumSubdivisionDepth: usage.effectiveLimits.maximumValueDepth, usage: &usage) { return true }
                         return false
                     }
                 }
@@ -269,23 +263,20 @@ package struct OriginalNativePlaneContactProducer {
             }
 
             package func prepared(maximumParameterWidth: Double,
-                invocation: CurveSurfaceQueryInvocation) throws -> PreparedSector {
-                var usage = Usage(invocation: invocation,
-                    algebraDepth: invocation.maximumAlgebraicDepth ?? 32)
+                using usage: inout OriginalQueryExecution) throws -> PreparedSector {
                 let traversal = try OriginalCurveRootSpan3D(
                     retainingPreparedNativeSource: contact.owner.payload.prepared,
                     start: start, end: end,
                     maximumParameterWidth: maximumParameterWidth,
-                    maximumSubdivisionDepth: invocation.maximumSubdivisionDepth,
+                    maximumSubdivisionDepth: usage.effectiveLimits.maximumSubdivisionDepth,
                     tolerance: contact.tolerance, usage: &usage,
-                    maximumSpanCount: invocation.maximumSpanCount,
-                    remainingSourceDepth: invocation.remainingSourceDepth,
-                    consumeStorage: invocation.consumeStorage,
-                    maximumAlgebraicDepth: invocation.maximumAlgebraicDepth ?? 32)
+                    maximumSpanCount: usage.effectiveLimits.maximumSpans,
+                    remainingSourceDepth: usage.effectiveLimits.remainingSourceDepth,
+                    maximumAlgebraicDepth: usage.effectiveLimits.maximumValueDepth)
                 try RationalAlgebraStorage.retain(1, of: PreparedSector.self, usage: &usage)
                 try RationalAlgebraStorage.retain(1, of: Overlap.self, usage: &usage)
                 return .init(traversal: traversal, contact: contact, pieces: [contact],
-                    maximumAlgebraicDepth: invocation.maximumAlgebraicDepth ?? 32)
+                    maximumAlgebraicDepth: usage.effectiveLimits.maximumValueDepth)
             }
         }
 
@@ -297,17 +288,16 @@ package struct OriginalNativePlaneContactProducer {
             fileprivate let maximumAlgebraicDepth: Int
 
             package static func joining(_ sectors: [Sector], maximumParameterWidth: Double,
-                invocation: CurveSurfaceQueryInvocation) throws -> Self {
+                using usage: inout OriginalQueryExecution) throws -> Self {
                 guard let first = sectors.first, let last = sectors.last else {
                     throw GeometryConversionError.invalidInput("Original plane component requires positive sectors.")
                 }
-                if sectors.count == 1 { return try first.prepared(maximumParameterWidth: maximumParameterWidth, invocation: invocation) }
-                var usage = Usage(invocation: invocation, algebraDepth: invocation.maximumAlgebraicDepth ?? 32)
+                if sectors.count == 1 { return try first.prepared(maximumParameterWidth: maximumParameterWidth, using: &usage) }
                 try RationalAlgebraStorage.retain(sectors.count, of: Overlap.self, usage: &usage)
                 var pieces: [Overlap] = []; pieces.reserveCapacity(sectors.count)
                 for index in sectors.indices {
-                    try usage.consumeExactWork(1)
-                    if index > 0, try !sectors[index - 1].joins(sectors[index], invocation: invocation) {
+                    try usage.consumeWork(1)
+                    if index > 0, try !sectors[index - 1].joins(sectors[index], using: &usage) {
                         throw GeometryConversionError.invalidInput("Original plane component has no exact adjacent native source authority.")
                     }
                     pieces.append(sectors[index].contact)
@@ -316,18 +306,17 @@ package struct OriginalNativePlaneContactProducer {
                     retainingPreparedNativeSource: first.contact.owner.payload.prepared,
                     start: first.start, end: last.end,
                     maximumParameterWidth: maximumParameterWidth,
-                    maximumSubdivisionDepth: invocation.maximumSubdivisionDepth,
+                    maximumSubdivisionDepth: usage.effectiveLimits.maximumSubdivisionDepth,
                     tolerance: first.contact.tolerance, usage: &usage,
-                    maximumSpanCount: invocation.maximumSpanCount,
-                    remainingSourceDepth: invocation.remainingSourceDepth,
-                    consumeStorage: invocation.consumeStorage,
-                    maximumAlgebraicDepth: invocation.maximumAlgebraicDepth ?? 32)
+                    maximumSpanCount: usage.effectiveLimits.maximumSpans,
+                    remainingSourceDepth: usage.effectiveLimits.remainingSourceDepth,
+                    maximumAlgebraicDepth: usage.effectiveLimits.maximumValueDepth)
                 try RationalAlgebraStorage.retain(1, of: Self.self, usage: &usage)
                 return .init(traversal: traversal, contact: first.contact, pieces: pieces,
-                    maximumAlgebraicDepth: invocation.maximumAlgebraicDepth ?? 32)
+                    maximumAlgebraicDepth: usage.effectiveLimits.maximumValueDepth)
             }
 
-            package func bounds<B: RationalAlgebraAdmitting>(over normalized: ScalarInterval,
+            package func bounds<B: ExactScalarAdmission & ~Copyable>(over normalized: ScalarInterval,
                 maximumParameterWidth: Double, maximumAlgebraicDepth: Int,
                 usage: inout B) throws -> (position: IntervalVector3DBounds,
                     planeUV: SurfaceParameterBox, sourceParameter: ScalarInterval) {
@@ -373,7 +362,7 @@ package struct OriginalNativePlaneContactProducer {
                 }
                 var position: IntervalVector3DBounds?, u: OutwardScalarInterval?, v: OutwardScalarInterval?
                 for piece in pieces {
-                    try usage.consumeExactWork(1)
+                    try usage.consumeWork(1)
                     let law = piece.originalLaw
                     let lo = try lower.subtracting(law.lowerParameter, usage: &usage).isNegative ? law.lowerParameter : lower
                     let hi = try upper.subtracting(law.upperParameter, usage: &usage).isPositive ? law.upperParameter : upper
@@ -403,16 +392,15 @@ package struct OriginalNativePlaneContactProducer {
 
         /// Uses all exact rectangle boundary roots, never sampled curve absence.
         package func clipped(to box: SurfaceParameterBox,
-            invocation: CurveSurfaceQueryInvocation) throws -> ClipResult {
-            try clipped(uRange: box.u, vRange: box.v, invocation: invocation)
+            using usage: inout OriginalQueryExecution) throws -> ClipResult {
+            try clipped(uRange: box.u, vRange: box.v, using: &usage)
         }
 
         package func clipped(uRange: ScalarInterval?, vRange: ScalarInterval?,
-            invocation: CurveSurfaceQueryInvocation) throws -> ClipResult {
-            let depth = invocation.maximumAlgebraicDepth ?? 32
-            var usage = Usage(invocation: invocation, algebraDepth: depth)
-            try usage.visitExactCell(depth: 0)
-            func wholeSector(usage: inout Usage) throws -> Sector {
+            using usage: inout OriginalQueryExecution) throws -> ClipResult {
+            let depth = usage.effectiveLimits.maximumValueDepth
+            try usage.visitCell(axis: .value, depth: 0)
+            func wholeSector(usage: inout OriginalQueryExecution) throws -> Sector {
                 try RationalAlgebraStorage.retain(1, of: Sector.self, usage: &usage)
                 return .init(start: .authored(interval.lower), end: .authored(interval.upper), contact: self,
                     startEvent: nil, endEvent: nil, cutOwner: nil)
@@ -438,7 +426,7 @@ package struct OriginalNativePlaneContactProducer {
             }
             let lower = try ExactRationalCoefficient.originalDouble(interval.lower, usage: &usage)
             let upper = try ExactRationalCoefficient.originalDouble(interval.upper, usage: &usage)
-            func inside(_ station: ExactRationalCoefficient, usage: inout Usage) throws -> Bool {
+            func inside(_ station: ExactRationalCoefficient, usage: inout OriginalQueryExecution) throws -> Bool {
                 for inequality in inequalities {
                     if try inequality.evaluated(atU: station, v: .zero, usage: &usage).isNegative { return false }
                 }
@@ -467,7 +455,7 @@ package struct OriginalNativePlaneContactProducer {
                     if delta.isNegative || (delta.isZero && !upperDelta.isPositive) { break }
                     index -= 1
                 }
-                try usage.consumeExactWork(ordered.count - index)
+                try usage.consumeWork(ordered.count - index)
                 ordered.insert(root, at: index)
             }
             var positive = false
@@ -492,7 +480,7 @@ package struct OriginalNativePlaneContactProducer {
                     root = try root.refined(maximumWidth: width, maximumDepth: depth, usage: &usage)
                 }
                 let boundary = try OriginalCurveRootBoundary.retaining(prepared: originalLaw,
-                    coordinate: root, maximumSubdivisionDepth: invocation.maximumSubdivisionDepth,
+                    coordinate: root, maximumSubdivisionDepth: usage.effectiveLimits.maximumSubdivisionDepth,
                     tolerance: tolerance, usage: &usage, maximumAlgebraicDepth: depth)
                 if try root.isolation.lower.subtracting(cursor, usage: &usage).isPositive {
                     let witness = try cursor.adding(root.isolation.lower, usage: &usage).divided(by: two, usage: &usage)
@@ -543,24 +531,6 @@ package struct OriginalNativePlaneContactProducer {
         package let overlaps: [Overlap]
     }
 
-    private struct Usage: RationalAlgebraAdmitting {
-        let invocation: CurveSurfaceQueryInvocation
-        let algebraDepth: Int
-        mutating func visitExactCell(depth: Int) throws {
-            guard depth >= 0, depth <= algebraDepth else {
-                throw GeometryConversionError.resourceLimitExceeded("Original plane-contact algebra exhausted its independent caller depth.")
-            }
-            try invocation.consumeFixedWork()
-        }
-        mutating func consumeExactWork(_ count: Int) throws {
-            guard count >= 0 else { throw GeometryConversionError.invalidInput("Original plane-contact work is negative.") }
-            for _ in 0..<count { try invocation.consumeFixedWork() }
-        }
-        mutating func retainExactStorage(_ count: Int) throws {
-            try invocation.reserve(count: count, stride: MemoryLayout<UInt32>.stride)
-        }
-    }
-
     // FIXME(INCOMPLETE_IMPLEMENTATION): This original producer supplies complete
     // base-native/authored-U-plane isolated and positive-interval incidence to
     // the public curve-surface dispatcher, including retained positive segments.
@@ -568,14 +538,12 @@ package struct OriginalNativePlaneContactProducer {
     // original publication producers before the full G4 domain is complete.
     package func contacts(source: BSplineCurve3D, over interval: ScalarInterval,
         plane: Plane3D, tolerance: ModelingTolerance,
-        invocation: CurveSurfaceQueryInvocation) throws -> Result {
-        let algebraDepth = invocation.maximumAlgebraicDepth ?? 32
-        var usage = Usage(invocation: invocation, algebraDepth: algebraDepth)
+        using usage: inout OriginalQueryExecution) throws -> Result {
+        let algebraDepth = usage.effectiveLimits.maximumValueDepth
         let prepared = try PreparedCurveDifferentialEncloser(curve: .bSpline(source), tolerance: tolerance,
-            remainingSourceDepth: invocation.remainingSourceDepth,
-            maximumSubdivisionDepth: invocation.maximumSubdivisionDepth,
-            consumeWork: { try invocation.consumeFixedWork() },
-            consumeStorage: invocation.consumeStorage, maximumAlgebraicDepth: algebraDepth)
+            remainingSourceDepth: usage.effectiveLimits.remainingSourceDepth,
+            maximumSubdivisionDepth: usage.effectiveLimits.maximumSubdivisionDepth,
+            maximumAlgebraicDepth: algebraDepth, using: &usage)
         try plane.validate(tolerance: tolerance)
         try RationalAlgebraStorage.retain(1, of: SourcePayload.self, usage: &usage)
         let owner = SourceOwner(curve: source, plane: plane, prepared: prepared)
@@ -585,13 +553,13 @@ package struct OriginalNativePlaneContactProducer {
             interval.upper <= source.knots[source.controlPoints.count] else {
             throw GeometryConversionError.invalidInput("Original plane contacts require an authored-U plane and an increasing base-native trim.")
         }
-        func originalVector(_ v: Vector3D, usage: inout Usage) throws -> [ExactRationalCoefficient] {
+        func originalVector(_ v: Vector3D, usage: inout OriginalQueryExecution) throws -> [ExactRationalCoefficient] {
             try RationalAlgebraStorage.retain(3, of: ExactRationalCoefficient.self, usage: &usage)
             return try [.originalDouble(v.x, usage: &usage), .originalDouble(v.y, usage: &usage),
                 .originalDouble(v.z, usage: &usage)]
         }
         func cross(_ a: [ExactRationalCoefficient], _ b: [ExactRationalCoefficient],
-            usage: inout Usage) throws -> [ExactRationalCoefficient] {
+            usage: inout OriginalQueryExecution) throws -> [ExactRationalCoefficient] {
             try RationalAlgebraStorage.retain(3, of: ExactRationalCoefficient.self, usage: &usage)
             var result: [ExactRationalCoefficient] = []; result.reserveCapacity(3)
             for axis in 0..<3 {
@@ -601,7 +569,7 @@ package struct OriginalNativePlaneContactProducer {
             }
             return result
         }
-        func squared(_ a: [ExactRationalCoefficient], usage: inout Usage) throws -> ExactRationalCoefficient {
+        func squared(_ a: [ExactRationalCoefficient], usage: inout OriginalQueryExecution) throws -> ExactRationalCoefficient {
             var result = ExactRationalCoefficient.zero
             for q in a { result = try result.adding(q.multiplied(by: q, usage: &usage), usage: &usage) }
             return result
@@ -617,12 +585,12 @@ package struct OriginalNativePlaneContactProducer {
         var isolated: [Isolated] = [], overlaps: [Overlap] = []
         var spans = 0
         for index in source.degree..<source.controlPoints.count {
-            try invocation.consumeFixedWork()
+            try usage.consumeWork(1)
             let lower = max(interval.lower, source.knots[index])
             let upper = min(interval.upper, source.knots[index + 1])
             guard source.knots[index] < source.knots[index + 1], lower < upper else { continue }
             spans += 1
-            guard spans <= invocation.maximumSpanCount else {
+            guard spans <= usage.effectiveLimits.maximumSpans else {
                 throw GeometryConversionError.resourceLimitExceeded("Original plane contacts exhausted owning native spans.")
             }
             let law = try OriginalRationalCurvePolynomial(source: source,
@@ -656,7 +624,7 @@ package struct OriginalNativePlaneContactProducer {
             for isolation in roots {
                 let coordinate = try ExactAlgebraicRealRoot(polynomial: h, isolation: isolation, usage: &usage)
                 let boundary = try OriginalCurveRootBoundary.retaining(prepared: law,
-                    coordinate: coordinate, maximumSubdivisionDepth: invocation.maximumSubdivisionDepth,
+                    coordinate: coordinate, maximumSubdivisionDepth: usage.effectiveLimits.maximumSubdivisionDepth,
                     tolerance: tolerance, usage: &usage, maximumAlgebraicDepth: algebraDepth)
                 let kind: CurveSurfaceIntersectionKind
                 if case .zero = try boundary.sign(of: derivative,
@@ -673,10 +641,10 @@ package struct OriginalNativePlaneContactProducer {
         var compacted: [Isolated] = []; compacted.reserveCapacity(isolated.count)
         var nativeEvents: [Double: Int] = [:]; nativeEvents.reserveCapacity(isolated.count)
         for contact in isolated {
-            try usage.consumeExactWork(1)
-            if let station = try contact.nativeKnotStation(invocation: invocation) {
+            try usage.consumeWork(1)
+            if let station = try contact.nativeKnotStation(using: &usage) {
                 if let index = nativeEvents[station],
-                    let combined = try compacted[index].mergingNativeKnotEvent(contact, invocation: invocation) {
+                    let combined = try compacted[index].mergingNativeKnotEvent(contact, using: &usage) {
                     compacted[index] = combined
                     continue
                 }

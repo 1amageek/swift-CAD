@@ -14,9 +14,9 @@ enum NativeOriginalAffineWordCodec {
             throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable
         }
         try OriginalAffineWordDecodingContext.validateSourceNesting(from: decoder)
-        let usage = try NativeRationalSourceDecodingContext.allowance(from: decoder)
+        var usage = try NativeRationalSourceDecodingContext.execution(from: decoder)
         let object = try decoder.container(keyedBy: Key.self)
-        try usage.consumeExactWork(object.allKeys.count)
+        try usage.consumeWork(object.allKeys.count)
         guard object.allKeys.allSatisfy({ allowed.contains($0.stringValue) }) else {
             throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath,
                 debugDescription: "Unknown original affine source field."))

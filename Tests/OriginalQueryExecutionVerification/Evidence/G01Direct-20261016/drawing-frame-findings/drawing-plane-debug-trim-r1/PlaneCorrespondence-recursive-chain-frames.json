@@ -1,0 +1,193 @@
+{
+  "binarySHA256": "8911a27cc7402f7f2a1c064a23dab86c16d640b2ed63b7fc8d4bdaf0312d648c",
+  "runtimeLogSHA256": "f60e6cfa534ae4c30e7f89085bba9e38fccc9fd6c81909c1b03e4277495ed880",
+  "loadSlide": "0x10fe68000",
+  "frames": [
+    {
+      "ordinal": 0,
+      "frame": "SurfaceParameterCurve.validate(on:tolerance:using:) + 44",
+      "symbol": "_$s11CADGeometry21SurfaceParameterCurveO8validate2on9tolerance5usingyAA9Surface3DO_7CADCore17ModelingToleranceVAA22OriginalQueryExecutionVztKF",
+      "address": "0x5a6b04",
+      "offset": 44,
+      "entryFrameBytes": 33536
+    },
+    {
+      "ordinal": 1,
+      "frame": "closure #3 in SurfaceParameterCurve.validateOriginalSource(on:tolerance:remainingSourceDepth:maximumSubdivisionDepth:maximumAlgebraicDepth:atSourceDepth:using:) + 1092",
+      "symbol": "_$s11CADGeometry21SurfaceParameterCurveO22validateOriginalSource2on9tolerance09remainingG5Depth018maximumSubdivisionK00l9AlgebraicK002atgK05usingyAA9Surface3DO_7CADCore17ModelingToleranceVS3iSgSiAA0F14QueryExecutionVztKFyASzKXEfU1_",
+      "address": "0x13c3e04",
+      "offset": 1092,
+      "entryFrameBytes": 88704
+    },
+    {
+      "ordinal": 2,
+      "frame": "partial apply for closure #3 in SurfaceParameterCurve.validateOriginalSource(on:tolerance:remainingSourceDepth:maximumSubdivisionDepth:maximumAlgebraicDepth:atSourceDepth:using:) + 60",
+      "symbol": "_$s11CADGeometry21SurfaceParameterCurveO22validateOriginalSource2on9tolerance09remainingG5Depth018maximumSubdivisionK00l9AlgebraicK002atgK05usingyAA9Surface3DO_7CADCore17ModelingToleranceVS3iSgSiAA0F14QueryExecutionVztKFyASzKXEfU1_TA",
+      "address": "0x2052e44",
+      "offset": 60,
+      "entryFrameBytes": 32
+    },
+    {
+      "ordinal": 3,
+      "frame": "ExactScalarAdmission<>.withProofScope(original:inherited:maximum:valueAxis:maximumWorkUnits:_:) + 564",
+      "symbol": "_$s11CADGeometry20ExactScalarAdmissionPAARi_zrlE14withProofScope8original9inherited7maximum9valueAxis0J9WorkUnits_qd__AA0bC5DepthVSg_A2lA0bc4RootL0OSiSgqd__xzKXEtKlF",
+      "address": "0x561794",
+      "offset": 564,
+      "entryFrameBytes": 672
+    },
+    {
+      "ordinal": 4,
+      "frame": "SurfaceParameterCurve.validateOriginalSource(on:tolerance:remainingSourceDepth:maximumSubdivisionDepth:maximumAlgebraicDepth:atSourceDepth:using:) + 796",
+      "symbol": "_$s11CADGeometry21SurfaceParameterCurveO22validateOriginalSource2on9tolerance09remainingG5Depth018maximumSubdivisionK00l9AlgebraicK002atgK05usingyAA9Surface3DO_7CADCore17ModelingToleranceVS3iSgSiAA0F14QueryExecutionVztKF",
+      "address": "0xad9da4",
+      "offset": 796,
+      "entryFrameBytes": 2048
+    },
+    {
+      "ordinal": 5,
+      "frame": "static OriginalBoundedCurveSurfaceCorrespondence.deviationBound(curve:from:to:surface:parameterCurve:options:tolerance:maximumSpanCount:maximumSubdivisionDepth:remainingSourceDepth:maximumAlgebraicDepth:using:) + 1308",
+      "symbol": "_$s11CADGeometry41OriginalBoundedCurveSurfaceCorrespondenceV14deviationBound5curve4from2to7surface09parameterD07options9tolerance16maximumSpanCount0P16SubdivisionDepth015remainingSourceT00p9AlgebraicT05usingSdAA7Curve3DO_S2dAA9Surface3DOAA0e9ParameterD0OAA0deF17ValidationOptionsV7CADCore17ModelingToleranceVS4iSgAA0B14QueryExecutionVztKFZ",
+      "address": "0xada1c8",
+      "offset": 1308,
+      "entryFrameBytes": 128016
+    },
+    {
+      "ordinal": 6,
+      "frame": "static OriginalBoundedCurveSurfaceCorrespondence.deviationBound(curve:from:to:surface:parameterCurve:options:tolerance:maximumSpanCount:maximumSubdivisionDepth:remainingSourceDepth:maximumAlgebraicDepth:using:) + 5556",
+      "symbol": "_$s11CADGeometry41OriginalBoundedCurveSurfaceCorrespondenceV14deviationBound5curve4from2to7surface09parameterD07options9tolerance16maximumSpanCount0P16SubdivisionDepth015remainingSourceT00p9AlgebraicT05usingSdAA7Curve3DO_S2dAA9Surface3DOAA0e9ParameterD0OAA0deF17ValidationOptionsV7CADCore17ModelingToleranceVS4iSgAA0B14QueryExecutionVztKFZ",
+      "address": "0xada1c8",
+      "offset": 5556,
+      "entryFrameBytes": 128016
+    },
+    {
+      "ordinal": 7,
+      "frame": "DefaultCurveSurfaceCorrespondenceValidator.validate(curve:from:to:surface:parameterCurve:options:tolerance:maximumSpanCount:maximumSubdivisionDepth:remainingSourceDepth:maximumAlgebraicDepth:using:) + 220",
+      "symbol": "_$s11CADGeometry42DefaultCurveSurfaceCorrespondenceValidatorV8validate5curve4from2to7surface09parameterC07options9tolerance16maximumSpanCount0O16SubdivisionDepth015remainingSourceS00o9AlgebraicS05usingyAA7Curve3DO_S2dAA9Surface3DOAA0d9ParameterC0OAA0cdE17ValidationOptionsV7CADCore17ModelingToleranceVS4iSgAA22OriginalQueryExecutionVztKF",
+      "address": "0xb03184",
+      "offset": 220,
+      "entryFrameBytes": 240
+    },
+    {
+      "ordinal": 8,
+      "frame": "OriginalBRepValidationInvocation.validate(_:on:curve:edge:orientedEdge:faceID:edgeID:startPoint:endPoint:tolerance:using:) + 2268",
+      "symbol": "_$s11CADTopology32OriginalBRepValidationInvocationV8validate33_9C0CABE9E922F8062A5B256D99FB769FLL_2on5curve4edge12orientedEdge6faceID0qU010startPoint03endW09tolerance5usingy11CADGeometry21SurfaceParameterCurveO_AP9Surface3DOAP7Curve3DOAA0S0VAA6CoedgeV7CADCore06TaggedU0VyA_7FaceTagOGA1_yA_0S3TagOGA_7Point3DVA9_A_17ModelingToleranceVAP0B14QueryExecutionVztKF",
+      "address": "0x335ffb4",
+      "offset": 2268,
+      "entryFrameBytes": 10608
+    },
+    {
+      "ordinal": 9,
+      "frame": "OriginalBRepValidationInvocation.validate(loop:liesOn:faceID:tolerance:using:) + 2676",
+      "symbol": "_$s11CADTopology32OriginalBRepValidationInvocationV8validate33_9C0CABE9E922F8062A5B256D99FB769FLL4loop6liesOn6faceID9tolerance5usingyAA4LoopV_11CADGeometry9Surface3DO7CADCore06TaggedS0VyAP7FaceTagOGAP17ModelingToleranceVAM0B14QueryExecutionVztKF",
+      "address": "0x33598bc",
+      "offset": 2676,
+      "entryFrameBytes": 19472
+    },
+    {
+      "ordinal": 10,
+      "frame": "OriginalBRepValidationInvocation.validate(tolerance:using:) + 8472",
+      "symbol": "_$s11CADTopology32OriginalBRepValidationInvocationV8validate9tolerance5usingy7CADCore17ModelingToleranceV_11CADGeometry0B14QueryExecutionVztKF",
+      "address": "0x3174770",
+      "offset": 8472,
+      "entryFrameBytes": 15584
+    },
+    {
+      "ordinal": 11,
+      "frame": "OriginalBRepValidationInvocation.validate(level:tolerance:using:) + 108",
+      "symbol": "_$s11CADTopology32OriginalBRepValidationInvocationV8validate5level9tolerance5usingyAA0cD5LevelO_7CADCore17ModelingToleranceV11CADGeometry0B14QueryExecutionVztKF",
+      "address": "0x317beb4",
+      "offset": 108,
+      "entryFrameBytes": 320
+    },
+    {
+      "ordinal": 12,
+      "frame": "ValidatedBRepModel.init(_:tolerance:validationLevel:maximumSubdivisionDepth:remainingSourceDepth:maximumAlgebraicDepth:using:) + 576",
+      "symbol": "_$s11CADTopology18ValidatedBRepModelV_9tolerance15validationLevel23maximumSubdivisionDepth015remainingSourceJ00h9AlgebraicJ05usingAcA0cD0V_7CADCore17ModelingToleranceVAA0c10ValidationG0OS3iSg11CADGeometry22OriginalQueryExecutionVztKcfC",
+      "address": "0x332427c",
+      "offset": 576,
+      "entryFrameBytes": 2000
+    },
+    {
+      "ordinal": 13,
+      "frame": "BRepDrawingSilhouetteProducer.extract(_:in:placement:onto:maximumSourceFaces:maximumProjectedSpans:maximumControlPointCount:maximumBoundaryCurveCount:using:) + 1488",
+      "symbol": "_$s9CADKernel29BRepDrawingSilhouetteProducerV7extract33_45515EBCE735E3D06E49191B278BE829LL_2in9placement4onto18maximumSourceFaces0P14ProjectedSpans0P17ControlPointCount0p13BoundaryCurveW05usingAA0bC11SilhouettesV11CADTopology0B5ModelV_AA17EvaluatedDocumentVAA0bC9PlacementVSg11CADGeometry27OrthographicProjectionFrameVS4iAX22OriginalQueryExecutionVztKF",
+      "address": "0x4c6a6c4",
+      "offset": 1488,
+      "entryFrameBytes": 74464
+    },
+    {
+      "ordinal": 14,
+      "frame": "BRepDrawingSilhouetteProducer.silhouettes(_:in:onto:maximumSourceEntities:maximumSourceFaces:maximumProjectedSpans:maximumControlPointCount:maximumBoundaryCurveCount:using:) + 1528",
+      "symbol": "_$s9CADKernel29BRepDrawingSilhouetteProducerV11silhouettes_2in4onto21maximumSourceEntities0iJ5Faces0I14ProjectedSpans0I17ControlPointCount0i13BoundaryCurveQ05usingAA0bC11SilhouettesVAA0bC9PlacementV_AA17EvaluatedDocumentV11CADGeometry27OrthographicProjectionFrameVS5iAS22OriginalQueryExecutionVztKF",
+      "address": "0x4c711a4",
+      "offset": 1528,
+      "entryFrameBytes": 9712
+    },
+    {
+      "ordinal": 15,
+      "frame": "protocol witness for BRepDrawingSilhouetteProducing.silhouettes(_:in:onto:maximumSourceEntities:maximumSourceFaces:maximumProjectedSpans:maximumControlPointCount:maximumBoundaryCurveCount:using:) in conformance BRepDrawingSilhouetteProducer + 40",
+      "symbol": "_$s9CADKernel29BRepDrawingSilhouetteProducerVAA0bcD9ProducingA2aDP11silhouettes_2in4onto21maximumSourceEntities0jK5Faces0J14ProjectedSpans0J17ControlPointCount0j13BoundaryCurveR05usingAA0bC11SilhouettesVAA0bC9PlacementV_AA17EvaluatedDocumentV11CADGeometry27OrthographicProjectionFrameVS5iAU22OriginalQueryExecutionVztKFTW",
+      "address": "0x4c7d824",
+      "offset": 40,
+      "entryFrameBytes": 1216
+    },
+    {
+      "ordinal": 16,
+      "frame": "DocumentDrawingSilhouetteProducer.silhouettes(_:document:currentEvaluation:onto:maximumSourceEntities:maximumSourceFaces:maximumProjectedSpans:maximumControlPointCount:maximumBoundaryCurveCount:using:) + 420",
+      "symbol": "_$s8SwiftCAD33DocumentDrawingSilhouetteProducerV11silhouettes_8document17currentEvaluation4onto21maximumSourceEntities0lM5Faces0L14ProjectedSpans0L17ControlPointCount0l13BoundaryCurveT05using9CADKernel04BRepD11SilhouettesVAN0yD9PlacementV_5CADIR11CADDocumentVAN09EvaluatedC0V11CADGeometry27OrthographicProjectionFrameVS5iAX22OriginalQueryExecutionVztKF",
+      "address": "0x62345e8",
+      "offset": 420,
+      "entryFrameBytes": 4688
+    },
+    {
+      "ordinal": 17,
+      "frame": "protocol witness for DocumentDrawingSilhouetteProducing.silhouettes(_:document:currentEvaluation:onto:maximumSourceEntities:maximumSourceFaces:maximumProjectedSpans:maximumControlPointCount:maximumBoundaryCurveCount:using:) in conformance DocumentDrawingSilhouetteProducer + 48",
+      "symbol": "_$s8SwiftCAD33DocumentDrawingSilhouetteProducerVAA0cdE9ProducingA2aDP11silhouettes_8document17currentEvaluation4onto21maximumSourceEntities0mN5Faces0M14ProjectedSpans0M17ControlPointCount0m13BoundaryCurveU05using9CADKernel04BRepD11SilhouettesVAP0zD9PlacementV_5CADIR11CADDocumentVAP09EvaluatedC0V11CADGeometry27OrthographicProjectionFrameVS5iAZ22OriginalQueryExecutionVztKFTW",
+      "address": "0x6234c1c",
+      "offset": 48,
+      "entryFrameBytes": 1232
+    },
+    {
+      "ordinal": 18,
+      "frame": "DocumentDrawingCanonicalAdmissionTests.placedSilhouettes(silhouettes=SwiftCAD.DocumentDrawingSilhouetteProducer @ 0x000000768d108710, placement=CADKernel.BRepDrawingPlacement @ 0x000000016d7a69d0, source=FocusedTests.DocumentDrawingCanonicalAdmissionTests.Source @ 0x0000000102d75d20, curved=false, execution=CADGeometry.OriginalQueryExecution @ 0x0000000102d76f38) at DocumentDrawingCanonicalAdmissionTests.swift:129:38",
+      "symbol": "_$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V17placedSilhouettes33_9F58DFE84BC2AA973B67A16FE6063CCDLL_9placement6source6curved5using9CADKernel04BRepdH0V8SwiftCAD0cD19SilhouetteProducing_p_AJ0vD9PlacementVAC6SourceAELLVSb11CADGeometry22OriginalQueryExecutionVztKF",
+      "address": "0x893c",
+      "offset": 388,
+      "entryFrameBytes": 8912
+    },
+    {
+      "ordinal": 19,
+      "frame": "DocumentDrawingCanonicalAdmissionTests.query(source=FocusedTests.DocumentDrawingCanonicalAdmissionTests.Source @ 0x0000000102d75d20, curved=false, execution=CADGeometry.OriginalQueryExecution @ 0x0000000102d76f38) at DocumentDrawingCanonicalAdmissionTests.swift:86:26",
+      "symbol": "_$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V5query33_9F58DFE84BC2AA973B67A16FE6063CCDLL_6curved5using9CADKernel04BRepD17ProjectedContactsVAC6SourceAELLV_Sb11CADGeometry22OriginalQueryExecutionVztKF",
+      "address": "0x62a8",
+      "offset": 3924,
+      "entryFrameBytes": 9328
+    },
+    {
+      "ordinal": 20,
+      "frame": "DocumentDrawingCanonicalAdmissionTests.planarWholeExclusionUsesTheRealDrawingWitnesses() at DocumentDrawingCanonicalAdmissionTests.swift:242:17",
+      "symbol": "_$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V031planarWholeExclusionUsesTheRealD9WitnessesyyYaKFTY2_",
+      "address": "0x10e14",
+      "offset": 308,
+      "entryFrameBytes": 656
+    },
+    {
+      "ordinal": 21,
+      "frame": "static DocumentDrawingCanonicalAdmissionTests.$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V031planarWholeExclusionUsesTheRealD9Witnesses4TestfMp_17Z81eeaf2d173f9dc3fMu_@Sendable () at @__swiftmacro_12FocusedTests033DocumentDrawingCanonicalAdmissionB0V031planarWholeExclusionUsesTheRealD9Witnesses4TestfMp_.swift:4:220",
+      "symbol": "_$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V04$s12a8Tests033cdeF80B0V031planarWholeExclusionUsesTheRealD9Witnesses4TestfMp_17Z81eeaf2d173f9dc3fMu_33_9F58DFE84BC2AA973B67A16FE6063CCDLLyyYaYbKFZTQ3_",
+      "address": "0x109c0",
+      "offset": 20,
+      "entryFrameBytes": 48
+    },
+    {
+      "ordinal": 22,
+      "frame": "implicit closure #1 in static DocumentDrawingCanonicalAdmissionTests.$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V031planarWholeExclusionUsesTheRealD9Witnesses4TestfMp_25generator81eeaf2d173f9dc3fMu_@Sendable ($base$=FocusedTests.DocumentDrawingCanonicalAdmissionTests) at @__swiftmacro_12FocusedTests033DocumentDrawingCanonicalAdmissionB0V031planarWholeExclusionUsesTheRealD9Witnesses4TestfMp_.swift:0",
+      "symbol": "_$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V04$s12a8Tests033cdeF88B0V031planarWholeExclusionUsesTheRealD9Witnesses4TestfMp_25generator81eeaf2d173f9dc3fMu_33_9F58DFE84BC2AA973B67A16FE6063CCDLL7Testing4TestVyYaYbFZyyYaYbKcfu_TQ0_",
+      "address": "0x11a08",
+      "offset": 20,
+      "entryFrameBytes": 48
+    }
+  ],
+  "sumKnownEntryFrameBytes": 539552,
+  "accounting": "Includes preindexed str/stp/sub; both captured recursive correspondence frames counted; external Testing frames excluded."
+}

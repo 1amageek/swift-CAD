@@ -8,7 +8,7 @@ import CADTopology
 struct NaturalRectangularSheetResizer {
     let builder: NaturalSheetExtensionBuilder
 
-    init(builder: NaturalSheetExtensionBuilder = NaturalSheetExtensionBuilder()) {
+    init(builder: NaturalSheetExtensionBuilder) {
         self.builder = builder
     }
     private enum Side: Int, CaseIterable { case vLower, uUpper, vUpper, uLower }
@@ -16,7 +16,7 @@ struct NaturalRectangularSheetResizer {
     func patches(
         selections: [(edgeID: EdgeID, faceID: FaceID, coedge: Coedge)],
         scope: BodyTopologyScope, distance: Double, outward: Bool = false, context: EvaluationContext
-    ) throws -> [BRepSewingFacePatch]? {
+    , using execution: inout OriginalQueryExecution) throws -> [BRepSewingFacePatch]? {
         guard !selections.isEmpty else { return nil }
         let model = context.brep
         let tolerance = context.tolerance
@@ -27,12 +27,12 @@ struct NaturalRectangularSheetResizer {
             guard let face = model.faces[faceID],
                   let surface = model.geometry.surfaces[face.surfaceID],
                   let domain = try ExactRectangularPcurveDomainResolver().resolve(
-                    face: face, model: model, tolerance: tolerance) else { return nil }
+                    face: face, model: model, tolerance: tolerance, using: &execution) else { return nil }
             if outward, case .bSpline = surface { return nil }
             var intervals: [Side: [(Double, Double)]] = [:]
             for selection in grouped[faceID] ?? [] {
                 guard let pcurve = selection.coedge.surfaceParameterCurve,
-                      let (side, lower, upper) = try interval(pcurve, on: surface, domain: domain, tolerance: tolerance) else { return nil }
+                      let (side, lower, upper) = try interval(pcurve, on: surface, domain: domain, tolerance: tolerance, using: &execution) else { return nil }
                 intervals[side, default: []].append((lower, upper))
             }
             var uLower = domain.uLower, uUpper = domain.uUpper
@@ -60,7 +60,7 @@ struct NaturalRectangularSheetResizer {
                     : (isLower ? domain.vLower : domain.vUpper)
                 let reach = try builder.parameterReach(on: surface,
                     variesU: variesU, fixedAcross: acrossLower + (acrossUpper - acrossLower) * 0.5,
-                    from: origin, sign: (isLower ? 1.0 : -1.0) * (outward ? -1.0 : 1.0), distance: distance, tolerance: tolerance)
+                    from: origin, sign: (isLower ? 1.0 : -1.0) * (outward ? -1.0 : 1.0), distance: distance, tolerance: tolerance, using: &execution)
                 switch side {
                 case .uLower: uLower = reach
                 case .uUpper: uUpper = reach
@@ -78,7 +78,7 @@ struct NaturalRectangularSheetResizer {
                     message: "Sheet resizing reverses or consumes the original rectangular face.")
             }
             let stableID = "sheet-resize:face:\(faceID)"
-            let faceParents = context.subshapeIDs(for: .face(faceID))
+            let faceParents = try context.subshapeIDs(for: .face(faceID), using: &execution)
             let sides: [SurfaceParameterCurve] = [
                 .constantV(v: vLower, uStart: uLower, uEnd: uUpper),
                 .constantU(u: uUpper, vStart: vLower, vEnd: vUpper),
@@ -92,22 +92,22 @@ struct NaturalRectangularSheetResizer {
                 }
                 for coedge in loop.coedges {
                     guard let pcurve = coedge.surfaceParameterCurve,
-                          let (side, _, _) = try interval(pcurve, on: surface, domain: domain, tolerance: tolerance) else { return nil }
-                    parents[side, default: []] += context.subshapeIDs(for: .edge(coedge.edgeID))
+                          let (side, _, _) = try interval(pcurve, on: surface, domain: domain, tolerance: tolerance, using: &execution) else { return nil }
+                    parents[side, default: []] += try context.subshapeIDs(for: .edge(coedge.edgeID), using: &execution)
                 }
             }
             let edges = try sides.enumerated().map { ordinal, pcurve in
                 try BRepFaceCurveClipper.edge(pcurve, on: surface,
                     stableID: "\(stableID):edge:\(ordinal)",
                     parentSubshapeIDs: faceParents + (parents[Side.allCases[ordinal]] ?? []),
-                    tolerance: tolerance)
+                    tolerance: tolerance, using: &execution)
             }
             let forward = BRepSewingFacePatch(stableID: stableID, surface: surface,
                 orientation: .forward,
                 loops: [BRepSewingLoop(stableID: "\(stableID):outer", role: .outer, edges: edges)],
                 parentSubshapeIDs: faceParents)
             replacements[faceID] = try BRepSewingPatchOrientationAdapter().reorient(
-                forward, to: face.orientation, tolerance: tolerance)
+                forward, to: face.orientation, tolerance: tolerance, using: &execution)
         }
         let faceIDs = scope.references.compactMap { reference -> FaceID? in
             if case let .face(id) = reference { return id }
@@ -117,18 +117,16 @@ struct NaturalRectangularSheetResizer {
             if let patch = replacements[faceID] { return patch }
             return try SourceBRepFacePatchBuilder().build(faceID: faceID,
                 stableID: "sheet-resize:retained:\(faceID)", from: model,
-                sourceSubshapes: context.subshapes.entries, tolerance: tolerance).patch
+                sourceSubshapes: context.subshapes.entries, tolerance: tolerance, using: &execution).patch
         }
     }
 
     private func interval(_ curve: SurfaceParameterCurve, on surface: Surface3D,
-        domain: ExactRectangularPcurveDomain, tolerance: ModelingTolerance)
+        domain: ExactRectangularPcurveDomain, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution)
         throws -> (Side, Double, Double)? {
         guard let endpoints = try ExactRectangularPcurveDomainResolver().axisAlignedEndpoints(
             of: curve, on: surface,
-            consumeWork: builder.invocation.map { invocation in
-                { @Sendable depth in try invocation.consume(depth) }
-            }, tolerance: tolerance) else { return nil }
+            remainingSourceDepth: builder.limits.remainingSourceDepth ?? 16, tolerance: tolerance, using: &execution) else { return nil }
         let start = endpoints.start, end = endpoints.end
         if start.u == end.u, start.v != end.v {
             let lower = min(start.v, end.v), upper = max(start.v, end.v)

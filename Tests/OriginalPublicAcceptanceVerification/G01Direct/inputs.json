@@ -1,0 +1,48 @@
+{
+  "fixture": "Tests/OriginalPublicAcceptanceVerification/G01Direct/G01DirectAcceptance.swift",
+  "fixtureSHA256": "b07fcbdea7ac9715979461facf282fe3c2e9ec7006d1529bd15293be8077d6c5",
+  "requiredHelpers": [],
+  "imports": [
+    "CADCore",
+    "CADGeometry",
+    "Synchronization"
+  ],
+  "defaultGroup": "all",
+  "groups": [
+    "ordinary",
+    "admitted",
+    "prepared",
+    "readers",
+    "resources",
+    "full",
+    "all"
+  ],
+  "expectedOutput": [
+    "PASS G01 public ordinary",
+    "PASS G01 public admitted",
+    "PASS G01 public prepared",
+    "PASS G01 public readers",
+    "PASS G01 public resources",
+    "PASS G01 public full",
+    "PASS G01 public all"
+  ],
+  "productionGenerationRequired": true,
+  "reuseProhibited": "Old r5 Geometry modules and isolated factory products cannot establish this public path",
+  "compilerLimitSeconds": 1200,
+  "runtimeLimitSeconds": 120,
+  "aggregateRSSLimitBytes": 10737418240,
+  "maximumCompilerProcesses": 1,
+  "runtimeGroupsByLane": {
+    "asan": [
+      "ordinary",
+      "admitted",
+      "prepared",
+      "readers",
+      "resources",
+      "full"
+    ],
+    "embedded": [
+      "all"
+    ]
+  }
+}

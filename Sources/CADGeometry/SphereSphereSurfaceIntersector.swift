@@ -14,6 +14,39 @@ import CADCore
 struct SphereSphereSurfaceIntersector {
     private let verifier = SurfaceSurfaceIntersectionVerifier()
 
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Ordinary SSI dispatch reaches this direct entry.
+    // The former numerical/tolerance branches did not establish original common-set
+    // authority. U4 must supply complete original source/UV coverage before success.
+    func intersections(
+        first: CanonicalAnalyticSurface.Sphere,
+        second: CanonicalAnalyticSurface.Sphere,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution
+    ) throws -> [SurfaceSurfaceIntersection] {
+        execution.context = execution.context.at(stage: .relation)
+        do {
+            try execution.checkpoint()
+            try execution.consumeWork(1)
+            if case .analytic = firstSurface, case .analytic = secondSurface,
+                firstSurface == secondSurface {
+                try firstSurface.validateOriginalSource(tolerance: tolerance,
+                    remainingSourceDepth: execution.limits.remainingSourceDepth,
+                    maximumSubdivisionDepth: execution.limits.maximumSubdivisionDepth, using: &execution)
+                try execution.retainStorage(bytes: MemoryLayout<SurfaceSurfaceIntersection>.stride)
+                let result: [SurfaceSurfaceIntersection] = [.coincident(try .init(residual: 0, tolerance: tolerance))]
+                try execution.checkpoint()
+                return result
+            }
+            throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+                message: "SphereSphereSurfaceIntersector requires complete original source relation authority.")
+        } catch { throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance) }
+    }
+
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Existing candidate/source helper methods call
+    // this ordinary publication entry. It performs no numeric solve or fallback;
+    // U4 must provide source-bound relation proof and direct execution before success.
     func intersections(
         first: CanonicalAnalyticSurface.Sphere,
         second: CanonicalAnalyticSurface.Sphere,
@@ -21,49 +54,8 @@ struct SphereSphereSurfaceIntersector {
         secondSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws -> [SurfaceSurfaceIntersection] {
-        let centerOffset = second.center - first.center
-        let centerDistance = centerOffset.length
-        if centerDistance <= tolerance.distance {
-            let radiusResidual = abs(first.radius - second.radius)
-            guard radiusResidual <= tolerance.distance else { return [] }
-            return [.coincident(try SurfaceSurfaceCoincidence(
-                residual: max(centerDistance, radiusResidual),
-                tolerance: tolerance
-            ))]
-        }
-        guard centerDistance <= first.radius + second.radius + tolerance.distance,
-              centerDistance + min(first.radius, second.radius)
-                >= max(first.radius, second.radius) - tolerance.distance else {
-            return []
-        }
-
-        let direction = try centerOffset.normalized(tolerance: tolerance.distance)
-        let axialDistance = (
-            centerDistance * centerDistance
-                + first.radius * first.radius
-                - second.radius * second.radius
-        ) / (2.0 * centerDistance)
-        let center = first.center + direction * axialDistance
-        let squaredRadius = max(0.0, first.radius * first.radius - axialDistance * axialDistance)
-        if squaredRadius <= tolerance.distance * tolerance.distance {
-            return [try verifier.point(
-                center,
-                firstSurface: firstSurface,
-                secondSurface: secondSurface,
-                tolerance: tolerance
-            )]
-        }
-        return [try verifier.curve(
-            .circle(Circle3D(
-                center: center,
-                normal: direction,
-                radius: sqrt(squaredRadius)
-            )),
-            kind: .transverse,
-            firstSurface: firstSurface,
-            secondSurface: secondSurface,
-            sampleParameters: SurfaceSurfaceIntersectionVerifier.closedCurveSamples,
-            tolerance: tolerance
-        )]
+        try CurrentTaskCancellationChecker().checkCancellation()
+        throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+            message: "SphereSphereSurfaceIntersector has no ordinary original-proof publication.")
     }
 }

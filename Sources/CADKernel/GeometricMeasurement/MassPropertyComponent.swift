@@ -20,11 +20,19 @@ public struct MassPropertyComponent: Sendable, Hashable {
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
-        try validateTransport()
-        try placement.validate(tolerance: tolerance)
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        try validate(tolerance: tolerance, using: &execution)
     }
 
-    private func validateTransport() throws {
+    public func validate(tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws {
+        try validateTransport(using: &execution)
+        try placement.validate(tolerance: tolerance)
+        try execution.checkpoint()
+    }
+
+    private func validateTransport(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try placement.basisX.validate(); try placement.basisY.validate()
         try placement.basisZ.validate(); try placement.translation.validate()
         if let affinePlacement {
@@ -33,7 +41,7 @@ public struct MassPropertyComponent: Sendable, Hashable {
                     message: "An affine mass occurrence must retain one original placement authority.")
             }
             try affinePlacement.validate()
-            _ = try affinePlacement.originalDeterminantSign(consumeWork: {})
+            _ = try affinePlacement.originalDeterminantSign(using: &execution)
         }
         if let densityKilogramsPerCubicMeter {
             guard densityKilogramsPerCubicMeter.isFinite, densityKilogramsPerCubicMeter >= 0 else {
@@ -47,16 +55,18 @@ public struct MassPropertyComponent: Sendable, Hashable {
 extension MassPropertyComponent: Codable {
     private enum CodingKeys: String, CodingKey { case bodyID, densityKilogramsPerCubicMeter, placement, affinePlacement }
     public init(from decoder: Decoder) throws {
+        var execution = try NativeRationalSourceDecodingContext.validationExecution(from: decoder)
         let c = try decoder.container(keyedBy: CodingKeys.self)
         try c.validateOnlyExpectedKeys([.bodyID, .densityKilogramsPerCubicMeter, .placement, .affinePlacement], in: decoder)
         bodyID = try c.decode(BodyID.self, forKey: .bodyID)
         densityKilogramsPerCubicMeter = try c.decodeIfPresent(Double.self, forKey: .densityKilogramsPerCubicMeter)
         placement = try c.decode(RigidTransform3D.self, forKey: .placement)
         affinePlacement = try c.decodeIfPresent(AffineTransform3D.self, forKey: .affinePlacement)
-        try validateTransport()
+        try validateTransport(using: &execution)
     }
     public func encode(to encoder: Encoder) throws {
-        try validateTransport()
+        var execution = try NativeOriginalSourceEncodingContext.execution(from: encoder)
+        try validateTransport(using: &execution)
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(bodyID, forKey: .bodyID)
         try c.encodeIfPresent(densityKilogramsPerCubicMeter, forKey: .densityKilogramsPerCubicMeter)

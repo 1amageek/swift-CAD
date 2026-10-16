@@ -1,5 +1,6 @@
 import HashTreeCollections
 import CADCore
+import CADGeometry
 import CADTopology
 
 public struct SubshapeIndex: Equatable, Sendable {
@@ -40,8 +41,19 @@ public struct SubshapeIndex: Equatable, Sendable {
         against model: BRepModel,
         lineage: [SubshapeID: TopologyLineage]
     ) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(against: model, lineage: lineage, using: &execution)
+    }
+
+    public func validate(
+        against model: BRepModel,
+        lineage: [SubshapeID: TopologyLineage],
+        using execution: inout OriginalQueryExecution
+    ) throws {
+        try execution.checkpoint()
         var indexedReferences = Set<TopologyReference>()
         for (subshapeID, reference) in entries {
+            try execution.consumeWork(1)
             guard subshapeID.isValid,
                   lineage[subshapeID]?.output == subshapeID else {
                 throw KernelError(
@@ -53,6 +65,7 @@ public struct SubshapeIndex: Equatable, Sendable {
                     message: "Subshape index entry has no matching lineage output."
                 )
             }
+            try execution.retainStorage(count: 1, stride: MemoryLayout<TopologyReference>.stride)
             guard indexedReferences.insert(reference).inserted else {
                 throw KernelError(
                     phase: .topology,
@@ -74,10 +87,28 @@ public struct SubshapeIndex: Equatable, Sendable {
                 )
             }
         }
-        let expectedReferences = Set(model.bodies.keys.map(TopologyReference.body))
-            .union(model.faces.keys.map(TopologyReference.face))
-            .union(model.edges.keys.map(TopologyReference.edge))
-            .union(model.vertices.keys.map(TopologyReference.vertex))
+        var expectedReferences = Set<TopologyReference>()
+        for id in model.bodies.keys {
+            try execution.consumeWork(1)
+            try execution.retainStorage(count: 1, stride: MemoryLayout<TopologyReference>.stride)
+            expectedReferences.insert(.body(id))
+        }
+        for id in model.faces.keys {
+            try execution.consumeWork(1)
+            try execution.retainStorage(count: 1, stride: MemoryLayout<TopologyReference>.stride)
+            expectedReferences.insert(.face(id))
+        }
+        for id in model.edges.keys {
+            try execution.consumeWork(1)
+            try execution.retainStorage(count: 1, stride: MemoryLayout<TopologyReference>.stride)
+            expectedReferences.insert(.edge(id))
+        }
+        for id in model.vertices.keys {
+            try execution.consumeWork(1)
+            try execution.retainStorage(count: 1, stride: MemoryLayout<TopologyReference>.stride)
+            expectedReferences.insert(.vertex(id))
+        }
+        try execution.consumeWork(indexedReferences.count)
         guard indexedReferences == expectedReferences else {
             throw KernelError(
                 phase: .topology,
@@ -86,6 +117,7 @@ public struct SubshapeIndex: Equatable, Sendable {
                 message: "Subshape index does not cover the evaluated B-rep exactly."
             )
         }
+        try execution.checkpoint()
     }
 
     private func contains(_ reference: TopologyReference, in model: BRepModel) -> Bool {

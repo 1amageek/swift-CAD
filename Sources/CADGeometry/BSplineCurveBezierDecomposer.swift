@@ -12,51 +12,56 @@ import WASILibc
 #endif
 
 struct BSplineCurveBezierDecomposer {
-    func curvePatches(
+    func curvePatches<A: ExactScalarAdmission & ~Copyable>(
         curve: BSplineCurve3D,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout A
     ) throws -> [RationalBezierCurvePatch3D] {
-        try resolvedCurvePatches(
+        try execution.consumeWork(1)
+        return try resolvedCurvePatches(
             curve: curve,
             intersecting: nil,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
     }
 
-    func curvePatches(
+    func curvePatches<A: ExactScalarAdmission & ~Copyable>(
         curve: BSplineCurve3D,
         intersecting interval: ScalarInterval,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout A
     ) throws -> [RationalBezierCurvePatch3D] {
-        try resolvedCurvePatches(
+        try execution.consumeWork(1)
+        return try resolvedCurvePatches(
             curve: curve,
             intersecting: interval,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
     }
 
-    private func resolvedCurvePatches(
+    private func resolvedCurvePatches<A: ExactScalarAdmission & ~Copyable>(
         curve: BSplineCurve3D,
         intersecting interval: ScalarInterval?,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout A
     ) throws -> [RationalBezierCurvePatch3D] {
-        try curve.validate(tolerance: tolerance)
+        try execution.consumeWork(1)
+        try curve.validate(tolerance: tolerance, using: &execution)
         if curve.isPeriodic {
             guard case let .closed(lower, upper) = curve.fundamentalDomain else {
                 throw GeometryError.invalidDistance(0)
             }
             let restriction = try curve.trimmed(from: interval?.lower ?? lower,
-                to: interval?.upper ?? upper, tolerance: tolerance)
-            return try resolvedCurvePatches(curve: restriction, intersecting: interval, tolerance: tolerance)
+                to: interval?.upper ?? upper, tolerance: tolerance, using: &execution)
+            return try resolvedCurvePatches(curve: restriction, intersecting: interval, tolerance: tolerance, using: &execution)
         }
         let breaks = try parameterBreaks(
             knots: curve.knots,
             domain: curve.domain,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         var result: [RationalBezierCurvePatch3D] = []
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: breaks.count - 1, of: RationalBezierCurvePatch3D.self))
         result.reserveCapacity(breaks.count - 1)
         for index in 0..<(breaks.count - 1) {
+            try execution.consumeWork(1)
             if let interval,
                breaks[index + 1] <= interval.lower
                 || breaks[index] >= interval.upper {
@@ -66,19 +71,22 @@ struct BSplineCurveBezierDecomposer {
                 curve: curve,
                 lower: breaks[index],
                 upper: breaks[index + 1],
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
             result.append(patch)
         }
         return result
     }
 
-    private func curvePatch(
+    private func curvePatch<A: ExactScalarAdmission & ~Copyable>(
         curve: BSplineCurve3D,
         lower: Double,
         upper: Double,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout A
     ) throws -> RationalBezierCurvePatch3D {
+        try execution.consumeWork(1)
+        let width = curve.degree.addingReportingOverflow(1)
+        guard !width.overflow else { throw ExactScalarFailure.countOverflow }
         let span = upper - lower
         guard span.isFinite, span > 0.0 else {
             throw KernelError(
@@ -89,11 +97,21 @@ struct BSplineCurveBezierDecomposer {
             )
         }
         // Degree-fold boundary knots already isolate a Bezier control polygon.
-        if let upperIndex = curve.knots.firstIndex(of: upper),
+        if let upperIndex = try curve.knots.firstIndex(where: {
+            try execution.consumeWork(1)
+            return $0 == upper
+        }),
            upperIndex > curve.degree, upperIndex <= curve.controlPointCount,
-           curve.knots[(upperIndex - curve.degree)..<upperIndex].allSatisfy({ $0 == lower }),
-           curve.knots[upperIndex..<(upperIndex + curve.degree)].allSatisfy({ $0 == upper }) {
+           try curve.knots[(upperIndex - curve.degree)..<upperIndex].allSatisfy({
+               try execution.consumeWork(1); return $0 == lower
+           }),
+           try curve.knots[upperIndex..<(upperIndex + curve.degree)].allSatisfy({
+               try execution.consumeWork(1); return $0 == upper
+           }) {
             let controls = (upperIndex - curve.degree - 1)..<upperIndex
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: controls.count, of: Point3D.self))
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: controls.count, of: Double.self))
+            for _ in controls { try execution.consumeWork(1) }
             return RationalBezierCurvePatch3D(
                 controlPoints: Array(curve.controlPoints[controls]),
                 weights: Array(curve.weights[controls]),
@@ -102,19 +120,21 @@ struct BSplineCurveBezierDecomposer {
             )
         }
         var derivatives: [HomogeneousVector] = []
-        derivatives.reserveCapacity(curve.degree + 1)
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: width.partialValue, of: HomogeneousVector.self))
+        derivatives.reserveCapacity(width.partialValue)
         for derivativeOrder in 0...curve.degree {
-            let basis = BSplineBasis.derivativeValues(
+            let basis = try BSplineBasis.derivativeValues(
                 parameter: lower,
                 degree: curve.degree,
                 derivativeOrder: derivativeOrder,
                 knots: curve.knots,
-                count: curve.controlPointCount
+                count: curve.controlPointCount, using: &execution
             )
-            derivatives.append(homogeneousDerivative(curve: curve, basis: basis))
+            derivatives.append(try homogeneousDerivative(curve: curve, basis: basis, using: &execution))
         }
         var controls: [HomogeneousVector] = []
-        controls.reserveCapacity(curve.degree + 1)
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: width.partialValue, of: HomogeneousVector.self))
+        controls.reserveCapacity(width.partialValue)
         for controlIndex in 0...curve.degree {
             var control = HomogeneousVector.zero
             for derivativeOrder in 0...controlIndex {
@@ -123,7 +143,7 @@ struct BSplineCurveBezierDecomposer {
                     controlIndex: controlIndex,
                     derivativeOrder: derivativeOrder,
                     span: span,
-                    tolerance: tolerance
+                    tolerance: tolerance, using: &execution
                 )
                 control = control + derivatives[derivativeOrder] * scale
             }
@@ -131,12 +151,18 @@ struct BSplineCurveBezierDecomposer {
         }
         var points: [Point3D] = []
         var weights: [Double] = []
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: controls.count, of: Point3D.self))
         points.reserveCapacity(controls.count)
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: controls.count, of: Double.self))
         weights.reserveCapacity(controls.count)
         // A polynomial curve (one weight throughout) keeps that weight exactly on every span; its
         // weight's derivatives, zero, would otherwise leave rounding in the extracted weights.
-        let uniform = curve.weights.allSatisfy { $0 == curve.weights[0] } ? curve.weights[0] : nil
+        let uniform = try curve.weights.allSatisfy {
+            try execution.consumeWork(1)
+            return $0 == curve.weights[0]
+        } ? curve.weights[0] : nil
         for control in controls {
+            try execution.consumeWork(1)
             guard control.isFinite,
                   control.weight > Double.ulpOfOne else {
                 throw KernelError(
@@ -163,12 +189,14 @@ struct BSplineCurveBezierDecomposer {
         )
     }
 
-    private func homogeneousDerivative(
+    private func homogeneousDerivative<A: ExactScalarAdmission & ~Copyable>(
         curve: BSplineCurve3D,
-        basis: [Double]
-    ) -> HomogeneousVector {
+        basis: [Double], using execution: inout A
+    ) throws -> HomogeneousVector {
+        try execution.consumeWork(1)
         var result = HomogeneousVector.zero
         for index in 0..<curve.controlPointCount {
+            try execution.consumeWork(1)
             let weight = curve.weights[index]
             let coefficient = basis[index] * weight
             guard coefficient != 0.0 else { continue }
@@ -183,16 +211,18 @@ struct BSplineCurveBezierDecomposer {
         return result
     }
 
-    private func derivativeToBernsteinScale(
+    private func derivativeToBernsteinScale<A: ExactScalarAdmission & ~Copyable>(
         degree: Int,
         controlIndex: Int,
         derivativeOrder: Int,
         span: Double,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout A
     ) throws -> Double {
+        try execution.consumeWork(1)
         var binomial = 1.0
         if derivativeOrder > 0 {
             for index in 1...derivativeOrder {
+                try execution.consumeWork(1)
                 binomial *= Double(controlIndex - derivativeOrder + index) / Double(index)
             }
         }
@@ -200,6 +230,7 @@ struct BSplineCurveBezierDecomposer {
         var spanPower = 1.0
         if derivativeOrder > 0 {
             for index in 0..<derivativeOrder {
+                try execution.consumeWork(1)
                 fallingFactorial *= Double(degree - index)
                 spanPower *= span
             }
@@ -216,11 +247,12 @@ struct BSplineCurveBezierDecomposer {
         return scale
     }
 
-    private func parameterBreaks(
+    private func parameterBreaks<A: ExactScalarAdmission & ~Copyable>(
         knots: [Double],
         domain: ParameterDomain,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout A
     ) throws -> [Double] {
+        try execution.consumeWork(1)
         guard case let .closed(lower, upper) = domain else {
             throw KernelError(
                 phase: .geometry,
@@ -229,12 +261,17 @@ struct BSplineCurveBezierDecomposer {
                 message: "B-spline Bezier decomposition requires a bounded parameter domain."
             )
         }
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: Double.self))
         var result = [lower]
-        for knot in knots where knot > lower && knot < upper {
+        for knot in knots {
+            try execution.consumeWork(1)
+            guard knot > lower && knot < upper else { continue }
             if result.last != knot {
+                try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: Double.self))
                 result.append(knot)
             }
         }
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: Double.self))
         result.append(upper)
         return result
     }

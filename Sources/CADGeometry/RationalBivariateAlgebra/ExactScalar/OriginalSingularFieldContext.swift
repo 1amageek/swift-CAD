@@ -16,19 +16,19 @@ package final class OriginalSingularFieldContext: Sendable {
     }
     package let depth: Int
     package let coefficientDepth: Int
-    package init<B: RationalAlgebraAdmitting>(usage: inout B) throws {
+    package init<B: ExactScalarAdmission & ~Copyable>(usage: inout B) throws {
         try Self.admit(usage: &usage); source = .rational; depth = 0; coefficientDepth = 0
         constantAuthority = .original(unit: try .constant(.one, usage: &usage))
-        try exactScalarTaskCheckpoint()
+        try usage.checkpoint()
     }
-    init<B: RationalAlgebraAdmitting>(original: ExactAlgebraicPairAuthority, usage: inout B) throws {
+    init<B: ExactScalarAdmission & ~Copyable>(original: ExactAlgebraicPairAuthority, usage: inout B) throws {
         try Self.admit(usage: &usage); source = .original(original)
         depth = max(original.projectionRoot.isolation.isolationDepth, original.fiberRoot.isolationDepth)
         coefficientDepth = 0
         constantAuthority = .original(unit: try .constant(.one, usage: &usage))
-        try exactScalarTaskCheckpoint()
+        try usage.checkpoint()
     }
-    init<B: RationalAlgebraAdmitting>(root: OriginalSingularFieldRoot, usage: inout B) throws {
+    init<B: ExactScalarAdmission & ~Copyable>(root: OriginalSingularFieldRoot, usage: inout B) throws {
         try Self.admit(usage: &usage); source = .extended(root)
         switch root.admissionDomain {
         case .parameter:
@@ -47,9 +47,9 @@ package final class OriginalSingularFieldContext: Sendable {
         let unit = try OriginalSingularFieldPolynomial(context: parent, coefficients: [one],
             maximumDepth: parent.depth, usage: &usage)
         constantAuthority = .extended(zero: zero, unit: unit)
-        try exactScalarTaskCheckpoint()
+        try usage.checkpoint()
     }
-    private static func admit<B: RationalAlgebraAdmitting>(usage: inout B) throws {
+    private static func admit<B: ExactScalarAdmission & ~Copyable>(usage: inout B) throws {
         // The immutable owner retains source and structural-constant authority. The
         // Swift heap object header has metadata and reference-count words; all
         // are admitted before allocation, while child buffers admit themselves.

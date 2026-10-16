@@ -7,7 +7,7 @@ package struct OriginalRationalZeroSetAuthority: Sendable {
     private let derivatives: [[ExactBivariatePolynomial]]
     package let squareFree: ExactBivariatePolynomial
 
-    package init<B: RationalAlgebraAdmitting>(original: ExactBivariatePolynomial,
+    package init<B: ExactScalarAdmission & ~Copyable>(original: ExactBivariatePolynomial,
         usage: inout B) throws {
         self.original = original
         if original.isZero {
@@ -30,7 +30,7 @@ package struct OriginalRationalZeroSetAuthority: Sendable {
         derivatives = try Self.prepareDerivatives(squareFree, usage: &usage)
     }
 
-    package func scalarJet<B: RationalAlgebraAdmitting>(over box: SurfaceParameterBox,
+    package func scalarJet<B: ExactScalarAdmission & ~Copyable>(over box: SurfaceParameterBox,
         usage: inout B) throws -> OriginalRationalScalarDerivativeBounds {
         func value(_ u: Int, _ v: Int) throws -> OutwardScalarInterval {
             if squareFree.isZero { return .exact(0) }
@@ -41,7 +41,7 @@ package struct OriginalRationalZeroSetAuthority: Sendable {
             uuu: value(3, 0), uuv: value(2, 1), uvv: value(1, 2), vvv: value(0, 3))
     }
 
-    private static func prepareDerivatives<B: RationalAlgebraAdmitting>(
+    private static func prepareDerivatives<B: ExactScalarAdmission & ~Copyable>(
         _ squareFree: ExactBivariatePolynomial, usage: inout B) throws -> [[ExactBivariatePolynomial]] {
         var derivatives: [[ExactBivariatePolynomial]] = []
         try RationalAlgebraStorage.retain(4, of: [ExactBivariatePolynomial].self, usage: &usage)

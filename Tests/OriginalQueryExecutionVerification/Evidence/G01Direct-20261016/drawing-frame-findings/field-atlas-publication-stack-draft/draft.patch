@@ -1,0 +1,145 @@
+--- a/Sources/CADGeometry/SurfaceSilhouette/SurfaceSilhouettePlaneAtlasPublication.swift
++++ b/Sources/CADGeometry/SurfaceSilhouette/SurfaceSilhouettePlaneAtlasPublication.swift
+@@ -103,6 +103,38 @@
+         try RationalAlgebraStorage.retain(atlas.stations.count, of: [Bool].self, usage: &usage)
+         stationCurves.reserveCapacity(atlas.stations.count); stationEnds.reserveCapacity(atlas.stations.count)
+         for _ in atlas.stations { stationCurves.append([]); stationEnds.append([]) }
++        if !atlas.incidences.isEmpty {
++            try Self.appendFieldIncidences(atlas: atlas, firstCurveIndex: firstCurveIndex, curves: &curves, stationCurves: &stationCurves, stationEnds: &stationEnds, field: field, usage: &usage)
++        }
++        if !atlas.strips.isEmpty {
++            try Self.appendFieldStrips(atlas: atlas, firstCurveIndex: firstCurveIndex, curves: &curves, stationCurves: &stationCurves, stationEnds: &stationEnds, field: field, usage: &usage)
++        }
++        if !curves.isEmpty {
++            try Self.retainCompleteFieldIncidence(atlas: atlas, firstCurveIndex: firstCurveIndex, curves: &curves, stationCurves: &stationCurves, stationEnds: &stationEnds, usage: &usage)
++        }
++        var contacts: [SurfaceSilhouetteAlgebraicContact] = []
++        var stations: [SurfaceSilhouettePlaneAtlas.Station] = []
++        if !atlas.stations.isEmpty {
++            try Self.appendFieldStations(atlas: atlas, firstCurveIndex: firstCurveIndex, curves: &curves, stationCurves: &stationCurves, stationEnds: &stationEnds, originalField: originalField, coordinates: coordinates, contacts: &contacts, stations: &stations, usage: &usage)
++        }
++        if !coordinates.endpoints.isEmpty {
++            try Self.appendCoordinateStations(atlas: atlas, firstCurveIndex: firstCurveIndex, curves: &curves, stationCurves: &stationCurves, stationEnds: &stationEnds, originalField: originalField, coordinates: coordinates, stations: &stations, usage: &usage)
++        }
++        try RationalAlgebraStorage.retain(curves.count, of: Int.self, usage: &usage)
++        var indices: [Int] = []; indices.reserveCapacity(curves.count)
++        for index in curves.indices { indices.append(try rationalAlgebraCount(firstCurveIndex, index)) }
++        self.curves = curves; isolatedContacts = contacts
++        provenance = SurfaceSilhouettePlaneAtlas(field: field, original: atlas, curveIndices: indices, stations: stations)
++    }
++
++    @inline(never)
++    private static func appendFieldIncidences(
++        atlas: OriginalFieldPlaneAtlas, firstCurveIndex: Int,
++        curves: inout [OriginalSurfaceSilhouetteCurve],
++        stationCurves: inout [[Int]], stationEnds: inout [[Bool]],
++        field: OriginalSurfaceSilhouetteField,
++        usage: inout OriginalQueryExecution
++    ) throws {
+         for incidence in atlas.incidences {
+             let station = atlas.stations[incidence.stationIndex]
+             let attachment = incidence.attachment
+@@ -129,6 +161,16 @@
+                 freeCoordinate: station.charts[attachment.chartIndex].freeAlongU ? .u : .v,
+                 ramifiedImage: image, fieldAtlasStart: upper ? anchor : origin, fieldAtlasEnd: upper ? origin : anchor))
+         }
++    }
++
++    @inline(never)
++    private static func appendFieldStrips(
++        atlas: OriginalFieldPlaneAtlas, firstCurveIndex: Int,
++        curves: inout [OriginalSurfaceSilhouetteCurve],
++        stationCurves: inout [[Int]], stationEnds: inout [[Bool]],
++        field: OriginalSurfaceSilhouetteField,
++        usage: inout OriginalQueryExecution
++    ) throws {
+         for strip in atlas.strips {
+             for piece in strip.originalInteriorCover.pieces {
+                 func endpoint(_ u: ExactRationalCoefficient, usage: inout OriginalQueryExecution)
+@@ -151,6 +193,15 @@
+                     freeCoordinate: .u, freeImage: image, fieldAtlasStart: first, fieldAtlasEnd: last))
+             }
+         }
++    }
++
++    @inline(never)
++    private static func retainCompleteFieldIncidence(
++        atlas: OriginalFieldPlaneAtlas, firstCurveIndex: Int,
++        curves: inout [OriginalSurfaceSilhouetteCurve],
++        stationCurves: inout [[Int]], stationEnds: inout [[Bool]],
++        usage: inout OriginalQueryExecution
++    ) throws {
+         // Complete counts include coordinate and primitive original half-branches.
+         // Endpoints are compared by exact retained UV authority, never by bounds.
+         for index in curves.indices {
+@@ -173,8 +224,19 @@
+             curves[index] = curves[index].retainingFieldIncidence(
+                 first: endpoints.first.retainingCompleteIncidence(a), last: endpoints.last.retainingCompleteIncidence(b))
+         }
+-        var contacts: [SurfaceSilhouetteAlgebraicContact] = []
+-        var stations: [SurfaceSilhouettePlaneAtlas.Station] = []
++    }
++
++    @inline(never)
++    private static func appendFieldStations(
++        atlas: OriginalFieldPlaneAtlas, firstCurveIndex: Int,
++        curves: inout [OriginalSurfaceSilhouetteCurve],
++        stationCurves: inout [[Int]], stationEnds: inout [[Bool]],
++        originalField: OriginalSurfaceSilhouetteField,
++        coordinates: SurfaceSilhouetteFieldCoordinateComponents,
++        contacts: inout [SurfaceSilhouetteAlgebraicContact],
++        stations: inout [SurfaceSilhouettePlaneAtlas.Station],
++        usage: inout OriginalQueryExecution
++    ) throws {
+         for index in atlas.stations.indices {
+             let station = atlas.stations[index]
+             stationCurves[index].removeAll(keepingCapacity: true); stationEnds[index].removeAll(keepingCapacity: true)
+@@ -212,6 +274,18 @@
+                 sourceDepth: max(station.originalRoot.projectionRoot.isolation.depth,
+                     station.originalRoot.fiberRoot.isolation.depth)))
+         }
++    }
++
++    @inline(never)
++    private static func appendCoordinateStations(
++        atlas: OriginalFieldPlaneAtlas, firstCurveIndex: Int,
++        curves: inout [OriginalSurfaceSilhouetteCurve],
++        stationCurves: inout [[Int]], stationEnds: inout [[Bool]],
++        originalField: OriginalSurfaceSilhouetteField,
++        coordinates: SurfaceSilhouetteFieldCoordinateComponents,
++        stations: inout [SurfaceSilhouettePlaneAtlas.Station],
++        usage: inout OriginalQueryExecution
++    ) throws {
+         var coordinateStations: [SurfaceSilhouetteFieldAtlasEndpoint] = []
+         for root in coordinates.endpoints {
+             let endpoint = SurfaceSilhouetteFieldAtlasEndpoint(original: atlas.projection.squareFree,
+@@ -253,10 +327,6 @@
+                 incidentAtUpperEnd: upperEnds, regularGermCount: (alongU ? 1 : 0) + (alongV ? 1 : 0), isolatedGermCount: 0,
+                 sourceDepth: max(root.projectionRoot.isolation.depth, root.fiberRoot.isolation.depth)))
+         }
+-        try RationalAlgebraStorage.retain(curves.count, of: Int.self, usage: &usage)
+-        var indices: [Int] = []; indices.reserveCapacity(curves.count)
+-        for index in curves.indices { indices.append(try rationalAlgebraCount(firstCurveIndex, index)) }
+-        self.curves = curves; isolatedContacts = contacts
+-        provenance = SurfaceSilhouettePlaneAtlas(field: field, original: atlas, curveIndices: indices, stations: stations)
+-    }
++    }
++
+ }
+--- a/Sources/CADGeometry/SurfaceSilhouette/DESIGN.md
++++ b/Sources/CADGeometry/SurfaceSilhouette/DESIGN.md
+@@ -752,3 +752,14 @@
+ or storage operation is added or removed from an executed subdivision. The
+ measured dispatcher frame and full worker call chain, followed by the unchanged
+ Drawing cases, own validation of this mechanical adjustment.
++
++Field-atlas publication retains its atomic initializer preflight, selected original
++field and final provenance ownership. Private non-inlined stage helpers own the
++existing incidence, regular-strip, complete-endpoint-incidence, original-station
++and coordinate-station local frames. Each helper borrows the same execution and
++original mutable output arrays, with unchanged endpoint root laws, exact UV
++comparisons, count order, source depths and storage/work admission. Empty stage
++collections have exactly their former zero iterations and do not reserve an
++unused stage frame. No result is published before all original stages complete.
++The rational-atlas overload is unchanged. Actual native prologues and the same
++Drawing worker input verify this measured field-atlas publication frame change.

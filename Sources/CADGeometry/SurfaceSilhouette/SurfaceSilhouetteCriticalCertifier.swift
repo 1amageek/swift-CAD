@@ -10,7 +10,7 @@ struct SurfaceSilhouetteCriticalCertifier {
     }
 
     static func classify(field: OriginalSurfaceSilhouetteField, box: SurfaceParameterBox,
-                         jet: SurfaceSilhouetteScalarJet, usage: inout SurfaceSilhouetteUsage)
+                         jet: SurfaceSilhouetteScalarJet, usage: inout OriginalQueryExecution)
         throws -> Classification {
         guard jet.u.contains(0), jet.v.contains(0) else { return .unresolved }
         let h00 = jet.uu, h01 = jet.uv, h11 = jet.vv

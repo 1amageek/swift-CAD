@@ -18,7 +18,7 @@ struct SurfaceSilhouetteFreeParameterImage: Hashable, Sendable {
         start.hashIdentity(into: &hasher); end.hashIdentity(into: &hasher)
     }
     func mapped(over range: ScalarInterval, nativeCover: ScalarInterval,
-        usage: inout SurfaceSilhouetteUsage) throws -> (parameter: ScalarInterval, derivative: OutwardScalarInterval) {
+        usage: inout OriginalQueryExecution) throws -> (parameter: ScalarInterval, derivative: OutwardScalarInterval) {
         let lowerSlope = try end.lower.subtracting(start.upper, usage: &usage)
         let upperSlope = try end.upper.subtracting(start.lower, usage: &usage)
         guard lowerSlope.isPositive else {
@@ -42,13 +42,13 @@ struct SurfaceSilhouetteFreeParameterImage: Hashable, Sendable {
         }
         return try (.init(lower: original.lower, upper: original.upper), slope)
     }
-    func refined(usage: inout SurfaceSilhouetteUsage) throws -> Self {
+    func refined(usage: inout OriginalQueryExecution) throws -> Self {
         let two = try ExactRationalCoefficient.originalDouble(2, usage: &usage)
         func endpoint(_ value: ExactMonotoneGraphEndpoint) throws -> ExactMonotoneGraphEndpoint {
             let width = try value.upper.subtracting(value.lower, usage: &usage)
             if !width.isPositive { return value }
             return try value.refined(maximumWidth: width.divided(by: two, usage: &usage),
-                maximumDepth: usage.maximumDepth, usage: &usage)
+                maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
         }
         let result = try Self(start: endpoint(start), end: endpoint(end))
         guard result != self else {

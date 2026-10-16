@@ -216,3 +216,13 @@ from geometric tessellation depth. Exact-cell visits charge the same invocation
 work counter at the retained outer tessellation depth; they do not add algebra
 ancestry depth to a geometric subdivision depth. Storage word counts retain the
 explicit UInt32 slot stride and never become depth metadata.
+
+## Direct Execution Admission
+
+Source arithmetic borrows `A: ExactScalarAdmission & ~Copyable`; composed query
+operations borrow `inout OriginalQueryExecution`. Source validation, native span
+validation, structural comparisons and exact refinement receive that same admission.
+The [execution owner](../OriginalQueryExecution/DESIGN.md) defines cumulative
+work and actual byte accounting, independent depth axes, cancellation and lexical
+proof scopes. Retained geometry and relation evidence stay immutable; no callback
+adapter, copied counter or second allowance supplies arithmetic authority.

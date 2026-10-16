@@ -5,7 +5,7 @@ import L0
 extension ExactPolynomialDomain: ExactPolynomialDividing {
     public typealias Division = ExactPolynomialDivision<F>
     func divided<A: ExactScalarAdmission & ~Copyable>(_ value: borrowing Polynomial, _ divisor: borrowing Polynomial,
-        _ usage: inout ExactPolynomialAdmission<A>) throws -> Division {
+        _ usage: inout A) throws -> Division {
         guard let divisorLead = divisor.terms.first else { throw ExactPolynomialFailure.zeroDivisor }
         var pending = copy value, quotient = try wrap([], &usage), remainder = try wrap([], &usage)
         while let lead = pending.terms.first {
@@ -36,13 +36,13 @@ extension ExactPolynomialDomain: ExactPolynomialDividing {
         return Division(quotient: try wrap(quotient.terms, &usage), remainder: try wrap(remainder.terms, &usage))
     }
     func exactDivide<A: ExactScalarAdmission & ~Copyable>(_ value: borrowing Polynomial, _ divisor: borrowing Polynomial,
-        _ usage: inout ExactPolynomialAdmission<A>) throws -> Polynomial {
+        _ usage: inout A) throws -> Polynomial {
         let result = try divided(value, divisor, &usage)
         guard result.remainder.terms.isEmpty else { throw ExactPolynomialFailure.notDivisible }
         return result.quotient
     }
     func monic<A: ExactScalarAdmission & ~Copyable>(_ value: borrowing Polynomial,
-        _ usage: inout ExactPolynomialAdmission<A>) throws -> Polynomial {
+        _ usage: inout A) throws -> Polynomial {
         guard let lead = value.terms.first else { return try wrap([], &usage) }
         return try scaled(value, field.dividing(context.one, lead.coefficient, using: &usage), &usage)
     }

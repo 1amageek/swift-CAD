@@ -1,0 +1,46 @@
+{
+  "status": "preparedNotExecuted",
+  "scope": "One standard LLDB batch on an unchanged actual Drawing r2 helper/binary; diagnostic only.",
+  "lldb": {
+    "path": "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/lldb",
+    "sha256": "3e0aa469798b3b6c8eb499e0d5df2643693ce59c273ada6fa6f5f7e189370a9e"
+  },
+  "helper": {
+    "path": "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/libexec/swift/pm/swiftpm-testing-helper",
+    "sha256": "20e9193cf06b4d286850afc072787f0c97b70a1ed249216ab033518ab7cf1885"
+  },
+  "binary": {
+    "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-silhouette-r2/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests",
+    "sha256": "3bbbdff06b7b1c65bcc434bbbe396372cf3638bde1c55d8c7fab76ea5b669092"
+  },
+  "sourceReceipt": {
+    "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-silhouette-r2/receipt.json",
+    "sha256": "36e41825c6e15ad4defd29e1b942c5f43356772cd01ce9631ba30009caeab6ac"
+  },
+  "helperArgv": [
+    "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/libexec/swift/pm/swiftpm-testing-helper",
+    "--test-bundle-path",
+    "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-silhouette-r2/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests",
+    "--testing-library",
+    "swift-testing",
+    "--filter",
+    "DocumentDrawingCanonicalAdmissionTests",
+    "--xunit-output",
+    "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-debug-unlock-r1/diagnostic-results.xml"
+  ],
+  "debuggerArgv": [
+    "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/lldb",
+    "--batch",
+    "--source",
+    "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-debug-unlock-r1/commands.lldb"
+  ],
+  "commandsSHA256": "1e96314d7729325b73d8e85ffed2d733dbf1ea32d9c3989e8ed6477e32071a24",
+  "outerRuntimeLimitSeconds": 120,
+  "interpretation": [
+    "Abort x0 is recorded without assuming it remains the lock pointer; the abort can receive cause4355.",
+    "The SP+0x170 slot is the existing r2 debit defer operand from actual disassembly, not a general ABI offset.",
+    "Use the slot and pointed word only if frame3 is actual OriginalQueryBudget.debit and memory reads succeed.",
+    "Failure to reproduce under debugger is diagnostic inconclusive, never behavioral PASS.",
+    "Root uses the existing owned process-tree monitor; this command file adds no controller, source instrumentation or retry."
+  ]
+}

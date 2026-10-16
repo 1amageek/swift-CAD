@@ -11,24 +11,23 @@ package struct OriginalDraftedSurfaceRegularity {
     private struct Cell { let box:SurfaceParameterBox; let depth:Int }
     package init() {}
     package func validate(_ surface:OriginalDraftedRuledSurface3D,tolerance:ModelingTolerance,
-        admission:GeometryConversionAdmission) throws {
-        try surface.validate(tolerance:tolerance)
-        let depthLimit = min(18,admission.maximumSubdivisionDepth)
-        try admission.chargeStorage(bytes:(depthLimit+1)*MemoryLayout<Cell>.stride)
+        using execution:inout OriginalQueryExecution) throws {
+        try surface.validate(tolerance:tolerance,using:&execution)
+        let depthLimit = min(18,execution.effectiveLimits.maximumSubdivisionDepth)
+        try execution.retainStorage(bytes:(depthLimit+1)*MemoryLayout<Cell>.stride)
         var pending:[Cell] = [];pending.reserveCapacity(depthLimit+1)
         pending.append(.init(box:try .init(u:.init(lower:0,upper:1),v:.init(lower:0,upper:1)),depth:0))
         var visited = 0
         let angularTolerance = max(sin(min(tolerance.angle,Double.pi*0.5)),tolerance.relative,Double.ulpOfOne*256)
         while let cell = pending.popLast() {
             guard visited < 262_144 else { throw GeometryConversionError.resourceLimitExceeded("Original draft regularity exhausted the unchanged native-sheet cell allowance.") }
-            visited += 1;try admission.visit(depth:cell.depth)
+            visited += 1;try execution.visitGeometricCell(depth:cell.depth)
             let q = try surface.intervalTaylorJet(over:cell.box,throughOrder:1,tolerance:tolerance,
-                maximumSpanCount:admission.maximumSpanCount,maximumSubdivisionDepth:admission.maximumSubdivisionDepth-cell.depth,
-                remainingSourceDepth:admission.remainingSourceDepth,consumeWork:{ try admission.chargeWork() },
-                consumeStorage:{ try admission.chargeStorage(bytes:$0) })
+                maximumSpanCount:execution.effectiveLimits.maximumSpans,maximumSubdivisionDepth:execution.effectiveLimits.maximumSubdivisionDepth-cell.depth,
+                remainingSourceDepth:execution.effectiveLimits.remainingSourceDepth,using:&execution)
             let u = try IntervalVector3DBounds(x:q.x.coefficient(1,0),y:q.y.coefficient(1,0),z:q.z.coefficient(1,0))
             let v = try IntervalVector3DBounds(x:q.x.coefficient(0,1),y:q.y.coefficient(0,1),z:q.z.coefficient(0,1))
-            try admission.chargeWork(3)
+            try execution.consumeWork(3)
             let n = IntervalVector3DBounds(x:u.y*v.z-u.z*v.y,y:u.z*v.x-u.x*v.z,z:u.x*v.y-u.y*v.x)
             let denominator = (u.lengthUpperBound*v.lengthUpperBound).nextUp
             let angularLower = denominator > 0 ? max(0,(n.lengthLowerBound/denominator).nextDown) : 0

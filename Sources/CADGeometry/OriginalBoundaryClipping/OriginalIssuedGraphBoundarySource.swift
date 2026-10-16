@@ -62,8 +62,8 @@ public struct OriginalIssuedGraphBoundarySource<S: Sendable, E: Sendable, C: Sen
             try a.checkpoint()
             return false
         }
-        try GeometryStructuralComparisonWork.charge(surface: surface) { try a.consumeWork($0) }
-        try GeometryStructuralComparisonWork.charge(surface: stored) { try a.consumeWork($0) }
+        try GeometryStructuralComparisonWork.charge(surface: surface, using: &a)
+        try GeometryStructuralComparisonWork.charge(surface: stored, using: &a)
         let equal = surface == stored
         try a.checkpoint()
         return equal

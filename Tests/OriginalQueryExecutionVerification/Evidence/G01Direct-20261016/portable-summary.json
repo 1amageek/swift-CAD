@@ -1,0 +1,297 @@
+{
+  "status": "passed",
+  "scope": "Final changed-source G01 public acceptance fixture only; not whole G01 task, U1-U4 or repository completion.",
+  "sourceRoot": "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD",
+  "sourceCount": {
+    "CADCore": 65,
+    "CADGeometry": 2170
+  },
+  "sourceAuthority": {
+    "path": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-candidate-native-constant-depth-20261016-r1/receipt.json",
+    "sha256": "2ee8c008aad283ba33cd8a456fec51277040145437951f8ebd57f54711e28bae"
+  },
+  "receipt": {
+    "path": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/receipt.json",
+    "sha256": "5fc572edc7584872cc5b582a50ae34549e19d944c5c6e5107f78c158f78e5e47"
+  },
+  "fixture": {
+    "path": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalPublicAcceptanceVerification/G01Direct/G01DirectAcceptance.swift",
+    "sha256": "b07fcbdea7ac9715979461facf282fe3c2e9ec7006d1529bd15293be8077d6c5",
+    "expectedOutputLines": [
+      "PASS G01 public ordinary",
+      "PASS G01 public admitted",
+      "PASS G01 public prepared",
+      "PASS G01 public readers",
+      "PASS G01 public resources",
+      "PASS G01 public full",
+      "PASS G01 public all"
+    ]
+  },
+  "fieldSHA256": "c30a4912d0bd28857b7e0777ea796d7395ac2414b809c314b695292fd90f2d6d",
+  "elapsedSeconds": 872.4475227090006,
+  "bounds": {
+    "compileLinkSecondsPerLane": 1200,
+    "runtimeSeconds": 120,
+    "aggregateRSSBytes": 10737418240,
+    "compilerProcessesAtOnce": 1
+  },
+  "laneOracles": {
+    "asan": [
+      "PASS G01 public ordinary",
+      "PASS G01 public admitted",
+      "PASS G01 public prepared",
+      "PASS G01 public readers",
+      "PASS G01 public resources",
+      "PASS G01 public full"
+    ],
+    "wasm": [
+      "PASS G01 public ordinary",
+      "PASS G01 public admitted",
+      "PASS G01 public prepared",
+      "PASS G01 public readers",
+      "PASS G01 public resources",
+      "PASS G01 public full"
+    ],
+    "embedded": [
+      "PASS G01 public ordinary",
+      "PASS G01 public admitted",
+      "PASS G01 public prepared",
+      "PASS G01 public readers",
+      "PASS G01 public resources",
+      "PASS G01 public full",
+      "PASS G01 public all"
+    ]
+  },
+  "phases": [
+    {
+      "name": "asan-compile",
+      "elapsedSeconds": 123.15133212500223,
+      "peakRSSBytes": 6879838208,
+      "wallLimitSeconds": 1199.9999908340033,
+      "rssScope": "tracked PPID descendants including separate process groups",
+      "exitCode": 0,
+      "stopReason": null
+    },
+    {
+      "name": "asan-link",
+      "elapsedSeconds": 2.785139125000569,
+      "peakRSSBytes": 738852864,
+      "wallLimitSeconds": 1076.3079751670011,
+      "rssScope": "tracked PPID descendants including separate process groups",
+      "exitCode": 0,
+      "stopReason": null
+    },
+    {
+      "name": "asan-runtime-ordinary",
+      "elapsedSeconds": 60.51547583399952,
+      "peakRSSBytes": 729448448,
+      "wallLimitSeconds": 120,
+      "rssScope": "tracked PPID descendants including separate process groups",
+      "exitCode": 0,
+      "stopReason": null
+    },
+    {
+      "name": "asan-runtime-admitted",
+      "elapsedSeconds": 59.28313254100067,
+      "peakRSSBytes": 738443264,
+      "wallLimitSeconds": 120,
+      "rssScope": "tracked PPID descendants including separate process groups",
+      "exitCode": 0,
+      "stopReason": null
+    },
+    {
+      "name": "asan-runtime-prepared",
+      "elapsedSeconds": 63.91950962500414,
+      "peakRSSBytes": 750649344,
+      "wallLimitSeconds": 120,
+      "rssScope": "tracked PPID descendants including separate process groups",
+      "exitCode": 0,
+      "stopReason": null
+    },
+    {
+      "name": "asan-runtime-readers",
+      "elapsedSeconds": 32.050934541999595,
+      "peakRSSBytes": 786366464,
+      "wallLimitSeconds": 120,
+      "rssScope": "tracked PPID descendants including separate process groups",
+      "exitCode": 0,
+      "stopReason": null
+    },
+    {
+      "name": "asan-runtime-resources",
+      "elapsedSeconds": 78.08537379100017,
+      "peakRSSBytes": 873021440,
+      "wallLimitSeconds": 120,
+      "rssScope": "tracked PPID descendants including separate process groups",
+      "exitCode": 0,
+      "stopReason": null
+    },
+    {
+      "name": "asan-runtime-full",
+      "elapsedSeconds": 41.668839833000675,
+      "peakRSSBytes": 639680512,
+      "wallLimitSeconds": 120,
+      "rssScope": "tracked PPID descendants including separate process groups",
+      "exitCode": 0,
+      "stopReason": null
+    },
+    {
+      "name": "wasm-compile",
+      "elapsedSeconds": 112.84473575000447,
+      "peakRSSBytes": 6274924544,
+      "wallLimitSeconds": 1199.9999769589995,
+      "rssScope": "tracked PPID descendants including separate process groups",
+      "exitCode": 0,
+      "stopReason": null
+    },
+    {
+      "name": "wasm-link",
+      "elapsedSeconds": 2.0880306660037604,
+      "peakRSSBytes": 766984192,
+      "wallLimitSeconds": 1086.2299117919974,
+      "rssScope": "tracked PPID descendants including separate process groups",
+      "exitCode": 0,
+      "stopReason": null
+    },
+    {
+      "name": "wasm-runtime-ordinary",
+      "elapsedSeconds": 24.282693749999453,
+      "peakRSSBytes": 489259008,
+      "wallLimitSeconds": 120,
+      "rssScope": "tracked PPID descendants including separate process groups",
+      "exitCode": 0,
+      "stopReason": null
+    },
+    {
+      "name": "wasm-runtime-admitted",
+      "elapsedSeconds": 24.38852783400216,
+      "peakRSSBytes": 491323392,
+      "wallLimitSeconds": 120,
+      "rssScope": "tracked PPID descendants including separate process groups",
+      "exitCode": 0,
+      "stopReason": null
+    },
+    {
+      "name": "wasm-runtime-prepared",
+      "elapsedSeconds": 26.041104999996605,
+      "peakRSSBytes": 570703872,
+      "wallLimitSeconds": 120,
+      "rssScope": "tracked PPID descendants including separate process groups",
+      "exitCode": 0,
+      "stopReason": null
+    },
+    {
+      "name": "wasm-runtime-readers",
+      "elapsedSeconds": 14.287700083004893,
+      "peakRSSBytes": 479330304,
+      "wallLimitSeconds": 120,
+      "rssScope": "tracked PPID descendants including separate process groups",
+      "exitCode": 0,
+      "stopReason": null
+    },
+    {
+      "name": "wasm-runtime-resources",
+      "elapsedSeconds": 32.534962750003615,
+      "peakRSSBytes": 484884480,
+      "wallLimitSeconds": 120,
+      "rssScope": "tracked PPID descendants including separate process groups",
+      "exitCode": 0,
+      "stopReason": null
+    },
+    {
+      "name": "wasm-runtime-full",
+      "elapsedSeconds": 16.525537916000758,
+      "peakRSSBytes": 485277696,
+      "wallLimitSeconds": 120,
+      "rssScope": "tracked PPID descendants including separate process groups",
+      "exitCode": 0,
+      "stopReason": null
+    },
+    {
+      "name": "embedded-compile",
+      "elapsedSeconds": 59.481729874998564,
+      "peakRSSBytes": 3381035008,
+      "wallLimitSeconds": 1199.9999840419987,
+      "rssScope": "tracked PPID descendants including separate process groups",
+      "exitCode": 0,
+      "stopReason": null
+    },
+    {
+      "name": "embedded-link",
+      "elapsedSeconds": 52.63551608299895,
+      "peakRSSBytes": 5487198208,
+      "wallLimitSeconds": 1138.9770034169997,
+      "rssScope": "tracked PPID descendants including separate process groups",
+      "exitCode": 0,
+      "stopReason": null
+    },
+    {
+      "name": "embedded-runtime",
+      "elapsedSeconds": 28.38819120900007,
+      "peakRSSBytes": 284524544,
+      "wallLimitSeconds": 120,
+      "rssScope": "tracked PPID descendants including separate process groups",
+      "exitCode": 0,
+      "stopReason": null
+    }
+  ],
+  "logSHA256": {
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan-compile.log": "f288e4cf8d82d2bee22506e2547dd6a356a3b69fe64c022fc5ca1b2d66a75bec",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan-link.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan-runtime-ordinary.log": "7c59dd7c23672804650692152121f621016159fd84f8921e632488434153fc2b",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan-runtime-admitted.log": "7fa68276fb18765ddadfce8e58f636cf57e248a32d7e2fc436b645f42e3fe095",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan-runtime-prepared.log": "00cd7915cb0d14999298238c95733d4e062a4c02fb6913e5c62c00f7b277f795",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan-runtime-readers.log": "7061157b4225c3d88d03351aaf39a4fdbf707b445f666a02255f670ae2b858fa",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan-runtime-resources.log": "9d95120b75371fdf0d5bc873df811bdc7726530fb2ab0c62201753f38edcfb5b",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan-runtime-full.log": "e4fbc0f2609afcdd8fc87b6776638758676ba0a0f7c03976798d86f935daa6b6",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm-compile.log": "f288e4cf8d82d2bee22506e2547dd6a356a3b69fe64c022fc5ca1b2d66a75bec",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm-link.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm-runtime-ordinary.log": "ab00ac08f8cc2077089400ddd1be69cff9cb1a713a2c51c71846aab9f8fdf427",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm-runtime-admitted.log": "9a146b535284b2d6eac766e686cd08df5236e7b9b31fc76aa3f6e0c44ab0cff8",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm-runtime-prepared.log": "5ca1cae568548948f66c9636ebbcaf103c20c3b9a8d22e198523b4cf2af6f4a4",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm-runtime-readers.log": "7302c2c9bdf01586079591d43fb6237024034d1533eaf8d888cbca86c3c50cd7",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm-runtime-resources.log": "432044088e8a029fa8c06b1ca512122fe91898220edbe2e3333e7db054f3bf3a",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm-runtime-full.log": "9fd1afeece9c64a9a09cbb816394f105e941e51f0a92815a2459f81e77b61691",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/embedded-compile.log": "14c853a92b75768d8ee67eebd2a931182439234ab6c8c81b58604b895de1d510",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/embedded-link.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/embedded-runtime.log": "4aa46e4dc08ac61a224c515e706c0af1a561a5a8cb1a5738a149ddf22b00462c",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/driver.log": "57bd111d74e4b945be5025bc1718d8f548670057c999a8eb93215ec2b3b308eb"
+  },
+  "productSHA256": {
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan/CADGeometry.swiftmodule": "65490fe110aeed2bfff88ca6b75910c6392ea50762db5f548e6896ad15d3183a",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan/CADGeometry.code.o": "11d3e145f59a5a1e2685a73ab683c6bbe925f31f881bdb8250d3f69ddae4c54a",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan/dependencies/InternalCollectionsUtilities.swiftmodule": "3fc85570a4ea70654140f935502abeccb90318927a62f0db7426621873e6dad1",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan/dependencies/InternalCollectionsUtilities.o": "9f3dc10f3f0adb524020c06c3f4178c043d9f07648d7ad74ed29bd44b6ddc297",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan/dependencies/HashTreeCollections.swiftmodule": "060cda3aa340304244cf6004e208e94fabd80476c8cdc267ce748e33343636ae",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan/dependencies/HashTreeCollections.o": "43289ecd457d19fd545c9cde973f38fb656a4fd69a64448f34320d90ec3d0891",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan/dependencies/CADCore.swiftmodule": "fb86a0f63917470ed502f74c71c27b3ba08b6983733310520a1f0aa1ea3bd65a",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan/dependencies/CADCore.code.o": "baae09e7b9480c77d10f9bb9faccc17e9edd6c517ac4fca26ddc2103a89a2ed4",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/asan/GeometryPublicFixture": "865052750927aab76afa4671611e9ba25244f49720e8deae0bff4eadbdf9f43b",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm/CADGeometry.swiftmodule": "7f97a6677e4e9e25cf4359b9cc69e40cac0e82b8b7836493cf3609cb40e63d3b",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm/CADGeometry.code.o": "bcf726f15408d0ff42a9d9f9b693e590e0fa62d869ce84d2ca515b2ed3f8e865",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm/dependencies/InternalCollectionsUtilities.swiftmodule": "2df6fad7b836fdb183efa9fbd16f0462c02c4c475206f5006312bf3c0389e646",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm/dependencies/InternalCollectionsUtilities.o": "426a9ab5bc68e56396855cb8b448a30fdc1bdf968757e9f09b9c3959d0c525f8",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm/dependencies/HashTreeCollections.swiftmodule": "1f3c02497561d6e89d576b4de6aba862745eb06112cbd8f1e376d63170d88d3f",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm/dependencies/HashTreeCollections.o": "4402f8e94277245696ad78f319c3e67e06542d10e3cb35b1d933009292331d81",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm/dependencies/CADCore.swiftmodule": "22995d9bb1cfc7d448c986ae9d98554a843065347c80002c200e7bbf707fe720",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm/dependencies/CADCore.code.o": "799cf026b98900fa2daed7a981283d6c7d309125ce3bf086c3eb1de7d93f7e22",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/wasm/GeometryPublicFixture.wasm": "b5f1c844914efef1c1d6074aada4b04a66d347e005f3fbc04b3b3e5747572350",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/embedded/CADGeometry.swiftmodule": "4cde5c60e61074f697ab4b15c4ef1088d9a3e0adaa23fb09ee0a7fb1010e7118",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/embedded/dependencies/InternalCollectionsUtilities.swiftmodule": "37a015e7fdc6ff70f6cda2cb750ab86de0589471b99e7f0cc83f473a57caf17a",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/embedded/dependencies/HashTreeCollections.swiftmodule": "e6dc2c0dac2351702fd6f67bb3625b7d04415be14251068d759104c1a11e7357",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/embedded/dependencies/CADCore.swiftmodule": "6c6ca08d067c7e0d5950ff295a52c9b94ce42c4bf3347969fee92a68aa6a2988",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-final-public-portable-20261016-r1/embedded/GeometryPublicFixture.wasm": "f9bbf8e42f84b05c3111b36ee17e66b31cc33c33ecb902558b4b9fa7618e8fc2"
+  },
+  "finalRehash": {
+    "allInputOrigins": true,
+    "allPinnedSnapshots": true,
+    "sourceAuthority": true,
+    "allPhaseLogs": true,
+    "compiledProducts": true,
+    "retainedDependencies": true,
+    "executables": true
+  },
+  "sourceDrift": [],
+  "snapshotDrift": [],
+  "productDrift": []
+}

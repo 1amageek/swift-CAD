@@ -207,10 +207,47 @@ public struct RigidTransform3D: Hashable, Sendable {
         )
     }
 
-    package func applying(
-        to curve: Curve3D,
-        tolerance: ModelingTolerance
-    ) throws -> Curve3D {
+    package func applying(to curve: Curve3D, tolerance: ModelingTolerance) throws -> Curve3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        let result = try applying(to: curve, tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+    package func applying(to curve: Curve3D, from startParameter: Double,
+        to endParameter: Double, tolerance: ModelingTolerance) throws -> Curve3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        let result = try applying(to: curve, from: startParameter, to: endParameter,
+            tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+    package func applying(to surface: Surface3D, tolerance: ModelingTolerance) throws -> Surface3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try applying(to: surface, tolerance: tolerance, using: &execution)
+    }
+
+    package func applying(to curve: BSplineCurve3D, tolerance: ModelingTolerance) throws -> BSplineCurve3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try applying(to: curve, tolerance: tolerance, using: &execution)
+    }
+
+    package func applying(to surface: BSplineSurface3D, tolerance: ModelingTolerance) throws -> BSplineSurface3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try applying(to: surface, tolerance: tolerance, using: &execution)
+    }
+
+    package func applying(to curve: Curve3D, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> Curve3D {
+        let result = try transformed(curve: curve, tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+    private func transformed(curve: Curve3D, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> Curve3D {
+        try execution.consumeWork(1)
         try validate(tolerance: tolerance)
         switch curve {
         case let .line(line):
@@ -228,22 +265,24 @@ public struct RigidTransform3D: Hashable, Sendable {
                 minorRadius: circle.radius
             ))
         case let .analytic(analytic):
-            return try applying(to: analytic, source: curve, tolerance: tolerance)
+            return try applying(to: analytic, source: curve, tolerance: tolerance, using: &execution)
         case let .bSpline(spline):
-            return .bSpline(try applying(to: spline, tolerance: tolerance))
+            return .bSpline(try applying(to: spline, tolerance: tolerance, using: &execution))
         case .parameterImage(let image):
             return .parameterImage(ParameterImageCurve3D(
-                validatedSource: try applying(to: image.source, tolerance: tolerance),
+                validatedSource: try applying(to: image.source, tolerance: tolerance, using: &execution),
                 parameterGain: image.parameterGain, offset: image.offset))
         case .originalAffineWord(let image):
             let affine = try AffineTransform3D(basisX: basisX, basisY: basisY,
                 basisZ: basisZ, translation: translation)
-            var usage = OriginalAffineImageLegacyUsage()
-            let word = try image.operationWord.appending(.forward(affine), tolerance: tolerance, usage: &usage)
+            let word = try image.operationWord.appending(.forward(affine), tolerance: tolerance, usage: &execution)
             return .originalAffineWord(try OriginalAffineWordCurve3D(source: image.source,
-                operationWord: word, tolerance: tolerance))
+                operationWord: word, tolerance: tolerance,
+                remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+                maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth,
+                usage: &execution))
         case .implicit, .surfaceLift, .certifiedIntersection, .rigidImage, .originalEndpointConnector, .originalConstructionChart, .originalAngularTransport, .originalPlaneDerivative, .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline, .originalDrafted:
-            return try rigidImage(of: curve, tolerance: tolerance)
+            return try rigidImage(of: curve, tolerance: tolerance, using: &execution)
         case .affineImage:
             let affineTransform = try AffineTransform3D(
                 basisX: basisX,
@@ -254,7 +293,8 @@ public struct RigidTransform3D: Hashable, Sendable {
             return .affineImage(try AffineImageCurve3D(
                 source: curve,
                 transform: affineTransform,
-                tolerance: tolerance
+                tolerance: tolerance,
+                using: &execution
             ))
         }
     }
@@ -263,20 +303,24 @@ public struct RigidTransform3D: Hashable, Sendable {
         to curve: Curve3D,
         from startParameter: Double,
         to endParameter: Double,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution
     ) throws -> Curve3D {
+        try execution.checkpoint()
         guard startParameter.isFinite, endParameter.isFinite else {
             throw GeometryError.invalidDistance(
                 startParameter.isFinite ? endParameter : startParameter
             )
         }
-        return try applying(to: curve, tolerance: tolerance)
+        return try applying(to: curve, tolerance: tolerance, using: &execution)
     }
 
     package func applying(
         to surface: Surface3D,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution
     ) throws -> Surface3D {
+        try execution.consumeWork(1)
         try validate(tolerance: tolerance)
         let transformed: Surface3D
         switch surface {
@@ -327,35 +371,41 @@ public struct RigidTransform3D: Hashable, Sendable {
                 ))
             }
         case let .bSpline(spline):
-            transformed = .bSpline(try applying(to: spline, tolerance: tolerance))
+            transformed = .bSpline(try applying(to: spline, tolerance: tolerance, using: &execution))
         case let .procedural(procedural):
             switch procedural {
             case .originalAffineWord(let image):
                 let affine = try AffineTransform3D(basisX: basisX, basisY: basisY,
                     basisZ: basisZ, translation: translation)
-                var usage = OriginalAffineImageLegacyUsage()
-                let word = try image.operationWord.appending(.forward(affine), tolerance: tolerance, usage: &usage)
+                let word = try image.operationWord.appending(.forward(affine), tolerance: tolerance, usage: &execution)
                 transformed = .procedural(.originalAffineWord(try OriginalAffineWordSurface3D(
-                    source: image.source, operationWord: word, tolerance: tolerance)))
+                    source: image.source, operationWord: word, tolerance: tolerance,
+                    remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+                    maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth,
+                    usage: &execution)))
             case .originalImage, .originalRevolution, .originalCoons, .originalBoundaryCorrected, .originalAngularTransport, .originalPlaneDerivative, .originalDrafted:
                 let affine = try AffineTransform3D(basisX: basisX, basisY: basisY,
                     basisZ: basisZ, translation: translation)
                 transformed = .affineImage(try OriginalImageSurface3D(source: surface,
                     uParameterGain: .binary(1), vParameterGain: .binary(1),
-                    transform: affine, tolerance: tolerance))
+                    transform: affine, tolerance: tolerance,
+                    remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+                    maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth,
+                    using: &execution))
 
             case let .rollingBall(blend):
                 transformed = .procedural(.rollingBall(RollingBallBlendSurface3D(
-                    centerSpine: try applying(to: blend.centerSpine, tolerance: tolerance),
-                    firstContact: try applying(to: blend.firstContact, tolerance: tolerance),
-                    secondContact: try applying(to: blend.secondContact, tolerance: tolerance),
+                    centerSpine: try applying(to: blend.centerSpine, tolerance: tolerance, using: &execution),
+                    firstContact: try applying(to: blend.firstContact, tolerance: tolerance, using: &execution),
+                    secondContact: try applying(to: blend.secondContact, tolerance: tolerance, using: &execution),
                     radius: blend.radius, tolerance: blend.tolerance
                 )))
             case let .offset(offset):
                 transformed = .procedural(.offset(OffsetSurface3D(
                     source: try applying(
                         to: offset.source,
-                        tolerance: tolerance
+                        tolerance: tolerance,
+                        using: &execution
                     ),
                     distance: offset.distance
                 )))
@@ -363,53 +413,70 @@ public struct RigidTransform3D: Hashable, Sendable {
                 transformed = .procedural(.ruled(RuledSurface3D(
                     startBoundary: try applying(
                         to: ruled.startBoundary,
-                        tolerance: tolerance
+                        tolerance: tolerance,
+                        using: &execution
                     ),
                     endBoundary: try applying(
                         to: ruled.endBoundary,
-                        tolerance: tolerance
+                        tolerance: tolerance,
+                        using: &execution
                     ),
                     uDomain: ruled.uDomain
                 )))
             }
         }
-        try transformed.validate(tolerance: tolerance)
+        try transformed.validate(tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
         return transformed
     }
 
-    package func applying(
-        to curve: BSplineCurve3D,
-        tolerance: ModelingTolerance
-    ) throws -> BSplineCurve3D {
-        let transformed = BSplineCurve3D(
-            degree: curve.degree,
-            knots: curve.knots,
-            controlPoints: curve.controlPoints.map(applying(to:)),
-            weights: curve.weights,
-            isPeriodic: curve.isPeriodic,
-            periodicOrigin: curve.periodicOrigin
-        )
-        try transformed.validate(tolerance: tolerance)
+    package func applying<A: ExactScalarAdmission & ~Copyable>(
+        to curve: BSplineCurve3D, tolerance: ModelingTolerance,
+        using execution: inout A) throws -> BSplineCurve3D {
+        try execution.consumeWork(1)
+        try OriginalCoefficientAllocation.reserve(count: curve.controlPoints.count,
+            of: Point3D.self, using: &execution)
+        var points: [Point3D] = []
+        points.reserveCapacity(curve.controlPoints.count)
+        for point in curve.controlPoints {
+            try execution.consumeWork(1)
+            points.append(applying(to: point))
+        }
+        let transformed = BSplineCurve3D(degree: curve.degree, knots: curve.knots,
+            controlPoints: points, weights: curve.weights, isPeriodic: curve.isPeriodic,
+            periodicOrigin: curve.periodicOrigin)
+        try transformed.validate(tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
         return transformed
     }
 
-    package func applying(
-        to surface: BSplineSurface3D,
-        tolerance: ModelingTolerance
-    ) throws -> BSplineSurface3D {
-        let transformed = BSplineSurface3D(
-            uDegree: surface.uDegree,
-            vDegree: surface.vDegree,
-            uKnots: surface.uKnots,
-            vKnots: surface.vKnots,
-            controlPoints: surface.controlPoints.map { row in
-                row.map(applying(to:))
-            },
-            weights: surface.weights,
-            isUPeriodic: surface.isUPeriodic, isVPeriodic: surface.isVPeriodic,
-            uPeriodicOrigin: surface.uPeriodicOrigin, vPeriodicOrigin: surface.vPeriodicOrigin
-        )
-        try transformed.validate(tolerance: tolerance)
+    package func applying<A: ExactScalarAdmission & ~Copyable>(
+        to surface: BSplineSurface3D, tolerance: ModelingTolerance,
+        using execution: inout A) throws -> BSplineSurface3D {
+        try execution.consumeWork(1)
+        try OriginalCoefficientAllocation.reserve(count: surface.controlPoints.count,
+            of: [Point3D].self, using: &execution)
+        var rows: [[Point3D]] = []
+        rows.reserveCapacity(surface.controlPoints.count)
+        for row in surface.controlPoints {
+            try execution.consumeWork(1)
+            try OriginalCoefficientAllocation.reserve(count: row.count,
+                of: Point3D.self, using: &execution)
+            var points: [Point3D] = []
+            points.reserveCapacity(row.count)
+            for point in row {
+                try execution.consumeWork(1)
+                points.append(applying(to: point))
+            }
+            rows.append(points)
+        }
+        let transformed = BSplineSurface3D(uDegree: surface.uDegree, vDegree: surface.vDegree,
+            uKnots: surface.uKnots, vKnots: surface.vKnots, controlPoints: rows,
+            weights: surface.weights, isUPeriodic: surface.isUPeriodic,
+            isVPeriodic: surface.isVPeriodic, uPeriodicOrigin: surface.uPeriodicOrigin,
+            vPeriodicOrigin: surface.vPeriodicOrigin)
+        try transformed.validate(tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
         return transformed
     }
 
@@ -424,26 +491,30 @@ public struct RigidTransform3D: Hashable, Sendable {
 
     private func rigidImage(
         of curve: Curve3D,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution
     ) throws -> Curve3D {
         if case let .rigidImage(image) = curve {
             return .rigidImage(try RigidImageCurve3D(
                 source: image.source,
                 transform: composed(after: image.transform),
-                tolerance: tolerance
+                tolerance: tolerance,
+                using: &execution
             ))
         }
         return .rigidImage(try RigidImageCurve3D(
             source: curve,
             transform: self,
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
         ))
     }
 
     private func applying(
         to curve: AnalyticCurve3D,
         source: Curve3D,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution
     ) throws -> Curve3D {
         switch curve {
         case let .line(origin, direction):
@@ -461,7 +532,7 @@ public struct RigidTransform3D: Hashable, Sendable {
                 minorRadius: radius
             ))
         case .arc, .planeTorus:
-            return try rigidImage(of: source, tolerance: tolerance)
+            return try rigidImage(of: source, tolerance: tolerance, using: &execution)
         case let .ellipse(center, normal, majorAxis, majorRadius, minorRadius):
             return .analytic(.ellipse(
                 center: applying(to: center),

@@ -26,9 +26,12 @@ struct StandingRevolvedUnionPlan: Sendable {
     let circle: (center: Point3D, radius: Double)
 
     /// The plan when either operand stands on the other so; nil for any other pair.
-    init?(targetBodyID: BodyID, toolBodyID: BodyID, model: BRepModel, tolerance: ModelingTolerance) throws {
+    init?(targetBodyID: BodyID, toolBodyID: BodyID, model: BRepModel, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         for (larger, smaller) in [(targetBodyID, toolBodyID), (toolBodyID, targetBodyID)] {
-            if let found = try Self.standing(smaller, on: larger, model: model, tolerance: tolerance) {
+            try execution.consumeWork(1)
+            if let found = try Self.standing(smaller, on: larger, model: model, tolerance: tolerance, using: &execution) {
                 largerBodyID = larger
                 smallerBodyID = smaller
                 annulusFaceID = found.face
@@ -43,12 +46,14 @@ struct StandingRevolvedUnionPlan: Sendable {
 
     /// The face of `larger` the revolved `smaller` stands on and `smaller`'s cap on it.
     private static func standing(_ smaller: BodyID, on larger: BodyID, model: BRepModel,
-                                 tolerance: ModelingTolerance) throws -> (face: FaceID, cap: FaceID, flush: Bool, circle: (center: Point3D, radius: Double))? {
-        for (axis, center, radius, outward) in try ends(of: smaller, model: model, tolerance: tolerance) {
-            guard let stoodOn = try face(of: larger, at: center, outward: outward, model: model, tolerance: tolerance),
-                  try bounds(larger, plane: (center, outward), model: model, tolerance: tolerance),
-                  let cap = try face(of: smaller, at: center, outward: outward * -1, model: model, tolerance: tolerance) else { continue }
-            if try flushCap(larger, axis: axis, center: center, radius: radius, model: model, tolerance: tolerance) {
+                                 tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> (face: FaceID, cap: FaceID, flush: Bool, circle: (center: Point3D, radius: Double))? {
+        try execution.consumeWork(1)
+        for (axis, center, radius, outward) in try ends(of: smaller, model: model, tolerance: tolerance, using: &execution) {
+            try execution.consumeWork(1)
+            guard let stoodOn = try face(of: larger, at: center, outward: outward, model: model, tolerance: tolerance, using: &execution),
+                  try bounds(larger, plane: (center, outward), model: model, tolerance: tolerance, using: &execution),
+                  let cap = try face(of: smaller, at: center, outward: outward * -1, model: model, tolerance: tolerance, using: &execution) else { continue }
+            if try flushCap(larger, axis: axis, center: center, radius: radius, model: model, tolerance: tolerance, using: &execution) {
                 return (stoodOn, cap, true, (center, radius))
             }
             // FIXME(INCOMPLETE_IMPLEMENTATION): a disc reaching the face's edges other than a
@@ -57,7 +62,7 @@ struct StandingRevolvedUnionPlan: Sendable {
             // Boolean then refuses. Production path: Boolean union through
             // ExactBRepBooleanEvaluator.makePlan. Complete only when such contacts join, verified by
             // a boss standing across a plate's edge.
-            guard try clears(stoodOn, disc: (center, radius), normal: outward, model: model, tolerance: tolerance) else { continue }
+            guard try clears(stoodOn, disc: (center, radius), normal: outward, model: model, tolerance: tolerance, using: &execution) else { continue }
             return (stoodOn, cap, false, (center, radius))
         }
         return nil
@@ -66,27 +71,30 @@ struct StandingRevolvedUnionPlan: Sendable {
     /// The ends a revolved body can stand on: its axis, the end's centre and radius, and the
     /// direction from that end into the body (the outward normal of the face it stands on). A
     /// cylinder or frustum has two; a pointed cone has its base.
-    private static func ends(of bodyID: BodyID, model: BRepModel, tolerance: ModelingTolerance) throws
+    private static func ends(of bodyID: BodyID, model: BRepModel, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws
         -> [(axis: Vector3D, center: Point3D, radius: Double, outward: Vector3D)] {
+        try execution.consumeWork(1)
         do {
-            let operand = try RevolvedSolidOperand(bodyID: bodyID, model: model, tolerance: tolerance)
+            let operand = try RevolvedSolidOperand(bodyID: bodyID, model: model, tolerance: tolerance, using: &execution)
             let axis = operand.axis
             return [(operand.lowerCoordinate, operand.upperCoordinate), (operand.upperCoordinate, operand.lowerCoordinate)].map { coordinate, other in
                 (axis, operand.center(at: coordinate), operand.radius(at: coordinate), axis * (other > coordinate ? 1 : -1))
             }
-        } catch let error as KernelError where error.code == .unsupportedCapability {
-            return try pointedConeBase(of: bodyID, model: model, tolerance: tolerance).map { [$0] } ?? []
+        } catch let error where OriginalQueryFailure.classification(of: error)?.code == .unsupportedCapability {
+            return try pointedConeBase(of: bodyID, model: model, tolerance: tolerance, using: &execution).map { [$0] } ?? []
         }
     }
 
     /// A pointed cone's base: a body bounded by faces of one cone and planar faces of one plane
     /// square to its axis, every vertex its apex or on the base's circle.
-    private static func pointedConeBase(of bodyID: BodyID, model: BRepModel, tolerance: ModelingTolerance) throws
+    private static func pointedConeBase(of bodyID: BodyID, model: BRepModel, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws
         -> (axis: Vector3D, center: Point3D, radius: Double, outward: Vector3D)? {
+        try execution.consumeWork(1)
         guard let body = model.bodies[bodyID], body.kind == .solid, body.shellIDs.count == 1 else { return nil }
         var cone: (apex: Point3D, axis: Vector3D, halfAngle: Double)?
         var base: (origin: Point3D, normal: Vector3D)?
-        for faceID in try faces(of: bodyID, model: model) {
+        for faceID in try faces(of: bodyID, model: model, using: &execution) {
+            try execution.consumeWork(1)
             guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID] else {
                 throw TopologyError.missingReference("A face is missing.")
             }
@@ -98,7 +106,7 @@ struct StandingRevolvedUnionPlan: Sendable {
                 } else {
                     cone = (apex, unit, halfAngle)
                 }
-            } else if let plane = try DefaultPlanarSurfaceResolver().exactPlane(for: surface, tolerance: tolerance) {
+            } else if let plane = try DefaultPlanarSurfaceResolver().exactPlane(for: surface, tolerance: tolerance, using: &execution) {
                 let normal = try plane.normal.normalized(tolerance: tolerance.distance)
                 if let base {
                     guard abs(abs(base.normal.dot(normal)) - 1) <= tolerance.angle,
@@ -115,8 +123,9 @@ struct StandingRevolvedUnionPlan: Sendable {
         guard abs(depth) > tolerance.distance else { return nil }
         let center = cone.apex + cone.axis * depth
         let radius = abs(depth) * tan(cone.halfAngle)
-        let scope = try BodyTopologyScope(bodyID: bodyID, model: model)
+        let scope = try BodyTopologyScope(bodyID: bodyID, model: model, using: &execution)
         for reference in scope.references {
+            try execution.consumeWork(1)
             guard case let .vertex(vertexID) = reference else { continue }
             guard let point = model.vertices[vertexID]?.point else { throw TopologyError.missingReference("A vertex is missing.") }
             let offset = point - center
@@ -129,11 +138,12 @@ struct StandingRevolvedUnionPlan: Sendable {
 
     /// Whether a body is a revolved solid coaxial with the standing one, of its radius at `center`.
     private static func flushCap(_ bodyID: BodyID, axis: Vector3D, center: Point3D, radius: Double, model: BRepModel,
-                                 tolerance: ModelingTolerance) throws -> Bool {
+                                 tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.consumeWork(1)
         let operand: RevolvedSolidOperand
         do {
-            operand = try RevolvedSolidOperand(bodyID: bodyID, model: model, tolerance: tolerance)
-        } catch let error as KernelError where error.code == .unsupportedCapability {
+            operand = try RevolvedSolidOperand(bodyID: bodyID, model: model, tolerance: tolerance, using: &execution)
+        } catch let error where OriginalQueryFailure.classification(of: error)?.code == .unsupportedCapability {
             return false
         }
         guard abs(abs(operand.axis.dot(axis)) - 1) <= tolerance.angle else { return false }
@@ -147,10 +157,12 @@ struct StandingRevolvedUnionPlan: Sendable {
 
     /// The planar face of a body through `point` looking out along `outward`.
     private static func face(of bodyID: BodyID, at point: Point3D, outward: Vector3D, model: BRepModel,
-                             tolerance: ModelingTolerance) throws -> FaceID? {
-        for faceID in try faces(of: bodyID, model: model) {
+                             tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> FaceID? {
+        try execution.consumeWork(1)
+        for faceID in try faces(of: bodyID, model: model, using: &execution) {
+            try execution.consumeWork(1)
             guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID],
-                  let plane = try DefaultPlanarSurfaceResolver().exactPlane(for: surface, tolerance: tolerance) else { continue }
+                  let plane = try DefaultPlanarSurfaceResolver().exactPlane(for: surface, tolerance: tolerance, using: &execution) else { continue }
             let normal = try plane.normal.normalized(tolerance: tolerance.distance) * (face.orientation == .forward ? 1 : -1)
             guard normal.dot(outward) >= 1 - tolerance.angle, abs((point - plane.origin).dot(normal)) <= tolerance.distance else { continue }
             return faceID
@@ -161,9 +173,11 @@ struct StandingRevolvedUnionPlan: Sendable {
     /// Whether the plane bounds the body: every vertex on its inner side, and every face a plane or
     /// a cylinder whose axis runs across it (whose points lie between its edges' along the normal).
     private static func bounds(_ bodyID: BodyID, plane: (origin: Point3D, normal: Vector3D), model: BRepModel,
-                               tolerance: ModelingTolerance) throws -> Bool {
-        let scope = try BodyTopologyScope(bodyID: bodyID, model: model)
+                               tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.consumeWork(1)
+        let scope = try BodyTopologyScope(bodyID: bodyID, model: model, using: &execution)
         for reference in scope.references {
+            try execution.consumeWork(1)
             switch reference {
             case let .vertex(vertexID):
                 guard let point = model.vertices[vertexID]?.point else { throw TopologyError.missingReference("A vertex is missing.") }
@@ -172,7 +186,7 @@ struct StandingRevolvedUnionPlan: Sendable {
                 guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID] else {
                     throw TopologyError.missingReference("A face is missing.")
                 }
-                if try DefaultPlanarSurfaceResolver().exactPlane(for: surface, tolerance: tolerance) != nil { continue }
+                if try DefaultPlanarSurfaceResolver().exactPlane(for: surface, tolerance: tolerance, using: &execution) != nil { continue }
                 switch surface {
                 case let .cylinder(cylinder):
                     if abs(abs(try cylinder.axis.normalized(tolerance: tolerance.distance).dot(plane.normal)) - 1) > tolerance.angle { return false }
@@ -192,7 +206,8 @@ struct StandingRevolvedUnionPlan: Sendable {
     /// outline and outside every hole, and every straight or circular edge farther from the
     /// centre than the disc reaches.
     private static func clears(_ faceID: FaceID, disc: (center: Point3D, radius: Double), normal: Vector3D, model: BRepModel,
-                               tolerance: ModelingTolerance) throws -> Bool {
+                               tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.consumeWork(1)
         guard let face = model.faces[faceID] else { throw TopologyError.missingReference("A face is missing.") }
         let reach = disc.radius + tolerance.distance
         var crossings = 0
@@ -201,8 +216,10 @@ struct StandingRevolvedUnionPlan: Sendable {
         let ray = try (seed - normal * seed.dot(normal)).normalized(tolerance: tolerance.distance)
         let side = normal.cross(ray)
         for loopID in face.loops {
+            try execution.consumeWork(1)
             guard let loop = model.loops[loopID] else { throw TopologyError.missingReference("A loop is missing.") }
             for coedge in loop.coedges {
+            try execution.consumeWork(1)
                 guard let edge = model.edges[coedge.edgeID], let curve = model.geometry.curves[edge.curveID],
                       let a = model.vertices[edge.startVertexID]?.point, let b = model.vertices[edge.endVertexID]?.point else {
                     throw TopologyError.missingReference("An edge is missing.")
@@ -225,12 +242,13 @@ struct StandingRevolvedUnionPlan: Sendable {
                     // sample the arc's crossings with the ray.
                     let samples = 64
                     let curve = Curve3D.circle(circle)
-                    let t0 = try curve.parameterProjection(of: a, tolerance: tolerance).parameter
-                    var t1 = try curve.parameterProjection(of: b, tolerance: tolerance).parameter
+                    let t0 = try curve.parameterProjection(of: a, tolerance: tolerance, using: &execution).parameter
+                    var t1 = try curve.parameterProjection(of: b, tolerance: tolerance, using: &execution).parameter
                     if let trim = edge.trim { t1 = t0 + (trim.endParameter - trim.startParameter) } else if t1 <= t0 { t1 += 2 * Double.pi }
-                    var previous = try curve.point(at: t0, tolerance: tolerance)
+                    var previous = try curve.point(at: t0, tolerance: tolerance, using: &execution)
                     for k in 1...samples {
-                        let point = try curve.point(at: t0 + (t1 - t0) * Double(k) / Double(samples), tolerance: tolerance)
+            try execution.consumeWork(1)
+                        let point = try curve.point(at: t0 + (t1 - t0) * Double(k) / Double(samples), tolerance: tolerance, using: &execution)
                         let (sa, sb) = ((previous - disc.center).dot(side), (point - disc.center).dot(side))
                         if (sa > 0) != (sb > 0) {
                             let crossing = previous + (point - previous) * (sa / (sa - sb))
@@ -246,9 +264,11 @@ struct StandingRevolvedUnionPlan: Sendable {
         return crossings % 2 == 1
     }
 
-    private static func faces(of bodyID: BodyID, model: BRepModel) throws -> [FaceID] {
+    private static func faces(of bodyID: BodyID, model: BRepModel, using execution: inout OriginalQueryExecution) throws -> [FaceID] {
+        try execution.consumeWork(1)
         guard let body = model.bodies[bodyID] else { throw TopologyError.missingReference("A Boolean operand body is missing.") }
         return try body.shellIDs.flatMap { shellID -> [FaceID] in
+            try execution.consumeWork(1)
             guard let shell = model.shells[shellID] else { throw TopologyError.missingReference("A Boolean operand shell is missing.") }
             return shell.faceIDs
         }
@@ -258,15 +278,18 @@ struct StandingRevolvedUnionPlan: Sendable {
     /// as a hole (wound as the dropped cap's loop was: the two face each other, so it winds the
     /// other way about the face's outward normal, as a hole does).
     func request(featureID: FeatureID, model: BRepModel, subshapes: [SubshapeID: TopologyReference],
-                 tolerance: ModelingTolerance) throws -> BRepSewingRequest {
+                 tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> BRepSewingRequest {
+        try execution.consumeWork(1)
         let builder = SourceBRepFacePatchBuilder()
         var patches: [BRepSewingFacePatch] = []
         var annulus: BRepSewingFacePatch?
         var dropped: BRepSewingFacePatch?
         for (prefix, bodyID) in [("standing-union:larger", largerBodyID), ("standing-union:smaller", smallerBodyID)] {
-            for (index, faceID) in try Self.faces(of: bodyID, model: model).enumerated() {
+            try execution.consumeWork(1)
+            for (index, faceID) in try Self.faces(of: bodyID, model: model, using: &execution).enumerated() {
+            try execution.consumeWork(1)
                 let patch = try builder.build(faceID: faceID, stableID: "\(prefix):face:\(index)", from: model,
-                                              sourceSubshapes: subshapes, tolerance: tolerance).patch
+                                              sourceSubshapes: subshapes, tolerance: tolerance, using: &execution).patch
                 if faceID == annulusFaceID { annulus = patch } else if faceID == droppedFaceID { dropped = patch } else { patches.append(patch) }
             }
         }
@@ -276,9 +299,10 @@ struct StandingRevolvedUnionPlan: Sendable {
         }
         if flush {
             // Both caps go; each wall's rim on the shared circle is split where the other's is.
-            let planeNormal = try annulus.surface.normal(u: 0, v: 0, tolerance: tolerance)
+            let planeNormal = try annulus.surface.normal(u: 0, v: 0, tolerance: tolerance, using: &execution)
             func onCircle(_ edge: BRepSewingEdge) throws -> Bool {
-                let middle = try edge.curve.point(at: 0.5 * (edge.startParameter + edge.endParameter), tolerance: tolerance)
+                try execution.consumeWork(1)
+                let middle = try edge.curve.point(at: 0.5 * (edge.startParameter + edge.endParameter), tolerance: tolerance, using: &execution)
                 return [edge.startPoint, edge.endPoint, middle].allSatisfy { point in
                     let offset = point - circle.center
                     return abs(offset.length - circle.radius) <= tolerance.distance && abs(offset.dot(planeNormal)) <= tolerance.distance
@@ -292,7 +316,7 @@ struct StandingRevolvedUnionPlan: Sendable {
                 BRepSewingFacePatch(stableID: patch.stableID, surface: patch.surface, orientation: patch.orientation,
                                     loops: try patch.loops.map { loop in
                                         BRepSewingLoop(stableID: loop.stableID, role: loop.role, edges: try loop.edges.flatMap { edge in
-                                            try onCircle(edge) ? try subdivider.subdivide(edge, at: corners, tolerance: tolerance) : [edge]
+                                            try onCircle(edge) ? try subdivider.subdivide(edge, at: corners, tolerance: tolerance, using: &execution) : [edge]
                                         })
                                     }, parentSubshapeIDs: patch.parentSubshapeIDs)
             }
@@ -305,7 +329,7 @@ struct StandingRevolvedUnionPlan: Sendable {
                            startPoint: edge.startPoint, endPoint: edge.endPoint,
                            surfaceParameterCurve: try pcurves.surfaceParameterCurve(
                                for: edge.curve, startParameter: edge.startParameter, endParameter: edge.endParameter,
-                               on: annulus.surface, tolerance: tolerance),
+                               on: annulus.surface, tolerance: tolerance, using: &execution),
                            parentSubshapeIDs: edge.parentSubshapeIDs,
                            startVertexParentSubshapeIDs: edge.startVertexParentSubshapeIDs,
                            endVertexParentSubshapeIDs: edge.endVertexParentSubshapeIDs)

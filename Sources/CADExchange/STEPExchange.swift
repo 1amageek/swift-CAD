@@ -43,12 +43,13 @@ public struct STEPExchange: IndependentSTEPGeometryExchanging, CertifiedDocument
         try evaluated.validate()
         let local = evaluated.assembly?.local.model ?? evaluated.brep
         let ledger = try ExchangeConversionLedger(limits: resourceLimits, format: .step)
+        var execution = try ledger.execution()
         var stores = [local.geometry]
         if let independent = evaluated.document.independentShapes { stores.append(independent.geometry) }
         let surfaces = try ExchangeSurfaceConversionPlanner().plan(stores: stores, policy: policy, format: .step,
-            tolerance: tolerance, limits: resourceLimits, ledger: ledger)
+            tolerance: tolerance, limits: resourceLimits, ledger: ledger, using: &execution)
         let curves = try ExchangeCurveConversionPlanner().plan(breps: [local], independent: evaluated.document.independentShapes,
-            policy: policy, tolerance: tolerance, ledger: ledger, surfaceOverrides: surfaces.overrides)
+            policy: policy, tolerance: tolerance, ledger: ledger, using: &execution, surfaceOverrides: surfaces.overrides)
         guard permitsCurveReports || curves.guarantees.isEmpty else {
             throw IndependentShapeExchangeError.unsupportedSemantics("The legacy surface-only result cannot report a curve conversion; use writeConverting.")
         }
@@ -75,10 +76,11 @@ public struct STEPExchange: IndependentSTEPGeometryExchanging, CertifiedDocument
                 policy: policy, permitsCurveReports: permitsCurveReports, to: sink)
         }
         let ledger = try ExchangeConversionLedger(limits: resourceLimits, format: .step)
+        var execution = try ledger.execution()
         let surfaces = try ExchangeSurfaceConversionPlanner().plan(stores: [independent.geometry], policy: policy,
-            format: .step, tolerance: tolerance, limits: resourceLimits, ledger: ledger)
+            format: .step, tolerance: tolerance, limits: resourceLimits, ledger: ledger, using: &execution)
         let curves = try ExchangeCurveConversionPlanner().plan(breps: [], independent: independent, policy: policy,
-            tolerance: tolerance, ledger: ledger, surfaceOverrides: surfaces.overrides)
+            tolerance: tolerance, ledger: ledger, using: &execution, surfaceOverrides: surfaces.overrides)
         guard permitsCurveReports || curves.guarantees.isEmpty else {
             throw IndependentShapeExchangeError.unsupportedSemantics("The legacy surface-only result cannot report a curve conversion; use writeConverting.")
         }
@@ -129,31 +131,33 @@ public struct STEPExchange: IndependentSTEPGeometryExchanging, CertifiedDocument
             let names = try attributes.geometryNames(for: evaluated, resolved: resolved, limits: resourceLimits)
             let writer = ExactSTEPWriter(resourceLimits: resourceLimits, tolerance: tolerance, surfaceOverrides: surfaceOverrides, curveConversions: curveConversions, processingBudget: processingBudgetOverride, allowsGroupSemanticLoss: allowsGroupSemanticLoss)
             let processing = processingBudgetOverride ?? ExchangeProcessingBudget(maximumDuration: resourceLimits.maximumProcessingDuration)
-            var table = ExactSTEPWriter.EntityTable(maximumEntities: resourceLimits.maximumEntities,
+            var table = try ExactSTEPWriter.EntityTable(maximumEntities: resourceLimits.maximumEntities,
                 tolerance: tolerance, maximumBytes: resourceLimits.maximumBytes, maximumStringWork: resourceLimits.maximumIterations,
-                maximumSourceDepth: resourceLimits.maximumNesting, maximumAlgebraicDepth: resourceLimits.maximumAlgebraicDepth, processingBudget: processing)
+                maximumSourceDepth: resourceLimits.maximumNesting, maximumAlgebraicDepth: resourceLimits.maximumAlgebraicDepth, processingBudget: processing, maximumSubdivisionDepth: resourceLimits.maximumCurveSubdivisionDepth)
+            var execution = try table.execution()
             if evaluated.document.independentShapes != nil {
-                table.independentUsage = try IndependentShapeExchangeUsage(limits: resourceLimits, format: .step, processing: processing,
-                    consumedEntities: 0, consumedWork: resolved.consumedWork, consumedBytes: 0)
+                table.independentUsage = try IndependentShapeExchangeOwner(limits: resourceLimits, format: .step, processing: processing,
+                    originalBudget: table.originalBudget)
+                try table.independentUsage!.charge(work: resolved.consumedWork, using: &execution)
             }
             let product = try writer.appendDefinition(brep: evaluated.brep, units: outputUnits,
                 identifier: "SWIFTCAD", name: evaluated.document.metadata.name ?? "",
-                additionalItems: [], bodyNames: names.bodies, faceNames: names.faces, table: &table)
+                additionalItems: [], bodyNames: names.bodies, faceNames: names.faces, table: &table, using: &execution)
             try STEPSourceIdentityWriter().append(uuid: evaluated.document.id.description, role: .documentCarrier,
-                target: product.definition, table: &table)
+                target: product.definition, table: &table, using: &execution)
             var transfer = STEPAttributeWriteTransfer()
             transfer.products[AssemblyDefinitionID()] = STEPAttributeProductRepresentation(definition: product.definition,
                 definitionShape: product.definitionShape, representation: product.representation, context: product.context,
                 geometryRepresentation: product.geometryRepresentation, carrier: product.carrier, bodies: product.bodies, faces: product.faces)
             let records = try attributes.records(for: evaluated, resolved: resolved, transfer: transfer,
                 startingAt: table.entities.count + 1, limits: resourceLimits)
-            for record in records { _ = try table.add(record) }
+            for record in records { _ = try table.add(record, using: &execution) }
             if let independent = evaluated.document.independentShapes {
                 guard var usage = table.independentUsage else { throw IndependentShapeExchangeError.invalidAssociation("Missing composed STEP caller ledger.") }
-                try usage.validateDocument(evaluated.document, tolerance: tolerance)
+                try usage.validateDocument(evaluated.document, tolerance: tolerance, using: &execution)
                 var bodyBindings: [SubshapeID: IndependentSTEPBodyBinding] = [:]
                 for (selector, reference) in evaluated.subshapes.entries {
-                    try usage.charge(entities: 1, work: 1)
+                    try usage.charge(entities: 1, work: 1, using: &execution)
                     guard case .body(let id) = reference else { continue }
                     guard let entities = product.bodies[id], entities.count == 1, let entity = entities.first else {
                         throw IndependentShapeExchangeError.invalidAssociation("Original Body selector has no sole emitted source entity.")
@@ -161,9 +165,9 @@ public struct STEPExchange: IndependentSTEPGeometryExchanging, CertifiedDocument
                     bodyBindings[selector] = try IndependentSTEPBodyBinding(entityID: entity, lengthUnit: outputUnits.length)
                 }
                 try writer.appendIndependent(independent, units: outputUnits, table: &table,
-                    bodyBindings: bodyBindings, bodySourceGraph: evaluated.document.designGraph, usage: &usage)
+                    bodyBindings: bodyBindings, bodySourceGraph: evaluated.document.designGraph, usage: usage, using: &execution)
             }
-            try writer.publish(table: table, to: sink)
+            try writer.publish(table: table, to: sink, using: &execution)
         }
     }
 
@@ -176,10 +180,11 @@ public struct STEPExchange: IndependentSTEPGeometryExchanging, CertifiedDocument
             try write(DocumentEvaluator(tolerance: tolerance).evaluateExact(document), units: units, to: sink)
             return
         }
-        var usage = try IndependentShapeExchangeUsage(limits:resourceLimits,format:.step,processing:processingBudgetOverride ?? ExchangeProcessingBudget(maximumDuration: resourceLimits.maximumProcessingDuration),consumedEntities:0,consumedWork:0,consumedBytes:0)
-        try usage.validateDocument(document,tolerance:tolerance)
+        var usage = try IndependentShapeExchangeOwner(limits:resourceLimits,format:.step,processing:processingBudgetOverride ?? ExchangeProcessingBudget(maximumDuration: resourceLimits.maximumProcessingDuration),consumedEntities:0,consumedWork:0,consumedBytes:0)
+        var execution = try usage.execution()
+        try usage.validateDocument(document,tolerance:tolerance, using: &execution)
         try ExactSTEPWriter(resourceLimits:resourceLimits,tolerance:tolerance,surfaceOverrides:surfaceOverrides,curveConversions:curveConversions,processingBudget:processingBudgetOverride,allowsGroupSemanticLoss:allowsGroupSemanticLoss)
-            .writeIndependent(source,units:units ?? document.units,to:sink,usage:&usage)
+            .writeIndependent(source,units:units ?? document.units,to:sink,usage:usage, using: &execution)
     }
 
     public func writeIndependentGeometry(_ model: IndependentSTEPGeometry, to sink: any ByteSink) throws {
@@ -220,16 +225,17 @@ public struct STEPExchange: IndependentSTEPGeometryExchanging, CertifiedDocument
                 try budget.check(format: .step)
                 let syntax = normalizedSTEPText(stepSyntaxOutsideStrings(in: entity))
                 guard !forbidden.contains(where: { syntax.hasPrefix($0) }),
-                    isSupportedSTEPEntity(entity) || additional.contains(where: { syntax.hasPrefix($0) }) else {
+                    isSupportedSTEPEntity(syntax: entity) || additional.contains(where: { syntax.hasPrefix($0) }) else {
                     throw KernelError(phase: .exchange, code: .unsupportedCapability, tolerance: tolerance,
                         message: "Standalone STEP input contains unsupported or mixed topology semantics.")
                 }
             }
-            let length = try stepLengthUnit(in: entities)
-            var usage = try IndependentShapeExchangeUsage(limits: resourceLimits, processing: budget,
+            let length = try stepLengthUnit(in: entities, budget: budget)
+            var usage = try IndependentShapeExchangeOwner(limits: resourceLimits, processing: budget,
                 consumedEntities: entities.count, consumedWork: lexicalWork, consumedBytes: 0)
+        var execution = try usage.execution()
             return try ExactSTEPReader(entities: entities, lengthUnit: length,
-                processingBudget: budget, tolerance: tolerance).readIndependentGeometry(usage: &usage)
+                processingBudget: budget, tolerance: tolerance).readIndependentGeometry(usage: usage, using: &execution)
         }
     }
 
@@ -379,29 +385,29 @@ public struct STEPExchange: IndependentSTEPGeometryExchanging, CertifiedDocument
         }
         let hasBodies = names.values.contains { ["MANIFOLD_SOLID_BREP", "BREP_WITH_VOIDS", "SHELL_BASED_SURFACE_MODEL"].contains($0) }
         let hasMaterialDesignation = names.values.contains("MATERIAL_DESIGNATION")
-        var sourceAdmission = try IndependentShapeExchangeUsage(limits: resourceLimits, format: .step, processing: budget,
+        var sourceAdmission = try IndependentShapeExchangeOwner(limits: resourceLimits, format: .step, processing: budget,
             consumedEntities: entities.count, consumedWork: text.unicodeScalars.count, consumedBytes: text.utf8.count)
+        var execution = try sourceAdmission.execution()
         let bodyContextUnits = hasBodies ? try ExactSTEPReader.bodyContextUnits(entities: entities, names: names,
-            processingBudget: budget, tolerance: tolerance, usage: &sourceAdmission) : [:]
+            processingBudget: budget, tolerance: tolerance, usage: sourceAdmission, using: &execution) : [:]
         var materialIdentities: [Int: PhysicalMaterialID] = [:]
         var documentCarrier: STEPDocumentCarrierReadReceipt?
         if names.values.contains("PRODUCT_DEFINITION"), let assembled = try STEPAssemblyReader(tolerance: tolerance, resourceLimits: resourceLimits)
-            .read(entities: entities, budget: budget, materialIdentities: &materialIdentities, documentCarrier: &documentCarrier, sourceAdmission: sourceAdmission) { return assembled }
+            .read(entities: entities, budget: budget, materialIdentities: &materialIdentities, documentCarrier: &documentCarrier, sourceAdmission: sourceAdmission, using: &execution) { return assembled }
         if !hasBodies {
-            var independentUsage = try IndependentShapeExchangeUsage(limits:resourceLimits,format:.step,processing:budget,
-                consumedEntities:entities.count,consumedWork:text.unicodeScalars.count,consumedBytes:text.utf8.count)
+            let independentUsage = sourceAdmission
             let independentItems = try independentSTEPItemRoots(entities:entities,names:names,budget:budget) { entities, work in
-                try independentUsage.charge(entities:entities,work:work)
+                try independentUsage.charge(entities:entities,work:work, using: &execution)
             }
             if let original = try ExactSTEPReader.readIndependent(entities: entities, processingBudget: budget,
-                tolerance: tolerance, standaloneItems: independentItems, usage: &independentUsage) {
+                tolerance: tolerance, standaloneItems: independentItems, usage: independentUsage, using: &execution) {
                 // FIXME(INCOMPLETE_IMPLEMENTATION): Public independent STEP import has no material-attribute composition owner.
                 // Retain and validate actual material designation identities and attachments before publishing mixed independent shapes and materials.
                 guard !hasMaterialDesignation else {
                     throw IndependentShapeExchangeError.unsupportedSemantics("Independent STEP material attributes require an explicit source composition owner.")
                 }
                 let document = CADDocument(units: original.units, independentShapes: original.source)
-                try independentUsage.validateDocument(document,tolerance:tolerance)
+                try independentUsage.validateDocument(document,tolerance:tolerance, using: &execution)
                 return ImportedExchangeModel(format: .step, document: document, units: original.units)
             }
         }
@@ -488,20 +494,17 @@ public struct STEPExchange: IndependentSTEPGeometryExchanging, CertifiedDocument
             )
         )
         if let carrier = documentCarrier { document.metadata.name = carrier.documentName.isEmpty ? nil : carrier.documentName }
-        var independentUsage = try IndependentShapeExchangeUsage(limits: resourceLimits, format: .step, processing: budget,
-            consumedEntities: documentCarrier?.consumedEntities ?? sourceAdmission.consumedEntities,
-            consumedWork: documentCarrier?.consumedWork ?? sourceAdmission.consumedWork,
-            consumedBytes: documentCarrier?.consumedTextBytes ?? sourceAdmission.consumedBytes)
+        let independentUsage = sourceAdmission
         let independentItems = try independentSTEPItemRoots(entities: entities, names: names, budget: budget) { records, work in
-            try independentUsage.charge(entities: records, work: work)
+            try independentUsage.charge(entities: records, work: work, using: &execution)
         }
         if let original = try ExactSTEPReader.readIndependent(entities: entities, processingBudget: budget,
             tolerance: tolerance, standaloneItems: independentItems,
             bodySources: transfer.geometry.filter { $0.value.role == GeneratedSubshapeRole.body.rawValue },
-            bodySourceGraph: document.designGraph, usage: &independentUsage) {
+            bodySourceGraph: document.designGraph, usage: independentUsage, using: &execution) {
             document.independentShapes = original.source
         }
-        try independentUsage.validateDocument(document, tolerance: tolerance)
+        try independentUsage.validateDocument(document, tolerance: tolerance, using: &execution)
         try document.validate(tolerance: tolerance)
         let base = try DocumentEvaluator(tolerance: tolerance).evaluateExact(document)
         document.productAttributes = try STEPAttributesReader().read(entities: entities, transfer: transfer,

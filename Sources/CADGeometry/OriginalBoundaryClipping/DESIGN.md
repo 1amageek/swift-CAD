@@ -322,3 +322,7 @@ uses it to combine the already proved self residual with both face predicates.
 The existing raw relation, both boundary compilers and their scope proofs remain
 retained in the resulting correspondence. Recheck ordinary clipping compatibility
 when this shared compiler contract changes.
+
+### Direct retained source consumers
+
+Original Native boundary clipping and membership receive the original inout execution. Immutable baseline parameter/coefficient depths open local proof scopes on this execution; no callback usage or copyable descendant ledger is created. Internal polynomial compilation uses the same generic ExactScalarAdmission. Full raw-cell/source correspondence and retained depth translation remain unchanged.

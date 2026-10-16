@@ -1,0 +1,904 @@
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-field-atlas-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000000566ca0 <_$s11CADGeometry45OriginalAffineWordHarmonicSurfaceCoefficientsV7prepare6source4word9tolerance5usage19admitPhysicalMetricACSgAA9Surface3DO_AA08Preparedbc9OperationD0V7CADCore17ModelingToleranceVxzSbtKAA20ExactScalarAdmissionRzRi_zlFZ>:
+  566ca0:      	stp	x28, x20, [sp, #-0x20]!
+  566ca4:      	stp	x29, x30, [sp, #0x10]
+  566ca8:      	add	x29, sp, #0x10
+  566cac:      	sub	sp, sp, #0xe, lsl #12   ; =0xe000
+  566cb0:      	sub	sp, sp, #0x50
+  566cb4:      	add	x9, sp, #0xc, lsl #12   ; =0xc000
+  566cb8:      	add	x9, x9, #0xc90
+  566cbc:      	str	x9, [sp, #0xf98]
+  566cc0:      	add	x10, sp, #0xc, lsl #12  ; =0xc000
+  566cc4:      	add	x10, x10, #0xb07
+  566cc8:      	str	x10, [sp, #0xf18]
+  566ccc:      	add	x10, sp, #0x4, lsl #12  ; =0x4000
+  566cd0:      	add	x10, x10, #0xed0
+  566cd4:      	str	x10, [sp, #0xf50]
+  566cd8:      	mov	x6, x8
+  566cdc:      	ldr	x8, [sp, #0xf50]
+  566ce0:      	str	x6, [sp, #0xf20]
+  566ce4:      	str	x0, [sp, #0xf90]
+  566ce8:      	str	x1, [sp, #0xf60]
+  566cec:      	str	d0, [sp, #0xf68]
+  566cf0:      	str	d1, [sp, #0xf70]
+  566cf4:      	str	d2, [sp, #0xf78]
+  566cf8:      	str	x2, [sp, #0xf80]
+  566cfc:      	str	w3, [sp, #0xf8c]
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-field-atlas-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+00000000010b1ff8 <_$s11CADGeometry27OriginalAffineWordSurface3DV08validateB8Relation9tolerance20remainingSourceDepth018maximumSubdivisionK00l9AlgebraicK05usingy7CADCore17ModelingToleranceV_S3iSgAA0B14QueryExecutionVztKF>:
+ 10b1ff8:      	stp	x28, x20, [sp, #-0x20]!
+ 10b1ffc:      	stp	x29, x30, [sp, #0x10]
+ 10b2000:      	add	x29, sp, #0x10
+ 10b2004:      	sub	sp, sp, #0xf60
+ 10b2008:      	str	d0, [sp, #0x150]
+ 10b200c:      	str	d1, [sp, #0x158]
+ 10b2010:      	str	d2, [sp, #0x160]
+ 10b2014:      	mov	x8, x0
+ 10b2018:      	str	x8, [sp, #0x168]
+ 10b201c:      	str	x1, [sp, #0x170]
+ 10b2020:      	str	x2, [sp, #0x178]
+ 10b2024:      	str	w3, [sp, #0x184]
+ 10b2028:      	mov	x0, x4
+ 10b202c:      	str	x0, [sp, #0x188]
+ 10b2030:      	str	x20, [sp, #0x190]
+ 10b2034:      	str	xzr, [sp, #0x8a0]
+ 10b2038:      	str	xzr, [sp, #0x8a8]
+ 10b203c:      	str	xzr, [sp, #0x8b0]
+ 10b2040:      	str	xzr, [sp, #0x898]
+ 10b2044:      	str	xzr, [sp, #0x890]
+ 10b2048:      	str	xzr, [sp, #0x880]
+ 10b204c:      	strb	wzr, [sp, #0x888]
+ 10b2050:      	str	xzr, [sp, #0x878]
+ 10b2054:      	str	xzr, [sp, #0x870]
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-field-atlas-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+00000000013c081c <_$s11CADGeometry9Surface3DO32validateProceduralOriginalSource33_BB65EBF92AF9D794B45AF3225F965BD3LL_9tolerance09remainingF5Depth018maximumSubdivisionQ00r9AlgebraicQ002atfQ05usingyAA0dB1DO_7CADCore17ModelingToleranceVS3iSgSiAA0E14QueryExecutionVztKFZ>:
+ 13c081c:      	stp	x28, x20, [sp, #-0x20]!
+ 13c0820:      	stp	x29, x30, [sp, #0x10]
+ 13c0824:      	add	x29, sp, #0x10
+ 13c0828:      	sub	sp, sp, #0x16, lsl #12  ; =0x16000
+ 13c082c:      	sub	sp, sp, #0xb00
+ 13c0830:      	sub	x8, x29, #0x30
+ 13c0834:      	str	x8, [sp, #0x730]
+ 13c0838:      	add	x8, sp, #0x15, lsl #12  ; =0x15000
+ 13c083c:      	add	x8, x8, #0x40
+ 13c0840:      	str	x8, [sp, #0x738]
+ 13c0844:      	add	x8, sp, #0x11, lsl #12  ; =0x11000
+ 13c0848:      	add	x8, x8, #0xd80
+ 13c084c:      	str	x8, [sp, #0x740]
+ 13c0850:      	add	x8, sp, #0x10, lsl #12  ; =0x10000
+ 13c0854:      	add	x8, x8, #0x38
+ 13c0858:      	str	x8, [sp, #0x748]
+ 13c085c:      	add	x8, sp, #0xc, lsl #12   ; =0xc000
+ 13c0860:      	add	x8, x8, #0x620
+ 13c0864:      	str	x8, [sp, #0x750]
+ 13c0868:      	add	x9, sp, #0xa, lsl #12   ; =0xa000
+ 13c086c:      	add	x9, x9, #0xa98
+ 13c0870:      	str	x9, [sp, #0x758]
+ 13c0874:      	add	x9, sp, #0x9, lsl #12   ; =0x9000
+ 13c0878:      	add	x9, x9, #0x640
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-field-atlas-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+00000000013c00b0 <_$s11CADGeometry9Surface3DO22validateOriginalSource9tolerance09remainingE5Depth018maximumSubdivisionH00i9AlgebraicH002ateH05usingy7CADCore17ModelingToleranceV_S3iSgSiAA0D14QueryExecutionVztKFyAPzKXEfU1_>:
+ 13c00b0:      	str	x28, [sp, #-0x30]!
+ 13c00b4:      	stp	x20, x19, [sp, #0x10]
+ 13c00b8:      	stp	x29, x30, [sp, #0x20]
+ 13c00bc:      	add	x29, sp, #0x20
+ 13c00c0:      	sub	sp, sp, #0x2, lsl #12   ; =0x2000
+ 13c00c4:      	sub	sp, sp, #0x6b0
+ 13c00c8:      	mov	x19, sp
+ 13c00cc:      	add	x8, x19, #0x1, lsl #12  ; =0x1000
+ 13c00d0:      	add	x8, x8, #0x350
+ 13c00d4:      	str	x8, [x19, #0x120]
+ 13c00d8:      	mov	x20, x0
+ 13c00dc:      	str	x20, [x19, #0xe0]
+ 13c00e0:      	str	x1, [x19, #0x138]
+ 13c00e4:      	str	d0, [x19, #0xe8]
+ 13c00e8:      	str	d1, [x19, #0xf0]
+ 13c00ec:      	str	d2, [x19, #0xf8]
+ 13c00f0:      	str	x2, [x19, #0x100]
+ 13c00f4:      	str	x3, [x19, #0x108]
+ 13c00f8:      	str	x4, [x19, #0x110]
+ 13c00fc:      	str	x5, [x19, #0x118]
+ 13c0100:      	str	w6, [x19, #0x12c]
+ 13c0104:      	str	x21, [x19, #0x130]
+ 13c0108:      	str	xzr, [x19, #0x1398]
+ 13c010c:      	str	xzr, [x19, #0x1390]
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-field-atlas-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000001f31de0 <_$s11CADGeometry9Surface3DO22validateOriginalSource9tolerance09remainingE5Depth018maximumSubdivisionH00i9AlgebraicH002ateH05usingy7CADCore17ModelingToleranceV_S3iSgSiAA0D14QueryExecutionVztKFyAPzKXEfU1_TA>:
+ 1f31de0:      	str	x20, [sp, #-0x20]!
+ 1f31de4:      	stp	x29, x30, [sp, #0x10]
+ 1f31de8:      	add	x29, sp, #0x10
+ 1f31dec:      	mov	x9, x20
+ 1f31df0:      	ldr	x1, [x9, #0x10]
+ 1f31df4:      	ldr	d0, [x9, #0x18]
+ 1f31df8:      	ldr	d1, [x9, #0x20]
+ 1f31dfc:      	ldr	d2, [x9, #0x28]
+ 1f31e00:      	ldr	x2, [x9, #0x30]
+ 1f31e04:      	ldr	x3, [x9, #0x38]
+ 1f31e08:      	ldr	x4, [x9, #0x40]
+ 1f31e0c:      	ldr	x5, [x9, #0x48]
+ 1f31e10:      	ldrb	w6, [x9, #0x50]
+ 1f31e14:      	bl	0x13c00b0 <_$s11CADGeometry9Surface3DO22validateOriginalSource9tolerance09remainingE5Depth018maximumSubdivisionH00i9AlgebraicH002ateH05usingy7CADCore17ModelingToleranceV_S3iSgSiAA0D14QueryExecutionVztKFyAPzKXEfU1_>
+ 1f31e18:      	ldp	x29, x30, [sp, #0x10]
+ 1f31e1c:      	ldr	x20, [sp], #0x20
+ 1f31e20:      	ret
+
+0000000001f31e24 <_$s11CADGeometry011CoaxialConeC18SurfaceIntersectorV15appendCandidate33_E9B063BBD5624BE8907DD88C62EA829DLL6radius4axis2to9toleranceySd_SdSaySdAF_SdAGtGz7CADCore17ModelingToleranceVtFSbSdAF_SdAGt_tXEfU_TA>:
+ 1f31e24:      	str	x20, [sp, #-0x20]!
+ 1f31e28:      	stp	x29, x30, [sp, #0x10]
+ 1f31e2c:      	add	x29, sp, #0x10
+ 1f31e30:      	mov	x8, x20
+ 1f31e34:      	ldr	d0, [x8, #0x10]
+ 1f31e38:      	ldr	d1, [x8, #0x18]
+ 1f31e3c:      	ldr	d2, [x8, #0x20]
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-field-atlas-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000000561794 <_$s11CADGeometry20ExactScalarAdmissionPAARi_zrlE14withProofScope8original9inherited7maximum9valueAxis0J9WorkUnits_qd__AA0bC5DepthVSg_A2lA0bc4RootL0OSiSgqd__xzKXEtKlF>:
+  561794:      	str	x28, [sp, #-0x30]!
+  561798:      	stp	x20, x19, [sp, #0x10]
+  56179c:      	stp	x29, x30, [sp, #0x20]
+  5617a0:      	add	x29, sp, #0x20
+  5617a4:      	sub	sp, sp, #0x270
+  5617a8:      	sub	x9, x29, #0x80
+  5617ac:      	stur	x8, [x9, #-0x100]
+  5617b0:      	ldrb	w15, [x29, #0x10]
+  5617b4:      	ldrb	w14, [x29, #0x11]
+  5617b8:      	ldr	x13, [x29, #0x18]
+  5617bc:      	ldrb	w12, [x29, #0x20]
+  5617c0:      	ldr	x10, [x29, #0x28]
+  5617c4:      	sub	x8, x29, #0x78
+  5617c8:      	stur	x10, [x8, #-0x100]
+  5617cc:      	ldr	x8, [x29, #0x30]
+  5617d0:      	sub	x9, x29, #0x70
+  5617d4:      	stur	x8, [x9, #-0x100]
+  5617d8:      	ldr	x11, [x29, #0x38]
+  5617dc:      	sub	x9, x29, #0x68
+  5617e0:      	stur	x11, [x9, #-0x100]
+  5617e4:      	ldr	x16, [x29, #0x40]
+  5617e8:      	sub	x9, x29, #0x60
+  5617ec:      	stur	x16, [x9, #-0x100]
+  5617f0:      	ldr	x9, [x29, #0x48]
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-field-atlas-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+00000000007c72a0 <_$s11CADGeometry9Surface3DO22validateOriginalSource9tolerance09remainingE5Depth018maximumSubdivisionH00i9AlgebraicH002ateH05usingy7CADCore17ModelingToleranceV_S3iSgSiAA0D14QueryExecutionVztKF>:
+  7c72a0:      	stp	x28, x20, [sp, #-0x20]!
+  7c72a4:      	stp	x29, x30, [sp, #0x10]
+  7c72a8:      	add	x29, sp, #0x10
+  7c72ac:      	sub	sp, sp, #0x2a0
+  7c72b0:      	str	d0, [sp, #0xe8]
+  7c72b4:      	str	d1, [sp, #0xf0]
+  7c72b8:      	str	d2, [sp, #0xf8]
+  7c72bc:      	str	x0, [sp, #0x100]
+  7c72c0:      	str	x1, [sp, #0x108]
+  7c72c4:      	str	x2, [sp, #0x110]
+  7c72c8:      	str	w3, [sp, #0x11c]
+  7c72cc:      	str	x4, [sp, #0x120]
+  7c72d0:      	str	x5, [sp, #0x128]
+  7c72d4:      	str	x20, [sp, #0x130]
+  7c72d8:      	str	x21, [sp, #0x138]
+  7c72dc:      	stur	xzr, [x29, #-0x28]
+  7c72e0:      	stur	xzr, [x29, #-0x20]
+  7c72e4:      	stur	xzr, [x29, #-0x18]
+  7c72e8:      	stur	xzr, [x29, #-0x30]
+  7c72ec:      	stur	xzr, [x29, #-0x38]
+  7c72f0:      	stur	xzr, [x29, #-0x48]
+  7c72f4:      	sturb	wzr, [x29, #-0x40]
+  7c72f8:      	stur	xzr, [x29, #-0x50]
+  7c72fc:      	stur	xzr, [x29, #-0x58]
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-field-atlas-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+00000000013c3af0 <_$s11CADGeometry21SurfaceParameterCurveO22validateOriginalSource2on9tolerance09remainingG5Depth018maximumSubdivisionK00l9AlgebraicK002atgK05usingyAA9Surface3DO_7CADCore17ModelingToleranceVS3iSgSiAA0F14QueryExecutionVztKFyASzKXEfU1_>:
+ 13c3af0:      	str	x28, [sp, #-0x30]!
+ 13c3af4:      	stp	x20, x19, [sp, #0x10]
+ 13c3af8:      	stp	x29, x30, [sp, #0x20]
+ 13c3afc:      	add	x29, sp, #0x20
+ 13c3b00:      	sub	sp, sp, #0x15, lsl #12  ; =0x15000
+ 13c3b04:      	sub	sp, sp, #0xa50
+ 13c3b08:      	mov	x19, sp
+ 13c3b0c:      	add	x8, x19, #0x11, lsl #12 ; =0x11000
+ 13c3b10:      	add	x8, x8, #0x240
+ 13c3b14:      	str	x8, [x19, #0xb68]
+ 13c3b18:      	add	x9, x19, #0x10, lsl #12 ; =0x10000
+ 13c3b1c:      	add	x9, x9, #0xb88
+ 13c3b20:      	str	x9, [x19, #0xbe8]
+ 13c3b24:      	add	x8, x19, #0xe, lsl #12  ; =0xe000
+ 13c3b28:      	add	x8, x8, #0xea0
+ 13c3b2c:      	str	x8, [x19, #0xc00]
+ 13c3b30:      	add	x10, x19, #0xd, lsl #12 ; =0xd000
+ 13c3b34:      	add	x10, x10, #0x5b0
+ 13c3b38:      	str	x10, [x19, #0xb88]
+ 13c3b3c:      	add	x10, x19, #0xa, lsl #12 ; =0xa000
+ 13c3b40:      	add	x10, x10, #0xf86
+ 13c3b44:      	str	x10, [x19, #0xb70]
+ 13c3b48:      	add	x10, x19, #0x5, lsl #12 ; =0x5000
+ 13c3b4c:      	add	x10, x10, #0x7f8
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-field-atlas-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+00000000020710a4 <_$s11CADGeometry21SurfaceParameterCurveO22validateOriginalSource2on9tolerance09remainingG5Depth018maximumSubdivisionK00l9AlgebraicK002atgK05usingyAA9Surface3DO_7CADCore17ModelingToleranceVS3iSgSiAA0F14QueryExecutionVztKFyASzKXEfU1_TA>:
+ 20710a4:      	str	x20, [sp, #-0x20]!
+ 20710a8:      	stp	x29, x30, [sp, #0x10]
+ 20710ac:      	add	x29, sp, #0x10
+ 20710b0:      	mov	x9, x20
+ 20710b4:      	ldr	x1, [x9, #0x10]
+ 20710b8:      	ldr	d0, [x9, #0x18]
+ 20710bc:      	ldr	d1, [x9, #0x20]
+ 20710c0:      	ldr	d2, [x9, #0x28]
+ 20710c4:      	ldr	x2, [x9, #0x30]
+ 20710c8:      	ldr	x3, [x9, #0x38]
+ 20710cc:      	ldr	x4, [x9, #0x40]
+ 20710d0:      	ldrb	w5, [x9, #0x48]
+ 20710d4:      	ldr	x6, [x9, #0x50]
+ 20710d8:      	ldr	x7, [x9, #0x58]
+ 20710dc:      	bl	0x13c3af0 <_$s11CADGeometry21SurfaceParameterCurveO22validateOriginalSource2on9tolerance09remainingG5Depth018maximumSubdivisionK00l9AlgebraicK002atgK05usingyAA9Surface3DO_7CADCore17ModelingToleranceVS3iSgSiAA0F14QueryExecutionVztKFyASzKXEfU1_>
+ 20710e0:      	ldp	x29, x30, [sp, #0x10]
+ 20710e4:      	ldr	x20, [sp], #0x20
+ 20710e8:      	ret
+
+00000000020710ec <_$sSay11CADGeometry41OriginalBoundedCurveSurfaceCorrespondenceV4Cell031_0EA4B6C8E52CF72C40349A2524AD88J0LLVGSayxGSKsWl>:
+ 20710ec:      	sub	sp, sp, #0x20
+ 20710f0:      	stp	x29, x30, [sp, #0x10]
+ 20710f4:      	add	x29, sp, #0x10
+ 20710f8:      	adrp	x8, 0x68f6000 <_$sSay11CADGeometry28NativeCurveSurfacePointChartVGSayxGSksWL>
+ 20710fc:      	ldr	x8, [x8, #0x3c8]
+ 2071100:      	mov	x0, x8
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-field-atlas-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000000561794 <_$s11CADGeometry20ExactScalarAdmissionPAARi_zrlE14withProofScope8original9inherited7maximum9valueAxis0J9WorkUnits_qd__AA0bC5DepthVSg_A2lA0bc4RootL0OSiSgqd__xzKXEtKlF>:
+  561794:      	str	x28, [sp, #-0x30]!
+  561798:      	stp	x20, x19, [sp, #0x10]
+  56179c:      	stp	x29, x30, [sp, #0x20]
+  5617a0:      	add	x29, sp, #0x20
+  5617a4:      	sub	sp, sp, #0x270
+  5617a8:      	sub	x9, x29, #0x80
+  5617ac:      	stur	x8, [x9, #-0x100]
+  5617b0:      	ldrb	w15, [x29, #0x10]
+  5617b4:      	ldrb	w14, [x29, #0x11]
+  5617b8:      	ldr	x13, [x29, #0x18]
+  5617bc:      	ldrb	w12, [x29, #0x20]
+  5617c0:      	ldr	x10, [x29, #0x28]
+  5617c4:      	sub	x8, x29, #0x78
+  5617c8:      	stur	x10, [x8, #-0x100]
+  5617cc:      	ldr	x8, [x29, #0x30]
+  5617d0:      	sub	x9, x29, #0x70
+  5617d4:      	stur	x8, [x9, #-0x100]
+  5617d8:      	ldr	x11, [x29, #0x38]
+  5617dc:      	sub	x9, x29, #0x68
+  5617e0:      	stur	x11, [x9, #-0x100]
+  5617e4:      	ldr	x16, [x29, #0x40]
+  5617e8:      	sub	x9, x29, #0x60
+  5617ec:      	stur	x16, [x9, #-0x100]
+  5617f0:      	ldr	x9, [x29, #0x48]
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-field-atlas-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000000add954 <_$s11CADGeometry21SurfaceParameterCurveO22validateOriginalSource2on9tolerance09remainingG5Depth018maximumSubdivisionK00l9AlgebraicK002atgK05usingyAA9Surface3DO_7CADCore17ModelingToleranceVS3iSgSiAA0F14QueryExecutionVztKF>:
+  add954:      	stp	x28, x20, [sp, #-0x20]!
+  add958:      	stp	x29, x30, [sp, #0x10]
+  add95c:      	add	x29, sp, #0x10
+  add960:      	sub	sp, sp, #0x7e0
+  add964:      	str	x0, [sp, #0xe0]
+  add968:      	str	d0, [sp, #0xe8]
+  add96c:      	str	d1, [sp, #0xf0]
+  add970:      	str	d2, [sp, #0xf8]
+  add974:      	str	x1, [sp, #0x100]
+  add978:      	str	x2, [sp, #0x108]
+  add97c:      	str	x3, [sp, #0x110]
+  add980:      	str	w4, [sp, #0x11c]
+  add984:      	str	x5, [sp, #0x120]
+  add988:      	str	x6, [sp, #0x128]
+  add98c:      	str	x20, [sp, #0x130]
+  add990:      	str	x21, [sp, #0x138]
+  add994:      	stur	xzr, [x29, #-0x18]
+  add998:      	stur	xzr, [x29, #-0x30]
+  add99c:      	stur	xzr, [x29, #-0x28]
+  add9a0:      	stur	xzr, [x29, #-0x20]
+  add9a4:      	stur	xzr, [x29, #-0x38]
+  add9a8:      	stur	xzr, [x29, #-0x40]
+  add9ac:      	stur	xzr, [x29, #-0x50]
+  add9b0:      	sturb	wzr, [x29, #-0x48]
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-field-atlas-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000000addd78 <_$s11CADGeometry41OriginalBoundedCurveSurfaceCorrespondenceV14deviationBound5curve4from2to7surface09parameterD07options9tolerance16maximumSpanCount0P16SubdivisionDepth015remainingSourceT00p9AlgebraicT05usingSdAA7Curve3DO_S2dAA9Surface3DOAA0e9ParameterD0OAA0deF17ValidationOptionsV7CADCore17ModelingToleranceVS4iSgAA0B14QueryExecutionVztKFZ>:
+  addd78:      	stp	x28, x20, [sp, #-0x20]!
+  addd7c:      	stp	x29, x30, [sp, #0x10]
+  addd80:      	add	x29, sp, #0x10
+  addd84:      	sub	sp, sp, #0x1f, lsl #12  ; =0x1f000
+  addd88:      	sub	sp, sp, #0x3f0
+  addd8c:      	add	x8, sp, #0x19, lsl #12  ; =0x19000
+  addd90:      	add	x8, x8, #0xe28
+  addd94:      	str	x8, [sp, #0xd70]
+  addd98:      	add	x8, sp, #0x18, lsl #12  ; =0x18000
+  addd9c:      	add	x8, x8, #0x100
+  addda0:      	str	x8, [sp, #0xd78]
+  addda4:      	add	x8, sp, #0x16, lsl #12  ; =0x16000
+  addda8:      	add	x8, x8, #0x3c8
+  adddac:      	str	x8, [sp, #0xd80]
+  adddb0:      	add	x14, sp, #0x12, lsl #12 ; =0x12000
+  adddb4:      	add	x14, x14, #0xe60
+  adddb8:      	str	x14, [sp, #0xd88]
+  adddbc:      	add	x13, sp, #0xb, lsl #12  ; =0xb000
+  adddc0:      	add	x13, x13, #0x2f0
+  adddc4:      	str	x13, [sp, #0xd90]
+  adddc8:      	str	x0, [sp, #0xd98]
+  adddcc:      	str	d0, [sp, #0xda0]
+  adddd0:      	str	d1, [sp, #0xda8]
+  adddd4:      	str	x1, [sp, #0xdb0]
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-field-atlas-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000000b06d34 <_$s11CADGeometry42DefaultCurveSurfaceCorrespondenceValidatorV8validate5curve4from2to7surface09parameterC07options9tolerance16maximumSpanCount0O16SubdivisionDepth015remainingSourceS00o9AlgebraicS05usingyAA7Curve3DO_S2dAA9Surface3DOAA0d9ParameterC0OAA0cdE17ValidationOptionsV7CADCore17ModelingToleranceVS4iSgAA22OriginalQueryExecutionVztKF>:
+  b06d34:      	sub	sp, sp, #0xf0
+  b06d38:      	stp	x28, x20, [sp, #0xd0]
+  b06d3c:      	stp	x29, x30, [sp, #0xe0]
+  b06d40:      	add	x29, sp, #0xe0
+  b06d44:      	ldr	x13, [x29, #0x10]
+  b06d48:      	ldr	x12, [x29, #0x18]
+  b06d4c:      	ldr	x11, [x29, #0x20]
+  b06d50:      	ldrb	w10, [x29, #0x28]
+  b06d54:      	ldr	x8, [x29, #0x30]
+  b06d58:      	stur	xzr, [x29, #-0x18]
+  b06d5c:      	stur	xzr, [x29, #-0x20]
+  b06d60:      	stur	xzr, [x29, #-0x28]
+  b06d64:      	stur	xzr, [x29, #-0x30]
+  b06d68:      	stur	xzr, [x29, #-0x38]
+  b06d6c:      	stur	xzr, [x29, #-0x58]
+  b06d70:      	stur	xzr, [x29, #-0x50]
+  b06d74:      	stur	xzr, [x29, #-0x48]
+  b06d78:      	sturb	wzr, [x29, #-0x40]
+  b06d7c:      	str	xzr, [sp, #0x70]
+  b06d80:      	str	xzr, [sp, #0x78]
+  b06d84:      	str	xzr, [sp, #0x80]
+  b06d88:      	str	xzr, [sp, #0x68]
+  b06d8c:      	str	xzr, [sp, #0x60]
+  b06d90:      	str	xzr, [sp, #0x58]
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-field-atlas-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+000000000337e0bc <_$s11CADTopology32OriginalBRepValidationInvocationV8validate33_9C0CABE9E922F8062A5B256D99FB769FLL_2on5curve4edge12orientedEdge6faceID0qU010startPoint03endW09tolerance5usingy11CADGeometry21SurfaceParameterCurveO_AP9Surface3DOAP7Curve3DOAA0S0VAA6CoedgeV7CADCore06TaggedU0VyA_7FaceTagOGA1_yA_0S3TagOGA_7Point3DVA9_A_17ModelingToleranceVAP0B14QueryExecutionVztKF>:
+ 337e0bc:      	str	x28, [sp, #-0x30]!
+ 337e0c0:      	stp	x20, x19, [sp, #0x10]
+ 337e0c4:      	stp	x29, x30, [sp, #0x20]
+ 337e0c8:      	add	x29, sp, #0x20
+ 337e0cc:      	sub	sp, sp, #0x2, lsl #12   ; =0x2000
+ 337e0d0:      	sub	sp, sp, #0x940
+ 337e0d4:      	mov	x19, sp
+ 337e0d8:      	sub	x8, x29, #0x60
+ 337e0dc:      	str	x8, [x19, #0x430]
+ 337e0e0:      	add	x8, x19, #0x2, lsl #12  ; =0x2000
+ 337e0e4:      	add	x8, x8, #0x29f
+ 337e0e8:      	str	x8, [x19, #0x438]
+ 337e0ec:      	str	x0, [x19, #0x440]
+ 337e0f0:      	str	x1, [x19, #0x520]
+ 337e0f4:      	str	x2, [x19, #0x448]
+ 337e0f8:      	str	x3, [x19, #0x450]
+ 337e0fc:      	str	x4, [x19, #0x458]
+ 337e100:      	str	x5, [x19, #0x460]
+ 337e104:      	str	x6, [x19, #0x468]
+ 337e108:      	str	x7, [x19, #0x470]
+ 337e10c:      	ldr	x8, [x29, #0x10]
+ 337e110:      	str	x8, [x19, #0x478]
+ 337e114:      	str	d0, [x19, #0x480]
+ 337e118:      	str	d1, [x19, #0x488]
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-field-atlas-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+00000000033779c4 <_$s11CADTopology32OriginalBRepValidationInvocationV8validate33_9C0CABE9E922F8062A5B256D99FB769FLL4loop6liesOn6faceID9tolerance5usingyAA4LoopV_11CADGeometry9Surface3DO7CADCore06TaggedS0VyAP7FaceTagOGAP17ModelingToleranceVAM0B14QueryExecutionVztKF>:
+ 33779c4:      	stp	x28, x20, [sp, #-0x20]!
+ 33779c8:      	stp	x29, x30, [sp, #0x10]
+ 33779cc:      	add	x29, sp, #0x10
+ 33779d0:      	sub	sp, sp, #0x4, lsl #12   ; =0x4000
+ 33779d4:      	sub	sp, sp, #0xbf0
+ 33779d8:      	str	x0, [sp, #0x4b0]
+ 33779dc:      	str	x1, [sp, #0x4b8]
+ 33779e0:      	str	w2, [sp, #0x4c4]
+ 33779e4:      	str	x3, [sp, #0x4c8]
+ 33779e8:      	str	x4, [sp, #0x4d0]
+ 33779ec:      	str	x5, [sp, #0x4d8]
+ 33779f0:      	str	x6, [sp, #0x4e0]
+ 33779f4:      	str	d0, [sp, #0x4e8]
+ 33779f8:      	str	d1, [sp, #0x4f0]
+ 33779fc:      	str	d2, [sp, #0x4f8]
+ 3377a00:      	str	x7, [sp, #0x500]
+ 3377a04:      	str	x20, [sp, #0x508]
+ 3377a08:      	str	x21, [sp, #0x520]
+ 3377a0c:      	movi.2d	v3, #0000000000000000
+ 3377a10:      	str	q3, [sp, #0x3af0]
+ 3377a14:      	str	q3, [sp, #0x3b00]
+ 3377a18:      	str	xzr, [sp, #0x3ae8]
+ 3377a1c:      	str	xzr, [sp, #0x3ad8]
+ 3377a20:      	str	xzr, [sp, #0x3ae0]
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-field-atlas-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000003192878 <_$s11CADTopology32OriginalBRepValidationInvocationV8validate9tolerance5usingy7CADCore17ModelingToleranceV_11CADGeometry0B14QueryExecutionVztKF>:
+ 3192878:      	stp	x28, x20, [sp, #-0x20]!
+ 319287c:      	stp	x29, x30, [sp, #0x10]
+ 3192880:      	add	x29, sp, #0x10
+ 3192884:      	sub	sp, sp, #0x3, lsl #12   ; =0x3000
+ 3192888:      	sub	sp, sp, #0xcc0
+ 319288c:      	add	x8, sp, #0x2, lsl #12   ; =0x2000
+ 3192890:      	add	x8, x8, #0xd0e
+ 3192894:      	str	x8, [sp, #0x1870]
+ 3192898:      	str	d0, [sp, #0x1898]
+ 319289c:      	str	d1, [sp, #0x18a0]
+ 31928a0:      	str	d2, [sp, #0x18a8]
+ 31928a4:      	str	x0, [sp, #0x1888]
+ 31928a8:      	str	x20, [sp, #0x1890]
+ 31928ac:      	str	xzr, [sp, #0x3748]
+ 31928b0:      	str	xzr, [sp, #0x3750]
+ 31928b4:      	str	xzr, [sp, #0x3758]
+ 31928b8:      	str	xzr, [sp, #0x3740]
+ 31928bc:      	str	xzr, [sp, #0x3738]
+ 31928c0:      	str	xzr, [sp, #0x3730]
+ 31928c4:      	str	xzr, [sp, #0x3728]
+ 31928c8:      	str	xzr, [sp, #0x3720]
+ 31928cc:      	add	x0, sp, #0x3, lsl #12   ; =0x3000
+ 31928d0:      	add	x0, x0, #0x690
+ 31928d4:      	mov	w8, #0x8b               ; =139
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-field-atlas-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000003199fbc <_$s11CADTopology32OriginalBRepValidationInvocationV8validate5level9tolerance5usingyAA0cD5LevelO_7CADCore17ModelingToleranceV11CADGeometry0B14QueryExecutionVztKF>:
+ 3199fbc:      	sub	sp, sp, #0x140
+ 3199fc0:      	stp	x28, x20, [sp, #0x120]
+ 3199fc4:      	stp	x29, x30, [sp, #0x130]
+ 3199fc8:      	add	x29, sp, #0x130
+ 3199fcc:      	mov	x8, x0
+ 3199fd0:      	str	w8, [sp, #0x94]
+ 3199fd4:      	str	d0, [sp, #0x98]
+ 3199fd8:      	stur	d1, [x29, #-0x90]
+ 3199fdc:      	stur	d2, [x29, #-0x88]
+ 3199fe0:      	mov	x0, x1
+ 3199fe4:      	stur	x0, [x29, #-0x80]
+ 3199fe8:      	stur	x20, [x29, #-0x78]
+ 3199fec:      	sturb	wzr, [x29, #-0x18]
+ 3199ff0:      	stur	xzr, [x29, #-0x30]
+ 3199ff4:      	stur	xzr, [x29, #-0x28]
+ 3199ff8:      	stur	xzr, [x29, #-0x20]
+ 3199ffc:      	stur	xzr, [x29, #-0x38]
+ 319a000:      	stur	xzr, [x29, #-0x40]
+ 319a004:      	sturb	w8, [x29, #-0x18]
+ 319a008:      	stur	d0, [x29, #-0x30]
+ 319a00c:      	stur	d1, [x29, #-0x28]
+ 319a010:      	stur	d2, [x29, #-0x20]
+ 319a014:      	mov	x1, x0
+ 319a018:      	stur	x1, [x29, #-0x38]
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-field-atlas-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000003342384 <_$s11CADTopology18ValidatedBRepModelV_9tolerance15validationLevel23maximumSubdivisionDepth015remainingSourceJ00h9AlgebraicJ05usingAcA0cD0V_7CADCore17ModelingToleranceVAA0c10ValidationG0OS3iSg11CADGeometry22OriginalQueryExecutionVztKcfC>:
+ 3342384:      	stp	x28, x20, [sp, #-0x20]!
+ 3342388:      	stp	x29, x30, [sp, #0x10]
+ 334238c:      	add	x29, sp, #0x10
+ 3342390:      	sub	sp, sp, #0x7b0
+ 3342394:      	str	x8, [sp, #0xf8]
+ 3342398:      	str	x0, [sp, #0x100]
+ 334239c:      	str	d0, [sp, #0x138]
+ 33423a0:      	str	d1, [sp, #0x140]
+ 33423a4:      	str	d2, [sp, #0x148]
+ 33423a8:      	str	w1, [sp, #0x10c]
+ 33423ac:      	str	x2, [sp, #0x110]
+ 33423b0:      	str	x3, [sp, #0x118]
+ 33423b4:      	str	x4, [sp, #0x120]
+ 33423b8:      	str	w5, [sp, #0x12c]
+ 33423bc:      	str	x6, [sp, #0x130]
+ 33423c0:      	add	x0, sp, #0x530
+ 33423c4:      	mov	w8, #0xe9               ; =233
+ 33423c8:      	mov	x2, x8
+ 33423cc:      	mov	w1, #0x0                ; =0
+ 33423d0:      	bl	0x633d2d8 <_write+0x633d2d8>
+ 33423d4:      	ldr	x0, [sp, #0x100]
+ 33423d8:      	ldr	w1, [sp, #0x10c]
+ 33423dc:      	ldr	x2, [sp, #0x110]
+ 33423e0:      	ldr	x3, [sp, #0x118]
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-field-atlas-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000004c887cc <_$s9CADKernel29BRepDrawingSilhouetteProducerV7extract33_45515EBCE735E3D06E49191B278BE829LL_2in9placement4onto18maximumSourceFaces0P14ProjectedSpans0P17ControlPointCount0p13BoundaryCurveW05usingAA0bC11SilhouettesV11CADTopology0B5ModelV_AA17EvaluatedDocumentVAA0bC9PlacementVSg11CADGeometry27OrthographicProjectionFrameVS4iAX22OriginalQueryExecutionVztKF>:
+ 4c887cc:      	stp	x28, x20, [sp, #-0x20]!
+ 4c887d0:      	stp	x29, x30, [sp, #0x10]
+ 4c887d4:      	add	x29, sp, #0x10
+ 4c887d8:      	sub	sp, sp, #0x12, lsl #12  ; =0x12000
+ 4c887dc:      	sub	sp, sp, #0x2c0
+ 4c887e0:      	add	x9, sp, #0xa, lsl #12   ; =0xa000
+ 4c887e4:      	add	x9, x9, #0xd60
+ 4c887e8:      	str	x9, [sp, #0x1530]
+ 4c887ec:      	add	x9, sp, #0xa, lsl #12   ; =0xa000
+ 4c887f0:      	add	x9, x9, #0x9e8
+ 4c887f4:      	str	x9, [sp, #0x14c8]
+ 4c887f8:      	add	x9, sp, #0x8, lsl #12   ; =0x8000
+ 4c887fc:      	add	x9, x9, #0x6c8
+ 4c88800:      	str	x9, [sp, #0x14d0]
+ 4c88804:      	add	x9, sp, #0x4, lsl #12   ; =0x4000
+ 4c88808:      	add	x9, x9, #0x4f
+ 4c8880c:      	str	x9, [sp, #0x1498]
+ 4c88810:      	add	x9, sp, #0x2, lsl #12   ; =0x2000
+ 4c88814:      	add	x9, x9, #0xac0
+ 4c88818:      	str	x9, [sp, #0x14d8]
+ 4c8881c:      	mov	x9, x8
+ 4c88820:      	ldr	x8, [sp, #0x1530]
+ 4c88824:      	str	x9, [sp, #0x14a0]
+ 4c88828:      	str	x0, [sp, #0x14c0]
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-field-atlas-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000004c8f2ac <_$s9CADKernel29BRepDrawingSilhouetteProducerV11silhouettes_2in4onto21maximumSourceEntities0iJ5Faces0I14ProjectedSpans0I17ControlPointCount0i13BoundaryCurveQ05usingAA0bC11SilhouettesVAA0bC9PlacementV_AA17EvaluatedDocumentV11CADGeometry27OrthographicProjectionFrameVS5iAS22OriginalQueryExecutionVztKF>:
+ 4c8f2ac:      	stp	x28, x20, [sp, #-0x20]!
+ 4c8f2b0:      	stp	x29, x30, [sp, #0x10]
+ 4c8f2b4:      	add	x29, sp, #0x10
+ 4c8f2b8:      	sub	sp, sp, #0x2, lsl #12   ; =0x2000
+ 4c8f2bc:      	sub	sp, sp, #0x5d0
+ 4c8f2c0:      	str	x8, [sp, #0x1d0]
+ 4c8f2c4:      	str	x0, [sp, #0x1e8]
+ 4c8f2c8:      	str	x1, [sp, #0x238]
+ 4c8f2cc:      	str	x2, [sp, #0x200]
+ 4c8f2d0:      	str	x3, [sp, #0x208]
+ 4c8f2d4:      	str	x4, [sp, #0x210]
+ 4c8f2d8:      	str	x5, [sp, #0x218]
+ 4c8f2dc:      	str	x6, [sp, #0x220]
+ 4c8f2e0:      	str	x7, [sp, #0x228]
+ 4c8f2e4:      	ldr	x8, [x29, #0x10]
+ 4c8f2e8:      	str	x8, [sp, #0x230]
+ 4c8f2ec:      	str	x20, [sp, #0x1d8]
+ 4c8f2f0:      	str	x21, [sp, #0x1e0]
+ 4c8f2f4:      	str	xzr, [sp, #0xcf0]
+ 4c8f2f8:      	str	xzr, [sp, #0xce8]
+ 4c8f2fc:      	str	xzr, [sp, #0xce0]
+ 4c8f300:      	str	xzr, [sp, #0xcd8]
+ 4c8f304:      	str	xzr, [sp, #0xcd0]
+ 4c8f308:      	str	xzr, [sp, #0xcc8]
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-field-atlas-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000004c9b8fc <_$s9CADKernel29BRepDrawingSilhouetteProducerVAA0bcD9ProducingA2aDP11silhouettes_2in4onto21maximumSourceEntities0jK5Faces0J14ProjectedSpans0J17ControlPointCount0j13BoundaryCurveR05usingAA0bC11SilhouettesVAA0bC9PlacementV_AA17EvaluatedDocumentV11CADGeometry27OrthographicProjectionFrameVS5iAU22OriginalQueryExecutionVztKFTW>:
+ 4c9b8fc:      	str	x28, [sp, #-0x20]!
+ 4c9b900:      	stp	x29, x30, [sp, #0x10]
+ 4c9b904:      	add	x29, sp, #0x10
+ 4c9b908:      	sub	sp, sp, #0x4a0
+ 4c9b90c:      	str	x8, [sp, #0x8]
+ 4c9b910:      	ldr	x8, [x29, #0x10]
+ 4c9b914:      	mov	x9, sp
+ 4c9b918:      	str	x8, [x9]
+ 4c9b91c:      	add	x8, sp, #0x20
+ 4c9b920:      	bl	0x4c8f2ac <_$s9CADKernel29BRepDrawingSilhouetteProducerV11silhouettes_2in4onto21maximumSourceEntities0iJ5Faces0I14ProjectedSpans0I17ControlPointCount0i13BoundaryCurveQ05usingAA0bC11SilhouettesVAA0bC9PlacementV_AA17EvaluatedDocumentV11CADGeometry27OrthographicProjectionFrameVS5iAS22OriginalQueryExecutionVztKF>
+ 4c9b924:      	str	x21, [sp, #0x10]
+ 4c9b928:      	mov	x8, x21
+ 4c9b92c:      	str	x8, [sp, #0x18]
+ 4c9b930:      	cbnz	x21, 0x4c9b960 <_$s9CADKernel29BRepDrawingSilhouetteProducerVAA0bcD9ProducingA2aDP11silhouettes_2in4onto21maximumSourceEntities0jK5Faces0J14ProjectedSpans0J17ControlPointCount0j13BoundaryCurveR05usingAA0bC11SilhouettesVAA0bC9PlacementV_AA17EvaluatedDocumentV11CADGeometry27OrthographicProjectionFrameVS5iAU22OriginalQueryExecutionVztKFTW+0x64>
+ 4c9b934:      	b	0x4c9b938 <_$s9CADKernel29BRepDrawingSilhouetteProducerVAA0bcD9ProducingA2aDP11silhouettes_2in4onto21maximumSourceEntities0jK5Faces0J14ProjectedSpans0J17ControlPointCount0j13BoundaryCurveR05usingAA0bC11SilhouettesVAA0bC9PlacementV_AA17EvaluatedDocumentV11CADGeometry27OrthographicProjectionFrameVS5iAU22OriginalQueryExecutionVztKFTW+0x3c>
+ 4c9b938:      	ldr	x21, [sp, #0x10]
+ 4c9b93c:      	ldr	x0, [sp, #0x8]
+ 4c9b940:      	add	x1, sp, #0x20
+ 4c9b944:      	mov	w8, #0x480              ; =1152
+ 4c9b948:      	mov	x2, x8
+ 4c9b94c:      	bl	0x633d2cc <_write+0x633d2cc>
+ 4c9b950:      	add	sp, sp, #0x4a0
+ 4c9b954:      	ldp	x29, x30, [sp, #0x10]
+ 4c9b958:      	ldr	x28, [sp], #0x20
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-field-atlas-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+00000000062526c0 <_$s8SwiftCAD33DocumentDrawingSilhouetteProducerV11silhouettes_8document17currentEvaluation4onto21maximumSourceEntities0lM5Faces0L14ProjectedSpans0L17ControlPointCount0l13BoundaryCurveT05using9CADKernel04BRepD11SilhouettesVAN0yD9PlacementV_5CADIR11CADDocumentVAN09EvaluatedC0V11CADGeometry27OrthographicProjectionFrameVS5iAX22OriginalQueryExecutionVztKF>:
+ 62526c0:      	stp	x28, x20, [sp, #-0x20]!
+ 62526c4:      	stp	x29, x30, [sp, #0x10]
+ 62526c8:      	add	x29, sp, #0x10
+ 62526cc:      	sub	sp, sp, #0x1, lsl #12   ; =0x1000
+ 62526d0:      	sub	sp, sp, #0x230
+ 62526d4:      	str	x8, [sp, #0xb0]
+ 62526d8:      	str	x0, [sp, #0xb8]
+ 62526dc:      	mov	x10, x1
+ 62526e0:      	str	x10, [sp, #0x128]
+ 62526e4:      	mov	x1, x2
+ 62526e8:      	str	x1, [sp, #0xc0]
+ 62526ec:      	str	x3, [sp, #0xc8]
+ 62526f0:      	str	x4, [sp, #0xd0]
+ 62526f4:      	str	x5, [sp, #0xd8]
+ 62526f8:      	str	x6, [sp, #0xe0]
+ 62526fc:      	str	x7, [sp, #0xe8]
+ 6252700:      	ldr	x9, [x29, #0x10]
+ 6252704:      	str	x9, [sp, #0xf0]
+ 6252708:      	ldr	x8, [x29, #0x18]
+ 625270c:      	str	x8, [sp, #0xf8]
+ 6252710:      	str	x20, [sp, #0x100]
+ 6252714:      	str	x21, [sp, #0x108]
+ 6252718:      	str	xzr, [sp, #0x850]
+ 625271c:      	str	xzr, [sp, #0x848]
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-field-atlas-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000006252cf4 <_$s8SwiftCAD33DocumentDrawingSilhouetteProducerVAA0cdE9ProducingA2aDP11silhouettes_8document17currentEvaluation4onto21maximumSourceEntities0mN5Faces0M14ProjectedSpans0M17ControlPointCount0m13BoundaryCurveU05using9CADKernel04BRepD11SilhouettesVAP0zD9PlacementV_5CADIR11CADDocumentVAP09EvaluatedC0V11CADGeometry27OrthographicProjectionFrameVS5iAZ22OriginalQueryExecutionVztKFTW>:
+ 6252cf4:      	str	x28, [sp, #-0x20]!
+ 6252cf8:      	stp	x29, x30, [sp, #0x10]
+ 6252cfc:      	add	x29, sp, #0x10
+ 6252d00:      	sub	sp, sp, #0x4b0
+ 6252d04:      	str	x8, [sp, #0x18]
+ 6252d08:      	ldr	x10, [x29, #0x10]
+ 6252d0c:      	ldr	x8, [x29, #0x18]
+ 6252d10:      	mov	x9, sp
+ 6252d14:      	str	x10, [x9]
+ 6252d18:      	str	x8, [x9, #0x8]
+ 6252d1c:      	add	x8, sp, #0x30
+ 6252d20:      	bl	0x62526c0 <_$s8SwiftCAD33DocumentDrawingSilhouetteProducerV11silhouettes_8document17currentEvaluation4onto21maximumSourceEntities0lM5Faces0L14ProjectedSpans0L17ControlPointCount0l13BoundaryCurveT05using9CADKernel04BRepD11SilhouettesVAN0yD9PlacementV_5CADIR11CADDocumentVAN09EvaluatedC0V11CADGeometry27OrthographicProjectionFrameVS5iAX22OriginalQueryExecutionVztKF>
+ 6252d24:      	str	x21, [sp, #0x20]
+ 6252d28:      	mov	x8, x21
+ 6252d2c:      	str	x8, [sp, #0x28]
+ 6252d30:      	cbnz	x21, 0x6252d60 <_$s8SwiftCAD33DocumentDrawingSilhouetteProducerVAA0cdE9ProducingA2aDP11silhouettes_8document17currentEvaluation4onto21maximumSourceEntities0mN5Faces0M14ProjectedSpans0M17ControlPointCount0m13BoundaryCurveU05using9CADKernel04BRepD11SilhouettesVAP0zD9PlacementV_5CADIR11CADDocumentVAP09EvaluatedC0V11CADGeometry27OrthographicProjectionFrameVS5iAZ22OriginalQueryExecutionVztKFTW+0x6c>
+ 6252d34:      	b	0x6252d38 <_$s8SwiftCAD33DocumentDrawingSilhouetteProducerVAA0cdE9ProducingA2aDP11silhouettes_8document17currentEvaluation4onto21maximumSourceEntities0mN5Faces0M14ProjectedSpans0M17ControlPointCount0m13BoundaryCurveU05using9CADKernel04BRepD11SilhouettesVAP0zD9PlacementV_5CADIR11CADDocumentVAP09EvaluatedC0V11CADGeometry27OrthographicProjectionFrameVS5iAZ22OriginalQueryExecutionVztKFTW+0x44>
+ 6252d38:      	ldr	x21, [sp, #0x20]
+ 6252d3c:      	ldr	x0, [sp, #0x18]
+ 6252d40:      	add	x1, sp, #0x30
+ 6252d44:      	mov	w8, #0x480              ; =1152
+ 6252d48:      	mov	x2, x8
+ 6252d4c:      	bl	0x633d2cc <_write+0x633d2cc>
+ 6252d50:      	add	sp, sp, #0x4b0
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-field-atlas-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000000008940 <_$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V17placedSilhouettes33_9F58DFE84BC2AA973B67A16FE6063CCDLL_9placement6source6curved5using9CADKernel04BRepdH0V8SwiftCAD0cD19SilhouetteProducing_p_AJ0vD9PlacementVAC6SourceAELLVSb11CADGeometry22OriginalQueryExecutionVztKF>:
+    8940:      	stp	x28, x20, [sp, #-0x20]!
+    8944:      	stp	x29, x30, [sp, #0x10]
+    8948:      	add	x29, sp, #0x10
+    894c:      	sub	sp, sp, #0x2, lsl #12   ; =0x2000
+    8950:      	sub	sp, sp, #0x2b0
+    8954:      	str	x8, [sp, #0x30]
+    8958:      	str	x0, [sp, #0x48]
+    895c:      	str	x1, [sp, #0x60]
+    8960:      	str	x2, [sp, #0x50]
+    8964:      	str	w3, [sp, #0x3c]
+    8968:      	str	x4, [sp, #0x68]
+    896c:      	str	x21, [sp, #0x58]
+    8970:      	str	xzr, [sp, #0xf48]
+    8974:      	str	xzr, [sp, #0xf40]
+    8978:      	str	xzr, [sp, #0xf38]
+    897c:      	strb	wzr, [sp, #0xf30]
+    8980:      	str	xzr, [sp, #0xf28]
+    8984:      	str	x0, [sp, #0xf48]
+    8988:      	str	x1, [sp, #0xf40]
+    898c:      	str	x2, [sp, #0xf38]
+    8990:      	mov	w8, #0x1                ; =1
+    8994:      	and	w9, w3, #0x1
+    8998:      	and	w9, w9, #0x1
+    899c:      	strb	w9, [sp, #0xf30]
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-field-atlas-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+00000000000062ac <_$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V5query33_9F58DFE84BC2AA973B67A16FE6063CCDLL_6curved5using9CADKernel04BRepD17ProjectedContactsVAC6SourceAELLV_Sb11CADGeometry22OriginalQueryExecutionVztKF>:
+    62ac:      	str	d14, [sp, #-0x90]!
+    62b0:      	stp	d13, d12, [sp, #0x8]
+    62b4:      	stp	d11, d10, [sp, #0x18]
+    62b8:      	stp	d9, d8, [sp, #0x28]
+    62bc:      	str	x28, [sp, #0x38]
+    62c0:      	stp	x27, x26, [sp, #0x40]
+    62c4:      	stp	x25, x24, [sp, #0x50]
+    62c8:      	stp	x23, x22, [sp, #0x60]
+    62cc:      	stp	x20, x19, [sp, #0x70]
+    62d0:      	stp	x29, x30, [sp, #0x80]
+    62d4:      	add	x29, sp, #0x80
+    62d8:      	sub	sp, sp, #0x2, lsl #12   ; =0x2000
+    62dc:      	sub	sp, sp, #0x3e0
+    62e0:      	str	x8, [sp, #0x330]
+    62e4:      	str	x0, [sp, #0x338]
+    62e8:      	str	w1, [sp, #0x344]
+    62ec:      	str	x2, [sp, #0x348]
+    62f0:      	str	xzr, [sp, #0x1360]
+    62f4:      	add	x8, sp, #0x359
+    62f8:      	strb	wzr, [x8, #0xfff]
+    62fc:      	str	xzr, [sp, #0x1350]
+    6300:      	mov	x8, x0
+    6304:      	str	x8, [sp, #0x1360]
+    6308:      	and	w8, w1, #0x1
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-field-atlas-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000000015128 <_$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V50drawingWitnessesPreserveTheCallerCancellationCauseyyYaKFTY2_>:
+   15128:      	orr	x29, x29, #0x1000000000000000
+   1512c:      	sub	sp, sp, #0x30
+   15130:      	stp	x28, x21, [sp, #0x8]
+   15134:      	stp	x29, x30, [sp, #0x20]
+   15138:      	str	x22, [sp, #0x18]
+   1513c:      	add	x29, sp, #0x20
+   15140:      	sub	sp, sp, #0x750
+   15144:      	stur	x22, [x29, #-0xc8]
+   15148:      	adrp	x8, 0x77000 <_$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V6Source33_9F58DFE84BC2AA973B67A16FE6063CCDLLVWOc+0x1f48>
+   1514c:      	add	x8, x8, #0xbe4
+   15150:      	stur	x8, [x29, #-0x98]
+   15154:      	mov	w8, #0x8fe0             ; =36832
+   15158:      	ldr	x21, [x22, x8]
+   1515c:      	mov	w8, #0x8f00             ; =36608
+   15160:      	mov	x9, x8
+   15164:      	mov	x8, x22
+   15168:      	str	x8, [x22, x9]
+   1516c:      	add	x8, x22, #0x10
+   15170:      	stur	x8, [x29, #-0xb8]
+   15174:      	bl	0x10480 <_$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V18assertWorkerThread33_9F58DFE84BC2AA973B67A16FE6063CCDLLyyF>
+   15178:      	adrp	x8, 0x6828000 <_write+0x6828000>
+   1517c:      	add	x8, x8, #0xd8
+   15180:      	add	x0, x8, #0x10
+   15184:      	mov	w8, #0x15               ; =21
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-field-atlas-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000000014b64 <_$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V04$s12a8Tests033cdeF87B0V50drawingWitnessesPreserveTheCallerCancellationCause4TestfMp_17Z2b6447f60d7b29e9fMu_33_9F58DFE84BC2AA973B67A16FE6063CCDLLyyYaYbKFZTQ3_>:
+   14b64:      	orr	x29, x29, #0x1000000000000000
+   14b68:      	sub	sp, sp, #0x30
+   14b6c:      	stp	x29, x30, [sp, #0x20]
+   14b70:      	str	x22, [sp, #0x18]
+   14b74:      	add	x29, sp, #0x20
+   14b78:      	ldr	x8, [x22]
+   14b7c:      	mov	x9, x29
+   14b80:      	sub	x9, x9, #0x8
+   14b84:      	str	x8, [x9]
+   14b88:      	ldr	x0, [x8, #0x20]
+   14b8c:      	ldr	x9, [x22]
+   14b90:      	str	x9, [x8, #0x10]!
+   14b94:      	mov	x9, x8
+   14b98:      	str	x9, [sp]
+   14b9c:      	mov	x9, x8
+   14ba0:      	str	x9, [sp, #0x8]
+   14ba4:      	str	x20, [x8, #0x18]
+   14ba8:      	bl	0x633d728 <_write+0x633d728>
+   14bac:      	cbnz	x20, 0x14c10 <_$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V04$s12a8Tests033cdeF87B0V50drawingWitnessesPreserveTheCallerCancellationCause4TestfMp_17Z2b6447f60d7b29e9fMu_33_9F58DFE84BC2AA973B67A16FE6063CCDLLyyYaYbKFZTQ3_+0xac>
+   14bb0:      	b	0x14bb4 <_$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V04$s12a8Tests033cdeF87B0V50drawingWitnessesPreserveTheCallerCancellationCause4TestfMp_17Z2b6447f60d7b29e9fMu_33_9F58DFE84BC2AA973B67A16FE6063CCDLLyyYaYbKFZTQ3_+0x50>
+   14bb4:      	adrp	x8, 0x68e7000 <_write+0x68e7000>
+   14bb8:      	ldr	x8, [x8, #0xbc8]
+   14bbc:      	ldr	w8, [x8, #0x4]
+   14bc0:      	mov	x0, x8
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-field-atlas-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+00000000000175b4 <_$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V04$s12a8Tests033cdeF95B0V50drawingWitnessesPreserveTheCallerCancellationCause4TestfMp_25generator2b6447f60d7b29e9fMu_33_9F58DFE84BC2AA973B67A16FE6063CCDLL7Testing4TestVyYaYbFZyyYaYbKcfu_TQ0_>:
+   175b4:      	orr	x29, x29, #0x1000000000000000
+   175b8:      	sub	sp, sp, #0x30
+   175bc:      	stp	x29, x30, [sp, #0x20]
+   175c0:      	str	x22, [sp, #0x18]
+   175c4:      	add	x29, sp, #0x20
+   175c8:      	str	x20, [sp, #0x8]
+   175cc:      	ldr	x8, [x22]
+   175d0:      	mov	x9, x29
+   175d4:      	sub	x9, x9, #0x8
+   175d8:      	str	x8, [x9]
+   175dc:      	ldr	x0, [x8, #0x18]
+   175e0:      	ldr	x9, [x22]
+   175e4:      	str	x9, [x8, #0x10]!
+   175e8:      	str	x8, [sp, #0x10]
+   175ec:      	bl	0x633d728 <_write+0x633d728>
+   175f0:      	cbnz	x20, 0x17618 <_$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V04$s12a8Tests033cdeF95B0V50drawingWitnessesPreserveTheCallerCancellationCause4TestfMp_25generator2b6447f60d7b29e9fMu_33_9F58DFE84BC2AA973B67A16FE6063CCDLL7Testing4TestVyYaYbFZyyYaYbKcfu_TQ0_+0x64>
+   175f4:      	b	0x175f8 <_$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V04$s12a8Tests033cdeF95B0V50drawingWitnessesPreserveTheCallerCancellationCause4TestfMp_25generator2b6447f60d7b29e9fMu_33_9F58DFE84BC2AA973B67A16FE6063CCDLL7Testing4TestVyYaYbFZyyYaYbKcfu_TQ0_+0x44>
+   175f8:      	ldr	x8, [sp, #0x10]
+   175fc:      	ldr	x22, [x8]
+   17600:      	ldr	x0, [x22, #0x8]
+   17604:      	mov	x20, #0x0               ; =0
+   17608:      	ldp	x29, x30, [sp, #0x20]
+   1760c:      	and	x29, x29, #0xefffffffffffffff
+   17610:      	add	sp, sp, #0x30
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-field-atlas-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000000078214 <_$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V04$s12a8Tests033cdeF95B0V50drawingWitnessesPreserveTheCallerCancellationCause4TestfMp_25generator2b6447f60d7b29e9fMu_33_9F58DFE84BC2AA973B67A16FE6063CCDLL7Testing4TestVyYaYbFZyyYaYbKcfu_TATQ0_>:
+   78214:      	orr	x29, x29, #0x1000000000000000
+   78218:      	sub	sp, sp, #0x20
+   7821c:      	stp	x29, x30, [sp, #0x10]
+   78220:      	str	x22, [sp, #0x8]
+   78224:      	add	x29, sp, #0x10
+   78228:      	ldr	x9, [x22]
+   7822c:      	str	x9, [sp]
+   78230:      	mov	x8, x29
+   78234:      	sub	x8, x8, #0x8
+   78238:      	str	x9, [x8]
+   7823c:      	ldr	x0, [x9, #0x18]
+   78240:      	ldr	x8, [x22]
+   78244:      	str	x8, [x9, #0x10]
+   78248:      	bl	0x633d728 <_write+0x633d728>
+   7824c:      	ldr	x8, [sp]
+   78250:      	ldr	x22, [x8, #0x10]
+   78254:      	ldr	x0, [x22, #0x8]
+   78258:      	ldp	x29, x30, [sp, #0x10]
+   7825c:      	and	x29, x29, #0xefffffffffffffff
+   78260:      	add	sp, sp, #0x20
+   78264:      	br	x0
+
+0000000000078268 <_$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0VMa>:
+   78268:      	adrp	x8, 0x6828000 <_write+0x6828000>
+   7826c:      	add	x8, x8, #0x100
+   78270:      	add	x0, x8, #0x10

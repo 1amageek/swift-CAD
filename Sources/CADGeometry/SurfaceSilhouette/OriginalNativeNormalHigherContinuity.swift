@@ -2,7 +2,7 @@ import CADCore
 
 /// Exact oriented projective partial equality of admitted nonzero original normal fields.
 struct OriginalNativeNormalHigherContinuity {
-    static func prove<B: RationalAlgebraAdmitting>(spans: [PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan],
+    static func prove<B: ExactScalarAdmission & ~Copyable>(spans: [PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan],
         fields: [[ExactBivariatePolynomial]], over query: SurfaceParameterBox,
         throughOrder: Int, maximumSubdivisionDepth: Int,
         tolerance: ModelingTolerance, usage: inout B) throws {
@@ -11,7 +11,7 @@ struct OriginalNativeNormalHigherContinuity {
         }
         for first in spans.indices {
             for second in spans.indices where second > first {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 let a = spans[first], b = spans[second]
                 for alongU in [true, false] {
                     let aa = alongU ? a.uBounds : a.vBounds, bb = alongU ? b.uBounds : b.vBounds
@@ -26,7 +26,7 @@ struct OriginalNativeNormalHigherContinuity {
                     let lower = max(at.lower, max(bt.lower, transverse.lower))
                     let upper = min(at.upper, min(bt.upper, transverse.upper))
                     if lower > upper { continue }
-                    try usage.visitExactCell(depth: 0)
+                    try usage.visitCell(axis: .value, depth: 0)
                     try edge(first: fields[first], second: fields[second], alongU: alongU,
                         station: station, lower: lower, upper: upper, throughOrder: throughOrder,
                         maximumSubdivisionDepth: maximumSubdivisionDepth, tolerance: tolerance, usage: &usage)
@@ -35,7 +35,7 @@ struct OriginalNativeNormalHigherContinuity {
         }
     }
 
-    private static func edge<B: RationalAlgebraAdmitting>(first: [ExactBivariatePolynomial],
+    private static func edge<B: ExactScalarAdmission & ~Copyable>(first: [ExactBivariatePolynomial],
         second: [ExactBivariatePolynomial], alongU: Bool, station: Double, lower: Double,
         upper: Double, throughOrder: Int, maximumSubdivisionDepth: Int,
         tolerance: ModelingTolerance, usage: inout B) throws {
@@ -76,7 +76,7 @@ struct OriginalNativeNormalHigherContinuity {
             if nonzero { anchor = axis; break }
         }
         guard let anchor else { throw discontinuity(tolerance) }
-        try usage.retainExactStorage(8)
+        try RationalAlgebraStorage.retain(8, of: UInt32.self, usage: &usage)
         var h1 = first, h2 = second
         h1.append(first[anchor]); h2.append(second[anchor])
         let law1 = try OriginalRationalVectorDerivativeLaw(homogeneous: h1, throughOrder: throughOrder, usage: &usage)

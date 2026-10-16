@@ -46,7 +46,7 @@ extension ExactRealCellDomain: ExactRealCellDescribing, ExactRealCellTraversing 
    return .init(owner: partition.owner, indices: indices)
   }
  }
- func boundary(parent: ExactRealCellID<Base>, axis: Int, ordinal: Int, _ a: inout ExactCellBorrowedAdmission) throws -> ExactRealCellBoundaryRoot<Base> {
+ func boundary<A: ExactScalarAdmission & ~Copyable>(parent: ExactRealCellID<Base>, axis: Int, ordinal: Int, _ a: inout A) throws -> ExactRealCellBoundaryRoot<Base> {
   let owner = parent.owner, stack = owner.stacks[owner.records[parent.index].stack], level = owner.levels[axis]
   guard ordinal >= 0, ordinal < stack.rootSet.roots.count else { throw ExactRealCellFailure.invalidCoverage }
   let root = stack.rootSet.roots[ordinal]
@@ -105,7 +105,7 @@ extension ExactRealCellDomain: ExactRealCellDescribing, ExactRealCellTraversing 
   }
   guard signs.first == .zero else { throw ExactRealCellFailure.invalidCoverage }
   return .init(parent: parent, axis: axis, rootOrdinal: ordinal, incomingLawIndex: incoming,
-   incomingLaw: level.laws[incoming], incomingMultiplicity: incomingMultiplicity, incomingDerivativeSigns: incomingSigns, polynomial: polynomial, derivativeSigns: signs, depth: a.depth)
+   incomingLaw: level.laws[incoming], incomingMultiplicity: incomingMultiplicity, incomingDerivativeSigns: incomingSigns, polynomial: polynomial, derivativeSigns: signs, depth: (try a.depth))
  }
  public func definition<A: ExactScalarAdmission & ~Copyable>(of cell: ExactRealCellID<Base>, in partition: borrowing ExactRealCellPartition<Base>, using admission: inout A) throws(ExactRealCellFailure) -> ExactRealCellDefinition<Base> {
   let partition = copy partition
@@ -132,7 +132,7 @@ extension ExactRealCellDomain: ExactRealCellDescribing, ExactRealCellTraversing 
     }
     steps.append(.init(parent: parent, cell: id, axis: axis, section: section, lower: lower, upper: upper))
    }
-   return .init(partition: partition, cell: cell, coefficientField: context.field, steps: steps, depth: a.depth)
+   return .init(partition: partition, cell: cell, coefficientField: context.field, steps: steps, depth: (try a.depth))
   }
  }
 }

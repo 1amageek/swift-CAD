@@ -44,7 +44,7 @@ public struct SketchCurveIntersector: Sendable {
             second: secondCurve.curve,
             maximumSubdivisionDepth: maximumSubdivisionDepth,
             maximumSubdivisionCells: maximumSubdivisionCells,
-            accepting: { $0.pointEnclosure.maximumWidth <= distance },
+            accepting: { candidate, _ in candidate.pointEnclosure.maximumWidth <= distance },
             tolerance: tolerance
         )
         var result: [SketchCurveIntersection2D] = []

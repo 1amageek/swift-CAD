@@ -21,8 +21,16 @@ struct BRepImprintCompletion {
         sourceSubshapes: [SubshapeID: TopologyReference],
         tolerance: ModelingTolerance
     ) throws -> [BRepFaceImprinter.Curve] {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try completed(curves, by: completion, model: model, sourceSubshapes: sourceSubshapes, tolerance: tolerance, using: &execution)
+    }
+
+    func completed(_ curves: [BRepFaceImprinter.Curve], by completion: ImprintCompletion,
+        model: BRepModel, sourceSubshapes: [SubshapeID: TopologyReference],
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> [BRepFaceImprinter.Curve] {
+        try execution.checkpoint()
         guard completion != .none else {
-            return try dividing(curves, model: model, tolerance: tolerance)
+            return try dividing(curves, model: model, tolerance: tolerance, using: &execution)
         }
         var result = curves
         let clipper = BRepFaceCurveClipper()
@@ -31,14 +39,14 @@ struct BRepImprintCompletion {
             guard let face = model.faces[curve.faceID], let surface = model.geometry.surfaces[face.surfaceID] else {
                 throw KernelError(phase: .topology, code: .missingReference, tolerance: tolerance, message: "An imprinted face is missing.")
             }
-            let bounds = try BRepFaceCurveClipper.parameterBounds(of: curve.faceID, model: model, sourceSubshapes: sourceSubshapes, tolerance: tolerance)
+            let bounds = try BRepFaceCurveClipper.parameterBounds(of: curve.faceID, model: model, sourceSubshapes: sourceSubshapes, tolerance: tolerance, using: &execution)
             let reach = 2 * ((bounds.u.upperBound - bounds.u.lowerBound) + (bounds.v.upperBound - bounds.v.lowerBound))
             let others = curves.filter { $0.faceID == curve.faceID && $0.edge.stableID != curve.edge.stableID }.map(\.edge)
             let pcurve = curve.edge.surfaceParameterCurve
             for (end, fraction, inward) in [(curve.edge.startPoint, 0.0, 0.001), (curve.edge.endPoint, 1.0, 0.999)]
             where others.contains(where: { ($0.startPoint - end).length <= tolerance.distance * 8 || ($0.endPoint - end).length <= tolerance.distance * 8 }) == false {
-                let at = try pcurve.parameter(atNormalizedFraction: fraction, tolerance: tolerance)
-                let before = try pcurve.parameter(atNormalizedFraction: inward, tolerance: tolerance)
+                let at = try pcurve.parameter(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+                let before = try pcurve.parameter(atNormalizedFraction: inward, tolerance: tolerance, using: &execution)
                 let direction = Point2D(x: at.u - before.u, y: at.v - before.v)
                 let length = (direction.x * direction.x + direction.y * direction.y).squareRoot()
                 guard length > 0, length.isFinite else { continue }
@@ -50,7 +58,7 @@ struct BRepImprintCompletion {
                 )
                 let pieces = try clipper.clip(
                     line, to: curve.faceID, stableID: "\(curve.edge.stableID):completion:\(fraction)",
-                    parentSubshapeIDs: curve.edge.parentSubshapeIDs, model: model, sourceSubshapes: sourceSubshapes, tolerance: tolerance
+                    parentSubshapeIDs: curve.edge.parentSubshapeIDs, model: model, sourceSubshapes: sourceSubshapes, tolerance: tolerance, using: &execution
                 )
                 guard var piece = pieces.first(where: { ($0.startPoint - end).length <= tolerance.distance * 8 }) else {
                     continue
@@ -58,11 +66,11 @@ struct BRepImprintCompletion {
                 // Edge completion stops at the first other curve it meets.
                 var crossings: [Point3D] = []
                 for other in completion == .edge ? others : [] {
-                    if case .subdivisionPoints(let points) = try intersector.intersections(piece, other, sharedSurface: surface, tolerance: tolerance) {
+                    if case .subdivisionPoints(let points) = try intersector.intersections(piece, other, sharedSurface: surface, tolerance: tolerance, using: &execution) {
                         crossings += points
                     }
                 }
-                if let first = try BRepSewingEdgeSubdivider().subdivide(piece, at: crossings, tolerance: tolerance).first {
+                if let first = try BRepSewingEdgeSubdivider().subdivide(piece, at: crossings, tolerance: tolerance, using: &execution).first {
                     piece = first
                 }
                 result.append(BRepFaceImprinter.Curve(faceID: curve.faceID, edge: BRepSewingEdge(
@@ -73,16 +81,17 @@ struct BRepImprintCompletion {
                 )))
             }
         }
+        try execution.checkpoint()
         return result
     }
 
     /// The curves that divide their faces: each end on its face's boundary or on another such
     /// curve of the face, dropping the others until none is left with a free end.
-    private func dividing(_ curves: [BRepFaceImprinter.Curve], model: BRepModel, tolerance: ModelingTolerance) throws -> [BRepFaceImprinter.Curve] {
+    private func dividing(_ curves: [BRepFaceImprinter.Curve], model: BRepModel, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> [BRepFaceImprinter.Curve] {
         let solver = BRepSurfaceMeetingSolver(tolerance: tolerance)
         let reach = tolerance.distance * 8
         func lies(_ point: Point3D, on curve: Curve3D, from start: Double, to end: Double) throws -> Bool {
-            let closest = try solver.closest(to: point, on: curve)
+            let closest = try solver.closest(to: point, on: curve, using: &execution)
             guard (closest.point - point).length <= reach else { return false }
             let low = min(start, end), high = max(start, end)
             var candidates = [closest.parameter]

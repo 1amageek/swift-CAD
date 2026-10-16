@@ -10,9 +10,9 @@ package struct OriginalRationalCurvePolynomial: Sendable {
     package let upperParameter: ExactRationalCoefficient
     package let homogeneous: [ExactBivariatePolynomial]
 
-    package init<B: RationalAlgebraAdmitting>(source: BSplineCurve3D, spanIndex: Int,
+    package init<B: ExactScalarAdmission & ~Copyable>(source: BSplineCurve3D, spanIndex: Int,
         originalTranslation: Double = 0, tolerance: ModelingTolerance, usage: inout B) throws {
-        try source.validate(tolerance: tolerance, consumeWork: { try usage.consumeExactWork(1) })
+        try source.validate(tolerance: tolerance, using: &usage)
         guard spanIndex >= source.degree, spanIndex < source.controlPoints.count,
               source.knots[spanIndex] < source.knots[spanIndex + 1], originalTranslation.isFinite else {
             throw rationalAlgebraFailure("Original homogeneous curve requires its positive source knot span.")
@@ -56,13 +56,13 @@ package struct OriginalRationalCurvePolynomial: Sendable {
     }
 
     /// Exact spatial image of an original native law; parameter ownership is unchanged.
-    package init<B: RationalAlgebraAdmitting>(source original: Curve3D, spanIndex: Int,
+    package init<B: ExactScalarAdmission & ~Copyable>(source original: Curve3D, spanIndex: Int,
         originalTranslation: Double = 0, tolerance: ModelingTolerance,
         remainingSourceDepth: Int, usage: inout B) throws {
         guard remainingSourceDepth > 0 else {
             throw GeometryConversionError.resourceLimitExceeded("Original homogeneous spatial image exhausted source depth.")
         }
-        try usage.consumeExactWork(1)
+        try usage.consumeWork(1)
         let descendant: Curve3D
         let coefficients: [ExactRationalCoefficient]
         var localTolerance = tolerance
@@ -94,19 +94,14 @@ package struct OriginalRationalCurvePolynomial: Sendable {
             exactColumns.reserveCapacity(12)
             for row in 0..<3 {
                 for column in 0..<4 {
-                    try usage.consumeExactWork(1)
+                    try usage.consumeWork(1)
                     exactColumns.append(try column == 3
                         ? image.preparedWord.translationCoefficient(row: row)
                         : image.preparedWord.linearCoefficient(row: row, column: column))
                 }
             }
             coefficients = exactColumns
-            func work() throws { try usage.consumeExactWork(1) }
-            func bytes(_ count: Int) throws { try RationalAlgebraStorage.retainBytes(count, usage: &usage) }
-            localTolerance = try withoutActuallyEscaping(bytes) { storage in
-                try image.sourceCalculationTolerance(tolerance: tolerance,
-                    consumeWork: work, consumeStorage: storage)
-            }
+            localTolerance = try image.sourceCalculationTolerance(tolerance: tolerance, using: &usage)
             descendant = image.source
         default:
             // FIXME(INCOMPLETE_IMPLEMENTATION): Original S7 spatial-image pole
@@ -123,7 +118,7 @@ package struct OriginalRationalCurvePolynomial: Sendable {
         for row in 0..<3 {
             var value = try native.homogeneous[3].scaled(by: coefficients[row * 4 + 3], usage: &usage)
             for column in 0..<3 {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 value = try value.adding(native.homogeneous[column].scaled(
                     by: coefficients[row * 4 + column], usage: &usage), usage: &usage)
             }
@@ -141,7 +136,7 @@ package struct OriginalRationalCurvePolynomial: Sendable {
     }
 
     /// All three original axis-cross numerators; a single coordinate is not incidence.
-    package func axisIncidenceNumerators<B: RationalAlgebraAdmitting>(origin: Point3D,
+    package func axisIncidenceNumerators<B: ExactScalarAdmission & ~Copyable>(origin: Point3D,
         direction: Vector3D, usage: inout B) throws -> [ExactBivariatePolynomial] {
         try origin.validate(); try direction.validate()
         guard direction.x != 0 || direction.y != 0 || direction.z != 0 else {
@@ -166,7 +161,7 @@ package struct OriginalRationalCurvePolynomial: Sendable {
         return result
     }
 
-    package func planeIncidenceNumerator<B: RationalAlgebraAdmitting>(origin: Point3D,
+    package func planeIncidenceNumerator<B: ExactScalarAdmission & ~Copyable>(origin: Point3D,
         normal: Vector3D, usage: inout B) throws -> ExactBivariatePolynomial {
         try origin.validate(); try normal.validate()
         guard normal.x != 0 || normal.y != 0 || normal.z != 0 else {

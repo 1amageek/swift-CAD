@@ -4,14 +4,14 @@ import L1
 #endif
 
 extension ExactRealRootDomain {
-    func admitted(_ root: ExactRealRoot<F>, _ a: inout ExactRootBorrowedAdmission) throws {
+    func admitted<A: ExactScalarAdmission & ~Copyable>(_ root: ExactRealRoot<F>, _ a: inout A) throws {
         try require(root.source, &a); try ExactRootAccess.admit(root.depth, &a)
         try ExactRootAccess.admit(root.isolation.depth, &a); try ExactRootAccess.admit(root.proof.depth, &a)
     }
-    func replaced(_ root: ExactRealRoot<F>, _ cell: ExactRealRootInterval<F.Value>,
-        _ a: inout ExactRootBorrowedAdmission) -> ExactRealRoot<F> {
+    func replaced<A: ExactScalarAdmission & ~Copyable>(_ root: ExactRealRoot<F>, _ cell: ExactRealRootInterval<F.Value>,
+        _ a: inout A) throws -> ExactRealRoot<F> {
         ExactRealRoot(source: root.source, multiplicity: root.multiplicity, ordinal: root.ordinal,
-            isolation: cell, proof: root.proof, depth: a.depth)
+            isolation: cell, proof: root.proof, depth: (try a.depth))
     }
     public func refine<A: ExactScalarAdmission & ~Copyable>(_ root: borrowing ExactRealRoot<F>,
         toExactValue value: F.Value, using admission: inout A) throws(ExactRealRootFailure) -> ExactRealRoot<F> {
@@ -30,7 +30,7 @@ extension ExactRealRootDomain {
             }
             let singleton = try interval(.finite(value), .finite(value), true, true, &a)
             guard try roots(root.proof, singleton, &a) == 1 else { throw ExactRealRootFailure.invalidEvidence }
-            let refined = replaced(copy root, singleton, &a)
+            let refined = try replaced(copy root, singleton, &a)
             try a.checkpoint()
             return refined
         }
@@ -48,11 +48,11 @@ extension ExactRealRootDomain {
                 if try context.field.compare(width, maximumWidth, using: &a) != .greater { break }
                 cell = try contracted(root.proof, cell, axis: root.source.refinementAxis, &a)
             }
-            return replaced(copy root, cell, &a)
+            return try replaced(copy root, cell, &a)
         }
     }
-    func disjointOrder(_ l: ExactRealRootInterval<F.Value>, _ r: ExactRealRootInterval<F.Value>,
-        _ a: inout ExactRootBorrowedAdmission) throws -> ExactOrder? {
+    func disjointOrder<A: ExactScalarAdmission & ~Copyable>(_ l: ExactRealRootInterval<F.Value>, _ r: ExactRealRootInterval<F.Value>,
+        _ a: inout A) throws -> ExactOrder? {
         guard case .finite(let ll) = l.lower, case .finite(let lh) = l.upper,
             case .finite(let rl) = r.lower, case .finite(let rh) = r.upper else { throw ExactRealRootFailure.invalidEvidence }
         let left = try context.field.compare(lh, rl, using: &a)

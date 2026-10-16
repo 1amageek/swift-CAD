@@ -201,7 +201,17 @@ struct CurveExtendFeatureTests {
                      .surfaceLift,
                      .certifiedIntersection,
                      .rigidImage,
-                     .affineImage:
+                     .affineImage,
+                     .originalConstructionChart,
+                     .originalEndpointConnector,
+                     .originalPlaneDerivative,
+                     .originalGuideTraversalChain,
+                     .originalPolyline,
+                     .originalGuideEndpointConnector,
+                     .originalDrafted,
+                     .originalAngularTransport,
+                     .originalAffineWord,
+                     .parameterImage:
                     Issue.record("Unsupported representation entered the curve extend matrix.")
                     return
                 }

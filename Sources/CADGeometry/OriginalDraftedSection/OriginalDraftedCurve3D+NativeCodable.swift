@@ -8,7 +8,7 @@ extension OriginalDraftedCurve3D: Codable {
         try c.validateOnlyExpectedKeys([.generator,.normal,.axis,.pull,.height,.angle],in:decoder)
         if #available(macOS 15,iOS 18,visionOS 2,watchOS 11,tvOS 18,*) {
             try OriginalAffineWordDecodingContext.validateSourceNesting(from:decoder)
-            var usage = try NativeRationalSourceDecodingContext.allowance(from:decoder)
+            var usage = try NativeRationalSourceDecodingContext.execution(from:decoder)
             let generator = try c.decode(OriginalCurveRootSpan3D.self,forKey:.generator)
             let depth = try OriginalAffineWordDecodingContext.maximumSourceDepth(from:decoder)-decoder.codingPath.count
             try self.init(generator:generator,normal:c.decode(Vector3D.self,forKey:.normal),

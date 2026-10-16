@@ -65,7 +65,7 @@ struct SurfaceTrimExtendFeatureTests {
                      .projectedAnalytic,
                      .rigidImage,
                      .offsetSurfaceImage,
-                     .periodicTranslation:
+                     .periodicTranslation, .originalBSplineContinuation, .originalAffineWord, .originalImage:
                     false
                 }
             }
@@ -676,7 +676,7 @@ struct SurfaceTrimExtendFeatureTests {
                  .projectedAnalytic,
                  .rigidImage,
                  .offsetSurfaceImage,
-                 .periodicTranslation:
+                 .periodicTranslation, .originalBSplineContinuation, .originalAffineWord, .originalImage:
                 false
             }
         })

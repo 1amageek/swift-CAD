@@ -6,21 +6,20 @@ package struct OriginalDraftedBoundaryPlanarity {
     private struct Cell { let range: ScalarInterval; let depth: Int }
 
     package func validate(_ generator: OriginalCurveRootSpan3D, on plane: Plane3D,
-        tolerance: ModelingTolerance, admission: GeometryConversionAdmission) throws {
-        try admission.chargeWork()
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         let raw = plane.normal
         let scale = max(abs(raw.x), max(abs(raw.y), abs(raw.z)))
         guard plane.origin.isFinite, scale.isFinite, scale > 0 else {
             throw GeometryConversionError.invalidInput("Original section planarity requires a finite plane with a nonzero raw normal.")
         }
-        var usage = OriginalDraftedConstructionAdmission(admission)
         let equation = try OriginalSupportingPlaneEquation.prepared(source: .plane(plane),
-            tolerance: tolerance, remainingSourceDepth: admission.remainingSourceDepth, usage: &usage)
-        if try OriginalSplineTraversalPolynomialPiece.supports(generator, usage: &usage) {
-            let pieces = try OriginalSplineTraversalPolynomialPiece.pieces(generator, usage: &usage)
+            tolerance: tolerance, remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth, usage: &execution)
+        if try OriginalSplineTraversalPolynomialPiece.supports(generator, usage: &execution) {
+            let pieces = try OriginalSplineTraversalPolynomialPiece.pieces(generator, usage: &execution)
             var exact = !pieces.isEmpty
             for piece in pieces {
-                if try !equation.polynomial(piece.homogeneous, includeOffset: true, usage: &usage).isZero { exact = false }
+                if try !equation.polynomial(piece.homogeneous, includeOffset: true, usage: &execution).isZero { exact = false }
             }
             if exact {
                 try CurrentTaskCancellationChecker().checkCancellation()
@@ -29,17 +28,17 @@ package struct OriginalDraftedBoundaryPlanarity {
         }
         let direction: IntervalVector3DBounds
         if plane.uDirection != nil {
-            direction = try .init(x: equation.normal.x.outwardInterval(usage: &usage),
-                y: equation.normal.y.outwardInterval(usage: &usage),
-                z: equation.normal.z.outwardInterval(usage: &usage))
+            direction = try .init(x: equation.normal.x.outwardInterval(usage: &execution),
+                y: equation.normal.y.outwardInterval(usage: &execution),
+                z: equation.normal.z.outwardInterval(usage: &execution))
         } else {
             direction = .init(x: .exact(raw.x), y: .exact(raw.y), z: .exact(raw.z))
         }
-        guard let normal = try direction.normalized(consumeWork: { try admission.chargeWork() }) else {
+        guard let normal = try direction.normalized(using: &execution) else {
             throw GeometryConversionError.resourceLimitExceeded("Original section normal has no finite outward normalization.")
         }
-        let maximumDepth = min(32, admission.maximumSubdivisionDepth)
-        try admission.chargeStorage(bytes: (maximumDepth + 1) * MemoryLayout<Cell>.stride)
+        let maximumDepth = min(32, execution.effectiveLimits.maximumSubdivisionDepth)
+        try execution.retainStorage(bytes: (maximumDepth + 1) * MemoryLayout<Cell>.stride)
         var pending: [Cell] = []; pending.reserveCapacity(maximumDepth + 1)
         pending.append(.init(range: try .init(lower: 0, upper: 1), depth: 0))
         var remaining = 65_536
@@ -48,14 +47,12 @@ package struct OriginalDraftedBoundaryPlanarity {
                 throw GeometryConversionError.resourceLimitExceeded("Original section planarity exhausted its retained cell allowance.")
             }
             remaining -= 1
-            try admission.visit(depth: cell.depth)
+            try execution.visitGeometricCell(depth: cell.depth)
             let q = try generator.intervalTaylorJet(over: cell.range, throughOrder: 0,
                 tolerance: tolerance,
-                consumeWork: { try admission.visit(depth: cell.depth) },
-                maximumSpanCount: min(4096, admission.maximumSpanCount),
-                remainingSourceDepth: admission.remainingSourceDepth,
-                consumeStorage: { try admission.chargeStorage(bytes: $0) },
-                maximumSubdivisionDepth: maximumDepth - cell.depth)
+                maximumSpanCount: min(4096, execution.effectiveLimits.maximumSpans),
+                maximumSubdivisionDepth: maximumDepth - cell.depth,
+                remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth, using: &execution)
             let distance = try (q.x.coefficient(0, 0) - .exact(plane.origin.x)) * normal.x
                 + (q.y.coefficient(0, 0) - .exact(plane.origin.y)) * normal.y
                 + (q.z.coefficient(0, 0) - .exact(plane.origin.z)) * normal.z

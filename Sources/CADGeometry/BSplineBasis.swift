@@ -17,45 +17,48 @@ public struct BSplineBasis {
         let values: [OutwardScalarInterval]
     }
 
-    static func nonzeroDerivativeValues(parameter: Double, degree: Int,
+    static func nonzeroDerivativeValues<A: ExactScalarAdmission & ~Copyable>(parameter: Double, degree: Int,
         throughDerivativeOrder order: Int, knots: [Double], count: Int,
-        owningSpan: Int, tolerance: ModelingTolerance) throws -> [NonzeroValues] {
+        owningSpan: Int, tolerance: ModelingTolerance, using execution: inout A) throws -> [NonzeroValues] {
+        try execution.consumeWork(1)
         try validateSelectedSpan(parameter: parameter, degree: degree, order: order,
-            knots: knots, count: count, span: owningSpan, tolerance: tolerance)
-        let derivatives = localDerivatives(parameter: parameter, span: owningSpan,
-            degree: degree, derivativeOrder: min(order, degree), knots: knots)
-        guard derivatives.joined().allSatisfy({ $0.isFinite }) else {
+            knots: knots, count: count, span: owningSpan, tolerance: tolerance, using: &execution)
+        let derivatives = try localDerivatives(parameter: parameter, span: owningSpan,
+            degree: degree, derivativeOrder: min(order, degree), knots: knots, using: &execution)
+        guard try derivatives.joined().allSatisfy({ try execution.consumeWork(1); return $0.isFinite }) else {
             throw selectedFailure(.resourceLimitExceeded, "Selected original basis derivatives exceed finite arithmetic.", tolerance)
         }
-        return (0...order).map { derivative in
-            NonzeroValues(startIndex: owningSpan - degree,
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: try checkedBasisCount(order, 1), of: NonzeroValues.self))
+        return try (0...order).map { derivative in
+            try execution.consumeWork(1)
+            if derivative > degree { try execution.retainStorage(bytes: exactScalarPayloadBytes(count: try checkedBasisCount(degree, 1), of: Double.self)) }
+            return NonzeroValues(startIndex: owningSpan - degree,
                 values: derivative <= degree ? derivatives[derivative] : Array(repeating: 0, count: degree + 1))
         }
     }
 
-    static func nonzeroIntervalDerivativeValues(parameter: Double, degree: Int,
+    static func nonzeroIntervalDerivativeValues<A: ExactScalarAdmission & ~Copyable>(parameter: Double, degree: Int,
         throughDerivativeOrder order: Int, knots: [Double], count: Int,
         owningSpan: Int, tolerance: ModelingTolerance,
-        consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() },
-        consumeStorage: ((Int) throws -> Void)? = nil) throws -> [NonzeroIntervalValues] {
+        using execution: inout A) throws -> [NonzeroIntervalValues] {
         try validateSelectedSpan(parameter: parameter, degree: degree, order: order,
-            knots: knots, count: count, span: owningSpan, tolerance: tolerance, consumeWork: consumeWork)
+            knots: knots, count: count, span: owningSpan, tolerance: tolerance, using: &execution)
         typealias Interval = OutwardScalarInterval
-        for _ in 0...order { try consumeWork() }
-        try OriginalCoefficientAllocation.reserve(count: order + 1, of: [Interval].self, consumeStorage: consumeStorage)
-        try OriginalCoefficientAllocation.reserve(count: 1, of: Interval.self, consumeStorage: consumeStorage)
+        for _ in 0...order { try execution.consumeWork(1) }
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: order + 1, of: [Interval].self))
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: Interval.self))
         var previous = Array(repeating: [Interval.exact(0)], count: order + 1)
         previous[0][0] = .exact(1)
         if degree > 0 {
             for p in 1...degree {
-                try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
+                try execution.consumeWork(1)
                 let start = owningSpan - p
                 for _ in 0...order {
-                    for _ in 0...p { try consumeWork() }
+                    for _ in 0...p { try execution.consumeWork(1) }
                 }
-                try OriginalCoefficientAllocation.reserve(count: order + 1, of: [Interval].self, consumeStorage: consumeStorage)
+                try execution.retainStorage(bytes: exactScalarPayloadBytes(count: order + 1, of: [Interval].self))
                 for _ in 0...order {
-                    try OriginalCoefficientAllocation.reserve(count: p + 1, of: Interval.self, consumeStorage: consumeStorage)
+                    try execution.retainStorage(bytes: exactScalarPayloadBytes(count: p + 1, of: Interval.self))
                 }
                 var next = Array(repeating: Array(repeating: Interval.exact(0), count: p + 1), count: order + 1)
                 func value(_ derivative: Int, _ index: Int) -> Interval {
@@ -63,7 +66,7 @@ public struct BSplineBasis {
                     return previous[derivative][index - start - 1]
                 }
                 for offset in 0...p {
-                    try consumeWork()
+                    try execution.consumeWork(1)
                     let i = start + offset
                     let left = Interval.exact(knots[i + p]) - .exact(knots[i])
                     let right = Interval.exact(knots[i + p + 1]) - .exact(knots[i + 1])
@@ -74,7 +77,7 @@ public struct BSplineBasis {
                         }
                         next[0][offset] = next[0][offset] + factor * value(0, i)
                         for derivative in 1...max(1, min(p, order)) where derivative <= order {
-                            try consumeWork()
+                            try execution.consumeWork(1)
                             next[derivative][offset] = next[derivative][offset] + scale * value(derivative - 1, i)
                         }
                     }
@@ -85,7 +88,7 @@ public struct BSplineBasis {
                         }
                         next[0][offset] = next[0][offset] + factor * value(0, i + 1)
                         for derivative in 1...max(1, min(p, order)) where derivative <= order {
-                            try consumeWork()
+                            try execution.consumeWork(1)
                             next[derivative][offset] = next[derivative][offset] - scale * value(derivative - 1, i + 1)
                         }
                     }
@@ -93,27 +96,27 @@ public struct BSplineBasis {
                 previous = next
             }
         }
-        try OriginalCoefficientAllocation.reserve(count: order + 1, of: NonzeroIntervalValues.self, consumeStorage: consumeStorage)
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: order + 1, of: NonzeroIntervalValues.self))
         var result: [NonzeroIntervalValues] = []
         result.reserveCapacity(order + 1)
         for row in previous {
             for coefficient in row {
-                try consumeWork()
+                try execution.consumeWork(1)
                 guard coefficient.isFinite else {
                     throw selectedFailure(.resourceLimitExceeded, "Original interval basis derivatives exceed finite arithmetic.", tolerance)
                 }
             }
-            try consumeWork()
+            try execution.consumeWork(1)
             result.append(NonzeroIntervalValues(startIndex: owningSpan - degree, values: row))
         }
         return result
     }
 
-    private static func validateSelectedSpan(parameter: Double, degree: Int, order: Int,
+    private static func validateSelectedSpan<A: ExactScalarAdmission & ~Copyable>(parameter: Double, degree: Int, order: Int,
         knots: [Double], count: Int, span: Int, tolerance: ModelingTolerance,
-        consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() }) throws {
+        using execution: inout A) throws {
         try tolerance.validate()
-        try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
+        try execution.consumeWork(1)
         let sum = count.addingReportingOverflow(degree)
         let length = sum.partialValue.addingReportingOverflow(1)
         let rows = order.addingReportingOverflow(1)
@@ -128,7 +131,7 @@ public struct BSplineBasis {
             throw selectedFailure(.invalidInput, "A selected original basis requires its actual finite closed native span.", tolerance)
         }
         for index in knots.indices {
-            try consumeWork()
+            try execution.consumeWork(1)
             guard knots[index].isFinite,
                   index == 0 || knots[index - 1] <= knots[index] else {
                 throw selectedFailure(.invalidInput, "A selected original basis requires finite ordered original knots.", tolerance)
@@ -150,12 +153,15 @@ public struct BSplineBasis {
         }
     }
 
-    public static func values(parameter: Double, degree: Int, knots: [Double], count: Int) -> [Double] {
+    public static func values<A: ExactScalarAdmission & ~Copyable>(parameter: Double, degree: Int, knots: [Double], count: Int, using execution: inout A) throws -> [Double] {
+        try execution.consumeWork(1)
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: count, of: Double.self))
         var values = Array(repeating: 0.0, count: count)
         let upperDomain = knots[knots.count - degree - 1]
         for index in 0..<count {
+            try execution.consumeWork(1)
             if parameter == upperDomain {
-                if index == upperEndpointBasisIndex(upperDomain: upperDomain, knots: knots, count: count) {
+                if index == (try upperEndpointBasisIndex(upperDomain: upperDomain, knots: knots, count: count, using: &execution)) {
                     values[index] = 1.0
                 }
             } else if parameter >= knots[index] && parameter < knots[index + 1] {
@@ -166,8 +172,11 @@ public struct BSplineBasis {
             return values
         }
         for currentDegree in 1...degree {
+            try execution.consumeWork(1)
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: count, of: Double.self))
             var next = Array(repeating: 0.0, count: count)
             for index in 0..<count {
+                try execution.consumeWork(1)
                 let leftDenominator = knots[index + currentDegree] - knots[index]
                 let rightDenominator = knots[index + currentDegree + 1] - knots[index + 1]
                 let left = leftDenominator > 0.0
@@ -183,28 +192,32 @@ public struct BSplineBasis {
         return values
     }
 
-    public static func derivativeValues(
+    public static func derivativeValues<A: ExactScalarAdmission & ~Copyable>(
         parameter: Double,
         degree: Int,
         derivativeOrder: Int,
         knots: [Double],
-        count: Int
-    ) -> [Double] {
+        count: Int, using execution: inout A
+    ) throws -> [Double] {
+        try execution.consumeWork(1)
         guard derivativeOrder > 0 else {
-            return values(parameter: parameter, degree: degree, knots: knots, count: count)
+            return try values(parameter: parameter, degree: degree, knots: knots, count: count, using: &execution)
         }
         guard degree > 0, derivativeOrder <= degree else {
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: count, of: Double.self))
             return Array(repeating: 0.0, count: count)
         }
-        let lowerDerivative = derivativeValues(
+        let lowerDerivative = try derivativeValues(
             parameter: parameter,
             degree: degree - 1,
             derivativeOrder: derivativeOrder - 1,
             knots: knots,
-            count: count + 1
+            count: try checkedBasisCount(count, 1), using: &execution
         )
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: count, of: Double.self))
         var values = Array(repeating: 0.0, count: count)
         for index in 0..<count {
+            try execution.consumeWork(1)
             let leftDenominator = knots[index + degree] - knots[index]
             let rightDenominator = knots[index + degree + 1] - knots[index + 1]
             let left = leftDenominator > 0.0
@@ -218,29 +231,31 @@ public struct BSplineBasis {
         return values
     }
 
-    public static func nonzeroValues(
+    public static func nonzeroValues<A: ExactScalarAdmission & ~Copyable>(
         parameter: Double,
         degree: Int,
         derivativeOrder: Int = 0,
         knots: [Double],
-        count: Int
-    ) -> NonzeroValues {
-        nonzeroDerivativeValues(
+        count: Int, using execution: inout A
+    ) throws -> NonzeroValues {
+        try execution.consumeWork(1)
+        return try nonzeroDerivativeValues(
             parameter: parameter,
             degree: degree,
             throughDerivativeOrder: derivativeOrder,
             knots: knots,
-            count: count
+            count: count, using: &execution
         )[max(derivativeOrder, 0)]
     }
 
-    static func nonzeroDerivativeValues(
+    static func nonzeroDerivativeValues<A: ExactScalarAdmission & ~Copyable>(
         parameter: Double,
         degree: Int,
         throughDerivativeOrder derivativeOrder: Int,
         knots: [Double],
-        count: Int
-    ) -> [NonzeroValues] {
+        count: Int, using execution: inout A
+    ) throws -> [NonzeroValues] {
+        try execution.consumeWork(1)
         let requestedOrder = max(derivativeOrder, 0)
         let evaluatedOrder = min(requestedOrder, degree)
         let clamped = clampedParameter(parameter, knots: knots, degree: degree)
@@ -250,7 +265,10 @@ public struct BSplineBasis {
             if width.isFinite, width > 0 {
                 let t = (clamped - knots[2]) / width
                 let s = 1 - t
-                return (0...requestedOrder).map { order in
+                try execution.retainStorage(bytes: exactScalarPayloadBytes(count: try checkedBasisCount(requestedOrder, 1), of: NonzeroValues.self))
+                return try (0...requestedOrder).map { order in
+                    try execution.consumeWork(1)
+                    try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 3, of: Double.self))
                     let values: [Double]
                     switch order {
                     case 0: values = [s * s, 2 * s * t, t * t]
@@ -263,21 +281,24 @@ public struct BSplineBasis {
                 }
             }
         }
-        let span = knotSpan(
+        let span = try knotSpan(
             parameter: clamped,
             degree: degree,
             knots: knots,
-            count: count
+            count: count, using: &execution
         )
-        let derivatives = localDerivatives(
+        let derivatives = try localDerivatives(
             parameter: clamped,
             span: span,
             degree: degree,
             derivativeOrder: evaluatedOrder,
-            knots: knots
+            knots: knots, using: &execution
         )
-        return (0...requestedOrder).map { order in
-            NonzeroValues(
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: try checkedBasisCount(requestedOrder, 1), of: NonzeroValues.self))
+        return try (0...requestedOrder).map { order in
+            try execution.consumeWork(1)
+            if order > degree { try execution.retainStorage(bytes: exactScalarPayloadBytes(count: try checkedBasisCount(degree, 1), of: Double.self)) }
+            return NonzeroValues(
                 startIndex: span - degree,
                 values: order <= degree
                     ? derivatives[order]
@@ -292,8 +313,10 @@ public struct BSplineBasis {
         return min(max(parameter, lowerBound), upperBound)
     }
 
-    private static func upperEndpointBasisIndex(upperDomain: Double, knots: [Double], count: Int) -> Int {
+    private static func upperEndpointBasisIndex<A: ExactScalarAdmission & ~Copyable>(upperDomain: Double, knots: [Double], count: Int, using execution: inout A) throws -> Int {
+        try execution.consumeWork(1)
         for index in stride(from: count - 1, through: 0, by: -1) {
+            try execution.consumeWork(1)
             guard index + 1 < knots.count else {
                 continue
             }
@@ -304,12 +327,13 @@ public struct BSplineBasis {
         return max(count - 1, 0)
     }
 
-    private static func knotSpan(
+    private static func knotSpan<A: ExactScalarAdmission & ~Copyable>(
         parameter: Double,
         degree: Int,
         knots: [Double],
-        count: Int
-    ) -> Int {
+        count: Int, using execution: inout A
+    ) throws -> Int {
+        try execution.consumeWork(1)
         let lastIndex = count - 1
         if parameter >= knots[count] {
             return lastIndex
@@ -318,6 +342,7 @@ public struct BSplineBasis {
         var upper = count
         var middle = (lower + upper) / 2
         while parameter < knots[middle] || parameter >= knots[middle + 1] {
+            try execution.consumeWork(1)
             if parameter < knots[middle] {
                 upper = middle
             } else {
@@ -328,26 +353,33 @@ public struct BSplineBasis {
         return middle
     }
 
-    private static func localDerivatives(
+    private static func localDerivatives<A: ExactScalarAdmission & ~Copyable>(
         parameter: Double,
         span: Int,
         degree: Int,
         derivativeOrder: Int,
-        knots: [Double]
-    ) -> [[Double]] {
+        knots: [Double], using execution: inout A
+    ) throws -> [[Double]] {
+        try execution.consumeWork(1)
+        let width = try checkedBasisCount(degree, 1)
+        try retainBasisMatrix(rows: width, columns: width, using: &execution)
         var basis = Array(
             repeating: Array(repeating: 0.0, count: degree + 1),
             count: degree + 1
         )
-        var left = Array(repeating: 0.0, count: degree + 1)
-        var right = Array(repeating: 0.0, count: degree + 1)
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: width, of: Double.self))
+        var left = Array(repeating: 0.0, count: width)
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: width, of: Double.self))
+        var right = Array(repeating: 0.0, count: width)
         basis[0][0] = 1.0
         if degree > 0 {
             for column in 1...degree {
+                try execution.consumeWork(1)
                 left[column] = parameter - knots[span + 1 - column]
                 right[column] = knots[span + column] - parameter
                 var saved = 0.0
                 for row in 0..<column {
+                    try execution.consumeWork(1)
                     let denominator = right[row + 1] + left[column - row]
                     basis[column][row] = denominator
                     let temporary = denominator != 0.0
@@ -360,24 +392,29 @@ public struct BSplineBasis {
             }
         }
 
+        try retainBasisMatrix(rows: try checkedBasisCount(derivativeOrder, 1), columns: width, using: &execution)
         var derivatives = Array(
             repeating: Array(repeating: 0.0, count: degree + 1),
             count: derivativeOrder + 1
         )
         for index in 0...degree {
+            try execution.consumeWork(1)
             derivatives[0][index] = basis[index][degree]
         }
         guard derivativeOrder > 0 else { return derivatives }
 
+        try retainBasisMatrix(rows: 2, columns: width, using: &execution)
         var workspace = Array(
             repeating: Array(repeating: 0.0, count: degree + 1),
             count: 2
         )
         for basisIndex in 0...degree {
+            try execution.consumeWork(1)
             var firstRow = 0
             var secondRow = 1
             workspace[firstRow][0] = 1.0
             for order in 1...derivativeOrder {
+                try execution.consumeWork(1)
                 var derivative = 0.0
                 let reducedIndex = basisIndex - order
                 let reducedDegree = degree - order
@@ -395,6 +432,7 @@ public struct BSplineBasis {
                     : degree - basisIndex
                 if lower <= upper {
                     for index in lower...upper {
+                        try execution.consumeWork(1)
                         let denominator = basis[reducedDegree + 1][reducedIndex + index]
                         workspace[secondRow][index] = denominator != 0.0
                             ? (workspace[firstRow][index]
@@ -414,14 +452,17 @@ public struct BSplineBasis {
                 }
                 derivatives[order][basisIndex] = derivative
                 swap(&firstRow, &secondRow)
-                workspace[secondRow] = Array(repeating: 0.0, count: degree + 1)
+                try execution.retainStorage(bytes: exactScalarPayloadBytes(count: width, of: Double.self))
+                workspace[secondRow] = Array(repeating: 0.0, count: width)
             }
         }
 
         var multiplier = Double(degree)
         if derivativeOrder > 0 {
             for order in 1...derivativeOrder {
+                try execution.consumeWork(1)
                 for index in 0...degree {
+                    try execution.consumeWork(1)
                     derivatives[order][index] *= multiplier
                 }
                 multiplier *= Double(degree - order)
@@ -429,4 +470,15 @@ public struct BSplineBasis {
         }
         return derivatives
     }
+    private static func checkedBasisCount(_ lhs: Int, _ rhs: Int) throws -> Int {
+        let result = lhs.addingReportingOverflow(rhs)
+        guard lhs >= 0, rhs >= 0, !result.overflow else { throw ExactScalarFailure.countOverflow }
+        return result.partialValue
+    }
+
+    private static func retainBasisMatrix<A: ExactScalarAdmission & ~Copyable>(rows: Int, columns: Int, using execution: inout A) throws {
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: rows, of: [Double].self))
+        for _ in 0..<rows { try execution.retainStorage(bytes: exactScalarPayloadBytes(count: columns, of: Double.self)) }
+    }
+
 }

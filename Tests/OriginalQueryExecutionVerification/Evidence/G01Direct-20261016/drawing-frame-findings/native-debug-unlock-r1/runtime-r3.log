@@ -1,0 +1,106 @@
+(lldb) command source -s 0 '/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-debug-unlock-r1/commands-r3.lldb'
+Executing commands in '/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-debug-unlock-r1/commands-r3.lldb'.
+(lldb) # Diagnostic preparation only. Root owns one 120-second bounded launch.
+(lldb) # Capture commands execute only on this exact abort-entry breakpoint.
+(lldb) settings set interpreter.stop-command-source-on-error false
+(lldb) settings set auto-confirm true
+(lldb) target create --arch arm64 "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/libexec/swift/pm/swiftpm-testing-helper"
+Current executable set to '/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/libexec/swift/pm/swiftpm-testing-helper' (arm64).
+(lldb) settings set target.disable-aslr false
+(lldb) settings set -- target.env-vars "DYLD_FRAMEWORK_PATH=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks:/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks" "DYLD_LIBRARY_PATH=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib"
+(lldb) settings set -- target.run-args "--test-bundle-path" "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-silhouette-r2/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests" "--testing-library" "swift-testing" "--filter" "DocumentDrawingCanonicalAdmissionTests" "--xunit-output" "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-debug-unlock-r1/diagnostic-results.xml"
+(lldb) breakpoint set --name _os_unfair_lock_unowned_abort --skip-prologue false
+Breakpoint 1: where = libsystem_platform.dylib`_os_unfair_lock_unowned_abort, address = 0x000000018089c3ac
+(lldb) breakpoint command add --script-type command --stop-on-error false 1
+(lldb) breakpoint list
+Current breakpoints:
+1: name = '_os_unfair_lock_unowned_abort', locations = 1
+    Breakpoint commands:
+      frame info
+      register read x0 x1 x2 x19 x20 sp fp lr pc
+      expression --language c -- unsigned long long $g01_abort_x0 = (unsigned long long)$x0
+      thread list
+      thread backtrace --count 24 all
+      # Actual r2 chain: abort(0), unlock_slow(1), Mutex defer(2), debit(3).
+      # frame info must identify debit before interpreting this recorded offset.
+      frame select 3
+      frame info
+      register read sp fp x19 x20 lr pc
+      memory read --format x --size 8 --count 4 `$sp + 0x160`
+      expression --language c -- unsigned long long $g01_debit_handle = *(unsigned long long *)($sp + 0x170)
+      expression --language c -- $g01_abort_x0
+      expression --language c -- $g01_debit_handle
+      memory read --format x --size 4 --count 4 $g01_debit_handle
+
+  1.1: where = libsystem_platform.dylib`_os_unfair_lock_unowned_abort, address = libsystem_platform.dylib[0x000000018089c3ac], unresolved, hit count = 0 
+
+(lldb) run
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Suite "Document drawing canonical admission" started.
+􀟈  Test originalArchAndProjectedEndpointContactsShareExactResourceBoundaries() started.
+􀟈  Test planarWholeExclusionUsesTheRealDrawingWitnesses() started.
+􀟈  Test drawingWitnessesPreserveTheCallerCancellationCause() started.
+DRAWING_STAGE curved=true main=false test.begin
+DRAWING_STAGE curved=false main=false test.begin
+DRAWING_STAGE curved=false main=false test.begin
+DRAWING_STAGE curved=false main=true source.builder.begin
+DRAWING_STAGE curved=false main=true source.builder.end
+DRAWING_STAGE curved=false main=true source.bSplineSurface.begin
+DRAWING_STAGE curved=false main=true source.bSplineSurface.end
+DRAWING_STAGE curved=false main=true source.build.begin
+DRAWING_STAGE curved=false main=true source.build.end
+DRAWING_STAGE curved=false main=true source.evaluateExact.begin
+DRAWING_STAGE curved=false main=true source.evaluateExact.end
+DRAWING_STAGE curved=true main=true source.builder.begin
+DRAWING_STAGE curved=false main=false query.projectEdges.begin
+DRAWING_STAGE curved=true main=true source.builder.end
+DRAWING_STAGE curved=true main=true source.bSplineSurface.begin
+DRAWING_STAGE curved=true main=true source.bSplineSurface.end
+DRAWING_STAGE curved=true main=true source.build.begin
+DRAWING_STAGE curved=true main=true source.build.end
+DRAWING_STAGE curved=true main=true source.evaluateExact.begin
+DRAWING_STAGE curved=false main=false query.projectEdges.end
+DRAWING_STAGE curved=false main=false query.place.begin
+DRAWING_STAGE curved=false main=false query.place.end
+DRAWING_STAGE curved=false main=false query.unplacedSilhouettes.begin
+DRAWING_STAGE curved=false main=false query.unplacedSilhouettes.end
+DRAWING_STAGE curved=false main=false query.placedSilhouettes.begin
+DRAWING_STAGE curved=true main=true source.evaluateExact.end
+DRAWING_STAGE curved=false main=true source.builder.begin
+DRAWING_STAGE curved=true main=false query.projectEdges.begin
+DRAWING_STAGE curved=false main=true source.builder.end
+DRAWING_STAGE curved=false main=true source.bSplineSurface.begin
+DRAWING_STAGE curved=false main=true source.bSplineSurface.end
+DRAWING_STAGE curved=false main=true source.build.begin
+DRAWING_STAGE curved=false main=true source.build.end
+DRAWING_STAGE curved=false main=true source.evaluateExact.begin
+DRAWING_STAGE curved=true main=false query.projectEdges.end
+DRAWING_STAGE curved=true main=false query.place.begin
+DRAWING_STAGE curved=true main=false query.place.end
+DRAWING_STAGE curved=true main=false query.unplacedSilhouettes.begin
+DRAWING_STAGE curved=false main=true source.evaluateExact.end
+DRAWING_STAGE curved=false main=false query.projectEdges.begin
+Process 47796 launched: '/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/libexec/swift/pm/swiftpm-testing-helper' (arm64)
+Process 47796 stopped
+* thread #10, name = 'Task 25', queue = 'com.apple.root.default-qos.cooperative', stop reason = EXC_BAD_ACCESS (code=2, address=0x16b22f120)
+       frame #0: 0x000000011430541c FocusedTests`SurfaceSilhouettePlaneAtlasPublication.init(field:atlas:firstCurveIndex:usage:) + 472
+FocusedTests`__allocating_init:
+->  0x11430541c <+472>: str    xzr, [x13, #0x2be8]
+    0x114305420 <+476>: str    xzr, [x13, #0x2be0]
+    0x114305424 <+480>: str    xzr, [x13, #0x350]
+    0x114305428 <+484>: str    xzr, [x13, #0x338]
+Target 0: (swiftpm-testing-helper) stopped.
+(lldb) process status
+Process 47796 stopped
+* thread #10, name = 'Task 25', queue = 'com.apple.root.default-qos.cooperative', stop reason = EXC_BAD_ACCESS (code=2, address=0x16b22f120)
+       frame #0: 0x000000011430541c FocusedTests`SurfaceSilhouettePlaneAtlasPublication.init(field:atlas:firstCurveIndex:usage:) + 472
+FocusedTests`__allocating_init:
+->  0x11430541c <+472>: str    xzr, [x13, #0x2be8]
+    0x114305420 <+476>: str    xzr, [x13, #0x2be0]
+    0x114305424 <+480>: str    xzr, [x13, #0x350]
+    0x114305428 <+484>: str    xzr, [x13, #0x338]
+(lldb) process kill
+Process 47796 exited with status = 9 (0x00000009) killed
+(lldb) quit

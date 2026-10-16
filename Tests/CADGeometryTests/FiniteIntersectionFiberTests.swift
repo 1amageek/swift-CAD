@@ -5,31 +5,64 @@ import Testing
 @Suite("Finite original intersection fibers")
 struct FiniteIntersectionFiberTests {
     private typealias Polynomial = ExactIntersectionPolynomial
-    private struct Admission: RationalAlgebraAdmitting {
+    private struct Admission: ~Copyable, GeometryScalarTestAdmission {
+        var proofScopes = ExactScalarProofScopes()
         var work = 0, storage = 0, cells = 0
         var maximumWork = 10_000_000, maximumStorage = 10_000_000
         var maximumDepth = 24, maximumCells = 100_000
         var cancelAtFirstRootVisit = false
-        mutating func consumeExactWork(_ count: Int) throws {
+        mutating func consumeWork(_ count: Int) throws(ExactScalarFailure) {
+            try checkpoint()
+            try proofScopes.checkWork(count)
+            do {
             guard count >= 0, count <= maximumWork - work else { throw exhausted("work=\(work), storage=\(storage), cells=\(cells)") }
             work += count
+        
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            proofScopes.recordWork(count)
+            try checkpoint()
         }
-        mutating func retainExactStorage(_ count: Int) throws {
+        mutating func retainStorage(bytes: Int) throws(ExactScalarFailure) {
+            try checkpoint()
+            let count = try geometryTestStorageWords(bytes)
+            do {
             guard count >= 0, count <= maximumStorage - storage else { throw exhausted("storage=\(storage), work=\(work), cells=\(cells)") }
             storage += count
+        
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            try checkpoint()
         }
-        mutating func visitExactCell(depth: Int) throws {
-            guard depth >= 0, depth <= maximumDepth, cells < maximumCells else { throw exhausted() }
-            cells += 1
-            if cancelAtFirstRootVisit { withUnsafeCurrentTask { $0?.cancel() } }
-        }
-        mutating func visitCoefficientCell(depth: Int) throws {
-            throw rationalAlgebraFailure("Rational finite lifting cannot invent coefficient roots.")
-        }
+        
+        
         private func exhausted(_ detail: String = "root admission") -> KernelError {
             .init(phase: .geometry, code: .resourceLimitExceeded, tolerance: nil,
                   message: "Finite test caller exhausted its independent admission: \(detail).")
         }
+            mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
+            try admitDepth(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+            let mapped = try proofScopes.mapped(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+            do {
+                switch (axis == .coefficient || proofScopes.exactDepthResource == .coefficientDepth) ? ExactScalarRootAxis.coefficient : .value {
+                case .value:
+                    let depth = mapped.value
+
+            guard depth >= 0, depth <= maximumDepth, cells < maximumCells else { throw exhausted() }
+            cells += 1
+            if cancelAtFirstRootVisit { withUnsafeCurrentTask { $0?.cancel() } }
+        
+                case .coefficient:
+                    let depth = mapped.coefficient
+
+            throw rationalAlgebraFailure("Rational finite lifting cannot invent coefficient roots.")
+        
+                }
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            try checkpoint()
+        }
+        var maximumTestValueDepth: Int { maximumDepth }
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -97,7 +130,7 @@ struct FiniteIntersectionFiberTests {
         let impossible = try ExactIntersectionIdeal.prepare(equations: [one], variableCount: 1, usage: &usage)
         #expect(try OriginalFiniteIntersectionFiber.prepare(ideal: impossible,
             domains: [nil], maximumDepth: 24, usage: &usage).points.isEmpty)
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             _ = try OriginalFiniteIntersectionFiber.prepare(ideal: impossible,
                 domains: [], maximumDepth: 24, usage: &usage)
         }
@@ -117,20 +150,34 @@ struct FiniteIntersectionFiberTests {
         let ideal = try ExactIntersectionIdeal.prepare(equations: [
             x.multiplied(by: x, usage: &usage).subtracting(one, usage: &usage)],
             variableCount: 1, usage: &usage)
-        var depth = usage; depth.maximumDepth = 0
-        #expect(throws: KernelError.self) {
+        // Independent refusals retain observed counters, not another admission's proof scopes.
+        let observed = (work: usage.work, storage: usage.storage, cells: usage.cells,
+            maximumWork: usage.maximumWork, maximumStorage: usage.maximumStorage,
+            maximumDepth: usage.maximumDepth, maximumCells: usage.maximumCells,
+            cancelAtFirstRootVisit: usage.cancelAtFirstRootVisit)
+        var depth = Admission(work: observed.work, storage: observed.storage, cells: observed.cells,
+            maximumWork: observed.maximumWork, maximumStorage: observed.maximumStorage,
+            maximumDepth: 0, maximumCells: observed.maximumCells,
+            cancelAtFirstRootVisit: observed.cancelAtFirstRootVisit)
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             _ = try OriginalFiniteIntersectionFiber.prepare(ideal: ideal,
                 domains: [nil], maximumDepth: 0, usage: &depth)
         }
-        #expect(depth.work > usage.work)
-        var storage = usage; storage.maximumStorage = storage.storage
-        #expect(throws: KernelError.self) {
+        #expect(depth.work > observed.work)
+        var storage = Admission(work: observed.work, storage: observed.storage, cells: observed.cells,
+            maximumWork: observed.maximumWork, maximumStorage: observed.storage,
+            maximumDepth: observed.maximumDepth, maximumCells: observed.maximumCells,
+            cancelAtFirstRootVisit: observed.cancelAtFirstRootVisit)
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             _ = try OriginalFiniteIntersectionFiber.prepare(ideal: ideal,
                 domains: [nil], maximumDepth: 24, usage: &storage)
         }
-        #expect(storage.work > usage.work)
-        var work = usage; work.maximumWork = work.work
-        #expect(throws: KernelError.self) {
+        #expect(storage.work > observed.work)
+        var work = Admission(work: observed.work, storage: observed.storage, cells: observed.cells,
+            maximumWork: observed.work, maximumStorage: observed.maximumStorage,
+            maximumDepth: observed.maximumDepth, maximumCells: observed.maximumCells,
+            cancelAtFirstRootVisit: observed.cancelAtFirstRootVisit)
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             _ = try OriginalFiniteIntersectionFiber.prepare(ideal: ideal,
                 domains: [nil], maximumDepth: 24, usage: &work)
         }
@@ -147,7 +194,7 @@ struct FiniteIntersectionFiberTests {
                 _ = try OriginalFiniteIntersectionFiber.prepare(ideal: ideal,
                     domains: [nil], maximumDepth: 24, usage: &usage)
                 Issue.record("Cancellation during the root issuer cannot publish a finite fiber.")
-            } catch is CancellationError { return usage.cells }
+            } catch let error where geometryTestIsCancelled(error) { return usage.cells }
             return -1
         }.value
         #expect(result == 1)
@@ -213,18 +260,18 @@ struct FiniteIntersectionFiberTests {
         #expect(try power.subtracting(expected, maximumDepth: 24, usage: &usage)
             .sign(maximumDepth: 24, usage: &usage) == .zero)
         let zero = try power.subtracting(power, maximumDepth: 24, usage: &usage)
-        #expect(throws: KernelError.self) { _ = try power.divided(by: zero, maximumDepth: 24, usage: &usage) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { _ = try power.divided(by: zero, maximumDepth: 24, usage: &usage) }
         guard case .extended(let root) = point.context.source else {
             Issue.record("The lifted station must retain its original root."); return
         }
         let invalid = OriginalSingularFieldElement(context: point.context,
             storage: .extended(root.polynomial, root.polynomial))
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             _ = try invalid.multiplied(by: power, maximumDepth: 24, usage: &usage)
         }
         let rational = try ExactBivariatePolynomial.constant(.one, usage: &usage)
         let wrongStorage = OriginalSingularFieldElement(context: point.context, storage: .original(rational, rational))
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             _ = try wrongStorage.sign(maximumDepth: 24, usage: &usage)
         }
     }

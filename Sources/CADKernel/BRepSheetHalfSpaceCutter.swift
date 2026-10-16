@@ -12,12 +12,20 @@ struct BRepSheetHalfSpaceCutter {
         bodyID: BodyID, toolBodyID: BodyID, planeOrigin: Point3D, planeNormal: Vector3D,
         featureID: FeatureID, model: BRepModel, context: EvaluationContext
     ) throws -> EvaluationResult {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try cut(bodyID: bodyID, toolBodyID: toolBodyID, planeOrigin: planeOrigin,
+            planeNormal: planeNormal, featureID: featureID, model: model, context: context, using: &execution)
+    }
+
+    func cut(bodyID: BodyID, toolBodyID: BodyID, planeOrigin: Point3D, planeNormal: Vector3D,
+        featureID: FeatureID, model: BRepModel, context: EvaluationContext,
+        using execution: inout OriginalQueryExecution) throws -> EvaluationResult {
         let tolerance = context.tolerance
         let pipeline = BooleanPipeline(evaluator: ExactBRepBooleanEvaluator())
         let intersections = try pipeline.completeIntersectionGraph(
             targetBodyIDs: [bodyID], toolBodyID: toolBodyID, operation: .intersect,
-            model: model, tolerance: tolerance)
-        let splits = try pipeline.uvSplitGraph(intersectionGraph: intersections, model: model, tolerance: tolerance)
+            model: model, tolerance: tolerance, using: &execution)
+        let splits = try pipeline.uvSplitGraph(intersectionGraph: intersections, model: model, tolerance: tolerance, using: &execution)
         guard let body = model.bodies[bodyID] else { throw TopologyError.missingReference("Sheet cut body is missing.") }
         var boundaries: [FaceID: [BooleanFaceArrangementBoundary]] = [:]
         for split in splits.splits {
@@ -29,12 +37,12 @@ struct BRepSheetHalfSpaceCutter {
                 let reference = BooleanFaceSplitComponentReference(facePair: split.facePair, componentID: component.id)
                 let edges = try BooleanFaceArrangementBoundary.edges(
                     reference: reference, geometry: component.geometry, faceID: face.id,
-                    surfaceSide: .first, parentSubshapeIDs: context.subshapeIDs(for: .face(face.id)), tolerance: tolerance)
+                    surfaceSide: .first, parentSubshapeIDs: try context.subshapeIDs(for: .face(face.id), using: &execution), tolerance: tolerance, using: &execution)
                 for (ordinal, edge) in edges.enumerated() {
                     let parameter = edge.startParameter + (edge.endParameter - edge.startParameter) * 0.5
-                    let uv = try edge.surfaceParameterCurve.parameter(atNormalizedFraction: 0.5, tolerance: tolerance)
-                    let normal = try surface.normal(u: uv.u, v: uv.v, tolerance: tolerance)
-                    let tangent = try edge.curve.differentialGeometry(at: parameter, tolerance: tolerance).tangent
+                    let uv = try edge.surfaceParameterCurve.parameter(atNormalizedFraction: 0.5, tolerance: tolerance, using: &execution)
+                    let normal = try surface.normal(u: uv.u, v: uv.v, tolerance: tolerance, using: &execution)
+                    let tangent = try edge.curve.differentialGeometry(at: parameter, tolerance: tolerance, using: &execution).tangent
                         * (edge.endParameter >= edge.startParameter ? 1.0 : -1.0)
                     // The arrangement's left side is in geometric surface orientation, independent
                     // of the source face's outward orientation.
@@ -58,15 +66,15 @@ struct BRepSheetHalfSpaceCutter {
                 if let edges = boundaries[faceID], !edges.isEmpty {
                     patches += try BooleanOpenFaceArrangementBuilder().build(
                         faceID: faceID, boundaries: edges, model: model,
-                        sourceSubshapes: context.subshapes.entries, tolerance: tolerance).patches
+                        sourceSubshapes: context.subshapes.entries, tolerance: tolerance, using: &execution).patches
                 } else {
                     // The complete intersection graph contains no transverse cut of this face.
                     // Its connected interior consequently lies on one side or in the plane.
-                    let point = try BRepFaceInteriorPointSampler().point(on: faceID, in: model, tolerance: tolerance)
+                    let point = try BRepFaceInteriorPointSampler().point(on: faceID, in: model, tolerance: tolerance, using: &execution)
                     if (point - planeOrigin).dot(planeNormal) <= tolerance.distance {
                         patches.append(try SourceBRepFacePatchBuilder().build(
                             faceID: faceID, stableID: "sheet-cut:face:\(faceID)", from: model,
-                            sourceSubshapes: context.subshapes.entries, tolerance: tolerance).patch)
+                            sourceSubshapes: context.subshapes.entries, tolerance: tolerance, using: &execution).patch)
                     }
                 }
             }
@@ -76,14 +84,14 @@ struct BRepSheetHalfSpaceCutter {
                 tolerance: tolerance, message: "The plane cut keeps no sheet material.")
         }
         let shells = try BRepSewingPatchShellPartitioner().shells(
-            patches: patches, stablePrefix: "sheet-cut:shell", tolerance: tolerance)
+            patches: patches, stablePrefix: "sheet-cut:shell", tolerance: tolerance, using: &execution)
         let result = try sewer.sew(BRepSewingRequest(featureID: featureID, bodyKind: .sheet,
-            shells: shells, bodyParentSubshapeIDs: context.subshapeIDs(for: .body(bodyID))), tolerance: tolerance)
+            shells: shells, bodyParentSubshapeIDs: try context.subshapeIDs(for: .body(bodyID), using: &execution)), tolerance: tolerance, using: &execution)
         let replaced = try BRepBodyModelReplacer().replacing(bodyID: bodyID,
-            with: result.bodyID, from: result.brep, in: context.brep)
-        try replaced.validate(level: .exact, tolerance: tolerance)
+            with: result.bodyID, from: result.brep, in: context.brep, using: &execution)
+        try replaced.validate(level: .exact, tolerance: tolerance, using: &execution)
         return EvaluationResult(brep: replaced, subshapes: result.subshapes,
-            removedSubshapeIDs: try BodyTopologyScope(bodyID: bodyID, model: context.brep).subshapeIDs(in: context.subshapes),
+            removedSubshapeIDs: try BodyTopologyScope(bodyID: bodyID, model: context.brep, using: &execution).subshapeIDs(in: context.subshapes, using: &execution),
             lineage: result.lineage)
     }
 }

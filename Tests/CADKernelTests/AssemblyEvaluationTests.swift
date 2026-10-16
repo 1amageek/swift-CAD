@@ -39,7 +39,7 @@ struct AssemblyEvaluationTests {
                 for (local, world) in source.vertices {
                     let a = try #require(artifact.local.model.vertices[local]?.point)
                     let b = try #require(evaluated.brep.vertices[world]?.point)
-                    #expect((b - occurrence.placement.applying(to: a)).length < 1e-12)
+                    #expect((b - (try occurrence.placement.applying(to: a))).length < 1e-12)
                 }
             }
         }

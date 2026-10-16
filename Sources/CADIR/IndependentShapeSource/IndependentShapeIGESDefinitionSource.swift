@@ -9,24 +9,24 @@ public struct IndependentShapeIGESDefinitionSource: Equatable, Sendable {
     public init(directoryLabel: String, definingFrameID: IndependentShapeFrameID?, adjustments: [OriginalIGESPlacementAdjustment] = []) {
         self.directoryLabel = directoryLabel; self.definingFrameID = definingFrameID; self.adjustments = adjustments
     }
-    public func originalOperationWord<B: RationalAlgebraAdmitting>(frame: OriginalIGESMatrixSource?,
-        tolerance: ModelingTolerance, maximumAlgebraicDepth: Int, usage: inout B) throws -> OriginalAffineOperationWord {
+    public func originalOperationWord(frame: OriginalIGESMatrixSource?,
+        tolerance: ModelingTolerance, maximumAlgebraicDepth: Int, using execution: inout OriginalQueryExecution) throws -> OriginalAffineOperationWord {
         guard (definingFrameID == nil) == (frame == nil) else { throw IndependentShapeSourceError.invalidSource("Original IGES definition forward frame is inconsistent.") }
         var word: OriginalAffineOperationWord
-        if let frame { word = try frame.originalOperationWord(tolerance: tolerance, maximumAlgebraicDepth: maximumAlgebraicDepth, usage: &usage) }
+        if let frame { word = try frame.originalOperationWord(tolerance: tolerance, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution) }
         else {
             word = try OriginalAffineOperationWord(operation: .forward(try AffineTransform3D(basisX: .unitX, basisY: .unitY, basisZ: .unitZ, translation: .zero)),
-                tolerance: tolerance, maximumDepth: maximumAlgebraicDepth, usage: &usage)
+                tolerance: tolerance, maximumDepth: maximumAlgebraicDepth, usage: &execution)
         }
-        for adjustment in adjustments { word = try adjustment.applying(to: word, tolerance: tolerance, maximumAlgebraicDepth: maximumAlgebraicDepth, usage: &usage) }
+        for adjustment in adjustments { word = try adjustment.applying(to: word, tolerance: tolerance, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution) }
         return word
     }
-    public func adjusted<B: RationalAlgebraAdmitting>(by displacement: Vector3D, usage: inout B) throws -> Self {
+    public func adjusted(by displacement: Vector3D, using execution: inout OriginalQueryExecution) throws -> Self {
         try displacement.validate()
         let count = adjustments.count.addingReportingOverflow(1)
         guard !count.overflow else { throw IndependentShapeSourceError.resourceLimitExceeded("Original IGES definition adjustment count overflows.") }
-        try usage.consumeExactWork(count.partialValue)
-        try RationalAlgebraStorage.retain(count.partialValue, of: OriginalIGESPlacementAdjustment.self, usage: &usage)
+        try execution.consumeWork(count.partialValue)
+        try RationalAlgebraStorage.retain(count.partialValue, of: OriginalIGESPlacementAdjustment.self, usage: &execution)
         return .init(directoryLabel: directoryLabel, definingFrameID: definingFrameID,
             adjustments: adjustments + [.init(displacement: displacement, conjugates: true)])
     }

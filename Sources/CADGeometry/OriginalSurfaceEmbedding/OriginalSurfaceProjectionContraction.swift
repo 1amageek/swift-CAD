@@ -4,10 +4,10 @@ import CADCore
 /// separately establish continuity on its convex authored parameter box.
 package enum OriginalSurfaceProjectionContraction {
     package static func proves(_ jet: SurfaceIntervalVectorJet,
-        consumeWork: () throws -> Void) throws -> Bool {
+        using execution: inout OriginalQueryExecution) throws -> Bool {
         for projection in 0..<3 {
             try CurrentTaskCancellationChecker().checkCancellation()
-            try consumeWork()
+            try execution.consumeWork(1)
             let first: SurfaceIntervalJet
             let second: SurfaceIntervalJet
             switch projection {
@@ -16,20 +16,20 @@ package enum OriginalSurfaceProjectionContraction {
             default: first = jet.y; second = jet.z
             }
             if try proves(a: first.derivativeU, b: first.derivativeV,
-                c: second.derivativeU, d: second.derivativeV, consumeWork: consumeWork) { return true }
+                c: second.derivativeU, d: second.derivativeV, using: &execution) { return true }
         }
         return false
     }
 
     /// Consumes the retained pair session's original public differential bounds.
     package static func proves(_ enclosure: SurfaceDifferentialEnclosure,
-        consumeWork: () throws -> Void) throws -> Bool {
+        using execution: inout OriginalQueryExecution) throws -> Bool {
         func interval(_ value: ScalarInterval) -> OutwardScalarInterval {
             .init(lower: value.lower, upper: value.upper)
         }
         for projection in 0..<3 {
             try CurrentTaskCancellationChecker().checkCancellation()
-            try consumeWork()
+            try execution.consumeWork(1)
             let a: ScalarInterval
             let b: ScalarInterval
             let c: ScalarInterval
@@ -46,15 +46,15 @@ package enum OriginalSurfaceProjectionContraction {
                 c = enclosure.tangentU.z; d = enclosure.tangentV.z
             }
             if try proves(a: interval(a), b: interval(b), c: interval(c), d: interval(d),
-                consumeWork: consumeWork) { return true }
+                using: &execution) { return true }
         }
         return false
     }
 
     private static func proves(a: OutwardScalarInterval, b: OutwardScalarInterval,
         c: OutwardScalarInterval, d: OutwardScalarInterval,
-        consumeWork: () throws -> Void) throws -> Bool {
-        try consumeWork()
+        using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.consumeWork(1)
         guard a.isFinite, b.isFinite, c.isFinite, d.isFinite else { return false }
         // Every stored preconditioner coefficient is an exact binary real in
         // the acceptance expression; its numerical construction proves nothing.
@@ -69,16 +69,16 @@ package enum OriginalSurfaceProjectionContraction {
         let cc = -cm / determinant
         let cd = am / determinant
         guard ca.isFinite, cb.isFinite, cc.isFinite, cd.isFinite else { return false }
-        try consumeWork()
+        try execution.consumeWork(1)
         let e00 = OutwardScalarInterval.exact(1) - .exact(ca) * a - .exact(cb) * c
         let e01 = -(.exact(ca) * b + .exact(cb) * d)
-        try consumeWork()
+        try execution.consumeWork(1)
         let e10 = -(.exact(cc) * a + .exact(cd) * c)
         let e11 = OutwardScalarInterval.exact(1) - .exact(cc) * b - .exact(cd) * d
         guard e00.isFinite, e01.isFinite, e10.isFinite, e11.isFinite else { return false }
         let firstRow = OutwardScalarInterval.exact(magnitude(e00)) + .exact(magnitude(e01))
         let secondRow = OutwardScalarInterval.exact(magnitude(e10)) + .exact(magnitude(e11))
-        try consumeWork()
+        try execution.consumeWork(1)
         return firstRow.upper < 1 && secondRow.upper < 1
     }
 

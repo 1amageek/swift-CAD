@@ -9,18 +9,18 @@ package struct OriginalSingularFieldTransport: Sendable {
     private var entries: [Entry] = []
     package init() {}
 
-    package mutating func importing<B: RationalAlgebraAdmitting>(
+    package mutating func importing<B: ExactScalarAdmission & ~Copyable>(
         _ original: OriginalSingularFieldContext, into destination: OriginalSingularFieldContext,
         maximumDepth: Int, usage: inout B) throws -> OriginalSingularFieldContext {
         if original === destination { return destination }
         var ancestor = destination.parent
         while let current = ancestor {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             if current === original { return destination }
             ancestor = current.parent
         }
         for entry in entries {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             if entry.original === original {
                 try requireAncestor(entry.target, of: destination, usage: &usage)
                 return destination
@@ -85,19 +85,19 @@ package struct OriginalSingularFieldTransport: Sendable {
         return entry.target
     }
 
-    package mutating func applying<B: RationalAlgebraAdmitting>(to value: OriginalSingularFieldElement,
+    package mutating func applying<B: ExactScalarAdmission & ~Copyable>(to value: OriginalSingularFieldElement,
         in destination: OriginalSingularFieldContext, maximumDepth: Int, usage: inout B) throws -> OriginalSingularFieldElement {
         if value.context === destination { return value }
         // Existing descendants already share the exact original owner.
         var ancestor: OriginalSingularFieldContext? = destination
         while let current = ancestor {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             if current === value.context { return try value.embedded(in: destination, maximumDepth: maximumDepth, usage: &usage) }
             ancestor = current.parent
         }
         var selected: Entry?
         for entry in entries {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             if entry.original === value.context { selected = entry; break }
         }
         guard let entry = selected else {
@@ -135,12 +135,12 @@ package struct OriginalSingularFieldTransport: Sendable {
         return result
     }
 
-    private mutating func transportedEvaluation<B: RationalAlgebraAdmitting>(_ polynomial: OriginalSingularFieldPolynomial,
+    private mutating func transportedEvaluation<B: ExactScalarAdmission & ~Copyable>(_ polynomial: OriginalSingularFieldPolynomial,
         at station: OriginalSingularFieldElement, maximumDepth: Int, usage: inout B) throws -> OriginalSingularFieldElement {
         var result = try OriginalSingularFieldElement.constant(.zero, in: station.context,
             maximumDepth: maximumDepth, usage: &usage)
         for coefficient in polynomial.coefficients.reversed() {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             let mapped = try applying(to: coefficient, in: station.context, maximumDepth: maximumDepth, usage: &usage)
             result = try result.multiplied(by: station, maximumDepth: maximumDepth, usage: &usage)
                 .adding(mapped, maximumDepth: maximumDepth, usage: &usage)
@@ -148,7 +148,7 @@ package struct OriginalSingularFieldTransport: Sendable {
         return result
     }
 
-    func retainedRoot<B: RationalAlgebraAdmitting>(_ polynomial: OriginalSingularFieldPolynomial,
+    func retainedRoot<B: ExactScalarAdmission & ~Copyable>(_ polynomial: OriginalSingularFieldPolynomial,
         isolation: OriginalSingularFieldRoot.Isolation, maximumDepth: Int,
         admissionDomain: OriginalSingularFieldRoot.AdmissionDomain = .parameter,
         usage: inout B) throws -> OriginalSingularFieldElement {
@@ -170,7 +170,7 @@ package struct OriginalSingularFieldTransport: Sendable {
         return try root.value(maximumDepth: maximumDepth, usage: &usage)
     }
 
-    func rationalUnivariate<B: RationalAlgebraAdmitting>(_ polynomial: ExactBivariatePolynomial,
+    func rationalUnivariate<B: ExactScalarAdmission & ~Copyable>(_ polynomial: ExactBivariatePolynomial,
         in context: OriginalSingularFieldContext, maximumDepth: Int, usage: inout B) throws -> OriginalSingularFieldPolynomial {
         guard polynomial.vDegree <= 0 else { throw ExactScalarFailure.invalidEvidence }
         let count = try exactScalarCount(polynomial.uDegree, 1)
@@ -184,7 +184,7 @@ package struct OriginalSingularFieldTransport: Sendable {
             maximumDepth: maximumDepth, usage: &usage)
     }
 
-    private func evaluated<B: RationalAlgebraAdmitting>(_ polynomial: ExactBivariatePolynomial,
+    private func evaluated<B: ExactScalarAdmission & ~Copyable>(_ polynomial: ExactBivariatePolynomial,
         atU first: OriginalSingularFieldElement, v second: OriginalSingularFieldElement?,
         in context: OriginalSingularFieldContext, maximumDepth: Int, usage: inout B) throws -> OriginalSingularFieldElement {
         let u = try first.embedded(in: context, maximumDepth: maximumDepth, usage: &usage)
@@ -202,11 +202,11 @@ package struct OriginalSingularFieldTransport: Sendable {
         return result
     }
 
-    private func requireAncestor<B: RationalAlgebraAdmitting>(_ original: OriginalSingularFieldContext,
+    private func requireAncestor<B: ExactScalarAdmission & ~Copyable>(_ original: OriginalSingularFieldContext,
         of target: OriginalSingularFieldContext, usage: inout B) throws {
         var cursor: OriginalSingularFieldContext? = target
         while let current = cursor {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             if current === original { return }
             cursor = current.parent
         }

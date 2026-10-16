@@ -8,6 +8,9 @@ struct RollingBallSectionTests {
     private let tolerance = ModelingTolerance.standard
 
     @Test func completenessRefinesOnlyTheSurfaceWhoseEnclosureFailed() throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+      limits: try .init(maximumValueDepth: Int.max, maximumCoefficientDepth: Int.max,
+        maximumSubdivisionDepth: 32, maximumSpans: 262_144))
         let sphere = OffsetSurface3D(
             source: .analytic(.sphere(center: .origin, radius: 2)), distance: -0.2)
         let plane = OffsetSurface3D(
@@ -36,16 +39,16 @@ struct RollingBallSectionTests {
             let second = reversed ? curved : distant
             var verifier = try ParametricSurfaceIntersectionCompletenessVerifier(
                 first: first, second: second,
-                domains: BoundedSurfaceParameterDomainMap(first: first.surface,
-                    second: second.surface, tolerance: tolerance),
+                domains: try BoundedSurfaceParameterDomainMap(first: first.surface,
+                    second: second.surface, tolerance: tolerance, using: &execution),
                 options: .init(maximumSubdivisionDepth: 1, maximumSubdivisionCells: 3),
-                tolerance: tolerance)
+                tolerance: tolerance, using: &execution)
             // Only spine U can repair radial bounds; neither V nor the partner
             // coordinates may consume this three-cell refinement budget.
             var cells = 3
             var roots = 1
             let result = try verifier.firstUncoveredSeed(atlas: [], remainingCells: &cells,
-                remainingRootAttempts: &roots)
+                remainingRootAttempts: &roots, using: &execution)
             switch result {
             case .complete: break
             case .unresolved(let reason):
@@ -168,6 +171,9 @@ struct RollingBallSectionTests {
 
     @Test
     func blendSurfaceRetainsCircularSectionsMixedDerivativesAndEnclosures() throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+      limits: try .init(maximumValueDepth: Int.max, maximumCoefficientDepth: Int.max,
+        maximumSubdivisionDepth: 32, maximumSpans: 262_144))
         let sphere = OffsetSurface3D(
             source: .analytic(.sphere(center: .origin, radius: 2)), distance: -0.2
         )
@@ -211,7 +217,7 @@ struct RollingBallSectionTests {
             )
             let converted = try AnalyticCurveBSplineBuilder().boundedCurve(
                 curve: .surfaceLift(lift), interval: try ScalarInterval(lower: 0.2, upper: 0.8),
-                maximumSpanCount: 1, tolerance: tolerance
+                maximumSpanCount: 1, tolerance: tolerance, using: &execution
             )
             let section = try #require(converted)
             for fraction in [0.2, 0.35, 0.5, 0.8] {

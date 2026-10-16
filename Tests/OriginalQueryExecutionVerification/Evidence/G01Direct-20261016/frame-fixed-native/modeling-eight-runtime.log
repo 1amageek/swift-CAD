@@ -1,0 +1,37 @@
+􀟈  Test run started.
+􀄵  Swift Standard Library Version: 6.4
+􀄵  Swift Compiler Version: 6.4
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀄵  OS Version: 27.0.1 (26A434)
+􀟈  Suite "Canonical construction admission" (aka 'CanonicalConstructionAdmissionTests') started.
+􀟈  Test sewingRequestBodyParentsDebitTheActualScanAndRetainRefusal() started.
+􀟈  Test unrepresentedOriginalBoundaryCannotUseAnApproximateSplineFallback() started.
+􀟈  Test bothActualBuildersRefuseResourceExhaustionAndCancellationBeforePublication() started.
+􀟈  Test authoredPlanarWallChartsConstructTheBridge() started.
+􀟈  Test retainedValidityEqualityAdmitsAnIndependentlyBackedSourceGraph() started.
+􀟈  Test callbackBoundariesPublishRawRefusalsBeforeClassifyingThem() started.
+􀟈  Test fiveMatchingStationsCannotAuthorizeAShellConnection() started.
+􀟈  Test aChartAgreeingAtEveryInitialStationCannotBorrowWholeBoundaryAuthority() started.
+􀟈  Test shellEdgeFanRetainsNativeLineSpanCorrespondence() started.
+􁁛  Test bothActualBuildersRefuseResourceExhaustionAndCancellationBeforePublication() passed after 0.003 seconds.
+􀢄  Test callbackBoundariesPublishRawRefusalsBeforeClassifyingThem() recorded an issue at CanonicalConstructionAdmissionTests.swift:363:25: Expectation failed: failure.context.stage == (boundary == .ordinary ? .publication : .request)
+􀄵  failure.context.stage == (boundary == .ordinary ? .publication : .request): Swift.Bool → false
+􀄵    failure.context.stage: CADGeometry.OriginalQueryFailureContext.Stage → .request
+􀄵    (boundary == .ordinary ? .publication : .request): CADGeometry.OriginalQueryFailureContext.Stage → .publication
+􀢄  Test callbackBoundariesPublishRawRefusalsBeforeClassifyingThem() recorded an issue at CanonicalConstructionAdmissionTests.swift:364:25: Expectation failed: failure.context.entry == (boundary == .ordinary ? .ordinary : .admitted)
+􀄵  failure.context.entry == (boundary == .ordinary ? .ordinary : .admitted): Swift.Bool → false
+􀄵    failure.context.entry: CADGeometry.OriginalQueryFailureContext.Entry → .admitted
+􀄵    (boundary == .ordinary ? .ordinary : .admitted): CADGeometry.OriginalQueryFailureContext.Entry → .ordinary
+􀢄  Test callbackBoundariesPublishRawRefusalsBeforeClassifyingThem() failed after 0.003 seconds with 2 issues.
+􁁛  Test sewingRequestBodyParentsDebitTheActualScanAndRetainRefusal() passed after 0.012 seconds.
+􁁛  Test unrepresentedOriginalBoundaryCannotUseAnApproximateSplineFallback() passed after 0.016 seconds.
+􁁛  Test shellEdgeFanRetainsNativeLineSpanCorrespondence() passed after 0.017 seconds.
+􁁛  Test retainedValidityEqualityAdmitsAnIndependentlyBackedSourceGraph() passed after 0.047 seconds.
+􁁛  Test fiveMatchingStationsCannotAuthorizeAShellConnection() passed after 0.075 seconds.
+􁁛  Test aChartAgreeingAtEveryInitialStationCannotBorrowWholeBoundaryAuthority() passed after 0.096 seconds.
+􁁛  Test authoredPlanarWallChartsConstructTheBridge() passed after 0.129 seconds.
+􀢄  Suite "Canonical construction admission" (aka 'CanonicalConstructionAdmissionTests') failed after 0.129 seconds with 2 issues.
+􀢄  Test run with 9 tests in 1 suite failed after 0.130 seconds with 2 issues.
+Note: Some test targets reported failures:
+  - FocusedTests (Swift Testing)

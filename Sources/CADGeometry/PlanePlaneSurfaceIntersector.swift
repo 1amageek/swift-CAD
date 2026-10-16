@@ -1,16 +1,17 @@
 import CADCore
 
 struct PlanePlaneSurfaceIntersector {
-    private let verifier = SurfaceSurfaceIntersectionVerifier()
-
     func intersections(
         first: CanonicalAnalyticSurface.Plane,
         second: CanonicalAnalyticSurface.Plane,
         firstSurface: Surface3D,
         secondSurface: Surface3D,
         options: SurfaceSurfaceIntersectionOptions = .init(),
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using usage: inout OriginalQueryExecution
     ) throws -> [SurfaceSurfaceIntersection] {
+        try usage.checkpoint()
+        try usage.consumeWork(1)
+        usage.context = usage.context.at(stage: .source)
         try first.requireLegacyUnitNormal(tolerance: tolerance)
         try second.requireLegacyUnitNormal(tolerance: tolerance)
         let cross = first.normal.cross(second.normal)
@@ -21,44 +22,26 @@ struct PlanePlaneSurfaceIntersector {
             }
         }
         if cross.length <= tolerance.angle || (directlyAuthored(firstSurface) && directlyAuthored(secondSurface)) {
-            var usage = try NativeSurfaceSurfacePointAllowance(options: options, admission: .legacy)
             let a = try OriginalSupportingPlaneEquation.prepared(source: firstSurface,
-                tolerance: tolerance, remainingSourceDepth: usage.admission.remainingSourceDepth, usage: &usage)
+                tolerance: tolerance, remainingSourceDepth: usage.effectiveLimits.remainingSourceDepth, usage: &usage)
             let b = try OriginalSupportingPlaneEquation.prepared(source: secondSurface,
-                tolerance: tolerance, remainingSourceDepth: usage.admission.remainingSourceDepth, usage: &usage)
+                tolerance: tolerance, remainingSourceDepth: usage.effectiveLimits.remainingSourceDepth, usage: &usage)
             if try a.normal.cross(b.normal, usage: &usage).isZero {
                 let firstComponent = !a.normal.x.isZero ? a.normal.x : (!a.normal.y.isZero ? a.normal.y : a.normal.z)
                 let secondComponent = !a.normal.x.isZero ? b.normal.x : (!a.normal.y.isZero ? b.normal.y : b.normal.z)
                 let difference = try a.offset.multiplied(by: secondComponent, usage: &usage)
                     .subtracting(b.offset.multiplied(by: firstComponent, usage: &usage), usage: &usage)
-                try CurrentTaskCancellationChecker().checkCancellation()
+                try usage.checkpoint()
                 return difference.isZero
                     ? [.coincident(try SurfaceSurfaceCoincidence(residual: 0, tolerance: tolerance))] : []
             }
         }
 
-        // FIXME(INCOMPLETE_IMPLEMENTATION): The public SSI dispatcher still uses
-        // numerical transverse plane publication. Complete original line/UV
-        // authority and general procedural equation transport remain M7 work.
-        let denominator = cross.dot(cross)
-        guard denominator.isFinite, denominator > 0 else {
-            throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
-                message: "Original transverse planes have no representable numerical line coefficients.")
-        }
-        let direction = try cross.normalized(tolerance: min(tolerance.angle, cross.length * 0.5))
-        let firstConstant = first.normal.dot(first.origin - .origin)
-        let secondConstant = second.normal.dot(second.origin - .origin)
-        let originVector = (
-            second.normal.cross(cross) * firstConstant
-                + cross.cross(first.normal) * secondConstant
-        ) / denominator
-        return [try verifier.curve(
-            .line(Line3D(origin: .origin + originVector, direction: direction)),
-            kind: .transverse,
-            firstSurface: firstSurface,
-            secondSurface: secondSurface,
-            sampleParameters: SurfaceSurfaceIntersectionVerifier.lineSamples,
-            tolerance: tolerance
-        )]
+        // FIXME(INCOMPLETE_IMPLEMENTATION): The public SSI dispatcher reaches
+        // transverse planes here. Rounded line coefficients and sampled residuals
+        // do not prove the original line or either UV correspondence. A retained
+        // original line/UV receipt must be connected before this branch succeeds.
+        throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+            message: "Original transverse plane publication requires a source-owned exact line and UV receipt.")
     }
 }

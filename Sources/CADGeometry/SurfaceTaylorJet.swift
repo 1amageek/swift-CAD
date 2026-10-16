@@ -1,4 +1,5 @@
 import CADCore
+import Synchronization
 #if !hasFeature(Embedded)
 import Foundation
 #elseif canImport(Darwin)
@@ -17,6 +18,13 @@ private enum SurfaceTaylorJetError: Error, Sendable {
     case incompatibleOrders(first: Int, second: Int)
 }
 
+/// Shared snapshots use one synchronized buffer owner on every target. A scalar
+/// writer first detaches shared storage, so copied jet values retain value semantics.
+private final class SurfaceTaylorCoefficientStorage: Sendable {
+    let values: Mutex<[Double]>
+    init(_ values: [Double]) { self.values = Mutex(values) }
+}
+
 /// A finite bivariate Taylor expansion whose coefficients include factorial scaling.
 ///
 /// The coefficient at `(uOrder, vOrder)` is the corresponding parameter
@@ -24,17 +32,140 @@ private enum SurfaceTaylorJetError: Error, Sendable {
 /// and quotient composition exact up to the requested total order.
 struct SurfaceTaylorScalarJet: Sendable {
     let order: Int
-    private var coefficients: [Double]
+    private var storage: SurfaceTaylorCoefficientStorage
 
+    static func + (lhs: SurfaceTaylorScalarJet, rhs: SurfaceTaylorScalarJet) throws -> SurfaceTaylorScalarJet {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try lhs.adding(rhs, using: &execution)
+    }
+    static func - (lhs: SurfaceTaylorScalarJet, rhs: SurfaceTaylorScalarJet) throws -> SurfaceTaylorScalarJet {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try lhs.subtracting(rhs, using: &execution)
+    }
+    static prefix func - (value: SurfaceTaylorScalarJet) throws -> SurfaceTaylorScalarJet {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try value.negated(using: &execution)
+    }
+    static func * (lhs: SurfaceTaylorScalarJet, rhs: SurfaceTaylorScalarJet) throws -> SurfaceTaylorScalarJet {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try lhs.multiplying(rhs, using: &execution)
+    }
     init(order: Int, repeating value: Double = 0.0) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try self.init(order: order, repeating: value, using: &execution)
+    }
+
+    mutating func setCoefficient(
+        _ value: Double,
+        uOrder: Int,
+        vOrder: Int
+    ) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try setCoefficient(value, uOrder: uOrder, vOrder: vOrder, using: &execution)
+    }
+
+    static func constant(
+        _ value: Double,
+        order: Int
+    ) throws -> SurfaceTaylorScalarJet {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try constant(value, order: order, using: &execution)
+    }
+
+    static func parameterU(
+        _ value: Double,
+        order: Int
+    ) throws -> SurfaceTaylorScalarJet {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try parameterU(value, order: order, using: &execution)
+    }
+
+    static func parameterV(
+        _ value: Double,
+        order: Int
+    ) throws -> SurfaceTaylorScalarJet {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try parameterV(value, order: order, using: &execution)
+    }
+
+    static func sineOfParameterU(
+        _ value: Double,
+        order: Int
+    ) throws -> SurfaceTaylorScalarJet {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try sineOfParameterU(value, order: order, using: &execution)
+    }
+
+    static func cosineOfParameterU(
+        _ value: Double,
+        order: Int
+    ) throws -> SurfaceTaylorScalarJet {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try cosineOfParameterU(value, order: order, using: &execution)
+    }
+
+    static func sineOfParameterV(
+        _ value: Double,
+        order: Int
+    ) throws -> SurfaceTaylorScalarJet {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try sineOfParameterV(value, order: order, using: &execution)
+    }
+
+    static func cosineOfParameterV(
+        _ value: Double,
+        order: Int
+    ) throws -> SurfaceTaylorScalarJet {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try cosineOfParameterV(value, order: order, using: &execution)
+    }
+
+
+
+
+
+
+
+
+
+
+
+    func reciprocal(tolerance: ModelingTolerance) throws -> SurfaceTaylorScalarJet {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try reciprocal(tolerance: tolerance, using: &execution)
+    }
+
+    func squareRoot(tolerance: ModelingTolerance) throws -> SurfaceTaylorScalarJet {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try squareRoot(tolerance: tolerance, using: &execution)
+    }
+
+    func truncated(to requestedOrder: Int) throws -> SurfaceTaylorScalarJet {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try truncated(to: requestedOrder, using: &execution)
+    }
+
+    func partialU() throws -> SurfaceTaylorScalarJet {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try partialU(using: &execution)
+    }
+
+    func partialV() throws -> SurfaceTaylorScalarJet {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try partialV(using: &execution)
+    }
+    init<A: ExactScalarAdmission & ~Copyable>(order: Int, repeating value: Double = 0.0, using execution: inout A) throws {
         guard order >= 0, order <= 16 else {
             throw SurfaceTaylorJetError.invalidOrder(order)
         }
+        try execution.consumeWork(1)
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: (order + 1) * (order + 1), of: Double.self))
         self.order = order
-        coefficients = Array(
+        try execution.retainStorage(bytes: MemoryLayout<Mutex<[Double]>>.stride)
+        storage = SurfaceTaylorCoefficientStorage(Array(
             repeating: value,
             count: (order + 1) * (order + 1)
-        )
+        ))
     }
 
     subscript(uOrder: Int, vOrder: Int) -> Double {
@@ -44,15 +175,15 @@ struct SurfaceTaylorScalarJet: Sendable {
                   uOrder + vOrder <= order else {
                 return 0.0
             }
-            return coefficients[uOrder * (order + 1) + vOrder]
+            return storage.values.withLock { $0[uOrder * (order + 1) + vOrder] }
         }
     }
 
-    mutating func setCoefficient(
+    mutating func setCoefficient<A: ExactScalarAdmission & ~Copyable>(
         _ value: Double,
         uOrder: Int,
         vOrder: Int
-    ) throws {
+    , using execution: inout A) throws {
         guard uOrder >= 0,
               vOrder >= 0,
               uOrder + vOrder <= order else {
@@ -62,138 +193,146 @@ struct SurfaceTaylorScalarJet: Sendable {
                 order: order
             )
         }
-        coefficients[uOrder * (order + 1) + vOrder] = value
+        try execution.consumeWork(1)
+        if !isKnownUniquelyReferenced(&storage) {
+            let count = storage.values.withLock { $0.count }
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: count, of: Double.self))
+            try execution.retainStorage(bytes: MemoryLayout<Mutex<[Double]>>.stride)
+            let snapshot = storage.values.withLock { $0 }
+            storage = SurfaceTaylorCoefficientStorage(snapshot)
+        }
+        storage.values.withLock { $0[uOrder * (order + 1) + vOrder] = value }
     }
 
     var value: Double {
         self[0, 0]
     }
 
-    static func constant(
+    static func constant<A: ExactScalarAdmission & ~Copyable>(
         _ value: Double,
         order: Int
-    ) throws -> SurfaceTaylorScalarJet {
-        var result = try SurfaceTaylorScalarJet(order: order)
-        try result.setCoefficient(value, uOrder: 0, vOrder: 0)
+    , using execution: inout A) throws -> SurfaceTaylorScalarJet {
+        var result = try SurfaceTaylorScalarJet(order: order, using: &execution)
+        try result.setCoefficient(value, uOrder: 0, vOrder: 0, using: &execution)
         return result
     }
 
-    static func parameterU(
+    static func parameterU<A: ExactScalarAdmission & ~Copyable>(
         _ value: Double,
         order: Int
-    ) throws -> SurfaceTaylorScalarJet {
-        var result = try constant(value, order: order)
+    , using execution: inout A) throws -> SurfaceTaylorScalarJet {
+        var result = try constant(value, order: order, using: &execution)
         if order > 0 {
-            try result.setCoefficient(1.0, uOrder: 1, vOrder: 0)
+            try result.setCoefficient(1.0, uOrder: 1, vOrder: 0, using: &execution)
         }
         return result
     }
 
-    static func parameterV(
+    static func parameterV<A: ExactScalarAdmission & ~Copyable>(
         _ value: Double,
         order: Int
-    ) throws -> SurfaceTaylorScalarJet {
-        var result = try constant(value, order: order)
+    , using execution: inout A) throws -> SurfaceTaylorScalarJet {
+        var result = try constant(value, order: order, using: &execution)
         if order > 0 {
-            try result.setCoefficient(1.0, uOrder: 0, vOrder: 1)
+            try result.setCoefficient(1.0, uOrder: 0, vOrder: 1, using: &execution)
         }
         return result
     }
 
-    static func sineOfParameterU(
+    static func sineOfParameterU<A: ExactScalarAdmission & ~Copyable>(
         _ value: Double,
         order: Int
-    ) throws -> SurfaceTaylorScalarJet {
-        try parameterTrigonometricJet(value: value, order: order, sine: true, alongU: true)
+    , using execution: inout A) throws -> SurfaceTaylorScalarJet {
+        try parameterTrigonometricJet(value: value, order: order, sine: true, alongU: true, using: &execution)
     }
 
-    static func cosineOfParameterU(
+    static func cosineOfParameterU<A: ExactScalarAdmission & ~Copyable>(
         _ value: Double,
         order: Int
-    ) throws -> SurfaceTaylorScalarJet {
-        try parameterTrigonometricJet(value: value, order: order, sine: false, alongU: true)
+    , using execution: inout A) throws -> SurfaceTaylorScalarJet {
+        try parameterTrigonometricJet(value: value, order: order, sine: false, alongU: true, using: &execution)
     }
 
-    static func sineOfParameterV(
+    static func sineOfParameterV<A: ExactScalarAdmission & ~Copyable>(
         _ value: Double,
         order: Int
-    ) throws -> SurfaceTaylorScalarJet {
-        try parameterTrigonometricJet(value: value, order: order, sine: true, alongU: false)
+    , using execution: inout A) throws -> SurfaceTaylorScalarJet {
+        try parameterTrigonometricJet(value: value, order: order, sine: true, alongU: false, using: &execution)
     }
 
-    static func cosineOfParameterV(
+    static func cosineOfParameterV<A: ExactScalarAdmission & ~Copyable>(
         _ value: Double,
         order: Int
-    ) throws -> SurfaceTaylorScalarJet {
-        try parameterTrigonometricJet(value: value, order: order, sine: false, alongU: false)
+    , using execution: inout A) throws -> SurfaceTaylorScalarJet {
+        try parameterTrigonometricJet(value: value, order: order, sine: false, alongU: false, using: &execution)
     }
 
-    static func + (
-        lhs: SurfaceTaylorScalarJet,
-        rhs: SurfaceTaylorScalarJet
-    ) throws -> SurfaceTaylorScalarJet {
-        guard lhs.order == rhs.order else {
+    func adding<A: ExactScalarAdmission & ~Copyable>(
+        _ rhs: SurfaceTaylorScalarJet
+    , using execution: inout A) throws -> SurfaceTaylorScalarJet {
+        guard self.order == rhs.order else {
             throw SurfaceTaylorJetError.incompatibleOrders(
-                first: lhs.order,
+                first: self.order,
                 second: rhs.order
             )
         }
-        var result = try SurfaceTaylorScalarJet(order: lhs.order)
-        for totalOrder in 0...lhs.order {
+        var result = try SurfaceTaylorScalarJet(order: self.order, using: &execution)
+        for totalOrder in 0...self.order {
             for uOrder in 0...totalOrder {
                 let vOrder = totalOrder - uOrder
                 try result.setCoefficient(
-                    lhs[uOrder, vOrder] + rhs[uOrder, vOrder],
+                    self[uOrder, vOrder] + rhs[uOrder, vOrder],
                     uOrder: uOrder,
                     vOrder: vOrder
-                )
+                , using: &execution)
             }
         }
         return result
     }
 
-    static func - (
-        lhs: SurfaceTaylorScalarJet,
-        rhs: SurfaceTaylorScalarJet
-    ) throws -> SurfaceTaylorScalarJet {
-        try lhs + (-rhs)
+    func subtracting<A: ExactScalarAdmission & ~Copyable>(_ rhs: SurfaceTaylorScalarJet, using execution: inout A) throws -> SurfaceTaylorScalarJet {
+        let negative = try rhs.negated(using: &execution)
+        return try adding(negative, using: &execution)
     }
 
-    static prefix func - (
-        value: SurfaceTaylorScalarJet
-    ) throws -> SurfaceTaylorScalarJet {
-        var result = try SurfaceTaylorScalarJet(order: value.order)
-        for totalOrder in 0...value.order {
+    func dividing<A: ExactScalarAdmission & ~Copyable>(_ rhs: SurfaceTaylorScalarJet, tolerance: ModelingTolerance, using execution: inout A) throws -> SurfaceTaylorScalarJet {
+        let inverse = try rhs.reciprocal(tolerance: tolerance, using: &execution)
+        return try multiplying(inverse, using: &execution)
+    }
+
+    func negated<A: ExactScalarAdmission & ~Copyable>(using execution: inout A) throws -> SurfaceTaylorScalarJet {
+        var result = try SurfaceTaylorScalarJet(order: order, using: &execution)
+        for totalOrder in 0...order {
             for uOrder in 0...totalOrder {
                 let vOrder = totalOrder - uOrder
                 try result.setCoefficient(
-                    -value[uOrder, vOrder],
+                    -self[uOrder, vOrder],
                     uOrder: uOrder,
                     vOrder: vOrder
-                )
+                , using: &execution)
             }
         }
         return result
     }
 
-    static func * (
-        lhs: SurfaceTaylorScalarJet,
-        rhs: SurfaceTaylorScalarJet
-    ) throws -> SurfaceTaylorScalarJet {
-        guard lhs.order == rhs.order else {
+    func multiplying<A: ExactScalarAdmission & ~Copyable>(
+        _ rhs: SurfaceTaylorScalarJet
+    , using execution: inout A) throws -> SurfaceTaylorScalarJet {
+        guard self.order == rhs.order else {
             throw SurfaceTaylorJetError.incompatibleOrders(
-                first: lhs.order,
+                first: self.order,
                 second: rhs.order
             )
         }
-        var result = try SurfaceTaylorScalarJet(order: lhs.order)
-        for totalOrder in 0...lhs.order {
+        var result = try SurfaceTaylorScalarJet(order: self.order, using: &execution)
+        for totalOrder in 0...self.order {
             for uOrder in 0...totalOrder {
                 let vOrder = totalOrder - uOrder
                 var coefficient = 0.0
                 for lhsUOrder in 0...uOrder {
                     for lhsVOrder in 0...vOrder {
-                        coefficient += lhs[lhsUOrder, lhsVOrder]
+                        try execution.consumeWork(1)
+                        coefficient += self[lhsUOrder, lhsVOrder]
                             * rhs[uOrder - lhsUOrder, vOrder - lhsVOrder]
                     }
                 }
@@ -201,13 +340,13 @@ struct SurfaceTaylorScalarJet: Sendable {
                     coefficient,
                     uOrder: uOrder,
                     vOrder: vOrder
-                )
+                , using: &execution)
             }
         }
         return result
     }
 
-    func reciprocal(tolerance: ModelingTolerance) throws -> SurfaceTaylorScalarJet {
+    func reciprocal<A: ExactScalarAdmission & ~Copyable>(tolerance: ModelingTolerance, using execution: inout A) throws -> SurfaceTaylorScalarJet {
         guard value.isFinite, abs(value) > Double.ulpOfOne else {
             throw KernelError(
                 phase: .geometry,
@@ -217,8 +356,8 @@ struct SurfaceTaylorScalarJet: Sendable {
                 message: "A procedural surface Taylor quotient has a singular denominator."
             )
         }
-        var result = try SurfaceTaylorScalarJet(order: order)
-        try result.setCoefficient(1.0 / value, uOrder: 0, vOrder: 0)
+        var result = try SurfaceTaylorScalarJet(order: order, using: &execution)
+        try result.setCoefficient(1.0 / value, uOrder: 0, vOrder: 0, using: &execution)
         if order > 0 {
             for totalOrder in 1...order {
                 for uOrder in 0...totalOrder {
@@ -226,6 +365,7 @@ struct SurfaceTaylorScalarJet: Sendable {
                     var accumulated = 0.0
                     for sourceUOrder in 0...uOrder {
                         for sourceVOrder in 0...vOrder {
+                        try execution.consumeWork(1)
                             guard sourceUOrder + sourceVOrder > 0 else {
                                 continue
                             }
@@ -240,14 +380,14 @@ struct SurfaceTaylorScalarJet: Sendable {
                         -accumulated / value,
                         uOrder: uOrder,
                         vOrder: vOrder
-                    )
+                    , using: &execution)
                 }
             }
         }
         return result
     }
 
-    func squareRoot(tolerance: ModelingTolerance) throws -> SurfaceTaylorScalarJet {
+    func squareRoot<A: ExactScalarAdmission & ~Copyable>(tolerance: ModelingTolerance, using execution: inout A) throws -> SurfaceTaylorScalarJet {
         guard value.isFinite, value > 0.0 else {
             throw KernelError(
                 phase: .geometry,
@@ -267,8 +407,8 @@ struct SurfaceTaylorScalarJet: Sendable {
                 message: "A procedural surface normal is singular at the requested parameter."
             )
         }
-        var result = try SurfaceTaylorScalarJet(order: order)
-        try result.setCoefficient(root, uOrder: 0, vOrder: 0)
+        var result = try SurfaceTaylorScalarJet(order: order, using: &execution)
+        try result.setCoefficient(root, uOrder: 0, vOrder: 0, using: &execution)
         if order > 0 {
             for totalOrder in 1...order {
                 for uOrder in 0...totalOrder {
@@ -276,6 +416,7 @@ struct SurfaceTaylorScalarJet: Sendable {
                     var nonlinearTerms = 0.0
                     for leftUOrder in 0...uOrder {
                         for leftVOrder in 0...vOrder {
+                        try execution.consumeWork(1)
                             let rightUOrder = uOrder - leftUOrder
                             let rightVOrder = vOrder - leftVOrder
                             let leftIsConstant = leftUOrder == 0 && leftVOrder == 0
@@ -291,18 +432,18 @@ struct SurfaceTaylorScalarJet: Sendable {
                         (self[uOrder, vOrder] - nonlinearTerms) / (2.0 * root),
                         uOrder: uOrder,
                         vOrder: vOrder
-                    )
+                    , using: &execution)
                 }
             }
         }
         return result
     }
 
-    func truncated(to requestedOrder: Int) throws -> SurfaceTaylorScalarJet {
+    func truncated<A: ExactScalarAdmission & ~Copyable>(to requestedOrder: Int, using execution: inout A) throws -> SurfaceTaylorScalarJet {
         guard requestedOrder >= 0, requestedOrder <= order else {
             throw SurfaceTaylorJetError.invalidOrder(requestedOrder)
         }
-        var result = try SurfaceTaylorScalarJet(order: requestedOrder)
+        var result = try SurfaceTaylorScalarJet(order: requestedOrder, using: &execution)
         for totalOrder in 0...requestedOrder {
             for uOrder in 0...totalOrder {
                 let vOrder = totalOrder - uOrder
@@ -310,17 +451,17 @@ struct SurfaceTaylorScalarJet: Sendable {
                     self[uOrder, vOrder],
                     uOrder: uOrder,
                     vOrder: vOrder
-                )
+                , using: &execution)
             }
         }
         return result
     }
 
-    func partialU() throws -> SurfaceTaylorScalarJet {
+    func partialU<A: ExactScalarAdmission & ~Copyable>(using execution: inout A) throws -> SurfaceTaylorScalarJet {
         guard order > 0 else {
             throw SurfaceTaylorJetError.invalidOrder(order - 1)
         }
-        var result = try SurfaceTaylorScalarJet(order: order - 1)
+        var result = try SurfaceTaylorScalarJet(order: order - 1, using: &execution)
         for totalOrder in 0..<order {
             for uOrder in 0...totalOrder {
                 let vOrder = totalOrder - uOrder
@@ -328,17 +469,17 @@ struct SurfaceTaylorScalarJet: Sendable {
                     Double(uOrder + 1) * self[uOrder + 1, vOrder],
                     uOrder: uOrder,
                     vOrder: vOrder
-                )
+                , using: &execution)
             }
         }
         return result
     }
 
-    func partialV() throws -> SurfaceTaylorScalarJet {
+    func partialV<A: ExactScalarAdmission & ~Copyable>(using execution: inout A) throws -> SurfaceTaylorScalarJet {
         guard order > 0 else {
             throw SurfaceTaylorJetError.invalidOrder(order - 1)
         }
-        var result = try SurfaceTaylorScalarJet(order: order - 1)
+        var result = try SurfaceTaylorScalarJet(order: order - 1, using: &execution)
         for totalOrder in 0..<order {
             for uOrder in 0...totalOrder {
                 let vOrder = totalOrder - uOrder
@@ -346,19 +487,19 @@ struct SurfaceTaylorScalarJet: Sendable {
                     Double(vOrder + 1) * self[uOrder, vOrder + 1],
                     uOrder: uOrder,
                     vOrder: vOrder
-                )
+                , using: &execution)
             }
         }
         return result
     }
 
-    private static func parameterTrigonometricJet(
+    private static func parameterTrigonometricJet<A: ExactScalarAdmission & ~Copyable>(
         value: Double,
         order: Int,
         sine: Bool,
         alongU: Bool
-    ) throws -> SurfaceTaylorScalarJet {
-        var result = try SurfaceTaylorScalarJet(order: order)
+    , using execution: inout A) throws -> SurfaceTaylorScalarJet {
+        var result = try SurfaceTaylorScalarJet(order: order, using: &execution)
         for derivativeOrder in 0...order {
             let phase = value + Double(derivativeOrder) * Double.pi * 0.5
             let derivative = sine ? sin(phase) : cos(phase)
@@ -368,13 +509,13 @@ struct SurfaceTaylorScalarJet: Sendable {
                     coefficient,
                     uOrder: derivativeOrder,
                     vOrder: 0
-                )
+                , using: &execution)
             } else {
                 try result.setCoefficient(
                     coefficient,
                     uOrder: 0,
                     vOrder: derivativeOrder
-                )
+                , using: &execution)
             }
         }
         return result
@@ -386,6 +527,77 @@ struct SurfaceTaylorVectorJet: Sendable {
     let y: SurfaceTaylorScalarJet
     let z: SurfaceTaylorScalarJet
 
+    static func + (lhs: SurfaceTaylorVectorJet, rhs: SurfaceTaylorVectorJet) throws -> SurfaceTaylorVectorJet {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try lhs.adding(rhs, using: &execution)
+    }
+    static func - (lhs: SurfaceTaylorVectorJet, rhs: SurfaceTaylorVectorJet) throws -> SurfaceTaylorVectorJet {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try lhs.subtracting(rhs, using: &execution)
+    }
+    static prefix func - (value: SurfaceTaylorVectorJet) throws -> SurfaceTaylorVectorJet {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try value.negated(using: &execution)
+    }
+    static func * (lhs: SurfaceTaylorVectorJet, rhs: SurfaceTaylorScalarJet) throws -> SurfaceTaylorVectorJet {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try lhs.multiplying(rhs, using: &execution)
+    }
+    static func constant(
+        _ point: Point3D,
+        order: Int
+    ) throws -> SurfaceTaylorVectorJet {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try constant(point, order: order, using: &execution)
+    }
+
+    static func constant(
+        _ vector: Vector3D,
+        order: Int
+    ) throws -> SurfaceTaylorVectorJet {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try constant(vector, order: order, using: &execution)
+    }
+
+
+
+
+
+
+
+
+
+
+
+    func dot(_ other: SurfaceTaylorVectorJet) throws -> SurfaceTaylorScalarJet {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try dot(other, using: &execution)
+    }
+
+    func cross(_ other: SurfaceTaylorVectorJet) throws -> SurfaceTaylorVectorJet {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try cross(other, using: &execution)
+    }
+
+    func normalized(tolerance: ModelingTolerance) throws -> SurfaceTaylorVectorJet {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try normalized(tolerance: tolerance, using: &execution)
+    }
+
+    func truncated(to requestedOrder: Int) throws -> SurfaceTaylorVectorJet {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try truncated(to: requestedOrder, using: &execution)
+    }
+
+    func partialU() throws -> SurfaceTaylorVectorJet {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try partialU(using: &execution)
+    }
+
+    func partialV() throws -> SurfaceTaylorVectorJet {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try partialV(using: &execution)
+    }
     init(
         x: SurfaceTaylorScalarJet,
         y: SurfaceTaylorScalarJet,
@@ -410,107 +622,102 @@ struct SurfaceTaylorVectorJet: Sendable {
         Vector3D(x: x.value, y: y.value, z: z.value)
     }
 
-    static func constant(
+    static func constant<A: ExactScalarAdmission & ~Copyable>(
         _ point: Point3D,
         order: Int
-    ) throws -> SurfaceTaylorVectorJet {
+    , using execution: inout A) throws -> SurfaceTaylorVectorJet {
         try SurfaceTaylorVectorJet(
-            x: .constant(point.x, order: order),
-            y: .constant(point.y, order: order),
-            z: .constant(point.z, order: order)
+            x: .constant(point.x, order: order, using: &execution),
+            y: .constant(point.y, order: order, using: &execution),
+            z: .constant(point.z, order: order, using: &execution)
         )
     }
 
-    static func constant(
+    static func constant<A: ExactScalarAdmission & ~Copyable>(
         _ vector: Vector3D,
         order: Int
-    ) throws -> SurfaceTaylorVectorJet {
+    , using execution: inout A) throws -> SurfaceTaylorVectorJet {
         try SurfaceTaylorVectorJet(
-            x: .constant(vector.x, order: order),
-            y: .constant(vector.y, order: order),
-            z: .constant(vector.z, order: order)
+            x: .constant(vector.x, order: order, using: &execution),
+            y: .constant(vector.y, order: order, using: &execution),
+            z: .constant(vector.z, order: order, using: &execution)
         )
     }
 
-    static func + (
-        lhs: SurfaceTaylorVectorJet,
-        rhs: SurfaceTaylorVectorJet
-    ) throws -> SurfaceTaylorVectorJet {
+    func adding<A: ExactScalarAdmission & ~Copyable>(_ rhs: SurfaceTaylorVectorJet, using execution: inout A) throws -> SurfaceTaylorVectorJet {
+        try SurfaceTaylorVectorJet(x: x.adding(rhs.x, using: &execution),
+            y: y.adding(rhs.y, using: &execution), z: z.adding(rhs.z, using: &execution))
+    }
+
+    func subtracting<A: ExactScalarAdmission & ~Copyable>(_ rhs: SurfaceTaylorVectorJet, using execution: inout A) throws -> SurfaceTaylorVectorJet {
+        let negative = try rhs.negated(using: &execution)
+        return try adding(negative, using: &execution)
+    }
+
+    func negated<A: ExactScalarAdmission & ~Copyable>(using execution: inout A) throws -> SurfaceTaylorVectorJet {
+        try SurfaceTaylorVectorJet(x: x.negated(using: &execution),
+            y: y.negated(using: &execution), z: z.negated(using: &execution))
+    }
+
+    func multiplying<A: ExactScalarAdmission & ~Copyable>(_ rhs: SurfaceTaylorScalarJet, using execution: inout A) throws -> SurfaceTaylorVectorJet {
+        try SurfaceTaylorVectorJet(x: x.multiplying(rhs, using: &execution),
+            y: y.multiplying(rhs, using: &execution), z: z.multiplying(rhs, using: &execution))
+    }
+
+    func dividing<A: ExactScalarAdmission & ~Copyable>(_ rhs: SurfaceTaylorScalarJet, tolerance: ModelingTolerance, using execution: inout A) throws -> SurfaceTaylorVectorJet {
+        let inverse = try rhs.reciprocal(tolerance: tolerance, using: &execution)
+        return try multiplying(inverse, using: &execution)
+    }
+
+    func dot<A: ExactScalarAdmission & ~Copyable>(_ other: SurfaceTaylorVectorJet, using execution: inout A) throws -> SurfaceTaylorScalarJet {
+        let first = try x.multiplying(other.x, using: &execution)
+        let second = try y.multiplying(other.y, using: &execution)
+        let sum = try first.adding(second, using: &execution)
+        let third = try z.multiplying(other.z, using: &execution)
+        return try sum.adding(third, using: &execution)
+    }
+
+    func cross<A: ExactScalarAdmission & ~Copyable>(_ other: SurfaceTaylorVectorJet, using execution: inout A) throws -> SurfaceTaylorVectorJet {
+        let firstX = try y.multiplying(other.z, using: &execution)
+        let secondX = try z.multiplying(other.y, using: &execution)
+        let resultX = try firstX.subtracting(secondX, using: &execution)
+        let firstY = try z.multiplying(other.x, using: &execution)
+        let secondY = try x.multiplying(other.z, using: &execution)
+        let resultY = try firstY.subtracting(secondY, using: &execution)
+        let firstZ = try x.multiplying(other.y, using: &execution)
+        let secondZ = try y.multiplying(other.x, using: &execution)
+        let resultZ = try firstZ.subtracting(secondZ, using: &execution)
+        return try SurfaceTaylorVectorJet(x: resultX, y: resultY, z: resultZ)
+    }
+
+    func normalized<A: ExactScalarAdmission & ~Copyable>(tolerance: ModelingTolerance, using execution: inout A) throws -> SurfaceTaylorVectorJet {
+        let squaredLength = try dot(self, using: &execution)
+        let length = try squaredLength.squareRoot(tolerance: tolerance, using: &execution)
+        let reciprocalLength = try length.reciprocal(tolerance: tolerance, using: &execution)
+        return try multiplying(reciprocalLength, using: &execution)
+    }
+
+    func truncated<A: ExactScalarAdmission & ~Copyable>(to requestedOrder: Int, using execution: inout A) throws -> SurfaceTaylorVectorJet {
         try SurfaceTaylorVectorJet(
-            x: lhs.x + rhs.x,
-            y: lhs.y + rhs.y,
-            z: lhs.z + rhs.z
+            x: x.truncated(to: requestedOrder, using: &execution),
+            y: y.truncated(to: requestedOrder, using: &execution),
+            z: z.truncated(to: requestedOrder, using: &execution)
         )
     }
 
-    static func - (
-        lhs: SurfaceTaylorVectorJet,
-        rhs: SurfaceTaylorVectorJet
-    ) throws -> SurfaceTaylorVectorJet {
-        try lhs + (-rhs)
-    }
-
-    static prefix func - (
-        value: SurfaceTaylorVectorJet
-    ) throws -> SurfaceTaylorVectorJet {
-        try SurfaceTaylorVectorJet(x: -value.x, y: -value.y, z: -value.z)
-    }
-
-    static func * (
-        lhs: SurfaceTaylorVectorJet,
-        rhs: SurfaceTaylorScalarJet
-    ) throws -> SurfaceTaylorVectorJet {
+    func partialU<A: ExactScalarAdmission & ~Copyable>(using execution: inout A) throws -> SurfaceTaylorVectorJet {
         try SurfaceTaylorVectorJet(
-            x: lhs.x * rhs,
-            y: lhs.y * rhs,
-            z: lhs.z * rhs
+            x: x.partialU(using: &execution),
+            y: y.partialU(using: &execution),
+            z: z.partialU(using: &execution)
         )
     }
 
-    func dot(
-        _ other: SurfaceTaylorVectorJet
-    ) throws -> SurfaceTaylorScalarJet {
-        try x * other.x + y * other.y + z * other.z
-    }
-
-    func cross(
-        _ other: SurfaceTaylorVectorJet
-    ) throws -> SurfaceTaylorVectorJet {
+    func partialV<A: ExactScalarAdmission & ~Copyable>(using execution: inout A) throws -> SurfaceTaylorVectorJet {
         try SurfaceTaylorVectorJet(
-            x: y * other.z - z * other.y,
-            y: z * other.x - x * other.z,
-            z: x * other.y - y * other.x
-        )
-    }
-
-    func normalized(tolerance: ModelingTolerance) throws -> SurfaceTaylorVectorJet {
-        let squaredLength = try dot(self)
-        let length = try squaredLength.squareRoot(tolerance: tolerance)
-        let reciprocalLength = try length.reciprocal(tolerance: tolerance)
-        return try self * reciprocalLength
-    }
-
-    func truncated(to requestedOrder: Int) throws -> SurfaceTaylorVectorJet {
-        try SurfaceTaylorVectorJet(
-            x: x.truncated(to: requestedOrder),
-            y: y.truncated(to: requestedOrder),
-            z: z.truncated(to: requestedOrder)
-        )
-    }
-
-    func partialU() throws -> SurfaceTaylorVectorJet {
-        try SurfaceTaylorVectorJet(
-            x: x.partialU(),
-            y: y.partialU(),
-            z: z.partialU()
-        )
-    }
-
-    func partialV() throws -> SurfaceTaylorVectorJet {
-        try SurfaceTaylorVectorJet(
-            x: x.partialV(),
-            y: y.partialV(),
-            z: z.partialV()
+            x: x.partialV(using: &execution),
+            y: y.partialV(using: &execution),
+            z: z.partialV(using: &execution)
         )
     }
 
@@ -525,12 +732,19 @@ struct SurfaceTaylorVectorJet: Sendable {
 }
 
 extension Surface3D {
+    func taylorJet(u: Double, v: Double, throughOrder order: Int,
+        tolerance: ModelingTolerance) throws -> SurfaceTaylorVectorJet {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try taylorJet(u: u, v: v, throughOrder: order, tolerance: tolerance, using: &execution)
+    }
+
     func taylorJet(
         u: Double,
         v: Double,
         throughOrder order: Int,
         tolerance: ModelingTolerance
-    ) throws -> SurfaceTaylorVectorJet {
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceTaylorVectorJet {
+        try execution.consumeWork(1)
         guard order >= 0, order <= 16 else {
             throw KernelError(
                 phase: .geometry,
@@ -540,7 +754,7 @@ extension Surface3D {
                 message: "Surface Taylor evaluation supports total derivative order zero through sixteen."
             )
         }
-        try validate(tolerance: tolerance)
+        try validate(tolerance: tolerance, using: &execution)
         guard try uDomain.contains(u, tolerance: tolerance),
               try vDomain.contains(v, tolerance: tolerance) else {
             throw GeometryError.invalidDistance(0.0)
@@ -548,48 +762,48 @@ extension Surface3D {
         switch self {
         case let .plane(plane):
             let basis = try plane.parameterBasis(tolerance: tolerance)
-            let origin = try SurfaceTaylorVectorJet.constant(plane.origin, order: order)
-            let uDirection = try SurfaceTaylorVectorJet.constant(basis.u, order: order)
-            let vDirection = try SurfaceTaylorVectorJet.constant(basis.v, order: order)
-            let parameterU = try SurfaceTaylorScalarJet.parameterU(u, order: order)
-            let parameterV = try SurfaceTaylorScalarJet.parameterV(v, order: order)
-            return try origin + uDirection * parameterU + vDirection * parameterV
+            let origin = try SurfaceTaylorVectorJet.constant(plane.origin, order: order, using: &execution)
+            let uDirection = try SurfaceTaylorVectorJet.constant(basis.u, order: order, using: &execution)
+            let vDirection = try SurfaceTaylorVectorJet.constant(basis.v, order: order, using: &execution)
+            let parameterU = try SurfaceTaylorScalarJet.parameterU(u, order: order, using: &execution)
+            let parameterV = try SurfaceTaylorScalarJet.parameterV(v, order: order, using: &execution)
+            return try origin.adding(uDirection.multiplying(parameterU, using: &execution), using: &execution).adding(vDirection.multiplying(parameterV, using: &execution), using: &execution)
         case let .cylinder(cylinder):
             let basis = try circleOrthonormalBasis(
                 cylinder.axis,
                 tolerance: tolerance
             )
-            let uDirection = try SurfaceTaylorVectorJet.constant(basis.u, order: order)
-            let vDirection = try SurfaceTaylorVectorJet.constant(basis.v, order: order)
-            let cosineU = try SurfaceTaylorScalarJet.cosineOfParameterU(u, order: order)
-            let sineU = try SurfaceTaylorScalarJet.sineOfParameterU(u, order: order)
-            let radial = try uDirection * cosineU + vDirection * sineU
-            let origin = try SurfaceTaylorVectorJet.constant(cylinder.origin, order: order)
-            let radius = try SurfaceTaylorScalarJet.constant(cylinder.radius, order: order)
-            let axis = try SurfaceTaylorVectorJet.constant(cylinder.axis, order: order)
-            let parameterV = try SurfaceTaylorScalarJet.parameterV(v, order: order)
-            return try origin + radial * radius + axis * parameterV
+            let uDirection = try SurfaceTaylorVectorJet.constant(basis.u, order: order, using: &execution)
+            let vDirection = try SurfaceTaylorVectorJet.constant(basis.v, order: order, using: &execution)
+            let cosineU = try SurfaceTaylorScalarJet.cosineOfParameterU(u, order: order, using: &execution)
+            let sineU = try SurfaceTaylorScalarJet.sineOfParameterU(u, order: order, using: &execution)
+            let radial = try uDirection.multiplying(cosineU, using: &execution).adding(vDirection.multiplying(sineU, using: &execution), using: &execution)
+            let origin = try SurfaceTaylorVectorJet.constant(cylinder.origin, order: order, using: &execution)
+            let radius = try SurfaceTaylorScalarJet.constant(cylinder.radius, order: order, using: &execution)
+            let axis = try SurfaceTaylorVectorJet.constant(cylinder.axis, order: order, using: &execution)
+            let parameterV = try SurfaceTaylorScalarJet.parameterV(v, order: order, using: &execution)
+            return try origin.adding(radial.multiplying(radius, using: &execution), using: &execution).adding(axis.multiplying(parameterV, using: &execution), using: &execution)
         case let .analytic(surface):
             return try surface.taylorJet(
                 u: u,
                 v: v,
                 throughOrder: order,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .bSpline(surface):
             return try surface.taylorJet(
                 u: u,
                 v: v,
                 throughOrder: order,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .procedural(surface):
             return try surface.taylorJet(
                 u: u,
                 v: v,
                 throughOrder: order,
                 tolerance: tolerance
-            )
+            , using: &execution)
         }
     }
 }
@@ -600,73 +814,72 @@ private extension AnalyticSurface3D {
         v: Double,
         throughOrder order: Int,
         tolerance: ModelingTolerance
-    ) throws -> SurfaceTaylorVectorJet {
-        let parameterU = try SurfaceTaylorScalarJet.parameterU(u, order: order)
-        let parameterV = try SurfaceTaylorScalarJet.parameterV(v, order: order)
-        let sineU = try SurfaceTaylorScalarJet.sineOfParameterU(u, order: order)
-        let cosineU = try SurfaceTaylorScalarJet.cosineOfParameterU(u, order: order)
-        let sineV = try SurfaceTaylorScalarJet.sineOfParameterV(v, order: order)
-        let cosineV = try SurfaceTaylorScalarJet.cosineOfParameterV(v, order: order)
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceTaylorVectorJet {
+        try execution.consumeWork(1)
+        let parameterU = try SurfaceTaylorScalarJet.parameterU(u, order: order, using: &execution)
+        let parameterV = try SurfaceTaylorScalarJet.parameterV(v, order: order, using: &execution)
+        let sineU = try SurfaceTaylorScalarJet.sineOfParameterU(u, order: order, using: &execution)
+        let cosineU = try SurfaceTaylorScalarJet.cosineOfParameterU(u, order: order, using: &execution)
+        let sineV = try SurfaceTaylorScalarJet.sineOfParameterV(v, order: order, using: &execution)
+        let cosineV = try SurfaceTaylorScalarJet.cosineOfParameterV(v, order: order, using: &execution)
         switch self {
         case let .plane(origin, normal):
             let basis = try OriginalStoredPlaneBasis.basis(normal,tolerance:tolerance)
-            let originJet = try SurfaceTaylorVectorJet.constant(origin, order: order)
-            let uDirection = try SurfaceTaylorVectorJet.constant(basis.u, order: order)
-            let vDirection = try SurfaceTaylorVectorJet.constant(basis.v, order: order)
-            return try originJet + uDirection * parameterU + vDirection * parameterV
+            let originJet = try SurfaceTaylorVectorJet.constant(origin, order: order, using: &execution)
+            let uDirection = try SurfaceTaylorVectorJet.constant(basis.u, order: order, using: &execution)
+            let vDirection = try SurfaceTaylorVectorJet.constant(basis.v, order: order, using: &execution)
+            return try originJet.adding(uDirection.multiplying(parameterU, using: &execution), using: &execution).adding(vDirection.multiplying(parameterV, using: &execution), using: &execution)
         case let .cylinder(origin, axis, radius):
             let basis = try analyticOrthonormalBasis(axis, tolerance: tolerance)
-            let uDirection = try SurfaceTaylorVectorJet.constant(basis.u, order: order)
-            let vDirection = try SurfaceTaylorVectorJet.constant(basis.v, order: order)
-            let radial = try uDirection * cosineU + vDirection * sineU
-            let originJet = try SurfaceTaylorVectorJet.constant(origin, order: order)
-            let radiusJet = try SurfaceTaylorScalarJet.constant(radius, order: order)
-            let axisJet = try SurfaceTaylorVectorJet.constant(axis, order: order)
-            return try originJet + radial * radiusJet + axisJet * parameterV
+            let uDirection = try SurfaceTaylorVectorJet.constant(basis.u, order: order, using: &execution)
+            let vDirection = try SurfaceTaylorVectorJet.constant(basis.v, order: order, using: &execution)
+            let radial = try uDirection.multiplying(cosineU, using: &execution).adding(vDirection.multiplying(sineU, using: &execution), using: &execution)
+            let originJet = try SurfaceTaylorVectorJet.constant(origin, order: order, using: &execution)
+            let radiusJet = try SurfaceTaylorScalarJet.constant(radius, order: order, using: &execution)
+            let axisJet = try SurfaceTaylorVectorJet.constant(axis, order: order, using: &execution)
+            return try originJet.adding(radial.multiplying(radiusJet, using: &execution), using: &execution).adding(axisJet.multiplying(parameterV, using: &execution), using: &execution)
         case let .cone(apex, axis, halfAngle):
             let basis = try analyticOrthonormalBasis(axis, tolerance: tolerance)
-            let uDirection = try SurfaceTaylorVectorJet.constant(basis.u, order: order)
-            let vDirection = try SurfaceTaylorVectorJet.constant(basis.v, order: order)
-            let radial = try uDirection * cosineU + vDirection * sineU
-            let apexJet = try SurfaceTaylorVectorJet.constant(apex, order: order)
-            let axisJet = try SurfaceTaylorVectorJet.constant(axis, order: order)
-            let axialScale = try parameterV
-                * SurfaceTaylorScalarJet.constant(cos(halfAngle), order: order)
-            let radialScale = try parameterV
-                * SurfaceTaylorScalarJet.constant(sin(halfAngle), order: order)
-            return try apexJet + axisJet * axialScale + radial * radialScale
+            let uDirection = try SurfaceTaylorVectorJet.constant(basis.u, order: order, using: &execution)
+            let vDirection = try SurfaceTaylorVectorJet.constant(basis.v, order: order, using: &execution)
+            let radial = try uDirection.multiplying(cosineU, using: &execution).adding(vDirection.multiplying(sineU, using: &execution), using: &execution)
+            let apexJet = try SurfaceTaylorVectorJet.constant(apex, order: order, using: &execution)
+            let axisJet = try SurfaceTaylorVectorJet.constant(axis, order: order, using: &execution)
+            let axialScale = try parameterV.multiplying(SurfaceTaylorScalarJet.constant(cos(halfAngle), order: order, using: &execution), using: &execution)
+            let radialScale = try parameterV.multiplying(SurfaceTaylorScalarJet.constant(sin(halfAngle), order: order, using: &execution), using: &execution)
+            return try apexJet.adding(axisJet.multiplying(axialScale, using: &execution), using: &execution).adding(radial.multiplying(radialScale, using: &execution), using: &execution)
         case let .sphere(center, radius):
             let basis = try analyticOrthonormalBasis(.unitZ, tolerance: tolerance)
-            let uDirection = try SurfaceTaylorVectorJet.constant(basis.u, order: order)
-            let vDirection = try SurfaceTaylorVectorJet.constant(basis.v, order: order)
-            let sphereCosineU = try CanonicalSphereAngularPhase.candidateTaylor(at: u, alongU: true, cosine: true, order: order)
-            let sphereSineU = try CanonicalSphereAngularPhase.candidateTaylor(at: u, alongU: true, cosine: false, order: order)
-            let sphereCosineV = try CanonicalSphereAngularPhase.candidateTaylor(at: v, alongU: false, cosine: true, order: order)
-            let sphereSineV = try CanonicalSphereAngularPhase.candidateTaylor(at: v, alongU: false, cosine: false, order: order)
-            let radial = try uDirection * sphereCosineU + vDirection * sphereSineU
-            let vertical = try SurfaceTaylorVectorJet.constant(.unitZ, order: order)
-            let direction = try radial * sphereCosineV + vertical * sphereSineV
-            let centerJet = try SurfaceTaylorVectorJet.constant(center, order: order)
-            let radiusJet = try SurfaceTaylorScalarJet.constant(radius, order: order)
-            return try centerJet + direction * radiusJet
+            let uDirection = try SurfaceTaylorVectorJet.constant(basis.u, order: order, using: &execution)
+            let vDirection = try SurfaceTaylorVectorJet.constant(basis.v, order: order, using: &execution)
+            let sphereCosineU = try CanonicalSphereAngularPhase.candidateTaylor(at: u, alongU: true, cosine: true, order: order, using: &execution)
+            let sphereSineU = try CanonicalSphereAngularPhase.candidateTaylor(at: u, alongU: true, cosine: false, order: order, using: &execution)
+            let sphereCosineV = try CanonicalSphereAngularPhase.candidateTaylor(at: v, alongU: false, cosine: true, order: order, using: &execution)
+            let sphereSineV = try CanonicalSphereAngularPhase.candidateTaylor(at: v, alongU: false, cosine: false, order: order, using: &execution)
+            let radial = try uDirection.multiplying(sphereCosineU, using: &execution).adding(vDirection.multiplying(sphereSineU, using: &execution), using: &execution)
+            let vertical = try SurfaceTaylorVectorJet.constant(.unitZ, order: order, using: &execution)
+            let direction = try radial.multiplying(sphereCosineV, using: &execution).adding(vertical.multiplying(sphereSineV, using: &execution), using: &execution)
+            let centerJet = try SurfaceTaylorVectorJet.constant(center, order: order, using: &execution)
+            let radiusJet = try SurfaceTaylorScalarJet.constant(radius, order: order, using: &execution)
+            return try centerJet.adding(direction.multiplying(radiusJet, using: &execution), using: &execution)
         case let .torus(center, axis, majorRadius, minorRadius):
             let basis = try analyticOrthonormalBasis(axis, tolerance: tolerance)
-            let uDirection = try SurfaceTaylorVectorJet.constant(basis.u, order: order)
-            let vDirection = try SurfaceTaylorVectorJet.constant(basis.v, order: order)
-            let radial = try uDirection * cosineU + vDirection * sineU
+            let uDirection = try SurfaceTaylorVectorJet.constant(basis.u, order: order, using: &execution)
+            let vDirection = try SurfaceTaylorVectorJet.constant(basis.v, order: order, using: &execution)
+            let radial = try uDirection.multiplying(cosineU, using: &execution).adding(vDirection.multiplying(sineU, using: &execution), using: &execution)
             let majorRadiusJet = try SurfaceTaylorScalarJet.constant(
                 majorRadius,
                 order: order
-            )
+            , using: &execution)
             let minorRadiusJet = try SurfaceTaylorScalarJet.constant(
                 minorRadius,
                 order: order
-            )
-            let radialDistance = try majorRadiusJet + minorRadiusJet * cosineV
-            let centerJet = try SurfaceTaylorVectorJet.constant(center, order: order)
-            let axisJet = try SurfaceTaylorVectorJet.constant(axis, order: order)
-            return try centerJet + radial * radialDistance
-                + axisJet * (minorRadiusJet * sineV)
+            , using: &execution)
+            let radialDistance = try majorRadiusJet.adding(minorRadiusJet.multiplying(cosineV, using: &execution), using: &execution)
+            let centerJet = try SurfaceTaylorVectorJet.constant(center, order: order, using: &execution)
+            let axisJet = try SurfaceTaylorVectorJet.constant(axis, order: order, using: &execution)
+            return try centerJet.adding(radial.multiplying(radialDistance, using: &execution), using: &execution)
+                .adding(axisJet.multiplying(minorRadiusJet.multiplying(sineV, using: &execution), using: &execution), using: &execution)
         }
     }
 }
@@ -682,31 +895,35 @@ private extension BSplineSurface3D {
         v: Double,
         throughOrder order: Int,
         tolerance: ModelingTolerance
-    ) throws -> SurfaceTaylorVectorJet {
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceTaylorVectorJet {
+        try execution.consumeWork(1)
         let clampedU = try basisParameter(u, direction: .u, tolerance: tolerance)
         let clampedV = try basisParameter(v, direction: .v, tolerance: tolerance)
-        let uBasis = (0...order).map { derivativeOrder in
-            BSplineBasis.derivativeValues(
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: order + 1, of: [Double].self))
+        let uBasis = try (0...order).map { derivativeOrder in
+            try BSplineBasis.derivativeValues(
                 parameter: clampedU,
                 degree: uDegree,
                 derivativeOrder: derivativeOrder,
                 knots: uKnots,
                 count: uControlPointCount
-            )
+            , using: &execution)
         }
-        let vBasis = (0...order).map { derivativeOrder in
-            BSplineBasis.derivativeValues(
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: order + 1, of: [Double].self))
+        let vBasis = try (0...order).map { derivativeOrder in
+            try BSplineBasis.derivativeValues(
                 parameter: clampedV,
                 degree: vDegree,
                 derivativeOrder: derivativeOrder,
                 knots: vKnots,
                 count: vControlPointCount
-            )
+            , using: &execution)
         }
         let dimension = order + 1
         func key(_ uOrder: Int, _ vOrder: Int) -> Int {
             uOrder * dimension + vOrder
         }
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: (order + 1) * (order + 2) / 2, of: (Int,TaylorHomogeneousDerivative).self))
         var homogeneous: [Int: TaylorHomogeneousDerivative] = [:]
         for totalOrder in 0...order {
             for uOrder in 0...totalOrder {
@@ -715,6 +932,7 @@ private extension BSplineSurface3D {
                 var weight = 0.0
                 for vIndex in 0..<vControlPointCount {
                     for uIndex in 0..<uControlPointCount {
+                        try execution.consumeWork(1)
                         let basisValue = uBasis[uOrder][uIndex]
                             * vBasis[vOrder][vIndex]
                         guard basisValue != 0.0 else {
@@ -748,6 +966,7 @@ private extension BSplineSurface3D {
                 message: "Rational B-spline Taylor evaluation requires a positive finite weight."
             )
         }
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: (order + 1) * (order + 2) / 2, of: (Int,Vector3D).self))
         var euclidean: [Int: Vector3D] = [:]
         for totalOrder in 0...order {
             for uOrder in 0...totalOrder {
@@ -763,6 +982,7 @@ private extension BSplineSurface3D {
                 var numerator = source.vector
                 for weightUOrder in 0...uOrder {
                     for weightVOrder in 0...vOrder {
+                        try execution.consumeWork(1)
                         guard weightUOrder + weightVOrder > 0 else {
                             continue
                         }
@@ -803,9 +1023,9 @@ private extension BSplineSurface3D {
             }
         }
 
-        var x = try SurfaceTaylorScalarJet(order: order)
-        var y = try SurfaceTaylorScalarJet(order: order)
-        var z = try SurfaceTaylorScalarJet(order: order)
+        var x = try SurfaceTaylorScalarJet(order: order, using: &execution)
+        var y = try SurfaceTaylorScalarJet(order: order, using: &execution)
+        var z = try SurfaceTaylorScalarJet(order: order, using: &execution)
         for totalOrder in 0...order {
             for uOrder in 0...totalOrder {
                 let vOrder = totalOrder - uOrder
@@ -819,17 +1039,17 @@ private extension BSplineSurface3D {
                     derivative.x / scale,
                     uOrder: uOrder,
                     vOrder: vOrder
-                )
+                , using: &execution)
                 try y.setCoefficient(
                     derivative.y / scale,
                     uOrder: uOrder,
                     vOrder: vOrder
-                )
+                , using: &execution)
                 try z.setCoefficient(
                     derivative.z / scale,
                     uOrder: uOrder,
                     vOrder: vOrder
-                )
+                , using: &execution)
             }
         }
         return try SurfaceTaylorVectorJet(x: x, y: y, z: z)

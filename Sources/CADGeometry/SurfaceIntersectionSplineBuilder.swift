@@ -66,6 +66,35 @@ package struct SurfaceIntersectionSplineBuilder {
             ?? tolerance.distance * 0.5
     }
 
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Direct SSI candidate publication reaches
+    // this gate. A fitted spline and sampled residual do not prove an original
+    // common curve; U4 must supply complete original relation/UV authority.
+    package func intersection(
+        parameterRange: ClosedRange<Double>,
+        initialBreaks: [Double],
+        kind: CurveSurfaceIntersectionKind,
+        isClosed: Bool = true,
+        firstParameterAt: ((Double) throws -> SurfaceParameter)? = nil,
+        secondParameterAt: ((Double) throws -> SurfaceParameter)? = nil,
+        firstParameterDifferentialAt:
+            ((Double) throws -> SurfaceParameterCurveDifferential)? = nil,
+        secondParameterDifferentialAt:
+            ((Double) throws -> SurfaceParameterCurveDifferential)? = nil,
+        pointFirstDerivativeAt: ((Double) throws -> Vector3D)? = nil,
+        pointAt: @escaping (Double) throws -> Point3D,
+        using execution: inout OriginalQueryExecution
+    ) throws -> SurfaceSurfaceIntersection {
+        execution.context = execution.context.at(stage: .publication)
+        do {
+            try execution.checkpoint()
+            throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+                message: "A derived spline cannot publish original intersection truth without source proof.")
+        } catch { throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance) }
+    }
+
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Retained analytic candidate/source helpers
+    // reference this ordinary truth-publishing port. Its sampled success body is
+    // removed; U4 must provide original proof authority and direct execution.
     package func intersection(
         parameterRange: ClosedRange<Double>,
         initialBreaks: [Double],
@@ -80,31 +109,9 @@ package struct SurfaceIntersectionSplineBuilder {
         pointFirstDerivativeAt: ((Double) throws -> Vector3D)? = nil,
         pointAt: @escaping (Double) throws -> Point3D
     ) throws -> SurfaceSurfaceIntersection {
-        let representation = try representation(
-            parameterRange: parameterRange,
-            initialBreaks: initialBreaks,
-            isClosed: isClosed,
-            firstParameterAt: firstParameterAt,
-            secondParameterAt: secondParameterAt,
-            firstParameterDifferentialAt: firstParameterDifferentialAt,
-            secondParameterDifferentialAt: secondParameterDifferentialAt,
-            pointFirstDerivativeAt: pointFirstDerivativeAt,
-            pointAt: pointAt
-        )
-        return .curve(try SurfaceSurfaceIntersectionCurve(
-            truth: .parametric(.bSpline(representation.curve)),
-            derivedRepresentation: try SurfaceSurfaceIntersectionDerivedRepresentation(
-                curve: .bSpline(representation.curve),
-                firstSurfaceParameterCurve: representation.firstSurfaceParameterCurve,
-                secondSurfaceParameterCurve: representation.secondSurfaceParameterCurve,
-                maximumResidualUpperBound: representation.maximumResidual,
-                tolerance: tolerance
-            ),
-            kind: kind,
-            firstSurfaceAnchor: representation.firstAnchor,
-            secondSurfaceAnchor: representation.secondAnchor,
-            tolerance: tolerance
-        ))
+        try CurrentTaskCancellationChecker().checkCancellation()
+        throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+            message: "An ordinary spline fit cannot publish original intersection truth.")
     }
 
     package func representation(

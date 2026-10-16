@@ -4,33 +4,37 @@ import CADCore
 struct OverlapChartCurveReducer {
     func reduce(_ curve: SurfaceParameterCurve, options: CurveSurfaceIntersectionOptions,
                 tolerance: ModelingTolerance) throws -> SurfaceParameterCurve? {
-        var remaining = options.maximumSubdivisionCells
-        return try reduce(curve, depth: 0, remaining: &remaining, options: options, tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        let policy = try OverlapProofPolicy(options: options, tolerance: tolerance, using: &execution)
+        return try reduce(curve, options: options, tolerance: tolerance, policy: policy, using: &execution)
     }
 
-    private func reduce(_ curve: SurfaceParameterCurve, depth: Int, remaining: inout Int,
+    func reduce(_ curve: SurfaceParameterCurve, options: CurveSurfaceIntersectionOptions,
+                tolerance: ModelingTolerance, policy: OverlapProofPolicy,
+                using execution: inout OriginalQueryExecution) throws -> SurfaceParameterCurve? {
+        try reduce(curve, depth: 0, policy: policy, options: options, tolerance: tolerance, using: &execution)
+    }
+
+    private func reduce(_ curve: SurfaceParameterCurve, depth: Int, policy: OverlapProofPolicy,
                         options: CurveSurfaceIntersectionOptions,
-                        tolerance: ModelingTolerance) throws -> SurfaceParameterCurve? {
-        try CurrentTaskCancellationChecker().checkCancellation()
-        guard depth <= options.maximumSubdivisionDepth, remaining > 0 else {
-            throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
-                message: "Overlap chart-image reduction exceeded its depth or work budget.")
-        }
-        remaining -= 1
+                        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> SurfaceParameterCurve? {
+        try execution.checkpoint()
+        try policy.depth(depth, using: &execution)
+        try policy.work(using: &execution)
         switch curve {
         case .affine, .constantU, .constantV, .harmonic, .polyline, .bSpline, .originalBSplineContinuation:
             return curve
         case let .periodicTranslation(base, uShift, vShift):
-            guard let reduced = try reduce(base, depth: depth + 1, remaining: &remaining,
-                                           options: options, tolerance: tolerance) else { return nil }
+            guard let reduced = try reduce(base, depth: depth + 1, policy: policy,
+                                           options: options, tolerance: tolerance, using: &execution) else { return nil }
             return .periodicTranslation(base: reduced, uShift: uShift, vShift: vShift)
         case .offsetSurfaceImage(let image):
-            return try reduce(image.source, depth: depth + 1, remaining: &remaining,
-                              options: options, tolerance: tolerance)
+            return try reduce(image.source, depth: depth + 1, policy: policy,
+                              options: options, tolerance: tolerance, using: &execution)
         case .rigidImage(let image):
-            guard try image.affineParameterTransform(tolerance: tolerance) == .identity else { return nil }
-            return try reduce(image.sourceParameterCurve(tolerance: tolerance), depth: depth + 1,
-                              remaining: &remaining, options: options, tolerance: tolerance)
+            guard try image.affineParameterTransform(tolerance: tolerance, using: &execution) == .identity else { return nil }
+            return try reduce(image.sourceParameterCurve(tolerance: tolerance, using: &execution), depth: depth + 1,
+                              policy: policy, options: options, tolerance: tolerance, using: &execution)
         // FIXME(INCOMPLETE_IMPLEMENTATION): Production overlap reduction lacks
         // admitted coordinate-independent transport for hosted flat-word pcurves.
         // Target binding and directed original fractions must both be retained

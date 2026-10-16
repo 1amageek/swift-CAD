@@ -25,10 +25,18 @@ public struct SurfaceParameterLoopLift: Hashable, Sendable {
         surface: Surface3D,
         tolerance: ModelingTolerance
     ) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try self.init(samples: samples, surface: surface, tolerance: tolerance, using: &execution)
+    }
+
+    public init(samples: [SurfaceParameter], surface: Surface3D,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard samples.count >= 3,
-              samples.allSatisfy({
-                  $0.u.isFinite && $0.v.isFinite
+              try samples.allSatisfy({
+                  try execution.consumeWork(1)
+                  return $0.u.isFinite && $0.v.isFinite
               }) else {
             throw KernelError(
                 phase: .geometry,
@@ -37,11 +45,11 @@ public struct SurfaceParameterLoopLift: Hashable, Sendable {
                 message: "A closed surface-parameter loop requires at least three finite samples."
             )
         }
-        let topology = SurfaceParameterTopology(surface: surface)
-        let uniqueSamples = Self.removingRepeatedClosure(
+        let topology = try SurfaceParameterTopology(surface: surface, using: &execution)
+        let uniqueSamples = try Self.removingRepeatedClosure(
             samples,
             topology: topology,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         guard uniqueSamples.count >= 3 else {
             throw KernelError(
@@ -52,28 +60,28 @@ public struct SurfaceParameterLoopLift: Hashable, Sendable {
             )
         }
         let orderedSamples: [SurfaceParameter]
-        if let singularIndex = uniqueSamples.firstIndex(where: {
-            topology.isUSingular($0, tolerance: tolerance)
+        if let singularIndex = try uniqueSamples.firstIndex(where: {
+            try execution.consumeWork(1)
+            return try topology.isUSingular($0, tolerance: tolerance, using: &execution)
         }) {
-            orderedSamples = Array(uniqueSamples[singularIndex...])
-                + Array(uniqueSamples[..<singularIndex])
+            orderedSamples = try OriginalCoefficientAllocation.map(elements: uniqueSamples.indices, using: &execution) { index, _ in
+                let remaining = uniqueSamples.count - singularIndex
+                return uniqueSamples[index < remaining ? singularIndex + index : index - remaining]
+            }
         } else {
             orderedSamples = uniqueSamples
         }
-        let closedSamples = orderedSamples + [orderedSamples[0]]
-        var lifted = [closedSamples[0]]
-        lifted.reserveCapacity(closedSamples.count)
-        for index in 1..<closedSamples.count {
-            let previousRaw = closedSamples[index - 1]
-            let currentRaw = closedSamples[index]
+        let closedCount = try exactScalarCount(orderedSamples.count, 1, multiply: false)
+        try OriginalCoefficientAllocation.reserve(count: closedCount, of: SurfaceParameter.self, using: &execution)
+        var lifted: [SurfaceParameter] = []; lifted.reserveCapacity(closedCount)
+        lifted.append(orderedSamples[0])
+        for index in 1..<closedCount {
+            try execution.consumeWork(1)
+            let previousRaw = orderedSamples[index - 1]
+            let currentRaw = orderedSamples[index == orderedSamples.count ? 0 : index]
             guard let previous = lifted.last else { continue }
-            let crossesUSingularity = topology.isUSingular(
-                previousRaw,
-                tolerance: tolerance
-            ) || topology.isUSingular(
-                currentRaw,
-                tolerance: tolerance
-            )
+            let crossesUSingularity = try topology.isUSingular(previousRaw, tolerance: tolerance, using: &execution)
+                || topology.isUSingular(currentRaw, tolerance: tolerance, using: &execution)
             lifted.append(SurfaceParameter(
                 u: previous.u + (crossesUSingularity
                     ? 0.0
@@ -99,10 +107,7 @@ public struct SurfaceParameterLoopLift: Hashable, Sendable {
                 message: "Closed surface-parameter lifting produced no chart path."
             )
         }
-        let startsAtUSingularity = topology.isUSingular(
-            closedSamples[0],
-            tolerance: tolerance
-        )
+        let startsAtUSingularity = try topology.isUSingular(orderedSamples[0], tolerance: tolerance, using: &execution)
         let uWinding = startsAtUSingularity
             ? 0
             : try Self.winding(
@@ -115,8 +120,8 @@ public struct SurfaceParameterLoopLift: Hashable, Sendable {
             period: topology.vPeriod,
             tolerance: tolerance
         )
-        let points = lifted.dropLast().map {
-            Point2D(x: $0.u, y: $0.v)
+        let points = try OriginalCoefficientAllocation.map(elements: lifted.dropLast(), using: &execution) { parameter, _ in
+            Point2D(x: parameter.u, y: parameter.v)
         }
         let closesThroughUSingularity = startsAtUSingularity || (
             abs(uWinding) == 1
@@ -126,15 +131,20 @@ public struct SurfaceParameterLoopLift: Hashable, Sendable {
         let planarBoundary: [Point2D]?
         if uWinding == 0 && vWinding == 0 {
             planarBoundary = points
-        } else if closesThroughUSingularity,
-                  vWinding == 0,
-                  let poleV = topology.uSingularVValues.min(by: {
-                      abs($0 - Self.meanV(points)) < abs($1 - Self.meanV(points))
-                  }) {
-            planarBoundary = points + [
-                Point2D(x: last.u, y: poleV),
-                Point2D(x: first.u, y: poleV),
-            ]
+        } else if closesThroughUSingularity, vWinding == 0 {
+            let mean = try Self.meanV(points, using: &execution)
+            if let poleV = try topology.uSingularVValues.min(by: {
+                try execution.consumeWork(1)
+                return abs($0 - mean) < abs($1 - mean)
+            }) {
+                let count = try exactScalarCount(points.count, 2, multiply: false)
+                try OriginalCoefficientAllocation.reserve(count: count, of: Point2D.self, using: &execution)
+                var boundary: [Point2D] = []; boundary.reserveCapacity(count)
+                for point in points { try execution.consumeWork(1); boundary.append(point) }
+                boundary.append(Point2D(x: last.u, y: poleV))
+                boundary.append(Point2D(x: first.u, y: poleV))
+                planarBoundary = boundary
+            } else { planarBoundary = nil }
         } else {
             planarBoundary = nil
         }
@@ -152,8 +162,9 @@ public struct SurfaceParameterLoopLift: Hashable, Sendable {
     private static func removingRepeatedClosure(
         _ samples: [SurfaceParameter],
         topology: SurfaceParameterTopology,
-        tolerance: ModelingTolerance
-    ) -> [SurfaceParameter] {
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+    ) throws -> [SurfaceParameter] {
+        try execution.consumeWork(1)
         guard let first = samples.first, let last = samples.last else {
             return samples
         }
@@ -169,7 +180,7 @@ public struct SurfaceParameterLoopLift: Hashable, Sendable {
             <= max(tolerance.distance, tolerance.angle) else {
             return samples
         }
-        return Array(samples.dropLast())
+        return try OriginalCoefficientAllocation.map(elements: samples.dropLast(), using: &execution) { value, _ in value }
     }
 
     private static func periodicDelta(
@@ -244,7 +255,11 @@ public struct SurfaceParameterLoopLift: Hashable, Sendable {
         return residual
     }
 
-    private static func meanV(_ points: [Point2D]) -> Double {
-        points.reduce(0.0) { $0 + $1.y } / Double(points.count)
+    private static func meanV(_ points: [Point2D], using execution: inout OriginalQueryExecution) throws -> Double {
+        var sum = 0.0
+        for point in points { try execution.consumeWork(1); sum += point.y }
+        return sum / Double(points.count)
     }
+
+
 }

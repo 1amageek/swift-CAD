@@ -4,8 +4,8 @@ import L1
 #endif
 
 extension ExactRealRootDomain {
-    func signedRemainders(_ first: ExactPolynomial<F>, _ second: ExactPolynomial<F>,
-        _ a: inout ExactRootBorrowedAdmission) throws -> [ExactPolynomial<F>] {
+    func signedRemainders<A: ExactScalarAdmission & ~Copyable>(_ first: ExactPolynomial<F>, _ second: ExactPolynomial<F>,
+        _ a: inout A) throws -> [ExactPolynomial<F>] {
         try ExactRootAccess.storage(2, ExactPolynomial<F>.self, &a)
         var chain = [first], left = first, right = try positiveUnitNormalized(second, &a)
         if try context.univariate.isZero(right, using: &a) { return chain }
@@ -24,8 +24,8 @@ extension ExactRealRootDomain {
         return chain
     }
 
-    func sideSign(_ polynomial: ExactPolynomial<F>, at bound: ExactRealRootBound<F.Value>,
-        direction: Int, _ a: inout ExactRootBorrowedAdmission) throws -> ExactSign {
+    func sideSign<A: ExactScalarAdmission & ~Copyable>(_ polynomial: ExactPolynomial<F>, at bound: ExactRealRootBound<F.Value>,
+        direction: Int, _ a: inout A) throws -> ExactSign {
         switch bound {
         case .negativeInfinity, .positiveInfinity:
             guard let leading = polynomial.terms.first else { throw ExactRealRootFailure.invalidEvidence }
@@ -51,8 +51,8 @@ extension ExactRealRootDomain {
         }
     }
 
-    func sideVariations(_ chain: [ExactPolynomial<F>], at bound: ExactRealRootBound<F.Value>,
-        direction: Int, _ a: inout ExactRootBorrowedAdmission) throws -> Int {
+    func sideVariations<A: ExactScalarAdmission & ~Copyable>(_ chain: [ExactPolynomial<F>], at bound: ExactRealRootBound<F.Value>,
+        direction: Int, _ a: inout A) throws -> Int {
         var previous = ExactSign.zero, result = 0
         for polynomial in chain {
             try a.consumeWork(1)
@@ -64,8 +64,8 @@ extension ExactRealRootDomain {
         return result
     }
 
-    func tarskiSign(_ query: ExactPolynomial<F>, at root: ExactRealRoot<F>,
-        derivative: ExactPolynomial<F>, _ a: inout ExactRootBorrowedAdmission) throws -> ExactSign {
+    func tarskiSign<A: ExactScalarAdmission & ~Copyable>(_ query: ExactPolynomial<F>, at root: ExactRealRoot<F>,
+        derivative: ExactPolynomial<F>, _ a: inout A) throws -> ExactSign {
         let p = root.proof.polynomial
         let remainder = try context.univariate.divided(query, by: p, using: &a).remainder
         if try context.univariate.isZero(remainder, using: &a) { return .zero }
@@ -110,7 +110,7 @@ extension ExactRealRootDomain {
                 try require(query, &a)
                 values.append(try tarskiSign(query.law, at: root, derivative: derivative, &a))
             }
-            return .init(root: root, queries: polynomials, values: values, depth: a.depth)
+            return .init(root: root, queries: polynomials, values: values, depth: (try a.depth))
         }
     }
 }

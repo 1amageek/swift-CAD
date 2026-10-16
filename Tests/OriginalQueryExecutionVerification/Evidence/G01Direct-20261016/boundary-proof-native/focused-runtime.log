@@ -1,0 +1,43 @@
+􀟈  Test run started.
+􀄵  Swift Standard Library Version: 6.4
+􀄵  Swift Compiler Version: 6.4
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀄵  OS Version: 27.0.1 (26A434)
+􀟈  Suite "Original native boundary correspondence" (aka 'OriginalNativeBoundaryCorrespondenceTests') started.
+􀟈  Test allFourBoundariesAndBothStoredAndTraversalDirectionsAreExactlyZero(_:) started.
+􀟈  Test exactCallerWorkAndBytesAndRetainedInputLifetimeRemainObservable() started.
+􀟈  Test nativeArchBottomIsoUsesActualBoundedCorrespondence() started.
+􀟈  Test nearPayloadAndForeignDirectedMapsCannotMintTheZeroProof(_:) started.
+􀟈  Test entryAndTerminalCancellationCannotPublishZero() started.
+􀟈  Test case passing 1 argument variant → 0 (Swift.Int) to nearPayloadAndForeignDirectedMapsCannotMintTheZeroProof(_:) started.
+􀟈  Test case passing 1 argument degree → 1 (Swift.Int) to allFourBoundariesAndBothStoredAndTraversalDirectionsAreExactlyZero(_:) started.
+􀟈  Test case passing 1 argument variant → 1 (Swift.Int) to nearPayloadAndForeignDirectedMapsCannotMintTheZeroProof(_:) started.
+􀟈  Test case passing 1 argument degree → 2 (Swift.Int) to allFourBoundariesAndBothStoredAndTraversalDirectionsAreExactlyZero(_:) started.
+􀟈  Test case passing 1 argument variant → 2 (Swift.Int) to nearPayloadAndForeignDirectedMapsCannotMintTheZeroProof(_:) started.
+􀟈  Test case passing 1 argument variant → 5 (Swift.Int) to nearPayloadAndForeignDirectedMapsCannotMintTheZeroProof(_:) started.
+􀟈  Test case passing 1 argument variant → 7 (Swift.Int) to nearPayloadAndForeignDirectedMapsCannotMintTheZeroProof(_:) started.
+􀟈  Test case passing 1 argument variant → 4 (Swift.Int) to nearPayloadAndForeignDirectedMapsCannotMintTheZeroProof(_:) started.
+􀟈  Test case passing 1 argument variant → 3 (Swift.Int) to nearPayloadAndForeignDirectedMapsCannotMintTheZeroProof(_:) started.
+􀟈  Test case passing 1 argument variant → 6 (Swift.Int) to nearPayloadAndForeignDirectedMapsCannotMintTheZeroProof(_:) started.
+NATIVE_CORRESPONDENCE_STAGE main=false setup.begin
+NATIVE_CORRESPONDENCE_STAGE main=false setup.end work=107 bytes=128
+NATIVE_CORRESPONDENCE_STAGE main=false bound.begin
+NATIVE_CORRESPONDENCE_STAGE main=false bound.end deviation=0.0 work=254 bytes=296
+􁁛  Test nativeArchBottomIsoUsesActualBoundedCorrespondence() passed after 0.002 seconds.
+􁁛  Test entryAndTerminalCancellationCannotPublishZero() passed after 0.002 seconds.
+􁁛  Test case passing 1 argument variant → 3 (Swift.Int) to nearPayloadAndForeignDirectedMapsCannotMintTheZeroProof(_:) passed after 0.002 seconds.
+􁁛  Test case passing 1 argument variant → 0 (Swift.Int) to nearPayloadAndForeignDirectedMapsCannotMintTheZeroProof(_:) passed after 0.002 seconds.
+􁁛  Test case passing 1 argument variant → 2 (Swift.Int) to nearPayloadAndForeignDirectedMapsCannotMintTheZeroProof(_:) passed after 0.002 seconds.
+􁁛  Test case passing 1 argument variant → 1 (Swift.Int) to nearPayloadAndForeignDirectedMapsCannotMintTheZeroProof(_:) passed after 0.003 seconds.
+􁁛  Test case passing 1 argument variant → 6 (Swift.Int) to nearPayloadAndForeignDirectedMapsCannotMintTheZeroProof(_:) passed after 0.002 seconds.
+􁁛  Test case passing 1 argument variant → 4 (Swift.Int) to nearPayloadAndForeignDirectedMapsCannotMintTheZeroProof(_:) passed after 0.002 seconds.
+􁁛  Test case passing 1 argument variant → 7 (Swift.Int) to nearPayloadAndForeignDirectedMapsCannotMintTheZeroProof(_:) passed after 0.003 seconds.
+􁁛  Test case passing 1 argument variant → 5 (Swift.Int) to nearPayloadAndForeignDirectedMapsCannotMintTheZeroProof(_:) passed after 0.003 seconds.
+􁁛  Test nearPayloadAndForeignDirectedMapsCannotMintTheZeroProof(_:) with 8 test cases passed after 0.003 seconds.
+􁁛  Test exactCallerWorkAndBytesAndRetainedInputLifetimeRemainObservable() passed after 0.003 seconds.
+􁁛  Test case passing 1 argument degree → 1 (Swift.Int) to allFourBoundariesAndBothStoredAndTraversalDirectionsAreExactlyZero(_:) passed after 0.005 seconds.
+􁁛  Test case passing 1 argument degree → 2 (Swift.Int) to allFourBoundariesAndBothStoredAndTraversalDirectionsAreExactlyZero(_:) passed after 0.006 seconds.
+􁁛  Test allFourBoundariesAndBothStoredAndTraversalDirectionsAreExactlyZero(_:) with 2 test cases passed after 0.006 seconds.
+􁁛  Suite "Original native boundary correspondence" (aka 'OriginalNativeBoundaryCorrespondenceTests') passed after 0.006 seconds.
+􁁛  Test run with 5 tests in 1 suite passed after 0.006 seconds.

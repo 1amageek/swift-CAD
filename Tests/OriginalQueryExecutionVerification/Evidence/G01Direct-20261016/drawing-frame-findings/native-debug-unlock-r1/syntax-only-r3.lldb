@@ -1,0 +1,30 @@
+# Diagnostic preparation only. Root owns one 120-second bounded launch.
+# Capture commands execute only on this exact abort-entry breakpoint.
+settings set interpreter.stop-command-source-on-error false
+settings set auto-confirm true
+target create --arch arm64 "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/libexec/swift/pm/swiftpm-testing-helper"
+settings set target.disable-aslr false
+settings set -- target.env-vars "DYLD_FRAMEWORK_PATH=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks:/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks" "DYLD_LIBRARY_PATH=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib"
+settings set -- target.run-args "--test-bundle-path" "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-silhouette-r2/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests" "--testing-library" "swift-testing" "--filter" "DocumentDrawingCanonicalAdmissionTests" "--xunit-output" "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-debug-unlock-r1/diagnostic-results.xml"
+breakpoint set --name _os_unfair_lock_unowned_abort --skip-prologue false
+breakpoint command add --script-type command --stop-on-error false 1
+frame info
+register read x0 x1 x2 x19 x20 sp fp lr pc
+expression --language c -- unsigned long long $g01_abort_x0 = (unsigned long long)$x0
+thread list
+thread backtrace --count 24 all
+# Actual r2 chain: abort(0), unlock_slow(1), Mutex defer(2), debit(3).
+# frame info must identify debit before interpreting this recorded offset.
+frame select 3
+frame info
+register read sp fp x19 x20 lr pc
+memory read --format x --size 8 --count 4 `$sp + 0x160`
+expression --language c -- unsigned long long $g01_debit_handle = *(unsigned long long *)($sp + 0x170)
+expression --language c -- $g01_abort_x0
+expression --language c -- $g01_debit_handle
+memory read --format x --size 4 --count 4 $g01_debit_handle
+DONE
+breakpoint list
+settings show target.env-vars
+settings show target.run-args
+quit

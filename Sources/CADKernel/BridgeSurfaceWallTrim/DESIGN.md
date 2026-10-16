@@ -40,4 +40,4 @@ sign of the original stored affine columns, rather than a rounded triple product
 The construction and finite trim consumers therefore bind to the same original
 placed support law.
 
-The placed-wall compatibility entry has no selected cumulative admission in EvaluationContext. Its exact determinant visits use the existing cancellation checker; it introduces no allowance and makes no bounded-caller receipt claim.
+The ordinary wall-trim entry creates one canonical execution and delegates to its direct witness. Stable wall resolution, complete intersections, arrangements, exact sewing and affine source/determinant readers borrow that same execution. The original region selection and source-parent rewrite are preserved. This binding supplies the required Model witness without adding a wall or arrangement family.

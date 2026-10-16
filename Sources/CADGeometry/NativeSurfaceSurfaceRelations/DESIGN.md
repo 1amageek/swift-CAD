@@ -256,3 +256,13 @@ Rational root extraction and rational field singleton isolation consume no new
 subdivision depth. Depth-zero rational success is valid. The same authored irrational
 multi-chart fixture must still reject depth-zero generation and retained querying,
 while depth 32 succeeds. Query depth never resets inherited original cell depth.
+
+## Direct Execution Admission
+
+Source arithmetic borrows `A: ExactScalarAdmission & ~Copyable`; composed query
+operations borrow `inout OriginalQueryExecution`. Source validation, native span
+validation, structural comparisons and exact refinement receive that same admission.
+The [execution owner](../OriginalQueryExecution/DESIGN.md) defines cumulative
+work and actual byte accounting, independent depth axes, cancellation and lexical
+proof scopes. Retained geometry and relation evidence stay immutable; no callback
+adapter, copied counter or second allowance supplies arithmetic authority.

@@ -34,6 +34,21 @@ public struct CertifiedBoundedPlaneConeIntersectionCurve: Hashable, Sendable {
         endParameter: Double,
         tolerance: ModelingTolerance
     ) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try self.init(planeSurface: planeSurface, coneSurface: coneSurface, analyticCurve: analyticCurve, startParameter: startParameter, endParameter: endParameter, tolerance: tolerance, using: &execution)
+    }
+
+
+    public init(
+        planeSurface: Surface3D,
+        coneSurface: Surface3D,
+        analyticCurve: AnalyticCurve3D,
+        startParameter: Double,
+        endParameter: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         self.planeSurface = planeSurface
         self.coneSurface = coneSurface
         self.analyticCurve = analyticCurve
@@ -41,10 +56,29 @@ public struct CertifiedBoundedPlaneConeIntersectionCurve: Hashable, Sendable {
         self.endParameter = endParameter
         certificationTolerance = tolerance
         maximumResidualUpperBound = tolerance.distance
-        try validate(tolerance: tolerance)
+        try validate(tolerance: tolerance, using: &execution)
+            try execution.checkpoint()
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.checkpoint()
+        try validateImplementation(tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+    }
+
+
+
+    private func validateImplementation(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try GeometryStructuralComparisonWork.charge(surface: planeSurface, using: &execution)
+        try GeometryStructuralComparisonWork.charge(surface: coneSurface, using: &execution)
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         try tolerance.validate()
         try certificationTolerance.validate()
         guard certificationTolerance.distance <= tolerance.distance,
@@ -77,9 +111,9 @@ public struct CertifiedBoundedPlaneConeIntersectionCurve: Hashable, Sendable {
                 message: "A bounded plane-cone curve requires an exact hyperbola or parabola."
             )
         }
-        try planeSurface.validate(tolerance: tolerance)
-        try coneSurface.validate(tolerance: tolerance)
-        try analyticCurve.validate(tolerance: tolerance)
+        try planeSurface.validate(tolerance: tolerance, using: &execution)
+        try coneSurface.validate(tolerance: tolerance, using: &execution)
+        try analyticCurve.validate(tolerance: tolerance, using: &execution)
         guard startParameter.isFinite,
               endParameter.isFinite,
               endParameter > startParameter,
@@ -97,7 +131,7 @@ public struct CertifiedBoundedPlaneConeIntersectionCurve: Hashable, Sendable {
             planeSurface: planeSurface,
             coneSurface: coneSurface,
             tolerance: tolerance
-        )
+        , using: &execution)
         guard exactCandidates.contains(analyticCurve) else {
             throw KernelError(
                 phase: .geometry,
@@ -106,8 +140,8 @@ public struct CertifiedBoundedPlaneConeIntersectionCurve: Hashable, Sendable {
                 message: "A bounded plane-cone curve no longer matches the exact conic classified from its source surfaces."
             )
         }
-        let start = try analyticCurve.point(at: startParameter, tolerance: tolerance)
-        let end = try analyticCurve.point(at: endParameter, tolerance: tolerance)
+        let start = try analyticCurve.point(at: startParameter, tolerance: tolerance, using: &execution)
+        let end = try analyticCurve.point(at: endParameter, tolerance: tolerance, using: &execution)
         guard (end - start).length > tolerance.distance else {
             throw KernelError(
                 phase: .geometry,
@@ -117,14 +151,16 @@ public struct CertifiedBoundedPlaneConeIntersectionCurve: Hashable, Sendable {
                 message: "A bounded plane-cone interval collapsed within modeling tolerance."
             )
         }
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 5, of: Double.self))
         for fraction in [0.0, 0.25, 0.5, 0.75, 1.0] {
+            try execution.consumeWork(1)
             let point = try self.point(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance,
                 validatingCertificate: false
-            )
-            try verify(point: point, on: planeSurface, tolerance: tolerance)
-            try verify(point: point, on: coneSurface, tolerance: tolerance)
+            , using: &execution)
+            try verify(point: point, on: planeSurface, tolerance: tolerance, using: &execution)
+            try verify(point: point, on: coneSurface, tolerance: tolerance, using: &execution)
         }
     }
 
@@ -132,24 +168,70 @@ public struct CertifiedBoundedPlaneConeIntersectionCurve: Hashable, Sendable {
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> Point3D {
-        try validate(tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try point(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+
+    public func point(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> Point3D {
+        try execution.checkpoint()
+        let result = try pointImplementation(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+
+
+    private func pointImplementation(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> Point3D {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
+        try validate(tolerance: tolerance, using: &execution)
         return try point(
             atNormalizedFraction: fraction,
             tolerance: tolerance,
             validatingCertificate: false
-        )
+        , using: &execution)
     }
 
     public func differential(
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> DifferentialGeometry {
-        try validate(tolerance: tolerance)
-        let parameter = try mappedParameter(fraction, tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try differential(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+
+    public func differential(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> DifferentialGeometry {
+        try execution.checkpoint()
+        let result = try differentialImplementation(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+
+
+    private func differentialImplementation(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> DifferentialGeometry {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
+        try validate(tolerance: tolerance, using: &execution)
+        let parameter = try mappedParameter(fraction, tolerance: tolerance, using: &execution)
         let geometry = try analyticCurve.differentialGeometry(
             at: parameter,
             tolerance: tolerance
-        )
+        , using: &execution)
         let scale = endParameter - startParameter
         return DifferentialGeometry(
             position: geometry.position,
@@ -162,12 +244,35 @@ public struct CertifiedBoundedPlaneConeIntersectionCurve: Hashable, Sendable {
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> Vector3D {
-        let parameter = try mappedParameter(fraction, tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try thirdDerivative(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+
+    func thirdDerivative(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> Vector3D {
+        try execution.checkpoint()
+        let result = try thirdDerivativeImplementation(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+
+
+    private func thirdDerivativeImplementation(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> Vector3D {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
+        let parameter = try mappedParameter(fraction, tolerance: tolerance, using: &execution)
         let derivative = try Curve3D.analytic(analyticCurve)
             .parameterDerivativesThroughThirdOrder(
                 at: parameter,
                 tolerance: tolerance
-            ).thirdDerivative
+            , using: &execution).thirdDerivative
         let scale = endParameter - startParameter
         return derivative * (scale * scale * scale)
     }
@@ -177,7 +282,32 @@ public struct CertifiedBoundedPlaneConeIntersectionCurve: Hashable, Sendable {
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameter {
-        try validate(tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try parameter(on: surface, atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+
+    public func parameter(
+        on surface: Surface3D,
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceParameter {
+        try execution.checkpoint()
+        let result = try parameterImplementation(on: surface, atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+
+
+    private func parameterImplementation(
+        on surface: Surface3D,
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceParameter {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
+        try validate(tolerance: tolerance, using: &execution)
         guard surface == planeSurface || surface == coneSurface else {
             throw KernelError(
                 phase: .geometry,
@@ -190,19 +320,19 @@ public struct CertifiedBoundedPlaneConeIntersectionCurve: Hashable, Sendable {
             atNormalizedFraction: fraction,
             tolerance: tolerance,
             validatingCertificate: false
-        )
-        let projection = try surface.parameterProjection(of: point, tolerance: tolerance)
+        , using: &execution)
+        let projection = try surface.parameterProjection(of: point, tolerance: tolerance, using: &execution)
         let u: Double
         if surface == coneSurface {
             let middlePoint = try self.point(
                 atNormalizedFraction: 0.5,
                 tolerance: tolerance,
                 validatingCertificate: false
-            )
+            , using: &execution)
             let middleProjection = try coneSurface.parameterProjection(
                 of: middlePoint,
                 tolerance: tolerance
-            )
+            , using: &execution)
             u = Self.unwrappedAngle(projection.u, nearest: middleProjection.u)
         } else {
             u = projection.u
@@ -211,7 +341,7 @@ public struct CertifiedBoundedPlaneConeIntersectionCurve: Hashable, Sendable {
             u: u,
             v: projection.v,
             tolerance: tolerance
-        )
+        , using: &execution)
         let residual = (reconstructed - point).length
         guard residual <= tolerance.distance else {
             throw KernelError(
@@ -226,8 +356,27 @@ public struct CertifiedBoundedPlaneConeIntersectionCurve: Hashable, Sendable {
     }
 
     public func boundingBox(tolerance: ModelingTolerance) throws -> BoundingBox3D {
-        try validate(tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try boundingBox(tolerance: tolerance, using: &execution)
+    }
+
+
+    public func boundingBox(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> BoundingBox3D {
+        try execution.checkpoint()
+        let result = try boundingBoxImplementation(tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+
+
+    private func boundingBoxImplementation(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> BoundingBox3D {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
+        try validate(tolerance: tolerance, using: &execution)
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 2, of: Double.self))
         var parameters = [startParameter, endParameter]
+        var parametersCapacity = parameters.count
         switch analyticCurve {
         case let .hyperbola(curve):
             let conjugateAxis = try curve.normal.cross(curve.transverseAxis).normalized(
@@ -240,11 +389,12 @@ public struct CertifiedBoundedPlaneConeIntersectionCurve: Hashable, Sendable {
                 (first.y, second.y),
                 (first.z, second.z),
             ] where abs(a) > Double.leastNonzeroMagnitude {
+                try execution.consumeWork(1)
                 let ratio = -b / a
                 if abs(ratio) < 1.0 {
                     let candidate = atanh(ratio)
                     if candidate > startParameter, candidate < endParameter {
-                        parameters.append(candidate)
+                        try CertifiedAnalyticCurveEvaluation.append(candidate, to: &parameters, using: &execution, capacity: &parametersCapacity)
                     }
                 }
             }
@@ -258,37 +408,42 @@ public struct CertifiedBoundedPlaneConeIntersectionCurve: Hashable, Sendable {
                 (transverseAxis.y, quadratic.y),
                 (transverseAxis.z, quadratic.z),
             ] where abs(second) > Double.leastNonzeroMagnitude {
+                try execution.consumeWork(1)
                 let candidate = -linear / (2.0 * second)
                 if candidate > startParameter, candidate < endParameter {
-                    parameters.append(candidate)
+                    try CertifiedAnalyticCurveEvaluation.append(candidate, to: &parameters, using: &execution, capacity: &parametersCapacity)
                 }
             }
         case .line, .circle, .arc, .ellipse, .planeTorus:
             break
         }
-        return try BoundingBox3D(points: parameters.map {
-            try analyticCurve.point(at: $0, tolerance: tolerance)
-        })
+        return try BoundingBox3D(points: (try CertifiedAnalyticCurveEvaluation.map(parameters, using: &execution) { element, execution in 
+            try analyticCurve.point(at: element, tolerance: tolerance, using: &execution)
+         }))
     }
 
     private func point(
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance,
         validatingCertificate: Bool
-    ) throws -> Point3D {
+    , using execution: inout OriginalQueryExecution) throws -> Point3D {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         if validatingCertificate {
-            try validate(tolerance: tolerance)
+            try validate(tolerance: tolerance, using: &execution)
         }
         return try analyticCurve.point(
-            at: mappedParameter(fraction, tolerance: tolerance),
+            at: mappedParameter(fraction, tolerance: tolerance, using: &execution),
             tolerance: tolerance
-        )
+        , using: &execution)
     }
 
     private func mappedParameter(
         _ fraction: Double,
         tolerance: ModelingTolerance
-    ) throws -> Double {
+    , using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         guard fraction.isFinite,
               fraction >= -tolerance.relative,
               fraction <= 1.0 + tolerance.relative else {
@@ -302,8 +457,10 @@ public struct CertifiedBoundedPlaneConeIntersectionCurve: Hashable, Sendable {
         point: Point3D,
         on surface: Surface3D,
         tolerance: ModelingTolerance
-    ) throws {
-        let projection = try surface.parameterProjection(of: point, tolerance: tolerance)
+    , using execution: inout OriginalQueryExecution) throws {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
+        let projection = try surface.parameterProjection(of: point, tolerance: tolerance, using: &execution)
         guard projection.residual <= tolerance.distance else {
             throw KernelError(
                 phase: .geometry,
@@ -319,18 +476,20 @@ public struct CertifiedBoundedPlaneConeIntersectionCurve: Hashable, Sendable {
         planeSurface: Surface3D,
         coneSurface: Surface3D,
         tolerance: ModelingTolerance
-    ) throws -> [AnalyticCurve3D] {
+    , using execution: inout OriginalQueryExecution) throws -> [AnalyticCurve3D] {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         guard case let .plane(plane) = CanonicalAnalyticSurface(planeSurface),
               case let .cone(cone) = CanonicalAnalyticSurface(coneSurface) else {
             return []
         }
-        return try PlaneConeSurfaceIntersector().intersections(
+        return try (try CertifiedAnalyticCurveEvaluation.compactMap(PlaneConeSurfaceIntersector().intersections(
             plane: plane,
             cone: cone,
             firstSurface: planeSurface,
             secondSurface: coneSurface,
             tolerance: tolerance
-        ).compactMap { intersection in
+        , using: &execution), using: &execution) { intersection, execution in
             guard case let .curve(value) = intersection,
                   case let .parametric(.analytic(curve)) = value.truth else {
                 return nil
@@ -341,7 +500,7 @@ public struct CertifiedBoundedPlaneConeIntersectionCurve: Hashable, Sendable {
             case .line, .circle, .arc, .ellipse, .planeTorus:
                 return nil
             }
-        }
+         })
     }
 
     private static func unwrappedAngle(_ angle: Double, nearest reference: Double) -> Double {
@@ -363,6 +522,8 @@ public struct CertifiedBoundedPlaneConeIntersectionCurve: Hashable, Sendable {
 
 #if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
+        var execution = try NativeRationalSourceDecodingContext.validationExecution(from: decoder)
+
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
             [
@@ -387,7 +548,7 @@ public struct CertifiedBoundedPlaneConeIntersectionCurve: Hashable, Sendable {
             startParameter: container.decode(Double.self, forKey: .startParameter),
             endParameter: container.decode(Double.self, forKey: .endParameter),
             tolerance: tolerance
-        )
+        , using: &execution)
         let storedBound = try container.decode(
             Double.self,
             forKey: .maximumResidualUpperBound
@@ -406,7 +567,9 @@ public struct CertifiedBoundedPlaneConeIntersectionCurve: Hashable, Sendable {
 
 #if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
-        try validate(tolerance: certificationTolerance)
+        var execution = try NativeOriginalSourceEncodingContext.execution(from: encoder)
+
+        try validate(tolerance: certificationTolerance, using: &execution)
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(planeSurface, forKey: .planeSurface)
         try container.encode(coneSurface, forKey: .coneSurface)

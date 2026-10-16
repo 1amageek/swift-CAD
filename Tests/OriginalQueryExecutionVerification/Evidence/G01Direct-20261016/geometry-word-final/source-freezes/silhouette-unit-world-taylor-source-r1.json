@@ -1,0 +1,21 @@
+{
+  "scope": "ExactW1 world polynomial evaluator selection for measured shear endpoint cost only; no rational capability restriction or new solver.",
+  "files": {
+    "Sources/CADGeometry/SurfaceSilhouette/OriginalSurfaceSilhouetteField.swift": "bc9ccb5b79452b5823ff2238552edac34e412445698e92077088ebb03da77ad7",
+    "Sources/CADGeometry/SurfaceSilhouette/OriginalSurfaceSilhouetteCurve.swift": "642b054f4272046464499bd8041f1665d3e92ffb34628d3641d9d7ced4e2eafe",
+    "Sources/CADGeometry/SurfaceSilhouette/OriginalPolynomialSurfaceTaylor.swift": "385807e1ab7a78302061aa3378258b1d046e6745acdda1e0805711dc61d880cb",
+    "Sources/CADGeometry/SurfaceSilhouette/DESIGN.md": "b6b5d8e31740e79088d79520547d80d3a65f760290e37e9704d1376263908974",
+    "Tests/CADGeometryTests/SurfaceSilhouetteRationalWordAuthorityTests.swift": "8f77712b3ace6337a8e316d195822e13ac8a69e2a75921ebcb78cd49a969130e"
+  },
+  "endpointDiagnostic": {
+    "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/silhouette-endpoint-phase-native-r1/receipt.json",
+    "sha256": "7e74a475c4f03a4577330b7658719bed3168da01cb4068214fe8204314ddc160",
+    "guardedScalarWork": 237,
+    "fullSpatialWork": 5663389,
+    "D0D3ScalarIntervals": "All ten interval pairs bit-identical."
+  },
+  "fieldInverseProof": "Removing only the exact unit-weight helper and added if/else evaluator selection reconstructs the entire previous field file byte-for-byte. Old Native Bernstein/word body, scalarJet reader, final zero/normal selection and query-context/box/cancel guards unchanged.",
+  "selection": "Require existing retained world/directNative polynomial, original Native span/source, no offset/no collapsed pole, paid exact soleconstantW1. Revalidate native source/span/tolerance then pass borrowed H.prefix(3) to existing polynomial Taylor algorithm throughorder4. OtherW remains unchanged live evaluator, no catchfallback.",
+  "testDelta": "Only independent spatial D1/D2/D3 expected values added to existing identity/shear/nested positive cases, no extra production query.",
+  "verification": "No compiler run by Source owner; Root owns freshNative generation/client7/actualDrawing."
+}

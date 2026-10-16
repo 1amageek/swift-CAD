@@ -4,7 +4,7 @@ import CADGeometry
 /// Convex distance to a chord bounds every point in the original position rectangle.
 enum DrawingChordBoxBound {
     static func upperBound(_ box: CoordinateEnclosure3D, from first: Point2D, to last: Point2D,
-        usage: inout DrawingExchangeUsage) throws -> Double {
+        usage: DrawingExchangeOwner, using execution: inout OriginalQueryExecution) throws -> Double {
         guard box.x.lower.isFinite, box.x.upper.isFinite, box.y.lower.isFinite, box.y.upper.isFinite else {
             throw ExportError.invalidMesh("Original drawing position enclosure is nonfinite.")
         }
@@ -20,9 +20,9 @@ enum DrawingChordBoxBound {
                 let t = candidate.isFinite ? min(1, max(0, candidate)) : 0
                 // t proposes one actual chord station. Outward arithmetic retains
                 // its full binary law; it does not assert an exact nearest station.
-                let qx = OutwardScalarInterval.exact(first.x) + (.exact(last.x)-.exact(first.x)) * .exact(t)
-                let qy = OutwardScalarInterval.exact(first.y) + (.exact(last.y)-.exact(first.y)) * .exact(t)
-                let distance = IntervalVector3DBounds(x: .exact(x)-qx, y: .exact(y)-qy, z: .exact(0)).lengthUpperBound
+                let qx = OutwardScalarInterval.exact(first.x) + (.exact(last.x) - .exact(first.x)) * .exact(t)
+                let qy = OutwardScalarInterval.exact(first.y) + (.exact(last.y) - .exact(first.y)) * .exact(t)
+                let distance = IntervalVector3DBounds(x: .exact(x) - qx, y: .exact(y) - qy, z: .exact(0)).lengthUpperBound
                 guard distance.isFinite else { throw ExportError.invalidMesh("Original drawing chord distance is not finite.") }
                 bound = max(bound, distance)
             }

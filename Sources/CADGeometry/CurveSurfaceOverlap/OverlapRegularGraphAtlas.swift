@@ -17,11 +17,11 @@ enum OverlapRegularGraphAtlas: Sendable, Equatable {
     }
 
     static func authority(over box: SurfaceParameterBox, surface: BSplineSurface3D,
-                          tolerance: ModelingTolerance, budget: inout OverlapProofBudget) throws -> Self {
+                          tolerance: ModelingTolerance, policy: OverlapProofPolicy, using execution: inout OriginalQueryExecution) throws -> Self {
         var u: AxisKnots?, v: AxisKnots?
         for (isU, knots, degree, interval) in [(true, surface.uKnots, surface.uDegree, box.u),
                                              (false, surface.vKnots, surface.vDegree, box.v)] {
-            try budget.work(knots.count)
+            try policy.work(knots.count, using: &execution)
             var summary: AxisKnots?
             var index = degree + 1
             while index < knots.count - degree - 1 {

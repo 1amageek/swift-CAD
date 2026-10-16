@@ -1,0 +1,819 @@
+--- a/Sources/CADGeometry/SurfaceSilhouette/DefaultSurfaceSilhouetteProducer.swift
++++ b/Sources/CADGeometry/SurfaceSilhouette/DefaultSurfaceSilhouetteProducer.swift
+@@ -46,32 +46,58 @@
+                     curves: [], excludedDomains: [], coincidentDomains: [domain], using: &execution)
+             }
+         }
+-        let sourceAuthority = try SurfaceSilhouetteSourcePreparation(original: surface,
+-            tolerance: tolerance, usage: &execution)
+-        struct Pending { let field: OriginalSurfaceSilhouetteField; let box: SurfaceParameterBox; let depth: Int }
+-        func subdivision(_ cell: Pending, usage execution: inout OriginalQueryExecution) throws -> (Pending, Pending) {
+-            guard cell.depth < execution.effectiveLimits.maximumSubdivisionDepth else {
+-                // FIXME(INCOMPLETE_IMPLEMENTATION): Production silhouette
+-                // critical contacts, coincident fields and multiple zero branches
+-                // require original singular/algebraic certificates. They remain
+-                // explicit numerical failure, never a sampled or empty success.
+-                throw failure(.resourceLimitExceeded, tolerance, "Original silhouette zero/critical rectangle exhausted the caller proof depth.")
+-            }
+-            let alongU = cell.box.u.width >= cell.box.v.width
+-            let interval = alongU ? cell.box.u : cell.box.v
+-            let midpoint = interval.lower + (interval.upper - interval.lower) * 0.5
+-            guard midpoint > interval.lower, midpoint < interval.upper else {
+-                throw failure(.intersectionFailure, tolerance, "Original silhouette subdivision has no representable interior station.")
+-            }
+-            let first = try ScalarInterval(lower: interval.lower, upper: midpoint)
+-            let second = try ScalarInterval(lower: midpoint, upper: interval.upper)
+-            try RationalAlgebraStorage.retain(2, of: Pending.self, usage: &execution)
+-            let firstChild = Pending(field: cell.field, box: SurfaceParameterBox(
+-                u: alongU ? first : cell.box.u, v: alongU ? cell.box.v : first), depth: cell.depth + 1)
+-            let secondChild = Pending(field: cell.field, box: SurfaceParameterBox(
+-                u: alongU ? second : cell.box.u, v: alongU ? cell.box.v : second), depth: cell.depth + 1)
+-            return (firstChild, secondChild)
+-        }
++        return try closedDomainSilhouette(of: surface, over: domain,
++            view: view, tolerance: tolerance, using: &execution)
++    }
++
++    private struct Pending { let field: OriginalSurfaceSilhouetteField; let box: SurfaceParameterBox; let depth: Int }
++
++    private struct CriticalSourceKey: Hashable {
++        let domain: SurfaceParameterBox
++        let factorAxis: OriginalSurfaceSilhouetteCurve.FreeCoordinate?
++        let quadraticBranchOrdinal: Int?
++    }
++
++    private enum PlaneRealLocus {
++        case finite([ExactBivariateSystemRoot])
++        case positive
++    }
++
++    @inline(never)
++    private func subdivision(
++        _ cell: Pending, tolerance: ModelingTolerance,
++        using execution: inout OriginalQueryExecution
++    ) throws -> (Pending, Pending) {
++
++        guard cell.depth < execution.effectiveLimits.maximumSubdivisionDepth else {
++            // FIXME(INCOMPLETE_IMPLEMENTATION): Production silhouette
++            // critical contacts, coincident fields and multiple zero branches
++            // require original singular/algebraic certificates. They remain
++            // explicit numerical failure, never a sampled or empty success.
++            throw failure(.resourceLimitExceeded, tolerance, "Original silhouette zero/critical rectangle exhausted the caller proof depth.")
++        }
++        let alongU = cell.box.u.width >= cell.box.v.width
++        let interval = alongU ? cell.box.u : cell.box.v
++        let midpoint = interval.lower + (interval.upper - interval.lower) * 0.5
++        guard midpoint > interval.lower, midpoint < interval.upper else {
++            throw failure(.intersectionFailure, tolerance, "Original silhouette subdivision has no representable interior station.")
++        }
++        let first = try ScalarInterval(lower: interval.lower, upper: midpoint)
++        let second = try ScalarInterval(lower: midpoint, upper: interval.upper)
++        try RationalAlgebraStorage.retain(2, of: Pending.self, usage: &execution)
++        let firstChild = Pending(field: cell.field, box: SurfaceParameterBox(
++            u: alongU ? first : cell.box.u, v: alongU ? cell.box.v : first), depth: cell.depth + 1)
++        let secondChild = Pending(field: cell.field, box: SurfaceParameterBox(
++            u: alongU ? second : cell.box.u, v: alongU ? cell.box.v : second), depth: cell.depth + 1)
++        return (firstChild, secondChild)
++    }
++
++    @inline(never)
++    private func preparedCover(
++        surface: Surface3D, domain: SurfaceParameterBox, view: Vector3D,
++        tolerance: ModelingTolerance, sourceAuthority: SurfaceSilhouetteSourcePreparation,
++        using execution: inout OriginalQueryExecution
++    ) throws -> [Pending] {
+         var pending: [Pending] = []
+         if let source = sourceAuthority.nativeSource {
+             let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: source,
+@@ -105,61 +131,65 @@
+             pending.append(Pending(field: try OriginalSurfaceSilhouetteField(surface: surface,
+                 domain: domain, view: view, tolerance: tolerance, sourceAuthority: sourceAuthority, usage: &execution), box: domain, depth: 0))
+         }
+-        guard !pending.isEmpty else { throw failure(.intersectionFailure, tolerance, "Silhouette original domain has no complete native cover.") }
+-        var curves: [OriginalSurfaceSilhouetteCurve] = []
+-        var excluded: [SurfaceParameterBox] = []
+-        var coincident: [SurfaceParameterBox] = []
+-        var contacts: [SurfaceSilhouetteContact] = []
+-        var algebraicContacts: [SurfaceSilhouetteAlgebraicContact] = []
+-        var originalPlaneAtlases: [SurfaceSilhouettePlaneAtlas] = []
+-        struct CriticalSourceKey: Hashable {
+-            let domain: SurfaceParameterBox
+-            let factorAxis: OriginalSurfaceSilhouetteCurve.FreeCoordinate?
+-            let quadraticBranchOrdinal: Int?
+-        }
+-        var criticalSourceCache: [CriticalSourceKey: [ExactBivariateCriticalPoint]] = [:]
+-        enum PlaneRealLocus {
+-            case finite([ExactBivariateSystemRoot])
+-            case positive
+-        }
+-        var planeRealLocusCache: [CriticalSourceKey: PlaneRealLocus] = [:]
+-        while let cell = pending.popLast() {
+-            try execution.visitSilhouetteCell(depth: cell.depth)
+-            if cell.field.hasNativeParallelMetric,
+-                try cell.field.nativeParallelAdmission(over: cell.box, usage: &execution) == nil {
+-                let children = try subdivision(cell, usage: &execution)
+-                pending.append(children.0); pending.append(children.1)
+-                continue
+-            }
+-            let original = try cell.field.evaluate(over: cell.box, usage: &execution)
+-            let f = original.scalar
+-            guard f.value.isFinite else { throw failure(.intersectionFailure, tolerance, "Original silhouette scalar bounds are nonfinite.") }
+-            let regular = try cell.field.normalIsRegular(over: cell.box, original: original.spatial, usage: &execution)
+-            if !sourceAuthority.offsetDistances.isEmpty, !regular {
+-                // FIXME(INCOMPLETE_IMPLEMENTATION): Final genuine offset focal
+-                // and collapsed metric factors require their own original
+-                // regularity authority in this public drawing traversal. Base
+-                // zero-law exclusions cannot authorize these unresolved cells.
+-                let children = try subdivision(cell, usage: &execution)
+-                pending.append(children.0); pending.append(children.1)
+-                continue
+-            }
+-            if f.value.excludesZero {
+-                if cell.field.coordinateFactorAxis == nil && cell.field.quadraticBranchOrdinal == nil { try RationalAlgebraStorage.retain(1, of: SurfaceParameterBox.self, usage: &execution); excluded.append(cell.box) }
+-                continue
+-            }
+-            if cell.field.zeroSetAuthority?.original.isZero == true || cell.field.fieldZeroSetAuthority?.original.isZero == true {
+-                if regular { try RationalAlgebraStorage.retain(1, of: SurfaceParameterBox.self, usage: &execution); coincident.append(cell.box) }
+-                else {
+-                    let children = try subdivision(cell, usage: &execution)
+-                    pending.append(children.0); pending.append(children.1)
+-                }
+-                continue
+-            }
+-            if regular, let authority = cell.field.fieldZeroSetAuthority {
+-                let projection = try OriginalSingularFieldPlaneProjection(original: authority.squareFree,
+-                    over: cell.box, inheritedDepth: cell.depth, maximumDepth: execution.effectiveLimits.maximumSubdivisionDepth, usage: &execution)
+-                let atlas = try OriginalFieldPlaneAtlas(retaining: projection,
++        return pending
++    }
++
++    @inline(never)
++    private func fieldAtlas(
++        cell: inout Pending, regular: Bool, f: SurfaceSilhouetteScalarJet,
++        domain: SurfaceParameterBox, tolerance: ModelingTolerance,
++        pending: inout [Pending],
++        curves: inout [OriginalSurfaceSilhouetteCurve],
++        excluded: inout [SurfaceParameterBox],
++        coincident: inout [SurfaceParameterBox],
++        contacts: inout [SurfaceSilhouetteContact],
++        algebraicContacts: inout [SurfaceSilhouetteAlgebraicContact],
++        originalPlaneAtlases: inout [SurfaceSilhouettePlaneAtlas],
++        using execution: inout OriginalQueryExecution
++    ) throws -> Bool {
++        if regular, let authority = cell.field.fieldZeroSetAuthority {
++            let projection = try OriginalSingularFieldPlaneProjection(original: authority.squareFree,
++                over: cell.box, inheritedDepth: cell.depth, maximumDepth: execution.effectiveLimits.maximumSubdivisionDepth, usage: &execution)
++            let atlas = try OriginalFieldPlaneAtlas(retaining: projection,
++                maximumDepth: execution.effectiveLimits.maximumSubdivisionDepth, usage: &execution)
++            let publication = try SurfaceSilhouettePlaneAtlasPublication(field: cell.field,
++                atlas: atlas, firstCurveIndex: curves.count, usage: &execution)
++            try RationalAlgebraStorage.retain(publication.curves.count,
++                of: OriginalSurfaceSilhouetteCurve.self, usage: &execution)
++            curves.append(contentsOf: publication.curves)
++            for contact in publication.isolatedContacts {
++                try RationalAlgebraStorage.retain(1, of: SurfaceSilhouetteAlgebraicContact.self, usage: &execution)
++                algebraicContacts.append(contact)
++            }
++            try RationalAlgebraStorage.retain(1, of: SurfaceSilhouettePlaneAtlas.self, usage: &execution)
++            originalPlaneAtlases.append(publication.provenance)
++            if publication.curves.isEmpty, publication.isolatedContacts.isEmpty {
++                try RationalAlgebraStorage.retain(1, of: SurfaceParameterBox.self, usage: &execution); excluded.append(cell.box)
++            }
++            return true
++        }
++        return false
++    }
++
++    @inline(never)
++    private func rationalAtlas(
++        cell: inout Pending, regular: Bool, f: SurfaceSilhouetteScalarJet,
++        domain: SurfaceParameterBox, tolerance: ModelingTolerance,
++        pending: inout [Pending],
++        curves: inout [OriginalSurfaceSilhouetteCurve],
++        excluded: inout [SurfaceParameterBox],
++        coincident: inout [SurfaceParameterBox],
++        contacts: inout [SurfaceSilhouetteContact],
++        algebraicContacts: inout [SurfaceSilhouetteAlgebraicContact],
++        originalPlaneAtlases: inout [SurfaceSilhouettePlaneAtlas],
++        using execution: inout OriginalQueryExecution
++    ) throws -> Bool {
++        if regular, cell.field.coordinateFactorAxis == nil,
++            cell.field.quadraticBranchOrdinal == nil, let authority = cell.field.zeroSetAuthority {
++            let projection = try OriginalRationalPlaneCurveProjection(original: authority,
++                over: cell.box, maximumDepth: execution.effectiveLimits.maximumSubdivisionDepth, inheritedDepth: cell.depth, usage: &execution)
++            if projection.verticalComponents.isEmpty, projection.horizontalComponents.isEmpty {
++                let atlas = try OriginalRationalPlaneCurveAtlas(retaining: projection,
+                     maximumDepth: execution.effectiveLimits.maximumSubdivisionDepth, usage: &execution)
+                 let publication = try SurfaceSilhouettePlaneAtlasPublication(field: cell.field,
+                     atlas: atlas, firstCurveIndex: curves.count, usage: &execution)
+@@ -175,234 +205,363 @@
+                 if publication.curves.isEmpty, publication.isolatedContacts.isEmpty {
+                     try RationalAlgebraStorage.retain(1, of: SurfaceParameterBox.self, usage: &execution); excluded.append(cell.box)
+                 }
+-                continue
+-            }
+-            if regular, cell.field.coordinateFactorAxis == nil,
+-                cell.field.quadraticBranchOrdinal == nil, let authority = cell.field.zeroSetAuthority {
++                return true
++            }
++        }
++        return false
++    }
++
++    @inline(never)
++    private func cusp(
++        cell: inout Pending, regular: Bool, f: SurfaceSilhouetteScalarJet,
++        domain: SurfaceParameterBox, tolerance: ModelingTolerance,
++        pending: inout [Pending],
++        curves: inout [OriginalSurfaceSilhouetteCurve],
++        excluded: inout [SurfaceParameterBox],
++        coincident: inout [SurfaceParameterBox],
++        contacts: inout [SurfaceSilhouetteContact],
++        algebraicContacts: inout [SurfaceSilhouetteAlgebraicContact],
++        originalPlaneAtlases: inout [SurfaceSilhouettePlaneAtlas],
++        using execution: inout OriginalQueryExecution
++    ) throws -> Bool {
++        if regular, let authority = cell.field.zeroSetAuthority,
++            let cusp = try OriginalRationalBinomialCusp.proven(original: authority.squareFree, usage: &execution) {
++            let clipped = try cusp.clipped(over: cell.box, maximumDepth: execution.effectiveLimits.maximumSubdivisionDepth, usage: &execution)
++            for span in clipped.spans {
++                let start = clipped.stations[span.first].parameter
++                let end = clipped.stations[span.last].parameter
++                let image = try SurfaceSilhouetteFreeParameterImage(start: start, end: end)
++                let polynomial = try SurfaceSilhouetteCuspParameterImage(cusp: cusp, start: start,
++                    end: end, usage: &execution)
++                try RationalAlgebraStorage.retain(1, of: OriginalSurfaceSilhouetteCurve.self, usage: &execution)
++                curves.append(OriginalSurfaceSilhouetteCurve(field: cell.field, chart: cell.box,
++                    freeCoordinate: cusp.oddCoordinateAlongU ? .u : .v,
++                    freeImage: image, cuspImage: polynomial))
++            }
++            for index in clipped.isolatedStationIndices {
++                let point = ExactPolynomialParameterPoint(u: cusp.u, v: cusp.v,
++                    parameter: clipped.stations[index].parameter, originalDomain: cell.box)
++                if try owns(point, in: cell.box, globalDomain: domain, usage: &execution) {
++                    try RationalAlgebraStorage.retain(1, of: SurfaceSilhouetteAlgebraicContact.self, usage: &execution)
++                    algebraicContacts.append(try SurfaceSilhouetteAlgebraicContact(field: cell.field,
++                        originalRoot: point, certifiedDomain: cell.box, usage: &execution))
++                }
++            }
++            if cell.field.coordinateFactorAxis == nil, cell.field.quadraticBranchOrdinal == nil,
++                clipped.spans.isEmpty, clipped.isolatedStationIndices.isEmpty {
++                try RationalAlgebraStorage.retain(1, of: SurfaceParameterBox.self, usage: &execution); excluded.append(cell.box)
++            }
++            return true
++        }
++        return false
++    }
++
++    @inline(never)
++    private func finiteRealLocus(
++        cell: inout Pending, regular: Bool, f: SurfaceSilhouetteScalarJet,
++        domain: SurfaceParameterBox, tolerance: ModelingTolerance,
++        pending: inout [Pending],
++        curves: inout [OriginalSurfaceSilhouetteCurve],
++        excluded: inout [SurfaceParameterBox],
++        coincident: inout [SurfaceParameterBox],
++        contacts: inout [SurfaceSilhouetteContact],
++        algebraicContacts: inout [SurfaceSilhouetteAlgebraicContact],
++        originalPlaneAtlases: inout [SurfaceSilhouettePlaneAtlas],
++        planeRealLocusCache: inout [CriticalSourceKey: PlaneRealLocus],
++        using execution: inout OriginalQueryExecution
++    ) throws -> Bool {
++        if regular, f.u.contains(0), f.v.contains(0), let authority = cell.field.zeroSetAuthority {
++            let key = CriticalSourceKey(domain: cell.field.domain, factorAxis: cell.field.coordinateFactorAxis,
++                quadraticBranchOrdinal: cell.field.quadraticBranchOrdinal)
++            let locus: PlaneRealLocus
++            if let retained = planeRealLocusCache[key] { locus = retained }
++            else {
+                 let projection = try OriginalRationalPlaneCurveProjection(original: authority,
+-                    over: cell.box, maximumDepth: execution.effectiveLimits.maximumSubdivisionDepth, inheritedDepth: cell.depth, usage: &execution)
+-                if projection.verticalComponents.isEmpty, projection.horizontalComponents.isEmpty {
+-                    let atlas = try OriginalRationalPlaneCurveAtlas(retaining: projection,
++                    over: cell.field.domain, maximumDepth: execution.effectiveLimits.maximumSubdivisionDepth, usage: &execution)
++                if let points = try projection.finiteOriginalRoots(usage: &execution) { locus = .finite(points) }
++                else { locus = .positive }
++                try RationalAlgebraStorage.retain(1, of: (CriticalSourceKey, PlaneRealLocus).self, usage: &execution); planeRealLocusCache[key] = locus
++            }
++            if case .finite(var roots) = locus {
++                var owned: [ExactBivariateSystemRoot] = [], closedRootPresent = false, fits = true
++                for index in roots.indices {
++                    guard try isInsideClosed(roots[index], box: cell.box, usage: &execution) else { continue }
++                    closedRootPresent = true
++                    guard try owns(roots[index], in: cell.box, globalDomain: domain, usage: &execution) else { continue }
++                    let root = try roots[index].refined(
++                        maximumUWidth: .originalDouble(cell.box.u.width * 0.25, usage: &execution),
++                        maximumVWidth: .originalDouble(cell.box.v.width * 0.25, usage: &execution),
+                         maximumDepth: execution.effectiveLimits.maximumSubdivisionDepth, usage: &execution)
+-                    let publication = try SurfaceSilhouettePlaneAtlasPublication(field: cell.field,
+-                        atlas: atlas, firstCurveIndex: curves.count, usage: &execution)
+-                    try RationalAlgebraStorage.retain(publication.curves.count,
+-                        of: OriginalSurfaceSilhouetteCurve.self, usage: &execution)
+-                    curves.append(contentsOf: publication.curves)
+-                    for contact in publication.isolatedContacts {
++                    roots[index] = root
++                    let enclosure = try root.enclosure(usage: &execution)
++                    guard enclosure.u.lower >= cell.box.u.lower, enclosure.u.upper <= cell.box.u.upper,
++                        enclosure.v.lower >= cell.box.v.lower, enclosure.v.upper <= cell.box.v.upper else {
++                        fits = false; break
++                    }
++                    try RationalAlgebraStorage.retain(1, of: ExactBivariateSystemRoot.self, usage: &execution); owned.append(root)
++                }
++                planeRealLocusCache[key] = .finite(roots)
++                if !fits {
++                    let children = try subdivision(cell, tolerance: tolerance, using: &execution)
++                    pending.append(children.0); pending.append(children.1)
++                    return true
++                }
++                for root in owned {
++                    try RationalAlgebraStorage.retain(1, of: SurfaceSilhouetteAlgebraicContact.self, usage: &execution)
++                    algebraicContacts.append(try SurfaceSilhouetteAlgebraicContact(field: cell.field,
++                        originalRoot: root, certifiedDomain: cell.box, usage: &execution))
++                }
++                if !closedRootPresent, cell.field.coordinateFactorAxis == nil,
++                    cell.field.quadraticBranchOrdinal == nil {
++                    try RationalAlgebraStorage.retain(1, of: SurfaceParameterBox.self, usage: &execution); excluded.append(cell.box)
++                }
++                return true
++            }
++        }
++        return false
++    }
++
++    @inline(never)
++    private func criticalPoints(
++        cell: inout Pending, regular: Bool, f: SurfaceSilhouetteScalarJet,
++        domain: SurfaceParameterBox, tolerance: ModelingTolerance,
++        pending: inout [Pending],
++        curves: inout [OriginalSurfaceSilhouetteCurve],
++        excluded: inout [SurfaceParameterBox],
++        coincident: inout [SurfaceParameterBox],
++        contacts: inout [SurfaceSilhouetteContact],
++        algebraicContacts: inout [SurfaceSilhouetteAlgebraicContact],
++        originalPlaneAtlases: inout [SurfaceSilhouettePlaneAtlas],
++        determinant: OutwardScalarInterval,
++        criticalSourceCache: inout [CriticalSourceKey: [ExactBivariateCriticalPoint]],
++        using execution: inout OriginalQueryExecution
++    ) throws -> Bool {
++        if regular, f.u.contains(0), f.v.contains(0), let authority = cell.field.zeroSetAuthority {
++            let candidates: [ExactBivariateCriticalPoint]
++            let sourceKey = CriticalSourceKey(domain: cell.field.domain, factorAxis: cell.field.coordinateFactorAxis, quadraticBranchOrdinal: cell.field.quadraticBranchOrdinal)
++            if let cached = criticalSourceCache[sourceKey] { candidates = cached }
++            else {
++                let prepared = try ExactBivariateCriticalPointProducer.points(authority: authority,
++                    over: cell.field.domain, maximumDepth: execution.effectiveLimits.maximumSubdivisionDepth, usage: &execution)
++                try RationalAlgebraStorage.retain(1, of: (CriticalSourceKey, [ExactBivariateCriticalPoint]).self, usage: &execution); criticalSourceCache[sourceKey] = prepared; candidates = prepared
++            }
++            var issued = false
++            for candidate in candidates {
++                let initial = try candidate.enclosure(usage: &execution)
++                if initial.u.upper < cell.box.u.lower || initial.u.lower > cell.box.u.upper ||
++                   initial.v.upper < cell.box.v.lower || initial.v.lower > cell.box.v.upper { continue }
++                let refined = try candidate.refined(maximumUWidth: cell.box.u.width * 0.25,
++                    maximumVWidth: cell.box.v.width * 0.25, maximumDepth: execution.effectiveLimits.maximumSubdivisionDepth, usage: &execution)
++                let enclosure = try refined.enclosure(usage: &execution)
++                if enclosure.u.lower >= cell.box.u.lower, enclosure.u.upper <= cell.box.u.upper,
++                   enclosure.v.lower >= cell.box.v.lower, enclosure.v.upper <= cell.box.v.upper {
++                    let definite = determinant.lower > 0 && f.uu.excludesZero
++                    let isolated: Bool
++                    if definite { isolated = true }
++                    else { isolated = try OriginalRationalIsolatedPointCertifier.provesOnlyZero(
++                        at: refined, maximumDepth: execution.effectiveLimits.maximumSubdivisionDepth, usage: &execution) }
++                    guard isolated else { continue }
++                    // The whole-cell definite Hessian or the complete exact
++                    // Taylor sign identity proves the only real zero here.
++                    if try owns(refined, in: cell.box, globalDomain: domain, usage: &execution) {
+                         try RationalAlgebraStorage.retain(1, of: SurfaceSilhouetteAlgebraicContact.self, usage: &execution)
+-                        algebraicContacts.append(contact)
++                        algebraicContacts.append(try SurfaceSilhouetteAlgebraicContact(field: cell.field,
++                            originalRoot: refined, certifiedDomain: cell.box, usage: &execution))
+                     }
+-                    try RationalAlgebraStorage.retain(1, of: SurfaceSilhouettePlaneAtlas.self, usage: &execution)
+-                    originalPlaneAtlases.append(publication.provenance)
+-                    if publication.curves.isEmpty, publication.isolatedContacts.isEmpty {
++                    issued = true; break
++                }
++            }
++            if issued { return true }
++        }
++        return false
++    }
++
++    @inline(never)
++    private func monotoneGraph(
++        cell: inout Pending, regular: Bool, f: SurfaceSilhouetteScalarJet,
++        domain: SurfaceParameterBox, tolerance: ModelingTolerance,
++        pending: inout [Pending],
++        curves: inout [OriginalSurfaceSilhouetteCurve],
++        excluded: inout [SurfaceParameterBox],
++        coincident: inout [SurfaceParameterBox],
++        contacts: inout [SurfaceSilhouetteContact],
++        algebraicContacts: inout [SurfaceSilhouetteAlgebraicContact],
++        originalPlaneAtlases: inout [SurfaceSilhouettePlaneAtlas],
++        using execution: inout OriginalQueryExecution
++    ) throws -> Bool {
++        var accepted = false
++        if regular {
++            for direction in 0..<2 {
++                let axis: OriginalSurfaceSilhouetteCurve.FreeCoordinate = direction == 0 ? .u : .v
++                let derivative = axis == .u ? f.v : f.u
++                guard derivative.excludesZero else { continue }
++                if let authority = cell.field.zeroSetAuthority,
++                    let graph = try ExactMonotoneRectangleGraphProducer.graph(of: authority.squareFree,
++                        over: cell.box, freeAlongU: axis == .u,
++                        maximumDepth: execution.effectiveLimits.maximumSubdivisionDepth, usage: &execution,
++                        additionalStations: axis == .u ? cell.field.uBreakpoints : cell.field.vBreakpoints) {
++                    guard f.third != nil else {
++                        // FIXME(INCOMPLETE_IMPLEMENTATION): Retained drawing
++                        // graphs require actual original S4 before D3 success.
++                        throw failure(.unsupportedCapability, tolerance, "Original clipped silhouette needs fourth-order surface authority.")
++                    }
++                    let transverse = axis == .u ? cell.box.v : cell.box.u
++                    let globalTransverse = axis == .u ? domain.v : domain.u
++                    if transverse.upper < globalTransverse.upper {
++                        let upperLaw = try authority.squareFree.restricted(alongU: axis != .u,
++                            station: .originalDouble(transverse.upper, usage: &execution), usage: &execution)
++                        if upperLaw.isZero {
++                            // The only monotone root is the complete upper
++                            // edge. Its adjacent closed native cell owns the
++                            // curve; this cell cannot publish a duplicate.
++                            accepted = true; break
++                        }
++                    }
++                    for span in graph.spans {
++                        let start = graph.stations[span.lowerStation].endpoint
++                        let end = graph.stations[span.upperStation].endpoint
++                        let image = try SurfaceSilhouetteFreeParameterImage(start: start, end: end)
++                        try RationalAlgebraStorage.retain(1, of: OriginalSurfaceSilhouetteCurve.self, usage: &execution)
++                        curves.append(OriginalSurfaceSilhouetteCurve(field: cell.field,
++                            chart: cell.box, freeCoordinate: axis, freeImage: image))
++                    }
++                    for root in try graph.isolatedRoots(maximumDepth: execution.effectiveLimits.maximumSubdivisionDepth, usage: &execution) {
++                        if try owns(root, in: cell.box, globalDomain: domain, usage: &execution) {
++                            try RationalAlgebraStorage.retain(1, of: SurfaceSilhouetteAlgebraicContact.self, usage: &execution)
++                            algebraicContacts.append(try SurfaceSilhouetteAlgebraicContact(field: cell.field,
++                                originalRoot: root, certifiedDomain: cell.box, usage: &execution))
++                        }
++                    }
++                    if cell.field.coordinateFactorAxis == nil && cell.field.quadraticBranchOrdinal == nil,
++                        graph.spans.isEmpty, graph.isolatedStationIndices.isEmpty {
+                         try RationalAlgebraStorage.retain(1, of: SurfaceParameterBox.self, usage: &execution); excluded.append(cell.box)
+                     }
+-                    continue
+-                }
+-            }
+-            if regular, let authority = cell.field.zeroSetAuthority,
+-                let cusp = try OriginalRationalBinomialCusp.proven(original: authority.squareFree, usage: &execution) {
+-                let clipped = try cusp.clipped(over: cell.box, maximumDepth: execution.effectiveLimits.maximumSubdivisionDepth, usage: &execution)
+-                for span in clipped.spans {
+-                    let start = clipped.stations[span.first].parameter
+-                    let end = clipped.stations[span.last].parameter
+-                    let image = try SurfaceSilhouetteFreeParameterImage(start: start, end: end)
+-                    let polynomial = try SurfaceSilhouetteCuspParameterImage(cusp: cusp, start: start,
+-                        end: end, usage: &execution)
+-                    try RationalAlgebraStorage.retain(1, of: OriginalSurfaceSilhouetteCurve.self, usage: &execution)
+-                    curves.append(OriginalSurfaceSilhouetteCurve(field: cell.field, chart: cell.box,
+-                        freeCoordinate: cusp.oddCoordinateAlongU ? .u : .v,
+-                        freeImage: image, cuspImage: polynomial))
+-                }
+-                for index in clipped.isolatedStationIndices {
+-                    let point = ExactPolynomialParameterPoint(u: cusp.u, v: cusp.v,
+-                        parameter: clipped.stations[index].parameter, originalDomain: cell.box)
+-                    if try owns(point, in: cell.box, globalDomain: domain, usage: &execution) {
+-                        try RationalAlgebraStorage.retain(1, of: SurfaceSilhouetteAlgebraicContact.self, usage: &execution)
+-                        algebraicContacts.append(try SurfaceSilhouetteAlgebraicContact(field: cell.field,
+-                            originalRoot: point, certifiedDomain: cell.box, usage: &execution))
+-                    }
+-                }
+-                if cell.field.coordinateFactorAxis == nil, cell.field.quadraticBranchOrdinal == nil,
+-                    clipped.spans.isEmpty, clipped.isolatedStationIndices.isEmpty {
+-                    try RationalAlgebraStorage.retain(1, of: SurfaceParameterBox.self, usage: &execution); excluded.append(cell.box)
+-                }
+-                continue
+-            }
+-            if regular, f.u.contains(0), f.v.contains(0), let authority = cell.field.zeroSetAuthority {
+-                let key = CriticalSourceKey(domain: cell.field.domain, factorAxis: cell.field.coordinateFactorAxis,
+-                    quadraticBranchOrdinal: cell.field.quadraticBranchOrdinal)
+-                let locus: PlaneRealLocus
+-                if let retained = planeRealLocusCache[key] { locus = retained }
+-                else {
+-                    let projection = try OriginalRationalPlaneCurveProjection(original: authority,
+-                        over: cell.field.domain, maximumDepth: execution.effectiveLimits.maximumSubdivisionDepth, usage: &execution)
+-                    if let points = try projection.finiteOriginalRoots(usage: &execution) { locus = .finite(points) }
+-                    else { locus = .positive }
+-                    try RationalAlgebraStorage.retain(1, of: (CriticalSourceKey, PlaneRealLocus).self, usage: &execution); planeRealLocusCache[key] = locus
+-                }
+-                if case .finite(var roots) = locus {
+-                    var owned: [ExactBivariateSystemRoot] = [], closedRootPresent = false, fits = true
+-                    for index in roots.indices {
+-                        guard try isInsideClosed(roots[index], box: cell.box, usage: &execution) else { continue }
+-                        closedRootPresent = true
+-                        guard try owns(roots[index], in: cell.box, globalDomain: domain, usage: &execution) else { continue }
+-                        let root = try roots[index].refined(
+-                            maximumUWidth: .originalDouble(cell.box.u.width * 0.25, usage: &execution),
+-                            maximumVWidth: .originalDouble(cell.box.v.width * 0.25, usage: &execution),
+-                            maximumDepth: execution.effectiveLimits.maximumSubdivisionDepth, usage: &execution)
+-                        roots[index] = root
+-                        let enclosure = try root.enclosure(usage: &execution)
+-                        guard enclosure.u.lower >= cell.box.u.lower, enclosure.u.upper <= cell.box.u.upper,
+-                            enclosure.v.lower >= cell.box.v.lower, enclosure.v.upper <= cell.box.v.upper else {
+-                            fits = false; break
+-                        }
+-                        try RationalAlgebraStorage.retain(1, of: ExactBivariateSystemRoot.self, usage: &execution); owned.append(root)
+-                    }
+-                    planeRealLocusCache[key] = .finite(roots)
+-                    if !fits {
+-                        let children = try subdivision(cell, usage: &execution)
+-                        pending.append(children.0); pending.append(children.1)
+-                        continue
+-                    }
+-                    for root in owned {
+-                        try RationalAlgebraStorage.retain(1, of: SurfaceSilhouetteAlgebraicContact.self, usage: &execution)
+-                        algebraicContacts.append(try SurfaceSilhouetteAlgebraicContact(field: cell.field,
+-                            originalRoot: root, certifiedDomain: cell.box, usage: &execution))
+-                    }
+-                    if !closedRootPresent, cell.field.coordinateFactorAxis == nil,
+-                        cell.field.quadraticBranchOrdinal == nil {
+-                        try RationalAlgebraStorage.retain(1, of: SurfaceParameterBox.self, usage: &execution); excluded.append(cell.box)
+-                    }
+-                    continue
+-                }
+-            }
+-            let critical = try SurfaceSilhouetteCriticalCertifier.classify(field: cell.field,
+-                box: cell.box, jet: f, usage: &execution)
+-            if case .excluded = critical {
+-                if cell.field.coordinateFactorAxis == nil && cell.field.quadraticBranchOrdinal == nil { try RationalAlgebraStorage.retain(1, of: SurfaceParameterBox.self, usage: &execution); excluded.append(cell.box) }
+-                continue
+-            }
+-            if regular, case let .isolatedExactZero(station) = critical {
+-                try RationalAlgebraStorage.retain(1, of: SurfaceSilhouetteContact.self, usage: &execution)
+-                contacts.append(try SurfaceSilhouetteContact(field: cell.field, station: station,
+-                    certifiedDomain: cell.box, usage: &execution)); continue
+-            }
+-            let determinant = f.uu * f.vv - f.uv * f.uv
+-            if regular, f.u.contains(0), f.v.contains(0), let authority = cell.field.zeroSetAuthority {
+-                let candidates: [ExactBivariateCriticalPoint]
+-                let sourceKey = CriticalSourceKey(domain: cell.field.domain, factorAxis: cell.field.coordinateFactorAxis, quadraticBranchOrdinal: cell.field.quadraticBranchOrdinal)
+-                if let cached = criticalSourceCache[sourceKey] { candidates = cached }
+-                else {
+-                    let prepared = try ExactBivariateCriticalPointProducer.points(authority: authority,
+-                        over: cell.field.domain, maximumDepth: execution.effectiveLimits.maximumSubdivisionDepth, usage: &execution)
+-                    try RationalAlgebraStorage.retain(1, of: (CriticalSourceKey, [ExactBivariateCriticalPoint]).self, usage: &execution); criticalSourceCache[sourceKey] = prepared; candidates = prepared
+-                }
+-                var issued = false
+-                for candidate in candidates {
+-                    let initial = try candidate.enclosure(usage: &execution)
+-                    if initial.u.upper < cell.box.u.lower || initial.u.lower > cell.box.u.upper ||
+-                       initial.v.upper < cell.box.v.lower || initial.v.lower > cell.box.v.upper { continue }
+-                    let refined = try candidate.refined(maximumUWidth: cell.box.u.width * 0.25,
+-                        maximumVWidth: cell.box.v.width * 0.25, maximumDepth: execution.effectiveLimits.maximumSubdivisionDepth, usage: &execution)
+-                    let enclosure = try refined.enclosure(usage: &execution)
+-                    if enclosure.u.lower >= cell.box.u.lower, enclosure.u.upper <= cell.box.u.upper,
+-                       enclosure.v.lower >= cell.box.v.lower, enclosure.v.upper <= cell.box.v.upper {
+-                        let definite = determinant.lower > 0 && f.uu.excludesZero
+-                        let isolated: Bool
+-                        if definite { isolated = true }
+-                        else { isolated = try OriginalRationalIsolatedPointCertifier.provesOnlyZero(
+-                            at: refined, maximumDepth: execution.effectiveLimits.maximumSubdivisionDepth, usage: &execution) }
+-                        guard isolated else { continue }
+-                        // The whole-cell definite Hessian or the complete exact
+-                        // Taylor sign identity proves the only real zero here.
+-                        if try owns(refined, in: cell.box, globalDomain: domain, usage: &execution) {
+-                            try RationalAlgebraStorage.retain(1, of: SurfaceSilhouetteAlgebraicContact.self, usage: &execution)
+-                            algebraicContacts.append(try SurfaceSilhouetteAlgebraicContact(field: cell.field,
+-                                originalRoot: refined, certifiedDomain: cell.box, usage: &execution))
+-                        }
+-                        issued = true; break
+-                    }
+-                }
+-                if issued { continue }
+-            }
+-            var accepted = false
+-            if regular {
+-                for direction in 0..<2 {
+-                    let axis: OriginalSurfaceSilhouetteCurve.FreeCoordinate = direction == 0 ? .u : .v
+-                    let derivative = axis == .u ? f.v : f.u
+-                    guard derivative.excludesZero else { continue }
+-                    if let authority = cell.field.zeroSetAuthority,
+-                        let graph = try ExactMonotoneRectangleGraphProducer.graph(of: authority.squareFree,
+-                            over: cell.box, freeAlongU: axis == .u,
+-                            maximumDepth: execution.effectiveLimits.maximumSubdivisionDepth, usage: &execution,
+-                            additionalStations: axis == .u ? cell.field.uBreakpoints : cell.field.vBreakpoints) {
+-                        guard f.third != nil else {
+-                            // FIXME(INCOMPLETE_IMPLEMENTATION): Retained drawing
+-                            // graphs require actual original S4 before D3 success.
+-                            throw failure(.unsupportedCapability, tolerance, "Original clipped silhouette needs fourth-order surface authority.")
+-                        }
+-                        let transverse = axis == .u ? cell.box.v : cell.box.u
+-                        let globalTransverse = axis == .u ? domain.v : domain.u
+-                        if transverse.upper < globalTransverse.upper {
+-                            let upperLaw = try authority.squareFree.restricted(alongU: axis != .u,
+-                                station: .originalDouble(transverse.upper, usage: &execution), usage: &execution)
+-                            if upperLaw.isZero {
+-                                // The only monotone root is the complete upper
+-                                // edge. Its adjacent closed native cell owns the
+-                                // curve; this cell cannot publish a duplicate.
+-                                accepted = true; break
+-                            }
+-                        }
+-                        for span in graph.spans {
+-                            let start = graph.stations[span.lowerStation].endpoint
+-                            let end = graph.stations[span.upperStation].endpoint
+-                            let image = try SurfaceSilhouetteFreeParameterImage(start: start, end: end)
+-                            try RationalAlgebraStorage.retain(1, of: OriginalSurfaceSilhouetteCurve.self, usage: &execution)
+-                            curves.append(OriginalSurfaceSilhouetteCurve(field: cell.field,
+-                                chart: cell.box, freeCoordinate: axis, freeImage: image))
+-                        }
+-                        for root in try graph.isolatedRoots(maximumDepth: execution.effectiveLimits.maximumSubdivisionDepth, usage: &execution) {
+-                            if try owns(root, in: cell.box, globalDomain: domain, usage: &execution) {
+-                                try RationalAlgebraStorage.retain(1, of: SurfaceSilhouetteAlgebraicContact.self, usage: &execution)
+-                                algebraicContacts.append(try SurfaceSilhouetteAlgebraicContact(field: cell.field,
+-                                    originalRoot: root, certifiedDomain: cell.box, usage: &execution))
+-                            }
+-                        }
+-                        if cell.field.coordinateFactorAxis == nil && cell.field.quadraticBranchOrdinal == nil,
+-                            graph.spans.isEmpty, graph.isolatedStationIndices.isEmpty {
+-                            try RationalAlgebraStorage.retain(1, of: SurfaceParameterBox.self, usage: &execution); excluded.append(cell.box)
+-                        }
+-                        accepted = true; break
+-                    }
+-                    let transverse = axis == .u ? cell.box.v : cell.box.u
+-                    let lower = try ScalarInterval(lower: transverse.lower, upper: transverse.lower)
+-                    let upper = try ScalarInterval(lower: transverse.upper, upper: transverse.upper)
+-                    let lowBox = SurfaceParameterBox(u: axis == .u ? cell.box.u : lower,
+-                        v: axis == .u ? lower : cell.box.v)
+-                    let highBox = SurfaceParameterBox(u: axis == .u ? cell.box.u : upper,
+-                        v: axis == .u ? upper : cell.box.v)
+-                    let low = try cell.field.evaluate(over: lowBox, usage: &execution).scalar.value
+-                    let high = try cell.field.evaluate(over: highBox, usage: &execution).scalar.value
+-                    guard let lowSign = low.sign, let highSign = high.sign, lowSign != highSign else { continue }
+-                    guard f.third != nil else {
+-                        // FIXME(INCOMPLETE_IMPLEMENTATION): Procedural original
+-                        // normal fields are currently order two. Production D1
+-                        // may not publish regular retained D3 curves until their
+-                        // original higher-order source authority is implemented.
+-                        throw failure(.unsupportedCapability, tolerance, "Original procedural silhouette needs fourth-order source derivatives.")
+-                    }
+-                    try RationalAlgebraStorage.retain(1, of: OriginalSurfaceSilhouetteCurve.self, usage: &execution)
+-                    curves.append(OriginalSurfaceSilhouetteCurve(field: cell.field,
+-                        chart: cell.box, freeCoordinate: axis))
+-                    accepted = true
+-                    break
+-                }
+-                if accepted { continue }
+-            }
+-            let children = try subdivision(cell, usage: &execution)
++                    accepted = true; break
++                }
++                let transverse = axis == .u ? cell.box.v : cell.box.u
++                let lower = try ScalarInterval(lower: transverse.lower, upper: transverse.lower)
++                let upper = try ScalarInterval(lower: transverse.upper, upper: transverse.upper)
++                let lowBox = SurfaceParameterBox(u: axis == .u ? cell.box.u : lower,
++                    v: axis == .u ? lower : cell.box.v)
++                let highBox = SurfaceParameterBox(u: axis == .u ? cell.box.u : upper,
++                    v: axis == .u ? upper : cell.box.v)
++                let low = try cell.field.evaluate(over: lowBox, usage: &execution).scalar.value
++                let high = try cell.field.evaluate(over: highBox, usage: &execution).scalar.value
++                guard let lowSign = low.sign, let highSign = high.sign, lowSign != highSign else { continue }
++                guard f.third != nil else {
++                    // FIXME(INCOMPLETE_IMPLEMENTATION): Procedural original
++                    // normal fields are currently order two. Production D1
++                    // may not publish regular retained D3 curves until their
++                    // original higher-order source authority is implemented.
++                    throw failure(.unsupportedCapability, tolerance, "Original procedural silhouette needs fourth-order source derivatives.")
++                }
++                try RationalAlgebraStorage.retain(1, of: OriginalSurfaceSilhouetteCurve.self, usage: &execution)
++                curves.append(OriginalSurfaceSilhouetteCurve(field: cell.field,
++                    chart: cell.box, freeCoordinate: axis))
++                accepted = true
++                break
++            }
++            if accepted { return true }
++        }
++        return false
++    }
++
++    @inline(never)
++    private func processCell(
++        cell: inout Pending, domain: SurfaceParameterBox, tolerance: ModelingTolerance,
++        sourceAuthority: SurfaceSilhouetteSourcePreparation, pending: inout [Pending],
++        criticalSourceCache: inout [CriticalSourceKey: [ExactBivariateCriticalPoint]],
++        planeRealLocusCache: inout [CriticalSourceKey: PlaneRealLocus],
++        curves: inout [OriginalSurfaceSilhouetteCurve],
++        excluded: inout [SurfaceParameterBox],
++        coincident: inout [SurfaceParameterBox],
++        contacts: inout [SurfaceSilhouetteContact],
++        algebraicContacts: inout [SurfaceSilhouetteAlgebraicContact],
++        originalPlaneAtlases: inout [SurfaceSilhouettePlaneAtlas],
++        using execution: inout OriginalQueryExecution
++    ) throws {
++
++        try execution.visitSilhouetteCell(depth: cell.depth)
++        if cell.field.hasNativeParallelMetric,
++            try cell.field.nativeParallelAdmission(over: cell.box, usage: &execution) == nil {
++            let children = try subdivision(cell, tolerance: tolerance, using: &execution)
+             pending.append(children.0); pending.append(children.1)
++            return
++        }
++        let original = try cell.field.evaluate(over: cell.box, usage: &execution)
++        let f = original.scalar
++        guard f.value.isFinite else { throw failure(.intersectionFailure, tolerance, "Original silhouette scalar bounds are nonfinite.") }
++        let regular = try cell.field.normalIsRegular(over: cell.box, original: original.spatial, usage: &execution)
++        if !sourceAuthority.offsetDistances.isEmpty, !regular {
++            // FIXME(INCOMPLETE_IMPLEMENTATION): Final genuine offset focal
++            // and collapsed metric factors require their own original
++            // regularity authority in this public drawing traversal. Base
++            // zero-law exclusions cannot authorize these unresolved cells.
++            let children = try subdivision(cell, tolerance: tolerance, using: &execution)
++            pending.append(children.0); pending.append(children.1)
++            return
++        }
++        if f.value.excludesZero {
++            if cell.field.coordinateFactorAxis == nil && cell.field.quadraticBranchOrdinal == nil { try RationalAlgebraStorage.retain(1, of: SurfaceParameterBox.self, usage: &execution); excluded.append(cell.box) }
++            return
++        }
++        if cell.field.zeroSetAuthority?.original.isZero == true || cell.field.fieldZeroSetAuthority?.original.isZero == true {
++            if regular { try RationalAlgebraStorage.retain(1, of: SurfaceParameterBox.self, usage: &execution); coincident.append(cell.box) }
++            else {
++                let children = try subdivision(cell, tolerance: tolerance, using: &execution)
++                pending.append(children.0); pending.append(children.1)
++            }
++            return
++        }
++        if try fieldAtlas(cell: &cell, regular: regular, f: f, domain: domain, tolerance: tolerance, pending: &pending, curves: &curves, excluded: &excluded, coincident: &coincident, contacts: &contacts, algebraicContacts: &algebraicContacts, originalPlaneAtlases: &originalPlaneAtlases, using: &execution) { return }
++        if try rationalAtlas(cell: &cell, regular: regular, f: f, domain: domain, tolerance: tolerance, pending: &pending, curves: &curves, excluded: &excluded, coincident: &coincident, contacts: &contacts, algebraicContacts: &algebraicContacts, originalPlaneAtlases: &originalPlaneAtlases, using: &execution) { return }
++        if try cusp(cell: &cell, regular: regular, f: f, domain: domain, tolerance: tolerance, pending: &pending, curves: &curves, excluded: &excluded, coincident: &coincident, contacts: &contacts, algebraicContacts: &algebraicContacts, originalPlaneAtlases: &originalPlaneAtlases, using: &execution) { return }
++        if try finiteRealLocus(cell: &cell, regular: regular, f: f, domain: domain, tolerance: tolerance, pending: &pending, curves: &curves, excluded: &excluded, coincident: &coincident, contacts: &contacts, algebraicContacts: &algebraicContacts, originalPlaneAtlases: &originalPlaneAtlases, planeRealLocusCache: &planeRealLocusCache, using: &execution) { return }
++        let critical = try SurfaceSilhouetteCriticalCertifier.classify(field: cell.field,
++            box: cell.box, jet: f, usage: &execution)
++        if case .excluded = critical {
++            if cell.field.coordinateFactorAxis == nil && cell.field.quadraticBranchOrdinal == nil { try RationalAlgebraStorage.retain(1, of: SurfaceParameterBox.self, usage: &execution); excluded.append(cell.box) }
++            return
++        }
++        if regular, case let .isolatedExactZero(station) = critical {
++            try RationalAlgebraStorage.retain(1, of: SurfaceSilhouetteContact.self, usage: &execution)
++            contacts.append(try SurfaceSilhouetteContact(field: cell.field, station: station,
++                certifiedDomain: cell.box, usage: &execution)); return
++        }
++        let determinant = f.uu * f.vv - f.uv * f.uv
++        if try criticalPoints(cell: &cell, regular: regular, f: f, domain: domain, tolerance: tolerance, pending: &pending, curves: &curves, excluded: &excluded, coincident: &coincident, contacts: &contacts, algebraicContacts: &algebraicContacts, originalPlaneAtlases: &originalPlaneAtlases, determinant: determinant, criticalSourceCache: &criticalSourceCache, using: &execution) { return }
++        if try monotoneGraph(cell: &cell, regular: regular, f: f, domain: domain, tolerance: tolerance, pending: &pending, curves: &curves, excluded: &excluded, coincident: &coincident, contacts: &contacts, algebraicContacts: &algebraicContacts, originalPlaneAtlases: &originalPlaneAtlases, using: &execution) { return }
++        let children = try subdivision(cell, tolerance: tolerance, using: &execution)
++        pending.append(children.0); pending.append(children.1)
++    }
++
++    @inline(never)
++    private func closedDomainSilhouette(
++        of surface: Surface3D, over domain: SurfaceParameterBox,
++        view: Vector3D, tolerance: ModelingTolerance,
++        using execution: inout OriginalQueryExecution
++    ) throws -> SurfaceSilhouetteEnvelope {
++        let sourceAuthority = try SurfaceSilhouetteSourcePreparation(original: surface,
++            tolerance: tolerance, usage: &execution)
++
++        var pending = try preparedCover(surface: surface, domain: domain, view: view,
++            tolerance: tolerance, sourceAuthority: sourceAuthority, using: &execution)
++        guard !pending.isEmpty else { throw failure(.intersectionFailure, tolerance, "Silhouette original domain has no complete native cover.") }
++        var curves: [OriginalSurfaceSilhouetteCurve] = []
++        var excluded: [SurfaceParameterBox] = []
++        var coincident: [SurfaceParameterBox] = []
++        var contacts: [SurfaceSilhouetteContact] = []
++        var algebraicContacts: [SurfaceSilhouetteAlgebraicContact] = []
++        var originalPlaneAtlases: [SurfaceSilhouettePlaneAtlas] = []
++
++        var criticalSourceCache: [CriticalSourceKey: [ExactBivariateCriticalPoint]] = [:]
++
++        var planeRealLocusCache: [CriticalSourceKey: PlaneRealLocus] = [:]
++        while var cell = pending.popLast() {
++            try processCell(cell: &cell, domain: domain, tolerance: tolerance,
++                sourceAuthority: sourceAuthority, pending: &pending,
++                criticalSourceCache: &criticalSourceCache, planeRealLocusCache: &planeRealLocusCache,
++                curves: &curves, excluded: &excluded, coincident: &coincident, contacts: &contacts, algebraicContacts: &algebraicContacts, originalPlaneAtlases: &originalPlaneAtlases, using: &execution)
+         }
+ 
+         var singularStations: [SurfaceSilhouetteSingularStation] = []
+--- a/Sources/CADGeometry/SurfaceSilhouette/DESIGN.md
++++ b/Sources/CADGeometry/SurfaceSilhouette/DESIGN.md
+@@ -723,3 +723,23 @@
+ for the retained surface, pcurve and source-translation traversals. Callback
+ allowance reconstruction is not part of source admission; structural visits
+ remain work-only and preserve the original independent cell/depth policies.
++
++### Native worker stack ownership
++
++The public producer owns source/view/domain preflight and the existing early-zero
++returns. Nonzero closed-domain preparation and traversal execute in private
++non-inlined scopes. The unchanged native cover builder, one-cell dispatcher and
++existing atlas, cusp, finite-locus, critical and monotone branches own separate
++local frames. All scopes borrow the same execution, pending cover, output arrays
++and caches; no new source law, proof result, budget, copied source buffer or
++intermediate publication is introduced. A branch continuation means only that
++the former cell-loop continue was reached, not a separate proof approval.
++
++Original branch order, root ownership, chart boundaries, scalar/geometric/source
++depths, storage/work debits and cancellation remain unchanged. Final publication
++still requires exhausting the same pending complete cover and assembling the
++same retained singular stations/components. The measured native public frame
++exceeded the ordinary worker stack before any early-zero branch could run.
++Verification uses the actual Drawing caller/unchanged input on that worker and
++checks the new accepted native prologues; thread stack size, actors and query
++ceilings are not substitutes for this responsibility split.

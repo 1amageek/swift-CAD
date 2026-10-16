@@ -1,0 +1,42 @@
+{
+  "scope": "Portable fixture closure capture ownership only; no production or compiler change.",
+  "path": "Tests/OriginalQueryExecutionVerification/StructuralSurfaceMeteringPortable.swift",
+  "oldSHA256": "fe043859ebb6d290c4cc0c85a2d584d4a5c01bca3f139d48bd19df34c7c97bc8",
+  "newSHA256": "264e34184c9565a024bba0cef4ee6d739e43a3ddc2a7cb389ac76451ea1fcf90",
+  "roots": [
+    "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD"
+  ],
+  "inverseProof": "Removing only the two private final Sendable owner declarations, restoring local Mutex initialization and restoring member access prefixes reconstructs the entire old fixture byte-for-byte. Every assertion, debit, callback sequence and closure critical-section body is unchanged.",
+  "targetMatrix": {
+    "Native": {
+      "workStorage": "WorkLog.state: let Mutex<[Int]>",
+      "cancellationStorage": "CancellationState.state: let Mutex<(work: Int, cancelled: Bool)>",
+      "isolation": "Same Mutex.withLock on all targets",
+      "read": "observed.state.withLock or state.state.withLock",
+      "write": "Same existing work observer and cancellation mutation closure inside withLock",
+      "lifetime": "Escaping budget callbacks strongly capture final Sendable owner. Owners retain only Mutex state and never retain budget/callbacks, so no reference cycle.",
+      "callbackBoundary": "No external callback/throw/checkpoint runs under these locks; actual OriginalQueryBudget invokes observers outside its own lock."
+    },
+    "WASM": {
+      "workStorage": "WorkLog.state: let Mutex<[Int]>",
+      "cancellationStorage": "CancellationState.state: let Mutex<(work: Int, cancelled: Bool)>",
+      "isolation": "Same Mutex.withLock on all targets",
+      "read": "observed.state.withLock or state.state.withLock",
+      "write": "Same existing work observer and cancellation mutation closure inside withLock",
+      "lifetime": "Escaping budget callbacks strongly capture final Sendable owner. Owners retain only Mutex state and never retain budget/callbacks, so no reference cycle.",
+      "callbackBoundary": "No external callback/throw/checkpoint runs under these locks; actual OriginalQueryBudget invokes observers outside its own lock."
+    },
+    "Embedded": {
+      "workStorage": "WorkLog.state: let Mutex<[Int]>",
+      "cancellationStorage": "CancellationState.state: let Mutex<(work: Int, cancelled: Bool)>",
+      "isolation": "Same Mutex.withLock on all targets",
+      "read": "observed.state.withLock or state.state.withLock",
+      "write": "Same existing work observer and cancellation mutation closure inside withLock",
+      "lifetime": "Escaping budget callbacks strongly capture final Sendable owner. Owners retain only Mutex state and never retain budget/callbacks, so no reference cycle.",
+      "callbackBoundary": "No external callback/throw/checkpoint runs under these locks; actual OriginalQueryBudget invokes observers outside its own lock."
+    }
+  },
+  "remainingVerification": "Common/Root reuse already-compiled exact Geometry products to fresh-link and run all three target clients; not executed here.",
+  "patchSHA256": "78937fdd78e8d87386762fefac9392863a7ed746b63b9bbd5420d986f29f4a7d"
+}

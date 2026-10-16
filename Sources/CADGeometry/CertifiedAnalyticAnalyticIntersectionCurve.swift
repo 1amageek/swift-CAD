@@ -329,7 +329,7 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
             if curve.componentKind == .apexReducedAngularInterval {
                 return .certifiedIntersection(.coneCone(curve))
             }
-            let role: SurfaceIntersectionSurfaceRole = isEquivalent(
+            let role: SurfaceIntersectionSurfaceRole = sourceViewConeMatches(
                 firstSurface,
                 to: curve.parameterizedSurface
             ) ? .first : .second
@@ -512,10 +512,22 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
         secondSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try self.init(planeTorusCurve: planeTorusCurve, firstSurface: firstSurface, secondSurface: secondSurface, tolerance: tolerance, using: &execution)
+    }
+
+    public init(
+        planeTorusCurve: CertifiedPlaneTorusIntersectionCurve,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         definition = .planeTorus(planeTorusCurve)
         self.firstSurface = firstSurface
         self.secondSurface = secondSurface
-        try validate(tolerance: tolerance)
+        try validate(tolerance: tolerance, using: &execution)
     }
 
     public init(
@@ -524,10 +536,22 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
         secondSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try self.init(coneConeCurve: coneConeCurve, firstSurface: firstSurface, secondSurface: secondSurface, tolerance: tolerance, using: &execution)
+    }
+
+    public init(
+        coneConeCurve: CertifiedConeConeIntersectionCurve,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         definition = .coneCone(coneConeCurve)
         self.firstSurface = firstSurface
         self.secondSurface = secondSurface
-        try validate(tolerance: tolerance)
+        try validate(tolerance: tolerance, using: &execution)
     }
 
     public init(
@@ -536,10 +560,22 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
         secondSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try self.init(cylinderCylinderCurve: cylinderCylinderCurve, firstSurface: firstSurface, secondSurface: secondSurface, tolerance: tolerance, using: &execution)
+    }
+
+    public init(
+        cylinderCylinderCurve: CertifiedCylinderCylinderIntersectionCurve,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         definition = .cylinderCylinder(cylinderCylinderCurve)
         self.firstSurface = firstSurface
         self.secondSurface = secondSurface
-        try validate(tolerance: tolerance)
+        try validate(tolerance: tolerance, using: &execution)
     }
 
     public init(
@@ -548,10 +584,22 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
         secondSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try self.init(sphereCylinderCurve: sphereCylinderCurve, firstSurface: firstSurface, secondSurface: secondSurface, tolerance: tolerance, using: &execution)
+    }
+
+    public init(
+        sphereCylinderCurve: CertifiedSphereCylinderIntersectionCurve,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         definition = .sphereCylinder(sphereCylinderCurve)
         self.firstSurface = firstSurface
         self.secondSurface = secondSurface
-        try validate(tolerance: tolerance)
+        try validate(tolerance: tolerance, using: &execution)
     }
 
     public init(
@@ -560,10 +608,22 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
         secondSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try self.init(sphereConeCurve: sphereConeCurve, firstSurface: firstSurface, secondSurface: secondSurface, tolerance: tolerance, using: &execution)
+    }
+
+    public init(
+        sphereConeCurve: CertifiedSphereConeIntersectionCurve,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         definition = .sphereCone(sphereConeCurve)
         self.firstSurface = firstSurface
         self.secondSurface = secondSurface
-        try validate(tolerance: tolerance)
+        try validate(tolerance: tolerance, using: &execution)
     }
 
     public init(
@@ -572,10 +632,22 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
         secondSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try self.init(coneCylinderCurve: coneCylinderCurve, firstSurface: firstSurface, secondSurface: secondSurface, tolerance: tolerance, using: &execution)
+    }
+
+    public init(
+        coneCylinderCurve: CertifiedConeCylinderIntersectionCurve,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         definition = .coneCylinder(coneCylinderCurve)
         self.firstSurface = firstSurface
         self.secondSurface = secondSurface
-        try validate(tolerance: tolerance)
+        try validate(tolerance: tolerance, using: &execution)
     }
 
     public init(
@@ -584,10 +656,22 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
         secondSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try self.init(sphereTorusCurve: sphereTorusCurve, firstSurface: firstSurface, secondSurface: secondSurface, tolerance: tolerance, using: &execution)
+    }
+
+    public init(
+        sphereTorusCurve: CertifiedSphereTorusIntersectionCurve,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         definition = .sphereTorus(sphereTorusCurve)
         self.firstSurface = firstSurface
         self.secondSurface = secondSurface
-        try validate(tolerance: tolerance)
+        try validate(tolerance: tolerance, using: &execution)
     }
 
     public init(
@@ -596,10 +680,22 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
         secondSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try self.init(parallelTorusCylinderCurve: parallelTorusCylinderCurve, firstSurface: firstSurface, secondSurface: secondSurface, tolerance: tolerance, using: &execution)
+    }
+
+    public init(
+        parallelTorusCylinderCurve: CertifiedParallelTorusCylinderIntersectionCurve,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         definition = .parallelTorusCylinder(parallelTorusCylinderCurve)
         self.firstSurface = firstSurface
         self.secondSurface = secondSurface
-        try validate(tolerance: tolerance)
+        try validate(tolerance: tolerance, using: &execution)
     }
 
     public init(
@@ -608,10 +704,22 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
         secondSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try self.init(generalTorusCylinderCurve: generalTorusCylinderCurve, firstSurface: firstSurface, secondSurface: secondSurface, tolerance: tolerance, using: &execution)
+    }
+
+    public init(
+        generalTorusCylinderCurve: CertifiedGeneralTorusCylinderIntersectionCurve,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         definition = .generalTorusCylinder(generalTorusCylinderCurve)
         self.firstSurface = firstSurface
         self.secondSurface = secondSurface
-        try validate(tolerance: tolerance)
+        try validate(tolerance: tolerance, using: &execution)
     }
 
     public init(
@@ -620,10 +728,22 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
         secondSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try self.init(generalConeTorusCurve: generalConeTorusCurve, firstSurface: firstSurface, secondSurface: secondSurface, tolerance: tolerance, using: &execution)
+    }
+
+    public init(
+        generalConeTorusCurve: CertifiedGeneralConeTorusIntersectionCurve,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         definition = .generalConeTorus(generalConeTorusCurve)
         self.firstSurface = firstSurface
         self.secondSurface = secondSurface
-        try validate(tolerance: tolerance)
+        try validate(tolerance: tolerance, using: &execution)
     }
 
     public init(
@@ -632,10 +752,22 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
         secondSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try self.init(parallelTorusTorusCurve: parallelTorusTorusCurve, firstSurface: firstSurface, secondSurface: secondSurface, tolerance: tolerance, using: &execution)
+    }
+
+    public init(
+        parallelTorusTorusCurve: CertifiedParallelTorusTorusIntersectionCurve,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         definition = .parallelTorusTorus(parallelTorusTorusCurve)
         self.firstSurface = firstSurface
         self.secondSurface = secondSurface
-        try validate(tolerance: tolerance)
+        try validate(tolerance: tolerance, using: &execution)
     }
 
     public init(
@@ -644,10 +776,22 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
         secondSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try self.init(congruentTorusTorusCurve: congruentTorusTorusCurve, firstSurface: firstSurface, secondSurface: secondSurface, tolerance: tolerance, using: &execution)
+    }
+
+    public init(
+        congruentTorusTorusCurve: CertifiedCongruentTorusTorusIntersectionCurve,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         definition = .congruentTorusTorus(congruentTorusTorusCurve)
         self.firstSurface = firstSurface
         self.secondSurface = secondSurface
-        try validate(tolerance: tolerance)
+        try validate(tolerance: tolerance, using: &execution)
     }
 
     public init(
@@ -656,10 +800,22 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
         secondSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try self.init(generalTorusTorusCurve: generalTorusTorusCurve, firstSurface: firstSurface, secondSurface: secondSurface, tolerance: tolerance, using: &execution)
+    }
+
+    public init(
+        generalTorusTorusCurve: CertifiedGeneralTorusTorusIntersectionCurve,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         definition = .generalTorusTorus(generalTorusTorusCurve)
         self.firstSurface = firstSurface
         self.secondSurface = secondSurface
-        try validate(tolerance: tolerance)
+        try validate(tolerance: tolerance, using: &execution)
     }
 
     public init(
@@ -668,10 +824,22 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
         secondSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try self.init(boundedPlaneConeCurve: boundedPlaneConeCurve, firstSurface: firstSurface, secondSurface: secondSurface, tolerance: tolerance, using: &execution)
+    }
+
+    public init(
+        boundedPlaneConeCurve: CertifiedBoundedPlaneConeIntersectionCurve,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         definition = .boundedPlaneCone(boundedPlaneConeCurve)
         self.firstSurface = firstSurface
         self.secondSurface = secondSurface
-        try validate(tolerance: tolerance)
+        try validate(tolerance: tolerance, using: &execution)
     }
 
     public func surface(for role: SurfaceIntersectionSurfaceRole) -> Surface3D {
@@ -682,77 +850,87 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> Point3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try point(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+    public func point(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Point3D {
+        try execution.consumeWork(1)
         switch definition {
         case let .planeTorus(curve):
             return try curve.point(
-                at: try planeTorusParameter(fraction, tolerance: tolerance),
+                at: try planeTorusParameter(fraction, tolerance: tolerance, using: &execution),
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .coneCone(curve):
             return try curve.point(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .cylinderCylinder(curve):
             return try curve.point(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .sphereCylinder(curve):
             return try curve.point(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .sphereCone(curve):
             return try curve.point(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .coneCylinder(curve):
             return try curve.point(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .sphereTorus(curve):
             return try curve.point(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .parallelTorusCylinder(curve):
             return try curve.point(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .generalTorusCylinder(curve):
             return try curve.point(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .generalConeTorus(curve):
             return try curve.point(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .parallelTorusTorus(curve):
             return try curve.point(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .congruentTorusTorus(curve):
             return try curve.point(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .generalTorusTorus(curve):
             return try curve.point(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .boundedPlaneCone(curve):
             return try curve.point(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         }
     }
 
@@ -761,23 +939,34 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> (point: Point3D, parameter: SurfaceParameter) {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try pointAndInternalParameter(for: role, atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+    func pointAndInternalParameter(
+        for role: SurfaceIntersectionSurfaceRole,
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> (point: Point3D, parameter: SurfaceParameter) {
+        try execution.consumeWork(1)
         if case let .generalTorusTorus(curve) = definition {
             return try curve.pointAndParameter(
                 on: surface(for: role),
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         }
         return try (
-            point(
+            try point(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            ),
-            internalParameter(
+            , using: &execution),
+            try internalParameter(
                 for: role,
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         )
     }
 
@@ -785,12 +974,22 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> DifferentialGeometry {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try differential(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+    public func differential(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> DifferentialGeometry {
+        try execution.consumeWork(1)
         switch definition {
         case let .planeTorus(curve):
             let geometry = try curve.differentialGeometry(
-                at: try planeTorusParameter(fraction, tolerance: tolerance),
+                at: try planeTorusParameter(fraction, tolerance: tolerance, using: &execution),
                 tolerance: tolerance
-            )
+            , using: &execution)
             let scale = 2.0 * Double.pi
             return DifferentialGeometry(
                 position: geometry.position,
@@ -801,7 +1000,7 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
             let geometry = try curve.differential(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
             return DifferentialGeometry(
                 position: geometry.position,
                 firstDerivative: geometry.firstDerivative,
@@ -811,7 +1010,7 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
             let geometry = try curve.differential(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
             return DifferentialGeometry(
                 position: geometry.position,
                 firstDerivative: geometry.firstDerivative,
@@ -821,7 +1020,7 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
             let geometry = try curve.differential(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
             return DifferentialGeometry(
                 position: geometry.position,
                 firstDerivative: geometry.firstDerivative,
@@ -831,7 +1030,7 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
             let geometry = try curve.differential(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
             return DifferentialGeometry(
                 position: geometry.position,
                 firstDerivative: geometry.firstDerivative,
@@ -841,7 +1040,7 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
             let geometry = try curve.differential(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
             return DifferentialGeometry(
                 position: geometry.position,
                 firstDerivative: geometry.firstDerivative,
@@ -851,7 +1050,7 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
             let geometry = try curve.differential(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
             return DifferentialGeometry(
                 position: geometry.position,
                 firstDerivative: geometry.firstDerivative,
@@ -861,7 +1060,7 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
             let geometry = try curve.differential(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
             return DifferentialGeometry(
                 position: geometry.position,
                 firstDerivative: geometry.firstDerivative,
@@ -871,7 +1070,7 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
             let geometry = try curve.differential(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
             return DifferentialGeometry(
                 position: geometry.position,
                 firstDerivative: geometry.firstDerivative,
@@ -881,7 +1080,7 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
             let geometry = try curve.differential(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
             return DifferentialGeometry(
                 position: geometry.position,
                 firstDerivative: geometry.firstDerivative,
@@ -891,7 +1090,7 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
             let geometry = try curve.differential(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
             return DifferentialGeometry(
                 position: geometry.position,
                 firstDerivative: geometry.firstDerivative,
@@ -901,7 +1100,7 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
             let geometry = try curve.differential(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
             return DifferentialGeometry(
                 position: geometry.position,
                 firstDerivative: geometry.firstDerivative,
@@ -911,7 +1110,7 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
             let geometry = try curve.differential(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
             return DifferentialGeometry(
                 position: geometry.position,
                 firstDerivative: geometry.firstDerivative,
@@ -921,7 +1120,7 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
             let geometry = try curve.differential(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
             return DifferentialGeometry(
                 position: geometry.position,
                 firstDerivative: geometry.firstDerivative,
@@ -934,78 +1133,88 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> Vector3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try thirdDerivative(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+    public func thirdDerivative(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Vector3D {
+        try execution.consumeWork(1)
         switch definition {
         case let .planeTorus(curve):
             let scale = 2.0 * Double.pi
             return try curve.thirdDerivative(
-                at: try planeTorusParameter(fraction, tolerance: tolerance),
+                at: try planeTorusParameter(fraction, tolerance: tolerance, using: &execution),
                 tolerance: tolerance
-            ) * (scale * scale * scale)
+            , using: &execution) * (scale * scale * scale)
         case let .coneCone(curve):
             return try curve.thirdDerivative(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .cylinderCylinder(curve):
             return try curve.thirdDerivative(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .sphereCylinder(curve):
             return try curve.thirdDerivative(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .sphereCone(curve):
             return try curve.thirdDerivative(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .coneCylinder(curve):
             return try curve.thirdDerivative(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .sphereTorus(curve):
             return try curve.thirdDerivative(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .parallelTorusCylinder(curve):
             return try curve.thirdDerivative(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .generalTorusCylinder(curve):
             return try curve.thirdDerivative(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .generalConeTorus(curve):
             return try curve.thirdDerivative(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .parallelTorusTorus(curve):
             return try curve.thirdDerivative(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .congruentTorusTorus(curve):
             return try curve.thirdDerivative(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .generalTorusTorus(curve):
             return try curve.thirdDerivative(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .boundedPlaneCone(curve):
             return try curve.thirdDerivative(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         }
     }
 
@@ -1014,12 +1223,23 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameter {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try internalParameter(for: role, atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+    public func internalParameter(
+        for role: SurfaceIntersectionSurfaceRole,
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> SurfaceParameter {
+        try execution.consumeWork(1)
         switch definition {
         case let .planeTorus(curve):
             let parameters = try curve.surfaceParameters(
-                at: try planeTorusParameter(fraction, tolerance: tolerance),
+                at: try planeTorusParameter(fraction, tolerance: tolerance, using: &execution),
                 tolerance: tolerance
-            )
+            , using: &execution)
             let planeIsFirst = firstSurface == curve.planeSurface
             if planeIsFirst {
                 return role == .first ? parameters.plane : parameters.torus
@@ -1030,122 +1250,136 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
                 on: surface(for: role),
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .cylinderCylinder(curve):
             return try curve.parameter(
                 on: surface(for: role),
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .sphereCylinder(curve):
             return try curve.parameter(
                 on: surface(for: role),
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .sphereCone(curve):
             return try curve.parameter(
                 on: surface(for: role),
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .coneCylinder(curve):
             return try curve.parameter(
                 on: surface(for: role),
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .sphereTorus(curve):
             return try curve.parameter(
                 on: surface(for: role),
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .parallelTorusCylinder(curve):
             return try curve.parameter(
                 on: surface(for: role),
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .generalTorusCylinder(curve):
             return try curve.parameter(
                 on: surface(for: role),
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .generalConeTorus(curve):
             return try curve.parameter(
                 on: surface(for: role),
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .parallelTorusTorus(curve):
             return try curve.parameter(
                 on: surface(for: role),
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .congruentTorusTorus(curve):
             return try curve.parameter(
                 on: surface(for: role),
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .generalTorusTorus(curve):
             return try curve.parameter(
                 on: surface(for: role),
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .boundedPlaneCone(curve):
             return try curve.parameter(
                 on: surface(for: role),
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         }
     }
 
     public func boundingBox(tolerance: ModelingTolerance) throws -> BoundingBox3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try boundingBox(tolerance: tolerance, using: &execution)
+    }
+
+    public func boundingBox(tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> BoundingBox3D {
+        try execution.consumeWork(1)
         switch definition {
         case let .planeTorus(curve):
-            return try curve.boundingBox(tolerance: tolerance)
+            return try curve.boundingBox(tolerance: tolerance, using: &execution)
         case let .coneCone(curve):
-            return try curve.boundingBox(tolerance: tolerance)
+            return try curve.boundingBox(tolerance: tolerance, using: &execution)
         case let .cylinderCylinder(curve):
-            return try curve.boundingBox(tolerance: tolerance)
+            return try curve.boundingBox(tolerance: tolerance, using: &execution)
         case let .sphereCylinder(curve):
-            return try curve.boundingBox(tolerance: tolerance)
+            return try curve.boundingBox(tolerance: tolerance, using: &execution)
         case let .sphereCone(curve):
-            return try curve.boundingBox(tolerance: tolerance)
+            return try curve.boundingBox(tolerance: tolerance, using: &execution)
         case let .coneCylinder(curve):
-            return try curve.boundingBox(tolerance: tolerance)
+            return try curve.boundingBox(tolerance: tolerance, using: &execution)
         case let .sphereTorus(curve):
-            return try curve.boundingBox(tolerance: tolerance)
+            return try curve.boundingBox(tolerance: tolerance, using: &execution)
         case let .parallelTorusCylinder(curve):
-            return try curve.boundingBox(tolerance: tolerance)
+            return try curve.boundingBox(tolerance: tolerance, using: &execution)
         case let .generalTorusCylinder(curve):
-            return try curve.boundingBox(tolerance: tolerance)
+            return try curve.boundingBox(tolerance: tolerance, using: &execution)
         case let .generalConeTorus(curve):
-            return try curve.boundingBox(tolerance: tolerance)
+            return try curve.boundingBox(tolerance: tolerance, using: &execution)
         case let .parallelTorusTorus(curve):
-            return try curve.boundingBox(tolerance: tolerance)
+            return try curve.boundingBox(tolerance: tolerance, using: &execution)
         case let .congruentTorusTorus(curve):
-            return try curve.boundingBox(tolerance: tolerance)
+            return try curve.boundingBox(tolerance: tolerance, using: &execution)
         case let .generalTorusTorus(curve):
-            return try curve.boundingBox(tolerance: tolerance)
+            return try curve.boundingBox(tolerance: tolerance, using: &execution)
         case let .boundedPlaneCone(curve):
-            return try curve.boundingBox(tolerance: tolerance)
+            return try curve.boundingBox(tolerance: tolerance, using: &execution)
         }
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try tolerance.validate()
-        try firstSurface.validate(tolerance: tolerance)
-        try secondSurface.validate(tolerance: tolerance)
+        try firstSurface.validate(tolerance: tolerance, using: &execution)
+        try secondSurface.validate(tolerance: tolerance, using: &execution)
         switch definition {
         case let .planeTorus(curve):
-            try curve.validate(tolerance: tolerance)
+            try curve.validate(tolerance: tolerance, using: &execution)
             guard (firstSurface == curve.planeSurface
                 && secondSurface == curve.torusSurface)
                 || (firstSurface == curve.torusSurface
@@ -1158,17 +1392,17 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
                 )
             }
         case let .coneCone(curve):
-            try curve.validate(tolerance: tolerance)
-            let firstMatchesReference = isEquivalent(firstSurface, to: curve.referenceSurface)
-            let firstMatchesParameterized = isEquivalent(
+            try curve.validate(tolerance: tolerance, using: &execution)
+            let firstMatchesReference = try isEquivalent(firstSurface, to: curve.referenceSurface, using: &execution)
+            let firstMatchesParameterized = try isEquivalent(
                 firstSurface,
                 to: curve.parameterizedSurface
-            )
-            let secondMatchesReference = isEquivalent(secondSurface, to: curve.referenceSurface)
-            let secondMatchesParameterized = isEquivalent(
+            , using: &execution)
+            let secondMatchesReference = try isEquivalent(secondSurface, to: curve.referenceSurface, using: &execution)
+            let secondMatchesParameterized = try isEquivalent(
                 secondSurface,
                 to: curve.parameterizedSurface
-            )
+            , using: &execution)
             guard (firstMatchesReference && secondMatchesParameterized)
                     || (firstMatchesParameterized && secondMatchesReference) else {
                 throw KernelError(
@@ -1179,7 +1413,7 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
                 )
             }
         case let .cylinderCylinder(curve):
-            try curve.validate(tolerance: tolerance)
+            try curve.validate(tolerance: tolerance, using: &execution)
             guard (firstSurface == curve.referenceSurface
                 && secondSurface == curve.parameterizedSurface)
                 || (firstSurface == curve.parameterizedSurface
@@ -1192,7 +1426,7 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
                 )
             }
         case let .sphereCylinder(curve):
-            try curve.validate(tolerance: tolerance)
+            try curve.validate(tolerance: tolerance, using: &execution)
             guard (firstSurface == curve.sphereSurface
                 && secondSurface == curve.cylinderSurface)
                 || (firstSurface == curve.cylinderSurface
@@ -1205,7 +1439,7 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
                 )
             }
         case let .sphereCone(curve):
-            try curve.validate(tolerance: tolerance)
+            try curve.validate(tolerance: tolerance, using: &execution)
             guard (firstSurface == curve.sphereSurface
                 && secondSurface == curve.coneSurface)
                 || (firstSurface == curve.coneSurface
@@ -1218,7 +1452,7 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
                 )
             }
         case let .coneCylinder(curve):
-            try curve.validate(tolerance: tolerance)
+            try curve.validate(tolerance: tolerance, using: &execution)
             guard (firstSurface == curve.coneSurface
                 && secondSurface == curve.cylinderSurface)
                 || (firstSurface == curve.cylinderSurface
@@ -1231,7 +1465,7 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
                 )
             }
         case let .sphereTorus(curve):
-            try curve.validate(tolerance: tolerance)
+            try curve.validate(tolerance: tolerance, using: &execution)
             guard (firstSurface == curve.sphereSurface
                 && secondSurface == curve.torusSurface)
                 || (firstSurface == curve.torusSurface
@@ -1244,7 +1478,7 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
                 )
             }
         case let .parallelTorusCylinder(curve):
-            try curve.validate(tolerance: tolerance)
+            try curve.validate(tolerance: tolerance, using: &execution)
             guard (firstSurface == curve.torusSurface
                 && secondSurface == curve.cylinderSurface)
                 || (firstSurface == curve.cylinderSurface
@@ -1257,7 +1491,7 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
                 )
             }
         case let .generalTorusCylinder(curve):
-            try curve.validate(tolerance: tolerance)
+            try curve.validate(tolerance: tolerance, using: &execution)
             guard (firstSurface == curve.torusSurface
                 && secondSurface == curve.cylinderSurface)
                 || (firstSurface == curve.cylinderSurface
@@ -1270,7 +1504,7 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
                 )
             }
         case let .generalConeTorus(curve):
-            try curve.validate(tolerance: tolerance)
+            try curve.validate(tolerance: tolerance, using: &execution)
             guard (firstSurface == curve.coneSurface
                 && secondSurface == curve.torusSurface)
                 || (firstSurface == curve.torusSurface
@@ -1283,7 +1517,7 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
                 )
             }
         case let .parallelTorusTorus(curve):
-            try curve.validate(tolerance: tolerance)
+            try curve.validate(tolerance: tolerance, using: &execution)
             guard (firstSurface == curve.primarySurface
                 && secondSurface == curve.secondarySurface)
                 || (firstSurface == curve.secondarySurface
@@ -1296,7 +1530,7 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
                 )
             }
         case let .congruentTorusTorus(curve):
-            try curve.validate(tolerance: tolerance)
+            try curve.validate(tolerance: tolerance, using: &execution)
             guard (firstSurface == curve.primarySurface
                 && secondSurface == curve.secondarySurface)
                 || (firstSurface == curve.secondarySurface
@@ -1309,7 +1543,7 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
                 )
             }
         case let .generalTorusTorus(curve):
-            try curve.validate(tolerance: tolerance)
+            try curve.validate(tolerance: tolerance, using: &execution)
             guard (firstSurface == curve.parameterizedSurface
                 && secondSurface == curve.referenceSurface)
                 || (firstSurface == curve.referenceSurface
@@ -1322,7 +1556,7 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
                 )
             }
         case let .boundedPlaneCone(curve):
-            try curve.validate(tolerance: tolerance)
+            try curve.validate(tolerance: tolerance, using: &execution)
             guard (firstSurface == curve.planeSurface
                 && secondSurface == curve.coneSurface)
                 || (firstSurface == curve.coneSurface
@@ -1348,10 +1582,14 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
         ))
     }
 
+
+
     private func planeTorusParameter(
         _ fraction: Double,
         tolerance: ModelingTolerance
-    ) throws -> Double {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
         guard fraction.isFinite,
               fraction >= -tolerance.relative,
               fraction <= 1.0 + tolerance.relative else {
@@ -1360,7 +1598,22 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
         return min(max(fraction, 0.0), 1.0) * 2.0 * Double.pi
     }
 
-    private func isEquivalent(_ first: Surface3D, to second: Surface3D) -> Bool {
+
+
+    // This selects a previously validated source view; it issues no equality proof.
+    private func sourceViewConeMatches(_ first: Surface3D, to second: Surface3D) -> Bool {
+        guard case let .cone(firstCone) = CanonicalAnalyticSurface(first),
+              case let .cone(secondCone) = CanonicalAnalyticSurface(second) else { return false }
+        return firstCone.apex == secondCone.apex
+            && firstCone.halfAngle == secondCone.halfAngle
+            && (firstCone.axis == secondCone.axis || firstCone.axis == -secondCone.axis)
+    }
+
+    private func isEquivalent(_ first: Surface3D, to second: Surface3D,
+        using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.consumeWork(1)
+        try GeometryStructuralComparisonWork.charge(surface: first, using: &execution)
+        try GeometryStructuralComparisonWork.charge(surface: second, using: &execution)
         if first == second { return true }
         guard case let .cone(firstCone) = CanonicalAnalyticSurface(first),
               case let .cone(secondCone) = CanonicalAnalyticSurface(second) else {
@@ -1381,6 +1634,7 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
 
 #if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
+        var execution = try NativeRationalSourceDecodingContext.validationExecution(from: decoder)
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
             [.definition, .firstSurface, .secondSurface],
@@ -1396,105 +1650,106 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
                 firstSurface: firstSurface,
                 secondSurface: secondSurface,
                 tolerance: curve.certificationTolerance
-            )
+            , using: &execution)
         case let .coneCone(curve):
             try self.init(
                 coneConeCurve: curve,
                 firstSurface: firstSurface,
                 secondSurface: secondSurface,
                 tolerance: curve.certificationTolerance
-            )
+            , using: &execution)
         case let .cylinderCylinder(curve):
             try self.init(
                 cylinderCylinderCurve: curve,
                 firstSurface: firstSurface,
                 secondSurface: secondSurface,
                 tolerance: curve.certificationTolerance
-            )
+            , using: &execution)
         case let .sphereCylinder(curve):
             try self.init(
                 sphereCylinderCurve: curve,
                 firstSurface: firstSurface,
                 secondSurface: secondSurface,
                 tolerance: curve.certificationTolerance
-            )
+            , using: &execution)
         case let .sphereCone(curve):
             try self.init(
                 sphereConeCurve: curve,
                 firstSurface: firstSurface,
                 secondSurface: secondSurface,
                 tolerance: curve.certificationTolerance
-            )
+            , using: &execution)
         case let .coneCylinder(curve):
             try self.init(
                 coneCylinderCurve: curve,
                 firstSurface: firstSurface,
                 secondSurface: secondSurface,
                 tolerance: curve.certificationTolerance
-            )
+            , using: &execution)
         case let .sphereTorus(curve):
             try self.init(
                 sphereTorusCurve: curve,
                 firstSurface: firstSurface,
                 secondSurface: secondSurface,
                 tolerance: curve.certificationTolerance
-            )
+            , using: &execution)
         case let .parallelTorusCylinder(curve):
             try self.init(
                 parallelTorusCylinderCurve: curve,
                 firstSurface: firstSurface,
                 secondSurface: secondSurface,
                 tolerance: curve.certificationTolerance
-            )
+            , using: &execution)
         case let .generalTorusCylinder(curve):
             try self.init(
                 generalTorusCylinderCurve: curve,
                 firstSurface: firstSurface,
                 secondSurface: secondSurface,
                 tolerance: curve.certificationTolerance
-            )
+            , using: &execution)
         case let .generalConeTorus(curve):
             try self.init(
                 generalConeTorusCurve: curve,
                 firstSurface: firstSurface,
                 secondSurface: secondSurface,
                 tolerance: curve.certificationTolerance
-            )
+            , using: &execution)
         case let .parallelTorusTorus(curve):
             try self.init(
                 parallelTorusTorusCurve: curve,
                 firstSurface: firstSurface,
                 secondSurface: secondSurface,
                 tolerance: curve.certificationTolerance
-            )
+            , using: &execution)
         case let .congruentTorusTorus(curve):
             try self.init(
                 congruentTorusTorusCurve: curve,
                 firstSurface: firstSurface,
                 secondSurface: secondSurface,
                 tolerance: curve.certificationTolerance
-            )
+            , using: &execution)
         case let .generalTorusTorus(curve):
             try self.init(
                 generalTorusTorusCurve: curve,
                 firstSurface: firstSurface,
                 secondSurface: secondSurface,
                 tolerance: curve.certificationTolerance
-            )
+            , using: &execution)
         case let .boundedPlaneCone(curve):
             try self.init(
                 boundedPlaneConeCurve: curve,
                 firstSurface: firstSurface,
                 secondSurface: secondSurface,
                 tolerance: curve.certificationTolerance
-            )
+            , using: &execution)
         }
     }
 #endif
 
 #if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
-        try validate(tolerance: certificationTolerance)
+        var execution = try NativeOriginalSourceEncodingContext.execution(from: encoder)
+        try validate(tolerance: certificationTolerance, using: &execution)
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(definition, forKey: .definition)
         try container.encode(firstSurface, forKey: .firstSurface)

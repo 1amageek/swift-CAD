@@ -447,30 +447,13 @@ Repeated root queries borrow retained evidence but receive a new explicitly
 supplied caller admission. Stored proofs retain their attained depths; they do
 not retain an old mutable budget or acquire a fresh allowance internally.
 
-### Bounded Admission Specialization
+### Direct Admission Specialization
 
-L1 wraps its admission generically. Naively nesting such wrappers while a
-coefficient sign recursively invokes a parent root calculation can demand
-unbounded Embedded specialization. The internal root kernel therefore
-uses one fixed `ExactRootBorrowedAdmission` type.
-
-A synchronous invocation owns a scoped forwarding object with the caller's
-exclusive admission borrow and observed depth. A private class-bound protocol
-declares all four admission operations and depth observation as non-generic
-requirements. The fixed handle calls only these requirements; no extension-only
-existential calls or `type(of:)` are used. The generic public entry establishes
-the borrow once for that entry and invokes the fixed kernel. Nested field
-entries also enter this fixed kernel, keeping its generic type set finite.
-
-The only unsafe boundary is a scoped pointer to the caller's `inout` admission,
-following the existing lower invocation pattern. Its owner and handles cannot
-escape the synchronous scope, enter a result, cross concurrency isolation or
-outlive that pointer. All reads/mutations forward to that one exclusive caller
-borrow. The forwarding object is allocated with native Swift ownership and its
-typed payload/header is admitted before allocation. No manual memory allocator,
-global ledger, copied allowance or new public adapter framework is introduced.
-This new bridge requires its own compile/link/runtime and ASAN evidence; lower
-bridge evidence does not prove it works.
+Every root and parent coefficient operation receives the same original generic
+admission type. Nested observation scopes record local depths on that owner;
+recursion introduces no forwarding handle or captured caller pointer. The former
+fixed borrowed kernel is removed. Target compile/link/runtime must verify actual
+recursive root-as-coefficient behavior before portability is claimed.
 
 ## State, Ownership, and Lifecycle
 
@@ -480,7 +463,7 @@ flowchart LR
     Result --> Proof["Immutable isolation / Sturm evidence"]
     Result --> Field["Immutable coefficient context"]
     Field --> Parent["Older parent context"]
-    Invocation["Query-local admission borrow"] --> Caller["Caller-owned mutable admission"]
+    Invocation["Query-local direct proof scope"] --> Caller["Caller-owned mutable admission"]
     style Invocation fill:#fff4d6,stroke:#a76b00
 ```
 
@@ -576,14 +559,6 @@ and final cumulative verification in PROGRESS.md close only this design's gaps.
 Root result and extension limits require explicit caller arguments until measured
 portable defaults can be justified; no implicit guessed ceiling is issued.
 
-The forwarding implementation uses a non-generic class with five scoped closures.
-This preserves macOS 14: erasing a class parameterized by noncopyable admission
-would otherwise require macOS 15 runtime support. Closure storage uses ordinary
-throwing functions internally; requirements map the preserved scalar failure to
-their typed signature. Class payload, header and the five captured pointer
-contexts are admitted before construction. Pointer lifetime and fixed kernel
-specialization are unchanged.
-
 Fraction normalization first reduces numerator and denominator modulo the retained
 root's defining proof. This exact congruence preserves both values at that root,
 including denominator zeros. For a variable denominator, admitted extended
@@ -663,14 +638,14 @@ coefficient depth; the observed depth includes the interval and all already
 admitted causal evidence. Merely re-admitting a receipt or calculating a depth
 maximum does not create a visit.
 
-`ExactRootInvocation`, its immutable scoped forwarding closures, and the borrowed
-admission forward each event exactly once without changing its axis/depth, adding
-work, or creating a new counter. The enclosing caller owns any shared cumulative
-ceiling and any visit-related work charge. Existing L2 work charges, structural
-root limits, depth steps, source/ordinal/multiplicity and algorithms remain
-unchanged. Caller rejection and cancellation propagate atomically through the
-existing typed scalar failure. Storage admission includes the fifth closure and
-its captured pointer context before the scoped owner is constructed.
+The original inout admission receives each event exactly once without changing
+its axis/depth, adding work, or creating a new counter. Its operation-local scope
+retains attained depth. The enclosing caller owns any cumulative ceiling and
+visit-related work charge. Existing L2 work charges, structural root limits, depth
+steps, source/ordinal/multiplicity and algorithms remain unchanged. Caller
+rejection and cancellation propagate atomically through the existing typed scalar
+failure. Proof-scope storage is admitted before materialization; there are no
+forwarding closures or captured caller pointers.
 
 [Cell visit fixtures](../../../../Tests/L2RealRootVerification/Sources/Fixtures/CellVisitFixtures.swift)
 exercise actual isolate plus refinement on one recorder: its measured cumulative
@@ -895,3 +870,14 @@ Constant, zero, reduced rational and parent-dependent values are verified alongs
 unchanged nonconstant/nested-root fixtures and complete Native TUV composition.
 Performance compares identical source values and result guarantees with the same
 cached lower artifacts; work/storage reduction does not relax any caller limit.
+
+
+### Direct Admission Execution
+
+Operations pass the original `inout A: ExactScalarAdmission & ~Copyable` directly
+into arithmetic, polynomial, root and cell owners. Local observation scopes belong
+to that admission and retain decision-only and inherited depths. No caller pointer,
+fixed forwarding admission or invocation callback owner remains. Generic recursion
+retains the same admission type rather than introducing a new nested handle type.
+Resource/cell limits and exact source/root authority are unchanged. Full target
+compile and behavioral acceptance are required to establish this migration.

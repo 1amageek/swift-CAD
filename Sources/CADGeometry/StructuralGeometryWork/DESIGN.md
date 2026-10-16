@@ -44,3 +44,52 @@ word arrays, excluding derived root/Taylor/preparation caches. Original Coons an
 Revolution charge their retained traversal sources before structural identity.
 
 Construction charts charge the original source, authored labels, law and both canonical rational fraction payloads, or the retained traversal's original endpoint payloads. Parameter-polynomial root constraints charge every original coefficient word and power before structural comparison. Derived preparation and Sturm caches remain excluded.
+
+## Direct Structural Admission
+
+Structural traversal and private certificate payload charging borrow the caller's
+original `A: ExactScalarAdmission & ~Copyable` directly. Every stored field and
+recursive child retains its existing comparison work cost. No callback adapter,
+new allowance, geometric sample or replacement equality law is introduced.
+
+```text
+original structural comparison -> stored payload owner -> same direct admission
+```
+
+Existing behavioral work-limit and cancellation tests must invoke these direct
+entries; parsing cannot prove complete payload coverage. Private certificate
+helper ports change admission transport only, preserving equality semantics.
+
+## Native Surface Metering Stack Boundary
+
+The package surface entry retains its existing cancellation check and one-unit
+Surface3D record debit before selecting a family. A Native B-spline payload goes
+directly to the existing private B-spline payload traversal. The complete enum
+switch is outlined behind a non-inlined private non-Native dispatcher; its case
+bodies and recursive child order remain unchanged. The Native payload helper is
+also non-inlined. This keeps unrelated procedural scratch storage outside the
+Native source-validation call chain without changing structural equality or
+metering semantics. No source-validation check, receipt, allocation, or depth
+admission is skipped or added.
+
+```text
+surface entry: cancellation + original record debit
+  -> Native B-spline: original payload traversal
+  -> other surface: unchanged full enum case traversal
+```
+
+The concrete normal-worker counterexample is the Native-span validation call in
+Drawing extraction: the old surface meter reserved 65,088 bytes before inspecting
+its enum discriminator. Focused Native and portable metering fixtures must retain
+exact debit sequences for Native surfaces/curves and non-Native surface families,
+N/N−1 cumulative work refusal, checked counter overflow, entry and terminal
+cancellation, and unchanged source payloads. Actual Drawing execution is owned by
+the caller integration gate; reduced source syntax or a successful module build
+alone does not close that worker-stack finding.
+
+Test owners: [StructuralSurfaceMeteringTests](../../../Tests/CADGeometryTests/StructuralSurfaceMeteringTests.swift)
+and [StructuralSurfaceMeteringPortable](../../../Tests/OriginalQueryExecutionVerification/StructuralSurfaceMeteringPortable.swift).
+The four checks exercise actual OriginalQueryExecution/OriginalQueryBudget paths;
+observer closures only record admitted work. Native, WASM and Embedded use the
+same Mutex-protected test counters and cancellation state, with budget callbacks
+outside the budget lock. Production structural traversal retains no shared state.

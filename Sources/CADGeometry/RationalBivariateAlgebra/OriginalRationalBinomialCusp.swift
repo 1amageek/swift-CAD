@@ -14,7 +14,7 @@ package struct OriginalRationalBinomialCusp: Sendable {
     package let u: ExactBivariatePolynomial
     package let v: ExactBivariatePolynomial
 
-    package static func proven<B: RationalAlgebraAdmitting>(original: ExactBivariatePolynomial,
+    package static func proven<B: ExactScalarAdmission & ~Copyable>(original: ExactBivariatePolynomial,
         usage: inout B) throws -> Self? {
         if let native = try reduced(original: original, usage: &usage) { return native }
         for chart in try OriginalRationalBinomialChart.candidates(original: original, usage: &usage) {
@@ -36,7 +36,7 @@ package struct OriginalRationalBinomialCusp: Sendable {
         return nil
     }
 
-    private static func reduced<B: RationalAlgebraAdmitting>(original: ExactBivariatePolynomial,
+    private static func reduced<B: ExactScalarAdmission & ~Copyable>(original: ExactBivariatePolynomial,
         usage: inout B) throws -> Self? {
         if let completed = try axisAligned(original: original, usage: &usage) { return completed }
         if let separated = try translatedBinomial(original: original, usage: &usage) { return separated }
@@ -61,7 +61,7 @@ package struct OriginalRationalBinomialCusp: Sendable {
         return nil
     }
 
-    private static func axisAligned<B: RationalAlgebraAdmitting>(original: ExactBivariatePolynomial,
+    private static func axisAligned<B: ExactScalarAdmission & ~Copyable>(original: ExactBivariatePolynomial,
         usage: inout B) throws -> Self? {
         // Exact square completion admits polynomial shears while preserving
         // every original source coefficient and the complete real zero set.
@@ -86,7 +86,7 @@ package struct OriginalRationalBinomialCusp: Sendable {
                 by: .natural(exponent, usage: &usage), usage: &usage), usage: &usage)
             let shiftedOdd = try ExactBivariatePolynomial.coordinate(alongU: true, usage: &usage)
                 .subtracting(.constant(oddCenter, usage: &usage), usage: &usage)
-            try usage.retainExactStorage(1)
+            try RationalAlgebraStorage.retain(1, of: (ExactBivariatePolynomial.Power, ExactRationalCoefficient).self, usage: &usage)
             let monomial = try ExactBivariatePolynomial([.init(u: exponent, v: 0): .one])
             let reconstructedOdd = try monomial.composed(withU: shiftedOdd, v: .zero, usage: &usage)
                 .scaled(by: odd, usage: &usage)
@@ -102,7 +102,7 @@ package struct OriginalRationalBinomialCusp: Sendable {
             let k = (exponent - 1) / 2
             var oddGain = ExactRationalCoefficient.one
             for _ in 0..<k { oddGain = try oddGain.multiplied(by: gain, usage: &usage) }
-            try usage.retainExactStorage(2)
+            try RationalAlgebraStorage.retain(2, of: (ExactBivariatePolynomial.Power, ExactRationalCoefficient).self, usage: &usage)
             let evenMap = try ExactBivariatePolynomial([.init(u: 2, v: 0): gain])
                 .adding(.constant(oddCenter, usage: &usage), usage: &usage)
             let oddMap = try ExactBivariatePolynomial([.init(u: exponent, v: 0): oddGain])
@@ -121,7 +121,7 @@ package struct OriginalRationalBinomialCusp: Sendable {
         return nil
     }
 
-    package func clipped<B: RationalAlgebraAdmitting>(over domain: SurfaceParameterBox,
+    package func clipped<B: ExactScalarAdmission & ~Copyable>(over domain: SurfaceParameterBox,
         maximumDepth: Int, usage: inout B) throws -> OriginalRationalPolynomialParameterDomain {
         guard domain.u.width > 0, domain.v.width > 0 else {
             throw rationalAlgebraFailure("Original cusp clipping requires a positive native rectangle.")

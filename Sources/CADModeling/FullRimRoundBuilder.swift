@@ -105,7 +105,7 @@ package struct FullRimRoundBuilder {
                                   startPoint: p, endPoint: q, surfaceParameterCurve: .polyline([]), parentSubshapeIDs: selected)
         }
         // The torus's patches, each from one joint to the next.
-        let faceParents = context.subshapeIDs(for: .face(rims.capFaceID))
+        let faceParents = try context.subshapeIDs(for: .face(rims.capFaceID))
         var patches: [BRepSewingFacePatch] = []
         let thetas = outerJoints + [outerJoints[0] + 2 * Double.pi]
         for k in 0..<outerJoints.count {
@@ -177,7 +177,7 @@ package struct FullRimRoundBuilder {
                                                loops: loops, parentSubshapeIDs: source.parentSubshapeIDs))
         }
         return BRepSewingRequest(featureID: featureID, bodyKind: .solid, shells: [BRepSewingShell(stableID: "shell:0", patches: patches)],
-                                 bodyParentSubshapeIDs: context.subshapeIDs(for: .body(bodyID)))
+                                 bodyParentSubshapeIDs: try context.subshapeIDs(for: .body(bodyID)))
     }
 
     /// A torus patch from its loop of circles: each edge's trimming curve an iso line of the torus,

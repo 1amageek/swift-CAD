@@ -1,0 +1,291 @@
+{
+  "scope": "Final original-word Geometry projected-contact producer phase split and immutable pair-backed public Partition views, source/world retained readers, six projected endpoint partitions and independent getter controls. Native7 and portable3x7 use exact fixture6dc. No wholeM4/G01/U1-U4 completion or Kernel portability claim.",
+  "sourceRoot": "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD",
+  "sourceAuthority": {
+    "path": "native/source-receipt.json",
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-projected-partition-owner-r9/receipt.json",
+    "sha256": "ce70b1a795f1b923941eebde77612357eba8e804c12769e9e7c9ec409e07d116"
+  },
+  "sourceCounts": {
+    "CADCore": 65,
+    "CADGeometry": 2170
+  },
+  "fixture": {
+    "path": "fixture/SurfaceSilhouetteCurrentPortable.swift",
+    "sha256": "6dc36928fc163cab2f4a8f3605fa212fefd8e8560b5999f80dee797fa267c98b",
+    "expectedOutputLines": [
+      "PASS current silhouette eight Native source selections",
+      "PASS current silhouette arch whole UV and retained trim endpoints",
+      "PASS current silhouette shared resources lifetime and source refusal",
+      "PASS current silhouette entry and terminal cancellation",
+      "PASS current silhouette original word source and world readers",
+      "PASS current silhouette original word projected endpoint contacts",
+      "PASS current silhouette portable all"
+    ]
+  },
+  "nativeClient": {
+    "receipt": {
+      "path": "native/client-receipt.json",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/silhouette-partition-view-native-client-r5/receipt.json",
+      "sha256": "170aa9780212770b94a2a90b9658f96dfb6e4d7acaaef1d8a24c489976d3812e"
+    },
+    "actualMatchedOracleLines": 7
+  },
+  "portable": [
+    {
+      "lane": "asan",
+      "receipt": {
+        "path": "asan/receipt.json",
+        "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-partition-view-final-portable-asan-r1/receipt.json",
+        "sha256": "437b9d40206741bf4845ad3ea64b660bd9780ad349bd3794fb90482933ab9fc0"
+      },
+      "actualMatchedOracleLines": 7,
+      "phases": [
+        {
+          "name": "asan-compile",
+          "elapsedSeconds": 134.85264033400745,
+          "peakRSSBytes": 5362352128
+        },
+        {
+          "name": "asan-link",
+          "elapsedSeconds": 7.1499293749948265,
+          "peakRSSBytes": 786890752
+        },
+        {
+          "name": "asan-runtime",
+          "elapsedSeconds": 6.17522645900317,
+          "peakRSSBytes": 302710784
+        }
+      ]
+    },
+    {
+      "lane": "wasm",
+      "receipt": {
+        "path": "wasm/receipt.json",
+        "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-partition-view-final-portable-wasm-r1/receipt.json",
+        "sha256": "6af7fb0737c646259f60e736d74115b4f07071aeb778f44a84d5d368094c55a6"
+      },
+      "actualMatchedOracleLines": 7,
+      "phases": [
+        {
+          "name": "wasm-compile",
+          "elapsedSeconds": 119.34290037499159,
+          "peakRSSBytes": 5137563648
+        },
+        {
+          "name": "wasm-link",
+          "elapsedSeconds": 3.0059766250051325,
+          "peakRSSBytes": 769654784
+        },
+        {
+          "name": "wasm-runtime",
+          "elapsedSeconds": 2.3100492499943357,
+          "peakRSSBytes": 504463360
+        }
+      ]
+    },
+    {
+      "lane": "embedded",
+      "receipt": {
+        "path": "embedded/receipt.json",
+        "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-partition-view-final-portable-embedded-r1/receipt.json",
+        "sha256": "0d7443c7c30202c11542ad78483083f2d2ce267f65f86ff90599c835936df69d"
+      },
+      "actualMatchedOracleLines": 7,
+      "phases": [
+        {
+          "name": "embedded-compile",
+          "elapsedSeconds": 60.74725075000606,
+          "peakRSSBytes": 3433562112
+        },
+        {
+          "name": "embedded-link",
+          "elapsedSeconds": 51.58595912500459,
+          "peakRSSBytes": 4322770944
+        },
+        {
+          "name": "embedded-runtime",
+          "elapsedSeconds": 0.6965325829951325,
+          "peakRSSBytes": 250822656
+        }
+      ]
+    }
+  ],
+  "sourceAndFixtureFreezes": [
+    {
+      "path": "freezes/projected-pair-phase-source-r1.json",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/projected-pair-phase-source-r1/source-freeze.json",
+      "sha256": "2fb6983fe6cc6d3ac4b867c098b2c725ed4b9d8b4789974042f0c19e04465160"
+    },
+    {
+      "path": "freezes/projected-partition-owner-source-r1.json",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/projected-partition-owner-source-r1/source-freeze.json",
+      "sha256": "abb198cc84c4f20868cf5257b7e8e294be42dd99d15211204c8180d6da525148"
+    },
+    {
+      "path": "freezes/projected-partition-owner-source-r2.json",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/projected-partition-owner-source-r2/source-freeze.json",
+      "sha256": "7556df5a90ab52d505f2a2e3b0547c84a4e1f0403b9f5e829f951d701871538d"
+    },
+    {
+      "path": "freezes/projected-partition-public-view-fixture-r1.json",
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/projected-partition-public-view-fixture-r1/source-freeze.json",
+      "sha256": "9209c545a3d21f883d24cce6523c38f2e35f54e72b7c4bf9f49d9aa8d7a14ae0"
+    }
+  ],
+  "reusedGuard": {
+    "receipt": "../native/guard-receipt.json",
+    "sha256": "3a6a0c1f3db2f1027711d592774ed7b7c1a9a93a2e76611e98e6e410cf1f080b",
+    "scope": "Previously accepted3functions/5inputs for unchanged rational-world coefficient/Field/Curve/Taylor guards. Not rerun; changed pair producer/result storage is outside that guard path.",
+    "onlySourceDifferencesFromGuardSnapshot": [
+      "Sources/CADGeometry/SurfaceSilhouette/OriginalProjectedCurveContacts/OriginalNativeSilhouetteProjectedContactProducer.swift",
+      "Sources/CADGeometry/SurfaceSilhouette/OriginalProjectedCurveContacts/SurfaceSilhouetteProjectedPartition.swift"
+    ]
+  },
+  "historicalPartialSnapshots": [
+    {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-projected-contact-final-portable-asan-r1/receipt.json",
+      "sha256": "f34defb9739379bb321abe0f01181a7201a932a3bf9a400224ff3d3a0ab58df3",
+      "scope": "Historical f099 producer with4307fixture only; not this604b/279f+6dc snapshot."
+    },
+    {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-projected-contact-final-portable-wasm-r1/receipt.json",
+      "sha256": "b247edc984246f2a26302cfa81230a2f43cba456c358c7259822cdd0414cbc56",
+      "scope": "Historical f099 producer with4307fixture only; not this604b/279f+6dc snapshot."
+    }
+  ],
+  "externalRootOwnedProofReferences": [
+    {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/g01-native-partition-owner-final-r2/receipt.json",
+      "sha256": "776881afb95ff9bf7caffec83373550b13b2309edd2c21fc60dec4d8cb93672e",
+      "scope": "Root-owned six-group Native G01 regression, separate unit scope.",
+      "verificationOwnership": "Root; linked without repeating runtime or broad validation here."
+    },
+    {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-resource-scope-native-r9/receipt.json",
+      "sha256": "1815b6b4073c625d6d6a7abcc3c41504e33251f6f248686eed37f35acc66c4a3",
+      "scope": "Root-owned actual Drawing3/resource-scope/cancellation proof, not a Kernel portable claim.",
+      "verificationOwnership": "Root; linked without repeating runtime or broad validation here."
+    }
+  ],
+  "limits": {
+    "compileLinkSecondsPerLane": 1200,
+    "runtimeSeconds": 120,
+    "aggregateRSSBytes": 10737418240,
+    "ownedCompilerProcessesAtOnce": 1
+  },
+  "geometryGenerations": {
+    "asan": 1,
+    "wasm": 1,
+    "embedded": 1
+  },
+  "coreCollectionsOrLowerRegenerated": false,
+  "metrics": {
+    "portableOracleLines": 21,
+    "portableRuntimeProcesses": 3,
+    "nativeClientOracleLines": 7,
+    "freshGeometryCompileSeconds": 314.9427914590051,
+    "portableRuntimeSeconds": 9.181808291992638
+  },
+  "files": {
+    "native/geometry-compile.log": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-projected-partition-owner-r9/CADGeometry.log",
+      "sha256": "9f2f9cdec234c66e72b9290fb06ca4fffd73df202dcf592ea015e2b1064507e0"
+    },
+    "native/source-receipt.json": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-projected-partition-owner-r9/receipt.json",
+      "sha256": "ce70b1a795f1b923941eebde77612357eba8e804c12769e9e7c9ec409e07d116"
+    },
+    "native/compiler-version.log": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/silhouette-partition-view-native-client-r5/compiler-version.log",
+      "sha256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c"
+    },
+    "native/client-compile-link.log": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/silhouette-partition-view-native-client-r5/client-compile-link.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "native/runtime.log": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/silhouette-partition-view-native-client-r5/runtime.log",
+      "sha256": "88c5c4ec6571b6f58fe3f73df2859cb6d47ffac78b55e53988f0098383addb0e"
+    },
+    "native/client-receipt.json": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/silhouette-partition-view-native-client-r5/receipt.json",
+      "sha256": "170aa9780212770b94a2a90b9658f96dfb6e4d7acaaef1d8a24c489976d3812e"
+    },
+    "asan/asan-compile.log": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-partition-view-final-portable-asan-r1/asan-compile.log",
+      "sha256": "6aecd44318192d4cede3cf54ba4a1fa337ee4496312b981f4a0f09357d25cc06"
+    },
+    "asan/asan-link.log": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-partition-view-final-portable-asan-r1/asan-link.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "asan/asan-runtime.log": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-partition-view-final-portable-asan-r1/asan-runtime.log",
+      "sha256": "88c5c4ec6571b6f58fe3f73df2859cb6d47ffac78b55e53988f0098383addb0e"
+    },
+    "asan/receipt.json": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-partition-view-final-portable-asan-r1/receipt.json",
+      "sha256": "437b9d40206741bf4845ad3ea64b660bd9780ad349bd3794fb90482933ab9fc0"
+    },
+    "wasm/wasm-compile.log": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-partition-view-final-portable-wasm-r1/wasm-compile.log",
+      "sha256": "e909949ead77efe5b618985258efdb34f1635a45efbdae1a59330fa961ea176f"
+    },
+    "wasm/wasm-link.log": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-partition-view-final-portable-wasm-r1/wasm-link.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "wasm/wasm-runtime.log": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-partition-view-final-portable-wasm-r1/wasm-runtime.log",
+      "sha256": "ce4541eea874a2f9d97a63975e207656bfb185167e6d9a0d595ee80718105914"
+    },
+    "wasm/receipt.json": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-partition-view-final-portable-wasm-r1/receipt.json",
+      "sha256": "6af7fb0737c646259f60e736d74115b4f07071aeb778f44a84d5d368094c55a6"
+    },
+    "embedded/embedded-compile.log": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-partition-view-final-portable-embedded-r1/embedded-compile.log",
+      "sha256": "cf2170aa70ffc92e8d91aaadd0ff3c0da320de30a09e07e7666629d1ae9e77b3"
+    },
+    "embedded/embedded-link.log": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-partition-view-final-portable-embedded-r1/embedded-link.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "embedded/embedded-runtime.log": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-partition-view-final-portable-embedded-r1/embedded-runtime.log",
+      "sha256": "a06a4e6a0bad51dadc08ed36d2a50e0fb292fb7bb700a0f906332af5cee8ca84"
+    },
+    "embedded/receipt.json": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-partition-view-final-portable-embedded-r1/receipt.json",
+      "sha256": "0d7443c7c30202c11542ad78483083f2d2ce267f65f86ff90599c835936df69d"
+    },
+    "freezes/projected-pair-phase-source-r1.json": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/projected-pair-phase-source-r1/source-freeze.json",
+      "sha256": "2fb6983fe6cc6d3ac4b867c098b2c725ed4b9d8b4789974042f0c19e04465160"
+    },
+    "freezes/projected-partition-owner-source-r1.json": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/projected-partition-owner-source-r1/source-freeze.json",
+      "sha256": "abb198cc84c4f20868cf5257b7e8e294be42dd99d15211204c8180d6da525148"
+    },
+    "freezes/projected-partition-owner-source-r2.json": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/projected-partition-owner-source-r2/source-freeze.json",
+      "sha256": "7556df5a90ab52d505f2a2e3b0547c84a4e1f0403b9f5e829f951d701871538d"
+    },
+    "freezes/projected-partition-public-view-fixture-r1.json": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/projected-partition-public-view-fixture-r1/source-freeze.json",
+      "sha256": "9209c545a3d21f883d24cce6523c38f2e35f54e72b7c4bf9f49d9aa8d7a14ae0"
+    },
+    "fixture/SurfaceSilhouetteCurrentPortable.swift": {
+      "origin": "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD/Tests/OriginalQueryExecutionVerification/SurfaceSilhouetteCurrentPortable.swift",
+      "sha256": "6dc36928fc163cab2f4a8f3605fa212fefd8e8560b5999f80dee797fa267c98b"
+    }
+  },
+  "finalChecks": {
+    "uniqueCurrentSnapshotArtifactHashesVerified": 11325,
+    "all2235CurrentProductionHashesMatch": true,
+    "fixtureBothRootsMatch": true,
+    "successfulCompileLinkRuntimeLogHashesMatch": true,
+    "packagingStartedCompilerOrRuntime": false
+  }
+}

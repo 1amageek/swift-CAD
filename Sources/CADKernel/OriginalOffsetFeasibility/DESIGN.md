@@ -91,7 +91,7 @@ and refinement owners through subsequent queries and COW source changes.
 ## Failure, Concurrency, and Constraints
 Optional cumulative ceilings add no guessed allowance. Existing span/cell/root
 counts, spatial depth, source depth and algebra depth are preserved or tightened
-by the borrowed GeometryConversionAdmission. Value/coefficient depth remains
+by the borrowed OriginalQueryExecution. Value/coefficient depth remains
 independent. Cancel, overflow, exhaustion, invalid binding and missing coverage
 propagate; none become successful absence. Unsupported family and distinct-face
 products remain explicitly marked incomplete in production code.
@@ -112,3 +112,14 @@ controls, typed refusal, N/N-1 resources, cancel, COW and independent reader lif
 Recheck existing generated-result caller failure propagation when accepted scope
 changes; add receipt consumption for each newly supported family or face pair
 before removing its incomplete marker. Aggregate M6 and M4-M8 remain open.
+
+## Canonical result-validation caller
+
+Ordinary result validation creates one canonical execution; direct validation
+borrows the supplied execution through existing source-bound native/Coons/drafted
+self-contact producers. Selected cumulative work/storage and independent scalar
+limits form local scopes on that same owner. The old conversion invocation and
+algebra forwarding adapters are removed, not recreated. Exact/volumetric input
+receipt guards and existing unsupported material/periodic/source branches remain
+in force. This is the required caller binding for deleted Geometry admissions,
+not additional offset source-family implementation or acceptance.

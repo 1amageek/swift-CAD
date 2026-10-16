@@ -28,7 +28,7 @@ public struct OriginalRealRelation: Sendable {
     package let incidence: OriginalRationalIntersectionIncidence
     private let identity: Identity
 
-    package init<B: RationalAlgebraAdmitting>(original: OriginalPolynomialRelation,
+    package init<B: ExactScalarAdmission & ~Copyable>(original: OriginalPolynomialRelation,
         ordered: OriginalOrderedIntersectionCells?, incidence: OriginalRationalIntersectionIncidence,
         components: OriginalRationalParameterComponents, maximumDepth: Int, usage: inout B) throws {
         try intersectionAlgebraStep(&usage)
@@ -99,18 +99,15 @@ public struct OriginalRealRelation: Sendable {
                         a.inheritedCoefficientDepth == b.inheritedCoefficientDepth else {
                         throw rationalAlgebraFailure("Ordered publication replaced an original retained coefficient.")
                     }
-                    var source = OriginalSourceScalarAdmission(base: usage, maximumDepth: maximumDepth,
-                        maximumCoefficientDepth: partition.maximumCoefficientDepth,
-                        originalParameterDepth: a.coefficient.context.depth,
-                        originalCoefficientDepth: a.coefficient.context.coefficientDepth,
-                        inheritedParameterDepth: a.inheritedParameterDepth, inheritedCoefficientDepth: a.inheritedCoefficientDepth,
-                        parameterDepth: a.inheritedParameterDepth, coefficientDepth: a.inheritedCoefficientDepth)
-                    let available = try rationalAlgebraCount(a.coefficient.context.depth, maximumDepth - a.inheritedParameterDepth)
-                    let equal: Bool
-                    do { equal = try a.coefficient.subtracting(b.coefficient, maximumDepth: available,
-                        usage: &source).sign(maximumDepth: available, usage: &source) == .zero }
-                    catch { usage = source.base; throw error }
-                    usage = source.base
+                    let available=try rationalAlgebraCount(a.coefficient.context.depth,maximumDepth-a.inheritedParameterDepth)
+                    let source=try intersectionSourceCalculation(originalParameterDepth:a.coefficient.context.depth,
+                        originalCoefficientDepth:a.coefficient.context.coefficientDepth,
+                        inheritedParameterDepth:a.inheritedParameterDepth,inheritedCoefficientDepth:a.inheritedCoefficientDepth,
+                        maximumDepth:maximumDepth,maximumCoefficientDepth:partition.maximumCoefficientDepth,usage:&usage) { source in
+                        try a.coefficient.subtracting(b.coefficient,maximumDepth:available,usage:&source)
+                            .sign(maximumDepth:available,usage:&source) == .zero
+                    }
+                    let equal=source.value
                     guard equal else { throw rationalAlgebraFailure("Ordered publication changed its exact original coefficient value.") }
                 }
             }
@@ -161,10 +158,12 @@ public struct OriginalRealRelation: Sendable {
     }
 
     /// Exact rational point membership. A cell identifier belongs to this receipt only.
-    public func contains(rationalPoint: [ExactRationalCoefficient], inCell identifier: CellIdentifier? = nil,
-        maximumDepth: Int, maximumCoefficientDepth: Int, usage: OriginalRelationUsage) throws -> Bool {
-        var admission = try OriginalRelationDepthAdmission(base: usage, maximumDepth: maximumDepth,
-            maximumCoefficientDepth: maximumCoefficientDepth)
+    public func contains<A: ExactScalarAdmission & ~Copyable>(rationalPoint: [ExactRationalCoefficient], inCell identifier: CellIdentifier? = nil,
+        maximumDepth: Int, maximumCoefficientDepth: Int, usage: inout A) throws -> Bool {
+        guard maximumDepth>=0,(0...32).contains(maximumCoefficientDepth) else {
+            throw rationalAlgebraFailure("Original relation requires independent valid caller depth limits.")
+        }
+        return try usage.withProofScope(maximum:try .init(value:maximumDepth,coefficient:maximumCoefficientDepth)) { admission in
         try intersectionAlgebraStep(&admission)
         guard rationalPoint.count == original.variableCount, maximumDepth >= 0 else {
             throw rationalAlgebraFailure("Original relation membership requires every coordinate and caller depth.")
@@ -174,7 +173,7 @@ public struct OriginalRealRelation: Sendable {
             guard identifier.owner === identity else {
                 throw rationalAlgebraFailure("Original relation membership has a foreign cell owner.")
             }
-            try admission.consumeExactWork(partition.solutionCells.count)
+            try admission.consumeWork(partition.solutionCells.count)
             guard partition.solutionCells.contains(identifier.ordinal) else {
                 throw rationalAlgebraFailure("Original relation membership has an excluded cell identifier.")
             }
@@ -197,25 +196,22 @@ public struct OriginalRealRelation: Sendable {
                 }
                 context = try OriginalSingularFieldContext(usage: &admission)
             }
-            var evaluated = OriginalSourceScalarAdmission(base: admission, maximumDepth: maximumDepth,
-                maximumCoefficientDepth: maximumCoefficientDepth, originalParameterDepth: context.depth,
-                originalCoefficientDepth: context.coefficientDepth, inheritedParameterDepth: source.admissionDepth,
-                inheritedCoefficientDepth: source.coefficientAdmissionDepth,
-                parameterDepth: source.admissionDepth, coefficientDepth: source.coefficientAdmissionDepth)
-            let available = try rationalAlgebraCount(context.depth, maximumDepth - source.admissionDepth)
-            let included: Bool
-            do {
+            let available=try rationalAlgebraCount(context.depth,maximumDepth-source.admissionDepth)
+            let evaluated=try intersectionSourceCalculation(originalParameterDepth:context.depth,
+                originalCoefficientDepth:context.coefficientDepth,inheritedParameterDepth:source.admissionDepth,
+                inheritedCoefficientDepth:source.coefficientAdmissionDepth,maximumDepth:maximumDepth,
+                maximumCoefficientDepth:maximumCoefficientDepth,usage:&admission) { evaluated in
                 for coordinate in rationalPoint {
-                    values.append(try .constant(coordinate, in: context, maximumDepth: available, usage: &evaluated))
+                    values.append(try .constant(coordinate,in:context,maximumDepth:available,usage:&evaluated))
                 }
-                included = try condition.contains(context: context, coordinates: values,
-                    maximumDepth: available, usage: &evaluated)
-            } catch { admission = evaluated.base; throw error }
-            admission = evaluated.base
+                return try condition.contains(context:context,coordinates:values,maximumDepth:available,usage:&evaluated)
+            }
+            let included=evaluated.value
             try CurrentTaskCancellationChecker().checkCancellation()
             if included { return true }
         }
         try CurrentTaskCancellationChecker().checkCancellation()
         return false
+        }
     }
 }

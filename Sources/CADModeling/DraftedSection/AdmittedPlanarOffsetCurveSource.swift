@@ -34,23 +34,24 @@ package struct AdmittedPlanarOffsetCurveSource: GeometryCurveConversionSource {
     private let original: PreparedCurveDifferentialEncloser
     private let normal: V
     private let shift: Double
-    private let admission: GeometryConversionAdmission
+    private let budget: OriginalQueryBudget
+    private let limits: OriginalQueryExecutionLimits
+    private let contributions: [OriginalQueryContributionHandle]
     private let tolerance: ModelingTolerance
 
     package init(curve: Curve3D, normal raw: Vector3D, shift: Double,
-        tolerance: ModelingTolerance, admission: GeometryConversionAdmission) throws {
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
         let prepared = try PreparedCurveDifferentialEncloser(curve: curve, tolerance: tolerance,
-            remainingSourceDepth: admission.remainingSourceDepth,
-            maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
-            consumeWork: { try admission.chargeWork() },
-            consumeStorage: { try admission.chargeStorage(bytes: $0) })
+            remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+            maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth,
+            using: &execution)
         try self.init(original: prepared, normal: raw, shift: shift,
-            tolerance: tolerance, admission: admission)
+            tolerance: tolerance, using: &execution)
     }
 
     package init(original: PreparedCurveDifferentialEncloser, normal raw: Vector3D,
-        shift: Double, tolerance: ModelingTolerance, admission: GeometryConversionAdmission) throws {
-        try admission.chargeWork()
+        shift: Double, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         guard shift.isFinite else { throw GeometryConversionError.invalidInput("Original offset shift must be finite.") }
         let scale = max(abs(raw.x), max(abs(raw.y), abs(raw.z)))
         guard scale.isFinite, scale > 0,
@@ -65,12 +66,17 @@ package struct AdmittedPlanarOffsetCurveSource: GeometryCurveConversionSource {
             throw GeometryConversionError.resourceLimitExceeded("Original offset normal cannot retain positive normalization.")
         }
         self.normal = scaled.scaled(reciprocal)
-        self.shift = shift; self.tolerance = tolerance; self.admission = admission
+        self.shift = shift; self.tolerance = tolerance; budget = execution.budget; limits = execution.effectiveLimits; contributions = try execution.retainActiveContributionHandles()
         self.original = original
     }
 
     package func validate(over parameters: ScalarInterval, tolerance: ModelingTolerance) throws {
-        try admission.chargeWork()
+        var execution = try OriginalQueryExecution(budget: budget, limits: limits, contributions: contributions)
+        try validate(over: parameters, tolerance: tolerance, using: &execution)
+    }
+    package func validate(over parameters: ScalarInterval, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         guard tolerance == self.tolerance, parameters.width.isFinite, parameters.width >= 0 else {
             throw GeometryConversionError.invalidInput("Admitted offset query must retain finite native support and its source tolerance.")
         }
@@ -84,25 +90,27 @@ package struct AdmittedPlanarOffsetCurveSource: GeometryCurveConversionSource {
                 message: "Admitted original offset continuation requires an owning endpoint-span byte producer.")
         }
     }
-    package func validate(over parameters: ScalarInterval, tolerance: ModelingTolerance,
-        admission: GeometryConversionAdmission) throws {
-        try admission.chargeWork()
-        try validate(over: parameters, tolerance: tolerance)
-    }
     package func pointAndDerivative(at parameter: Double, tolerance: ModelingTolerance) throws -> (point: Point3D, derivative: Vector3D) {
-        let value = try enclosure(over: ScalarInterval(lower: parameter, upper: parameter), tolerance: tolerance)
+        var execution = try OriginalQueryExecution(budget: budget, limits: limits, contributions: contributions)
+        return try pointAndDerivative(at: parameter, tolerance: tolerance, using: &execution)
+    }
+    package func pointAndDerivative(at parameter: Double, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> (point: Point3D, derivative: Vector3D) {
+        let value = try enclosure(over: ScalarInterval(lower: parameter, upper: parameter), tolerance: tolerance, using: &execution)
         return (Point3D(x: value.position.x.midpoint, y: value.position.y.midpoint, z: value.position.z.midpoint),
             Vector3D(x: value.firstDerivative.x.midpoint, y: value.firstDerivative.y.midpoint, z: value.firstDerivative.z.midpoint))
     }
-    package func enclosure(over parameters: ScalarInterval, tolerance: ModelingTolerance,
-        admission: GeometryConversionAdmission) throws -> CurveDifferentialEnclosure {
-        try admission.chargeWork()
-        return try enclosure(over: parameters, tolerance: tolerance)
-    }
     package func enclosure(over parameters: ScalarInterval, tolerance: ModelingTolerance) throws -> CurveDifferentialEnclosure {
-        try validate(over: parameters, tolerance: tolerance)
-        let maximumDepth = min(32, admission.maximumSubdivisionDepth)
-        try admission.chargeStorage(bytes: (maximumDepth + 1) * MemoryLayout<Cell>.stride)
+        var execution = try OriginalQueryExecution(budget: budget, limits: limits, contributions: contributions)
+        return try enclosure(over: parameters, tolerance: tolerance, using: &execution)
+    }
+    package func enclosure(over parameters: ScalarInterval, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> CurveDifferentialEnclosure {
+        return try execution.withConversionScope(maximumWorkUnits: 65_536, maximumScalarCount: Int.max,
+            maximumCertificationBoxes: Int.max) { execution in
+        try validate(over: parameters, tolerance: tolerance, using: &execution)
+        let maximumDepth = min(32, execution.effectiveLimits.maximumSubdivisionDepth)
+        try execution.retainStorage(bytes: (maximumDepth + 1) * MemoryLayout<Cell>.stride)
         var pending: [Cell] = []
         pending.reserveCapacity(maximumDepth + 1)
         pending.append(Cell(parameters: parameters, depth: 0))
@@ -111,22 +119,18 @@ package struct AdmittedPlanarOffsetCurveSource: GeometryCurveConversionSource {
         while let cell = pending.popLast() {
             guard remaining > 0 else { throw GeometryConversionError.resourceLimitExceeded("Original offset exhausted its historical query visits.") }
             remaining -= 1
-            try admission.visit(depth: cell.depth)
+            try execution.visitGeometricCell(depth: cell.depth)
             let owners = try original.closedNativeJets(over: cell.parameters, tolerance: tolerance,
-                maximumSpanCount: min(4096, admission.maximumSpanCount),
+                maximumSpanCount: min(4096, execution.effectiveLimits.maximumSpans),
                 maximumSubdivisionDepth: maximumDepth - cell.depth,
-                remainingSourceDepth: admission.remainingSourceDepth,
-                consumeWork: {
-                    guard remaining > 0 else { throw GeometryConversionError.resourceLimitExceeded("Original offset exhausted its historical query visits.") }
-                    remaining -= 1
-                    try admission.visit(depth: cell.depth)
-                }, consumeStorage: { try admission.chargeStorage(bytes: $0) })
+                remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+                using: &execution)
             var local: Jet?
             var unresolved = false
             for owner in owners.spans {
                 guard remaining > 0 else { throw GeometryConversionError.resourceLimitExceeded("Original offset exhausted its historical query visits.") }
                 remaining -= 1
-                try admission.visit(depth: cell.depth)
+                try execution.visitGeometricCell(depth: cell.depth)
                 let source = owner.jet
                 func vector(_ field: (SurfaceIntervalJet) -> I) -> V {
                     .init(x: field(source.x), y: field(source.y), z: field(source.z))
@@ -164,5 +168,6 @@ package struct AdmittedPlanarOffsetCurveSource: GeometryCurveConversionSource {
         }
         guard let result else { throw GeometryConversionError.invalidInput("Original offset has no whole owning cover.") }
         return try .init(position: result.position.coordinates(), firstDerivative: result.first.coordinates(), secondDerivative: result.second.coordinates())
+            }
     }
 }

@@ -127,16 +127,12 @@ shared lower chart obligation; a missing chart fails explicitly.
 
 ## Borrowed Construction Admission
 
-`BridgeSurfaceFeatureEvaluator` accepts an optional caller-supplied
-`sourceAdmission`; constrained construction receives that identical admission.
-No aggregate policy is invented for callers without one. When present, original
-support/chart preparation, candidate coefficient work, QR factorization and final
-boundary comparison borrow its work and byte callbacks. Existing eight attempts,
-4096 controls, 1048576 coefficient elements, 65536 boundary cells and spatial
-depth 20 remain local ceilings and are only tightened by the caller. Source
-recursion and exact algebra retain their independent authorities. The nil route
-remains the legacy compatibility path and does not establish caller-admitted
-whole-feature resource coverage.
+`BridgeSurfaceFeatureEvaluator` accepts an optional cumulative source budget and
+its independent execution limits. Both construction paths use the canonical
+execution body; configuration presence does not select source geometry. Existing
+eight attempts, 4096 controls, 1048576 coefficient elements, 65536 boundary cells
+and spatial depth 20 remain local ceilings and are only tightened by the caller.
+Source recursion and exact algebra retain their independent authorities.
 
 With selected admission, retained wall charts and supports are prepared once for
 candidate collocation. Their original closed value/derivative boxes supply
@@ -146,3 +142,18 @@ supplies selected station authority. Direct builder calls without an authored
 chart use the bounded pcurve producer, which may decline an unsupported inverse
 family. Native common-basis and degree/knot construction still require their
 own actual bounded lower ports before whole-feature accounting can be claimed.
+
+## Canonical Construction Admission
+
+The authored coedge pcurve and retained original wall jet define constrained
+Bridge construction and its final whole-boundary certificate. Accounting presence
+is not a geometry option. Both query entries use these same original charts;
+nearest-point projections cannot replace a missing chart. The existing bounded
+pcurve producer may explicitly refuse unsupported original correspondence.
+The [canonical execution contract](../../CADGeometry/OriginalQueryExecution/DESIGN.md)
+replaces the removed callback admission without changing tensions, QR limits,
+attempt limits, boundary orientation, or continuity allowances.
+
+[CanonicalConstructionAdmissionTests](../../../Tests/CADModelingTests/CanonicalConstructionAdmissionTests.swift)
+owns authored-chart success, a sample-aliasing wrong whole chart, and resource
+and cancellation refusal at the actual builder.

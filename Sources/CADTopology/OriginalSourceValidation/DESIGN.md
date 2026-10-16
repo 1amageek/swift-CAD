@@ -148,3 +148,12 @@ unchanged on Native, ordinary WASM and Embedded.
 The nonthrowing diagnose error-message authority is the existing Core failure
 port linked by [Topology](../DESIGN.md#m6-portable-validation-wiring). Its failure
 flag and invalidInput classification remain unchanged.
+
+### Canonical source API binding
+
+Original incidence, periodic seam and receipt validation use the common
+[execution](../../CADGeometry/OriginalQueryExecution/DESIGN.md) for actual source
+preparation and every later query. The existing model and immutable policy stay
+separate from execution ownership. This binding preserves the existing optional
+algebra capability semantics and source/subdivision caps; it does not incorporate
+the separately drafted loop-algebra capability-forwarding correction.

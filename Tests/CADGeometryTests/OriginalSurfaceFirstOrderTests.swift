@@ -8,11 +8,13 @@ struct OriginalSurfaceFirstOrderTests {
 
     @Test(.timeLimit(.minutes(1)), arguments: [false, true])
     func rationalClosedBoxesContainLiteralOriginalValuesAndTangents(point: Bool) throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
         let source = literalSurface()
-        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: source, tolerance: tolerance)
+        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: source, tolerance: tolerance, using: &execution)
         let box = try query(point ? (0.25, 0.25) : (0.1, 0.8), point ? (0.3, 0.3) : (0.2, 0.9))
-        let span = try #require(try prepared.originalNativeSpans(over: box, tolerance: tolerance).first)
-        let result = try span.firstOrderEnclosure(overClosedBox: box, on: source, tolerance: tolerance)
+        let span = try geometryTestRequire(try prepared.originalNativeSpans(over: box, tolerance: tolerance, using: &execution).first)
+        let result = try span.firstOrderEnclosure(overClosedBox: box, on: source, tolerance: tolerance, using: &execution)
         for u in [box.u.lower, box.u.midpoint, box.u.upper] {
             for v in [box.v.lower, box.v.midpoint, box.v.upper] {
                 // The original literal tensor has W=1+uv, N=(u+uv,v+uv,2uv).
@@ -29,31 +31,37 @@ struct OriginalSurfaceFirstOrderTests {
 
     @Test(.timeLimit(.minutes(1)), arguments: ["source", "tolerance", "box"])
     func originalSelectedFirstOrderRefusesForeignAuthority(failure: String) throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
         let source = literalSurface()
-        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: source, tolerance: tolerance)
+        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: source, tolerance: tolerance, using: &execution)
         let box = try query((0.25, 0.25), (0.3, 0.3))
-        let span = try #require(try prepared.originalNativeSpans(over: box, tolerance: tolerance).first)
+        let span = try geometryTestRequire(try prepared.originalNativeSpans(over: box, tolerance: tolerance, using: &execution).first)
         var foreign = source, changed = tolerance
         if failure == "source" { foreign.controlPoints[1][1].z += 0.01 }
         if failure == "tolerance" { changed.distance *= 0.5 }
         let requested = failure == "box" ? try query((0.25, 0.25), (0.3, 1.0.nextUp)) : box
         #expect(throws: KernelError.self) {
-            _ = try span.firstOrderEnclosure(overClosedBox: requested, on: foreign, tolerance: changed)
+            _ = try span.firstOrderEnclosure(overClosedBox: requested, on: foreign, tolerance: changed, using: &execution)
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func cancelledFirstOrderCannotPublishOriginalValues() async throws {
+        let budget = try OriginalQueryBudget()
+        let limits = try OriginalQueryExecutionLimits(maximumValueDepth: 32, maximumCoefficientDepth: 32)
+        var execution = OriginalQueryExecution(budget: budget, limits: limits)
         let source = literalSurface()
-        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: source, tolerance: tolerance)
+        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: source, tolerance: tolerance, using: &execution)
         let box = try query((0.25, 0.25), (0.3, 0.3))
-        let span = try #require(try prepared.originalNativeSpans(over: box, tolerance: tolerance).first)
+        let span = try geometryTestRequire(try prepared.originalNativeSpans(over: box, tolerance: tolerance, using: &execution).first)
         let task = Task {
+            var execution = OriginalQueryExecution(budget: budget, limits: limits)
             while Task.isCancelled == false { await Task.yield() }
-            return try span.firstOrderEnclosure(overClosedBox: box, on: source, tolerance: tolerance)
+            return try span.firstOrderEnclosure(overClosedBox: box, on: source, tolerance: tolerance, using: &execution)
         }
         task.cancel()
-        await #expect(throws: CancellationError.self) { _ = try await task.value }
+        await geometryTestExpectFailure(geometryTestIsCancelled) { _ = try await task.value }
     }
 
     private func literalSurface() -> BSplineSurface3D {

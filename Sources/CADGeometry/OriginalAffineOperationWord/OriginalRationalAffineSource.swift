@@ -6,17 +6,17 @@ public struct OriginalRationalAffineSource: Hashable, Sendable {
     public let coefficients: [ExactRationalCoefficient]
 
     /// Retains the caller-admitted immutable original buffer without copying its limbs.
-    public init<B: RationalAlgebraAdmitting>(coefficients: [ExactRationalCoefficient], usage: inout B) throws {
+    public init<B: ExactScalarAdmission & ~Copyable>(coefficients: [ExactRationalCoefficient], usage: inout B) throws {
         guard coefficients.count == 12 else { throw rationalAlgebraFailure("Original rational affine source requires exactly twelve coefficients.") }
         self.coefficients = coefficients
         try validateOriginalPayload(usage: &usage)
     }
-    func validateOriginalPayload<B: RationalAlgebraAdmitting>(usage: inout B) throws {
+    func validateOriginalPayload<B: ExactScalarAdmission & ~Copyable>(usage: inout B) throws {
         guard coefficients.count == 12 else { throw rationalAlgebraFailure("Original rational affine coefficient layout is invalid.") }
         for coefficient in coefficients {
-            try usage.consumeExactWork(1)
-            for _ in coefficient.canonicalNumeratorWords { try usage.consumeExactWork(1) }
-            for _ in coefficient.canonicalDenominatorWords { try usage.consumeExactWork(1) }
+            try usage.consumeWork(1)
+            for _ in coefficient.canonicalNumeratorWords { try usage.consumeWork(1) }
+            for _ in coefficient.canonicalDenominatorWords { try usage.consumeWork(1) }
         }
     }
     public func hash(into hasher: inout Hasher) {

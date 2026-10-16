@@ -10,49 +10,18 @@ import CADTopology
 
 package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
     private let tolerance: ModelingTolerance
-    private let admission: GeometryConversionAdmission?
 
-    package init(tolerance: ModelingTolerance, admission: GeometryConversionAdmission? = nil) {
+    package init(tolerance: ModelingTolerance) {
         self.tolerance = tolerance
-        self.admission = admission
     }
+
 
     package func translatedSheetRequest(
         spans: [ExactBSplineCurveSpan], isClosed: Bool,
         startOffset: Vector3D, endOffset: Vector3D, featureID: FeatureID
     ) throws -> BRepSewingRequest {
-        try tolerance.validate()
-        try startOffset.validate()
-        try endOffset.validate()
-        guard !spans.isEmpty, (endOffset - startOffset).length > tolerance.distance else {
-            throw FeatureEvaluationError.invalidGraph("A curve extrusion requires spans and nonzero translation.")
-        }
-        try validateSectionContinuity(spans, isClosed: isClosed)
-        let builder = ExactRuledBSplineSurfaceBuilder()
-        let patches = try spans.enumerated().map { index, span in
-            func translated(_ offset: Vector3D) -> BSplineCurve3D {
-                BSplineCurve3D(degree: span.curve.degree, knots: span.curve.knots,
-                    controlPoints: span.curve.controlPoints.map { $0 + offset }, weights: span.curve.weights)
-            }
-            let surface = try builder.build(startBoundary: translated(startOffset),
-                endBoundary: translated(endOffset), tolerance: tolerance)
-            let u = try closedBounds(surface.uDomain)
-            let v = try closedBounds(surface.vDomain)
-            try DefaultSurfaceRegularityValidator().validate(.bSpline(surface),
-                over: SurfaceParameterBox(
-                    u: try ScalarInterval(lower: u.lower, upper: u.upper),
-                    v: try ScalarInterval(lower: v.lower, upper: v.upper)),
-                tolerance: tolerance)
-            let stableID = sideStableID(pathIndex: 0, loopIndex: 0, profileIndex: index)
-            // A straight span swept straight is a flat parallelogram: it is published on its exact
-            // plane, bounded by the same edges.
-            if try isStraight(span.curve) {
-                return try planarSidePatch(ruled: surface, translation: endOffset - startOffset, stableID: stableID)
-            }
-            return try tensorSidePatch(surface: surface, orientation: .forward, stableID: stableID)
-        }
-        return BRepSewingRequest(featureID: featureID, bodyKind: .sheet,
-            shells: [BRepSewingShell(stableID: "sweep:shell", patches: patches)])
+        var execution = try CurvedSweepSourceBudget(tolerance: tolerance).execution()
+        return try translatedSheetRequest(spans: spans, isClosed: isClosed, startOffset: startOffset, endOffset: endOffset, featureID: featureID, using: &execution)
     }
 
     package func request(
@@ -64,15 +33,8 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
         endTransform: ExactSectionTransform2D = .identity,
         featureID: FeatureID
     ) throws -> BRepSewingRequest {
-        try request(
-            profileSpanLoops: [profileSpans],
-            pathSpans: pathSpans,
-            profilePlane: profilePlane,
-            sectionIsClosed: sectionIsClosed,
-            resultKind: resultKind,
-            endTransform: endTransform,
-            featureID: featureID
-        )
+        var execution = try CurvedSweepSourceBudget(tolerance: tolerance).execution()
+        return try request(profileSpans: profileSpans, pathSpans: pathSpans, profilePlane: profilePlane, sectionIsClosed: sectionIsClosed, resultKind: resultKind, endTransform: endTransform, featureID: featureID, using: &execution)
     }
 
     package func request(
@@ -86,6 +48,155 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
         certifiedTwist: CertifiedTwistSweepPlan? = nil,
         authoredPathAnchor: Point3D? = nil
     ) throws -> BRepSewingRequest {
+        var execution = try CurvedSweepSourceBudget(tolerance: tolerance).execution()
+        return try request(profileSpanLoops: profileSpanLoops, pathSpans: pathSpans, profilePlane: profilePlane, sectionIsClosed: sectionIsClosed, resultKind: resultKind, endTransform: endTransform, featureID: featureID, certifiedTwist: certifiedTwist, authoredPathAnchor: authoredPathAnchor, using: &execution)
+    }
+
+    package func tensorSidePatch(
+        surface: BSplineSurface3D,
+        orientation: Orientation,
+        stableID: String
+    ) throws -> BRepSewingFacePatch {
+        var execution = try CurvedSweepSourceBudget(tolerance: tolerance).execution()
+        return try tensorSidePatch(surface: surface, orientation: orientation, stableID: stableID, using: &execution)
+    }
+
+    package func tensorBoundaryEdge(curve: BSplineCurve3D, reversed: Bool, surface: Surface3D,
+        pcurve: SurfaceParameterCurve, stableID: String) throws -> BRepSewingEdge {
+        var execution = try CurvedSweepSourceBudget(tolerance: tolerance).execution()
+        return try tensorBoundaryEdge(curve: curve, reversed: reversed, surface: surface, pcurve: pcurve, stableID: stableID, using: &execution)
+    }
+
+    package func isStraight(_ curve: BSplineCurve3D) throws -> Bool {
+        var execution = try CurvedSweepSourceBudget(tolerance: tolerance).execution()
+        return try isStraight(curve, using: &execution)
+    }
+
+    package func planarSidePatch(ruled surface: BSplineSurface3D, translation: Vector3D, stableID: String) throws -> BRepSewingFacePatch {
+        var execution = try CurvedSweepSourceBudget(tolerance: tolerance).execution()
+        return try planarSidePatch(ruled: surface, translation: translation, stableID: stableID, using: &execution)
+    }
+
+    package func exactEdge(
+        _ curve: BSplineCurve3D,
+        reversed: Bool,
+        surfaceParameterCurve: SurfaceParameterCurve,
+        stableID: String
+    ) throws -> BRepSewingEdge {
+        var execution = try CurvedSweepSourceBudget(tolerance: tolerance).execution()
+        return try exactEdge(curve, reversed: reversed, surfaceParameterCurve: surfaceParameterCurve, stableID: stableID, using: &execution)
+    }
+
+    package func planarPcurve(
+        _ curve: BSplineCurve3D,
+        reversed: Bool,
+        on surface: Surface3D
+    ) throws -> SurfaceParameterCurve {
+        var execution = try CurvedSweepSourceBudget(tolerance: tolerance).execution()
+        return try planarPcurve(curve, reversed: reversed, on: surface, using: &execution)
+    }
+
+    package func validateProfileSpans(
+        _ spans: [ExactBSplineCurveSpan],
+        on plane: Plane3D
+    ) throws {
+        var execution = try CurvedSweepSourceBudget(tolerance: tolerance).execution()
+        return try validateProfileSpans(spans, on: plane, using: &execution)
+    }
+
+    package func validateSectionContinuity(
+        _ spans: [ExactBSplineCurveSpan],
+        isClosed: Bool
+    ) throws {
+        var execution = try CurvedSweepSourceBudget(tolerance: tolerance).execution()
+        return try validateSectionContinuity(spans, isClosed: isClosed, using: &execution)
+    }
+
+    package func profileWindingSign(
+        _ spans: [ExactBSplineCurveSpan],
+        normal: Vector3D,
+        featureID: FeatureID
+    ) throws -> Double {
+        var execution = try CurvedSweepSourceBudget(tolerance: tolerance).execution()
+        return try profileWindingSign(spans, normal: normal, featureID: featureID, using: &execution)
+    }
+
+    package func closedBounds(
+        _ domain: ParameterDomain
+    ) throws -> (lower: Double, upper: Double) {
+        var execution = try CurvedSweepSourceBudget(tolerance: tolerance).execution()
+        return try closedBounds(domain, using: &execution)
+    }
+
+    package func translatedSheetRequest(
+        spans: [ExactBSplineCurveSpan], isClosed: Bool,
+        startOffset: Vector3D, endOffset: Vector3D, featureID: FeatureID
+    , using execution: inout OriginalQueryExecution) throws -> BRepSewingRequest {
+        try tolerance.validate()
+        try startOffset.validate()
+        try endOffset.validate()
+        guard !spans.isEmpty, (endOffset - startOffset).length > tolerance.distance else {
+            throw FeatureEvaluationError.invalidGraph("A curve extrusion requires spans and nonzero translation.")
+        }
+        try validateSectionContinuity(spans, isClosed: isClosed, using: &execution)
+        let builder = ExactRuledBSplineSurfaceBuilder()
+        let patches = try spans.enumerated().map { index, span in
+            func translated(_ offset: Vector3D) -> BSplineCurve3D {
+                BSplineCurve3D(degree: span.curve.degree, knots: span.curve.knots,
+                    controlPoints: span.curve.controlPoints.map { $0 + offset }, weights: span.curve.weights)
+            }
+            let surface = try builder.build(startBoundary: translated(startOffset),
+                endBoundary: translated(endOffset), tolerance: tolerance, using: &execution)
+            let u = try closedBounds(surface.uDomain, using: &execution)
+            let v = try closedBounds(surface.vDomain, using: &execution)
+            try DefaultSurfaceRegularityValidator().validate(.bSpline(surface),
+                over: SurfaceParameterBox(
+                    u: try ScalarInterval(lower: u.lower, upper: u.upper),
+                    v: try ScalarInterval(lower: v.lower, upper: v.upper)),
+                tolerance: tolerance)
+            let stableID = sideStableID(pathIndex: 0, loopIndex: 0, profileIndex: index)
+            // A straight span swept straight is a flat parallelogram: it is published on its exact
+            // plane, bounded by the same edges.
+            if try isStraight(span.curve, using: &execution) {
+                return try planarSidePatch(ruled: surface, translation: endOffset - startOffset, stableID: stableID, using: &execution)
+            }
+            return try tensorSidePatch(surface: surface, orientation: .forward, stableID: stableID, using: &execution)
+        }
+        return BRepSewingRequest(featureID: featureID, bodyKind: .sheet,
+            shells: [BRepSewingShell(stableID: "sweep:shell", patches: patches)])
+    }
+
+    package func request(
+        profileSpans: [ExactBSplineCurveSpan],
+        pathSpans: [ExactBSplineCurveSpan],
+        profilePlane: SketchPlane,
+        sectionIsClosed: Bool,
+        resultKind: SweepResultKind,
+        endTransform: ExactSectionTransform2D = .identity,
+        featureID: FeatureID
+    , using execution: inout OriginalQueryExecution) throws -> BRepSewingRequest {
+        try request(
+            profileSpanLoops: [profileSpans],
+            pathSpans: pathSpans,
+            profilePlane: profilePlane,
+            sectionIsClosed: sectionIsClosed,
+            resultKind: resultKind,
+            endTransform: endTransform,
+            featureID: featureID
+        , using: &execution)
+    }
+
+    package func request(
+        profileSpanLoops: [[ExactBSplineCurveSpan]],
+        pathSpans: [ExactBSplineCurveSpan],
+        profilePlane: SketchPlane,
+        sectionIsClosed: Bool,
+        resultKind: SweepResultKind,
+        endTransform: ExactSectionTransform2D = .identity,
+        featureID: FeatureID,
+        certifiedTwist: CertifiedTwistSweepPlan? = nil,
+        authoredPathAnchor: Point3D? = nil
+    , using execution: inout OriginalQueryExecution) throws -> BRepSewingRequest {
         try tolerance.validate()
         guard profileSpanLoops.isEmpty == false,
               profileSpanLoops.allSatisfy({ $0.isEmpty == false }),
@@ -107,27 +218,27 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
             try validateSectionContinuity(
                 profileSpans,
                 isClosed: sectionIsClosed
-            )
+            , using: &execution)
         }
         let sectionPlane = try ExactSweepSectionPlane(
             profilePlane,
             tolerance: tolerance
         )
         for profileSpans in profileSpanLoops {
-            try validateProfileSpans(profileSpans, on: sectionPlane.plane)
+            try validateProfileSpans(profileSpans, on: sectionPlane.plane, using: &execution)
         }
         let advanceSign = try certifiedAdvanceSign(
             pathSpans: pathSpans,
             profileNormal: sectionPlane.plane.normal,
             featureID: featureID
-        )
+        , using: &execution)
         let windingSigns = try profileSpanLoops.map { profileSpans in
             sectionIsClosed
                 ? try profileWindingSign(
                     profileSpans,
                     normal: sectionPlane.plane.normal,
                     featureID: featureID
-                )
+                , using: &execution)
                 : 1.0
         }
         let transformLaw = try ExactLinearSectionTransformLaw(
@@ -154,7 +265,7 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
                 suppliedCurves: try certifiedTwist?.surfaces.map { loop in
                     try loop[0].map { try $0.uIsoparametricCurve(atV: 0, tolerance: tolerance) }
                 }
-            ))
+            , using: &execution))
             if !endTransform.isTerminalCollapse && certifiedTwist?.terminalSectionCollapsed != true {
                 capPatches.append(try capPatch(
                     profileSpanLoops: profileSpanLoops,
@@ -169,7 +280,7 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
                     suppliedCurves: try certifiedTwist?.surfaces.map { loop in
                         try loop[loop.count - 1].map { try $0.uIsoparametricCurve(atV: 1, tolerance: tolerance) }
                     }
-                ))
+                , using: &execution))
             }
         }
         var sidePatchesByLoop: [[BRepSewingFacePatch]] = []
@@ -199,7 +310,7 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
                             profileIndex: profileIndex
                         ),
                         suppliedSurface: certifiedTwist?.surfaces[loopIndex][pathIndex][profileIndex]
-                    ))
+                    , using: &execution))
                 }
             }
             sidePatchesByLoop.append(loopPatches)
@@ -248,9 +359,9 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
         orientation: Orientation,
         stableID: String,
         suppliedSurface: BSplineSurface3D? = nil
-    ) throws -> BRepSewingFacePatch {
+    , using execution: inout OriginalQueryExecution) throws -> BRepSewingFacePatch {
         if let suppliedSurface {
-            return try tensorSidePatch(surface: suppliedSurface, orientation: orientation, stableID: stableID)
+            return try tensorSidePatch(surface: suppliedSurface, orientation: orientation, stableID: stableID, using: &execution)
         }
         let surface = try transformedSurface(
             profileCurve: profileSpan.curve,
@@ -258,13 +369,13 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
             pathAnchor: pathAnchor,
             transformLaw: transformLaw,
             sectionPlane: sectionPlane
-        )
+        , using: &execution)
         if transformLaw.endTransform.isTerminalCollapse {
-            return try tensorSidePatch(surface: surface, orientation: orientation, stableID: stableID)
+            return try tensorSidePatch(surface: surface, orientation: orientation, stableID: stableID, using: &execution)
         }
         let surfaceGeometry = Surface3D.bSpline(surface)
-        let uBounds = try closedBounds(surface.uDomain)
-        let vBounds = try closedBounds(surface.vDomain)
+        let uBounds = try closedBounds(surface.uDomain, using: &execution)
+        let vBounds = try closedBounds(surface.vDomain, using: &execution)
         let bottom = try exactEdge(
             try transformedProfileCurve(
                 profileSpan.curve,
@@ -272,7 +383,7 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
                 pathAnchor: pathAnchor,
                 transform: transformLaw.transform(at: pathSpan.startPoint),
                 sectionPlane: sectionPlane
-            ),
+            , using: &execution),
             reversed: false,
             surfaceParameterCurve: .constantV(
                 v: vBounds.lower,
@@ -280,7 +391,7 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
                 uEnd: uBounds.upper
             ),
             stableID: "\(stableID):bottom"
-        )
+        , using: &execution)
         let endRail = try exactEdge(
             try transformedRailCurve(
                 pathSpan.curve,
@@ -288,7 +399,7 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
                 pathAnchor: pathAnchor,
                 transformLaw: transformLaw,
                 sectionPlane: sectionPlane
-            ),
+            , using: &execution),
             reversed: false,
             surfaceParameterCurve: .constantU(
                 u: uBounds.upper,
@@ -296,7 +407,7 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
                 vEnd: vBounds.upper
             ),
             stableID: "\(stableID):end"
-        )
+        , using: &execution)
         let top = try exactEdge(
             try transformedProfileCurve(
                 profileSpan.curve,
@@ -304,7 +415,7 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
                 pathAnchor: pathAnchor,
                 transform: transformLaw.transform(at: pathSpan.endPoint),
                 sectionPlane: sectionPlane
-            ),
+            , using: &execution),
             reversed: true,
             surfaceParameterCurve: .constantV(
                 v: vBounds.upper,
@@ -312,7 +423,7 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
                 uEnd: uBounds.lower
             ),
             stableID: "\(stableID):top"
-        )
+        , using: &execution)
         let startRail = try exactEdge(
             try transformedRailCurve(
                 pathSpan.curve,
@@ -320,7 +431,7 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
                 pathAnchor: pathAnchor,
                 transformLaw: transformLaw,
                 sectionPlane: sectionPlane
-            ),
+            , using: &execution),
             reversed: true,
             surfaceParameterCurve: .constantU(
                 u: uBounds.lower,
@@ -328,7 +439,7 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
                 vEnd: vBounds.lower
             ),
             stableID: "\(stableID):start"
-        )
+        , using: &execution)
         let patch = BRepSewingFacePatch(
             stableID: stableID,
             surface: surfaceGeometry,
@@ -354,7 +465,7 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
         reversedBoundary: Bool,
         stableID: String,
         suppliedCurves: [[BSplineCurve3D]]? = nil
-    ) throws -> BRepSewingFacePatch {
+    , using execution: inout OriginalQueryExecution) throws -> BRepSewingFacePatch {
         guard let first = profileSpanLoops.first?.first else {
             throw FeatureEvaluationError.emptyResult(
                 "Exact linear section Sweep cap has no profile span."
@@ -369,12 +480,12 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
             pathAnchor: pathAnchor,
             transform: transform,
             sectionPlane: sectionPlane
-        )
+        , using: &execution)
         let surface = Surface3D.plane(Plane3D(
             origin: try Curve3D.bSpline(firstCurve).point(
-                at: closedBounds(firstCurve.domain).lower,
+                at: closedBounds(firstCurve.domain, using: &execution).lower,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             normal: sectionPlane.plane.normal * boundaryNormalSign
         ))
         let loops = try profileSpanLoops.enumerated().map { loopIndex, profileSpans in
@@ -391,7 +502,7 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
                     pathAnchor: pathAnchor,
                     transform: transform,
                     sectionPlane: sectionPlane
-                )
+                , using: &execution)
                 return try exactEdge(
                     curve,
                     reversed: reversedBoundary,
@@ -399,9 +510,9 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
                         curve,
                         reversed: reversedBoundary,
                         on: surface
-                    ),
+                    , using: &execution),
                     stableID: "\(loopPrefix):edge:\(profileIndex)"
-                )
+                , using: &execution)
             }
             return BRepSewingLoop(
                 stableID: "\(loopPrefix):loop",
@@ -425,9 +536,9 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
         surface: BSplineSurface3D,
         orientation: Orientation,
         stableID: String
-    ) throws -> BRepSewingFacePatch {
-        let u = try closedBounds(surface.uDomain)
-        let v = try closedBounds(surface.vDomain)
+    , using execution: inout OriginalQueryExecution) throws -> BRepSewingFacePatch {
+        let u = try closedBounds(surface.uDomain, using: &execution)
+        let v = try closedBounds(surface.vDomain, using: &execution)
         let host = Surface3D.bSpline(surface)
         let boundaries: [(BSplineCurve3D, Bool, SurfaceParameterCurve, String)] = [
             (try surface.uIsoparametricCurve(atV: v.lower, tolerance: tolerance), false,
@@ -440,7 +551,7 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
                 .constantU(u: u.lower, vStart: v.upper, vEnd: v.lower), "start")]
         let edges = try boundaries.map { curve, reversed, pcurve, name in
             try tensorBoundaryEdge(curve: curve, reversed: reversed, surface: host, pcurve: pcurve,
-                stableID: "\(stableID):\(name)")
+                stableID: "\(stableID):\(name)", using: &execution)
         }
         let patch = BRepSewingFacePatch(stableID: stableID, surface: .bSpline(surface), orientation: orientation,
             loops: [BRepSewingLoop(stableID: "\(stableID):loop", role: .outer, edges: edges)])
@@ -449,18 +560,18 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
     }
 
     package func tensorBoundaryEdge(curve: BSplineCurve3D, reversed: Bool, surface: Surface3D,
-        pcurve: SurfaceParameterCurve, stableID: String) throws -> BRepSewingEdge {
+        pcurve: SurfaceParameterCurve, stableID: String, using execution: inout OriginalQueryExecution) throws -> BRepSewingEdge {
         let lifted = Curve3D.surfaceLift(SurfaceLiftCurve3D(surface: surface, parameterCurve: pcurve))
         if try BRepEdgeGeometryClassifier().kind(curve: lifted, from: 0, to: 1, tolerance: tolerance) == .singular {
             return BRepSewingEdge(stableID: stableID, curve: lifted, startParameter: 0, endParameter: 1,
-                startPoint: try lifted.point(at: 0, tolerance: tolerance),
-                endPoint: try lifted.point(at: 1, tolerance: tolerance), surfaceParameterCurve: pcurve)
+                startPoint: try lifted.point(at: 0, tolerance: tolerance, using: &execution),
+                endPoint: try lifted.point(at: 1, tolerance: tolerance, using: &execution), surfaceParameterCurve: pcurve)
         }
-        return try exactEdge(curve, reversed: reversed, surfaceParameterCurve: pcurve, stableID: stableID)
+        return try exactEdge(curve, reversed: reversed, surfaceParameterCurve: pcurve, stableID: stableID, using: &execution)
     }
 
     /// Whether every control point of `curve` lies on the line through its end points.
-    package func isStraight(_ curve: BSplineCurve3D) throws -> Bool {
+    package func isStraight(_ curve: BSplineCurve3D, using execution: inout OriginalQueryExecution) throws -> Bool {
         guard let first = curve.controlPoints.first, let last = curve.controlPoints.last else { return false }
         let chord = last - first
         guard chord.length > tolerance.distance else { return false }
@@ -474,21 +585,21 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
     /// The side patch of a ruled surface that is a flat parallelogram, on its exact plane: its
     /// four boundary edges are the ruled surface's, their parameter curves projected on the plane,
     /// and the plane faces the way the ruled surface does (along the curve, then the translation).
-    package func planarSidePatch(ruled surface: BSplineSurface3D, translation: Vector3D, stableID: String) throws -> BRepSewingFacePatch {
-        let u = try closedBounds(surface.uDomain)
-        let v = try closedBounds(surface.vDomain)
+    package func planarSidePatch(ruled surface: BSplineSurface3D, translation: Vector3D, stableID: String, using execution: inout OriginalQueryExecution) throws -> BRepSewingFacePatch {
+        let u = try closedBounds(surface.uDomain, using: &execution)
+        let v = try closedBounds(surface.vDomain, using: &execution)
         let bottom = try surface.uIsoparametricCurve(atV: v.lower, tolerance: tolerance)
         let end = try surface.vIsoparametricCurve(atU: u.upper, tolerance: tolerance)
         let top = try surface.uIsoparametricCurve(atV: v.upper, tolerance: tolerance)
         let start = try surface.vIsoparametricCurve(atU: u.lower, tolerance: tolerance)
-        let origin = try Curve3D.bSpline(bottom).point(at: closedBounds(bottom.domain).lower, tolerance: tolerance)
-        let along = try Curve3D.bSpline(bottom).point(at: closedBounds(bottom.domain).upper, tolerance: tolerance) - origin
+        let origin = try Curve3D.bSpline(bottom).point(at: closedBounds(bottom.domain, using: &execution).lower, tolerance: tolerance, using: &execution)
+        let along = try Curve3D.bSpline(bottom).point(at: closedBounds(bottom.domain, using: &execution).upper, tolerance: tolerance, using: &execution) - origin
         let plane = Surface3D.plane(Plane3D(origin: origin, normal: try along.cross(translation).normalized(tolerance: tolerance.distance)))
         let edges = [
-            try exactEdge(bottom, reversed: false, surfaceParameterCurve: try planarPcurve(bottom, reversed: false, on: plane), stableID: "\(stableID):bottom"),
-            try exactEdge(end, reversed: false, surfaceParameterCurve: try planarPcurve(end, reversed: false, on: plane), stableID: "\(stableID):end"),
-            try exactEdge(top, reversed: true, surfaceParameterCurve: try planarPcurve(top, reversed: true, on: plane), stableID: "\(stableID):top"),
-            try exactEdge(start, reversed: true, surfaceParameterCurve: try planarPcurve(start, reversed: true, on: plane), stableID: "\(stableID):start"),
+            try exactEdge(bottom, reversed: false, surfaceParameterCurve: try planarPcurve(bottom, reversed: false, on: plane, using: &execution), stableID: "\(stableID):bottom", using: &execution),
+            try exactEdge(end, reversed: false, surfaceParameterCurve: try planarPcurve(end, reversed: false, on: plane, using: &execution), stableID: "\(stableID):end", using: &execution),
+            try exactEdge(top, reversed: true, surfaceParameterCurve: try planarPcurve(top, reversed: true, on: plane, using: &execution), stableID: "\(stableID):top", using: &execution),
+            try exactEdge(start, reversed: true, surfaceParameterCurve: try planarPcurve(start, reversed: true, on: plane, using: &execution), stableID: "\(stableID):start", using: &execution),
         ]
         let patch = BRepSewingFacePatch(stableID: stableID, surface: plane, orientation: .forward,
             loops: [BRepSewingLoop(stableID: "\(stableID):loop", role: .outer, edges: edges)])
@@ -502,14 +613,14 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
         pathAnchor: Point3D,
         transformLaw: ExactLinearSectionTransformLaw,
         sectionPlane: ExactSweepSectionPlane
-    ) throws -> BSplineSurface3D {
+    , using execution: inout OriginalQueryExecution) throws -> BSplineSurface3D {
         let count = profileCurve.controlPointCount.multipliedReportingOverflow(by: pathCurve.controlPointCount)
         guard !count.overflow else { throw GeometryConversionError.resourceLimitExceeded("Sweep tensor payload count overflowed.") }
-        try retain(pathCurve.controlPointCount, of: [Point3D].self)
-        try retain(pathCurve.controlPointCount, of: [Double].self)
-        try retain(count.partialValue, of: Point3D.self)
-        try retain(count.partialValue, of: Double.self)
-        try admission?.chargeWork(count.partialValue)
+        try retain(pathCurve.controlPointCount, of: [Point3D].self, using: &execution)
+        try retain(pathCurve.controlPointCount, of: [Double].self, using: &execution)
+        try retain(count.partialValue, of: Point3D.self, using: &execution)
+        try retain(count.partialValue, of: Double.self, using: &execution)
+        try execution.consumeWork(count.partialValue)
         let controlPoints = pathCurve.controlPoints.map { pathPoint in
             let transform = transformLaw.transform(at: pathPoint)
             return profileCurve.controlPoints.map { profilePoint in
@@ -535,7 +646,7 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
             controlPoints: controlPoints,
             weights: weights
         )
-        try validateOriginal(.bSpline(surface))
+        try validateOriginal(.bSpline(surface), using: &execution)
         return surface
     }
 
@@ -544,8 +655,8 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
         reversed: Bool,
         surfaceParameterCurve: SurfaceParameterCurve,
         stableID: String
-    ) throws -> BRepSewingEdge {
-        let bounds = try closedBounds(curve.domain)
+    , using execution: inout OriginalQueryExecution) throws -> BRepSewingEdge {
+        let bounds = try closedBounds(curve.domain, using: &execution)
         let startParameter = reversed ? bounds.upper : bounds.lower
         let endParameter = reversed ? bounds.lower : bounds.upper
         let exactCurve = Curve3D.bSpline(curve)
@@ -557,11 +668,11 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
             startPoint: try exactCurve.point(
                 at: startParameter,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             endPoint: try exactCurve.point(
                 at: endParameter,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             surfaceParameterCurve: surfaceParameterCurve
         )
     }
@@ -572,9 +683,9 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
         pathAnchor: Point3D,
         transform: ExactSectionTransform2D,
         sectionPlane: ExactSweepSectionPlane
-    ) throws -> BSplineCurve3D {
-        try retain(source.controlPointCount, of: Point3D.self)
-        try admission?.chargeWork(source.controlPointCount)
+    , using execution: inout OriginalQueryExecution) throws -> BSplineCurve3D {
+        try retain(source.controlPointCount, of: Point3D.self, using: &execution)
+        try execution.consumeWork(source.controlPointCount)
         let curve = BSplineCurve3D(
             degree: source.degree,
             knots: source.knots,
@@ -589,7 +700,7 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
             },
             weights: source.weights
         )
-        try validateOriginal(.bSpline(curve))
+        try validateOriginal(.bSpline(curve), using: &execution)
         return curve
     }
 
@@ -599,9 +710,9 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
         pathAnchor: Point3D,
         transformLaw: ExactLinearSectionTransformLaw,
         sectionPlane: ExactSweepSectionPlane
-    ) throws -> BSplineCurve3D {
-        try retain(pathCurve.controlPointCount, of: Point3D.self)
-        try admission?.chargeWork(pathCurve.controlPointCount)
+    , using execution: inout OriginalQueryExecution) throws -> BSplineCurve3D {
+        try retain(pathCurve.controlPointCount, of: Point3D.self, using: &execution)
+        try execution.consumeWork(pathCurve.controlPointCount)
         let curve = BSplineCurve3D(
             degree: pathCurve.degree,
             knots: pathCurve.knots,
@@ -616,7 +727,7 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
             },
             weights: pathCurve.weights
         )
-        try validateOriginal(.bSpline(curve))
+        try validateOriginal(.bSpline(curve), using: &execution)
         return curve
     }
 
@@ -640,7 +751,7 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
         _ curve: BSplineCurve3D,
         reversed: Bool,
         on surface: Surface3D
-    ) throws -> SurfaceParameterCurve {
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceParameterCurve {
         var parameterCurve = BSplineCurve2D(
             degree: curve.degree,
             knots: curve.knots,
@@ -665,7 +776,7 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
     package func validateProfileSpans(
         _ spans: [ExactBSplineCurveSpan],
         on plane: Plane3D
-    ) throws {
+    , using execution: inout OriginalQueryExecution) throws {
         for span in spans {
             for point in span.curve.controlPoints {
                 let residual = abs((point - plane.origin).dot(plane.normal))
@@ -685,7 +796,7 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
     package func validateSectionContinuity(
         _ spans: [ExactBSplineCurveSpan],
         isClosed: Bool
-    ) throws {
+    , using execution: inout OriginalQueryExecution) throws {
         guard spans.isEmpty == false else {
             throw FeatureEvaluationError.emptyResult(
                 "Exact linear section Sweep section is empty."
@@ -720,7 +831,7 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
         pathSpans: [ExactBSplineCurveSpan],
         profileNormal: Vector3D,
         featureID: FeatureID
-    ) throws -> Double {
+    , using execution: inout OriginalQueryExecution) throws -> Double {
         guard let first = pathSpans.first,
               let last = pathSpans.last else {
             throw FeatureEvaluationError.emptyResult(
@@ -776,17 +887,16 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
         _ spans: [ExactBSplineCurveSpan],
         normal: Vector3D,
         featureID: FeatureID
-    ) throws -> Double {
+    , using execution: inout OriginalQueryExecution) throws -> Double {
         guard let origin = spans.first?.startPoint else {
             throw FeatureEvaluationError.emptyResult(
                 "Exact linear section Sweep profile is empty."
             )
         }
-        let admission = try admission ?? CurvedSweepSourceBudget(tolerance: tolerance).conversionAdmission()
-        try admission.chargeStorage(bytes: spans.count * MemoryLayout<OriginalCurveSpanParameterChart>.stride)
-        let charts = try spans.map { try admission.chargeWork(); return $0.originalChart }
+        try execution.retainStorage(bytes: spans.count * MemoryLayout<OriginalCurveSpanParameterChart>.stride)
+        let charts = try spans.map { try execution.consumeWork(1); return $0.originalChart }
         return try OriginalPlanarLoopOrientation().counterclockwise(charts: charts,
-            origin: origin, normal: normal, tolerance: tolerance, admission: admission) ? 1 : -1
+            origin: origin, normal: normal, tolerance: tolerance, using: &execution) ? 1 : -1
     }
 
     @available(*, deprecated, message: "Production winding uses the complete original parameter-chart integral.")
@@ -800,14 +910,14 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
         lower: Double,
         upper: Double,
         depth: Int
-    ) throws -> Double {
+    , using execution: inout OriginalQueryExecution) throws -> Double {
         let whole = try gaussianWindingIntegral(
             curve: curve,
             origin: origin,
             normal: normal,
             lower: lower,
             upper: upper
-        )
+        , using: &execution)
         let middle = 0.5 * (lower + upper)
         let left = try gaussianWindingIntegral(
             curve: curve,
@@ -815,14 +925,14 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
             normal: normal,
             lower: lower,
             upper: middle
-        )
+        , using: &execution)
         let right = try gaussianWindingIntegral(
             curve: curve,
             origin: origin,
             normal: normal,
             lower: middle,
             upper: upper
-        )
+        , using: &execution)
         let refined = left + right
         let errorTolerance = max(
             tolerance.distance * tolerance.distance,
@@ -839,14 +949,14 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
             lower: lower,
             upper: middle,
             depth: depth + 1
-        ) + adaptiveWindingIntegral(
+        , using: &execution) + adaptiveWindingIntegral(
             curve: curve,
             origin: origin,
             normal: normal,
             lower: middle,
             upper: upper,
             depth: depth + 1
-        )
+        , using: &execution)
     }
 
     private func gaussianWindingIntegral(
@@ -855,7 +965,7 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
         normal: Vector3D,
         lower: Double,
         upper: Double
-    ) throws -> Double {
+    , using execution: inout OriginalQueryExecution) throws -> Double {
         let nodes = [
             -0.9061798459386640,
             -0.5384693101056831,
@@ -878,7 +988,7 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
             let geometry = try curve.differentialGeometry(
                 at: parameter,
                 tolerance: tolerance
-            )
+            , using: &execution)
             let radial = geometry.position - origin
             sum += weights[index] * radial.cross(
                 geometry.firstDerivative
@@ -887,37 +997,25 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
         return sum * halfWidth
     }
 
-    private func retain<T>(_ count: Int, of: T.Type) throws {
+    private func retain<T>(_ count: Int, of: T.Type, using execution: inout OriginalQueryExecution) throws {
         let bytes = count.multipliedReportingOverflow(by: MemoryLayout<T>.stride)
         guard count >= 0, !bytes.overflow else {
             throw GeometryConversionError.resourceLimitExceeded("Sweep geometry payload byte count overflowed.")
         }
-        try admission?.chargeStorage(bytes: bytes.partialValue)
+        try execution.retainStorage(bytes: bytes.partialValue)
     }
 
-    private func validateOriginal(_ curve: Curve3D) throws {
-        if let admission {
-            try curve.validateOriginalSource(tolerance: tolerance,
-                remainingSourceDepth: admission.remainingSourceDepth,
-                maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
-                consumeWork: { _ in try admission.chargeWork() },
-                consumeStorage: { try admission.chargeStorage(bytes: $0) })
-        } else { try curve.validate(tolerance: tolerance) }
+    private func validateOriginal(_ curve: Curve3D, using execution: inout OriginalQueryExecution) throws {
+        try curve.validate(tolerance: tolerance, using: &execution)
     }
 
-    private func validateOriginal(_ surface: Surface3D) throws {
-        if let admission {
-            try surface.validateOriginalSource(tolerance: tolerance,
-                remainingSourceDepth: admission.remainingSourceDepth,
-                maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
-                consumeWork: { _ in try admission.chargeWork() },
-                consumeStorage: { try admission.chargeStorage(bytes: $0) })
-        } else { try surface.validate(tolerance: tolerance) }
+    private func validateOriginal(_ surface: Surface3D, using execution: inout OriginalQueryExecution) throws {
+        try surface.validate(tolerance: tolerance, using: &execution)
     }
 
     package func closedBounds(
         _ domain: ParameterDomain
-    ) throws -> (lower: Double, upper: Double) {
+    , using execution: inout OriginalQueryExecution) throws -> (lower: Double, upper: Double) {
         guard case let .closed(lower, upper) = domain,
               upper - lower > max(tolerance.angle, Double.ulpOfOne) else {
             throw KernelError(

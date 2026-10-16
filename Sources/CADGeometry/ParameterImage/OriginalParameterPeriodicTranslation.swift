@@ -21,11 +21,11 @@ public struct OriginalParameterPeriodicTranslation: Hashable, Sendable {
         try parameterGain.validate()
     }
 
-    public func nativeDisplacement<B: RationalAlgebraAdmitting>(usage: inout B) throws -> ExactRationalCoefficient {
-        try validate(); try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(1)
+    public func nativeDisplacement<B: ExactScalarAdmission & ~Copyable>(usage: inout B) throws -> ExactRationalCoefficient {
+        try validate(); try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeWork(1)
         guard originalTurnCount != 0 else { return .zero }
         let magnitude = originalTurnCount.magnitude
-        try usage.retainExactStorage(3)
+        try usage.retainStorage(bytes: exactScalarPayloadBytes(count: 3, of: UInt32.self))
         let low = UInt32(truncatingIfNeeded: magnitude)
         let high = UInt32(magnitude >> 32)
         let words: [UInt32] = high == 0 ? [low] : [low, high]
@@ -35,29 +35,29 @@ public struct OriginalParameterPeriodicTranslation: Hashable, Sendable {
             .multiplied(by: turns, usage: &usage)
     }
 
-    public func foreignDisplacement<B: RationalAlgebraAdmitting>(usage: inout B) throws -> ExactRationalCoefficient {
+    public func foreignDisplacement<B: ExactScalarAdmission & ~Copyable>(usage: inout B) throws -> ExactRationalCoefficient {
         try nativeDisplacement(usage: &usage)
             .divided(by: parameterGain.exactCoefficient(usage: &usage), usage: &usage)
     }
 
-    public func translatedForeignEndpoint<B: RationalAlgebraAdmitting>(
+    public func translatedForeignEndpoint<B: ExactScalarAdmission & ~Copyable>(
         _ original: ExactRationalCoefficient, usage: inout B) throws -> ExactRationalCoefficient {
         try original.adding(foreignDisplacement(usage: &usage), usage: &usage)
     }
 
-    public func translatedNativeEndpoint<B: RationalAlgebraAdmitting>(
+    public func translatedNativeEndpoint<B: ExactScalarAdmission & ~Copyable>(
         _ original: ExactRationalCoefficient, usage: inout B) throws -> ExactRationalCoefficient {
         try original.adding(nativeDisplacement(usage: &usage), usage: &usage)
     }
 
-    public func nativeImage<B: RationalAlgebraAdmitting>(of foreign: ExactRationalCoefficient,
+    public func nativeImage<B: ExactScalarAdmission & ~Copyable>(of foreign: ExactRationalCoefficient,
         originalNativeOffset: Double, usage: inout B) throws -> ExactRationalCoefficient {
         try validate()
         return try foreign.multiplied(by: parameterGain.exactCoefficient(usage: &usage), usage: &usage)
             .adding(.originalDouble(originalNativeOffset, usage: &usage), usage: &usage)
     }
 
-    public func foreignImage<B: RationalAlgebraAdmitting>(of native: ExactRationalCoefficient,
+    public func foreignImage<B: ExactScalarAdmission & ~Copyable>(of native: ExactRationalCoefficient,
         originalNativeOffset: Double, usage: inout B) throws -> ExactRationalCoefficient {
         try validate()
         return try native.subtracting(.originalDouble(originalNativeOffset, usage: &usage), usage: &usage)

@@ -2,10 +2,11 @@ import CADCore
 
 /// Publishes original physical full branches without a rounded parent-UV reconstruction.
 struct OriginalCertifiedSphereConePublicProducer {
-    private typealias Admission = NativeExactPublicAdmission<NativeCurveSurfacePointAllowance>
     func resolve(curve: Curve3D, surface: Surface3D, options: CurveSurfaceIntersectionOptions,
-        tolerance: ModelingTolerance, invocation: CurveSurfaceQueryInvocation? = nil)
+        tolerance: ModelingTolerance, using a: inout OriginalQueryExecution)
         throws -> CurveSurfaceIntersectionResult? {
+        a.context = a.context.at(stage: .request)
+        try a.checkpoint()
         // FIXME(INCOMPLETE_IMPLEMENTATION): This route owns the two supported
         // full branches and the migrated fixed R2 bounded branch on planeY0/uX.
         // Other bounded, open, apex and other pairs need their whole original source/UV receipts
@@ -16,22 +17,26 @@ struct OriginalCertifiedSphereConePublicProducer {
             case .analytic(.cone(_, _, let angle)) = original.coneSurface else { return nil }
         do {
             try options.validate(tolerance: tolerance)
-            let usage = try NativeCurveSurfacePointAllowance(options: options, invocation: invocation)
-            var a = Admission(usage: usage, maximumDepth: usage.maximumAlgebraicDepth)
-            try a.checkpoint(); try invocation?.consume(depth: 0)
+            try a.checkpoint()
+            a.context = a.context.at(stage: .source)
             let sourceLimits = try OriginalSourceIssuanceLimits(
-                remainingSourceDepth: invocation?.remainingSourceDepth ?? options.maximumSubdivisionDepth)
-            let charts = min(invocation?.maximumSpanCount ?? options.maximumSubdivisionCells, options.maximumSubdivisionCells)
+                remainingSourceDepth: a.effectiveLimits.remainingSourceDepth)
+            let charts = min(min(a.effectiveLimits.maximumCharts, a.effectiveLimits.maximumSpans), options.maximumSubdivisionCells)
             let limits = try OriginalDomainIdentityLimits(source: sourceLimits,
-                maximumTransportDepth: usage.maximumAlgebraicDepth, maximumCharts: charts,
-                maximumFamilies: charts, maximumIdentityProofs: 0)
+                maximumTransportDepth: a.effectiveLimits.maximumTransportDepth, maximumCharts: charts,
+                maximumFamilies: min(charts, a.effectiveLimits.maximumFamilies), maximumIdentityProofs: 0)
             let physical = try OriginalPhysicalAngleScalarDomain(originalRadians: angle, using: &a)
             let phase = try OriginalPiScalarDomain(using: &a)
             let provider = OriginalCertifiedSphereConeFullSnapshotProvider(physical: physical, phaseField: phase,
-                maximumExtensionLevel: usage.maximumAlgebraicDepth, tolerance: tolerance)
+                maximumExtensionLevel: a.effectiveLimits.maximumValueDepth, tolerance: tolerance)
             let source = try DefaultOriginalSourceBindingIssuer(provider: provider).bind(curve, limits: sourceLimits, using: &a)
+            try a.admitSourceDepth(source.sourceDepth)
+            a.context = a.context.retaining(first: .init(source: source))
             let target = try DefaultOriginalSourceBindingIssuer(provider: OriginalCertifiedCoaxialTargetSnapshotProvider(tolerance: tolerance))
                 .bind(surface, limits: sourceLimits, using: &a)
+            try a.admitSourceDepth(target.sourceDepth)
+            a.context = a.context.retaining(second: .init(source: target))
+            a.context = a.context.at(stage: .domain)
             let interval: ExactParameterInterval<OriginalPiValue>
             if let range = options.curveRange {
                 interval = try .checked(field: phase, lower: .finite(phase.binary64(exactly: range.lower, using: &a)),
@@ -43,10 +48,13 @@ struct OriginalCertifiedSphereConePublicProducer {
             try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: [ExactParameterInterval<OriginalPiValue>].self))
             try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: ExactParameterInterval<OriginalPiValue>.self))
             try a.retainStorage(bytes: exactScalarPayloadBytes(count: 2, of: ScalarInterval?.self))
+            a.context = a.context.at(stage: .relation)
             let relation = try OriginalCertifiedSphereConePlaneRelation.resolve(source: source, target: target,
                 curveIntervals: [[interval]], planeRanges: [options.surfaceURange, options.surfaceVRange],
-                maximumPoints: options.maximumCandidateCount, limits: limits, using: &a)
+                maximumPoints: min(options.maximumCandidateCount, a.effectiveLimits.maximumResults), limits: limits, using: &a)
+            a.context = a.context.at(stage: .refinement)
             let bounds = try pointBounds(original, tolerance: tolerance, using: &a)
+            a.context = a.context.at(stage: .publication)
             try a.retainStorage(bytes: exactScalarPayloadBytes(count: relation.phaseOrdinals.count, of: CurveSurfaceIntersection.self))
             var points: [CurveSurfaceIntersection] = []; points.reserveCapacity(relation.phaseOrdinals.count)
             for ordinal in relation.phaseOrdinals {
@@ -72,24 +80,24 @@ struct OriginalCertifiedSphereConePublicProducer {
                 points.append(try .init(point: .init(x: x, y: 0, z: -v), curveParameter: t,
                     surfaceU: x, surfaceV: v, kind: .transverse, residual: residual, iterations: 1))
             }
+            a.context = a.context.at(stage: .publication)
             try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: CurveSurfaceIntersectionResult.self))
             let result = CurveSurfaceIntersectionResult(points: points, overlaps: [], originalCertifiedSphereConeRelation: relation)
             try a.checkpoint(); return result
-        } catch { throw NativeExactGeometryPublicationFailure.published(error, tolerance: tolerance) }
+        } catch { throw NativeExactGeometryPublicationFailure.published(error, tolerance: tolerance, context: a.context) }
     }
     private func pointBounds(_ original: CertifiedSphereConeIntersectionCurve, tolerance: ModelingTolerance,
-        using a: inout Admission) throws -> [(x: OutwardScalarInterval, z: OutwardScalarInterval)] {
+        using a: inout OriginalQueryExecution) throws -> [(x: OutwardScalarInterval, z: OutwardScalarInterval)] {
         guard case .analytic(.cone(_, _, let angle)) = original.coneSurface else { throw OriginalSourceIssuanceFailure.invalidSource }
-        var usage = a.usage
-        defer { a.usage = usage }
+
         let trig = try CertifiedRotationTrigonometry.evaluate(.exact(angle), tolerance: tolerance,
-            consumeWork: { try usage.consumeExactWork(1) })
-        try usage.retainBytes(exactScalarPayloadBytes(count: 2, of: (OutwardScalarInterval, OutwardScalarInterval).self))
+            using: &a)
+        try a.retainStorage(bytes: exactScalarPayloadBytes(count: 2, of: (OutwardScalarInterval, OutwardScalarInterval).self))
         var result: [(x: OutwardScalarInterval, z: OutwardScalarInterval)] = []; result.reserveCapacity(2)
         let bounded = original.componentKind == .boundedAngularInterval
         for ordinal in 0..<2 {
             let sign = bounded || ordinal == 0 ? 1.0 : -1.0
-            try usage.consumeExactWork(1)
+            try a.consumeWork(1)
             let b = .exact(sign * (bounded ? 2 : 1)) * trig.sine + .exact(4) * trig.cosine
             let d = b * b - .exact(bounded ? 16 : 8)
             guard d.lower > 0, d.isFinite else { throw ExactScalarFailure.unresolved }

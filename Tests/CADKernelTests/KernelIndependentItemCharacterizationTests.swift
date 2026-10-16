@@ -27,7 +27,7 @@ struct KernelIndependentItemCharacterizationTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func metadataOnlyGeometryIsResolvedWithoutEffectiveValuesAndUnicodeChangeRejectsGenuineStaleReceipt() throws {
+    func metadataOnlyGeometryIsResolvedWithoutEffectiveValuesAndUnicodeChangeRequiresNewProducerReceipt() throws {
         var document = try fixture()
         let evaluator = DocumentEvaluator(tolerance: .standard), resolver = ProductAttributeResolver()
         let old = try evaluator.evaluateExact(document), before = try resolver.resolve(old)
@@ -43,7 +43,13 @@ struct KernelIndependentItemCharacterizationTests {
         var stale = EvaluatedDocument(document: document, parameters: old.parameters, brep: old.brep,
             meshes: old.meshes, curves: old.curves, caches: old.caches, subshapes: old.subshapes, lineage: old.lineage,
             configuration: old.configuration, assembly: old.assembly, evaluationMetrics: old.evaluationMetrics)
-        stale.validatedSourceReceipt = try #require(old.validatedSourceReceipt)
+        let bound = try EvaluatedDocument(validatedSourceReceipt: #require(old.validatedSourceReceipt),
+            parameters: old.parameters, brep: old.brep, meshes: old.meshes, curves: old.curves,
+            caches: old.caches, subshapes: old.subshapes, lineage: old.lineage,
+            configuration: old.configuration, assembly: old.assembly, evaluationMetrics: old.evaluationMetrics)
+        #expect(bound.document == old.document)
+        #expect(bound.document != document)
+        #expect(stale.validatedSourceReceipt == nil)
         stale.validatedBRep = try #require(old.validatedBRep)
         #expect(throws: ProductAttributeError.inconsistentArtifact("Missing or stale producer source/exact B-rep association.")) {
             _ = try resolver.resolve(stale)

@@ -1,5 +1,12 @@
 # CADGeometry
 
+The exact linear-locus classifier's direct overload visits each retained source
+wrapper and admits source depth through the caller's `OriginalQueryExecution`.
+Its original fixed scalar branch rules and nil classification remain unchanged.
+Ordinary source-view properties retain their existing nonthrowing contract;
+composed edge range queries use the direct overload after source validation.
+This locus classifier does not establish a new parameterization or source identity.
+
 Finite selected positive-weight source-valid B-spline curve/tensor queries, including exactly represented periodic transports, are owned by [Native Point Relations](CurveSurfaceOverlap/NativePointRelations/DESIGN.md) and [Native Curve Surface Relation](CurveSurfaceOverlap/NativeRelation/DESIGN.md), children of CurveSurfaceOverlap. Their child contracts determine complete finite requested coverage and original parameter/source-chart identity.
 
 Single-span Native SSI isolated tuples are owned by [Native Surface Surface Point Relations](NativeSurfaceSurfacePointRelations/DESIGN.md). [Native Surface Surface Relations](NativeSurfaceSurfaceRelations/DESIGN.md) owns complete original parameter, image and fiber relations for the bounded rich normal, caller-admitted, domain-pair and retained-session paths. [Native Multi-Chart Surface Surface Relations](NativeMultiChartSurfaceSurfaceRelations/DESIGN.md) composes the finite nonperiodic Native multi-span source cover with the same retained relation and point publication contracts. Public normal, caller-admitted, domain-pair and prepared-session entries select the single-span producer first, then the multi-chart producer only when the former reports applicability nil. All producers consume the original source/domain and the identical caller admission; errors after admission propagate without solver retry. Existing array entries reject positive-dimensional original coverage atomically.
@@ -15,6 +22,17 @@ intersection support lookup describes retained support metadata only, not absenc
 of intersections; construction charts forward their unchanged source supports.
 Other new constructed variants with no retained support pair return nil and
 remain subject to the general original membership producer.
+The curve intersection-support lookup selects a hosting surface only by exact
+structural identity with a retained support, matching the pcurve contract. Its
+ordinary and caller-admitted entries share one body; comparisons, source wrapper
+depth, rigid support transport and nested pcurve lookup use the same execution.
+A nearby plane or alternative unproved description declines with `nil`; this is
+capability decline, never intersection absence. Work, cancellation and source
+capability failures throw. General equivalent-description support membership
+remains open M4 family coverage; no tolerance resolver or new equality theorem
+is introduced here. `CurveIntersectionSupportTests` owns retained-host, near-host,
+wrapper/rigid/pcurve and caller-resource controls. Exact-trim consumers must retain
+their independent contact and whole-domain completeness obligations.
 Legacy third-order numerical candidates for original guide chains, guide
 corrections and polylines use the retained source's D3 issuer and native limits;
 these representatives do not establish source equality or intersection coverage.
@@ -302,6 +320,45 @@ accounting and source conditions; require the stopping inputs to complete within
 unchanged caller caps and record wall-time/allocation regressions before delivery.
 No blanket speedup is inferred from reduced work alone. Publication failure codes,
 causes and source/scope context are checked at the real public boundary.
+
+### U1 Direct Execution Ownership
+
+U1 migrates actual query owners and numeric calls, then deletes obsolete route
+allowances and compatibility calling paths. ExactScalar owns direct admission and
+local proof scopes; the common public query execution owns one cumulative caller
+budget and query-local policy/context. Prepared sessions retain its shared budget
+owner, while explicit independent readers borrow immutable evidence under their
+own execution. A query-local scope stack must never be shared across parallel
+invocations even when their cumulative budget owner is shared.
+
+The public execution directly conforms to scalar admission and reaches source,
+DI, arithmetic, refinement and publication without translating through CS/SSI
+allowance types. Local cell/chart/result and depth ceilings remain scoped policy;
+they cannot reset work/storage or instantiate a child total budget. Source and
+parameter laws remain with their existing owners. The direct migration includes
+existing conversion/embedding and other production callers needed by the changed
+contract, without claiming unfinished material or projected sections are complete.
+
+Core classification is a source-independent protocol. Geometry retains the
+original error and immutable request/source/scope/stage context; known resource
+observations are distinct from opaque external-callback counters. Cancellation
+remains CancellationError. Existing lower typed failure boundaries do not acquire
+a Core dependency. Actual consumers migrate their classification catches in the
+same change, and rethrowing never drops retained context or the original cause.
+
+Existing per-operation work requirements remain scoped ceilings on attributed
+work of the same execution. A scope records its work-at-entry and compares actual
+additional debits, while every debit also reaches the one cumulative budget.
+There are no private credits, refunds or independently spendable child quota.
+Concurrent siblings share the global total but retain separate scope attribution.
+Scalar-slot and certification-box requirements remain independent count ceilings.
+Ordinary convenience entries create the root execution once from the existing
+requirements policy; admitted entries borrow the caller owner without resetting it.
+
+The public failure type change and removal of obsolete callback APIs are explicit
+migration changes. Legacy concrete catches and duplicate implementations are not
+kept as a compatibility completion strategy. Fixed-source behavioral receipts,
+not declaration searches alone, establish final removal and correctness.
 
 ### Near-Parallel Plane Pair Classification
 
@@ -793,6 +850,18 @@ abscissae of the raised knot vector, factored once per direction; a raised line
 over 1,024 control points, an unclamped direction or a nonpositive raised weight
 throws. `BSplineSurfaceDegreeElevationTests` proves a rational surface with a
 doubled interior knot is unchanged in both directions.
+The direct degree-elevation entry borrows the caller's `ExactScalarAdmission`
+through original validation, raised-knot construction, Greville collocation,
+partial-pivot LU factorization, every homogeneous solve and reconstruction, and
+result validation. Its ordinary entry creates one execution and calls that same
+body. Checked element counts precede byte admission for array and matrix storage;
+actual loop work observes cancellation through that admission. The existing
+1,024-control limit, pivot threshold, periodic refusal and basis/homogeneous
+formulas remain unchanged. This is a construction operation, not a new original
+intersection identity. Bridge and edge-alignment callers depend on this entry;
+the selected G01 sphere/cone producer and relation have no degree-elevation call.
+Focused degree-elevation shape/weight, refusal and caller-resource tests own
+verification on each changed target; G01 evidence keeps its recorded source scope.
 
 `MappedBSplineSurfaceFitter` fits a clamped, uniformly knotted B-spline, bicubic
 unless given other degrees, on a parameter rectangle to a smooth map of it (Wrap
@@ -1047,6 +1116,23 @@ Implicit graph point refinement requests only first-order surface jets for
 its Jacobian and positions for line-search acceptance. Curvature is computed
 only by differential consumers, not by numerical point refinement.
 
+`BSplineSurfaceNaturalContinuation` retains the native tensor and evaluates its
+nearest end-span homogeneous de Boor law for Rebuild's numeric fitting callback.
+Its direct initializer validates on the caller execution and uses the existing
+immutable preparation receipt to retain actual attained depths and contribution
+owners. Before attaching retained contribution scopes, each direct point read
+preflights the actual retained scalar, source, geometric and transport depths
+against the current caller's mapped independent ceilings. A refused depth spends
+no work or storage. It then re-admits the existing receipt inside its contribution
+scopes and charges the original row/column buffers and de Boor work on the same execution. The ordinary read
+uses the retained budget, so it cannot reset a prepared caller's resource limits.
+The end-span choice, knot ratios and homogeneous arithmetic order remain unchanged;
+nonfinite point output throws rather than becoming a fitting point. This numeric
+reader supplies no whole continuation deviation or denominator-positivity proof;
+those publication obligations remain with Geometry Conversion. Focused native
+continuation point/lifetime and N/N-1/cancel controls are owned by
+`BSplineSurfaceNaturalContinuationTests` and the portable delivery-helper fixture.
+
 `BSplineSurface3D.continuedBezierSupport` constructs a temporary continuation
 of one clamped rational Bezier chart over a containing parameter rectangle.
 It does not replace source faces. Homogeneous de Casteljau/blossom evaluation
@@ -1195,7 +1281,7 @@ The existing kernel offset-image integration test retains forward behavior;
 
 ### Plane / isoparametric B-spline intersections
 
-When the weighted signed-distance control coefficients are identical along one surface parameter, `PlaneBSplineIsoparametricIntersector` reduces the complete intersection problem to the existing certified curve/plane root solver. Each root yields the exact surface isocurve and its constant-parameter pcurve, verified by `SurfaceSurfaceIntersectionVerifier`. Other surfaces retain the general analytic/B-spline solver. The mirror sheet-cut regression exercises this dispatch with an interior curved-sheet section.
+The unreferenced `PlaneBSplineIsoparametricIntersector` numerical reduction was removed during direct execution migration. Its rounded signed-distance coefficients and sampled verification cannot issue original source equality. Native-plane publication requires the retained source/parameter authority of [Native Exact Geometric Relations](NativeExactGeometricRelations/DESIGN.md). The existing curved-sheet regression remains an acceptance oracle; removing the old helper does not complete its public runtime gate.
 
 ### Original closed curve-span differential authority
 
@@ -2029,3 +2115,265 @@ verifier or platform imports. No public intersection solver is retired by this c
 [Cleanup verification](../../Tests/LegacyPlaneTorusCleanup/VERIFICATION.md) owns
 reference/retained-body checks and differential behavior against one immutable
 Geometry dependency snapshot; it does not claim a fresh full-module build.
+
+### Direct Numerical Helper Ownership
+
+Original-query numerical helpers receive the original `inout` execution. Native
+basis evaluation, extraction, scalar trigonometry and root certification debit
+work and checked allocation bytes at their algorithm owner; fallible admission
+is propagated through their real callers. A nonthrowing legacy signature is not
+retained by trapping, ignoring failure or constructing an unmetered admission.
+Numerical root candidates and fitted parameter curves do not issue original
+source equality or complete-coverage authority.
+
+Root certification retains immutable, source-owned continuity and closed-domain
+jet receipts. The session accepts the current execution for every certificate;
+it does not retain a mutable invocation or callback ledger. Spatial subdivision
+and source recursion keep their independent ceilings. An at-most-one theorem
+plus a tolerance residual does not establish existence at a boundary. Until a
+source-owned existence receipt or valid closed-cell inclusion theorem is
+available, that boundary remains unresolved and cannot be published as a root.
+The old residual-based boundary success and duplicate callback preparations are
+removed. Exact source-certified public routes remain the acceptance authority.
+
+```text
+public query -> same execution -> prepared continuity/jet receipts
+             -> valid inclusion/exclusion theorem -> public certified result
+             -> unresolved boundary -> explicit incomplete query failure
+```
+
+Behavioral verification must distinguish a strict interior inclusion from a
+near-boundary residual witness, propagate independent depth/work/storage and
+cancellation failures, and retain prepared source ownership after release.
+
+### Sealed Isoparametric Middle-Row Source Law
+
+The existing `ExactIsoparametricPlanarIntersectionGraph` theorem selects the
+middle V station of its source-owned degree-two closed-cell family. For the
+validated V knot sequence `[L, L, L, M, M, U, U, U]` and `fixedV == M`, its
+original U curve retains the authored U knots, row-two control points, row-two
+weights and U periodicity. It does not reconstruct Cartesian control points by
+multiplying and dividing their weights: that changes binary64 source values.
+This extraction is private to the sealed graph theorem and its validated source
+scope; it is not an authority for an arbitrary isoparametric slice.
+
+Graph derivatives, parameter correspondence and flux consumers use this same
+source law and the original execution. Positive verification covers weighted
+middle rows with nonbinary coordinates; rejection covers a different station or
+knot family. Native numerical slice construction remains a separate numerical
+operation and does not issue this source-equality theorem.
+
+### Direct Curve Arc-Length and Differential Bounds
+
+[CurveArcLength](CurveArcLength/DESIGN.md) owns the shared original uniform-law
+and adaptive partition paths, retained inverse queries and their direct resource
+admission. [CurveDifferentialBounds](CurveDifferentialBounds/DESIGN.md) owns curve
+position, derivative and third-order enclosures. These children consume the
+original execution and retain their existing mathematical source authorities;
+the module does not duplicate their algorithms or completion evidence.
+
+### Direct Procedural Evaluation and Lift Calling
+
+Procedural surface dispatch, offset, ruled, revolution and surface lift keep their
+original position, derivative, interval, Taylor and projection algorithms. Each
+ordinary entry creates one execution; each admitted call and every descendant
+uses that same exclusive execution. The original source and geometric ceilings
+remain explicit and independent, and array-backed jets and lift bounds admit
+actual typed payloads. Retained source receipts own their immutable authority
+and common budget contributions; callback adapters and per-helper budgets are
+removed. Candidate projections preserve their numerical membership policy and
+do not issue original intersection equality.
+
+### Direct Certified Analytic Curve Evaluation
+
+Certified analytic intersection curves and their UV views evaluate the retained
+original equations and branch metadata under the caller's original execution.
+An ordinary evaluation creates one independent geometry execution and forwards
+to the same admitted body. Validation, point and derivative evaluation, spatial
+bounds, root iterations and UV reconstruction share that execution. Fixed scalar
+formulas charge their execution work; variable loops and typed arrays charge at
+the operation that visits or allocates them. Existing branch guards, finite
+arithmetic failures, source correspondence and numerical reconstruction checks
+remain unchanged; their residual tests do not gain source-equality authority.
+
+```text
+ordinary query -> one execution -> retained analytic branch
+admitted query -> same execution -> equation / derivative / bound / UV map
+                               -> explicit guard or admission failure
+```
+
+The analytic curve and pcurve behavioral tests own result regression. Admission
+verification must reject work and storage exhaustion in inner iteration and
+allocation paths, preserve independent depth axes, and demonstrate that nested
+pcurve reconstruction debits the same owner. Native, WASM and Embedded share
+immutable branch values and the same common budget Mutex; the numeric C math
+module import is the only platform selection in these evaluation files. Existing
+validation caches remain synchronized immutable-certificate caches and do not
+suppress invocation admission.
+
+The array-backed numerical Taylor jet retains value semantics through a private
+coefficient storage owner containing `Mutex<[Double]>` on every target. A fresh
+unique owner mutates its admitted buffer; mutation of a shared value first
+admits and creates its own coefficient payload and storage owner. Reads and
+writes use the same lock, and admission callbacks execute outside it. No raw
+Embedded state or unchecked Sendable conformance is introduced. Behavioral
+verification includes copy preservation, refusal before COW allocation,
+convolution work limits and cancellation; syntax alone cannot establish these.
+
+Implicit prepared queries retain their immutable original graph, actual depth
+receipt, common budget, effective policy and ordered contribution handles.
+Later queries reattach that authority to an exclusive execution; independent
+callers readmit the receipt without decomposing the original supports again.
+
+
+### Direct Native Surface Projection
+
+Native B-spline parameter projection receives one original query execution through
+affine recognition, original surface decomposition, control-hull subdivision,
+Newton refinement, periodic leaf uniqueness and candidate ordering. Ordinary
+entries create one independent owner and call the same body. Query-local option
+ceilings and caller geometric/depth ceilings remain independent; scratch/control
+storage is admitted before materialization and real loops visit that execution.
+The private projection patch retains immutable source backing and meters dynamic
+de Casteljau output rather than running an unadmitted duplicate kernel. Fixed
+scalar interval products preserve their original comparison order without
+allocating temporary arrays.
+
+Projection residuals and fitted parameter witnesses remain numerical candidates.
+They do not issue source identity or intersection authority. Exact affine
+recognition uses its existing original structural proof and throws on resources;
+its throwing property/direct method never converts failure to false. Verification
+compares ordinary/direct results and checks refusal, cancellation, geometric
+ceilings and charged output boundaries along the actual production path.
+
+### Direct Transform Execution
+
+Rigid and affine geometry image construction, exact determinant predicates, and
+surface parameter chart transport consume the original execution. Standalone
+ordinary APIs create one execution and delegate to the same mathematical body.
+Native control arrays and recursive child/source construction are admitted at
+their actual ownership boundaries; fixed scalar vector transforms remain value
+operations within the charged caller kernel. Word construction retains original
+source guards and descendant limits. Exact structural comparisons admit their
+actual source traversal before comparison; a numerical projection or rounded
+angular phase remains a candidate operation and cannot issue parameter identity.
+Source validation, allocation failure, and final cancellation propagate through
+transform construction and publication.
+
+- Child: [CurveParameterProjection](CurveParameterProjection/DESIGN.md).
+
+- Child: [CertifiedAnalyticCurveEvaluation](CertifiedAnalyticCurveEvaluation/DESIGN.md).
+
+### Direct Rational 2D Intersection Execution
+
+The rational B-spline 2D intersector retains its original difference-patch,
+Krawczyk root, quadratic tangency and authored-domain restriction proofs. One
+original execution owns native patch preparation, interval de Casteljau scratch,
+cell/depth visits, exact expansions and stable result ordering. Ordinary entry
+creates one independent execution and invokes the same core. The acceptance
+closure receives `(intersection, inout execution)` and returns only the
+consumer's precision decision; it does not issue root authority or capture an
+outer mutable execution. Local depth/cell limits remain explicit and independent
+of scalar admission limits. Exhausted, overlapping or unresolved proof domains
+retain explicit failure; residual proximity cannot become an exact certificate.
+
+`RationalBSplineCurveIntersector2DTests` retains nonlinear/endpoint, transverse,
+exact tangency and whole-domain exclusion fixtures and adds direct-owner N/N−1,
+filter-error and cancellation cases. Kernel exact trim and modeling loft callers
+forward the same execution and retain their separate spatial acceptance policy.
+
+### Query Execution Verification Isolation
+
+`SurfaceParameterBox` owns its unchanged interval fields, value initializer and
+Codable layout. Its existing surface-domain validation methods belong to the
+separate `SurfaceParameterBox+Validation.swift` extension, so retaining a box
+in an original query failure does not itself require surface evaluation. The
+methods and their error/domain rules are moved unchanged.
+
+`OriginalQueryExecution+Independent.swift` owns the existing independent root
+factory without the query-option factories in `+Ordinary`. This is a physical
+source boundary only; budget creation, limits and returned execution are unchanged.
+
+```text
+Failure metadata -> SurfaceParameterBox value
+Surface validation -> SurfaceParameterBox validation extension -> Surface3D
+Independent execution -> common budget and limits
+```
+
+The verification harness compiles unchanged production source files and genuine
+matching dependency artifacts. It may select existing isolated compilation flags
+but does not extract algorithms, replace types or bypass the failure classifier.
+Focused compile/link/runtime evidence owns only that selected source closure;
+full Geometry integration must recheck the moved methods and query factories.
+
+### Exact orientation under extreme finite inputs
+
+The `RobustPredicates` orientation fallback evaluates original binary64
+coordinate differences, determinant products and the supplied sign threshold
+using exact rational coefficients under the caller's same admission. The
+floating filter is accepted only when finite normal arithmetic establishes its
+error proof. Underflowing nonzero products, overflowing finite-coordinate
+differences and cancellation cannot become exact zero. Refusal retains its
+actual resource or cancellation cause. Other expansion callers keep their
+existing contracts. The direct common-runtime fixture owns the extreme-input
+and tolerance counterexamples; the main predicate suite owns general behavior.
+
+### Certified implicit structural component identity
+
+`CertifiedImplicitIntersectionCurve.certifiesSameComponent` returns true only
+when two caller-admitted certificates retain exactly the same authored support
+pair and complete ordered graph-cell/branch data. Exact first/second role
+exchange is permitted only when every free coordinate, parameter interval and
+anchor is exchanged consistently. The closed/open flag and traversal direction
+remain part of this structural witness. A different partition, parameter law,
+cell order or branch is not proved by this operation.
+
+```text
+same execution -> genuine certificate validation -> exact authored support pair
+               -> complete ordered cell/role/branch identity -> true witness
+               -> any structural mismatch -> false (identity not proved)
+```
+
+False is not XYZ inequality, absence, exclusion, or proof of distinct components.
+Resources, cancellation, invalid certification and lower failures propagate.
+Distance, residuals, approximately equal anchors and nested/overlapping parameter
+boxes cannot establish identity. General nonidentical-cell equivalence requires
+separate original-source correspondence and coverage authority; this local
+structural port does not complete M5 or U4. Ordinary calls create one root and
+execute the same direct body. Tests own an identical-certificate true witness,
+exact swapped roles, distinct close parallel branches, changed coverage and
+cumulative resource/cancellation refusal.
+
+### Direct native spline construction dependencies
+ExactCoonsBSplineSurfaceBuilder, ExactCompositeBSplineCurveBuilder and
+ExactRectangularBSplineSurfacePatchBuilder retain the invoking construction
+execution through common basis, decomposition, homogeneous arithmetic, output
+assembly and validation. Ordinary entries create one root and use the same
+core. Existing patch, degree and analytic-span limits remain local ceilings.
+BSplineSurface3D.continuedBezierSupport is a scalar-admission implementation;
+its outward homogeneous blossom and whole-rectangle deviation proof are
+unchanged. No native conversion proof is inferred from sampled agreement.
+
+### Closed native curve dispatch stack ownership
+
+The admitted closed-native entry owns receipt re-admission, tolerance/domain
+checks and its original single work debit. Storage dispatch calls outlined
+family bodies; native coefficients and elementary curves never enter a frame
+containing implicit/lift/construction scratch. Outlining changes neither the
+owning-span data, family precedence, arithmetic, resource charge order nor
+source/subdivision ceilings. Existing family refusals and their incomplete
+markers remain in the actual providers. Direct primitive/native jet fixtures
+and target stack measurements jointly verify this boundary; successful source
+parsing does not prove stack use.
+
+### Procedural projection geometric ancestry
+
+Projection retains its existing independent U and V subdivision counters and
+per-axis limits. Original enclosure and stationary-point reads select the
+existing lower producer's local depth ceiling, at most 32, and borrow the
+same execution with geometric offset `uDepth + vDepth`. The execution admits
+that accumulated ancestry plus lower recursion against the caller ceiling.
+Ancestry is never subtracted from a per-axis local limit. Lower/caller caps
+are not increased, and failed lower reads restore the offset before propagating
+the original failure. FaceContainmentDirectExecutionTests owns the production
+projection regression; target execution remains required.

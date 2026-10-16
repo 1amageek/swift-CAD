@@ -17,8 +17,8 @@ struct RationalBezierSurfaceSurfaceDifferencePatchTests {
             tolerance: tolerance
         )
 
-        #expect(difference.excludesZero())
-        #expect(difference.excludesZero(tolerance: tolerance))
+        #expect(try difference.excludesZero())
+        #expect(try difference.excludesZero(tolerance: tolerance))
     }
 
     @Test
@@ -31,8 +31,8 @@ struct RationalBezierSurfaceSurfaceDifferencePatchTests {
             tolerance: tolerance
         )
 
-        #expect(difference.excludesZero())
-        #expect(difference.excludesZero(tolerance: tolerance) == false)
+        #expect(try difference.excludesZero())
+        #expect(try difference.excludesZero(tolerance: tolerance) == false)
     }
 
     @Test
@@ -60,7 +60,7 @@ struct RationalBezierSurfaceSurfaceDifferencePatchTests {
             second: second,
             tolerance: tolerance
         )
-        #expect(difference.excludesZero() == false)
+        #expect(try difference.excludesZero() == false)
 
         let children = difference.subdividedFirstSurface()
 
@@ -81,7 +81,7 @@ struct RationalBezierSurfaceSurfaceDifferencePatchTests {
         #expect(children[3].firstUUpper == 1.0)
         #expect(children[3].firstVLower == 0.5)
         #expect(children[3].firstVUpper == 1.0)
-        #expect(children.contains { $0.excludesZero() == false })
+        #expect(try children.contains { try $0.excludesZero() == false })
     }
 
     @Test
@@ -159,7 +159,7 @@ struct RationalBezierSurfaceSurfaceDifferencePatchTests {
         )
 
         for difference in [forward, reverse] {
-            let certificates = boundaryCertificates(difference)
+            let certificates = try boundaryCertificates(difference)
             #expect(certificates.filter { $0 == .unique }.count == 2)
             #expect(certificates.filter { $0 == .empty }.count == 6)
             #expect(certificates.contains(.unresolved) == false)
@@ -175,14 +175,14 @@ struct RationalBezierSurfaceSurfaceDifferencePatchTests {
         )
 
         #expect(
-            difference.boundaryRootCertificate(
+            try difference.boundaryRootCertificate(
                 fixedParameterIndex: 1,
                 side: .lower,
                 tolerance: tolerance
             ) == .unique
         )
         #expect(
-            difference.boundaryRootCertificate(
+            try difference.boundaryRootCertificate(
                 fixedParameterIndex: 1,
                 side: .upper,
                 tolerance: tolerance
@@ -212,7 +212,7 @@ struct RationalBezierSurfaceSurfaceDifferencePatchTests {
             tolerance: tolerance
         )
 
-        #expect(difference.excludesZero(tolerance: tolerance) == false)
+        #expect(try difference.excludesZero(tolerance: tolerance) == false)
         #expect(
             difference.gaugeRootCertificate()
                 == .midpointSliceEmpty(freeParameterIndex: 1)
@@ -324,10 +324,10 @@ struct RationalBezierSurfaceSurfaceDifferencePatchTests {
 
     private func boundaryCertificates(
         _ difference: RationalBezierSurfaceSurfaceDifferencePatch
-    ) -> [RationalBezierSurfaceSurfaceDifferencePatch.BoundaryRootCertificate] {
-        (0..<4).flatMap { parameterIndex in
-            RationalBezierSurfaceSurfaceDifferencePatch.BoundarySide.allCases.map { side in
-                difference.boundaryRootCertificate(
+    ) throws -> [RationalBezierSurfaceSurfaceDifferencePatch.BoundaryRootCertificate] {
+        try (0..<4).flatMap { parameterIndex in
+            try RationalBezierSurfaceSurfaceDifferencePatch.BoundarySide.allCases.map { side in
+                try difference.boundaryRootCertificate(
                     fixedParameterIndex: parameterIndex,
                     side: side,
                     tolerance: tolerance

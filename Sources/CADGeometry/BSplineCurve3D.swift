@@ -115,20 +115,9 @@ public struct BSplineCurve3D: Sendable, Hashable {
     }
 
     public func reversed(tolerance: ModelingTolerance) throws -> BSplineCurve3D {
-        try validate(tolerance: tolerance)
-        guard case let .closed(lowerBound, upperBound) = fundamentalDomain else {
-            throw GeometryError.invalidDistance(0.0)
-        }
-        let reversedCurve = BSplineCurve3D(
-            degree: degree,
-            knots: knots.reversed().map { lowerBound + upperBound - $0 },
-            controlPoints: Array(controlPoints.reversed()),
-            weights: Array(weights.reversed()),
-            isPeriodic: isPeriodic,
-            periodicOrigin: periodicOrigin
-        )
-        try reversedCurve.validate(tolerance: tolerance)
-        return reversedCurve
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try OriginalQueryExecutionLimits(maximumValueDepth: 32, maximumCoefficientDepth: 32))
+        return try reversed(tolerance: tolerance, using: &execution)
     }
 
     public func insertingKnot(
@@ -136,9 +125,54 @@ public struct BSplineCurve3D: Sendable, Hashable {
         expansionOptions: PeriodicBSplineExpansionOptions = .init(),
         tolerance: ModelingTolerance
     ) throws -> BSplineCurve3D {
-        try validate(tolerance: tolerance)
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try OriginalQueryExecutionLimits(maximumValueDepth: 32, maximumCoefficientDepth: 32))
+        return try insertingKnot(value, expansionOptions: expansionOptions, tolerance: tolerance, using: &execution)
+    }
+
+    public func trimmed(
+        from startParameter: Double,
+        to endParameter: Double,
+        expansionOptions: PeriodicBSplineExpansionOptions = .init(),
+        tolerance: ModelingTolerance
+    ) throws -> BSplineCurve3D {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try OriginalQueryExecutionLimits(maximumValueDepth: 32, maximumCoefficientDepth: 32))
+        return try trimmed(from: startParameter, to: endParameter, expansionOptions: expansionOptions, tolerance: tolerance, using: &execution)
+    }
+
+    public func reversed<A: ExactScalarAdmission & ~Copyable>(tolerance: ModelingTolerance, using execution: inout A) throws -> BSplineCurve3D {
+        try execution.consumeWork(1)
+        try validate(tolerance: tolerance, using: &execution)
+        guard case let .closed(lowerBound, upperBound) = fundamentalDomain else {
+            throw GeometryError.invalidDistance(0.0)
+        }
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: knots.count, of: Double.self))
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: controlPoints.count, of: Point3D.self))
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: weights.count, of: Double.self))
+        for _ in controlPoints { try execution.consumeWork(1) }
+        for _ in weights { try execution.consumeWork(1) }
+        let reversedCurve = BSplineCurve3D(
+            degree: degree,
+            knots: try knots.reversed().map { try execution.consumeWork(1); return lowerBound + upperBound - $0 },
+            controlPoints: Array(try controlPoints.reversed()),
+            weights: Array(try weights.reversed()),
+            isPeriodic: isPeriodic,
+            periodicOrigin: periodicOrigin
+        )
+        try reversedCurve.validate(tolerance: tolerance, using: &execution)
+        return reversedCurve
+    }
+
+    public func insertingKnot<A: ExactScalarAdmission & ~Copyable>(
+        _ value: Double,
+        expansionOptions: PeriodicBSplineExpansionOptions = .init(),
+        tolerance: ModelingTolerance, using execution: inout A
+    ) throws -> BSplineCurve3D {
+        try execution.consumeWork(1)
+        try validate(tolerance: tolerance, using: &execution)
         if isPeriodic {
-            return try periodicRefinement(at: value, options: expansionOptions, tolerance: tolerance)
+            return try periodicRefinement(at: value, options: expansionOptions, tolerance: tolerance, using: &execution)
         }
         guard value.isFinite else {
             throw GeometryError.invalidCoordinate(value)
@@ -147,40 +181,46 @@ public struct BSplineCurve3D: Sendable, Hashable {
             throw GeometryError.invalidDistance(0.0)
         }
         let parameterTolerance = domain.parameterResolution(tolerance: tolerance)
-        let insertionValue = canonicalKnotValue(value, tolerance: tolerance)
+        let insertionValue = try canonicalKnotValue(value, tolerance: tolerance, using: &execution)
         guard insertionValue > lowerBound + parameterTolerance,
               insertionValue < upperBound - parameterTolerance else {
             throw GeometryError.invalidDistance(insertionValue)
         }
-        let multiplicity = knotMultiplicity(at: insertionValue, tolerance: tolerance)
+        let multiplicity = try knotMultiplicity(at: insertionValue, tolerance: tolerance, using: &execution)
         guard multiplicity < degree else {
             throw GeometryError.invalidDistance(insertionValue)
         }
 
-        return try insertingInteriorKnot(insertionValue, multiplicity: multiplicity, tolerance: tolerance)
+        return try insertingInteriorKnot(insertionValue, multiplicity: multiplicity, tolerance: tolerance, using: &execution)
     }
 
     /// Exact Boehm refinement after the caller has resolved the input domain and multiplicity.
-    func insertingInteriorKnot(
-        _ insertionValue: Double, multiplicity: Int, tolerance: ModelingTolerance
+    func insertingInteriorKnot<A: ExactScalarAdmission & ~Copyable>(
+        _ insertionValue: Double, multiplicity: Int, tolerance: ModelingTolerance, using execution: inout A
     ) throws -> BSplineCurve3D {
-        let span = knotSpan(containing: insertionValue)
+        try execution.consumeWork(1)
+        let span = try knotSpan(containing: insertionValue, using: &execution)
         let lastControlPointIndex = controlPointCount - 1
+        let newControlCount = controlPointCount.addingReportingOverflow(1)
+        guard !newControlCount.overflow else { throw ExactScalarFailure.countOverflow }
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: newControlCount.partialValue, of: HomogeneousPoint.self))
         var updatedWeightedPoints = Array(
             repeating: HomogeneousPoint.zero,
-            count: controlPointCount + 1
+            count: newControlCount.partialValue
         )
-        let weightedPoints = homogeneousControlPoints()
+        let weightedPoints = try homogeneousControlPoints(using: &execution)
 
         let unchangedPrefixEnd = span - degree
         if unchangedPrefixEnd >= 0 {
             for index in 0...unchangedPrefixEnd {
+                try execution.consumeWork(1)
                 updatedWeightedPoints[index] = weightedPoints[index]
             }
         }
         let unchangedSuffixStart = span - multiplicity + 1
         if unchangedSuffixStart <= lastControlPointIndex + 1 {
             for index in unchangedSuffixStart...(lastControlPointIndex + 1) {
+                try execution.consumeWork(1)
                 updatedWeightedPoints[index] = weightedPoints[index - 1]
             }
         }
@@ -188,6 +228,7 @@ public struct BSplineCurve3D: Sendable, Hashable {
         let blendedEnd = span - multiplicity
         if blendedStart <= blendedEnd {
             for index in blendedStart...blendedEnd {
+                try execution.consumeWork(1)
                 let denominator = knots[index + degree] - knots[index]
                 guard denominator.isFinite, denominator > 0 else {
                     throw GeometryError.invalidDistance(denominator)
@@ -199,31 +240,39 @@ public struct BSplineCurve3D: Sendable, Hashable {
             }
         }
 
+        let newKnotCount = knots.count.addingReportingOverflow(1)
+        guard !newKnotCount.overflow else { throw ExactScalarFailure.countOverflow }
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: newKnotCount.partialValue, of: Double.self))
+        var newKnots: [Double] = []
+        newKnots.reserveCapacity(newKnotCount.partialValue)
+        for knot in knots.prefix(span + 1) { try execution.consumeWork(1); newKnots.append(knot) }
+        newKnots.append(insertionValue)
+        for knot in knots.suffix(from: span + 1) { try execution.consumeWork(1); newKnots.append(knot) }
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: updatedWeightedPoints.count, of: Point3D.self))
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: updatedWeightedPoints.count, of: Double.self))
         let updatedCurve = try BSplineCurve3D(
-            degree: degree,
-            knots: Array(knots.prefix(span + 1))
-                + [insertionValue]
-                + Array(knots.suffix(from: span + 1)),
-            controlPoints: updatedWeightedPoints.map { try $0.point() },
-            weights: updatedWeightedPoints.map({ $0.weight })
+            degree: degree, knots: newKnots,
+            controlPoints: updatedWeightedPoints.map { try execution.consumeWork(1); return try $0.point() },
+            weights: updatedWeightedPoints.map { try execution.consumeWork(1); return $0.weight }
         )
-        try updatedCurve.validate(tolerance: tolerance)
+        try updatedCurve.validate(tolerance: tolerance, using: &execution)
         return updatedCurve
     }
 
-    public func trimmed(
+    public func trimmed<A: ExactScalarAdmission & ~Copyable>(
         from startParameter: Double,
         to endParameter: Double,
         expansionOptions: PeriodicBSplineExpansionOptions = .init(),
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout A
     ) throws -> BSplineCurve3D {
-        try validate(tolerance: tolerance)
+        try execution.consumeWork(1)
+        try validate(tolerance: tolerance, using: &execution)
         if isPeriodic {
             return try periodicRestriction(from: startParameter, to: endParameter,
-                options: expansionOptions, tolerance: tolerance)
+                options: expansionOptions, tolerance: tolerance, using: &execution)
         }
-        let start = canonicalKnotValue(startParameter, tolerance: tolerance)
-        let end = canonicalKnotValue(endParameter, tolerance: tolerance)
+        let start = try canonicalKnotValue(startParameter, tolerance: tolerance, using: &execution)
+        let end = try canonicalKnotValue(endParameter, tolerance: tolerance, using: &execution)
         if case let .closed(lower, upper) = domain,
            start == lower,
            end == upper {
@@ -233,85 +282,116 @@ public struct BSplineCurve3D: Sendable, Hashable {
             source: self,
             lower: start,
             upper: end,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
-        try validate(tolerance: tolerance, consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try OriginalQueryExecutionLimits(maximumValueDepth: 32, maximumCoefficientDepth: 32))
+        try validate(tolerance: tolerance, using: &execution)
     }
 
     /// The composing caller owns admission for every original source visit.
-    package func validate(tolerance: ModelingTolerance, consumeWork: () throws -> Void) throws {
-        try consumeWork(); try tolerance.validate()
+    package func validate<A: ExactScalarAdmission & ~Copyable>(tolerance: ModelingTolerance, using execution: inout A) throws {
+        try execution.consumeWork(1); try tolerance.validate()
         guard degree >= 1, degree < controlPoints.count else {
             throw GeometryError.invalidDistance(0.0)
         }
         for point in controlPoints {
-            try consumeWork(); try consumeWork(); try consumeWork()
+            try execution.consumeWork(1); try execution.consumeWork(1); try execution.consumeWork(1)
             try point.validate()
         }
-        try validateWeights(consumeWork: consumeWork)
-        try validateKnots(consumeWork: consumeWork)
-        try consumeWork(); try domain.validate(tolerance: tolerance)
-        try validatePeriodicity(tolerance: tolerance, consumeWork: consumeWork)
+        try validateWeights(using: &execution)
+        try validateKnots(using: &execution)
+        try execution.consumeWork(1); try domain.validate(tolerance: tolerance)
+        try validatePeriodicity(tolerance: tolerance, using: &execution)
     }
 
     public func point(at parameter: Double, tolerance: ModelingTolerance) throws -> Point3D {
-        try validate(tolerance: tolerance)
-        return try pointAssumingValid(at: parameter, tolerance: tolerance)
-    }
-
-    func pointAssumingValid(
-        at parameter: Double,
-        tolerance: ModelingTolerance
-    ) throws -> Point3D {
-        guard try domain.contains(parameter, tolerance: tolerance) else {
-            throw GeometryError.invalidDistance(0.0)
-        }
-        let clamped = try basisParameter(parameter, tolerance: tolerance)
-        let basis = BSplineBasis.nonzeroValues(
-            parameter: clamped,
-            degree: degree,
-            knots: knots,
-            count: controlPointCount
-        )
-        let position = try rationalPoint(basis: basis)
-        return Point3D(x: position.x, y: position.y, z: position.z)
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try OriginalQueryExecutionLimits(maximumValueDepth: 32, maximumCoefficientDepth: 32))
+        return try point(at: parameter, tolerance: tolerance, using: &execution)
     }
 
     public func differentialGeometry(
         at parameter: Double,
         tolerance: ModelingTolerance
     ) throws -> DifferentialGeometry {
-        try validate(tolerance: tolerance)
-        return try differentialGeometryAssumingValid(
-            at: parameter,
-            tolerance: tolerance
-        )
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try OriginalQueryExecutionLimits(maximumValueDepth: 32, maximumCoefficientDepth: 32))
+        return try differentialGeometry(at: parameter, tolerance: tolerance, using: &execution)
     }
 
     public func parameterDerivatives(
         at parameter: Double,
         tolerance: ModelingTolerance
     ) throws -> CurveParameterDerivatives {
-        try validate(tolerance: tolerance)
-        return try parameterDerivativesAssumingValid(
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try OriginalQueryExecutionLimits(maximumValueDepth: 32, maximumCoefficientDepth: 32))
+        return try parameterDerivatives(at: parameter, tolerance: tolerance, using: &execution)
+    }
+
+    public func point<A: ExactScalarAdmission & ~Copyable>(at parameter: Double, tolerance: ModelingTolerance, using execution: inout A) throws -> Point3D {
+        try execution.consumeWork(1)
+        try validate(tolerance: tolerance, using: &execution)
+        return try pointAssumingValid(at: parameter, tolerance: tolerance, using: &execution)
+    }
+
+    func pointAssumingValid<A: ExactScalarAdmission & ~Copyable>(
+        at parameter: Double,
+        tolerance: ModelingTolerance, using execution: inout A
+    ) throws -> Point3D {
+        try execution.consumeWork(1)
+        guard try domain.contains(parameter, tolerance: tolerance) else {
+            throw GeometryError.invalidDistance(0.0)
+        }
+        let clamped = try basisParameter(parameter, tolerance: tolerance)
+        let basis = try BSplineBasis.nonzeroValues(
+            parameter: clamped,
+            degree: degree,
+            knots: knots,
+            count: controlPointCount, using: &execution
+        )
+        let position = try rationalPoint(basis: basis, using: &execution)
+        return Point3D(x: position.x, y: position.y, z: position.z)
+    }
+
+    public func differentialGeometry<A: ExactScalarAdmission & ~Copyable>(
+        at parameter: Double,
+        tolerance: ModelingTolerance, using execution: inout A
+    ) throws -> DifferentialGeometry {
+        try execution.consumeWork(1)
+        try validate(tolerance: tolerance, using: &execution)
+        return try differentialGeometryAssumingValid(
             at: parameter,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
     }
 
-    package func parameterDerivativesAssumingValid(
+    public func parameterDerivatives<A: ExactScalarAdmission & ~Copyable>(
         at parameter: Double,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout A
     ) throws -> CurveParameterDerivatives {
+        try execution.consumeWork(1)
+        try validate(tolerance: tolerance, using: &execution)
+        return try parameterDerivativesAssumingValid(
+            at: parameter,
+            tolerance: tolerance, using: &execution
+        )
+    }
+
+    package func parameterDerivativesAssumingValid<A: ExactScalarAdmission & ~Copyable>(
+        at parameter: Double,
+        tolerance: ModelingTolerance, using execution: inout A
+    ) throws -> CurveParameterDerivatives {
+        try execution.consumeWork(1)
         guard try domain.contains(parameter, tolerance: tolerance) else {
             throw GeometryError.invalidDistance(0.0)
         }
         let clamped = try basisParameter(parameter, tolerance: tolerance)
         if degree == 3, controlPointCount == 4, knots.count == 8,
-           weights.allSatisfy({ $0 == 1 }),
+           try weights.allSatisfy({ try execution.consumeWork(1); return $0 == 1 }),
            knots[0] == knots[3], knots[4] == knots[7] {
             let width = knots[4] - knots[3]
             let t = (clamped - knots[3]) / width
@@ -335,17 +415,17 @@ public struct BSplineCurve3D: Sendable, Hashable {
             return CurveParameterDerivatives(position: position,
                 firstDerivative: first, secondDerivative: second)
         }
-        let basis = BSplineBasis.nonzeroDerivativeValues(
+        let basis = try BSplineBasis.nonzeroDerivativeValues(
             parameter: clamped,
             degree: degree,
             throughDerivativeOrder: 2,
             knots: knots,
-            count: controlPointCount
+            count: controlPointCount, using: &execution
         )
         let derivatives = try rationalDerivatives(
             basis: basis[0],
             firstBasis: basis[1],
-            secondBasis: basis[2]
+            secondBasis: basis[2], using: &execution
         )
         guard derivatives.first.isFinite,
               derivatives.second.isFinite else {
@@ -363,25 +443,26 @@ public struct BSplineCurve3D: Sendable, Hashable {
         )
     }
 
-    func differentialGeometryAssumingValid(
+    func differentialGeometryAssumingValid<A: ExactScalarAdmission & ~Copyable>(
         at parameter: Double,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout A
     ) throws -> DifferentialGeometry {
+        try execution.consumeWork(1)
         guard try domain.contains(parameter, tolerance: tolerance) else {
             throw GeometryError.invalidDistance(0.0)
         }
         let clamped = try basisParameter(parameter, tolerance: tolerance)
-        let basis = BSplineBasis.nonzeroDerivativeValues(
+        let basis = try BSplineBasis.nonzeroDerivativeValues(
             parameter: clamped,
             degree: degree,
             throughDerivativeOrder: 2,
             knots: knots,
-            count: controlPointCount
+            count: controlPointCount, using: &execution
         )
         let derivatives = try rationalDerivatives(
             basis: basis[0],
             firstBasis: basis[1],
-            secondBasis: basis[2]
+            secondBasis: basis[2], using: &execution
         )
         guard derivatives.first.isFinite,
               derivatives.second.isFinite else {
@@ -486,12 +567,12 @@ public struct BSplineCurve3D: Sendable, Hashable {
         var second: Vector3D
     }
 
-    private func validateWeights(consumeWork: () throws -> Void) throws {
+    private func validateWeights<A: ExactScalarAdmission & ~Copyable>(using execution: inout A) throws {
         guard weights.count == controlPointCount else {
             throw GeometryError.invalidDistance(Double(weights.count))
         }
         for weight in weights {
-            try consumeWork()
+            try execution.consumeWork(1)
             guard weight.isFinite else {
                 throw GeometryError.invalidCoordinate(weight)
             }
@@ -501,19 +582,19 @@ public struct BSplineCurve3D: Sendable, Hashable {
         }
     }
 
-    private func validateKnots(consumeWork: () throws -> Void) throws {
+    private func validateKnots<A: ExactScalarAdmission & ~Copyable>(using execution: inout A) throws {
         let total = controlPointCount.addingReportingOverflow(degree)
         guard !total.overflow, total.partialValue < Int.max, knots.count == total.partialValue + 1 else {
             throw GeometryError.invalidDistance(Double(knots.count))
         }
         for knot in knots {
-            try consumeWork()
+            try execution.consumeWork(1)
             guard knot.isFinite else {
                 throw GeometryError.invalidCoordinate(knot)
             }
         }
         for index in 1..<knots.count {
-            try consumeWork()
+            try execution.consumeWork(1)
             guard knots[index] >= knots[index - 1] else {
                 throw GeometryError.invalidDistance(knots[index] - knots[index - 1])
             }
@@ -526,21 +607,21 @@ public struct BSplineCurve3D: Sendable, Hashable {
         try validateKnotMultiplicities(
             lowerBound: lowerBound,
             upperBound: upperBound,
-            consumeWork: consumeWork
+            using: &execution
         )
     }
 
-    private func validateKnotMultiplicities(
+    private func validateKnotMultiplicities<A: ExactScalarAdmission & ~Copyable>(
         lowerBound: Double,
         upperBound: Double,
-        consumeWork: () throws -> Void
+        using execution: inout A
     ) throws {
         var runStart = 0
         while runStart < knots.count {
-            try consumeWork()
+            try execution.consumeWork(1)
             var runEnd = runStart + 1
             while runEnd < knots.count {
-                try consumeWork()
+                try execution.consumeWork(1)
                 guard knots[runEnd] == knots[runStart] else { break }
                 runEnd += 1
             }
@@ -556,20 +637,22 @@ public struct BSplineCurve3D: Sendable, Hashable {
         }
     }
 
-    private func rationalPoint(
-        basis: BSplineBasis.NonzeroValues
+    private func rationalPoint<A: ExactScalarAdmission & ~Copyable>(
+        basis: BSplineBasis.NonzeroValues, using execution: inout A
     ) throws -> Vector3D {
-        try rationalVector(weightedCurveVector(basis: basis))
+        try execution.consumeWork(1)
+        return try rationalVector(try weightedCurveVector(basis: basis, using: &execution))
     }
 
-    private func rationalDerivatives(
+    private func rationalDerivatives<A: ExactScalarAdmission & ~Copyable>(
         basis: BSplineBasis.NonzeroValues,
         firstBasis: BSplineBasis.NonzeroValues,
-        secondBasis: BSplineBasis.NonzeroValues
+        secondBasis: BSplineBasis.NonzeroValues, using execution: inout A
     ) throws -> RationalDerivatives {
-        let base = weightedCurveVector(basis: basis)
-        let first = weightedCurveVector(basis: firstBasis)
-        let second = weightedCurveVector(basis: secondBasis)
+        try execution.consumeWork(1)
+        let base = try weightedCurveVector(basis: basis, using: &execution)
+        let first = try weightedCurveVector(basis: firstBasis, using: &execution)
+        let second = try weightedCurveVector(basis: secondBasis, using: &execution)
         let positionVector = try rationalVector(base)
         let firstDerivative = (first.point - positionVector * first.weight) / base.weight
         let secondDerivative = (
@@ -593,12 +676,14 @@ public struct BSplineCurve3D: Sendable, Hashable {
         return weighted.point / weighted.weight
     }
 
-    private func weightedCurveVector(
-        basis: BSplineBasis.NonzeroValues
-    ) -> WeightedVector {
+    private func weightedCurveVector<A: ExactScalarAdmission & ~Copyable>(
+        basis: BSplineBasis.NonzeroValues, using execution: inout A
+    ) throws -> WeightedVector {
+        try execution.consumeWork(1)
         var point = Vector3D.zero
         var weightSum = 0.0
         for (offset, value) in basis.values.enumerated() {
+            try execution.consumeWork(1)
             let index = basis.startIndex + offset
             guard index >= 0, index < controlPointCount else { continue }
             let basisWeight = value * weights[index]
@@ -611,8 +696,11 @@ public struct BSplineCurve3D: Sendable, Hashable {
         return WeightedVector(point: point, weight: weightSum)
     }
 
-    private func homogeneousControlPoints() -> [HomogeneousPoint] {
-        controlPoints.indices.map { index in
+    private func homogeneousControlPoints<A: ExactScalarAdmission & ~Copyable>(using execution: inout A) throws -> [HomogeneousPoint] {
+        try execution.consumeWork(1)
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: controlPoints.count, of: HomogeneousPoint.self))
+        return try controlPoints.indices.map { index in
+            try execution.consumeWork(1)
             let point = controlPoints[index]
             let weight = weights[index]
             return HomogeneousPoint(
@@ -624,26 +712,35 @@ public struct BSplineCurve3D: Sendable, Hashable {
         }
     }
 
-    private func canonicalKnotValue(
+    private func canonicalKnotValue<A: ExactScalarAdmission & ~Copyable>(
         _ value: Double,
-        tolerance: ModelingTolerance
-    ) -> Double {
+        tolerance: ModelingTolerance, using execution: inout A
+    ) throws -> Double {
+        try execution.consumeWork(1)
         let parameterTolerance = domain.parameterResolution(tolerance: tolerance)
-        for knot in knots where abs(knot - value) <= parameterTolerance {
-            return knot
+        for knot in knots {
+            try execution.consumeWork(1)
+            if abs(knot - value) <= parameterTolerance { return knot }
         }
         return value
     }
 
-    private func knotMultiplicity(
+    private func knotMultiplicity<A: ExactScalarAdmission & ~Copyable>(
         at value: Double,
-        tolerance: ModelingTolerance
-    ) -> Int {
+        tolerance: ModelingTolerance, using execution: inout A
+    ) throws -> Int {
+        try execution.consumeWork(1)
         let parameterTolerance = domain.parameterResolution(tolerance: tolerance)
-        return knots.filter { abs($0 - value) <= parameterTolerance }.count
+        var count = 0
+        for knot in knots {
+            try execution.consumeWork(1)
+            if abs(knot - value) <= parameterTolerance { count += 1 }
+        }
+        return count
     }
 
-    private func knotSpan(containing value: Double) -> Int {
+    private func knotSpan<A: ExactScalarAdmission & ~Copyable>(containing value: Double, using execution: inout A) throws -> Int {
+        try execution.consumeWork(1)
         let lastControlPointIndex = controlPointCount - 1
         if value >= knots[lastControlPointIndex + 1] {
             return lastControlPointIndex
@@ -652,6 +749,7 @@ public struct BSplineCurve3D: Sendable, Hashable {
         var upper = lastControlPointIndex + 1
         var middle = (lower + upper) / 2
         while value < knots[middle] || value >= knots[middle + 1] {
+            try execution.consumeWork(1)
             if value < knots[middle] {
                 upper = middle
             } else {

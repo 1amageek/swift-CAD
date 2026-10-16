@@ -5,8 +5,8 @@ import L2
 #endif
 
 extension ExactRealCellDomain {
-    func parentConditions(_ level: ExactRealCellProjectionLevel<Base>, parent: ExactRealCellRecord<Base>,
-        _ a: inout ExactCellBorrowedAdmission) throws -> [ExactSign] {
+    func parentConditions<A: ExactScalarAdmission & ~Copyable>(_ level: ExactRealCellProjectionLevel<Base>, parent: ExactRealCellRecord<Base>,
+        _ a: inout A) throws -> [ExactSign] {
         try ExactCellAccess.storage(level.bindings.count, ExactSign.self, &a)
         var signs: [ExactSign] = []; signs.reserveCapacity(level.bindings.count)
         for binding in level.bindings {
@@ -33,8 +33,8 @@ extension ExactRealCellDomain {
         }
         return signs
     }
-    func validateParentConditions(_ level: ExactRealCellProjectionLevel<Base>, stack: ExactRealCellStack<Base>,
-        prefix: ExactRealCellSample<Base>, _ a: inout ExactCellBorrowedAdmission) throws {
+    func validateParentConditions<A: ExactScalarAdmission & ~Copyable>(_ level: ExactRealCellProjectionLevel<Base>, stack: ExactRealCellStack<Base>,
+        prefix: ExactRealCellSample<Base>, _ a: inout A) throws {
         guard prefix.coordinates.count == level.axis, stack.axis == level.axis,
             stack.parentConditionSigns.count == level.bindings.count,
             stack.coefficientSigns.count == level.laws.count else { throw ExactRealCellFailure.invalidCoverage }
@@ -50,8 +50,8 @@ extension ExactRealCellDomain {
             }
         }
     }
-    func rootMultiplicity(_ source: ExactRealRootSource<Field>, at root: ExactRealRoot<Field>,
-        issuer: ExactRealRootDomain<Field>, _ a: inout ExactCellBorrowedAdmission) throws -> Int {
+    func rootMultiplicity<A: ExactScalarAdmission & ~Copyable>(_ source: ExactRealRootSource<Field>, at root: ExactRealRoot<Field>,
+        issuer: ExactRealRootDomain<Field>, _ a: inout A) throws -> Int {
         let p = issuer.polynomials
         guard let degree = try p.degree(of: source.original, in: 0, using: &a) else { return 0 }
         var law = source, order = 0
@@ -62,8 +62,8 @@ extension ExactRealCellDomain {
         }
         return order
     }
-    func originalMultiplicities(_ set: ExactRealRootSet<Field>, specialized: [ExactRealRootSource<Field>],
-        cutLawCount: Int, _ a: inout ExactCellBorrowedAdmission) throws -> [[Int]] {
+    func originalMultiplicities<A: ExactScalarAdmission & ~Copyable>(_ set: ExactRealRootSet<Field>, specialized: [ExactRealRootSource<Field>],
+        cutLawCount: Int, _ a: inout A) throws -> [[Int]] {
         guard cutLawCount >= 0, cutLawCount <= specialized.count else { throw ExactRealCellFailure.invalidCoverage }
         let issuer = try ExactRealRootDomain(retaining: set.source, using: &a)
         try ExactCellAccess.storage(cutLawCount, [Int].self, &a)
@@ -78,8 +78,8 @@ extension ExactRealCellDomain {
         }
         return result
     }
-    func validateRootCorrespondence(_ set: ExactRealRootSet<Field>, specialized: [ExactRealRootSource<Field>],
-        stack: ExactRealCellStack<Base>, _ a: inout ExactCellBorrowedAdmission) throws {
+    func validateRootCorrespondence<A: ExactScalarAdmission & ~Copyable>(_ set: ExactRealRootSet<Field>, specialized: [ExactRealRootSource<Field>],
+        stack: ExactRealCellStack<Base>, _ a: inout A) throws {
         guard set.roots.count == stack.rootSet.roots.count, specialized.count == stack.effectiveDegrees.count else {
             throw ExactRealCellFailure.invalidCoverage
         }

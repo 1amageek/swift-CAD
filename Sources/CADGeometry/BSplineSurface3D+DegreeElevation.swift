@@ -24,7 +24,18 @@ extension BSplineSurface3D {
         direction: SurfaceParameterDirection,
         tolerance: ModelingTolerance
     ) throws -> BSplineSurface3D {
-        try validate(tolerance: tolerance)
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
+        return try elevatingDegree(direction: direction, tolerance: tolerance, using: &execution)
+    }
+
+    public func elevatingDegree<A: ExactScalarAdmission & ~Copyable>(
+        direction: SurfaceParameterDirection,
+        tolerance: ModelingTolerance,
+        using execution: inout A
+    ) throws -> BSplineSurface3D {
+        try execution.consumeWork(1)
+        try validate(tolerance: tolerance, using: &execution)
         // FIXME(INCOMPLETE_IMPLEMENTATION): Cyclic degree elevation is not integrated.
         // Public BSplineSurface3D.elevatingDegree reaches here. G5/G6 must preserve the
         // cyclic function and continuity with an exact basis transformation before success.
@@ -33,19 +44,25 @@ extension BSplineSurface3D {
         }
         let degree = direction == .u ? uDegree : vDegree
         let knots = direction == .u ? uKnots : vKnots
-        let raised = try DegreeElevationBasis(knots: knots, degree: degree)
+        let raised = try DegreeElevationBasis(knots: knots, degree: degree, using: &execution)
         // Rows run along u and are indexed by v; columns run along v and are indexed by u.
         let lineCount = direction == .u ? vControlPointCount : uControlPointCount
         var raisedLines: [[[Double]]] = []
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: lineCount, of: [[Double]].self))
         raisedLines.reserveCapacity(lineCount)
         for lineIndex in 0..<lineCount {
-            let line: [[Double]] = (0..<(direction == .u ? uControlPointCount : vControlPointCount)).map { index in
+            try execution.consumeWork(1)
+            let originalCount = direction == .u ? uControlPointCount : vControlPointCount
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: originalCount, of: [Double].self))
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: exactScalarCount(originalCount, 4, multiply: true), of: Double.self))
+            let line: [[Double]] = try (0..<originalCount).map { index in
+                try execution.consumeWork(1)
                 let (vIndex, uIndex) = direction == .u ? (lineIndex, index) : (index, lineIndex)
                 let weight = weights[vIndex][uIndex]
                 let point = controlPoints[vIndex][uIndex]
                 return [point.x * weight, point.y * weight, point.z * weight, weight]
             }
-            raisedLines.append(try raised.elevated(line))
+            raisedLines.append(try raised.elevated(line, using: &execution))
         }
 
         let raisedCount = raised.raisedControlPointCount
@@ -53,10 +70,16 @@ extension BSplineSurface3D {
         var raisedWeights: [[Double]] = []
         let vCount = direction == .u ? vControlPointCount : raisedCount
         let uCount = direction == .u ? raisedCount : uControlPointCount
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: vCount, of: [Point3D].self))
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: vCount, of: [Double].self))
         for vIndex in 0..<vCount {
+            try execution.consumeWork(1)
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: uCount, of: Point3D.self))
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: uCount, of: Double.self))
             var pointRow: [Point3D] = []
             var weightRow: [Double] = []
             for uIndex in 0..<uCount {
+                try execution.consumeWork(1)
                 let homogeneous = direction == .u ? raisedLines[vIndex][uIndex] : raisedLines[uIndex][vIndex]
                 let weight = homogeneous[3]
                 guard weight.isFinite, weight > 0 else {
@@ -78,7 +101,7 @@ extension BSplineSurface3D {
             isUPeriodic: isUPeriodic, isVPeriodic: isVPeriodic,
             uPeriodicOrigin: uPeriodicOrigin, vPeriodicOrigin: vPeriodicOrigin
         )
-        try result.validate(tolerance: tolerance)
+        try result.validate(tolerance: tolerance, using: &execution)
         return result
     }
 }
@@ -99,9 +122,10 @@ private struct DegreeElevationBasis {
     /// The original basis at the same abscissae, one row per abscissa.
     private let originalBasisRows: [[Double]]
 
-    init(knots: [Double], degree: Int) throws {
+    init<A: ExactScalarAdmission & ~Copyable>(knots: [Double], degree: Int, using execution: inout A) throws {
+        try execution.consumeWork(1)
         let count = knots.count
-        guard degree >= 1, count >= 2 * (degree + 1),
+        guard degree >= 1, count >= (try exactScalarCount(2, exactScalarCount(degree, 1), multiply: true)),
               knots[0] == knots[degree], knots[count - 1] == knots[count - 1 - degree] else {
             throw GeometryError.invalidDistance(Double(degree))
         }
@@ -110,9 +134,15 @@ private struct DegreeElevationBasis {
         var raised: [Double] = []
         var index = 0
         while index < count {
+            try execution.consumeWork(1)
             var end = index + 1
-            while end < count, knots[end] == knots[index] { end += 1 }
-            raised.append(contentsOf: repeatElement(knots[index], count: end - index + 1))
+            while end < count, knots[end] == knots[index] {
+                try execution.consumeWork(1)
+                end += 1
+            }
+            let multiplicity = try exactScalarCount(end - index, 1)
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: multiplicity, of: Double.self))
+            raised.append(contentsOf: repeatElement(knots[index], count: multiplicity))
             index = end
         }
         raisedKnots = raised
@@ -122,30 +152,47 @@ private struct DegreeElevationBasis {
             throw GeometryError.invalidMatrixElementCount(raisedControlPointCount)
         }
 
-        let abscissae = (0..<raisedControlPointCount).map { j in
-            raised[(j + 1)...(j + raisedDegree)].reduce(0, +) / Double(raisedDegree)
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: raisedControlPointCount, of: Double.self))
+        let abscissae = try (0..<raisedControlPointCount).map { j in
+            try execution.consumeWork(1)
+            return try raised[(j + 1)...(j + raisedDegree)].reduce(0) {
+                try execution.consumeWork(1)
+                return $0 + $1
+            } / Double(raisedDegree)
         }
         let originalCount = count - degree - 1
         var matrix: [[Double]] = []
         var originalRows: [[Double]] = []
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: raisedControlPointCount, of: [Double].self))
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: raisedControlPointCount, of: [Double].self))
         for abscissa in abscissae {
-            matrix.append(Self.basisRow(at: abscissa, knots: raised, degree: raisedDegree, count: raisedControlPointCount))
-            originalRows.append(Self.basisRow(at: abscissa, knots: knots, degree: degree, count: originalCount))
+            try execution.consumeWork(1)
+            matrix.append(try Self.basisRow(at: abscissa, knots: raised, degree: raisedDegree, count: raisedControlPointCount, using: &execution))
+            originalRows.append(try Self.basisRow(at: abscissa, knots: knots, degree: degree, count: originalCount, using: &execution))
         }
-        factorization = try LUFactorization(matrix)
+        factorization = try LUFactorization(matrix, using: &execution)
         originalBasisRows = originalRows
     }
 
     /// The raised control line of `line`, whose entries are homogeneous coordinates.
-    func elevated(_ line: [[Double]]) throws -> [[Double]] {
+    func elevated<A: ExactScalarAdmission & ~Copyable>(_ line: [[Double]], using execution: inout A) throws -> [[Double]] {
+        try execution.consumeWork(1)
         let dimension = line.first?.count ?? 0
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: raisedControlPointCount, of: [Double].self))
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: exactScalarCount(raisedControlPointCount, dimension, multiply: true), of: Double.self))
         var result = Array(repeating: Array(repeating: 0.0, count: dimension), count: raisedControlPointCount)
         for component in 0..<dimension {
-            let values = originalBasisRows.map { row in
-                zip(row, line).reduce(0) { $0 + $1.0 * $1.1[component] }
+            try execution.consumeWork(1)
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: originalBasisRows.count, of: Double.self))
+            let values = try originalBasisRows.map { row in
+                try zip(row, line).reduce(0) {
+                    try execution.consumeWork(1)
+                    return $0 + $1.0 * $1.1[component]
+                }
             }
-            let solved = factorization.solve(values)
+            let solved = try factorization.solve(values, using: &execution)
             for index in 0..<raisedControlPointCount {
+                try execution.consumeWork(1)
                 guard solved[index].isFinite else {
                     throw GeometryError.invalidCoordinate(solved[index])
                 }
@@ -157,19 +204,26 @@ private struct DegreeElevationBasis {
 
     /// All basis functions of `degree` over `knots` at `parameter` (Cox–de Boor), zero outside
     /// the supporting span; the domain end belongs to the last span.
-    static func basisRow(at parameter: Double, knots: [Double], degree: Int, count: Int) -> [Double] {
+    static func basisRow<A: ExactScalarAdmission & ~Copyable>(at parameter: Double, knots: [Double], degree: Int, count: Int, using execution: inout A) throws -> [Double] {
+        try execution.consumeWork(1)
         var span = degree
-        while span < count - 1, parameter >= knots[span + 1] { span += 1 }
+        while span < count - 1, parameter >= knots[span + 1] {
+            try execution.consumeWork(1)
+            span += 1
+        }
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: exactScalarCount(3, exactScalarCount(degree, 1), multiply: true), of: Double.self))
         var values = Array(repeating: 0.0, count: degree + 1)
         var left = Array(repeating: 0.0, count: degree + 1)
         var right = Array(repeating: 0.0, count: degree + 1)
         values[0] = 1
         if degree > 0 {
             for j in 1...degree {
+                try execution.consumeWork(1)
                 left[j] = parameter - knots[span + 1 - j]
                 right[j] = knots[span + j] - parameter
                 var saved = 0.0
                 for r in 0..<j {
+                    try execution.consumeWork(1)
                     let denominator = right[r + 1] + left[j - r]
                     let temp = denominator == 0 ? 0 : values[r] / denominator
                     values[r] = saved + right[r + 1] * temp
@@ -178,8 +232,10 @@ private struct DegreeElevationBasis {
                 values[j] = saved
             }
         }
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: count, of: Double.self))
         var row = Array(repeating: 0.0, count: count)
         for (offset, value) in values.enumerated() {
+            try execution.consumeWork(1)
             row[span - degree + offset] = value
         }
         return row
@@ -191,14 +247,21 @@ private struct LUFactorization {
     private var lu: [[Double]]
     private var pivots: [Int]
 
-    init(_ matrix: [[Double]]) throws {
-        lu = matrix
+    init<A: ExactScalarAdmission & ~Copyable>(_ matrix: [[Double]], using execution: inout A) throws {
+        try execution.consumeWork(1)
         let size = matrix.count
+        // Mutation detaches the matrix and each row from the input's COW storage.
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: size, of: [Double].self))
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: exactScalarCount(size, size, multiply: true), of: Double.self))
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: size, of: Int.self))
+        lu = matrix
         pivots = Array(0..<size)
         for column in 0..<size {
+            try execution.consumeWork(1)
             var pivotRow = column
-            for row in column..<size where abs(lu[row][column]) > abs(lu[pivotRow][column]) {
-                pivotRow = row
+            for row in column..<size {
+                try execution.consumeWork(1)
+                if abs(lu[row][column]) > abs(lu[pivotRow][column]) { pivotRow = row }
             }
             guard abs(lu[pivotRow][column]) > 1.0e-14 else {
                 throw GeometryError.invalidMatrixElementCount(size)
@@ -208,24 +271,39 @@ private struct LUFactorization {
                 pivots.swapAt(pivotRow, column)
             }
             for row in (column + 1)..<size {
+                try execution.consumeWork(1)
                 let factor = lu[row][column] / lu[column][column]
                 lu[row][column] = factor
                 guard factor != 0 else { continue }
                 for k in (column + 1)..<size {
+                    try execution.consumeWork(1)
                     lu[row][k] -= factor * lu[column][k]
                 }
             }
         }
     }
 
-    func solve(_ values: [Double]) -> [Double] {
+    func solve<A: ExactScalarAdmission & ~Copyable>(_ values: [Double], using execution: inout A) throws -> [Double] {
+        try execution.consumeWork(1)
         let size = lu.count
-        var x = pivots.map { values[$0] }
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: size, of: Double.self))
+        var x = try pivots.map {
+            try execution.consumeWork(1)
+            return values[$0]
+        }
         for row in 0..<size {
-            for k in 0..<row { x[row] -= lu[row][k] * x[k] }
+            try execution.consumeWork(1)
+            for k in 0..<row {
+                try execution.consumeWork(1)
+                x[row] -= lu[row][k] * x[k]
+            }
         }
         for row in stride(from: size - 1, through: 0, by: -1) {
-            for k in (row + 1)..<size { x[row] -= lu[row][k] * x[k] }
+            try execution.consumeWork(1)
+            for k in (row + 1)..<size {
+                try execution.consumeWork(1)
+                x[row] -= lu[row][k] * x[k]
+            }
             x[row] /= lu[row][row]
         }
         return x

@@ -308,7 +308,7 @@ public struct DefaultBRepRepairer: BRepRepairing {
             }
             if owningFaces.count == 1,
                let surface = model.geometry.surfaces[owningFaces[0].surfaceID],
-               PeriodicFaceSeamValidator().certifiesRepeatedEdgeUses(
+               try PeriodicFaceSeamValidator().certifiesRepeatedEdgeUses(
                    in: loop,
                    on: surface,
                    tolerance: tolerance

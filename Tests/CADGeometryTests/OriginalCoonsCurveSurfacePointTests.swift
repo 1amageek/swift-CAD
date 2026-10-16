@@ -8,24 +8,23 @@ struct OriginalCoonsCurveSurfacePointTests {
     private let tolerance = ModelingTolerance(distance: 1e-6, angle: 1e-8)
 
     private func traversal(_ source: BSplineCurve3D, lower: Double, upper: Double,
-        reversed: Bool = false, owner: Int? = nil) throws -> OriginalCurveRootSpan3D {
-        var admission = usage()
+        reversed: Bool = false, owner: Int? = nil, using admission: inout OriginalQueryExecution) throws -> OriginalCurveRootSpan3D {
         let root = try OriginalCurveRootSpan3D(source:.bSpline(source),start:.authored(lower),end:.authored(upper),
             nativeSpanIndex:owner,maximumParameterWidth:tolerance.relative,maximumSubdivisionDepth:0,
-            tolerance:tolerance,storageByteStride:MemoryLayout<UInt32>.stride,usage:&admission,
+            tolerance:tolerance,usage:&admission,
             maximumSpanCount:4,remainingSourceDepth:0,maximumAlgebraicDepth:0)
         return reversed ? root.reversed() : root
     }
 
     private func coons(bottom: BSplineCurve3D, top: BSplineCurve3D,
         left: BSplineCurve3D, right: BSplineCurve3D, reversedBottom: Bool = false) throws -> OriginalCoonsSurface3D {
-        var admission = usage()
+        var admission = try usage()
         return try .init(vMinimumBoundary:traversal(bottom,lower:bottom.knots[bottom.degree],
-                upper:bottom.knots[bottom.controlPointCount],reversed:reversedBottom),
-            vMaximumBoundary:traversal(top,lower:top.knots[top.degree],upper:top.knots[top.controlPointCount]),
-            uMinimumBoundary:traversal(left,lower:left.knots[left.degree],upper:left.knots[left.controlPointCount]),
-            uMaximumBoundary:traversal(right,lower:right.knots[right.degree],upper:right.knots[right.controlPointCount]),
-            tolerance:tolerance,usage:&admission)
+                upper:bottom.knots[bottom.controlPointCount],reversed:reversedBottom,using:&admission),
+            vMaximumBoundary:traversal(top,lower:top.knots[top.degree],upper:top.knots[top.controlPointCount],using:&admission),
+            uMinimumBoundary:traversal(left,lower:left.knots[left.degree],upper:left.knots[left.controlPointCount],using:&admission),
+            uMaximumBoundary:traversal(right,lower:right.knots[right.degree],upper:right.knots[right.controlPointCount],using:&admission),
+            tolerance:tolerance,using:&admission)
     }
 
     private func plane(weighted: Bool = false, multiple: Bool = false) throws -> OriginalCoonsSurface3D {
@@ -58,18 +57,25 @@ struct OriginalCoonsCurveSurfacePointTests {
         return try coons(bottom:bottom,top:top,left:left,right:right)
     }
 
-    private func usage() -> OriginalRelationUsage {
-        .init(consumeWork: { _ in }, retainStorage: { _ in }, visitCell: { _ in }, visitCoefficientCell: { _ in })
+    private func usage() throws -> OriginalQueryExecution {
+        try .independentGeometry()
     }
 
     private func admitted(curve: BSplineCurve3D, surface: OriginalCoonsSurface3D,
         options: CurveSurfaceIntersectionOptions = .init()) throws -> CurveSurfaceIntersectionResult {
         let work = Mutex(0), bytes = Mutex(0)
-        let result = try DefaultCurveSurfaceIntersector().intersectionResult(curve: .bSpline(curve),
-            surface: .procedural(.originalCoons(surface)), options: options, tolerance: tolerance,
-            maximumSpanCount: 1, maximumSubdivisionDepth: 0, remainingSourceDepth: 1,
-            consumeWork: { _ in work.withLock { $0 += 1 } },
-            consumeStorage: { amount in bytes.withLock { $0 += amount } }, maximumAlgebraicDepth: 32)
+        let result = try geometryTestWithQuery(maximumSpanCount: 1,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            maximumAlgebraicDepth: 32,
+            consumeWorkUnits: { _ in work.withLock { $0 += 1 } },
+            consumeStorageBytes: { amount in bytes.withLock { $0 += amount } }) { queryExecution in
+            try DefaultCurveSurfaceIntersector().intersectionResult(curve: .bSpline(curve),
+            surface: .procedural(.originalCoons(surface)),
+            options: options,
+            tolerance: tolerance,
+            using: &queryExecution)
+        }
         #expect(work.withLock { $0 } > 0 && bytes.withLock { $0 } > 0)
         print("Original curve/Coons admitted work=\(work.withLock { $0 }) bytes=\(bytes.withLock { $0 })")
         return result
@@ -90,10 +96,19 @@ struct OriginalCoonsCurveSurfacePointTests {
         #expect(try admitted(curve: curve, surface: surface).points == result.points)
         #expect(try solver.intersections(curve: .bSpline(curve), surface: .procedural(.originalCoons(surface)),
             options: .init(), tolerance: tolerance) == result.points)
-        #expect(try solver.intersections(curve: .bSpline(curve), surface: .procedural(.originalCoons(surface)),
-            options: .init(), tolerance: tolerance, maximumSpanCount: 1, maximumSubdivisionDepth: 0,
-            remainingSourceDepth: 1, consumeWork: { _ in }, consumeStorage: { _ in }, maximumAlgebraicDepth: 32) == result.points)
-        var budget = usage()
+        #expect(try geometryTestWithQuery(maximumSpanCount: 1,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            maximumAlgebraicDepth: 32,
+            consumeWorkUnits: { _ in },
+            consumeStorageBytes: { _ in }) { queryExecution in
+            try solver.intersections(curve: .bSpline(curve),
+            surface: .procedural(.originalCoons(surface)),
+            options: .init(),
+            tolerance: tolerance,
+            using: &queryExecution)
+        } == result.points)
+        var budget = try usage()
         let zero = ExactRationalCoefficient.zero
         let tuple = try receipt.point(at: 0)
         #expect(try tuple.compareParameter(axis: 0, to: zero, in: receipt, maximumAlgebraicDepth: 32, usage: &budget) == .zero)
@@ -123,13 +138,13 @@ struct OriginalCoonsCurveSurfacePointTests {
         #expect(result.points[0].curveParameter == result.points[1].curveParameter)
         #expect(result.points[0].surfaceU == 0.25 && result.points[1].surfaceU == 0.75)
         #expect(try admitted(curve: curve, surface: surface).points == result.points)
-        var budget = usage()
+        var budget = try usage()
         for ordinal in 0..<2 {
             let station = try ExactRationalCoefficient.originalDouble(ordinal == 0 ? 0.25 : 0.75, usage: &budget)
             #expect(try receipt.point(at: ordinal).compareParameter(axis: 1, to: station,
                 in: receipt, maximumAlgebraicDepth: 32, usage: &budget) == .zero)
         }
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestKernelFailure($0) != nil }) {
             try solver.intersectionResult(curve: .bSpline(curve), surface: .procedural(.originalCoons(surface)),
                 options: .init(maximumCandidateCount: 1), tolerance: tolerance)
         }
@@ -185,19 +200,31 @@ struct OriginalCoonsCurveSurfacePointTests {
             do {
                 if discrete {
                     if admitted {
-                        _ = try solver.intersections(curve: .bSpline(curve), surface: .procedural(.originalCoons(mixed)), options: .init(), tolerance: tolerance,
-                            maximumSpanCount: 1, maximumSubdivisionDepth: 0, remainingSourceDepth: 1,
-                            consumeWork: { _ in }, consumeStorage: { _ in }, maximumAlgebraicDepth: 32)
+                        _ = try geometryTestWithQuery(maximumSpanCount: 1,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            maximumAlgebraicDepth: 32,
+            consumeWorkUnits: { _ in },
+            consumeStorageBytes: { _ in }) { queryExecution in
+            try solver.intersections(curve: .bSpline(curve),
+            surface: .procedural(.originalCoons(mixed)),
+            options: .init(),
+            tolerance: tolerance,
+            using: &queryExecution)
+        }
                     } else { _ = try solver.intersections(curve: .bSpline(curve), surface: .procedural(.originalCoons(mixed)), options: .init(), tolerance: tolerance) }
                 } else if admitted { _ = try self.admitted(curve: curve, surface: mixed) }
                 else { _ = try solver.intersectionResult(curve: .bSpline(curve), surface: .procedural(.originalCoons(mixed)), tolerance: tolerance) }
                 Issue.record("A positive or mixed original relation escaped the bounded isolated contract.")
-            } catch let error as KernelError { #expect(error.code == .nonDiscreteIntersection) }
+            } catch let caught where geometryTestKernelFailure(caught) != nil {
+            let error = geometryTestKernelFailure(caught)!
+            #expect(error.code == .nonDiscreteIntersection) }
         }
     }
 
     @Test(.timeLimit(.minutes(2)))
     func releasedInputsRetainOriginalTupleAndRejectForeignOwner() throws {
+        var readerExecution = try usage()
         let solver = DefaultCurveSurfaceIntersector()
         let receipt = try { () throws -> OriginalCoonsCurveSurfacePoints in
             var curve = vertical(), surface = try plane()
@@ -213,8 +240,8 @@ struct OriginalCoonsCurveSurfacePointTests {
         #expect(receipt.owns(handle) && !foreign.owns(handle))
         #expect(throws: GeometryConversionError.self) { try handle.parameter(axis: 0, in: foreign) }
         let coordinate = try handle.parameter(axis: 1, in: receipt)
-        let bounds = try coordinate.enclosed(maximumDepth: 32, maximumCoefficientDepth: 0, usage: usage())
-        var budget = usage()
+        let bounds = try coordinate.enclosed(maximumDepth: 32, maximumCoefficientDepth: 0, usage: &readerExecution)
+        var budget = try usage()
         let half = try ExactRationalCoefficient.originalDouble(0.5, usage: &budget)
         #expect(bounds.lower == half && bounds.upper == half)
         #expect(try handle.compareParameter(axis: 1, to: half, in: receipt, maximumAlgebraicDepth: 32, usage: &budget) == .zero)
@@ -226,23 +253,30 @@ struct OriginalCoonsCurveSurfacePointTests {
         let irrational = BSplineCurve3D(degree: 2, knots: [0,0,0,1,1,1], controlPoints: [
             .init(x: 0,y: 0.5,z: -0.5), .init(x: 0.5,y: 0.5,z: -0.5), .init(x: 1,y: 0.5,z: 0.5)])
         #expect(throws: (any Error).self) {
+            try geometryTestWithQuery(maximumSpanCount: 1,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: mode == 2 ? 0 : 1,
+            maximumAlgebraicDepth: mode == 3 ? 0 : 32,
+            consumeWorkUnits: { _ in if mode == 0 { throw exhausted } },
+            consumeStorageBytes: { _ in if mode == 1 { throw exhausted } }) { queryExecution in
             try DefaultCurveSurfaceIntersector().intersectionResult(curve: .bSpline(mode == 3 ? irrational : vertical()),
-                surface: .procedural(.originalCoons(plane())), tolerance: tolerance, maximumSpanCount: 1,
-                maximumSubdivisionDepth: 0, remainingSourceDepth: mode == 2 ? 0 : 1,
-                consumeWork: { _ in if mode == 0 { throw exhausted } },
-                consumeStorage: { _ in if mode == 1 { throw exhausted } }, maximumAlgebraicDepth: mode == 3 ? 0 : 32)
+            surface: .procedural(.originalCoons(plane())),
+            tolerance: tolerance,
+            using: &queryExecution)
+        }
         }
     }
 
     @Test(.timeLimit(.minutes(2)))
     func sourceAndRefinementCeilingsRemainExplicit() throws {
+        var readerExecution = try usage()
         let solver = DefaultCurveSurfaceIntersector()
         let irrational = BSplineCurve3D(degree: 2, knots: [0,0,0,1,1,1], controlPoints: [
             .init(x: 0,y: 0.5,z: -0.5), .init(x: 0.5,y: 0.5,z: -0.5), .init(x: 1,y: 0.5,z: 0.5)])
         for options in [CurveSurfaceIntersectionOptions(maximumSubdivisionCells: 1),
             CurveSurfaceIntersectionOptions(maximumPolynomialDegree: 1),
             CurveSurfaceIntersectionOptions(maximumIterations: 1)] {
-            #expect(throws: KernelError.self) {
+            geometryTestExpectFailure({ geometryTestKernelFailure($0) != nil }) {
                 try solver.intersectionResult(curve: .bSpline(irrational), surface: .procedural(.originalCoons(plane())),
                     options: options, tolerance: tolerance)
             }
@@ -250,21 +284,23 @@ struct OriginalCoonsCurveSurfacePointTests {
         let full = try solver.intersectionResult(curve: .bSpline(irrational), surface: .procedural(.originalCoons(plane())), tolerance: tolerance)
         let receipt = try #require(full.originalCoonsPoints)
         let handle = try receipt.point(at: 0)
-        var rejected = OriginalRelationUsage(consumeWork: { _ in
+        var rejected = GeometryTestScalarRecorder(observeWork: { _ in
             throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: nil, message: "Exact query work exhausted.")
-        }, retainStorage: { _ in }, visitCell: { _ in }, visitCoefficientCell: { _ in })
-        #expect(throws: KernelError.self) {
+        }, observeStorageWords: { _ in }, observeValueCell: { _ in }, observeCoefficientCell: { _ in })
+        geometryTestExpectFailure({ geometryTestKernelFailure($0) != nil }) {
             try handle.compareParameter(axis: 0, to: .zero, in: receipt, maximumAlgebraicDepth: 32, usage: &rejected)
         }
         #expect(throws: (any Error).self) {
-            try handle.parameter(axis: 0, in: receipt).enclosed(maximumDepth: 0, maximumCoefficientDepth: 0, usage: usage())
+            try handle.parameter(axis: 0, in: receipt).enclosed(maximumDepth: 0, maximumCoefficientDepth: 0, usage: &readerExecution)
         }
         let multi = BSplineCurve3D(degree: 1, knots: [0,0,0.5,1,1], controlPoints: [
             .init(x: 0.5,y: 0.5,z: -1), .init(x: 0.5,y: 0.5,z: 0), .init(x: 0.5,y: 0.5,z: 1)])
         do {
             _ = try solver.intersectionResult(curve: .bSpline(multi), surface: .procedural(.originalCoons(plane())), tolerance: tolerance)
             Issue.record("An uncomposed multiple-span curve escaped the bounded checkpoint.")
-        } catch let error as KernelError { #expect(error.code == .unsupportedCapability) }
+        } catch let caught where geometryTestKernelFailure(caught) != nil {
+            let error = geometryTestKernelFailure(caught)!
+            #expect(error.code == .unsupportedCapability) }
     }
 
     @Test(.timeLimit(.minutes(2)), arguments: [false,true], [false,true])
@@ -273,13 +309,31 @@ struct OriginalCoonsCurveSurfacePointTests {
         let options = CurveSurfaceIntersectionOptions(surfaceURange: empty ? try .init(lower: 5,upper: 6) : nil)
         @Sendable func query(_ storage: @escaping @Sendable (Int) throws -> Void) throws -> [CurveSurfaceIntersection] {
             if discrete {
-                return try solver.intersections(curve: curve, surface: surface, options: options, tolerance: tolerance,
-                    maximumSpanCount: 1, maximumSubdivisionDepth: 0, remainingSourceDepth: 1,
-                    consumeWork: { _ in }, consumeStorage: storage, maximumAlgebraicDepth: 32)
+                return try geometryTestWithQuery(maximumSpanCount: 1,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            maximumAlgebraicDepth: 32,
+            consumeWorkUnits: { _ in },
+            consumeStorageBytes: storage) { queryExecution in
+            try solver.intersections(curve: curve,
+            surface: surface,
+            options: options,
+            tolerance: tolerance,
+            using: &queryExecution)
+        }
             }
-            let result = try solver.intersectionResult(curve: curve, surface: surface, options: options, tolerance: tolerance,
-                maximumSpanCount: 1, maximumSubdivisionDepth: 0, remainingSourceDepth: 1,
-                consumeWork: { _ in }, consumeStorage: storage, maximumAlgebraicDepth: 32)
+            let result = try geometryTestWithQuery(maximumSpanCount: 1,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            maximumAlgebraicDepth: 32,
+            consumeWorkUnits: { _ in },
+            consumeStorageBytes: storage) { queryExecution in
+            try solver.intersectionResult(curve: curve,
+            surface: surface,
+            options: options,
+            tolerance: tolerance,
+            using: &queryExecution)
+        }
             #expect(result.originalCoonsPoints?.count == (empty ? 0 : 1))
             return result.points
         }
@@ -293,7 +347,7 @@ struct OriginalCoonsCurveSurfacePointTests {
             }
         }
         do { _ = try await operation.value; Issue.record("Final cancellation returned a successful original Coons receipt.") }
-        catch is CancellationError { #expect(visits.withLock { $0 } == finalCall) }
+        catch where geometryTestIsCancelled(error) { #expect(visits.withLock { $0 } == finalCall) }
     }
 
     @Test(.timeLimit(.minutes(2)))
@@ -310,7 +364,7 @@ struct OriginalCoonsCurveSurfacePointTests {
         #expect(result.points.count == 2 && receipt.count == 2)
         #expect(result.points[0].curveParameter < result.points[1].curveParameter)
         #expect(result.points[1].curveParameter - result.points[0].curveParameter < tolerance.distance)
-        var admission = usage()
+        var admission = try usage()
         for ordinal in 0..<2 {
             let station = try ExactRationalCoefficient.originalDouble(0.5 + (ordinal == 0 ? -epsilon : epsilon),usage:&admission)
             let tuple = try receipt.point(at:ordinal)
@@ -344,18 +398,30 @@ struct OriginalCoonsCurveSurfacePointTests {
                 case 0: _ = try solver.intersectionResult(curve:.bSpline(curve),surface:.procedural(.originalCoons(source)),tolerance:tolerance)
                 case 1: _ = try admitted(curve:curve,surface:source)
                 case 2: _ = try solver.intersections(curve:.bSpline(curve),surface:.procedural(.originalCoons(source)),options:.init(),tolerance:tolerance)
-                default: _ = try solver.intersections(curve:.bSpline(curve),surface:.procedural(.originalCoons(source)),options:.init(),tolerance:tolerance,
-                    maximumSpanCount:1,maximumSubdivisionDepth:0,remainingSourceDepth:1,consumeWork:{ _ in },consumeStorage:{ _ in },maximumAlgebraicDepth:32)
+                default: _ = try geometryTestWithQuery(maximumSpanCount: 1,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            maximumAlgebraicDepth: 32,
+            consumeWorkUnits: { _ in },
+            consumeStorageBytes: { _ in }) { queryExecution in
+            try solver.intersections(curve:.bSpline(curve),
+            surface:.procedural(.originalCoons(source)),
+            options:.init(),
+            tolerance:tolerance,
+            using: &queryExecution)
+        }
                 }
                 Issue.record("An unsupported original Coons query returned a legacy or partial success.")
-            } catch let error as KernelError { #expect(error.code == .unsupportedCapability) }
+            } catch let caught where geometryTestKernelFailure(caught) != nil {
+            let error = geometryTestKernelFailure(caught)!
+            #expect(error.code == .unsupportedCapability) }
         }
     }
 
     @Test(.timeLimit(.minutes(2)))
     func originalSourceDegreeAndCertificationToleranceAreRetained() throws {
         let solver = DefaultCurveSurfaceIntersector(), surface = try fold(), curve = vertical()
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestKernelFailure($0) != nil }) {
             try solver.intersectionResult(curve:.bSpline(curve),surface:.procedural(.originalCoons(surface)),
                 options:.init(maximumPolynomialDegree:1),tolerance:tolerance)
         }

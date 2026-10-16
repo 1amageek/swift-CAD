@@ -8,7 +8,7 @@ package struct OriginalAffineWordCircularCoefficients: Sendable {
     let parameterDomain: ParameterDomain
     let transport: OriginalAngularParameterTransport
 
-    package static func prepare<B: RationalAlgebraAdmitting>(source: Curve3D,
+    package static func prepare<B: ExactScalarAdmission & ~Copyable>(source: Curve3D,
         word: PreparedOriginalAffineOperationWord, tolerance: ModelingTolerance,
         usage: inout B, admitPhysicalMetric: Bool = true) throws -> Self? {
         let primitive: Curve3D, transport: OriginalAngularParameterTransport
@@ -75,9 +75,8 @@ package struct OriginalAffineWordCircularCoefficients: Sendable {
     // retain radius action before harmonics and charge phase reduction/range visits.
     // Full primitive/source-family coverage and behavioral containment/exhaustion
     // verification remain required before declaring the bounded image domain complete.
-    package func intervalTaylorJet(over range: ScalarInterval, throughOrder order: Int,
-        tolerance: ModelingTolerance, consumeWork: () throws -> Void,
-        consumeStorage: ((Int) throws -> Void)? = nil) throws -> SurfaceAreaIntervalTaylorVectorJet {
+    package func intervalTaylorJet<A: ExactScalarAdmission & ~Copyable>(over range: ScalarInterval, throughOrder order: Int,
+        tolerance: ModelingTolerance, using execution: inout A) throws -> SurfaceAreaIntervalTaylorVectorJet {
         guard order >= 0, range.lower.isFinite, range.upper.isFinite else {
             throw GeometryConversionError.invalidInput("Original circular coefficient query needs finite stations and order.")
         }
@@ -86,17 +85,17 @@ package struct OriginalAffineWordCircularCoefficients: Sendable {
                 throw GeometryConversionError.invalidInput("Original world circular chart exceeds its authored domain.")
             }
         }
-        try consumeWork()
-        let cosineField = try transport.harmonic(over: range, cosine: true, consumeWork: consumeWork, consumeStorage: consumeStorage)
+        try execution.consumeWork(1)
+        let cosineField = try transport.harmonic(over: range, cosine: true, using: &execution)
         let c = cosineField.value
-        let s = try transport.harmonic(over: range, cosine: false, consumeWork: consumeWork, consumeStorage: consumeStorage).value
+        let s = try transport.harmonic(over: range, cosine: false, using: &execution).value
         func field(_ origin: OutwardScalarInterval, _ a: OutwardScalarInterval,
             _ b: OutwardScalarInterval) throws -> SurfaceAreaIntervalTaylorScalarJet {
             var result = try SurfaceAreaIntervalTaylorScalarJet(order: order, axis: .u,
-                tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage)
+                tolerance: tolerance, using: &execution)
             var scale = OutwardScalarInterval.exact(1), factorial = OutwardScalarInterval.exact(1)
             for k in 0...order {
-                try consumeWork()
+                try execution.consumeWork(1)
                 if k > 0 { scale = scale * cosineField.gain; factorial = factorial * .exact(Double(k)) }
                 let harmonic: OutwardScalarInterval
                 switch k % 4 {

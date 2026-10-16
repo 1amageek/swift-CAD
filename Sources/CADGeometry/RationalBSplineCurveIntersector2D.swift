@@ -29,17 +29,28 @@ package struct RationalBSplineCurveIntersector2D {
     /// CADGeometry proves existence and uniqueness; a surface-lift consumer,
     /// for example, can require the lifted spatial enclosure to fit its
     /// distance budget without turning distance into an arbitrary UV value.
+    package func intersections(first: BSplineCurve2D, second: BSplineCurve2D,
+        maximumSubdivisionDepth: Int, maximumSubdivisionCells: Int,
+        accepting: (RationalBSplineCurveIntersection2D, inout OriginalQueryExecution) throws -> Bool,
+        tolerance: ModelingTolerance) throws -> [RationalBSplineCurveIntersection2D] {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try intersections(first: first, second: second,
+            maximumSubdivisionDepth: maximumSubdivisionDepth, maximumSubdivisionCells: maximumSubdivisionCells,
+            accepting: accepting, tolerance: tolerance, using: &execution)
+    }
+
     package func intersections(
         first: BSplineCurve2D,
         second: BSplineCurve2D,
         maximumSubdivisionDepth: Int,
         maximumSubdivisionCells: Int,
-        accepting: (RationalBSplineCurveIntersection2D) throws -> Bool,
+        accepting: (RationalBSplineCurveIntersection2D, inout OriginalQueryExecution) throws -> Bool,
         tolerance: ModelingTolerance
-    ) throws -> [RationalBSplineCurveIntersection2D] {
+    , using execution: inout OriginalQueryExecution) throws -> [RationalBSplineCurveIntersection2D] {
+        try execution.consumeWork(1)
         try tolerance.validate()
-        try first.validate(tolerance: tolerance)
-        try second.validate(tolerance: tolerance)
+        try first.validate(tolerance: tolerance, using: &execution)
+        try second.validate(tolerance: tolerance, using: &execution)
         guard maximumSubdivisionDepth >= 0,
               maximumSubdivisionDepth <= 48,
               maximumSubdivisionCells > 0 else {
@@ -50,20 +61,29 @@ package struct RationalBSplineCurveIntersector2D {
             )
         }
 
-        let firstPatches = try first.rationalBezierPatches(tolerance: tolerance)
-        let secondPatches = try second.rationalBezierPatches(tolerance: tolerance)
+        let firstPatches = try first.rationalBezierPatches(tolerance: tolerance, using: &execution)
+        let secondPatches = try second.rationalBezierPatches(tolerance: tolerance, using: &execution)
         var pending: [Cell] = []
         var result: [RationalBSplineCurveIntersection2D] = []
-        pending.reserveCapacity(firstPatches.count * secondPatches.count)
+        let pairCount = try exactScalarCount(firstPatches.count, secondPatches.count, multiply: true)
+        try OriginalCoefficientAllocation.reserve(count: pairCount, of: Cell.self, using: &execution)
+        pending.reserveCapacity(pairCount)
+        var pendingCapacity = pairCount
+        var resultCapacity = 0
         for firstPatch in firstPatches.reversed() {
+            try execution.consumeWork(1)
             for secondPatch in secondPatches.reversed() {
+                try execution.consumeWork(1)
                 if let tangencies = try certifiedQuadraticLineTangencies(
                     first: firstPatch,
                     second: secondPatch,
                     tolerance: tolerance
-                ) {
+                , using: &execution) {
                     for tangency in tangencies {
-                        guard try accepting(tangency) else {
+                        try execution.consumeWork(1)
+                        let accepted = try accepting(tangency, &execution)
+                        try execution.checkpoint()
+                        guard accepted else {
                             throw failure(
                                 .resourceLimitExceeded,
                                 residual: tangency.pointEnclosure.maximumWidth,
@@ -71,17 +91,18 @@ package struct RationalBSplineCurveIntersector2D {
                                 "A certified quadratic-line tangency did not satisfy the consumer precision contract."
                             )
                         }
-                        appendUnique(tangency, to: &result)
+                        try appendUnique(tangency, to: &result, capacity: &resultCapacity, using: &execution)
                     }
                     continue
                 }
                 let patch = try DifferencePatch(
                     first: firstPatch,
                     second: secondPatch,
-                    tolerance: tolerance
+                    tolerance: tolerance, using: &execution
                 )
+                try OriginalCoefficientAllocation.reserveAppend(to: &pending, capacity: &pendingCapacity, using: &execution)
                 pending.append(Cell(
-                    patch: patch.expandedForBoundaryCertification(),
+                    patch: try patch.expandedForBoundaryCertification(using: &execution),
                     depth: 0
                 ))
             }
@@ -90,9 +111,11 @@ package struct RationalBSplineCurveIntersector2D {
         var remainingCells = maximumSubdivisionCells
         var acceptedRootDomains: [DifferencePatch] = []
         var unresolvedLeaves: [DifferencePatch] = []
+        var acceptedCapacity = 0, unresolvedCapacity = 0
         while let cell = pending.popLast() {
-            if acceptedRootDomains.contains(where: {
-                $0.containsParameterDomain(of: cell.patch)
+            if try acceptedRootDomains.contains(where: {
+                try execution.consumeWork(1)
+                return $0.containsParameterDomain(of: cell.patch)
             }) {
                 continue
             }
@@ -105,7 +128,8 @@ package struct RationalBSplineCurveIntersector2D {
                 )
             }
             remainingCells -= 1
-            switch cell.patch.rootCertificate() {
+            try execution.visitGeometricCell(depth: cell.depth)
+            switch try cell.patch.rootCertificate(using: &execution) {
             case .excluded:
                 continue
             case let .unique(firstNormalized, secondNormalized):
@@ -113,23 +137,28 @@ package struct RationalBSplineCurveIntersector2D {
                     firstNormalized: firstNormalized,
                     secondNormalized: secondNormalized,
                     tolerance: tolerance
-                ) else { continue }
-                if try accepting(candidate) {
-                    appendUnique(candidate, to: &result)
+                , using: &execution) else { continue }
+                let accepted = try accepting(candidate, &execution)
+                try execution.checkpoint()
+                if accepted {
+                    try appendUnique(candidate, to: &result, capacity: &resultCapacity, using: &execution)
+                    try OriginalCoefficientAllocation.reserveAppend(to: &acceptedRootDomains, capacity: &acceptedCapacity, using: &execution)
                     acceptedRootDomains.append(cell.patch)
                     continue
                 }
                 guard cell.depth < maximumSubdivisionDepth else {
                     if cell.patch.intersectsOriginalParameterDomain {
+                        try OriginalCoefficientAllocation.reserveAppend(to: &unresolvedLeaves, capacity: &unresolvedCapacity, using: &execution)
                         unresolvedLeaves.append(cell.patch)
                     }
                     continue
                 }
+                try OriginalCoefficientAllocation.reserveAppend(to: &pending, capacity: &pendingCapacity, using: &execution)
                 pending.append(Cell(
-                    patch: cell.patch.refinedAroundUniqueRoot(
+                    patch: try cell.patch.refinedAroundUniqueRoot(
                         firstNormalized: firstNormalized,
                         secondNormalized: secondNormalized
-                    ),
+                    , using: &execution),
                     depth: cell.depth + 1
                 ))
                 continue
@@ -139,17 +168,22 @@ package struct RationalBSplineCurveIntersector2D {
 
             guard cell.depth < maximumSubdivisionDepth else {
                 if cell.patch.intersectsOriginalParameterDomain {
-                    unresolvedLeaves.append(cell.patch)
+                    try OriginalCoefficientAllocation.reserveAppend(to: &unresolvedLeaves, capacity: &unresolvedCapacity, using: &execution)
+                        unresolvedLeaves.append(cell.patch)
                 }
                 continue
             }
-            for child in cell.patch.subdivided().reversed() {
+            for child in try cell.patch.subdivided(using: &execution).reversed() {
+                try execution.consumeWork(1)
+                try OriginalCoefficientAllocation.reserveAppend(to: &pending, capacity: &pendingCapacity, using: &execution)
                 pending.append(Cell(patch: child, depth: cell.depth + 1))
             }
         }
-        if let unresolved = unresolvedLeaves.first(where: { leaf in
-            acceptedRootDomains.contains(where: {
-                $0.containsParameterDomain(of: leaf)
+        if let unresolved = try unresolvedLeaves.first(where: { leaf in
+            try execution.consumeWork(1)
+            return try acceptedRootDomains.contains(where: {
+                try execution.consumeWork(1)
+                return $0.containsParameterDomain(of: leaf)
             }) == false
         }) {
             throw failure(
@@ -161,28 +195,63 @@ package struct RationalBSplineCurveIntersector2D {
                     + "second [\(unresolved.secondLower), \(unresolved.secondUpper)])."
             )
         }
-        return result.sorted {
-            if $0.firstParameterEnclosure.midpoint
-                != $1.firstParameterEnclosure.midpoint {
-                return $0.firstParameterEnclosure.midpoint
-                    < $1.firstParameterEnclosure.midpoint
-            }
-            return $0.secondParameterEnclosure.midpoint
-                < $1.secondParameterEnclosure.midpoint
+        let ordered = try orderedRoots(result, using: &execution)
+        try execution.checkpoint()
+        return ordered
+    }
+
+    private func rootOrder(_ first: RationalBSplineCurveIntersection2D, _ second: RationalBSplineCurveIntersection2D) -> Bool {
+        if first.firstParameterEnclosure.midpoint != second.firstParameterEnclosure.midpoint {
+            return first.firstParameterEnclosure.midpoint < second.firstParameterEnclosure.midpoint
         }
+        return first.secondParameterEnclosure.midpoint < second.secondParameterEnclosure.midpoint
+    }
+
+    private func orderedRoots(_ roots: [RationalBSplineCurveIntersection2D],
+        using execution: inout OriginalQueryExecution) throws -> [RationalBSplineCurveIntersection2D] {
+        var ordered = try OriginalCoefficientAllocation.map(elements: roots, using: &execution) { value, _ in value }
+        guard ordered.count > 1 else { return ordered }
+        var scratch = try OriginalCoefficientAllocation.map(elements: roots, using: &execution) { value, _ in value }
+        var width = 1
+        while width < ordered.count {
+            var start = 0
+            while start < ordered.count {
+                let middle = start + min(width, ordered.count - start)
+                let end = middle + min(width, ordered.count - middle)
+                var left = start, right = middle, output = start
+                while left < middle || right < end {
+                    try execution.consumeWork(1)
+                    let takeRight: Bool
+                    if left == middle { takeRight = true }
+                    else if right == end { takeRight = false }
+                    else { try execution.consumeWork(1); takeRight = rootOrder(ordered[right], ordered[left]) }
+                    if takeRight { scratch[output] = ordered[right]; right += 1 }
+                    else { scratch[output] = ordered[left]; left += 1 }
+                    output += 1
+                }
+                start = end
+            }
+            swap(&ordered, &scratch)
+            if width > ordered.count / 2 { break }
+            width *= 2
+        }
+        return ordered
     }
 
     private func appendUnique(
         _ intersection: RationalBSplineCurveIntersection2D,
-        to result: inout [RationalBSplineCurveIntersection2D]
-    ) {
-        guard let index = result.firstIndex(where: {
-            $0.firstParameterEnclosure.intersects(
+        to result: inout [RationalBSplineCurveIntersection2D], capacity: inout Int
+    , using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        guard let index = try result.firstIndex(where: {
+            try execution.consumeWork(1)
+            return $0.firstParameterEnclosure.intersects(
                 intersection.firstParameterEnclosure
             ) && $0.secondParameterEnclosure.intersects(
                 intersection.secondParameterEnclosure
             )
         }) else {
+            try OriginalCoefficientAllocation.reserveAppend(to: &result, capacity: &capacity, using: &execution)
             result.append(intersection)
             return
         }
@@ -199,14 +268,15 @@ package struct RationalBSplineCurveIntersector2D {
         first: RationalBezierCurvePatch2D,
         second: RationalBezierCurvePatch2D,
         tolerance: ModelingTolerance
-    ) throws -> [RationalBSplineCurveIntersection2D]? {
+    , using execution: inout OriginalQueryExecution) throws -> [RationalBSplineCurveIntersection2D]? {
+        try execution.consumeWork(1)
         if first.degree == 2, second.degree == 1 {
             return try certifiedQuadraticLineTangencies(
                 quadratic: first,
                 line: second,
                 quadraticIsFirst: true,
                 tolerance: tolerance
-            )
+            , using: &execution)
         }
         if first.degree == 1, second.degree == 2 {
             return try certifiedQuadraticLineTangencies(
@@ -214,7 +284,7 @@ package struct RationalBSplineCurveIntersector2D {
                 line: first,
                 quadraticIsFirst: false,
                 tolerance: tolerance
-            )
+            , using: &execution)
         }
         return nil
     }
@@ -224,7 +294,8 @@ package struct RationalBSplineCurveIntersector2D {
         line: RationalBezierCurvePatch2D,
         quadraticIsFirst: Bool,
         tolerance: ModelingTolerance
-    ) throws -> [RationalBSplineCurveIntersection2D]? {
+    , using execution: inout OriginalQueryExecution) throws -> [RationalBSplineCurveIntersection2D]? {
+        try execution.consumeWork(1)
         guard quadratic.controlPoints.count == 3,
               quadratic.weights.count == 3,
               line.controlPoints.count == 2,
@@ -233,63 +304,63 @@ package struct RationalBSplineCurveIntersector2D {
         }
         let start = line.controlPoints[0]
         let end = line.controlPoints[1]
-        let lineA = ExactExpansionArithmetic.subtract([start.y], [end.y])
-        let lineB = ExactExpansionArithmetic.subtract([end.x], [start.x])
-        let lineC = ExactExpansionArithmetic.subtract(
-            ExactExpansionArithmetic.multiply([start.x], [end.y]),
-            ExactExpansionArithmetic.multiply([end.x], [start.y])
-        )
-        let bernstein = quadratic.controlPoints.indices.map { index in
+        let lineA = try ExactExpansionArithmetic.subtract(try OriginalCoefficientAllocation.singleton(start.y, using: &execution), try OriginalCoefficientAllocation.singleton(end.y, using: &execution), using: &execution)
+        let lineB = try ExactExpansionArithmetic.subtract(try OriginalCoefficientAllocation.singleton(end.x, using: &execution), try OriginalCoefficientAllocation.singleton(start.x, using: &execution), using: &execution)
+        let lineC = try ExactExpansionArithmetic.subtract(
+            try ExactExpansionArithmetic.multiply(try OriginalCoefficientAllocation.singleton(start.x, using: &execution), try OriginalCoefficientAllocation.singleton(end.y, using: &execution), using: &execution),
+            try ExactExpansionArithmetic.multiply(try OriginalCoefficientAllocation.singleton(end.x, using: &execution), try OriginalCoefficientAllocation.singleton(start.y, using: &execution), using: &execution)
+        , using: &execution)
+        let bernstein = try OriginalCoefficientAllocation.map(elements: quadratic.controlPoints.indices, using: &execution) { index, execution in
             let weight = quadratic.weights[index]
             let point = quadratic.controlPoints[index]
-            let homogeneousX = ExactExpansionArithmetic.multiply(
-                [point.x],
-                [weight]
-            )
-            let homogeneousY = ExactExpansionArithmetic.multiply(
-                [point.y],
-                [weight]
-            )
-            return ExactExpansionArithmetic.add(
-                ExactExpansionArithmetic.add(
-                    ExactExpansionArithmetic.multiply(lineA, homogeneousX),
-                    ExactExpansionArithmetic.multiply(lineB, homogeneousY)
-                ),
-                ExactExpansionArithmetic.multiply(lineC, [weight])
-            )
+            let homogeneousX = try ExactExpansionArithmetic.multiply(
+                try OriginalCoefficientAllocation.singleton(point.x, using: &execution),
+                try OriginalCoefficientAllocation.singleton(weight, using: &execution)
+            , using: &execution)
+            let homogeneousY = try ExactExpansionArithmetic.multiply(
+                try OriginalCoefficientAllocation.singleton(point.y, using: &execution),
+                try OriginalCoefficientAllocation.singleton(weight, using: &execution)
+            , using: &execution)
+            return try ExactExpansionArithmetic.add(
+                try ExactExpansionArithmetic.add(
+                    try ExactExpansionArithmetic.multiply(lineA, homogeneousX, using: &execution),
+                    try ExactExpansionArithmetic.multiply(lineB, homogeneousY, using: &execution)
+                , using: &execution),
+                try ExactExpansionArithmetic.multiply(lineC, try OriginalCoefficientAllocation.singleton(weight, using: &execution), using: &execution)
+            , using: &execution)
         }
         let constant = bernstein[0]
-        let linear = ExactExpansionArithmetic.multiply(
-            ExactExpansionArithmetic.subtract(bernstein[1], bernstein[0]),
-            [2.0]
-        )
-        let quadraticCoefficient = ExactExpansionArithmetic.add(
-            ExactExpansionArithmetic.subtract(
+        let linear = try ExactExpansionArithmetic.multiply(
+            try ExactExpansionArithmetic.subtract(bernstein[1], bernstein[0], using: &execution),
+            try OriginalCoefficientAllocation.singleton(2.0, using: &execution)
+        , using: &execution)
+        let quadraticCoefficient = try ExactExpansionArithmetic.add(
+            try ExactExpansionArithmetic.subtract(
                 bernstein[0],
-                ExactExpansionArithmetic.multiply(bernstein[1], [2.0])
-            ),
+                try ExactExpansionArithmetic.multiply(bernstein[1], try OriginalCoefficientAllocation.singleton(2.0, using: &execution), using: &execution)
+            , using: &execution),
             bernstein[2]
-        )
-        guard ExactExpansionArithmetic.sign(quadraticCoefficient) != .zero else {
+        , using: &execution)
+        guard try ExactExpansionArithmetic.sign(quadraticCoefficient, using: &execution) != .zero else {
             return nil
         }
-        let discriminant = ExactExpansionArithmetic.subtract(
-            ExactExpansionArithmetic.multiply(linear, linear),
-            ExactExpansionArithmetic.multiply(
-                [4.0],
-                ExactExpansionArithmetic.multiply(
+        let discriminant = try ExactExpansionArithmetic.subtract(
+            try ExactExpansionArithmetic.multiply(linear, linear, using: &execution),
+            try ExactExpansionArithmetic.multiply(
+                try OriginalCoefficientAllocation.singleton(4.0, using: &execution),
+                try ExactExpansionArithmetic.multiply(
                     quadraticCoefficient,
                     constant
-                )
-            )
-        )
-        guard ExactExpansionArithmetic.sign(discriminant) == .zero else {
+                , using: &execution)
+            , using: &execution)
+        , using: &execution)
+        guard try ExactExpansionArithmetic.sign(discriminant, using: &execution) == .zero else {
             return nil
         }
-        let numerator = -expansionEnclosure(linear)
-        let denominator = expansionEnclosure(
-            ExactExpansionArithmetic.multiply(quadraticCoefficient, [2.0])
-        )
+        let numerator = try -expansionEnclosure(linear, using: &execution)
+        let denominator = try expansionEnclosure(
+            try ExactExpansionArithmetic.multiply(quadraticCoefficient, try OriginalCoefficientAllocation.singleton(2.0, using: &execution), using: &execution)
+        , using: &execution)
         guard let root = numerator.divided(by: denominator),
               let boundedRoot = root.intersection(with: OutwardScalarInterval(
                   lower: 0.0,
@@ -301,12 +372,12 @@ package struct RationalBSplineCurveIntersector2D {
             quadratic,
             parameter: boundedRoot,
             tolerance: tolerance
-        )
+        , using: &execution)
         let lineParameter = try lineParameterEnclosure(
             for: quadraticPosition,
             line: line,
             tolerance: tolerance
-        )
+        , using: &execution)
         guard let boundedLineParameter = lineParameter.intersection(
             with: OutwardScalarInterval(lower: 0.0, upper: 1.0)
         ) else {
@@ -316,7 +387,7 @@ package struct RationalBSplineCurveIntersector2D {
             line,
             parameter: boundedLineParameter,
             tolerance: tolerance
-        )
+        , using: &execution)
         guard let x = quadraticPosition.x.intersection(with: linePosition.x),
               let y = quadraticPosition.y.intersection(with: linePosition.y) else {
             return []
@@ -337,7 +408,7 @@ package struct RationalBSplineCurveIntersector2D {
         let secondParameter = quadraticIsFirst
             ? linearParameter
             : quadraticParameter
-        return [RationalBSplineCurveIntersection2D(
+        return try OriginalCoefficientAllocation.singleton(RationalBSplineCurveIntersection2D(
             firstParameterEnclosure: try scalarInterval(
                 firstParameter,
                 tolerance: tolerance
@@ -350,41 +421,42 @@ package struct RationalBSplineCurveIntersector2D {
                 x: try scalarInterval(x, tolerance: tolerance),
                 y: try scalarInterval(y, tolerance: tolerance)
             )
-        )]
+        ), using: &execution)
     }
 
     private func expansionEnclosure(
         _ expansion: ExactExpansionArithmetic.Scalar
-    ) -> OutwardScalarInterval {
-        expansion.reduce(.exact(0.0)) {
-            $0 + .exact($1)
-        }
+    , using execution: inout OriginalQueryExecution) throws -> OutwardScalarInterval {
+        try execution.consumeWork(1)
+        var result = OutwardScalarInterval.exact(0)
+        for value in expansion { try execution.consumeWork(1); result = result + .exact(value) }
+        return result
     }
 
     private func rationalPositionEnclosure(
         _ patch: RationalBezierCurvePatch2D,
         parameter: OutwardScalarInterval,
         tolerance: ModelingTolerance
-    ) throws -> (x: OutwardScalarInterval, y: OutwardScalarInterval) {
-        var x = patch.controlPoints.indices.map {
-            OutwardScalarInterval.exact(patch.controlPoints[$0].x)
-                * .exact(patch.weights[$0])
+    , using execution: inout OriginalQueryExecution) throws -> (x: OutwardScalarInterval, y: OutwardScalarInterval) {
+        try execution.consumeWork(1)
+        var x = try OriginalCoefficientAllocation.map(elements: patch.controlPoints.indices, using: &execution) { index, _ in
+            OutwardScalarInterval.exact(patch.controlPoints[index].x) * .exact(patch.weights[index])
         }
-        var y = patch.controlPoints.indices.map {
-            OutwardScalarInterval.exact(patch.controlPoints[$0].y)
-                * .exact(patch.weights[$0])
+        var y = try OriginalCoefficientAllocation.map(elements: patch.controlPoints.indices, using: &execution) { index, _ in
+            OutwardScalarInterval.exact(patch.controlPoints[index].y) * .exact(patch.weights[index])
         }
-        var weights = patch.weights.map(OutwardScalarInterval.exact)
-        let complement = OutwardScalarInterval.exact(1.0) - parameter
+        var weights = try OriginalCoefficientAllocation.map(elements: patch.weights, using: &execution) { value, _ in OutwardScalarInterval.exact(value) }
+        let complement = OutwardScalarInterval.exact(1) - parameter
         while x.count > 1 {
-            x = zip(x, x.dropFirst()).map {
-                $0 * complement + $1 * parameter
+            try execution.consumeWork(1)
+            x = try OriginalCoefficientAllocation.map(first: x, second: x.dropFirst(), using: &execution) { pair, _ in
+                pair.0 * complement + pair.1 * parameter
             }
-            y = zip(y, y.dropFirst()).map {
-                $0 * complement + $1 * parameter
+            y = try OriginalCoefficientAllocation.map(first: y, second: y.dropFirst(), using: &execution) { pair, _ in
+                pair.0 * complement + pair.1 * parameter
             }
-            weights = zip(weights, weights.dropFirst()).map {
-                $0 * complement + $1 * parameter
+            weights = try OriginalCoefficientAllocation.map(first: weights, second: weights.dropFirst(), using: &execution) { pair, _ in
+                pair.0 * complement + pair.1 * parameter
             }
         }
         guard let xValue = x[0].divided(by: weights[0]),
@@ -402,7 +474,8 @@ package struct RationalBSplineCurveIntersector2D {
         for point: (x: OutwardScalarInterval, y: OutwardScalarInterval),
         line: RationalBezierCurvePatch2D,
         tolerance: ModelingTolerance
-    ) throws -> OutwardScalarInterval {
+    , using execution: inout OriginalQueryExecution) throws -> OutwardScalarInterval {
+        try execution.consumeWork(1)
         let start = line.controlPoints[0]
         let end = line.controlPoints[1]
         let deltaX = end.x - start.x
@@ -585,7 +658,7 @@ private struct DifferencePatch {
         first: RationalBezierCurvePatch2D,
         second: RationalBezierCurvePatch2D,
         tolerance: ModelingTolerance
-    ) throws {
+    , using execution: inout OriginalQueryExecution) throws {
         guard first.controlPoints.count == first.weights.count,
               second.controlPoints.count == second.weights.count,
               first.controlPoints.count >= 2,
@@ -596,30 +669,30 @@ private struct DifferencePatch {
                 "Rational pcurve difference requires non-empty matching control data."
             )
         }
-        let firstControls = first.controlPoints.indices.map {
+        let firstControls = try OriginalCoefficientAllocation.map(elements: first.controlPoints.indices, using: &execution) { index, _ in
             HomogeneousPoint(
-                point: first.controlPoints[$0],
-                weight: first.weights[$0]
+                point: first.controlPoints[index],
+                weight: first.weights[index]
             )
         }
-        let secondControls = second.controlPoints.indices.map {
+        let secondControls = try OriginalCoefficientAllocation.map(elements: second.controlPoints.indices, using: &execution) { index, _ in
             HomogeneousPoint(
-                point: second.controlPoints[$0],
-                weight: second.weights[$0]
+                point: second.controlPoints[index],
+                weight: second.weights[index]
             )
         }
-        guard firstControls.allSatisfy({ $0.isFiniteAndPositive }),
-              secondControls.allSatisfy({ $0.isFiniteAndPositive }) else {
+        guard try firstControls.allSatisfy({ try execution.consumeWork(1); return $0.isFiniteAndPositive }),
+              try secondControls.allSatisfy({ try execution.consumeWork(1); return $0.isFiniteAndPositive }) else {
             throw Self.failure(
                 .resourceLimitExceeded,
                 tolerance: tolerance,
                 "Rational pcurve homogeneous controls exceeded finite positive interval arithmetic."
             )
         }
-        let controlNet = Self.differenceControlNet(
+        let controlNet = try Self.differenceControlNet(
             first: firstControls,
             second: secondControls
-        )
+        , using: &execution)
         self.init(
             controlNet: controlNet,
             sourceFirstControls: firstControls,
@@ -638,7 +711,7 @@ private struct DifferencePatch {
             secondLower: second.lower,
             secondUpper: second.upper
         )
-        guard controlNet.flatMap({ $0 }).allSatisfy({ $0.isFinite }) else {
+        guard try controlNet.allSatisfy({ row in try row.allSatisfy { try execution.consumeWork(1); return $0.isFinite } }) else {
             throw Self.failure(
                 .resourceLimitExceeded,
                 tolerance: tolerance,
@@ -699,11 +772,12 @@ private struct DifferencePatch {
             && secondSourceDomainLower <= 1.0
     }
 
-    func rootCertificate() -> RootCertificate {
-        guard excludesZero() == false else { return .excluded }
-        let value = centerValue()
-        let firstDerivative = derivativeBounds(alongFirst: true)
-        let secondDerivative = derivativeBounds(alongFirst: false)
+    func rootCertificate(using execution: inout OriginalQueryExecution) throws -> RootCertificate {
+        try execution.consumeWork(1)
+        guard try excludesZero(using: &execution) == false else { return .excluded }
+        let value = try centerValue(using: &execution)
+        let firstDerivative = try derivativeBounds(alongFirst: true, using: &execution)
+        let secondDerivative = try derivativeBounds(alongFirst: false, using: &execution)
         let a = firstDerivative.x.midpoint
         let b = secondDerivative.x.midpoint
         let c = firstDerivative.y.midpoint
@@ -712,31 +786,43 @@ private struct DifferencePatch {
         guard determinant.isFinite, determinant != 0.0 else {
             return .unresolved
         }
+        try OriginalCoefficientAllocation.reserve(count: 2, of: [Double].self, using: &execution)
+        try OriginalCoefficientAllocation.reserve(count: 2, of: Double.self, using: &execution)
+        try OriginalCoefficientAllocation.reserve(count: 2, of: Double.self, using: &execution)
         let inverse = [
             [d / determinant, -b / determinant],
             [-c / determinant, a / determinant],
         ]
-        guard inverse.flatMap({ $0 }).allSatisfy({ $0.isFinite }) else {
+        guard try inverse.allSatisfy({ row in try row.allSatisfy { try execution.consumeWork(1); return $0.isFinite } }) else {
             return .unresolved
         }
+        try OriginalCoefficientAllocation.reserve(count: 2, of: [OutwardScalarInterval].self, using: &execution)
+        try OriginalCoefficientAllocation.reserve(count: 2, of: OutwardScalarInterval.self, using: &execution)
+        try OriginalCoefficientAllocation.reserve(count: 2, of: OutwardScalarInterval.self, using: &execution)
         let jacobian = [
             [firstDerivative.x, secondDerivative.x],
             [firstDerivative.y, secondDerivative.y],
         ]
+        try OriginalCoefficientAllocation.reserve(count: 2, of: OutwardScalarInterval.self, using: &execution)
         let functionValue = [value.x, value.y]
         let unit = OutwardScalarInterval(lower: 0.0, upper: 1.0)
         let radius = OutwardScalarInterval(lower: -0.5, upper: 0.5)
-        var image: [OutwardScalarInterval] = []
+        try OriginalCoefficientAllocation.reserve(count: 2, of: OutwardScalarInterval.self, using: &execution)
+        var image: [OutwardScalarInterval] = []; image.reserveCapacity(2)
         for row in 0..<2 {
+                try execution.consumeWork(1)
             var component = OutwardScalarInterval.exact(0.5)
             for inner in 0..<2 {
+                try execution.consumeWork(1)
                 component = component
                     - OutwardScalarInterval(inverse[row][inner])
                         * functionValue[inner]
             }
             for column in 0..<2 {
+                try execution.consumeWork(1)
                 var preconditioned = OutwardScalarInterval.exact(0.0)
                 for inner in 0..<2 {
+                try execution.consumeWork(1)
                     preconditioned = preconditioned
                         + OutwardScalarInterval(inverse[row][inner])
                             * jacobian[inner][column]
@@ -750,10 +836,10 @@ private struct DifferencePatch {
             }
             image.append(component)
         }
-        if image.contains(where: { $0.intersection(with: unit) == nil }) {
+        if try image.contains(where: { try execution.consumeWork(1); return $0.intersection(with: unit) == nil }) {
             return .excluded
         }
-        if image.allSatisfy({ $0.isStrictlyInside(unit) }) {
+        if try image.allSatisfy({ try execution.consumeWork(1); return $0.isStrictlyInside(unit) }) {
             return .unique(
                 firstNormalized: image[0],
                 secondNormalized: image[1]
@@ -766,7 +852,8 @@ private struct DifferencePatch {
         firstNormalized: OutwardScalarInterval,
         secondNormalized: OutwardScalarInterval,
         tolerance: ModelingTolerance
-    ) throws -> RationalBSplineCurveIntersection2D? {
+    , using execution: inout OriginalQueryExecution) throws -> RationalBSplineCurveIntersection2D? {
+        try execution.consumeWork(1)
         let firstSourceParameters = affineImage(
             firstNormalized,
             lower: firstSourceDomainLower,
@@ -798,12 +885,12 @@ private struct DifferencePatch {
             controls: sourceFirstControls,
             normalizedParameter: boundedFirstSourceParameters,
             tolerance: tolerance
-        )
+        , using: &execution)
         let secondPosition = try positionEnclosure(
             controls: sourceSecondControls,
             normalizedParameter: boundedSecondSourceParameters,
             tolerance: tolerance
-        )
+        , using: &execution)
         guard let x = firstPosition.x.intersection(with: secondPosition.x),
               let y = firstPosition.y.intersection(with: secondPosition.y) else {
             return nil
@@ -824,51 +911,54 @@ private struct DifferencePatch {
         )
     }
 
-    func subdivided() -> [DifferencePatch] {
+    func subdivided(using execution: inout OriginalQueryExecution) throws -> [DifferencePatch] {
+        try execution.consumeWork(1)
         // This is a proof-domain overlap, not a modeling tolerance. Both
         // children contain the shared split in their strict interior so a
         // root on an artificial subdivision boundary remains certifiable.
+        try OriginalCoefficientAllocation.reserve(count: 2, of: DifferencePatch.self, using: &execution)
         let overlap = 1.0 / 64.0
         if firstUpper - firstLower >= secondUpper - secondLower {
             return [
-                restrictedFirst(from: 0.0, to: 0.5 + overlap),
-                restrictedFirst(from: 0.5 - overlap, to: 1.0),
+                try restrictedFirst(from: 0.0, to: 0.5 + overlap, using: &execution),
+                try restrictedFirst(from: 0.5 - overlap, to: 1.0, using: &execution),
             ]
         }
         return [
-            restrictedSecond(from: 0.0, to: 0.5 + overlap),
-            restrictedSecond(from: 0.5 - overlap, to: 1.0),
+            try restrictedSecond(from: 0.0, to: 0.5 + overlap, using: &execution),
+            try restrictedSecond(from: 0.5 - overlap, to: 1.0, using: &execution),
         ]
     }
 
-    func expandedForBoundaryCertification() -> DifferencePatch {
+    func expandedForBoundaryCertification(using execution: inout OriginalQueryExecution) throws -> DifferencePatch {
+        try execution.consumeWork(1)
         let extensionFraction = 1.0 / 64.0
         let lower = -extensionFraction
         let upper = 1.0 + extensionFraction
-        let firstControls = restricted(
+        let firstControls = try restricted(
             sourceFirstControls,
             from: lower,
             to: upper
-        ) { first, second, parameter in
+        , using: &execution) { first, second, parameter, _ in
             first.interpolated(to: second, parameter: parameter)
         }
-        let secondControls = restricted(
+        let secondControls = try restricted(
             sourceSecondControls,
             from: lower,
             to: upper
-        ) { first, second, parameter in
+        , using: &execution) { first, second, parameter, _ in
             first.interpolated(to: second, parameter: parameter)
         }
-        guard firstControls.allSatisfy({ $0.isFiniteAndPositive }),
-              secondControls.allSatisfy({ $0.isFiniteAndPositive }) else {
+        guard try firstControls.allSatisfy({ try execution.consumeWork(1); return $0.isFiniteAndPositive }),
+              try secondControls.allSatisfy({ try execution.consumeWork(1); return $0.isFiniteAndPositive }) else {
             return self
         }
-        return restrictedDomain(
+        return try restrictedDomain(
             firstLower: lower,
             firstUpper: upper,
             secondLower: lower,
             secondUpper: upper
-        )
+        , using: &execution)
     }
 
     func containsParameterDomain(of other: DifferencePatch) -> Bool {
@@ -881,14 +971,15 @@ private struct DifferencePatch {
     func refinedAroundUniqueRoot(
         firstNormalized: OutwardScalarInterval,
         secondNormalized: OutwardScalarInterval
-    ) -> DifferencePatch {
+    , using execution: inout OriginalQueryExecution) throws -> DifferencePatch {
+        try execution.consumeWork(1)
         let firstRange = paddedRootRange(firstNormalized)
         let secondRange = paddedRootRange(secondNormalized)
-        return restrictedFirst(from: firstRange.lower, to: firstRange.upper)
+        return try restrictedFirst(from: firstRange.lower, to: firstRange.upper, using: &execution)
             .restrictedSecond(
                 from: secondRange.lower,
                 to: secondRange.upper
-            )
+            , using: &execution)
     }
 
     private func paddedRootRange(
@@ -907,27 +998,29 @@ private struct DifferencePatch {
     private func restrictedFirst(
         from lowerFraction: Double,
         to upperFraction: Double
-    ) -> DifferencePatch {
+    , using execution: inout OriginalQueryExecution) throws -> DifferencePatch {
+        try execution.consumeWork(1)
         let span = firstSourceDomainUpper - firstSourceDomainLower
-        return restrictedDomain(
+        return try restrictedDomain(
             firstLower: firstSourceDomainLower + span * lowerFraction,
             firstUpper: firstSourceDomainLower + span * upperFraction,
             secondLower: secondSourceDomainLower,
             secondUpper: secondSourceDomainUpper
-        )
+        , using: &execution)
     }
 
     private func restrictedSecond(
         from lowerFraction: Double,
         to upperFraction: Double
-    ) -> DifferencePatch {
+    , using execution: inout OriginalQueryExecution) throws -> DifferencePatch {
+        try execution.consumeWork(1)
         let span = secondSourceDomainUpper - secondSourceDomainLower
-        return restrictedDomain(
+        return try restrictedDomain(
             firstLower: firstSourceDomainLower,
             firstUpper: firstSourceDomainUpper,
             secondLower: secondSourceDomainLower + span * lowerFraction,
             secondUpper: secondSourceDomainLower + span * upperFraction
-        )
+        , using: &execution)
     }
 
     private func restrictedDomain(
@@ -935,17 +1028,18 @@ private struct DifferencePatch {
         firstUpper: Double,
         secondLower: Double,
         secondUpper: Double
-    ) -> DifferencePatch {
-        let firstRestrictedNet = restrictedFirst(
+    , using execution: inout OriginalQueryExecution) throws -> DifferencePatch {
+        try execution.consumeWork(1)
+        let firstRestrictedNet = try restrictedFirst(
             sourceControlNet,
             from: firstLower,
             to: firstUpper
-        )
-        let currentControlNet = restrictedSecond(
+        , using: &execution)
+        let currentControlNet = try restrictedSecond(
             firstRestrictedNet,
             from: secondLower,
             to: secondUpper
-        )
+        , using: &execution)
         return DifferencePatch(
             controlNet: currentControlNet,
             sourceFirstControls: sourceFirstControls,
@@ -970,195 +1064,165 @@ private struct DifferencePatch {
         )
     }
 
-    private static func differenceControlNet(
-        first: [HomogeneousPoint],
-        second: [HomogeneousPoint]
-    ) -> [[Vector]] {
-        first.map { firstControl in
-            second.map { secondControl in
-                Vector(
-                    x: firstControl.x * secondControl.weight
-                        - secondControl.x * firstControl.weight,
-                    y: firstControl.y * secondControl.weight
-                        - secondControl.y * firstControl.weight
-                )
+    private static func differenceControlNet(first: [HomogeneousPoint], second: [HomogeneousPoint],
+        using execution: inout OriginalQueryExecution) throws -> [[Vector]] {
+        try OriginalCoefficientAllocation.map(elements: first, using: &execution) { firstControl, execution in
+            try OriginalCoefficientAllocation.map(elements: second, using: &execution) { secondControl, _ in
+                Vector(x: firstControl.x * secondControl.weight - secondControl.x * firstControl.weight,
+                    y: firstControl.y * secondControl.weight - secondControl.y * firstControl.weight)
             }
         }
     }
 
-    private func excludesZero() -> Bool {
-        let values = controlNet.flatMap { $0 }
-        return values.allSatisfy { $0.x.lower > 0.0 }
-            || values.allSatisfy { $0.x.upper < 0.0 }
-            || values.allSatisfy { $0.y.lower > 0.0 }
-            || values.allSatisfy { $0.y.upper < 0.0 }
+    private func excludesZero(using execution: inout OriginalQueryExecution) throws -> Bool {
+        // Keep each original short-circuit axis scan without materializing a flattened net.
+        for axis in 0..<4 {
+            var excluded = true
+            scan: for row in controlNet { for value in row {
+                try execution.consumeWork(1)
+                let outside: Bool
+                switch axis {
+                case 0: outside = value.x.lower > 0
+                case 1: outside = value.x.upper < 0
+                case 2: outside = value.y.lower > 0
+                default: outside = value.y.upper < 0
+                }
+                if !outside { excluded = false; break scan }
+            } }
+            if excluded { return true }
+        }
+        return false
     }
 
-    private func centerValue() -> Vector {
-        evaluate(controlNet)
+    private func centerValue(using execution: inout OriginalQueryExecution) throws -> Vector {
+        try evaluate(controlNet, using: &execution)
     }
 
-    private func derivativeBounds(alongFirst: Bool) -> Vector {
+    private func derivativeBounds(alongFirst: Bool, using execution: inout OriginalQueryExecution) throws -> Vector {
+        try execution.consumeWork(1)
         let derivativeNet: [[Vector]]
         if alongFirst {
-            let degree = OutwardScalarInterval.exact(
-                Double(controlNet.count - 1)
-            )
-            derivativeNet = (0..<(controlNet.count - 1)).map { firstIndex in
-                controlNet[firstIndex].indices.map { secondIndex in
-                    Vector(
-                        x: (
-                            controlNet[firstIndex + 1][secondIndex].x
-                                - controlNet[firstIndex][secondIndex].x
-                        ) * degree,
-                        y: (
-                            controlNet[firstIndex + 1][secondIndex].y
-                                - controlNet[firstIndex][secondIndex].y
-                        ) * degree
-                    )
+            let degree = OutwardScalarInterval.exact(Double(controlNet.count - 1))
+            derivativeNet = try OriginalCoefficientAllocation.map(elements: 0..<(controlNet.count - 1), using: &execution) { firstIndex, execution in
+                try OriginalCoefficientAllocation.map(elements: controlNet[firstIndex].indices, using: &execution) { secondIndex, _ in
+                    Vector(x: (controlNet[firstIndex + 1][secondIndex].x - controlNet[firstIndex][secondIndex].x) * degree,
+                        y: (controlNet[firstIndex + 1][secondIndex].y - controlNet[firstIndex][secondIndex].y) * degree)
                 }
             }
         } else {
             let count = controlNet[0].count
             let degree = OutwardScalarInterval.exact(Double(count - 1))
-            derivativeNet = controlNet.indices.map { firstIndex in
-                (0..<(count - 1)).map { secondIndex in
-                    Vector(
-                        x: (
-                            controlNet[firstIndex][secondIndex + 1].x
-                                - controlNet[firstIndex][secondIndex].x
-                        ) * degree,
-                        y: (
-                            controlNet[firstIndex][secondIndex + 1].y
-                                - controlNet[firstIndex][secondIndex].y
-                        ) * degree
-                    )
+            derivativeNet = try OriginalCoefficientAllocation.map(elements: controlNet.indices, using: &execution) { firstIndex, execution in
+                try OriginalCoefficientAllocation.map(elements: 0..<(count - 1), using: &execution) { secondIndex, _ in
+                    Vector(x: (controlNet[firstIndex][secondIndex + 1].x - controlNet[firstIndex][secondIndex].x) * degree,
+                        y: (controlNet[firstIndex][secondIndex + 1].y - controlNet[firstIndex][secondIndex].y) * degree)
                 }
             }
         }
-        return hull(derivativeNet)
+        return try hull(derivativeNet, using: &execution)
     }
 
-    private func hull(_ values: [[Vector]]) -> Vector {
-        let flat = values.flatMap { $0 }
-        return Vector(
-            x: .enclosing(flat.map({ $0.x })),
-            y: .enclosing(flat.map({ $0.y }))
-        )
+    private func hull(_ values: [[Vector]], using execution: inout OriginalQueryExecution) throws -> Vector {
+        var first: Vector?
+        var lowerX = 0.0, upperX = 0.0, lowerY = 0.0, upperY = 0.0
+        for row in values { for value in row {
+            try execution.consumeWork(1)
+            if first == nil {
+                first = value; lowerX = value.x.lower; upperX = value.x.upper
+                lowerY = value.y.lower; upperY = value.y.upper
+            } else {
+                if value.x.lower < lowerX { lowerX = value.x.lower }
+                if upperX < value.x.upper { upperX = value.x.upper }
+                if value.y.lower < lowerY { lowerY = value.y.lower }
+                if upperY < value.y.upper { upperY = value.y.upper }
+            }
+        } }
+        guard first != nil else {
+            return Vector(x: .init(lower: -.infinity, upper: .infinity), y: .init(lower: -.infinity, upper: .infinity))
+        }
+        return Vector(x: .init(lower: lowerX, upper: upperX), y: .init(lower: lowerY, upper: upperY))
     }
 
-    private func evaluate(_ values: [[Vector]]) -> Vector {
+    private func evaluate(_ values: [[Vector]], using execution: inout OriginalQueryExecution) throws -> Vector {
         var firstReduced = values
         while firstReduced.count > 1 {
-            firstReduced = (0..<(firstReduced.count - 1)).map { index in
-                zip(firstReduced[index], firstReduced[index + 1]).map {
-                    $0.midpoint(with: $1)
+            try execution.consumeWork(1)
+            firstReduced = try OriginalCoefficientAllocation.map(elements: 0..<(firstReduced.count - 1), using: &execution) { index, execution in
+                try OriginalCoefficientAllocation.map(first: firstReduced[index], second: firstReduced[index + 1], using: &execution) { pair, _ in
+                    pair.0.midpoint(with: pair.1)
                 }
             }
         }
         var secondReduced = firstReduced[0]
         while secondReduced.count > 1 {
-            secondReduced = (0..<(secondReduced.count - 1)).map { index in
+            try execution.consumeWork(1)
+            secondReduced = try OriginalCoefficientAllocation.map(elements: 0..<(secondReduced.count - 1), using: &execution) { index, _ in
                 secondReduced[index].midpoint(with: secondReduced[index + 1])
             }
         }
         return secondReduced[0]
     }
 
-    private func split<T>(
-        _ values: [T],
-        parameter: Double,
-        interpolation: (T, T, OutwardScalarInterval) -> T
-    ) -> (lower: [T], upper: [T]) {
+    private func split<T>(_ values: [T], parameter: Double,
+        using execution: inout OriginalQueryExecution,
+        interpolation: (T, T, OutwardScalarInterval, inout OriginalQueryExecution) throws -> T
+    ) throws -> (lower: [T], upper: [T]) {
         let intervalParameter = OutwardScalarInterval.exact(parameter)
-        var levels = [values]
+        try OriginalCoefficientAllocation.reserve(count: values.count, of: [T].self, using: &execution)
+        var levels: [[T]] = []; levels.reserveCapacity(values.count); levels.append(values)
         while let previous = levels.last, previous.count > 1 {
-            levels.append((0..<(previous.count - 1)).map { index in
-                interpolation(
-                    previous[index],
-                    previous[index + 1],
-                    intervalParameter
-                )
+            try execution.consumeWork(1)
+            levels.append(try OriginalCoefficientAllocation.map(elements: 0..<(previous.count - 1), using: &execution) { index, execution in
+                try interpolation(previous[index], previous[index + 1], intervalParameter, &execution)
             })
         }
-        return (
-            levels.map { $0[0] },
-            levels.reversed().map { $0[$0.count - 1] }
-        )
+        return (try OriginalCoefficientAllocation.map(elements: levels, using: &execution) { level, _ in level[0] },
+            try OriginalCoefficientAllocation.map(elements: levels.reversed(), using: &execution) { level, _ in level[level.count - 1] })
     }
 
-    private func restricted<T>(
-        _ values: [T],
-        from lower: Double,
-        to upper: Double,
-        interpolation: (T, T, OutwardScalarInterval) -> T
-    ) -> [T] {
+    private func restricted<T>(_ values: [T], from lower: Double, to upper: Double,
+        using execution: inout OriginalQueryExecution,
+        interpolation: (T, T, OutwardScalarInterval, inout OriginalQueryExecution) throws -> T
+    ) throws -> [T] {
+        try execution.consumeWork(1)
         var result = values
-        if lower != 0.0 {
-            result = split(
-                result,
-                parameter: lower,
-                interpolation: interpolation
-            ).upper
-        }
-        let localUpper = (upper - lower) / (1.0 - lower)
-        if localUpper != 1.0 {
-            result = split(
-                result,
-                parameter: localUpper,
-                interpolation: interpolation
-            ).lower
-        }
+        if lower != 0 { result = try split(result, parameter: lower, using: &execution, interpolation: interpolation).upper }
+        let localUpper = (upper - lower) / (1 - lower)
+        if localUpper != 1 { result = try split(result, parameter: localUpper, using: &execution, interpolation: interpolation).lower }
         return result
     }
 
-    private func restrictedFirst(
-        _ values: [[Vector]],
-        from lower: Double,
-        to upper: Double
-    ) -> [[Vector]] {
-        restricted(values, from: lower, to: upper) {
-            first, second, parameter in
-            zip(first, second).map {
-                $0.interpolated(to: $1, parameter: parameter)
+    private func restrictedFirst(_ values: [[Vector]], from lower: Double, to upper: Double,
+        using execution: inout OriginalQueryExecution) throws -> [[Vector]] {
+        try restricted(values, from: lower, to: upper, using: &execution) { first, second, parameter, execution in
+            try OriginalCoefficientAllocation.map(first: first, second: second, using: &execution) { pair, _ in
+                pair.0.interpolated(to: pair.1, parameter: parameter)
             }
         }
     }
 
-    private func restrictedSecond(
-        _ values: [[Vector]],
-        from lower: Double,
-        to upper: Double
-    ) -> [[Vector]] {
-        values.map { row in
-            restricted(row, from: lower, to: upper) {
-                $0.interpolated(to: $1, parameter: $2)
+    private func restrictedSecond(_ values: [[Vector]], from lower: Double, to upper: Double,
+        using execution: inout OriginalQueryExecution) throws -> [[Vector]] {
+        try OriginalCoefficientAllocation.map(elements: values, using: &execution) { row, execution in
+            try restricted(row, from: lower, to: upper, using: &execution) { first, second, parameter, _ in
+                first.interpolated(to: second, parameter: parameter)
             }
         }
     }
 
-    private func positionEnclosure(
-        controls: [HomogeneousPoint],
-        normalizedParameter: OutwardScalarInterval,
-        tolerance: ModelingTolerance
+    private func positionEnclosure(controls: [HomogeneousPoint], normalizedParameter: OutwardScalarInterval,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> (x: OutwardScalarInterval, y: OutwardScalarInterval) {
         var level = controls
         while level.count > 1 {
-            level = (0..<(level.count - 1)).map { index in
-                level[index].interpolated(
-                    to: level[index + 1],
-                    parameter: normalizedParameter
-                )
+            try execution.consumeWork(1)
+            level = try OriginalCoefficientAllocation.map(elements: 0..<(level.count - 1), using: &execution) { index, _ in
+                level[index].interpolated(to: level[index + 1], parameter: normalizedParameter)
             }
         }
-        guard let value = level.first,
-              let x = value.x.divided(by: value.weight),
-              let y = value.y.divided(by: value.weight) else {
-            throw Self.failure(
-                .singularSystem,
-                tolerance: tolerance,
-                "Rational pcurve position enclosure crossed a non-positive denominator."
-            )
+        guard let value = level.first, let x = value.x.divided(by: value.weight), let y = value.y.divided(by: value.weight) else {
+            throw Self.failure(.singularSystem, tolerance: tolerance,
+                "Rational pcurve position enclosure crossed a non-positive denominator.")
         }
         return (x, y)
     }

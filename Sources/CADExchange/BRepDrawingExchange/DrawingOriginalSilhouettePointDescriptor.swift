@@ -36,14 +36,14 @@ struct DrawingOriginalSilhouettePointDescriptor: Encodable {
         case maximumDeviationPaperPoints, placementIdentity, kind, index, atlasOrdinal, stationOrdinal
         case componentOrdinal, curveOrdinal, nativeRange
     }
-    static func complete(_ original: OriginalSilhouetteDrawingPoint, usage: inout DrawingExchangeUsage) throws -> String {
-        var lower = original.silhouetteOwner
-        guard original.admission.belongsToSameInvocation(as: usage, silhouetteUsage: lower) else {
+    static func complete(_ original: OriginalSilhouetteDrawingPoint, usage: DrawingExchangeOwner, using execution: inout OriginalQueryExecution) throws -> String {
+        let lower = original.silhouetteOwner
+        guard original.admission.belongsToSameInvocation(as: usage, silhouetteContext: lower) else {
             throw ExportError.invalidMesh("Original silhouette point descriptor has a foreign invocation.")
         }
-        return try DrawingSilhouetteDescriptorEncoding.complete(Self(original: original), drawing: usage, lower: &lower,
-            tolerance: original.original.configuration.tolerance) { sink, lower in
-            try original.writeOriginalProvenance(to: sink, usage: &lower)
+        return try DrawingSilhouetteDescriptorEncoding.complete(Self(original: original), drawing: usage, lower: lower,
+            tolerance: original.original.configuration.tolerance, using: &execution) { sink, execution in
+            try original.writeOriginalProvenance(to: sink, using: &execution)
         }
     }
 }

@@ -1,0 +1,45 @@
+(node:36884) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+START G01 query prepared singleton swapped=false
+USAGE G01 prepared singleton swapped=false work=2705832 bytes=2039129
+STAGE G01 query produced prepared singleton swapped=false
+STAGE G01 check reader singleton swapped=false
+STAGE G01 check chart singleton swapped=false
+STAGE G01 check metadata singleton swapped=false
+PASS G01 query prepared singleton swapped=false
+START G01 query prepared singleton swapped=true
+USAGE G01 prepared singleton swapped=true work=2705832 bytes=2039129
+STAGE G01 query produced prepared singleton swapped=true
+STAGE G01 check reader singleton swapped=true
+STAGE G01 check chart singleton swapped=true
+STAGE G01 check metadata singleton swapped=true
+PASS G01 query prepared singleton swapped=true
+START G01 query prepared wide swapped=false
+USAGE G01 prepared wide swapped=false work=7636314 bytes=5548920
+STAGE G01 query produced prepared wide swapped=false
+STAGE G01 check reader wide swapped=false
+STAGE G01 check chart wide swapped=false
+STAGE G01 check metadata wide swapped=false
+PASS G01 query prepared wide swapped=false
+START G01 query prepared wide swapped=true
+USAGE G01 prepared wide swapped=true work=7979193 bytes=5727112
+STAGE G01 query produced prepared wide swapped=true
+STAGE G01 check reader wide swapped=true
+STAGE G01 check chart wide swapped=true
+STAGE G01 check metadata wide swapped=true
+PASS G01 query prepared wide swapped=true
+START G01 query prepared regression swapped=false
+USAGE G01 prepared regression swapped=false work=4467349 bytes=3384205
+STAGE G01 query produced prepared regression swapped=false
+STAGE G01 check reader regression swapped=false
+STAGE G01 check chart regression swapped=false
+STAGE G01 check metadata regression swapped=false
+PASS G01 query prepared regression swapped=false
+START G01 query prepared regression swapped=true
+USAGE G01 prepared regression swapped=true work=4467349 bytes=3384205
+STAGE G01 query produced prepared regression swapped=true
+STAGE G01 check reader regression swapped=true
+STAGE G01 check chart regression swapped=true
+STAGE G01 check metadata regression swapped=true
+PASS G01 query prepared regression swapped=true
+PASS G01 public prepared

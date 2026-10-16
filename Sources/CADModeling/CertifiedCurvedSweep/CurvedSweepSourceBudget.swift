@@ -1,14 +1,11 @@
 import CADCore
 import CADGeometry
-import Synchronization
 
-/// One source-law allowance shared by every closed-frame correction attempt.
-package final class CurvedSweepSourceBudget: Sendable, RationalAlgebraAdmitting {
-    private struct State {
-        var remainingWork: Int
-        var remainingScalars: Int
-    }
-    private let state: Mutex<State>
+/// Cumulative source invocation owner shared by closed-frame correction queries.
+package final class CurvedSweepSourceBudget: Sendable {
+    package let budget: OriginalQueryBudget
+    package let limits: OriginalQueryExecutionLimits
+    package let contributions: [OriginalQueryContributionHandle]
     private let tolerance: ModelingTolerance
     package let maximumDepth = 20
     package let maximumSpanCount: Int
@@ -16,60 +13,42 @@ package final class CurvedSweepSourceBudget: Sendable, RationalAlgebraAdmitting 
     package init(tolerance: ModelingTolerance) throws {
         try tolerance.validate()
         self.tolerance = tolerance
-        let limits = GeometryConversionRequirements(maximumPositionError: tolerance.distance,
+        contributions = []
+        let requirements = GeometryConversionRequirements(maximumPositionError: tolerance.distance,
             maximumTangentAngle: tolerance.angle, maximumCurvatureError: tolerance.distance)
-        maximumSpanCount = limits.maximumControlPointCount
-        state = Mutex(State(remainingWork: limits.maximumWorkUnits,
-            remainingScalars: limits.maximumScalarCount))
+        maximumSpanCount = requirements.maximumControlPointCount
+        let bytes = requirements.maximumScalarCount.multipliedReportingOverflow(by: MemoryLayout<Double>.stride)
+        guard !bytes.overflow else { throw ExactScalarFailure.countOverflow }
+        budget = try OriginalQueryBudget(workLimit: requirements.maximumWorkUnits,
+            storageByteLimit: bytes.partialValue)
+        limits = try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32,
+            remainingSourceDepth: maximumDepth, maximumSubdivisionDepth: maximumDepth,
+            maximumSpans: maximumSpanCount, maximumScalarSlots: requirements.maximumScalarCount)
     }
 
-    package func conversionAdmission() throws -> GeometryConversionAdmission {
-        try GeometryConversionAdmission(maximumSpanCount: maximumSpanCount,
-            maximumSubdivisionDepth: maximumDepth, remainingSourceDepth: maximumDepth,
-            consumeWork: { try self.consumeExactWork($0) },
-            consumeStorage: { try self.retainBytes($0) })
+    package init(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try tolerance.validate()
+        self.tolerance = tolerance
+        budget = execution.budget
+        limits = execution.effectiveLimits
+        contributions = try execution.retainActiveContributionHandles()
+        maximumSpanCount = min(execution.effectiveLimits.maximumSpans,
+            GeometryConversionRequirements(maximumPositionError: tolerance.distance,
+                maximumTangentAngle: tolerance.angle, maximumCurvatureError: tolerance.distance).maximumControlPointCount)
     }
 
-    package func consume(depth: Int) throws {
-        try consume(count: 1, depth: depth)
+    package func consume(depth: Int, using execution: inout OriginalQueryExecution) throws {
+        guard depth >= 0, depth <= maximumDepth else { throw exhausted() }
+        try execution.visitGeometricCell(depth: depth)
     }
 
-    private func consume(count: Int, depth: Int) throws {
-        try CurrentTaskCancellationChecker().checkCancellation()
-        try state.withLock { value in
-            guard depth >= 0, depth <= maximumDepth, count >= 0,
-                  count <= value.remainingWork else { throw exhausted() }
-            value.remainingWork -= count
-        }
-    }
-
-    package func consumeExactWork(_ count: Int) throws { try consume(count: count, depth: 0) }
-    package func retainExactStorage(_ count: Int) throws {
-        let bytes = count.multipliedReportingOverflow(by: MemoryLayout<UInt32>.stride)
-        guard count >= 0, !bytes.overflow else { throw exhausted() }
-        try retainBytes(bytes.partialValue)
-    }
-    package func visitExactCell(depth: Int) throws {
-        guard depth >= 0, depth <= 32 else { throw exhausted() }
-        try consumeExactWork(1)
-    }
-
-    package func retainScalars(_ count: Int) throws {
-        try CurrentTaskCancellationChecker().checkCancellation()
-        try state.withLock { value in
-            guard count >= 0, count <= value.remainingScalars else { throw exhausted() }
-            value.remainingScalars -= count
-        }
-    }
-
-    package func retainBytes(_ count: Int) throws {
-        guard count >= 0 else { throw exhausted() }
-        let stride = MemoryLayout<Double>.stride
-        try retainScalars(count / stride + (count % stride == 0 ? 0 : 1))
+    /// A later query owns independent local scopes and the same cumulative budget.
+    package func execution() throws -> OriginalQueryExecution {
+        try OriginalQueryExecution(budget: budget, limits: limits, contributions: contributions)
     }
 
     private func exhausted() -> KernelError {
         KernelError(phase: .evaluation, code: .resourceLimitExceeded, tolerance: tolerance,
-            message: "The curved sweep exhausted its cumulative original-law work, scalar or depth allowance.")
+            message: "The curved sweep exhausted its original source or geometric depth allowance.")
     }
 }

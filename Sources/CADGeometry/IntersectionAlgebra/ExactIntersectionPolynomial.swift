@@ -30,7 +30,7 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
                 }
             }
         }
-        fileprivate init<B: RationalAlgebraAdmitting>(variableCount: Int,
+        fileprivate init<B: ExactScalarAdmission & ~Copyable>(variableCount: Int,
             exponent: (Int) throws -> Int, usage: inout B) throws {
             guard variableCount > 0 else {
                 throw rationalAlgebraFailure("Intersection powers require a positive original coordinate count.")
@@ -61,13 +61,13 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
             }
             overflow = retained
         }
-        init<B: RationalAlgebraAdmitting>(_ values: [Int], variableCount: Int, usage: inout B) throws {
+        init<B: ExactScalarAdmission & ~Copyable>(_ values: [Int], variableCount: Int, usage: inout B) throws {
             guard values.count == variableCount else {
                 throw rationalAlgebraFailure("Original exponents must bind every coordinate exactly once.")
             }
             try self.init(variableCount: variableCount, exponent: { values[$0] }, usage: &usage)
         }
-        static func coordinate<B: RationalAlgebraAdmitting>(at axis: Int, exponent: Int = 1, variableCount: Int, usage: inout B) throws -> Self {
+        static func coordinate<B: ExactScalarAdmission & ~Copyable>(at axis: Int, exponent: Int = 1, variableCount: Int, usage: inout B) throws -> Self {
             guard axis >= 0, axis < variableCount, exponent >= 0 else {
                 throw rationalAlgebraFailure("Original coordinate exponent is outside its ring.")
             }
@@ -119,7 +119,7 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
             }
             return true
         }
-        func sum<B: RationalAlgebraAdmitting>(_ other: Self, variableCount: Int, usage: inout B) throws -> Self {
+        func sum<B: ExactScalarAdmission & ~Copyable>(_ other: Self, variableCount: Int, usage: inout B) throws -> Self {
             if overflow.isEmpty && other.overflow.isEmpty {
                 return try Self((rationalAlgebraCount(a, other.a), rationalAlgebraCount(b, other.b),
                     rationalAlgebraCount(c, other.c), rationalAlgebraCount(d, other.d), rationalAlgebraCount(e, other.e),
@@ -129,8 +129,8 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
             return try Self(variableCount: variableCount,
                 exponent: { try rationalAlgebraCount(self.exponent(at: $0), other.exponent(at: $0)) }, usage: &usage)
         }
-        func quotient<B: RationalAlgebraAdmitting>(by other: Self, variableCount: Int, usage: inout B) throws -> Self {
-            try usage.consumeExactWork(max(overflow.count, other.overflow.count))
+        func quotient<B: ExactScalarAdmission & ~Copyable>(by other: Self, variableCount: Int, usage: inout B) throws -> Self {
+            try usage.consumeWork(max(overflow.count, other.overflow.count))
             guard other.divides(self) else { throw rationalAlgebraFailure("Original monomial quotient has a negative exponent.") }
             if overflow.isEmpty && other.overflow.isEmpty {
                 return try Self((a-other.a, b-other.b, c-other.c, d-other.d, e-other.e,
@@ -139,7 +139,7 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
             return try Self(variableCount: variableCount,
                 exponent: { try self.exponent(at: $0) - other.exponent(at: $0) }, usage: &usage)
         }
-        func leastCommonMultiple<B: RationalAlgebraAdmitting>(_ other: Self, variableCount: Int, usage: inout B) throws -> Self {
+        func leastCommonMultiple<B: ExactScalarAdmission & ~Copyable>(_ other: Self, variableCount: Int, usage: inout B) throws -> Self {
             if overflow.isEmpty && other.overflow.isEmpty {
                 return try Self((max(a,other.a), max(b,other.b), max(c,other.c), max(d,other.d), max(e,other.e),
                     max(f,other.f), max(g,other.g), max(h,other.h), max(i,other.i)), variableCount: variableCount)
@@ -147,7 +147,7 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
             return try Self(variableCount: variableCount,
                 exponent: { try max(self.exponent(at: $0), other.exponent(at: $0)) }, usage: &usage)
         }
-        func removing<B: RationalAlgebraAdmitting>(_ coordinate: Int, variableCount: Int, usage: inout B) throws -> Self {
+        func removing<B: ExactScalarAdmission & ~Copyable>(_ coordinate: Int, variableCount: Int, usage: inout B) throws -> Self {
             guard coordinate >= 0, coordinate < variableCount else {
                 throw rationalAlgebraFailure("Original coefficient extraction has a foreign coordinate.")
             }
@@ -159,9 +159,9 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
             return try Self(variableCount: variableCount,
                 exponent: { $0 == coordinate ? 0 : try self.exponent(at: $0) }, usage: &usage)
         }
-        func validate<B: RationalAlgebraAdmitting>(variableCount: Int, usage: inout B) throws {
+        func validate<B: ExactScalarAdmission & ~Copyable>(variableCount: Int, usage: inout B) throws {
             guard variableCount > 0 else { throw rationalAlgebraFailure("An original ring must be nonempty.") }
-            try usage.consumeExactWork(overflow.count)
+            try usage.consumeWork(overflow.count)
             guard overflow.count <= max(0, variableCount - 9) else {
                 throw rationalAlgebraFailure("Original monomial contains an active coordinate outside its ring.")
             }
@@ -182,7 +182,7 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
         self.variableCount = variableCount; self.coefficients = coefficients
         self.orderedCoefficients = orderedCoefficients
     }
-    private static func storing<B: RationalAlgebraAdmitting>(variableCount: Int,
+    private static func storing<B: ExactScalarAdmission & ~Copyable>(variableCount: Int,
         coefficients: [Power: ExactRationalCoefficient], usage: inout B) throws -> Self {
         try intersectionAlgebraStep(&usage)
         try RationalAlgebraStorage.retain(coefficients.count,
@@ -193,7 +193,7 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
             try intersectionAlgebraStep(&usage)
             comparisonWidth = max(comparisonWidth, try rationalAlgebraCount(term.key.overflowCount, 1))
         }
-        try usage.consumeExactWork(rationalAlgebraCount(
+        try usage.consumeWork(rationalAlgebraCount(
             rationalAlgebraCount(coefficients.count, levels + 1, multiply: true), comparisonWidth, multiply: true))
         let ordered = coefficients.sorted { $1.key.precedes($0.key) }
         return Self(variableCount: variableCount, coefficients: coefficients, orderedCoefficients: ordered)
@@ -204,14 +204,14 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
 
     package var isZero: Bool { coefficients.isEmpty }
     /// Equality needs no ordered temporary table; admit the immutable traversal.
-    package func matches<B: RationalAlgebraAdmitting>(_ other: Self, usage: inout B) throws -> Bool {
+    package func matches<B: ExactScalarAdmission & ~Copyable>(_ other: Self, usage: inout B) throws -> Bool {
         try requireSameRing(other)
         try intersectionAlgebraStep(&usage)
         guard orderedCoefficients.count == other.orderedCoefficients.count else { return false }
         for index in orderedCoefficients.indices {
             try intersectionAlgebraStep(&usage)
             let first = orderedCoefficients[index], second = other.orderedCoefficients[index]
-            try usage.consumeExactWork(rationalAlgebraCount(first.key.overflowCount, second.key.overflowCount))
+            try usage.consumeWork(rationalAlgebraCount(first.key.overflowCount, second.key.overflowCount))
             if first.key != second.key || first.value != second.value { return false }
         }
         return true
@@ -221,7 +221,7 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
         guard coefficients.count == 1, let power = coefficients.first?.key else { return false }
         return power.isConstant
     }
-    func leading<B: RationalAlgebraAdmitting>(usage: inout B)
+    func leading<B: ExactScalarAdmission & ~Copyable>(usage: inout B)
         throws -> (power: Power, coefficient: ExactRationalCoefficient)? {
         try intersectionAlgebraStep(&usage)
         guard let term = orderedCoefficients.first else { return nil }
@@ -235,14 +235,14 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
         return Self(variableCount: variableCount, coefficients: [:], orderedCoefficients: [])
     }
 
-    package static func monomial<B: RationalAlgebraAdmitting>(variableCount: Int,
+    package static func monomial<B: ExactScalarAdmission & ~Copyable>(variableCount: Int,
         powers: (Int, Int, Int, Int, Int), coefficient: ExactRationalCoefficient,
         usage: inout B) throws -> Self {
         return try monomial(variableCount: variableCount,
             powers: (powers.0, powers.1, powers.2, powers.3, powers.4, 0, 0, 0, 0), coefficient: coefficient, usage: &usage)
     }
 
-    package static func monomial<B: RationalAlgebraAdmitting>(variableCount: Int,
+    package static func monomial<B: ExactScalarAdmission & ~Copyable>(variableCount: Int,
         powers: (Int, Int, Int, Int, Int, Int, Int, Int, Int), coefficient: ExactRationalCoefficient,
         usage: inout B) throws -> Self {
         try intersectionAlgebraStep(&usage)
@@ -252,14 +252,14 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
         return try storing(variableCount: variableCount, coefficients: [power: coefficient], usage: &usage)
     }
 
-    package static func monomial<B: RationalAlgebraAdmitting>(variableCount: Int,
+    package static func monomial<B: ExactScalarAdmission & ~Copyable>(variableCount: Int,
         powers: [Int], coefficient: ExactRationalCoefficient, usage: inout B) throws -> Self {
         try intersectionAlgebraStep(&usage)
         let power = try Power(powers, variableCount: variableCount, usage: &usage)
         return try monomial(variableCount: variableCount, power: power, coefficient: coefficient, usage: &usage)
     }
 
-    package static func monomial<B: RationalAlgebraAdmitting>(variableCount: Int,
+    package static func monomial<B: ExactScalarAdmission & ~Copyable>(variableCount: Int,
         power: Power, coefficient: ExactRationalCoefficient, usage: inout B) throws -> Self {
         try intersectionAlgebraStep(&usage)
         try power.validate(variableCount: variableCount, usage: &usage)
@@ -268,13 +268,13 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
         return try storing(variableCount: variableCount, coefficients: [power: coefficient], usage: &usage)
     }
 
-    package static func constant<B: RationalAlgebraAdmitting>(variableCount: Int,
+    package static func constant<B: ExactScalarAdmission & ~Copyable>(variableCount: Int,
         value: ExactRationalCoefficient, usage: inout B) throws -> Self {
         try monomial(variableCount: variableCount, powers: (0, 0, 0, 0, 0),
                      coefficient: value, usage: &usage)
     }
 
-    package static func coordinate<B: RationalAlgebraAdmitting>(variableCount: Int,
+    package static func coordinate<B: ExactScalarAdmission & ~Copyable>(variableCount: Int,
         at coordinate: Int, usage: inout B) throws -> Self {
         guard coordinate >= 0, coordinate < variableCount else {
             throw rationalAlgebraFailure("Original intersection coordinate does not belong to its ring.")
@@ -284,7 +284,7 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
             coefficient: .one, usage: &usage)
     }
 
-    package static func embedding<B: RationalAlgebraAdmitting>(_ source: ExactBivariatePolynomial,
+    package static func embedding<B: ExactScalarAdmission & ~Copyable>(_ source: ExactBivariatePolynomial,
         variableCount: Int, uCoordinate: Int, vCoordinate: Int, usage: inout B) throws -> Self {
         guard uCoordinate >= 0, vCoordinate >= 0, uCoordinate < variableCount,
               vCoordinate < variableCount, uCoordinate != vCoordinate else {
@@ -302,7 +302,7 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
     }
 
     /// Removes only proved-unused suffix slots after exact projection.
-    package func lowered<B: RationalAlgebraAdmitting>(to count: Int, usage: inout B) throws -> Self {
+    package func lowered<B: ExactScalarAdmission & ~Copyable>(to count: Int, usage: inout B) throws -> Self {
         try intersectionAlgebraStep(&usage)
         guard count >= 1, count <= variableCount else {
             throw rationalAlgebraFailure("Projected ring reduction requires a retained nonempty coordinate prefix.")
@@ -319,7 +319,7 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
     }
 
     /// Injective coordinate renaming preserves original coefficients and source monomials.
-    package func remapped<B: RationalAlgebraAdmitting>(to count: Int, coordinates: [Int], usage: inout B) throws -> Self {
+    package func remapped<B: ExactScalarAdmission & ~Copyable>(to count: Int, coordinates: [Int], usage: inout B) throws -> Self {
         try intersectionAlgebraStep(&usage)
         guard (1...Self.maximumVariableCount).contains(count), coordinates.count == variableCount else {
             throw rationalAlgebraFailure("Original remapping requires every source coordinate and an admitted target ring.")
@@ -376,7 +376,7 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
         return result
     }
 
-    package func lifted<B: RationalAlgebraAdmitting>(to count: Int, usage: inout B) throws -> Self {
+    package func lifted<B: ExactScalarAdmission & ~Copyable>(to count: Int, usage: inout B) throws -> Self {
         try intersectionAlgebraStep(&usage)
         guard count >= variableCount, count <= Self.maximumVariableCount else {
             throw rationalAlgebraFailure("Original polynomial lifting cannot remove coordinates.")
@@ -385,14 +385,14 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
     }
 
     /// The immutable canonical table remains shared with its polynomial owner.
-    func orderedTerms<B: RationalAlgebraAdmitting>(usage: inout B)
+    func orderedTerms<B: ExactScalarAdmission & ~Copyable>(usage: inout B)
         throws -> [(key: Power, value: ExactRationalCoefficient)] {
         try intersectionAlgebraStep(&usage)
-        try usage.consumeExactWork(orderedCoefficients.count)
+        try usage.consumeWork(orderedCoefficients.count)
         return orderedCoefficients
     }
 
-    package func adding<B: RationalAlgebraAdmitting>(_ other: Self, usage: inout B) throws -> Self {
+    package func adding<B: ExactScalarAdmission & ~Copyable>(_ other: Self, usage: inout B) throws -> Self {
         try requireSameRing(other)
         try intersectionAlgebraStep(&usage)
         if isZero { return other }
@@ -409,7 +409,7 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
         return try Self.storing(variableCount: variableCount, coefficients: result, usage: &usage)
     }
 
-    package func scaled<B: RationalAlgebraAdmitting>(by scale: ExactRationalCoefficient,
+    package func scaled<B: ExactScalarAdmission & ~Copyable>(by scale: ExactRationalCoefficient,
         usage: inout B) throws -> Self {
         try intersectionAlgebraStep(&usage)
         if scale.isZero { return try .zero(variableCount: variableCount) }
@@ -425,11 +425,11 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
         return try Self.storing(variableCount: variableCount, coefficients: result, usage: &usage)
     }
 
-    package func subtracting<B: RationalAlgebraAdmitting>(_ other: Self, usage: inout B) throws -> Self {
+    package func subtracting<B: ExactScalarAdmission & ~Copyable>(_ other: Self, usage: inout B) throws -> Self {
         try adding(other.scaled(by: .one.negated, usage: &usage), usage: &usage)
     }
 
-    package func multiplied<B: RationalAlgebraAdmitting>(by other: Self,
+    package func multiplied<B: ExactScalarAdmission & ~Copyable>(by other: Self,
         usage: inout B) throws -> Self {
         try requireSameRing(other)
         try intersectionAlgebraStep(&usage)
@@ -442,7 +442,7 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
             for (b, y) in rhs {
                 try intersectionAlgebraStep(&usage)
                 let power = try a.sum(b, variableCount: variableCount, usage: &usage)
-                try usage.consumeExactWork(rationalAlgebraCount(power.overflowCount, 3, multiply: true))
+                try usage.consumeWork(rationalAlgebraCount(power.overflowCount, 3, multiply: true))
                 let value = try (result[power] ?? .zero).adding(x.multiplied(by: y, usage: &usage), usage: &usage)
                 if value.isZero { result.removeValue(forKey: power) }
                 else {
@@ -456,7 +456,7 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
         return try Self.storing(variableCount: variableCount, coefficients: result, usage: &usage)
     }
 
-    package func differentiated<B: RationalAlgebraAdmitting>(at coordinate: Int,
+    package func differentiated<B: ExactScalarAdmission & ~Copyable>(at coordinate: Int,
         usage: inout B) throws -> Self {
         guard coordinate >= 0, coordinate < variableCount else {
             throw rationalAlgebraFailure("Original derivative coordinate is outside the intersection ring.")
@@ -478,7 +478,7 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
         return try Self.storing(variableCount: variableCount, coefficients: result, usage: &usage)
     }
 
-    package func evaluated<B: RationalAlgebraAdmitting>(at coordinates: [ExactRationalCoefficient],
+    package func evaluated<B: ExactScalarAdmission & ~Copyable>(at coordinates: [ExactRationalCoefficient],
         usage: inout B) throws -> ExactRationalCoefficient {
         guard coordinates.count == variableCount else {
             throw rationalAlgebraFailure("Intersection evaluation requires every original coordinate.")
@@ -500,13 +500,13 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
         return result
     }
 
-    func monic<B: RationalAlgebraAdmitting>(usage: inout B) throws -> Self {
+    func monic<B: ExactScalarAdmission & ~Copyable>(usage: inout B) throws -> Self {
         guard let lead = try leading(usage: &usage) else { return self }
         if lead.coefficient == .one { return self }
         return try scaled(by: .one.divided(by: lead.coefficient, usage: &usage), usage: &usage)
     }
 
-    package func axisCoefficients<B: RationalAlgebraAdmitting>(at axis: Int,
+    package func axisCoefficients<B: ExactScalarAdmission & ~Copyable>(at axis: Int,
         usage: inout B) throws -> [Self] {
         guard axis >= 0, axis < variableCount else {
             throw rationalAlgebraFailure("Projection axis does not belong to the original ring.")
@@ -537,7 +537,7 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
         return result
     }
 
-    package func dividedExactly<B: RationalAlgebraAdmitting>(by divisor: Self,
+    package func dividedExactly<B: ExactScalarAdmission & ~Copyable>(by divisor: Self,
         usage: inout B) throws -> Self {
         try requireSameRing(divisor)
         guard let denominator = try divisor.leading(usage: &usage) else {
@@ -550,7 +550,7 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
         var quotient = try Self.zero(variableCount: variableCount)
         while let lead = try pending.leading(usage: &usage) {
             try intersectionAlgebraStep(&usage)
-            try usage.consumeExactWork(max(denominator.power.overflowCount, lead.power.overflowCount))
+            try usage.consumeWork(max(denominator.power.overflowCount, lead.power.overflowCount))
             guard denominator.power.divides(lead.power) else {
                 throw rationalAlgebraFailure("Exact intersection polynomial division has a nonzero remainder.")
             }
@@ -561,7 +561,7 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
                 usage: &usage)
             pending = try pending.subtracting(term.multiplied(by: divisor, usage: &usage), usage: &usage)
             if let next = try pending.leading(usage: &usage) {
-                try usage.consumeExactWork(max(next.power.overflowCount, lead.power.overflowCount))
+                try usage.consumeWork(max(next.power.overflowCount, lead.power.overflowCount))
                 guard next.power.precedes(lead.power) else {
                     throw rationalAlgebraFailure("Exact polynomial division did not decrease its leading monomial.")
                 }
@@ -578,7 +578,7 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
     }
 }
 
-func intersectionAlgebraStep<B: RationalAlgebraAdmitting>(_ usage: inout B) throws {
+func intersectionAlgebraStep<B: ExactScalarAdmission & ~Copyable>(_ usage: inout B) throws {
     try CurrentTaskCancellationChecker().checkCancellation()
-    try usage.consumeExactWork(1)
+    try usage.consumeWork(1)
 }

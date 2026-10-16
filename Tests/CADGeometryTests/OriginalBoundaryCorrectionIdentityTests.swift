@@ -7,9 +7,10 @@ import Synchronization
 struct OriginalBoundaryCorrectionIdentityTests {
     private let tolerance = ModelingTolerance.standard
 
-    private func allowance(storage: Int = 268_435_456) throws -> NativeRationalSourceAllowance {
-        try .init(maximumWork: 80_000_000, maximumCells: 80_000_000,
-            maximumStorage: storage, maximumDepth: 64, operationCheck: {})
+    private func allowance(storage: Int = 1_073_741_824) throws -> OriginalQueryExecution {
+        OriginalQueryExecution(budget: try OriginalQueryBudget(workLimit: 80_000_000,
+            storageByteLimit: storage, cellLimit: 80_000_000, cellVisitWorkUnits: 0),
+            limits: try .init(maximumValueDepth: 64, maximumCoefficientDepth: 64, maximumCells: 80_000_000))
     }
 
     private func plane() -> BSplineSurface3D {
@@ -25,7 +26,7 @@ struct OriginalBoundaryCorrectionIdentityTests {
             return try .init(source: .bSpline(.init(degree: degree, knots: knots, controlPoints: points)),
                 start: .authored(0), end: .authored(1), maximumParameterWidth: tolerance.relative,
                 maximumSubdivisionDepth: 0, tolerance: tolerance,
-                storageByteStride: MemoryLayout<UInt32>.stride, usage: &usage,
+                usage: &usage,
                 maximumSpanCount: 1, remainingSourceDepth: 0, maximumAlgebraicDepth: 32)
         }
         let bottom = nonzero
@@ -35,13 +36,13 @@ struct OriginalBoundaryCorrectionIdentityTests {
             vMaximumBoundary: span([.init(x: 0,y: 1,z: 0), .init(x: 1,y: 1,z: 0)]),
             uMinimumBoundary: span([.origin, .init(x: 0,y: 1,z: 0)]),
             uMaximumBoundary: span([.init(x: 1,y: 0,z: 0), .init(x: 1,y: 1,z: 0)]),
-            tolerance: tolerance, usage: &usage)
+            tolerance: tolerance, using: &usage)
     }
 
     private func corrected(_ boundaries: OriginalCoonsSurface3D,
-        usage: inout NativeRationalSourceAllowance) throws -> OriginalBoundaryCorrectedSurface3D {
+        usage: inout OriginalQueryExecution) throws -> OriginalBoundaryCorrectedSurface3D {
         try .init(construction: plane(), boundaries: boundaries, maximumSpanCount: 1,
-            maximumSubdivisionDepth: 0, tolerance: tolerance, usage: &usage)
+            maximumSubdivisionDepth: 0, tolerance: tolerance, using: &usage)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -49,12 +50,10 @@ struct OriginalBoundaryCorrectionIdentityTests {
         let boundary = try boundaries()
         var usage = try allowance()
         let source = try corrected(boundary, usage: &usage)
-        let admitted = usage
         let jet = try source.intervalTaylorJet(over: .init(u: .init(lower: 0,upper: 1),
                 v: .init(lower: 0,upper: 1)), throughOrder: 2, tolerance: tolerance,
             maximumSpanCount: 1, maximumSubdivisionDepth: 0, remainingSourceDepth: 1,
-            consumeWork: { try admitted.consumeExactWork(1) },
-            consumeStorage: { try admitted.retainExactStorage(($0 + 3) / 4) })
+            using: &usage)
         let du = try jet.x.coefficient(1, 0), dv = try jet.y.coefficient(0, 1)
         #expect(du.lower <= 1 && du.upper >= 1 && du.upper - du.lower < tolerance.distance)
         #expect(dv.lower <= 1 && dv.upper >= 1 && dv.upper - dv.lower < tolerance.distance)
@@ -67,10 +66,24 @@ struct OriginalBoundaryCorrectionIdentityTests {
         let boundary = try boundaries()
         var admitted = try allowance()
         _ = try corrected(boundary, usage: &admitted)
-        let total = try admitted.snapshot().storage
+        let total = admitted.budget.snapshot.storageBytes
         var insufficient = try allowance(storage: total - 1)
-        #expect(throws: KernelError.self) { _ = try corrected(boundary, usage: &insufficient) }
-        #expect(try insufficient.snapshot().storage == total - 1)
+        do {
+            _ = try corrected(boundary, usage: &insufficient)
+            Issue.record("The final retained payload escaped its byte ceiling.")
+        } catch {
+            guard let scalar = geometryTestOriginalFailure(error) as? ExactScalarFailure,
+                case .resourceLimit(.storage) = scalar else { throw error }
+            let retained = try #require(geometryTestQueryFailure(error))
+            let resource = try #require(retained.context.resource)
+            #expect(resource.axis == .storageBytes)
+            guard case .known(let used) = resource.used, case .known(let limit) = resource.limit,
+                case .known(let requested) = resource.requested else {
+                Issue.record("Canonical denial must retain exact byte counts."); return
+            }
+            #expect(used == insufficient.budget.snapshot.storageBytes)
+            #expect(limit == total - 1 && used <= limit && requested > limit - used)
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -78,13 +91,16 @@ struct OriginalBoundaryCorrectionIdentityTests {
         let boundary = try boundaries()
         var construction = try allowance()
         let source = try corrected(boundary, usage: &construction)
-        func query(_ callback: () throws -> Void) throws -> SurfaceAreaIntervalTaylorVectorJet {
-            try withoutActuallyEscaping(callback) { callback in
-                try source.intervalTaylorJet(over: .init(u: .init(lower: 0,upper: 1),
-                    v: .init(lower: 0,upper: 1)), throughOrder: 2, tolerance: tolerance,
-                    maximumSpanCount: 1, maximumSubdivisionDepth: 0, remainingSourceDepth: 1,
-                    consumeWork: callback, consumeStorage: { _ in try callback() })
-            }
+        func query(_ callback: @escaping @Sendable () throws -> Void) throws -> SurfaceAreaIntervalTaylorVectorJet {
+            var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(
+                consumeWorkUnits: { units in for _ in 0..<units { try callback() } },
+                consumeStorageBytes: { _ in try callback() }),
+                limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32,
+                    remainingSourceDepth: 1, maximumSubdivisionDepth: 0, maximumSpans: 1))
+            return try source.intervalTaylorJet(over: .init(u: .init(lower: 0,upper: 1),
+                v: .init(lower: 0,upper: 1)), throughOrder: 2, tolerance: tolerance,
+                maximumSpanCount: 1, maximumSubdivisionDepth: 0, remainingSourceDepth: 1,
+                using: &execution)
         }
         let baseline = Mutex(0)
         _ = try query { baseline.withLock { $0 += 1 } }
@@ -100,7 +116,7 @@ struct OriginalBoundaryCorrectionIdentityTests {
         do {
             _ = try await operation.value
             Issue.record("A final native query callback cancelled but published zero-correction bounds.")
-        } catch is CancellationError {
+        } catch where geometryTestIsCancelled(error) {
             #expect(count.withLock { $0 } == lastOrdinal)
         }
     }

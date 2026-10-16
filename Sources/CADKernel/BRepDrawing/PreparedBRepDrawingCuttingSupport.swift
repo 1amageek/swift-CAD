@@ -10,12 +10,12 @@ struct PreparedBRepDrawingCuttingSupport {
     let worldInverse: PreparedOriginalAffineOperationWord
     let chartInverse: PreparedOriginalAffineOperationWord
     let maximumSourceDepth: Int
+    let maximumAlgebraicDepth: Int
     let maximumSubdivisionDepth: Int
-    var usage: BRepDrawingCuttingAdmission
 
     init(_ source: BRepDrawingCuttingSupport, tolerance: ModelingTolerance,
          maximumSourceDepth: Int, maximumSubdivisionDepth: Int, maximumAlgebraicDepth: Int,
-         usage: BRepDrawingCuttingAdmission) throws {
+         using execution: inout OriginalQueryExecution) throws {
         guard !source.sourceIdentity.isEmpty, maximumSourceDepth > 0, maximumSourceDepth <= 16,
               maximumSubdivisionDepth >= 0, maximumSubdivisionDepth <= 32,
               maximumAlgebraicDepth >= 0, maximumAlgebraicDepth <= 32 else {
@@ -24,36 +24,35 @@ struct PreparedBRepDrawingCuttingSupport {
         }
         self.source = source; self.maximumSourceDepth = maximumSourceDepth
         self.maximumSubdivisionDepth = maximumSubdivisionDepth
-        var admission = usage
-        try admission.consume(work: 1, bytes: source.sourceIdentity.utf8.count)
+        self.maximumAlgebraicDepth = maximumAlgebraicDepth
+        try execution.consumeWork(1)
+        try execution.retainStorage(bytes: source.sourceIdentity.utf8.count)
         try source.originalPlane.validate(tolerance: tolerance)
-        try admission.retain(1, of: OriginalAffineWordSurface3D.self)
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: OriginalAffineWordSurface3D.self))
         image = try OriginalAffineWordSurface3D(source: .plane(source.originalPlane),
             operationWord: source.operationWord, tolerance: tolerance, remainingSourceDepth: maximumSourceDepth,
             maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth,
-            usage: &admission)
+            usage: &execution)
         let inverse = try source.operationWord.inverted(tolerance: tolerance,
-            maximumDepth: maximumAlgebraicDepth, usage: &admission)
-        worldInverse = try inverse.prepared(usage: &admission)
+            maximumDepth: maximumAlgebraicDepth, usage: &execution)
+        worldInverse = try inverse.prepared(usage: &execution)
         let basis = try source.originalPlane.parameterBasis(tolerance: tolerance)
         let origin = source.originalPlane.origin
         let chart = try AffineTransform3D(basisX: basis.u, basisY: basis.v, basisZ: source.originalPlane.normal,
             translation: Vector3D(x: origin.x, y: origin.y, z: origin.z))
         let chartWord = try OriginalAffineOperationWord(operation: .inverse(chart), tolerance: tolerance,
-            maximumDepth: maximumAlgebraicDepth, usage: &admission)
-        chartInverse = try chartWord.prepared(usage: &admission)
-        self.usage = admission
+            maximumDepth: maximumAlgebraicDepth, usage: &execution)
+        chartInverse = try chartWord.prepared(usage: &execution)
     }
 
-    mutating func parameters(over world: CoordinateEnclosure3D) throws -> CoordinateEnclosure3D {
-        let local = try worldInverse.enclosure(of: world, isPosition: true, usage: &usage)
-        return try chartInverse.enclosure(of: local, isPosition: true, usage: &usage)
+    func parameters(over world: CoordinateEnclosure3D, using execution: inout OriginalQueryExecution) throws -> CoordinateEnclosure3D {
+        let local = try worldInverse.enclosure(of: world, isPosition: true, usage: &execution)
+        return try chartInverse.enclosure(of: local, isPosition: true, usage: &execution)
     }
 
-    mutating func edges(u: ScalarInterval, v: ScalarInterval, tolerance: ModelingTolerance) throws -> [BRepSewingEdge] {
-        try usage.consume(work: 4)
-        try usage.retain(4, of: BRepSewingEdge.self)
-        var output: [BRepSewingEdge] = []; output.reserveCapacity(4)
+    func edges(u: ScalarInterval, v: ScalarInterval, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> [BRepSewingEdge] {
+        try execution.consumeWork(4)
+        var output: [BRepSewingEdge] = []; try OriginalParameterQueryStorage.reserve(4, in: &output, using: &execution)
         for index in 0..<4 {
             let chart: SurfaceParameterCurve
             switch index {
@@ -63,18 +62,18 @@ struct PreparedBRepDrawingCuttingSupport {
             default: chart = .constantU(u: u.lower, vStart: v.upper, vEnd: v.lower)
             }
             let lift = SurfaceLiftCurve3D(surface: image.source, parameterCurve: chart)
-            try usage.retain(1, of: OriginalAffineWordCurve3D.self)
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: OriginalAffineWordCurve3D.self))
             let curve = try OriginalAffineWordCurve3D(source: .surfaceLift(lift),
                 operationWord: source.operationWord, tolerance: tolerance,
-                remainingSourceDepth: maximumSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth, usage: &usage)
-            try usage.retain(1, of: OriginalAffineWordSurfaceParameterCurve.self)
+                remainingSourceDepth: maximumSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, usage: &execution)
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: OriginalAffineWordSurfaceParameterCurve.self))
             let pcurve = try OriginalAffineWordSurfaceParameterCurve(source: lift, target: image, tolerance: tolerance,
-                remainingSourceDepth: maximumSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth, usage: &usage)
-            try usage.consume(work: 2)
+                remainingSourceDepth: maximumSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth, usage: &execution)
+            try execution.consumeWork(2)
             let start = try image.point(u: index == 0 || index == 3 ? u.lower : u.upper,
-                v: index < 2 ? v.lower : v.upper, tolerance: tolerance, usage: &usage)
+                v: index < 2 ? v.lower : v.upper, tolerance: tolerance, using: &execution)
             let end = try image.point(u: index == 0 || index == 1 ? u.upper : u.lower,
-                v: index == 0 || index == 3 ? v.lower : v.upper, tolerance: tolerance, usage: &usage)
+                v: index == 0 || index == 3 ? v.lower : v.upper, tolerance: tolerance, using: &execution)
             output.append(BRepSewingEdge(stableID: "drawing:original-cut:edge:\(index)",
                 curve: .originalAffineWord(curve), startParameter: 0, endParameter: 1,
                 startPoint: start, endPoint: end, surfaceParameterCurve: .originalAffineWord(pcurve)))

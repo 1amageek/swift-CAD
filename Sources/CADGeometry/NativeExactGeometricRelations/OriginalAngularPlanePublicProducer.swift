@@ -3,12 +3,14 @@ import CADCore
 /// One ordinary finite physical-phase query, with exact coverage beside numerical representatives.
 struct OriginalAngularPlanePublicProducer {
     private typealias Base = OriginalPiScalarDomain
-    private typealias Admission = NativeExactPublicAdmission<NativeCurveSurfacePointAllowance>
+
     private typealias CurveSource = OriginalAnalyticCoordinateSnapshot
     private typealias PlaneSource = OriginalPlaneSnapshot
 
     func resolve(curve:Curve3D,surface:Surface3D,options:CurveSurfaceIntersectionOptions,
-        tolerance:ModelingTolerance,invocation:CurveSurfaceQueryInvocation? = nil) throws -> CurveSurfaceIntersectionResult? {
+        tolerance:ModelingTolerance,using a: inout OriginalQueryExecution) throws -> CurveSurfaceIntersectionResult? {
+        a.context = a.context.at(stage: .request)
+        try a.checkpoint()
         // FIXME(INCOMPLETE_IMPLEMENTATION): Ordinary angular/plane publication selects
         // this direct positive-turn profile only. Other primitives, phases and planes
         // retain their existing dispatch until their whole pair authority is connected.
@@ -21,30 +23,37 @@ struct OriginalAngularPlanePublicProducer {
             let range=options.curveRange,range.lower.isFinite,range.upper.isFinite else { return nil }
         do {
             try options.validate(tolerance:tolerance)
-            let usage=try NativeCurveSurfacePointAllowance(options:options,invocation:invocation)
-            var a=Admission(usage:usage,maximumDepth:usage.maximumAlgebraicDepth)
-            try a.checkpoint();try invocation?.consume(depth:0)
+            try a.checkpoint()
+            a.context = a.context.at(stage: .source)
             let sourceLimits=try OriginalSourceIssuanceLimits(
-                remainingSourceDepth:invocation?.remainingSourceDepth ?? options.maximumSubdivisionDepth)
-            let charts=min(invocation?.maximumSpanCount ?? options.maximumSubdivisionCells,options.maximumSubdivisionCells)
-            let limits=try OriginalDomainIdentityLimits(source:sourceLimits,maximumTransportDepth:usage.maximumAlgebraicDepth,
-                maximumCharts:charts,maximumFamilies:1,maximumIdentityProofs:0)
+                remainingSourceDepth: a.effectiveLimits.remainingSourceDepth)
+            let charts=min(min(a.effectiveLimits.maximumCharts, a.effectiveLimits.maximumSpans),options.maximumSubdivisionCells)
+            let limits=try OriginalDomainIdentityLimits(source:sourceLimits,maximumTransportDepth: a.effectiveLimits.maximumTransportDepth,
+                maximumCharts:charts,maximumFamilies: min(1, a.effectiveLimits.maximumFamilies),maximumIdentityProofs:0)
             let f=try Base(using:&a)
             let source=try DefaultOriginalSourceBindingIssuer(provider:OriginalAnalyticCoordinateCurveSnapshotProvider(tolerance:tolerance))
                 .bind(curve,limits:sourceLimits,using:&a)
+            try a.admitSourceDepth(source.sourceDepth)
+            a.context = a.context.retaining(first: .init(source: source))
             let law=try DefaultOriginalPhysicalAnalyticCoordinateIssuer<CurveSource,Base>()
                 .issue(source:source,field:f,limits:sourceLimits,using:&a)
+            a.context = a.context.at(stage: .domain)
             let curveIssuer=DefaultOriginalAnalyticDomainIssuer<CurveSource,Base>()
             let curveFrame=try curveIssuer.frame(law:law,limits:limits,using:&a)
             try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:[ExactParameterInterval<OriginalPiValue>].self))
             try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:ExactParameterInterval<OriginalPiValue>.self))
             let request=try curveFrame.selection(intervals:[[interval(range,field:f,using:&a)]],limits:limits,using:&a)
+            a.context = a.context.retaining(first: .init(selection: request))
             let curveCover=try curveIssuer.issue(request:request,law:law,limits:limits,using:&a)
+            a.context = a.context.at(stage: .source)
             let target=try DefaultOriginalSourceBindingIssuer(provider:OriginalPlaneSnapshotProvider(tolerance:tolerance))
                 .bind(surface,limits:sourceLimits,using:&a)
+            try a.admitSourceDepth(target.sourceDepth)
+            a.context = a.context.retaining(second: .init(source: target))
             let one=try f.integer(1,using:&a)
             let basis=try DefaultOriginalPlaneBasisIssuer<PlaneSource,Base>()
                 .issue(source:target,field:f,firstLength:one,normalLength:one,limits:sourceLimits,using:&a)
+            a.context = a.context.at(stage: .domain)
             let planeIssuer=DefaultOriginalPlaneDomainIssuer<PlaneSource,Base>()
             let planeFrame=try planeIssuer.frame(basis:basis,limits:limits,using:&a)
             let full=try planeFrame.fullSelection(limits:limits,using:&a)
@@ -62,34 +71,39 @@ struct OriginalAngularPlanePublicProducer {
                 }
             }
             let planeRequest=try planeFrame.selection(intervals:axes,limits:limits,using:&a)
+            a.context = a.context.retaining(second: .init(selection: planeRequest))
             let planeCover=try planeIssuer.issue(request:planeRequest,basis:basis,limits:limits,using:&a)
             let geometryLimits=try NativeExactPublicLimits.unboundedStructure()
+            a.context = a.context.at(stage: .relation)
             let original=try DefaultOriginalAngularPlaneRelationCompiler<CurveSource,PlaneSource>()
-                .resolve(curve:curveCover,plane:planeCover,maximumPairs:options.maximumCandidateCount,
+                .resolve(curve:curveCover,plane:planeCover,maximumPairs:min(options.maximumCandidateCount, a.effectiveLimits.maximumResults),
                     maximumExtensionLevel:Int.max,limits:limits,cellLimits:geometryLimits.cells,
                     topologyLimits:geometryLimits.topology,using:&a)
+            a.context = a.context.at(stage: .publication)
             let geometry=try OriginalAngularPlaneGeometricRelations.resolve(original,limits:limits,
-                geometryLimits:geometryLimits,maximumPoints:options.maximumCandidateCount,using:&a)
+                geometryLimits:geometryLimits,maximumPoints:min(options.maximumCandidateCount, a.effectiveLimits.maximumResults),using:&a)
             try a.retainStorage(bytes:exactScalarPayloadBytes(count:geometry.exactPoints.count,of:CurveSurfaceIntersection.self))
             var points:[CurveSurfaceIntersection]=[];points.reserveCapacity(geometry.exactPoints.count)
             for point in geometry.exactPoints {
                 try a.consumeWork(1)
                 points.append(try numerical(point,arc:arc,planeOrigin:planeOrigin,options:options,tolerance:tolerance,using:&a))
             }
+            a.context = a.context.at(stage: .publication)
             try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:CurveSurfaceIntersectionResult.self))
             let result=CurveSurfaceIntersectionResult(points:points,overlaps:[],originalAngularPlaneRelation:geometry)
             try a.checkpoint();return result
-        } catch { throw NativeExactGeometryPublicationFailure.published(error,tolerance:tolerance) }
+        } catch { throw NativeExactGeometryPublicationFailure.published(error,tolerance:tolerance,context:a.context) }
     }
 
-    private func interval(_ range:ScalarInterval,field:Base,using a:inout Admission) throws -> ExactParameterInterval<OriginalPiValue> {
+    private func interval(_ range:ScalarInterval,field:Base,using a:inout OriginalQueryExecution) throws -> ExactParameterInterval<OriginalPiValue> {
         let lower=try field.binary64(exactly:range.lower,using:&a),upper=try field.binary64(exactly:range.upper,using:&a)
         return try .checked(field:field,lower:.finite(lower),upper:.finite(upper),depth:.init(value:0,coefficient:0),using:&a)
     }
 
     private func numerical(_ point:OriginalAngularPlaneExactPoint,arc:OriginalAngularTransportCurve3D,
         planeOrigin:Point3D,options:CurveSurfaceIntersectionOptions,tolerance:ModelingTolerance,
-        using a:inout Admission) throws -> CurveSurfaceIntersection {
+        using a:inout OriginalQueryExecution) throws -> CurveSurfaceIntersection {
+        a.context = a.context.at(stage: .refinement)
         guard let request=options.curveRange else { throw NativeExactRelationFailure.invalidDomain }
         let f=point.original.curve.law.field,basis=point.original.plane.law
         var lower=max(0,request.lower),upper=min(1,request.upper)
@@ -145,16 +159,13 @@ struct OriginalAngularPlanePublicProducer {
     }
 
     private func originalBounds(_ arc:OriginalAngularTransportCurve3D,over range:ScalarInterval,
-        tolerance:ModelingTolerance,using a:inout Admission) throws -> [OutwardScalarInterval] {
-        // Lend the same value-local allowance to the synchronous legacy interval callbacks.
-        var usage=a.usage
-        defer { a.usage=usage }
+        tolerance:ModelingTolerance,using a:inout OriginalQueryExecution) throws -> [OutwardScalarInterval] {
         let jet=try arc.intervalTaylorJet(over:range,throughOrder:0,tolerance:tolerance,
-            consumeWork:{ try usage.consumeExactWork(1) },consumeStorage:{ try usage.retainBytes($0) })
-        try usage.retainBytes(exactScalarPayloadBytes(count:3,of:OutwardScalarInterval.self))
+            using: &a)
+        try a.retainStorage(bytes: exactScalarPayloadBytes(count:3,of:OutwardScalarInterval.self))
         return [try jet.x.coefficient(0,0),try jet.y.coefficient(0,0),try jet.z.coefficient(0,0)]
     }
-    private func unitComponent(_ value:OriginalPiValue,field:Base,using a:inout Admission) throws -> Double {
+    private func unitComponent(_ value:OriginalPiValue,field:Base,using a:inout OriginalQueryExecution) throws -> Double {
         for candidate in -1...1 {
             try a.consumeWork(1)
             if try field.compare(value,field.integer(candidate,using:&a),using:&a) == .equal { return Double(candidate) }
@@ -162,7 +173,7 @@ struct OriginalAngularPlanePublicProducer {
         throw NativeExactRelationFailure.unsupportedCoverage
     }
     private func certify(_ value:OriginalPiValue,in bounds:OutwardScalarInterval,
-        field:Base,using a:inout Admission) throws {
+        field:Base,using a:inout OriginalQueryExecution) throws {
         guard bounds.lower.isFinite,bounds.upper.isFinite,bounds.lower <= bounds.upper else {
             throw ExactScalarFailure.unresolved
         }

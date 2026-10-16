@@ -14,6 +14,28 @@ import CADCore
 struct CoaxialSphereCylinderSurfaceIntersector {
     private let verifier = SurfaceSurfaceIntersectionVerifier()
 
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Ordinary SSI dispatch reaches this direct entry.
+    // The former numerical/tolerance branches did not establish original common-set
+    // authority. U4 must supply complete original source/UV coverage before success.
+    func intersections(
+        sphere: CanonicalAnalyticSurface.Sphere,
+        cylinder: CanonicalAnalyticSurface.Cylinder,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution
+    ) throws -> [SurfaceSurfaceIntersection] {
+        execution.context = execution.context.at(stage: .relation)
+        do {
+            try execution.checkpoint()
+            throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+                message: "CoaxialSphereCylinderSurfaceIntersector requires complete original source relation authority.")
+        } catch { throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance) }
+    }
+
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Existing candidate/source helper methods call
+    // this ordinary publication entry. It performs no numeric solve or fallback;
+    // U4 must provide source-bound relation proof and direct execution before success.
     func intersections(
         sphere: CanonicalAnalyticSurface.Sphere,
         cylinder: CanonicalAnalyticSurface.Cylinder,
@@ -21,47 +43,9 @@ struct CoaxialSphereCylinderSurfaceIntersector {
         secondSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws -> [SurfaceSurfaceIntersection] {
-        let radialOffset = AnalyticAxisRelation.radialOffset(
-            from: cylinder.origin,
-            axis: cylinder.axis,
-            to: sphere.center
-        )
-        guard radialOffset.length <= tolerance.distance else {
-            throw KernelError(
-                phase: .geometry,
-                code: .invalidInput,
-                tolerance: tolerance,
-                message: "The coaxial sphere-cylinder intersector requires the sphere center on the cylinder axis."
-            )
-        }
-        guard cylinder.radius <= sphere.radius + tolerance.distance else { return [] }
-        let heightSquared = max(
-            0.0,
-            sphere.radius * sphere.radius - cylinder.radius * cylinder.radius
-        )
-        let height = sqrt(heightSquared)
-        if height <= tolerance.distance {
-            return [try circle(
-                center: sphere.center,
-                normal: cylinder.axis,
-                radius: cylinder.radius,
-                kind: .tangent,
-                firstSurface: firstSurface,
-                secondSurface: secondSurface,
-                tolerance: tolerance
-            )]
-        }
-        return try [-1.0, 1.0].map { sign in
-            try circle(
-                center: sphere.center + cylinder.axis * (sign * height),
-                normal: cylinder.axis,
-                radius: cylinder.radius,
-                kind: .transverse,
-                firstSurface: firstSurface,
-                secondSurface: secondSurface,
-                tolerance: tolerance
-            )
-        }
+        try CurrentTaskCancellationChecker().checkCancellation()
+        throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+            message: "CoaxialSphereCylinderSurfaceIntersector has no ordinary original-proof publication.")
     }
 
     private func circle(

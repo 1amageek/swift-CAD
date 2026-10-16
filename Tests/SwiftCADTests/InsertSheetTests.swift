@@ -114,7 +114,7 @@ struct InsertSheetTests {
         let area = try faces.reduce(0.0) { $0 + (try evaluated.brep.faceAreaMeasurement(of: $1, tolerance: .standard)).area }
         #expect(abs(area - 5.1e-3) < 1e-12, "\(area)")
         // Only the bottom's hole stays open.
-        #expect(OpenBoundaryLoopResolver().loops(in: sheet, model: evaluated.brep).count == 1)
+        #expect(try OpenBoundaryLoopResolver().loops(in: sheet, model: evaluated.brep).count == 1)
         // The option persists; documents without it trim the inserted sheet to the hole.
         guard case let .surfaceFill(stored)? = try builder.build().designGraph.nodes[fill]?.operation else {
             Issue.record("The fill is a surface fill."); return

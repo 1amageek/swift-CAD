@@ -9,12 +9,13 @@ struct BSplineCurveTrimmingTests {
 
     @Test
     func compositeBezierExtractionPreservesEverySpanControl() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
         let points = (0..<7).map { Point3D(x: Double($0) * 0.13, y: Double($0 % 3) * 0.7, z: 0) }
         let weights = [0.7, 1.3, 0.9, 1.0, 0.8, 1.2, 0.6]
         let curve = BSplineCurve3D(degree: 3,
             knots: [0, 0, 0, 0, 0.4, 0.4, 0.4, 1, 1, 1, 1],
             controlPoints: points, weights: weights)
-        let patches = try BSplineCurveBezierDecomposer().curvePatches(curve: curve, tolerance: tolerance)
+        let patches = try BSplineCurveBezierDecomposer().curvePatches(curve: curve, tolerance: tolerance, using: &execution)
         #expect(patches.count == 2)
         for (index, patch) in patches.enumerated() {
             #expect(patch.controlPoints == Array(points[(index * 3)...(index * 3 + 3)]))
@@ -24,17 +25,18 @@ struct BSplineCurveTrimmingTests {
 
     @Test
     func bezierExtractionAndTrimsPreserveUnchangedControls() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
         let curve = BSplineCurve3D(degree: 2, knots: [0, 0, 0, 1, 1, 1],
             controlPoints: [Point3D(x: 0.1, y: 0.3, z: 0.7),
                 Point3D(x: 0.4, y: 0.8, z: -0.2),
                 Point3D(x: 0.9, y: -0.4, z: 0.6)],
             weights: [0.7, 1.3, 0.9])
-        let patches = try BSplineCurveBezierDecomposer().curvePatches(curve: curve, tolerance: tolerance)
+        let patches = try BSplineCurveBezierDecomposer().curvePatches(curve: curve, tolerance: tolerance, using: &execution)
         let patch = try #require(patches.first)
         #expect(patches.count == 1)
         #expect(patch.controlPoints == curve.controlPoints)
         #expect(patch.weights == curve.weights)
-        let unchanged = try patch.trimmed(from: 0, to: 1, tolerance: tolerance)
+        let unchanged = try patch.trimmed(from: 0, to: 1, tolerance: tolerance, using: &execution)
         #expect(unchanged.controlPoints == curve.controlPoints)
         #expect(unchanged.weights == curve.weights)
         let head = try curve.trimmed(from: 0, to: 0.37, tolerance: tolerance)
@@ -46,18 +48,18 @@ struct BSplineCurveTrimmingTests {
         var invalid = curve
         invalid.weights[0] = 0
         #expect(throws: (any Error).self) {
-            _ = try BSplineCurveBezierDecomposer().curvePatches(curve: invalid, tolerance: tolerance)
+            _ = try BSplineCurveBezierDecomposer().curvePatches(curve: invalid, tolerance: tolerance, using: &execution)
         }
         let invalidPatch = RationalBezierCurvePatch3D(controlPoints: curve.controlPoints,
             weights: invalid.weights, lower: 0, upper: 1)
         #expect(throws: KernelError.self) {
-            _ = try invalidPatch.trimmed(from: 0, to: 1, tolerance: tolerance)
+            _ = try invalidPatch.trimmed(from: 0, to: 1, tolerance: tolerance, using: &execution)
         }
         var overflowing = curve
         overflowing.knots = Array(repeating: -Double.greatestFiniteMagnitude, count: 3)
             + Array(repeating: Double.greatestFiniteMagnitude, count: 3)
         #expect(throws: GeometryError.self) {
-            _ = try BSplineCurveBezierDecomposer().curvePatches(curve: overflowing, tolerance: tolerance)
+            _ = try BSplineCurveBezierDecomposer().curvePatches(curve: overflowing, tolerance: tolerance, using: &execution)
         }
     }
 

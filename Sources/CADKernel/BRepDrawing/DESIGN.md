@@ -123,7 +123,7 @@ No render mesh, degree-two-only stitching or sampled point polygon owns regions.
 
 ### Original silhouette trim admission
 
-Silhouette extraction shares one caller SurfaceSilhouetteUsage with every
+Silhouette extraction shares one caller OriginalQueryExecution with every
 original pcurve enclosure and retained-curve query. Whole UV boxes are admitted
 only after all original face boundary curves are interval-excluded from that box;
 prepared exact UV containment then classifies the connected branch without
@@ -375,10 +375,10 @@ coefficient visits to their existing explicit algebra authority and same owner.
 
 ### Silhouette Shared Preparation Admission
 
-The silhouette producer retains the original `SurfaceSilhouetteUsage` live owner
-through its preparation callbacks. Original BRep validation, finite face bounds
+The silhouette producer borrows the original `OriginalQueryExecution` through
+its direct preparation and quantitative reader calls. Original BRep validation, finite face bounds
 and the injected containment session share scalar work and byte retention with
-extraction, trimming and retained span queries. The callback depth denotes actual
+extraction, trimming and retained span queries. Geometric depth admission denotes actual
 geometric proof depth; structural source traversal remains independently bounded
 by the usage's explicit source capability (at most the intrinsic 16 levels),
 and coefficient operations receive
@@ -432,7 +432,7 @@ Whole original validation and body-image lower gaps remain explicit; placed
 silhouette extraction alone is not visible/hidden foreground-depth proof.
 
 Regular admitted native silhouette ranges may be wrapped as exact authored-endpoint
-trim receipts on the SAME SurfaceSilhouetteUsage. Algebraic partition endpoints
+trim receipts on the SAME OriginalQueryExecution. Algebraic partition endpoints
 continue to use their retained expressions; outward boxes are never authored cuts.
 
 Algebraic contact and admitted atlas point localization can be refined under an
@@ -449,7 +449,7 @@ retains the original placed projection, silhouette packets and all lower exact
 partitions. Span endpoints remain source knot/trim values; contact cuts remain
 original algebraic endpoint expressions. Parameter-preserving image families
 retain their full original source, not transformed control nets. The same supplied
-SurfaceSilhouetteUsage pays source preparation, pair proofs and retained typed
+OriginalQueryExecution pays source preparation, pair proofs and retained typed
 capacities before allocation. This is screen-incidence preparation only. Point
 contours, trim boundaries, positive-dimensional overlap and line-of-sight depth
 coverage are separate mandatory visibility inputs; an empty curve-pair list
@@ -470,3 +470,144 @@ Whole-edge fibers remain distinct from isolated events in the upper carrier.
 
 ### Compile-Compatible Original Adapters
 Chart contact projection uses OutwardScalarInterval.exact for each authored binary64 frame coefficient and retains both outward endpoints. A hatch row remains a procedural original affine-word support; finite Point2D endpoints are checked explicitly before original curve publication. Existing Core IDs/error codes and Modeling sewing types are imported from their actual owners. No source equation, receipt identity or allowance changes.
+
+## Canonical silhouette caller binding
+
+Removed OriginalQueryExecution parameters are replaced by the same concrete
+OriginalQueryExecution in silhouette preparation, projected-contact partition
+and retained span readers. Geometry retains its source-law context internally;
+that context is not an accounting adapter. Existing source/trim/branch guards,
+projection formulas, source-face/use capacities and original local ceilings are
+preserved. Body closure, prepared face containment, seam validation and exact
+projected-contact producers borrow that execution through their actual calls.
+Retained snapshot readmission also receives the execution; unsupported document
+structural accounting remains explicitly marked at its existing boundary.
+This signature/owner integration supplies no new drawing source family, visibility
+classification or material-region behavior, and does not claim their acceptance.
+
+The original cutting/hatch support and placed-body readers compose their existing
+operation words and retained source laws through the same concrete execution.
+The ordinary entry roots once; existing preparation work/BYTE and entity limits
+remain selected contributions/local counts. Support structs retain immutable
+mathematical preparations, never a copied callback owner or execution. Section
+rows, margins, classification and output limits retain the existing algorithms.
+This forced binding does not add section, hatch or material-region capability.
+
+The native Kernel binding gate requires the existing actual consumer body to
+borrow OriginalQueryExecution through changed containment, arrangement, source
+validation and scalar readers. Ordinary operation entries root once. Pure
+structural/interpolation helpers keep their existing signatures; throwing
+topology getters propagate failure. Existing formulas, ordering, selected domains
+and independent local ceilings remain authoritative. This is API/caller repair,
+not new feature or whole-resource completion evidence.
+
+### Worker-stack silhouette extraction scopes
+
+The silhouette extraction coordinator retains traversal and final result ownership.
+Private non-inlined helpers own the existing contact, singular-station, algebraic
+station, exact-trim and regular-curve local value frames, entered only for the
+corresponding actual source entity. They borrow the same execution and output
+arrays; no intermediate result, root budget or accounting adapter is introduced.
+All existing source validation, family order, station formulas, trim predicates,
+capacity/depth checks and storage/work debits retain their original order.
+Retained trim/span constructors explicitly copy the borrowed curve descriptor
+at their ownership boundary, as the former owned loop value did; immutable
+source buffers remain shared and the existing retention admission is unchanged.
+
+This outlining addresses the measured native worker-stack guard in extraction,
+including an empty plane silhouette whose unused curve-local storage formerly
+occupied the coordinator frame. Verification owns the real Drawing caller on
+the ordinary worker, its cancellation/refusal paths, and measured native frame
+prologues. Actor placement, thread stack size and query ceilings are unchanged.
+
+Exact trim extraction obtains all original boundary partitions and merges their
+retained exact cuts before entering a separate non-inlined sector scope. That
+scope owns the former sector refinement, membership, derivative and published
+span locals. Both scopes borrow the same cuts, partitions, output arrays and
+execution in the original order; no selected endpoint is rounded, reconstructed
+or dropped. Separating the later sector frame from lower partition preparation
+addresses the measured cumulative worker stack without changing query limits,
+source identity, branch selection or accounting. The unchanged real Drawing
+cases own behavioral verification.
+
+Exact trim staging separates the existing complete partition/cut preparation from
+sector construction. Within a sector, exact overlap classification, membership
+refinement and final whole-jet/span publication have private non-inlined local
+scopes. They borrow the same trimmed source, lower/upper endpoints and cut array
+for refinement; no array clone, root reconstruction or extra geometric proof is
+introduced. The trim constructor therefore does not reserve later membership or
+publication temporaries in its caller frame. Original work/storage/depth/cancel
+operations and source/role/ordering predicates are unchanged. The actual worker
+Drawing input and accepted native prologues verify this cumulative stack fix.
+
+Extraction source validation and post-validation extraction have sequential
+non-inlined scopes. The thin coordinator preserves the original tolerance,
+allowance/source-receipt guards and intrinsic preparation depth, then runs the
+same original BRep validator before preparing face membership or any output.
+The discarded validated-model result is not cached or retained as a new owner.
+Only after validation returns does the complete original extraction body enter
+its own local frame. This removes unused output/boundary temporaries from the
+placed-validation ancestor chain; source equality, fees, failure order and all
+subsequent original predicates remain unchanged. Actual placed Drawing and
+accepted Native prologues verify this measured prefix ownership change.
+
+Projected contact preparation runs its existing complete projection/silhouette
+source and identical-frame validation prefix in a private non-inlined scope.
+Only after that prefix returns does the unchanged pair/cut/cell construction
+body enter its own scope, using the same source arguments, capacities and
+execution. No output descriptor locals from the later pair processing remain
+live during snapshot validation. Every original validation, fee, failure and
+publication order is retained; no empty-result shortcut or source comparison
+change replaces those checks. Actual Drawing preparation on the normal worker
+and accepted Native prologues verify this measured prefix frame change.
+
+The validated projected-contact body enters owning native-span traversal, pair
+partition construction, exact cut merging and sector/cell publication in separate
+private non-inlined scopes. All stages borrow the existing source arguments and
+mutate the original output arrays and capacity counters through inout parameters.
+The per-use source validation therefore does not reserve later pair or endpoint
+descriptor locals; pair proofs do not reserve merged-cut or sector-witness locals.
+The original traversal order, capacity fees, exact comparisons, proof scopes,
+cancellation and publication sequence remain unchanged. No intermediate array,
+new allowance or alternate source law is introduced. The measured Drawing worker
+stack finding and exact extracted-body comparison own verification of this change.
+
+The original per-face silhouette producer finishes before entering the private
+non-inlined face-envelope publication scope. Existing contact dispatch, grouped
+edge uses, boundary preparation, connected-component mapping and trim publication
+remain together in that later scope with the same output arrays passed inout.
+Those later descriptor locals are not reserved while the original surface
+silhouette theorem runs. Source traversal, envelope retention, fees, all original
+checks and output order remain unchanged. Complete body inverse comparison and
+the actual placed Drawing worker verify this measured caller-frame separation.
+
+Face-envelope orchestration prepares the existing original boundary array and
+component map in separate non-inlined scopes before the selected-curve traversal.
+The grouped coedge, periodic-seam and component enumeration descriptors are not
+reserved during trim partition queries. Each partition query likewise finishes
+before its existing retention and exact cut-merging body enters a separate scope.
+All original arrays and maps keep the same owner and inout mutations; traversal,
+source identities, comparisons, capacity fees, guards and cancellation order are
+unchanged. Whole-file inverse extraction comparison and the actual placed trim
+source-equality worker path verify this measured caller-frame change.
+
+Exact-sector material admission computes the original whole boundary-free box in
+a private non-inlined scope, returning only its existing parameter box and the
+same separation flag. The geometric jet descriptor is no longer live during the
+unchanged prepared UV membership call. A separate non-inlined scope performs the
+existing width-halving and retained trimmed-curve refinement using the same inout
+width, endpoints and cuts. The original normalized midpoint, complete boundary
+exclusion order, strict material policy, depth/cancel checks and final unresolved
+failure remain unchanged. This is descriptor lifetime separation; the station is
+still classified only after the entire box has been proved boundary-free.
+
+Projected pair orchestration visits each silhouette source's exact-trimmed spans
+and then its general spans in separate non-inlined scopes. Entry capacity is
+reserved before every unchanged lower query; general spans retain their original
+exact-span conversion at the same point. A post-query non-inlined scope performs
+the existing depth-contact reads and Entry initialization/append. Only the selected
+source span descriptors are live during pair construction, and publication locals
+are absent from that ancestor chain. Borrowed source packets keep the same retained
+owner; no intermediate array or source descriptor clone is introduced. Exact body
+inverse comparison and accepted Native pair-stage frames plus Drawing verify this
+measured frame separation without changing fees, ordering, or source identity.

@@ -1,3 +1,4 @@
+import CADGeometry
 import CADCore
 import CADIR
 
@@ -5,5 +6,5 @@ import CADIR
 public protocol IndependentSTEPGraphReading: Sendable {
     func read(entityIDs: [Int], standaloneItemEntityIDs: [Int],
         fields: any STEPFieldReading, ambientOriginalAngularSource: IndependentShapeAngularSource?, ambientOriginalLengthSource: OriginalSTEPLengthSource?, ambientContexts: [IndependentShapeContext], productDefinitions: [Int: AssemblyDefinitionID], bodySources: [Int: SubshapeID], bodySourceGraph: DesignGraph?, standaloneUnits: UnitSystem, tolerance: ModelingTolerance,
-        producer: inout any IndependentSTEPGeometryReading, usage: inout IndependentShapeExchangeUsage) throws -> IndependentShapeSource?
+        producer: inout any IndependentSTEPGeometryReading, usage: IndependentShapeExchangeOwner, using execution: inout OriginalQueryExecution) throws -> IndependentShapeSource?
 }

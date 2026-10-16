@@ -75,7 +75,7 @@ public final class OriginalNativeSurfaceSurfaceRelations: Sendable {
     private let retainedAttachments: [OriginalRationalIntersectionIncidence.Attachment]
     private let attachmentDimensions: [Int]
 
-    package init<B: RationalAlgebraAdmitting>(first: BSplineSurface3D, second: BSplineSurface3D,
+    package init<B: ExactScalarAdmission & ~Copyable>(first: BSplineSurface3D, second: BSplineSurface3D,
         tolerance: ModelingTolerance, coverage: NativeSurfaceSurfaceCoverage,
         graph: OriginalRationalIntersectionCells?, graphIdeal: ExactIntersectionIdeal? = nil,
         graphGuardedEquations: [OriginalGuardedIntersectionEquations] = [], conditions: [OriginalIntersectionCellCondition],
@@ -104,10 +104,10 @@ public final class OriginalNativeSurfaceSurfaceRelations: Sendable {
             }
             for chart in common.charts {
                 try intersectionAlgebraStep(&usage)
-                try GeometryStructuralComparisonWork.charge(surface: .bSpline(chart.first.source), using: { try usage.consumeExactWork($0) })
-                try GeometryStructuralComparisonWork.charge(surface: .bSpline(first), using: { try usage.consumeExactWork($0) })
-                try GeometryStructuralComparisonWork.charge(surface: .bSpline(chart.second.source), using: { try usage.consumeExactWork($0) })
-                try GeometryStructuralComparisonWork.charge(surface: .bSpline(second), using: { try usage.consumeExactWork($0) })
+                try GeometryStructuralComparisonWork.charge(surface: .bSpline(chart.first.source), using: &usage)
+                try GeometryStructuralComparisonWork.charge(surface: .bSpline(first), using: &usage)
+                try GeometryStructuralComparisonWork.charge(surface: .bSpline(chart.second.source), using: &usage)
+                try GeometryStructuralComparisonWork.charge(surface: .bSpline(second), using: &usage)
                 guard chart.first.source == first, chart.second.source == second else {
                     throw rationalAlgebraFailure("Common SSI coverage has a foreign original surface.")
                 }
@@ -154,7 +154,7 @@ public final class OriginalNativeSurfaceSurfaceRelations: Sendable {
                 try RationalAlgebraStorage.retain(component.cellIndexes.count, of: Int.self, usage: &usage)
                 var ordinals: [Int] = []; ordinals.reserveCapacity(component.cellIndexes.count)
                 for index in component.cellIndexes {
-                    try usage.consumeExactWork(count)
+                    try usage.consumeWork(count)
                     guard let ordinal = indices.firstIndex(of: index) else {
                         throw rationalAlgebraFailure("Native SSI component contains a foreign original cell.")
                     }
@@ -212,7 +212,7 @@ public final class OriginalNativeSurfaceSurfaceRelations: Sendable {
             refinedTargetDimension: attachmentDimensions[ordinal])
     }
 
-    public func contains<B: RationalAlgebraAdmitting>(parameters: [ExactRationalCoefficient],
+    public func contains<B: ExactScalarAdmission & ~Copyable>(parameters: [ExactRationalCoefficient],
         inCell identifier: CellIdentifier? = nil, inComponent component: ComponentIdentifier? = nil,
         maximumAlgebraicDepth: Int, usage: inout B) throws -> Bool {
         try intersectionAlgebraStep(&usage)
@@ -238,7 +238,7 @@ public final class OriginalNativeSurfaceSurfaceRelations: Sendable {
     }
 
     /// Membership in one retained image/fiber stratum checks the whole exact graph condition.
-    public func contains<B: RationalAlgebraAdmitting>(position: [ExactRationalCoefficient],
+    public func contains<B: ExactScalarAdmission & ~Copyable>(position: [ExactRationalCoefficient],
         parameters: [ExactRationalCoefficient], inCell identifier: CellIdentifier,
         imageStratumOrdinal: Int, maximumAlgebraicDepth: Int, usage: inout B) throws -> Bool {
         try intersectionAlgebraStep(&usage)
@@ -247,7 +247,7 @@ public final class OriginalNativeSurfaceSurfaceRelations: Sendable {
             throw invalid("SSI graph membership requires its owning cell, original XYZ and both UV coordinates.")
         }
         let ordinal = identifier.ordinal
-        try usage.consumeExactWork(images[ordinal].count)
+        try usage.consumeWork(images[ordinal].count)
         guard images[ordinal].contains(where: { $0.ordinal == imageStratumOrdinal }) else {
             throw invalid("SSI graph membership has a foreign image stratum.")
         }
@@ -280,7 +280,7 @@ public final class OriginalNativeSurfaceSurfaceRelations: Sendable {
     }
 
     /// The exact rational station retains every opposite UV preimage and exceptional fiber.
-    public func fiber<B: RationalAlgebraAdmitting>(surface: Int, u: ExactRationalCoefficient,
+    public func fiber<B: ExactScalarAdmission & ~Copyable>(surface: Int, u: ExactRationalCoefficient,
         v: ExactRationalCoefficient, maximumAlgebraicDepth: Int, usage: inout B) throws -> OriginalNativeSurfaceSurfaceRelations {
         try intersectionAlgebraStep(&usage)
         guard (0...1).contains(surface), (0...32).contains(maximumAlgebraicDepth) else {
@@ -301,11 +301,9 @@ public final class OriginalNativeSurfaceSurfaceRelations: Sendable {
         }
         let retainedDepth = try retainedParameterDepth(usage: &usage)
         guard retainedDepth <= maximumAlgebraicDepth else { throw invalid("Native SSI fiber cannot reset retained image depth.") }
-        var admission = OriginalSourceScalarAdmission(base: usage, maximumDepth: maximumAlgebraicDepth,
-            maximumCoefficientDepth: 0, originalParameterDepth: 0, originalCoefficientDepth: 0,
+        return try intersectionSourceCalculation(originalParameterDepth: 0, originalCoefficientDepth: 0,
             inheritedParameterDepth: retainedDepth, inheritedCoefficientDepth: 0,
-            parameterDepth: retainedDepth, coefficientDepth: 0)
-        defer { usage = admission.base }
+            maximumDepth: maximumAlgebraicDepth, maximumCoefficientDepth: 0, usage: &usage) { admission in
         let availableDepth = maximumAlgebraicDepth - retainedDepth
         switch coverage {
         case .single(let decomposition):
@@ -332,9 +330,10 @@ public final class OriginalNativeSurfaceSurfaceRelations: Sendable {
                 tolerance: certificationTolerance, coverage: .common(resolved), maximumDepth: availableDepth,
                 inheritedParameterDepth: retainedDepth, parentRelation: self, sourceMapProof: sourceMapProof, usage: &admission)
         }
+        }.value
     }
 
-    package func retainedParameterDepth<B: RationalAlgebraAdmitting>(usage: inout B) throws -> Int {
+    package func retainedParameterDepth<B: ExactScalarAdmission & ~Copyable>(usage: inout B) throws -> Int {
         var depth = inheritedParameterDepth
         if let partition = coverage.partition {
             for index in partition.solutionCells {
@@ -347,7 +346,7 @@ public final class OriginalNativeSurfaceSurfaceRelations: Sendable {
                 depth = max(depth, try rationalAlgebraCount(inheritedParameterDepth, graph.cells[index].admissionDepth))
             }
         }
-        try usage.consumeExactWork(try rationalAlgebraCount(indices.count, graph?.solutionCells.count ?? 0))
+        try usage.consumeWork(try rationalAlgebraCount(indices.count, graph?.solutionCells.count ?? 0))
         return depth
     }
 

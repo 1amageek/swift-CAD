@@ -1,0 +1,25 @@
+{
+  "scope": "Exact-body bounded correspondence frame split only; Native theorem retained. No compiler or runtime claim.",
+  "candidateBeforeSHA256": "d4cd41feff1309ab155c0739ea41176c5929f8b10f8a5290118b0f8d028025a4",
+  "originalBeforeSHA256": "cb830fec4bb6bb525cf7b6617e18f4049dbcc8d1c842c42dc801039d19b62d89",
+  "newSourceSHA256": "eac7f10d72f47febc7cefc6f48e4997c59ecc2ceab2990aa83657b08da182966",
+  "sourcePath": "Sources/CADGeometry/OriginalCurveSurfaceCorrespondence/OriginalBoundedCurveSurfaceCorrespondence.swift",
+  "designSHA256": {
+    "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD": "a3821d9cf0389215c3417b0ede6c3be0df45266734bdf65b742bb77dd8c7eeaa",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD": "a3821d9cf0389215c3417b0ede6c3be0df45266734bdf65b742bb77dd8c7eeaa"
+  },
+  "bodySHA256": {
+    "entryValidation": "687c5a0f36beac699af4383ffbbf562eabdb10a293347cfa1f8cadc4b6c0f37d",
+    "exactNativeAndHosted": "06c596fbac152438105d9d2d4fb35c8ae53bb53d027694af161be0d8a7b1100d",
+    "originalWordTransport": "af240158d1a0708e336400126adc550eeef439afcadb81c3be7e963f4019c2e5",
+    "originalAffineTransport": "8dcfc413a52da20ec62b05fac241c0e5ec04a3896c914afb6c4a82396f1da55b",
+    "wholeResidual": "eab05bbc6706e4e016d0c0611152ca139847baee7108fcc744e927048f71adac"
+  },
+  "inverseProof": "Extracting the actual generated helper executable bodies, removing only nil decline returns/signatures/entry dispatch, and concatenating entry validation -> zero -> word -> affine -> residual reconstructs the entire d4 candidate source byte-for-byte. Native theorem and all remaining file bytes unchanged.",
+  "originalSync": "Original previously lacked only the already-accepted d4 Native theorem seven-line selection and private helper; those exact bytes were synchronized along with this frame split, preserving all other Original bytes.",
+  "patchSHA256": {
+    "candidate-change.patch": "1e3b5a231cfc5cdc15899018808ca80bcd3db41069ab2a162c2543aaebd63268",
+    "original-change.patch": "7b592a97ca4dc2ca1b1636603aee327367041c3a52f31bf63761b023ce80b49c"
+  },
+  "runtime": "Pending Root new Native authority, prologue and actual Drawing/resource/cancellation execution."
+}

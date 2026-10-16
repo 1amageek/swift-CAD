@@ -15,7 +15,7 @@ public struct DefaultOriginalFiniteRollingBallGraphPreparer<S: OriginalRollingBa
         throws(OriginalSourceIssuanceFailure) -> OriginalFiniteRollingBallGraphs<S,E,C> {
         let source=copy source,center=copy center,first=copy first,second=copy second
         do {
-            return try OriginalSourceProofAdmission<A>.withBorrow(&admission) { a in
+            return try admission.withProofScope { a in
                 try a.checkpoint();try source.require(limits)
                 guard limits.remainingSourceDepth>0 else { throw OriginalSourceIssuanceFailure.sourceDepthLimit }
                 guard maximumCharts>=0 else { throw OriginalSourceIssuanceFailure.chartLimit }
@@ -47,7 +47,7 @@ public struct DefaultOriginalFiniteRollingBallGraphPreparer<S: OriginalRollingBa
                     }
                 }
                 func overlap(_ c: OriginalSourceParameterInterval<OriginalExactScalar>,_ x: OriginalSourceParameterInterval<OriginalExactScalar>,
-                    _ y: OriginalSourceParameterInterval<OriginalExactScalar>,_ a: inout OriginalSourceProofAdmission<A>) throws -> OriginalSourceParameterInterval<OriginalExactScalar>? {
+                    _ y: OriginalSourceParameterInterval<OriginalExactScalar>,_ a: inout A) throws -> OriginalSourceParameterInterval<OriginalExactScalar>? {
                     var lower=try f.importing(c.lower,using:&a),upper=try f.importing(c.upper,using:&a)
                     let xl=try f.importing(x.lower,using:&a),xu=try f.importing(x.upper,using:&a)
                     let yl=try f.importing(y.lower,using:&a),yu=try f.importing(y.upper,using:&a)

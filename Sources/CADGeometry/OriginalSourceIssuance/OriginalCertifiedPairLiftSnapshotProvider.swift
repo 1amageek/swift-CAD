@@ -18,7 +18,7 @@ public struct OriginalCertifiedPairLiftSnapshotProvider: OriginalSourceSnapshott
         throws(OriginalSourceIssuanceFailure) -> OriginalSourceSnapshot<OriginalCertifiedPairLiftSnapshot> {
         let input = copy input
         do {
-            return try OriginalSourceProofAdmission<A>.withBorrow(&a) { a in
+            return try a.withProofScope { a in
                 try a.checkpoint(); try a.consumeWork(1)
                 guard Self.supports(input), case .surfaceLift(let lift) = input,
                     case .certifiedAnalyticPair(let pcurve) = lift.parameterCurve,

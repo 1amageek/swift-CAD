@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 public struct ProductDimension: Equatable, Sendable {
     public enum Kind: String, Sendable { case size, location, diameter, radius, angle, arcLength }
@@ -19,7 +20,13 @@ public struct ProductDimension: Equatable, Sendable {
         self.lowerDeviation = lowerDeviation; self.upperDeviation = upperDeviation
     }
     public func validate() throws {
-        try target.validate(); try referenceTarget?.validate()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try target.validate(using: &execution); try referenceTarget?.validate(using: &execution)
         guard nominal.isFinite, nominal >= 0,
               (lowerDeviation == nil) == (upperDeviation == nil),
               lowerDeviation?.isFinite != false, upperDeviation?.isFinite != false,

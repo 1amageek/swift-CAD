@@ -1,0 +1,42 @@
+{
+  "status": "source-ready-frozen-no-compiler",
+  "sourceRoots": [
+    "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD"
+  ],
+  "files": {
+    "Sources/CADGeometry/SurfaceSilhouette/OriginalSurfaceSilhouetteField.swift": "ddb325c085fe929df1c870cecc3995d35e747e47c48157158e4401446048f38c",
+    "Sources/CADGeometry/SurfaceSilhouette/DESIGN.md": "15d03e83a9c393cfa7b9d4841faa2b1d65c9e93374ba05292f8a16e57ac75c69",
+    "Tests/CADGeometryTests/SurfaceSilhouetteRationalCoordinateSelectionTests.swift": "f76462f7dc24bdf4ee42f08cdc9ce4de0433bfde0678bc60d0cefacf5be2234c"
+  },
+  "mechanicalPatchSHA256": "016b0ab8a66a1fbb42aa3d885f058799b0a876faa7ceba415a6e550887c3d420",
+  "allOtherFieldFunctionsExactTextEqual": true,
+  "selection": "both complete original numerator and squareFree coefficient records encode same-axis affine law; no other source shape admitted",
+  "recordAccounting": "one consumeWork and checkpoint for EVERY record in BOTH coefficient maps; no early scan exit/new arrays",
+  "sameOwnerAndLowerMath": "return same field only for admitted source; old common lift statement/body unchanged for all others; same queryContext/native/guard/depth/normal/source buffers",
+  "fixtureFilter": "SurfaceSilhouetteRationalCoordinateSelectionTests",
+  "fixtureArguments": [
+    "affineU",
+    "affineV",
+    "linearUThroughOrigin",
+    "zero/empty",
+    "constant",
+    "mixed",
+    "twoLinearAxes",
+    "repeatedOriginal U\u00b2 from cubic Native Z"
+  ],
+  "fixtureCaps": {
+    "work": 8388608,
+    "storageBytes": 268435456,
+    "source": 16,
+    "geometric": 32,
+    "value": 32,
+    "coefficient": 32
+  },
+  "runtimeOwner": "Root unchanged DocumentDrawingCanonicalAdmissionTests3 owns actual arch/fullUV/twoendpointcontacts/N-N1/cancel",
+  "pending": [
+    "actual Native semantic/object gate",
+    "8 actual Native source-selection fixture arguments",
+    "real Drawing3 worker behavior"
+  ]
+}

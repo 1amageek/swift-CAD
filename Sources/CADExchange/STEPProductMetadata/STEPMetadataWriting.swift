@@ -199,9 +199,9 @@ extension STEPAttributesWriter.Builder {
             for literal in annotation.textLiterals {
                 let frame: Int
                 if literal.placement == .twoDimensional {
-                    let point = try add("CARTESIAN_POINT('',(\(number(literal.origin.x)),\(number(literal.origin.y))))")
+                    let point = try add("CARTESIAN_POINT('',(\(stepNumber(literal.origin.x)),\(stepNumber(literal.origin.y))))")
                     let x = literal.up.cross(literal.direction)
-                    let direction = try add("DIRECTION('',(\(number(x.x)),\(number(x.y))))")
+                    let direction = try add("DIRECTION('',(\(stepNumber(x.x)),\(stepNumber(x.y))))")
                     frame = try add("AXIS2_PLACEMENT_2D('',#\(point),#\(direction))")
                 } else { frame = try metadataFrame(origin:literal.origin,direction:literal.direction,up:literal.up) }
                 let font = try add("DRAUGHTING_PRE_DEFINED_TEXT_FONT(\(try string(literal.fontName)))")

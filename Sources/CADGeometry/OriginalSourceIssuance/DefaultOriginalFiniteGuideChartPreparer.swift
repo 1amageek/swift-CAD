@@ -16,14 +16,14 @@ public struct DefaultOriginalFiniteGuideChartPreparer<S:OriginalGuideSourceReadi
         maximumCharts:Int,limits:OriginalSourceIssuanceLimits,using a:inout A) throws(OriginalSourceIssuanceFailure) -> OriginalFiniteGuideChartFamily<S,C,F> {
         let source=copy source,traversals=copy traversals,field=copy field
         do {
-            return try OriginalSourceProofAdmission<A>.withBorrow(&a) { a in
+            return try a.withProofScope { a in
                 try compose(source:source,traversals:traversals,field:field,maximumCharts:maximumCharts,limits:limits,using:&a)
             }
         } catch { throw .init(preserving:error) }
     }
     private func compose<A:ExactScalarAdmission & ~Copyable>(source:OriginalSourceBinding<S>,
         traversals:[[OriginalRationalChartReceipt<S.Traversal,C,F>]],field f:F,maximumCharts:Int,
-        limits:OriginalSourceIssuanceLimits,using a:inout OriginalSourceProofAdmission<A>) throws -> OriginalFiniteGuideChartFamily<S,C,F> {
+        limits:OriginalSourceIssuanceLimits,using a:inout A) throws -> OriginalFiniteGuideChartFamily<S,C,F> {
         try a.checkpoint();try source.require(limits)
         guard limits.remainingSourceDepth>0 else { throw OriginalSourceIssuanceFailure.sourceDepthLimit }
         let n=source.original.originalTraversalCount

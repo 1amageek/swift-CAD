@@ -218,10 +218,10 @@ the actual (Power, ExactRationalCoefficient) payload and every generated term.
 Native's observed 40-byte stride is evidence for that target, not a hard-coded
 cross-target size. The same generic rule selects WASM's actual layout.
 
-Bytes remain the canonical storage unit of ExactScalarAdmission.
-The legacy RationalAlgebraAdmitting entry remains source-compatible: the existing
-checked byte-to-word rounding and word-to-byte conversion are isolated at that
-compatibility boundary. Original work and storage accounting is not reset.
+Bytes remain the canonical storage unit of ExactScalarAdmission. Integer and
+rational allocation owners directly admit checked UInt32 payload bytes. Typed
+payload helpers preserve their existing checked UInt32 rounding policy before
+one direct byte admission; no forwarding layer converts those bytes again.
 
 `retainStorage(bytes:)` accounts cumulative admitted storage, including temporary
 and retained buffers, owner payloads and necessary copies; it is not an inferred
@@ -323,39 +323,63 @@ queries may report unresolved obligations, but must not weaken `ExactSign` or
 exact N/N-1 limits, cancellation and lifetime before removing each legacy path.
 This is an interface/ownership migration; it does not replace numeric algorithms.
 
+### Direct Local Proof Scopes
+
+The direct admission contract also owns exclusive, nested proof-depth recording.
+A cumulative invocation maximum is not the proof depth of an unrelated operation.
+Each scope starts with its declared inherited depth, records actual decisions and
+visits, and returns its own reached value/coefficient depths on close. Children
+contribute through the same events, without copying the caller ledger. Decisions
+whose returned scalar has depth zero still contribute their admitted depth.
+
+The admission owns the scope state; arithmetic and source helpers receive the
+original native `inout A: ExactScalarAdmission & ~Copyable`. No copied allowance,
+raw caller pointer or forwarding admission type implements this scope. Scope
+handles are issuer-bound and must close in stack order. Close/cleanup allocates
+no memory, consumes no resource, invokes no external callback and cannot become
+cancelled. Invalid or foreign scope handles are typed invalid-evidence failures.
+Every successful push admits any necessary scope storage before materialization.
+
+Numeric scope mapping preserves `inherited + max(0, local - original)` and the
+declared independent maximum for each axis. Nested mappings compose from the
+innermost numeric operation to its caller exactly once; observation scopes only
+record the event at their boundary. A source observation cannot raise a later
+receipt to a preceding unrelated cumulative maximum. Throw closes the scope and
+preserves the operation failure; accumulated work and storage are never refunded.
+
+Direct integer/rational backends consume work units and admitted bytes on this
+same object. The existing UInt32 payload rounding policy is converted explicitly
+at the allocation owner, not repeated across forwarding layers. Coefficient and
+value visits remain independent; no coefficient-to-value default is retained.
+
+Verification must include decision-only depths, prior high-depth contamination,
+nested mappings, foreign/out-of-order handles, resource/overflow failures before
+scope allocation, throw cleanup, cancellation and successful independent proof
+readmission. Existing EndpointDepthFixtures is the decision-only authority.
+No scope or direct-calling migration is complete while a legacy borrowed numeric
+or source-proof path remains reachable from the affected production owners.
+
 ## Runtime Flows
 
 Entry checkpoint, inherited-depth admission and explicit domain validation precede
-numeric work. One scoped borrowing bridge passes the same caller admission into
-the existing RationalAlgebraAdmitting algorithms. All copied bridge handles
-refer to the same stack-borrowed ledger and depth state. The terminal checkpoint
-runs after all callbacks and before publication, including reused-value paths.
+numeric work. The original native inout admission reaches every numeric operation.
+Its nested scopes record attained depths and apply each numeric mapping once.
+The terminal checkpoint follows successful resource-free scope close, so final
+cancellation cannot close the same token twice or publish a result.
 
 ## State, Ownership, and Lifecycle
 
-ExactScalarLedger is noncopyable and query-local. Counters are cumulative and
-are preserved on failure. It is not a shared-state owner. Exact values and domain
-owners are Sendable with immutable retained backing. No mutable cache is added.
-The internal borrowing bridge uses pointers only inside nested scoped borrows.
-The caller owns the ledger; the invocation owns the attained-depth stack value.
-Only these initialized values are borrowed. No allocation/deallocation, binding,
-re-binding, stride/offset arithmetic or cross-task transfer occurs. The bridge
-and all copied handles are internal and never stored in a result or owner; their
-lifetime ends before the terminal caller checkpoint. The existing copied numeric
-admission API cannot directly borrow a noncopyable inout ledger, which is why this
-scoped bridge is required. Native Address Sanitizer and target runtime fixtures
-verify the borrowed storage and failure paths. No performance claim is made.
-
-The current bridge remains an internal synchronous compatibility borrow because
-the existing numeric protocol passes copyable handles. Native inout is used at
-public and directly expressible boundaries. Removing this bridge would require
-changing that lower calling contract and its consumers. That removal was outside
-the earlier L0 redesign, but is included in the approved
-[direct execution migration](../../DESIGN.md#direct-original-query-execution).
-Until its actual callers are migrated and verified, this paragraph describes
-current compatibility, not completion of the target. The historical borrow
-introduces no shared resource state; migration must preserve its safety and
-same-ledger guarantees.
+ExactScalarLedger and ExactScalarProofScopes are noncopyable and query-local.
+Counters are cumulative and preserved on failure. Immutable exact values and
+source/domain owners retain their evidence without retaining mutable admission.
+The scope state owns an admitted immutable issuer identity and an exclusive frame
+buffer; buffer growth admits the full new allocation before reserve/materialize.
+Its noncopyable ownership prevents shared COW frame storage during close.
+Foreign/out-of-order tokens fail explicitly. Failure cleanup drops descendants
+and the owning frame without allocation, resource callback or cancellation.
+No caller pointer, copied numeric handle or forwarding admission survives this
+migration. Public execution may share its cumulative budget owner while its
+proof scope state remains exclusive to one invocation.
 
 ## Failure, Concurrency, and Constraints
 
@@ -538,3 +562,21 @@ owner identity before consuming it, returning nil for a non-rational square root
 and propagating cancellation/resources. Source adapters inspect no scalar storage.
 The rolling fixture checks25,9/25,zero,negative/non-square,foreign field and budgets.
 No isolation, polynomial, cell or topology algorithm is changed.
+
+### Local Work Ceiling in Proof Scopes
+
+A proof scope may own `maximumWorkUnits` independently of cumulative query
+allowance. The original admission checks each actual work debit against every
+active local ceiling, performs its original cumulative debit, then records the
+same units in every active frame. Recording is observation, not a second charge.
+Overflow and local exhaustion fail before cumulative mutation; a failed debit is
+not recorded. Closing/unwinding remains allocation-free, callback-free and
+uncancellable, with no refund. Scope storage is admitted before opening, outside
+the newly opened work ceiling, and remains charged to active parent scopes.
+This preserves original producer-local work bounds when its lower arithmetic
+receives the same generic admission directly. Native/source guard drivers use
+the same work scope; they do not reconstruct an admission from resource callbacks.
+
+`lastWorkRejection` retains only the known used/limit/requested scalar counts
+from a rejected local work debit. It survives unwind for publication metadata
+and resets at the next work check. It carries no upper-layer error dependency.

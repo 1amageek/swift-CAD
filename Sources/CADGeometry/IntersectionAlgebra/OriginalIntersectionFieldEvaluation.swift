@@ -1,6 +1,6 @@
 /// Exact original-coordinate substitution; whole-cell proof belongs to the projection owner.
 package enum OriginalIntersectionFieldEvaluation {
-    package static func specialized<B: RationalAlgebraAdmitting>(
+    package static func specialized<B: ExactScalarAdmission & ~Copyable>(
         _ original: ExactIntersectionPolynomial, at coordinate: Int, context: OriginalSingularFieldContext, coordinates: [OriginalSingularFieldElement],
         maximumDepth: Int, usage: inout B) throws -> OriginalSingularFieldPolynomial? {
         guard coordinate >= 0, coordinate < original.variableCount, coordinates.count == coordinate else {
@@ -62,7 +62,7 @@ package enum OriginalIntersectionFieldEvaluation {
             coefficients: coefficients, maximumDepth: maximumDepth, usage: &usage)
     }
 
-    package static func evaluated<B: RationalAlgebraAdmitting>(_ polynomial: ExactIntersectionPolynomial,
+    package static func evaluated<B: ExactScalarAdmission & ~Copyable>(_ polynomial: ExactIntersectionPolynomial,
         context: OriginalSingularFieldContext, coordinates: [OriginalSingularFieldElement], maximumDepth: Int, usage: inout B) throws -> OriginalSingularFieldElement {
         guard coordinates.count == polynomial.variableCount else {
             throw rationalAlgebraFailure("Original field evaluation requires every source coordinate.")
@@ -101,7 +101,7 @@ package enum OriginalIntersectionFieldEvaluation {
         return result
     }
 
-    package static func power<B: RationalAlgebraAdmitting>(_ value: OriginalSingularFieldElement,
+    package static func power<B: ExactScalarAdmission & ~Copyable>(_ value: OriginalSingularFieldElement,
         exponent: Int, maximumDepth: Int, usage: inout B) throws -> OriginalSingularFieldElement {
         guard exponent >= 0 else { throw rationalAlgebraFailure("Original field powers require nonnegative exponents.") }
         try intersectionAlgebraStep(&usage)
@@ -122,7 +122,7 @@ package enum OriginalIntersectionFieldEvaluation {
         return result
     }
 
-    private static func rationalCoordinates<B: RationalAlgebraAdmitting>(context: OriginalSingularFieldContext,
+    private static func rationalCoordinates<B: ExactScalarAdmission & ~Copyable>(context: OriginalSingularFieldContext,
         coordinates: [OriginalSingularFieldElement], usage: inout B) throws -> [ExactRationalCoefficient] {
         try RationalAlgebraStorage.retain(coordinates.count, of: ExactRationalCoefficient.self, usage: &usage)
         var values: [ExactRationalCoefficient] = []; values.reserveCapacity(coordinates.count)
@@ -136,7 +136,7 @@ package enum OriginalIntersectionFieldEvaluation {
         return values
     }
 
-    private static func rationalPower<B: RationalAlgebraAdmitting>(_ value: ExactRationalCoefficient,
+    private static func rationalPower<B: ExactScalarAdmission & ~Copyable>(_ value: ExactRationalCoefficient,
         exponent: Int, usage: inout B) throws -> ExactRationalCoefficient {
         try intersectionAlgebraStep(&usage)
         guard exponent >= 0 else { throw rationalAlgebraFailure("Original rational powers require nonnegative exponents.") }
@@ -151,7 +151,7 @@ package enum OriginalIntersectionFieldEvaluation {
         return result
     }
 
-    private static func validate<B: RationalAlgebraAdmitting>(context: OriginalSingularFieldContext,
+    private static func validate<B: ExactScalarAdmission & ~Copyable>(context: OriginalSingularFieldContext,
         coordinates: [OriginalSingularFieldElement], usage: inout B) throws {
         for coordinate in coordinates {
             try intersectionAlgebraStep(&usage)

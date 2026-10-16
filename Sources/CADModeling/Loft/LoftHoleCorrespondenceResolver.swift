@@ -5,7 +5,7 @@ import CADGeometry
 package struct LoftHoleCorrespondenceResolver {
     package func resolve(
         ringsBySection: [[[Point3D]]], requiredMappings: [[Int: Int]],
-        closesSectionLoop: Bool, allowance: inout LoftCorrespondenceAllowance,
+        closesSectionLoop: Bool, using execution: inout OriginalQueryExecution,
         tolerance: ModelingTolerance
     ) throws -> [[Int]] {
         guard let holeCount = ringsBySection.first?.count,
@@ -14,7 +14,7 @@ package struct LoftHoleCorrespondenceResolver {
             throw KernelError(phase: .topology, code: .ambiguousSelection, tolerance: tolerance,
                 message: "Loft hole counts differ; no original boundary correspondence identifies a hole birth or death.")
         }
-        try allowance.charge(holeCount)
+        try execution.consumeWork(holeCount)
         let identity = Array(0..<holeCount)
         var states = [[identity]]
         for section in ringsBySection.indices.dropFirst() {
@@ -25,18 +25,18 @@ package struct LoftHoleCorrespondenceResolver {
                     message: "Original Loft guides demand incompatible hole correspondences.")
             }
             var permutations: [[Int]] = []
-            try allowance.charge(holeCount)
+            try execution.consumeWork(holeCount)
             var current = Array(repeating: -1, count: holeCount)
             func visit(_ index: Int) throws {
-                try allowance.charge(1)
+                try execution.consumeWork(1)
                 if index == holeCount {
-                    try allowance.charge(holeCount + 1)
+                    try execution.consumeWork(holeCount + 1)
                     permutations.append(current)
                     return
                 }
                 for target in identity where !current[..<index].contains(target) {
                     if let expected = required[index], target != expected { continue }
-                    try allowance.charge(1)
+                    try execution.consumeWork(1)
                     current[index] = target
                     try visit(index + 1)
                 }
@@ -57,7 +57,7 @@ package struct LoftHoleCorrespondenceResolver {
             return OutwardScalarInterval(lower: max(0, (lower * lower).nextDown), upper: (upper * upper).nextUp)
         }
         func minimumRingCost(_ first: [Point3D], _ second: [Point3D],
-            allowance: inout LoftCorrespondenceAllowance) throws -> OutwardScalarInterval {
+            using execution: inout OriginalQueryExecution) throws -> OutwardScalarInterval {
             guard first.count == second.count, !first.isEmpty else {
                 throw FeatureEvaluationError.invalidGraph("Loft hole correspondence requires equal original partition counts.")
             }
@@ -65,7 +65,7 @@ package struct LoftHoleCorrespondenceResolver {
             var upper = Double.infinity
             for reversed in [false, true] {
                 for offset in second.indices {
-                    try allowance.charge(first.count)
+                    try execution.consumeWork(first.count)
                     var cost = OutwardScalarInterval.exact(0)
                     for vertex in first.indices {
                         let index = (offset + (reversed ? first.count - vertex : vertex)) % first.count
@@ -86,27 +86,27 @@ package struct LoftHoleCorrespondenceResolver {
             return OutwardScalarInterval(lower: lower, upper: upper)
         }
         func connection(_ first: Int, _ second: Int,
-            allowance: inout LoftCorrespondenceAllowance) throws -> [[OutwardScalarInterval]] {
-            try allowance.charge(holeCount)
+            using execution: inout OriginalQueryExecution) throws -> [[OutwardScalarInterval]] {
+            try execution.consumeWork(holeCount)
             var matrix: [[OutwardScalarInterval]] = []
             for source in identity {
-                try allowance.charge(holeCount)
+                try execution.consumeWork(holeCount)
                 var row: [OutwardScalarInterval] = []
                 row.reserveCapacity(holeCount)
                 for target in identity {
                     row.append(try minimumRingCost(ringsBySection[first][source], ringsBySection[second][target],
-                        allowance: &allowance))
+                        using: &execution))
                 }
                 matrix.append(row)
             }
             return matrix
         }
         var connections: [[[OutwardScalarInterval]]] = []
-        try allowance.charge(ringsBySection.count)
+        try execution.consumeWork(ringsBySection.count)
         for section in ringsBySection.indices.dropFirst() {
-            connections.append(try connection(section - 1, section, allowance: &allowance))
+            connections.append(try connection(section - 1, section, using: &execution))
         }
-        let closing = try closesSectionLoop ? connection(ringsBySection.count - 1, 0, allowance: &allowance) : []
+        let closing = try closesSectionLoop ? connection(ringsBySection.count - 1, 0, using: &execution) : []
         let selected = try LoftCorrespondencePathResolver().resolve(
             stateCounts: states.map(\.count), transitionWork: holeCount, closingWork: holeCount,
             transition: { section, previous, next in
@@ -120,8 +120,8 @@ package struct LoftHoleCorrespondenceResolver {
                 var score = OutwardScalarInterval.exact(0)
                 for hole in identity { score = score + closing[states[states.count - 1][state][hole]][hole] }
                 return score
-            }, allowance: &allowance, tolerance: tolerance)
-        try allowance.charge(states.count)
+            }, using: &execution, tolerance: tolerance)
+        try execution.consumeWork(states.count)
         return states.indices.map { states[$0][selected[$0]] }
     }
 }

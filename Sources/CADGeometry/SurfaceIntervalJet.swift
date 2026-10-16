@@ -252,56 +252,72 @@ package struct SurfaceIntervalJet: Sendable {
         )
     }
 
-    package static func sine(of argument: SurfaceIntervalJet) -> SurfaceIntervalJet {
-        sine(of: argument, consumeWork: {})
+    package static func sine(of argument: SurfaceIntervalJet) throws -> SurfaceIntervalJet {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try sine(of: argument, using: &execution)
     }
 
-    package static func sine(of argument: SurfaceIntervalJet,
-        consumeWork: () throws -> Void) rethrows -> SurfaceIntervalJet {
+    package static func sine<A: ExactScalarAdmission & ~Copyable>(
+        of argument: SurfaceIntervalJet, using admission: inout A
+    ) throws -> SurfaceIntervalJet {
         let sine = try trigonometricRange(cosineCoefficient: 0, sineCoefficient: 1,
-            parameter: argument.value, consumeWork: consumeWork)
+            parameter: argument.value, using: &admission)
         let cosine = try trigonometricRange(cosineCoefficient: 1, sineCoefficient: 0,
-            parameter: argument.value, consumeWork: consumeWork)
-        return applyingUnaryFunction(to: argument, value: sine, firstDerivative: cosine,
+            parameter: argument.value, using: &admission)
+        let result = applyingUnaryFunction(to: argument, value: sine, firstDerivative: cosine,
             secondDerivative: -sine, thirdDerivative: -cosine)
+        try admission.checkpoint()
+        return result
     }
 
-    package static func cosine(of argument: SurfaceIntervalJet) -> SurfaceIntervalJet {
-        cosine(of: argument, consumeWork: {})
+    package static func cosine(of argument: SurfaceIntervalJet) throws -> SurfaceIntervalJet {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try cosine(of: argument, using: &execution)
     }
 
-    package static func cosine(of argument: SurfaceIntervalJet,
-        consumeWork: () throws -> Void) rethrows -> SurfaceIntervalJet {
+    package static func cosine<A: ExactScalarAdmission & ~Copyable>(
+        of argument: SurfaceIntervalJet, using admission: inout A
+    ) throws -> SurfaceIntervalJet {
         let cosine = try trigonometricRange(cosineCoefficient: 1, sineCoefficient: 0,
-            parameter: argument.value, consumeWork: consumeWork)
+            parameter: argument.value, using: &admission)
         let sine = try trigonometricRange(cosineCoefficient: 0, sineCoefficient: 1,
-            parameter: argument.value, consumeWork: consumeWork)
-        return applyingUnaryFunction(to: argument, value: cosine, firstDerivative: -sine,
+            parameter: argument.value, using: &admission)
+        let result = applyingUnaryFunction(to: argument, value: cosine, firstDerivative: -sine,
             secondDerivative: -cosine, thirdDerivative: sine)
+        try admission.checkpoint()
+        return result
     }
 
-    package static func hyperbolicSine(of argument: SurfaceIntervalJet) -> SurfaceIntervalJet {
-        hyperbolicSine(of: argument, consumeWork: {})
+    package static func hyperbolicSine(of argument: SurfaceIntervalJet) throws -> SurfaceIntervalJet {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try hyperbolicSine(of: argument, using: &execution)
     }
 
-    package static func hyperbolicSine(of argument: SurfaceIntervalJet,
-        consumeWork: () throws -> Void) rethrows -> SurfaceIntervalJet {
-        let sine = try hyperbolicRange(function: sinh, parameter: argument.value, consumeWork: consumeWork)
-        let cosine = try hyperbolicCosineRange(argument.value, consumeWork: consumeWork)
-        return applyingUnaryFunction(to: argument, value: sine, firstDerivative: cosine,
+    package static func hyperbolicSine<A: ExactScalarAdmission & ~Copyable>(
+        of argument: SurfaceIntervalJet, using admission: inout A
+    ) throws -> SurfaceIntervalJet {
+        let sine = try hyperbolicRange(function: sinh, parameter: argument.value, using: &admission)
+        let cosine = try hyperbolicCosineRange(argument.value, using: &admission)
+        let result = applyingUnaryFunction(to: argument, value: sine, firstDerivative: cosine,
             secondDerivative: sine, thirdDerivative: cosine)
+        try admission.checkpoint()
+        return result
     }
 
-    package static func hyperbolicCosine(of argument: SurfaceIntervalJet) -> SurfaceIntervalJet {
-        hyperbolicCosine(of: argument, consumeWork: {})
+    package static func hyperbolicCosine(of argument: SurfaceIntervalJet) throws -> SurfaceIntervalJet {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try hyperbolicCosine(of: argument, using: &execution)
     }
 
-    package static func hyperbolicCosine(of argument: SurfaceIntervalJet,
-        consumeWork: () throws -> Void) rethrows -> SurfaceIntervalJet {
-        let sine = try hyperbolicRange(function: sinh, parameter: argument.value, consumeWork: consumeWork)
-        let cosine = try hyperbolicCosineRange(argument.value, consumeWork: consumeWork)
-        return applyingUnaryFunction(to: argument, value: cosine, firstDerivative: sine,
+    package static func hyperbolicCosine<A: ExactScalarAdmission & ~Copyable>(
+        of argument: SurfaceIntervalJet, using admission: inout A
+    ) throws -> SurfaceIntervalJet {
+        let sine = try hyperbolicRange(function: sinh, parameter: argument.value, using: &admission)
+        let cosine = try hyperbolicCosineRange(argument.value, using: &admission)
+        let result = applyingUnaryFunction(to: argument, value: cosine, firstDerivative: sine,
             secondDerivative: cosine, thirdDerivative: sine)
+        try admission.checkpoint()
+        return result
     }
 
     package func union(_ other: SurfaceIntervalJet) -> SurfaceIntervalJet {
@@ -417,13 +433,13 @@ package struct SurfaceIntervalJet: Sendable {
         )
     }
 
-    private static func trigonometricRange(
+    private static func trigonometricRange<A: ExactScalarAdmission & ~Copyable>(
         cosineCoefficient: Double,
         sineCoefficient: Double,
         parameter: OutwardScalarInterval,
-        consumeWork: () throws -> Void
-    ) rethrows -> OutwardScalarInterval {
-        try consumeWork()
+        using admission: inout A
+    ) throws -> OutwardScalarInterval {
+        try admission.consumeWork(1)
         let amplitude = hypot(cosineCoefficient, sineCoefficient)
         let period = 2.0 * Double.pi
         guard amplitude.isFinite, parameter.isFinite,
@@ -431,14 +447,14 @@ package struct SurfaceIntervalJet: Sendable {
               max(abs(parameter.lower), abs(parameter.upper)) <= 1.0e12 else {
             return OutwardScalarInterval(lower: (-amplitude).nextDown, upper: amplitude.nextUp)
         }
-        try consumeWork()
+        try admission.consumeWork(1)
         let first = cosineCoefficient * cos(parameter.lower) + sineCoefficient * sin(parameter.lower)
-        try consumeWork()
+        try admission.consumeWork(1)
         let last = cosineCoefficient * cos(parameter.upper) + sineCoefficient * sin(parameter.upper)
         var lower = min(first, last), upper = max(first, last)
         let maximumParameter = atan2(sineCoefficient, cosineCoefficient)
         for index in 0..<2 {
-            try consumeWork()
+            try admission.consumeWork(1)
             let base = index == 0 ? maximumParameter : maximumParameter + Double.pi
             let extremum = index == 0 ? amplitude : -amplitude
             let firstIndex = ceil((parameter.lower - base) / period)
@@ -450,20 +466,20 @@ package struct SurfaceIntervalJet: Sendable {
         return .init(lower: lower.nextDown, upper: upper.nextUp)
     }
 
-    private static func hyperbolicRange(function: (Double) -> Double,
-        parameter: OutwardScalarInterval, consumeWork: () throws -> Void) rethrows -> OutwardScalarInterval {
-        try consumeWork(); let first = function(parameter.lower)
-        try consumeWork(); let last = function(parameter.upper)
+    private static func hyperbolicRange<A: ExactScalarAdmission & ~Copyable>(function: (Double) -> Double,
+        parameter: OutwardScalarInterval, using admission: inout A) throws -> OutwardScalarInterval {
+        try admission.consumeWork(1); let first = function(parameter.lower)
+        try admission.consumeWork(1); let last = function(parameter.upper)
         return .init(lower: min(first, last).nextDown, upper: max(first, last).nextUp)
     }
 
-    private static func hyperbolicCosineRange(_ parameter: OutwardScalarInterval,
-        consumeWork: () throws -> Void) rethrows -> OutwardScalarInterval {
-        try consumeWork(); let first = cosh(parameter.lower)
-        try consumeWork(); let last = cosh(parameter.upper)
+    private static func hyperbolicCosineRange<A: ExactScalarAdmission & ~Copyable>(_ parameter: OutwardScalarInterval,
+        using admission: inout A) throws -> OutwardScalarInterval {
+        try admission.consumeWork(1); let first = cosh(parameter.lower)
+        try admission.consumeWork(1); let last = cosh(parameter.upper)
         var lower = min(first, last)
         let upper = max(first, last)
-        try consumeWork()
+        try admission.consumeWork(1)
         if parameter.lower <= 0, parameter.upper >= 0 { lower = min(lower, 1) }
         return .init(lower: lower.nextDown, upper: upper.nextUp)
     }

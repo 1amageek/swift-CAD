@@ -4,15 +4,14 @@ import CADCore
 /// The quantity is scalar coefficient slots and scalar recurrence transitions,
 /// separate from the public input control-point count and native phase charges.
 struct SurfaceAreaNativeSurfacePreparationWork {
-    static func admit(_ surface: BSplineSurface3D, tolerance: ModelingTolerance,
-                      consumeWork: () throws -> Void) throws {
+    static func admit(_ surface: BSplineSurface3D, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
         func charge(_ a: Int, _ b: Int = 1) throws {
             let count = a.multipliedReportingOverflow(by:b)
             guard !count.overflow, count.partialValue >= 0 else {
                 throw KernelError(phase:.geometry,code:.resourceLimitExceeded,tolerance:tolerance,
                     message:"Original native surface preparation storage or work overflows.")
             }
-            for _ in 0..<count.partialValue { try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork() }
+            for _ in 0..<count.partialValue { try CurrentTaskCancellationChecker().checkCancellation(); try execution.consumeWork(1) }
         }
         let u = surface.uDegree.addingReportingOverflow(1)
         let v = surface.vDegree.addingReportingOverflow(1)

@@ -11,7 +11,7 @@ package struct OriginalExactBSplinePoleNormal: Sendable {
     private let derivativesV: [ExactBivariatePolynomial]
     private let tolerance: ModelingTolerance
 
-    init<B:RationalAlgebraAdmitting>(original:OriginalRationalSurfacePolynomial,
+    init<B:ExactScalarAdmission & ~Copyable>(original:OriginalRationalSurfacePolynomial,
         span:PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan,
         direction:OriginalBSplinePoleNormal.Direction,boundary:Double,inwardSign:Double,
         tolerance:ModelingTolerance,usage:inout B) throws {
@@ -33,7 +33,7 @@ package struct OriginalExactBSplinePoleNormal: Sendable {
         let sign = try ExactRationalCoefficient.originalDouble(inwardSign < 0 && order & 1 == 1 ? -1 : 1,usage:&usage)
         var values:[ExactBivariatePolynomial] = [],u:[ExactBivariatePolynomial] = [],v:[ExactBivariatePolynomial] = []
         for originalValue in original.normalNumerators {
-            try usage.retainExactStorage(3)
+            try usage.retainStorage(bytes: 3 * MemoryLayout<UInt32>.stride)
             let value = try originalValue.dividedExactly(by:power,usage:&usage).scaled(by:sign,usage:&usage)
             values.append(value);u.append(try value.differentiated(alongU:true,usage:&usage))
             v.append(try value.differentiated(alongU:false,usage:&usage))
@@ -43,7 +43,7 @@ package struct OriginalExactBSplinePoleNormal: Sendable {
     }
 
     /// Removes another exact original inward boundary factor from this gauge.
-    func removingBoundaryFactor<B: RationalAlgebraAdmitting>(direction: OriginalBSplinePoleNormal.Direction,
+    func removingBoundaryFactor<B: ExactScalarAdmission & ~Copyable>(direction: OriginalBSplinePoleNormal.Direction,
         boundary: Double, inwardSign: Double, usage: inout B) throws -> Self {
         let alongU = direction == .constantU
         let station = try ExactRationalCoefficient.originalDouble(boundary, usage: &usage)
@@ -63,7 +63,7 @@ package struct OriginalExactBSplinePoleNormal: Sendable {
         let sign = try ExactRationalCoefficient.originalDouble(inwardSign < 0 && order & 1 == 1 ? -1 : 1, usage: &usage)
         var values: [ExactBivariatePolynomial] = [], u: [ExactBivariatePolynomial] = [], v: [ExactBivariatePolynomial] = []
         for originalValue in coefficients {
-            try usage.retainExactStorage(3)
+            try usage.retainStorage(bytes: 3 * MemoryLayout<UInt32>.stride)
             let value = try originalValue.dividedExactly(by: power, usage: &usage).scaled(by: sign, usage: &usage)
             values.append(value)
             u.append(try value.differentiated(alongU: true, usage: &usage))
@@ -83,12 +83,12 @@ package struct OriginalExactBSplinePoleNormal: Sendable {
         self.tolerance = tolerance
     }
 
-    package func panelBounds<B:RationalAlgebraAdmitting>(over box:SurfaceParameterBox,
+    package func panelBounds<B:ExactScalarAdmission & ~Copyable>(over box:SurfaceParameterBox,
         tolerance:ModelingTolerance,usage:inout B) throws -> OriginalBSplinePoleNormalPanel {
         guard tolerance == self.tolerance else {
             throw GeometryConversionError.invalidInput("Original exact normal factor requires its preparation tolerance.")
         }
-        try span.validate(on:surface,over:box,tolerance:tolerance,consumeWork:{ try usage.consumeExactWork(1) })
+        try span.validate(on:surface,over:box,tolerance:tolerance,using: &usage)
         func vector(_ polys:[ExactBivariatePolynomial]) throws -> IntervalVector3DBounds {
             try .init(x:polys[0].enclosure(over:box,usage:&usage),y:polys[1].enclosure(over:box,usage:&usage),z:polys[2].enclosure(over:box,usage:&usage))
         }
@@ -98,8 +98,8 @@ package struct OriginalExactBSplinePoleNormal: Sendable {
             throw KernelError(phase:.geometry,code:.singularGeometry,tolerance:tolerance,
                 message:"Exact original normal factor is not certified nonzero on this whole owning panel.")
         }
-        try usage.consumeExactWork(1)
-        let jet = try span.intervalJet(overClosedBox:box,on:surface,tolerance:tolerance,consumeWork:{ try usage.consumeExactWork(1) })
+        try usage.consumeWork(1)
+        let jet = try span.intervalJet(overClosedBox:box,on:surface,tolerance:tolerance,using: &usage)
         func position(_ key:(SurfaceIntervalJet) -> OutwardScalarInterval)->Double {
             IntervalVector3DBounds(x:key(jet.x),y:key(jet.y),z:key(jet.z)).lengthUpperBound
         }

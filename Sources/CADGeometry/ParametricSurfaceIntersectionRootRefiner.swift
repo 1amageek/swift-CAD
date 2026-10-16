@@ -28,50 +28,118 @@ struct ParametricSurfaceIntersectionRootRefiner: Sendable {
   let domains: BoundedSurfaceParameterDomainMap
   let maximumIterations: Int
   let tolerance: ModelingTolerance
-  let admission: SurfaceSurfaceQueryAdmission
+
+  let maximumSpanCount: Int?
+  let maximumSubdivisionDepth: Int?
+  let remainingSourceDepth: Int?
+  let maximumAlgebraicDepth: Int?
   let preparedFirstSurface: PreparedSurfaceDifferentialEncloser?
   let preparedSecondSurface: PreparedSurfaceDifferentialEncloser?
 
-  init(first: Surface3D, second: Surface3D, domains: BoundedSurfaceParameterDomainMap, maximumIterations: Int, tolerance: ModelingTolerance,
-    admission: SurfaceSurfaceQueryAdmission = .legacy,
+  init(
+    first: Surface3D, second: Surface3D, domains: BoundedSurfaceParameterDomainMap,
+    maximumIterations: Int, tolerance: ModelingTolerance,
+    maximumSpanCount: Int? = nil, maximumSubdivisionDepth: Int? = nil,
+    remainingSourceDepth: Int? = nil, maximumAlgebraicDepth: Int? = nil,
     preparedFirstSurface: PreparedSurfaceDifferentialEncloser? = nil,
-    preparedSecondSurface: PreparedSurfaceDifferentialEncloser? = nil) {
+    preparedSecondSurface: PreparedSurfaceDifferentialEncloser? = nil
+  ) {
     self.first = first
     self.second = second
     self.domains = domains
     self.maximumIterations = maximumIterations
     self.tolerance = tolerance
-    self.admission = admission
+    self.maximumSpanCount = maximumSpanCount
+    self.maximumSubdivisionDepth = maximumSubdivisionDepth
+    self.remainingSourceDepth = remainingSourceDepth
+    self.maximumAlgebraicDepth = maximumAlgebraicDepth
+
     self.preparedFirstSurface = preparedFirstSurface
     self.preparedSecondSurface = preparedSecondSurface
   }
 
-  func sample(normalized: [Double]) throws -> ParametricSurfaceIntersectionSample {
-    try admission.reserve(count: 4, stride: MemoryLayout<Double>.stride)
-    let actual = domains.actual(normalized)
-    let firstBounds = try admission.positionBounds(preparedFirstSurface ?? admission.prepare(first, tolerance: tolerance),
-      at: SurfaceParameter(u: actual[0], v: actual[1]), tolerance: tolerance)
-    let secondBounds = try admission.positionBounds(preparedSecondSurface ?? admission.prepare(second, tolerance: tolerance),
-      at: SurfaceParameter(u: actual[2], v: actual[3]), tolerance: tolerance)
-    let firstPoint = Point3D(x: firstBounds.x.midpoint, y: firstBounds.y.midpoint, z: firstBounds.z.midpoint)
-    let secondPoint = Point3D(x: secondBounds.x.midpoint, y: secondBounds.y.midpoint, z: secondBounds.z.midpoint)
-    try firstPoint.validate(); try secondPoint.validate()
-    return ParametricSurfaceIntersectionSample(normalized: normalized, actual: actual,
+  func sample(normalized: [Double], using execution: inout OriginalQueryExecution) throws
+    -> ParametricSurfaceIntersectionSample
+  {
+    execution.context = execution.context.at(stage: .refinement)
+
+    let actual = try domains.actual(normalized, using: &execution)
+    let firstBounds = try
+      (preparedFirstSurface
+      ?? PreparedSurfaceDifferentialEncloser(
+        surface: first, tolerance: tolerance,
+        remainingSourceDepth: min(
+          remainingSourceDepth ?? execution.effectiveLimits.remainingSourceDepth,
+          execution.effectiveLimits.remainingSourceDepth),
+        maximumSubdivisionDepth: min(
+          maximumSubdivisionDepth ?? execution.effectiveLimits.maximumSubdivisionDepth,
+          execution.effectiveLimits.maximumSubdivisionDepth),
+        maximumAlgebraicDepth: maximumAlgebraicDepth,
+        using: &execution)).positionBounds(
+        over: .init(
+          u: .init(lower: actual[0], upper: actual[0]), v: .init(lower: actual[1], upper: actual[1])
+        ), tolerance: tolerance,
+        maximumSpanCount: min(
+          maximumSpanCount ?? execution.effectiveLimits.maximumSpans,
+          execution.effectiveLimits.maximumSpans),
+        maximumSubdivisionDepth: min(
+          maximumSubdivisionDepth ?? execution.effectiveLimits.maximumSubdivisionDepth,
+          execution.effectiveLimits.maximumSubdivisionDepth),
+        remainingSourceDepth: min(
+          remainingSourceDepth ?? execution.effectiveLimits.remainingSourceDepth,
+          execution.effectiveLimits.remainingSourceDepth), using: &execution)
+    let secondBounds = try
+      (preparedSecondSurface
+      ?? PreparedSurfaceDifferentialEncloser(
+        surface: second, tolerance: tolerance,
+        remainingSourceDepth: min(
+          remainingSourceDepth ?? execution.effectiveLimits.remainingSourceDepth,
+          execution.effectiveLimits.remainingSourceDepth),
+        maximumSubdivisionDepth: min(
+          maximumSubdivisionDepth ?? execution.effectiveLimits.maximumSubdivisionDepth,
+          execution.effectiveLimits.maximumSubdivisionDepth),
+        maximumAlgebraicDepth: maximumAlgebraicDepth,
+        using: &execution)).positionBounds(
+        over: .init(
+          u: .init(lower: actual[2], upper: actual[2]), v: .init(lower: actual[3], upper: actual[3])
+        ), tolerance: tolerance,
+        maximumSpanCount: min(
+          maximumSpanCount ?? execution.effectiveLimits.maximumSpans,
+          execution.effectiveLimits.maximumSpans),
+        maximumSubdivisionDepth: min(
+          maximumSubdivisionDepth ?? execution.effectiveLimits.maximumSubdivisionDepth,
+          execution.effectiveLimits.maximumSubdivisionDepth),
+        remainingSourceDepth: min(
+          remainingSourceDepth ?? execution.effectiveLimits.remainingSourceDepth,
+          execution.effectiveLimits.remainingSourceDepth), using: &execution)
+    let firstPoint = Point3D(
+      x: firstBounds.x.midpoint, y: firstBounds.y.midpoint, z: firstBounds.z.midpoint)
+    let secondPoint = Point3D(
+      x: secondBounds.x.midpoint, y: secondBounds.y.midpoint, z: secondBounds.z.midpoint)
+    try firstPoint.validate()
+    try secondPoint.validate()
+    return ParametricSurfaceIntersectionSample(
+      normalized: normalized, actual: actual,
       firstPoint: firstPoint, secondPoint: secondPoint)
   }
 
   func closestRoot(
     seed: [Double],
-    constraints: [(lower: Double, upper: Double)]
+    constraints: [(lower: Double, upper: Double)], using execution: inout OriginalQueryExecution
   ) throws -> ParametricSurfaceIntersectionSample? {
-    try admission.reserve(count: seed.count, stride: MemoryLayout<Double>.stride)
+    execution.context = execution.context.at(stage: .refinement)
+
+    try execution.consumeWork(1)
+    try execution.retainStorage(count: seed.count, stride: MemoryLayout<Double>.stride)
     var parameters = seed
     for _ in 0..<maximumIterations {
-      try admission.step()
-      let current = try sample(normalized: parameters)
-      let columns = try jacobianColumns(at: current)
-      try admission.reserve(count: 20, stride: MemoryLayout<Double>.stride)
-      try admission.reserve(count: 4, stride: MemoryLayout<Array<Double>>.stride)
+      try execution.consumeWork(1)
+      let current = try sample(normalized: parameters, using: &execution)
+      let columns = try jacobianColumns(at: current, using: &execution)
+      try execution.consumeWork(1)
+      try execution.retainStorage(count: 20, stride: MemoryLayout<Double>.stride)
+      try execution.consumeWork(1)
+      try execution.retainStorage(count: 4, stride: MemoryLayout<[Double]>.stride)
       var matrix = Array(
         repeating: Array(repeating: 0.0, count: 4),
         count: 4
@@ -91,7 +159,7 @@ struct ParametricSurfaceIntersectionRootRefiner: Sendable {
       guard
         let delta = try SmallLinearSystem4.solve(
           matrix: matrix,
-          rightHandSide: rightHandSide, admission: admission
+          rightHandSide: rightHandSide, using: &execution
         )
       else {
         return nil
@@ -108,22 +176,25 @@ struct ParametricSurfaceIntersectionRootRefiner: Sendable {
         break
       }
     }
-    let final = try sample(normalized: parameters)
+    let final = try sample(normalized: parameters, using: &execution)
     return final.residual <= tolerance.distance ? final : nil
   }
 
   func gaugeRoot(
     seed: [Double],
     fixedParameterIndex: Int,
-    constraints: [(lower: Double, upper: Double)]
+    constraints: [(lower: Double, upper: Double)], using execution: inout OriginalQueryExecution
   ) throws -> ParametricSurfaceIntersectionSample? {
+    execution.context = execution.context.at(stage: .refinement)
+
     guard seed.count == 4,
       constraints.count == 4,
       seed.indices.contains(fixedParameterIndex)
     else {
       return nil
     }
-    try admission.reserve(count: 3, stride: MemoryLayout<Int>.stride)
+    try execution.consumeWork(1)
+    try execution.retainStorage(count: 3, stride: MemoryLayout<Int>.stride)
     let dependentIndexes = seed.indices.filter {
       $0 != fixedParameterIndex
     }
@@ -131,7 +202,8 @@ struct ParametricSurfaceIntersectionRootRefiner: Sendable {
       max(seed[fixedParameterIndex], constraints[fixedParameterIndex].lower),
       constraints[fixedParameterIndex].upper
     )
-    try admission.reserve(count: seed.count, stride: MemoryLayout<Double>.stride)
+    try execution.consumeWork(1)
+    try execution.retainStorage(count: seed.count, stride: MemoryLayout<Double>.stride)
     var parameters = seed.indices.map { index in
       min(max(seed[index], constraints[index].lower), constraints[index].upper)
     }
@@ -142,29 +214,32 @@ struct ParametricSurfaceIntersectionRootRefiner: Sendable {
     )
 
     for _ in 0..<maximumIterations {
-      try admission.step()
-      let current = try sample(normalized: parameters)
+      try execution.consumeWork(1)
+      let current = try sample(normalized: parameters, using: &execution)
       if current.residual == 0 { return current }
-      let columns = try jacobianColumns(at: current)
+      let columns = try jacobianColumns(at: current, using: &execution)
       let difference = current.firstPoint - current.secondPoint
-      try admission.reserve(count: dependentIndexes.count, stride: MemoryLayout<Vector3D>.stride)
+      try execution.consumeWork(1)
+      try execution.retainStorage(
+        count: dependentIndexes.count, stride: MemoryLayout<Vector3D>.stride)
       guard
         let delta = try solveThreeColumnSystem(
           columns: dependentIndexes.map { columns[$0] },
-          rightHandSide: difference * -1.0
-        )
+          rightHandSide: difference * -1.0, using: &execution)
       else {
         return nil
       }
       if current.residual <= residualTarget,
-        delta.allSatisfy({ abs($0) <= tolerance.relative * 0.1 }) {
+        delta.allSatisfy({ abs($0) <= tolerance.relative * 0.1 })
+      {
         return current
       }
       var acceptedParameters: [Double]?
       var scale = 1.0
       for _ in 0..<12 {
-        try admission.step()
-        try admission.reserve(count: parameters.count, stride: MemoryLayout<Double>.stride)
+        try execution.consumeWork(1)
+        try execution.consumeWork(1)
+        try execution.retainStorage(count: parameters.count, stride: MemoryLayout<Double>.stride)
         var candidate = parameters
         for localIndex in dependentIndexes.indices {
           let parameterIndex = dependentIndexes[localIndex]
@@ -177,7 +252,7 @@ struct ParametricSurfaceIntersectionRootRefiner: Sendable {
           )
         }
         candidate[fixedParameterIndex] = fixedValue
-        let candidateSample = try sample(normalized: candidate)
+        let candidateSample = try sample(normalized: candidate, using: &execution)
         if candidateSample.residual < current.residual {
           acceptedParameters = candidate
           break
@@ -191,15 +266,57 @@ struct ParametricSurfaceIntersectionRootRefiner: Sendable {
   }
 
   func jacobianColumns(
-    at sample: ParametricSurfaceIntersectionSample
+    at sample: ParametricSurfaceIntersectionSample, using execution: inout OriginalQueryExecution
   ) throws -> [Vector3D] {
-    let firstGeometry = try admission.numericalSample(preparedFirstSurface ?? admission.prepare(first, tolerance: tolerance),
-      at: SurfaceParameter(u: sample.actual[0], v: sample.actual[1]), tolerance: tolerance)
-    let secondGeometry = try admission.numericalSample(preparedSecondSurface ?? admission.prepare(second, tolerance: tolerance),
-      at: SurfaceParameter(u: sample.actual[2], v: sample.actual[3]), tolerance: tolerance)
-    try admission.reserve(count: 4, stride: MemoryLayout<Vector3D>.stride)
-    try admission.reserve(count: 4, stride: MemoryLayout<Double>.stride)
-    let spans = domains.spans
+    execution.context = execution.context.at(stage: .refinement)
+
+    let firstGeometry = try
+      (preparedFirstSurface
+      ?? PreparedSurfaceDifferentialEncloser(
+        surface: first, tolerance: tolerance,
+        remainingSourceDepth: min(
+          remainingSourceDepth ?? execution.effectiveLimits.remainingSourceDepth,
+          execution.effectiveLimits.remainingSourceDepth),
+        maximumSubdivisionDepth: min(
+          maximumSubdivisionDepth ?? execution.effectiveLimits.maximumSubdivisionDepth,
+          execution.effectiveLimits.maximumSubdivisionDepth),
+        maximumAlgebraicDepth: maximumAlgebraicDepth,
+        using: &execution)).numericalSample(
+        at: SurfaceParameter(u: sample.actual[0], v: sample.actual[1]), tolerance: tolerance,
+        maximumSpanCount: min(
+          maximumSpanCount ?? execution.effectiveLimits.maximumSpans,
+          execution.effectiveLimits.maximumSpans),
+        maximumSubdivisionDepth: min(
+          maximumSubdivisionDepth ?? execution.effectiveLimits.maximumSubdivisionDepth,
+          execution.effectiveLimits.maximumSubdivisionDepth),
+        remainingSourceDepth: min(
+          remainingSourceDepth ?? execution.effectiveLimits.remainingSourceDepth,
+          execution.effectiveLimits.remainingSourceDepth), using: &execution)
+    let secondGeometry = try
+      (preparedSecondSurface
+      ?? PreparedSurfaceDifferentialEncloser(
+        surface: second, tolerance: tolerance,
+        remainingSourceDepth: min(
+          remainingSourceDepth ?? execution.effectiveLimits.remainingSourceDepth,
+          execution.effectiveLimits.remainingSourceDepth),
+        maximumSubdivisionDepth: min(
+          maximumSubdivisionDepth ?? execution.effectiveLimits.maximumSubdivisionDepth,
+          execution.effectiveLimits.maximumSubdivisionDepth),
+        maximumAlgebraicDepth: maximumAlgebraicDepth,
+        using: &execution)).numericalSample(
+        at: SurfaceParameter(u: sample.actual[2], v: sample.actual[3]), tolerance: tolerance,
+        maximumSpanCount: min(
+          maximumSpanCount ?? execution.effectiveLimits.maximumSpans,
+          execution.effectiveLimits.maximumSpans),
+        maximumSubdivisionDepth: min(
+          maximumSubdivisionDepth ?? execution.effectiveLimits.maximumSubdivisionDepth,
+          execution.effectiveLimits.maximumSubdivisionDepth),
+        remainingSourceDepth: min(
+          remainingSourceDepth ?? execution.effectiveLimits.remainingSourceDepth,
+          execution.effectiveLimits.remainingSourceDepth), using: &execution)
+    try execution.consumeWork(1)
+    try execution.retainStorage(count: 4, stride: MemoryLayout<Vector3D>.stride)
+    let spans = try domains.spans(using: &execution)
     return [
       firstGeometry.derivativeU * spans[0],
       firstGeometry.derivativeV * spans[1],
@@ -210,9 +327,11 @@ struct ParametricSurfaceIntersectionRootRefiner: Sendable {
 
   private func solveThreeColumnSystem(
     columns: [Vector3D],
-    rightHandSide: Vector3D
+    rightHandSide: Vector3D, using execution: inout OriginalQueryExecution
   ) throws -> [Double]? {
-    try admission.step()
+    execution.context = execution.context.at(stage: .refinement)
+
+    try execution.consumeWork(1)
     guard columns.count == 3 else { return nil }
     let denominator = determinant(columns[0], columns[1], columns[2])
     var scale = 1.0
@@ -225,7 +344,8 @@ struct ParametricSurfaceIntersectionRootRefiner: Sendable {
     else {
       return nil
     }
-    try admission.reserve(count: 3, stride: MemoryLayout<Double>.stride)
+    try execution.consumeWork(1)
+    try execution.retainStorage(count: 3, stride: MemoryLayout<Double>.stride)
     let result = [
       determinant(rightHandSide, columns[1], columns[2]) / denominator,
       determinant(columns[0], rightHandSide, columns[2]) / denominator,

@@ -28,26 +28,47 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
     }
   }
 
+  func volume(of shell: Shell, in model: BRepModel, tolerance: ModelingTolerance) throws -> Double? {
+    var execution = try OriginalQueryExecution.independentGeometry()
+    return try volume(of: shell, in: model, tolerance: tolerance, using: &execution)
+  }
+
+  func volumeBounds(of shell: Shell, in model: BRepModel, tolerance: ModelingTolerance) throws -> VolumeBounds? {
+    var execution = try OriginalQueryExecution.independentGeometry()
+    return try volumeBounds(of: shell, in: model, tolerance: tolerance, using: &execution)
+  }
+
+  func coordinateLoopVolumeBounds(surface: Surface3D, parameterCurves: [SurfaceParameterCurve], role: LoopRole, reference: Point3D, tolerance: ModelingTolerance) throws -> VolumeBounds? {
+    var execution = try OriginalQueryExecution.independentGeometry()
+    return try coordinateLoopVolumeBounds(surface: surface, parameterCurves: parameterCurves, role: role, reference: reference, tolerance: tolerance, using: &execution)
+  }
+
+  func analyticLoopVolumeBounds(surface: Surface3D, parameterCurves: [SurfaceParameterCurve], role: LoopRole, reference: Point3D, requestedWidth: Double, tolerance: ModelingTolerance) throws -> VolumeBounds? {
+    var execution = try OriginalQueryExecution.independentGeometry()
+    return try analyticLoopVolumeBounds(surface: surface, parameterCurves: parameterCurves, role: role, reference: reference, requestedWidth: requestedWidth, tolerance: tolerance, using: &execution)
+  }
+
   func volume(
     of shell: Shell,
     in model: BRepModel,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> Double? {
+    try execution.consumeWork(1)
     guard
       let bounds = try volumeBounds(
         of: shell,
         in: model,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
     else {
       return nil
     }
-    let reference = try referencePoint(for: shell, in: model)
+    let reference = try referencePoint(for: shell, in: model, using: &execution)
     let characteristicLength = try characteristicLength(
       of: shell,
       in: model,
       reference: reference,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
     let requestedError = certifiedVolumeErrorBudget(
       characteristicLength: characteristicLength,
@@ -68,25 +89,27 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
   func volumeBounds(
     of shell: Shell,
     in model: BRepModel,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> VolumeBounds? {
+    try execution.consumeWork(1)
     try tolerance.validate()
-    let reference = try referencePoint(for: shell, in: model)
+    let reference = try referencePoint(for: shell, in: model, using: &execution)
     let characteristicLength = try characteristicLength(
       of: shell,
       in: model,
       reference: reference,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
     let requestedError = certifiedVolumeErrorBudget(
       characteristicLength: characteristicLength,
       tolerance: tolerance
     )
-    let totalCoedgeCount = try coedgeCount(of: shell, in: model)
+    let totalCoedgeCount = try coedgeCount(of: shell, in: model, using: &execution)
     guard totalCoedgeCount > 0 else { return nil }
     let fluxIntegrator = CertifiedAnalyticPcurveFluxIntegrator()
     var total = Interval.exact(0.0)
     for faceID in shell.faceIDs {
+      try execution.consumeWork(1)
       guard let face = model.faces[faceID],
         let surface = model.geometry.surfaces[face.surfaceID]
       else {
@@ -98,7 +121,7 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
         let integrand = try Integrand(
           surface: surface,
           reference: reference,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
       else {
         return nil
@@ -106,7 +129,8 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
       let domain = try ExactRectangularPcurveDomainResolver().resolve(
         face: face,
         model: model,
-        tolerance: tolerance
+        tolerance: tolerance, maximumSubdivisionDepth: min(32, execution.effectiveLimits.maximumSubdivisionDepth),
+        remainingSourceDepth: min(16, execution.effectiveLimits.remainingSourceDepth), using: &execution
       )
       var contribution: Interval
       if let domain {
@@ -118,7 +142,7 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
           volumeScale: planeScale,
           requestedError: requestedError,
           totalCoedgeCount: totalCoedgeCount,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
       } else if let analyticContribution = try analyticFaceContribution(
         face: face,
@@ -128,7 +152,7 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
         requestedError: requestedError,
         totalCoedgeCount: totalCoedgeCount,
         fluxIntegrator: fluxIntegrator,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       ) {
         contribution = analyticContribution
       } else {
@@ -172,8 +196,9 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
     volumeScale: Interval,
     requestedError: Double,
     totalCoedgeCount: Int,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> Interval {
+    try execution.consumeWork(1)
     let scale = max(volumeScale.maximumAbsolute, 1.0)
     let requestedAreaWidth =
       requestedError * 1.98
@@ -189,6 +214,7 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
     }
     var orientedArea = Interval.exact(0.0)
     for loopID in face.loops {
+      try execution.consumeWork(1)
       guard let loop = model.loops[loopID], !loop.coedges.isEmpty else {
         throw TopologyError.missingReference(
           "Planar face volume references a missing or empty loop."
@@ -197,10 +223,11 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
       var parameterCurves: [SurfaceParameterCurve] = []
       parameterCurves.reserveCapacity(loop.coedges.count)
       for coedge in loop.coedges {
+        try execution.consumeWork(1)
         guard let curve = coedge.surfaceParameterCurve else {
           throw TopologyError.invalidTrim(coedge.edgeID)
         }
-        parameterCurves.append(curve)
+        try OriginalParameterQueryStorage.append(curve, to: &parameterCurves, using: &execution)
       }
       orientedArea =
         orientedArea
@@ -208,7 +235,7 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
           parameterCurves: parameterCurves,
           role: loop.role,
           requestedAreaWidth: requestedAreaWidth,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         ))
     }
     return volumeScale * orientedArea
@@ -222,10 +249,12 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
     requestedError: Double,
     totalCoedgeCount: Int,
     fluxIntegrator: CertifiedAnalyticPcurveFluxIntegrator,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> Interval? {
+    try execution.consumeWork(1)
     var total = Interval.exact(0.0)
     for loopID in face.loops {
+      try execution.consumeWork(1)
       guard let loop = model.loops[loopID],
         !loop.coedges.isEmpty
       else {
@@ -236,18 +265,19 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
       var curves: [SurfaceParameterCurve] = []
       curves.reserveCapacity(loop.coedges.count)
       for coedge in loop.coedges {
+        try execution.consumeWork(1)
         guard let curve = coedge.surfaceParameterCurve else {
           throw TopologyError.invalidTrim(coedge.edgeID)
         }
-        curves.append(curve)
+        try OriginalParameterQueryStorage.append(curve, to: &curves, using: &execution)
       }
       let unwrapped = try SurfaceParameterLoopUnwrapper().unwrap(
         curves,
         on: surface,
         tolerance: tolerance,
-        context: "Analytic face loop \(loop.id)"
+        context: "Analytic face loop \(loop.id)", maximumSubdivisionDepth: min(32, execution.effectiveLimits.maximumSubdivisionDepth), remainingSourceDepth: min(16, execution.effectiveLimits.remainingSourceDepth), using: &execution
       )
-      curves = unwrapped.map({ $0.translatedCurve })
+      curves = try OriginalParameterQueryStorage.map(unwrapped, using: &execution) { item, execution in item.translatedCurve }
       guard
         let contribution = try analyticLoopContribution(
           parameterCurves: curves,
@@ -256,7 +286,7 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
           requestedCurveWidth: requestedError * 1.98
             / Double(totalCoedgeCount),
           generalIntegrator: fluxIntegrator,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
       else {
         return nil
@@ -271,14 +301,15 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
     parameterCurves: [SurfaceParameterCurve],
     role: LoopRole,
     reference: Point3D,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> VolumeBounds? {
+    try execution.consumeWork(1)
     try tolerance.validate()
     guard
       let integrand = try Integrand(
         surface: surface,
         reference: reference,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
     else {
       return nil
@@ -287,15 +318,15 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
       parameterCurves,
       on: surface,
       tolerance: tolerance,
-      context: "Analytic coordinate-loop volume"
+      context: "Analytic coordinate-loop volume", maximumSubdivisionDepth: min(32, execution.effectiveLimits.maximumSubdivisionDepth), remainingSourceDepth: min(16, execution.effectiveLimits.remainingSourceDepth), using: &execution
     )
-    let integrationCurves = unwrapped.map({ $0.translatedCurve })
+    let integrationCurves = try OriginalParameterQueryStorage.map(unwrapped, using: &execution) { item, execution in item.translatedCurve }
     guard
       let contribution = try coordinateLoopContribution(
         parameterCurves: integrationCurves,
         role: role,
         integrand: integrand,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
     else {
       return nil
@@ -312,8 +343,9 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
     role: LoopRole,
     reference: Point3D,
     requestedWidth: Double,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> VolumeBounds? {
+    try execution.consumeWork(1)
     try tolerance.validate()
     guard requestedWidth.isFinite, requestedWidth > 0.0 else {
       throw KernelError(
@@ -328,7 +360,7 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
       let integrand = try Integrand(
         surface: surface,
         reference: reference,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
     else {
       return nil
@@ -337,9 +369,9 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
       parameterCurves,
       on: surface,
       tolerance: tolerance,
-      context: "Analytic pcurve-loop volume"
+      context: "Analytic pcurve-loop volume", maximumSubdivisionDepth: min(32, execution.effectiveLimits.maximumSubdivisionDepth), remainingSourceDepth: min(16, execution.effectiveLimits.remainingSourceDepth), using: &execution
     )
-    let integrationCurves = unwrapped.map({ $0.translatedCurve })
+    let integrationCurves = try OriginalParameterQueryStorage.map(unwrapped, using: &execution) { item, execution in item.translatedCurve }
     guard
       let contribution = try analyticLoopContribution(
         parameterCurves: integrationCurves,
@@ -348,7 +380,7 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
         requestedCurveWidth: requestedWidth
           / Double(parameterCurves.count),
         generalIntegrator: CertifiedAnalyticPcurveFluxIntegrator(),
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
     else {
       return nil
@@ -377,8 +409,9 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
     integrand: Integrand,
     requestedCurveWidth: Double,
     generalIntegrator: CertifiedAnalyticPcurveFluxIntegrator,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> Interval? {
+    try execution.consumeWork(1)
     guard !parameterCurves.isEmpty else {
       throw KernelError(
         phase: .topology,
@@ -398,12 +431,13 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
     }
     var rawFlux = Interval.exact(0.0)
     for curve in parameterCurves {
+      try execution.consumeWork(1)
       if integrand.usesPeriodicBoundaryGauge {
         let contribution = try generalIntegrator.bounds(
           for: curve,
           integrand: integrand,
           requestedWidth: requestedCurveWidth,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
         guard let contribution else { return nil }
         rawFlux = rawFlux + contribution
@@ -422,9 +456,10 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
       }
       if let verticalSegments = try coordinateVerticalSegments(
         curve,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       ) {
         for segment in verticalSegments {
+          try execution.consumeWork(1)
           rawFlux =
             rawFlux
             + integrand.verticalBoundaryIntegral(
@@ -438,7 +473,7 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
           for: curve,
           integrand: integrand,
           requestedWidth: requestedCurveWidth,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
         guard let contribution else { return nil }
         rawFlux = rawFlux + contribution
@@ -447,7 +482,7 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
     let areaBounds = try certifiedLoopOrientationBounds(
       parameterCurves: parameterCurves,
       usesPeriodicConeGauge: integrand.usesPeriodicConeBoundaryGauge,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
     return try normalizedLoopContribution(
       rawFlux: rawFlux,
@@ -462,8 +497,9 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
     parameterCurves: [SurfaceParameterCurve],
     role: LoopRole,
     integrand: Integrand,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> Interval? {
+    try execution.consumeWork(1)
     guard !parameterCurves.isEmpty else {
       throw KernelError(
         phase: .topology,
@@ -475,12 +511,13 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
     var rawFlux = Interval.exact(0.0)
     let generalIntegrator = CertifiedAnalyticPcurveFluxIntegrator()
     for curve in parameterCurves {
+      try execution.consumeWork(1)
       if integrand.usesPeriodicBoundaryGauge {
         let contribution = try generalIntegrator.bounds(
           for: curve,
           integrand: integrand,
           requestedWidth: max(tolerance.distance, 1.0e-10),
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
         guard let contribution else { return nil }
         rawFlux = rawFlux + contribution
@@ -489,12 +526,13 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
       guard
         let verticalSegments = try coordinateVerticalSegments(
           curve,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
       else {
         return nil
       }
       for segment in verticalSegments {
+        try execution.consumeWork(1)
         rawFlux =
           rawFlux
           + integrand.verticalBoundaryIntegral(
@@ -507,7 +545,7 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
     let areaBounds = try certifiedLoopOrientationBounds(
       parameterCurves: parameterCurves,
       usesPeriodicConeGauge: integrand.usesPeriodicConeBoundaryGauge,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
     return try normalizedLoopContribution(
       rawFlux: rawFlux,
@@ -521,14 +559,16 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
   private func certifiedLoopOrientationBounds(
     parameterCurves: [SurfaceParameterCurve],
     usesPeriodicConeGauge: Bool,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> SurfaceParameterAreaBounds {
+    try execution.consumeWork(1)
     let integrator = SurfaceParameterCurveAreaIntegrator()
     var requestedWidth = 1.0
     while requestedWidth.isFinite, requestedWidth > 0.0 {
       let curveWidth = requestedWidth / Double(parameterCurves.count)
       var loopBounds = SurfaceParameterAreaBounds.zero
       for curve in parameterCurves {
+        try execution.consumeWork(1)
         loopBounds = loopBounds.adding(
           try usesPeriodicConeGauge
             ? integrator.periodicConeBounds(
@@ -540,7 +580,7 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
               for: curve,
               uShift: 0.0,
               requestedWidth: curveWidth,
-              tolerance: tolerance
+              tolerance: tolerance, using: &execution
             )
         )
       }
@@ -587,28 +627,26 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
 
   private func coordinateVerticalSegments(
     _ curve: SurfaceParameterCurve,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> [(u: Interval, vStart: Interval, vEnd: Interval)]? {
+    try execution.consumeWork(1)
     switch curve {
     case .constantU(let u, let vStart, let vEnd):
-      return [(.exact(u), .exact(vStart), .exact(vEnd))]
+      return try singletonSegment((.exact(u), .exact(vStart), .exact(vEnd)), using: &execution)
     case .constantV:
       return []
     case .affine(let origin, let direction, let startParameter, let endParameter):
       if direction.x == 0.0 {
-        return [
-          (
+        return try singletonSegment((
             .exact(origin.x),
             .exact(origin.y) + .exact(direction.y) * .exact(startParameter),
             .exact(origin.y) + .exact(direction.y) * .exact(endParameter)
-          )
-        ]
+          ), using: &execution)
       }
       return direction.y == 0.0 ? [] : nil
     case .harmonic(let center, let cosine, let sine, let startParameter, let endParameter):
       if cosine.x == 0.0, sine.x == 0.0 {
-        return [
-          (
+        return try singletonSegment((
             .exact(center.x),
             .exact(center.y)
               + .exact(cosine.y) * .cosine(.exact(startParameter))
@@ -616,8 +654,7 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
             .exact(center.y)
               + .exact(cosine.y) * .cosine(.exact(endParameter))
               + .exact(sine.y) * .sine(.exact(endParameter))
-          )
-        ]
+          ), using: &execution)
       }
       if cosine.y == 0.0, sine.y == 0.0 {
         return []
@@ -626,38 +663,35 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
     case .polyline(let points):
       var result: [(u: Interval, vStart: Interval, vEnd: Interval)] = []
       for index in 1..<points.count {
+        try execution.consumeWork(1)
         let start = points[index - 1]
         let end = points[index]
         if start.u == end.u {
-          result.append((.exact(start.u), .exact(start.v), .exact(end.v)))
+          try OriginalParameterQueryStorage.append((.exact(start.u), .exact(start.v), .exact(end.v)), to: &result, using: &execution)
         } else if start.v != end.v {
           return nil
         }
       }
       return result
     case .bSpline(let spline):
-      guard let lowerKnot = spline.knots.first,
-        let upperKnot = spline.knots.last,
-        spline.knots.prefix(spline.degree + 1).allSatisfy({
-          $0 == lowerKnot
-        }),
-        spline.knots.suffix(spline.degree + 1).allSatisfy({
-          $0 == upperKnot
-        })
-      else {
-        return nil
+      guard let lowerKnot = spline.knots.first, let upperKnot = spline.knots.last else { return nil }
+      for knot in spline.knots.prefix(spline.degree + 1) {
+        try execution.consumeWork(1)
+        if knot != lowerKnot { return nil }
       }
-      if let first = spline.controlPoints.first,
-        let last = spline.controlPoints.last,
-        spline.controlPoints.allSatisfy({ $0.x == first.x })
-      {
-        return [(.exact(first.x), .exact(first.y), .exact(last.y))]
+      for knot in spline.knots.suffix(spline.degree + 1) {
+        try execution.consumeWork(1)
+        if knot != upperKnot { return nil }
       }
-      if let first = spline.controlPoints.first,
-        spline.controlPoints.allSatisfy({ $0.y == first.y })
-      {
-        return []
+      guard let first = spline.controlPoints.first, let last = spline.controlPoints.last else { return nil }
+      var constantU = true, constantV = true
+      for point in spline.controlPoints {
+        try execution.consumeWork(1)
+        if point.x != first.x { constantU = false }
+        if point.y != first.y { constantV = false }
       }
+      if constantU { return try singletonSegment((.exact(first.x), .exact(first.y), .exact(last.y)), using: &execution) }
+      if constantV { return [] }
       return nil
     case .sphericalGreatCircle,
       .certifiedImplicit,
@@ -669,20 +703,37 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
     case .offsetSurfaceImage(let image):
       return try coordinateVerticalSegments(
         image.source,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
     case .periodicTranslation(let base, let uShift, let vShift):
       return try coordinateVerticalSegments(
         base,
-        tolerance: tolerance
-      )?.map { segment in
+        tolerance: tolerance, using: &execution
+      ).map { segments in
+        try OriginalParameterQueryStorage.map(segments, using: &execution) { segment, execution in
         (
           segment.u + .exact(uShift),
           segment.vStart + .exact(vShift),
           segment.vEnd + .exact(vShift)
         )
       }
+      }
+
     }
+  }
+
+  private func singletonSegment(_ segment: (u: Interval, vStart: Interval, vEnd: Interval),
+    using execution: inout OriginalQueryExecution) throws -> [(u: Interval, vStart: Interval, vEnd: Interval)] {
+    var result: [(u: Interval, vStart: Interval, vEnd: Interval)] = []
+    try OriginalParameterQueryStorage.append(segment, to: &result, using: &execution)
+    return result
+  }
+
+  func planarLoopVolumeBounds(surface: Surface3D, parameterCurves: [SurfaceParameterCurve],
+    role: LoopRole, reference: Point3D, requestedAreaWidth: Double, tolerance: ModelingTolerance) throws -> VolumeBounds? {
+    var execution = try OriginalQueryExecution.independentGeometry()
+    return try planarLoopVolumeBounds(surface: surface, parameterCurves: parameterCurves,
+      role: role, reference: reference, requestedAreaWidth: requestedAreaWidth, tolerance: tolerance, using: &execution)
   }
 
   func planarLoopVolumeBounds(
@@ -691,14 +742,15 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
     role: LoopRole,
     reference: Point3D,
     requestedAreaWidth: Double,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> VolumeBounds? {
+    try execution.consumeWork(1)
     try tolerance.validate()
     guard
       let integrand = try Integrand(
         surface: surface,
         reference: reference,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       ), let volumeScale = integrand.planeVolumeScale
     else {
       return nil
@@ -709,7 +761,7 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
         parameterCurves: parameterCurves,
         role: role,
         requestedAreaWidth: requestedAreaWidth,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       ))
     return VolumeBounds(
       lower: contribution.lower,
@@ -721,8 +773,9 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
     parameterCurves: [SurfaceParameterCurve],
     role: LoopRole,
     requestedAreaWidth: Double,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> Interval {
+    try execution.consumeWork(1)
     guard !parameterCurves.isEmpty else {
       throw KernelError(
         phase: .topology,
@@ -742,12 +795,13 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
     }
     var loopBounds = SurfaceParameterAreaBounds.zero
     for curve in parameterCurves {
+      try execution.consumeWork(1)
       loopBounds = loopBounds.adding(
         try SurfaceParameterCurveAreaIntegrator().bounds(
           for: curve,
           uShift: 0.0,
           requestedWidth: requestedAreaWidth,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
       )
     }
@@ -774,18 +828,26 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
     return role == .outer ? absoluteArea : -absoluteArea
   }
 
+  func faceVolumeBounds(surface: Surface3D, domain: ExactRectangularPcurveDomain,
+    reference: Point3D, tolerance: ModelingTolerance) throws -> VolumeBounds? {
+    var execution = try OriginalQueryExecution.independentGeometry()
+    return try faceVolumeBounds(surface: surface, domain: domain, reference: reference,
+      tolerance: tolerance, using: &execution)
+  }
+
   func faceVolumeBounds(
     surface: Surface3D,
     domain: ExactRectangularPcurveDomain,
     reference: Point3D,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> VolumeBounds? {
+    try execution.consumeWork(1)
     try tolerance.validate()
     guard
       let integrand = try Integrand(
         surface: surface,
         reference: reference,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
     else {
       return nil
@@ -796,12 +858,13 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
 
   private func referencePoint(
     for shell: Shell,
-    in model: BRepModel
+    in model: BRepModel, using execution: inout OriginalQueryExecution
   ) throws -> Point3D {
-    try BRepShellReferencePointResolver().referencePoint(
+    try execution.consumeWork(1)
+    return try BRepShellReferencePointResolver().referencePoint(
       for: shell,
       in: model,
-      context: "Trimmed analytic volume"
+      context: "Trimmed analytic volume", using: &execution
     )
   }
 
@@ -809,22 +872,26 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
     of shell: Shell,
     in model: BRepModel,
     reference: Point3D,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> Double {
+    try execution.consumeWork(1)
     var maximumLength = tolerance.distance
     for faceID in shell.faceIDs {
+      try execution.consumeWork(1)
       guard let face = model.faces[faceID] else {
         throw TopologyError.missingReference(
           "Trimmed analytic volume references a missing face."
         )
       }
       for loopID in face.loops {
+        try execution.consumeWork(1)
         guard let loop = model.loops[loopID] else {
           throw TopologyError.missingReference(
             "Trimmed analytic volume references a missing loop."
           )
         }
         for coedge in loop.coedges {
+          try execution.consumeWork(1)
           guard let edge = model.edges[coedge.edgeID],
             let start = model.vertices[edge.startVertexID]?.point,
             let end = model.vertices[edge.endVertexID]?.point
@@ -845,28 +912,33 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
 
   private func coedgeCount(
     of shell: Shell,
-    in model: BRepModel
+    in model: BRepModel, using execution: inout OriginalQueryExecution
   ) throws -> Int {
+    try execution.consumeWork(1)
     var count = 0
     for faceID in shell.faceIDs {
+      try execution.consumeWork(1)
       guard let face = model.faces[faceID] else {
         throw TopologyError.missingReference(
           "Trimmed analytic volume references a missing face."
         )
       }
       for loopID in face.loops {
+        try execution.consumeWork(1)
         guard let loop = model.loops[loopID] else {
           throw TopologyError.missingReference(
             "Trimmed analytic volume references a missing loop."
           )
         }
-        count += loop.coedges.count
+        let next = count.addingReportingOverflow(loop.coedges.count)
+        guard !next.overflow else { throw ExactScalarFailure.countOverflow }
+        count = next.partialValue
       }
     }
     return count
   }
 
-  enum Integrand: Hashable {
+  enum Integrand: Hashable, Sendable {
     case plane(volumeScale: Interval)
     case cylinder(
       radius: Interval,
@@ -894,11 +966,16 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
       axialOffset: Interval
     )
 
+    init?(surface: Surface3D, reference: Point3D, tolerance: ModelingTolerance) throws {
+      var execution = try OriginalQueryExecution.independentGeometry()
+      try self.init(surface: surface, reference: reference, tolerance: tolerance, using: &execution)
+    }
+
     init?(
       surface: Surface3D,
       reference: Point3D,
       tolerance: ModelingTolerance
-    ) throws {
+    , using execution: inout OriginalQueryExecution) throws {
       let kind: Kind
       switch surface {
       case .plane(let plane):
@@ -925,7 +1002,7 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
       case .procedural(.offset(let offset)):
         guard
           let equivalent = try offset.exactChartPreservingSurface(
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
           )
         else {
           return nil
@@ -933,7 +1010,7 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
         try self.init(
           surface: equivalent,
           reference: reference,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
         return
       case .procedural(.ruled), .procedural(.rollingBall), .procedural(.originalImage), .procedural(.originalRevolution), .procedural(.originalCoons), .procedural(.originalBoundaryCorrected), .procedural(.originalAngularTransport), .procedural(.originalAffineWord), .procedural(.originalPlaneDerivative), .procedural(.originalDrafted):
@@ -943,7 +1020,7 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
       let geometry = try surface.differentialGeometry(
         u: 0.0,
         v: sampleV,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
       switch kind {
       case .plane(let origin):
@@ -1590,22 +1667,24 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
       guard value.upper - value.lower < 2.0 * Double.pi else {
         return Interval(lower: -1.0, upper: 1.0)
       }
-      var samples = [sin(value.lower + phase), sin(value.upper + phase)]
-      let firstCritical = Int(
-        ceil(
-          (value.lower + phase - Double.pi * 0.5) / Double.pi
-        ))
-      let lastCritical = Int(
-        floor(
-          (value.upper + phase - Double.pi * 0.5) / Double.pi
-        ))
+      let firstSample = sin(value.lower + phase), lastSample = sin(value.upper + phase)
+      var lower = min(firstSample, lastSample), upper = max(firstSample, lastSample)
+      let firstCriticalValue = ceil((value.lower + phase - Double.pi * 0.5) / Double.pi)
+      let lastCriticalValue = floor((value.upper + phase - Double.pi * 0.5) / Double.pi)
+      // A whole sine range is valid when this finite interval cannot express its
+      // critical indices. Query accuracy still owns acceptance of this enclosure.
+      guard firstCriticalValue.isFinite, lastCriticalValue.isFinite,
+        firstCriticalValue >= Double(Int.min), firstCriticalValue < Double(Int.max),
+        lastCriticalValue >= Double(Int.min), lastCriticalValue < Double(Int.max) else {
+        return Interval(lower: -1, upper: 1)
+      }
+      let firstCritical = Int(firstCriticalValue), lastCritical = Int(lastCriticalValue)
       if firstCritical <= lastCritical {
         for index in firstCritical...lastCritical {
-          samples.append(index.isMultiple(of: 2) ? 1.0 : -1.0)
+          let critical = index.isMultiple(of: 2) ? 1.0 : -1.0
+          lower = min(lower, critical); upper = max(upper, critical)
         }
       }
-      var lower = samples.min() ?? -1.0
-      var upper = samples.max() ?? 1.0
       for _ in 0..<16 {
         lower = lower.nextDown
         upper = upper.nextUp

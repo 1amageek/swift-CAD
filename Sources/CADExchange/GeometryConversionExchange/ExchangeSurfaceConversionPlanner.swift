@@ -6,8 +6,7 @@ struct ExchangeSurfaceConversionPlanner {
     let converter: any CallerAdmittedGeometryConverting
     init(converter: any CallerAdmittedGeometryConverting = CertifiedGeometryConverter()) { self.converter = converter }
     func plan(stores: [GeometryStore], policy: ExchangeGeometryConversionPolicy, format: ExchangeFileFormat,
-              tolerance: ModelingTolerance, limits: ExchangeResourceLimits, ledger suppliedLedger: ExchangeConversionLedger? = nil) throws -> ExchangeSurfaceConversionPlan {
-        let ledger = try suppliedLedger ?? ExchangeConversionLedger(limits: limits, format: format)
+              tolerance: ModelingTolerance, limits: ExchangeResourceLimits, ledger: ExchangeConversionLedger, using execution: inout OriginalQueryExecution) throws -> ExchangeSurfaceConversionPlan {
         let accounting = ledger.snapshot()
         guard case .certified(let requirements) = policy else {
             return .init(overrides: [:], guarantees: [], remainingLimits: try ledger.remainingLimits(), budget: accounting.budget)
@@ -18,26 +17,25 @@ struct ExchangeSurfaceConversionPlanner {
         for store in stores {
             let sourceSlots = store.surfaces.count.multipliedReportingOverflow(by: MemoryLayout<SurfaceID>.stride + MemoryLayout<(SurfaceID, Surface3D)>.stride)
             guard !sourceSlots.overflow else { throw GeometryConversionError.resourceLimitExceeded("Surface source index storage overflow.") }
-            try ledger.charge(entities: store.surfaces.count, work: store.surfaces.count, bytes: sourceSlots.partialValue)
+            try ledger.charge(entities: store.surfaces.count, work: store.surfaces.count, bytes: sourceSlots.partialValue, using: &execution)
             for id in store.surfaces.keys.sorted() {
                 try accounting.checkTime()
                 guard let surface = store.surfaces[id] else { throw IndependentShapeExchangeError.invalidAssociation("Conversion source surface is absent.") }
-                try GeometryStructuralComparisonWork.charge(surface: surface) { try ledger.charge(work: $0) }
+                try GeometryStructuralComparisonWork.charge(surface: surface, using: &execution)
                 if let previous = seen[id] {
                     guard previous == surface else { throw IndependentShapeExchangeError.invalidAssociation("One conversion SurfaceID has conflicting original laws.") }
                     continue
                 }
                 seen[id] = surface
                 // Exact standard primitives and signed offsets retain their source representation.
-                guard try requiresConversion(surface, depth: 0, ledger: ledger) else { continue }
+                guard try requiresConversion(surface, depth: 0, ledger: ledger, using: &execution) else { continue }
                 guard case .closed(let lowU, let highU) = surface.uDomain, case .closed(let lowV, let highV) = surface.vDomain else {
                     throw IndependentShapeExchangeError.unsupportedSemantics("Certified exchange requires the complete finite original native domain.")
                 }
                 let parameters = SurfaceParameterBox(u: try ScalarInterval(lower: lowU, upper: highU), v: try ScalarInterval(lower: lowV, upper: highV))
-                let admission = try ledger.admission()
-                let source = try NativeSurfaceConversionSource(surface, tolerance: tolerance, admission: admission)
+                let source = try NativeSurfaceConversionSource(surface, tolerance: tolerance, using: &execution)
                 let result = try converter.approximateSurface(source: source, over: parameters,
-                    requirements: requirements, tolerance: tolerance, admission: admission)
+                    requirements: requirements, tolerance: tolerance, using: &execution)
                 let guarantee = result.guarantee
                 guard result.parameters == parameters,
                       Surface3D.bSpline(result.surface).uDomain == surface.uDomain,
@@ -49,7 +47,7 @@ struct ExchangeSurfaceConversionPlanner {
                 }
                 try accounting.checkTime()
                 try ledger.charge(entities: 2, work: 1,
-                    bytes: MemoryLayout<(Surface3D, BSplineSurface3D)>.stride + MemoryLayout<ExchangeSurfaceConversionGuarantee>.stride)
+                    bytes: MemoryLayout<(Surface3D, BSplineSurface3D)>.stride + MemoryLayout<ExchangeSurfaceConversionGuarantee>.stride, using: &execution)
                 overrides[surface] = result.surface
                 guarantees.append(.init(surfaceID: id, originalSurface: surface, parameters: parameters, guarantee: guarantee))
             }
@@ -57,13 +55,13 @@ struct ExchangeSurfaceConversionPlanner {
         let remaining = try ledger.remainingLimits()
         return .init(overrides: overrides, guarantees: guarantees, remainingLimits: remaining, budget: accounting.budget)
     }
-    private func requiresConversion(_ surface: Surface3D, depth: Int, ledger: ExchangeConversionLedger) throws -> Bool {
-        try ledger.snapshot().validateNestingDepth(depth); try ledger.charge(work: 1)
+    private func requiresConversion(_ surface: Surface3D, depth: Int, ledger: ExchangeConversionLedger, using execution: inout OriginalQueryExecution) throws -> Bool {
+        try ledger.snapshot().validateNestingDepth(depth); try ledger.charge(work: 1, using: &execution)
         switch surface {
         case .procedural(.rollingBall), .procedural(.originalRevolution), .procedural(.originalCoons), .procedural(.originalBoundaryCorrected),
              .procedural(.originalAffineWord), .procedural(.originalAngularTransport), .procedural(.originalPlaneDerivative), .procedural(.originalDrafted): return true
-        case .procedural(.offset(let offset)): return try requiresConversion(offset.source, depth: depth + 1, ledger: ledger)
-        case .procedural(.originalImage(let image)): return try requiresConversion(image.source, depth: depth + 1, ledger: ledger)
+        case .procedural(.offset(let offset)): return try requiresConversion(offset.source, depth: depth + 1, ledger: ledger, using: &execution)
+        case .procedural(.originalImage(let image)): return try requiresConversion(image.source, depth: depth + 1, ledger: ledger, using: &execution)
         default: return false
         }
     }

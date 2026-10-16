@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 import CADIR
 import CADTopology
 
@@ -47,7 +48,22 @@ public struct BooleanClassificationGraph: Hashable, Sendable {
         model: BRepModel,
         tolerance: ModelingTolerance
     ) throws {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        try validate(uvSplitGraph: uvSplitGraph, model: model, tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(
+        uvSplitGraph: BooleanUVSplitGraph,
+        model: BRepModel,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution
+    ) throws {
+        try execution.checkpoint()
         try tolerance.validate()
+        try execution.consumeWork(uvSplitGraph.splits.count)
+        try execution.retainKernelValues(count: uvSplitGraph.splits.count, stride: MemoryLayout<(BooleanFacePairCandidate, BooleanFaceSplit)>.stride * 2)
+        try execution.retainKernelValues(count: samples.count, stride: MemoryLayout<Sample>.stride)
         let splitsByPair = Dictionary(
             uniqueKeysWithValues: uvSplitGraph.splits.map { ($0.facePair, $0) }
         )
@@ -60,8 +76,10 @@ public struct BooleanClassificationGraph: Hashable, Sendable {
             )
         }
         for sample in samples {
+            try execution.consumeWork(1)
             try sample.point.validate()
             try sample.componentID.validate(tolerance: tolerance)
+            if let split = splitsByPair[sample.facePair] { try execution.consumeWork(split.components.count) }
             guard let split = splitsByPair[sample.facePair],
                   split.components.contains(where: { $0.id == sample.componentID }),
                   model.faces[sample.sourceFaceID] != nil,

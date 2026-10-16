@@ -7,7 +7,7 @@ package struct OriginalSingularFieldSystemRoot: Sendable {
     package let v: OriginalSingularFieldElement
     package let sourceDomain: SurfaceParameterBox
 
-    package func evaluated<B: RationalAlgebraAdmitting>(_ expression: OriginalSingularFieldPlanePolynomial,
+    package func evaluated<B: ExactScalarAdmission & ~Copyable>(_ expression: OriginalSingularFieldPlanePolynomial,
         maximumDepth: Int, usage: inout B) throws -> OriginalSingularFieldElement {
         let context = v.context
         let first = try u.embedded(in: context, maximumDepth: maximumDepth, usage: &usage)
@@ -20,7 +20,7 @@ package struct OriginalSingularFieldSystemRoot: Sendable {
         }
         return result
     }
-    package func sign<B: RationalAlgebraAdmitting>(of expression: OriginalSingularFieldPlanePolynomial,
+    package func sign<B: ExactScalarAdmission & ~Copyable>(of expression: OriginalSingularFieldPlanePolynomial,
         maximumDepth: Int, usage: inout B) throws -> ExactAlgebraicRealRoot.Sign {
         try evaluated(expression, maximumDepth: maximumDepth, usage: &usage).sign(maximumDepth: maximumDepth, usage: &usage)
     }

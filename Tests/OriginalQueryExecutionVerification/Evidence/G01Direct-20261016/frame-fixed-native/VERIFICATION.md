@@ -1,0 +1,25 @@
+# Current frame-fixed Native evidence
+
+The six actual G01 groups pass with the unchanged fixture and caller caps. [native-receipt.json](native-receipt.json) binds 65 Core and 2170 Geometry inputs, original compiler commands, matching products and fresh runtime logs. Fixture compile/link took 6.051 seconds; the six runtime groups took 86.842 seconds in aggregate. Every group stayed below its original 120-second limit. Source and product drift is zero.
+
+The three private validation dispatch changes preserve all 42 selected switch-case bodies and the same source laws, guards, scope and charges. [validation-frame-prologue-verification.json](validation-frame-prologue-verification.json) records actual generated frame sizes, rather than treating source structure as a stack proof. The previous real FaceRebuild worker stack stop no longer occurs in its subsequent four-case run; that run still refused the positive input at geometric depth 33. [known-native-uv-depth-rejection.json](known-native-uv-depth-rejection.json) identifies the redundant projection of an already known Native UV. The Kernel-only source fix uses the existing original-face parameter session only after complete stored Native representation equality; its focused runtime now passes all five cases: Native given-surface success, Square explicit refusal, cancellation, source-validation N/N−1, and the unchanged spatial sampler endpoint N/N−1. [kernel-focused-receipt.json](kernel-focused-receipt.json) records 14.660-second build/discovery and 0.944-second runtime with zero source/product drift. The positive evaluator runs on the normal worker, not an enlarged test stack.
+
+[upper-production-receipt.json](upper-production-receipt.json) records successful Native generation through SwiftCAD. Core/Geometry/Topology/IR are reused only after receipt validation; changed upper modules are freshly generated. This is compilation evidence, not upper-caller runtime acceptance. Current portable results and upper-caller tests remain separate gates. This evidence does not complete whole G01, U1–U4, the seven requirements or main delivery.
+
+All original paths and copied-file hashes are in [provenance.json](provenance.json). Historical pre-frame evidence remains unchanged in the parent directory.
+
+## Modeling failure boundary finding
+
+The actual 35-file Modeling test target builds. The nine selected functions in [modeling-eight-results.xml](modeling-eight-results.xml) contain eight passes and one failed callback-matrix function: only its two outer-context expectations were wrong. The original admission context is retained by the existing failure publication contract; the outer boundary fills missing context. Production classification/cause/feature/cancellation/domain controls already passed. The final fixture changes those expectations only, preserving the eight unchanged success paths and all ceilings.
+
+[modeling-matrix-receipt.json](modeling-matrix-receipt.json) and [modeling-matrix-results.xml](modeling-matrix-results.xml) record the one-file, one-function finding-only recheck: all nine matrix controls (three boundaries × work/cancellation/domain) pass. Actual compile/link took 12.761 seconds; process runtime took 0.737 seconds. The failed matrix receipt is retained as a failed run, not relabeled as success.
+
+The separate existing NativeDraft positive case remains excluded and incomplete: its current target tangent enclosure at geometric depth 20 cannot prove the requested 1e-9 angular bound. This evidence does not claim a Draft success or raise that ceiling.
+
+## Exchange actual caller verification
+
+The actual 47-file Exchange target builds and links against the pinned OpenUSD products and genuine SwiftPM resources. [exchange-eleven-results.xml](exchange-eleven-results.xml) records eleven passing functions and two failed new fixture premises. The two corrected expectations are limited to the existing source owner's exact typed work-ceiling mapping and the documented floating point proposal read from a certified singleton enclosure. The N/N−1 ceilings, no-output/counter checks and source correspondence controls remain.
+
+The two-file finding-only recheck in [exchange-findings-receipt.json](exchange-findings-receipt.json) passes both affected functions, composing thirteen accepted functions with the unchanged eleven earlier passes. It verifies actual GROUP producer state writeback after success, append failure and finish failure; same-budget graph bindings; hosted retained contributions; original source lifetime; exact work refusal and foreign-owner rejection. Genuine module/object/resource hashes match; no production source changes or ceiling increases occurred. The earlier receipt remains recorded as a failed aggregate run.
+
+Independent source validation retains its existing `IndependentShapeSourceError.resourceLimitExceeded` work mapping. This local source-specific typed error is not evidence that every upper source failure already publishes the full `OriginalQueryFailure` counter context; whole U1–U4 failure unification remains incomplete.

@@ -1,6 +1,6 @@
 # Curve Surface Query Admission
 
-[Native Point Relations](../CurveSurfaceOverlap/NativePointRelations/DESIGN.md) forwards the same invocation through preparation, exact decomposition and publication. Algebra depth is independent of geometric depth. UInt32 storage words convert to callback bytes with checked arithmetic. Ordinary queries use value-local option allowances.
+[Native Point Relations](../CurveSurfaceOverlap/NativePointRelations/DESIGN.md) receives the same direct execution through preparation, decomposition and publication. Algebra depth remains independent of geometric depth; allocation owners admit bytes under the common budget.
 
 ## Purpose and Scope
 
@@ -9,33 +9,34 @@ for complete original curve-surface query traversal and certification.
 
 ## Responsibilities and Boundaries
 
-This component owns CS invocation composition under the
-[direct original-query execution target](../DESIGN.md#direct-original-query-execution).
-Source owners, exact operations and public callers must directly consume the
-common execution contracts rather than preserving per-route allowance wrapping.
+This component publishes ordinary and direct `using execution: inout
+OriginalQueryExecution` CS requirements. Ordinary convenience creates one common
+budget/execution, then calls the direct path. Injected consumers pass their actual
+execution through source, DI, arithmetic, refinement and publication. The direct
+migration removes callback requirements and the old invocation value.
 
-The current callback implementation forwards the upper query's cumulative work
-and cancellation to original preparation, visited cells, root certification and
-refinement. No default solver allowance replaces an injected allowance. The
-legacy convenience and callback paths below remain implementation facts until
-their actual owners/callers migrate and duplicate paths are removed.
+The common execution owner owns cumulative accounting and local policy. This
+component owns forwarding and complete result semantics. Source equality,
+mathematical branches and parameter laws remain with their existing owners.
+A direct signature is not runtime migration evidence; target-specific behavioral
+verification remains required for each actual production path.
 
 ## Related Designs
 
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
-| [CADGeometry](../DESIGN.md) | parent | original complete intersections | Publishes admission port. | Preserve failure/completeness. |
-| [Direct Original Query Execution](../DESIGN.md#direct-original-query-execution) | parent | Direct cumulative admission and evidence consumption | Owns target architecture and migration gate | Legacy depth callbacks must not be reinterpreted as work units |
-| [Geometry Conversion](../GeometryConversion/DESIGN.md) | depends on | original prepared closed bounds | Supplies real-source values. | Candidate points are not root evidence. |
+| [CADGeometry](../DESIGN.md#u1-direct-execution-ownership) | parent | Direct execution ownership | Owns target architecture | Source wiring is not behavioral evidence |
+| [Original Query Execution](../OriginalQueryExecution/DESIGN.md) | depends on | Direct admission and exclusive proof scopes | Owns cumulative accounting | Depths are distinct from work units |
+| [Geometry Conversion](../GeometryConversion/DESIGN.md) | depends on | Original prepared closed bounds | Supplies original source values | Numerical candidates are not root evidence |
 
 ## Architecture
 
-The target flow and owner boundaries are defined by the parent contract above.
-The following is the current callback implementation, not the target structure:
-
 ```text
-query cumulative ledger -> immutable invocation admission
-    -> original preparations -> complete native cells -> root proof -> refinement
+ordinary entry -> one shared budget + exclusive execution
+admitted entry ---------------------------> same execution
+    -> original source / DI -> relation -> refinement -> atomic publication
+prepared session -> retained budget + immutable evidence/policy
+    -> new exclusive execution for each selected query
 ```
 
 ## Contracts and Invariants
@@ -48,15 +49,16 @@ coverage remain bound to original laws and the requested closed domain.
 
 ## State, Ownership, and Lifecycle
 
-An immutable Sendable callback is retained only by the invocation value/copy.
-The cumulative mutable ledger remains with the caller under its original Mutex.
-Geometry introduces no shared mutable counter or platform branch.
+The exclusive execution owns query-local counters and proof scopes. Cumulative
+work/byte state belongs to the shared budget Mutex on every target; external
+callbacks run outside its lock. Immutable evidence may outlive a query. Final
+publication observes the caller checkpoint after its last callback.
 
 ## Failure, Concurrency, and Constraints
 
 Admission, cancellation and incomplete coverage errors propagate. Specialized
 lower services must forward the same admission before bounded queries can report
-success; old convenience entries keep their historical contract.
+success; ordinary convenience forwards its one execution through the same implementation.
 
 ## Verification and Change Impact
 
@@ -73,7 +75,7 @@ invocation, remaining source recursion and maximum algebraic depth are independe
 capabilities: only descending the original source graph decrements source depth,
 and exact coefficient/root operations use their selected algebra authority.
 Geometric children debit only the geometric subdivision ceiling. Fixed matrix/source work forwards
-the same invocation callback without a new validation/refinement allowance.
+the same direct execution without a new validation/refinement allowance.
 
 Validated native B-splines admit no interior knot multiplicity above their degree,
 so their original law is C0 across native joins. A hull of original one-sided first
@@ -87,16 +89,15 @@ unless their own corresponding operation consumes them.
 
 Bounded root sessions derive curve and surface operands directly from the retained
 prepared source receipts. The non-generic preparation witness accepts those two
-receipts and the immutable invocation only; it does not deep-compare duplicate
-raw source graphs after preparation. The legacy duplicate-operand overload
-remains a compatibility entry and cannot grant caller-bound accounting without
-paid original structural equality.
+receipts and the original execution; it does not deep-compare duplicate raw
+source graphs after preparation. No copied invocation or duplicate-operand
+compatibility path establishes caller-bound admission.
 
-Selected query preparation and every continuation retain the independent
-optional algebra ceiling and optional byte callback on the immutable invocation.
-A nil byte callback preserves the legacy work-only contract. Non-nil byte
-admission is forwarded before actual source/query buffer allocation, rather than
-interpreted as geometric depth or paid through an estimated outer count.
+Selected preparation and continuation receive independent value/coefficient
+ceilings and byte admission on the original execution. Optional external storage
+callbacks remain a property of its shared budget; they do not select an unmetered
+branch. Actual source/query buffers are admitted before allocation. Geometric
+depth does not represent storage or work units.
 
 Selected adaptive completion retains every original curve/UV cell until its
 whole residual is excluded or its unique root is certified. Numerical parameter
@@ -105,13 +106,14 @@ coordinates. Candidate geometric depth is retained from the actual source cell,
 not reconstructed from rounded width ratios. Refinement derives proposals from
 the same prepared singleton source jets; those proposals do not replace the
 root session's original acceptance proof. Recentered cells, subdivisions and
-ordered publication admit their actual buffers through the invocation, while
-legacy specialized polishing retains its distinct historical contract.
+ordered publication admit their actual buffers through the same execution.
+Specialized polishing preserves its mathematical acceptance contract while
+receiving that same execution.
 
 Selected root-cell Jacobian, inverse, columns and residual scratch use fixed
 three-by-three fields or tuples. Their arithmetic allocates no dynamic matrix
 or vector buffer; original lower coefficient allocations still use the same
-invocation byte callback.
+execution byte admission.
 
 Selected publication merges candidates only when their original parameter
 triples are exactly identical, or when the enclosing hull of both accepted
@@ -127,8 +129,8 @@ and parameter representatives. A whole zero polynomial on an owning interval
 is published as non-discrete original coverage, not an isolated sampled root.
 
 The selected public query witness receives independent span, geometric
-subdivision, source-recursion and optional algebra capabilities plus the same
-work and optional byte callbacks. It prepares original laws and enters the
+subdivision, source-recursion and scalar capabilities through the original
+execution with its common work/byte owner. It prepares original laws and enters the
 selected traversal directly. Finite positive authored parameter ranges have no
 angle/distance floor. A source or chart with an unbounded domain requires an
 explicit finite selected range until its complete bounded range producer is
@@ -146,10 +148,39 @@ Selected root-session preparation also receives the original finite root cell
 domain. It issues both curve and surface continuity receipts over that cell
 from the same already-prepared operands and exact caller ledger, then retains
 those receipts in the session. Every child cell must lie within their original
-curve/UV domain by scalar closed containment checks. The no-domain prepared
-witness remains a legacy compatibility entry and cannot infer selected finite
-coverage from an unbounded source's metadata.
+curve/UV domain by scalar closed containment checks. A direct prepared witness
+without a selected finite domain cannot infer coverage from an unbounded
+source's metadata.
 
 ### Shared Original Native Plane Event Publication
 
-The shared native-plane event publisher derives the original native range from the retained boundary source and requested options. It accepts the same already prepared plane as the enclosing query. Exact original UV exclusion is the only reason to return no event. Numerical representatives are localized through retained exact-Q position and UV quotient bounds; scale-safe original interval norms must prove representative error and forward plane residual under the unchanged physical distance tolerance. Iterations, independent algebra depth, original work and optional byte admission are shared. This event publisher does not consume or discard positive overlap sectors; the richer result owns their publication.
+The shared native-plane event publisher derives the original native range from the retained boundary source and requested options. It accepts the same already prepared plane as the enclosing query. Exact original UV exclusion is the only reason to return no event. Numerical representatives are localized through retained exact-Q position and UV quotient bounds; scale-safe original interval norms must prove representative error and forward plane residual under the unchanged physical distance tolerance. Iterations, independent algebra depth, original work and byte admission share the same execution. This event publisher does not consume or discard positive overlap sectors; the richer result owns their publication.
+
+### Public Caller Closure
+
+The default public root creates one execution for an ordinary request and borrows
+the incoming execution for admitted requests. Original source producers, authored
+Native-plane contacts and the selected finite original-parametric root session
+remain the publication authorities. Legacy closed-form residual candidates and
+tolerance coincidence/reduction helpers do not establish a complete original
+event set and are not a fallback publication route. Unsupported selected source
+or critical coverage fails explicitly with its original query context.
+
+`CertifiedIntersectionCandidateVerifying` receives only numerical candidates;
+it has no retained original relation input. Its public result therefore remains
+explicitly unsupported until that authority is supplied. Residual verification
+and proximity deduplication cannot create source truth or original UV identity.
+
+The planar resolver's direct exact-plane lookup borrows the same execution.
+Authored primitive plane recognition remains a numerical representation helper;
+control-net candidates require an exact original dot-product zero for every
+control point before the represented plane can be returned. An affine image
+without an exact retained plane representation remains an explicit unsupported
+source rather than a rounded replacement plane. Caller traversal, source depth,
+scalar work, storage and cancellation retain their original independent axes.
+
+[OriginalPublicCallerDirectExecutionTests](../../../Tests/CADGeometryTests/OriginalPublicCallerDirectExecutionTests.swift)
+owns the one-ULP off-plane counterexample, represented-plane success, inner
+storage refusal, actual Native-plane public root and cumulative repeated queries,
+caller work rejection and residual-only candidate refusal. The fixture is authored;
+integrated semantic and runtime gates remain required before completion.

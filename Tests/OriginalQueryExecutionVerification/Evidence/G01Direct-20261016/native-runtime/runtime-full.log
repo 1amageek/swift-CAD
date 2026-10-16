@@ -1,0 +1,5 @@
+START G01 query admitted full swapped=false
+PASS G01 query admitted full swapped=false work=7955682 bytes=10597477
+START G01 query admitted full swapped=true
+PASS G01 query admitted full swapped=true work=7955682 bytes=10597477
+PASS G01 public full

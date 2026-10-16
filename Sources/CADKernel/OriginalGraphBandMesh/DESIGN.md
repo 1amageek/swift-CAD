@@ -64,9 +64,9 @@ passed unchanged and checks all sides and diagonals.
 Original graph candidate preparation admits every native 2D spline coefficient
 and each control-statistic visit through the same invocation work owner. Candidate
 labels remain proposals; only the original graph receipt proves their ordering.
-The original correspondence certificate producer still requires its caller-bound
-work/byte port before this specialized composition can claim complete invocation
-accounting; the production call retains an explicit incomplete marker.
+The original correspondence certificate producer uses the same caller execution.
+Complete invocation accounting still requires actual public packet preparation
+and facet-emission evidence; the call retains an explicit incomplete marker.
 
 Every active reference-law break and original native support boundary is
 retained. All original boundary intervals and complete join strips/caps remain
@@ -80,8 +80,8 @@ Checked vertex/index/byte counts precede output allocation and use the existing
 invocation TessellationBudget. The exact retained plan used for preflight must
 also drive emission. No fresh proof ledger replaces already consumed graph
 usage. A face has complete emitted coverage and one corresponding FaceRun.
-The retained original graph usage also debits the invocation's common
-`TessellationProofBudget` before each original visit. Preferred grid station
+The retained original graph contribution also debits the invocation's common
+OriginalQueryExecution before each original visit. Preferred grid station
 work consumes that same owner; the graph's local fixed cap never creates a
 second allowance for preparation or emission.
 
@@ -121,10 +121,10 @@ and normal owners at C0 knots even when their admitted positions coincide.
 The preparation and emission share the same consumed proof ledger; a fresh
 262144-cell allowance is never minted for emission. Each materialized U row
 first obtains an immutable `OriginalGraphBandReceipt.Row` from
-`stationRow(cellIndex:u:proofUsage:)` under that same ledger. This lower-owned
+`stationRow(cellIndex:u:using:)` under that same ledger. This lower-owned
 receipt binds the exact graph receipt, selected cell and original U to its
 unchanged lower/upper graph enclosures. All W stations in that row use
-`station(row:w:pointCandidate:proofUsage:)`; they do not repeat the identical
+`station(row:w:pointCandidate:using:)`; they do not repeat the identical
 original inverses. Each station still pays before original point, selected
 native normal, closed-jet and materialization-error work, and each facet still
 pays for complete original admission. A shared position at a neighboring cell
@@ -230,3 +230,20 @@ OriginalCubicExtrusionDraftTests through MeshTessellator and FaceRun. The actual
 four-use packet and both lower admission results are required before assembly
 can be completed. Lower contract changes require rechecking this composition;
 portable and general M2 completion need their own execution evidence.
+
+
+### Candidate direct proof-owner binding
+
+| File | Actual callee edges | Required binding |
+|---|---|---|
+| OriginalGraphBandMeshPlan.swift | correspondence validateBinding; retained graph proof contribution; facet scratch | Retain the typed contribution handle rather than deleted mutable proof usage. Direct binding validation borrows the caller execution. |
+| OriginalGraphBandMeshAssembler.swift | correspondence certify; graph certify; stationRow/station; reference/join facet admission; grid-count and triangle callbacks | Prepare and emit under the same retained contribution and caller execution. Callback signatures carry inout OriginalQueryExecution, never a private allowance. |
+
+The existing graph-chain candidate algorithm, per-use source identities,
+uncertainty remainder, selected C0 normal owner, complete grids and tip fans
+remain unchanged. Canonical lower proof owners receive their explicit retained
+contribution. The existing 262144-cell/depth32 graph cap does not create a new
+ledger or restart at emission. Geometry owns the original math and checked proof
+receipts; this candidate batch owns only caller signature and owner composition.
+The original collection/triangle algorithms and TessellationBudget output counts
+are preserved; broad accounting changes and timeout fixes remain outside scope.

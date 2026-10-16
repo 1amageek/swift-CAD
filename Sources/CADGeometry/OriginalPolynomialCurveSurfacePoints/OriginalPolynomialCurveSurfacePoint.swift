@@ -17,7 +17,7 @@ public struct OriginalPolynomialCurveSurfacePoint: Sendable {
         return try owner.coordinate(at: ordinal, axis: axis)
     }
 
-    public func compareParameter<B: RationalAlgebraAdmitting>(axis: Int,
+    public func compareParameter<B: ExactScalarAdmission & ~Copyable>(axis: Int,
         to station: ExactRationalCoefficient, in receipt: OriginalPolynomialCurveSurfacePoints,
         maximumAlgebraicDepth: Int, usage: inout B) throws -> ExactAlgebraicRealRoot.Sign {
         guard receipt.owns(self), (0..<3).contains(axis), (0...32).contains(maximumAlgebraicDepth) else {

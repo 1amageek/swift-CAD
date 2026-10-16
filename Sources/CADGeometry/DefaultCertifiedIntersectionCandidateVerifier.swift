@@ -1,154 +1,27 @@
 import CADCore
 
-struct DefaultCertifiedIntersectionCandidateVerifier:
-    CertifiedIntersectionCandidateVerifying
-{
-    private let parameterResolver:
-        any CertifiedIntersectionParameterResolving
-    private let targetParameterRefiner:
-        any CertifiedIntersectionTargetParameterRefining
-    private let surfaceNormalResolver: any SurfaceNormalResolving
+struct DefaultCertifiedIntersectionCandidateVerifier: CertifiedIntersectionCandidateVerifying {
+    init() {}
 
-    init(
-        parameterResolver:
-            any CertifiedIntersectionParameterResolving =
-                DefaultCertifiedIntersectionParameterResolver(),
-        targetParameterRefiner:
-            any CertifiedIntersectionTargetParameterRefining =
-                DefaultCertifiedIntersectionTargetParameterRefiner(),
-        surfaceNormalResolver:
-            any SurfaceNormalResolving = DefaultSurfaceNormalResolver()
-    ) {
-        self.parameterResolver = parameterResolver
-        self.targetParameterRefiner = targetParameterRefiner
-        self.surfaceNormalResolver = surfaceNormalResolver
+    func intersections(candidates: [CertifiedIntersectionCandidate], curve: CertifiedIntersectionCurve3D,
+        targetSurface: Surface3D, analyticTarget: CertifiedAnalyticIntersectionTarget,
+        options: CurveSurfaceIntersectionOptions, tolerance: ModelingTolerance) throws -> [CurveSurfaceIntersection] {
+        var execution = try OriginalQueryExecution.curveSurface(options: options)
+        return try intersections(candidates: candidates, curve: curve, targetSurface: targetSurface,
+            analyticTarget: analyticTarget, options: options, tolerance: tolerance, using: &execution)
     }
 
-    func intersections(
-        candidates: [CertifiedIntersectionCandidate],
-        curve: CertifiedIntersectionCurve3D,
-        targetSurface: Surface3D,
-        analyticTarget: CertifiedAnalyticIntersectionTarget,
-        options: CurveSurfaceIntersectionOptions,
-        tolerance: ModelingTolerance
-    ) throws -> [CurveSurfaceIntersection] {
-        var intersections: [CurveSurfaceIntersection] = []
-        for candidate in candidates {
-            let parameters = try parameterResolver.normalizedParameters(
-                of: candidate.point,
-                on: curve,
-                restrictedTo: options.curveRange,
-                tolerance: tolerance
-            )
-            for recoveredParameter in parameters {
-                let refined = try targetParameterRefiner.refinedParameter(
-                    initialParameter: recoveredParameter,
-                    curve: curve,
-                    target: analyticTarget,
-                    restrictedTo: options.curveRange,
-                    maximumIterations: options.maximumIterations,
-                    tolerance: tolerance
-                )
-                let parameter = refined.parameter
-                let curveGeometry = try Curve3D.certifiedIntersection(curve)
-                    .differentialGeometry(
-                        at: parameter,
-                        tolerance: tolerance
-                    )
-                let targetProjection = try targetSurface.parameterProjection(
-                    of: curveGeometry.position,
-                    tolerance: tolerance
-                )
-                guard contains(
-                    targetProjection.u,
-                    range: options.surfaceURange
-                ), contains(
-                    targetProjection.v,
-                    range: options.surfaceVRange
-                ) else {
-                    continue
-                }
-                let targetPoint = try targetSurface.point(
-                    u: targetProjection.u,
-                    v: targetProjection.v,
-                    tolerance: tolerance
-                )
-                let targetNormal = try surfaceNormalResolver.normal(
-                    at: curveGeometry.position,
-                    on: targetSurface,
-                    u: targetProjection.u,
-                    v: targetProjection.v,
-                    tolerance: tolerance
-                )
-                let residual = max(
-                    candidate.residual,
-                    max(
-                        targetProjection.residual,
-                        (targetPoint - curveGeometry.position).length
-                    )
-                )
-                guard residual <= tolerance.distance else {
-                    throw KernelError(
-                        phase: .geometry,
-                        code: .intersectionFailure,
-                        residual: residual,
-                        tolerance: tolerance,
-                        message: "Certified curve-surface intersection failed final residual verification."
-                    )
-                }
-                intersections.append(try CurveSurfaceIntersection(
-                    point: curveGeometry.position,
-                    curveParameter: parameter,
-                    surfaceU: targetProjection.u,
-                    surfaceV: targetProjection.v,
-                    kind: abs(curveGeometry.tangent.dot(targetNormal))
-                        <= tolerance.angle ? .tangent : .transverse,
-                    residual: residual,
-                    iterations: candidate.iterations + refined.iterations
-                ))
-            }
-        }
-        return deduplicated(intersections, tolerance: tolerance)
-    }
-
-    private func contains(
-        _ value: Double,
-        range: ScalarInterval?
-    ) -> Bool {
-        range?.contains(value) ?? true
-    }
-
-    private func deduplicated(
-        _ intersections: [CurveSurfaceIntersection],
-        tolerance: ModelingTolerance
-    ) -> [CurveSurfaceIntersection] {
-        let sorted = intersections.sorted { lhs, rhs in
-            if lhs.curveParameter != rhs.curveParameter {
-                return lhs.curveParameter < rhs.curveParameter
-            }
-            if lhs.surfaceU != rhs.surfaceU {
-                return lhs.surfaceU < rhs.surfaceU
-            }
-            return lhs.surfaceV < rhs.surfaceV
-        }
-        var result: [CurveSurfaceIntersection] = []
-        let overlappingResidualBalls = 2.0 * tolerance.distance
-        for intersection in sorted {
-            if let index = result.firstIndex(where: { existing in
-                (existing.point - intersection.point).length
-                    <= overlappingResidualBalls
-                    && abs(
-                        existing.curveParameter
-                            - intersection.curveParameter
-                    ) <= max(tolerance.distance, tolerance.angle)
-            }) {
-                if intersection.residual < result[index].residual {
-                    result[index] = intersection
-                }
-            } else {
-                result.append(intersection)
-            }
-        }
-        return result
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Legacy candidate-verifier callers supply
+    // numerical points and residuals without a retained original relation. Exact
+    // source/domain coverage and parameter identity must be supplied before this
+    // entry may publish an intersection event or complete empty result.
+    func intersections(candidates: [CertifiedIntersectionCandidate], curve: CertifiedIntersectionCurve3D,
+        targetSurface: Surface3D, analyticTarget: CertifiedAnalyticIntersectionTarget,
+        options: CurveSurfaceIntersectionOptions, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> [CurveSurfaceIntersection] {
+        try execution.checkpoint()
+        try options.validate(tolerance: tolerance)
+        throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+            message: "Numerical intersection candidates have no retained original relation authority.")
     }
 }

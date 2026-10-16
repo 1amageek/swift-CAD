@@ -27,26 +27,53 @@ public struct RigidImageSurfaceParameterCurve: Hashable, Sendable {
         endFraction: Double = 1.0,
         tolerance: ModelingTolerance
     ) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try self.init(source: source, targetSurface: targetSurface, transform: transform, startFraction: startFraction, endFraction: endFraction, tolerance: tolerance, using: &execution)
+    }
+
+
+    public init(
+        source: SurfaceLiftCurve3D,
+        targetSurface: Surface3D,
+        transform: RigidTransform3D,
+        startFraction: Double = 0.0,
+        endFraction: Double = 1.0,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         self.source = source
         self.targetSurface = targetSurface
         self.transform = transform
         self.startFraction = startFraction
         self.endFraction = endFraction
-        try validate(on: targetSurface, tolerance: tolerance)
+        try validate(on: targetSurface, tolerance: tolerance, using: &execution)
     }
 
     public func validate(
         on surface: Surface3D,
         tolerance: ModelingTolerance
     ) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try validate(on: surface, tolerance: tolerance, using: &execution)
+    }
+
+
+    public func validate(
+        on surface: Surface3D,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try tolerance.validate()
-        try source.validate(tolerance: tolerance)
-        try targetSurface.validate(tolerance: tolerance)
+        try source.validate(tolerance: tolerance, using: &execution)
+        try targetSurface.validate(tolerance: tolerance, using: &execution)
         try transform.validate(tolerance: tolerance)
         let transformedSourceSurface = try transform.applying(
             to: source.surface,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
+        try GeometryStructuralComparisonWork.charge(surface: surface, using: &execution)
+        try GeometryStructuralComparisonWork.charge(surface: targetSurface, using: &execution)
+        try GeometryStructuralComparisonWork.charge(surface: transformedSourceSurface, using: &execution)
         guard surface == targetSurface,
               targetSurface == transformedSourceSurface,
               startFraction.isFinite,
@@ -69,12 +96,22 @@ public struct RigidImageSurfaceParameterCurve: Hashable, Sendable {
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameter {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try parameter(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+
+    public func parameter(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceParameter {
+        try execution.consumeWork(1)
         let mapped = try mappedFraction(fraction, tolerance: tolerance)
-        if let affine = try affineParameterTransform(tolerance: tolerance) {
+        if let affine = try affineParameterTransform(tolerance: tolerance, using: &execution) {
             return affine.applying(to: try source.parameterCurve.parameter(
                 atNormalizedFraction: mapped,
                 tolerance: tolerance
-            ))
+            , using: &execution))
         }
         guard case .analytic(.sphere) = targetSurface else {
             throw KernelError(
@@ -88,18 +125,18 @@ public struct RigidImageSurfaceParameterCurve: Hashable, Sendable {
             to: try source.point(
                 atNormalizedFraction: mapped,
                 tolerance: tolerance
-            )
+            , using: &execution)
         )
         let projection = try targetSurface.parameterProjection(
             of: point,
             tolerance: tolerance
-        )
+        , using: &execution)
         return SurfaceParameter(
             u: try continuousSphereLongitude(
                 atNormalizedFraction: fraction,
                 rawEndpoint: projection.u,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             v: projection.v
         )
     }
@@ -108,15 +145,25 @@ public struct RigidImageSurfaceParameterCurve: Hashable, Sendable {
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterCurveDifferential {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try differential(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+
+    public func differential(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceParameterCurveDifferential {
+        try execution.consumeWork(1)
         let mapped = try mappedFraction(fraction, tolerance: tolerance)
         let parameter = try parameter(
             atNormalizedFraction: fraction,
             tolerance: tolerance
-        )
+        , using: &execution)
         let sourceGeometry = try source.differentialGeometry(
             atNormalizedFraction: mapped,
             tolerance: tolerance
-        )
+        , using: &execution)
         let scale = endFraction - startFraction
         let spatialFirst = transform.applying(
             to: sourceGeometry.firstDerivative
@@ -128,7 +175,7 @@ public struct RigidImageSurfaceParameterCurve: Hashable, Sendable {
             u: parameter.u,
             v: parameter.v,
             tolerance: tolerance
-        )
+        , using: &execution)
         let tangentU = surfaceGeometry.tangentU
         let tangentV = surfaceGeometry.tangentV
         let metricUU = tangentU.dot(tangentU)
@@ -169,7 +216,7 @@ public struct RigidImageSurfaceParameterCurve: Hashable, Sendable {
             firstParameterDerivative: Point2D(x: derivativeU, y: derivativeV),
             spatialSecondDerivative: spatialSecond,
             tolerance: tolerance,
-            diagnosticContext: "Rigid-image pcurve"
+            diagnosticContext: "Rigid-image pcurve", using: &execution
         )
         return SurfaceParameterCurveDifferential(
             parameter: parameter,
@@ -182,30 +229,40 @@ public struct RigidImageSurfaceParameterCurve: Hashable, Sendable {
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> Point2D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try thirdDerivative(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+
+    func thirdDerivative(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> Point2D {
+        try execution.consumeWork(1)
         let mapped = try mappedFraction(fraction, tolerance: tolerance)
         let lower = try differential(
             atNormalizedFraction: fraction,
             tolerance: tolerance
-        )
+        , using: &execution)
         let scale = endFraction - startFraction
         let spatialThird = transform.applying(
             to: try source.thirdDerivative(
                 atNormalizedFraction: mapped,
                 tolerance: tolerance
-            )
+            , using: &execution)
         ) * (scale * scale * scale)
         let surface = try targetSurface.parameterDerivativesThroughThirdOrder(
             u: lower.parameter.u,
             v: lower.parameter.v,
             tolerance: tolerance
-        )
+        , using: &execution)
         return try SurfaceParameterThirdDerivativeSolver().solve(
             surface: surface,
             firstParameterDerivative: lower.firstDerivative,
             secondParameterDerivative: lower.secondDerivative,
             spatialThirdDerivative: spatialThird,
             tolerance: tolerance,
-            diagnosticContext: "Rigid-image pcurve"
+            diagnosticContext: "Rigid-image pcurve", using: &execution
         )
     }
 
@@ -213,11 +270,21 @@ public struct RigidImageSurfaceParameterCurve: Hashable, Sendable {
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceLiftCurve3D.DifferentialGeometry {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try modelSpaceDifferential(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+
+    package func modelSpaceDifferential(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceLiftCurve3D.DifferentialGeometry {
+        try execution.consumeWork(1)
         let mapped = try mappedFraction(fraction, tolerance: tolerance)
         let sourceGeometry = try source.differentialGeometry(
             atNormalizedFraction: mapped,
             tolerance: tolerance
-        )
+        , using: &execution)
         let scale = endFraction - startFraction
         return SurfaceLiftCurve3D.DifferentialGeometry(
             position: transform.applying(to: sourceGeometry.position),
@@ -235,6 +302,17 @@ public struct RigidImageSurfaceParameterCurve: Hashable, Sendable {
         toNormalizedFraction upper: Double,
         tolerance: ModelingTolerance
     ) throws -> Double? {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try modelSpaceFirstDerivativeMagnitude(fromNormalizedFraction: lower, toNormalizedFraction: upper, tolerance: tolerance, using: &execution)
+    }
+
+
+    package func modelSpaceFirstDerivativeMagnitude(
+        fromNormalizedFraction lower: Double,
+        toNormalizedFraction upper: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> Double? {
+        try execution.consumeWork(1)
         let mappedLower = try mappedFraction(lower, tolerance: tolerance)
         let mappedUpper = try mappedFraction(upper, tolerance: tolerance)
         let interval = try ScalarInterval(
@@ -246,7 +324,7 @@ public struct RigidImageSurfaceParameterCurve: Hashable, Sendable {
                 lift: source,
                 interval: interval,
                 tolerance: tolerance
-            ) else {
+            , using: &execution) else {
             return nil
         }
         return (sourceBound * abs(endFraction - startFraction)).nextUp
@@ -255,14 +333,23 @@ public struct RigidImageSurfaceParameterCurve: Hashable, Sendable {
     public func reversed(
         tolerance: ModelingTolerance
     ) throws -> RigidImageSurfaceParameterCurve {
-        try RigidImageSurfaceParameterCurve(
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try reversed(tolerance: tolerance, using: &execution)
+    }
+
+
+    public func reversed(
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> RigidImageSurfaceParameterCurve {
+        try execution.consumeWork(1)
+        return try RigidImageSurfaceParameterCurve(
             source: source,
             targetSurface: targetSurface,
             transform: transform,
             startFraction: endFraction,
             endFraction: startFraction,
             tolerance: tolerance
-        )
+        , using: &execution)
     }
 
     public func subcurve(
@@ -270,6 +357,17 @@ public struct RigidImageSurfaceParameterCurve: Hashable, Sendable {
         toNormalizedFraction upper: Double,
         tolerance: ModelingTolerance
     ) throws -> RigidImageSurfaceParameterCurve {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try subcurve(fromNormalizedFraction: lower, toNormalizedFraction: upper, tolerance: tolerance, using: &execution)
+    }
+
+
+    public func subcurve(
+        fromNormalizedFraction lower: Double,
+        toNormalizedFraction upper: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> RigidImageSurfaceParameterCurve {
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard lower.isFinite,
               upper.isFinite,
@@ -295,34 +393,52 @@ public struct RigidImageSurfaceParameterCurve: Hashable, Sendable {
                 fraction: boundedUpper
             ),
             tolerance: tolerance
-        )
+        , using: &execution)
     }
 
     package func sourceParameterCurve(
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterCurve {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try sourceParameterCurve(tolerance: tolerance, using: &execution)
+    }
+
+
+    package func sourceParameterCurve(
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceParameterCurve {
+        try execution.consumeWork(1)
         if startFraction < endFraction {
             return try source.parameterCurve.subcurve(
                 fromNormalizedFraction: startFraction,
                 toNormalizedFraction: endFraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         }
         return try source.parameterCurve.subcurve(
             fromNormalizedFraction: endFraction,
             toNormalizedFraction: startFraction,
             tolerance: tolerance
-        ).reversed(tolerance: tolerance)
+        , using: &execution).reversed(tolerance: tolerance, using: &execution)
     }
 
     package func affineParameterTransform(
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterAffineTransform? {
-        try transform.parameterAffineTransform(
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try affineParameterTransform(tolerance: tolerance, using: &execution)
+    }
+
+
+    package func affineParameterTransform(
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceParameterAffineTransform? {
+        try execution.consumeWork(1)
+        return try transform.parameterAffineTransform(
             from: source.surface,
             to: targetSurface,
             tolerance: tolerance
-        )
+        , using: &execution)
     }
 
     private func mappedFraction(
@@ -345,7 +461,8 @@ public struct RigidImageSurfaceParameterCurve: Hashable, Sendable {
         atNormalizedFraction fraction: Double,
         rawEndpoint: Double,
         tolerance: ModelingTolerance
-    ) throws -> Double {
+    , using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
         guard fraction > tolerance.relative else {
             return rawEndpoint
         }
@@ -355,11 +472,14 @@ public struct RigidImageSurfaceParameterCurve: Hashable, Sendable {
         var result = try rawTargetParameter(
             atNormalizedFraction: 0.0,
             tolerance: tolerance
-        ).u
-        var stack: [(lower: Double, upper: Double, depth: Int)] = [
-            (0.0, min(max(fraction, 0.0), 1.0), 0),
-        ]
+        , using: &execution).u
+        let stackCapacity = maximumDepth + 1
+        try OriginalCoefficientAllocation.reserve(count: stackCapacity,
+            of: (lower: Double, upper: Double, depth: Int).self, using: &execution)
+        var stack: [(lower: Double, upper: Double, depth: Int)] = []; stack.reserveCapacity(stackCapacity)
+        stack.append((0, min(max(fraction, 0), 1), 0))
         while let segment = stack.popLast() {
+            try execution.visitGeometricCell(depth: segment.depth)
             guard segmentCount < maximumSegments else {
                 throw KernelError(
                     phase: .geometry,
@@ -374,13 +494,13 @@ public struct RigidImageSurfaceParameterCurve: Hashable, Sendable {
             let geometry = try modelSpaceDifferential(
                 atNormalizedFraction: midpoint,
                 tolerance: tolerance
-            )
+            , using: &execution)
             guard case let .analytic(.sphere(center, radius)) = targetSurface,
                   let derivativeBound = try modelSpaceFirstDerivativeMagnitude(
                     fromNormalizedFraction: segment.lower,
                     toNormalizedFraction: segment.upper,
                     tolerance: tolerance
-                  ) else {
+                  , using: &execution) else {
                 throw KernelError(
                     phase: .geometry,
                     code: .singularSystem,
@@ -404,7 +524,7 @@ public struct RigidImageSurfaceParameterCurve: Hashable, Sendable {
                     : try rawTargetParameter(
                         atNormalizedFraction: segment.upper,
                         tolerance: tolerance
-                    ).u
+                    , using: &execution).u
                 result = unwrapped(rawUpper, nearest: result)
                 continue
             }
@@ -425,16 +545,17 @@ public struct RigidImageSurfaceParameterCurve: Hashable, Sendable {
     private func rawTargetParameter(
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
-    ) throws -> SurfaceParameter {
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceParameter {
+        try execution.consumeWork(1)
         let mapped = try mappedFraction(fraction, tolerance: tolerance)
         let point = transform.applying(to: try source.point(
             atNormalizedFraction: mapped,
             tolerance: tolerance
-        ))
+        , using: &execution))
         let projection = try targetSurface.parameterProjection(
             of: point,
             tolerance: tolerance
-        )
+        , using: &execution)
         return SurfaceParameter(u: projection.u, v: projection.v)
     }
 

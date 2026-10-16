@@ -1,11 +1,11 @@
 public extension ExactBivariatePolynomial {
     /// Exact single-divisor division in the same lexicographic monomial order.
-    func quotientAndRemainder<B: RationalAlgebraAdmitting>(dividingBy divisor: Self,
+    func quotientAndRemainder<B: ExactScalarAdmission & ~Copyable>(dividingBy divisor: Self,
         usage: inout B) throws -> (quotient: Self, remainder: Self) {
         guard let divisorLead = divisor.leading else { throw exactScalarBackendFailure("Exact polynomial division by zero.") }
         var pending = self, quotient = Self.zero, remainder = Self.zero
         while let lead = pending.leading {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             try RationalAlgebraStorage.retain(1, of: (Power, ExactRationalCoefficient).self, usage: &usage)
             if lead.key.u >= divisorLead.key.u, lead.key.v >= divisorLead.key.v {
                 let power = try Power(u: lead.key.u - divisorLead.key.u, v: lead.key.v - divisorLead.key.v)
@@ -26,14 +26,14 @@ public extension ExactBivariatePolynomial {
         return (quotient, remainder)
     }
 
-    func dividedExactly<B: RationalAlgebraAdmitting>(by divisor: Self, usage: inout B) throws -> Self {
+    func dividedExactly<B: ExactScalarAdmission & ~Copyable>(by divisor: Self, usage: inout B) throws -> Self {
         let result = try quotientAndRemainder(dividingBy: divisor, usage: &usage)
         guard result.remainder.isZero else { throw exactScalarBackendFailure("Original exact polynomial has a nonzero division remainder.") }
         return result.quotient
     }
 
     /// Removes only coefficientwise-proved original axis factors; never a tolerance factor.
-    func dividedByBoundaryFactor<B: RationalAlgebraAdmitting>(alongU: Bool,
+    func dividedByBoundaryFactor<B: ExactScalarAdmission & ~Copyable>(alongU: Bool,
         boundary: ExactRationalCoefficient, usage: inout B) throws -> (quotient: Self, multiplicity: Int) {
         let divisor = try Self.coordinate(alongU: alongU, usage: &usage)
             .subtracting(.constant(boundary, usage: &usage), usage: &usage)

@@ -51,11 +51,6 @@ struct FacePointContainmentPreparationCache {
         }
     }
 
-    struct PreparedFace: Sendable {
-        let surface: Surface3D
-        let loops: [LoopRegion]
-        let parameterBounds: SurfaceParameterBox?
-    }
 
     var faces: [FaceID: PreparedFace] = [:]
 }

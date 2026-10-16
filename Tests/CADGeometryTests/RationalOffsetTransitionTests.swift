@@ -7,8 +7,9 @@ struct RationalOffsetTransitionTests {
   private let tolerance = ModelingTolerance(distance: 1e-8, angle: 1e-10, relative: 1e-10)
 
   @Test func sweepHeightDoesNotDependOnProfileParameter() throws {
+    var execution = try OriginalQueryExecution.independentGeometry()
     let surface = source()
-    let patches = try BSplineSurfaceBezierDecomposer().surfacePatches(surface: surface, tolerance: tolerance)
+    let patches = try BSplineSurfaceBezierDecomposer().surfacePatches(surface: surface, tolerance: tolerance, using: &execution)
     #expect(patches.count == 1)
     #expect(patches.first?.controlPoints == surface.controlPoints)
     #expect(patches.first?.weights == surface.weights)
@@ -33,6 +34,7 @@ struct RationalOffsetTransitionTests {
   }
 
   @Test func nativeTransitionProducesOneCertifiedContactComponent() throws {
+    var execution = try OriginalQueryExecution.independentGeometry()
     let first = Surface3D.procedural(.offset(OffsetSurface3D(source: .bSpline(source()), distance: -0.0001)))
     let second = Surface3D.procedural(.offset(OffsetSurface3D(
       source: .plane(Plane3D(origin: Point3D(x: 0.029383780798362995, y: -0.0026159942648551634, z: 0.01), normal: .unitZ)), distance: -0.0001)))
@@ -86,8 +88,8 @@ struct RationalOffsetTransitionTests {
       radius: blend.radius * 2, tolerance: tolerance)
     #expect(try wrongRadius.contactBoundaryDeviation(onFirst: true) == nil)
     let interval = try ScalarInterval(lower: 0.4, upper: 0.6)
-    let direct = try #require(try DefaultCurveDifferentialEncloser().directJet(
-      rail, parameters: interval, tolerance: tolerance))
+    let direct = try geometryTestRequire(try DefaultCurveDifferentialEncloser().directJet(
+      rail, parameters: interval, tolerance: tolerance, using: &execution))
     let range = try #require(try DefaultCurveSpatialDerivativeRangeResolver().derivativeRange(
       curve: rail, interval: interval, tolerance: tolerance))
     #expect(range.x == (try ScalarInterval(lower: direct.x.derivativeU.lower, upper: direct.x.derivativeU.upper)))

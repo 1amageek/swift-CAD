@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 import CADIR
 import CADModeling
 import CADTopology
@@ -11,10 +12,11 @@ struct CoincidentBooleanFaceOwnershipResolverTests {
 
     @Test(.timeLimit(.minutes(1)))
     func sameOutwardFacesHaveDeterministicOperationOwnership() throws {
+        var execution = try OriginalQueryExecution.kernelOriginal()
         let fixture = try fixture(reverseToolFace: false)
-        let union = try actions(.union, fixture: fixture)
-        let intersection = try actions(.intersect, fixture: fixture)
-        let difference = try actions(.difference, fixture: fixture)
+        let union = try actions(.union, fixture: fixture, using: &execution)
+        let intersection = try actions(.intersect, fixture: fixture, using: &execution)
+        let difference = try actions(.difference, fixture: fixture, using: &execution)
 
         #expect(union[fixture.targetFaceID] == .keep)
         #expect(union[fixture.toolFaceID] == .discard)
@@ -26,10 +28,11 @@ struct CoincidentBooleanFaceOwnershipResolverTests {
 
     @Test(.timeLimit(.minutes(1)))
     func oppositeOutwardFacesRemoveSharedInterfaceForUnionAndIntersection() throws {
+        var execution = try OriginalQueryExecution.kernelOriginal()
         let fixture = try fixture(reverseToolFace: true)
-        let union = try actions(.union, fixture: fixture)
-        let intersection = try actions(.intersect, fixture: fixture)
-        let difference = try actions(.difference, fixture: fixture)
+        let union = try actions(.union, fixture: fixture, using: &execution)
+        let intersection = try actions(.intersect, fixture: fixture, using: &execution)
+        let difference = try actions(.difference, fixture: fixture, using: &execution)
 
         #expect(union.values.allSatisfy { $0 == .discard })
         #expect(intersection.values.allSatisfy { $0 == .discard })
@@ -39,8 +42,9 @@ struct CoincidentBooleanFaceOwnershipResolverTests {
 
     @Test(.timeLimit(.minutes(1)))
     func forcedOwnershipBypassesBoundaryPointClassificationWithoutDuplicatingFace() throws {
+        var execution = try OriginalQueryExecution.kernelOriginal()
         let fixture = try fixture(reverseToolFace: false)
-        let ownership = try actions(.union, fixture: fixture)
+        let ownership = try actions(.union, fixture: fixture, using: &execution)
         let patches = try ClosedIntersectionUnsplitFaceMaterializer().patches(
             operation: .union,
             targetBodyIDs: [fixture.targetBodyID],
@@ -50,7 +54,8 @@ struct CoincidentBooleanFaceOwnershipResolverTests {
             model: fixture.model,
             sourceSubshapes: fixture.sourceSubshapes,
             operands: .volumes(targetBodyIDs: [fixture.targetBodyID], toolBodyID: fixture.toolBodyID),
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
         )
 
         #expect(patches.count == 1)
@@ -59,7 +64,8 @@ struct CoincidentBooleanFaceOwnershipResolverTests {
 
     private func actions(
         _ operation: BooleanOperation,
-        fixture: Fixture
+        fixture: Fixture,
+        using execution: inout OriginalQueryExecution
     ) throws -> [FaceID: BooleanRegionSelectionAction] {
         try CoincidentBooleanFaceOwnershipResolver().resolve(
             operation: operation,
@@ -75,7 +81,8 @@ struct CoincidentBooleanFaceOwnershipResolverTests {
             )]),
             model: fixture.model,
             operands: .volumes(targetBodyIDs: [], toolBodyID: BodyID()),
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
         ).forcedActions
     }
 

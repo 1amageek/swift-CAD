@@ -23,6 +23,17 @@ flowchart LR
 ```
 
 ## Contracts and Invariants
+
+### Attribute Validation Composition
+
+When the product attribute validator checks a dimension or geometric tolerance,
+its direct `validate(using:)` forwards the same caller execution through every
+existing target validation. Ordinary entries create one independent execution
+and delegate to that body. Dimensional interval/location checks and tolerance
+magnitude/datum/modifier uniqueness retain their original values and error order.
+Temporary uniqueness collections admit their typed storage and scan work before
+materialization. This is the existing metadata validation path, not a new PMI
+interpretation or an evaluated measurement result.
 Every array is required, including empty arrays. Every reference resolves to a real target. Duplicate IDs, dangling datum references, nonfinite values and contradictory intervals fail. Validation consumes the caller's record, text, target, work and depth budgets. Length values use internal SI; angles use radians. Measured validation values retain their authored units and are not recomputed during exchange.
 
 ## State, Ownership, and Lifecycle

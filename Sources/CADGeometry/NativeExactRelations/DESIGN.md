@@ -48,6 +48,80 @@ flowchart LR
 
 ## Contracts and Invariants
 
+### Retained bounded sphere-cone finite cuts
+
+The existing constructed bounded sphere/cone family has an original physical
+coefficient field and intrinsic angular labels. Its finite mathematical relation
+consumes source-issued local selected/excluded/one-guard proofs, rather than
+substituting a rational approximation or resolving a second intersection problem.
+This component owns the complete ascending requested cone-U cover, retained
+source-bound boundary root and exact implicit cut. Source issuance owns the
+local law and quantitative jets; the existing query-admission gauge operation
+owns Krawczyk root decisions. Geometric publication consumes the resulting owner.
+
+```text
+original binding / local guard and quantitative jet receipts
+  -> complete requested selected/excluded/candidate cover
+  -> existing gauge necessity and unique theorem
+  -> exact implicit endpoint + original source XYZ / four-UV laws
+  -> original finite mathematical relation
+  -> ordinary/admitted/prepared geometric publisher
+```
+
+Every leaf retains the full original sphere and slant requests. A candidate has
+one continuous slant branch, exclusion of the other branch, a positive principal
+inverse chart and all but one UV guard proved throughout its scope. Candidate
+unions preserve that meaning; no first failed guard or sample authorizes them.
+Necessary source slant/latitude and Krawczyk bounds retain all original roots.
+The endpoint stores its original requested box separately from its isolating
+box and records every necessary contraction. A smaller unique leaf alone cannot
+establish whole candidate uniqueness. Coordinate projections and symbolic XYZ
+apply the original cone law to the same retained implicit root, never a midpoint
+or a forged scalar-field value.
+
+The first finite-cut capability uses the upper sphere-azimuth guard, with proved
+excluded incident cells followed by the candidate scope and selected cells.
+An initially ambiguous guard without that incidence follows bounded source
+refinement, preserving existing whole-selected requests. Unfinished leaves,
+different required arrangements and unproved roots fail atomically. Empty
+success retains complete source exclusions. An authored binary64 cone-U query
+and a symbolic endpoint are distinct exact inputs; algebraic-only root ordering
+that is not supported remains explicit incomplete coverage.
+
+Source preparation, guard scheduling, gauge contractions, output storage and
+readers use the same concrete query execution and independent ceilings. The
+immutable owner retains original bindings, source proof and preparation
+contributions through result lifetime. Readers re-admit source, scalar and
+geometric evidence under their own execution. Local scratch alone mutates.
+The assembled whole-selected Arc receipt also belongs to this mathematical
+relation component. Its private preparation receipt is the same checked
+preparation retained for a cut; selected-only return does not discard it.
+Direct Arc readers use concrete execution, re-enter retained contribution scopes,
+admit source and attained geometric/scalar depth, and check final cancellation.
+Admission precedes opening a paid proof scope, including the direct position
+and both relation member entries. An invalid retained proof cannot allocate
+scope storage before its independent source/depth refusal. The inner scope
+re-records the admitted scalar evidence so the returned position retains it.
+Before any paid contribution reattachment, Arc, finite-cut and boundary-root
+private readers check caller-independent source/retained preparation, scalar,
+geometric and transport depths through nonallocating admissions. Explicit source
+issuance limits are also checked before reattachment where the reader accepts
+them. Preparation admission remains inside the effective contribution scopes;
+it is not a preflight because its identity cache can itself allocate. Inner
+checks and terminal cancellation remain required after reattachment.
+No public scalar-only reader can bypass those independent axes. Internal Arc
+assembly consumes sealed source proofs and an already issued preparation; it
+neither repeats source certification nor issues an unchecked public certificate.
+Legacy whole-selected certification is replaced by checked selected-proof
+assembly; there is no old-solver retry or duplicate complete query.
+
+Focused acceptance owns the original singleton `[0.5,0.5]`, nonempty cut
+`[0.5,2]`, existing selected `[1,2]`, both source orders, all raw UV/XYZ endpoint
+laws, selected/excluded membership, prepared ownership and resource/cancel/
+lifetime failures. Native/ASAN/WASM/Embedded public execution and latest-main
+delivery remain required. This capability does not complete the full bounded
+family, G01 or the seven original requirements.
+
 ### Retained surface family against an original plane
 
 `OriginalSurfacePlaneRelations` retains the already issued complete surface graph
@@ -984,8 +1058,11 @@ can become empty, and no finite-window or bounding-box shortcut is used.
 Consume the [whole-pair source](../OriginalSourceIssuance/DESIGN.md#bounded-sphere-cone-whole-pair-source).
 The existing DI analytic frame/selection issuer defines source support and
 effective original UV requests. A sealed relation retains both ordered
-primitive frames, full half-angle support, source and proof depth. Whole
-requests publish one connected two-branch family. The catalog quarter boxes
+primitive frames, the half-angle domain, source and proof depth. The public
+`halfAngleSupport` property is optional: a nonempty unbounded publication
+materializes and retains its complete support; finite arc/cut and empty results
+retain no unusable half-angle support. Whole requests publish one connected
+two-branch family. The catalog quarter boxes
 are completely excluded: coneV<=3/4 gives Z<-3, while the source sphere has
 Z>=-2. Finite requests consume the [sealed finite-arc source receipt](../OriginalSourceIssuance/DESIGN.md#g01-finite-original-uv-arc-source).
 The receipt owns the complete closed cone-U interval, selected root branch and
@@ -1012,11 +1089,25 @@ a singleton cone-U interval has dimension0. Empty publication keeps the original
 request/support exclusion owner. Source/value/coefficient/transport/chart/family
 limits, cancellation and independent reader admission apply without solver retry.
 
-Prepared bounded-parent sessions retain the validated original DI frames,
-half-angle domain and support set from the first full relation. Selected queries
-admit the same owner/depth and create new request/effective selections plus any
-required finite-arc proof. Full and selected-empty queries preserve the existing
-preparation reuse. No new allowance is introduced.
+Prepared bounded-parent sessions use an internal preparation entry to retain
+validated original DI frames and the cheap half-angle domain without
+materializing an unpublished support set. The public resolve entry fixes the
+publication capability policy; callers cannot disable its required proof through
+a public mode flag. Both entries execute the same private resolver and original
+query admission. Selected queries admit the same owner/depth and create new
+request/effective selections plus required finite-arc/cut proofs. A nonempty
+unbounded publication reuses an already retained support when available, or
+constructs the complete original interval and set before publication. Its
+section readers consume the retained support and never build or solve it.
+Finite section queries retain their explicit incomplete-coverage refusal; empty
+sections refuse outside-support. Missing support for a nonempty unbounded
+section is invalid evidence, never a fallback. Optional support is included in
+actual relation storage accounting. This removes only the unused legacy
+materialization measured at 450,124 work in the stopped G01 path; source
+admission, Z guards, finite roots, UV proofs and independent ceilings are
+unchanged. Ordinary, admitted and prepared finite public queries, full-pair
+publication/section readers, lower capability and cancellation regressions own
+verification of this boundary. No new allowance is introduced.
 
 ### Full sphere-cone parent SSI
 
@@ -1115,3 +1206,13 @@ Its retained lower/upper half-angle support and shared endpoint germs are source
 issued. Full-pair selection, original request/support/effective domains and both
 root owners remain unchanged. Height exclusions use the actual center/radius and
 apex. Finite clipping consumes the sealed source receipt described by the bounded parent SSI domain contract above; unsupported finite classes remain explicit failure. General finite-UV refinements remain required before G01 completes.
+
+### Direct Local Proof Observation
+
+Native relation compilers and retained cone/revolution queries receive the original
+`A: ExactScalarAdmission & ~Copyable` directly. `withProofScope` opens a local
+zero-baseline observation on that same admission and closes it without copied
+counters or a forwarding proof owner. Published `proofDepth` is read from actual
+operations inside that scope. Retained source/depth admission and child source
+edges remain with their original issuers. Failure unwinds the scope on the same
+owner and preserves the original error; it does not reset prior cumulative debits.

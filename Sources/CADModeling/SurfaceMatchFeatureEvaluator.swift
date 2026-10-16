@@ -186,7 +186,7 @@ public struct SurfaceMatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureE
             model: sourceModel,
             context: context
         )
-        let lineage = mergedFaceLineage(
+        let lineage = try mergedFaceLineage(
             identity.lineage,
             targetFaceID: targetFace.id,
             context: context
@@ -352,9 +352,9 @@ public struct SurfaceMatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureE
         _ sourceLineage: [SubshapeID: TopologyLineage],
         targetFaceID: FaceID,
         context: EvaluationContext
-    ) -> [SubshapeID: TopologyLineage] {
+    ) throws -> [SubshapeID: TopologyLineage] {
         var result = sourceLineage
-        let targetParents = context.subshapeIDs(for: .face(targetFaceID))
+        let targetParents = try context.subshapeIDs(for: .face(targetFaceID))
         guard targetParents.isEmpty == false,
               let output = result.keys.first(where: {
                   $0.role == GeneratedSubshapeRole.face.rawValue

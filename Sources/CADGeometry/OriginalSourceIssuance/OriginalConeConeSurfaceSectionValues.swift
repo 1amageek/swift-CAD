@@ -19,7 +19,7 @@ public struct OriginalConeConeSurfaceSectionValues: Sendable {
     }
     static func issue<A: ExactScalarAdmission & ~Copyable>(source: OriginalFullConeConeSurfaceSnapshot,
         chart: Int, halfAngle t: Field.Value, using a: inout A) throws -> Self {
-        try OriginalSourceProofAdmission<A>.withBorrow(&a) { a in
+        try a.withProofScope { a in
             guard chart == 0 || chart == 1 else { throw OriginalSourceIssuanceFailure.invalidChart }
             let base = try Field(retaining: t, using: &a)
             let sb = try base.importing(source.parameterizedSine, using: &a)

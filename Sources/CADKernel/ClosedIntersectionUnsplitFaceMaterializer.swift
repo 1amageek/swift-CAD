@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 import CADIR
 import CADModeling
 import CADTopology
@@ -23,14 +24,24 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
         sourceSubshapes: [SubshapeID: TopologyReference],
         operands: BooleanOperandContext,
         tolerance: ModelingTolerance
-    ) throws -> [BRepSewingFacePatch] {
+    , using execution: inout OriginalQueryExecution) throws -> [BRepSewingFacePatch] {
+        try execution.consumeWork(1)
         try tolerance.validate()
         // An intersection curve may only touch a face's boundary edge (two equal cylinders
         // meeting in a tee touch along the line where the upright's halves meet) and not enter
         // the neighbouring face, which is then carried whole while the split face's copy of the
         // shared edge is cut at the touching point. The carried edge is cut there too.
-        let junctionPoints = splitPatches.flatMap { patch in
-            patch.loops.flatMap { loop in loop.edges.flatMap { [$0.startPoint, $0.endPoint] } }
+        var junctionPoints: [Point3D] = []
+        for patch in splitPatches {
+            try execution.consumeWork(1)
+            for loop in patch.loops {
+            try execution.consumeWork(1)
+                for edge in loop.edges {
+            try execution.consumeWork(1)
+                    try OriginalParameterQueryStorage.append(edge.startPoint, to: &junctionPoints, using: &execution)
+                    try OriginalParameterQueryStorage.append(edge.endPoint, to: &junctionPoints, using: &execution)
+                }
+            }
         }
         guard targetBodyIDs.isEmpty == false,
               Set(targetBodyIDs).count == targetBodyIDs.count,
@@ -42,14 +53,17 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
                 message: "Closed-intersection materialization requires distinct Boolean operands."
             )
         }
-        let targetFaceIDs = try targetBodyIDs.flatMap {
-            try faceIDs(in: $0, model: model, tolerance: tolerance)
+        var targetFaceIDs: [FaceID] = []
+        for bodyID in targetBodyIDs {
+            try execution.consumeWork(1)
+            let faces = try faceIDs(in: bodyID, model: model, tolerance: tolerance, using: &execution)
+            try OriginalParameterQueryStorage.append(contentsOf: faces, to: &targetFaceIDs, using: &execution)
         }
         let toolFaceIDs = try faceIDs(
             in: toolBodyID,
             model: model,
             tolerance: tolerance
-        )
+        , using: &execution)
         guard splitFaceIDs.isSubset(of: Set(targetFaceIDs + toolFaceIDs)) else {
             throw KernelError(
                 phase: .topology,
@@ -62,12 +76,12 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
         if targetFaceIDs.contains(where: {
             splitFaceIDs.contains($0) == false && forcedActions[$0] == nil
         }) {
-            classificationBodyIDs.append(toolBodyID)
+            try OriginalParameterQueryStorage.append(toolBodyID, to: &classificationBodyIDs, using: &execution)
         }
         if toolFaceIDs.contains(where: {
             splitFaceIDs.contains($0) == false && forcedActions[$0] == nil
         }) {
-            classificationBodyIDs.append(contentsOf: targetBodyIDs)
+            try OriginalParameterQueryStorage.append(contentsOf: targetBodyIDs, to: &classificationBodyIDs, using: &execution)
         }
         let classificationSessions: SolidPointClassificationSessionSet?
         if classificationBodyIDs.isEmpty {
@@ -78,7 +92,7 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
                 pointClassifier: operands.pointClassifier,
                 model: model,
                 tolerance: tolerance
-            )
+            , using: &execution)
         }
         let targetPatches = try carriedPatches(
             faceIDs: targetFaceIDs,
@@ -94,7 +108,7 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
             classificationSessions: classificationSessions,
             operands: operands,
             tolerance: tolerance
-        )
+        , using: &execution)
         let toolPatches = try carriedPatches(
             faceIDs: toolFaceIDs,
             excluding: splitFaceIDs,
@@ -109,8 +123,11 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
             classificationSessions: classificationSessions,
             operands: operands,
             tolerance: tolerance
-        )
-        return targetPatches + toolPatches
+        , using: &execution)
+        var result = targetPatches
+        try execution.retainKernelValues(count: result.count, stride: MemoryLayout<BRepSewingFacePatch>.stride)
+        try OriginalParameterQueryStorage.append(contentsOf: toolPatches, to: &result, using: &execution)
+        return result
     }
 
     private func carriedPatches(
@@ -127,10 +144,12 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
         classificationSessions: SolidPointClassificationSessionSet?,
         operands: BooleanOperandContext,
         tolerance: ModelingTolerance
-    ) throws -> [BRepSewingFacePatch] {
+    , using execution: inout OriginalQueryExecution) throws -> [BRepSewingFacePatch] {
+        try execution.consumeWork(1)
         var patches: [BRepSewingFacePatch] = []
         for (faceIndex, faceID) in faceIDs.sorted().enumerated()
             where splitFaceIDs.contains(faceID) == false {
+            try execution.consumeWork(1)
             let action: BooleanRegionSelectionAction
             if let forcedAction = forcedActions[faceID] {
                 action = forcedAction
@@ -147,12 +166,12 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
                     on: faceID,
                     in: model,
                     tolerance: tolerance
-                )
+                , using: &execution)
                 let classification = try classification(
                     of: point,
                     in: oppositeBodyIDs,
                     classificationSessions: classificationSessions
-                )
+                , using: &execution)
                 guard classification != .boundary else {
                     throw KernelError(
                         phase: .classification,
@@ -196,18 +215,18 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
                     from: model,
                     sourceSubshapes: sourceSubshapes,
                     tolerance: tolerance
-                ).patch,
+                , using: &execution).patch,
                 junctionPoints: junctionPoints,
                 tolerance: tolerance
-            )
+            , using: &execution)
             let orientation = action == .keepReversed
                 ? reversed(face.orientation)
                 : face.orientation
-            patches.append(try BRepSewingPatchOrientationAdapter().reorient(
+            try OriginalParameterQueryStorage.append(try BRepSewingPatchOrientationAdapter().reorient(
                 source,
                 to: orientation,
                 tolerance: tolerance
-            ))
+            , using: &execution), to: &patches, using: &execution)
         }
         return patches
     }
@@ -216,31 +235,38 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
         _ patch: BRepSewingFacePatch,
         junctionPoints: [Point3D],
         tolerance: ModelingTolerance
-    ) throws -> BRepSewingFacePatch {
+    , using execution: inout OriginalQueryExecution) throws -> BRepSewingFacePatch {
+        try execution.consumeWork(1)
         guard junctionPoints.isEmpty == false else { return patch }
         let subdivider = BRepSewingEdgeSubdivider()
         var changed = false
-        let loops = try patch.loops.map { loop in
-            try Task.checkCancellation()
-            return BRepSewingLoop(
-                stableID: loop.stableID,
-                role: loop.role,
-                edges: try loop.edges.flatMap { edge -> [BRepSewingEdge] in
-                    try Task.checkCancellation()
-                    let interior = junctionPoints.filter {
-                        ($0 - edge.startPoint).length > tolerance.distance
-                            && ($0 - edge.endPoint).length > tolerance.distance
+        var loops: [BRepSewingLoop] = []
+        for loop in patch.loops {
+            try execution.consumeWork(1)
+            var edges: [BRepSewingEdge] = []
+            for edge in loop.edges {
+                try execution.consumeWork(1)
+                var interior: [Point3D] = []
+                for point in junctionPoints {
+                    try execution.consumeWork(1)
+                    if (point - edge.startPoint).length > tolerance.distance && (point - edge.endPoint).length > tolerance.distance {
+                        try OriginalParameterQueryStorage.append(point, to: &interior, using: &execution)
                     }
-                    guard interior.isEmpty == false else { return [edge] }
-                    let contained = try subdivider.containedPoints(
-                        from: interior,
-                        on: edge,
-                        tolerance: tolerance
-                    )
-                    guard contained.isEmpty == false else { return [edge] }
-                    changed = true
-                    return try subdivider.subdivide(edge, at: contained, tolerance: tolerance)
-                })
+                }
+                guard !interior.isEmpty else {
+                    try OriginalParameterQueryStorage.append(edge, to: &edges, using: &execution)
+                    continue
+                }
+                let contained = try subdivider.containedPoints(from: interior, on: edge, tolerance: tolerance, using: &execution)
+                guard !contained.isEmpty else {
+                    try OriginalParameterQueryStorage.append(edge, to: &edges, using: &execution)
+                    continue
+                }
+                changed = true
+                let divided = try subdivider.subdivide(edge, at: contained, tolerance: tolerance, using: &execution)
+                try OriginalParameterQueryStorage.append(contentsOf: divided, to: &edges, using: &execution)
+            }
+            try OriginalParameterQueryStorage.append(BRepSewingLoop(stableID: loop.stableID, role: loop.role, edges: edges), to: &loops, using: &execution)
         }
         guard changed else { return patch }
         return BRepSewingFacePatch(
@@ -256,7 +282,8 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
         in bodyID: BodyID,
         model: BRepModel,
         tolerance: ModelingTolerance
-    ) throws -> [FaceID] {
+    , using execution: inout OriginalQueryExecution) throws -> [FaceID] {
+        try execution.consumeWork(1)
         guard let body = model.bodies[bodyID],
               body.shellIDs.isEmpty == false else {
             throw KernelError(
@@ -268,6 +295,7 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
         }
         var result: [FaceID] = []
         for shellID in body.shellIDs.sorted() {
+            try execution.consumeWork(1)
             guard let shell = model.shells[shellID] else {
                 throw KernelError(
                     phase: .topology,
@@ -276,7 +304,7 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
                     message: "Closed-intersection materialization references a missing operand shell."
                 )
             }
-            result.append(contentsOf: shell.faceIDs)
+            try OriginalParameterQueryStorage.append(contentsOf: shell.faceIDs, to: &result, using: &execution)
         }
         return result.sorted()
     }
@@ -285,13 +313,15 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
         of point: Point3D,
         in bodyIDs: [BodyID],
         classificationSessions: SolidPointClassificationSessionSet
-    ) throws -> SolidPointClassification {
+    , using execution: inout OriginalQueryExecution) throws -> SolidPointClassification {
+        try execution.consumeWork(1)
         var isInside = false
         for bodyID in bodyIDs {
+            try execution.consumeWork(1)
             let classification = try classificationSessions.classify(
                 point,
                 in: bodyID
-            )
+            , using: &execution)
             if classification == .boundary {
                 return .boundary
             }

@@ -27,24 +27,43 @@ public struct STEPAssemblyReader: STEPAssemblyReading {
     }
     func read(entities: [Int: String], budget: ExchangeProcessingBudget,
         materialIdentities: inout [Int: PhysicalMaterialID], documentCarrier: inout STEPDocumentCarrierReadReceipt?,
-        sourceAdmission: IndependentShapeExchangeUsage? = nil) throws -> ImportedExchangeModel? {
+        sourceAdmission: IndependentShapeExchangeOwner? = nil) throws -> ImportedExchangeModel? {
+        let owner = try sourceAdmission ?? IndependentShapeExchangeOwner(limits: resourceLimits,
+            format: .step, processing: budget, consumedEntities: entities.count,
+            consumedWork: 0, consumedBytes: 0)
+        var execution = try owner.execution()
+        return try read(entities: entities, budget: budget, materialIdentities: &materialIdentities,
+            documentCarrier: &documentCarrier, sourceAdmission: owner, using: &execution)
+    }
+
+    func read(entities: [Int: String], budget: ExchangeProcessingBudget,
+        materialIdentities: inout [Int: PhysicalMaterialID], documentCarrier: inout STEPDocumentCarrierReadReceipt?,
+        sourceAdmission: IndependentShapeExchangeOwner,
+        using execution: inout OriginalQueryExecution) throws -> ImportedExchangeModel? {
         var builder = Builder(syntax: STEPAssemblySyntax(entities: entities), budget: budget,
-            tolerance: tolerance, limits: resourceLimits,
-            work: sourceAdmission?.consumedWork ?? 0, stringBytes: sourceAdmission?.consumedBytes ?? 0,
-            prefixEntities: max(0, (sourceAdmission?.consumedEntities ?? entities.count) - entities.count))
-        return try builder.read(materialIdentities: &materialIdentities, documentCarrier: &documentCarrier)
+            tolerance: tolerance, limits: resourceLimits, owner: sourceAdmission, execution: consume execution)
+        let result: ImportedExchangeModel?
+        do {
+            result = try builder.read(materialIdentities: &materialIdentities, documentCarrier: &documentCarrier)
+        } catch {
+            execution = consume builder.execution
+            throw error
+        }
+        execution = consume builder.execution
+        return result
     }
 }
 
 private extension STEPAssemblyReader {
-    struct Builder {
+    struct Builder: ~Copyable {
         let syntax: STEPAssemblySyntax
         let budget: ExchangeProcessingBudget
         let tolerance: ModelingTolerance
         let limits: ExchangeResourceLimits
-        var work = 0
-        var stringBytes = 0
-        var prefixEntities = 0
+        let owner: IndependentShapeExchangeOwner
+        var execution: OriginalQueryExecution
+        var work: Int { owner.consumedWork }
+        var stringBytes: Int { owner.consumedBytes }
         mutating func string(_ value: String) throws -> String {
             try budget.check(format: .step)
             let decoded = try syntax.decodedString(value, limits: STEPStringLimits(
@@ -52,7 +71,7 @@ private extension STEPAssemblyReader {
                 maximumOutputBytes: limits.maximumBytes - stringBytes,
                 maximumWork: limits.maximumIterations - work))
             try check(decoded.consumedWork)
-            stringBytes += decoded.outputBytes
+            try execution.retainSourceStorage(bytes: decoded.outputBytes)
             return decoded.value
         }
         mutating func check(_ count: Int = 1) throws {
@@ -60,7 +79,7 @@ private extension STEPAssemblyReader {
             guard count >= 0, count <= limits.maximumIterations - work else {
                 throw AssemblyError.resourceLimitExceeded("STEP assembly work")
             }
-            work += count
+            try execution.consumeWork(count)
         }
         func args(_ id: Int, count: Int, component: String? = nil) throws -> [String] {
             let a = try syntax.arguments(id, component: component)
@@ -79,41 +98,30 @@ private extension STEPAssemblyReader {
             }
             return unit
         }
-        mutating func placementItem(_ id: Int, unit: LengthUnit, contextEntityID: Int,
-                                    ownershipRecords: inout Int) throws -> AssemblyPlacement {
+        mutating func placementItem(_ id: Int, unit: LengthUnit, contextEntityID: Int) throws -> AssemblyPlacement {
             let family = try syntax.name(id)
             guard family == "AXIS2_PLACEMENT_3D" || family == "CARTESIAN_TRANSFORMATION_OPERATOR_3D" else {
                 throw AssemblyError.invalidSource("Unsupported STEP transformation item.")
             }
-            var usage = try IndependentShapeExchangeUsage(limits: limits, format: .step, processing: budget,
-                consumedEntities: syntax.entities.count + ownershipRecords, consumedWork: work,
-                consumedBytes: stringBytes)
             let original = try ExactSTEPReader.originalMappingSource(entityID: id, entities: syntax.entities,
                 units: UnitSystem(length: unit, angle: .radian), contextEntityID: contextEntityID, processingBudget: budget,
-                tolerance: tolerance, usage: &usage)
-            ownershipRecords = usage.consumedEntities - syntax.entities.count
-            work = usage.consumedWork; stringBytes = usage.consumedBytes
+                tolerance: tolerance, usage: owner, using: &execution)
             return .step(original)
         }
         func originalPlacement(target: AssemblyPlacement, origin: AssemblyPlacement) throws -> AssemblyPlacement {
             .word(try AssemblyPlacementWord(factors: [.forward(target), .inverse(origin)]))
         }
-        mutating func sameOriginalPlacement(_ first: AssemblyPlacement, _ second: AssemblyPlacement, ownershipRecordsForComparison: inout Int) throws -> Bool {
+        mutating func sameOriginalPlacement(_ first: AssemblyPlacement, _ second: AssemblyPlacement) throws -> Bool {
             try check()
-            var usage = try IndependentShapeExchangeUsage(limits: limits, format: .step, processing: budget,
-                consumedEntities: syntax.entities.count + ownershipRecordsForComparison,
-                consumedWork: work, consumedBytes: stringBytes)
             let firstWord: AssemblyPlacementWord
             let secondWord: AssemblyPlacementWord
             if case .word(let word) = first { firstWord = word }
             else { firstWord = try .init(factors: [.forward(first)]) }
             if case .word(let word) = second { secondWord = word }
             else { secondWord = try .init(factors: [.forward(second)]) }
-            let lhs = try firstWord.originalOperationWord(tolerance: tolerance, maximumDepth: limits.maximumAlgebraicDepth, maximumSourceDepth: usage.limits.maximumNesting, usage: &usage)
-            let rhs = try secondWord.originalOperationWord(tolerance: tolerance, maximumDepth: limits.maximumAlgebraicDepth, maximumSourceDepth: usage.limits.maximumNesting, usage: &usage)
-            let equal = try lhs.isEquivalent(to: rhs, tolerance: tolerance, maximumDepth: limits.maximumAlgebraicDepth, usage: &usage)
-            work = usage.consumedWork; stringBytes = usage.consumedBytes
-            ownershipRecordsForComparison = usage.consumedEntities - syntax.entities.count
+            let lhs = try firstWord.originalOperationWord(tolerance: tolerance, maximumDepth: limits.maximumAlgebraicDepth, maximumSourceDepth: limits.maximumNesting, using: &execution)
+            let rhs = try secondWord.originalOperationWord(tolerance: tolerance, maximumDepth: limits.maximumAlgebraicDepth, maximumSourceDepth: limits.maximumNesting, using: &execution)
+            let equal = try lhs.isEquivalent(to: rhs, tolerance: tolerance, maximumDepth: limits.maximumAlgebraicDepth, usage: &execution)
             return equal
         }
         mutating func read(materialIdentities: inout [Int: PhysicalMaterialID], documentCarrier: inout STEPDocumentCarrierReadReceipt?) throws -> ImportedExchangeModel? {
@@ -125,7 +133,7 @@ private extension STEPAssemblyReader {
             let identityReader: any STEPSourceIdentityReading = STEPSourceIdentityReader()
             let identities = try identityReader.read(fields: syntax, names: names, processingBudget: budget, limits: limits,
                 remainingWork: limits.maximumIterations - work, remainingTextBytes: limits.maximumBytes - stringBytes)
-            try check(identities.consumedWork); stringBytes += identities.textBytes
+            try check(identities.consumedWork); try execution.retainSourceStorage(bytes: identities.textBytes)
             materialIdentities.removeAll(keepingCapacity: true)
             for (entity, identity) in identities.values where names[entity] == "MATERIAL_DESIGNATION" {
                 materialIdentities[entity] = PhysicalMaterialID(identity)
@@ -134,7 +142,7 @@ private extension STEPAssemblyReader {
                 guard identities.values.isEmpty, identities.documentCarriers.isEmpty else { throw AssemblyError.invalidSource("Native identity assignments require represented product definitions.") }
                 return nil
             }
-            var ownershipRecords = prefixEntities
+            var ownershipRecords: Int { owner.consumedEntities - syntax.entities.count }
             try check(names.count)
             let ownershipRoots = names.keys.filter { ["REPRESENTATION", "SHAPE_REPRESENTATION",
                 "GEOMETRICALLY_BOUNDED_WIREFRAME_SHAPE_REPRESENTATION", "GEOMETRICALLY_BOUNDED_SURFACE_SHAPE_REPRESENTATION",
@@ -146,7 +154,7 @@ private extension STEPAssemblyReader {
                     guard records >= 0, records <= limits.maximumEntities - syntax.entities.count - ownershipRecords else {
                         throw AssemblyError.resourceLimitExceeded("Original representation classification records.")
                     }
-                    ownershipRecords += records
+                    try execution.consumeRecords(records)
                 }
             if !identities.documentCarriers.isEmpty {
                 guard identities.documentCarriers.count == 1, let carrier = identities.documentCarriers.first,
@@ -334,9 +342,9 @@ private extension STEPAssemblyReader {
                         guard names[target] == "CARTESIAN_TRANSFORMATION_OPERATOR_3D" else {
                             throw AssemblyError.invalidSource("Whole-part carrier requires a standard identity mapping operator.")
                         }
-                        let targetFrame = try placementItem(target, unit: lengthUnit, contextEntityID: context, ownershipRecords: &ownershipRecords)
-                        let originFrame = try placementItem(origin, unit: innerUnit, contextEntityID: innerContext, ownershipRecords: &ownershipRecords)
-                        guard try sameOriginalPlacement(targetFrame, originFrame, ownershipRecordsForComparison: &ownershipRecords) else {
+                        let targetFrame = try placementItem(target, unit: lengthUnit, contextEntityID: context)
+                        let originFrame = try placementItem(origin, unit: innerUnit, contextEntityID: innerContext)
+                        guard try sameOriginalPlacement(targetFrame, originFrame) else {
                             throw AssemblyError.invalidSource("Whole-part carrier transform is not identity.")
                         }
                         transfer.partCarriers[item] = definitionID
@@ -478,8 +486,8 @@ private extension STEPAssemblyReader {
                         guard repItems[r1]?.contains(i1) == true, repItems[r2]?.contains(i2) == true else {
                             throw AssemblyError.invalidSource("STEP transformation axes do not belong to their representations.")
                         }
-                        let first = try placementItem(i1, unit: u1, contextEntityID: context1, ownershipRecords: &ownershipRecords)
-                        let second = try placementItem(i2, unit: u2, contextEntityID: context2, ownershipRecords: &ownershipRecords)
+                        let first = try placementItem(i1, unit: u1, contextEntityID: context1)
+                        let second = try placementItem(i2, unit: u2, contextEntityID: context2)
                         sourcePlacement = r1 == childRep
                             ? try originalPlacement(target: second, origin: first)
                             : try originalPlacement(target: first, origin: second)
@@ -487,7 +495,7 @@ private extension STEPAssemblyReader {
                         guard u1 == u2, repItems[r2]?.contains(operatorID) == true else {
                             throw AssemblyError.invalidSource("Cartesian occurrence transform has inconsistent units or ownership.")
                         }
-                        let original = try placementItem(operatorID, unit: u2, contextEntityID: context2, ownershipRecords: &ownershipRecords)
+                        let original = try placementItem(operatorID, unit: u2, contextEntityID: context2)
                         sourcePlacement = r1 == childRep ? original
                             : .word(try AssemblyPlacementWord(factors: [.inverse(original)]))
                     }
@@ -535,7 +543,7 @@ private extension STEPAssemblyReader {
                             guard records <= limits.maximumEntities - syntax.entities.count - ownershipRecords else {
                                 throw AssemblyError.resourceLimitExceeded("Mapped Body correspondence records.")
                             }
-                            ownershipRecords += records
+                            try execution.consumeRecords(records)
                         }
                     var selectedFeatures = Set<FeatureID>()
                     for member in bodyMembers {
@@ -548,14 +556,14 @@ private extension STEPAssemblyReader {
                     guard definitions.count <= limits.maximumEntities - syntax.entities.count - ownershipRecords else {
                         throw AssemblyError.resourceLimitExceeded("Mapped child definition source records.")
                     }
-                    ownershipRecords += definitions.count
+                    try execution.consumeRecords(definitions.count)
                     let actualChildFeatures = try STEPRepresentationBodyMembership.features(in: childID,
                         definitions: Array(definitions.values), maximumDepth: limits.maximumNesting) { records, units in
                             try check(units)
                             guard records <= limits.maximumEntities - syntax.entities.count - ownershipRecords else {
                                 throw AssemblyError.resourceLimitExceeded("Mapped child feature correspondence records.")
                             }
-                            ownershipRecords += records
+                            try execution.consumeRecords(records)
                         }
                     guard !selectedFeatures.isEmpty, selectedFeatures == actualChildFeatures else {
                         throw AssemblyError.invalidSource("Mixed map Body membership differs from the actual child product geometry.")
@@ -568,19 +576,19 @@ private extension STEPAssemblyReader {
                     let innerContext = try syntax.reference(innerArgs[2])
                     let innerUnit = try unit(innerContext)
                     try check(originalParentContexts.count)
-                    let targetFrame = try placementItem(target, unit: parentUnit, contextEntityID: parentContext, ownershipRecords: &ownershipRecords)
+                    let targetFrame = try placementItem(target, unit: parentUnit, contextEntityID: parentContext)
                     for originalContext in originalParentContexts where originalContext != parentContext {
-                        let alternate = try placementItem(target, unit: parentUnit, contextEntityID: originalContext, ownershipRecords: &ownershipRecords)
-                        guard try sameOriginalPlacement(targetFrame, alternate, ownershipRecordsForComparison: &ownershipRecords) else {
+                        let alternate = try placementItem(target, unit: parentUnit, contextEntityID: originalContext)
+                        guard try sameOriginalPlacement(targetFrame, alternate) else {
                             throw AssemblyError.invalidSource("Mapped target has competing original context coordinate laws.")
                         }
                     }
-                    let originFrame = try placementItem(origin, unit: innerUnit, contextEntityID: innerContext, ownershipRecords: &ownershipRecords)
+                    let originFrame = try placementItem(origin, unit: innerUnit, contextEntityID: innerContext)
                     let frame = try originalPlacement(target: targetFrame, origin: originFrame)
                     try check(parent.children.count)
                     var selectedOccurrence: AssemblyOccurrence?
                     for candidate in parent.children where candidate.definitionID == childID && !matched.contains(candidate.id) {
-                        guard try sameOriginalPlacement(candidate.placement, frame, ownershipRecordsForComparison: &ownershipRecords) else { continue }
+                        guard try sameOriginalPlacement(candidate.placement, frame) else { continue }
                         if let previous = selectedOccurrence {
                             if candidate.id < previous.id { selectedOccurrence = candidate }
                         } else { selectedOccurrence = candidate }
@@ -603,8 +611,8 @@ private extension STEPAssemblyReader {
                               let childID = definitionIDs[child], let childUnit = repUnits[childRep], let childContext = repContexts[childRep], repItems[childRep]?.contains(origin) == true else {
                             throw AssemblyError.invalidSource("STEP mapped item has an ambiguous or missing product definition.")
                         }
-                        let targetFrame = try placementItem(target, unit: parentUnit, contextEntityID: parentContext, ownershipRecords: &ownershipRecords)
-                        let originFrame = try placementItem(origin, unit: childUnit, contextEntityID: childContext, ownershipRecords: &ownershipRecords)
+                        let targetFrame = try placementItem(target, unit: parentUnit, contextEntityID: parentContext)
+                        let originFrame = try placementItem(origin, unit: childUnit, contextEntityID: childContext)
                         let frame = try originalPlacement(target: targetFrame, origin: originFrame)
                         guard var parentDefinition = definitions[parent] else {
                             throw AssemblyError.invalidSource("Mapped STEP assembly has a missing parent definition.")
@@ -651,18 +659,16 @@ private extension STEPAssemblyReader {
                 formations: Array(formations.values).sorted { $0.id < $1.id }, definitions: Array(definitions.values).sorted { $0.id < $1.id }, roots: roots)
             var document = CADDocument(units: UnitSystem(length: lengthUnit, angle: .radian),
                 designGraph: DesignGraph(nodes: features, order: order), assembly: assembly)
-            var independentUsage = try IndependentShapeExchangeUsage(limits: limits, format: .step, processing: budget,
-                consumedEntities: syntax.entities.count, consumedWork: work, consumedBytes: stringBytes)
-            try independentUsage.charge(entities: ownershipRecords)
+            let independentOwner = owner
             let independentItems = try independentSTEPItemRoots(entities: syntax.entities, names: names, budget: budget) { records, units in
-                try independentUsage.charge(entities: records, work: units)
+                try independentOwner.charge(entities: records, work: units, using: &execution)
             }
             if let original = try ExactSTEPReader.readIndependent(entities: syntax.entities, processingBudget: budget,
                 tolerance: tolerance, standaloneItems: independentItems, productDefinitions: definitionIDs, bodySources: transfer.geometry.filter { $0.value.role == GeneratedSubshapeRole.body.rawValue },
-                bodySourceGraph: document.designGraph, usage: &independentUsage) {
+                bodySourceGraph: document.designGraph, usage: independentOwner, using: &execution) {
                 document.independentShapes = original.source
             }
-            try independentUsage.validateDocument(document, tolerance: tolerance)
+            try independentOwner.validateDocument(document, tolerance: tolerance, using: &execution)
             let assemblyLimits = AssemblyResourceLimits(maximumRecords: limits.maximumEntities,
                 maximumOccurrences: limits.maximumEntities, maximumDepth: limits.maximumNesting,
                 maximumTopologyEntities: limits.maximumEntities, maximumWork: limits.maximumIterations, maximumTextBytes: limits.maximumBytes,

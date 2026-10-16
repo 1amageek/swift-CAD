@@ -111,11 +111,13 @@ struct PreparedSurfaceDifferentialEncloserTests {
 
   @Test(.timeLimit(.minutes(1)))
   func preparedDerivativeNetsAreReusedAcrossRepeatedBoxes() throws {
+    var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+        limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
     let surface = makeCurvedSurface()
     let patch = RationalBezierSurfacePatch3D(controlPoints: surface.controlPoints,
       weights: surface.weights, uLower: 0, uUpper: 1, vLower: 0, vUpper: 1)
     let encloser = RationalBezierSurfaceJetEncloser()
-    let prepared = try encloser.prepare(patch, tolerance: tolerance)
+    let prepared = try encloser.prepare(patch, tolerance: tolerance, using: &execution)
     let u = try ScalarInterval(lower: 0.2, upper: 0.4)
     let v = try ScalarInterval(lower: 0.6, upper: 0.8)
     let clock = ContinuousClock()
@@ -123,12 +125,12 @@ struct PreparedSurfaceDifferentialEncloserTests {
     let start = clock.now
     for _ in 0..<100 {
       directSum += try encloser.enclosure(of: patch, u: u, v: v,
-                                        tolerance: tolerance).x.value.lower
+                                        tolerance: tolerance, using: &execution).x.value.lower
     }
     let middle = clock.now
     for _ in 0..<100 {
       preparedSum += try encloser.enclosure(of: prepared, u: u, v: v,
-                                          tolerance: tolerance).x.value.lower
+                                          tolerance: tolerance, using: &execution).x.value.lower
     }
     let end = clock.now
     #expect(directSum == preparedSum)
@@ -161,6 +163,8 @@ struct PreparedSurfaceDifferentialEncloserTests {
   }
 
   @Test func translatingARationalPatchDoesNotInflateItsDerivativeBounds() throws {
+    var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+        limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
     func patch(translation: Double) -> RationalBezierSurfacePatch3D {
       let controls: [[Point3D]] = (0..<3).map { row in
         (0..<3).map { column in
@@ -175,8 +179,8 @@ struct PreparedSurfaceDifferentialEncloserTests {
     let encloser = RationalBezierSurfaceJetEncloser()
     let u = try ScalarInterval(lower: 0.25, upper: 0.5)
     let v = try ScalarInterval(lower: 0.25, upper: 0.5)
-    let original = try encloser.enclosure(of: patch(translation: 0), u: u, v: v, tolerance: tolerance)
-    let moved = try encloser.enclosure(of: patch(translation: 1024), u: u, v: v, tolerance: tolerance)
+    let original = try encloser.enclosure(of: patch(translation: 0), u: u, v: v, tolerance: tolerance, using: &execution)
+    let moved = try encloser.enclosure(of: patch(translation: 1024), u: u, v: v, tolerance: tolerance, using: &execution)
     let originalWidth = original.x.derivativeV.upper - original.x.derivativeV.lower
     let movedWidth = moved.x.derivativeV.upper - moved.x.derivativeV.lower
     #expect(movedWidth <= 2 * originalWidth)

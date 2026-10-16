@@ -24,7 +24,7 @@ struct OriginalCorrespondenceScalarJet {
               let derivative = Self.add(Self.multiply(self.derivative, b.value),
                 -Self.multiply(self.value, b.derivative)).divided(by: Self.multiply(b.value, b.value)),
               value.isFinite, derivative.isFinite else {
-            throw OriginalCorrespondenceBudget.failure(.resourceLimitExceeded, tolerance,
+            throw OriginalCorrespondencePolicy.failure(.resourceLimitExceeded, tolerance,
                 "Original coefficient jet division has no finite nonzero interval denominator.")
         }
         return Self(value: value, derivative: derivative)
@@ -32,7 +32,7 @@ struct OriginalCorrespondenceScalarJet {
     func contained(in interval: OutwardScalarInterval, tolerance: ModelingTolerance) throws -> Self {
         guard let intersection = value.intersection(with: interval), intersection.isFinite,
               derivative.isFinite else {
-            throw OriginalCorrespondenceBudget.failure(.resourceLimitExceeded, tolerance,
+            throw OriginalCorrespondencePolicy.failure(.resourceLimitExceeded, tolerance,
                 "Original coefficient arithmetic and independently proved containment are disjoint.")
         }
         return Self(value: intersection, derivative: derivative)

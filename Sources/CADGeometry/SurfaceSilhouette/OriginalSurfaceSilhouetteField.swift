@@ -2,6 +2,7 @@ import CADCore
 
 /// Immutable original chart authority retained by every issued graph curve.
 struct OriginalSurfaceSilhouetteField: Sendable {
+    let queryContext: SurfaceSilhouetteQueryContext
     let surface: Surface3D
     let domain: SurfaceParameterBox
     let view: Vector3D
@@ -17,7 +18,10 @@ struct OriginalSurfaceSilhouetteField: Sendable {
     let zeroSetAuthority: OriginalRationalZeroSetAuthority?
     let fieldZeroSetAuthority: OriginalFieldZeroSetAuthority?
     private let nativeWordLaw: SurfaceSilhouetteNativeWordLaw?
+    /// Original Native basis law; world spatial action is retained separately.
     let exactSourcePolynomial: OriginalRationalSurfacePolynomial?
+    /// World coefficients retain Native basis ancestry and this field owns every parent word.
+    private let projectedRationalPolynomial: OriginalRationalSurfacePolynomial?
     let quadraticBranchOrdinal: Int?
     let binomialBranches: OriginalRationalBinomialBranches?
     let coordinateFactorAxis: OriginalSurfaceSilhouetteCurve.FreeCoordinate?
@@ -30,7 +34,8 @@ struct OriginalSurfaceSilhouetteField: Sendable {
          native: PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan? = nil,
          polePreparation: OriginalBSplinePoleNormal? = nil,
          poleAuthorities: [OriginalUniquePoleNormalAuthority] = [],
-         usage: inout SurfaceSilhouetteUsage) throws {
+         usage: inout OriginalQueryExecution) throws {
+        queryContext = try .init(retaining: &usage)
         self.surface = surface; self.domain = domain; self.view = view; self.tolerance = tolerance
         self.native = native; self.sourceAuthority = sourceAuthority
         self.polePreparation = polePreparation; self.poleAuthorities = poleAuthorities
@@ -44,12 +49,29 @@ struct OriginalSurfaceSilhouetteField: Sendable {
             poleNormal = try polePreparation.prepareExactPanelIfCollapsed(over: domain, owning: native, usage: &usage)
         } else { poleNormal = nil }
         if let exactSourcePolynomial, !sourceAuthority.nativeWordImages.isEmpty {
-            let wordLaw = try SurfaceSilhouetteNativeWordLaw(original: exactSourcePolynomial,
-                images: sourceAuthority.nativeWordImages, poleNormal: poleNormal, view: view, usage: &usage)
-            nativeWordLaw = wordLaw
-            fieldZeroSetAuthority = wordLaw.normal.silhouette
-            zeroSetAuthority = nil
+            if let world = try Self.rationalWorldPolynomial(original: exactSourcePolynomial,
+                surface: surface, sourceAuthority: sourceAuthority, poleNormal: poleNormal,
+                view: view, usage: &usage) {
+                projectedRationalPolynomial = world
+                nativeWordLaw = try SurfaceSilhouetteNativeWordLaw(original: exactSourcePolynomial,
+                    images: sourceAuthority.nativeWordImages, poleNormal: poleNormal, view: view, usage: &usage)
+                fieldZeroSetAuthority = nil
+                zeroSetAuthority = try OriginalRationalZeroSetAuthority(original:
+                    world.silhouetteNumerator, usage: &usage)
+            } else {
+                // FIXME(INCOMPLETE_IMPLEMENTATION): Non-rational word and Native
+                // pole compositions retain the original ordered-field producer.
+                // Projected rational contacts require their full world law;
+                // Native basis coordinates alone cannot close that capability.
+                let wordLaw = try SurfaceSilhouetteNativeWordLaw(original: exactSourcePolynomial,
+                    images: sourceAuthority.nativeWordImages, poleNormal: poleNormal, view: view, usage: &usage)
+                nativeWordLaw = wordLaw
+                fieldZeroSetAuthority = wordLaw.normal.silhouette
+                zeroSetAuthority = nil; projectedRationalPolynomial = nil
+            }
         } else {
+            if case .bSpline = surface { projectedRationalPolynomial = exactSourcePolynomial }
+            else { projectedRationalPolynomial = nil }
             nativeWordLaw = nil; fieldZeroSetAuthority = nil
         if let poleNormal {
             var scalar = ExactBivariatePolynomial.zero
@@ -71,52 +93,79 @@ struct OriginalSurfaceSilhouetteField: Sendable {
         } else { parallelMetric = nil }
         if let native, let source = sourceAuthority.nativeSource {
             let receipt = try native.originalCoefficientReceipt(overClosedBox: domain,
-                on: source, tolerance: sourceAuthority.nativeTolerance, consumeWork: usage.preparationWorkCallback,
-                consumeStorage: usage.preparationStorageCallback)
+                on: source, tolerance: sourceAuthority.nativeTolerance, using: &usage)
             let order = sourceAuthority.offsetDistances.count.addingReportingOverflow(4)
             guard !order.overflow else {
                 throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
                     message: "Original silhouette higher offset source order overflows.")
             }
             higher = try SurfaceAreaHigherCoefficientTaylorEncloser(receipt: receipt, order: order.partialValue,
-                consumeWork: { try usage.consumeWork() },
-                consumeStorage: usage.preparationStorageCallback)
+                using: &usage)
             generic = nil
         } else {
             higher = nil
-            try GeometryStructuralComparisonWork.charge(surface: surface, using: { try usage.consumeWork($0) })
+            try GeometryStructuralComparisonWork.charge(surface: surface, using: &usage)
             generic = try PreparedSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance,
-                remainingSourceDepth: usage.maximumSourceDepth, maximumSubdivisionDepth: usage.maximumDepth,
-                consumeWork: { try usage.consumeWork() },
-                consumeStorage: usage.preparationStorageCallback)
+                remainingSourceDepth: usage.effectiveLimits.remainingSourceDepth, maximumSubdivisionDepth: usage.effectiveLimits.maximumSubdivisionDepth,
+                using: &usage)
         }
+    }
+
+    @inline(never)
+    private static func rationalWorldPolynomial(original: OriginalRationalSurfacePolynomial,
+        surface: Surface3D, sourceAuthority: SurfaceSilhouetteSourcePreparation,
+        poleNormal: OriginalExactBSplinePoleNormal?, view: Vector3D,
+        usage: inout OriginalQueryExecution) throws -> OriginalRationalSurfacePolynomial? {
+        guard sourceAuthority.offsetDistances.isEmpty, poleNormal == nil,
+            case .procedural(.originalAffineWord) = surface,
+            let innermost = sourceAuthority.nativeWordImages.last,
+            case .bSpline = innermost.source else { return nil }
+        for image in sourceAuthority.nativeWordImages {
+            try usage.consumeWork(1)
+            guard image.preparedWord.source.isRational else { return nil }
+        }
+        var world = original
+        for image in sourceAuthority.nativeWordImages.reversed() {
+            world = try world.applying(prepared: image.preparedWord, view: view, usage: &usage)
+        }
+        try usage.checkpoint()
+        return world
+    }
+
+    var projectedRationalAuthority:
+        (polynomial: OriginalRationalSurfacePolynomial, zeroLaw: ExactBivariatePolynomial)? {
+        guard let polynomial = projectedRationalPolynomial,
+            let authority = zeroSetAuthority, !authority.squareFree.isZero else { return nil }
+        return (polynomial, authority.squareFree)
     }
 
     private init(copy original: Self, factor: ExactBivariatePolynomial,
         axis: OriginalSurfaceSilhouetteCurve.FreeCoordinate?, ordinal: Int? = nil,
         binomialBranches: OriginalRationalBinomialBranches? = nil,
         uBreakpoints: [ExactMonotoneGraphEndpoint], vBreakpoints: [ExactMonotoneGraphEndpoint],
-        usage: inout SurfaceSilhouetteUsage) throws {
+        usage: inout OriginalQueryExecution) throws {
         guard let full = original.zeroSetAuthority else {
             throw rationalAlgebraFailure("Original coordinate branch needs its complete source numerator.")
         }
         _ = try full.squareFree.dividedExactly(by: factor, usage: &usage)
+        queryContext = original.queryContext
         surface = original.surface; domain = original.domain; view = original.view; tolerance = original.tolerance
         sourceAuthority = original.sourceAuthority; native = original.native
         higher = original.higher; generic = original.generic; poleNormal = original.poleNormal
         polePreparation = original.polePreparation; poleAuthorities = original.poleAuthorities
         parallelMetric = original.parallelMetric
         nativeWordLaw = original.nativeWordLaw; fieldZeroSetAuthority = original.fieldZeroSetAuthority
+        projectedRationalPolynomial = original.projectedRationalPolynomial
         exactSourcePolynomial = original.exactSourcePolynomial
         zeroSetAuthority = try OriginalRationalZeroSetAuthority(original: factor, usage: &usage)
         self.binomialBranches = binomialBranches ?? original.binomialBranches
         quadraticBranchOrdinal = ordinal; coordinateFactorAxis = axis; self.uBreakpoints = uBreakpoints; self.vBreakpoints = vBreakpoints
     }
 
-    func coordinateBranchFields(usage: inout SurfaceSilhouetteUsage) throws -> [Self] {
+    func coordinateBranchFields(usage: inout OriginalQueryExecution) throws -> [Self] {
         if let authority = zeroSetAuthority,
             let branches = try OriginalRationalBinomialBranches.proven(original: authority.squareFree, usage: &usage) {
-            try usage.retain(branches.factors.count + 2)
+            try RationalAlgebraStorage.retain(branches.factors.count + 2, of: UInt32.self, usage: &usage)
             let uStations: [ExactMonotoneGraphEndpoint] = [.authored(branches.centerU)]
             let vStations: [ExactMonotoneGraphEndpoint] = [.authored(branches.centerV)]
             var result: [Self] = []
@@ -129,8 +178,8 @@ struct OriginalSurfaceSilhouetteField: Sendable {
         if let authority = zeroSetAuthority,
             let branches = try OriginalRationalQuadraticBranches.proven(original: authority.squareFree, usage: &usage) {
             let stations = try branches.stations(over: branches.freeAlongU ? domain.u : domain.v,
-                maximumDepth: usage.maximumDepth, usage: &usage)
-            try usage.retain(2)
+                maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
+            try RationalAlgebraStorage.retain(2, of: UInt32.self, usage: &usage)
             return try [Self(copy: self, factor: branches.first, axis: nil, ordinal: 0,
                 uBreakpoints: branches.freeAlongU ? stations : [], vBreakpoints: branches.freeAlongU ? [] : stations, usage: &usage),
                 Self(copy: self, factor: branches.second, axis: nil, ordinal: 1,
@@ -139,13 +188,13 @@ struct OriginalSurfaceSilhouetteField: Sendable {
         guard let authority = zeroSetAuthority,
             let factors = try OriginalRationalCoordinateZeroFactors.proven(original: authority.squareFree,
                 usage: &usage) else {
-            try usage.retain(1); return [self]
+            try RationalAlgebraStorage.retain(1, of: UInt32.self, usage: &usage); return [self]
         }
         let uRoots = try factors.roots(alongU: true, over: domain.u,
-            maximumDepth: usage.maximumDepth, usage: &usage)
+            maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
         let vRoots = try factors.roots(alongU: false, over: domain.v,
-            maximumDepth: usage.maximumDepth, usage: &usage)
-        try usage.retain(2)
+            maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
+        try RationalAlgebraStorage.retain(2, of: UInt32.self, usage: &usage)
         return try [Self(copy: self, factor: factors.uFactor, axis: .u,
             uBreakpoints: uRoots, vBreakpoints: vRoots, usage: &usage),
             Self(copy: self, factor: factors.vFactor, axis: .v,
@@ -153,70 +202,99 @@ struct OriginalSurfaceSilhouetteField: Sendable {
     }
 
     func selectingOriginalFactor(_ factor: ExactBivariatePolynomial,
-        usage: inout SurfaceSilhouetteUsage) throws -> Self {
+        usage: inout OriginalQueryExecution) throws -> Self {
         try Self(copy: self, factor: factor, axis: coordinateFactorAxis,
             ordinal: quadraticBranchOrdinal, uBreakpoints: uBreakpoints,
             vBreakpoints: vBreakpoints, usage: &usage)
     }
 
     private init(copy original: Self, fieldFactor: OriginalSingularFieldPlanePolynomial,
-        usage: inout SurfaceSilhouetteUsage) throws {
+        usage: inout OriginalQueryExecution) throws {
         guard let full = original.fieldZeroSetAuthority else {
             throw rationalAlgebraFailure("Original field branch requires its complete coefficient authority.")
         }
-        var admission = SurfaceSilhouetteAlgebraicAdmission(usage: usage)
-        defer { usage = admission.usage }
         _ = try full.squareFree.embedded(in: fieldFactor.context,
-            maximumDepth: full.maximumAlgebraicDepth, usage: &admission).dividedExactly(by: fieldFactor,
-                maximumDepth: full.maximumAlgebraicDepth, usage: &admission)
+            maximumDepth: full.maximumAlgebraicDepth, usage: &usage).dividedExactly(by: fieldFactor,
+                maximumDepth: full.maximumAlgebraicDepth, usage: &usage)
+        queryContext = original.queryContext
         surface = original.surface; domain = original.domain; view = original.view; tolerance = original.tolerance
         sourceAuthority = original.sourceAuthority; native = original.native
         higher = original.higher; generic = original.generic; poleNormal = original.poleNormal
         polePreparation = original.polePreparation; poleAuthorities = original.poleAuthorities
         parallelMetric = original.parallelMetric; nativeWordLaw = original.nativeWordLaw
+        projectedRationalPolynomial = original.projectedRationalPolynomial
         exactSourcePolynomial = original.exactSourcePolynomial; zeroSetAuthority = nil
         fieldZeroSetAuthority = try .init(original: fieldFactor,
-            maximumAlgebraicDepth: full.maximumAlgebraicDepth, usage: &admission)
+            maximumAlgebraicDepth: full.maximumAlgebraicDepth, usage: &usage)
         binomialBranches = nil; quadraticBranchOrdinal = nil; coordinateFactorAxis = nil
         uBreakpoints = []; vBreakpoints = []
     }
 
     func selectingOriginalFieldFactor(_ factor: OriginalSingularFieldPlanePolynomial,
-        usage: inout SurfaceSilhouetteUsage) throws -> Self {
+        usage: inout OriginalQueryExecution) throws -> Self {
         try Self(copy: self, fieldFactor: factor, usage: &usage)
     }
 
     private init(copy original: Self, liftingRationalAuthority authority: OriginalRationalZeroSetAuthority,
-        usage: inout SurfaceSilhouetteUsage) throws {
+        usage: inout OriginalQueryExecution) throws {
+        queryContext = original.queryContext
         surface = original.surface; domain = original.domain; view = original.view; tolerance = original.tolerance
         sourceAuthority = original.sourceAuthority; native = original.native
         higher = original.higher; generic = original.generic; poleNormal = original.poleNormal
         polePreparation = original.polePreparation; poleAuthorities = original.poleAuthorities
         parallelMetric = original.parallelMetric; nativeWordLaw = original.nativeWordLaw
+        projectedRationalPolynomial = original.projectedRationalPolynomial
         exactSourcePolynomial = original.exactSourcePolynomial
         zeroSetAuthority = nil
         let context = try OriginalSingularFieldContext(usage: &usage)
         fieldZeroSetAuthority = try OriginalFieldZeroSetAuthority(retaining: authority, into: context,
-            maximumAlgebraicDepth: usage.maximumAlgebraicDepth, usage: &usage)
+            maximumAlgebraicDepth: usage.effectiveLimits.maximumCoefficientDepth, usage: &usage)
         binomialBranches = nil; quadraticBranchOrdinal = nil; coordinateFactorAxis = nil
         uBreakpoints = []; vBreakpoints = []
     }
 
-    func retainingCommonOriginalFieldAuthority(usage: inout SurfaceSilhouetteUsage) throws -> Self {
+    func retainingCommonOriginalFieldAuthority(usage: inout OriginalQueryExecution) throws -> Self {
         guard let authority = zeroSetAuthority else { return self }
+        let originalAxis = try originalRationalCoordinateAxis(authority.original, usage: &usage)
+        let squareFreeAxis = try originalRationalCoordinateAxis(authority.squareFree, usage: &usage)
+        if let originalAxis, originalAxis == squareFreeAxis {
+            // The complete one-axis affine law has no complementary component.
+            // Keep its existing rational graph, trim and projected-source authority.
+            return self
+        }
         return try Self(copy: self, liftingRationalAuthority: authority, usage: &usage)
+    }
+
+    @inline(never)
+    private func originalRationalCoordinateAxis(_ polynomial: ExactBivariatePolynomial,
+        usage: inout OriginalQueryExecution) throws -> OriginalSurfaceSilhouetteCurve.FreeCoordinate? {
+        var axis: OriginalSurfaceSilhouetteCurve.FreeCoordinate?
+        var supported = true
+        for (power, coefficient) in polynomial.originalCoefficients {
+            try usage.consumeWork(1); try usage.checkpoint()
+            if coefficient.isZero { supported = false }
+            if power.u == 0, power.v == 0 { continue }
+            if power.u == 1, power.v == 0 {
+                if axis == .v { supported = false }
+                axis = .u
+            } else if power.u == 0, power.v == 1 {
+                if axis == .u { supported = false }
+                axis = .v
+            } else { supported = false }
+        }
+        return supported ? axis : nil
     }
 
     var hasNativeParallelMetric: Bool { parallelMetric != nil }
 
-    func nativeParallelAdmission(over box: SurfaceParameterBox, usage: inout SurfaceSilhouetteUsage)
+    func nativeParallelAdmission(over box: SurfaceParameterBox, usage: inout OriginalQueryExecution)
         throws -> OriginalNativeParallelMetric.Admission? {
         guard let parallelMetric else { return nil }
         return try parallelMetric.admission(over: box, distances: sourceAuthority.offsetDistances, usage: &usage)
     }
 
     func normalIsRegular(over box: SurfaceParameterBox, original: SurfaceIntervalVectorJet,
-        usage: inout SurfaceSilhouetteUsage) throws -> Bool {
+        usage: inout OriginalQueryExecution) throws -> Bool {
         if let parallelMetric {
             return try parallelMetric.admission(over: box, distances: sourceAuthority.offsetDistances, usage: &usage) != nil
         }
@@ -229,29 +307,27 @@ struct OriginalSurfaceSilhouetteField: Sendable {
             return bounds.lengthLowerBound > 0
         }
         if let nativeWordLaw, sourceAuthority.offsetDistances.isEmpty {
-            var admission = SurfaceSilhouetteAlgebraicAdmission(usage: usage)
-            defer { usage = admission.usage }
             let normal = nativeWordLaw.normal
             guard try normal.weightIsNonzero(over: box, inheritedDepth: normal.originalHomogeneous[0].context.depth,
-                usage: &admission) else { return false }
+                usage: &usage) else { return false }
             let depth = normal.maximumAlgebraicDepth
             let bounds = try IntervalVector3DBounds(
                 x: normal.normalNumerators[0].partial(over: box, uOrder: 0, vOrder: 0,
-                    inheritedDepth: normal.originalHomogeneous[0].context.depth, maximumDepth: depth, usage: &admission),
+                    inheritedDepth: normal.originalHomogeneous[0].context.depth, maximumDepth: depth, usage: &usage),
                 y: normal.normalNumerators[1].partial(over: box, uOrder: 0, vOrder: 0,
-                    inheritedDepth: normal.originalHomogeneous[0].context.depth, maximumDepth: depth, usage: &admission),
+                    inheritedDepth: normal.originalHomogeneous[0].context.depth, maximumDepth: depth, usage: &usage),
                 z: normal.normalNumerators[2].partial(over: box, uOrder: 0, vOrder: 0,
-                    inheritedDepth: normal.originalHomogeneous[0].context.depth, maximumDepth: depth, usage: &admission))
+                    inheritedDepth: normal.originalHomogeneous[0].context.depth, maximumDepth: depth, usage: &usage))
             return bounds.lengthLowerBound > 0
         }
         if sourceAuthority.offsetDistances.isEmpty {
             if case .analytic(.sphere) = sourceAuthority.source {
                 // The original radial identity has unit norm even when its
                 // angular metric has a collapsed native pole.
-                try usage.consumeWork(); return true
+                try usage.consumeWork(1); return true
             }
             if let normal = try SurfaceSilhouetteAnalyticNormalTaylor.normal(of: sourceAuthority.source,
-                over: box, tolerance: tolerance, consumeWork: { try usage.consumeWork() }) {
+                over: box, tolerance: tolerance, using: &usage) {
                 return try IntervalVector3DBounds(x: normal.x.coefficient(0, 0),
                     y: normal.y.coefficient(0, 0), z: normal.z.coefficient(0, 0)).lengthLowerBound > 0
             }
@@ -261,8 +337,8 @@ struct OriginalSurfaceSilhouetteField: Sendable {
     }
 
     func firstOrderContinuous(across coordinate: OriginalSurfaceSilhouetteCurve.FreeCoordinate,
-                              at station: Double, usage: inout SurfaceSilhouetteUsage) throws -> Bool {
-        try usage.consumeWork()
+                              at station: Double, usage: inout OriginalQueryExecution) throws -> Bool {
+        try usage.consumeWork(1)
         guard let native, let source = sourceAuthority.nativeSource else {
             switch sourceAuthority.source {
             case .plane, .cylinder, .analytic: return sourceAuthority.offsetDistances.isEmpty
@@ -278,14 +354,14 @@ struct OriginalSurfaceSilhouetteField: Sendable {
         else if station == interval.upper { knot = knots[span + 1] }
         else { return true }
         var multiplicity = 0
-        for value in knots { try usage.consumeWork(); if value == knot { multiplicity += 1 } }
+        for value in knots { try usage.consumeWork(1); if value == knot { multiplicity += 1 } }
         if !sourceAuthority.offsetDistances.isEmpty, poleNormal != nil { return false }
         return degree - multiplicity >= 1 + sourceAuthority.offsetDistances.count
     }
 
     func originalFirstPartialEquality(with other: Self,
         secondTranslation: (alongU: Bool, amount: ExactRationalCoefficient)? = nil,
-        usage: inout SurfaceSilhouetteUsage)
+        usage: inout OriginalQueryExecution)
         throws -> [ExactBivariatePolynomial]? {
         guard let a = exactSourcePolynomial, let b = other.exactSourcePolynomial else { return nil }
         guard sourceAuthority.offsetDistances == other.sourceAuthority.offsetDistances else { return nil }
@@ -311,7 +387,7 @@ struct OriginalSurfaceSilhouetteField: Sendable {
     func offsetNormalJoin(with other: Self, over firstBox: SurfaceParameterBox,
         otherBox: SurfaceParameterBox,
         secondTranslation: (alongU: Bool, amount: ExactRationalCoefficient)? = nil,
-        usage: inout SurfaceSilhouetteUsage) throws -> OffsetNormalJoin? {
+        usage: inout OriginalQueryExecution) throws -> OffsetNormalJoin? {
         guard let firstSource = exactSourcePolynomial, let secondSource = other.exactSourcePolynomial,
             let firstAdmission = try nativeParallelAdmission(over: firstBox, usage: &usage),
             let secondAdmission = try other.nativeParallelAdmission(over: otherBox, usage: &usage) else { return nil }
@@ -319,12 +395,12 @@ struct OriginalSurfaceSilhouetteField: Sendable {
         let a = poleNormal?.coefficients ?? firstSource.normalNumerators
         let originalB = other.poleNormal?.coefficients ?? secondSource.normalNumerators
         var b: [ExactBivariatePolynomial] = []
-        try usage.retain(3)
+        try RationalAlgebraStorage.retain(3, of: UInt32.self, usage: &usage)
         for polynomial in originalB {
             b.append(try Self.transported(polynomial, translation: secondTranslation, usage: &usage))
         }
         var dot = ExactBivariatePolynomial.zero, cross: [ExactBivariatePolynomial] = []
-        try usage.retain(3)
+        try RationalAlgebraStorage.retain(3, of: UInt32.self, usage: &usage)
         for axis in 0..<3 {
             let next = (axis + 1) % 3, last = (axis + 2) % 3
             cross.append(try a[next].multiplied(by: b[last], usage: &usage)
@@ -333,7 +409,7 @@ struct OriginalSurfaceSilhouetteField: Sendable {
         }
         var anchors: [OffsetNormalJoin.Anchor] = []
         for axis in 0..<3 where !a[axis].isZero && !b[axis].isZero {
-            try usage.retain(9)
+            try RationalAlgebraStorage.retain(9, of: UInt32.self, usage: &usage)
             var h1 = a, h2 = b
             h1.append(a[axis]); h2.append(b[axis])
             let first = try OriginalRationalVectorDerivativeLaw(homogeneous: h1, throughOrder: 1, usage: &usage)
@@ -345,7 +421,7 @@ struct OriginalSurfaceSilhouetteField: Sendable {
 
     static func transported(_ polynomial: ExactBivariatePolynomial,
         translation: (alongU: Bool, amount: ExactRationalCoefficient)?,
-        usage: inout SurfaceSilhouetteUsage) throws -> ExactBivariatePolynomial {
+        usage: inout OriginalQueryExecution) throws -> ExactBivariatePolynomial {
         guard let translation else { return polynomial }
         let u = try ExactBivariatePolynomial.coordinate(alongU: true, usage: &usage)
         let v = try ExactBivariatePolynomial.coordinate(alongU: false, usage: &usage)
@@ -357,8 +433,8 @@ struct OriginalSurfaceSilhouetteField: Sendable {
 
     /// Exact selected native lifts and exactly repeated homogeneous tails own this seam.
     func periodicBoundaryKey(coordinate: OriginalSurfaceSilhouetteCurve.FreeCoordinate,
-                             station: Double, usage: inout SurfaceSilhouetteUsage) throws -> Double? {
-        try usage.consumeWork()
+                             station: Double, usage: inout OriginalQueryExecution) throws -> Double? {
+        try usage.consumeWork(1)
         guard let native, let source = sourceAuthority.nativeSource else { return nil }
         let direction: SurfaceParameterDirection = coordinate == .u ? .u : .v
         guard let continuity = source.periodicSeamContinuityOrder(direction: direction),
@@ -373,8 +449,51 @@ struct OriginalSurfaceSilhouetteField: Sendable {
         return nil
     }
 
-    func evaluate(over box: SurfaceParameterBox, usage: inout SurfaceSilhouetteUsage)
+    @inline(never)
+    private static func hasCanonicalUnitWeight(_ polynomial: OriginalRationalSurfacePolynomial,
+        usage: inout OriginalQueryExecution) throws -> Bool {
+        try usage.consumeWork(1)
+        guard polynomial.homogeneous.count == 4 else { return false }
+        let coefficients = polynomial.homogeneous[3].originalCoefficients
+        try usage.consumeWork(1)
+        guard coefficients.count == 1 else { return false }
+        for (power, coefficient) in coefficients {
+            try usage.consumeWork(1)
+            guard power.u == 0, power.v == 0 else { return false }
+            try usage.consumeWork(coefficient.canonicalNumeratorWords.count)
+            try usage.consumeWork(coefficient.canonicalDenominatorWords.count)
+            return coefficient == .one
+        }
+        return false
+    }
+
+    @inline(never)
+    func scalarJet(over box: SurfaceParameterBox, usage: inout OriginalQueryExecution)
+        throws -> SurfaceSilhouetteScalarJet {
+        guard projectedRationalPolynomial != nil, let authority = zeroSetAuthority,
+            let native, let source = sourceAuthority.nativeSource,
+            sourceAuthority.offsetDistances.isEmpty, poleNormal == nil else {
+            return try evaluate(over: box, usage: &usage).scalar
+        }
+        return try queryContext.withExecution(using: &usage) { usage in
+            try CurrentTaskCancellationChecker().checkCancellation()
+            guard box.u.lower >= domain.u.lower, box.u.upper <= domain.u.upper,
+                  box.v.lower >= domain.v.lower, box.v.upper <= domain.v.upper else {
+                throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+                    message: "Silhouette query contradicts its original retained branch chart.")
+            }
+            try native.validate(on: source, over: box,
+                tolerance: sourceAuthority.nativeTolerance, using: &usage)
+            let result = try SurfaceSilhouetteScalarJet(originalBounds:
+                authority.scalarJet(over: box, usage: &usage))
+            try usage.checkpoint()
+            return result
+        }
+    }
+
+    func evaluate(over box: SurfaceParameterBox, usage: inout OriginalQueryExecution)
         throws -> (scalar: SurfaceSilhouetteScalarJet, spatial: SurfaceIntervalVectorJet) {
+        return try queryContext.withExecution(using: &usage) { usage in
         try CurrentTaskCancellationChecker().checkCancellation()
         guard box.u.lower >= domain.u.lower, box.u.upper <= domain.u.upper,
               box.v.lower >= domain.v.lower, box.v.upper <= domain.v.upper else {
@@ -382,17 +501,21 @@ struct OriginalSurfaceSilhouetteField: Sendable {
                 message: "Silhouette query contradicts its original retained branch chart.")
         }
         let jet: SurfaceAreaIntervalTaylorVectorJet?
-        if let native, let higher, let source = sourceAuthority.nativeSource {
+        if let world = projectedRationalPolynomial, let native, let source = sourceAuthority.nativeSource,
+            sourceAuthority.offsetDistances.isEmpty, poleNormal == nil,
+            try Self.hasCanonicalUnitWeight(world, usage: &usage) {
+            try native.validate(on: source, over: box,
+                tolerance: sourceAuthority.nativeTolerance, using: &usage)
+            jet = try OriginalPolynomialSurfaceTaylor.vector(polynomials: world.homogeneous.prefix(3),
+                over: box, throughOrder: 4, tolerance: tolerance, usage: &usage)
+        } else if let native, let higher, let source = sourceAuthority.nativeSource {
             let query = try native.originalCoefficientReceipt(overClosedBox: box,
-                on: source, tolerance: sourceAuthority.nativeTolerance, consumeWork: usage.preparationWorkCallback,
-                consumeStorage: usage.preparationStorageCallback)
-            let original = try higher.intervalTaylorJet(using: query, consumeWork: { try usage.consumeWork() }, consumeStorage: usage.preparationStorageCallback)
+                on: source, tolerance: sourceAuthority.nativeTolerance, using: &usage)
+            let original = try higher.intervalTaylorJet(using: query, admission: &usage)
             if sourceAuthority.offsetDistances.isEmpty {
                 var world = original
                 for image in sourceAuthority.nativeWordImages.reversed() {
-                    var admission = SurfaceSilhouetteAlgebraicAdmission(usage: usage)
-                    defer { usage = admission.usage }
-                    world = try OriginalAffineWordJetTransport.applying(image.preparedWord, to: world, usage: &admission)
+                    world = try OriginalAffineWordJetTransport.applying(image.preparedWord, to: world, using: &usage)
                 }
                 jet = try world.retagTolerance(to: tolerance)
             } else {
@@ -421,31 +544,28 @@ struct OriginalSurfaceSilhouetteField: Sendable {
                             over: box, throughOrder: 4, tolerance: tolerance, usage: &usage), usage: &usage)
                 }
                 let distance = try admission.displacement.outwardInterval(usage: &usage)
-                jet = try original.truncated(to: 4, consumeWork: { try usage.consumeWork() }, consumeStorage: usage.preparationStorageCallback)
-                    .adding(normal.scaled(by: distance, consumeWork: { try usage.consumeWork() }, consumeStorage: usage.preparationStorageCallback),
-                        consumeWork: { try usage.consumeWork() }, consumeStorage: usage.preparationStorageCallback)
+                jet = try original.truncated(to: 4, using: &usage)
+                    .adding(normal.scaled(by: distance, using: &usage),
+                        using: &usage)
             }
         } else {
             switch surface {
             case .procedural:
                 jet = try OriginalSurfaceHigherJetProvider.intervalTaylorJet(of: surface,
                     over: box, tolerance: tolerance, throughOrder: 4,
-                    maximumSpanCount: usage.maximumCells, maximumSubdivisionDepth: usage.maximumDepth, remainingSourceDepth: usage.maximumSourceDepth,
-                    consumeWork: { try usage.consumeWork() }, consumeStorage: usage.preparationStorageCallback,
-                    maximumAlgebraicDepth: usage.maximumAlgebraicDepth)
+                    maximumSpanCount: usage.effectiveLimits.maximumCells, maximumSubdivisionDepth: usage.effectiveLimits.maximumSubdivisionDepth, remainingSourceDepth: usage.effectiveLimits.remainingSourceDepth,
+                    maximumAlgebraicDepth: usage.effectiveLimits.maximumCoefficientDepth, using: &usage)
             default:
                 jet = sourceAuthority.offsetDistances.isEmpty
                     ? try SurfaceSilhouetteAnalyticTaylor.surface(sourceAuthority.source, over: box,
-                        tolerance: tolerance, consumeWork: { try usage.consumeWork() }, consumeStorage: usage.preparationStorageCallback) : nil
+                        tolerance: tolerance, using: &usage) : nil
             }
         }
         if let jet {
             if let fieldZeroSetAuthority {
-                var admission = SurfaceSilhouetteAlgebraicAdmission(usage: usage)
-                defer { usage = admission.usage }
                 return try (SurfaceSilhouetteScalarJet(originalBounds:
                     fieldZeroSetAuthority.scalarJet(over: box,
-                        inheritedDepth: fieldZeroSetAuthority.original.context.depth, usage: &admission)), jet.intervalJet())
+                        inheritedDepth: fieldZeroSetAuthority.original.context.depth, usage: &usage)), jet.intervalJet())
             }
             if let zeroSetAuthority {
                 return try (SurfaceSilhouetteScalarJet(originalBounds:
@@ -453,13 +573,13 @@ struct OriginalSurfaceSilhouetteField: Sendable {
             }
             let analyticNormal = sourceAuthority.offsetDistances.isEmpty
                 ? try SurfaceSilhouetteAnalyticNormalTaylor.normal(of: sourceAuthority.source, over: box,
-                    tolerance: tolerance, consumeWork: { try usage.consumeWork() }, consumeStorage: usage.preparationStorageCallback) : nil
-            let normal = try analyticNormal ?? jet.differentiated(alongU: true, consumeWork: { try usage.consumeWork() }, consumeStorage: usage.preparationStorageCallback)
-                .cross(jet.differentiated(alongU: false, consumeWork: { try usage.consumeWork() }, consumeStorage: usage.preparationStorageCallback),
-                    consumeWork: { try usage.consumeWork() }, consumeStorage: usage.preparationStorageCallback)
-            let scalar = try normal.x.scaled(by: .exact(view.x), consumeWork: { try usage.consumeWork() }, consumeStorage: usage.preparationStorageCallback)
-                .adding(normal.y.scaled(by: .exact(view.y), consumeWork: { try usage.consumeWork() }, consumeStorage: usage.preparationStorageCallback), consumeWork: { try usage.consumeWork() }, consumeStorage: usage.preparationStorageCallback)
-                .adding(normal.z.scaled(by: .exact(view.z), consumeWork: { try usage.consumeWork() }, consumeStorage: usage.preparationStorageCallback), consumeWork: { try usage.consumeWork() }, consumeStorage: usage.preparationStorageCallback)
+                    tolerance: tolerance, using: &usage) : nil
+            let normal = try analyticNormal ?? jet.differentiated(alongU: true, using: &usage)
+                .cross(jet.differentiated(alongU: false, using: &usage),
+                    using: &usage)
+            let scalar = try normal.x.scaled(by: .exact(view.x), using: &usage)
+                .adding(normal.y.scaled(by: .exact(view.y), using: &usage), using: &usage)
+                .adding(normal.z.scaled(by: .exact(view.z), using: &usage), using: &usage)
             return try (SurfaceSilhouetteScalarJet(original: scalar), jet.intervalJet())
         }
         guard let generic else {
@@ -470,15 +590,16 @@ struct OriginalSurfaceSilhouetteField: Sendable {
         // only source order three. The production drawing silhouette caller may
         // use their scalar exclusions, but must not publish a D3 graph until its
         // original order-four source and cumulative preparation are implemented.
-        try usage.consumeWork()
+        try usage.consumeWork(1)
         let original = try generic.intervalJet(overClosedBox: box, tolerance: tolerance,
-            maximumSpanCount: usage.maximumCells, maximumSubdivisionDepth: usage.maximumDepth,
-            remainingSourceDepth: usage.maximumSourceDepth, consumeWork: { try usage.consumeWork() },
-            consumeStorage: usage.preparationStorageCallback)
+            maximumSpanCount: usage.effectiveLimits.maximumCells, maximumSubdivisionDepth: usage.effectiveLimits.maximumSubdivisionDepth,
+            remainingSourceDepth: usage.effectiveLimits.remainingSourceDepth, using: &usage)
         return (SurfaceSilhouetteScalarJet(surface: original, view: view), original)
+    
+        }
     }
     func writeOriginalProvenance(to emitter: inout SurfaceSilhouetteProvenanceEmitter,
-        usage: inout SurfaceSilhouetteUsage) throws {
+        usage: inout OriginalQueryExecution) throws {
         try emitter.emit(.beginRecord(type: "silhouetteField"), usage: &usage)
         try emitter.field("surface", usage: &usage)
         try emitter.write(surface, usage: &usage)
@@ -508,6 +629,9 @@ struct OriginalSurfaceSilhouetteField: Sendable {
         else { try emitter.emit(.null, usage: &usage) }
         try emitter.field("exactSourcePolynomial", usage: &usage)
         if let value = exactSourcePolynomial { try emitter.write(value, usage: &usage) }
+        else { try emitter.emit(.null, usage: &usage) }
+        try emitter.field("projectedRationalPolynomial", usage: &usage)
+        if let value = projectedRationalPolynomial { try emitter.write(value, usage: &usage) }
         else { try emitter.emit(.null, usage: &usage) }
         try emitter.field("quadraticBranchOrdinal", usage: &usage)
         if let value = quadraticBranchOrdinal { try emitter.write(value, usage: &usage) }

@@ -1,0 +1,276 @@
+{
+  "binarySHA256": "3bbbdff06b7b1c65bcc434bbbe396372cf3638bde1c55d8c7fab76ea5b669092",
+  "ipsSHA256": "fe2e7705b9f09bcc9f973ac01fe127c5a0cbb46b145facf34e15dede1b809937",
+  "exception": {
+    "codes": "0x0000000000000001, 0x000000018aa903d0",
+    "rawCodes": [
+      1,
+      6621299664
+    ],
+    "type": "EXC_BREAKPOINT",
+    "signal": "SIGKILL"
+  },
+  "termination": {
+    "namespace": "FOUNDATION",
+    "flags": 2,
+    "code": 1
+  },
+  "abortReason": {
+    "libsystem_platform.dylib": [
+      "BUG IN CLIENT OF LIBPLATFORM: Unlock of an os_unfair_lock not owned by current thread",
+      "Abort Cause 4355"
+    ]
+  },
+  "frames": [
+    {
+      "frame": "$defer #1 <A><A1, B1>() in Mutex<>.withLock<A, B>(_:)",
+      "symbol": "_$s15Synchronization5MutexVAARi_zrlE8withLockyqd__qd__xzYuqd_0_YKYTXEqd_0_YKs5ErrorRd_0_Ri_d__r0_lF6$deferL_yysAERd_0_Ri_zRi_d__r_0_lF",
+      "address": "0x77b88",
+      "entryFrameBytes": 48
+    },
+    {
+      "frame": "OriginalQueryBudget.debit(work:bytes:cells:records:sourceTextBytes:contribution:contributions:context:admitted:)",
+      "symbol": "_$s11CADGeometry19OriginalQueryBudgetC5debit33_6D6690DCFEC788E8B6547019386E27FALL4work5bytes5cells7records15sourceTextBytes12contribution13contributions7context8admittedySi_S4iAA0bC18ContributionHandleVSgSayAPGAA0bC14FailureContextVyyXEtAA011ExactScalarY0OYKF",
+      "address": "0x1429f10",
+      "entryFrameBytes": 2112
+    },
+    {
+      "frame": "OriginalQueryBudget.admitting(work:bytes:cells:records:sourceTextBytes:contributions:context:_:)",
+      "symbol": "_$s11CADGeometry19OriginalQueryBudgetC9admitting4work5bytes5cells7records15sourceTextBytes13contributions7context_ySi_S4iSayAA0bC18ContributionHandleVGAA0bC14FailureContextVyyXEtAA011ExactScalarQ0OYKF",
+      "address": "0x142b730",
+      "entryFrameBytes": 576
+    },
+    {
+      "frame": "OriginalQueryExecution.consumeWork(_:)",
+      "symbol": "_$s11CADGeometry22OriginalQueryExecutionV11consumeWorkyySiAA18ExactScalarFailureOYKF",
+      "address": "0x43bcb8",
+      "entryFrameBytes": 752
+    },
+    {
+      "frame": "protocol witness for ExactScalarAdmission.consumeWork(_:) in conformance OriginalQueryExecution",
+      "symbol": "_$s11CADGeometry22OriginalQueryExecutionVAA20ExactScalarAdmissionA2aDP11consumeWorkyySiAA0eF7FailureOYKFTW",
+      "address": "0x1438924",
+      "entryFrameBytes": 48
+    },
+    {
+      "frame": "ExactRationalCoefficient.multiplied<A>(by:usage:)",
+      "symbol": "_$s11CADGeometry24ExactRationalCoefficientV10multiplied2by5usageA2C_xztKAA0B15ScalarAdmissionRzRi_zlF",
+      "address": "0x55ad60",
+      "entryFrameBytes": 1168
+    },
+    {
+      "frame": "ExactBivariatePolynomial.scaled<A>(by:usage:)",
+      "symbol": "_$s11CADGeometry24ExactBivariatePolynomialV6scaled2by5usageAcA0B19RationalCoefficientV_xztKAA0B15ScalarAdmissionRzRi_zlF",
+      "address": "0x88d29c",
+      "entryFrameBytes": 720
+    },
+    {
+      "frame": "ExactBivariatePolynomial.subtracting<A>(_:usage:)",
+      "symbol": "_$s11CADGeometry24ExactBivariatePolynomialV11subtracting_5usageA2C_xztKAA0B15ScalarAdmissionRzRi_zlF",
+      "address": "0x8a8c78",
+      "entryFrameBytes": 256
+    },
+    {
+      "frame": "static OriginalRationalBSplineBasis.powerPolynomials<A>(knots:degree:span:alongU:translation:usage:)",
+      "symbol": "_$s11CADGeometry28OriginalRationalBSplineBasisV16powerPolynomials5knots6degree4span6alongU11translation5usageSDySiAA24ExactBivariatePolynomialVGSaySdG_S2iSbSdxztKAA0N15ScalarAdmissionRzRi_zlFZ",
+      "address": "0x8a9540",
+      "entryFrameBytes": 4224
+    },
+    {
+      "frame": "OriginalRationalCurvePolynomial.init<A>(source:spanIndex:originalTranslation:tolerance:usage:)",
+      "symbol": "_$s11CADGeometry31OriginalRationalCurvePolynomialV6source9spanIndex19originalTranslation9tolerance5usageAcA14BSplineCurve3DV_SiSd7CADCore17ModelingToleranceVxztKcAA20ExactScalarAdmissionRzRi_zlufC",
+      "address": "0x8c4aec",
+      "entryFrameBytes": 9888
+    },
+    {
+      "frame": "static OriginalCurveEndpointPositionRelation.coordinates<A>(_:at:owningSpanIndex:remainingSourceDepth:tolerance:usage:)",
+      "symbol": "_$s11CADGeometry37OriginalCurveEndpointPositionRelationV11coordinates_2at15owningSpanIndex20remainingSourceDepth9tolerance5usageSayAA24ExactRationalCoefficientVGAA7Curve3DO_AKSiSgSi7CADCore17ModelingToleranceVxztKAA0Q15ScalarAdmissionRzRi_zlFZ",
+      "address": "0x145ade4",
+      "entryFrameBytes": 77664
+    },
+    {
+      "frame": "static OriginalCurveEndpointPositionRelation.prove(first:at:second:at:firstNativeSpanIndex:secondNativeSpanIndex:remainingSourceDepth:maximumSubdivisionDepth:tolerance:usage:maximumAlgebraicDepth:)",
+      "symbol": "_$s11CADGeometry37OriginalCurveEndpointPositionRelationV5prove5first2at6secondAF0H15NativeSpanIndex0jklM020remainingSourceDepth018maximumSubdivisionP09tolerance5usage0q9AlgebraicP0ACSgAA7Curve3DO_SdAQSdSiSgARS2i7CADCore17ModelingToleranceVAA0B14QueryExecutionVzARtKFZ",
+      "address": "0x1457e30",
+      "entryFrameBytes": 69120
+    },
+    {
+      "frame": "BRepEdgeGeometryClassifier.classifiedKind(curve:from:to:tolerance:using:)",
+      "symbol": "_$s11CADTopology26BRepEdgeGeometryClassifierV14classifiedKind33_0263782D62F86C3381FE15D0898CCA3DLL5curve4from2to9tolerance5usingAA0bcdG0O11CADGeometry7Curve3DO_S2d7CADCore17ModelingToleranceVAM22OriginalQueryExecutionVztKF",
+      "address": "0x31abef4",
+      "entryFrameBytes": 154928
+    },
+    {
+      "frame": "BRepEdgeGeometryClassifier.kind(curve:from:to:tolerance:using:)",
+      "symbol": "_$s11CADTopology26BRepEdgeGeometryClassifierV4kind5curve4from2to9tolerance5usingAA0bcD4KindO11CADGeometry7Curve3DO_S2d7CADCore17ModelingToleranceVAL22OriginalQueryExecutionVztKF",
+      "address": "0x31abd0c",
+      "entryFrameBytes": 304
+    },
+    {
+      "frame": "BRepEdgeGeometryClassifier.kind(of:in:tolerance:using:)",
+      "symbol": "_$s11CADTopology26BRepEdgeGeometryClassifierV4kind2of2in9tolerance5usingAA0bcD4KindOAA0C0V_AA0B5ModelV7CADCore17ModelingToleranceV11CADGeometry22OriginalQueryExecutionVztKF",
+      "address": "0x31b7bec",
+      "entryFrameBytes": 4976
+    },
+    {
+      "frame": "OriginalBRepValidationInvocation.validate(tolerance:using:)",
+      "symbol": "_$s11CADTopology32OriginalBRepValidationInvocationV8validate9tolerance5usingy7CADCore17ModelingToleranceV_11CADGeometry0B14QueryExecutionVztKF",
+      "address": "0x3192cf8",
+      "entryFrameBytes": 15584
+    },
+    {
+      "frame": "BRepModel.validate(tolerance:using:)",
+      "symbol": "_$s11CADTopology9BRepModelV8validate9tolerance5usingy7CADCore17ModelingToleranceV_11CADGeometry22OriginalQueryExecutionVztKF",
+      "address": "0x3192c28",
+      "entryFrameBytes": 368
+    },
+    {
+      "frame": "BRepDrawingProjector.projectEdges(in:onto:maximumProjectedUses:using:)",
+      "symbol": "_$s9CADKernel20BRepDrawingProjectorV12projectEdges2in4onto20maximumProjectedUses5usingAA0bC10ProjectionVAA17EvaluatedDocumentV_11CADGeometry012OrthographicM5FrameVSiAM22OriginalQueryExecutionVztKF",
+      "address": "0x4c62510",
+      "entryFrameBytes": 22304
+    },
+    {
+      "frame": "DocumentDrawingCanonicalAdmissionTests.projectAndPlace(_:curved:using:)",
+      "symbol": "_$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V15projectAndPlace33_9F58DFE84BC2AA973B67A16FE6063CCDLL_6curved5using9CADKernel04BRepD16PlacedProjectionV_AH0uD9PlacementVtAC6SourceAELLV_Sb11CADGeometry22OriginalQueryExecutionVztKF",
+      "address": "0x754c",
+      "entryFrameBytes": 18736
+    }
+  ],
+  "sumKnownEntryFrameBytes": 383776,
+  "threadState": {
+    "x": [
+      {
+        "value": 4355
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 4355
+      },
+      {
+        "value": 8382837712,
+        "symbolLocation": 0,
+        "symbol": "type metadata for Never"
+      },
+      {
+        "value": 8382814264,
+        "symbolLocation": 0,
+        "symbol": "protocol witness table for Never"
+      },
+      {
+        "value": 6165875536
+      },
+      {
+        "value": 2
+      },
+      {
+        "value": 6165884576
+      },
+      {
+        "value": 4355
+      },
+      {
+        "value": 6165883520
+      },
+      {
+        "value": 3
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 1
+      },
+      {
+        "value": 1
+      },
+      {
+        "value": 8382853864,
+        "symbolLocation": 0,
+        "symbol": "type metadata for Int"
+      },
+      {
+        "value": 17592186044416
+      },
+      {
+        "value": 6621268292,
+        "symbolLocation": 0,
+        "symbol": "os_unfair_lock_unlock"
+      },
+      {
+        "value": 358036178758750480
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 515274822808
+      },
+      {
+        "value": 6165882856
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 515278897200
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 23
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 6166278368
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 0
+      }
+    ],
+    "flavor": "ARM_THREAD_STATE64",
+    "lr": {
+      "value": 6621273024
+    },
+    "cpsr": {
+      "value": 536870912
+    },
+    "fp": {
+      "value": 6165882176
+    },
+    "sp": {
+      "value": 6165882160
+    },
+    "esr": {
+      "value": 4060131329,
+      "description": "(Breakpoint) brk 45057"
+    },
+    "pc": {
+      "value": 6621299664,
+      "matchesCrashFrame": 1
+    },
+    "far": {
+      "value": 0
+    }
+  },
+  "unknown": "IPS omits worker stack-region bounds and pointed-to memory; register proximity alone does not identify a budget state pointer or prove corruption.",
+  "pointerFacts": {
+    "SP": 6165882160,
+    "FP": 6165882176,
+    "x19": 515274822808,
+    "x20": 6165882856,
+    "x22": 515278897200,
+    "x20MinusSP": 696,
+    "actualLockArgument": "defer forwards x0 unchanged into unlock; caller loads x0 from debit SP+0x170. Abort has overwritten x0 with4355, so this dump does not recover its pre-abort value. x19 is not identified as the lock pointer by this executable evidence.",
+    "stackRange": "No VM-region or stack-region bounds are present in this IPS."
+  },
+  "frameMeasurement": "Only instructions before the next function label are counted within each 96-byte window."
+}

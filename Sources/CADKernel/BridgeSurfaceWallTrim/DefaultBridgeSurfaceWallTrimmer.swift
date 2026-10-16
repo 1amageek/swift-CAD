@@ -17,6 +17,20 @@ public struct DefaultBridgeSurfaceWallTrimmer: BridgeSurfaceWallTrimming {
 
     public func trim(feature: FeatureNode, candidate: EvaluationResult,
                      context: EvaluationContext) throws -> EvaluationResult {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try trim(feature: feature, candidate: candidate, context: context, using: &execution)
+    }
+
+    public func trim(feature: FeatureNode, candidate: EvaluationResult,
+        context: EvaluationContext, using execution: inout OriginalQueryExecution) throws -> EvaluationResult {
+        try execution.checkpoint()
+        let result = try trimBody(feature: feature, candidate: candidate, context: context, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+    private func trimBody(feature: FeatureNode, candidate: EvaluationResult,
+        context: EvaluationContext, using execution: inout OriginalQueryExecution) throws -> EvaluationResult {
         guard case let .bridgeSurface(bridge) = feature.operation,
               case let .body(bodyID)? = candidate.subshapes[SubshapeID(featureID: feature.id, role: "body", ordinal: 0)],
               let body = candidate.brep.bodies[bodyID], body.kind == .sheet else {
@@ -52,7 +66,11 @@ public struct DefaultBridgeSurfaceWallTrimmer: BridgeSurfaceWallTrimming {
             let wallBodyID: BodyID
             if let explicit {
                 guard case let .face(resolved) = try resolver.topologyReference(for: explicit,
-                    model: context.brep, subshapes: context.subshapes, lineage: context.lineage, tolerance: tolerance) else {
+                    model: context.brep, subshapes: context.subshapes, lineage: context.lineage, tolerance: tolerance,
+                    maximumSubdivisionDepth: min(32, execution.effectiveLimits.maximumSubdivisionDepth),
+                    remainingSourceDepth: min(16, execution.effectiveLimits.remainingSourceDepth),
+                    maximumAlgebraicDepth: min(32, execution.effectiveLimits.maximumValueDepth, execution.effectiveLimits.maximumCoefficientDepth),
+                    using: &execution) else {
                     throw failure(.missingReference, feature, context, "A declared bridge wall must be a live finite face.")
                 }
                 wallID = resolved
@@ -60,7 +78,11 @@ public struct DefaultBridgeSurfaceWallTrimmer: BridgeSurfaceWallTrimming {
                 wallBodyID = try context.bodyID(generatedBy: explicit.subshapeID.featureID)
             } else {
                 guard case let .edge(edgeID) = try resolver.topologyReference(for: boundary,
-                    model: context.brep, subshapes: context.subshapes, lineage: context.lineage, tolerance: tolerance) else {
+                    model: context.brep, subshapes: context.subshapes, lineage: context.lineage, tolerance: tolerance,
+                    maximumSubdivisionDepth: min(32, execution.effectiveLimits.maximumSubdivisionDepth),
+                    remainingSourceDepth: min(16, execution.effectiveLimits.remainingSourceDepth),
+                    maximumAlgebraicDepth: min(32, execution.effectiveLimits.maximumValueDepth, execution.effectiveLimits.maximumCoefficientDepth),
+                    using: &execution) else {
                     throw failure(.missingReference, feature, context, "An implicit bridge wall requires its original live boundary edge.")
                 }
                 wallBodyID = try context.bodyID(generatedBy: boundary.subshapeID.featureID)
@@ -82,8 +104,8 @@ public struct DefaultBridgeSurfaceWallTrimmer: BridgeSurfaceWallTrimming {
             }
             if let transform {
                 let image = try placedWall(faceID: wallID, parentID: parentID, transform: transform,
-                    ordinal: wallOrdinal, feature: feature, context: context)
-                try BRepModelCombiner().merge(image.brep, into: &partitionModel)
+                    ordinal: wallOrdinal, feature: feature, context: context, using: &execution)
+                try BRepModelCombiner().merge(image.brep, into: &partitionModel, using: &execution)
                 guard let imageBody = image.brep.bodies[image.bodyID], let shellID = imageBody.shellIDs.first,
                       let imageFaceID = image.brep.shells[shellID]?.faceIDs.first else {
                     throw TopologyError.missingReference("A retained affine wall image has no finite face.")
@@ -105,8 +127,8 @@ public struct DefaultBridgeSurfaceWallTrimmer: BridgeSurfaceWallTrimming {
             sourceSubshapes.merge(wall.sourceMapping) { _, new in new }
             let graph = try pipeline.completeIntersectionGraph(facePairs: [
                 BooleanFacePairCandidate(targetFaceID: faceID, toolFaceID: wall.faceID)
-            ], model: partitionModel, tolerance: tolerance)
-            let splits = try pipeline.uvSplitGraph(intersectionGraph: graph, model: partitionModel, tolerance: tolerance)
+            ], model: partitionModel, tolerance: tolerance, using: &execution)
+            let splits = try pipeline.uvSplitGraph(intersectionGraph: graph, model: partitionModel, tolerance: tolerance, using: &execution)
             for split in splits.splits {
                 for component in split.components {
                     let reference = BooleanFaceSplitComponentReference(facePair: split.facePair, componentID: component.id)
@@ -114,11 +136,11 @@ public struct DefaultBridgeSurfaceWallTrimmer: BridgeSurfaceWallTrimming {
                     if case .coincident = component.geometry {
                         edges = try CoincidentBooleanFaceArrangementBoundaryBuilder().outlineEdges(
                             of: wall.faceID, onto: faceID, reference: reference, model: partitionModel,
-                            sourceSubshapes: sourceSubshapes, tolerance: tolerance)
+                            sourceSubshapes: sourceSubshapes, tolerance: tolerance, using: &execution)
                     } else {
                         edges = try BooleanFaceArrangementBoundary.edges(reference: reference, geometry: component.geometry,
                             faceID: faceID, surfaceSide: .first,
-                            parentSubshapeIDs: [wall.parentID], tolerance: tolerance)
+                            parentSubshapeIDs: [wall.parentID], tolerance: tolerance, using: &execution)
                     }
                     boundaries += edges.enumerated().map { ordinal, edge in
                         BooleanFaceArrangementBoundary(reference: reference, segmentOrdinal: ordinal, faceID: faceID,
@@ -130,10 +152,10 @@ public struct DefaultBridgeSurfaceWallTrimmer: BridgeSurfaceWallTrimming {
         let patches: [BRepSewingFacePatch]
         if boundaries.isEmpty {
             patches = [try SourceBRepFacePatchBuilder().build(faceID: faceID, stableID: "bridge-wall:source",
-                from: partitionModel, sourceSubshapes: sourceSubshapes, tolerance: tolerance).patch]
+                from: partitionModel, sourceSubshapes: sourceSubshapes, tolerance: tolerance, using: &execution).patch]
         } else {
             patches = try BooleanOpenFaceArrangementBuilder().build(faceID: faceID, boundaries: boundaries,
-                model: partitionModel, sourceSubshapes: sourceSubshapes, tolerance: tolerance).patches
+                model: partitionModel, sourceSubshapes: sourceSubshapes, tolerance: tolerance, using: &execution).patches
         }
         let connecting = try patches.filter { patch in
             let parents = Set(patch.loops.flatMap(\.edges).flatMap(\.parentSubshapeIDs))
@@ -146,7 +168,7 @@ public struct DefaultBridgeSurfaceWallTrimmer: BridgeSurfaceWallTrimming {
                 for edge in patch.loops.flatMap(\.edges) {
                     for contact in contacts {
                         if case .coincident = try ExactTrimEdgeIntersector().intersections(edge, contact.edge,
-                            sharedSurface: patch.surface, tolerance: tolerance) {
+                            sharedSurface: patch.surface, tolerance: tolerance, using: &execution) {
                             hasContact = true
                         }
                     }
@@ -160,58 +182,59 @@ public struct DefaultBridgeSurfaceWallTrimmer: BridgeSurfaceWallTrimming {
                 "Finite bridge walls did not determine one region connecting both original boundaries.")
         }
         let originalParents = [bridge.startBoundary.subshapeID, bridge.endBoundary.subshapeID] + walls.map { $0.parentID }
-        let published = BRepSewingFacePatch(stableID: "bridge-wall:result", surface: selected.surface,
-            orientation: selected.orientation, loops: selected.loops, parentSubshapeIDs: originalParents)
-        let sewn = try sewer.sew(BRepSewingRequest(featureID: feature.id, bodyKind: .sheet,
+        let published = try BRepSewingFacePatch(stableID: "bridge-wall:result", surface: selected.surface,
+            orientation: selected.orientation, loops: selected.loops, parentSubshapeIDs: originalParents, using: &execution)
+        let sewn = try sewer.sew(try BRepSewingRequest(featureID: feature.id, bodyKind: .sheet,
             shells: [BRepSewingShell(stableID: "bridge-wall:shell", patches: [published])],
-            bodyParentSubshapeIDs: originalParents), tolerance: tolerance)
+            bodyParentSubshapeIDs: originalParents, using: &execution), tolerance: tolerance, using: &execution)
         let replacement = try BRepBodyModelReplacer().replacing(bodyID: bodyID, with: sewn.bodyID,
-            from: sewn.brep, in: model)
+            from: sewn.brep, in: model, using: &execution)
         let lineage = sewn.lineage.mapValues { entry in
             let parents = Array(Set(entry.parents.flatMap { $0.featureID == feature.id ? originalParents : [$0] })).sorted()
             return TopologyLineage(output: entry.output, parents: parents,
                 relation: parents.isEmpty ? .generated : (parents.count == 1 ? .preserved : .merged))
         }
-        try replacement.validate(level: .exact, tolerance: tolerance)
+        try replacement.validate(level: .exact, tolerance: tolerance, using: &execution)
         return EvaluationResult(brep: replacement, subshapes: sewn.subshapes, lineage: lineage)
     }
 
     private func placedWall(faceID: FaceID, parentID: SubshapeID, transform: AffineTransform3D,
-                            ordinal: Int, feature: FeatureNode, context: EvaluationContext) throws -> BRepSewingResult {
+                            ordinal: Int, feature: FeatureNode, context: EvaluationContext,
+                            using execution: inout OriginalQueryExecution) throws -> BRepSewingResult {
         let tolerance = context.tolerance
         let source = try SourceBRepFacePatchBuilder().build(faceID: faceID,
             stableID: "bridge-wall-image:\(ordinal)", from: context.brep,
-            sourceSubshapes: context.subshapes.entries, tolerance: tolerance).patch
+            sourceSubshapes: context.subshapes.entries, tolerance: tolerance, using: &execution).patch
         let surface = Surface3D.affineImage(try OriginalImageSurface3D(source: source.surface,
-            transform: transform, tolerance: tolerance))
-        let image = BRepSewingFacePatch(stableID: source.stableID, surface: surface,
+            transform: transform, tolerance: tolerance,
+            remainingSourceDepth: min(16, execution.effectiveLimits.remainingSourceDepth),
+            maximumSubdivisionDepth: min(32, execution.effectiveLimits.maximumSubdivisionDepth), using: &execution))
+        let image = try BRepSewingFacePatch(stableID: source.stableID, surface: surface,
             orientation: source.orientation, loops: try source.loops.map { loop in
                 BRepSewingLoop(stableID: loop.stableID, role: loop.role, edges: try loop.edges.map { edge in
-                    BRepSewingEdge(stableID: edge.stableID,
+                    try BRepSewingEdge(stableID: edge.stableID,
                         curve: .affineImage(try AffineImageCurve3D(source: edge.curve,
-                            transform: transform, tolerance: tolerance)),
+                            transform: transform, tolerance: tolerance, using: &execution)),
                         startParameter: edge.startParameter, endParameter: edge.endParameter,
                         startPoint: transform.applying(to: edge.startPoint), endPoint: transform.applying(to: edge.endPoint),
                         surfaceParameterCurve: edge.surfaceParameterCurve,
                         parentSubshapeIDs: edge.parentSubshapeIDs,
                         startVertexParentSubshapeIDs: edge.startVertexParentSubshapeIDs,
-                        endVertexParentSubshapeIDs: edge.endVertexParentSubshapeIDs)
+                        endVertexParentSubshapeIDs: edge.endVertexParentSubshapeIDs, using: &execution)
                 })
-            }, parentSubshapeIDs: [parentID])
-        let determinantSign = try transform.originalDeterminantSign(consumeWork: {
-            try CurrentTaskCancellationChecker().checkCancellation()
-        })
+            }, parentSubshapeIDs: [parentID], using: &execution)
+        let determinantSign = try transform.originalDeterminantSign(using: &execution)
         let orientation = determinantSign == .negative
             ? (source.orientation == .forward ? Orientation.reversed : .forward) : source.orientation
-        let oriented = try BRepSewingPatchOrientationAdapter().reorient(image, to: orientation, tolerance: tolerance)
+        let oriented = try BRepSewingPatchOrientationAdapter().reorient(image, to: orientation, tolerance: tolerance, using: &execution)
         // This deterministic invocation namespace is never published as source identity.
         // The combiner checks every topology ID against the retained candidate snapshot.
         let bits = feature.id.bitPattern
         let temporary = FeatureID(highBits: bits.high ^ 0xB71D_9E4A_50C3_8621,
             lowBits: bits.low ^ 0x63A8_F245_C190_7BD4 ^ UInt64(ordinal))
-        return try sewer.sew(BRepSewingRequest(featureID: temporary, bodyKind: .sheet,
+        return try sewer.sew(try BRepSewingRequest(featureID: temporary, bodyKind: .sheet,
             shells: [BRepSewingShell(stableID: "bridge-wall-image:shell:\(ordinal)", patches: [oriented])],
-            bodyParentSubshapeIDs: [parentID]), tolerance: tolerance)
+            bodyParentSubshapeIDs: [parentID], using: &execution), tolerance: tolerance, using: &execution)
     }
 
     private func failure(_ code: KernelErrorCode, _ feature: FeatureNode,

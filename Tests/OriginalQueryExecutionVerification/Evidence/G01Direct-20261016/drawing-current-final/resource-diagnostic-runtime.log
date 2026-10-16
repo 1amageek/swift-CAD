@@ -1,0 +1,107 @@
+􀟈  Test run started.
+􀄵  Swift Standard Library Version: 6.4
+􀄵  Swift Compiler Version: 6.4
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀄵  OS Version: 27.0.1 (26A434)
+􀟈  Suite "Document drawing canonical admission" (aka 'DocumentDrawingCanonicalAdmissionTests') started.
+􀟈  Test originalArchAndProjectedEndpointContactsShareExactResourceBoundaries() started.
+DRAWING_STAGE curved=true main=false test.begin
+DRAWING_STAGE curved=true main=true source.builder.begin
+DRAWING_STAGE curved=true main=true source.builder.end
+DRAWING_STAGE curved=true main=true source.bSplineSurface.begin
+DRAWING_STAGE curved=true main=true source.bSplineSurface.end
+DRAWING_STAGE curved=true main=true source.build.begin
+DRAWING_STAGE curved=true main=true source.build.end
+DRAWING_STAGE curved=true main=true source.evaluateExact.begin
+DRAWING_STAGE curved=true main=true source.evaluateExact.end
+DRAWING_STAGE curved=true main=false query.projectEdges.begin
+DRAWING_STAGE curved=true main=false query.projectEdges.end
+DRAWING_STAGE curved=true main=false query.place.begin
+DRAWING_STAGE curved=true main=false query.place.end
+DRAWING_WORK projection work=20214 bytes=244204
+DRAWING_STAGE curved=true main=false query.unplacedSilhouettes.begin
+DRAWING_STAGE curved=true main=false query.unplacedSilhouettes.end
+DRAWING_WORK unplaced work=82725 bytes=1077093
+DRAWING_STAGE curved=true main=false query.placedSilhouettes.begin
+DRAWING_STAGE curved=true main=false query.placedSilhouettes.end
+DRAWING_WORK placed work=737846 bytes=2936186
+DRAWING_STAGE curved=true main=false query.silhouetteReaders.begin
+DRAWING_STAGE curved=true main=false query.silhouetteReaders.end
+DRAWING_WORK silhouetteReaders work=742408 bytes=2951282
+DRAWING_STAGE curved=true main=false query.contacts.prepare.begin
+DRAWING_STAGE curved=true main=false query.contacts.prepare.end
+DRAWING_WORK contacts work=980780 bytes=5358906
+DRAWING_STAGE curved=true main=false query.contactReaders.begin
+DRAWING_STAGE curved=true main=false query.contactReaders.end
+DRAWING_WORK contactReaders work=986865 bytes=5407650
+DRAWING_ARCH faces=1 spans=1 uses=4 pairs=4 contacts=2 work=986865 bytes=5407650
+DRAWING_REPEAT_BEGIN 1
+DRAWING_STAGE curved=true main=false query.projectEdges.begin
+DRAWING_STAGE curved=true main=false query.projectEdges.end
+DRAWING_STAGE curved=true main=false query.place.begin
+DRAWING_STAGE curved=true main=false query.place.end
+DRAWING_WORK projection work=20214 bytes=244204
+DRAWING_STAGE curved=true main=false query.unplacedSilhouettes.begin
+DRAWING_STAGE curved=true main=false query.unplacedSilhouettes.end
+DRAWING_WORK unplaced work=82724 bytes=1077093
+DRAWING_STAGE curved=true main=false query.placedSilhouettes.begin
+DRAWING_STAGE curved=true main=false query.placedSilhouettes.end
+DRAWING_WORK placed work=737845 bytes=2936186
+DRAWING_STAGE curved=true main=false query.silhouetteReaders.begin
+DRAWING_STAGE curved=true main=false query.silhouetteReaders.end
+DRAWING_WORK silhouetteReaders work=742407 bytes=2951282
+DRAWING_STAGE curved=true main=false query.contacts.prepare.begin
+DRAWING_STAGE curved=true main=false query.contacts.prepare.end
+DRAWING_WORK contacts work=980779 bytes=5358906
+DRAWING_STAGE curved=true main=false query.contactReaders.begin
+DRAWING_STAGE curved=true main=false query.contactReaders.end
+DRAWING_WORK contactReaders work=986864 bytes=5407650
+DRAWING_REPEAT_END 1 work=986864 bytes=5407650
+DRAWING_REPEAT_BEGIN 2
+DRAWING_STAGE curved=true main=false query.projectEdges.begin
+DRAWING_STAGE curved=true main=false query.projectEdges.end
+DRAWING_STAGE curved=true main=false query.place.begin
+DRAWING_STAGE curved=true main=false query.place.end
+DRAWING_WORK projection work=20214 bytes=244204
+DRAWING_STAGE curved=true main=false query.unplacedSilhouettes.begin
+DRAWING_STAGE curved=true main=false query.unplacedSilhouettes.end
+DRAWING_WORK unplaced work=82724 bytes=1077093
+DRAWING_STAGE curved=true main=false query.placedSilhouettes.begin
+DRAWING_STAGE curved=true main=false query.placedSilhouettes.end
+DRAWING_STAGE curved=true main=false query.silhouetteReaders.begin
+DRAWING_WORK placed work=737845 bytes=2936186
+DRAWING_STAGE curved=true main=false query.silhouetteReaders.end
+DRAWING_WORK silhouetteReaders work=742407 bytes=2951282
+DRAWING_STAGE curved=true main=false query.contacts.prepare.begin
+DRAWING_STAGE curved=true main=false query.contacts.prepare.end
+DRAWING_WORK contacts work=980779 bytes=5358906
+DRAWING_STAGE curved=true main=false query.contactReaders.begin
+DRAWING_STAGE curved=true main=false query.contactReaders.end
+DRAWING_WORK contactReaders work=986864 bytes=5407650
+DRAWING_REPEAT_END 2 work=986864 bytes=5407650
+DRAWING_REPEAT_BEGIN 3
+DRAWING_STAGE curved=true main=false query.projectEdges.begin
+DRAWING_STAGE curved=true main=false query.projectEdges.end
+DRAWING_STAGE curved=true main=false query.place.begin
+DRAWING_STAGE curved=true main=false query.place.end
+DRAWING_WORK projection work=20214 bytes=244204
+DRAWING_STAGE curved=true main=false query.unplacedSilhouettes.begin
+DRAWING_STAGE curved=true main=false query.unplacedSilhouettes.end
+DRAWING_WORK unplaced work=82724 bytes=1077093
+DRAWING_STAGE curved=true main=false query.placedSilhouettes.begin
+DRAWING_STAGE curved=true main=false query.placedSilhouettes.end
+DRAWING_WORK placed work=737845 bytes=2936186
+DRAWING_STAGE curved=true main=false query.silhouetteReaders.begin
+DRAWING_STAGE curved=true main=false query.silhouetteReaders.end
+DRAWING_WORK silhouetteReaders work=742407 bytes=2951282
+DRAWING_STAGE curved=true main=false query.contacts.prepare.begin
+DRAWING_STAGE curved=true main=false query.contacts.prepare.end
+DRAWING_WORK contacts work=980779 bytes=5358906
+DRAWING_STAGE curved=true main=false query.contactReaders.begin
+DRAWING_STAGE curved=true main=false query.contactReaders.end
+DRAWING_WORK contactReaders work=986864 bytes=5407650
+DRAWING_REPEAT_END 3 work=986864 bytes=5407650
+􁁛  Test originalArchAndProjectedEndpointContactsShareExactResourceBoundaries() passed after 2.425 seconds.
+􁁛  Suite "Document drawing canonical admission" (aka 'DocumentDrawingCanonicalAdmissionTests') passed after 2.425 seconds.
+􁁛  Test run with 1 test in 1 suite passed after 2.425 seconds.

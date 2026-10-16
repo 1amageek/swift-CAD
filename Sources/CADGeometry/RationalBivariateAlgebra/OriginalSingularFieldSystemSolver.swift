@@ -6,7 +6,7 @@ package struct OriginalSingularFieldSystemSolver {
         case finite([OriginalSingularFieldSystemRoot])
         case positiveDimension(equations: [OriginalSingularFieldPlanePolynomial], basis: [OriginalSingularFieldPlanePolynomial])
     }
-    package static func roots<B: RationalAlgebraAdmitting>(of equations: [OriginalSingularFieldPlanePolynomial],
+    package static func roots<B: ExactScalarAdmission & ~Copyable>(of equations: [OriginalSingularFieldPlanePolynomial],
         over domain: SurfaceParameterBox, inheritedDepth: Int, maximumDepth: Int, usage: inout B) throws -> Result {
         guard let first = equations.first, domain.u.width > 0, domain.v.width > 0, maximumDepth >= inheritedDepth else {
             throw rationalAlgebraFailure("Original ordered-field system needs source equations, rectangle and admitted depth.")
@@ -55,7 +55,7 @@ package struct OriginalSingularFieldSystemSolver {
         return .finite(result)
     }
 
-    static func projected<B: RationalAlgebraAdmitting>(_ source: OriginalSingularFieldPlanePolynomial,
+    static func projected<B: ExactScalarAdmission & ~Copyable>(_ source: OriginalSingularFieldPlanePolynomial,
         maximumDepth: Int, usage: inout B) throws -> OriginalSingularFieldPolynomial {
         guard source.vDegree <= 0 else { throw rationalAlgebraFailure("Original ordered-field projection is not univariate.") }
         let zero = try OriginalSingularFieldElement.constant(.zero, in: source.context, maximumDepth: maximumDepth, usage: &usage)
@@ -65,7 +65,7 @@ package struct OriginalSingularFieldSystemSolver {
         for (power, coefficient) in try source.orderedTerms(usage: &usage) { values[power.u] = coefficient }
         return try .init(context: source.context, coefficients: values, maximumDepth: maximumDepth, usage: &usage)
     }
-    static func fiber<B: RationalAlgebraAdmitting>(_ source: OriginalSingularFieldPlanePolynomial,
+    static func fiber<B: ExactScalarAdmission & ~Copyable>(_ source: OriginalSingularFieldPlanePolynomial,
         at u: OriginalSingularFieldElement, maximumDepth: Int, usage: inout B) throws -> OriginalSingularFieldPolynomial {
         if source.isZero { return try .init(context: u.context, coefficients: [], maximumDepth: maximumDepth, usage: &usage) }
         let zero = try OriginalSingularFieldElement.constant(.zero, in: u.context, maximumDepth: maximumDepth, usage: &usage)
@@ -79,7 +79,7 @@ package struct OriginalSingularFieldSystemSolver {
         }
         return try .init(context: u.context, coefficients: values, maximumDepth: maximumDepth, usage: &usage)
     }
-    private static func inside<B: RationalAlgebraAdmitting>(_ value: OriginalSingularFieldElement,
+    private static func inside<B: ExactScalarAdmission & ~Copyable>(_ value: OriginalSingularFieldElement,
         interval: ScalarInterval, maximumDepth: Int, usage: inout B) throws -> Bool {
         let low = try OriginalSingularFieldElement.constant(.originalDouble(interval.lower, usage: &usage),
             in: value.context, maximumDepth: maximumDepth, usage: &usage)

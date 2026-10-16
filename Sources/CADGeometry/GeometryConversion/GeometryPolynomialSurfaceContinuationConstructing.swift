@@ -5,4 +5,10 @@ public protocol GeometryPolynomialSurfaceContinuationConstructing: Sendable {
         uDegree: Int, vDegree: Int,
         maximumSpanCount: Int, maximumControlPointCountPerAxis: Int
     ) throws -> CertifiedPolynomialSurfaceContinuationCandidate
+
+    func constructContinuationCandidate(
+        preparedRequest: PreparedPolynomialSurfaceContinuationPositionRequest,
+        uDegree: Int, vDegree: Int,
+        maximumSpanCount: Int, maximumControlPointCountPerAxis: Int
+    , using execution: inout OriginalQueryExecution) throws -> CertifiedPolynomialSurfaceContinuationCandidate
 }

@@ -71,15 +71,27 @@ rational and nonunit domains, resource failures and degenerate supports.
 Changes require rechecking surface-lift parameter-jet consumers and CADIR's
 continuity tolerance mapping.
 
-## Caller-Admitted Final Sources
+## Direct Original Query Execution
 
-The additive admission entry borrows one immutable `GeometryConversionAdmission`
-for preparation, every original closed query, coefficient algebra and temporary
-storage. Work callbacks count visits; storage callbacks receive bytes. Exact
-algebra retains UInt32 word slots and converts them to checked bytes, independently
-of spatial subdivision and source descent. The original chart producer's source
-ceiling of 16 is preserved by taking the minimum with the caller's source ceiling.
-The existing unbounded entry retains its compatibility contract.
+Ordinary parameter-curve and boundary entries create one independent execution
+and call the same direct body. Composition forwards that original `inout
+OriginalQueryExecution` through evaluation, differentiation, trimming, reversal,
+chart lifting and interval jets. This component does not capture a mutable
+execution in callbacks or create a child work/storage owner. Source/value/
+coefficient and geometric ceilings remain independent. The original chart
+producer's source ceiling of 16 remains an explicit local minimum.
+
+Concrete parameter-curve owners retain their authored parameter law and current
+guards. Dynamic polyline/control/sample arrays admit typed output storage before
+allocation and each actual traversal visits the original execution. Immutable
+source backing is borrowed or retained; a mutable result owns its charged output
+allocation. Native B-spline validation uses the same execution instead of the
+legacy cancellation-only scalar adapter.
+
+Unsupported original coverage and existing incomplete numerical chart proposals
+remain explicit. Direct accounting does not issue new source equality or chart
+coverage authority. Bounded source validation forwards primitive families to the
+main direct validation body; the main body never calls the bounded facade again.
 
 Each side retains a support-bound original UV chart and a prepared original
 surface. Singleton UV boxes remain singleton boxes; no nearby parameter substitutes
@@ -93,7 +105,7 @@ explicit failures at the caller's existing subdivision limits.
 The invocation admits its depth-bounded DFS buffer and fixed quantity buffers
 before allocation. No private aggregate budget or fitted support is introduced.
 CADIR's semantic continuity adapter and Modeling's final publication must forward
-the same admission; nonlinear coedge fraction composition remains owned by its
+the same execution; nonlinear coedge fraction composition remains owned by its
 original parameter-law producer.
 
 The bounded quantity evaluator scales each original tangent by a finite positive
@@ -103,3 +115,50 @@ ambient shape operator and its boundary derivative still represent the original
 physical law. This is an algebraic change of tangent basis, not a tolerance or
 source change, and prevents squaring the raw coordinate magnitude before
 normalization. Zero or unresolved regularity remains failure.
+
+
+Chart-lift translation has one direct core. Existing original endpoint boxes are
+transported outward and retained with their source/support; numerical lifts
+without boxes remain candidates without original authority. A strict original
+consumer requires the retained source, support and complete boxes at its own
+entry and rejects missing authority. Translation never reconstructs a proof
+from samples or silently drops existing boxes. Verification covers preservation
+and explicit refusal of a missing-proof candidate by the strict consumer.
+
+### Closed Parameter Loop Lift
+
+`SurfaceParameterLoopLift` composes chart topology and the original sample
+sequence under the same direct execution. Its ordinary constructor creates one
+root and calls that body. Repeated closure removal, singular-start rotation,
+periodic deltas, winding checks and singularity closure retain their existing
+mathematics and failure guards. Typed output and scratch arrays are admitted
+before materialization; each actual sample/singularity scan is charged to the
+same owner. A numerical sample lift remains a chart path, not an original
+boundary-identity certificate. Kernel materialization consumes this direct API.
+Focused tests cover the original nonperiodic loop, repeated closure, exact
+resource boundaries and cancellation through that actual constructor.
+
+The chart-topology initializer is fallible and shares its single proof/data
+construction body between ordinary and admitted callers. Recursive source
+periods and singular-value transport use the original admission; retained
+singular arrays are charged before construction. Consumers must propagate these
+resource failures rather than treating absent admission as a nonsingular chart.
+
+### Boundary Certifier Composition
+
+The ordinary boundary certifier creates one common execution and enters the same
+original-source body as the admitted `using:` entry. That entry lowers only the
+geometric request depth with an immutable contribution scope on the caller
+budget; independent value/coefficient limits are never derived from subdivision.
+Prepared sides retain immutable source/chart receipts and local source-depth
+policy, with no callback, admission adapter or mutable execution. Every quantity
+query borrows the original execution at its actual parent cell depth. Typed DFS
+and quantity buffers are admitted before allocation. Whole rectangular values,
+continuity-gated mean-value tightening, singleton authored UV boxes, reversed
+parameter/normal semantics and explicit unresolved-normal failure remain the
+single certification algorithm. Publication checks cancellation after all cells.
+
+The existing [SurfaceBoundaryCertificationTests](../../../Tests/CADGeometryTests/SurfaceBoundaryCertificationTests.swift)
+remain the mathematical oracle for ordinary and direct entry composition. Direct
+fixtures additionally verify ambient work accumulation, exact measured byte/work
+refusal and cancellation under the same common budget.

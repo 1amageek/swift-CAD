@@ -89,65 +89,126 @@ public struct BRepModel: Equatable, Sendable {
   }
   #endif
 
-  private var validationInvocation: OriginalBRepValidationInvocation {
-    OriginalBRepValidationInvocation(model: self)
+  package static func originalValidationExecution() throws -> OriginalQueryExecution {
+    OriginalQueryExecution(budget: try OriginalQueryBudget(),
+      limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32,
+        remainingSourceDepth: 16, maximumSubdivisionDepth: 32))
+  }
+
+  private func validationInvocation(using execution: borrowing OriginalQueryExecution)
+    -> OriginalBRepValidationInvocation {
+    let limits = execution.effectiveLimits
+    return OriginalBRepValidationInvocation(model: self,
+      maximumSubdivisionDepth: limits.maximumSubdivisionDepth,
+      remainingSourceDepth: limits.remainingSourceDepth,
+      maximumAlgebraicDepth: nil)
   }
 
   public func validate(tolerance: ModelingTolerance) throws {
-    try validationInvocation.validate(tolerance: tolerance)
+    var execution = try Self.originalValidationExecution()
+    try validate(tolerance: tolerance, using: &execution)
+  }
+
+  public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+    try validationInvocation(using: execution).validate(tolerance: tolerance, using: &execution)
   }
 
   public func validate(level: BRepValidationLevel, tolerance: ModelingTolerance) throws {
-    try validationInvocation.validate(level: level, tolerance: tolerance)
+    var execution = try Self.originalValidationExecution()
+    try validate(level: level, tolerance: tolerance, using: &execution)
   }
 
-  /// Validates original incidence and geometry on the composing caller allowance.
+  public func validate(level: BRepValidationLevel, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+    try validationInvocation(using: execution).validate(level: level, tolerance: tolerance, using: &execution)
+  }
+
+  public func diagnose(tolerance: ModelingTolerance) throws -> TopologyValidationReport {
+    var execution = try Self.originalValidationExecution()
+    return try diagnose(tolerance: tolerance, using: &execution)
+  }
+
+  public func diagnose(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> TopologyValidationReport {
+    return try validationInvocation(using: execution).diagnose(tolerance: tolerance, using: &execution)
+  }
+
+  public func validatePcurves(tolerance: ModelingTolerance) throws {
+    var execution = try Self.originalValidationExecution()
+    try validatePcurves(tolerance: tolerance, using: &execution)
+  }
+
+  public func validatePcurves(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+    try validationInvocation(using: execution).validatePcurves(tolerance: tolerance, using: &execution)
+  }
+
+  public func volume(tolerance: ModelingTolerance) throws -> Double {
+    var execution = try Self.originalValidationExecution()
+    return try volume(tolerance: tolerance, using: &execution)
+  }
+
+  public func volume(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Double {
+    return try validationInvocation(using: execution).volume(tolerance: tolerance, using: &execution)
+  }
+
+  public func volume(of bodyID: BodyID, tolerance: ModelingTolerance) throws -> Double {
+    var execution = try Self.originalValidationExecution()
+    return try volume(of: bodyID, tolerance: tolerance, using: &execution)
+  }
+
+  public func volume(of bodyID: BodyID, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Double {
+    return try validationInvocation(using: execution).volume(of: bodyID, tolerance: tolerance, using: &execution)
+  }
+
+  public func signedVolume(ofShell shellID: ShellID, tolerance: ModelingTolerance) throws -> Double {
+    var execution = try Self.originalValidationExecution()
+    return try signedVolume(ofShell: shellID, tolerance: tolerance, using: &execution)
+  }
+
+  public func signedVolume(ofShell shellID: ShellID, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Double {
+    return try validationInvocation(using: execution).signedVolume(ofShell: shellID, tolerance: tolerance, using: &execution)
+  }
+
+  func volumeAfterBaseValidation(tolerance: ModelingTolerance) throws -> Double {
+    var execution = try Self.originalValidationExecution()
+    return try volumeAfterBaseValidation(tolerance: tolerance, using: &execution)
+  }
+
+  func volumeAfterBaseValidation(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Double {
+    return try validationInvocation(using: execution).volumeAfterBaseValidation(tolerance: tolerance, using: &execution)
+  }
+
+  public func orderedVertexIDs(for loopID: LoopID) throws -> [VertexID] {
+    var execution = try Self.originalValidationExecution()
+    return try orderedVertexIDs(for: loopID, using: &execution)
+  }
+
+  public func orderedVertexIDs(for loopID: LoopID, using execution: inout OriginalQueryExecution) throws -> [VertexID] {
+    return try validationInvocation(using: execution).orderedVertexIDs(for: loopID, using: &execution)
+  }
+
+  public func orderedPoints(for loopID: LoopID) throws -> [Point3D] {
+    var execution = try Self.originalValidationExecution()
+    return try orderedPoints(for: loopID, using: &execution)
+  }
+
+  public func orderedPoints(for loopID: LoopID, using execution: inout OriginalQueryExecution) throws -> [Point3D] {
+    return try validationInvocation(using: execution).orderedPoints(for: loopID, using: &execution)
+  }
+
+  /// Validates original incidence and geometry on the composing caller execution.
   package func validate(level: BRepValidationLevel, tolerance: ModelingTolerance,
     maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
-    consumeWork: @escaping @Sendable () throws -> Void,
-    consumeStorage: (@Sendable (Int) throws -> Void)? = nil, maximumAlgebraicDepth: Int? = nil) throws {
+    maximumAlgebraicDepth: Int? = nil, using execution: inout OriginalQueryExecution) throws {
     guard maximumSubdivisionDepth >= 0, remainingSourceDepth >= 0,
-            maximumAlgebraicDepth.map({ (0...32).contains($0) }) ?? true else {
+      maximumAlgebraicDepth.map({ (0...32).contains($0) }) ?? true else {
       throw KernelError(phase: .topology, code: .invalidInput, tolerance: tolerance,
         message: "Bounded BRep validation requires nonnegative caller depths.")
     }
     try OriginalBRepValidationInvocation(model: self,
       maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
-      consumeWork: { _ in try consumeWork() }, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
-      .validate(level: level, tolerance: tolerance)
+      maximumAlgebraicDepth: maximumAlgebraicDepth)
+      .validate(level: level, tolerance: tolerance, using: &execution)
   }
 
-  public func diagnose(tolerance: ModelingTolerance) -> TopologyValidationReport {
-    validationInvocation.diagnose(tolerance: tolerance)
-  }
-
-  public func validatePcurves(tolerance: ModelingTolerance) throws {
-    try validationInvocation.validatePcurves(tolerance: tolerance)
-  }
-
-  public func volume(tolerance: ModelingTolerance) throws -> Double {
-    try validationInvocation.volume(tolerance: tolerance)
-  }
-
-  public func volume(of bodyID: BodyID, tolerance: ModelingTolerance) throws -> Double {
-    try validationInvocation.volume(of: bodyID, tolerance: tolerance)
-  }
-
-  public func signedVolume(ofShell shellID: ShellID, tolerance: ModelingTolerance) throws -> Double {
-    try validationInvocation.signedVolume(ofShell: shellID, tolerance: tolerance)
-  }
-
-  func volumeAfterBaseValidation(tolerance: ModelingTolerance) throws -> Double {
-    try validationInvocation.volumeAfterBaseValidation(tolerance: tolerance)
-  }
-
-  public func orderedVertexIDs(for loopID: LoopID) throws -> [VertexID] {
-    try validationInvocation.orderedVertexIDs(for: loopID)
-  }
-
-  public func orderedPoints(for loopID: LoopID) throws -> [Point3D] {
-    try validationInvocation.orderedPoints(for: loopID)
-  }
 }
 
 #if !hasFeature(Embedded)

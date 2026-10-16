@@ -27,7 +27,7 @@ package struct OriginalFiniteBranchClosure: Sendable {
     }
 
     /// Nil means this sufficient theorem was not proved; it is never absence.
-    package static func prepare<B: RationalAlgebraAdmitting>(partition: OriginalRationalIntersectionCells,
+    package static func prepare<B: ExactScalarAdmission & ~Copyable>(partition: OriginalRationalIntersectionCells,
         cellIndex: Int, maximumDepth: Int, usage: inout B) throws -> Self? {
         try intersectionAlgebraStep(&usage)
         guard partition.tower.hasThomEncoding, partition.tower.variableCount > 0,
@@ -147,7 +147,7 @@ package struct OriginalFiniteBranchClosure: Sendable {
         return Self(freeAxis: freeAxis, sectionWitnesses: witnesses, includedCells: included)
     }
 
-    private static func prepareAffinePrefix<B: RationalAlgebraAdmitting>(
+    private static func prepareAffinePrefix<B: ExactScalarAdmission & ~Copyable>(
         partition: OriginalRationalIntersectionCells, cellIndex: Int, sourcePath: [Int],
         maximumDepth: Int, usage: inout B) throws -> Self? {
         guard partition.coefficientVariableCount == 0 else { return nil }
@@ -286,7 +286,7 @@ package struct OriginalFiniteBranchClosure: Sendable {
             affinePrefix: .init(sourcePath: sourcePath, baseAxis: baseAxis, fibers: fibers))
     }
 
-    private static func path<B: RationalAlgebraAdmitting>(partition: OriginalRationalIntersectionCells,
+    private static func path<B: ExactScalarAdmission & ~Copyable>(partition: OriginalRationalIntersectionCells,
         cellIndex: Int, usage: inout B) throws -> [Int] {
         let count = partition.cells[cellIndex].coordinates.count
         guard count > 0, count <= partition.tower.variableCount else {

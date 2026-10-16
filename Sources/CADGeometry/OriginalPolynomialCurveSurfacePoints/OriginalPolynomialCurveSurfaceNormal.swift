@@ -1,6 +1,6 @@
 /// Original rational normal numerators, without a replacement surface or sampled fallback.
 enum OriginalPolynomialCurveSurfaceNormal {
-    static func prepare<B: RationalAlgebraAdmitting>(homogeneous h: [ExactBivariatePolynomial],
+    static func prepare<B: ExactScalarAdmission & ~Copyable>(homogeneous h: [ExactBivariatePolynomial],
         usage: inout B) throws -> [ExactBivariatePolynomial] {
         guard h.count == 4 else { throw rationalAlgebraFailure("An original normal requires the complete homogeneous law.") }
         let wu = try h[3].differentiated(alongU: true, usage: &usage)

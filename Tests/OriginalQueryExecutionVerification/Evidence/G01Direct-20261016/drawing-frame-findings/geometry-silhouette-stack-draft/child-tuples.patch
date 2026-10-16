@@ -1,0 +1,73 @@
+--- a/Sources/CADGeometry/SurfaceSilhouette/DefaultSurfaceSilhouetteProducer.swift
++++ b/Sources/CADGeometry/SurfaceSilhouette/DefaultSurfaceSilhouetteProducer.swift
+@@ -467,6 +467,15 @@
+     }
+ 
+     @inline(never)
++    private func appendSubdivision(
++        cell: inout Pending, tolerance: ModelingTolerance, pending: inout [Pending],
++        using execution: inout OriginalQueryExecution
++    ) throws {
++        let children = try subdivision(cell, tolerance: tolerance, using: &execution)
++        pending.append(children.0); pending.append(children.1)
++    }
++
++    @inline(never)
+     private func processCell(
+         cell: inout Pending, domain: SurfaceParameterBox, tolerance: ModelingTolerance,
+         sourceAuthority: SurfaceSilhouetteSourcePreparation, pending: inout [Pending],
+@@ -484,8 +493,7 @@
+         try execution.visitSilhouetteCell(depth: cell.depth)
+         if cell.field.hasNativeParallelMetric,
+             try cell.field.nativeParallelAdmission(over: cell.box, usage: &execution) == nil {
+-            let children = try subdivision(cell, tolerance: tolerance, using: &execution)
+-            pending.append(children.0); pending.append(children.1)
++            try appendSubdivision(cell: &cell, tolerance: tolerance, pending: &pending, using: &execution)
+             return
+         }
+         let original = try cell.field.evaluate(over: cell.box, usage: &execution)
+@@ -497,8 +505,7 @@
+             // and collapsed metric factors require their own original
+             // regularity authority in this public drawing traversal. Base
+             // zero-law exclusions cannot authorize these unresolved cells.
+-            let children = try subdivision(cell, tolerance: tolerance, using: &execution)
+-            pending.append(children.0); pending.append(children.1)
++            try appendSubdivision(cell: &cell, tolerance: tolerance, pending: &pending, using: &execution)
+             return
+         }
+         if f.value.excludesZero {
+@@ -508,8 +515,7 @@
+         if cell.field.zeroSetAuthority?.original.isZero == true || cell.field.fieldZeroSetAuthority?.original.isZero == true {
+             if regular { try RationalAlgebraStorage.retain(1, of: SurfaceParameterBox.self, usage: &execution); coincident.append(cell.box) }
+             else {
+-                let children = try subdivision(cell, tolerance: tolerance, using: &execution)
+-                pending.append(children.0); pending.append(children.1)
++                try appendSubdivision(cell: &cell, tolerance: tolerance, pending: &pending, using: &execution)
+             }
+             return
+         }
+@@ -531,8 +537,7 @@
+         let determinant = f.uu * f.vv - f.uv * f.uv
+         if try criticalPoints(cell: &cell, regular: regular, f: f, domain: domain, tolerance: tolerance, pending: &pending, curves: &curves, excluded: &excluded, coincident: &coincident, contacts: &contacts, algebraicContacts: &algebraicContacts, originalPlaneAtlases: &originalPlaneAtlases, determinant: determinant, criticalSourceCache: &criticalSourceCache, using: &execution) { return }
+         if try monotoneGraph(cell: &cell, regular: regular, f: f, domain: domain, tolerance: tolerance, pending: &pending, curves: &curves, excluded: &excluded, coincident: &coincident, contacts: &contacts, algebraicContacts: &algebraicContacts, originalPlaneAtlases: &originalPlaneAtlases, using: &execution) { return }
+-        let children = try subdivision(cell, tolerance: tolerance, using: &execution)
+-        pending.append(children.0); pending.append(children.1)
++        try appendSubdivision(cell: &cell, tolerance: tolerance, pending: &pending, using: &execution)
+     }
+ 
+     @inline(never)
+--- a/Sources/CADGeometry/SurfaceSilhouette/DESIGN.md
++++ b/Sources/CADGeometry/SurfaceSilhouette/DESIGN.md
+@@ -743,3 +743,12 @@
+ Verification uses the actual Drawing caller/unchanged input on that worker and
+ checks the new accepted native prologues; thread stack size, actors and query
+ ceilings are not substitutes for this responsibility split.
++
++The one-cell dispatcher delegates each of its four existing subdivision sites to
++a private non-inlined append scope. That scope owns exactly the former returned
++child pair and the two ordered pending appends, borrowing the same cell, pending
++array and execution. Scalar-excluded cells therefore do not reserve unused child
++pair temporaries in their dispatcher frame. No child, depth, source field, work
++or storage operation is added or removed from an executed subdivision. The
++measured dispatcher frame and full worker call chain, followed by the unchanged
++Drawing cases, own validation of this mechanical adjustment.

@@ -19,6 +19,7 @@ public struct CurveSurfaceOverlap: Sendable {
     init(curve: Curve3D, surface: Surface3D, range: ScalarInterval, deviation: Double,
          options: CurveSurfaceIntersectionOptions, tolerance: ModelingTolerance,
          isoparametric: OverlapIsoparametricCorrespondence? = nil) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
         self.curve = curve
         self.surface = surface
         self.tolerance = tolerance
@@ -30,14 +31,14 @@ public struct CurveSurfaceOverlap: Sendable {
         uRange = options.surfaceURange
         vRange = options.surfaceVRange
         start = try Self.evaluate(curve: curve, surface: surface, parameter: range.lower,
-                                  uRange: uRange, vRange: vRange, tolerance: tolerance, isoparametric: isoparametric)
+                                  uRange: uRange, vRange: vRange, tolerance: tolerance, isoparametric: isoparametric, using: &execution)
         end = try Self.evaluate(curve: curve, surface: surface, parameter: range.upper,
-                                uRange: uRange, vRange: vRange, tolerance: tolerance, isoparametric: isoparametric)
+                                uRange: uRange, vRange: vRange, tolerance: tolerance, isoparametric: isoparametric, using: &execution)
     }
 
     init(curve: Curve3D, surface: Surface3D, range: ScalarInterval, deviation: Double,
          options: CurveSurfaceIntersectionOptions, tolerance: ModelingTolerance,
-         graph: OverlapRegularGraphCorrespondence, budget: inout OverlapProofBudget) throws {
+         graph: OverlapRegularGraphCorrespondence, policy: OverlapProofPolicy, using execution: inout OriginalQueryExecution) throws {
         guard graph.root.curve.curve == curve, graph.root.originalSurface == surface,
               graph.range.contains(range.lower), graph.range.contains(range.upper) else {
             throw KernelError(phase: .geometry, code: .intersectionFailure, tolerance: tolerance,
@@ -54,22 +55,22 @@ public struct CurveSurfaceOverlap: Sendable {
         uRange = options.surfaceURange
         vRange = options.surfaceVRange
         start = try Self.evaluate(curve: curve, surface: surface, parameter: range.lower,
-            uRange: uRange, vRange: vRange, tolerance: tolerance, graph: graph, budget: &budget)
+            uRange: uRange, vRange: vRange, tolerance: tolerance, graph: graph, policy: policy, using: &execution)
         end = try Self.evaluate(curve: curve, surface: surface, parameter: range.upper,
-            uRange: uRange, vRange: vRange, tolerance: tolerance, graph: graph, budget: &budget)
+            uRange: uRange, vRange: vRange, tolerance: tolerance, graph: graph, policy: policy, using: &execution)
     }
 
-    init(original: OriginalNativePlaneOverlapCorrespondence) throws {
+    init(original: OriginalNativePlaneOverlapCorrespondence, using execution: inout OriginalQueryExecution) throws {
         originalPlane = original
         curve = original.sector.traversal.source
         surface = .plane(original.sector.plane)
         tolerance = original.tolerance
         graph = nil; isoparametric = nil
         uRange = original.options.surfaceURange; vRange = original.options.surfaceVRange
-        curveRange = try original.sourceBounds()
+        curveRange = try original.sourceBounds(using: &execution)
         maximumSpatialDeviation = 0
-        start = try original.endpoint(at: 0)
-        end = try original.endpoint(at: 1)
+        start = try original.endpoint(at: 0, using: &execution)
+        end = try original.endpoint(at: 1, using: &execution)
     }
 
     /// Evaluates the original normalized traversal, including algebraic ends.
@@ -87,6 +88,7 @@ public struct CurveSurfaceOverlap: Sendable {
     /// Evaluates owned correspondence in the certified range, including its endpoints.
     /// Coordinates use the requested periodic representative or the canonical chart.
     public func correspondence(at curveParameter: Double) throws -> CurveSurfaceOverlapEndpoint {
+        var execution = try OriginalQueryExecution.independentGeometry()
         try CurrentTaskCancellationChecker().checkCancellation()
         if originalPlane != nil {
             // FIXME(INCOMPLETE_IMPLEMENTATION): Native parameter inversion for
@@ -100,42 +102,42 @@ public struct CurveSurfaceOverlap: Sendable {
                               message: "Overlap correspondence requires a parameter inside its certified source interval.")
         }
         if let graph {
-            var budget = OverlapProofBudget(options: graph.options, tolerance: tolerance)
+            let policy = try OverlapProofPolicy(options: graph.options, tolerance: tolerance, using: &execution)
             return try Self.evaluate(curve: curve, surface: surface, parameter: curveParameter,
-                uRange: uRange, vRange: vRange, tolerance: tolerance, graph: graph, budget: &budget)
+                uRange: uRange, vRange: vRange, tolerance: tolerance, graph: graph, policy: policy, using: &execution)
         }
         return try Self.evaluate(curve: curve, surface: surface, parameter: curveParameter,
-                                 uRange: uRange, vRange: vRange, tolerance: tolerance, isoparametric: isoparametric)
+                                 uRange: uRange, vRange: vRange, tolerance: tolerance, isoparametric: isoparametric, using: &execution)
     }
 
     static func evaluate(curve: Curve3D, surface: Surface3D, parameter: Double,
                          uRange: ScalarInterval?, vRange: ScalarInterval?, tolerance: ModelingTolerance,
-                         isoparametric: OverlapIsoparametricCorrespondence? = nil) throws -> CurveSurfaceOverlapEndpoint {
-        let point = try curve.point(at: parameter, tolerance: tolerance)
+                         isoparametric: OverlapIsoparametricCorrespondence? = nil, using execution: inout OriginalQueryExecution) throws -> CurveSurfaceOverlapEndpoint {
+        let point = try curve.point(at: parameter, tolerance: tolerance, using: &execution)
         let raw: SurfaceParameter
         if let isoparametric {
             raw = isoparametric.parameter(at: parameter)
         } else if case let .surfaceLift(lift) = curve, lift.surface == surface {
-            raw = try lift.parameterCurve.parameter(atNormalizedFraction: parameter, tolerance: tolerance)
+            raw = try lift.parameterCurve.parameter(atNormalizedFraction: parameter, tolerance: tolerance, using: &execution)
         } else {
-            let projection = try surface.parameterProjection(of: point, tolerance: tolerance)
+            let projection = try surface.parameterProjection(of: point, tolerance: tolerance, using: &execution)
             raw = SurfaceParameter(u: projection.u, v: projection.v)
         }
         return try evaluated(point: point, raw: raw, surface: surface, parameter: parameter,
-            uRange: uRange, vRange: vRange, tolerance: tolerance)
+            uRange: uRange, vRange: vRange, tolerance: tolerance, using: &execution)
     }
 
     static func evaluate(curve: Curve3D, surface: Surface3D, parameter: Double,
                          uRange: ScalarInterval?, vRange: ScalarInterval?, tolerance: ModelingTolerance,
-                         graph: OverlapRegularGraphCorrespondence, budget: inout OverlapProofBudget) throws -> CurveSurfaceOverlapEndpoint {
-        let raw = try graph.parameter(at: parameter, budget: &budget)
-        let point = try curve.point(at: parameter, tolerance: tolerance)
+                         graph: OverlapRegularGraphCorrespondence, policy: OverlapProofPolicy, using execution: inout OriginalQueryExecution) throws -> CurveSurfaceOverlapEndpoint {
+        let raw = try graph.parameter(at: parameter, policy: policy, using: &execution)
+        let point = try curve.point(at: parameter, tolerance: tolerance, using: &execution)
         return try evaluated(point: point, raw: raw, surface: surface, parameter: parameter,
-            uRange: uRange, vRange: vRange, tolerance: tolerance)
+            uRange: uRange, vRange: vRange, tolerance: tolerance, using: &execution)
     }
 
     private static func evaluated(point: Point3D, raw: SurfaceParameter, surface: Surface3D, parameter: Double,
-                                  uRange: ScalarInterval?, vRange: ScalarInterval?, tolerance: ModelingTolerance) throws -> CurveSurfaceOverlapEndpoint {
+                                  uRange: ScalarInterval?, vRange: ScalarInterval?, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> CurveSurfaceOverlapEndpoint {
         let resolver = SurfaceParameterRangeResolver()
         guard let u = resolver.resolvedParameter(raw.u, domain: surface.uDomain, requestedRange: uRange, tolerance: tolerance),
               let v = resolver.resolvedParameter(raw.v, domain: surface.vDomain, requestedRange: vRange, tolerance: tolerance) else {
@@ -143,7 +145,7 @@ public struct CurveSurfaceOverlap: Sendable {
                               message: "Overlap correspondence lies outside the requested target chart ranges.")
         }
         let chartParameter = SurfaceParameter(u: u, v: v)
-        let targetPoint = try surface.point(u: u, v: v, tolerance: tolerance)
+        let targetPoint = try surface.point(u: u, v: v, tolerance: tolerance, using: &execution)
         let residual = (point - targetPoint).length
         guard residual.isFinite, residual <= tolerance.distance else {
             throw KernelError(phase: .geometry, code: .intersectionFailure, residual: residual, tolerance: tolerance,
@@ -151,6 +153,6 @@ public struct CurveSurfaceOverlap: Sendable {
         }
         return CurveSurfaceOverlapEndpoint(curveParameter: parameter,
                                           point: point, surfaceParameter: chartParameter, residual: residual,
-                                          isSurfaceChartSingular: SurfaceParameterTopology(surface: surface).isUSingular(chartParameter, tolerance: tolerance))
+                                          isSurfaceChartSingular: try SurfaceParameterTopology(surface: surface, using: &execution).isUSingular(chartParameter, tolerance: tolerance, using: &execution))
     }
 }

@@ -9,13 +9,13 @@ struct SurfaceSilhouetteSourcePreparation: Sendable {
     let nativeTolerance: ModelingTolerance
 
     init(original: Surface3D, tolerance: ModelingTolerance,
-         usage: inout SurfaceSilhouetteUsage) throws {
+         usage: inout OriginalQueryExecution) throws {
         var current = original
         var distances: [Double] = []
         var depth = 0
         while case let .procedural(.offset(offset)) = current {
             depth = try rationalAlgebraCount(depth, 1)
-            try usage.consumeSourceVisit(depth: depth)
+            try usage.visitSilhouetteSource(depth: depth)
             if offset.distance != 0 {
                 try RationalAlgebraStorage.retain(1, of: Double.self, usage: &usage)
                 distances.append(offset.distance)
@@ -25,7 +25,7 @@ struct SurfaceSilhouetteSourcePreparation: Sendable {
         // Admit the complete source chain before the existing recursive exact
         // chart reducer inspects it. Do not repeat that full scan per layer.
         if case let .procedural(.offset(offset)) = original {
-            try GeometryStructuralComparisonWork.charge(surface: original, using: { try usage.consumeWork($0) })
+            try GeometryStructuralComparisonWork.charge(surface: original, using: &usage)
             if let equivalent = try offset.exactChartPreservingSurface(tolerance: tolerance) {
                 current = equivalent
                 distances.removeAll(keepingCapacity: false)
@@ -40,10 +40,8 @@ struct SurfaceSilhouetteSourcePreparation: Sendable {
         if distances.isEmpty {
             while case let .procedural(.originalAffineWord(image)) = nativeCandidate {
                 depth = try rationalAlgebraCount(depth, 1)
-                try usage.consumeSourceVisit(depth: depth)
-                localTolerance = try image.sourceCalculationTolerance(tolerance: localTolerance,
-                    consumeWork: { try usage.consumeWork() },
-                    consumeStorage: usage.preparationStorageCallback)
+                try usage.visitSilhouetteSource(depth: depth)
+                localTolerance = try image.sourceCalculationTolerance(tolerance: localTolerance, using: &usage)
                 try RationalAlgebraStorage.retain(1, of: OriginalAffineWordSurface3D.self, usage: &usage)
                 images.append(image); nativeCandidate = image.source
             }
@@ -51,19 +49,19 @@ struct SurfaceSilhouetteSourcePreparation: Sendable {
         nativeWordImages = images; nativeTolerance = localTolerance
         if case let .bSpline(native) = nativeCandidate { nativeSource = native }
         else if case let .procedural(.ruled(ruled)) = nativeCandidate {
-            try GeometryStructuralComparisonWork.charge(surface: nativeCandidate, using: { try usage.consumeWork($0) })
+            try GeometryStructuralComparisonWork.charge(surface: nativeCandidate, using: &usage)
             // Reuse the existing original same-denominator tensor authority and
             // its unchanged finite control ceiling. The rows retain both original
             // rail buffers; no degree, weights, parameter or control is fitted.
-            try usage.retain(4)
+            try RationalAlgebraStorage.retain(4, of: UInt32.self, usage: &usage)
             nativeSource = try SurfaceAreaRuledTensorAuthority(original: ruled,
-                maximumControlPointCount: 1_048_576, tolerance: localTolerance)?.tensor
+                maximumControlPointCount: 1_048_576, tolerance: localTolerance, using: &usage)?.tensor
         } else { nativeSource = nil }
         distances.reverse()
         offsetDistances = distances
     }
     func writeOriginalProvenance(to emitter: inout SurfaceSilhouetteProvenanceEmitter,
-        usage: inout SurfaceSilhouetteUsage) throws {
+        usage: inout OriginalQueryExecution) throws {
         try emitter.emit(.beginRecord(type: "sourcePreparation"), usage: &usage)
         try emitter.field("source", usage: &usage); try emitter.write(source, usage: &usage)
         try emitter.field("nativeSource", usage: &usage)

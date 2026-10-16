@@ -27,7 +27,7 @@ Both original boundaries classified as boundary are only a coincidence candidate
 For coincident volumes, union and intersection retain one tool representative. If another target already contains that representative, union retains the containing target instead. Difference removes coincident targets and reverses the tool only when another retained target contains it. Slice retains its original target partition contract. A retained coincident tool representative merges face, edge, vertex and body parents from every coincident target. Its original shell grouping and orientations are unchanged.
 
 ## State, Ownership, and Lifecycle
-All source values are immutable; relation lists, copied patches and merged correspondence belong to one invocation. Common Sendable value and synchronization contracts are unchanged on all targets. Existing source-copy, correspondence and sewing policies retain their individual allowances; this consumer declares no new whole-Boolean ledger.
+All source values are immutable; relation lists, copied patches and merged correspondence belong to one invocation. Common Sendable value and synchronization contracts are unchanged on all targets. Source-copy, correspondence and sewing operations borrow the incoming OriginalQueryExecution and apply their existing independent local limits. This consumer creates no replacement allowance or budget.
 
 ## Failure, Concurrency, and Constraints
 A missing source, unresolved original correspondence, unsupported repartition, inconsistent relation or empty material result is a typed failure. A union of proven identical volumes is not an empty result. Vertex agreement and support coincidence alone cannot authorize publication.

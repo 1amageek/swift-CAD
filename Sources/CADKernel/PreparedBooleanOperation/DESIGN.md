@@ -95,3 +95,21 @@ reject this representation until original relation/material refinement is
 connected; this gate preserves authority and does not complete clipping or
 Boolean acceptance. Geometric publication is owned by the
 [Geometry producer](../../CADGeometry/NativeExactGeometricRelations/DESIGN.md).
+
+## Canonical retained Boolean caller owner
+
+Preparation and direct graph consumers borrow one OriginalQueryExecution. The
+immutable prepared operation retains its original cumulative budget, effective
+limits, active contribution handles and attained preparation depth. Its readers
+preflight independent source/scalar/geometric/transport ceilings before paid
+reattachment, re-enter applicable contribution scopes around the entire actual
+consumer body, re-admit retained preparation, and check final cancellation.
+A retained operation never creates a fresh budget or loses selected cumulative
+work/storage contributions after preparation scope exit. This required caller
+binding does not issue missing Boolean history or new source-family proofs.
+
+[PreparedBooleanContributionBindingTests](../../../Tests/CADKernelTests/PreparedBooleanContributionBindingTests.swift)
+checks the retained contribution scope around an actual reader body, same-budget
+source refusal before reattachment storage, and selected work/storage refusal
+after preparation scope exit. These owner tests assert no geometric Boolean
+certificate or source-family completion; candidate execution remains pending.

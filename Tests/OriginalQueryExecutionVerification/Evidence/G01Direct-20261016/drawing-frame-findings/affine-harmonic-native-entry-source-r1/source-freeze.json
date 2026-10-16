@@ -1,0 +1,22 @@
+{
+  "scope": "Bare Native B-spline harmonic-adapter nil path frame separation only; no runtime/whole-family success claim.",
+  "files": [
+    {
+      "root": "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD",
+      "oldSourceSHA256": "c03384e73b6476e0eb5f39b04f234b18b76dcdd88b15ee454bc722ccd2021541",
+      "newSourceSHA256": "480784e6a6d1c9d392c2d8a572f8889c750bc8de83c4709fbd0703b8180dd9d9",
+      "designSHA256": "293c8e83dd302d0581439f2c3f350580d57b37a43fa339c39906d022b24a6fd0"
+    },
+    {
+      "root": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD",
+      "oldSourceSHA256": "c03384e73b6476e0eb5f39b04f234b18b76dcdd88b15ee454bc722ccd2021541",
+      "newSourceSHA256": "480784e6a6d1c9d392c2d8a572f8889c750bc8de83c4709fbd0703b8180dd9d9",
+      "designSHA256": "293c8e83dd302d0581439f2c3f350580d57b37a43fa339c39906d022b24a6fd0"
+    }
+  ],
+  "sourcePath": "Sources/CADGeometry/OriginalAffineImage/OriginalAffineWordHarmonicSurfaceCoefficients.swift",
+  "inverseProof": "Replacing only the new thin-entry/private-function prefix with the old prepare signature reconstructs the entire original file byte-for-byte (c03384e73b6476e0eb5f39b04f234b18b76dcdd88b15ee454bc722ccd2021541). The full old preparation body, all non-Native/wrapper behavior and recursive prepare calls are unchanged.",
+  "nativeSemantics": "Original bare B-spline image pattern miss -> intrinsic U/V -> validate U then V -> unsupported primitive default nil. Thin path calls precisely the same intrinsic validate twice, each one consumeWork(1), preserving same admission and cancellation.",
+  "callerBoundary": "OriginalAffineWordSurface3D.validateOriginalRelation retains coefficient-proof readmission, remainingSourceDepth guard and operationWord validation before prepare; nil still proceeds to physical sourceTolerance and source.validateOriginalSource.",
+  "verification": "No compiler/fixture added. Actual Native prologue and placed Drawing/resource/cancellation verification pending Root."
+}

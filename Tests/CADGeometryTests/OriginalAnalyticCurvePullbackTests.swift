@@ -17,24 +17,24 @@ struct OriginalAnalyticCurvePullbackTests {
         var spent: (work: Int, storage: Int, storageCalls: Int, cells: Int) {
             state.withLock { ($0.work, $0.storage, $0.storageCalls, $0.cells) }
         }
-        var usage: OriginalRelationUsage {
-            .init(consumeWork: { count in
+        var usage: GeometryTestScalarRecorder {
+            .init(maximumValueDepth: 24, maximumCoefficientDepth: 24, observeWork: { count in
                 try self.state.withLock { state in
                     guard count <= self.maximumWork - state.work else { throw Self.exhausted() }
                     state.work += count
                 }
-            }, retainStorage: { count in
+            }, observeStorageWords: { count in
                 let cancel = try self.state.withLock { state in
                     guard count <= self.maximumStorage - state.storage else { throw Self.exhausted() }
                     state.storage += count; state.storageCalls += 1
                     return state.storageCalls == self.cancelAtStorageCall
                 }
                 if cancel { withUnsafeCurrentTask { $0?.cancel() } }
-            }, visitCell: { depth in
+            }, observeValueCell: { depth in
                 try self.state.withLock { state in
                     guard depth <= 24 else { throw Self.exhausted() }; state.cells += 1
                 }
-            }, visitCoefficientCell: { _ in
+            }, observeCoefficientCell: { _ in
                 Issue.record("Direct rational analytic preparation cannot invent coefficient roots.")
                 throw Self.exhausted()
             })
@@ -56,21 +56,21 @@ struct OriginalAnalyticCurvePullbackTests {
         weights: [Double] = [1, 1]) -> BSplineCurve3D {
         .init(degree: 1, knots: [lower, lower, upper, upper], controlPoints: [a, b], weights: weights)
     }
-    private func law(_ source: BSplineCurve3D, usage: inout OriginalRelationUsage)
+    private func law(_ source: BSplineCurve3D, usage: inout GeometryTestScalarRecorder)
         throws -> OriginalRationalCurvePolynomial {
         try .init(source: source, spanIndex: source.degree, tolerance: tolerance, usage: &usage)
     }
     private func receipt(_ surface: AnalyticSurface3D, _ source: BSplineCurve3D,
-        usage: inout OriginalRelationUsage) throws -> OriginalAnalyticCurvePullback {
+        usage: inout GeometryTestScalarRecorder) throws -> OriginalAnalyticCurvePullback {
         try .init(surface: surface, curve: law(source, usage: &usage), tolerance: tolerance, usage: &usage)
     }
-    private func decompose(_ pullback: OriginalAnalyticCurvePullback, usage: inout OriginalRelationUsage)
+    private func decompose(_ pullback: OriginalAnalyticCurvePullback, usage: inout GeometryTestScalarRecorder)
         throws -> OriginalRealRelation {
         try resolver.decompose(pullback.relation(usage: &usage), maximumDepth: 24,
-            maximumCoefficientDepth: 0, usage: usage)
+            maximumCoefficientDepth: 0, usage: &usage)
     }
     private func rational(_ numerator: Double, _ denominator: Double = 1,
-        usage: inout OriginalRelationUsage) throws -> ExactRationalCoefficient {
+        usage: inout GeometryTestScalarRecorder) throws -> ExactRationalCoefficient {
         try .originalDouble(numerator, usage: &usage).divided(by: .originalDouble(denominator, usage: &usage), usage: &usage)
     }
 
@@ -93,8 +93,8 @@ struct OriginalAnalyticCurvePullbackTests {
         #expect(pullback.domain.upper == (try rational(4, usage: &usage)))
         let result = try decompose(pullback, usage: &usage)
         #expect(result.cells.count == 1 && result.components.count == 1)
-        #expect(try result.contains(rationalPoint: [.one], maximumDepth: 24, maximumCoefficientDepth: 0, usage: usage))
-        #expect(try !result.contains(rationalPoint: [.zero], maximumDepth: 24, maximumCoefficientDepth: 0, usage: usage))
+        #expect(try result.contains(rationalPoint: [.one], maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage))
+        #expect(try !result.contains(rationalPoint: [.zero], maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage))
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -121,7 +121,7 @@ struct OriginalAnalyticCurvePullbackTests {
         let result = try decompose(pullback, usage: &usage)
         #expect(result.cells.count == 1 && result.cells[0].dimension == 0)
         #expect(try result.contains(rationalPoint: [rational(3, usage: &usage)],
-            maximumDepth: 24, maximumCoefficientDepth: 0, usage: usage))
+            maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage))
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -138,10 +138,10 @@ struct OriginalAnalyticCurvePullbackTests {
         #expect(result.cells.count == 4 && result.components.count == 4)
         for numerator in [1.0, 3, 5, 7] {
             #expect(try result.contains(rationalPoint: [rational(numerator, 8, usage: &usage)],
-                maximumDepth: 24, maximumCoefficientDepth: 0, usage: usage))
+                maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage))
         }
         #expect(try !result.contains(rationalPoint: [rational(1, 2, usage: &usage)],
-            maximumDepth: 24, maximumCoefficientDepth: 0, usage: usage))
+            maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage))
         let tangent = try receipt(surfaces[2], line(.init(x: 1, y: 0, z: 1), .init(x: 3, y: 0, z: 1)), usage: &usage)
         let tx2 = try tangent.curve.homogeneous[0].multiplied(by: tangent.curve.homogeneous[0], usage: &usage)
             .subtracting(.constant(rational(4, usage: &usage), usage: &usage), usage: &usage)
@@ -149,7 +149,7 @@ struct OriginalAnalyticCurvePullbackTests {
         let roots = try decompose(tangent, usage: &usage)
         #expect(roots.cells.count == 1 && roots.components.count == 1)
         #expect(try roots.contains(rationalPoint: [rational(1, 2, usage: &usage)],
-            maximumDepth: 24, maximumCoefficientDepth: 0, usage: usage))
+            maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage))
     }
 
     @Test(.timeLimit(.minutes(1)), arguments: [0, 1, 2])
@@ -174,10 +174,10 @@ struct OriginalAnalyticCurvePullbackTests {
         let result = try decompose(pullback, usage: &usage)
         #expect(result.components.count == 1 && result.components[0].dimension == 1)
         for station in [ExactRationalCoefficient.zero, .one] {
-            #expect(try result.contains(rationalPoint: [station], maximumDepth: 24, maximumCoefficientDepth: 0, usage: usage))
+            #expect(try result.contains(rationalPoint: [station], maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage))
         }
         #expect(try !result.contains(rationalPoint: [rational(2, usage: &usage)], maximumDepth: 24,
-            maximumCoefficientDepth: 0, usage: usage))
+            maximumCoefficientDepth: 0, usage: &usage))
     }
 
     @Test(.timeLimit(.minutes(1)), arguments: [1, 2])
@@ -255,8 +255,10 @@ struct OriginalAnalyticCurvePullbackTests {
             _ = try OriginalAnalyticCurvePullback(surface: .cone(apex: .origin, axis: .unitZ, halfAngle: .pi / 4),
                 curve: native, tolerance: tolerance, usage: &usage)
             Issue.record("Physical-radian cone slope must not become a rounded rational coefficient.")
-        } catch let error as KernelError { #expect(error.code == .unsupportedCapability) }
-        #expect(throws: KernelError.self) {
+        } catch let caught where geometryTestKernelFailure(caught) != nil {
+            let error = geometryTestKernelFailure(caught)!
+            #expect(error.code == .unsupportedCapability) }
+        geometryTestExpectFailure({ geometryTestKernelFailure($0) != nil }) {
             try OriginalAnalyticCurvePullback(surface: .sphere(center: .origin, radius: 1), curve: native,
                 tolerance: tolerance, usage: &usage)
         }
@@ -282,7 +284,7 @@ struct OriginalAnalyticCurvePullbackTests {
             tolerance: tolerance, usage: &exactUsage).equation == pullback.equation)
         for budget in [Budget(work: measured.spent.work - 1), Budget(storage: measured.spent.storage - 1)] {
             var usage = budget.usage
-            #expect(throws: KernelError.self) {
+            geometryTestExpectFailure({ geometryTestKernelFailure($0) != nil }) {
                 try OriginalAnalyticCurvePullback(surface: surfaces[family], curve: native, tolerance: tolerance, usage: &usage)
             }
         }
@@ -292,7 +294,7 @@ struct OriginalAnalyticCurvePullbackTests {
         #expect(try pullback.relation(usage: &exactAdapterUsage).polynomials.count == 2)
         for budget in [Budget(work: adapter.spent.work - 1), Budget(storage: adapter.spent.storage - 1)] {
             var usage = budget.usage
-            #expect(throws: KernelError.self) { try pullback.relation(usage: &usage) }
+            geometryTestExpectFailure({ geometryTestKernelFailure($0) != nil }) { try pullback.relation(usage: &usage) }
         }
     }
 
@@ -316,7 +318,7 @@ struct OriginalAnalyticCurvePullbackTests {
                         else { _ = try OriginalAnalyticCurvePullback(surface: surface, curve: native,
                             tolerance: tolerance, usage: &operation) }
                         return false
-                    } catch is CancellationError { return true }
+                    } catch where geometryTestIsCancelled(error) { return true }
                 }.value
                 #expect(cancelled)
                 if atEntry { #expect(budget.spent.work == 0 && budget.spent.storage == 0) }

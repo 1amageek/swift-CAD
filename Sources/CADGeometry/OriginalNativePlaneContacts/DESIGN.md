@@ -80,3 +80,13 @@ After all source implementation, exercise repeated/tangent roots, both closed
 endpoints, adjacent/discontinuous owners, nonorthogonal authored U, complete
 positive intervals, reversed trim consumption, exhausted work/bytes and separate
 zero source/spatial/algebra policies through the actual public dispatcher.
+
+## Direct Execution Admission
+
+Source arithmetic borrows `A: ExactScalarAdmission & ~Copyable`; composed query
+operations borrow `inout OriginalQueryExecution`. Source validation, native span
+validation, structural comparisons and exact refinement receive that same admission.
+The [execution owner](../OriginalQueryExecution/DESIGN.md) defines cumulative
+work and actual byte accounting, independent depth axes, cancellation and lexical
+proof scopes. Retained geometry and relation evidence stay immutable; no callback
+adapter, copied counter or second allowance supplies arithmetic authority.

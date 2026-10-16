@@ -2,13 +2,13 @@ import CADCore
 
 extension OriginalAffineOperationWord {
     /// Inverts the original operation directions and exact derived action, never rounded columns.
-    public func inverted<B: RationalAlgebraAdmitting>(tolerance: ModelingTolerance,
+    public func inverted<B: ExactScalarAdmission & ~Copyable>(tolerance: ModelingTolerance,
         maximumDepth: Int, usage: inout B) throws -> Self {
         try validateOriginal(tolerance: tolerance, maximumDepth: maximumDepth, usage: &usage)
         try OriginalAffineRationalMatrix.retain(factors.count, of: OriginalAffineOperation.self, usage: &usage)
         var inverseFactors: [OriginalAffineOperation] = []; inverseFactors.reserveCapacity(factors.count)
         for factor in factors.reversed() {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             switch factor {
             case .forward(let source): inverseFactors.append(.inverse(source))
             case .inverse(let source): inverseFactors.append(.forward(source))

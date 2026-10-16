@@ -66,27 +66,27 @@ package struct PipeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluati
             throw failure(.invalidInput, feature.id, tolerance, "A pipe along a closed path runs within it, from 0 to 1.")
         }
         let sourceBudget = try CurvedSweepSourceBudget(tolerance: tolerance)
-        let admission = try sourceBudget.conversionAdmission()
-        let wholeSpans = try ExactBSplineCurveSpanBuilder(tolerance: tolerance, admission: admission).pathSpans(from: segments, allowsClosed: chain.isClosed)
+        var execution = try sourceBudget.execution()
+        let wholeSpans = try ExactBSplineCurveSpanBuilder(tolerance: tolerance, using: &execution).pathSpans(from: segments, allowsClosed: chain.isClosed, using: &execution)
         let spans = chain.isClosed && start == 0 && end == 1
             ? wholeSpans
             : try extended(
-                try cut(wholeSpans, from: max(start, 0), to: min(end, 1), featureID: feature.id, tolerance: tolerance, admission: admission),
+                try cut(wholeSpans, from: max(start, 0), to: min(end, 1), featureID: feature.id, tolerance: tolerance, using: &execution),
                 before: -min(start, 0), after: max(end, 1) - 1, featureID: feature.id, tolerance: tolerance
             )
         let pathInvocation = try OriginalSweepInvocation(pathSpans: spans,
-            pathIsClosed: chain.isClosed && start == 0 && end == 1, sourceBudget: sourceBudget)
+            pathIsClosed: chain.isClosed && start == 0 && end == 1, sourceBudget: sourceBudget, using: &execution)
         let pose = try OriginalPipeStartPose(span: spans[0], featureID: feature.id,
-            tolerance: tolerance, admission: admission)
+            tolerance: tolerance, using: &execution)
         let tangent = pose.tangent
         let sections: [Profile]
         var retainedSection: ResolvedModelingSection?
         if let custom = pipe.profile {
-            let resolved = try ResolvedModelingSection.resolve(custom, context: context, featureID: feature.id, sourceBudget: sourceBudget)
+            let resolved = try ResolvedModelingSection.resolve(custom, context: context, featureID: feature.id, using: &execution)
             let placement = PipeCustomSectionPlacement(tolerance: tolerance)
             if wall == nil {
                 let region = try placement.placedRegion(resolved, featureID: feature.id,
-                    origin: pose.origin, tangent: tangent, angle: angle, admission: admission)
+                    origin: pose.origin, tangent: tangent, angle: angle, using: &execution)
                 retainedSection = .constructedRegion(region)
                 sections = [region.profile]
             } else {
@@ -100,7 +100,7 @@ package struct PipeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluati
                 }
                 sections = try placement.placed(resolved.profileFacade(), featureID: feature.id,
                     origin: pose.origin, tangent: tangent, angle: angle, wall: wall,
-                    admission: admission)
+                    using: &execution)
             }
         } else if let radius {
             sections = [try profile(
@@ -112,41 +112,37 @@ package struct PipeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluati
         }
         let invocation = try OriginalSweepInvocation(section: retainedSection,
             pathSpans: pathInvocation.pathSpans, pathIsClosed: pathInvocation.pathIsClosed,
-            sourceBudget: sourceBudget)
+            sourceBudget: sourceBudget, using: &execution)
         let pathID = featureEvaluationStageID(featureID: feature.id, domain: .pipePath, ordinal: 0)
         var staged = context
         let curveBytes = spans.count.multipliedReportingOverflow(by: MemoryLayout<EvaluatedCurve>.stride)
         guard !curveBytes.overflow else {
             throw failure(.resourceLimitExceeded, feature.id, tolerance, "Original Pipe staging capacity overflows.")
         }
-        try admission.chargeStorage(bytes: curveBytes.partialValue)
+        try execution.retainStorage(bytes: curveBytes.partialValue)
         var stagedPaths: [EvaluatedCurve] = []
         stagedPaths.reserveCapacity(spans.count)
         for span in spans {
-            let original = try span.originalChart.persistentCurve(tolerance: tolerance, admission: admission)
+            let original = try span.originalChart.persistentCurve(tolerance: tolerance, using: &execution)
             let prepared = try PreparedCurveDifferentialEncloser(curve: original, tolerance: tolerance,
-                remainingSourceDepth: admission.remainingSourceDepth,
-                maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
-                consumeWork: { try admission.chargeWork() },
-                consumeStorage: { try admission.chargeStorage(bytes: $0) })
-            try admission.chargeStorage(bytes: 33 * (MemoryLayout<Point3D>.stride + MemoryLayout<Double>.stride))
+                remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+                maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth, using: &execution)
+            try execution.retainStorage(bytes: 33 * (MemoryLayout<Point3D>.stride + MemoryLayout<Double>.stride))
             var parameters: [Double] = [], points: [Point3D] = []
             parameters.reserveCapacity(33); points.reserveCapacity(33)
             for index in 0...32 {
-                try admission.chargeWork()
+                try execution.consumeWork(1)
                 let parameter = Double(index) / 32
                 let owners = try prepared.closedNativeJets(over: ScalarInterval(lower: parameter, upper: parameter),
-                    tolerance: tolerance, maximumSpanCount: admission.maximumSpanCount,
-                    maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
-                    remainingSourceDepth: admission.remainingSourceDepth,
-                    consumeWork: { try admission.chargeWork() },
-                    consumeStorage: { try admission.chargeStorage(bytes: $0) })
+                    tolerance: tolerance, maximumSpanCount: execution.effectiveLimits.maximumSpans,
+                    maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth,
+                    remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth, using: &execution)
                 var x: OutwardScalarInterval?, y: OutwardScalarInterval?, z: OutwardScalarInterval?
                 func append(_ value: OutwardScalarInterval, to hull: inout OutwardScalarInterval?) {
                     hull = hull.map { .init(lower: min($0.lower, value.lower), upper: max($0.upper, value.upper)) } ?? value
                 }
                 for owner in owners.spans {
-                    try admission.chargeWork()
+                    try execution.consumeWork(1)
                     append(owner.jet.x.value, to: &x); append(owner.jet.y.value, to: &y); append(owner.jet.z.value, to: &z)
                 }
                 guard let x, let y, let z, x.isFinite, y.isFinite, z.isFinite else {
@@ -185,7 +181,7 @@ package struct PipeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluati
         guard sections.count > 1 else {
             staged.profiles[feature.id] = sections
             return try sweep.evaluateValidated(feature: sweepNode(feature.id, operation: pipe.booleanOperation, targets: pipe.targets),
-                                               context: staged, originalInvocation: invocation)
+                                               context: staged, originalInvocation: invocation, using: &execution)
         }
         // A hollow custom section with holes: one ring per loop, swept in turn. Each ring after the
         // first joins the ones before (or, with a Boolean, works on the targets they left), so the
@@ -214,11 +210,11 @@ package struct PipeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluati
             } else {
                 (operation, targets) = (pipe.booleanOperation, previous)
             }
-            let result = try sweep.evaluateValidated(feature: sweepNode(id, operation: operation, targets: targets), context: context, originalInvocation: invocation).result
+            let result = try sweep.evaluateValidated(feature: sweepNode(id, operation: operation, targets: targets), context: context, originalInvocation: invocation, using: &execution).result
             if last {
-                return try ValidatedFeatureEvaluation(validating: try stages.publish(result, featureID: feature.id), tolerance: tolerance)
+                return try ValidatedFeatureEvaluation(validating: try stages.publish(result, featureID: feature.id), tolerance: tolerance, using: &execution)
             }
-            stages.apply(result)
+            try stages.apply(result)
             previous = [SweepTargetReference(featureID: id)]
         }
         throw failure(.invalidInput, feature.id, tolerance, "A pipe has a section.")
@@ -288,16 +284,16 @@ package struct PipeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluati
     private func cut(
         _ spans: [ExactBSplineCurveSpan], from start: Double, to end: Double,
         featureID: FeatureID, tolerance: ModelingTolerance,
-        admission: GeometryConversionAdmission
+        using execution: inout OriginalQueryExecution
     ) throws -> [ExactBSplineCurveSpan] {
         guard start > 0 || end < 1 else { return spans }
         if spans.count == 1, let span = spans.first, case .affine = span.originalChart.mapping,
-           try isOriginalConstantSpeedLine(span.originalChart.curve, depth: 0, admission: admission) {
-            let chart = try span.originalChart.admittingConstruction(admission)
-                .restricted(from: start, to: end, in: .closed(0, 1), tolerance: tolerance)
-            try admission.chargeStorage(bytes: MemoryLayout<ExactBSplineCurveSpan>.stride)
-            return [try ExactBSplineCurveSpanBuilder(tolerance: tolerance, admission: admission)
-                .normalizedConstructionSpan(from: chart)]
+           try isOriginalConstantSpeedLine(span.originalChart.curve, depth: 0, using: &execution) {
+            let chart = try span.originalChart.admittingConstruction(using: &execution)
+                .restricted(from: start, to: end, in: .closed(0, 1), tolerance: tolerance, using: &execution)
+            try execution.retainStorage(bytes: MemoryLayout<ExactBSplineCurveSpan>.stride)
+            return [try ExactBSplineCurveSpanBuilder(tolerance: tolerance, using: &execution)
+                .normalizedConstructionSpan(from: chart, using: &execution)]
         }
         // FIXME(INCOMPLETE_IMPLEMENTATION): Production Pipe fraction cuts on
         // general original paths require a retained monotone inverse arc-length
@@ -309,21 +305,21 @@ package struct PipeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluati
     }
 
     private func isOriginalConstantSpeedLine(_ curve: Curve3D, depth: Int,
-        admission: GeometryConversionAdmission) throws -> Bool {
-        guard depth <= admission.remainingSourceDepth else {
+        using execution: inout OriginalQueryExecution) throws -> Bool {
+        guard depth <= execution.effectiveLimits.remainingSourceDepth else {
             throw GeometryConversionError.resourceLimitExceeded("Original Pipe line source nesting exhausted.")
         }
-        try admission.chargeWork()
+        try execution.consumeWork(1)
         switch curve {
         case .line, .analytic(.line): return true
         case .rigidImage(let image):
-            return try isOriginalConstantSpeedLine(image.source, depth: depth + 1, admission: admission)
+            return try isOriginalConstantSpeedLine(image.source, depth: depth + 1, using: &execution)
         case .affineImage(let image):
-            return try isOriginalConstantSpeedLine(image.source, depth: depth + 1, admission: admission)
+            return try isOriginalConstantSpeedLine(image.source, depth: depth + 1, using: &execution)
         case .originalAffineWord(let image):
-            return try isOriginalConstantSpeedLine(image.source, depth: depth + 1, admission: admission)
+            return try isOriginalConstantSpeedLine(image.source, depth: depth + 1, using: &execution)
         case .parameterImage(let image):
-            return try isOriginalConstantSpeedLine(image.source, depth: depth + 1, admission: admission)
+            return try isOriginalConstantSpeedLine(image.source, depth: depth + 1, using: &execution)
         default: return false
         }
     }

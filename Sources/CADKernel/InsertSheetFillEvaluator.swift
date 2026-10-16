@@ -49,7 +49,7 @@ struct InsertSheetFillEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
         }
         guard case let .edge(seedEdgeID) = try subshapeResolver.topologyReference(
             for: surfaceFill.boundarySeed, model: model, subshapes: context.subshapes, lineage: context.lineage, tolerance: tolerance
-        ), let loop = OpenBoundaryLoopResolver().loop(startingAt: seedEdgeID, in: base, model: model) else {
+        ), let loop = try OpenBoundaryLoopResolver().loop(startingAt: seedEdgeID, in: base, model: model) else {
             throw failure(.invalidInput, feature.id, tolerance, "Insert Sheet needs a closed loop of open edges around the opening.")
         }
         if surfaceFill.trimsToSheet {
@@ -186,7 +186,7 @@ struct InsertSheetFillEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
                                 context: EvaluationContext) throws -> EvaluationResult {
         let tolerance = context.tolerance
         let model = context.brep
-        let rims = OpenBoundaryLoopResolver().loops(in: sheet, model: model)
+        let rims = try OpenBoundaryLoopResolver().loops(in: sheet, model: model)
         guard rims.count == 1, let rim = rims.first else {
             throw failure(.invalidInput, feature.id, tolerance, "Trim to sheet inserts a sheet with one open boundary.")
         }

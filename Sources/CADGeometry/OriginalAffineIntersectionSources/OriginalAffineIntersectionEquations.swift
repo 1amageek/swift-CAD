@@ -22,7 +22,7 @@ package struct OriginalAffineIntersectionEquations: Sendable {
         if case .surfaceSurface(_, let surface) = sources { return surface }; return nil
     }
 
-    package init<B: RationalAlgebraAdmitting>(curve: OriginalRationalCurvePolynomial,
+    package init<B: ExactScalarAdmission & ~Copyable>(curve: OriginalRationalCurvePolynomial,
         surface: OriginalAffineSurfaceIntersectionSource, usage: inout B) throws {
         try intersectionAlgebraStep(&usage)
         guard curve.homogeneous.count == 4, curve.homogeneous.allSatisfy({ $0.vDegree <= 0 }),
@@ -37,13 +37,13 @@ package struct OriginalAffineIntersectionEquations: Sendable {
         try RationalAlgebraStorage.retain(2, of: ExactIntersectionPolynomial.self, usage: &usage)
         try RationalAlgebraStorage.retain(3, of: OriginalRationalParameterDomain.self, usage: &usage)
         try RationalAlgebraStorage.retain(1, of: Self.self, usage: &usage)
-        try usage.consumeExactWork(0); try CurrentTaskCancellationChecker().checkCancellation()
+        try usage.consumeWork(0); try CurrentTaskCancellationChecker().checkCancellation()
         sources = .curveSurface(curve, surface); variableCount = 3
         self.equations = equations; denominatorGuards = [a[3], b[3]]
         domains = [t, surface.uDomain, surface.vDomain]
     }
 
-    package init<B: RationalAlgebraAdmitting>(first: OriginalAffineSurfaceIntersectionSource,
+    package init<B: ExactScalarAdmission & ~Copyable>(first: OriginalAffineSurfaceIntersectionSource,
         second: OriginalRationalSurfacePolynomial, usage: inout B) throws {
         try intersectionAlgebraStep(&usage)
         guard second.homogeneous.count == 4, !second.homogeneous[3].isZero else {
@@ -57,13 +57,13 @@ package struct OriginalAffineIntersectionEquations: Sendable {
         try RationalAlgebraStorage.retain(2, of: ExactIntersectionPolynomial.self, usage: &usage)
         try RationalAlgebraStorage.retain(4, of: OriginalRationalParameterDomain.self, usage: &usage)
         try RationalAlgebraStorage.retain(1, of: Self.self, usage: &usage)
-        try usage.consumeExactWork(0); try CurrentTaskCancellationChecker().checkCancellation()
+        try usage.consumeWork(0); try CurrentTaskCancellationChecker().checkCancellation()
         sources = .surfaceSurface(first, second); variableCount = 4
         self.equations = equations; denominatorGuards = [a[3], b[3]]
         domains = [first.uDomain, first.vDomain, u, v]
     }
 
-    private static func embedding<B: RationalAlgebraAdmitting>(_ source: [ExactBivariatePolynomial],
+    private static func embedding<B: ExactScalarAdmission & ~Copyable>(_ source: [ExactBivariatePolynomial],
         variables: Int, u: Int, v: Int, usage: inout B) throws -> [ExactIntersectionPolynomial] {
         try RationalAlgebraStorage.retain(4, of: ExactIntersectionPolynomial.self, usage: &usage)
         var result: [ExactIntersectionPolynomial] = []; result.reserveCapacity(4)
@@ -74,7 +74,7 @@ package struct OriginalAffineIntersectionEquations: Sendable {
         }
         return result
     }
-    private static func equations<B: RationalAlgebraAdmitting>(_ first: [ExactIntersectionPolynomial],
+    private static func equations<B: ExactScalarAdmission & ~Copyable>(_ first: [ExactIntersectionPolynomial],
         _ second: [ExactIntersectionPolynomial], usage: inout B) throws -> [ExactIntersectionPolynomial] {
         try RationalAlgebraStorage.retain(3, of: ExactIntersectionPolynomial.self, usage: &usage)
         var result: [ExactIntersectionPolynomial] = []; result.reserveCapacity(3)

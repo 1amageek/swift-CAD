@@ -12,11 +12,12 @@ struct RationalRevolutionProfileMomentBuilder {
 
     func patches(
         for profile: BSplineCurve2D,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> [CertifiedHomogeneousBezierCurvePatch] {
+        try execution.consumeWork(1)
         let sourcePatches = try CertifiedBSplineCurveBezierExtractor().patches(
             curve: profile,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         guard sourcePatches.isEmpty == false else {
             throw KernelError(
@@ -26,19 +27,20 @@ struct RationalRevolutionProfileMomentBuilder {
                 message: "Rational revolve profile contains no active knot span."
             )
         }
-        return try sourcePatches.map { patch in
-            try momentPatch(for: patch, tolerance: tolerance)
+        return try OriginalParameterQueryStorage.map(sourcePatches, using: &execution) { patch, execution in
+            try momentPatch(for: patch, tolerance: tolerance, using: &execution)
         }
     }
 
     private func momentPatch(
         for patch: Patch,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Patch {
+        try execution.consumeWork(1)
         let degree = patch.degree
         guard degree >= 1,
               patch.controls.count == degree + 1,
-              patch.controls.allSatisfy({ $0.isFiniteAndPositiveWeight }),
+              try OriginalParameterQueryStorage.allSatisfy(patch.controls, using: &execution, predicate: { point, execution in point.isFiniteAndPositiveWeight }),
               patch.upper > patch.lower else {
             throw KernelError(
                 phase: .topology,
@@ -48,24 +50,30 @@ struct RationalRevolutionProfileMomentBuilder {
             )
         }
 
-        let productDegree = degree * 2
+        let product = degree.multipliedReportingOverflow(by: 2)
+        let capacity = product.partialValue.addingReportingOverflow(1)
+        guard !product.overflow, !capacity.overflow else { throw ExactScalarFailure.countOverflow }
+        let productDegree = product.partialValue
         var controls: [Point] = []
-        controls.reserveCapacity(productDegree + 1)
+        try OriginalParameterQueryStorage.reserve(capacity.partialValue, in: &controls, using: &execution)
 
         for productIndex in 0...productDegree {
+
+            try execution.consumeWork(1)
             var denominator = Scalar.exact(0.0)
             var radiusSquared = Scalar.exact(0.0)
             var axialNumerator = Scalar.exact(0.0)
             let lowerIndex = max(0, productIndex - degree)
             let upperIndex = min(degree, productIndex)
             for first in lowerIndex...upperIndex {
+                try execution.consumeWork(1)
                 let second = productIndex - first
                 let coefficient = try bernsteinProductCoefficient(
                     degree: degree,
                     first: first,
                     second: second,
                     productIndex: productIndex,
-                    tolerance: tolerance
+                    tolerance: tolerance, using: &execution
                 )
                 denominator = denominator
                     + coefficient
@@ -93,7 +101,7 @@ struct RationalRevolutionProfileMomentBuilder {
                     message: "Rational revolve moment produced a non-positive product weight."
                 )
             }
-            controls.append(control)
+            try OriginalParameterQueryStorage.append(control, to: &controls, using: &execution)
         }
 
         return Patch(
@@ -108,11 +116,12 @@ struct RationalRevolutionProfileMomentBuilder {
         first: Int,
         second: Int,
         productIndex: Int,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Scalar {
-        let value = binomial(degree, first)
-            * binomial(degree, second)
-            / binomial(degree * 2, productIndex)
+        try execution.consumeWork(1)
+        let value = try binomial(degree, first, using: &execution)
+            * binomial(degree, second, using: &execution)
+            / binomial(degree * 2, productIndex, using: &execution)
         guard value.isFinite, value > 0.0 else {
             throw KernelError(
                 phase: .topology,
@@ -125,10 +134,11 @@ struct RationalRevolutionProfileMomentBuilder {
         return Scalar(lower: value.nextDown, upper: value.nextUp)
     }
 
-    private func binomial(_ n: Int, _ k: Int) -> Double {
+    private func binomial(_ n: Int, _ k: Int, using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
         guard k > 0, k < n else { return 1.0 }
         let reduced = min(k, n - k)
-        return (1...reduced).reduce(1.0) { result, index in
+        return try OriginalParameterQueryStorage.reduce(1...reduced, initial: 1.0, using: &execution) { result, index, execution in
             result * Double(n - reduced + index) / Double(index)
         }
     }

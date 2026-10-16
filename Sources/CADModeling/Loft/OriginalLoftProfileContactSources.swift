@@ -4,11 +4,10 @@ import CADIR
 
 /// Retains original planar boundary laws, including angular arc parameters.
 package struct OriginalLoftProfileContactSources {
-    package func loops(face: ResolvedFaceSection, consumeStorage: (Int) throws -> Void,
-        tolerance: ModelingTolerance) throws -> [[OriginalCurveContactSource]] {
-        try reserve(face.loops.count, of: [OriginalCurveContactSource].self, consumeStorage: consumeStorage)
+    package func loops(face: ResolvedFaceSection, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> [[OriginalCurveContactSource]] {
+        try reserve(face.loops.count, of: [OriginalCurveContactSource].self, using: &execution)
         return try face.loops.map { loop in
-            try reserve(loop.segments.count, of: OriginalCurveContactSource.self, consumeStorage: consumeStorage)
+            try reserve(loop.segments.count, of: OriginalCurveContactSource.self, using: &execution)
             return try loop.segments.map { segment in
                 OriginalCurveContactSource(curve: segment.source.curve,
                     parameters: try ScalarInterval(lower: min(segment.startParameter, segment.endParameter),
@@ -17,26 +16,25 @@ package struct OriginalLoftProfileContactSources {
         }
     }
 
-    package func loops(profile: Profile, consumeStorage: (Int) throws -> Void,
-                       tolerance: ModelingTolerance) throws -> [[OriginalCurveContactSource]] {
-        try reserve(profile.boundaryLoops.count, of: [OriginalCurveContactSource].self, consumeStorage: consumeStorage)
+    package func loops(profile: Profile, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> [[OriginalCurveContactSource]] {
+        try reserve(profile.boundaryLoops.count, of: [OriginalCurveContactSource].self, using: &execution)
         return try profile.boundaryLoops.map { loop in
-            try reserve(loop.boundarySegments.count, of: OriginalCurveContactSource.self, consumeStorage: consumeStorage)
+            try reserve(loop.boundarySegments.count, of: OriginalCurveContactSource.self, using: &execution)
             return try loop.boundarySegments.map { segment in
                 switch segment {
                 case .line(let line):
-                    try reserve(1, of: BSplineCurve3D.self, consumeStorage: consumeStorage)
-                    try reserve(2, of: Point3D.self, consumeStorage: consumeStorage)
-                    try reserve(6, of: Double.self, consumeStorage: consumeStorage)
+                    try reserve(1, of: BSplineCurve3D.self, using: &execution)
+                    try reserve(2, of: Point3D.self, using: &execution)
+                    try reserve(6, of: Double.self, using: &execution)
                     let native = BSplineCurve3D(degree: 1, knots: [0, 0, 1, 1],
                         controlPoints: [line.start, line.end], weights: [1, 1])
                     return OriginalCurveContactSource(curve: .bSpline(native),
                         parameters: try ScalarInterval(lower: 0, upper: 1))
                 case .circularArc(let arc):
-                    try reserve(1, of: Circle3D.self, consumeStorage: consumeStorage)
-                    try consumeStorage(16)
+                    try reserve(1, of: Circle3D.self, using: &execution)
+                    try execution.consumeWork(16)
                     let circle = Curve3D.circle(Circle3D(center: arc.center, normal: arc.normal, radius: arc.radius))
-                    let start = try circle.parameterProjection(of: arc.start, tolerance: tolerance).parameter
+                    let start = try circle.parameterProjection(of: arc.start, tolerance: tolerance, using: &execution).parameter
                     let end = start + arc.sweepAngle
                     guard start.isFinite, end.isFinite, start != end else {
                         throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
@@ -61,13 +59,13 @@ package struct OriginalLoftProfileContactSources {
         }
     }
 
-    /// The caller callback consumes UInt32-word payload storage, not entry counts.
+    /// Reserves the actual typed retained buffer before materialization.
     private func reserve<T>(_ count: Int, of type: T.Type,
-        consumeStorage: (Int) throws -> Void) throws {
+        using execution: inout OriginalQueryExecution) throws {
         let bytes = count.multipliedReportingOverflow(by: MemoryLayout<T>.stride)
         guard count >= 0, !bytes.overflow else {
             throw GeometryConversionError.resourceLimitExceeded("Original Loft contact payload storage overflows.")
         }
-        try consumeStorage(bytes.partialValue / 4 + (bytes.partialValue % 4 == 0 ? 0 : 1))
+        try execution.retainStorage(bytes: bytes.partialValue)
     }
 }

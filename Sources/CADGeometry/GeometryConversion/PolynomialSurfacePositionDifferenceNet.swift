@@ -4,51 +4,7 @@ import CADCore
 struct PolynomialSurfacePositionDifferenceNet {
     typealias Coefficient = IntervalVector3DBounds
 
-    struct Budget {
-        let limits: NativeSurfacePositionCertificationLimits
-        private(set) var scalars = 0
-        private(set) var work = 0
-        private(set) var boxes = 0
-
-        init(limits: NativeSurfacePositionCertificationLimits) {
-            self.limits = limits
-        }
-
-        /// Continue the complete paid native prefix without a fresh allowance.
-        init(adopting budget: PreparedBSplineSurfaceDifferentialCost.Budget) {
-            limits = budget.limits
-            scalars = budget.scalars
-            work = budget.work
-            boxes = budget.boxes
-        }
-
-        init(preparedRequest: PreparedPolynomialSurfaceContinuationPositionRequest) {
-            limits = preparedRequest.limits
-            scalars = preparedRequest.admittedScalarCount
-            work = preparedRequest.admittedWorkUnits
-            boxes = preparedRequest.admittedBoxCount
-        }
-
-        mutating func charge(scalars count: Int = 0, work units: Int = 0) throws {
-            try CurrentTaskCancellationChecker().checkCancellation()
-            let newScalars = try Self.add(scalars, count), newWork = try Self.add(work, units)
-            guard newScalars <= limits.maximumScalarCount, newWork <= limits.maximumWorkUnits else {
-                throw GeometryConversionError.resourceLimitExceeded("Polynomial continuation exhausted its cumulative scalar or work allowance.")
-            }
-            scalars = newScalars
-            work = newWork
-        }
-
-        mutating func visit() throws {
-            try CurrentTaskCancellationChecker().checkCancellation()
-            guard boxes < limits.maximumCertificationBoxes else { throw Self.exhausted() }
-            boxes += 1
-        }
-
-        mutating func coefficients(_ count: Int) throws {
-            try charge(scalars: Self.multiply(count, 6))
-        }
-
+    enum Arithmetic {
         static func add(_ a: Int, _ b: Int) throws -> Int {
             let value = a.addingReportingOverflow(b)
             guard a >= 0, b >= 0, !value.overflow else { throw exhausted() }
@@ -66,16 +22,21 @@ struct PolynomialSurfacePositionDifferenceNet {
         }
     }
 
+    private static func admitCoefficients(_ count: Int, using execution: inout OriginalQueryExecution) throws {
+        try execution.charge(scalars: Arithmetic.multiply(count, 6))
+        try OriginalCoefficientAllocation.reserve(count: count, of: Coefficient.self, using: &execution)
+    }
+
     let uCount: Int
     let vCount: Int
     private let values: [Coefficient]
 
-    init(original surface: BSplineSurface3D, origin: Point3D, budget: inout Budget) throws {
+    init(original surface: BSplineSurface3D, origin: Point3D, using execution: inout OriginalQueryExecution) throws {
         uCount = surface.uControlPointCount
         vCount = surface.vControlPointCount
-        let count = try Budget.multiply(uCount, vCount)
-        try budget.coefficients(count)
-        try budget.charge(work: Budget.multiply(count, 3 * 4 + 4))
+        let count = try Arithmetic.multiply(uCount, vCount)
+        try Self.admitCoefficients(count, using: &execution)
+        try execution.charge(work: Arithmetic.multiply(count, 3 * 4 + 4))
         var coefficients: [Coefficient] = []
         coefficients.reserveCapacity(count)
         for row in surface.controlPoints {
@@ -106,16 +67,16 @@ struct PolynomialSurfacePositionDifferenceNet {
 
     func transformed(uLower: OutwardScalarInterval, uUpper: OutwardScalarInterval,
         vLower: OutwardScalarInterval, vUpper: OutwardScalarInterval,
-        budget: inout Budget) throws -> Self {
-        let alongU = try transformedAxis(u: true, lower: uLower, upper: uUpper, budget: &budget)
-        return try alongU.transformedAxis(u: false, lower: vLower, upper: vUpper, budget: &budget)
+        using execution: inout OriginalQueryExecution) throws -> Self {
+        let alongU = try transformedAxis(u: true, lower: uLower, upper: uUpper, using: &execution)
+        return try alongU.transformedAxis(u: false, lower: vLower, upper: vUpper, using: &execution)
     }
 
     private func transformedAxis(u: Bool, lower: OutwardScalarInterval,
-        upper: OutwardScalarInterval, budget: inout Budget) throws -> Self {
-        let count = try Budget.multiply(uCount, vCount)
-        try budget.coefficients(count)
-        try budget.charge(work: Budget.multiply(count, 8))
+        upper: OutwardScalarInterval, using execution: inout OriginalQueryExecution) throws -> Self {
+        let count = try Arithmetic.multiply(uCount, vCount)
+        try Self.admitCoefficients(count, using: &execution)
+        try execution.charge(work: Arithmetic.multiply(count, 8))
         var output = Array(repeating: Coefficient(x: .exact(0), y: .exact(0), z: .exact(0)), count: count)
         let axisCount = u ? uCount : vCount
         let lines = u ? vCount : uCount
@@ -123,7 +84,7 @@ struct PolynomialSurfacePositionDifferenceNet {
             try CurrentTaskCancellationChecker().checkCancellation()
             for index in 0..<axisCount {
                 let coefficient = try blossom(degree: axisCount - 1, index: index,
-                    lower: lower, upper: upper, budget: &budget) { position in
+                    lower: lower, upper: upper, using: &execution) { position in
                     values[u ? line * uCount + position : position * uCount + line]
                 }
                 output[u ? line * uCount + index : index * uCount + line] = coefficient
@@ -132,25 +93,25 @@ struct PolynomialSurfacePositionDifferenceNet {
         return Self(uCount: uCount, vCount: vCount, values: output)
     }
 
-    func elevated(toUCount targetU: Int, vCount targetV: Int, budget: inout Budget) throws -> Self {
+    func elevated(toUCount targetU: Int, vCount targetV: Int, using execution: inout OriginalQueryExecution) throws -> Self {
         var net = self
-        while net.uCount < targetU { net = try net.elevatedAxis(u: true, budget: &budget) }
-        while net.vCount < targetV { net = try net.elevatedAxis(u: false, budget: &budget) }
+        while net.uCount < targetU { net = try net.elevatedAxis(u: true, using: &execution) }
+        while net.vCount < targetV { net = try net.elevatedAxis(u: false, using: &execution) }
         return net
     }
 
-    private func elevatedAxis(u: Bool, budget: inout Budget) throws -> Self {
+    private func elevatedAxis(u: Bool, using execution: inout OriginalQueryExecution) throws -> Self {
         let oldCount = u ? uCount : vCount
-        let newCount = try Budget.add(oldCount, 1)
+        let newCount = try Arithmetic.add(oldCount, 1)
         let lines = u ? vCount : uCount
-        let count = try Budget.multiply(newCount, lines)
-        let interpolations = try Budget.multiply(oldCount - 1, lines)
-        try budget.coefficients(count)
+        let count = try Arithmetic.multiply(newCount, lines)
+        let interpolations = try Arithmetic.multiply(oldCount - 1, lines)
+        try Self.admitCoefficients(count, using: &execution)
         // Each internal elevated coefficient forms one interval ratio (six scratch
         // doubles), one complement and three two-product coordinate interpolations.
-        try budget.charge(scalars: Budget.multiply(interpolations, 6 + 24),
-            work: Budget.add(Budget.multiply(interpolations, 20 + 4 + 84 + 8),
-                Budget.add(Budget.multiply(lines, 4), Budget.multiply(count, 8))))
+        try execution.charge(scalars: Arithmetic.multiply(interpolations, 6 + 24),
+            work: Arithmetic.add(Arithmetic.multiply(interpolations, 20 + 4 + 84 + 8),
+                Arithmetic.add(Arithmetic.multiply(lines, 4), Arithmetic.multiply(count, 8))))
         var output = Array(repeating: Coefficient(x: .exact(0), y: .exact(0), z: .exact(0)), count: count)
         let outputU = u ? newCount : uCount
         func input(_ index: Int, _ line: Int) -> Coefficient {
@@ -165,7 +126,7 @@ struct PolynomialSurfacePositionDifferenceNet {
                 else {
                     guard let numerator = Double(exactly: index), let denominator = Double(exactly: oldCount),
                           let ratio = OutwardScalarInterval.exact(numerator).divided(by: .exact(denominator)) else {
-                        throw Budget.exhausted()
+                        throw Arithmetic.exhausted()
                     }
                     coefficient = Self.interpolate(input(index, line), input(index - 1, line),
                         ratio: ratio, complement: .exact(1) - ratio)
@@ -176,10 +137,10 @@ struct PolynomialSurfacePositionDifferenceNet {
         return Self(uCount: outputU, vCount: u ? vCount : newCount, values: output)
     }
 
-    func subtracting(_ other: Self, budget: inout Budget) throws -> Self {
-        guard uCount == other.uCount, vCount == other.vCount else { throw Budget.exhausted() }
-        try budget.coefficients(values.count)
-        try budget.charge(work: Budget.multiply(values.count, 3 * 4 + 4))
+    func subtracting(_ other: Self, using execution: inout OriginalQueryExecution) throws -> Self {
+        guard uCount == other.uCount, vCount == other.vCount else { throw Arithmetic.exhausted() }
+        try Self.admitCoefficients(values.count, using: &execution)
+        try execution.charge(work: Arithmetic.multiply(values.count, 3 * 4 + 4))
         var result: [Coefficient] = []
         result.reserveCapacity(values.count)
         for index in values.indices {
@@ -189,59 +150,59 @@ struct PolynomialSurfacePositionDifferenceNet {
         return Self(uCount: uCount, vCount: vCount, values: result)
     }
 
-    func maximumCoefficientNorm(budget: inout Budget) throws -> Double {
+    func maximumCoefficientNorm(using execution: inout OriginalQueryExecution) throws -> Double {
         // Finite checks, absolute bounds, outward scalar squares/sums and sqrt.
         // Scalar norm operations do not allocate interval multiply scratch arrays.
-        try budget.charge(work: Budget.multiply(values.count, 48))
+        try execution.charge(work: Arithmetic.multiply(values.count, 48))
         var maximum = 0.0
         for coefficient in values {
             try CurrentTaskCancellationChecker().checkCancellation()
-            guard coefficient.x.isFinite, coefficient.y.isFinite, coefficient.z.isFinite else { throw Budget.exhausted() }
+            guard coefficient.x.isFinite, coefficient.y.isFinite, coefficient.z.isFinite else { throw Arithmetic.exhausted() }
             let upper = coefficient.lengthUpperBound
-            guard upper.isFinite else { throw Budget.exhausted() }
+            guard upper.isFinite else { throw Arithmetic.exhausted() }
             maximum = max(maximum, upper)
         }
         return maximum
     }
 
-    func centerNormLowerBound(budget: inout Budget) throws -> Double {
-        try budget.coefficients(vCount)
+    func centerNormLowerBound(using execution: inout OriginalQueryExecution) throws -> Double {
+        try Self.admitCoefficients(vCount, using: &execution)
         var rows: [Coefficient] = []
         rows.reserveCapacity(vCount)
         for row in 0..<vCount {
             rows.append(try blossom(degree: uCount - 1, index: 0, lower: .exact(0.5),
-                upper: .exact(0.5), budget: &budget) { values[row * uCount + $0] })
+                upper: .exact(0.5), using: &execution) { values[row * uCount + $0] })
         }
         let center = try blossom(degree: vCount - 1, index: 0, lower: .exact(0.5),
-            upper: .exact(0.5), budget: &budget) { rows[$0] }
-        try budget.charge(work: 48)
-        guard center.x.isFinite, center.y.isFinite, center.z.isFinite else { throw Budget.exhausted() }
+            upper: .exact(0.5), using: &execution) { rows[$0] }
+        try execution.charge(work: 48)
+        guard center.x.isFinite, center.y.isFinite, center.z.isFinite else { throw Arithmetic.exhausted() }
         let lower = center.lengthLowerBound
-        guard lower.isFinite else { throw Budget.exhausted() }
+        guard lower.isFinite else { throw Arithmetic.exhausted() }
         return lower
     }
 
-    func subdivided(u: Bool, budget: inout Budget) throws -> (Self, Self) {
+    func subdivided(u: Bool, using execution: inout OriginalQueryExecution) throws -> (Self, Self) {
         // Both children are transforms of this same original-derived residual tensor.
         // Source/candidate laws are not re-sampled or prepared independently again.
         if u {
-            return (try transformedAxis(u: true, lower: .exact(0), upper: .exact(0.5), budget: &budget),
-                try transformedAxis(u: true, lower: .exact(0.5), upper: .exact(1), budget: &budget))
+            return (try transformedAxis(u: true, lower: .exact(0), upper: .exact(0.5), using: &execution),
+                try transformedAxis(u: true, lower: .exact(0.5), upper: .exact(1), using: &execution))
         }
-        return (try transformedAxis(u: false, lower: .exact(0), upper: .exact(0.5), budget: &budget),
-            try transformedAxis(u: false, lower: .exact(0.5), upper: .exact(1), budget: &budget))
+        return (try transformedAxis(u: false, lower: .exact(0), upper: .exact(0.5), using: &execution),
+            try transformedAxis(u: false, lower: .exact(0.5), upper: .exact(1), using: &execution))
     }
 
     private func blossom(degree: Int, index: Int, lower: OutwardScalarInterval,
-        upper: OutwardScalarInterval, budget: inout Budget,
+        upper: OutwardScalarInterval, using execution: inout OriginalQueryExecution,
         read: (Int) -> Coefficient) throws -> Coefficient {
         var level: [Coefficient]?
         for depth in 0..<degree {
             let count = degree - depth
             // One output coefficient has six scalar fields; two interval products per
             // coordinate generate four-product scratch arrays (24 additional scalars).
-            try budget.charge(scalars: Budget.multiply(count, 6 + 24),
-                work: Budget.add(Budget.multiply(count, 84 + 8), 4))
+            try execution.charge(scalars: Arithmetic.multiply(count, 6 + 24),
+                work: Arithmetic.add(Arithmetic.multiply(count, 84 + 8), 4))
             let ratio = depth < degree - index ? lower : upper
             let complement = OutwardScalarInterval.exact(1) - ratio
             var next: [Coefficient] = []
@@ -253,7 +214,7 @@ struct PolynomialSurfacePositionDifferenceNet {
             }
             level = next
         }
-        guard let value = level?.first else { throw Budget.exhausted() }
+        guard let value = level?.first else { throw Arithmetic.exhausted() }
         return value
     }
 

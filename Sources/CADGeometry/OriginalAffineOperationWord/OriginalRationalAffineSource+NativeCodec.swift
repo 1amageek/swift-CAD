@@ -8,8 +8,8 @@ extension OriginalRationalAffineSource: Codable {
             throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable
         }
         try NativeOriginalAffineWordCodec.keys(decoder, allowed: ["coefficients"])
-        var usage = try NativeRationalSourceDecodingContext.allowance(from: decoder)
-        try usage.visitCoefficientCell(depth: 0)
+        var usage = try NativeRationalSourceDecodingContext.execution(from: decoder)
+        try usage.visitCell(axis: .coefficient, depth: 0)
         let object = try decoder.container(keyedBy: Keys.self)
         var array = try object.nestedUnkeyedContainer(forKey: .coefficients)
         guard array.count == 12 else {

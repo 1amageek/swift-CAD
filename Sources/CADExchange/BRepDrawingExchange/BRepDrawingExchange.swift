@@ -13,7 +13,8 @@ public struct BRepDrawingExchange: BRepDrawingExchanging {
         try projection.validateCurrent(evaluated)
         try options.validate()
         guard [.dxf, .svg, .pdf].contains(format) else { throw ImportError.unsupportedFormat(format.displayName) }
-        var resources = try SharedExchangeResourceAccountant(limits: resourceLimits, format: format)
+        let resources = try SharedExchangeResourceAccountant(limits: resourceLimits, format: format)
+        var execution = try DrawingExchangeOwner(resources: resources).execution()
         try resources.recordEntities(projection.placements.count)
         try resources.recordEntities(projection.uses.count)
         try resources.recordBytes(projection.uses.count * MemoryLayout<BRepDrawingOutputPath>.stride)
@@ -26,11 +27,11 @@ public struct BRepDrawingExchange: BRepDrawingExchanging {
             try resources.recordIterations(identity.utf8.count)
             try resources.recordBytes(identity.utf8.count)
             let points = try linearize(use.curve, from: edge.startParameter, to: edge.endParameter,
-                options: options, resources: &resources)
+                options: options, resources: resources, using: &execution)
             records.append(.init(points: points, layer: "Geometry", identity: identity,
                 startParameter: edge.startParameter, endParameter: edge.endParameter))
         }
-        try publish(records, as: format, options: options, resources: &resources, to: sink)
+        try publish(records, as: format, options: options, resources: resources, to: sink, using: &execution)
     }
 
     public func write(_ projection: BRepDrawingProjection, in evaluated: EvaluatedDocument,
@@ -45,7 +46,8 @@ public struct BRepDrawingExchange: BRepDrawingExchanging {
                       options: DrawingExchangeOptions = .init(), to sink: any ByteSink) throws {
         try options.validate()
         guard [.dxf, .svg, .pdf].contains(format) else { throw ImportError.unsupportedFormat(format.displayName) }
-        var resources = try SharedExchangeResourceAccountant(limits: resourceLimits, format: format)
+        let resources = try SharedExchangeResourceAccountant(limits: resourceLimits, format: format)
+        var execution = try DrawingExchangeOwner(resources: resources).execution()
         guard !projection.uses.isEmpty else { throw ExportError.invalidMesh("Drawing contains no projected source uses.") }
         try resources.recordEntities(projection.uses.count)
         try resources.recordBytes(projection.uses.count * MemoryLayout<BRepDrawingOutputPath>.stride)
@@ -55,17 +57,17 @@ public struct BRepDrawingExchange: BRepDrawingExchanging {
             try resources.checkTime()
             let edge = use.edge
             let points = try linearize(edge.curve, from: edge.startParameter, to: edge.endParameter,
-                options: options, resources: &resources)
+                options: options, resources: resources, using: &execution)
             records.append(BRepDrawingOutputPath(points: points, layer: "Geometry", identity: edge.edgeID.description,
                 startParameter: edge.startParameter, endParameter: edge.endParameter))
         }
-        try publish(records, as: format, options: options, resources: &resources, to: sink)
+        try publish(records, as: format, options: options, resources: resources, to: sink, using: &execution)
     }
 
     func linearize(_ curve: OrthographicProjectedCurve, from start: Double, to end: Double,
-                   options: DrawingExchangeOptions, resources: inout SharedExchangeResourceAccountant) throws -> [Point2D] {
+                   options: DrawingExchangeOptions, resources: SharedExchangeResourceAccountant, using execution: inout OriginalQueryExecution) throws -> [Point2D] {
         let original = try DefaultBRepDrawingCurveLinearizer().linearize(curve, from: start, to: end,
-            maximumDeviation: options.maximumCurveDeviation, resources: &resources)
+            maximumDeviation: options.maximumCurveDeviation, resources: resources, using: &execution)
         try resources.recordBytes(original.samples.count * MemoryLayout<Point2D>.stride)
         var points: [Point2D] = []
         points.reserveCapacity(original.samples.count)
@@ -78,15 +80,15 @@ public struct BRepDrawingExchange: BRepDrawingExchanging {
 
     func publish(_ paths: [BRepDrawingOutputPath], regions: [BRepDrawingOutputRegion] = [], glyphs: [DrawingGlyphOutline] = [],
                  resolvedGlyphBoundaries: [String: DrawingResolvedGlyphBoundary] = [:], maximumGlyphDeviation: Double? = nil, as format: ExchangeFileFormat,
-                 options: DrawingExchangeOptions, resources: inout SharedExchangeResourceAccountant,
-                 to sink: any ByteSink) throws {
+                 options: DrawingExchangeOptions, resources: SharedExchangeResourceAccountant,
+                 to sink: any ByteSink, using execution: inout OriginalQueryExecution) throws {
         for style in options.styles.strokes { try resources.recordIterations(style.dashPattern.count + 1) }
         let output = DataByteSink()
         let bounded = try ExchangeBoundedByteSink(downstream: output, limits: resources.limits, format: format)
         switch format {
         case .dxf:
             try bounded.writeUTF8("0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1027\n9\n$INSUNITS\n70\n\(unitCode(options.outputUnit))\n0\nENDSEC\n0\nSECTION\n2\nTABLES\n0\nTABLE\n2\nAPPID\n70\n1\n0\nAPPID\n2\nSWIFTCAD\n70\n0\n0\nENDTAB\n")
-            try writeDXFStyles(options, to: bounded, resources: &resources)
+            try writeDXFStyles(options, to: bounded, resources: resources)
             try bounded.writeUTF8("0\nENDSEC\n0\nSECTION\n2\nENTITIES\n")
             for region in regions {
                 try resources.checkTime()
@@ -97,7 +99,7 @@ public struct BRepDrawingExchange: BRepDrawingExchanging {
                     try bounded.writeUTF8("97\n0\n")
                 }
                 try bounded.writeUTF8("75\n0\n76\n1\n98\n0\n1001\nSWIFTCAD\n")
-                try writeDXFIdentity(region.identity, to: bounded, resources: &resources)
+                try writeDXFIdentity(region.identity, to: bounded, resources: resources)
                 try bounded.writeUTF8("1000\noriginalFillRGB\n1040\n\(stepNumber(options.styles.material.red))\n1040\n\(stepNumber(options.styles.material.green))\n1040\n\(stepNumber(options.styles.material.blue))\n")
             }
             for path in paths {
@@ -114,16 +116,16 @@ public struct BRepDrawingExchange: BRepDrawingExchanging {
                     for point in path.points { try resources.recordIterations(); try bounded.writeUTF8("10\n\(stepNumber(point.x))\n20\n\(stepNumber(point.y))\n") }
                 }
                 try bounded.writeUTF8("1001\nSWIFTCAD\n")
-                try writeDXFIdentity(path.identity, to: bounded, resources: &resources)
-                try writeDXFOriginalStyle(style, to: bounded, resources: &resources)
+                try writeDXFIdentity(path.identity, to: bounded, resources: resources)
+                try writeDXFOriginalStyle(style, to: bounded, resources: resources)
                 if let descriptor = path.originalRootSpanDescriptor {
-                    try writeDXFIdentity(descriptor, to: bounded, resources: &resources, label: "originalAlgebraicSpanJSONUTF8Base64")
+                    try writeDXFIdentity(descriptor, to: bounded, resources: resources, label: "originalAlgebraicSpanJSONUTF8Base64")
                 }
                 if let descriptor = path.originalSilhouetteDescriptor {
-                    try writeDXFIdentity(descriptor, to: bounded, resources: &resources, label: "originalSilhouetteJSONUTF8Base64")
+                    try writeDXFIdentity(descriptor, to: bounded, resources: resources, label: "originalSilhouetteJSONUTF8Base64")
                 }
                 if let descriptor = path.originalAnnotationDescriptor {
-                    try writeDXFIdentity(descriptor, to: bounded, resources: &resources, label: "originalAnnotationJSONUTF8Base64")
+                    try writeDXFIdentity(descriptor, to: bounded, resources: resources, label: "originalAnnotationJSONUTF8Base64")
                 }
                 if let stations = path.nativeStations {
                     try bounded.writeUTF8("1000\noriginalNativeStations\n1071\n\(stations.count)\n")
@@ -136,13 +138,13 @@ public struct BRepDrawingExchange: BRepDrawingExchanging {
 
             for glyph in glyphs {
                 try writeDXFGlyph(glyph, resolved: resolvedGlyphBoundaries[glyph.identity],
-                    maximumDeviation: maximumGlyphDeviation, options: options, to: bounded, resources: &resources)
+                    maximumDeviation: maximumGlyphDeviation, options: options, to: bounded, resources: resources, using: &execution)
             }
             try bounded.writeUTF8("0\nENDSEC\n0\nEOF\n")
         case .svg:
             try bounded.writeUTF8("<svg xmlns=\"http://www.w3.org/2000/svg\" data-unit=\"\(options.outputUnit.rawValue)\" viewBox=\"0 0 \(stepNumber(options.pageWidth)) \(stepNumber(options.pageHeight))\">\n<g fill=\"none\" transform=\"translate(0 \(stepNumber(options.pageHeight))) scale(1 -1)\">\n")
             for region in regions {
-                let sourceIdentity = try xmlAttribute(region.identity, resources: &resources)
+                let sourceIdentity = try xmlAttribute(region.identity, resources: resources)
                 try bounded.writeUTF8("<path data-source-id=\"\(sourceIdentity)\" fill=\"\(svgColor(options.styles.material.red, options.styles.material.green, options.styles.material.blue))\" fill-rule=\"evenodd\" d=\"")
                 for loop in region.loops {
                     guard let first = loop.first else { throw ExportError.invalidMesh("Empty material loop.") }
@@ -154,18 +156,18 @@ public struct BRepDrawingExchange: BRepDrawingExchanging {
             }
             for path in paths {
                 try resources.checkTime()
-                let sourceIdentity = try xmlAttribute(path.identity, resources: &resources)
+                let sourceIdentity = try xmlAttribute(path.identity, resources: resources)
                 let style = options.styles.stroke(for: path.layer)
-                let appearance = try svgStyle(style, options: options, resources: &resources)
+                let appearance = try svgStyle(style, options: options, resources: resources)
                 var stationAttribute = ""
                 if let descriptor = path.originalRootSpanDescriptor {
-                    stationAttribute += " data-original-algebraic-span=\"\(try xmlAttribute(descriptor, resources: &resources))\""
+                    stationAttribute += " data-original-algebraic-span=\"\(try xmlAttribute(descriptor, resources: resources))\""
                 }
                 if let descriptor = path.originalSilhouetteDescriptor {
-                    stationAttribute += " data-original-silhouette=\"\(try xmlAttribute(descriptor, resources: &resources))\""
+                    stationAttribute += " data-original-silhouette=\"\(try xmlAttribute(descriptor, resources: resources))\""
                 }
                 if let descriptor = path.originalAnnotationDescriptor {
-                    stationAttribute += " data-original-annotation=\"\(try xmlAttribute(descriptor, resources: &resources))\""
+                    stationAttribute += " data-original-annotation=\"\(try xmlAttribute(descriptor, resources: resources))\""
                 }
                 if let stations = path.nativeStations {
                     stationAttribute += " data-native-stations=\""
@@ -190,7 +192,7 @@ public struct BRepDrawingExchange: BRepDrawingExchanging {
                 }
             }
 
-            for glyph in glyphs { try writeSVGGlyph(glyph, options: options, to: bounded, resources: &resources) }
+            for glyph in glyphs { try writeSVGGlyph(glyph, options: options, to: bounded, resources: resources) }
             try bounded.writeUTF8("</g>\n</svg>\n")
         case .pdf:
             let gain = options.outputUnit.metersPerUnit * 72 / 0.0254
@@ -225,14 +227,14 @@ public struct BRepDrawingExchange: BRepDrawingExchanging {
                 pageRegions.append(.init(identity: region.identity, loops: loops, outer: region.outer))
             }
             let data = try PDFDocumentEncoder().encodeDrawing(paths: pagePaths, regions: pageRegions, glyphs: glyphs, pageWidth: options.pageWidth * gain,
-                pageHeight: options.pageHeight * gain, styles: options.styles, maximumBytes: resources.limits.maximumBytes, resources: &resources)
+                pageHeight: options.pageHeight * gain, styles: options.styles, maximumBytes: resources.limits.maximumBytes, resources: resources, using: &execution)
             try bounded.write(data)
         default: throw ImportError.unsupportedFormat(format.displayName)
         }
         try resources.checkTime(); try sink.write(output.bytes)
     }
     private func writeDXFStyles(_ options: DrawingExchangeOptions, to sink: any ByteSink,
-                                resources: inout SharedExchangeResourceAccountant) throws {
+                                resources: SharedExchangeResourceAccountant) throws {
         let styles = options.styles.strokes
         try sink.writeUTF8("0\nTABLE\n2\nLTYPE\n70\n\(styles.count)\n")
         for (index, style) in styles.enumerated() {
@@ -257,7 +259,7 @@ public struct BRepDrawingExchange: BRepDrawingExchanging {
     }
 
     private func writeDXFOriginalStyle(_ style: DrawingStrokeStyle, to sink: any ByteSink,
-                                       resources: inout SharedExchangeResourceAccountant) throws {
+                                       resources: SharedExchangeResourceAccountant) throws {
         try sink.writeUTF8("1000\noriginalStrokePaperPoints\n1040\n\(stepNumber(style.red))\n1040\n\(stepNumber(style.green))\n1040\n\(stepNumber(style.blue))\n1040\n\(stepNumber(style.width))\n1071\n\(style.dashPattern.count)\n")
         for length in style.dashPattern { try resources.recordIterations(); try sink.writeUTF8("1040\n\(stepNumber(length))\n") }
     }
@@ -266,7 +268,7 @@ public struct BRepDrawingExchange: BRepDrawingExchanging {
         "rgb(\(stepNumber(red * 100))%,\(stepNumber(green * 100))%,\(stepNumber(blue * 100))%)"
     }
     private func svgStyle(_ style: DrawingStrokeStyle, options: DrawingExchangeOptions,
-                          resources: inout SharedExchangeResourceAccountant) throws -> String {
+                          resources: SharedExchangeResourceAccountant) throws -> String {
         var result = "stroke=\"\(svgColor(style.red, style.green, style.blue))\" stroke-width=\"\(stepNumber(try options.outputLength(paperPoints: style.width)))\""
         if !style.dashPattern.isEmpty {
             result += " stroke-dasharray=\""
@@ -282,7 +284,7 @@ public struct BRepDrawingExchange: BRepDrawingExchanging {
     }
 
     func writeDXFIdentity(_ identity: String, to sink: any ByteSink,
-                                  resources: inout SharedExchangeResourceAccountant, label: String = "identityUTF8Base64") throws {
+                                  resources: SharedExchangeResourceAccountant, label: String = "identityUTF8Base64") throws {
         try resources.recordIterations(identity.utf8.count)
         try resources.recordBytes(identity.utf8.count)
         let blocks = identity.utf8.count / 3 + (identity.utf8.count % 3 == 0 ? 0 : 1)
@@ -300,7 +302,7 @@ public struct BRepDrawingExchange: BRepDrawingExchanging {
         }
     }
 
-    func xmlAttribute(_ value: String, resources: inout SharedExchangeResourceAccountant) throws -> String {
+    func xmlAttribute(_ value: String, resources: SharedExchangeResourceAccountant) throws -> String {
         var result = ""
         for scalar in value.unicodeScalars {
             try resources.recordIterations()

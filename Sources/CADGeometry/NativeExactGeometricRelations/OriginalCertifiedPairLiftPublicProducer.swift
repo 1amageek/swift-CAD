@@ -3,10 +3,11 @@ import CADCore
 /// Publishes the complete local traversal by consuming the same child receipt.
 struct OriginalCertifiedPairLiftPublicProducer {
     private typealias Field = OriginalPhysicalAngleScalarDomain
-    private typealias Admission = NativeExactPublicAdmission<NativeCurveSurfacePointAllowance>
     private typealias Interval = ExactParameterInterval<Field.Value>
     func resolve(curve: Curve3D, surface: Surface3D, options: CurveSurfaceIntersectionOptions,
-        tolerance: ModelingTolerance, invocation: CurveSurfaceQueryInvocation? = nil) throws -> CurveSurfaceIntersectionResult? {
+        tolerance: ModelingTolerance, using a: inout OriginalQueryExecution) throws -> CurveSurfaceIntersectionResult? {
+        a.context = a.context.at(stage: .request)
+        try a.checkpoint()
         // FIXME(INCOMPLETE_IMPLEMENTATION): These ordinary/callback lift entries
         // own the supported coaxial pair's two roles and closed fraction windows
         // against planeY0/uX. Other pairs/windows/targets need complete original
@@ -18,28 +19,34 @@ struct OriginalCertifiedPairLiftPublicProducer {
             case .analytic(.cone(_, _, let angle)) = original.coneSurface else { return nil }
         do {
             try options.validate(tolerance: tolerance)
-            let usage = try NativeCurveSurfacePointAllowance(options: options, invocation: invocation)
-            var a = Admission(usage: usage, maximumDepth: usage.maximumAlgebraicDepth)
-            try a.checkpoint(); try invocation?.consume(depth: 0)
-            let sourceLimits = try OriginalSourceIssuanceLimits(remainingSourceDepth:
-                invocation?.remainingSourceDepth ?? options.maximumSubdivisionDepth)
-            let charts = min(invocation?.maximumSpanCount ?? options.maximumSubdivisionCells, options.maximumSubdivisionCells)
+            try a.checkpoint()
+            a.context = a.context.at(stage: .source)
+            let sourceLimits = try OriginalSourceIssuanceLimits(remainingSourceDepth: a.effectiveLimits.remainingSourceDepth)
+            let charts = min(min(a.effectiveLimits.maximumCharts, a.effectiveLimits.maximumSpans), options.maximumSubdivisionCells)
             let limits = try OriginalDomainIdentityLimits(source: sourceLimits,
-                maximumTransportDepth: usage.maximumAlgebraicDepth, maximumCharts: charts, maximumFamilies: charts, maximumIdentityProofs: 0)
+                maximumTransportDepth: a.effectiveLimits.maximumTransportDepth, maximumCharts: charts, maximumFamilies: min(charts, a.effectiveLimits.maximumFamilies), maximumIdentityProofs: 0)
             let field = try Field(originalRadians: angle, using: &a)
             let source = try DefaultOriginalSourceBindingIssuer(provider: OriginalCertifiedPairLiftSnapshotProvider(field: field, tolerance: tolerance))
                 .bind(curve, limits: sourceLimits, using: &a)
+            try a.admitSourceDepth(source.sourceDepth)
+            a.context = a.context.retaining(first: .init(source: source))
             let target = try DefaultOriginalSourceBindingIssuer(provider: OriginalCertifiedCoaxialTargetSnapshotProvider(tolerance: tolerance))
                 .bind(surface, limits: sourceLimits, using: &a)
+            try a.admitSourceDepth(target.sourceDepth)
+            a.context = a.context.retaining(second: .init(source: target))
             try a.retainStorage(bytes: exactScalarPayloadBytes(count: 3, of: [Interval].self))
             try a.retainStorage(bytes: exactScalarPayloadBytes(count: 3, of: Interval.self))
+            a.context = a.context.at(stage: .relation)
             let relation = try OriginalCertifiedPairLiftPlaneRelation.resolve(source: source, target: target,
                 targetIntervals: [[try interval(options.surfaceURange, field: field, using: &a)],
                     [try interval(options.surfaceVRange, field: field, using: &a)]],
                 requested: [[try interval(options.curveRange, field: field, using: &a)]],
-                maximumPoints: options.maximumCandidateCount, limits: limits, using: &a)
+                maximumPoints: min(options.maximumCandidateCount, a.effectiveLimits.maximumResults), limits: limits, using: &a)
+            try a.admitTransportDepth(relation.transportDepth)
+            a.context = a.context.at(stage: .publication)
             var points: [CurveSurfaceIntersection] = []
             if !relation.contacts.isEmpty {
+                a.context = a.context.at(stage: .refinement)
                 let bounds = try source.original.child.original.heightBounds(tolerance: tolerance, using: &a)
                 let width = (bounds.upper - bounds.lower).nextUp
                 guard bounds.isFinite, width.isFinite, width * 2 <= tolerance.distance else { throw ExactScalarFailure.unresolved }
@@ -65,12 +72,13 @@ struct OriginalCertifiedPairLiftPublicProducer {
                         surfaceU: x, surfaceV: v, kind: .transverse, residual: residual, iterations: 1))
                 }
             }
+            a.context = a.context.at(stage: .publication)
             try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: CurveSurfaceIntersectionResult.self))
             let result = CurveSurfaceIntersectionResult(points: points, overlaps: [], originalCertifiedPairLiftRelation: relation)
             try a.checkpoint(); return result
-        } catch { throw NativeExactGeometryPublicationFailure.published(error, tolerance: tolerance) }
+        } catch { throw NativeExactGeometryPublicationFailure.published(error, tolerance: tolerance, context: a.context) }
     }
-    private func interval(_ range: ScalarInterval?, field: Field, using a: inout Admission) throws -> Interval {
+    private func interval(_ range: ScalarInterval?, field: Field, using a: inout OriginalQueryExecution) throws -> Interval {
         if let range { return try .checked(field: field, lower: .finite(field.binary64(exactly: range.lower, using: &a)),
             upper: .finite(field.binary64(exactly: range.upper, using: &a)), depth: .init(value: 0, coefficient: 0), using: &a) }
         return try .checked(field: field, lower: .negativeInfinity, upper: .positiveInfinity, depth: .init(value: 0, coefficient: 0), using: &a)

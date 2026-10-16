@@ -280,7 +280,7 @@ package struct ParallelEdgeRoundBuilder {
         let loop = (tb - ta).cross(d).dot(outward) > 0 ? band : try band.reversed().map(reversed)
         var patches = [BRepSewingFacePatch(stableID: "round:band", surface: surface, orientation: facing ? .forward : .reversed,
                                            loops: [BRepSewingLoop(stableID: "round:band:outer", role: .outer, edges: loop)],
-                                           parentSubshapeIDs: besides.flatMap { context.subshapeIDs(for: .face($0)) })]
+                                           parentSubshapeIDs: try besides.flatMap { try context.subshapeIDs(for: .face($0)) })]
         // Every face, the two beside the edge and its end faces edited, the rest as they were.
         for (faceIndex, faceID) in shell.faceIDs.enumerated() {
             let source = try SourceBRepFacePatchBuilder().build(faceID: faceID, stableID: "source-face:\(faceIndex)", from: model,
@@ -297,7 +297,7 @@ package struct ParallelEdgeRoundBuilder {
         }
         return BRepSewingRequest(featureID: featureID, bodyKind: .solid,
                                  shells: [BRepSewingShell(stableID: "shell:0", patches: patches)],
-                                 bodyParentSubshapeIDs: context.subshapeIDs(for: .body(bodyID)))
+                                 bodyParentSubshapeIDs: try context.subshapeIDs(for: .body(bodyID)))
     }
 
     /// Where two traces cross nearest `point`, in the plane across `d` through it.

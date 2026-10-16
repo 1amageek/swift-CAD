@@ -13,59 +13,71 @@ public struct DefaultOffsetResultValidator: OffsetResultValidating {
     }
 
     public func validate(bodyID: BodyID, validatedModel: ValidatedBRepModel) throws {
-        guard validatedModel.validationLevel != .modeling else {
-            throw KernelError(phase: .validation, code: .invalidInput, tolerance: validatedModel.tolerance,
-                message: "Offset feasibility requires an original exact or volumetric result receipt.")
-        }
-        try limits.validate(tolerance: validatedModel.tolerance)
-        let invocation = OffsetFeasibilityInvocation(limits: limits, tolerance: validatedModel.tolerance)
-        try validate(bodyID: bodyID, validatedModel: validatedModel, invocation: invocation)
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        try validate(bodyID: bodyID, validatedModel: validatedModel, using: &execution)
     }
 
     public func validate(bodyID: BodyID, model: BRepModel, tolerance: ModelingTolerance) throws {
-        try limits.validate(tolerance: tolerance)
-        let invocation = OffsetFeasibilityInvocation(limits: limits, tolerance: tolerance)
-        let validated: ValidatedBRepModel
-        if limits.maximumCumulativeWork != nil || limits.maximumCumulativeStorageBytes != nil {
-            validated = try ValidatedBRepModel(model, tolerance: tolerance,
-                maximumSubdivisionDepth: limits.surfaceIntersectionOptions.maximumSubdivisionDepth,
-                remainingSourceDepth: limits.remainingSourceDepth,
-                consumeWork: { try invocation.consume(depth: 0) },
-                consumeStorage: invocation.storageAdmission, maximumAlgebraicDepth: limits.maximumAlgebraicDepth)
-        } else {
-            validated = try ValidatedBRepModel(model, tolerance: tolerance)
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        try validate(bodyID: bodyID, model: model, tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(bodyID: BodyID, model: BRepModel, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws {
+        do {
+            try limits.validate(tolerance: tolerance)
+            try withPolicy(using: &execution) { execution in
+                execution.context = execution.context.at(stage: .source)
+                let validated = try ValidatedBRepModel(model, tolerance: tolerance,
+                    maximumSubdivisionDepth: limits.surfaceIntersectionOptions.maximumSubdivisionDepth,
+                    remainingSourceDepth: limits.remainingSourceDepth,
+                    maximumAlgebraicDepth: limits.maximumAlgebraicDepth, using: &execution)
+                try validateOriginal(bodyID: bodyID, validatedModel: validated, using: &execution)
+            }
+            execution.context = execution.context.at(stage: .publication)
+            try execution.checkpoint()
+        } catch {
+            throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance)
         }
-        try validate(bodyID: bodyID, validatedModel: validated, invocation: invocation)
     }
 
     public func validate(bodyID: BodyID, validatedModel: ValidatedBRepModel,
-        admission: GeometryConversionAdmission) throws {
-        let tolerance = validatedModel.tolerance
-        guard validatedModel.validationLevel != .modeling else {
-            throw KernelError(phase: .validation, code: .invalidInput, tolerance: tolerance,
-                message: "Generated sheet contacts require their actual exact result receipt.")
+        using execution: inout OriginalQueryExecution) throws {
+        do {
+            guard validatedModel.validationLevel != .modeling else {
+                throw KernelError(phase: .validation, code: .invalidInput,
+                    tolerance: validatedModel.tolerance,
+                    message: "Offset feasibility requires an original exact or volumetric result receipt.")
+            }
+            try limits.validate(tolerance: validatedModel.tolerance)
+            try withPolicy(using: &execution) { execution in
+                try validateOriginal(bodyID: bodyID, validatedModel: validatedModel, using: &execution)
+            }
+            execution.context = execution.context.at(stage: .publication)
+            try execution.checkpoint()
+        } catch {
+            throw OriginalQueryFailure.published(error, context: execution.context, tolerance: validatedModel.tolerance)
         }
-        try limits.validate(tolerance: tolerance)
-        var options = limits.surfaceIntersectionOptions
-        options.maximumSubdivisionDepth = min(options.maximumSubdivisionDepth, admission.maximumSubdivisionDepth)
-        let selected = OffsetFeasibilityLimits(maximumCumulativeWork: limits.maximumCumulativeWork,
-            maximumCumulativeStorageBytes: limits.maximumCumulativeStorageBytes,
-            surfaceIntersectionOptions: options,
-            remainingSourceDepth: min(limits.remainingSourceDepth, admission.remainingSourceDepth),
-            maximumAlgebraicDepth: min(limits.maximumAlgebraicDepth,
-                admission.maximumAlgebraicDepth ?? limits.maximumAlgebraicDepth))
-        let validator = DefaultOffsetResultValidator(limits: selected)
-        let invocation = OffsetFeasibilityInvocation(limits: selected, tolerance: tolerance,
-            borrowedAdmission: admission)
-        try validator.validate(bodyID: bodyID, validatedModel: validatedModel, invocation: invocation)
     }
 
-    private func validate(bodyID: BodyID, validatedModel: ValidatedBRepModel,
-        invocation: OffsetFeasibilityInvocation) throws {
+    private func withPolicy<Result>(using execution: inout OriginalQueryExecution,
+        _ body: (inout OriginalQueryExecution) throws -> Result) throws -> Result {
+        let policy = execution.effectiveAllocationPolicy
+        return try execution.withAllocationScope(policy: policy,
+            storageByteLimit: limits.maximumCumulativeStorageBytes,
+            workLimit: limits.maximumCumulativeWork) { execution in
+            try execution.withProofScope(maximum: .init(value: limits.maximumAlgebraicDepth,
+                coefficient: limits.maximumAlgebraicDepth), body)
+        }
+    }
+
+    private func validateOriginal(bodyID: BodyID, validatedModel: ValidatedBRepModel,
+        using execution: inout OriginalQueryExecution) throws {
+        execution.context = execution.context.at(stage: .relation)
         let model = validatedModel.model
         let tolerance = validatedModel.tolerance
         let faces = try ownedFaces(bodyID: bodyID, model: model, tolerance: tolerance,
-            invocation: invocation)
+            using: &execution)
         // FIXME(INCOMPLETE_IMPLEMENTATION): Surface Offset, Thicken and other
         // generated-result callers need exact material and declared-boundary
         // receipts for every distinct face pair before multiple-face admission.
@@ -74,48 +86,50 @@ public struct DefaultOffsetResultValidator: OffsetResultValidating {
                 message: "Offset result admission requires exact distinct-face material contact receipts.")
         }
         for faceID in faces {
-            try invocation.consume(depth: 0)
-            try validateSelfContact(faceID: faceID, validatedModel: validatedModel, invocation: invocation)
+            try execution.consumeWork(1)
+            try validateSelfContact(faceID: faceID, validatedModel: validatedModel, using: &execution)
         }
         try CurrentTaskCancellationChecker().checkCancellation()
     }
 
     private func ownedFaces(bodyID: BodyID, model: BRepModel, tolerance: ModelingTolerance,
-        invocation: OffsetFeasibilityInvocation) throws -> [FaceID] {
-        try invocation.consume(depth: 0)
+        using execution: inout OriginalQueryExecution) throws -> [FaceID] {
+        try execution.consumeWork(1)
         guard let body = model.bodies[bodyID] else {
             throw TopologyError.missingReference("Offset feasibility lost its result body.")
         }
         var count = 0
-        func visitShell(_ shellID: ShellID, _ visit: (FaceID) throws -> Void) throws {
-            try invocation.consume(depth: 0)
+        func visitShell(_ shellID: ShellID, using execution: inout OriginalQueryExecution,
+            _ visit: (FaceID) throws -> Void) throws {
+            try execution.consumeWork(1)
             guard let shell = model.shells[shellID] else {
                 throw TopologyError.missingReference("Offset feasibility lost a result shell.")
             }
-            for faceID in shell.faceIDs { try invocation.consume(depth: 0); try visit(faceID) }
+            for faceID in shell.faceIDs { try execution.consumeWork(1); try visit(faceID) }
         }
-        func visitFaces(_ visit: (FaceID) throws -> Void) throws {
+        func visitFaces(using execution: inout OriginalQueryExecution,
+            _ visit: (FaceID) throws -> Void) throws {
             switch body.topology {
             case let .sheet(shellIDs):
-                for shellID in shellIDs { try visitShell(shellID, visit) }
+                for shellID in shellIDs { try visitShell(shellID, using: &execution, visit) }
             case let .solid(components):
                 for component in components {
-                    try invocation.consume(depth: 0)
-                    try visitShell(component.outerShellID, visit)
-                    for shellID in component.voidShellIDs { try visitShell(shellID, visit) }
+                    try execution.consumeWork(1)
+                    try visitShell(component.outerShellID, using: &execution, visit)
+                    for shellID in component.voidShellIDs { try visitShell(shellID, using: &execution, visit) }
                 }
             }
         }
-        try visitFaces { _ in
+        try visitFaces(using: &execution) { _ in
             let next = count.addingReportingOverflow(1)
             guard !next.overflow else { throw unresolved(tolerance, "Offset result face count overflowed.") }
             count = next.partialValue
         }
         guard count > 0 else { throw TopologyError.missingReference("Offset result has no owned faces.") }
-        try invocation.reserve(count, of: FaceID.self)
+        try execution.retainKernelValues(count: count, stride: MemoryLayout<FaceID>.stride)
         var faces: [FaceID] = []
         faces.reserveCapacity(count)
-        try visitFaces { faceID in
+        try visitFaces(using: &execution) { faceID in
             guard model.faces[faceID] != nil else {
                 throw TopologyError.missingReference("Offset feasibility lost an owned result face.")
             }
@@ -124,7 +138,7 @@ public struct DefaultOffsetResultValidator: OffsetResultValidating {
         for index in faces.indices.dropFirst() {
             var position = index
             while position > 0 {
-                try invocation.consume(depth: 0)
+                try execution.consumeWork(1)
                 guard faces[position] < faces[position - 1] else { break }
                 faces.swapAt(position, position - 1)
                 position -= 1
@@ -137,7 +151,8 @@ public struct DefaultOffsetResultValidator: OffsetResultValidating {
     }
 
     private func validateSelfContact(faceID: FaceID, validatedModel: ValidatedBRepModel,
-        invocation: OffsetFeasibilityInvocation) throws {
+        using execution: inout OriginalQueryExecution) throws {
+        execution.context = execution.context.at(stage: .relation)
         let model = validatedModel.model
         let tolerance = validatedModel.tolerance
         guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID] else {
@@ -145,13 +160,13 @@ public struct DefaultOffsetResultValidator: OffsetResultValidating {
         }
         if case .procedural(.originalCoons(let coons)) = surface, !face.loops.isEmpty {
             try OriginalOffsetCoonsSelfContact.validate(surface:coons,tolerance:tolerance,
-                limits:limits,invocation:invocation)
+                limits:limits,using:&execution)
             return
         }
         if case .procedural(.originalDrafted(let wall)) = surface,!face.loops.isEmpty,
             OriginalDraftedCoordinateProjection.supports(wall) {
             try OriginalOffsetDraftedSelfContact.validate(wall,tolerance:tolerance,
-                limits:limits,invocation:invocation)
+                limits:limits,using:&execution)
             return
         }
         // FIXME(INCOMPLETE_IMPLEMENTATION): The production generated-result
@@ -163,14 +178,14 @@ public struct DefaultOffsetResultValidator: OffsetResultValidating {
                 message: "Offset result admission requires a complete source-bound self-contact receipt.")
         }
         let options = limits.surfaceIntersectionOptions
-        let work: @Sendable (Int) throws -> Void = { try invocation.consume(depth: $0) }
+        execution.context = execution.context.at(stage: .domain)
         let domain = try DefaultFaceParameterBoundsResolver(
-            maximumSubdivisionDepth: options.maximumSubdivisionDepth, consumeWork: work,
-            consumeStorage: invocation.storageAdmission, remainingSourceDepth: limits.remainingSourceDepth,
+            maximumSubdivisionDepth: options.maximumSubdivisionDepth,
+            remainingSourceDepth: limits.remainingSourceDepth,
             maximumAlgebraicDepth: limits.maximumAlgebraicDepth)
-            .bounds(for: faceID, in: model, tolerance: tolerance)
+            .bounds(for: faceID, in: model, tolerance: tolerance, using: &execution)
         try OriginalOffsetNativeSelfContact.validate(surface: native, domain: domain, faceID: faceID,
-            original: validatedModel, limits: limits, invocation: invocation)
+            original: validatedModel, limits: limits, using: &execution)
     }
 
     private func unresolved(_ tolerance: ModelingTolerance, _ message: String) -> KernelError {

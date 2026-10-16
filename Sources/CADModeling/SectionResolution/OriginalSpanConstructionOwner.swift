@@ -2,27 +2,34 @@ import CADCore
 import CADGeometry
 import Synchronization
 
-/// One immutable callback admission created once for a construction invocation.
+/// Retains one cumulative construction owner and immutable policy for query entries.
 package final class OriginalSpanConstructionOwner: Sendable {
-    private let tolerance: ModelingTolerance
-    private let configured: GeometryConversionAdmission?
-    private let state = Mutex<GeometryConversionAdmission?>(nil)
-
-    package init(tolerance: ModelingTolerance, admission: GeometryConversionAdmission?) {
-        self.tolerance = tolerance; configured = admission
+    private struct Configuration: Sendable {
+        let budget: OriginalQueryBudget
+        let limits: OriginalQueryExecutionLimits
+        let contributions: [OriginalQueryContributionHandle]
     }
+    private let tolerance: ModelingTolerance
+    private let configured: Configuration?
+    private let state = Mutex<Configuration?>(nil)
 
-    package func admission() throws -> GeometryConversionAdmission {
-        if let configured { return configured }
-        return try state.withLock { current in
+    package init(tolerance: ModelingTolerance) {
+        self.tolerance = tolerance; configured = nil
+    }
+    package init(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        self.tolerance = tolerance
+        configured = Configuration(budget: execution.budget, limits: execution.effectiveLimits,
+            contributions: try execution.retainActiveContributionHandles())
+    }
+    package func execution() throws -> OriginalQueryExecution {
+        if let configured { return try OriginalQueryExecution(budget: configured.budget, limits: configured.limits, contributions: configured.contributions) }
+        let configuration = try state.withLock { current in
             if let current { return current }
-            let budget = try CurvedSweepSourceBudget(tolerance: tolerance)
-            let created = try GeometryConversionAdmission(maximumSpanCount: budget.maximumSpanCount,
-                maximumSubdivisionDepth: budget.maximumDepth, remainingSourceDepth: budget.maximumDepth,
-                consumeWork: { try budget.consumeExactWork($0) },
-                consumeStorage: { try budget.retainBytes($0) })
+            let owner = try CurvedSweepSourceBudget(tolerance: tolerance)
+            let created = Configuration(budget: owner.budget, limits: owner.limits, contributions: owner.contributions)
             current = created
             return created
         }
+        return try OriginalQueryExecution(budget: configuration.budget, limits: configuration.limits, contributions: configuration.contributions)
     }
 }

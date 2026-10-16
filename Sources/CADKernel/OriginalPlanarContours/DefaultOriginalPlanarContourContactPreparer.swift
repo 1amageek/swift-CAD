@@ -15,27 +15,25 @@ public struct DefaultOriginalPlanarContourContactPreparer: OriginalPlanarContour
     }
 
     public func prepare(contours: [OriginalPlanarContour], on plane: Plane3D,
-        allowance: inout OriginalCurveContactAllowance, tolerance: ModelingTolerance,
-        consumeWork: @escaping @Sendable (Int) throws -> Void,
-        consumeStorage: @escaping @Sendable (Int) throws -> Void)
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution)
         throws -> PreparedOriginalPlanarContourContacts {
-        try Task.checkCancellation(); try consumeWork(1)
+        try Task.checkCancellation(); try execution.consumeWork(1)
         try tolerance.validate(); try plane.validate(tolerance: tolerance)
         func fail(_ message: String) -> KernelError {
             KernelError(phase: .classification, code: .invalidInput, tolerance: tolerance, message: message)
         }
         func reserve(_ count: Int, _ stride: Int) throws {
-            try Task.checkCancellation(); try consumeWork(1)
+            try Task.checkCancellation(); try execution.consumeWork(1)
             let bytes = count.multipliedReportingOverflow(by: stride)
             guard count >= 0, stride >= 0, !bytes.overflow else {
                 throw KernelError(phase: .classification, code: .resourceLimitExceeded,
                     tolerance: tolerance, message: "Original contour retained-byte admission overflowed.")
             }
-            try consumeStorage(bytes.partialValue)
+            try execution.retainStorage(bytes: bytes.partialValue)
         }
         var segmentCount = 0
         for contour in contours {
-            try consumeWork(1)
+            try execution.consumeWork(1)
             let next = segmentCount.addingReportingOverflow(contour.segments.count)
             guard !next.overflow else { throw fail("Original contour segment count overflowed.") }
             segmentCount = next.partialValue
@@ -50,21 +48,21 @@ public struct DefaultOriginalPlanarContourContactPreparer: OriginalPlanarContour
         try reserve(vertexCapacity.partialValue, MemoryLayout<VertexSource>.stride)
         var vertices: [VertexSource] = []; vertices.reserveCapacity(vertexCapacity.partialValue)
         func hasContourID(_ id: UInt64) throws -> Bool {
-            for retained in contourIDs { try consumeWork(1); if retained == id { return true } }
+            for retained in contourIDs { try execution.consumeWork(1); if retained == id { return true } }
             return false
         }
         func hasSegmentID(_ id: UInt64) throws -> Bool {
-            for retained in segments { try consumeWork(1); if retained.id == id { return true } }
+            for retained in segments { try execution.consumeWork(1); if retained.id == id { return true } }
             return false
         }
         for contour in contours {
-            try Task.checkCancellation(); try consumeWork(1)
+            try Task.checkCancellation(); try execution.consumeWork(1)
             guard !contour.segments.isEmpty, !(try hasContourID(contour.id)) else {
                 throw fail("Original contours require unique identities and nonempty closed segment chains.")
             }
             contourIDs.append(contour.id)
             for index in contour.segments.indices {
-                try consumeWork(1)
+                try execution.consumeWork(1)
                 let segment = contour.segments[index]
                 let curve = segment.curve
                 guard (1...3).contains(curve.degree), !curve.isPeriodic,
@@ -77,13 +75,13 @@ public struct DefaultOriginalPlanarContourContactPreparer: OriginalPlanarContour
                     throw fail("Original contour segments require unique full nonperiodic degree-one/two/three Bezier sources.")
                 }
                 for slot in curve.knots.indices {
-                    try consumeWork(1)
+                    try execution.consumeWork(1)
                     guard curve.knots[slot] == (slot <= curve.degree ? lower : upper) else {
                         throw fail("Original contour Bezier knots must retain the clamped native source interval.")
                     }
                 }
                 for slot in curve.controlPoints.indices {
-                    try consumeWork(1); try curve.controlPoints[slot].validate()
+                    try execution.consumeWork(1); try curve.controlPoints[slot].validate()
                     guard curve.weights[slot].isFinite, curve.weights[slot] > 0 else {
                         throw fail("Original contour source weights must remain finite and positive.")
                     }
@@ -95,12 +93,12 @@ public struct DefaultOriginalPlanarContourContactPreparer: OriginalPlanarContour
                 let start = segment.reversed ? curve.controlPoints[curve.degree] : curve.controlPoints[0]
                 let end = segment.reversed ? curve.controlPoints[0] : curve.controlPoints[curve.degree]
                 for side in 0..<2 {
-                    try consumeWork(1)
+                    try execution.consumeWork(1)
                     let id = side == 0 ? segment.startVertexID : segment.endVertexID
                     let point = side == 0 ? start : end
                     var found = false
                     for retained in vertices {
-                        try consumeWork(1)
+                        try execution.consumeWork(1)
                         guard retained.id == id else { continue }
                         guard retained.point == point else { throw fail("An original contour vertex identity has conflicting source coordinates.") }
                         found = true; break
@@ -123,23 +121,23 @@ public struct DefaultOriginalPlanarContourContactPreparer: OriginalPlanarContour
         try reserve(segmentCount, MemoryLayout<[OriginalPlanarContourEndpointReference]>.stride)
         var references = [[OriginalPlanarContourEndpointReference]](repeating: [], count: segmentCount)
         func parameters(_ source: BSplineCurve3D) throws -> ScalarInterval {
-            try consumeWork(1)
+            try execution.consumeWork(1)
             return try .init(lower: source.knots[0], upper: source.knots[source.knots.count - 1])
         }
         for first in segments.indices {
             for second in first..<segments.count {
-                try Task.checkCancellation(); try consumeWork(1)
+                try Task.checkCancellation(); try execution.consumeWork(1)
                 let partition = try partitioner.partition(first: segments[first].curve,
                     firstParameters: parameters(segments[first].curve), second: segments[second].curve,
                     secondParameters: parameters(segments[second].curve), on: plane,
-                    allowance: &allowance, tolerance: tolerance)
+                    tolerance: tolerance, using: &execution)
                 let pairIndex = pairs.count
                 pairs.append(.init(firstSegmentIndex: first, secondSegmentIndex: second, partition: partition))
                 for side in 0..<2 {
                     let source = side == 0 ? first : second
                     let cuts = side == 0 ? partition.firstCuts : partition.secondCuts
                     for index in cuts.indices {
-                        try consumeWork(1)
+                        try execution.consumeWork(1)
                         try append(cuts[index].endpoint, to: &endpoints[source], reserve: reserve)
                         try append(OriginalPlanarContourEndpointReference(pairIndex: pairIndex,
                             secondSource: side != 0, cutIndex: index), to: &references[source], reserve: reserve)
@@ -150,12 +148,12 @@ public struct DefaultOriginalPlanarContourContactPreparer: OriginalPlanarContour
         try reserve(segmentCount, MemoryLayout<OriginalPlanarCurveMergedPartition>.stride)
         var merged: [OriginalPlanarCurveMergedPartition] = []; merged.reserveCapacity(segmentCount)
         for index in segments.indices {
-            try Task.checkCancellation(); try consumeWork(1)
+            try Task.checkCancellation(); try execution.consumeWork(1)
             merged.append(try partitioner.mergeCuts(source: segments[index].curve,
                 parameters: parameters(segments[index].curve), endpoints: endpoints[index],
-                allowance: &allowance, tolerance: tolerance))
+                tolerance: tolerance, using: &execution))
         }
-        try Task.checkCancellation(); try consumeWork(1)
+        try Task.checkCancellation(); try execution.consumeWork(1)
         return .init(contours: contours, segments: segments, plane: plane, tolerance: tolerance,
             pairs: pairs, sourcePartitions: merged, sourceEndpointReferences: references)
     }

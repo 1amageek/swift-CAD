@@ -1,14 +1,15 @@
 import CADCore
+
 #if !hasFeature(Embedded)
-import Foundation
+  import Foundation
 #elseif canImport(Darwin)
-import Darwin
+  import Darwin
 #elseif canImport(Glibc)
-import Glibc
+  import Glibc
 #elseif canImport(WASILibc)
-import WASILibc
+  import WASILibc
 #else
-#error("CADGeometry numeric algorithms require the target C math module.")
+  #error("CADGeometry numeric algorithms require the target C math module.")
 #endif
 
 /// Traces one regular connected component of a bounded surface intersection.
@@ -22,82 +23,95 @@ struct ParametricSurfaceIntersectionComponentTracer: Sendable {
   let domains: BoundedSurfaceParameterDomainMap
   let options: SurfaceSurfaceIntersectionOptions
   let tolerance: ModelingTolerance
-  let admission: SurfaceSurfaceQueryAdmission
+
   let preparedFirstSurface: PreparedSurfaceDifferentialEncloser?
   let preparedSecondSurface: PreparedSurfaceDifferentialEncloser?
 
-  init(first: Surface3D, second: Surface3D, domains: BoundedSurfaceParameterDomainMap, options: SurfaceSurfaceIntersectionOptions, tolerance: ModelingTolerance,
-    admission: SurfaceSurfaceQueryAdmission = .legacy,
+  init(
+    first: Surface3D, second: Surface3D, domains: BoundedSurfaceParameterDomainMap,
+    options: SurfaceSurfaceIntersectionOptions, tolerance: ModelingTolerance,
     preparedFirstSurface: PreparedSurfaceDifferentialEncloser? = nil,
-    preparedSecondSurface: PreparedSurfaceDifferentialEncloser? = nil) {
+    preparedSecondSurface: PreparedSurfaceDifferentialEncloser? = nil
+  ) {
     self.first = first
     self.second = second
     self.domains = domains
     self.options = options
     self.tolerance = tolerance
-    self.admission = admission
+
     self.preparedFirstSurface = preparedFirstSurface
     self.preparedSecondSurface = preparedSecondSurface
   }
 
   func trace(
     from seed: Sample,
-    remainingPointCount: inout Int
+    remainingPointCount: inout Int, using execution: inout OriginalQueryExecution
   ) throws -> [Sample] {
     try traceComponent(
       from: seed,
-      remainingPointCount: &remainingPointCount
+      remainingPointCount: &remainingPointCount, using: &execution
     ).samples
   }
 
   func traceComponent(
     from seed: Sample,
-    remainingPointCount: inout Int
+    remainingPointCount: inout Int, using execution: inout OriginalQueryExecution
   ) throws -> ParametricSurfaceIntersectionTracedComponent {
-    let tangent = try intersectionTangent(at: seed)
+    let tangent = try intersectionTangent(at: seed, using: &execution)
     let forward = try march(
       from: seed,
       initialTangent: tangent,
-      remainingPointCount: &remainingPointCount
-    )
+      remainingPointCount: &remainingPointCount, using: &execution)
     if isClosed(forward) {
       return ParametricSurfaceIntersectionTracedComponent(
         samples: try refined(
           forward,
-          remainingPointCount: &remainingPointCount
-        ),
+          remainingPointCount: &remainingPointCount, using: &execution),
         isClosed: true
       )
     }
-    try admission.reserve(count: tangent.count, stride: MemoryLayout<Double>.stride)
+    try execution.consumeWork(1)
+    try execution.retainStorage(count: tangent.count, stride: MemoryLayout<Double>.stride)
     let reverse = try march(
       from: seed,
       initialTangent: tangent.map { -$0 },
-      remainingPointCount: &remainingPointCount
-    )
+      remainingPointCount: &remainingPointCount, using: &execution)
     let combinedCount = reverse.count.addingReportingOverflow(forward.count)
-    guard !combinedCount.overflow else { throw resourceLimit("Original continuation retained count overflowed.") }
-    try admission.reserve(count: combinedCount.partialValue, stride: MemoryLayout<Sample>.stride)
+    guard !combinedCount.overflow else {
+      throw resourceLimit("Original continuation retained count overflowed.")
+    }
+    try execution.consumeWork(1)
+    try execution.retainStorage(
+      count: combinedCount.partialValue, stride: MemoryLayout<Sample>.stride)
     var combined: [Sample] = []
     combined.reserveCapacity(combinedCount.partialValue)
-    for sample in reverse.dropFirst().reversed() { try admission.step(); combined.append(sample) }
-    for sample in forward { try admission.step(); combined.append(sample) }
+    for sample in reverse.dropFirst().reversed() {
+      try execution.consumeWork(1)
+      combined.append(sample)
+    }
+    for sample in forward {
+      try execution.consumeWork(1)
+      combined.append(sample)
+    }
     return ParametricSurfaceIntersectionTracedComponent(
       samples: try refined(
         combined,
-        remainingPointCount: &remainingPointCount
-      ),
+        remainingPointCount: &remainingPointCount, using: &execution),
       isClosed: false
     )
   }
 
-  func intersectionTangent(at sample: Sample) throws -> [Double] {
-    let columns = try rootRefiner.jacobianColumns(at: sample)
+  func intersectionTangent(at sample: Sample, using execution: inout OriginalQueryExecution) throws
+    -> [Double]
+  {
+    let columns = try rootRefiner.jacobianColumns(at: sample, using: &execution)
     let firstNormal = columns[0].cross(columns[1])
     let secondNormal = columns[2].cross(columns[3])
-    let firstLength = firstNormal.length, secondLength = secondNormal.length
+    let firstLength = firstNormal.length
+    let secondLength = secondNormal.length
     guard firstLength.isFinite, secondLength.isFinite, firstLength > 0, secondLength > 0 else {
-      throw KernelError(phase: .geometry, code: .singularGeometry, tolerance: tolerance,
+      throw KernelError(
+        phase: .geometry, code: .singularGeometry, tolerance: tolerance,
         message: "Regular surface continuation has no finite nonzero original normal candidate.")
     }
     let normalSeparation = (firstNormal / firstLength).cross(secondNormal / secondLength).length
@@ -111,14 +125,15 @@ struct ParametricSurfaceIntersectionComponentTracer: Sendable {
           "Regular surface-intersection continuation reached a tangential or branching locus."
       )
     }
-    try admission.reserve(count: 4, stride: MemoryLayout<Double>.stride)
+    try execution.consumeWork(1)
+    try execution.retainStorage(count: 4, stride: MemoryLayout<Double>.stride)
     let cofactors = [
       -determinant(columns[1], columns[2], columns[3]),
       determinant(columns[0], columns[2], columns[3]),
       -determinant(columns[0], columns[1], columns[3]),
       determinant(columns[0], columns[1], columns[2]),
     ]
-    guard let tangent = try normalized(cofactors) else {
+    guard let tangent = try normalized(cofactors, using: &execution) else {
       throw KernelError(
         phase: .geometry,
         code: .singularGeometry,
@@ -131,34 +146,31 @@ struct ParametricSurfaceIntersectionComponentTracer: Sendable {
 
   func correctedSample(
     predictor: [Double],
-    tangent: [Double]
+    tangent: [Double], using execution: inout OriginalQueryExecution
   ) throws -> Sample? {
     try pseudoArclengthCorrection(
       predictor: predictor,
-      tangent: tangent
-    )
+      tangent: tangent, using: &execution)
   }
 
   func traceHalf(
     from seed: Sample,
     initialTangent: [Double],
-    remainingPointCount: inout Int
+    remainingPointCount: inout Int, using execution: inout OriginalQueryExecution
   ) throws -> [Sample] {
     try march(
       from: seed,
       initialTangent: initialTangent,
-      remainingPointCount: &remainingPointCount
-    )
+      remainingPointCount: &remainingPointCount, using: &execution)
   }
 
   func refine(
     _ samples: [Sample],
-    remainingPointCount: inout Int
+    remainingPointCount: inout Int, using execution: inout OriginalQueryExecution
   ) throws -> [Sample] {
     try refined(
       samples,
-      remainingPointCount: &remainingPointCount
-    )
+      remainingPointCount: &remainingPointCount, using: &execution)
   }
 
   private var rootRefiner: ParametricSurfaceIntersectionRootRefiner {
@@ -167,7 +179,7 @@ struct ParametricSurfaceIntersectionComponentTracer: Sendable {
       second: second,
       domains: domains,
       maximumIterations: options.maximumIterations,
-      tolerance: tolerance, admission: admission,
+      tolerance: tolerance,
       preparedFirstSurface: preparedFirstSurface, preparedSecondSurface: preparedSecondSurface
     )
   }
@@ -175,9 +187,10 @@ struct ParametricSurfaceIntersectionComponentTracer: Sendable {
   private func march(
     from seed: Sample,
     initialTangent: [Double],
-    remainingPointCount: inout Int
+    remainingPointCount: inout Int, using execution: inout OriginalQueryExecution
   ) throws -> [Sample] {
-    try admission.reserve(count: 1, stride: MemoryLayout<Sample>.stride)
+    try execution.consumeWork(1)
+    try execution.retainStorage(count: 1, stride: MemoryLayout<Sample>.stride)
     var result = [seed]
     var current = seed
     var tangent = initialTangent
@@ -186,7 +199,7 @@ struct ParametricSurfaceIntersectionComponentTracer: Sendable {
       1.0 / 256.0
     )
     while true {
-      try admission.step()
+      try execution.consumeWork(1)
       guard result.count < options.maximumContinuationPointCountPerComponent else {
         throw resourceLimit(
           "Surface intersection continuation exceeded its component length limit."
@@ -201,21 +214,22 @@ struct ParametricSurfaceIntersectionComponentTracer: Sendable {
       var corrected: Sample?
       var reachesBoundary = false
       for _ in 0..<8 {
-        try admission.step()
+        try execution.consumeWork(1)
         let boundaryScale = scaleToUnitBoundary(
           from: current.normalized,
           direction: tangent,
           requestedStep: step
         )
         reachesBoundary = boundaryScale < step
-        try admission.reserve(count: current.normalized.count, stride: MemoryLayout<Double>.stride)
+        try execution.consumeWork(1)
+        try execution.retainStorage(
+          count: current.normalized.count, stride: MemoryLayout<Double>.stride)
         let predictor = zip(current.normalized, tangent).map {
           $0.0 + $0.1 * boundaryScale
         }
         corrected = try pseudoArclengthCorrection(
           predictor: predictor,
-          tangent: tangent
-        )
+          tangent: tangent, using: &execution)
         if reachesBoundary, let correctedSample = corrected {
           let boundaryParameterIndex = predictor.indices.min {
             min(abs(predictor[$0]), abs(1.0 - predictor[$0]))
@@ -226,8 +240,12 @@ struct ParametricSurfaceIntersectionComponentTracer: Sendable {
               predictor[boundaryParameterIndex] <= 0.5
               ? 0.0
               : 1.0
-            try admission.reserve(count: correctedSample.normalized.count, stride: MemoryLayout<Double>.stride)
-            try admission.reserve(count: 4, stride: MemoryLayout<(lower: Double, upper: Double)>.stride)
+            try execution.consumeWork(1)
+            try execution.retainStorage(
+              count: correctedSample.normalized.count, stride: MemoryLayout<Double>.stride)
+            try execution.consumeWork(1)
+            try execution.retainStorage(
+              count: 4, stride: MemoryLayout<(lower: Double, upper: Double)>.stride)
             var boundarySeed = correctedSample.normalized
             boundarySeed[boundaryParameterIndex] = boundaryValue
             corrected = try rootRefiner.gaugeRoot(
@@ -236,8 +254,7 @@ struct ParametricSurfaceIntersectionComponentTracer: Sendable {
               constraints: Array(
                 repeating: (lower: 0.0, upper: 1.0),
                 count: 4
-              )
-            )
+              ), using: &execution)
           }
         }
         if corrected != nil { break }
@@ -265,7 +282,8 @@ struct ParametricSurfaceIntersectionComponentTracer: Sendable {
         )
       }
       remainingPointCount -= 1
-      try admission.reserve(count: 1, stride: MemoryLayout<Sample>.stride)
+      try execution.consumeWork(1)
+      try execution.retainStorage(count: 1, stride: MemoryLayout<Sample>.stride)
       result.append(next)
       if result.count > 12,
         (next.point - seed.point).length
@@ -277,9 +295,10 @@ struct ParametricSurfaceIntersectionComponentTracer: Sendable {
         break
       }
       if reachesBoundary || isOnUnitBoundary(next.normalized) { break }
-      var nextTangent = try intersectionTangent(at: next)
+      var nextTangent = try intersectionTangent(at: next, using: &execution)
       if dot(nextTangent, tangent) < 0.0 {
-        try admission.reserve(count: nextTangent.count, stride: MemoryLayout<Double>.stride)
+        try execution.consumeWork(1)
+        try execution.retainStorage(count: nextTangent.count, stride: MemoryLayout<Double>.stride)
         nextTangent = nextTangent.map { -$0 }
       }
       tangent = nextTangent
@@ -302,16 +321,17 @@ struct ParametricSurfaceIntersectionComponentTracer: Sendable {
 
   private func pseudoArclengthCorrection(
     predictor: [Double],
-    tangent: [Double]
+    tangent: [Double], using execution: inout OriginalQueryExecution
   ) throws -> Sample? {
-    try admission.reserve(count: predictor.count, stride: MemoryLayout<Double>.stride)
+    try execution.consumeWork(1)
+    try execution.retainStorage(count: predictor.count, stride: MemoryLayout<Double>.stride)
     var parameters = predictor.map { min(max($0, 0.0), 1.0) }
     for _ in 0..<options.maximumIterations {
-      try admission.step()
-      let sample = try rootRefiner.sample(normalized: parameters)
+      try execution.consumeWork(1)
+      let sample = try rootRefiner.sample(normalized: parameters, using: &execution)
       var gauge = 0.0
       for index in parameters.indices {
-        try admission.step()
+        try execution.consumeWork(1)
         gauge += (parameters[index] - predictor[index]) * tangent[index]
       }
       if sample.residual <= tolerance.distance * 0.1,
@@ -319,23 +339,26 @@ struct ParametricSurfaceIntersectionComponentTracer: Sendable {
       {
         return sample
       }
-      let columns = try rootRefiner.jacobianColumns(at: sample)
+      let columns = try rootRefiner.jacobianColumns(at: sample, using: &execution)
       let difference = sample.firstPoint - sample.secondPoint
-      try admission.reserve(count: 12, stride: MemoryLayout<Double>.stride)
-      try admission.reserve(count: 4, stride: MemoryLayout<Array<Double>>.stride)
+      try execution.consumeWork(1)
+      try execution.retainStorage(count: 12, stride: MemoryLayout<Double>.stride)
+      try execution.consumeWork(1)
+      try execution.retainStorage(count: 4, stride: MemoryLayout<[Double]>.stride)
       let matrix = [
         columns.map({ $0.x }),
         columns.map({ $0.y }),
         columns.map({ $0.z }),
         tangent,
       ]
-      try admission.reserve(count: 4, stride: MemoryLayout<Double>.stride)
+      try execution.consumeWork(1)
+      try execution.retainStorage(count: 4, stride: MemoryLayout<Double>.stride)
       let rhs = [-difference.x, -difference.y, -difference.z, -gauge]
       guard
         let delta = try SmallLinearSystem4.solve(
           matrix: matrix,
           rightHandSide: rhs,
-          admission: admission
+          using: &execution
         )
       else {
         return nil
@@ -347,26 +370,26 @@ struct ParametricSurfaceIntersectionComponentTracer: Sendable {
         )
       }
     }
-    let final = try rootRefiner.sample(normalized: parameters)
+    let final = try rootRefiner.sample(normalized: parameters, using: &execution)
     return final.residual <= tolerance.distance ? final : nil
   }
 
   private func refined(
     _ samples: [Sample],
-    remainingPointCount: inout Int
+    remainingPointCount: inout Int, using execution: inout OriginalQueryExecution
   ) throws -> [Sample] {
     guard samples.count >= 2 else { return samples }
-    try admission.reserve(count: 1, stride: MemoryLayout<Sample>.stride)
+    try execution.consumeWork(1)
+    try execution.retainStorage(count: 1, stride: MemoryLayout<Sample>.stride)
     var result = [samples[0]]
     for index in 1..<samples.count {
-      try admission.step()
+      try execution.consumeWork(1)
       try refineSegment(
         firstSample: samples[index - 1],
         secondSample: samples[index],
         depth: 0,
         remainingPointCount: &remainingPointCount,
-        result: &result
-      )
+        result: &result, using: &execution)
     }
     return result
   }
@@ -376,25 +399,29 @@ struct ParametricSurfaceIntersectionComponentTracer: Sendable {
     secondSample: Sample,
     depth: Int,
     remainingPointCount: inout Int,
-    result: inout [Sample]
+    result: inout [Sample], using execution: inout OriginalQueryExecution
   ) throws {
-    try admission.step()
+    try execution.consumeWork(1)
     let residual = try linearSegmentResidual(
       firstSample: firstSample,
-      secondSample: secondSample
-    )
+      secondSample: secondSample, using: &execution)
     if residual <= tolerance.distance * 0.5 {
-      try admission.reserve(count: 1, stride: MemoryLayout<Sample>.stride)
+      try execution.consumeWork(1)
+      try execution.retainStorage(count: 1, stride: MemoryLayout<Sample>.stride)
       result.append(secondSample)
       return
     }
-    try admission.reserve(count: firstSample.normalized.count, stride: MemoryLayout<Double>.stride)
+    try execution.consumeWork(1)
+    try execution.retainStorage(
+      count: firstSample.normalized.count, stride: MemoryLayout<Double>.stride)
     let difference = zip(
       secondSample.normalized,
       firstSample.normalized
     ).map { $0.0 - $0.1 }
-    guard let tangent = try normalized(difference) else { return }
-    try admission.reserve(count: firstSample.normalized.count, stride: MemoryLayout<Double>.stride)
+    guard let tangent = try normalized(difference, using: &execution) else { return }
+    try execution.consumeWork(1)
+    try execution.retainStorage(
+      count: firstSample.normalized.count, stride: MemoryLayout<Double>.stride)
     let predictor = zip(
       firstSample.normalized,
       secondSample.normalized
@@ -402,8 +429,7 @@ struct ParametricSurfaceIntersectionComponentTracer: Sendable {
     guard
       let middle = try pseudoArclengthCorrection(
         predictor: predictor,
-        tangent: tangent
-      )
+        tangent: tangent, using: &execution)
     else {
       throw KernelError(
         phase: .geometry,
@@ -412,7 +438,12 @@ struct ParametricSurfaceIntersectionComponentTracer: Sendable {
         message: "Surface intersection midpoint correction failed."
       )
     }
-    guard depth < min(18, options.maximumResidualCertificationDepth, admission.maximumSubdivisionDepth), remainingPointCount > 0 else {
+    guard
+      depth
+        < min(
+          18, options.maximumResidualCertificationDepth, execution.limits.maximumSubdivisionDepth),
+      remainingPointCount > 0
+    else {
       throw resourceLimit(
         "Surface intersection residual refinement exceeded its limit."
       )
@@ -423,33 +454,32 @@ struct ParametricSurfaceIntersectionComponentTracer: Sendable {
       secondSample: middle,
       depth: depth + 1,
       remainingPointCount: &remainingPointCount,
-      result: &result
-    )
+      result: &result, using: &execution)
     try refineSegment(
       firstSample: middle,
       secondSample: secondSample,
       depth: depth + 1,
       remainingPointCount: &remainingPointCount,
-      result: &result
-    )
+      result: &result, using: &execution)
   }
 
   private func linearSegmentResidual(
     firstSample: Sample,
-    secondSample: Sample
+    secondSample: Sample, using execution: inout OriginalQueryExecution
   ) throws -> Double {
     var maximum = 0.0
     for index in 1...3 {
-      try admission.step()
+      try execution.consumeWork(1)
       let fraction = Double(index) * 0.25
-      try admission.reserve(count: firstSample.normalized.count, stride: MemoryLayout<Double>.stride)
+      try execution.consumeWork(1)
+      try execution.retainStorage(
+        count: firstSample.normalized.count, stride: MemoryLayout<Double>.stride)
       let normalizedParameters = zip(
         firstSample.normalized,
         secondSample.normalized
       ).map { $0.0 + ($0.1 - $0.0) * fraction }
       let sample = try rootRefiner.sample(
-        normalized: normalizedParameters
-      )
+        normalized: normalizedParameters, using: &execution)
       let curvePoint = interpolated(
         firstSample.point,
         secondSample.point,
@@ -485,15 +515,18 @@ struct ParametricSurfaceIntersectionComponentTracer: Sendable {
     values.contains { abs($0) <= 1.0e-12 || abs(1.0 - $0) <= 1.0e-12 }
   }
 
-  private func normalized(_ values: [Double]) throws -> [Double]? {
+  private func normalized(_ values: [Double], using execution: inout OriginalQueryExecution) throws
+    -> [Double]?
+  {
     var sum = 0.0
     for value in values {
-      try admission.step()
+      try execution.consumeWork(1)
       sum += value * value
     }
     let length = sqrt(sum)
     guard length.isFinite, length > Double.ulpOfOne else { return nil }
-    try admission.reserve(count: values.count, stride: MemoryLayout<Double>.stride)
+    try execution.consumeWork(1)
+    try execution.retainStorage(count: values.count, stride: MemoryLayout<Double>.stride)
     return values.map { $0 / length }
   }
 

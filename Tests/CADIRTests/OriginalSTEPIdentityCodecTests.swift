@@ -9,15 +9,31 @@ import CADGeometry
 struct OriginalSTEPIdentityCodecTests {
     private let identity = PortableIdentity128(high: 0x0123456789ABCDEF, low: 0xFEDCBA9876543210)
 
-    @available(macOS 15.0, iOS 18.0, visionOS 2.0, watchOS 11.0, tvOS 18.0, *)
+    // Context retains one attribution handle and visits it once before parser work.
+    private var contextWords: Int { (MemoryLayout<OriginalQueryContributionHandle>.stride + 3) / 4 }
     private func decoder(work: Int = 1000, storage: Int = 1000, depth: Int = 32,
         check: @escaping @Sendable () throws -> Void = {}) throws -> JSONDecoder {
+        let enabled = Mutex(false)
+        var setup = OriginalQueryExecution(budget: try OriginalQueryBudget(cellVisitWorkUnits: 0,
+            checkpoint: { if enabled.withLock({ $0 }) { try check() } }),
+            limits: try .init(maximumValueDepth: 0, maximumCoefficientDepth: 0, maximumCells: 100))
+        let context = try NativeRationalSourceDecodingContext(maximumWork: work + 1,
+            maximumCells: 100, maximumStorage: storage + contextWords, maximumDepth: 0, using: &setup)
         let decoder = JSONDecoder()
-        decoder.userInfo[NativeRationalSourceDecodingContext.key] = try NativeRationalSourceAllowance(
-            maximumWork: work, maximumCells: 100, maximumStorage: storage,
-            maximumDepth: 0, operationCheck: check)
+        decoder.userInfo[NativeRationalSourceDecodingContext.key] = context
         decoder.userInfo[OriginalAffineWordDecodingContext.maximumSourceDepthKey] = depth
+        enabled.withLock { $0 = true }
         return decoder
+    }
+    private func isResourceFailure(_ error: any Error) -> Bool {
+        OriginalQueryFailure.classification(of: OriginalQueryFailure.published(error,
+            context: .unspecified, tolerance: nil))?.code == .resourceLimitExceeded
+    }
+    private func isCancellation(_ error: any Error) -> Bool {
+        if let failure = error as? OriginalQueryFailure { return isCancellation(failure.originalError) }
+        if case ExactScalarFailure.admissionRejected(let cause) = error { return isCancellation(cause) }
+        if case ExactScalarFailure.cancelled = error { return true }
+        return error is CancellationError
     }
 
     private func line() -> OriginalSTEPLineSource {
@@ -38,30 +54,35 @@ struct OriginalSTEPIdentityCodecTests {
         let data = try JSONEncoder().encode(identity.canonicalString)
         let exact = try decoder(work: 125, storage: 13)
         #expect(try exact.decode(NativeIdentityProbe.self, from: data).identity == identity)
-        let allowance = try #require(exact.userInfo[NativeRationalSourceDecodingContext.key] as? NativeRationalSourceAllowance)
+        let allowance = try #require(exact.userInfo[NativeRationalSourceDecodingContext.key] as? NativeRationalSourceDecodingContext)
         let receipt = try allowance.snapshot()
-        #expect(receipt.work == 125 && receipt.storage == 13)
+        #expect(receipt.work - 1 == 125 && receipt.storage - contextWords == 13)
 
         // A valid-length malformed identity would fail in Core unless storage wins first.
         let malformed = try JSONEncoder().encode("01234567-89AB-CDEF-FEDC-BA987654321Z")
         #expect { _ = try decoder(storage: 12).decode(NativeIdentityProbe.self, from: malformed) }
-        throws: { ($0 as? KernelError)?.code == .resourceLimitExceeded }
+        throws: { isResourceFailure($0) }
         #expect { _ = try decoder(work: 124, storage: 13).decode(NativeIdentityProbe.self, from: data) }
-        throws: { ($0 as? KernelError)?.code == .resourceLimitExceeded }
+        throws: { isResourceFailure($0) }
 
         // Exercise the production record decoder, with no capacity for its identity parser.
         let element = OriginalSTEPPlacementElement(id: identity, name: "point", coordinates: .unitX)
         #expect { _ = try decoder(storage: 12).decode(OriginalSTEPPlacementElement.self,
             from: JSONEncoder().encode(element)) }
-        throws: { ($0 as? KernelError)?.code == .resourceLimitExceeded }
+        throws: { isResourceFailure($0) }
 
+        let measured = Mutex(0)
+        let measuring = try decoder(storage: 13, check: { measured.withLock { $0 += 1 } })
+        _ = try measuring.decode(NativeIdentityProbe.self, from: data)
+        let finalCall = measured.withLock { $0 }
+        #expect(finalCall > 0)
         let calls = Mutex(0)
         let cancelled = try decoder(storage: 13, check: {
-            let final = calls.withLock { count in count += 1; return count == 4 }
+            let final = calls.withLock { count in count += 1; return count == finalCall }
             if final { throw CancellationError() }
         })
-        #expect(throws: CancellationError.self) { _ = try cancelled.decode(NativeIdentityProbe.self, from: data) }
-        #expect(calls.withLock { $0 } == 4)
+        #expect { _ = try cancelled.decode(NativeIdentityProbe.self, from: data) } throws: { isCancellation($0) }
+        #expect(calls.withLock { $0 } == finalCall)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -70,9 +91,9 @@ struct OriginalSTEPIdentityCodecTests {
         let bounded = try decoder(work: 37, storage: 0)
         let data = try JSONEncoder().encode(identity.canonicalString + String(repeating: "0", count: 4096))
         #expect(throws: DecodingError.self) { _ = try bounded.decode(NativeIdentityProbe.self, from: data) }
-        let allowance = try #require(bounded.userInfo[NativeRationalSourceDecodingContext.key] as? NativeRationalSourceAllowance)
+        let allowance = try #require(bounded.userInfo[NativeRationalSourceDecodingContext.key] as? NativeRationalSourceDecodingContext)
         let receipt = try allowance.snapshot()
-        #expect(receipt.work == 37 && receipt.storage == 0)
+        #expect(receipt.work - 1 == 37 && receipt.storage - contextWords == 0)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -117,12 +138,12 @@ struct OriginalSTEPIdentityCodecTests {
         }
         for limits in [(0, 1000), (1000, 0)] {
             #expect { _ = try decoder(work: limits.0, storage: limits.1).decode(OriginalSTEPLineSource.self, from: data) }
-            throws: { ($0 as? KernelError)?.code == .resourceLimitExceeded }
+            throws: { isResourceFailure($0) }
         }
         #expect(throws: DecodingError.self) { _ = try decoder(depth: 1).decode(OriginalSTEPLineSource.self, from: data) }
-        #expect(throws: CancellationError.self) {
+        #expect {
             _ = try decoder(check: { throw CancellationError() }).decode(OriginalSTEPLineSource.self, from: data)
-        }
+        } throws: { isCancellation($0) }
     }
 }
 

@@ -8,7 +8,7 @@ package struct OriginalRationalQuadraticBranches: Sendable {
     package let second: ExactBivariatePolynomial
     package let originalBranchDifference: ExactBivariatePolynomial
 
-    package static func proven<B: RationalAlgebraAdmitting>(original: ExactBivariatePolynomial,
+    package static func proven<B: ExactScalarAdmission & ~Copyable>(original: ExactBivariatePolynomial,
         usage: inout B) throws -> Self? {
         for alongU in [true, false] {
             let oriented = alongU ? original : try original.exchangedAxes(usage: &usage)
@@ -38,14 +38,14 @@ package struct OriginalRationalQuadraticBranches: Sendable {
         return nil
     }
 
-    package func stations<B: RationalAlgebraAdmitting>(over interval: ScalarInterval,
+    package func stations<B: ExactScalarAdmission & ~Copyable>(over interval: ScalarInterval,
         maximumDepth: Int, usage: inout B) throws -> [ExactMonotoneGraphEndpoint] {
         let isolations = try ExactUnivariateRootIsolator().isolate(originalBranchDifference,
             lower: .originalDouble(interval.lower, usage: &usage),
             upper: .originalDouble(interval.upper, usage: &usage), maximumDepth: maximumDepth, usage: &usage)
         var result: [ExactMonotoneGraphEndpoint] = []
         for isolation in isolations {
-            try usage.retainExactStorage(1)
+            try RationalAlgebraStorage.retain(1, of: ExactMonotoneGraphEndpoint.self, usage: &usage)
             result.append(try .algebraic(ExactAlgebraicRealRoot(polynomial: originalBranchDifference,
                 isolation: isolation, usage: &usage)))
         }

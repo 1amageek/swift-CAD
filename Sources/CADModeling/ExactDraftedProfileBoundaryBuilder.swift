@@ -5,6 +5,7 @@ import WASILibc
 #endif
 import CADCore
 import CADGeometry
+import CADTopology
 import CADIR
 
 /// A drafted or thin extrusion's section at one height: every wall of the profile moved toward the
@@ -25,13 +26,45 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
     private let tolerance: ModelingTolerance
     /// The largest shift any height asks of a spline, which its offsets' shared basis serves.
     private let splineReach: Double
-    private let admission: GeometryConversionAdmission?
 
-    package init(tolerance: ModelingTolerance, splineReach: Double = 0,
-        admission: GeometryConversionAdmission? = nil) {
+    package init(tolerance: ModelingTolerance, splineReach: Double = 0) {
         self.tolerance = tolerance
         self.splineReach = abs(splineReach)
-        self.admission = admission
+    }
+
+
+    package func boundaries(from profile: Profile, planeNormal: Vector3D, axis: Vector3D,
+        height: Double, tangent: Double) throws -> [[ExactPrismaticBoundarySegment]] {
+        var execution = try ordinaryExecution()
+        return try boundaries(from: profile, planeNormal: planeNormal, axis: axis,
+            height: height, tangent: tangent, using: &execution)
+    }
+
+    package func openCurve(_ curve: EvaluatedCurve, planeNormal: Vector3D, axis: Vector3D,
+        height: Double, tangent: Double) throws -> [BSplineCurve3D] {
+        var execution = try ordinaryExecution()
+        return try openCurve(curve, planeNormal: planeNormal, axis: axis, height: height,
+            tangent: tangent, using: &execution)
+    }
+
+    package func wallRegions(from profile: Profile, planeNormal: Vector3D, axis: Vector3D,
+        height: Double, tangent: Double, thickness: Double) throws -> [[[ExactPrismaticBoundarySegment]]] {
+        var execution = try ordinaryExecution()
+        return try wallRegions(from: profile, planeNormal: planeNormal, axis: axis,
+            height: height, tangent: tangent, thickness: thickness, using: &execution)
+    }
+
+    package func wallProfiles(from profile: Profile, planeNormal: Vector3D, thickness: Double,
+        outward: Bool = false) throws -> [Profile] {
+        var execution = try ordinaryExecution()
+        return try wallProfiles(from: profile, planeNormal: planeNormal,
+            thickness: thickness, outward: outward, using: &execution)
+    }
+
+    private func ordinaryExecution() throws -> OriginalQueryExecution {
+        OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32,
+                remainingSourceDepth: 32, maximumSubdivisionDepth: 32, maximumSpans: 4096))
     }
 
     private enum Element {
@@ -48,13 +81,13 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
         axis: Vector3D,
         height: Double,
         tangent: Double
-    ) throws -> [[ExactPrismaticBoundarySegment]] {
+    , using execution: inout OriginalQueryExecution) throws -> [[ExactPrismaticBoundarySegment]] {
         try tolerance.validate()
         let normal = try planeNormal.normalized(tolerance: tolerance.distance)
         let lift = try axis.normalized(tolerance: tolerance.distance) * height
         // Toward the material is inward: a positive draft narrows the section along the axis.
         return try profile.boundaryLoops.map { loop in
-            try segments(try offset(try elements(of: loop), normal: normal, shift: -height * tangent, crossings: tangent == 0), lift: lift)
+            try segments(try offset(try elements(of: loop, using: &execution), normal: normal, shift: -height * tangent, crossings: tangent == 0, using: &execution), lift: lift, using: &execution)
         }
     }
 
@@ -68,7 +101,7 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
         axis: Vector3D,
         height: Double,
         tangent: Double
-    ) throws -> [BSplineCurve3D] {
+    , using execution: inout OriginalQueryExecution) throws -> [BSplineCurve3D] {
         try tolerance.validate()
         let normal = try planeNormal.normalized(tolerance: tolerance.distance)
         let lift = try axis.normalized(tolerance: tolerance.distance) * height
@@ -78,10 +111,10 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
         let element: Element
         switch exact {
         case let .line(line):
-            element = .line(start: try Curve3D.line(line).point(at: lower, tolerance: tolerance),
-                            end: try Curve3D.line(line).point(at: upper, tolerance: tolerance))
+            element = .line(start: try Curve3D.line(line).point(at: lower, tolerance: tolerance, using: &execution),
+                            end: try Curve3D.line(line).point(at: upper, tolerance: tolerance, using: &execution))
         case .circle, .analytic(.circle):
-            let start = try exact.point(at: lower, tolerance: tolerance), end = try exact.point(at: upper, tolerance: tolerance)
+            let start = try exact.point(at: lower, tolerance: tolerance, using: &execution), end = try exact.point(at: upper, tolerance: tolerance, using: &execution)
             let (center, axisNormal, radius): (Point3D, Vector3D, Double)
             switch exact {
             case let .circle(circle): (center, axisNormal, radius) = (circle.center, circle.normal, circle.radius)
@@ -91,16 +124,16 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
             element = .arc(ProfileCircularArcSegment(center: center, normal: axisNormal, radius: radius, start: start, end: end,
                                                      sweepAngle: upper - lower))
         default:
-            let spans = try ExactBSplineCurveSpanBuilder(tolerance: tolerance).sectionSpans(from: curve).map { $0.curve }
-            element = .spline(spans.count == 1 ? spans[0] : try ExactCompositeBSplineCurveBuilder().build(spans: spans, tolerance: tolerance))
+            let spans = try ExactBSplineCurveSpanBuilder(tolerance: tolerance).sectionSpans(from: curve, using: &execution).map { $0.curve }
+            element = .spline(spans.count == 1 ? spans[0] : try ExactCompositeBSplineCurveBuilder().build(spans: spans, tolerance: tolerance, using: &execution))
         }
         // Toward the curve's left: the shift along the outward (right-hand) normal is negative.
         let shift = -height * tangent
         let first = try startPoint(of: element), last = endPoint(of: element)
-        let start = try first + travel(of: element, at: first).cross(normal) * shift
-        let end = try last + travel(of: element, at: last).cross(normal) * shift
-        let moved = try place(element, from: start, to: end, normal: normal, shift: shift)
-        return try segments([moved], lift: lift, arcsAsSpans: true).map { segment in
+        let start = try first + travel(of: element, at: first, using: &execution).cross(normal) * shift
+        let end = try last + travel(of: element, at: last, using: &execution).cross(normal) * shift
+        let moved = try place(element, from: start, to: end, normal: normal, shift: shift, using: &execution)
+        return try segments([moved], lift: lift, arcsAsSpans: true, using: &execution).map { segment in
             switch segment.geometry {
             case .bSpline(let curve): return curve
             case .line:
@@ -129,7 +162,7 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
         height: Double,
         tangent: Double,
         thickness: Double
-    ) throws -> [[[ExactPrismaticBoundarySegment]]] {
+    , using execution: inout OriginalQueryExecution) throws -> [[[ExactPrismaticBoundarySegment]]] {
         try tolerance.validate()
         guard thickness.isFinite, thickness > tolerance.distance else {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
@@ -139,23 +172,23 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
         let lift = try axis.normalized(tolerance: tolerance.distance) * height
         let shift = -height * tangent
         return try profile.boundaryLoops.enumerated().map { index, loop in
-            let source = try elements(of: loop)
+            let source = try elements(of: loop, using: &execution)
             // Without a draft every height takes the same section, so a sharp arc corner may join
             // at its offset curves' crossing.
-            let face = try offset(source, normal: normal, shift: shift, crossings: tangent == 0)
-            let back = try offset(source, normal: normal, shift: shift - thickness, crossings: tangent == 0)
+            let face = try offset(source, normal: normal, shift: shift, crossings: tangent == 0, using: &execution)
+            let back = try offset(source, normal: normal, shift: shift - thickness, crossings: tangent == 0, using: &execution)
             // The outline's ring is bounded by the outline and, as its hole, the wall's inner
             // face turned around; a hole's ring by the grown hole turned around and the hole.
             if index == 0 {
-                return [try segments(face, lift: lift), try segments(reversed(back), lift: lift)]
+                return [try segments(face, lift: lift, using: &execution), try segments(reversed(back), lift: lift, using: &execution)]
             }
-            return [try segments(reversed(back), lift: lift), try segments(face, lift: lift)]
+            return [try segments(reversed(back), lift: lift, using: &execution), try segments(face, lift: lift, using: &execution)]
         }
     }
 
     /// The rings of a thin section in its own plane, one profile per loop: the outline's ring
     /// runs inside it, a hole's around the hole, each `thickness` wide with exact lines and arcs.
-    package func wallProfiles(from profile: Profile, planeNormal: Vector3D, thickness: Double, outward: Bool = false) throws -> [Profile] {
+    package func wallProfiles(from profile: Profile, planeNormal: Vector3D, thickness: Double, outward: Bool = false, using execution: inout OriginalQueryExecution) throws -> [Profile] {
         try tolerance.validate()
         guard thickness.isFinite, thickness > tolerance.distance else {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
@@ -163,10 +196,10 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
         }
         let normal = try planeNormal.normalized(tolerance: tolerance.distance)
         return try profile.boundaryLoops.enumerated().map { index, loop in
-            let source = try elements(of: loop)
+            let source = try elements(of: loop, using: &execution)
             // Inward the wall runs into the region from each loop (the outline in, each hole out);
             // outward it runs away from the region (the outline out, each hole in).
-            let shifted = try offset(source, normal: normal, shift: outward ? thickness : -thickness, crossings: true)
+            let shifted = try offset(source, normal: normal, shift: outward ? thickness : -thickness, crossings: true, using: &execution)
             let (outer, inner): ([Element], [Element])
             switch (index == 0, outward) {
             case (true, false): (outer, inner) = (source, reversed(shifted))
@@ -177,14 +210,14 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
             return Profile(
                 sourceFeatureID: profile.sourceFeatureID,
                 plane: profile.plane,
-                outerLoop: try profileLoop(outer),
-                innerLoops: [try profileLoop(inner)]
+                outerLoop: try profileLoop(outer, using: &execution),
+                innerLoops: [try profileLoop(inner, using: &execution)]
             )
         }
     }
 
     /// `elements` as a profile loop, sampled at every line's start and eight points along each arc.
-    private func profileLoop(_ elements: [Element]) throws -> ProfileLoop {
+    private func profileLoop(_ elements: [Element], using execution: inout OriginalQueryExecution) throws -> ProfileLoop {
         var vertices: [Point3D] = []
         let segments = try elements.map { element -> ProfileBoundarySegment in
             switch element {
@@ -204,7 +237,7 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
                     throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance, message: "A wall's spline is unbounded.")
                 }
                 for index in 0..<8 {
-                    vertices.append(try Curve3D.bSpline(curve).point(at: lower + (upper - lower) * Double(index) / 8, tolerance: tolerance))
+                    vertices.append(try Curve3D.bSpline(curve).point(at: lower + (upper - lower) * Double(index) / 8, tolerance: tolerance, using: &execution))
                 }
                 return .spline(ProfileSplineSegment(curve: curve))
             }
@@ -212,7 +245,7 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
         return ProfileLoop(vertices: vertices, boundarySegments: segments)
     }
 
-    private func elements(of loop: ProfileLoop) throws -> [Element] {
+    private func elements(of loop: ProfileLoop, using execution: inout OriginalQueryExecution) throws -> [Element] {
         let elements = try loop.boundarySegments.map { segment -> Element in
             switch segment {
             case let .line(line): return .line(start: line.start, end: line.end)
@@ -228,18 +261,18 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
     /// material), joints moved with them. With `crossings`, a sharp corner at an arc joins where the
     /// two moved walls cross; without, such a corner is refused, as a drafted section's would sweep
     /// a conic between heights.
-    private func offset(_ elements: [Element], normal: Vector3D, shift: Double, crossings: Bool) throws -> [Element] {
+    private func offset(_ elements: [Element], normal: Vector3D, shift: Double, crossings: Bool, using execution: inout OriginalQueryExecution) throws -> [Element] {
         if shift == 0 { return elements }
         if crossings, elements.contains(where: isSpline) {
-            return try offsetSplineJoints(elements, normal: normal, shift: shift)
+            return try offsetSplineJoints(elements, normal: normal, shift: shift, using: &execution)
         }
         var joints: [Point3D] = []
         for index in elements.indices {
             let this = elements[index]
             let next = elements[(index + 1) % elements.count]
             let corner = endPoint(of: this)
-            let before = try travel(of: this, at: corner)
-            let after = try travel(of: next, at: corner)
+            let before = try travel(of: this, at: corner, using: &execution)
+            let after = try travel(of: next, at: corner, using: &execution)
             let outBefore = before.cross(normal)
             let outAfter = after.cross(normal)
             if before.cross(after).length <= tolerance.angle, before.dot(after) > 0 {
@@ -252,7 +285,7 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
                 }
                 joints.append(corner + (outBefore + outAfter) * (shift / denominator))
             } else if crossings, isSpline(this) == false, isSpline(next) == false {
-                joints.append(try crossing(this, next, at: corner, normal: normal, shift: shift))
+                joints.append(try crossing(this, next, at: corner, normal: normal, shift: shift, using: &execution))
             } else if isSpline(this) || isSpline(next) {
                 // FIXME(INCOMPLETE_IMPLEMENTATION): a spline meeting its neighbour at a sharp
                 // corner needs the offsets' crossing on the approximated spline, which is not built,
@@ -273,25 +306,25 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
         }
         return try elements.indices.map { index in
             try place(elements[index], from: joints[(index + elements.count - 1) % elements.count], to: joints[index],
-                      normal: normal, shift: shift)
+                      normal: normal, shift: shift, using: &execution)
         }
     }
 
-    private func offsetSplineJoints(_ elements: [Element], normal: Vector3D, shift: Double) throws -> [Element] {
+    private func offsetSplineJoints(_ elements: [Element], normal: Vector3D, shift: Double, using execution: inout OriginalQueryExecution) throws -> [Element] {
         let curves = try elements.map { element -> BSplineCurve3D in
             let first = try startPoint(of: element), last = endPoint(of: element)
             let moved: Element
             switch element {
             case let .spline(curve):
                 let approximator = PlanarCurveOffsetApproximator(tolerance: tolerance)
-                return try offset(curve, normal: normal, shift: shift, approximator: approximator)
+                return try offset(curve, normal: normal, shift: shift, approximator: approximator, using: &execution)
             case .line, .arc:
                 moved = try place(element,
-                    from: first + travel(of: element, at: first).cross(normal) * shift,
-                    to: last + travel(of: element, at: last).cross(normal) * shift,
-                    normal: normal, shift: shift)
+                    from: first + travel(of: element, at: first, using: &execution).cross(normal) * shift,
+                    to: last + travel(of: element, at: last, using: &execution).cross(normal) * shift,
+                    normal: normal, shift: shift, using: &execution)
             }
-            let spans = try segments([moved], lift: .zero).map { segment -> BSplineCurve3D in
+            let spans = try segments([moved], lift: .zero, using: &execution).map { segment -> BSplineCurve3D in
                 switch segment.geometry {
                 case let .bSpline(curve): return curve
                 case .line:
@@ -303,10 +336,10 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
                 }
             }
             return spans.count == 1 ? spans[0]
-                : try ExactCompositeBSplineCurveBuilder().build(spans: spans, tolerance: tolerance)
+                : try ExactCompositeBSplineCurveBuilder().build(spans: spans, tolerance: tolerance, using: &execution)
         }
         let sources = try elements.map { element -> PlanarOffsetCurveSource in
-            let spans = try segments([element], lift: .zero).map { segment -> BSplineCurve3D in
+            let spans = try segments([element], lift: .zero, using: &execution).map { segment -> BSplineCurve3D in
                 switch segment.geometry {
                 case .bSpline(let curve): return curve
                 case .line:
@@ -318,15 +351,17 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
                 }
             }
             let curve = spans.count == 1 ? spans[0]
-                : try ExactCompositeBSplineCurveBuilder().build(spans: spans, tolerance: tolerance)
-            return try PlanarOffsetCurveSource(curve: curve, normal: normal, shift: shift, tolerance: tolerance)
+                : try ExactCompositeBSplineCurveBuilder().build(spans: spans, tolerance: tolerance, using: &execution)
+            return try PlanarOffsetCurveSource(curve: curve, normal: normal, shift: shift, tolerance: tolerance, using: &execution)
         }
-        return try PlanarOffsetJointResolver().trims(curves: curves, originalCorners: elements.map(endPoint),
-            normal: normal, tolerance: tolerance, originalSources: sources).map { .spline($0) }
+        let originalCorners = try OriginalParameterQueryStorage.map(elements, using: &execution) { element, execution in endPoint(of: element) }
+        let joined = try PlanarOffsetJointResolver().trims(curves: curves, originalCorners: originalCorners,
+            normal: normal, tolerance: tolerance, originalSources: sources, using: &execution)
+        return try OriginalParameterQueryStorage.map(joined, using: &execution) { curve, execution in .spline(curve) }
     }
 
     /// `element` moved by `shift` along its outward side to run from `start` to `end`.
-    private func place(_ element: Element, from start: Point3D, to end: Point3D, normal: Vector3D, shift: Double) throws -> Element {
+    private func place(_ element: Element, from start: Point3D, to end: Point3D, normal: Vector3D, shift: Double, using execution: inout OriginalQueryExecution) throws -> Element {
         switch element {
         case let .line(originalStart, originalEnd):
             guard (end - start).dot(originalEnd - originalStart) > 0, (end - start).length > tolerance.distance else {
@@ -336,7 +371,7 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
             return .line(start: start, end: end)
         case let .spline(curve):
             let approximator = PlanarCurveOffsetApproximator(tolerance: tolerance)
-            let moved = try offset(curve, normal: normal, shift: shift, approximator: approximator)
+            let moved = try offset(curve, normal: normal, shift: shift, approximator: approximator, using: &execution)
             guard let first = moved.controlPoints.first, let last = moved.controlPoints.last,
                   (first - start).length <= tolerance.distance, (last - end).length <= tolerance.distance else {
                 throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
@@ -347,7 +382,7 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
             return .spline(moved)
         case let .arc(arc):
             let radial = try (arc.start - arc.center).normalized(tolerance: tolerance.distance)
-            let outward = try travel(of: element, at: arc.start).cross(normal)
+            let outward = try travel(of: element, at: arc.start, using: &execution).cross(normal)
             let radius = arc.radius + shift * outward.dot(radial)
             guard radius > tolerance.distance,
                   abs((start - arc.center).length - radius) <= tolerance.distance,
@@ -368,31 +403,20 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
     }
 
     private func offset(_ curve: BSplineCurve3D, normal: Vector3D, shift: Double,
-        approximator: PlanarCurveOffsetApproximator) throws -> BSplineCurve3D {
-        if let admission {
-            guard case let .closed(lower, upper) = curve.domain else {
-                throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
-                    message: "An original drafted spline requires a finite native interval.")
-            }
-            let parameters = try ScalarInterval(lower: lower, upper: upper)
-            let knots = try approximator.basis(for: .bSpline(curve), normal: normal,
-                reach: max(splineReach, abs(shift)), over: parameters, admission: admission)
-            return try approximator.offset(.bSpline(curve), normal: normal, shift: shift,
-                knots: knots, admission: admission)
-        }
-        let knots = try approximator.basis(for: curve, normal: normal, reach: max(splineReach, abs(shift)))
-        return try approximator.offset(curve, normal: normal, shift: shift, knots: knots)
+        approximator: PlanarCurveOffsetApproximator, using execution: inout OriginalQueryExecution) throws -> BSplineCurve3D {
+        let knots = try approximator.basis(for: curve, normal: normal, reach: max(splineReach, abs(shift)), using: &execution)
+        return try approximator.offset(curve, normal: normal, shift: shift, knots: knots, using: &execution)
     }
 
     /// Where `before` and `after`, both moved by `shift`, cross nearest their corner: a line's
     /// parallel and an arc's concentric circle meeting in the section's plane.
-    private func crossing(_ before: Element, _ after: Element, at corner: Point3D, normal: Vector3D, shift: Double) throws -> Point3D {
+    private func crossing(_ before: Element, _ after: Element, at corner: Point3D, normal: Vector3D, shift: Double, using execution: inout OriginalQueryExecution) throws -> Point3D {
         enum Moved {
             case line(point: Point3D, direction: Vector3D)
             case circle(center: Point3D, radius: Double)
         }
         func moved(_ element: Element) throws -> Moved {
-            let out = try travel(of: element, at: corner).cross(normal)
+            let out = try travel(of: element, at: corner, using: &execution).cross(normal)
             switch element {
             case let .line(start, end):
                 return .line(point: corner + out * shift, direction: try (end - start).normalized(tolerance: tolerance.distance))
@@ -462,7 +486,7 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
 
     /// `elements` lifted by `lift`, lines as lines and arcs as circular arcs of at most a quarter
     /// turn (rational quadratic spans when `arcsAsSpans`, for a curve's B-spline sheet).
-    private func segments(_ elements: [Element], lift: Vector3D, arcsAsSpans: Bool = false) throws -> [ExactPrismaticBoundarySegment] {
+    private func segments(_ elements: [Element], lift: Vector3D, arcsAsSpans: Bool = false, using execution: inout OriginalQueryExecution) throws -> [ExactPrismaticBoundarySegment] {
         var result: [ExactPrismaticBoundarySegment] = []
         for element in elements {
             switch element {
@@ -472,7 +496,7 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
                 result.append(contentsOf: try spans(
                     center: arc.center + lift, normal: arc.normal, radius: arc.radius,
                     start: arc.start + lift, sweep: arc.sweepAngle, asSpans: arcsAsSpans
-                ))
+                , using: &execution))
             case let .spline(curve):
                 result.append(try .bSpline(BSplineCurve3D(degree: curve.degree, knots: curve.knots,
                                                           controlPoints: curve.controlPoints.map { $0 + lift }, weights: curve.weights),
@@ -503,7 +527,7 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
     }
 
     /// The unit direction an element runs in at `point`, one of its ends.
-    private func travel(of element: Element, at point: Point3D) throws -> Vector3D {
+    private func travel(of element: Element, at point: Point3D, using execution: inout OriginalQueryExecution) throws -> Vector3D {
         switch element {
         case let .line(start, end):
             return try (end - start).normalized(tolerance: tolerance.distance)
@@ -515,9 +539,9 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
             guard case let .closed(lower, upper) = curve.domain else {
                 throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance, message: "A wall's spline is unbounded.")
             }
-            let atStart = (try Curve3D.bSpline(curve).point(at: lower, tolerance: tolerance) - point).length
-                <= (try Curve3D.bSpline(curve).point(at: upper, tolerance: tolerance) - point).length
-            return try Curve3D.bSpline(curve).differentialGeometry(at: atStart ? lower : upper, tolerance: tolerance)
+            let atStart = (try Curve3D.bSpline(curve).point(at: lower, tolerance: tolerance, using: &execution) - point).length
+                <= (try Curve3D.bSpline(curve).point(at: upper, tolerance: tolerance, using: &execution) - point).length
+            return try Curve3D.bSpline(curve).differentialGeometry(at: atStart ? lower : upper, tolerance: tolerance, using: &execution)
                 .firstDerivative.normalized(tolerance: tolerance.distance)
         }
     }
@@ -525,11 +549,11 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
     /// An arc from `start` sweeping `sweep` about `normal`, in pieces of at most a quarter turn:
     /// circular arcs, or rational quadratic spans `asSpans`.
     private func spans(center: Point3D, normal: Vector3D, radius: Double, start: Point3D, sweep: Double,
-                       asSpans: Bool) throws -> [ExactPrismaticBoundarySegment] {
+                       asSpans: Bool, using execution: inout OriginalQueryExecution) throws -> [ExactPrismaticBoundarySegment] {
         let circle = Circle3D(center: center, normal: try normal.normalized(tolerance: tolerance.distance), radius: radius)
         try circle.validate(tolerance: tolerance)
         let curve = Curve3D.circle(circle)
-        let first = try curve.parameterProjection(of: start, tolerance: tolerance).parameter
+        let first = try curve.parameterProjection(of: start, tolerance: tolerance, using: &execution).parameter
         let count = max(1, Int(ceil(abs(sweep) / (0.5 * Double.pi))))
         return try (0..<count).map { index in
             let lower = first + sweep * Double(index) / Double(count)
@@ -538,14 +562,14 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
                 return try .circularArc(circle: circle, startParameter: lower, endParameter: upper, tolerance: tolerance)
             }
             let weight = cos(0.5 * (upper - lower))
-            let middle = try curve.point(at: 0.5 * (lower + upper), tolerance: tolerance)
+            let middle = try curve.point(at: 0.5 * (lower + upper), tolerance: tolerance, using: &execution)
             let span = BSplineCurve3D(
                 degree: 2,
                 knots: [0, 0, 0, 1, 1, 1],
                 controlPoints: [
-                    try curve.point(at: lower, tolerance: tolerance),
+                    try curve.point(at: lower, tolerance: tolerance, using: &execution),
                     center + (middle - center) / weight,
-                    try curve.point(at: upper, tolerance: tolerance),
+                    try curve.point(at: upper, tolerance: tolerance, using: &execution),
                 ],
                 weights: [1, weight, 1]
             )

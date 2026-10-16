@@ -47,7 +47,15 @@ package struct SurfaceParameterCurveChartLift: Hashable, Sendable {
     /// Interpolates numerical proposals; originalSampleBounds owns endpoint proof.
     package func parameter(
         atNormalizedFraction fraction: Double
-    ) -> SurfaceParameter {
+    ) throws -> SurfaceParameter {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try parameter(atNormalizedFraction: fraction, using: &execution)
+    }
+
+    package func parameter(
+        atNormalizedFraction fraction: Double
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceParameter {
+        try execution.consumeWork(1)
         let clamped = min(max(fraction, 0.0), 1.0)
         guard clamped < 1.0 else { return end }
         let scaled = clamped * Double(samples.count - 1)
@@ -61,66 +69,56 @@ package struct SurfaceParameterCurveChartLift: Hashable, Sendable {
         )
     }
 
-    /// Preserves original endpoint enclosures; caller proves period-lattice admission separately.
-    package func translated(uShift: Double, vShift: Double,
-        consumeWork: () throws -> Void, consumeStorage: ((Int) throws -> Void)?) throws -> Self {
-        guard uShift.isFinite, vShift.isFinite, let source = originalSource,
-            let support = originalSurface, let boxes = originalSampleBounds,
-            boxes.count == samples.count, boxes.count >= 3 else {
-            throw GeometryConversionError.invalidInput("Bounded chart translation requires finite shifts and original endpoint receipts.")
-        }
-        try consumeWork()
-        try OriginalCoefficientAllocation.reserve(count: boxes.count, of: SurfaceParameterBox.self,
-            consumeStorage: consumeStorage)
-        try OriginalCoefficientAllocation.reserve(count: boxes.count, of: SurfaceParameter.self,
-            consumeStorage: consumeStorage)
-        var translatedBoxes: [SurfaceParameterBox] = []; translatedBoxes.reserveCapacity(boxes.count)
-        var proposals: [SurfaceParameter] = []; proposals.reserveCapacity(boxes.count)
-        for box in boxes {
-            try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
-            let originalU = OutwardScalarInterval(lower: box.u.lower, upper: box.u.upper)
-            let u = uShift == 0 ? originalU : originalU + .exact(uShift)
-            let originalV = OutwardScalarInterval(lower: box.v.lower, upper: box.v.upper)
-            let v = vShift == 0 ? originalV : originalV + .exact(vShift)
-            guard u.isFinite, v.isFinite else {
-                throw GeometryConversionError.resourceLimitExceeded("Original translated chart endpoint enclosure is nonfinite.")
-            }
-            try translatedBoxes.append(.init(u: .init(lower: u.lower, upper: u.upper),
-                v: .init(lower: v.lower, upper: v.upper)))
-            let proposal = SurfaceParameter(u: u.midpoint, v: v.midpoint)
-            try proposal.validate(); proposals.append(proposal)
-        }
-        return .init(start: proposals[0], middle: proposals[proposals.count / 2],
-            end: proposals[proposals.count - 1], visitsUSingularity: visitsUSingularity,
-            samples: proposals, originalSource: .periodicTranslation(base: source, uShift: uShift, vShift: vShift),
-            originalSurface: support, originalSampleBounds: translatedBoxes)
+    /// Transports retained bounds when present; samples alone remain numerical proposals.
+    package func translated(uShift: Double, vShift: Double) throws -> Self {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try translated(uShift: uShift, vShift: vShift, using: &execution)
     }
 
-    // FIXME(INCOMPLETE_IMPLEMENTATION): Legacy chart consumers use numerical
-    // translation proposals. This overload cannot preserve an original endpoint
-    // proof without fallible outward bounds and caller accounting; bounded
-    // consumers must use the explicit work/storage translation overload.
-    package func translated(
-        uShift: Double,
-        vShift: Double
-    ) -> SurfaceParameterCurveChartLift {
-        func translated(_ parameter: SurfaceParameter) -> SurfaceParameter {
-            SurfaceParameter(
-                u: parameter.u + uShift,
-                v: parameter.v + vShift
-            )
+    package func translated(uShift: Double, vShift: Double,
+        using execution: inout OriginalQueryExecution) throws -> Self {
+        try execution.consumeWork(1)
+        guard uShift.isFinite, vShift.isFinite else {
+            throw GeometryConversionError.invalidInput("Chart translation requires finite shifts.")
         }
-        return SurfaceParameterCurveChartLift(
-            start: translated(start),
-            middle: translated(middle),
-            end: translated(end),
-            visitsUSingularity: visitsUSingularity,
-            samples: samples.map(translated),
+        if let boxes = originalSampleBounds {
+            guard let source = originalSource, let support = originalSurface,
+                boxes.count == samples.count, boxes.count >= 3 else {
+                throw GeometryConversionError.invalidInput("Original chart translation requires complete endpoint receipts.")
+            }
+            try OriginalCoefficientAllocation.reserve(count: boxes.count, of: SurfaceParameterBox.self, using: &execution)
+            try OriginalCoefficientAllocation.reserve(count: boxes.count, of: SurfaceParameter.self, using: &execution)
+            var translatedBoxes: [SurfaceParameterBox] = []; translatedBoxes.reserveCapacity(boxes.count)
+            var proposals: [SurfaceParameter] = []; proposals.reserveCapacity(boxes.count)
+            for box in boxes {
+                try execution.consumeWork(1)
+                let originalU = OutwardScalarInterval(lower: box.u.lower, upper: box.u.upper)
+                let u = uShift == 0 ? originalU : originalU + .exact(uShift)
+                let originalV = OutwardScalarInterval(lower: box.v.lower, upper: box.v.upper)
+                let v = vShift == 0 ? originalV : originalV + .exact(vShift)
+                guard u.isFinite, v.isFinite else {
+                    throw GeometryConversionError.resourceLimitExceeded("Original translated chart endpoint enclosure is nonfinite.")
+                }
+                try translatedBoxes.append(.init(u: .init(lower: u.lower, upper: u.upper),
+                    v: .init(lower: v.lower, upper: v.upper)))
+                let proposal = SurfaceParameter(u: u.midpoint, v: v.midpoint)
+                try proposal.validate(); proposals.append(proposal)
+            }
+            return .init(start: proposals[0], middle: proposals[proposals.count / 2],
+                end: proposals[proposals.count - 1], visitsUSingularity: visitsUSingularity,
+                samples: proposals, originalSource: .periodicTranslation(base: source, uShift: uShift, vShift: vShift),
+                originalSurface: support, originalSampleBounds: translatedBoxes)
+        }
+        func translated(_ parameter: SurfaceParameter) -> SurfaceParameter {
+            SurfaceParameter(u: parameter.u + uShift, v: parameter.v + vShift)
+        }
+        let proposals = try OriginalCoefficientAllocation.map(elements: samples, using: &execution) { value, _ in translated(value) }
+        return .init(start: translated(start), middle: translated(middle), end: translated(end),
+            visitsUSingularity: visitsUSingularity, samples: proposals,
             originalSource: originalSource.map { .periodicTranslation(base: $0, uShift: uShift, vShift: vShift) },
-            originalSurface: originalSurface,
-            originalSampleBounds: nil
-        )
+            originalSurface: originalSurface, originalSampleBounds: nil)
     }
+
 }
 
 package extension SurfaceParameterCurve {
@@ -129,81 +127,90 @@ package extension SurfaceParameterCurve {
         maximumParameterFirstDerivativeMagnitude: Double? = nil,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterCurveChartLift {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try continuousChartLift(on: surface, maximumParameterFirstDerivativeMagnitude: maximumParameterFirstDerivativeMagnitude, tolerance: tolerance, using: &execution)
+    }
+
+    func continuousChartLift(
+        on surface: Surface3D,
+        maximumParameterFirstDerivativeMagnitude: Double? = nil,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceParameterCurveChartLift {
+        try execution.consumeWork(1)
         if maximumParameterFirstDerivativeMagnitude == nil {
             switch self {
             case let .certifiedAnalyticPair(curve):
                 if let prepared = try curve.prepareParameterCellBounds(
                     tolerance: tolerance
-                ).continuousChartLift {
+                , using: &execution).continuousChartLift {
                     return prepared
                 }
             case let .periodicTranslation(base, uShift, vShift):
                 return try base.continuousChartLift(
                     on: surface,
                     tolerance: tolerance
-                ).translated(uShift: uShift, vShift: vShift)
+                , using: &execution).translated(uShift: uShift, vShift: vShift, using: &execution)
             default:
                 break
             }
         }
         return try continuousChartLift(
-            topology: SurfaceParameterTopology(surface: surface),
+            topology: try SurfaceParameterTopology(surface: surface, using: &execution),
             maximumParameterFirstDerivativeMagnitude:
                 maximumParameterFirstDerivativeMagnitude,
             tolerance: tolerance
-        )
+        , using: &execution)
     }
 
     // FIXME(INCOMPLETE_IMPLEMENTATION): Bounded seam/unwrapper validation
     // consumes explicit original continuous UV endpoint laws and retained boxes.
-    // Principal angular/implicit branch atlases and lower query temporary bytes
-    // must be connected before this facade claims all legacy chart families.
+    // Principal angular/implicit branch atlases still need original coverage
+    // receipts before this facade can admit those additional chart families.
     func continuousChartLift(on surface: Surface3D, tolerance: ModelingTolerance,
         maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
-        consumeWork: () throws -> Void, consumeStorage: ((Int) throws -> Void)?,
-        maximumAlgebraicDepth: Int? = nil)
+        maximumAlgebraicDepth: Int? = nil, using execution: inout OriginalQueryExecution)
         throws -> SurfaceParameterCurveChartLift {
         guard maximumSpanCount > 0, maximumSubdivisionDepth >= 0, remainingSourceDepth > 0 else {
             throw GeometryConversionError.resourceLimitExceeded("Original chart lift requires remaining caller source admission.")
         }
         try surface.validateOriginalSource(tolerance: tolerance, remainingSourceDepth: remainingSourceDepth,
-            maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: { _ in try consumeWork() }, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+            maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
         try validateOriginalSource(on: surface, tolerance: tolerance,
             remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth,
-            consumeWork: { _ in try consumeWork() }, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
-        func admit(_ curve: SurfaceParameterCurve, _ depth: Int) throws {
-            try consumeWork()
+            maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
+        func admit(_ curve: SurfaceParameterCurve, _ depth: Int, using execution: inout OriginalQueryExecution) throws {
+            try execution.consumeWork(1)
             switch curve {
             case .affine, .constantU, .constantV, .harmonic, .polyline, .bSpline, .originalBSplineContinuation: return
             case .periodicTranslation(let base, _, _):
                 guard depth > 0 else { throw GeometryConversionError.resourceLimitExceeded("Original chart translation exhausted source depth.") }
-                try admit(base, depth - 1)
+                try admit(base, depth - 1, using: &execution)
             case .originalAffineWord(let image):
                 guard depth > 0 else { throw GeometryConversionError.resourceLimitExceeded("Original word chart exhausted source depth.") }
-                try admit(image.source.parameterCurve, depth - 1)
+                try admit(image.source.parameterCurve, depth - 1, using: &execution)
             case .originalImage(let image):
                 guard depth > 0 else { throw GeometryConversionError.resourceLimitExceeded("Original image chart exhausted source depth.") }
-                try admit(image.source.parameterCurve, depth - 1)
+                try admit(image.source.parameterCurve, depth - 1, using: &execution)
             case .offsetSurfaceImage(let image):
                 guard depth > 0 else { throw GeometryConversionError.resourceLimitExceeded("Original offset chart exhausted source depth.") }
-                try admit(image.source, depth - 1)
+                try admit(image.source, depth - 1, using: &execution)
             default:
                 throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
                     message: "Original continuous UV branch coverage is not supplied by this chart family.")
             }
         }
-        try admit(self, remainingSourceDepth)
-        func bounds(_ fraction: ScalarInterval) throws -> SurfaceParameterBox {
+        try admit(self, remainingSourceDepth, using: &execution)
+        func bounds(_ fraction: ScalarInterval, using execution: inout OriginalQueryExecution) throws -> SurfaceParameterBox {
             let jet = try OriginalParameterCurveHigherTaylor.enclosure(self, over: fraction,
                 order: 0, tolerance: tolerance, maximumSpanCount: maximumSpanCount,
                 maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
-                consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+                maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
             let u = try jet.u.coefficient(0, 0), v = try jet.v.coefficient(0, 0)
             return try .init(u: .init(lower: u.lower, upper: u.upper), v: .init(lower: v.lower, upper: v.upper))
         }
-        let whole = try bounds(.init(lower: 0, upper: 1))
-        func visits(_ support: Surface3D, _ box: SurfaceParameterBox, _ depth: Int) throws -> Bool {
-            try consumeWork()
+        let whole = try bounds(.init(lower: 0, upper: 1), using: &execution)
+        func visits(_ support: Surface3D, _ box: SurfaceParameterBox, _ depth: Int, using execution: inout OriginalQueryExecution) throws -> Bool {
+            try execution.consumeWork(1)
             switch support {
             case .analytic(.sphere):
                 return box.v.lower <= -Double.pi * 0.5 || box.v.upper >= Double.pi * 0.5
@@ -213,11 +220,11 @@ package extension SurfaceParameterCurve {
                     || value.hasOriginalAxisEndpoint(atEnd: true) && box.v.upper >= 1
             case .procedural(.originalAffineWord(let image)):
                 guard depth > 0 else { throw GeometryConversionError.resourceLimitExceeded("Original word singular chart exhausted source depth.") }
-                return try visits(image.source, box, depth - 1)
+                return try visits(image.source, box, depth - 1, using: &execution)
             case .procedural(.originalImage(let image)):
                 guard depth > 0 else { throw GeometryConversionError.resourceLimitExceeded("Original singular chart exhausted source depth.") }
-                let native = try image.nativeBox(box, consumeWork: consumeWork)
-                let original = try visits(image.source, native, depth - 1)
+                let native = try image.nativeBox(box, using: &execution)
+                let original = try visits(image.source, native, depth - 1, using: &execution)
                 guard !image.swapAxes || !original else {
                     throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
                         message: "Original permuted singular chart needs both angular-axis role receipts.")
@@ -225,19 +232,19 @@ package extension SurfaceParameterCurve {
                 return original
             case .procedural(.offset(let offset)):
                 guard depth > 0 else { throw GeometryConversionError.resourceLimitExceeded("Original offset singular chart exhausted source depth.") }
-                return try visits(offset.source, box, depth - 1)
+                return try visits(offset.source, box, depth - 1, using: &execution)
             default: return false
             }
         }
-        let singular = try visits(surface, whole, remainingSourceDepth)
-        try OriginalCoefficientAllocation.reserve(count: 3, of: SurfaceParameter.self, consumeStorage: consumeStorage)
-        try OriginalCoefficientAllocation.reserve(count: 3, of: SurfaceParameterBox.self, consumeStorage: consumeStorage)
+        let singular = try visits(surface, whole, remainingSourceDepth, using: &execution)
+        try OriginalCoefficientAllocation.reserve(count: 3, of: SurfaceParameter.self, using: &execution)
+        try OriginalCoefficientAllocation.reserve(count: 3, of: SurfaceParameterBox.self, using: &execution)
         var samples: [SurfaceParameter] = [], boxes: [SurfaceParameterBox] = []
         samples.reserveCapacity(3); boxes.reserveCapacity(3)
         for index in 0..<3 {
-            try consumeWork()
+            try execution.consumeWork(1)
             let fraction = Double(index) * 0.5
-            let box = try bounds(.init(lower: fraction, upper: fraction))
+            let box = try bounds(.init(lower: fraction, upper: fraction), using: &execution)
             let u = box.u.midpoint, v = box.v.midpoint
             guard u.isFinite, v.isFinite else {
                 throw GeometryConversionError.resourceLimitExceeded("Original chart endpoint representative is nonfinite.")
@@ -254,6 +261,17 @@ package extension SurfaceParameterCurve {
         maximumParameterFirstDerivativeMagnitude: Double? = nil,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterCurveChartLift {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try continuousChartLift(topology: topology, maximumParameterFirstDerivativeMagnitude: maximumParameterFirstDerivativeMagnitude, tolerance: tolerance, using: &execution)
+    }
+
+
+    func continuousChartLift(
+        topology: SurfaceParameterTopology,
+        maximumParameterFirstDerivativeMagnitude: Double? = nil,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceParameterCurveChartLift {
+        try execution.consumeWork(1)
         try tolerance.validate()
         let derivativeBound: Double?
         if let maximumParameterFirstDerivativeMagnitude {
@@ -261,7 +279,7 @@ package extension SurfaceParameterCurve {
         } else if topology.uPeriod != nil || topology.vPeriod != nil {
             derivativeBound = try intrinsicMaximumParameterFirstDerivativeMagnitude(
                 tolerance: tolerance
-            )
+            , using: &execution)
         } else {
             derivativeBound = nil
         }
@@ -270,13 +288,16 @@ package extension SurfaceParameterCurve {
             maximumParameterFirstDerivativeMagnitude: derivativeBound,
             tolerance: tolerance
         )
+        let sampleCount = try exactScalarCount(subdivisions, 1, multiply: false)
+        try OriginalCoefficientAllocation.reserve(count: sampleCount, of: SurfaceParameter.self, using: &execution)
         var samples: [SurfaceParameter] = []
-        samples.reserveCapacity(subdivisions + 1)
+        samples.reserveCapacity(sampleCount)
         for index in 0...subdivisions {
+            try execution.consumeWork(1)
             samples.append(try parameter(
                 atNormalizedFraction: Double(index) / Double(subdivisions),
                 tolerance: tolerance
-            ))
+            , using: &execution))
         }
         guard let start = samples.first else {
             throw KernelError(
@@ -288,13 +309,15 @@ package extension SurfaceParameterCurve {
         }
         var end = start
         var middle = start
-        var liftedSamples = [start]
-        liftedSamples.reserveCapacity(samples.count)
+        try OriginalCoefficientAllocation.reserve(count: samples.count, of: SurfaceParameter.self, using: &execution)
+        var liftedSamples: [SurfaceParameter] = []; liftedSamples.reserveCapacity(samples.count)
+        liftedSamples.append(start)
         var visitsUSingularity = topology.isUSingular(
             start,
             tolerance: tolerance
         )
         for index in 1..<samples.count {
+            try execution.consumeWork(1)
             let previous = samples[index - 1]
             let current = samples[index]
             let crossesUSingularity = topology.isUSingular(
@@ -335,7 +358,8 @@ package extension SurfaceParameterCurve {
 
     private func intrinsicMaximumParameterFirstDerivativeMagnitude(
         tolerance: ModelingTolerance
-    ) throws -> Double? {
+    , using execution: inout OriginalQueryExecution) throws -> Double? {
+        try execution.consumeWork(1)
         switch self {
         case let .affine(_, direction, start, end):
             return (hypot(direction.x, direction.y) * abs(end - start)).nextUp
@@ -350,6 +374,7 @@ package extension SurfaceParameterCurve {
         case let .polyline(points):
             var totalLength = 0.0
             for index in 1..<points.count {
+                try execution.consumeWork(1)
                 totalLength = (totalLength + hypot(
                     points[index].u - points[index - 1].u,
                     points[index].v - points[index - 1].v
@@ -357,12 +382,12 @@ package extension SurfaceParameterCurve {
             }
             return totalLength
         case let .originalBSplineContinuation(curve):
-            let jet = try curve.intervalJet(over: ScalarInterval(lower: 0, upper: 1), tolerance: tolerance)
+            let jet = try curve.intervalJet(over: ScalarInterval(lower: 0, upper: 1), tolerance: tolerance, using: &execution)
             return hypot(jet.u.derivativeU.absoluteUpperBound, jet.v.derivativeU.absoluteUpperBound).nextUp
         case let .bSpline(curve):
             let patches = try curve.rationalBezierPatches(
                 tolerance: tolerance
-            )
+            , using: &execution)
             guard case let .closed(lower, upper) = curve.domain,
                   patches.isEmpty == false else {
                 throw KernelError(
@@ -376,15 +401,16 @@ package extension SurfaceParameterCurve {
             var maximumU = 0.0
             var maximumV = 0.0
             for patch in patches {
+                try execution.consumeWork(1)
+                try OriginalCoefficientAllocation.reserve(count: 2, of: [Double].self, using: &execution)
+                let x = try OriginalCoefficientAllocation.map(elements: patch.controlPoints, using: &execution) { point, _ in point.x }
+                let y = try OriginalCoefficientAllocation.map(elements: patch.controlPoints, using: &execution) { point, _ in point.y }
                 let bound = try RationalBezierCurveDerivativeBound(
-                    coordinates: [
-                        patch.controlPoints.map({ $0.x }),
-                        patch.controlPoints.map({ $0.y }),
-                    ],
+                    coordinates: [x, y],
                     weights: patch.weights,
                     parameterWidth: patch.upper - patch.lower,
                     tolerance: tolerance
-                )
+                , using: &execution)
                 maximumU = max(
                     maximumU,
                     (bound.first[0] * domainWidth).nextUp
@@ -396,30 +422,30 @@ package extension SurfaceParameterCurve {
             }
             return hypot(maximumU, maximumV).nextUp
         case let .originalAffineWord(image):
-            guard let jet = try image.intervalJet(over: ScalarInterval(lower: 0, upper: 1), tolerance: tolerance) else { return nil }
+            guard let jet = try image.intervalJet(over: ScalarInterval(lower: 0, upper: 1), tolerance: tolerance, using: &execution) else { return nil }
             return hypot(jet.u.derivativeU.absoluteUpperBound, jet.v.derivativeU.absoluteUpperBound).nextUp
         case let .originalImage(image):
-            guard let jet = try image.intervalJet(over: ScalarInterval(lower: 0, upper: 1), tolerance: tolerance) else { return nil }
+            guard let jet = try image.intervalJet(over: ScalarInterval(lower: 0, upper: 1), tolerance: tolerance, using: &execution) else { return nil }
             return hypot(jet.u.derivativeU.absoluteUpperBound, jet.v.derivativeU.absoluteUpperBound).nextUp
         case let .offsetSurfaceImage(image):
             return try image.source
                 .intrinsicMaximumParameterFirstDerivativeMagnitude(
                     tolerance: tolerance
-                )
+                , using: &execution)
         case let .periodicTranslation(base, _, _):
             return try base.intrinsicMaximumParameterFirstDerivativeMagnitude(
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .certifiedImplicit(curve):
             return try Self.certifiedImplicitFirstDerivativeMagnitude(
                 curve,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .certifiedAnalyticImplicit(curve):
             return try Self.certifiedAnalyticImplicitFirstDerivativeMagnitude(
                 curve,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case .sphericalGreatCircle, .certifiedAnalyticPair,
              .projectedAnalytic, .rigidImage:
             // These curve owners either return an already continuous chart
@@ -432,16 +458,18 @@ package extension SurfaceParameterCurve {
     private static func certifiedImplicitFirstDerivativeMagnitude(
         _ curve: CertifiedImplicitSurfaceParameterCurve,
         tolerance: ModelingTolerance
-    ) throws -> Double {
+    , using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
         let intersection = curve.intersection
         let coordinateOffset = curve.role == .first ? 0 : 2
         var maximum = 0.0
         for cell in intersection.cells {
+            try execution.consumeWork(1)
             let derivatives = try cell.parameterDerivativeBounds(
                 firstSurface: intersection.firstSurface,
                 secondSurface: intersection.secondSurface,
                 tolerance: tolerance
-            )
+            , using: &execution)
             guard derivatives.count == 4 else {
                 throw KernelError(
                     phase: .geometry,
@@ -468,21 +496,23 @@ package extension SurfaceParameterCurve {
     private static func certifiedAnalyticImplicitFirstDerivativeMagnitude(
         _ curve: CertifiedAnalyticImplicitSurfaceParameterCurve,
         tolerance: ModelingTolerance
-    ) throws -> Double {
+    , using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
         let intersection = curve.intersection.implicitCurve
         var maximum = 0.0
         for cell in intersection.cells {
+            try execution.consumeWork(1)
             let subcell = try cell.restrictedBounds(
                 fromNormalizedFraction: 0.0,
                 toNormalizedFraction: 1.0,
                 firstSurface: intersection.firstSurface,
                 secondSurface: intersection.secondSurface,
                 tolerance: tolerance
-            )
+            , using: &execution)
             let enclosure = try curve.parameterEnclosure(
                 for: subcell,
                 tolerance: tolerance
-            )
+            , using: &execution)
             maximum = max(
                 maximum,
                 hypot(
@@ -518,9 +548,12 @@ package extension SurfaceParameterCurve {
                 message: "A continuous chart lift requires a finite nonnegative parameter derivative bound."
             )
         }
-        guard let minimumPeriod = [topology.uPeriod, topology.vPeriod]
-            .compactMap({ $0 }).min() else {
-            return 16
+        let minimumPeriod: Double
+        switch (topology.uPeriod, topology.vPeriod) {
+        case let (.some(u), .some(v)): minimumPeriod = min(u, v)
+        case let (.some(u), .none): minimumPeriod = u
+        case let (.none, .some(v)): minimumPeriod = v
+        case (.none, .none): return 16
         }
         guard minimumPeriod.isFinite, minimumPeriod > 0.0 else {
             throw KernelError(

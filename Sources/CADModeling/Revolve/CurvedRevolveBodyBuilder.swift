@@ -18,6 +18,9 @@ struct CurvedRevolveBodyBuilder {
     private let angleOffset: Double?
     private let isFullTurn: Bool
     private let angleBreaks: [Double]
+    private let setupBudget: OriginalQueryBudget
+    private let setupLimits: OriginalQueryExecutionLimits
+    private let setupContributions: [OriginalQueryContributionHandle]
 
     init(
         axis: RevolveAxis,
@@ -27,9 +30,17 @@ struct CurvedRevolveBodyBuilder {
         context: EvaluationContext,
         sewer: any BRepSewing
     ) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try self.init(axis: axis, angle: angle, profile: profile, featureID: featureID,
+            context: context, sewer: sewer, using: &execution)
+    }
+
+    init(axis: RevolveAxis, angle: Double, profile: Profile, featureID: FeatureID,
+        context: EvaluationContext, sewer: any BRepSewing,
+        using execution: inout OriginalQueryExecution) throws {
+        let sectionPoints = try OriginalParameterQueryStorage.flatMap(profile.boundaryLoops, using: &execution) { loop, execution in loop.vertices }
         try self.init(axis: axis, angle: angle, plane: profile.plane,
-            sectionPoints: profile.boundaryLoops.flatMap(\.vertices),
-            featureID: featureID, context: context, sewer: sewer)
+            sectionPoints: sectionPoints, featureID: featureID, context: context, sewer: sewer, using: &execution)
     }
 
     static func buildSheet(
@@ -40,18 +51,39 @@ struct CurvedRevolveBodyBuilder {
         context: EvaluationContext,
         sewer: any BRepSewing
     ) throws -> EvaluationResult {
+        let sourceRequirements = GeometryConversionRequirements(maximumPositionError: context.tolerance.distance,
+            maximumTangentAngle: context.tolerance.angle, maximumCurvatureError: context.tolerance.relative)
+        let sourceBytes = sourceRequirements.maximumScalarCount.multipliedReportingOverflow(by: MemoryLayout<Double>.stride)
+        guard !sourceBytes.overflow else { throw ExactScalarFailure.countOverflow }
+        let maximumSpanCount = min(65_536, sourceRequirements.maximumCertificationBoxes)
+        let maximumDepth = 32
+        let sourceBudget = try OriginalQueryBudget(workLimit: sourceRequirements.maximumWorkUnits,
+            storageByteLimit: sourceBytes.partialValue)
+        var sourceUsage = OriginalQueryExecution(budget: sourceBudget,
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32,
+                maximumCells: maximumSpanCount, maximumSubdivisionDepth: maximumDepth,
+                maximumSpans: maximumSpanCount))
+        return try buildSheet(axis: axis, angle: angle, section: section, featureID: featureID,
+            context: context, sewer: sewer, using: &sourceUsage)
+    }
+
+    static func buildSheet(axis: RevolveAxis, angle: Double, section: EvaluatedCurve,
+        featureID: FeatureID, context: EvaluationContext, sewer: any BRepSewing,
+        using execution: inout OriginalQueryExecution) throws -> EvaluationResult {
         try axis.validate(tolerance: context.tolerance)
-        var sourceUsage = try OriginalRevolutionSourceBudget(tolerance: context.tolerance)
+        try context.tolerance.validate()
+        let maximumSpanCount = min(65_536, execution.effectiveLimits.maximumSpans)
+        let maximumDepth = min(32, execution.effectiveLimits.maximumSubdivisionDepth)
         if let original = section.exactCurve {
             var native = original
             while case let .parameterImage(image) = native,
                   image.parameterGain == .binary(-1), image.offset == 0 {
-                try sourceUsage.consumeExactWork(1)
+                try execution.consumeWork(1)
                 native = image.source
             }
             if case .bSpline = native {
                 let builder = try Self(axis: axis, angle: angle, plane: nil, sectionPoints: [],
-                    featureID: featureID, context: context, sewer: sewer)
+                    featureID: featureID, context: context, sewer: sewer, using: &execution)
                 let parameters: ScalarInterval
                 switch section.parameterDomain {
                 case let .closed(lower, upper):
@@ -61,20 +93,18 @@ struct CurvedRevolveBodyBuilder {
                 default:
                     throw FeatureEvaluationError.invalidGraph("Original revolution requires its authored finite generator domain.")
                 }
-                let maximumSpanCount = sourceUsage.maximumCells
-                let maximumDepth = sourceUsage.maximumDepth
                 let spans = try OriginalRevolveGeneratorResolver().resolve(source: original,
                     over: parameters, origin: axis.origin, direction: axis.direction,
                     maximumParameterWidth: section.parameterDomain.parameterResolution(tolerance: context.tolerance),
                     maximumSubdivisionDepth: maximumDepth, maximumSpanCount: maximumSpanCount,
-                    tolerance: context.tolerance, usage: &sourceUsage)
+                    tolerance: context.tolerance, usage: &execution)
                 let admission = try OriginalRevolutionOrbitAdmitter().validate(spans,
                     angle: builder.angle, isClosed: section.isClosed, maximumSpanCount: maximumSpanCount,
                     maximumSubdivisionDepth: maximumDepth, maximumPairVisits: maximumSpanCount,
-                    tolerance: context.tolerance, usage: &sourceUsage)
+                    tolerance: context.tolerance, usage: &execution)
                 return try OriginalRevolutionSheetBuilder().build(admission: admission,
                     angularBreaks: builder.angleBreaks, featureID: featureID, context: context,
-                    sewer: sewer, usage: &sourceUsage)
+                    sewer: sewer, usage: &execution)
             }
         }
         // FIXME(INCOMPLETE_IMPLEMENTATION): Public curve-section Revolve still
@@ -91,27 +121,31 @@ struct CurvedRevolveBodyBuilder {
                 generatorPlane = sourcePlane
             }
         }
-        let spans = try ExactBSplineCurveSpanBuilder(tolerance: context.tolerance).sectionSpans(from: section)
+        let spans = try ExactBSplineCurveSpanBuilder(tolerance: context.tolerance).sectionSpans(from: section, using: &execution)
         var witnesses: [Point3D] = []
-        witnesses.reserveCapacity(spans.count * 3)
+        let witnessCount = spans.count.multipliedReportingOverflow(by: 3)
+        guard !witnessCount.overflow else { throw ExactScalarFailure.countOverflow }
+        try OriginalParameterQueryStorage.reserve(witnessCount.partialValue, in: &witnesses, using: &execution)
         for span in spans {
+            try execution.consumeWork(1)
             guard case let .closed(lower, upper) = span.curve.domain else {
                 throw SketchError.degenerateProfile
             }
             witnesses.append(span.startPoint)
-            witnesses.append(try span.curve.point(at: 0.5 * (lower + upper), tolerance: context.tolerance))
+            witnesses.append(try span.curve.point(at: 0.5 * (lower + upper), tolerance: context.tolerance, using: &execution))
             witnesses.append(span.endPoint)
         }
         let builder = try Self(axis: axis, angle: angle, plane: generatorPlane, sectionPoints: witnesses,
-            featureID: featureID, context: context, sewer: sewer)
+            featureID: featureID, context: context, sewer: sewer, using: &execution)
         if generatorPlane == nil {
-            try builder.validateSpatialGenerator(spans, isClosed: section.isClosed)
+            try builder.validateSpatialGenerator(spans, isClosed: section.isClosed, using: &execution)
         }
-        let segments = try spans.enumerated().map { index, span in
-            try builder.makeSegment(curve: span.curve, boundaryIndex: index, spanIndex: 0)
+        let segments = try OriginalParameterQueryStorage.map(spans.enumerated(), using: &execution) { entry, execution in
+            let (index, span) = entry
+            return try builder.makeSegment(curve: span.curve, boundaryIndex: index, spanIndex: 0, using: &execution)
         }
         return try builder.build(
-            rings: [[CurvedRevolveLoopData(segments: segments, areaSign: 1)]], resultKind: .sheet)
+            rings: [[CurvedRevolveLoopData(segments: segments, areaSign: 1)]], resultKind: .sheet, using: &execution)
     }
 
     private init(
@@ -121,8 +155,10 @@ struct CurvedRevolveBodyBuilder {
         sectionPoints: [Point3D],
         featureID: FeatureID,
         context: EvaluationContext,
-        sewer: any BRepSewing
+        sewer: any BRepSewing,
+        using execution: inout OriginalQueryExecution
     ) throws {
+        try execution.consumeWork(1)
         try context.tolerance.validate()
         guard angle.isFinite, abs(angle) > context.tolerance.angle,
               abs(angle) <= 2 * Double.pi + context.tolerance.angle else {
@@ -134,13 +170,13 @@ struct CurvedRevolveBodyBuilder {
             for: direction,
             tolerance: context.tolerance
         )
-        let frame = try plane.map { sourcePlane in try Self.profileFrame(
+        let frame = try OriginalParameterQueryStorage.optionalMap(plane, using: &execution) { sourcePlane, execution in try Self.profileFrame(
             axis: axis,
             axisDirection: direction,
             parameterBasis: basis,
             sectionPoints: sectionPoints,
             profilePlane: Self.plane(for: sourcePlane, tolerance: context.tolerance),
-            tolerance: context.tolerance
+            tolerance: context.tolerance, using: &execution
         ) }
         let fullTurn = abs(abs(angle) - 2.0 * Double.pi) <= context.tolerance.angle
         self.axisOrigin = axis.origin
@@ -157,7 +193,10 @@ struct CurvedRevolveBodyBuilder {
         self.profileRadialDirection = frame?.radialDirection
         self.angleOffset = frame?.angleOffset
         self.isFullTurn = fullTurn
-        self.angleBreaks = Self.angleBreaks(for: self.angle, isFullTurn: fullTurn)
+        self.angleBreaks = try Self.angleBreaks(for: self.angle, isFullTurn: fullTurn, using: &execution)
+        setupBudget = execution.budget
+        setupLimits = execution.effectiveLimits
+        setupContributions = try execution.retainActiveContributionHandles()
     }
 
     private struct OrbitCell {
@@ -172,7 +211,7 @@ struct CurvedRevolveBodyBuilder {
         let radialDerivative: OutwardScalarInterval
     }
 
-    private func validateSpatialGenerator(_ spans: [ExactBSplineCurveSpan], isClosed: Bool) throws {
+    private func validateSpatialGenerator(_ spans: [ExactBSplineCurveSpan], isClosed: Bool, using execution: inout OriginalQueryExecution) throws {
         guard let first = spans.first, let last = spans.last, spans.count <= 65_536 else {
             throw KernelError(phase: .geometry, code: .resourceLimitExceeded,
                 tolerance: context.tolerance, message: "Spatial Revolve requires bounded generator spans.")
@@ -204,11 +243,11 @@ struct CurvedRevolveBodyBuilder {
         let originV = originProjection(parameterBasisV)
         let sweepCosineLower = abs(angle) < Double.pi
             ? try CertifiedRotationTrigonometry.evaluate(.exact(abs(angle)),
-                tolerance: context.tolerance).cosine.lower : nil
+                tolerance: context.tolerance, using: &execution).cosine.lower : nil
         let encloser = DefaultCurveDifferentialEncloser()
         func cell(span: Int, parameters: ScalarInterval, depth: Int) throws -> OrbitCell {
             let enclosure = try encloser.enclosure(of: .bSpline(spans[span].curve),
-                over: parameters, tolerance: context.tolerance)
+                over: parameters, tolerance: context.tolerance, using: &execution)
             let u = dot(enclosure.position, parameterBasisU) - originU
             let v = dot(enclosure.position, parameterBasisV) - originV
             return OrbitCell(span: span, parameters: parameters, depth: depth,
@@ -260,7 +299,7 @@ struct CurvedRevolveBodyBuilder {
                 cell(span: value.span, parameters: ScalarInterval(lower: middle, upper: value.parameters.upper),
                     depth: value.depth + 1))
         }
-        let isolatedPoles = try spans.map { try originalEndpointPoleIsolated($0.curve) }
+        let isolatedPoles = try spans.map { try originalEndpointPoleIsolated($0.curve, using: &execution) }
         let initial = try spans.indices.map { try cell(span: $0, parameters: domains[$0], depth: 0) }
         let minimumRadiusSquared = OutwardScalarInterval.exact(context.tolerance.distance)
             * .exact(context.tolerance.distance)
@@ -309,26 +348,36 @@ struct CurvedRevolveBodyBuilder {
     }
 
     func build(from profile: Profile, resultKind: BodyKind = .solid) throws -> EvaluationResult {
-        try build(fromRings: [profile], resultKind: resultKind)
+        var execution = try OriginalQueryExecution(budget: setupBudget, limits: setupLimits, contributions: setupContributions)
+        return try build(from: profile, resultKind: resultKind, using: &execution)
+    }
+
+    func build(fromRings profiles: [Profile], resultKind: BodyKind = .solid) throws -> EvaluationResult {
+        var execution = try OriginalQueryExecution(budget: setupBudget, limits: setupLimits, contributions: setupContributions)
+        return try build(fromRings: profiles, resultKind: resultKind, using: &execution)
+    }
+
+    func build(from profile: Profile, resultKind: BodyKind = .solid, using execution: inout OriginalQueryExecution) throws -> EvaluationResult {
+        try build(fromRings: [profile], resultKind: resultKind, using: &execution)
     }
 
     /// Several disjoint regions (a thin section's rings) revolved into one body, a solid
     /// component for each.
-    func build(fromRings profiles: [Profile], resultKind: BodyKind = .solid) throws -> EvaluationResult {
+    func build(fromRings profiles: [Profile], resultKind: BodyKind = .solid, using execution: inout OriginalQueryExecution) throws -> EvaluationResult {
         let rings = try profiles.map { profile in
             try profile.boundaryLoops.map { loop in
-                let segments = try exactSegments(from: loop)
-                try validateClosure(segments)
+                let segments = try exactSegments(from: loop, using: &execution)
+                try validateClosure(segments, using: &execution)
                 return CurvedRevolveLoopData(
                     segments: segments,
-                    areaSign: try signedProfileAreaSign(loop.vertices)
+                    areaSign: try signedProfileAreaSign(loop.vertices, using: &execution)
                 )
             }
         }
-        return try build(rings: rings, resultKind: resultKind)
+        return try build(rings: rings, resultKind: resultKind, using: &execution)
     }
 
-    private func build(rings: [[CurvedRevolveLoopData]], resultKind: BodyKind) throws -> EvaluationResult {
+    private func build(rings: [[CurvedRevolveLoopData]], resultKind: BodyKind, using execution: inout OriginalQueryExecution) throws -> EvaluationResult {
         guard rings.isEmpty == false, rings.allSatisfy({ $0.isEmpty == false }) else {
             throw SketchError.openProfile
         }
@@ -352,7 +401,7 @@ struct CurvedRevolveBodyBuilder {
                 : materialAreaSign
             for segmentIndex in loop.segments.indices {
                 let segment = loop.segments[segmentIndex]
-                guard try isAxisSegment(segment) == false else {
+                guard try isAxisSegment(segment, using: &execution) == false else {
                     continue
                 }
                 sideSegmentIndices.append((loopIndex, segmentIndex))
@@ -363,7 +412,7 @@ struct CurvedRevolveBodyBuilder {
                         segmentIndex: segmentIndex,
                         intervalIndex: intervalIndex,
                         profileAreaSign: shellLocalAreaSign
-                    ))
+                    , using: &execution))
                 }
             }
         }
@@ -373,8 +422,8 @@ struct CurvedRevolveBodyBuilder {
         if includesCaps {
             for ring in rings.indices {
                 capPatches[ring] = [
-                    try capPatch(loopData: rings[ring], angle: angleBreaks[0], role: .startFace, ring: ring),
-                    try capPatch(loopData: rings[ring], angle: angleBreaks[angleBreaks.count - 1], role: .endFace, ring: ring),
+                    try capPatch(loopData: rings[ring], angle: angleBreaks[0], role: .startFace, ring: ring, using: &execution),
+                    try capPatch(loopData: rings[ring], angle: angleBreaks[angleBreaks.count - 1], role: .endFace, ring: ring, using: &execution),
                 ]
             }
         }
@@ -439,7 +488,7 @@ struct CurvedRevolveBodyBuilder {
             sewn: sewn,
             sideSegmentIndices: sideSegmentIndices,
             capRings: includesCaps ? rings.count : 0
-        )
+        , using: &execution)
         return EvaluationResult(
             brep: combined,
             subshapes: subshapes,
@@ -450,7 +499,7 @@ struct CurvedRevolveBodyBuilder {
         )
     }
 
-    private func exactSegments(from loop: ProfileLoop) throws -> [RevolveProfileSegment] {
+    private func exactSegments(from loop: ProfileLoop, using execution: inout OriginalQueryExecution) throws -> [RevolveProfileSegment] {
         var result: [RevolveProfileSegment] = []
         for (boundaryIndex, boundary) in loop.boundarySegments.enumerated() {
             switch boundary {
@@ -465,17 +514,17 @@ struct CurvedRevolveBodyBuilder {
                     curve: curve,
                     boundaryIndex: boundaryIndex,
                     spanIndex: 0
-                ))
+                , using: &execution))
             case let .circularArc(arc):
                 result.append(contentsOf: try circularArcSegments(
                     arc,
                     boundaryIndex: boundaryIndex
-                ))
+                , using: &execution))
             case let .spline(spline):
                 result.append(contentsOf: try splineSegments(
                     spline.curve,
                     boundaryIndex: boundaryIndex
-                ))
+                , using: &execution))
             }
         }
         guard result.count >= 2 else {
@@ -487,7 +536,7 @@ struct CurvedRevolveBodyBuilder {
     private func circularArcSegments(
         _ arc: ProfileCircularArcSegment,
         boundaryIndex: Int
-    ) throws -> [RevolveProfileSegment] {
+    , using execution: inout OriginalQueryExecution) throws -> [RevolveProfileSegment] {
         let normal = try arc.normal.normalized(tolerance: context.tolerance.distance)
         let basis = try Self.circleBasis(for: normal, tolerance: context.tolerance)
         let startOffset = arc.start - arc.center
@@ -528,14 +577,14 @@ struct CurvedRevolveBodyBuilder {
                 curve: curve,
                 boundaryIndex: boundaryIndex,
                 spanIndex: spanIndex
-            )
+            , using: &execution)
         }
     }
 
     private func splineSegments(
         _ source: BSplineCurve3D,
         boundaryIndex: Int
-    ) throws -> [RevolveProfileSegment] {
+    , using execution: inout OriginalQueryExecution) throws -> [RevolveProfileSegment] {
         try source.validate(tolerance: context.tolerance)
         guard case let .closed(lower, upper) = source.domain else {
             throw KernelError(
@@ -568,7 +617,7 @@ struct CurvedRevolveBodyBuilder {
                 curve: curve,
                 boundaryIndex: boundaryIndex,
                 spanIndex: spanIndex
-            )
+            , using: &execution)
         }
     }
 
@@ -576,21 +625,21 @@ struct CurvedRevolveBodyBuilder {
         curve: BSplineCurve3D,
         boundaryIndex: Int,
         spanIndex: Int
-    ) throws -> RevolveProfileSegment {
+    , using execution: inout OriginalQueryExecution) throws -> RevolveProfileSegment {
         guard case let .closed(lower, upper) = curve.domain else {
             throw GeometryError.invalidDistance(0.0)
         }
         if profileRadialDirection != nil {
             for point in curve.controlPoints {
-                _ = try coordinates(for: point, requireNonnegativeRadius: false)
+                _ = try coordinates(for: point, requireNonnegativeRadius: false, using: &execution)
             }
-            try validateNonnegativeRadius(curve)
+            try validateNonnegativeRadius(curve, using: &execution)
         }
         let start = try curve.point(at: lower, tolerance: context.tolerance)
         let end = try curve.point(at: upper, tolerance: context.tolerance)
         if profileRadialDirection != nil {
-            _ = try coordinates(for: start, requireNonnegativeRadius: true)
-            _ = try coordinates(for: end, requireNonnegativeRadius: true)
+            _ = try coordinates(for: start, requireNonnegativeRadius: true, using: &execution)
+            _ = try coordinates(for: end, requireNonnegativeRadius: true, using: &execution)
         }
         return RevolveProfileSegment(
             curve: curve,
@@ -601,7 +650,7 @@ struct CurvedRevolveBodyBuilder {
         )
     }
 
-    private func validateNonnegativeRadius(_ curve: BSplineCurve3D) throws {
+    private func validateNonnegativeRadius(_ curve: BSplineCurve3D, using execution: inout OriginalQueryExecution) throws {
         guard curve.controlPointCount == curve.degree + 1,
               curve.knots.count == 2 * (curve.degree + 1),
               let lowerKnot = curve.knots.first,
@@ -616,12 +665,12 @@ struct CurvedRevolveBodyBuilder {
             )
         }
         let radii = try curve.controlPoints.map {
-            try coordinates(for: $0, requireNonnegativeRadius: false).radius
+            try coordinates(for: $0, requireNonnegativeRadius: false, using: &execution).radius
         }
-        if try originalEndpointPoleIsolated(curve) {
+        if try originalEndpointPoleIsolated(curve, using: &execution) {
             var hasOppositeControl = false
             for index in curve.controlPoints.indices where radii[index] < 0 {
-                if !(try originalAxisContains(curve.controlPoints[index])) {
+                if !(try originalAxisContains(curve.controlPoints[index], using: &execution)) {
                     hasOppositeControl = true
                     break
                 }
@@ -630,7 +679,7 @@ struct CurvedRevolveBodyBuilder {
         }
         var wholeAxis = true
         for point in curve.controlPoints {
-            if !(try originalAxisContains(point)) { wholeAxis = false; break }
+            if !(try originalAxisContains(point, using: &execution)) { wholeAxis = false; break }
         }
         if wholeAxis { return }
         switch try DefaultRationalBezierHalfSpaceClassifier().classify(
@@ -638,7 +687,7 @@ struct CurvedRevolveBodyBuilder {
             weights: curve.weights,
             nonnegativeMargin: 0,
             tolerance: context.tolerance
-        ) {
+        , using: &execution) {
         case .nonnegative:
             return
         case let .violates(residual):
@@ -652,7 +701,7 @@ struct CurvedRevolveBodyBuilder {
         }
     }
 
-    private func validateClosure(_ segments: [RevolveProfileSegment]) throws {
+    private func validateClosure(_ segments: [RevolveProfileSegment], using execution: inout OriginalQueryExecution) throws {
         for index in segments.indices {
             let next = segments[(index + 1) % segments.count]
             guard segments[index].endPoint.isApproximatelyEqual(
@@ -670,18 +719,18 @@ struct CurvedRevolveBodyBuilder {
         segmentIndex: Int,
         intervalIndex: Int,
         profileAreaSign: Double
-    ) throws -> BRepSewingFacePatch {
+    , using execution: inout OriginalQueryExecution) throws -> BRepSewingFacePatch {
         let startAngle = angleBreaks[intervalIndex]
         let endAngle = angleBreaks[intervalIndex + 1]
         let surface = try revolvedSurface(
             segment: segment,
             startAngle: startAngle,
             endAngle: endAngle
-        )
+        , using: &execution)
         guard case let .closed(vLower, vUpper) = segment.curve.domain else {
             throw GeometryError.invalidDistance(0.0)
         }
-        if profileRadialDirection == nil, try !originalEndpointPoleIsolated(segment.curve) {
+        if profileRadialDirection == nil, try !originalEndpointPoleIsolated(segment.curve, using: &execution) {
             try DefaultSurfaceRegularityValidator().validate(surface,
                 over: SurfaceParameterBox(u: try ScalarInterval(lower: 0, upper: 1),
                     v: try ScalarInterval(lower: vLower, upper: vUpper)),
@@ -701,7 +750,7 @@ struct CurvedRevolveBodyBuilder {
             pcurve: .constantV(v: vLower, uStart: 0.0, uEnd: 1.0),
             surface: surface,
             stableID: "\(prefix):startRotation"
-        )
+        , using: &execution)
         let endProfile = try profileEdge(
             segment: segment,
             angle: endAngle,
@@ -709,7 +758,7 @@ struct CurvedRevolveBodyBuilder {
             endParameter: vUpper,
             pcurve: .constantU(u: 1.0, vStart: vLower, vEnd: vUpper),
             stableID: "\(prefix):endProfile"
-        )
+        , using: &execution)
         let endRotation = try rotationEdge(
             point: segment.endPoint,
             startAngle: startAngle,
@@ -719,7 +768,7 @@ struct CurvedRevolveBodyBuilder {
             pcurve: .constantV(v: vUpper, uStart: 1.0, uEnd: 0.0),
             surface: surface,
             stableID: "\(prefix):endRotation"
-        )
+        , using: &execution)
         let startProfile = try profileEdge(
             segment: segment,
             angle: startAngle,
@@ -727,7 +776,7 @@ struct CurvedRevolveBodyBuilder {
             endParameter: vLower,
             pcurve: .constantU(u: 0.0, vStart: vUpper, vEnd: vLower),
             stableID: "\(prefix):startProfile"
-        )
+        , using: &execution)
         let sweepSign = angle >= 0.0 ? 1.0 : -1.0
         let orientation: Orientation = profileAreaSign * sweepSign >= 0.0
             ? .forward
@@ -750,9 +799,9 @@ struct CurvedRevolveBodyBuilder {
         angle: Double,
         role: GeneratedSubshapeRole,
         ring: Int = 0
-    ) throws -> BRepSewingFacePatch {
+    , using execution: inout OriginalQueryExecution) throws -> BRepSewingFacePatch {
         let sweepSign = self.angle >= 0.0 ? 1.0 : -1.0
-        let tangent = try axisDirection.cross(rotatedRadialDirection(angle: angle))
+        let tangent = try axisDirection.cross(rotatedRadialDirection(angle: angle, using: &execution))
         let normal: Vector3D
         let reversesBoundary: Bool
         switch role {
@@ -771,7 +820,7 @@ struct CurvedRevolveBodyBuilder {
             segments: loopData.flatMap(\.segments),
             angle: angle,
             normal: normal
-        )
+        , using: &execution)
         let surface = Surface3D.bSpline(cap.surface)
         let prefix = capStableID(role: role, ring: ring)
         let loops = try loopData.enumerated().map { loopIndex, loop in
@@ -785,19 +834,19 @@ struct CurvedRevolveBodyBuilder {
                 guard case let .closed(lower, upper) = segment.curve.domain else {
                     throw GeometryError.invalidDistance(0.0)
                 }
-                let curve = try rotatedProfileCurve(segment.curve, angle: angle)
+                let curve = try rotatedProfileCurve(segment.curve, angle: angle, using: &execution)
                 let pcurve = try projectedPcurve(
                     curve,
                     on: cap,
                     reversed: reversesBoundary
-                )
+                , using: &execution)
                 return try bSplineEdge(
                     curve: curve,
                     startParameter: reversesBoundary ? upper : lower,
                     endParameter: reversesBoundary ? lower : upper,
                     pcurve: pcurve,
                     stableID: "\(loopPrefix):edge:\(segmentIndex)"
-                )
+                , using: &execution)
             }
             return BRepSewingLoop(
                 stableID: "\(loopPrefix):loop",
@@ -817,8 +866,8 @@ struct CurvedRevolveBodyBuilder {
         segments: [RevolveProfileSegment],
         angle: Double,
         normal: Vector3D
-    ) throws -> RevolveCapSurface {
-        let uAxis = try rotatedRadialDirection(angle: angle)
+    , using execution: inout OriginalQueryExecution) throws -> RevolveCapSurface {
+        let uAxis = try rotatedRadialDirection(angle: angle, using: &execution)
         let vAxis = try normal.cross(uAxis).normalized(
             tolerance: context.tolerance.distance
         )
@@ -827,7 +876,7 @@ struct CurvedRevolveBodyBuilder {
             controlPoints.append(contentsOf: try rotatedProfileCurve(
                 segment.curve,
                 angle: angle
-            ).controlPoints)
+            , using: &execution).controlPoints)
         }
         guard controlPoints.isEmpty == false else {
             throw SketchError.degenerateProfile
@@ -877,9 +926,9 @@ struct CurvedRevolveBodyBuilder {
         segment: RevolveProfileSegment,
         startAngle: Double,
         endAngle: Double
-    ) throws -> Surface3D {
+    , using execution: inout OriginalQueryExecution) throws -> Surface3D {
         let rows = try rotatedControlRows(segment.curve.controlPoints,
-            startAngle: startAngle, endAngle: endAngle)
+            startAngle: startAngle, endAngle: endAngle, using: &execution)
         let weights = segment.curve.weights.map { [$0, $0 * rows.middleWeight, $0] }
         let surface = BSplineSurface3D(
             uDegree: 2,
@@ -895,7 +944,7 @@ struct CurvedRevolveBodyBuilder {
 
     private func rotatedControlRows(
         _ points: [Point3D], startAngle: Double, endAngle: Double
-    ) throws -> (points: [[Point3D]], middleWeight: Double) {
+    , using execution: inout OriginalQueryExecution) throws -> (points: [[Point3D]], middleWeight: Double) {
         let middleWeight = cos(0.5 * (endAngle - startAngle))
         guard middleWeight > Double.ulpOfOne else {
             throw KernelError(
@@ -905,11 +954,11 @@ struct CurvedRevolveBodyBuilder {
                 message: "Revolve angle patch produced a singular rational weight."
             )
         }
-        let start = try rotation(at: startAngle)
-        let middle = try rotation(at: 0.5 * (startAngle + endAngle))
-        let end = try rotation(at: endAngle)
+        let start = try rotation(at: startAngle, using: &execution)
+        let middle = try rotation(at: 0.5 * (startAngle + endAngle), using: &execution)
+        let end = try rotation(at: endAngle, using: &execution)
         let rows = try points.map { point in
-            if try originalAxisContains(point) { return [point, point, point] }
+            if try originalAxisContains(point, using: &execution) { return [point, point, point] }
             let axisPoint = axisOrigin + axisDirection * (point - axisOrigin).dot(axisDirection)
             return [start.applying(to: point),
                 axisPoint + middle.applying(to: point - axisPoint) / middleWeight,
@@ -918,7 +967,7 @@ struct CurvedRevolveBodyBuilder {
         return (rows, middleWeight)
     }
 
-    private func rotation(at angle: Double) throws -> RigidTransform3D {
+    private func rotation(at angle: Double, using execution: inout OriginalQueryExecution) throws -> RigidTransform3D {
         try RigidTransform3D.rotated(around: axisOrigin, direction: axisDirection,
             angle: angle, tolerance: context.tolerance)
     }
@@ -932,7 +981,7 @@ struct CurvedRevolveBodyBuilder {
         pcurve: SurfaceParameterCurve,
         surface: Surface3D,
         stableID: String
-    ) throws -> BRepSewingEdge {
+    , using execution: inout OriginalQueryExecution) throws -> BRepSewingEdge {
         let lifted = Curve3D.surfaceLift(SurfaceLiftCurve3D(surface: surface, parameterCurve: pcurve))
         if try BRepEdgeGeometryClassifier().kind(curve: lifted, from: 0, to: 1,
             tolerance: context.tolerance) == .singular {
@@ -940,7 +989,7 @@ struct CurvedRevolveBodyBuilder {
                 startPoint: try lifted.point(at: 0, tolerance: context.tolerance),
                 endPoint: try lifted.point(at: 1, tolerance: context.tolerance), surfaceParameterCurve: pcurve)
         }
-        let rows = try rotatedControlRows([point], startAngle: startAngle, endAngle: endAngle)
+        let rows = try rotatedControlRows([point], startAngle: startAngle, endAngle: endAngle, using: &execution)
         let curve = BSplineCurve3D(
             degree: 2,
             knots: [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
@@ -954,7 +1003,7 @@ struct CurvedRevolveBodyBuilder {
             endParameter: endParameter,
             pcurve: pcurve,
             stableID: stableID
-        )
+        , using: &execution)
     }
 
     private func profileEdge(
@@ -964,14 +1013,14 @@ struct CurvedRevolveBodyBuilder {
         endParameter: Double,
         pcurve: SurfaceParameterCurve,
         stableID: String
-    ) throws -> BRepSewingEdge {
+    , using execution: inout OriginalQueryExecution) throws -> BRepSewingEdge {
         try bSplineEdge(
-            curve: rotatedProfileCurve(segment.curve, angle: angle),
+            curve: rotatedProfileCurve(segment.curve, angle: angle, using: &execution),
             startParameter: startParameter,
             endParameter: endParameter,
             pcurve: pcurve,
             stableID: stableID
-        )
+        , using: &execution)
     }
 
     private func bSplineEdge(
@@ -980,7 +1029,7 @@ struct CurvedRevolveBodyBuilder {
         endParameter: Double,
         pcurve: SurfaceParameterCurve,
         stableID: String
-    ) throws -> BRepSewingEdge {
+    , using execution: inout OriginalQueryExecution) throws -> BRepSewingEdge {
         try curve.validate(tolerance: context.tolerance)
         let exactCurve = Curve3D.bSpline(curve)
         return BRepSewingEdge(
@@ -1003,13 +1052,13 @@ struct CurvedRevolveBodyBuilder {
     private func rotatedProfileCurve(
         _ curve: BSplineCurve3D,
         angle: Double
-    ) throws -> BSplineCurve3D {
-        let rotation = try rotation(at: angle)
+    , using execution: inout OriginalQueryExecution) throws -> BSplineCurve3D {
+        let rotation = try rotation(at: angle, using: &execution)
         let transformed = BSplineCurve3D(
             degree: curve.degree,
             knots: curve.knots,
             controlPoints: try curve.controlPoints.map { point in
-                try originalAxisContains(point) ? point : rotation.applying(to: point)
+                try originalAxisContains(point, using: &execution) ? point : rotation.applying(to: point)
             },
             weights: curve.weights
         )
@@ -1021,7 +1070,7 @@ struct CurvedRevolveBodyBuilder {
         _ curve: BSplineCurve3D,
         on cap: RevolveCapSurface,
         reversed: Bool
-    ) throws -> SurfaceParameterCurve {
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceParameterCurve {
         var projected = BSplineCurve2D(
             degree: curve.degree,
             knots: curve.knots,
@@ -1045,7 +1094,7 @@ struct CurvedRevolveBodyBuilder {
         sewn: BRepSewingResult,
         sideSegmentIndices: [(loopIndex: Int, segmentIndex: Int)],
         capRings: Int
-    ) throws -> [SubshapeID: TopologyReference] {
+    , using execution: inout OriginalQueryExecution) throws -> [SubshapeID: TopologyReference] {
         var result: [SubshapeID: TopologyReference] = [
             subshapeID(role: .body, ordinal: 0): .body(sewn.bodyID),
         ]
@@ -1096,14 +1145,14 @@ struct CurvedRevolveBodyBuilder {
 
     /// A positive original control functional excludes every interior axis contact.
     /// This proves one or both endpoint poles without a sampled or snapped root.
-    private func originalEndpointPoleIsolated(_ curve: BSplineCurve3D) throws -> Bool {
+    private func originalEndpointPoleIsolated(_ curve: BSplineCurve3D, using execution: inout OriginalQueryExecution) throws -> Bool {
         guard curve.controlPointCount == curve.degree + 1,
               curve.knots.count == 2 * (curve.degree + 1),
               let firstKnot = curve.knots.first, let lastKnot = curve.knots.last,
               curve.knots.prefix(curve.degree + 1).allSatisfy({ $0 == firstKnot }),
               curve.knots.suffix(curve.degree + 1).allSatisfy({ $0 == lastKnot }),
               curve.controlPoints.isEmpty == false else { return false }
-        let axisContacts = try curve.controlPoints.map { try originalAxisContains($0) }
+        let axisContacts = try curve.controlPoints.map { try originalAxisContains($0, using: &execution) }
         guard axisContacts.first == true || axisContacts.last == true,
               axisContacts.contains(false) else { return false }
         let offsets = curve.controlPoints.indices.filter { !axisContacts[$0] }.map { curve.controlPoints[$0] - axisOrigin }
@@ -1128,31 +1177,25 @@ struct CurvedRevolveBodyBuilder {
         return curve.weights.allSatisfy { $0.isFinite && $0 > 0 }
     }
 
-    private func isAxisSegment(_ segment: RevolveProfileSegment) throws -> Bool {
+    private func isAxisSegment(_ segment: RevolveProfileSegment, using execution: inout OriginalQueryExecution) throws -> Bool {
         for point in segment.curve.controlPoints {
-            guard try originalAxisContains(point) else { return false }
+            guard try originalAxisContains(point, using: &execution) else { return false }
         }
         return true
     }
 
-    private func originalAxisContains(_ point: Point3D) throws -> Bool {
-        var remainingComponents = 4
+    private func originalAxisContains(_ point: Point3D, using execution: inout OriginalQueryExecution) throws -> Bool {
+        // The incidence producer owns its fixed three-component expansion walk.
         return try OriginalPointLineIncidence().contains(point: point,
-            origin: axisOrigin, direction: originalAxisDirection, consumeWork: {
-                guard remainingComponents > 0 else {
-                    throw KernelError(phase: .geometry, code: .resourceLimitExceeded,
-                        tolerance: context.tolerance, message: "Original axis incidence exceeded its component budget.")
-                }
-                remainingComponents -= 1
-            })
+            origin: axisOrigin, direction: originalAxisDirection, using: &execution)
     }
 
-    private func signedProfileAreaSign(_ points: [Point3D]) throws -> Double {
+    private func signedProfileAreaSign(_ points: [Point3D], using execution: inout OriginalQueryExecution) throws -> Double {
         let profileCoordinates = try points.map { point in
             try self.coordinates(
                 for: point,
                 requireNonnegativeRadius: true
-            )
+            , using: &execution)
         }
         guard profileCoordinates.count >= 3 else {
             throw SketchError.degenerateProfile
@@ -1178,7 +1221,7 @@ struct CurvedRevolveBodyBuilder {
     private func coordinates(
         for point: Point3D,
         requireNonnegativeRadius: Bool
-    ) throws -> RevolveCoordinate {
+    , using execution: inout OriginalQueryExecution) throws -> RevolveCoordinate {
         guard let profileRadialDirection else {
             throw FeatureEvaluationError.invalidGraph("A spatial revolution has no planar profile frame.")
         }
@@ -1214,7 +1257,7 @@ struct CurvedRevolveBodyBuilder {
         )
     }
 
-    private func rotatedRadialDirection(angle: Double) throws -> Vector3D {
+    private func rotatedRadialDirection(angle: Double, using execution: inout OriginalQueryExecution) throws -> Vector3D {
         guard let angleOffset else {
             throw FeatureEvaluationError.invalidGraph("A spatial revolution cannot construct planar caps.")
         }
@@ -1296,8 +1339,9 @@ struct CurvedRevolveBodyBuilder {
         parameterBasis: (u: Vector3D, v: Vector3D),
         sectionPoints: [Point3D],
         profilePlane: Plane3D,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> (radialDirection: Vector3D, angleOffset: Double) {
+        try execution.consumeWork(1)
         let planeNormal = try profilePlane.normal.normalized(tolerance: tolerance.distance)
         let planeDistance = (axis.origin - profilePlane.origin).dot(planeNormal)
         guard abs(planeDistance) <= tolerance.distance,
@@ -1316,6 +1360,7 @@ struct CurvedRevolveBodyBuilder {
         )
         var observedSign: Double?
         for point in sectionPoints {
+            try execution.consumeWork(1)
             let offset = point - axis.origin
             let axial = offset.dot(axisDirection)
             let radial = point - (axis.origin + axisDirection * axial)
@@ -1357,11 +1402,12 @@ struct CurvedRevolveBodyBuilder {
         )
     }
 
-    private static func angleBreaks(for angle: Double, isFullTurn: Bool) -> [Double] {
+    private static func angleBreaks(for angle: Double, isFullTurn: Bool,
+        using execution: inout OriginalQueryExecution) throws -> [Double] {
         let segmentCount = isFullTurn
             ? 4
             : max(1, Int(ceil(abs(angle) / (0.5 * Double.pi))))
-        return (0...segmentCount).map { index in
+        return try OriginalParameterQueryStorage.map(0...segmentCount, using: &execution) { index, execution in
             angle * Double(index) / Double(segmentCount)
         }
     }

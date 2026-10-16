@@ -48,11 +48,11 @@ extension ExactRealRootDomain {
                 // The monic linear law has derivative one and exactly this singleton zero.
                 try ExactRootAccess.storage(2, ExactPolynomial<F>.self, &a)
                 try ExactRootAccess.owner((ExactPolynomial<F>, [ExactPolynomial<F>], ExactScalarDepth).self, &a)
-                let proof = ExactRootSturm(polynomial: linear, chain: [linear, one], depth: a.depth)
+                let proof = ExactRootSturm(polynomial: linear, chain: [linear, one], depth: (try a.depth))
                 factors.append((proof, multiplicity))
                 total = try ExactRootAccess.add(total, multiplicity)
                 result.append(.init(source: source, multiplicity: multiplicity, ordinal: index,
-                    isolation: singleton, proof: proof, depth: a.depth))
+                    isolation: singleton, proof: proof, depth: (try a.depth)))
             }
             guard let remainderDegree = try degree(remaining, &a) else {
                 throw ExactRealRootFailure.invalidEvidence
@@ -69,7 +69,7 @@ extension ExactRealRootDomain {
                 }
                 let original = try context.input.polynomial(terms: terms, using: &a)
                 let remainderSource = ExactRealRootSource(context: context, original: original,
-                    variable: source.variable, refinementAxis: source.refinementAxis, law: remaining, depth: a.depth)
+                    variable: source.variable, refinementAxis: source.refinementAxis, law: remaining, depth: (try a.depth))
                 let exclusion = try counted(remainderSource, all, &a)
                 guard exclusion.classification == .finite(distinct: 0, totalMultiplicity: 0) else {
                     throw ExactRealRootFailure.invalidEvidence
@@ -79,8 +79,8 @@ extension ExactRealRootDomain {
             }
             let count = ExactRealRootCount(source: source, domain: all,
                 classification: .finite(distinct: candidates.count, totalMultiplicity: total),
-                factors: factors, depth: a.depth)
-            return .init(count: count, roots: result, depth: a.depth)
+                factors: factors, depth: (try a.depth))
+            return .init(count: count, roots: result, depth: (try a.depth))
         }
     }
 }

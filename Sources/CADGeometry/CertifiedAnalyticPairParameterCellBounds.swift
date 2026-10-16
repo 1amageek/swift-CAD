@@ -41,6 +41,7 @@ package struct CertifiedAnalyticPairParameterCellBounds: Sendable {
 }
 
 package struct CertifiedAnalyticPairParameterCellBoundsPreparation: Sendable {
+    fileprivate let receipt: OriginalGeometryPreparationReceipt
     fileprivate let curve: CertifiedAnalyticPairSurfaceParameterCurve
     fileprivate let fullCurveSpatialBounds: SpatialDifferentialMagnitudeBounds?
     fileprivate let coneConeDifferentialBounds:
@@ -59,6 +60,37 @@ package struct CertifiedAnalyticPairParameterCellBoundsPreparation: Sendable {
         end: SurfaceParameter? = nil,
         tolerance: ModelingTolerance
     ) throws -> CertifiedAnalyticPairParameterCellBounds {
+        var execution = try receipt.makeExecution()
+        return try bounds(fromNormalizedFraction: lower, toNormalizedFraction: upper,
+            reusingStart: start, end: end, tolerance: tolerance, using: &execution)
+    }
+
+    package func bounds(
+        fromNormalizedFraction lower: Double,
+        toNormalizedFraction upper: Double,
+        reusingStart start: SurfaceParameter? = nil,
+        end: SurfaceParameter? = nil,
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution
+    ) throws -> CertifiedAnalyticPairParameterCellBounds {
+        try receipt.withContributionScopes(using: &execution) { execution in
+            try receipt.admit(tolerance: tolerance, using: &execution)
+            let result = try boundsAssumingAdmitted(fromNormalizedFraction: lower,
+                toNormalizedFraction: upper, reusingStart: start, end: end,
+                tolerance: tolerance, using: &execution)
+            try execution.checkpoint()
+            return result
+        }
+    }
+
+    private func boundsAssumingAdmitted(
+        fromNormalizedFraction lower: Double,
+        toNormalizedFraction upper: Double,
+        reusingStart start: SurfaceParameter? = nil,
+        end: SurfaceParameter? = nil,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> CertifiedAnalyticPairParameterCellBounds {
+        try execution.consumeWork(1)
         let canonicalStart = continuousChartLift == nil
             ? start
             : start.map(principalParameter)
@@ -75,14 +107,14 @@ package struct CertifiedAnalyticPairParameterCellBoundsPreparation: Sendable {
             generalTorusTorusDifferentialBounds:
                 generalTorusTorusDifferentialBounds,
             tolerance: tolerance
-        )
+        , using: &execution)
         guard let continuousChartLift else { return result }
         return try alignedToContinuousChart(
             result,
             lower: lower,
             upper: upper,
             lift: continuousChartLift
-        )
+        , using: &execution)
     }
 
     private func principalParameter(
@@ -105,11 +137,12 @@ package struct CertifiedAnalyticPairParameterCellBoundsPreparation: Sendable {
         lower: Double,
         upper: Double,
         lift: SurfaceParameterCurveChartLift
-    ) throws -> CertifiedAnalyticPairParameterCellBounds {
+    , using execution: inout OriginalQueryExecution) throws -> CertifiedAnalyticPairParameterCellBounds {
+        try execution.consumeWork(1)
         let middle = lower + (upper - lower) * 0.5
-        let targetStart = lift.parameter(atNormalizedFraction: lower)
-        let targetMiddle = lift.parameter(atNormalizedFraction: middle)
-        let targetEnd = lift.parameter(atNormalizedFraction: upper)
+        let targetStart = try lift.parameter(atNormalizedFraction: lower, using: &execution)
+        let targetMiddle = try lift.parameter(atNormalizedFraction: middle, using: &execution)
+        let targetEnd = try lift.parameter(atNormalizedFraction: upper, using: &execution)
         let uShift = periodicShift(
             from: source.middle.u,
             to: targetMiddle.u,
@@ -195,6 +228,15 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
     package func prepareParameterCellBounds(
         tolerance: ModelingTolerance
     ) throws -> CertifiedAnalyticPairParameterCellBoundsPreparation {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try prepareParameterCellBounds(tolerance: tolerance, using: &execution)
+    }
+
+    package func prepareParameterCellBounds(
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> CertifiedAnalyticPairParameterCellBoundsPreparation {
+        try execution.consumeWork(1)
+        let prepared = try execution.withPreparationScope { execution in
         let coneConeDifferentialBounds:
             CertifiedConeConeIntersectionCurve.FullBranchDifferentialBoundsPreparation?
         if case let .coneCone(curve) = intersection.definition {
@@ -203,7 +245,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
                 coneConeDifferentialBounds = try curve
                     .prepareFullBranchDifferentialBounds(
                         tolerance: tolerance
-                    )
+                    , using: &execution)
             } else {
                 coneConeDifferentialBounds = nil
             }
@@ -216,7 +258,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
         } else if hasIntervalInvariantSpatialDifferentialMagnitudeBounds {
             fullCurveSpatialBounds = try spatialDifferentialMagnitudeBounds(
                 tolerance: tolerance
-            )
+            , using: &execution)
         } else {
             // Non-uniform certificates must be queried for each subinterval.
             // Smearing a source-wide maximum over every adaptive cell defeats
@@ -229,12 +271,12 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
                 .SpatialDifferentialBoundsPreparation?
         if case let .generalTorusTorus(curve) = intersection.definition {
             generalTorusTorusDifferentialBounds = try curve
-                .prepareSpatialDifferentialBounds(tolerance: tolerance)
+                .prepareSpatialDifferentialBounds(tolerance: tolerance, using: &execution)
         } else {
             generalTorusTorusDifferentialBounds = nil
         }
-        let parameterTopology = SurfaceParameterTopology(
-            surface: intersection.surface(for: role)
+        let parameterTopology = try SurfaceParameterTopology(
+            surface: intersection.surface(for: role), using: &execution
         )
         let hasNonsingularPeriodicCoordinate = (
             parameterTopology.uPeriod != nil
@@ -253,7 +295,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
                 generalTorusTorusDifferentialBounds:
                     generalTorusTorusDifferentialBounds,
                 tolerance: tolerance
-            )
+            , using: &execution)
             guard let firstDerivative =
                     fullBounds.parameterFirstDerivativeMagnitude else {
                 throw KernelError(
@@ -269,41 +311,57 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
                     topology: parameterTopology,
                     maximumParameterFirstDerivativeMagnitude: firstDerivative,
                     tolerance: tolerance
-                )
+                , using: &execution)
         } else {
             continuousChartLift = nil
         }
+        return (fullCurveSpatialBounds, coneConeDifferentialBounds,
+            generalTorusTorusDifferentialBounds, continuousChartLift,
+            parameterTopology, try integrationBreakpoints(using: &execution))
+        }
+        let receipt = try OriginalGeometryPreparationReceipt(tolerance: tolerance,
+            depth: prepared.depth, using: &execution)
+        try execution.checkpoint()
         return CertifiedAnalyticPairParameterCellBoundsPreparation(
-            curve: self,
-            fullCurveSpatialBounds: fullCurveSpatialBounds,
-            coneConeDifferentialBounds: coneConeDifferentialBounds,
-            generalTorusTorusDifferentialBounds:
-                generalTorusTorusDifferentialBounds,
-            continuousChartLift: continuousChartLift,
-            parameterTopology: parameterTopology,
-            integrationBreakpoints: integrationBreakpoints()
+            receipt: receipt, curve: self,
+            fullCurveSpatialBounds: prepared.result.0,
+            coneConeDifferentialBounds: prepared.result.1,
+            generalTorusTorusDifferentialBounds: prepared.result.2,
+            continuousChartLift: prepared.result.3,
+            parameterTopology: prepared.result.4,
+            integrationBreakpoints: prepared.result.5
         )
     }
 
-    private func integrationBreakpoints() -> [Double] {
+    private func integrationBreakpoints(using execution: inout OriginalQueryExecution) throws -> [Double] {
+        try execution.consumeWork(1)
         guard case let .generalConeTorus(curve) = intersection.definition,
               curve.apexReduction == nil else {
-            return [0.0, 1.0]
+            return try CertifiedAnalyticCurveEvaluation.values(0.0, 1.0, using: &execution)
         }
         let scale = endFraction - startFraction
-        let sourceBreakpoints = curve.differentialPartitionBreakpoints(
+        let sourceBreakpoints = try curve.differentialPartitionBreakpoints(
             fromNormalizedFraction: startFraction,
             toNormalizedFraction: endFraction
-        )
-        var values = sourceBreakpoints.map { source in
-            min(max((source - startFraction) / scale, 0.0), 1.0)
+        , using: &execution)
+        let count = sourceBreakpoints.count.addingReportingOverflow(2)
+        guard !count.overflow else { throw ExactScalarFailure.countOverflow }
+        try execution.retainStorage(count: count.partialValue, stride: MemoryLayout<Double>.stride)
+        var values: [Double] = []
+        values.reserveCapacity(count.partialValue)
+        for source in sourceBreakpoints {
+            try execution.consumeWork(1)
+            values.append(min(max((source - startFraction) / scale, 0.0), 1.0))
         }
-        values.append(contentsOf: [0.0, 1.0])
-        values.sort()
+        values.append(0.0)
+        values.append(1.0)
+        let ordered = try CertifiedAnalyticCurveEvaluation.sorted(values, using: &execution)
+        try execution.retainStorage(count: ordered.count, stride: MemoryLayout<Double>.stride)
         var result: [Double] = []
-        result.reserveCapacity(values.count)
-        for value in values where result.last != value {
-            result.append(value)
+        result.reserveCapacity(ordered.count)
+        for value in ordered {
+            try execution.consumeWork(1)
+            if result.last != value { result.append(value) }
         }
         return result
     }
@@ -313,7 +371,18 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
         toNormalizedFraction upper: Double,
         tolerance: ModelingTolerance
     ) throws -> CertifiedAnalyticPairParameterCellBounds {
-        try parameterCellBounds(
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try parameterCellBounds(fromNormalizedFraction: lower,
+            toNormalizedFraction: upper, tolerance: tolerance, using: &execution)
+    }
+
+    package func parameterCellBounds(
+        fromNormalizedFraction lower: Double,
+        toNormalizedFraction upper: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> CertifiedAnalyticPairParameterCellBounds {
+        try execution.consumeWork(1)
+        return try parameterCellBounds(
             fromNormalizedFraction: lower,
             toNormalizedFraction: upper,
             reusingStart: nil,
@@ -322,7 +391,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
             coneConeDifferentialBounds: nil,
             generalTorusTorusDifferentialBounds: nil,
             tolerance: tolerance
-        )
+        , using: &execution)
     }
 
     fileprivate func parameterCellBounds(
@@ -337,7 +406,8 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
             CertifiedGeneralTorusTorusIntersectionCurve
                 .SpatialDifferentialBoundsPreparation?,
         tolerance: ModelingTolerance
-    ) throws -> CertifiedAnalyticPairParameterCellBounds {
+    , using execution: inout OriginalQueryExecution) throws -> CertifiedAnalyticPairParameterCellBounds {
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard lower.isFinite,
               upper.isFinite,
@@ -359,7 +429,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
             fromNormalizedFraction: clampedLower,
             toNormalizedFraction: clampedUpper,
             tolerance: tolerance
-        )
+        , using: &execution)
         if case let .coneCone(coneCone) = localCurve.intersection.definition,
            localCurve.intersection.surface(for: localCurve.role)
                 == coneCone.parameterizedSurface,
@@ -371,23 +441,23 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
                 .parameterizedParameterDifferential(
                     atNormalizedFraction: sourceMiddle,
                     tolerance: tolerance
-                )
+                , using: &execution)
             let surface = localCurve.intersection.surface(for: localCurve.role)
             let start = try reusedStart ?? coneConeDifferentialBounds.continuousParameter(
                 on: surface,
                 atNormalizedFraction: sourceStart,
                 tolerance: tolerance
-            )
+            , using: &execution)
             let middle = try coneConeDifferentialBounds.continuousParameter(
                 on: surface,
                 atNormalizedFraction: sourceMiddle,
                 tolerance: tolerance
-            )
+            , using: &execution)
             let end = try reusedEnd ?? coneConeDifferentialBounds.continuousParameter(
                 on: surface,
                 atNormalizedFraction: sourceEnd,
                 tolerance: tolerance
-            )
+            , using: &execution)
             let sourceLower = min(sourceStart, sourceEnd)
             let sourceUpper = max(sourceStart, sourceEnd)
             let sourceScale = sourceEnd - sourceStart
@@ -396,7 +466,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
                     fromNormalizedFraction: sourceLower,
                     toNormalizedFraction: sourceUpper,
                     tolerance: tolerance
-                ).scaled(by: sourceScale)
+                , using: &execution).scaled(by: sourceScale)
             return try Self.parameterizedConeConeCellBounds(
                 start: start,
                 middle: middle,
@@ -406,7 +476,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
                     y: middleDifferential.firstDerivative.y * sourceScale
                 ),
                 derivatives: parameterDerivatives
-            )
+            , using: &execution)
         }
         let start: SurfaceParameter
         let middle: SurfaceParameter
@@ -421,22 +491,22 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
                 on: surface,
                 atNormalizedFraction: sourceMiddle,
                 tolerance: tolerance
-            )
+            , using: &execution)
             start = try reusedStart ?? coneConeDifferentialBounds.continuousParameter(
                 on: surface,
                 atNormalizedFraction: sourceStart,
                 tolerance: tolerance
-            )
+            , using: &execution)
             end = try reusedEnd ?? coneConeDifferentialBounds.continuousParameter(
                 on: surface,
                 atNormalizedFraction: sourceEnd,
                 tolerance: tolerance
-            )
+            , using: &execution)
         } else {
             middle = try localCurve.parameter(
                 atNormalizedFraction: 0.5,
                 tolerance: tolerance
-            )
+            , using: &execution)
             // Reused endpoints originate from a parent cell certified by this
             // same preparation. Adaptive subdivision therefore evaluates only
             // the two new child midpoints instead of rematerializing the shared
@@ -444,11 +514,11 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
             start = try reusedStart ?? localCurve.parameter(
                 atNormalizedFraction: 0.0,
                 tolerance: tolerance
-            )
+            , using: &execution)
             end = try reusedEnd ?? localCurve.parameter(
                 atNormalizedFraction: 1.0,
                 tolerance: tolerance
-            )
+            , using: &execution)
         }
         if case let .coneCone(coneCone) = localCurve.intersection.definition,
            localCurve.intersection.surface(for: localCurve.role)
@@ -461,7 +531,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
                 .referenceParameterAndFirstDerivative(
                     atNormalizedFraction: sourceMiddle,
                     tolerance: tolerance
-                )
+                , using: &execution)
             middleFirstDerivative = Point2D(
                 x: directMiddle.firstDerivative.x * (sourceEnd - sourceStart),
                 y: directMiddle.firstDerivative.y * (sourceEnd - sourceStart)
@@ -472,7 +542,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
                 atNormalizedFraction: 0.5,
                 knownParameter: middle,
                 tolerance: tolerance
-            ).firstDerivative
+            , using: &execution).firstDerivative
         } else {
             middleFirstDerivative = nil
         }
@@ -484,7 +554,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
                 .modelSpaceDifferential(
                     atNormalizedFraction: 0.5,
                     tolerance: tolerance
-                ).position
+                , using: &execution).position
         } else {
             generalConeTorusMiddlePoint = nil
         }
@@ -501,19 +571,19 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
                     localCurve.endFraction
                 ),
                 tolerance: tolerance
-           ) {
+           , using: &execution) {
             let period = 2.0 * Double.pi
             let fullPeriod = try ScalarInterval(lower: 0.0, upper: period)
             let canonicalU = try Self.canonicalEnclosure(
                 lift: specialized.uLift,
                 bounds: fullPeriod,
                 period: period,
-                observedValues: [
+                observedValues: (
                     specialized.uLift.lower,
                     specialized.uLift.midpoint,
-                    specialized.uLift.upper,
-                ]
-            )
+                    specialized.uLift.upper
+                )
+            , using: &execution)
             return CertifiedAnalyticPairParameterCellBounds(
                 start: start,
                 middle: middle,
@@ -552,7 +622,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
                 fromNormalizedFraction: sourceLower,
                 toNormalizedFraction: sourceUpper,
                 tolerance: tolerance
-            ).scaled(by: localCurve.endFraction - localCurve.startFraction)
+            , using: &execution).scaled(by: localCurve.endFraction - localCurve.startFraction)
         } else if case let .generalConeTorus(coneTorus) =
             localCurve.intersection.definition,
             coneTorus.apexReduction == nil {
@@ -577,7 +647,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
                 toNormalizedFraction: sourceUpper,
                 branchPointAtMiddle: middlePoint,
                 tolerance: tolerance
-            ).scaled(by: localCurve.endFraction - localCurve.startFraction)
+            , using: &execution).scaled(by: localCurve.endFraction - localCurve.startFraction)
         } else if let fullCurveSpatialBounds {
             spatial = fullCurveSpatialBounds.scaled(
                 by: clampedUpper - clampedLower
@@ -595,11 +665,11 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
                 fromNormalizedFraction: sourceLower,
                 toNormalizedFraction: sourceUpper,
                 tolerance: tolerance
-            ).scaled(by: localCurve.endFraction - localCurve.startFraction)
+            , using: &execution).scaled(by: localCurve.endFraction - localCurve.startFraction)
         } else {
             spatial = try localCurve.spatialDifferentialMagnitudeBounds(
                 tolerance: tolerance
-            )
+            , using: &execution)
         }
         guard spatial.first.isFinite, spatial.first >= 0.0 else {
             throw KernelError(
@@ -614,7 +684,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
         let metric = try Self.parameterMetric(
             for: surface,
             tolerance: tolerance
-        )
+        , using: &execution)
         let coneParameterDerivatives: ParameterDerivativeBounds?
         if case let .generalConeTorus(coneTorus) =
             localCurve.intersection.definition,
@@ -642,12 +712,12 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
                     toNormalizedFraction: sourceUpper,
                     branchPointAtMiddle: middlePoint,
                     tolerance: tolerance
-                )
+                , using: &execution)
             coneParameterDerivatives = try Self.scaledParameterDerivativeBounds(
                 source,
                 sourceScale: localCurve.endFraction - localCurve.startFraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         } else {
             coneParameterDerivatives = nil
         }
@@ -667,7 +737,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
                         localCurve.endFraction
                     ),
                     tolerance: tolerance
-                )
+                , using: &execution)
             generalTorusTorusParameterDerivatives = try Self
                 .scaledParameterDerivativeBounds(
                     uFirst: source.uFirst,
@@ -679,7 +749,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
                     sourceScale: localCurve.endFraction
                         - localCurve.startFraction,
                     tolerance: tolerance
-                )
+                , using: &execution)
         } else {
             generalTorusTorusParameterDerivatives = nil
         }
@@ -773,12 +843,12 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
                     uBounds: provisionalULift,
                     vBounds: provisionalVLift,
                     tolerance: tolerance
-                )
+                , using: &execution)
             torusParameterDerivatives = try Self.scaledParameterDerivativeBounds(
                 source,
                 sourceScale: localCurve.endFraction - localCurve.startFraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         } else {
             torusParameterDerivatives = nil
         }
@@ -857,8 +927,8 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
             lift: uLift,
             bounds: metric.uBounds,
             period: metric.uPeriod,
-            observedValues: [start.u, middle.u, end.u]
-        )
+            observedValues: (start.u, middle.u, end.u)
+        , using: &execution)
         // The only periodic V chart in the elementary analytic family is a
         // torus meridian. Both parameter area and its exact Green primitive
         // are invariant under whole-period V translations, so its tight lift
@@ -868,8 +938,8 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
                 lift: vLift,
                 bounds: metric.vBounds,
                 period: nil,
-                observedValues: [start.v, middle.v, end.v]
-            )
+                observedValues: (start.v, middle.v, end.v)
+            , using: &execution)
             : (interval: vLift, crossesSeam: false)
         let hasCertifiedContinuousLift = coneConeDifferentialBounds != nil
             || generalTorusTorusDifferentialBounds != nil
@@ -916,7 +986,8 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
         derivatives: CertifiedConeConeIntersectionCurve
             .FullBranchDifferentialBoundsPreparation
             .ParameterDifferentialMagnitudeBounds
-    ) throws -> CertifiedAnalyticPairParameterCellBounds {
+    , using execution: inout OriginalQueryExecution) throws -> CertifiedAnalyticPairParameterCellBounds {
+        try execution.consumeWork(1)
         // A full cone-cone branch is generated directly in the parameterized
         // cone's chart: u is the generator angle and v is the signed slant.
         // Retaining those analytic derivatives avoids losing precision by
@@ -944,8 +1015,8 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
             lift: uLift,
             bounds: try ScalarInterval(lower: 0.0, upper: period),
             period: period,
-            observedValues: [start.u, middle.u, end.u]
-        )
+            observedValues: (start.u, middle.u, end.u)
+        , using: &execution)
         return CertifiedAnalyticPairParameterCellBounds(
             start: start,
             middle: middle,
@@ -1016,7 +1087,8 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
     private static func parameterMetric(
         for surface: Surface3D,
         tolerance: ModelingTolerance
-    ) throws -> ParameterMetric {
+    , using execution: inout OriginalQueryExecution) throws -> ParameterMetric {
+        try execution.consumeWork(1)
         let fullPeriod = try ScalarInterval(
             lower: 0.0,
             upper: 2.0 * Double.pi
@@ -1152,8 +1224,9 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
             .ParameterDifferentialMagnitudeBounds,
         sourceScale: Double,
         tolerance: ModelingTolerance
-    ) throws -> ParameterDerivativeBounds {
-        try scaledParameterDerivativeBounds(
+    , using execution: inout OriginalQueryExecution) throws -> ParameterDerivativeBounds {
+        try execution.consumeWork(1)
+        return try scaledParameterDerivativeBounds(
             uFirst: source.uFirst,
             uSecond: source.uSecond,
             uThird: source.uThird,
@@ -1162,7 +1235,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
             vThird: source.vThird,
             sourceScale: sourceScale,
             tolerance: tolerance
-        )
+        , using: &execution)
     }
 
     private static func scaledParameterDerivativeBounds(
@@ -1174,7 +1247,8 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
         vThird sourceVThird: Double,
         sourceScale: Double,
         tolerance: ModelingTolerance
-    ) throws -> ParameterDerivativeBounds {
+    , using execution: inout OriginalQueryExecution) throws -> ParameterDerivativeBounds {
+        try execution.consumeWork(1)
         let firstScale = abs(sourceScale).nextUp
         let secondScale = upperProduct(firstScale, firstScale)
         let thirdScale = upperProduct(secondScale, firstScale)
@@ -1192,17 +1266,11 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
         let vThird = sourceVThird == 0.0
             ? 0.0
             : upperProduct(sourceVThird, thirdScale)
-        let values = [
-            uFirst,
-            uSecond,
-            uThird,
-            vFirst,
-            vSecond,
-            vThird,
-        ]
         guard firstScale.isFinite,
               firstScale > 0.0,
-              values.allSatisfy({ $0.isFinite && $0 >= 0.0 }) else {
+              uFirst.isFinite, uFirst >= 0, uSecond.isFinite, uSecond >= 0,
+              uThird.isFinite, uThird >= 0, vFirst.isFinite, vFirst >= 0,
+              vSecond.isFinite, vSecond >= 0, vThird.isFinite, vThird >= 0 else {
             throw KernelError(
                 phase: .geometry,
                 code: .topologyFailure,
@@ -1443,16 +1511,28 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
         }
     }
 
-    private static func upperProduct(_ values: Double...) -> Double {
-        values.reduce(1.0) { partial, value in
-            (partial * value).nextUp
-        }
+    private static func upperProduct(_ a: Double, _ b: Double) -> Double {
+        ((1.0 * a).nextUp * b).nextUp
     }
 
-    private static func upperSum(_ values: Double...) -> Double {
-        values.reduce(0.0) { partial, value in
-            (partial + value).nextUp
-        }
+    private static func upperProduct(_ a: Double, _ b: Double, _ c: Double) -> Double {
+        (upperProduct(a, b) * c).nextUp
+    }
+
+    private static func upperProduct(_ a: Double, _ b: Double, _ c: Double, _ d: Double) -> Double {
+        (upperProduct(a, b, c) * d).nextUp
+    }
+
+    private static func upperProduct(_ a: Double, _ b: Double, _ c: Double, _ d: Double, _ e: Double) -> Double {
+        (upperProduct(a, b, c, d) * e).nextUp
+    }
+
+    private static func upperSum(_ a: Double, _ b: Double) -> Double {
+        ((0.0 + a).nextUp + b).nextUp
+    }
+
+    private static func upperSum(_ a: Double, _ b: Double, _ c: Double, _ d: Double) -> Double {
+        ((upperSum(a, b) + c).nextUp + d).nextUp
     }
 
     private static func clamped(
@@ -1470,14 +1550,15 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
         lift: ScalarInterval,
         bounds: ScalarInterval?,
         period: Double?,
-        observedValues: [Double]
-    ) throws -> (interval: ScalarInterval, crossesSeam: Bool) {
+        observedValues: (Double, Double, Double)
+    , using execution: inout OriginalQueryExecution) throws -> (interval: ScalarInterval, crossesSeam: Bool) {
+        try execution.consumeWork(1)
         guard let bounds, let period else {
             return (lift, false)
         }
         let observationRoundoff = (
             Double.ulpOfOne * max(
-                observedValues.map(abs).max() ?? 1.0,
+                max(abs(observedValues.0), abs(observedValues.1), abs(observedValues.2)),
                 abs(lift.lower),
                 abs(lift.upper),
                 1.0
@@ -1487,15 +1568,18 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
         // whole-period images against the certified continuous lift so a
         // genuine seam crossing does not become an endlessly shrinking
         // discontinuity cell.
-        let observationsStayOnLift = observedValues.allSatisfy { value in
+        func staysOnLift(_ value: Double) -> Bool {
             let nearestTurn = round((lift.midpoint - value) / period)
-            return [nearestTurn - 1.0, nearestTurn, nearestTurn + 1.0]
-                .contains { turn in
+            func contains(_ turn: Double) -> Bool {
                 let liftedValue = value + turn * period
                 return liftedValue >= lift.lower - observationRoundoff
                     && liftedValue <= lift.upper + observationRoundoff
             }
+            return contains(nearestTurn - 1.0) || contains(nearestTurn)
+                || contains(nearestTurn + 1.0)
         }
+        let observationsStayOnLift = staysOnLift(observedValues.0)
+            && staysOnLift(observedValues.1) && staysOnLift(observedValues.2)
         guard lift.width < period, observationsStayOnLift else {
             return (bounds, true)
         }

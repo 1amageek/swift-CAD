@@ -21,15 +21,14 @@ package struct OriginalOrderedIntersectionCells: Sendable {
         self.coefficientBindings = coefficientBindings; self.coefficientSources = coefficientSources; self.partition = partition
     }
 
-    package static func prepare<B: RationalAlgebraAdmitting>(polynomials: [OriginalOrderedIntersectionPolynomial],
+    package static func prepare<B: ExactScalarAdmission & ~Copyable>(polynomials: [OriginalOrderedIntersectionPolynomial],
         predicate: ExactIntersectionBooleanProgram, variableCount: Int, domains: [OriginalRationalParameterDomain],
         maximumDepth: Int, maximumCoefficientDepth: Int, usage: inout B) throws -> Self {
         guard variableCount > 0, domains.count == variableCount, predicate.polynomialCount == polynomials.count,
             maximumDepth >= 0, (0...32).contains(maximumCoefficientDepth) else {
             throw rationalAlgebraFailure("An ordered relation requires its original geometric ring, domains and bound predicate.")
         }
-        var admission = Admission(base: usage, maximumDepth: maximumDepth, maximumCoefficientDepth: maximumCoefficientDepth)
-        defer { usage = admission.base }
+        return try usage.withProofScope(maximum:try .init(value:maximumDepth,coefficient:maximumCoefficientDepth)) { admission in
         try intersectionAlgebraStep(&admission)
         try RationalAlgebraStorage.retain(polynomials.count, of: [TermBinding].self, usage: &admission)
         var bindings: [[TermBinding]] = [], sources: [OriginalIntersectionCoefficient] = []
@@ -42,8 +41,7 @@ package struct OriginalOrderedIntersectionCells: Sendable {
                 polynomial.inheritedCoefficientDepth <= maximumCoefficientDepth else {
                 throw rationalAlgebraFailure("An ordered relation cannot erase its retained source polynomial depth.")
             }
-            admission.parameterDepth = max(admission.parameterDepth, polynomial.inheritedParameterDepth)
-            admission.coefficientDepth = max(admission.coefficientDepth, polynomial.inheritedCoefficientDepth)
+            try admission.admitDepth(value:polynomial.inheritedParameterDepth,coefficient:polynomial.inheritedCoefficientDepth)
             try RationalAlgebraStorage.retain(polynomial.terms.count, of: TermBinding.self, usage: &admission)
             var row: [TermBinding] = []; row.reserveCapacity(polynomial.terms.count)
             for term in polynomial.terms {
@@ -53,21 +51,15 @@ package struct OriginalOrderedIntersectionCells: Sendable {
                     && sources[index].parameterAdmissionDepth >= term.inheritedParameterDepth
                     && sources[index].coefficientAdmissionDepth >= term.inheritedCoefficientDepth {
                     let retained = sources[index]
-                    var source = OriginalSourceScalarAdmission(base: admission, maximumDepth: maximumDepth,
-                        maximumCoefficientDepth: maximumCoefficientDepth, originalParameterDepth: term.coefficient.context.depth,
-                        originalCoefficientDepth: term.coefficient.context.coefficientDepth,
-                        inheritedParameterDepth: retained.parameterAdmissionDepth,
-                        inheritedCoefficientDepth: retained.coefficientAdmissionDepth,
-                        parameterDepth: retained.parameterAdmissionDepth, coefficientDepth: retained.coefficientAdmissionDepth)
-                    let available = try rationalAlgebraCount(term.coefficient.context.depth,
-                        maximumDepth - retained.parameterAdmissionDepth)
-                    let equal: Bool
-                    do { equal = try retained.original.subtracting(term.coefficient, maximumDepth: available,
-                        usage: &source).sign(maximumDepth: available, usage: &source) == .zero }
-                    catch { admission = source.base; throw error }
-                    admission = source.base
-                    admission.parameterDepth = max(admission.parameterDepth, source.parameterDepth)
-                    admission.coefficientDepth = max(admission.coefficientDepth, source.coefficientDepth)
+                    let available=try rationalAlgebraCount(term.coefficient.context.depth,maximumDepth-retained.parameterAdmissionDepth)
+                    let source=try intersectionSourceCalculation(originalParameterDepth:term.coefficient.context.depth,
+                        originalCoefficientDepth:term.coefficient.context.coefficientDepth,
+                        inheritedParameterDepth:retained.parameterAdmissionDepth,inheritedCoefficientDepth:retained.coefficientAdmissionDepth,
+                        maximumDepth:maximumDepth,maximumCoefficientDepth:maximumCoefficientDepth,usage:&admission) { source in
+                        try retained.original.subtracting(term.coefficient,maximumDepth:available,usage:&source)
+                            .sign(maximumDepth:available,usage:&source) == .zero
+                    }
+                    let equal=source.value
                     if equal { existing = index; break }
                 }
                 if let existing {
@@ -77,8 +69,7 @@ package struct OriginalOrderedIntersectionCells: Sendable {
                     maximumDepth: maximumDepth, maximumCoefficientDepth: maximumCoefficientDepth,
                     inheritedParameterDepth: term.inheritedParameterDepth,
                     inheritedCoefficientDepth: term.inheritedCoefficientDepth, usage: &admission)
-                admission.parameterDepth = max(admission.parameterDepth, coefficient.parameterAdmissionDepth)
-                admission.coefficientDepth = max(admission.coefficientDepth, coefficient.coefficientAdmissionDepth)
+                try admission.admitDepth(value:coefficient.parameterAdmissionDepth,coefficient:coefficient.coefficientAdmissionDepth)
                 switch coefficient.representation {
                 case .rational: row.append(.init(coefficient: coefficient, coefficientAxis: nil))
                 case .algebraic:
@@ -120,7 +111,7 @@ package struct OriginalOrderedIntersectionCells: Sendable {
         for (ordinal, polynomial) in polynomials.enumerated() {
             var law = try ExactIntersectionPolynomial.zero(variableCount: count)
             for (index, term) in polynomial.terms.enumerated() {
-                try admission.consumeExactWork(count)
+                try admission.consumeWork(count)
                 for axis in 0..<coefficientCount { powers[axis] = 0 }
                 for axis in 0..<variableCount { powers[coefficientCount + axis] = try term.power.exponent(at: axis) }
                 let binding = bindings[ordinal][index]
@@ -136,7 +127,7 @@ package struct OriginalOrderedIntersectionCells: Sendable {
         let ambient = try OriginalRationalIntersectionCells.prepare(equations: equations, variableCount: count,
             exactDomains: fullDomains, partitionPolynomials: laws, nonzeroPolynomials: guards, thomEncoding: true,
             coefficientVariableCount: coefficientCount, maximumCoefficientDepth: maximumCoefficientDepth,
-            inheritedParameterDepth: admission.parameterDepth, inheritedCoefficientDepth: admission.coefficientDepth,
+            inheritedParameterDepth: (try admission.depth).value, inheritedCoefficientDepth: (try admission.depth).coefficient,
             maximumDepth: maximumDepth, usage: &admission)
         let partition = try ambient.selecting(predicate, usage: &admission)
         for index in partition.solutionCells {
@@ -155,36 +146,18 @@ package struct OriginalOrderedIntersectionCells: Sendable {
         try RationalAlgebraStorage.retain(1, of: Self.self, usage: &admission)
         return Self(original: polynomials, domains: domains, predicate: predicate,
             coefficientBindings: bindings, coefficientSources: sources, partition: partition)
+        }
     }
 
     /// An immutable retained sample view; this is not a whole-cell range enclosure.
-    package func geometricSample<B: RationalAlgebraAdmitting>(cellIndex: Int,
+    package func geometricSample<B: ExactScalarAdmission & ~Copyable>(cellIndex: Int,
         usage: inout B) throws -> ArraySlice<OriginalSingularFieldElement> {
         try intersectionAlgebraStep(&usage)
-        try usage.consumeExactWork(partition.solutionCells.count)
+        try usage.consumeWork(partition.solutionCells.count)
         guard partition.solutionCells.contains(cellIndex) else {
             throw rationalAlgebraFailure("An ordered geometric sample requires its selected original cell.")
         }
         return partition.cells[cellIndex].coordinates[coefficientSources.count...]
     }
 
-    private struct Admission<B: RationalAlgebraAdmitting>: RationalAlgebraAdmitting {
-        var base: B
-        let maximumDepth: Int
-        let maximumCoefficientDepth: Int
-        var parameterDepth = 0
-        var coefficientDepth = 0
-        mutating func consumeExactWork(_ count: Int) throws { try CurrentTaskCancellationChecker().checkCancellation(); try base.consumeExactWork(count) }
-        mutating func retainExactStorage(_ count: Int) throws { try CurrentTaskCancellationChecker().checkCancellation(); try base.retainExactStorage(count) }
-        mutating func visitExactCell(depth: Int) throws {
-            try CurrentTaskCancellationChecker().checkCancellation()
-            guard depth >= 0, depth <= maximumDepth else { throw rationalAlgebraFailure("Ordered relation exhausted parameter depth.") }
-            parameterDepth = max(parameterDepth, depth); try base.visitExactCell(depth: depth)
-        }
-        mutating func visitCoefficientCell(depth: Int) throws {
-            try CurrentTaskCancellationChecker().checkCancellation()
-            guard depth >= 0, depth <= maximumCoefficientDepth else { throw rationalAlgebraFailure("Ordered relation exhausted coefficient depth.") }
-            coefficientDepth = max(coefficientDepth, depth); try base.visitCoefficientCell(depth: depth)
-        }
-    }
 }

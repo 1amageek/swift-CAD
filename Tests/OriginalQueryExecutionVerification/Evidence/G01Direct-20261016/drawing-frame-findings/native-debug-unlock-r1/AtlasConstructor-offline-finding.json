@@ -1,0 +1,24 @@
+{
+  "binarySHA256": "3bbbdff06b7b1c65bcc434bbbe396372cf3638bde1c55d8c7fab76ea5b669092",
+  "candidates": [
+    {
+      "symbol": "_$s11CADGeometry38SurfaceSilhouettePlaneAtlasPublicationV5field5atlas15firstCurveIndex5usageAcA08OriginalbC5FieldV_AA0m8RationaldjE0VSiAA0M14QueryExecutionVztKcfC",
+      "address": "0x1ce0840",
+      "entryFrameBytes": 140384,
+      "instructionAtPlus472": [
+        " 1ce0a18:      \tldr\tx0, [sp, #0xba0]"
+      ],
+      "matchesObservedInstruction": false
+    },
+    {
+      "symbol": "_$s11CADGeometry38SurfaceSilhouettePlaneAtlasPublicationV5field5atlas15firstCurveIndex5usageAcA08OriginalbC5FieldV_AA0mndE0VSiAA0M14QueryExecutionVztKcfC",
+      "address": "0x1cd9244",
+      "entryFrameBytes": 367024,
+      "instructionAtPlus472": [
+        " 1cd941c:      \tstr\txzr, [x13, #0x2be8]"
+      ],
+      "matchesObservedInstruction": true
+    }
+  ],
+  "parentChain": "Not collected in debugger r3; no cumulative frame claim."
+}

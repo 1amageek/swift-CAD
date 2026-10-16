@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="TestResults" errors="0" tests="13" failures="2" skipped="0" time="0.005991666">
+    <testcase classname="FocusedTests.IndependentGraphOwnerBindingTests" name="foreignSTEPWriteRejectsBeforeSourceValidationOrProducerCalls()" time="0.004397583" />
+    <testcase classname="FocusedTests.IndependentGraphOwnerBindingTests" name="realGroupWriterRestoresProducerOnSuccessAppendFailureAndFinishFailure()" time="0.00536925" />
+    <testcase classname="FocusedTests.IndependentGraphOwnerBindingTests" name="foreignIGESWriteRejectsBeforeFormatSemanticsOrProducerCalls()" time="0.004462042" />
+    <testcase classname="FocusedTests.IndependentGraphOwnerBindingTests" name="foreignIGESReadRejectsBeforeLexicalOrProducerCalls()" time="0.00115" />
+    <testcase classname="FocusedTests.IndependentGraphOwnerBindingTests" name="foreignSTEPReadRejectsBeforeLexicalOrProducerCalls()" time="0.001420125" />
+    <testcase classname="FocusedTests.IndependentGraphOwnerBindingTests" name="foreignSTEPAppendRejectsBeforeSourceValidationOrProducerCalls()" time="0.004499959" />
+    <testcase classname="FocusedTests.IndependentGraphOwnerBindingTests" name="matchedZeroWorkContributionRefusesBeforeFieldsOrSourceMutation()" time="0.002926625" />
+    <testcase classname="FocusedTests.IndependentGraphOwnerBindingTests" name="sameOwnerRetainsTheActualOriginalGroupWithoutPrimitiveCalls()" time="0.004229042" />
+    <testcase classname="FocusedTests.IndependentGraphOwnerBindingTests" name="selectedGroupChargesIncludeTheEntireLexicalPathAtExactWorkBoundary()" time="0.005345417" >
+      <failure message="Expectation failed: isWorkRefusal(error) (error)" />
+    </testcase>
+    <testcase classname="FocusedTests.ExchangeHostedCurveContributionTests" name="exactSelectedWorkBoundaryIncludesPreparationAndRetainedEnclosure()" time="0.005538417" />
+    <testcase classname="FocusedTests.ExchangeHostedCurveContributionTests" name="foreignBudgetIsStillRejectedBeforeAnyQueryWork()" time="0.003493125" />
+    <testcase classname="FocusedTests.ExchangeHostedCurveContributionTests" name="directReadsReattachTheSelectedHandleAroundTheirActualBody()" time="0.005051208" />
+    <testcase classname="FocusedTests.ExchangeHostedCurveContributionTests" name="ordinaryReadsRetainTheIssuingHandleAfterExecutionLifetimeEnds()" time="0.005526459" >
+      <failure message="Expectation failed: station.point == .origin (error)" />
+    </testcase>
+  </testsuite>
+</testsuites>

@@ -5,8 +5,7 @@ package struct OriginalCurveHigherJetProvider {
     package static func intervalTaylorJet(of curve: Curve3D, over range: ScalarInterval,
         tolerance: ModelingTolerance, throughOrder order: Int, maximumSpanCount: Int,
         maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
-        consumeWork: () throws -> Void, consumeStorage: ((Int) throws -> Void)? = nil,
-        maximumAlgebraicDepth: Int? = nil) throws -> SurfaceAreaIntervalTaylorVectorJet {
+        maximumAlgebraicDepth: Int? = nil, using execution: inout OriginalQueryExecution) throws -> SurfaceAreaIntervalTaylorVectorJet {
         guard order >= 0, maximumSpanCount > 0, remainingSourceDepth >= 0,
               maximumSubdivisionDepth >= 0, range.lower.isFinite, range.upper.isFinite else {
             throw GeometryConversionError.invalidInput("Original higher curve queries require caller order, span, source-depth and subdivision admission.")
@@ -14,11 +13,10 @@ package struct OriginalCurveHigherJetProvider {
         if let maximumAlgebraicDepth, !(0...32).contains(maximumAlgebraicDepth) {
             throw GeometryConversionError.invalidInput("Original higher curve queries require an independent algebra cap in zero through thirty-two.")
         }
-        try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
+        try CurrentTaskCancellationChecker().checkCancellation(); try execution.consumeWork(1)
         try curve.validateOriginalSource(tolerance: tolerance, remainingSourceDepth: remainingSourceDepth,
-            maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: { _ in try consumeWork() }, consumeStorage: consumeStorage,
-            maximumAlgebraicDepth: maximumAlgebraicDepth)
-        if consumeStorage != nil {
+            maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
+        do {
             switch curve {
             case .originalAngularTransport, .originalConstructionChart, .originalEndpointConnector, .originalPlaneDerivative, .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline, .originalDrafted, .line, .circle, .analytic(.line), .analytic(.circle), .analytic(.arc),
                  .analytic(.ellipse), .analytic(.hyperbola), .analytic(.parabola),
@@ -40,21 +38,20 @@ package struct OriginalCurveHigherJetProvider {
             return try intervalTaylorJet(of: source, over: parameters, tolerance: tolerance,
                 throughOrder: order, maximumSpanCount: maximumSpanCount,
                 maximumSubdivisionDepth: maximumSubdivisionDepth,
-                remainingSourceDepth: remainingSourceDepth - 1, consumeWork: consumeWork, consumeStorage: consumeStorage,
-                maximumAlgebraicDepth: maximumAlgebraicDepth)
+                remainingSourceDepth: remainingSourceDepth - 1, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
         }
         switch curve {
         case .originalAngularTransport(let image):
             return try image.intervalTaylorJet(over: range, throughOrder: order, tolerance: tolerance,
-                consumeWork: consumeWork, consumeStorage: consumeStorage)
+                using: &execution)
         case .originalConstructionChart(let image):
             return try image.intervalTaylorJet(over: range, throughOrder: order, tolerance: tolerance,
                 maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-                remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage)
+                remainingSourceDepth: remainingSourceDepth, using: &execution)
         case .originalPlaneDerivative(let original):
             return try original.intervalTaylorJet(over: range, throughOrder: order, tolerance: tolerance,
                 maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-                remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage)
+                remainingSourceDepth: remainingSourceDepth, using: &execution)
         case .originalGuideTraversalChain(let original):
             guard order <= 3 else {
                 // FIXME(INCOMPLETE_IMPLEMENTATION): Shared higher consumers
@@ -66,8 +63,7 @@ package struct OriginalCurveHigherJetProvider {
             }
             return try original.intervalTaylorJet(over: range, throughOrder: order, tolerance: tolerance,
                 maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-                remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage,
-                maximumAlgebraicDepth: maximumAlgebraicDepth)
+                remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
         case .originalPolyline(let original):
             guard order <= 3 else {
                 // FIXME(INCOMPLETE_IMPLEMENTATION): General higher consumers
@@ -78,8 +74,7 @@ package struct OriginalCurveHigherJetProvider {
             }
             return try original.intervalTaylorJet(over: range, throughOrder: order, tolerance: tolerance,
                 maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-                remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage,
-                maximumAlgebraicDepth: maximumAlgebraicDepth)
+                remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
         case .originalGuideEndpointConnector(let original):
             guard order <= 3 else {
                 // FIXME(INCOMPLETE_IMPLEMENTATION): Shared higher consumers
@@ -91,31 +86,30 @@ package struct OriginalCurveHigherJetProvider {
             }
             return try original.intervalTaylorJet(over: range, throughOrder: order, tolerance: tolerance,
                 maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-                remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage,
-                maximumAlgebraicDepth: maximumAlgebraicDepth)
+                remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
         case .originalDrafted(let original):
             return try original.intervalTaylorJet(over: range, throughOrder: order, tolerance: tolerance,
                 maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-                remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage)
+                remainingSourceDepth: remainingSourceDepth, using: &execution)
         case .originalEndpointConnector(let connector):
             return try connector.intervalTaylorJet(over: range, throughOrder: order, tolerance: tolerance,
                 maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-                remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage)
+                remainingSourceDepth: remainingSourceDepth, using: &execution)
         case .bSpline(let source):
             let spans = try RationalBezierCurveJetEncloser().originalNativeSpans(of: source,
-                tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage)
+                tolerance: tolerance, using: &execution)
             guard let first = spans.first, let last = spans.last else {
                 throw GeometryConversionError.invalidInput("Original higher native curve has no span authority.")
             }
             func admitSmooth(_ query: ScalarInterval) throws {
                 var index = source.degree
                 while index <= source.controlPoints.count {
-                    try consumeWork()
+                    try execution.consumeWork(1)
                     let knot = source.knots[index]
                     var end = index + 1
-                    while end < source.knots.count, source.knots[end] == knot { try consumeWork(); end += 1 }
+                    while end < source.knots.count, source.knots[end] == knot { try execution.consumeWork(1); end += 1 }
                     var start = index
-                    while start > 0, source.knots[start - 1] == knot { try consumeWork(); start -= 1 }
+                    while start > 0, source.knots[start - 1] == knot { try execution.consumeWork(1); start -= 1 }
                     let interior = knot > first.lower && knot < last.upper
                     if interior, (knot > query.lower && knot < query.upper
                         || query.lower == query.upper && knot == query.lower),
@@ -124,7 +118,7 @@ package struct OriginalCurveHigherJetProvider {
                         try OriginalCurveHigherContinuity.prove(source: source,
                             leftSpan: left, rightSpan: right, leftParameter: knot, rightParameter: knot,
                             throughOrder: order, maximumSubdivisionDepth: maximumSubdivisionDepth,
-                            tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage)
+                            tolerance: tolerance, using: &execution)
                     }
                     index = end
                 }
@@ -133,7 +127,7 @@ package struct OriginalCurveHigherJetProvider {
             func retain(_ query: ScalarInterval) throws {
                 try admitSmooth(query)
                 for span in spans {
-                    try consumeWork()
+                    try execution.consumeWork(1)
                     let lower = max(query.lower, span.lower), upper = min(query.upper, span.upper)
                     guard lower <= upper, query.lower == query.upper || lower < upper else { continue }
                     count += 1
@@ -142,18 +136,18 @@ package struct OriginalCurveHigherJetProvider {
                     }
                     let value = try OriginalNativeCurveHigherTaylor.enclosure(of: span,
                         over: ScalarInterval(lower: lower, upper: upper), order: order,
-                        tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage)
+                        tolerance: tolerance, using: &execution)
                     result = try result.map { try OriginalCurveTaylorComposition.hull($0, value,
-                        order: order, consumeWork: consumeWork, consumeStorage: consumeStorage) } ?? value
+                        order: order, using: &execution) } ?? value
                 }
             }
             if source.isPeriodic {
                 let independent = source.controlPoints.count - source.degree
                 for knotIndex in 0..<(source.knots.count - independent) {
-                    try consumeWork()
-                    let left = FloatingPointExpansion.difference(source.knots[knotIndex + independent], source.knots[knotIndex])
-                    let reference = FloatingPointExpansion.difference(last.upper, first.lower)
-                    guard FloatingPointExpansion.sign(FloatingPointExpansion.subtract(left, reference)) == .zero else {
+                    try execution.consumeWork(1)
+                    let left = try FloatingPointExpansion.difference(source.knots[knotIndex + independent], source.knots[knotIndex], using: &execution)
+                    let reference = try FloatingPointExpansion.difference(last.upper, first.lower, using: &execution)
+                    guard try FloatingPointExpansion.sign(FloatingPointExpansion.subtract(left, reference, using: &execution), using: &execution) == .zero else {
                         // FIXME(INCOMPLETE_IMPLEMENTATION): Periodic source values
                         // whose stored knot translation is only numerically close
                         // need an original exact seam chart, not rounded shifting.
@@ -173,7 +167,7 @@ package struct OriginalCurveHigherJetProvider {
                     try OriginalCurveHigherContinuity.prove(source: source, leftSpan: lastPositive,
                         rightSpan: firstPositive, leftParameter: last.upper, rightParameter: first.lower,
                         throughOrder: order, maximumSubdivisionDepth: maximumSubdivisionDepth,
-                        tolerance: tolerance, consumeWork: consumeWork)
+                        tolerance: tolerance, using: &execution)
                 }
                 let period = OutwardScalarInterval.exact(last.upper) - .exact(first.lower)
                 guard period.lower > 0, period.lower.isFinite, period.upper.isFinite else {
@@ -188,7 +182,7 @@ package struct OriginalCurveHigherJetProvider {
                 }
                 var cycle = lowerCycle
                 while cycle <= upperCycle {
-                    try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
+                    try CurrentTaskCancellationChecker().checkCancellation(); try execution.consumeWork(1)
                     let shifted = OutwardScalarInterval(lower: range.lower, upper: range.upper)
                         - period * .exact(cycle)
                     if let native = shifted.intersection(with: .init(lower: first.lower, upper: last.upper)) {
@@ -205,62 +199,60 @@ package struct OriginalCurveHigherJetProvider {
             guard let result else { throw GeometryConversionError.invalidInput("Original higher curve span cover is empty.") }
             return result
         case .parameterImage(let image):
-            let source = try child(image.source, image.originalInterval(range, consumeWork:consumeWork))
+            let source = try child(image.source, image.originalInterval(range, using:&execution))
             let scale = try image.parameterGain.interval()
-            return try .init(x: OriginalCurveTaylorComposition.scaledParameter(source.x, scale: scale, order: order, consumeWork: consumeWork, consumeStorage: consumeStorage),
-                y: OriginalCurveTaylorComposition.scaledParameter(source.y, scale: scale, order: order, consumeWork: consumeWork, consumeStorage: consumeStorage),
-                z: OriginalCurveTaylorComposition.scaledParameter(source.z, scale: scale, order: order, consumeWork: consumeWork, consumeStorage: consumeStorage))
+            return try .init(x: OriginalCurveTaylorComposition.scaledParameter(source.x, scale: scale, order: order, using: &execution),
+                y: OriginalCurveTaylorComposition.scaledParameter(source.y, scale: scale, order: order, using: &execution),
+                z: OriginalCurveTaylorComposition.scaledParameter(source.z, scale: scale, order: order, using: &execution))
         case .originalAffineWord(let image):
             if let coefficients = image.circularCoefficients {
+                try image.admitCoefficientProof(using: &execution)
                 return try coefficients.intervalTaylorJet(over: range, throughOrder: order,
-                    tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage)
+                    tolerance: tolerance, using: &execution)
             }
             return try OriginalAffineWordJetTransport.applying(image.preparedWord,
                 to: intervalTaylorJet(of: image.source, over: range,
-                    tolerance: image.sourceCalculationTolerance(tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage),
+                    tolerance: image.sourceCalculationTolerance(tolerance: tolerance, using: &execution),
                     throughOrder: order, maximumSpanCount: maximumSpanCount,
                     maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth - 1,
-                    consumeWork: consumeWork, consumeStorage: consumeStorage,
-                    maximumAlgebraicDepth: maximumAlgebraicDepth),
-                consumeWork: consumeWork, consumeStorage: consumeStorage).retagTolerance(to: tolerance)
+                    maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution),
+                using: &execution).retagTolerance(to: tolerance)
         case .affineImage(let image):
             return try OriginalCurveTaylorComposition.transformed(child(image.source, range),
-                by: image.transform, consumeWork: consumeWork, consumeStorage: consumeStorage)
+                by: image.transform, using: &execution)
         case .rigidImage(let image):
             let transform = try AffineTransform3D(basisX: image.transform.basisX,
                 basisY: image.transform.basisY, basisZ: image.transform.basisZ,
                 translation: image.transform.translation)
             return try OriginalCurveTaylorComposition.transformed(child(image.source, range),
-                by: transform, consumeWork: consumeWork, consumeStorage: consumeStorage)
+                by: transform, using: &execution)
         case .implicit(let intersection):
             let uv = try OriginalImplicitCurveHigherTaylor.parameterJets(of: intersection, over: range,
                 order: order, tolerance: tolerance, maximumSpanCount: maximumSpanCount,
                 maximumSubdivisionDepth: maximumSubdivisionDepth,
-                remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage,
-                maximumAlgebraicDepth: maximumAlgebraicDepth)
+                remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
             return try lift(surface: intersection.firstSurface, u: uv[0], v: uv[1], order: order,
                 tolerance: tolerance, maximumSpanCount: maximumSpanCount,
-                maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage,
-                maximumAlgebraicDepth: maximumAlgebraicDepth)
+                maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
         case .surfaceLift(let source):
             if case .originalAffineWord(let image) = source.parameterCurve {
                 let original = try child(.surfaceLift(image.source), image.mappedRange(range))
                 let scale = OutwardScalarInterval.exact(image.endFraction) - .exact(image.startFraction)
                 let scaled = try SurfaceAreaIntervalTaylorVectorJet(
-                    x: OriginalCurveTaylorComposition.scaledParameter(original.x, scale: scale, order: order, consumeWork: consumeWork, consumeStorage: consumeStorage),
-                    y: OriginalCurveTaylorComposition.scaledParameter(original.y, scale: scale, order: order, consumeWork: consumeWork, consumeStorage: consumeStorage),
-                    z: OriginalCurveTaylorComposition.scaledParameter(original.z, scale: scale, order: order, consumeWork: consumeWork, consumeStorage: consumeStorage))
+                    x: OriginalCurveTaylorComposition.scaledParameter(original.x, scale: scale, order: order, using: &execution),
+                    y: OriginalCurveTaylorComposition.scaledParameter(original.y, scale: scale, order: order, using: &execution),
+                    z: OriginalCurveTaylorComposition.scaledParameter(original.z, scale: scale, order: order, using: &execution))
                 return try OriginalAffineWordJetTransport.applying(image.target.preparedWord,
-                    to: scaled, consumeWork: consumeWork, consumeStorage: consumeStorage)
+                    to: scaled, using: &execution)
             }
             if case .originalImage(let image) = source.parameterCurve {
                 let original = try child(.surfaceLift(image.source), image.mappedRange(range))
                 let scale = OutwardScalarInterval.exact(image.endFraction) - .exact(image.startFraction)
                 let scaled = try SurfaceAreaIntervalTaylorVectorJet(
-                    x: OriginalCurveTaylorComposition.scaledParameter(original.x, scale: scale, order: order, consumeWork: consumeWork, consumeStorage: consumeStorage),
-                    y: OriginalCurveTaylorComposition.scaledParameter(original.y, scale: scale, order: order, consumeWork: consumeWork, consumeStorage: consumeStorage),
-                    z: OriginalCurveTaylorComposition.scaledParameter(original.z, scale: scale, order: order, consumeWork: consumeWork, consumeStorage: consumeStorage))
-                return try OriginalCurveTaylorComposition.transformed(scaled, by: image.targetImage.transform, consumeWork: consumeWork, consumeStorage: consumeStorage)
+                    x: OriginalCurveTaylorComposition.scaledParameter(original.x, scale: scale, order: order, using: &execution),
+                    y: OriginalCurveTaylorComposition.scaledParameter(original.y, scale: scale, order: order, using: &execution),
+                    z: OriginalCurveTaylorComposition.scaledParameter(original.z, scale: scale, order: order, using: &execution))
+                return try OriginalCurveTaylorComposition.transformed(scaled, by: image.targetImage.transform, using: &execution)
             }
             if case .certifiedImplicit(let chart) = source.parameterCurve {
                 // FIXME(INCOMPLETE_IMPLEMENTATION): Original implicit lifted
@@ -279,28 +271,24 @@ package struct OriginalCurveHigherJetProvider {
                     over: ScalarInterval(lower: contained.lower, upper: contained.upper), order: order,
                     tolerance: tolerance, maximumSpanCount: maximumSpanCount,
                     maximumSubdivisionDepth: maximumSubdivisionDepth,
-                    remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage,
-                maximumAlgebraicDepth: maximumAlgebraicDepth)
+                    remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
                 let index = chart.role == .first ? 0 : 2
-                let u = try OriginalCurveTaylorComposition.scaledParameter(all[index], scale: scale, order: order, consumeWork: consumeWork, consumeStorage: consumeStorage)
-                let v = try OriginalCurveTaylorComposition.scaledParameter(all[index + 1], scale: scale, order: order, consumeWork: consumeWork, consumeStorage: consumeStorage)
+                let u = try OriginalCurveTaylorComposition.scaledParameter(all[index], scale: scale, order: order, using: &execution)
+                let v = try OriginalCurveTaylorComposition.scaledParameter(all[index + 1], scale: scale, order: order, using: &execution)
                 return try lift(surface: source.surface, u: u, v: v, order: order,
                     tolerance: tolerance, maximumSpanCount: maximumSpanCount,
-                    maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage,
-                maximumAlgebraicDepth: maximumAlgebraicDepth)
+                    maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
             }
             let uv = try OriginalParameterCurveHigherTaylor.enclosure(source.parameterCurve,
                 over: range, order: order, tolerance: tolerance, maximumSpanCount: maximumSpanCount,
                 maximumSubdivisionDepth: maximumSubdivisionDepth,
-                remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage,
-                maximumAlgebraicDepth: maximumAlgebraicDepth)
+                remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
             return try lift(surface: source.surface, u: uv.u, v: uv.v, order: order,
                 tolerance: tolerance, maximumSpanCount: maximumSpanCount,
-                maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage,
-                maximumAlgebraicDepth: maximumAlgebraicDepth)
+                maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
         case .line, .circle, .analytic:
             return try analytic(curve, over: range, order: order, tolerance: tolerance,
-                consumeWork: consumeWork, consumeStorage: consumeStorage)
+                using: &execution)
         case .certifiedIntersection:
             // FIXME(INCOMPLETE_IMPLEMENTATION): Original certified analytic-pair
             // branch laws need their requested-order scalar implicit recurrence.
@@ -313,26 +301,22 @@ package struct OriginalCurveHigherJetProvider {
 
     private static func lift(surface: Surface3D, u: SurfaceAreaIntervalTaylorScalarJet,
         v: SurfaceAreaIntervalTaylorScalarJet, order: Int, tolerance: ModelingTolerance,
-        maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int, consumeWork: () throws -> Void,
-        consumeStorage: ((Int) throws -> Void)? = nil, maximumAlgebraicDepth: Int? = nil)
+        maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int, maximumAlgebraicDepth: Int? = nil, using execution: inout OriginalQueryExecution)
         throws -> SurfaceAreaIntervalTaylorVectorJet {
         let a = try u.coefficient(0, 0), b = try v.coefficient(0, 0)
         let source = try OriginalSurfaceHigherJetProvider.intervalTaylorJet(of: surface,
             over: SurfaceParameterBox(u: ScalarInterval(lower: a.lower, upper: a.upper),
                 v: ScalarInterval(lower: b.lower, upper: b.upper)), tolerance: tolerance,
             throughOrder: order, maximumSpanCount: maximumSpanCount,
-            maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage,
-            maximumAlgebraicDepth: maximumAlgebraicDepth ?? 32)
+            maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth ?? 32, using: &execution)
         return try OriginalCurveTaylorComposition.compose(surface: source, u: u, v: v,
-            order: order, consumeWork: consumeWork, consumeStorage: consumeStorage)
+            order: order, using: &execution)
     }
 
     private static func analytic(_ curve: Curve3D, over range: ScalarInterval, order: Int,
-        tolerance: ModelingTolerance, consumeWork: () throws -> Void,
-        consumeStorage: ((Int) throws -> Void)?) throws -> SurfaceAreaIntervalTaylorVectorJet {
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> SurfaceAreaIntervalTaylorVectorJet {
         guard let source = try DefaultCurveDifferentialEncloser().directJet(curve,
-            parameters: range, tolerance: tolerance, consumeWork: consumeWork,
-            consumeStorage: consumeStorage) else {
+            parameters: range, tolerance: tolerance, using: &execution) else {
             // FIXME(INCOMPLETE_IMPLEMENTATION): Plane-torus source branches
             // need original requested-order branch derivatives before this
             // public higher-jet production path may claim their coverage.
@@ -348,15 +332,15 @@ package struct OriginalCurveHigherJetProvider {
         }
         func coordinate(_ jet: SurfaceIntervalJet) throws -> SurfaceAreaIntervalTaylorScalarJet {
             var result = try SurfaceAreaIntervalTaylorScalarJet(order: order, axis: .u,
-                tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage)
+                tolerance: tolerance, using: &execution)
             let count = order.addingReportingOverflow(1)
             guard !count.overflow else { throw GeometryConversionError.resourceLimitExceeded("Original analytic derivative count overflows.") }
             try OriginalCoefficientAllocation.reserve(count: count.partialValue,
-                of: OutwardScalarInterval.self, consumeStorage: consumeStorage)
+                of: OutwardScalarInterval.self, using: &execution)
             var derivatives: [OutwardScalarInterval] = []
             derivatives.reserveCapacity(count.partialValue)
             for k in 0...min(order, 3) {
-                try consumeWork()
+                try execution.consumeWork(1)
                 switch k {
                 case 0: derivatives.append(jet.value)
                 case 1: derivatives.append(jet.derivativeU)
@@ -365,12 +349,12 @@ package struct OriginalCurveHigherJetProvider {
                 }
             }
             if order >= 4 {
-                for k in 4...order { try consumeWork(); derivatives.append(derivatives[k - 2] * cycle) }
+                for k in 4...order { try execution.consumeWork(1); derivatives.append(derivatives[k - 2] * cycle) }
             }
             for k in 0...order {
                 var value = derivatives[k]
                 if k > 1 { for i in 2...k {
-                    try consumeWork()
+                    try execution.consumeWork(1)
                     guard let divided = value.divided(by: .exact(Double(i))) else {
                         throw GeometryConversionError.resourceLimitExceeded("Original analytic factorial scaling failed.")
                     }

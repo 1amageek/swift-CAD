@@ -13,7 +13,7 @@ struct DefaultOriginalRollingBallGraphReducer<S: OriginalRollingBallChildSourceR
 
     func reduce<A: ExactScalarAdmission & ~Copyable>(_ original: Input,
         limits: OriginalSourceIssuanceLimits, reusing prior: Output? = nil, using admission: inout A) throws -> Output {
-        try OriginalSourceProofAdmission<A>.withBorrow(&admission) { a in
+        try admission.withProofScope { a in
             try a.checkpoint(); try original.source.require(limits)
             try a.admitDepth(value:original.proofDepth.value,coefficient:original.proofDepth.coefficient)
             let f = original.field, n = original.polynomials.variableCount

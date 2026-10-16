@@ -4,40 +4,74 @@ import Testing
 
 @Suite("Intersection foundation compilation boundaries")
 struct IntersectionFoundationBoundaryTests {
-    private struct Admission: RationalAlgebraAdmitting {
+    private struct Admission: ~Copyable, GeometryScalarTestAdmission {
+        var proofScopes = ExactScalarProofScopes()
         var work = 0
         var storage = 0
         var storageLimit = 100_000
-        mutating func consumeExactWork(_ count: Int) throws {
+        mutating func consumeWork(_ count: Int) throws(ExactScalarFailure) {
+            try checkpoint()
+            try proofScopes.checkWork(count)
+            do {
             try Task.checkCancellation()
             guard count >= 0, count <= 100_000 - work else { throw exhausted() }
             work += count
+        
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            proofScopes.recordWork(count)
+            try checkpoint()
         }
-        mutating func retainExactStorage(_ count: Int) throws {
+        mutating func retainStorage(bytes: Int) throws(ExactScalarFailure) {
+            try checkpoint()
+            let count = try geometryTestStorageWords(bytes)
+            do {
             guard count >= 0, count <= storageLimit - storage else { throw exhausted() }
             storage += count
+        
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            try checkpoint()
         }
-        mutating func visitExactCell(depth: Int) throws { throw exhausted() }
-        mutating func visitCoefficientCell(depth: Int) throws { throw exhausted() }
+        
+        
         private func exhausted() -> KernelError {
             .init(phase: .geometry, code: .resourceLimitExceeded, tolerance: nil,
                   message: "Foundation boundary admission exhausted.")
+        }
+            mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
+            try admitDepth(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+            let mapped = try proofScopes.mapped(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+            do {
+                switch (axis == .coefficient || proofScopes.exactDepthResource == .coefficientDepth) ? ExactScalarRootAxis.coefficient : .value {
+                case .value:
+                    let depth = mapped.value
+ throw exhausted() 
+                case .coefficient:
+                    let depth = mapped.coefficient
+ throw exhausted() 
+                }
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            try checkpoint()
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func byteCallbacksRetainTheSameSynchronizedOwnerAndBudget() throws {
-        let usage = try SurfaceSilhouetteUsage(maximumWork: 1_000, maximumCells: 10,
+        let usage = try SurfaceSilhouetteContext(maximumWork: 1_000, maximumCells: 10,
             maximumStorage: 1_000, maximumDepth: 4)
         let copy = usage
+        var execution = try usage.execution()
         let work = usage.work, storage = usage.storage
-        let callback = usage.preparationStorageCallback
-        try callback(5)
+        try usage.withExecution(using: &execution) { execution in try execution.retainStorage(bytes: 5) }
         #expect(copy.sharesAccountingOwner(with: usage))
         #expect(usage.storage == storage + 2)
         #expect(copy.storage == usage.storage)
         #expect(usage.work == work + 2)
-        #expect(throws: KernelError.self) { try callback(4_000) }
+        geometryTestExpectFailure({ OriginalQueryFailure.classification(of: $0)?.code == .resourceLimitExceeded }) {
+            try copy.withExecution(using: &execution) { execution in try execution.retainStorage(bytes: 4_000) }
+        }
         #expect(usage.storage == storage + 2)
     }
 
@@ -59,7 +93,7 @@ struct IntersectionFoundationBoundaryTests {
         } }
         #expect(usage.storage > 0)
         usage.storageLimit = usage.storage
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             _ = try OriginalPolynomialSurfaceTaylor.normalized(vector, usage: &usage)
         }
     }
@@ -71,7 +105,7 @@ struct IntersectionFoundationBoundaryTests {
         try prepared.validatePreparationTolerance(.standard)
         let changed = ModelingTolerance(distance: ModelingTolerance.standard.distance * 2,
             angle: ModelingTolerance.standard.angle, relative: ModelingTolerance.standard.relative)
-        #expect(throws: GeometryConversionError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is GeometryConversionError }) {
             try prepared.validatePreparationTolerance(changed)
         }
     }
@@ -85,17 +119,15 @@ struct IntersectionFoundationBoundaryTests {
         let surface = Surface3D.bSpline(source)
         let box = SurfaceParameterBox(u: try .init(lower: 0, upper: 1),
                                       v: try .init(lower: 0, upper: 1))
-        var usage = try SurfaceSilhouetteUsage(maximumWork: 1_000_000, maximumCells: 1_000,
+        let observer = try SurfaceSilhouetteContext(maximumWork: 1_000_000, maximumCells: 1_000,
             maximumStorage: 1_000_000, maximumDepth: 8)
-        let observer = usage
+        var usage = try observer.execution()
         let authority = try SurfaceSilhouetteSourcePreparation(original: surface,
             tolerance: .standard, usage: &usage)
         let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: source,
-            tolerance: .standard, consumeWork: usage.preparationWorkCallback,
-            consumeStorage: usage.preparationStorageCallback)
-        let native = try #require(prepared.originalNativeSpans(over: box, tolerance: .standard,
-            maximumSpanCount: 4, consumeWork: usage.preparationWorkCallback,
-            consumeStorage: usage.preparationStorageCallback).first)
+            tolerance: .standard, using: &usage)
+        let native = try geometryTestRequire(prepared.originalNativeSpans(over: box, tolerance: .standard,
+            maximumSpanCount: 4, using: &usage).first)
         let field = try OriginalSurfaceSilhouetteField(surface: surface, domain: box,
             view: .unitZ, tolerance: .standard, sourceAuthority: authority,
             native: native, usage: &usage)
@@ -103,6 +135,9 @@ struct IntersectionFoundationBoundaryTests {
         let value = try field.evaluate(over: box, usage: &usage)
         #expect(value.scalar.value.lower <= 1 && value.scalar.value.upper >= 1)
         #expect(observer.storage > before)
-        #expect(observer.work == usage.work && observer.storage == usage.storage)
+        let active = try geometryTestRequire(usage.activeContributionHandle)
+        #expect(active.budget === observer.budget)
+        #expect(observer.work == active.snapshot.work)
+        #expect(observer.contribution.snapshot.storageBytes == active.snapshot.storageBytes)
     }
 }

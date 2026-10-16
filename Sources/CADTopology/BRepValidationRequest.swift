@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 public struct BRepValidationRequest: Equatable, Sendable {
     public let scopes: [TopologyValidationScope]
@@ -31,17 +32,27 @@ public struct BRepValidationRequest: Equatable, Sendable {
     #endif
 
     public func validate(tolerance: ModelingTolerance) throws {
+        var execution = try BRepModel.originalValidationExecution()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
         try tolerance.validate()
-        guard scopes.isEmpty == false,
-              Set(scopes).count == scopes.count else {
-            throw KernelError(
-                phase: .topology,
-                code: .invalidInput,
-                tolerance: tolerance,
-                message: "A B-rep validation request requires unique non-empty scopes."
-            )
+        guard !scopes.isEmpty else { throw invalidRequest(tolerance: tolerance) }
+        for index in scopes.indices {
+            try execution.consumeWork(1)
+            for previous in 0..<index {
+                try execution.consumeWork(1)
+                if scopes[index] == scopes[previous] { throw invalidRequest(tolerance: tolerance) }
+            }
         }
     }
+
+    private func invalidRequest(tolerance: ModelingTolerance) -> KernelError {
+        KernelError(phase: .topology, code: .invalidInput, tolerance: tolerance,
+            message: "A B-rep validation request requires unique non-empty scopes.")
+    }
+
 }
 
 #if !hasFeature(Embedded)

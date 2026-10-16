@@ -19,7 +19,7 @@ package struct OriginalRationalRegularStripCover: Sendable {
     package let branchOrdinal: Int
     package let pieces: [Piece]
 
-    package init<B: RationalAlgebraAdmitting>(projection: OriginalRationalPlaneCurveProjection,
+    package init<B: ExactScalarAdmission & ~Copyable>(projection: OriginalRationalPlaneCurveProjection,
         sectorIndex: Int, branchOrdinal: Int, lower: ExactRationalCoefficient,
         upper: ExactRationalCoefficient, inheritedDepth: Int, maximumDepth: Int,
         usage: inout B) throws {
@@ -45,7 +45,7 @@ package struct OriginalRationalRegularStripCover: Sendable {
         var pending = [Pending(lower: lower, upper: upper, depth: depth)]
         var retained: [Piece] = []
         while let cell = pending.popLast() {
-            try usage.visitExactCell(depth: cell.depth)
+            try usage.visitCell(axis: .value, depth: cell.depth)
             let midpoint = try cell.lower.adding(cell.upper, usage: &usage)
                 .divided(by: .natural(2, usage: &usage), usage: &usage)
             let source = try projection.primitive.restricted(alongU: true, station: midpoint, usage: &usage)

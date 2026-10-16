@@ -8,19 +8,21 @@ import Testing
 struct OriginalRootSpanOwnershipTests {
     private let tolerance = ModelingTolerance.standard
 
-    private func allowance(storage: Int = 268_435_456) throws -> NativeRationalSourceAllowance {
-        try .init(maximumWork: 80_000_000, maximumCells: 80_000_000,
-            maximumStorage: storage, maximumDepth: 64, operationCheck: {})
+    private func allowance(storage: Int = 1_073_741_824,
+        observeStorage: (@Sendable (Int) throws -> Void)? = nil) throws -> OriginalQueryExecution {
+        OriginalQueryExecution(budget: try OriginalQueryBudget(workLimit: 80_000_000,
+            storageByteLimit: storage, cellLimit: 80_000_000, cellVisitWorkUnits: 0,
+            consumeStorageBytes: observeStorage),
+            limits: try .init(maximumValueDepth: 64, maximumCoefficientDepth: 64, maximumCells: 80_000_000))
     }
 
-    private func traversal(usage: inout NativeRationalSourceAllowance,
-        consumeStorage: ((Int) throws -> Void)? = nil) throws -> OriginalCurveRootSpan3D {
+    private func traversal(usage: inout OriginalQueryExecution) throws -> OriginalCurveRootSpan3D {
         try .init(source: .bSpline(.init(degree: 1, knots: [0,0,1,1],
             controlPoints: [.origin, .init(x: 1,y: 0,z: 0)])),
             start: .authored(0), end: .authored(1), nativeSpanIndex: 1,
             maximumParameterWidth: tolerance.relative, maximumSubdivisionDepth: 0,
             tolerance: tolerance, usage: &usage, maximumSpanCount: 1,
-            remainingSourceDepth: 0, consumeStorage: consumeStorage, maximumAlgebraicDepth: 32)
+            remainingSourceDepth: 0, maximumAlgebraicDepth: 32)
     }
 
     private func query(_ span: OriginalCurveRootSpan3D, station: Double)
@@ -28,7 +30,7 @@ struct OriginalRootSpanOwnershipTests {
         var usage = try allowance()
         return try span.preparedFirstOrder(over: .init(lower: station, upper: station),
             tolerance: tolerance, maximumSpanCount: 1, maximumSubdivisionDepth: 0,
-            remainingSourceDepth: 0, storageByteStride: MemoryLayout<UInt32>.stride, usage: &usage)
+            remainingSourceDepth: 0, using: &usage)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -37,9 +39,9 @@ struct OriginalRootSpanOwnershipTests {
         do {
             var usage = try allowance()
             retained = try traversal(usage: &usage).reversed()
-            let before = try usage.snapshot().storage
+            let before = usage.budget.snapshot.storageBytes
             #expect(retained.reversed().reversed() == retained)
-            #expect(try usage.snapshot().storage == before)
+            #expect(usage.budget.snapshot.storageBytes == before)
         }
         #expect(retained.start == .authored(1))
         #expect(retained.end == .authored(0))
@@ -63,11 +65,11 @@ struct OriginalRootSpanOwnershipTests {
     func constructorRefusesTheFinalRetainedPayloadCapacity() throws {
         var admitted = try allowance()
         _ = try traversal(usage: &admitted)
-        let total = try admitted.snapshot().storage
+        let total = admitted.budget.snapshot.storageBytes
         #expect(total > 0)
         var insufficient = try allowance(storage: total - 1)
-        #expect(throws: KernelError.self) { _ = try traversal(usage: &insufficient) }
-        #expect(try insufficient.snapshot().storage < total)
+        geometryTestExpectFailure({ geometryTestKernelFailure($0) != nil }) { _ = try traversal(usage: &insufficient) }
+        #expect(insufficient.budget.snapshot.storageBytes < total)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -75,8 +77,9 @@ struct OriginalRootSpanOwnershipTests {
         var usage = try allowance()
         let original = try traversal(usage: &usage).reversed()
         let bytes = try JSONEncoder().encode(original)
-        func decoder(storage: Int) throws -> (JSONDecoder, NativeRationalSourceAllowance) {
-            let budget = try allowance(storage: storage)
+        func decoder(storage: Int) throws -> (JSONDecoder, NativeRationalSourceDecodingContext) {
+            let budget = try NativeRationalSourceDecodingContext(maximumWork: 80_000_000,
+                maximumCells: 80_000_000, maximumStorage: storage, maximumDepth: 64, operationCheck: {})
             let decoder = JSONDecoder()
             decoder.userInfo[NativeRationalSourceDecodingContext.key] = budget
             decoder.userInfo[OriginalAffineWordDecodingContext.maximumSourceDepthKey] = 64
@@ -93,7 +96,7 @@ struct OriginalRootSpanOwnershipTests {
         #expect(value.position.x.lower <= 0.75 && value.position.x.upper >= 0.75)
         let total = try budget.snapshot().storage
         let (insufficientDecoder, _) = try decoder(storage: total - 1)
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestKernelFailure($0) != nil }) {
             _ = try insufficientDecoder.decode(OriginalCurveRootSpan3D.self, from: bytes)
         }
     }
@@ -102,60 +105,46 @@ struct OriginalRootSpanOwnershipTests {
     func queryCapabilityRebindingAdmitsItsNewPayload() throws {
         var construction = try allowance()
         let original = try traversal(usage: &construction).reversed()
-        func rebound(_ budget: NativeRationalSourceAllowance) throws -> OriginalCurveRootSpan3D {
+        func rebound(_ budget: inout OriginalQueryExecution) throws -> OriginalCurveRootSpan3D {
             try original.admittingQueryAlgebra(16, tolerance: tolerance,
                 maximumSubdivisionDepth: 0, remainingSourceDepth: 0,
-                consumeWork: { try budget.consumeExactWork(1) },
-                consumeStorage: { try baselineByteAdmission($0, allowance: budget) })
+                using: &budget)
         }
-        let admitted = try allowance()
-        let selected = try rebound(admitted)
+        var admitted = try allowance()
+        let selected = try rebound(&admitted)
         #expect(selected == original)
         #expect(selected.maximumAlgebraicDepth == 16)
         #expect(original.maximumAlgebraicDepth == 32)
         #expect(selected.start == .authored(1) && selected.end == .authored(0))
         let value = try query(selected, station: 0.25)
         #expect(value.position.x.lower <= 0.75 && value.position.x.upper >= 0.75)
-        let total = try admitted.snapshot().storage
+        let total = admitted.budget.snapshot.storageBytes
         #expect(total > 0)
-        let insufficient = try allowance(storage: total - 1)
-        #expect(throws: KernelError.self) { _ = try rebound(insufficient) }
+        var insufficient = try allowance(storage: total - 1)
+        geometryTestExpectFailure({ geometryTestKernelFailure($0) != nil }) { _ = try rebound(&insufficient) }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func finalPayloadAdmissionCancellationPreventsPublication() async throws {
         let reservations = Mutex<[Int]>([])
-        let baselineBudget = try allowance()
-        var baseline = baselineBudget
-        _ = try traversal(usage: &baseline, consumeStorage: { bytes in
-            reservations.withLock { $0.append(bytes) }
-            try baselineByteAdmission(bytes, allowance: baselineBudget)
-        })
+        var baseline = try allowance(observeStorage: { bytes in reservations.withLock { $0.append(bytes) } })
+        _ = try traversal(usage: &baseline)
         let lastOrdinal = reservations.withLock { $0.count }
         #expect(lastOrdinal > 0)
         let count = Mutex(0)
         let operation = Task {
-            let admitted = try allowance()
-            var budget = admitted
-            return try traversal(usage: &budget, consumeStorage: { bytes in
-                try baselineByteAdmission(bytes, allowance: admitted)
+            var budget = try allowance(observeStorage: { _ in
                 let isLast = count.withLock { count in count += 1; return count == lastOrdinal }
                 if isLast { withUnsafeCurrentTask { $0?.cancel() } }
             })
+            return try traversal(usage: &budget)
         }
         do {
             _ = try await operation.value
             Issue.record("A final payload admission callback cancelled but published a traversal.")
-        } catch is CancellationError {
+        } catch where geometryTestIsCancelled(error) {
             #expect(count.withLock { $0 } == lastOrdinal)
         }
     }
 
-    private func baselineByteAdmission(_ bytes: Int, allowance: NativeRationalSourceAllowance) throws {
-        let rounded = bytes.addingReportingOverflow(MemoryLayout<UInt32>.stride - 1)
-        guard bytes >= 0, !rounded.overflow else {
-            throw GeometryConversionError.resourceLimitExceeded("Ownership proof byte admission overflowed.")
-        }
-        try allowance.retainExactStorage(rounded.partialValue / MemoryLayout<UInt32>.stride)
-    }
 }

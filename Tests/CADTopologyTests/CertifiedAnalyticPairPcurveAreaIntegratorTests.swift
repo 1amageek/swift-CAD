@@ -839,6 +839,7 @@ struct CertifiedAnalyticPairPcurveAreaIntegratorTests {
 
     @Test(.timeLimit(.minutes(1)))
     func bothAnalyticPairRolesProduceCompleteParameterEnclosures() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
         let plane = Surface3D.plane(Plane3D(
             origin: Point3D(x: 3.0, y: 0.0, z: 0.0),
             normal: .unitX
@@ -861,7 +862,7 @@ struct CertifiedAnalyticPairPcurveAreaIntegratorTests {
                     for: .certifiedAnalyticPair(curve),
                     maximumWidth: 0.05,
                     tolerance: tolerance
-                )
+                , using: &execution)
             #expect(enclosures.isEmpty == false)
             #expect(enclosures.allSatisfy { $0.maximumWidth <= 0.05 })
             #expect(abs(enclosures[0].lowerFraction) <= 1.0e-12)
@@ -878,7 +879,7 @@ struct CertifiedAnalyticPairPcurveAreaIntegratorTests {
                     toNormalizedFraction: 0.8,
                     maximumWidth: 0.05,
                     tolerance: tolerance
-                )
+                , using: &execution)
             #expect(partial.isEmpty == false)
             #expect(partial.allSatisfy { $0.maximumWidth <= 0.05 })
             #expect(abs(partial[0].lowerFraction - 0.2) <= 1.0e-12)

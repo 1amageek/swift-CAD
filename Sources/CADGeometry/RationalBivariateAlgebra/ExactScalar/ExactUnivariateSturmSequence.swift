@@ -2,7 +2,7 @@
 package struct ExactUnivariateSturmSequence: Sendable {
     package let source: ExactBivariatePolynomial
     package let chain: [ExactBivariatePolynomial]
-    package init<B: RationalAlgebraAdmitting>(_ source: ExactBivariatePolynomial, usage: inout B) throws {
+    package init<B: ExactScalarAdmission & ~Copyable>(_ source: ExactBivariatePolynomial, usage: inout B) throws {
         guard !source.isZero, source.vDegree <= 0 else {
             throw exactScalarBackendFailure("Exact Sturm source must be a nonzero univariate polynomial.")
         }
@@ -24,7 +24,7 @@ package struct ExactUnivariateSturmSequence: Sendable {
         }
         chain = values
     }
-    func variations<B: RationalAlgebraAdmitting>(at station: ExactRationalCoefficient,
+    func variations<B: ExactScalarAdmission & ~Copyable>(at station: ExactRationalCoefficient,
         usage: inout B) throws -> Int {
         var previous = 0, count = 0
         for value in chain {
@@ -36,7 +36,7 @@ package struct ExactUnivariateSturmSequence: Sendable {
         }
         return count
     }
-    func count<B: RationalAlgebraAdmitting>(lower: ExactRationalCoefficient, upper: ExactRationalCoefficient,
+    func count<B: ExactScalarAdmission & ~Copyable>(lower: ExactRationalCoefficient, upper: ExactRationalCoefficient,
         excludesLower: Bool, excludesUpper: Bool, usage: inout B) throws -> Int {
         if lower == upper {
             if excludesLower || excludesUpper { return 0 }

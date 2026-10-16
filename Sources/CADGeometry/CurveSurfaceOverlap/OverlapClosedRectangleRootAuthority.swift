@@ -21,7 +21,7 @@ struct OverlapClosedRectangleRootAuthority: Sendable {
                             surface preparedSurface: PreparedBSplineSurfaceDifferentialEncloser,
                             range: ScalarInterval, pair: OverlapRegularGraphCell.Pair,
                             box: SurfaceParameterBox, jetWork: Int,
-                            budget: inout OverlapProofBudget) throws -> Self? {
+                            policy: OverlapProofPolicy, using execution: inout OriginalQueryExecution) throws -> Self? {
         guard case let .bSpline(source) = preparedCurve.curve, !source.isPeriodic else { return nil }
         let target = preparedSurface.surface
         guard !target.isUPeriodic, !target.isVPeriodic,
@@ -37,8 +37,8 @@ struct OverlapClosedRectangleRootAuthority: Sendable {
         let totalScan = scan.partialValue.addingReportingOverflow(faceComparisons.partialValue)
         guard !tensor.overflow, !controls.overflow, !coefficients.overflow,
               !targetKnots.overflow, !knots.overflow, !scan.overflow,
-              !axes.overflow, !faceComparisons.overflow, !totalScan.overflow else { throw exhausted(budget) }
-        try budget.work(totalScan.partialValue)
+              !axes.overflow, !faceComparisons.overflow, !totalScan.overflow else { throw exhausted(policy) }
+        try policy.work(totalScan.partialValue, using: &execution)
         guard clamped(target.uKnots, degree: target.uDegree, count: target.uControlPointCount),
               clamped(target.vKnots, degree: target.vDegree, count: target.vControlPointCount),
               range.lower >= source.knots[source.degree], range.upper <= source.knots[source.controlPointCount],
@@ -47,6 +47,7 @@ struct OverlapClosedRectangleRootAuthority: Sendable {
         for row in target.weights {
             guard row.allSatisfy({ $0.isFinite && $0 > 0 }) else { return nil }
         }
+        try OriginalCoefficientAllocation.reserve(count: 3, of: OutwardScalarInterval.self, using: &execution)
         var hulls = [OutwardScalarInterval.exact(source.controlPoints[0].x),
                      .exact(source.controlPoints[0].y), .exact(source.controlPoints[0].z)]
         for index in source.controlPoints.indices {
@@ -57,23 +58,25 @@ struct OverlapClosedRectangleRootAuthority: Sendable {
                 hulls[axis] = hulls[axis].union(.exact(coordinate))
             }
         }
-        try budget.work(jetWork)
+        try policy.work(jetWork, using: &execution)
         let sourceValues: [OutwardScalarInterval]
         let sourceClamped = clamped(source.knots, degree: source.degree, count: source.controlPointCount)
         if range.lower == range.upper, sourceClamped,
            range.lower == source.knots[source.degree] || range.lower == source.knots[source.controlPointCount] {
             let endpoint = range.lower == source.knots[source.degree] ? source.controlPoints[0] : source.controlPoints[source.controlPointCount - 1]
+            try OriginalCoefficientAllocation.reserve(count: 3, of: OutwardScalarInterval.self, using: &execution)
             sourceValues = [OutwardScalarInterval.exact(endpoint.x), .exact(endpoint.y), .exact(endpoint.z)]
         } else {
-            let original = try preparedCurve.thirdOrderIntervalJet(over: range, tolerance: budget.tolerance)
-            sourceValues = try (0..<3).map { axis in
+            let original = try preparedCurve.thirdOrderIntervalJet(over: range, tolerance: policy.tolerance, using: &execution)
+            sourceValues = try CertifiedAnalyticCurveEvaluation.map(0..<3, using: &execution) { axis, _ in
                 let value = OverlapRegularGraphCell.component(original, axis).value
-                guard let intersection = value.intersection(with: hulls[axis]) else { throw inconsistent(budget) }
+                guard let intersection = value.intersection(with: hulls[axis]) else { throw inconsistent(policy) }
                 return intersection
             }
         }
 
         // Four closed original faces, including every incident native side.
+        try OriginalCoefficientAllocation.reserve(count: 4, of: SurfaceParameterBox.self, using: &execution)
         let faces = [
             SurfaceParameterBox(u: try ScalarInterval(lower: box.u.lower, upper: box.u.lower), v: box.v),
             SurfaceParameterBox(u: try ScalarInterval(lower: box.u.upper, upper: box.u.upper), v: box.v),
@@ -81,25 +84,29 @@ struct OverlapClosedRectangleRootAuthority: Sendable {
             SurfaceParameterBox(u: box.u, v: try ScalarInterval(lower: box.v.upper, upper: box.v.upper))
         ]
         var values: [[OutwardScalarInterval]] = []
+        var valuesCapacity = 0
         var identities: [[Double?]] = []
+        var identitiesCapacity = 0
         for index in faces.indices {
-            try budget.work(jetWork)
-            let original = try preparedSurface.intervalJet(overClosedBox: faces[index], tolerance: budget.tolerance)
-            let hull = try fixedAxisCoefficientHull(target, box: box, face: index, budget: &budget)
+            try policy.work(jetWork, using: &execution)
+            let original = try preparedSurface.intervalJet(overClosedBox: faces[index], tolerance: policy.tolerance, using: &execution)
+            let hull = try fixedAxisCoefficientHull(target, box: box, face: index, policy: policy, using: &execution)
             var faceValues: [OutwardScalarInterval] = [], exact: [Double?] = []
+            var faceValuesCapacity = 0
+            var exactCapacity = 0
             for axis in 0..<3 {
                 let identity = constantNativeFace(target, box: box, face: index, coordinate: axis)
                 let coefficientHull = axis == 0 ? hull.x : axis == 1 ? hull.y : hull.z
                 guard let value = OverlapRegularGraphCell.component(original, axis).value.intersection(with: coefficientHull) else {
-                    throw inconsistent(budget)
+                    throw inconsistent(policy)
                 }
                 if let identity {
-                    guard let intersection = value.intersection(with: .exact(identity)) else { throw inconsistent(budget) }
-                    faceValues.append(intersection)
-                } else { faceValues.append(value) }
-                exact.append(identity)
+                    guard let intersection = value.intersection(with: .exact(identity)) else { throw inconsistent(policy) }
+                    try CertifiedAnalyticCurveEvaluation.append(intersection, to: &faceValues, using: &execution, capacity: &faceValuesCapacity)
+                } else { try CertifiedAnalyticCurveEvaluation.append(value, to: &faceValues, using: &execution, capacity: &faceValuesCapacity) }
+                try CertifiedAnalyticCurveEvaluation.append(identity, to: &exact, using: &execution, capacity: &exactCapacity)
             }
-            values.append(faceValues); identities.append(exact)
+            try CertifiedAnalyticCurveEvaluation.append(faceValues, to: &values, using: &execution, capacity: &valuesCapacity); try CertifiedAnalyticCurveEvaluation.append(exact, to: &identities, using: &execution, capacity: &identitiesCapacity)
         }
         for firstVariesU in [true, false] {
             let firstFaces = firstVariesU ? (0, 1) : (2, 3)
@@ -130,7 +137,7 @@ struct OverlapClosedRectangleRootAuthority: Sendable {
     }
 
     private static func fixedAxisCoefficientHull(_ surface: BSplineSurface3D,
-        box: SurfaceParameterBox, face: Int, budget: inout OverlapProofBudget) throws
+        box: SurfaceParameterBox, face: Int, policy: OverlapProofPolicy, using execution: inout OriginalQueryExecution) throws
         -> (x: OutwardScalarInterval, y: OutwardScalarInterval, z: OutwardScalarInterval) {
         typealias Interval = OutwardScalarInterval
         let fixedU = face < 2, lower = face % 2 == 0
@@ -149,12 +156,12 @@ struct OverlapClosedRectangleRootAuthority: Sendable {
         let rowWork = rows.multipliedReportingOverflow(by: 6)
         guard !columns.overflow, !square.overflow, !basisWork.overflow, !coefficients.overflow,
               !coefficientWork.overflow, !workspace.overflow, !knotWork.overflow, !rowWork.overflow else {
-            throw exhausted(budget)
+            throw exhausted(policy)
         }
         var total = 0
         func addFee(_ fee: Int) throws {
             let next = total.addingReportingOverflow(fee)
-            guard !next.overflow else { throw exhausted(budget) }
+            guard !next.overflow else { throw exhausted(policy) }
             total = next.partialValue
         }
         try addFee(basisWork.partialValue)
@@ -164,13 +171,13 @@ struct OverlapClosedRectangleRootAuthority: Sendable {
         try addFee(rowWork.partialValue)
         // Pay selected-basis scratch and every original coefficient operation
         // before invoking the lower basis owner or growing any temporary arrays.
-        try budget.work(total)
+        try policy.work(total, using: &execution)
         guard let span = (degree..<count).first(where: {
             knots[$0] < knots[$0 + 1] && parameter >= knots[$0] && parameter <= knots[$0 + 1]
-        }) else { throw inconsistent(budget) }
+        }) else { throw inconsistent(policy) }
         let basis = try BSplineBasis.nonzeroIntervalDerivativeValues(parameter: parameter, degree: degree,
             throughDerivativeOrder: 0, knots: knots, count: count, owningSpan: span,
-            tolerance: budget.tolerance)[0]
+            tolerance: policy.tolerance, using: &execution)[0]
         let nonnegative = Interval(lower: 0, upper: 1)
         let origin = surface.controlPoints[0][0]
         var hullX: Interval?, hullY: Interval?, hullZ: Interval?
@@ -178,7 +185,7 @@ struct OverlapClosedRectangleRootAuthority: Sendable {
             try CurrentTaskCancellationChecker().checkCancellation()
             var x = Interval.exact(0), y = Interval.exact(0), z = Interval.exact(0), weight = Interval.exact(0)
             for index in basis.values.indices {
-                guard let value = basis.values[index].intersection(with: nonnegative) else { throw inconsistent(budget) }
+                guard let value = basis.values[index].intersection(with: nonnegative) else { throw inconsistent(policy) }
                 let column = basis.startIndex + index
                 let point = fixedU ? surface.controlPoints[row][column] : surface.controlPoints[column][row]
                 let originalWeight = fixedU ? surface.weights[row][column] : surface.weights[column][row]
@@ -190,17 +197,17 @@ struct OverlapClosedRectangleRootAuthority: Sendable {
             }
             guard weight.isFinite, weight.lower > 0,
                   let qx = x.divided(by: weight), let qy = y.divided(by: weight), let qz = z.divided(by: weight) else {
-                throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: budget.tolerance,
+                throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: policy.tolerance,
                     message: "An original fixed-axis coefficient has no finite positive denominator enclosure.")
             }
             let rowX = Interval.exact(origin.x) + qx, rowY = Interval.exact(origin.y) + qy,
                 rowZ = Interval.exact(origin.z) + qz
-            guard rowX.isFinite, rowY.isFinite, rowZ.isFinite else { throw exhausted(budget) }
+            guard rowX.isFinite, rowY.isFinite, rowZ.isFinite else { throw exhausted(policy) }
             hullX = hullX.map { $0.union(rowX) } ?? rowX
             hullY = hullY.map { $0.union(rowY) } ?? rowY
             hullZ = hullZ.map { $0.union(rowZ) } ?? rowZ
         }
-        guard let hullX, let hullY, let hullZ else { throw inconsistent(budget) }
+        guard let hullX, let hullY, let hullZ else { throw inconsistent(policy) }
         return (hullX, hullY, hullZ)
     }
 
@@ -229,13 +236,13 @@ struct OverlapClosedRectangleRootAuthority: Sendable {
             && knots.suffix(degree + 1).allSatisfy({ $0 == upper })
     }
 
-    private static func exhausted(_ budget: OverlapProofBudget) -> KernelError {
-        KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: budget.tolerance,
+    private static func exhausted(_ policy: OverlapProofPolicy) -> KernelError {
+        KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: policy.tolerance,
             message: "Original closed rectangle coefficient admission overflowed its work count.")
     }
 
-    private static func inconsistent(_ budget: OverlapProofBudget) -> KernelError {
-        KernelError(phase: .geometry, code: .intersectionFailure, tolerance: budget.tolerance,
+    private static func inconsistent(_ policy: OverlapProofPolicy) -> KernelError {
+        KernelError(phase: .geometry, code: .intersectionFailure, tolerance: policy.tolerance,
             message: "An original closed rectangle enclosure excludes its independent coefficient identity.")
     }
 }

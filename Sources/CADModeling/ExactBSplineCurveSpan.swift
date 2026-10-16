@@ -8,19 +8,24 @@ package struct ExactBSplineCurveSpan: Sendable {
     package let originalChart: OriginalCurveSpanParameterChart
     package let correspondence: OriginalCurveSpanCorrespondence
 
+    package init(curve: BSplineCurve3D, tolerance: ModelingTolerance,
+        originalChart: OriginalCurveSpanParameterChart? = nil) throws {
+        var execution: OriginalQueryExecution
+        if let budget = originalChart?.constructionBudget, let limits = originalChart?.constructionLimits {
+            execution = try OriginalQueryExecution(budget: budget, limits: limits, contributions: originalChart?.constructionContributions ?? [])
+        } else {
+            execution = try CurvedSweepSourceBudget(tolerance: tolerance).execution()
+        }
+        try self.init(curve: curve, tolerance: tolerance, originalChart: originalChart, using: &execution)
+    }
+
     package init(
         curve: BSplineCurve3D,
         tolerance: ModelingTolerance,
         originalChart: OriginalCurveSpanParameterChart? = nil,
-        admission: GeometryConversionAdmission? = nil
+        using execution: inout OriginalQueryExecution
     ) throws {
-        if let admission {
-            try Curve3D.bSpline(curve).validateOriginalSource(tolerance: tolerance,
-                remainingSourceDepth: admission.remainingSourceDepth,
-                maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
-                consumeWork: { _ in try admission.chargeWork() },
-                consumeStorage: { try admission.chargeStorage(bytes: $0) })
-        } else { try curve.validate(tolerance: tolerance) }
+        try curve.validate(tolerance: tolerance, using: &execution)
         guard case let .closed(lower, upper) = curve.domain else {
             throw KernelError(
                 phase: .geometry,
@@ -30,9 +35,9 @@ package struct ExactBSplineCurveSpan: Sendable {
             )
         }
         let startPoint = try Self.candidatePoint(curve, parameter: lower, atEnd: false,
-            tolerance: tolerance, admission: admission)
+            tolerance: tolerance, using: &execution)
         let endPoint = try Self.candidatePoint(curve, parameter: upper, atEnd: true,
-            tolerance: tolerance, admission: admission)
+            tolerance: tolerance, using: &execution)
         guard startPoint.isApproximatelyEqual(
             to: endPoint,
             tolerance: tolerance.distance
@@ -49,52 +54,22 @@ package struct ExactBSplineCurveSpan: Sendable {
         self.endPoint = endPoint
         let rawChart = originalChart ?? OriginalCurveSpanParameterChart(
             curve: .bSpline(curve), startParameter: lower, endParameter: upper)
-        let chart = admission.map { rawChart.admittingConstruction($0) } ?? rawChart
+        let chart = try rawChart.admittingConstruction(using: &execution)
         self.originalChart = chart
         correspondence = try OriginalCurveSpanCorrespondence(candidate: curve, chart: chart,
-            tolerance: tolerance, admission: admission)
+            tolerance: tolerance, using: &execution)
     }
 
     private static func candidatePoint(_ curve: BSplineCurve3D, parameter: Double,
         atEnd: Bool, tolerance: ModelingTolerance,
-        admission: GeometryConversionAdmission?) throws -> Point3D {
+        using execution: inout OriginalQueryExecution) throws -> Point3D {
         let count = curve.degree + 1
-        try admission?.chargeWork(count)
+        try execution.consumeWork(count)
         let knots = atEnd ? curve.knots.suffix(count) : curve.knots.prefix(count)
         if knots.count == count, knots.allSatisfy({ $0 == parameter }),
            let point = atEnd ? curve.controlPoints.last : curve.controlPoints.first {
             return point
         }
-        guard let admission else { return try curve.point(at: parameter, tolerance: tolerance) }
-        let prepared = try PreparedCurveDifferentialEncloser(curve: .bSpline(curve),
-            tolerance: tolerance, remainingSourceDepth: admission.remainingSourceDepth,
-            maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
-            consumeWork: { try admission.chargeWork() },
-            consumeStorage: { try admission.chargeStorage(bytes: $0) })
-        let result = try prepared.closedNativeJets(over: ScalarInterval(lower: parameter, upper: parameter),
-            tolerance: tolerance, maximumSpanCount: admission.maximumSpanCount,
-            maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
-            remainingSourceDepth: admission.remainingSourceDepth,
-            consumeWork: { try admission.chargeWork() },
-            consumeStorage: { try admission.chargeStorage(bytes: $0) })
-        var x: OutwardScalarInterval?, y: OutwardScalarInterval?, z: OutwardScalarInterval?
-        func hull(_ prior: OutwardScalarInterval?, _ value: OutwardScalarInterval) -> OutwardScalarInterval {
-            guard let prior else { return value }
-            return .init(lower: min(prior.lower, value.lower), upper: max(prior.upper, value.upper))
-        }
-        for owner in result.spans {
-            try admission.chargeWork()
-            x = hull(x, owner.jet.x.value); y = hull(y, owner.jet.y.value); z = hull(z, owner.jet.z.value)
-        }
-        guard let x, let y, let z, x.isFinite, y.isFinite, z.isFinite else {
-            throw GeometryConversionError.resourceLimitExceeded("A candidate endpoint has no complete finite native enclosure.")
-        }
-        let point = Point3D(x: x.midpoint, y: y.midpoint, z: z.midpoint)
-        let residual = IntervalVector3DBounds(x: x - .exact(point.x),
-            y: y - .exact(point.y), z: z - .exact(point.z)).lengthUpperBound
-        guard residual <= tolerance.distance / 64 else {
-            throw GeometryConversionError.toleranceRejected
-        }
-        return point
+        return try curve.point(at: parameter, tolerance: tolerance, using: &execution)
     }
 }

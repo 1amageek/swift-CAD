@@ -11,17 +11,17 @@ struct SurfaceSilhouetteOrderedFreeParameterImage: Hashable, Sendable {
     let normalizedDomain: ScalarInterval
 
     init(start: SurfaceSilhouetteTrimEndpoint, end: SurfaceSilhouetteTrimEndpoint,
-        usage: inout SurfaceSilhouetteUsage) throws {
-        guard try start.compare(to: end, usage: &usage) < 0 else {
+        usage: inout OriginalQueryExecution) throws {
+        guard try start.compare(to: end, using: &usage) < 0 else {
             throw rationalAlgebraFailure("Original field free traversal needs strictly increasing source endpoints.")
         }
         var transport = OriginalSingularFieldTransport()
         let context = try transport.importing(end.original.context, into: start.original.context,
-            maximumDepth: usage.maximumDepth, usage: &usage)
-        let a = try start.original.embedded(in: context, maximumDepth: usage.maximumDepth, usage: &usage)
-        let b = try transport.applying(to: end.original, in: context, maximumDepth: usage.maximumDepth, usage: &usage)
-        self.start = .init(a, depth: start.sourceDepth); self.end = .init(b, depth: end.sourceDepth)
-        gain = try b.subtracting(a, maximumDepth: usage.maximumDepth, usage: &usage)
+            maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
+        let a = try start.original.embedded(in: context, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
+        let b = try transport.applying(to: end.original, in: context, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
+        self.start = try .init(a, depth: start.sourceDepth, using: &usage); self.end = try .init(b, depth: end.sourceDepth, using: &usage)
+        gain = try b.subtracting(a, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
         gainIsolation = nil; width = .one
         sourceDepth = max(context.depth, max(start.sourceDepth, end.sourceDepth))
         normalizedDomain = try .init(lower: 0, upper: 1)
@@ -46,38 +46,38 @@ struct SurfaceSilhouetteOrderedFreeParameterImage: Hashable, Sendable {
         hasher.combine(normalizedDomain)
     }
 
-    func refined(usage: inout SurfaceSilhouetteUsage) throws -> Self {
+    func refined(usage: inout OriginalQueryExecution) throws -> Self {
         let width = try width.divided(by: .natural(2, usage: &usage), usage: &usage)
-        let first = try start.refined(maximumWidth: width, usage: &usage)
-        let last = try end.refined(maximumWidth: width, usage: &usage)
+        let first = try start.refined(maximumWidth: width, using: &usage)
+        let last = try end.refined(maximumWidth: width, using: &usage)
         let old = try gainIsolation ?? .init(original: gain, inheritedDepth: sourceDepth,
-            maximumDepth: usage.maximumDepth, usage: &usage)
+            maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
         let retained = try old.inheriting(depth: max(first.sourceDepth, last.sourceDepth),
-            maximumDepth: usage.maximumDepth, usage: &usage).refined(maximumWidth: width,
-                maximumDepth: usage.maximumDepth, usage: &usage)
+            maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage).refined(maximumWidth: width,
+                maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
         try RationalAlgebraStorage.retain(1, of: Self.self, usage: &usage)
         return Self(copy: self, start: first, end: last, isolation: retained, width: width)
     }
 
     func mapped(over range: ScalarInterval, nativeCover: ScalarInterval,
-        usage: inout SurfaceSilhouetteUsage) throws -> (parameter: ScalarInterval, derivative: OutwardScalarInterval) {
+        usage: inout OriginalQueryExecution) throws -> (parameter: ScalarInterval, derivative: OutwardScalarInterval) {
         guard range.lower >= 0, range.upper <= 1 else {
             throw rationalAlgebraFailure("Original field free query exceeds normalized source fractions.")
         }
         let slope = try gainIsolation?.enclosure(usage: &usage)
             ?? gain.enclosure(maximumWidth: width, inheritedDepth: sourceDepth,
-                maximumDepth: usage.maximumDepth, usage: &usage)
+                maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
         func coordinate(_ t: Double) throws -> OutwardScalarInterval {
             if t == 0 || t == 1 {
                 let endpoint = t == 0 ? start : end
-                let bounds = try endpoint.enclosure(maximumWidth: width, usage: &usage)
+                let bounds = try endpoint.enclosure(maximumWidth: width, using: &usage)
                 return .init(lower: bounds.lower, upper: bounds.upper)
             }
             let scalar = try OriginalSingularFieldElement.constant(.originalDouble(t, usage: &usage),
-                in: start.original.context, maximumDepth: usage.maximumDepth, usage: &usage)
-            return try start.original.adding(gain.multiplied(by: scalar, maximumDepth: usage.maximumDepth,
-                usage: &usage), maximumDepth: usage.maximumDepth, usage: &usage)
-                .enclosure(maximumWidth: width, inheritedDepth: sourceDepth, maximumDepth: usage.maximumDepth, usage: &usage)
+                in: start.original.context, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
+            return try start.original.adding(gain.multiplied(by: scalar, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth,
+                usage: &usage), maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
+                .enclosure(maximumWidth: width, inheritedDepth: sourceDepth, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
         }
         let a = try coordinate(range.lower), b = try coordinate(range.upper)
         guard let enclosed = OutwardScalarInterval(lower: a.lower, upper: b.upper)

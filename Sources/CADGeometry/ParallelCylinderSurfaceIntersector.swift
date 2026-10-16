@@ -14,6 +14,43 @@ import CADCore
 struct ParallelCylinderSurfaceIntersector {
     private let verifier = SurfaceSurfaceIntersectionVerifier()
 
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Ordinary SSI dispatch reaches this direct entry.
+    // The former numerical/tolerance branches did not establish original common-set
+    // authority. U4 must supply complete original source/UV coverage before success.
+    func intersections(
+        first: CanonicalAnalyticSurface.Cylinder,
+        second: CanonicalAnalyticSurface.Cylinder,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution
+    ) throws -> [SurfaceSurfaceIntersection] {
+        execution.context = execution.context.at(stage: .relation)
+        do {
+            try execution.checkpoint()
+            try execution.consumeWork(1)
+            let literalSourcePair: Bool
+            switch (firstSurface, secondSurface) {
+            case (.analytic, .analytic), (.cylinder, .cylinder): literalSourcePair = true
+            default: literalSourcePair = false
+            }
+            if literalSourcePair, firstSurface == secondSurface {
+                try firstSurface.validateOriginalSource(tolerance: tolerance,
+                    remainingSourceDepth: execution.limits.remainingSourceDepth,
+                    maximumSubdivisionDepth: execution.limits.maximumSubdivisionDepth, using: &execution)
+                try execution.retainStorage(bytes: MemoryLayout<SurfaceSurfaceIntersection>.stride)
+                let result: [SurfaceSurfaceIntersection] = [.coincident(try .init(residual: 0, tolerance: tolerance))]
+                try execution.checkpoint()
+                return result
+            }
+            throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+                message: "ParallelCylinderSurfaceIntersector requires complete original source relation authority.")
+        } catch { throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance) }
+    }
+
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Existing candidate/source helper methods call
+    // this ordinary publication entry. It performs no numeric solve or fallback;
+    // U4 must provide source-bound relation proof and direct execution before success.
     func intersections(
         first: CanonicalAnalyticSurface.Cylinder,
         second: CanonicalAnalyticSurface.Cylinder,
@@ -21,72 +58,9 @@ struct ParallelCylinderSurfaceIntersector {
         secondSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws -> [SurfaceSurfaceIntersection] {
-        guard AnalyticAxisRelation.areParallel(first.axis, second.axis, tolerance: tolerance) else {
-            throw KernelError(
-                phase: .geometry,
-                code: .invalidInput,
-                tolerance: tolerance,
-                message: "Parallel-cylinder evaluation requires parallel axes."
-            )
-        }
-
-        let radialOffset = AnalyticAxisRelation.radialOffset(
-            from: first.origin,
-            axis: first.axis,
-            to: second.origin
-        )
-        let axisDistance = radialOffset.length
-        if axisDistance <= tolerance.distance {
-            let radiusResidual = abs(first.radius - second.radius)
-            guard radiusResidual <= tolerance.distance else { return [] }
-            return [.coincident(try SurfaceSurfaceCoincidence(
-                residual: max(axisDistance, radiusResidual),
-                tolerance: tolerance
-            ))]
-        }
-
-        guard axisDistance <= first.radius + second.radius + tolerance.distance,
-              axisDistance + min(first.radius, second.radius)
-                >= max(first.radius, second.radius) - tolerance.distance else {
-            return []
-        }
-        let radialDirection = try radialOffset.normalized(tolerance: tolerance.distance)
-        let baseDistance = (
-            first.radius * first.radius
-                - second.radius * second.radius
-                + axisDistance * axisDistance
-        ) / (2.0 * axisDistance)
-        let transverseSquared = max(
-            0.0,
-            first.radius * first.radius - baseDistance * baseDistance
-        )
-        let transverseDistance = sqrt(transverseSquared)
-        let basePoint = first.origin + radialDirection * baseDistance
-        let perpendicular = try first.axis.cross(radialDirection).normalized(
-            tolerance: tolerance.angle
-        )
-        let kind: CurveSurfaceIntersectionKind = transverseDistance <= tolerance.distance
-            ? .tangent
-            : .transverse
-        var results = [try line(
-            origin: basePoint + perpendicular * transverseDistance,
-            direction: first.axis,
-            kind: kind,
-            firstSurface: firstSurface,
-            secondSurface: secondSurface,
-            tolerance: tolerance
-        )]
-        if kind == .transverse {
-            results.append(try line(
-                origin: basePoint + perpendicular * -transverseDistance,
-                direction: first.axis,
-                kind: .transverse,
-                firstSurface: firstSurface,
-                secondSurface: secondSurface,
-                tolerance: tolerance
-            ))
-        }
-        return results
+        try CurrentTaskCancellationChecker().checkCancellation()
+        throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+            message: "ParallelCylinderSurfaceIntersector has no ordinary original-proof publication.")
     }
 
     private func line(

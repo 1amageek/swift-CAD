@@ -21,9 +21,10 @@ struct BooleanClosedPcurveRegion: Hashable, Sendable {
         surfaceSide: SurfaceSide,
         surface: Surface3D,
         tolerance: ModelingTolerance
-    ) throws {
+    , using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try tolerance.validate()
-        let rawParameters = closedIntersection.samples.map { sample in
+        let rawParameters = try OriginalParameterQueryStorage.map(closedIntersection.samples, using: &execution) { sample, execution in
             switch surfaceSide {
             case .first:
                 SurfaceParameter(
@@ -45,14 +46,14 @@ struct BooleanClosedPcurveRegion: Hashable, Sendable {
                 message: "Closed Boolean pcurve region requires finite verified samples."
             )
         }
-        let topology = SurfaceParameterTopology(surface: surface)
+        let topology = try SurfaceParameterTopology(surface: surface, using: &execution)
         let uPeriod = topology.uPeriod
         let vPeriod = topology.vPeriod
         let lift = try SurfaceParameterLoopLift(
             samples: rawParameters,
             surface: surface,
             tolerance: tolerance
-        )
+        , using: &execution)
         // Strategy selection routes essential periodic loops through the
         // source face's explicit seam arrangement. Reaching this bounded
         // containment type with one is therefore an internal topology error.
@@ -67,14 +68,14 @@ struct BooleanClosedPcurveRegion: Hashable, Sendable {
         let indexedArea = try AdaptivePlanarPredicateEvaluator().certifiedSignedArea(
             of: points,
             tolerance: Self.parameterTolerance(from: tolerance)
-        )
+        , using: &execution)
         let parameterCurve = switch surfaceSide {
         case .first:
             closedIntersection.intersection.firstSurfaceParameterCurve
         case .second:
             closedIntersection.intersection.secondSurfaceParameterCurve
         }
-        let curveStart = try parameterCurve.startParameter(tolerance: tolerance)
+        let curveStart = try parameterCurve.startParameter(tolerance: tolerance, using: &execution)
         let curveUShift = Self.aligned(
             curveStart.u,
             to: points[0].x,
@@ -95,7 +96,7 @@ struct BooleanClosedPcurveRegion: Hashable, Sendable {
             uShift: curveUShift,
             requestedWidth: requestedAreaWidth,
             tolerance: tolerance
-        )
+        , using: &execution)
         guard exactArea.lower > 0.0 || exactArea.upper < 0.0 else {
             throw KernelError(
                 phase: .classification,
@@ -118,7 +119,7 @@ struct BooleanClosedPcurveRegion: Hashable, Sendable {
             uPeriod: uPeriod,
             vPeriod: vPeriod,
             tolerance: tolerance
-        )
+        , using: &execution)
     }
 
     var isCounterclockwise: Bool {
@@ -136,7 +137,8 @@ struct BooleanClosedPcurveRegion: Hashable, Sendable {
     func containsStrictly(
         _ point: Point2D,
         tolerance: ModelingTolerance
-    ) throws -> Bool {
+    , using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.consumeWork(1)
         let point = Self.aligned(
             point,
             to: centroid,
@@ -146,13 +148,14 @@ struct BooleanClosedPcurveRegion: Hashable, Sendable {
         return try boundaryPredicate.containsStrictly(
             point,
             tolerance: tolerance
-        )
+        , using: &execution)
     }
 
     func boundaryIntersects(
         _ other: BooleanClosedPcurveRegion,
         tolerance: ModelingTolerance
-    ) throws -> Bool {
+    , using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.consumeWork(1)
         let alignedOtherCentroid = Self.aligned(
             other.centroid,
             to: centroid,
@@ -166,7 +169,7 @@ struct BooleanClosedPcurveRegion: Hashable, Sendable {
             otherUShift: offsetX,
             otherVShift: offsetY,
             tolerance: tolerance
-        )
+        , using: &execution)
     }
 
     private static func aligned(

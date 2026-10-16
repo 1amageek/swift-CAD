@@ -8,7 +8,14 @@ struct ExactAffineBSplineSurfacePatch: Sendable {
     let uDirection: Vector3D
     let vDirection: Vector3D
 
-    init?(_ surface: BSplineSurface3D) {
+    init?(_ surface: BSplineSurface3D) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try self.init(surface, using: &execution)
+    }
+
+    init?<A: ExactScalarAdmission & ~Copyable>(_ surface: BSplineSurface3D,
+        using execution: inout A) throws {
+        try execution.consumeWork(1)
         guard surface.uDegree == 1,
               surface.vDegree == 1,
               surface.uControlPointCount == 2,
@@ -17,36 +24,37 @@ struct ExactAffineBSplineSurfacePatch: Sendable {
               Self.isSingleBezierKnotVector(surface.vKnots) else {
             return nil
         }
-        let weights = surface.weights.flatMap { $0 }
+        let weights = try OriginalCoefficientAllocation.flatten(rows: surface.weights, using: &execution)
         guard let weight = weights.first,
               weight.isFinite,
               weight > 0.0,
-              weights.allSatisfy({ $0 == weight }) else {
+              try weights.allSatisfy({ try execution.consumeWork(1); return $0 == weight }) else {
             return nil
         }
         let p00 = surface.controlPoints[0][0]
         let p10 = surface.controlPoints[0][1]
         let p01 = surface.controlPoints[1][0]
         let p11 = surface.controlPoints[1][1]
-        let exactU = Self.exactDifference(p10, p00)
-        let exactV = Self.exactDifference(p01, p00)
-        let parallelogramResidual = Self.exactSubtract(
-            Self.exactDifference(p11, p10),
-            exactV
+        let exactU = try Self.exactDifference(p10, p00, using: &execution)
+        let exactV = try Self.exactDifference(p01, p00, using: &execution)
+        let parallelogramResidual = try Self.exactSubtract(
+            try Self.exactDifference(p11, p10, using: &execution),
+            exactV, using: &execution
         )
-        guard parallelogramResidual.allSatisfy({
-            FloatingPointExpansion.sign($0) == .zero
+        guard try parallelogramResidual.allSatisfy({
+            try execution.consumeWork(1)
+            return try FloatingPointExpansion.sign($0, using: &execution) == .zero
         }) else {
             return nil
         }
-        let gramUU = Self.exactDot(exactU, exactU)
-        let gramUV = Self.exactDot(exactU, exactV)
-        let gramVV = Self.exactDot(exactV, exactV)
-        let determinant = FloatingPointExpansion.subtract(
-            FloatingPointExpansion.product(gramUU, gramVV),
-            FloatingPointExpansion.product(gramUV, gramUV)
+        let gramUU = try Self.exactDot(exactU, exactU, using: &execution)
+        let gramUV = try Self.exactDot(exactU, exactV, using: &execution)
+        let gramVV = try Self.exactDot(exactV, exactV, using: &execution)
+        let determinant = try FloatingPointExpansion.subtract(
+            try FloatingPointExpansion.product(gramUU, gramVV, using: &execution),
+            try FloatingPointExpansion.product(gramUV, gramUV, using: &execution), using: &execution
         )
-        guard FloatingPointExpansion.sign(determinant) == .positive else {
+        guard try FloatingPointExpansion.sign(determinant, using: &execution) == .positive else {
             return nil
         }
         self.surface = surface
@@ -55,10 +63,15 @@ struct ExactAffineBSplineSurfacePatch: Sendable {
         vDirection = p01 - p00
     }
 
-    func parameterProjectionResult(
-        of point: Point3D,
-        tolerance: ModelingTolerance
+    func parameterProjectionResult(of point: Point3D, tolerance: ModelingTolerance) throws -> SurfaceParameterProjectionResult {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try parameterProjectionResult(of: point, tolerance: tolerance, using: &execution)
+    }
+
+    func parameterProjectionResult<A: ExactScalarAdmission & ~Copyable>(
+        of point: Point3D, tolerance: ModelingTolerance, using execution: inout A
     ) throws -> SurfaceParameterProjectionResult {
+        try execution.consumeWork(1)
         let offset = point - origin
         let uu = uDirection.dot(uDirection)
         let uv = uDirection.dot(vDirection)
@@ -79,27 +92,32 @@ struct ExactAffineBSplineSurfacePatch: Sendable {
         let offsetV = offset.dot(vDirection)
         let freeU = (offsetU * vv - offsetV * uv) / determinant
         let freeV = (offsetV * uu - offsetU * uv) / determinant
-        var candidates: [(u: Double, v: Double)] = []
+        try OriginalCoefficientAllocation.reserve(count: 5, of: (u: Double, v: Double).self, using: &execution)
+        var candidates: [(u: Double, v: Double)] = []; candidates.reserveCapacity(5)
         if freeU >= 0.0, freeU <= 1.0,
            freeV >= 0.0, freeV <= 1.0 {
             candidates.append((freeU, freeV))
         }
-        for u in [0.0, 1.0] {
+        for index in 0..<2 {
+            try execution.consumeWork(1)
+            let u = Double(index)
             candidates.append((
                 u,
                 min(max((offsetV - u * uv) / vv, 0.0), 1.0)
             ))
         }
-        for v in [0.0, 1.0] {
+        for index in 0..<2 {
+            try execution.consumeWork(1)
+            let v = Double(index)
             candidates.append((
                 min(max((offsetU - v * uv) / uu, 0.0), 1.0),
                 v
             ))
         }
-        let resolved = try candidates.map { candidate in
+        let resolved = try OriginalCoefficientAllocation.map(elements: candidates, using: &execution) { candidate, execution in
             let u = uLower + (uUpper - uLower) * candidate.u
             let v = vLower + (vUpper - vLower) * candidate.v
-            let projected = try surface.point(u: u, v: v, tolerance: tolerance)
+            let projected = try surface.point(u: u, v: v, tolerance: tolerance, using: &execution)
             return (
                 u: u,
                 v: v,
@@ -107,6 +125,7 @@ struct ExactAffineBSplineSurfacePatch: Sendable {
                 residual: (projected - point).length.nextUp
             )
         }.min { first, second in
+            try execution.consumeWork(1)
             if first.residual != second.residual {
                 return first.residual < second.residual
             }
@@ -133,13 +152,18 @@ struct ExactAffineBSplineSurfacePatch: Sendable {
         ))
     }
 
-    func unboundedParameterProjectionResult(
-        of point: Point3D,
-        tolerance: ModelingTolerance
+    func unboundedParameterProjectionResult(of point: Point3D, tolerance: ModelingTolerance) throws -> SurfaceParameterProjectionResult {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try unboundedParameterProjectionResult(of: point, tolerance: tolerance, using: &execution)
+    }
+
+    func unboundedParameterProjectionResult<A: ExactScalarAdmission & ~Copyable>(
+        of point: Point3D, tolerance: ModelingTolerance, using execution: inout A
     ) throws -> SurfaceParameterProjectionResult {
+        try execution.consumeWork(1)
         let solution = try normalizedParameters(
             of: point,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         guard case let .closed(uLower, uUpper) = surface.uDomain,
               case let .closed(vLower, vUpper) = surface.vDomain else {
@@ -166,10 +190,10 @@ struct ExactAffineBSplineSurfacePatch: Sendable {
         ))
     }
 
-    private func normalizedParameters(
-        of point: Point3D,
-        tolerance: ModelingTolerance
+    private func normalizedParameters<A: ExactScalarAdmission & ~Copyable>(
+        of point: Point3D, tolerance: ModelingTolerance, using execution: inout A
     ) throws -> (u: Double, v: Double) {
+        try execution.consumeWork(1)
         let offset = point - origin
         let uu = uDirection.dot(uDirection)
         let uv = uDirection.dot(vDirection)
@@ -207,35 +231,35 @@ struct ExactAffineBSplineSurfacePatch: Sendable {
             && knots[3] == upper
     }
 
-    private static func exactDifference(
-        _ lhs: Point3D,
-        _ rhs: Point3D
-    ) -> [[Double]] {
-        [
-            FloatingPointExpansion.difference(lhs.x, rhs.x),
-            FloatingPointExpansion.difference(lhs.y, rhs.y),
-            FloatingPointExpansion.difference(lhs.z, rhs.z),
+    private static func exactDifference<A: ExactScalarAdmission & ~Copyable>(
+        _ lhs: Point3D, _ rhs: Point3D, using execution: inout A
+    ) throws -> [[Double]] {
+        try OriginalCoefficientAllocation.reserve(count: 3, of: [Double].self, using: &execution)
+        return [
+            try FloatingPointExpansion.difference(lhs.x, rhs.x, using: &execution),
+            try FloatingPointExpansion.difference(lhs.y, rhs.y, using: &execution),
+            try FloatingPointExpansion.difference(lhs.z, rhs.z, using: &execution),
         ]
     }
 
-    private static func exactSubtract(
-        _ lhs: [[Double]],
-        _ rhs: [[Double]]
-    ) -> [[Double]] {
-        zip(lhs, rhs).map { values in
-            FloatingPointExpansion.subtract(values.0, values.1)
+    private static func exactSubtract<A: ExactScalarAdmission & ~Copyable>(
+        _ lhs: [[Double]], _ rhs: [[Double]], using execution: inout A
+    ) throws -> [[Double]] {
+        try OriginalCoefficientAllocation.map(first: lhs, second: rhs, using: &execution) { values, execution in
+            try FloatingPointExpansion.subtract(values.0, values.1, using: &execution)
         }
     }
 
-    private static func exactDot(
-        _ lhs: [[Double]],
-        _ rhs: [[Double]]
-    ) -> [Double] {
-        zip(lhs, rhs).reduce([0.0]) { result, values in
-            FloatingPointExpansion.sum(
-                result,
-                FloatingPointExpansion.product(values.0, values.1)
-            )
+    private static func exactDot<A: ExactScalarAdmission & ~Copyable>(
+        _ lhs: [[Double]], _ rhs: [[Double]], using execution: inout A
+    ) throws -> [Double] {
+        try OriginalCoefficientAllocation.reserve(count: 1, of: Double.self, using: &execution)
+        var result = [0.0]
+        for values in zip(lhs, rhs) {
+            try execution.consumeWork(1)
+            let product = try FloatingPointExpansion.product(values.0, values.1, using: &execution)
+            result = try FloatingPointExpansion.sum(result, product, using: &execution)
         }
+        return result
     }
 }

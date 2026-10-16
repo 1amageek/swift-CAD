@@ -49,3 +49,13 @@ Original guide traversal chains retain their complete directed piecewise source 
 Guide endpoint corrections retain the corrected whole chain law. The underlying guide or an individual piece's control net cannot establish exact coincidence of the corrected source.
 
 Original Euclidean-clock polylines retain their authored adjacent segments and exact clock through the generic original coincidence source. A segment list is neither a single exact rational spline nor an angular source; optional scalar/control-net normalization declines this family. Original joins and whole nonlinear correspondence remain with their owning producers.
+
+## Canonical Proposal Binding
+
+Closest-parameter midpoint projection only proposes subdivision children; each
+child still requires the existing whole original-jet certificate and directed
+coverage. Both entries use that existing ordinary proposal and margin under the
+same [execution](../../CADGeometry/OriginalQueryExecution/DESIGN.md). A failed
+proposal, unsupported correspondence, cancellation, or exhausted original cell
+ceiling remains explicit failure. This is the component's declared sewing
+deviation policy and does not redefine exact intersection identity.

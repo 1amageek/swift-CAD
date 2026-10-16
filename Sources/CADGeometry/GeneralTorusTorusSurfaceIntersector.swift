@@ -173,7 +173,17 @@ struct GeneralTorusTorusSurfaceIntersector {
         let valuesByBranch: [[Double]]
         let permutation: [Int]
 
-        func referenceValue(branch: Int, at parameter: Double) -> Double {
+        func referenceValue<A: ExactScalarAdmission & ~Copyable>(branch: Int, at parameter: Double, using execution: inout A) throws -> Double {
+            try execution.checkpoint()
+            let result = try referenceValueImplementation(branch: branch, at: parameter, using: &execution)
+            try execution.checkpoint()
+            return result
+        }
+
+
+        private func referenceValueImplementation<A: ExactScalarAdmission & ~Copyable>(branch: Int, at parameter: Double, using execution: inout A) throws -> Double {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
             if parameter <= parameters[0] {
                 return valuesByBranch[branch][0]
             }
@@ -183,6 +193,7 @@ struct GeneralTorusTorusSurfaceIntersector {
             var lower = 0
             var upper = parameters.count - 1
             while upper - lower > 1 {
+                try execution.consumeWork(1)
                 let middle = (lower + upper) / 2
                 if parameters[middle] <= parameter {
                     lower = middle
@@ -200,6 +211,29 @@ struct GeneralTorusTorusSurfaceIntersector {
         }
     }
 
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Ordinary SSI dispatch reaches this direct entry.
+    // The former numerical/tolerance branches did not establish original common-set
+    // authority. U4 must supply complete original source/UV coverage before success.
+    func intersections(
+        first: CanonicalAnalyticSurface.Torus,
+        second: CanonicalAnalyticSurface.Torus,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        options: SurfaceSurfaceIntersectionOptions,
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution
+    ) throws -> [SurfaceSurfaceIntersection] {
+        execution.context = execution.context.at(stage: .relation)
+        do {
+            try execution.checkpoint()
+            throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+                message: "GeneralTorusTorusSurfaceIntersector requires complete original source relation authority.")
+        } catch { throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance) }
+    }
+
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Existing candidate/source helper methods call
+    // this ordinary publication entry. It performs no numeric solve or fallback;
+    // U4 must provide source-bound relation proof and direct execution before success.
     func intersections(
         first: CanonicalAnalyticSurface.Torus,
         second: CanonicalAnalyticSurface.Torus,
@@ -208,104 +242,11 @@ struct GeneralTorusTorusSurfaceIntersector {
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
     ) throws -> [SurfaceSurfaceIntersection] {
-        guard AnalyticAxisRelation.areParallel(
-            first.axis,
-            second.axis,
-            tolerance: tolerance
-        ) == false else {
-            throw KernelError(
-                phase: .geometry,
-                code: .invalidInput,
-                residual: first.axis.cross(second.axis).length,
-                tolerance: tolerance,
-                message: "General torus-torus intersection requires nonparallel axes."
-            )
-        }
-        if let congruentCurves = try CertifiedCongruentTorusTorusIntersectionCurve
-            .certifiedCurvesIfApplicable(
-                firstTorusSurface: firstSurface,
-                secondTorusSurface: secondSurface,
-                options: options,
-                tolerance: tolerance
-            ) {
-            let builder = SurfaceIntersectionSplineBuilder(
-                firstSurface: firstSurface,
-                secondSurface: secondSurface,
-                options: options,
-                tolerance: tolerance
-            )
-            let breaks = (0...32).map { Double($0) / 32.0 }
-            return try congruentCurves.map { congruentCurve in
-                let derived = try builder.intersection(
-                    parameterRange: 0.0...1.0,
-                    initialBreaks: breaks,
-                    kind: .mixed,
-                    firstParameterAt: { fraction in
-                        try congruentCurve.parameter(
-                            on: firstSurface,
-                            atNormalizedFraction: fraction,
-                            tolerance: tolerance
-                        )
-                    },
-                    secondParameterAt: { fraction in
-                        try congruentCurve.parameter(
-                            on: secondSurface,
-                            atNormalizedFraction: fraction,
-                            tolerance: tolerance
-                        )
-                    },
-                    pointAt: { fraction in
-                        try congruentCurve.point(
-                            atNormalizedFraction: fraction,
-                            tolerance: tolerance
-                        )
-                    }
-                )
-                return try certifiedIntersection(
-                    derived,
-                    congruentCurve: congruentCurve,
-                    firstSurface: firstSurface,
-                    secondSurface: secondSurface,
-                    tolerance: tolerance
-                )
-            }
-        }
-        let proceduralCurves = try CertifiedGeneralTorusTorusIntersectionCurve
-            .certifiedCurves(
-                firstTorusSurface: firstSurface,
-                secondTorusSurface: secondSurface,
-                options: options,
-                tolerance: tolerance
-            )
-        guard proceduralCurves.isEmpty == false else { return [] }
-        let builder = SurfaceIntersectionSplineBuilder(
-            firstSurface: firstSurface,
-            secondSurface: secondSurface,
-            options: options,
-            tolerance: tolerance
-        )
-        let breaks = (0...32).map { Double($0) / 32.0 }
-        return try proceduralCurves.map { proceduralCurve in
-            let derived = try builder.intersection(
-                parameterRange: 0.0...1.0,
-                initialBreaks: breaks,
-                kind: .transverse,
-                pointAt: { fraction in
-                    try proceduralCurve.point(
-                        atNormalizedFraction: fraction,
-                        tolerance: tolerance
-                    )
-                }
-            )
-            return try certifiedIntersection(
-                derived,
-                proceduralCurve: proceduralCurve,
-                firstSurface: firstSurface,
-                secondSurface: secondSurface,
-                tolerance: tolerance
-            )
-        }
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try intersections(first: first, second: second, firstSurface: firstSurface, secondSurface: secondSurface, options: options, tolerance: tolerance, using: &execution)
     }
+
+
 
     private func certifiedIntersection(
         _ derived: SurfaceSurfaceIntersection,
@@ -313,7 +254,9 @@ struct GeneralTorusTorusSurfaceIntersector {
         firstSurface: Surface3D,
         secondSurface: Surface3D,
         tolerance: ModelingTolerance
-    ) throws -> SurfaceSurfaceIntersection {
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceSurfaceIntersection {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         guard case let .curve(derivedCurve) = derived else {
             throw KernelError(
                 phase: .geometry,
@@ -344,7 +287,9 @@ struct GeneralTorusTorusSurfaceIntersector {
         firstSurface: Surface3D,
         secondSurface: Surface3D,
         tolerance: ModelingTolerance
-    ) throws -> SurfaceSurfaceIntersection {
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceSurfaceIntersection {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         guard case let .curve(derivedCurve) = derived else {
             throw KernelError(
                 phase: .geometry,
@@ -374,6 +319,31 @@ struct GeneralTorusTorusSurfaceIntersector {
         reference: Torus,
         tolerance: ModelingTolerance
     ) throws -> Configuration {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try makeConfiguration(parameterized: parameterized, reference: reference, tolerance: tolerance, using: &execution)
+    }
+
+
+    func makeConfiguration(
+        parameterized: Torus,
+        reference: Torus,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> Configuration {
+        try execution.checkpoint()
+        let result = try makeConfigurationImplementation(parameterized: parameterized, reference: reference, tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+
+
+    private func makeConfigurationImplementation(
+        parameterized: Torus,
+        reference: Torus,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> Configuration {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let basis = try analyticOrthonormalBasis(
             parameterized.axis,
             tolerance: tolerance
@@ -397,19 +367,47 @@ struct GeneralTorusTorusSurfaceIntersector {
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
     ) throws -> MeridianRootCompletenessCertificate {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try certifyConstantSimpleMeridianRoots(configuration: configuration, options: options, tolerance: tolerance, using: &execution)
+    }
+
+
+    func certifyConstantSimpleMeridianRoots(
+        configuration: Configuration,
+        options: SurfaceSurfaceIntersectionOptions,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> MeridianRootCompletenessCertificate {
+        try execution.checkpoint()
+        let result = try certifyConstantSimpleMeridianRootsImplementation(configuration: configuration, options: options, tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+
+
+    private func certifyConstantSimpleMeridianRootsImplementation(
+        configuration: Configuration,
+        options: SurfaceSurfaceIntersectionOptions,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> MeridianRootCompletenessCertificate {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let maximumDepth = min(options.maximumSubdivisionDepth + 16, 24)
         let maximumCellCount = min(
             max(options.maximumSeedCount * 64, 16_384),
             65_536
         )
         let period = 2.0 * Double.pi
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: Cell.self))
         var cells = [Cell(
             majorAngle: Interval(0.0, period),
             minorAngle: Interval(0.0, period),
             depth: 0
         )]
+        var cellsCapacity = cells.count
         var processedCellCount = 0
         while let cell = cells.popLast() {
+            try execution.visitGeometricCell(depth: cell.depth)
             processedCellCount += 1
             guard processedCellCount <= maximumCellCount else {
                 throw KernelError(
@@ -420,19 +418,19 @@ struct GeneralTorusTorusSurfaceIntersector {
                     message: "Torus-torus meridian tangency certification exceeded its cell limit."
                 )
             }
-            let values = implicitAndMinorDerivativeIntervals(
+            let values = (try implicitAndMinorDerivativeIntervals(
                 majorAngle: cell.majorAngle,
                 minorAngle: cell.minorAngle,
                 configuration: configuration
-            )
+            , using: &execution))
             if values.implicit.containsZero == false
                 || values.minorDerivative.containsZero == false {
                 continue
             }
-            if excludesMeridianTangencyWithKrawczyk(
+            if (try excludesMeridianTangencyWithKrawczyk(
                 cell: cell,
                 configuration: configuration
-            ) {
+            , using: &execution)) {
                 continue
             }
             guard cell.depth < maximumDepth else {
@@ -449,28 +447,28 @@ struct GeneralTorusTorusSurfaceIntersector {
             }
             if cell.majorAngle.width >= cell.minorAngle.width {
                 let middle = cell.majorAngle.midpoint
-                cells.append(Cell(
+                try CertifiedAnalyticCurveEvaluation.append(Cell(
                     majorAngle: Interval(middle, cell.majorAngle.upper),
                     minorAngle: cell.minorAngle,
                     depth: cell.depth + 1
-                ))
-                cells.append(Cell(
+                ), to: &cells, using: &execution, capacity: &cellsCapacity)
+                try CertifiedAnalyticCurveEvaluation.append(Cell(
                     majorAngle: Interval(cell.majorAngle.lower, middle),
                     minorAngle: cell.minorAngle,
                     depth: cell.depth + 1
-                ))
+                ), to: &cells, using: &execution, capacity: &cellsCapacity)
             } else {
                 let middle = cell.minorAngle.midpoint
-                cells.append(Cell(
+                try CertifiedAnalyticCurveEvaluation.append(Cell(
                     majorAngle: cell.majorAngle,
                     minorAngle: Interval(middle, cell.minorAngle.upper),
                     depth: cell.depth + 1
-                ))
-                cells.append(Cell(
+                ), to: &cells, using: &execution, capacity: &cellsCapacity)
+                try CertifiedAnalyticCurveEvaluation.append(Cell(
                     majorAngle: cell.majorAngle,
                     minorAngle: Interval(cell.minorAngle.lower, middle),
                     depth: cell.depth + 1
-                ))
+                ), to: &cells, using: &execution, capacity: &cellsCapacity)
             }
         }
         return MeridianRootCompletenessCertificate(
@@ -478,17 +476,19 @@ struct GeneralTorusTorusSurfaceIntersector {
         )
     }
 
-    private func excludesMeridianTangencyWithKrawczyk(
+    private func excludesMeridianTangencyWithKrawczyk<A: ExactScalarAdmission & ~Copyable>(
         cell: Cell,
         configuration: Configuration
-    ) -> Bool {
+    , using execution: inout A) throws -> Bool {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let centerMajor = cell.majorAngle.midpoint
         let centerMinor = cell.minorAngle.midpoint
-        let center = implicitDifferentialIntervals(
+        let center = (try implicitDifferentialIntervals(
             majorAngle: .constant(centerMajor),
             minorAngle: .constant(centerMinor),
             configuration: configuration
-        )
+        , using: &execution))
         let jacobian00 = center.majorDerivative.midpoint
         let jacobian01 = center.minorDerivative.midpoint
         let jacobian10 = center.majorMinorDerivative.midpoint
@@ -509,11 +509,11 @@ struct GeneralTorusTorusSurfaceIntersector {
             return false
         }
 
-        let domain = implicitDifferentialIntervals(
+        let domain = (try implicitDifferentialIntervals(
             majorAngle: cell.majorAngle,
             minorAngle: cell.minorAngle,
             configuration: configuration
-        )
+        , using: &execution))
         let centerImageMajor = Interval.constant(centerMajor).subtracting(
             center.implicit.scaled(by: inverse00)
                 .adding(center.minorDerivative.scaled(by: inverse01))
@@ -554,15 +554,17 @@ struct GeneralTorusTorusSurfaceIntersector {
             || minorImage.isDisjoint(with: cell.minorAngle)
     }
 
-    private func implicitAndMinorDerivativeIntervals(
+    private func implicitAndMinorDerivativeIntervals<A: ExactScalarAdmission & ~Copyable>(
         majorAngle: Interval,
         minorAngle: Interval,
         configuration: Configuration
-    ) -> (implicit: Interval, minorDerivative: Interval) {
-        let majorCosine = cosineInterval(majorAngle)
-        let majorSine = sineInterval(majorAngle)
-        let minorCosine = cosineInterval(minorAngle)
-        let minorSine = sineInterval(minorAngle)
+    , using execution: inout A) throws -> (implicit: Interval, minorDerivative: Interval) {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
+        let majorCosine = (try cosineInterval(majorAngle, using: &execution))
+        let majorSine = (try sineInterval(majorAngle, using: &execution))
+        let minorCosine = (try cosineInterval(minorAngle, using: &execution))
+        let minorSine = (try sineInterval(minorAngle, using: &execution))
 
         let radialX = radialInterval(
             zero: configuration.zeroRadial.x,
@@ -658,6 +660,33 @@ struct GeneralTorusTorusSurfaceIntersector {
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
     ) throws -> BranchSpatialDifferentialCertificate {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try certifyBranchSpatialDifferentials(trace: trace, configuration: configuration, options: options, tolerance: tolerance, using: &execution)
+    }
+
+
+    func certifyBranchSpatialDifferentials(
+        trace: RootTrace,
+        configuration: Configuration,
+        options: SurfaceSurfaceIntersectionOptions,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> BranchSpatialDifferentialCertificate {
+        try execution.checkpoint()
+        let result = try certifyBranchSpatialDifferentialsImplementation(trace: trace, configuration: configuration, options: options, tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+
+
+    private func certifyBranchSpatialDifferentialsImplementation(
+        trace: RootTrace,
+        configuration: Configuration,
+        options: SurfaceSurfaceIntersectionOptions,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> BranchSpatialDifferentialCertificate {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         struct BranchCell {
             let branchIndex: Int
             let majorAngle: Interval
@@ -672,9 +701,12 @@ struct GeneralTorusTorusSurfaceIntersector {
             131_072
         )
         var cells: [BranchCell] = []
+        var cellsCapacity = cells.count
         for branchIndex in trace.valuesByBranch.indices {
+            try execution.consumeWork(1)
             for segmentIndex in 0..<initialSegmentCount {
-                cells.append(BranchCell(
+                try execution.consumeWork(1)
+                try CertifiedAnalyticCurveEvaluation.append(BranchCell(
                     branchIndex: branchIndex,
                     majorAngle: Interval(
                         period * Double(segmentIndex)
@@ -683,12 +715,14 @@ struct GeneralTorusTorusSurfaceIntersector {
                             / Double(initialSegmentCount)
                     ),
                     depth: 0
-                ))
+                ), to: &cells, using: &execution, capacity: &cellsCapacity)
             }
         }
         var processedCellCount = 0
         var partitions: [BranchSpatialDifferentialPartition] = []
+        var partitionsCapacity = partitions.count
         while let cell = cells.popLast() {
+            try execution.visitGeometricCell(depth: cell.depth)
             processedCellCount += 1
             guard processedCellCount <= maximumCellCount else {
                 throw KernelError(
@@ -700,29 +734,25 @@ struct GeneralTorusTorusSurfaceIntersector {
                 )
             }
             let majorMidpoint = cell.majorAngle.midpoint
-            let branchCenters = try trace.valuesByBranch.indices.map {
-                branchIndex in
+            let branchCenters = try (try CertifiedAnalyticCurveEvaluation.map(trace.valuesByBranch.indices, using: &execution) { branchIndex, execution in
                 try refinedMinorRoot(
                     majorAngle: majorMidpoint,
-                    initialMinorAngle: trace.referenceValue(
+                    initialMinorAngle: (try trace.referenceValue(
                         branch: branchIndex,
                         at: majorMidpoint
-                    ),
+                    , using: &execution)),
                     configuration: configuration,
                     tolerance: tolerance
-                )
-            }
+                , using: &execution)
+             })
             let center = branchCenters[cell.branchIndex]
-            let nearestOtherRootDistance = branchCenters.indices
-                .filter { $0 != cell.branchIndex }
-                .map {
-                    periodicDistance(
-                        branchCenters[$0],
-                        center,
-                        period: period
-                    )
-                }
-                .min() ?? period
+            let otherIndices = try CertifiedAnalyticCurveEvaluation.filter(branchCenters.indices,
+                using: &execution) { index, _ in index != cell.branchIndex }
+            let distances = try CertifiedAnalyticCurveEvaluation.map(otherIndices,
+                using: &execution) { index, _ in
+                periodicDistance(branchCenters[index], center, period: period)
+            }
+            let nearestOtherRootDistance = distances.min() ?? period
             let halfWidth = min(
                 period / 256.0,
                 nearestOtherRootDistance * 0.25
@@ -731,21 +761,21 @@ struct GeneralTorusTorusSurfaceIntersector {
                 center - halfWidth,
                 center + halfWidth
             )
-            let lowerBoundary = implicitDifferentialIntervals(
+            let lowerBoundary = (try implicitDifferentialIntervals(
                 majorAngle: cell.majorAngle,
                 minorAngle: .constant(minorAngle.lower),
                 configuration: configuration
-            ).implicit
-            let upperBoundary = implicitDifferentialIntervals(
+            , using: &execution)).implicit
+            let upperBoundary = (try implicitDifferentialIntervals(
                 majorAngle: cell.majorAngle,
                 minorAngle: .constant(minorAngle.upper),
                 configuration: configuration
-            ).implicit
-            let values = implicitDifferentialIntervals(
+            , using: &execution)).implicit
+            let values = (try implicitDifferentialIntervals(
                 majorAngle: cell.majorAngle,
                 minorAngle: minorAngle,
                 configuration: configuration
-            )
+            , using: &execution))
             let boundariesHaveOppositeSigns = (
                 lowerBoundary.upper < 0.0 && upperBoundary.lower > 0.0
             ) || (
@@ -780,12 +810,12 @@ struct GeneralTorusTorusSurfaceIntersector {
                 let minorFirstTimesSecond = minorFirst.multiplied(
                     by: minorSecond
                 )
-                let spatialFirst = values.majorTangent.indices.map { index in
+                let spatialFirst = (try CertifiedAnalyticCurveEvaluation.map(values.majorTangent.indices, using: &execution) { index, execution in
                     values.majorTangent[index].adding(
                         values.minorTangent[index].multiplied(by: minorFirst)
                     )
-                }
-                let spatialSecond = values.majorSecond.indices.map { index in
+                 })
+                let spatialSecond = (try CertifiedAnalyticCurveEvaluation.map(values.majorSecond.indices, using: &execution) { index, execution in
                     values.majorSecond[index]
                         .adding(
                             values.majorMinor[index]
@@ -800,8 +830,8 @@ struct GeneralTorusTorusSurfaceIntersector {
                             values.minorTangent[index]
                                 .multiplied(by: minorSecond)
                         )
-                }
-                let knownSpatialThird = values.majorThird.indices.map { index in
+                 })
+                let knownSpatialThird = (try CertifiedAnalyticCurveEvaluation.map(values.majorThird.indices, using: &execution) { index, execution in
                     values.majorThird[index]
                         .adding(
                             values.majorMajorMinor[index]
@@ -827,7 +857,7 @@ struct GeneralTorusTorusSurfaceIntersector {
                                 .multiplied(by: minorFirstTimesSecond)
                                 .scaled(by: 3.0)
                         )
-                }
+                 })
                 let knownThirdImplicit = torusThirdDifferentialInterval(
                     offset: values.offset,
                     first: spatialFirst,
@@ -847,7 +877,7 @@ struct GeneralTorusTorusSurfaceIntersector {
                 let minorThirdDerivative = (
                     knownThirdImplicit.maximumAbsoluteValue / denominator
                 ).nextUp
-                partitions.append(BranchSpatialDifferentialPartition(
+                try CertifiedAnalyticCurveEvaluation.append(BranchSpatialDifferentialPartition(
                     branchIndex: cell.branchIndex,
                     majorAngleLower: cell.majorAngle.lower,
                     majorAngleUpper: cell.majorAngle.upper,
@@ -857,7 +887,7 @@ struct GeneralTorusTorusSurfaceIntersector {
                         minorSecondDerivative,
                     minorThirdDerivativeMagnitudeUpperBound:
                         minorThirdDerivative
-                ))
+                ), to: &partitions, using: &execution, capacity: &partitionsCapacity)
                 continue
             }
             guard cell.depth < maximumDepth else {
@@ -870,16 +900,16 @@ struct GeneralTorusTorusSurfaceIntersector {
                 )
             }
             let middle = cell.majorAngle.midpoint
-            cells.append(BranchCell(
+            try CertifiedAnalyticCurveEvaluation.append(BranchCell(
                 branchIndex: cell.branchIndex,
                 majorAngle: Interval(middle, cell.majorAngle.upper),
                 depth: cell.depth + 1
-            ))
-            cells.append(BranchCell(
+            ), to: &cells, using: &execution, capacity: &cellsCapacity)
+            try CertifiedAnalyticCurveEvaluation.append(BranchCell(
                 branchIndex: cell.branchIndex,
                 majorAngle: Interval(cell.majorAngle.lower, middle),
                 depth: cell.depth + 1
-            ))
+            ), to: &cells, using: &execution, capacity: &cellsCapacity)
         }
         guard partitions.isEmpty == false else {
             throw KernelError(
@@ -895,11 +925,11 @@ struct GeneralTorusTorusSurfaceIntersector {
         )
     }
 
-    private func implicitDifferentialIntervals(
+    private func implicitDifferentialIntervals<A: ExactScalarAdmission & ~Copyable>(
         majorAngle: Interval,
         minorAngle: Interval,
         configuration: Configuration
-    ) -> (
+    , using execution: inout A) throws -> (
         implicit: Interval,
         majorDerivative: Interval,
         minorDerivative: Interval,
@@ -919,10 +949,13 @@ struct GeneralTorusTorusSurfaceIntersector {
         majorMinorMinor: [Interval],
         minorThird: [Interval]
     ) {
-        let majorCosine = cosineInterval(majorAngle)
-        let majorSine = sineInterval(majorAngle)
-        let minorCosine = cosineInterval(minorAngle)
-        let minorSine = sineInterval(minorAngle)
+        try execution.checkpoint()
+        try execution.consumeWork(1)
+        let majorCosine = (try cosineInterval(majorAngle, using: &execution))
+        let majorSine = (try sineInterval(majorAngle, using: &execution))
+        let minorCosine = (try cosineInterval(minorAngle, using: &execution))
+        let minorSine = (try sineInterval(minorAngle, using: &execution))
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 3, of: Interval.self))
         let radial = [
             radialInterval(
                 zero: configuration.zeroRadial.x,
@@ -943,6 +976,7 @@ struct GeneralTorusTorusSurfaceIntersector {
                 sine: majorSine
             ),
         ]
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 3, of: Interval.self))
         let radialFirst = [
             majorSine.scaled(by: -configuration.zeroRadial.x)
                 .adding(majorCosine.scaled(
@@ -957,7 +991,7 @@ struct GeneralTorusTorusSurfaceIntersector {
                     by: configuration.quarterRadial.z
                 )),
         ]
-        let radialSecond = radial.map { $0.scaled(by: -1.0) }
+        let radialSecond = (try CertifiedAnalyticCurveEvaluation.map(radial, using: &execution) { element, execution in  element.scaled(by: -1.0)  })
         let radialScale = Interval.constant(configuration.parameterized.majorRadius)
             .adding(
                 minorCosine.scaled(
@@ -969,8 +1003,9 @@ struct GeneralTorusTorusSurfaceIntersector {
         )
         let centerOffset = configuration.parameterized.center
             - configuration.reference.center
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 3, of: Double.self))
         let offset = [centerOffset.x, centerOffset.y, centerOffset.z]
-        let coordinates = radial.indices.map { index in
+        let coordinates = (try CertifiedAnalyticCurveEvaluation.map(radial.indices, using: &execution) { index, execution in
             Interval.constant(offset[index])
                 .adding(radial[index].multiplied(by: radialScale))
                 .adding(
@@ -981,17 +1016,17 @@ struct GeneralTorusTorusSurfaceIntersector {
                         )
                     )
                 )
-        }
+         })
         let minorRadialScale = minorSine.scaled(
             by: -configuration.parameterized.minorRadius
         )
         let minorAxialScale = minorCosine.scaled(
             by: configuration.parameterized.minorRadius
         )
-        let majorTangent = radialFirst.map {
-            $0.multiplied(by: radialScale)
-        }
-        let minorTangent = radial.indices.map { index in
+        let majorTangent = (try CertifiedAnalyticCurveEvaluation.map(radialFirst, using: &execution) { element, execution in 
+            element.multiplied(by: radialScale)
+         })
+        let minorTangent = (try CertifiedAnalyticCurveEvaluation.map(radial.indices, using: &execution) { index, execution in
             radial[index].multiplied(by: minorRadialScale)
                 .adding(
                     minorAxialScale.scaled(
@@ -1001,20 +1036,20 @@ struct GeneralTorusTorusSurfaceIntersector {
                         )
                     )
                 )
-        }
-        let majorSecond = radialSecond.map {
-            $0.multiplied(by: radialScale)
-        }
-        let majorMinor = radialFirst.map {
-            $0.multiplied(by: minorRadialScale)
-        }
+         })
+        let majorSecond = (try CertifiedAnalyticCurveEvaluation.map(radialSecond, using: &execution) { element, execution in 
+            element.multiplied(by: radialScale)
+         })
+        let majorMinor = (try CertifiedAnalyticCurveEvaluation.map(radialFirst, using: &execution) { element, execution in 
+            element.multiplied(by: minorRadialScale)
+         })
         let minorSecondRadialScale = minorCosine.scaled(
             by: -configuration.parameterized.minorRadius
         )
         let minorSecondAxialScale = minorSine.scaled(
             by: -configuration.parameterized.minorRadius
         )
-        let minorSecond = radial.indices.map { index in
+        let minorSecond = (try CertifiedAnalyticCurveEvaluation.map(radial.indices, using: &execution) { index, execution in
             radial[index].multiplied(by: minorSecondRadialScale)
                 .adding(
                     minorSecondAxialScale.scaled(
@@ -1024,18 +1059,18 @@ struct GeneralTorusTorusSurfaceIntersector {
                         )
                     )
                 )
-        }
-        let majorThird = majorTangent.map { $0.scaled(by: -1.0) }
-        let majorMajorMinor = radial.map {
-            $0.multiplied(by: minorRadialScale).scaled(by: -1.0)
-        }
+         })
+        let majorThird = (try CertifiedAnalyticCurveEvaluation.map(majorTangent, using: &execution) { element, execution in  element.scaled(by: -1.0)  })
+        let majorMajorMinor = (try CertifiedAnalyticCurveEvaluation.map(radial, using: &execution) { element, execution in 
+            element.multiplied(by: minorRadialScale).scaled(by: -1.0)
+         })
         let majorMinorMinorScale = minorCosine.scaled(
             by: -configuration.parameterized.minorRadius
         )
-        let majorMinorMinor = radialFirst.map {
-            $0.multiplied(by: majorMinorMinorScale)
-        }
-        let minorThird = minorTangent.map { $0.scaled(by: -1.0) }
+        let majorMinorMinor = (try CertifiedAnalyticCurveEvaluation.map(radialFirst, using: &execution) { element, execution in 
+            element.multiplied(by: majorMinorMinorScale)
+         })
+        let minorThird = (try CertifiedAnalyticCurveEvaluation.map(minorTangent, using: &execution) { element, execution in  element.scaled(by: -1.0)  })
         let squaredLength = coordinates.reduce(Interval.constant(0.0)) {
             $0.adding($1.squared())
         }
@@ -1054,7 +1089,7 @@ struct GeneralTorusTorusSurfaceIntersector {
         let implicit = q.squared().subtracting(
             radialSquared.scaled(by: majorFactor)
         )
-        let referenceRadial = coordinates.indices.map { index in
+        let referenceRadial = (try CertifiedAnalyticCurveEvaluation.map(coordinates.indices, using: &execution) { index, execution in
             coordinates[index].subtracting(
                 axialDistance.scaled(
                     by: axisComponent(
@@ -1063,13 +1098,13 @@ struct GeneralTorusTorusSurfaceIntersector {
                     )
                 )
             )
-        }
-        let gradient = coordinates.indices.map { index in
+         })
+        let gradient = (try CertifiedAnalyticCurveEvaluation.map(coordinates.indices, using: &execution) { index, execution in
             q.multiplied(by: coordinates[index]).scaled(by: 4.0)
                 .subtracting(
                     referenceRadial[index].scaled(by: 2.0 * majorFactor)
                 )
-        }
+         })
         let majorDerivative = dotInterval(gradient, majorTangent)
         let minorDerivative = dotInterval(gradient, minorTangent)
         let majorMajorDerivative = torusHessianBilinearInterval(
@@ -1120,7 +1155,9 @@ struct GeneralTorusTorusSurfaceIntersector {
         initialMinorAngle: Double,
         configuration: Configuration,
         tolerance: ModelingTolerance
-    ) throws -> Double {
+    , using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         var minorAngle = initialMinorAngle
         let derivativeThreshold = max(
             tolerance.angle * pow(configuration.characteristicLength, 4.0),
@@ -1129,6 +1166,7 @@ struct GeneralTorusTorusSurfaceIntersector {
         )
         var converged = false
         for _ in 0..<16 {
+            try execution.consumeWork(1)
             let valueAndDerivative = implicitValueAndMinorDerivative(
                 majorAngle: majorAngle,
                 minorAngle: minorAngle,
@@ -1226,24 +1264,60 @@ struct GeneralTorusTorusSurfaceIntersector {
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
     ) throws -> RootTrace {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try makeRootTrace(initialRoots: initialRoots, configuration: configuration, options: options, tolerance: tolerance, using: &execution)
+    }
+
+
+    func makeRootTrace(
+        initialRoots: [Double],
+        configuration: Configuration,
+        options: SurfaceSurfaceIntersectionOptions,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> RootTrace {
+        try execution.checkpoint()
+        let result = try makeRootTraceImplementation(initialRoots: initialRoots, configuration: configuration, options: options, tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+
+
+    private func makeRootTraceImplementation(
+        initialRoots: [Double],
+        configuration: Configuration,
+        options: SurfaceSurfaceIntersectionOptions,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> RootTrace {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let period = 2.0 * Double.pi
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: Double.self))
         var parameters = [0.0]
-        var valuesByBranch = initialRoots.map { [$0] }
-        var finalCandidateIndices = Array(initialRoots.indices)
+        var parametersCapacity = parameters.count
+        var valuesByBranch = (try CertifiedAnalyticCurveEvaluation.map(initialRoots, using: &execution) { element, execution in try CertifiedAnalyticCurveEvaluation.values(element, using: &execution)  })
+        var valuesByBranchCapacities = try CertifiedAnalyticCurveEvaluation.repeated(1, count: valuesByBranch.count, using: &execution)
+        var finalCandidateIndices = try CertifiedAnalyticCurveEvaluation.map(initialRoots.indices, using: &execution) { index, _ in index }
         var acceptedSegmentCount = 0
+
+
+
 
         func appendInterval(
             lowerParameter: Double,
             lowerValues: [Double],
             upperParameter: Double,
             depth: Int
-        ) throws -> [Double] {
+        , using execution: inout OriginalQueryExecution) throws -> [Double] {
+            try execution.visitGeometricCell(depth: depth)
+            try execution.checkpoint()
+            try execution.consumeWork(1)
             let roots = try verifiedRoots(
                 majorAngle: upperParameter,
                 configuration: configuration,
                 options: options,
                 tolerance: tolerance
-            )
+            , using: &execution)
             guard roots.count == initialRoots.count else {
                 throw KernelError(
                     phase: .geometry,
@@ -1253,11 +1327,11 @@ struct GeneralTorusTorusSurfaceIntersector {
                     message: "Certified torus-torus meridian root count changed during tracing."
                 )
             }
-            let assignment = bestAssignment(
+            let assignment = (try bestAssignment(
                 previous: lowerValues,
                 candidates: roots,
                 period: period
-            )
+            , using: &execution))
             let ambiguityTolerance = max(
                 tolerance.angle * tolerance.angle * 64.0,
                 Double.ulpOfOne * 1_024.0
@@ -1276,9 +1350,10 @@ struct GeneralTorusTorusSurfaceIntersector {
                         message: "Torus-torus periodic root tracing exceeded its segment limit."
                     )
                 }
-                parameters.append(upperParameter)
+                try CertifiedAnalyticCurveEvaluation.append(upperParameter, to: &parameters, using: &execution, capacity: &parametersCapacity)
                 for branch in valuesByBranch.indices {
-                    valuesByBranch[branch].append(assignment.values[branch])
+                    try execution.consumeWork(1)
+                    try CertifiedAnalyticCurveEvaluation.append(assignment.values[branch], to: &valuesByBranch[branch], using: &execution, capacity: &valuesByBranchCapacities[branch])
                 }
                 if abs(upperParameter - period) <= tolerance.angle {
                     finalCandidateIndices = assignment.candidateIndices
@@ -1300,19 +1375,20 @@ struct GeneralTorusTorusSurfaceIntersector {
                 lowerValues: lowerValues,
                 upperParameter: middle,
                 depth: depth + 1
-            )
+            , using: &execution)
             return try appendInterval(
                 lowerParameter: middle,
                 lowerValues: middleValues,
                 upperParameter: upperParameter,
                 depth: depth + 1
-            )
+            , using: &execution)
         }
 
         let initialSegmentCount = 32
         var lowerParameter = 0.0
         var lowerValues = initialRoots
         for index in 1...initialSegmentCount {
+            try execution.consumeWork(1)
             let upperParameter = period * Double(index)
                 / Double(initialSegmentCount)
             lowerValues = try appendInterval(
@@ -1320,9 +1396,11 @@ struct GeneralTorusTorusSurfaceIntersector {
                 lowerValues: lowerValues,
                 upperParameter: upperParameter,
                 depth: 0
-            )
+            , using: &execution)
             lowerParameter = upperParameter
         }
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: finalCandidateIndices.count, of: Int.self))
+        try execution.consumeWork(finalCandidateIndices.count)
         guard Set(finalCandidateIndices).count == initialRoots.count else {
             throw KernelError(
                 phase: .geometry,
@@ -1344,6 +1422,33 @@ struct GeneralTorusTorusSurfaceIntersector {
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
     ) throws -> [Double] {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try verifiedRoots(majorAngle: majorAngle, configuration: configuration, options: options, tolerance: tolerance, using: &execution)
+    }
+
+
+    func verifiedRoots(
+        majorAngle: Double,
+        configuration: Configuration,
+        options: SurfaceSurfaceIntersectionOptions,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> [Double] {
+        try execution.checkpoint()
+        let result = try verifiedRootsImplementation(majorAngle: majorAngle, configuration: configuration, options: options, tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+
+
+    private func verifiedRootsImplementation(
+        majorAngle: Double,
+        configuration: Configuration,
+        options: SurfaceSurfaceIntersectionOptions,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> [Double] {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let intersector = DefaultCurveSurfaceIntersector()
         let intersections = try intersector.intersections(
             curve: configuration.meridianCurve(at: majorAngle),
@@ -1354,9 +1459,11 @@ struct GeneralTorusTorusSurfaceIntersector {
                 maximumCandidateCount: options.maximumSeedCount
             ),
             tolerance: tolerance
-        )
+        , using: &execution)
         var roots: [Double] = []
+        var rootsCapacity = roots.count
         for intersection in intersections {
+            try execution.consumeWork(1)
             guard intersection.kind == .transverse else {
                 throw KernelError(
                     phase: .geometry,
@@ -1388,17 +1495,19 @@ struct GeneralTorusTorusSurfaceIntersector {
                 periodicDistance($0, root, period: 2.0 * Double.pi)
                     > tolerance.angle
             }) {
-                roots.append(root)
+                try CertifiedAnalyticCurveEvaluation.append(root, to: &roots, using: &execution, capacity: &rootsCapacity)
             }
         }
-        return roots.sorted()
+        return try CertifiedAnalyticCurveEvaluation.sorted(roots, using: &execution)
     }
 
-    private func bestAssignment(
+    private func bestAssignment<A: ExactScalarAdmission & ~Copyable>(
         previous: [Double],
         candidates: [Double],
         period: Double
-    ) -> RootAssignment {
+    , using execution: inout A) throws -> RootAssignment {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         var bestValues: [Double] = []
         var bestIndices: [Int] = []
         var bestCost = Double.infinity
@@ -1412,7 +1521,9 @@ struct GeneralTorusTorusSurfaceIntersector {
             indices: [Int],
             cost: Double,
             maximumMovement: Double
-        ) {
+        , using execution: inout A) throws {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
             if branch == previous.count {
                 if cost < bestCost {
                     secondCost = bestCost
@@ -1426,6 +1537,7 @@ struct GeneralTorusTorusSurfaceIntersector {
                 return
             }
             for candidateIndex in candidates.indices where used.contains(candidateIndex) == false {
+                try execution.consumeWork(1)
                 let candidate = liftedPeriodicValue(
                     candidates[candidateIndex],
                     near: previous[branch],
@@ -1434,27 +1546,31 @@ struct GeneralTorusTorusSurfaceIntersector {
                 let movement = abs(candidate - previous[branch])
                 let nextCost = cost + movement * movement
                 guard nextCost < secondCost else { continue }
+                let nextCount = try exactScalarCount(used.count, 1)
+                try execution.retainStorage(bytes: exactScalarPayloadBytes(count: nextCount, of: Int.self))
+                try execution.retainStorage(bytes: exactScalarPayloadBytes(count: try exactScalarCount(values.count, 2), of: Double.self))
+                try execution.retainStorage(bytes: exactScalarPayloadBytes(count: try exactScalarCount(indices.count, 2), of: Int.self))
                 var nextUsed = used
                 nextUsed.insert(candidateIndex)
-                search(
+                (try search(
                     branch: branch + 1,
                     used: nextUsed,
                     values: values + [candidate],
                     indices: indices + [candidateIndex],
                     cost: nextCost,
                     maximumMovement: max(maximumMovement, movement)
-                )
+                , using: &execution))
             }
         }
 
-        search(
+        (try search(
             branch: 0,
             used: [],
             values: [],
             indices: [],
             cost: 0.0,
             maximumMovement: 0.0
-        )
+        , using: &execution))
         return RootAssignment(
             values: bestValues,
             candidateIndices: bestIndices,
@@ -1470,9 +1586,36 @@ struct GeneralTorusTorusSurfaceIntersector {
         period: Double,
         tolerance: ModelingTolerance
     ) throws -> Double {
-        let ranked = candidates.map {
-            liftedPeriodicValue($0, near: reference, period: period)
-        }.sorted { abs($0 - reference) < abs($1 - reference) }
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try selectedRoot(candidates: candidates, reference: reference, period: period, tolerance: tolerance, using: &execution)
+    }
+
+
+    func selectedRoot(
+        candidates: [Double],
+        reference: Double,
+        period: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.checkpoint()
+        let result = try selectedRootImplementation(candidates: candidates, reference: reference, period: period, tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+
+
+    private func selectedRootImplementation(
+        candidates: [Double],
+        reference: Double,
+        period: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
+        let ranked = (try CertifiedAnalyticCurveEvaluation.sorted((try CertifiedAnalyticCurveEvaluation.map(candidates, using: &execution) { element, execution in 
+            liftedPeriodicValue(element, near: reference, period: period)
+         }), using: &execution, by: { abs($0 - reference) < abs($1 - reference) }))
         guard let selected = ranked.first else {
             throw KernelError(
                 phase: .geometry,
@@ -1501,12 +1644,41 @@ struct GeneralTorusTorusSurfaceIntersector {
         _ permutation: [Int],
         tolerance: ModelingTolerance
     ) throws -> [[Int]] {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try permutationCycles(permutation, tolerance: tolerance, using: &execution)
+    }
+
+
+    func permutationCycles(
+        _ permutation: [Int],
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> [[Int]] {
+        try execution.checkpoint()
+        let result = try permutationCyclesImplementation(permutation, tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+
+
+    private func permutationCyclesImplementation(
+        _ permutation: [Int],
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> [[Int]] {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: permutation.count, of: Int.self))
         var visited = Set<Int>()
+        visited.reserveCapacity(permutation.count)
         var cycles: [[Int]] = []
+        var cyclesCapacity = cycles.count
         for start in permutation.indices where visited.contains(start) == false {
+            try execution.consumeWork(1)
             var cycle: [Int] = []
+            var cycleCapacity = cycle.count
             var current = start
             while visited.contains(current) == false {
+                try execution.consumeWork(1)
                 guard permutation.indices.contains(current) else {
                     throw KernelError(
                         phase: .geometry,
@@ -1516,7 +1688,7 @@ struct GeneralTorusTorusSurfaceIntersector {
                     )
                 }
                 visited.insert(current)
-                cycle.append(current)
+                try CertifiedAnalyticCurveEvaluation.append(current, to: &cycle, using: &execution, capacity: &cycleCapacity)
                 current = permutation[current]
             }
             guard current == start else {
@@ -1527,7 +1699,7 @@ struct GeneralTorusTorusSurfaceIntersector {
                     message: "Torus-torus root permutation does not decompose into closed cycles."
                 )
             }
-            cycles.append(cycle)
+            try CertifiedAnalyticCurveEvaluation.append(cycle, to: &cycles, using: &execution, capacity: &cyclesCapacity)
         }
         return cycles
     }
@@ -1607,18 +1779,24 @@ struct GeneralTorusTorusSurfaceIntersector {
         }
     }
 
-    private func cosineInterval(_ angle: Interval) -> Interval {
-        trigonometricInterval(angle, phase: 0.0)
+    private func cosineInterval<A: ExactScalarAdmission & ~Copyable>(_ angle: Interval, using execution: inout A) throws -> Interval {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
+        return (try trigonometricInterval(angle, phase: 0.0, using: &execution))
     }
 
-    private func sineInterval(_ angle: Interval) -> Interval {
-        trigonometricInterval(angle, phase: Double.pi * 0.5)
+    private func sineInterval<A: ExactScalarAdmission & ~Copyable>(_ angle: Interval, using execution: inout A) throws -> Interval {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
+        return (try trigonometricInterval(angle, phase: Double.pi * 0.5, using: &execution))
     }
 
-    private func trigonometricInterval(
+    private func trigonometricInterval<A: ExactScalarAdmission & ~Copyable>(
         _ angle: Interval,
         phase: Double
-    ) -> Interval {
+    , using execution: inout A) throws -> Interval {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         guard angle.width < 2.0 * Double.pi else {
             return Interval(-1.0, 1.0)
         }
@@ -1679,6 +1857,29 @@ struct GeneralTorusTorusSurfaceIntersector {
         _ torus: CanonicalAnalyticSurface.Torus,
         tolerance: ModelingTolerance
     ) throws -> Torus {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try canonicalTorus(torus, tolerance: tolerance, using: &execution)
+    }
+
+
+    func canonicalTorus(
+        _ torus: CanonicalAnalyticSurface.Torus,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> Torus {
+        try execution.checkpoint()
+        let result = try canonicalTorusImplementation(torus, tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+
+
+    private func canonicalTorusImplementation(
+        _ torus: CanonicalAnalyticSurface.Torus,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> Torus {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         var axis = try torus.axis.normalized(tolerance: tolerance.distance)
         if isNegative(axis) {
             axis = -axis
@@ -1691,8 +1892,11 @@ struct GeneralTorusTorusSurfaceIntersector {
         )
     }
 
-    func torusKey(_ torus: Torus) -> [Double] {
-        [
+    func torusKey<A: ExactScalarAdmission & ~Copyable>(_ torus: Torus, using execution: inout A) throws -> [Double] {
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 8, of: Double.self))
+        try execution.checkpoint()
+        try execution.consumeWork(1)
+        return [
             torus.center.x,
             torus.center.y,
             torus.center.z,

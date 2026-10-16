@@ -7,7 +7,7 @@ public protocol OffsetResultValidating: Sendable {
     func validate(bodyID: BodyID, model: BRepModel, tolerance: ModelingTolerance) throws
     func validate(bodyID: BodyID, validatedModel: ValidatedBRepModel) throws
     func validate(bodyID: BodyID, validatedModel: ValidatedBRepModel,
-        admission: GeometryConversionAdmission) throws
+        using execution: inout OriginalQueryExecution) throws
 }
 
 public extension OffsetResultValidating {
@@ -19,7 +19,7 @@ public extension OffsetResultValidating {
     // same original caller admission throughout every self/finite-face proof.
     // A legacy conformer cannot supply that witness through receipt replay.
     func validate(bodyID: BodyID, validatedModel: ValidatedBRepModel,
-        admission: GeometryConversionAdmission) throws {
+        using execution: inout OriginalQueryExecution) throws {
         throw KernelError(phase: .validation, code: .unsupportedCapability,
             tolerance: validatedModel.tolerance,
             message: "This result contact validator has no original caller-admitted composition.")

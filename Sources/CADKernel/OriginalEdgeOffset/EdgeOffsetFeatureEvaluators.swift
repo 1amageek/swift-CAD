@@ -61,16 +61,15 @@ struct EdgeOffsetImprint {
         _ groups: [(faceID: FaceID, edges: Set<EdgeID>)], distance: Double, gapFill: OffsetGapFill,
         on bodyID: BodyID, featureID: FeatureID, context: EvaluationContext
     ) throws -> EvaluationResult {
-        let invocation = try conversionLimits.map {
-            try EdgeOffsetConversionInvocation(limits: $0, tolerance: context.tolerance)
-        }
-        let admission = try invocation?.admission()
+        var execution = try EdgeOffsetQueryExecution.make(limits: conversionLimits, tolerance: context.tolerance)
+        do {
+
         var curves: [BRepFaceImprinter.Curve] = []
         for (index, group) in groups.enumerated() where group.edges.isEmpty == false {
             curves += try BRepEdgeChainOffsetter().offset(
                 edges: group.edges, on: group.faceID, distance: distance, gapFill: gapFill, stableID: "offset:\(index)",
                 model: context.brep, sourceSubshapes: context.subshapes.entries, tolerance: context.tolerance,
-                conversionAdmission: admission
+                conversionLimits: conversionLimits, using: &execution
             )
         }
         guard curves.isEmpty == false else {
@@ -78,9 +77,16 @@ struct EdgeOffsetImprint {
                 message: "There is nothing to offset.")
         }
         let completed = try BRepImprintCompletion().completed(
-            curves, by: .edge, model: context.brep, sourceSubshapes: context.subshapes.entries, tolerance: context.tolerance
+            curves, by: .edge, model: context.brep, sourceSubshapes: context.subshapes.entries, tolerance: context.tolerance, using: &execution
         )
-        return try BRepFaceImprinter().imprint(completed, on: bodyID, featureID: featureID, context: context)
+        let result = try BRepFaceImprinter().imprint(completed, on: bodyID, featureID: featureID,
+            context: context, using: &execution)
+        execution.context = execution.context.at(stage: .publication)
+        try execution.checkpoint()
+        return result
+            } catch {
+            throw OriginalQueryFailure.published(error, context: execution.context, tolerance: context.tolerance)
+        }
     }
 }
 

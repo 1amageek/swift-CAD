@@ -15,7 +15,7 @@ struct ExactAlgebraicFiberRootIsolator {
         let count: Int
         let depth: Int
     }
-    static func isolate<B: RationalAlgebraAdmitting>(_ source: ExactAlgebraicFiberPolynomial,
+    static func isolate<B: ExactScalarAdmission & ~Copyable>(_ source: ExactAlgebraicFiberPolynomial,
         lower: ExactRationalCoefficient, upper: ExactRationalCoefficient, maximumDepth: Int,
         usage: inout B) throws -> [Root] {
         guard maximumDepth >= source.root.isolation.isolationDepth, try upper.subtracting(lower, usage: &usage).isPositive else {
@@ -38,7 +38,7 @@ struct ExactAlgebraicFiberRootIsolator {
             excludesUpper: true, count: count, depth: source.root.isolation.isolationDepth)]
         let two = try ExactRationalCoefficient.natural(2, usage: &usage)
         while let cell = pending.popLast() {
-            try exactScalarTaskCheckpoint(); try usage.visitExactCell(depth: cell.depth)
+            try usage.checkpoint(); try usage.visitCell(axis: .value, depth: cell.depth)
             if cell.count == 0 { continue }
             if cell.count == 1 {
                 try RationalAlgebraStorage.retain(1, of: Root.self, usage: &usage)

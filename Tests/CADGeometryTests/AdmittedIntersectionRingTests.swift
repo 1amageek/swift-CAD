@@ -5,49 +5,192 @@ import Testing
 @Suite(.timeLimit(.minutes(1)))
 struct AdmittedIntersectionRingTests {
     private typealias Polynomial = ExactIntersectionPolynomial
-    private struct Admission: RationalAlgebraAdmitting {
+    private struct Admission: ~Copyable, GeometryScalarTestAdmission {
+        var proofScopes = ExactScalarProofScopes()
         var work = 0
         var storage = 0
         var maximumWork = 20_000_000
         var maximumStorage = 20_000_000
-        mutating func consumeExactWork(_ count: Int) throws {
+        mutating func consumeWork(_ count: Int) throws(ExactScalarFailure) {
+            try checkpoint()
+            try proofScopes.checkWork(count)
+            do {
             guard count >= 0, count <= maximumWork - work else {
                 throw failure("Work: used \(work), request \(count), limit \(maximumWork), storage \(storage)")
             }
             work += count
+        
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            proofScopes.recordWork(count)
+            try checkpoint()
         }
-        mutating func retainExactStorage(_ count: Int) throws {
+        mutating func retainStorage(bytes: Int) throws(ExactScalarFailure) {
+            try checkpoint()
+            let count = try geometryTestStorageWords(bytes)
+            do {
             guard count >= 0, count <= maximumStorage - storage else {
                 throw failure("Storage: used \(storage), request \(count), limit \(maximumStorage)")
             }
             storage += count
+        
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            try checkpoint()
         }
-        mutating func visitExactCell(depth: Int) throws {
-            guard (0...24).contains(depth) else { throw failure() }
-            try consumeExactWork(1)
-        }
-        mutating func visitCoefficientCell(depth: Int) throws { throw failure() }
+        
+        
         private func failure(_ detail: String = "Cell depth exceeded its admitted domain.") -> KernelError {
             KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: nil,
                 message: "Admitted original-ring test budget was exhausted. \(detail)")
         }
+            mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
+            try admitDepth(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+            let mapped = try proofScopes.mapped(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+            do {
+                switch (axis == .coefficient || proofScopes.exactDepthResource == .coefficientDepth) ? ExactScalarRootAxis.coefficient : .value {
+                case .value:
+                    let depth = mapped.value
+
+            guard (0...24).contains(depth) else { throw failure() }
+            try consumeWork(1)
+        
+                case .coefficient:
+                    let depth = mapped.coefficient
+ throw failure() 
+                }
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            try checkpoint()
+        }
     }
 
-    private struct CoefficientAdmission: RationalAlgebraAdmitting {
+    private struct CoefficientAdmission: ~Copyable, GeometryScalarTestAdmission {
+        var proofScopes = ExactScalarProofScopes()
         var depths: [Int] = []
         var maximumDepth = 12
-        mutating func consumeExactWork(_ count: Int) throws {}
-        mutating func retainExactStorage(_ count: Int) throws {}
-        mutating func visitExactCell(depth: Int) throws {
+        mutating func consumeWork(_ count: Int) throws(ExactScalarFailure) {
+            try checkpoint()
+            try proofScopes.checkWork(count)
+            do {
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            proofScopes.recordWork(count)
+            try checkpoint()
+        }
+        mutating func retainStorage(bytes: Int) throws(ExactScalarFailure) {
+            try checkpoint()
+            let count = try geometryTestStorageWords(bytes)
+            do {
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            try checkpoint()
+        }
+        
+        
+            mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
+            try admitDepth(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+            let mapped = try proofScopes.mapped(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+            do {
+                switch (axis == .coefficient || proofScopes.exactDepthResource == .coefficientDepth) ? ExactScalarRootAxis.coefficient : .value {
+                case .value:
+                    let depth = mapped.value
+
             throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: nil,
                 message: "A coefficient root was relabeled as a parameter root.")
-        }
-        mutating func visitCoefficientCell(depth: Int) throws {
+        
+                case .coefficient:
+                    let depth = mapped.coefficient
+
             guard (0...maximumDepth).contains(depth) else {
                 throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: nil,
                     message: "A coefficient root exceeded its independent inherited depth.")
             }
             depths.append(depth)
+        
+                }
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            try checkpoint()
+        }
+        var maximumTestValueDepth: Int { maximumDepth }
+        var maximumTestCoefficientDepth: Int { maximumDepth }
+    }
+
+    private enum ExpectedCanonicalFailure { case invalidEvidence, valueDepth }
+    private func matchesCanonicalFailure(_ error: any Error, expected: ExpectedCanonicalFailure) -> Bool {
+        guard let actual = geometryTestOriginalFailure(error) as? ExactScalarFailure else { return false }
+        switch (expected, actual) {
+        case (.invalidEvidence, .invalidEvidence), (.valueDepth, .resourceLimit(.valueDepth)): return true
+        default: return false
+        }
+    }
+
+    private struct UnexpectedConstantRootVisit: Error {}
+
+    @Test
+    func rationalConstantChecksDepthWithoutVisitingRoots() throws {
+        var usage = GeometryTestScalarRecorder(maximumValueDepth: 0, maximumCoefficientDepth: 0,
+            observeValueCell: { _ in throw UnexpectedConstantRootVisit() },
+            observeCoefficientCell: { _ in throw UnexpectedConstantRootVisit() })
+        let context = try OriginalSingularFieldContext(usage: &usage)
+        let value = try OriginalSingularFieldElement.constant(.one, in: context,
+            maximumDepth: 0, usage: &usage)
+        #expect(value.context === context)
+        #expect(try value.rationalValue(usage: &usage) == .one)
+        #expect(usage.valueVisits == 0 && usage.coefficientVisits == 0)
+    }
+
+    @Test
+    func inheritedConstantDepthsRemainIndependentWithoutRootVisits() throws {
+        var construction = ExactScalarLedger(limits: try .init(work: 20_000_000,
+            storageBytes: 20_000_000, valueDepth: 24, coefficientDepth: 24))
+        let rational = try OriginalSingularFieldContext(usage: &construction)
+        let two = try ExactRationalCoefficient.natural(2, usage: &construction)
+        let law = try OriginalSingularFieldPolynomial(context: rational,
+            coefficients: [.constant(two.negated, in: rational, maximumDepth: 0, usage: &construction),
+                .constant(.zero, in: rational, maximumDepth: 0, usage: &construction),
+                .constant(.one, in: rational, maximumDepth: 0, usage: &construction)],
+            maximumDepth: 0, usage: &construction)
+        for domain in [OriginalSingularFieldRoot.AdmissionDomain.parameter, .coefficient(maximumDepth: 24)] {
+            // The production isolator issues both real roots of x^2 - 2 and their attained depths.
+            let roots = try OriginalSingularFieldRoot.allRealRoots(law, inheritedDepth: 2,
+                maximumDepth: 24, admissionDomain: domain, usage: &construction)
+            #expect(roots.count == 2)
+            let root = try geometryTestRequire(roots.first)
+            let context = try OriginalSingularFieldContext(root: root, usage: &construction)
+            let expectedResource: ExactResource
+            switch domain {
+            case .parameter:
+                #expect(context.depth >= 2 && context.coefficientDepth == 0)
+                expectedResource = .valueDepth
+            case .coefficient:
+                #expect(context.depth == 0 && context.coefficientDepth >= 2)
+                expectedResource = .coefficientDepth
+            }
+            var exact = GeometryTestScalarRecorder(maximumValueDepth: context.depth,
+                maximumCoefficientDepth: context.coefficientDepth,
+                observeValueCell: { _ in throw UnexpectedConstantRootVisit() },
+                observeCoefficientCell: { _ in throw UnexpectedConstantRootVisit() })
+            let value = try OriginalSingularFieldElement.constant(.one, in: context,
+                maximumDepth: context.depth, usage: &exact)
+            #expect(value.context === context)
+            #expect(try value.rationalValue(usage: &exact) == .one)
+            #expect(exact.valueVisits == 0 && exact.coefficientVisits == 0)
+            var shallow = GeometryTestScalarRecorder(
+                maximumValueDepth: expectedResource == .valueDepth ? context.depth - 1 : context.depth,
+                maximumCoefficientDepth: expectedResource == .coefficientDepth ? context.coefficientDepth - 1 : context.coefficientDepth,
+                observeValueCell: { _ in throw UnexpectedConstantRootVisit() },
+                observeCoefficientCell: { _ in throw UnexpectedConstantRootVisit() })
+            geometryTestExpectFailure({ error in
+                guard case .resourceLimit(let actual)? = geometryTestOriginalFailure(error) as? ExactScalarFailure else { return false }
+                return actual == expectedResource
+            }) {
+                try OriginalSingularFieldElement.constant(.one, in: context,
+                    maximumDepth: context.depth, usage: &shallow)
+            }
+            #expect(shallow.work == 0 && shallow.storageBytes == 0)
+            #expect(shallow.valueVisits == 0 && shallow.coefficientVisits == 0)
         }
     }
 
@@ -98,7 +241,7 @@ struct AdmittedIntersectionRingTests {
         let sum = try y.adding(same, usage: &usage)
         #expect(try sum.dividedExactly(by: y, usage: &usage) == .constant(variableCount: 12,
             value: .natural(2, usage: &usage), usage: &usage))
-        #expect(throws: KernelError.self) { try z.lowered(to: 11, usage: &usage) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try z.lowered(to: 11, usage: &usage) }
     }
 
     @Test
@@ -117,7 +260,7 @@ struct AdmittedIntersectionRingTests {
         let original = try Polynomial.embedding(law, variableCount: 2,
             uCoordinate: 0, vCoordinate: 1, usage: &usage)
         #expect(embedded == (try original.remapped(to: 12, coordinates: [10, 11], usage: &usage)))
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try original.remapped(to: 12, coordinates: [10, 10], usage: &usage)
         }
         let backwards = try embedded.remapped(to: 12, coordinates: Array((0..<12).reversed()), usage: &usage)
@@ -232,7 +375,7 @@ struct AdmittedIntersectionRingTests {
             instructions: [.atom(0, .zero), .atom(1, .positive), .and], usage: &construction)
         var scratch: [Bool?] = []; scratch.reserveCapacity(required.maximumStackCount)
         var bounded = Admission(maximumStorage: 1)
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try ExactIntersectionQuantifiedCells.evaluateLeaf(polynomials: [zero, g], program: required,
                 context: value.context, coordinates: [value], inheritedSigns: [nil, nil], maximumDepth: 24,
                 scratch: &scratch, usage: &bounded)
@@ -315,12 +458,12 @@ struct AdmittedIntersectionRingTests {
                 #expect(!proof.tower.levels[0].sources[index].isZero)
             }
             var noWork = Admission(maximumWork: 0)
-            #expect(throws: KernelError.self) {
+            geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
                 try OriginalIntersectionCellClosure.prepare(partition: partition, cellIndex: interior,
                     allowAffineProofs: false, allowFiniteBranchProofs: false, maximumDepth: 24, usage: &noWork)
             }
             var noStorage = Admission(maximumStorage: 0)
-            #expect(throws: KernelError.self) {
+            geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
                 try OriginalIntersectionCellClosure.prepare(partition: partition, cellIndex: interior,
                     allowAffineProofs: false, allowFiniteBranchProofs: false, maximumDepth: 24, usage: &noStorage)
             }
@@ -382,7 +525,7 @@ struct AdmittedIntersectionRingTests {
         let partition = try OriginalRationalIntersectionCells.prepare(equations: [law],
             variableCount: 2, exactDomains: [domain, all], partitionPolynomials: [lowerCut, upperCut],
             thomEncoding: true, maximumDepth: 24, usage: &usage)
-        let index = try #require(partition.solutionCells.first {
+        let index = try geometryTestRequire(partition.solutionCells.first {
             let cell = partition.cells[$0], offset = partition.partitionSignOffset
             return cell.dimension == 1 && cell.signs[offset] == .positive && cell.signs[offset + 1] == .negative
         })
@@ -418,7 +561,7 @@ struct AdmittedIntersectionRingTests {
                 _ = try OriginalIntersectionCellClosure.prepare(partition: partition, cellIndex: index,
                     allowAffineProofs: false, allowFiniteBranchProofs: false, maximumDepth: 24, usage: &admission)
                 return false
-            } catch is CancellationError { return true }
+            } catch let error where geometryTestIsCancelled(error) { return true }
             catch { return false }
         }.value
         #expect(cancelled)
@@ -448,13 +591,13 @@ struct AdmittedIntersectionRingTests {
         }
         #expect(separated.isolation.lower.canonicalDenominatorWords.reduce(0) { $0 + $1.nonzeroBitCount } == 1)
         #expect(separated.isolation.upper.canonicalDenominatorWords.reduce(0) { $0 + $1.nonzeroBitCount } == 1)
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ matchesCanonicalFailure($0, expected: .valueDepth) }) {
             try root.refinedForSeparation(maximumWidth: width, maximumDepth: 7, usage: &usage)
         }
         var noWork = Admission(maximumWork: 0)
-        #expect(throws: KernelError.self) { try root.refinedForSeparation(maximumWidth: width, maximumDepth: 24, usage: &noWork) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try root.refinedForSeparation(maximumWidth: width, maximumDepth: 24, usage: &noWork) }
         var noStorage = Admission(maximumStorage: 0)
-        #expect(throws: KernelError.self) { try root.refinedForSeparation(maximumWidth: width, maximumDepth: 24, usage: &noStorage) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try root.refinedForSeparation(maximumWidth: width, maximumDepth: 24, usage: &noStorage) }
     }
 
     @Test
@@ -472,20 +615,24 @@ struct AdmittedIntersectionRingTests {
         #expect(retained.isolation.upper == root.isolation.upper && retained.isolation.isolationDepth == 7)
         #expect(noStorage.storage == 0 && noStorage.work > 0)
         var noWork = Admission(maximumWork: 0)
-        #expect(throws: KernelError.self) { try root.retainingIsolation(root.isolation, usage: &noWork) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try root.retainingIsolation(root.isolation, usage: &noWork) }
         var coefficient = CoefficientAdmission()
-        var domain = OriginalScalarRootDomainAdmission(base: coefficient, domain: .coefficient(maximumDepth: 12))
-        _ = try root.retainingIsolation(root.isolation, usage: &domain)
-        coefficient = domain.base
+        try coefficient.withProofScope(maximum: .init(value: Int.max, coefficient: 12), valueAxis: .coefficient) { coefficient in
+            _ = try root.retainingIsolation(root.isolation, usage: &coefficient)
+        }
         #expect(coefficient.depths == [7])
-        var tooShallow = OriginalScalarRootDomainAdmission(base: CoefficientAdmission(maximumDepth: 6), domain: .coefficient(maximumDepth: 6))
-        #expect(throws: KernelError.self) { try root.retainingIsolation(root.isolation, usage: &tooShallow) }
+        var tooShallow = CoefficientAdmission(maximumDepth: 6)
+        geometryTestExpectFailure({ if case .resourceLimit(.coefficientDepth)? = geometryTestOriginalFailure($0) as? ExactScalarFailure { true } else { false } }) {
+            try tooShallow.withProofScope(maximum: .init(value: Int.max, coefficient: 6), valueAxis: .coefficient) { tooShallow in
+                _ = try root.retainingIsolation(root.isolation, usage: &tooShallow)
+            }
+        }
         let wider = ExactUnivariateRootIsolator.Root(lower: .zero, upper: two, isRationalStation: false,
             isolationDepth: 7, excludesLowerEndpoint: false, excludesUpperEndpoint: false)
-        #expect(throws: KernelError.self) { try root.retainingIsolation(wider, usage: &construction) }
+        geometryTestExpectFailure({ matchesCanonicalFailure($0, expected: .invalidEvidence) }) { try root.retainingIsolation(wider, usage: &construction) }
         let excluded = ExactUnivariateRootIsolator.Root(lower: .one, upper: two, isRationalStation: false,
             isolationDepth: 7, excludesLowerEndpoint: true, excludesUpperEndpoint: false)
-        #expect(throws: KernelError.self) { try root.retainingIsolation(excluded, usage: &noStorage) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try root.retainingIsolation(excluded, usage: &noStorage) }
     }
 
     @Test(arguments: [false, true])
@@ -526,7 +673,7 @@ struct AdmittedIntersectionRingTests {
             maximumDepth: 24, usage: &usage), maximumDepth: 24, usage: &usage).sign(maximumDepth: 24, usage: &usage) != .negative)
         #expect(try affine.subtracting(.constant(result.isolation.upper, in: x.context,
             maximumDepth: 24, usage: &usage), maximumDepth: 24, usage: &usage).sign(maximumDepth: 24, usage: &usage) != .positive)
-        #expect(throws: KernelError.self) { try derived.refinedOnce(maximumDepth: 23, forSeparation: true, usage: &usage) }
+        geometryTestExpectFailure({ matchesCanonicalFailure($0, expected: .invalidEvidence) }) { try derived.refinedOnce(maximumDepth: 23, forSeparation: true, usage: &usage) }
         let exhaustedAncestor = ancestor.retainingIsolation(.init(lower: .one, upper: two,
             excludesLower: false, excludesUpper: false, depth: 24))
         let exhaustedX = try exhaustedAncestor.value(maximumDepth: 24, usage: &usage)
@@ -535,11 +682,11 @@ struct AdmittedIntersectionRingTests {
                 .constant(.one, in: exhaustedX.context, maximumDepth: 24, usage: &usage)], maximumDepth: 24, usage: &usage)
         let exhausted = OriginalSingularFieldRoot(polynomial: exhaustedLaw,
             isolation: .init(lower: .one, upper: two, excludesLower: false, excludesUpper: false, depth: 24))
-        #expect(throws: KernelError.self) { try exhausted.refinedOnce(maximumDepth: 24, forSeparation: true, usage: &usage) }
+        geometryTestExpectFailure({ matchesCanonicalFailure($0, expected: .valueDepth) }) { try exhausted.refinedOnce(maximumDepth: 24, forSeparation: true, usage: &usage) }
         var noWork = Admission(maximumWork: 0)
-        #expect(throws: KernelError.self) { try derived.refinedOnce(maximumDepth: 24, forSeparation: true, usage: &noWork) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try derived.refinedOnce(maximumDepth: 24, forSeparation: true, usage: &noWork) }
         var noStorage = Admission(maximumStorage: 0)
-        #expect(throws: KernelError.self) { try derived.refinedOnce(maximumDepth: 24, forSeparation: true, usage: &noStorage) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try derived.refinedOnce(maximumDepth: 24, forSeparation: true, usage: &noStorage) }
     }
 
     @Test(arguments: [false, true], [false, true])
@@ -577,9 +724,9 @@ struct AdmittedIntersectionRingTests {
             maximumDepth: 24, usage: &usage) == 1)
         #expect(negativeImage ? result.isolation.upper.isNegative : result.isolation.lower.isPositive)
         var noWork = Admission(maximumWork: 0)
-        #expect(throws: KernelError.self) { try derived.refinedOnce(maximumDepth: 24, forSeparation: true, usage: &noWork) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try derived.refinedOnce(maximumDepth: 24, forSeparation: true, usage: &noWork) }
         var noStorage = Admission(maximumStorage: 0)
-        #expect(throws: KernelError.self) { try derived.refinedOnce(maximumDepth: 24, forSeparation: true, usage: &noStorage) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try derived.refinedOnce(maximumDepth: 24, forSeparation: true, usage: &noStorage) }
     }
 
     @Test
@@ -608,30 +755,62 @@ struct AdmittedIntersectionRingTests {
             #expect(try result.subtracting(value, maximumDepth: 24, usage: &usage).sign(maximumDepth: 24, usage: &usage) == .zero)
         }
         #expect(noStorage.storage == 0)
-        #expect(throws: KernelError.self) { try zero.divided(by: zero, maximumDepth: 24, usage: &usage) }
+        geometryTestExpectFailure({ matchesCanonicalFailure($0, expected: .invalidEvidence) }) { try zero.divided(by: zero, maximumDepth: 24, usage: &usage) }
         guard case .extended(let zeroLaw, _) = zero.storage,
             case .extended(let numerator, _) = value.storage else { Issue.record("An algebraic field lost its extended source laws."); return }
         let undefined = OriginalSingularFieldElement(context: value.context, storage: .extended(numerator, zeroLaw))
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ matchesCanonicalFailure($0, expected: .invalidEvidence) }) {
             try zero.multiplied(by: undefined, maximumDepth: 24, usage: &usage).sign(maximumDepth: 24, usage: &usage)
         }
     }
 
     @Test
     func structuralConstantPublicationRejectsFinalCallbackCancellation() async throws {
-        struct CallbackAdmission: RationalAlgebraAdmitting {
+        struct CallbackAdmission: ~Copyable, GeometryScalarTestAdmission {
+            var proofScopes = ExactScalarProofScopes()
             var cancelOnWork = false
             var cancelAtStorage = 0
             var storageCallbacks = 0
-            mutating func consumeExactWork(_ count: Int) throws {
+            mutating func consumeWork(_ count: Int) throws(ExactScalarFailure) {
+                try checkpoint()
+                try proofScopes.checkWork(count)
+                do {
                 if cancelOnWork { withUnsafeCurrentTask { $0?.cancel() } }
+            
+                } catch let error as ExactScalarFailure { throw error }
+                catch { throw .admissionRejected(error) }
+                proofScopes.recordWork(count)
+                try checkpoint()
             }
-            mutating func retainExactStorage(_ count: Int) throws {
+            mutating func retainStorage(bytes: Int) throws(ExactScalarFailure) {
+                try checkpoint()
+                let count = try geometryTestStorageWords(bytes)
+                do {
                 storageCallbacks += 1
                 if storageCallbacks == cancelAtStorage { withUnsafeCurrentTask { $0?.cancel() } }
+            
+                } catch let error as ExactScalarFailure { throw error }
+                catch { throw .admissionRejected(error) }
+                try checkpoint()
             }
-            mutating func visitExactCell(depth: Int) throws {}
-            mutating func visitCoefficientCell(depth: Int) throws {}
+            
+            
+                    mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
+                try admitDepth(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+                let mapped = try proofScopes.mapped(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+                do {
+                    switch (axis == .coefficient || proofScopes.exactDepthResource == .coefficientDepth) ? ExactScalarRootAxis.coefficient : .value {
+                    case .value:
+                        let depth = mapped.value
+
+                    case .coefficient:
+                        let depth = mapped.coefficient
+
+                    }
+                } catch let error as ExactScalarFailure { throw error }
+                catch { throw .admissionRejected(error) }
+                try checkpoint()
+            }
         }
         var construction = Admission()
         let context = try OriginalSingularFieldContext(usage: &construction)
@@ -640,7 +819,7 @@ struct AdmittedIntersectionRingTests {
             do {
                 _ = try OriginalSingularFieldElement.constant(.one, in: context, maximumDepth: 24, usage: &usage)
                 return false
-            } catch is CancellationError { return true }
+            } catch let error where geometryTestIsCancelled(error) { return true }
             catch { return false }
         }.value
         #expect(borrowRefused)
@@ -649,7 +828,7 @@ struct AdmittedIntersectionRingTests {
             do {
                 _ = try OriginalSingularFieldContext(usage: &usage)
                 return false
-            } catch is CancellationError { return usage.storageCallbacks == 2 }
+            } catch let error where geometryTestIsCancelled(error) { return usage.storageCallbacks == 2 }
             catch { return false }
         }.value
         #expect(constructionRefused)
@@ -681,15 +860,15 @@ struct AdmittedIntersectionRingTests {
         let rationalOne = try OriginalSingularFieldElement.constant(.one, in: rational, maximumDepth: 24, usage: &construction)
         let embedded = try rationalOne.embedded(in: value.context, maximumDepth: 24, usage: &noStorage)
         #expect(embedded.context === value.context && noStorage.storage == 0 && noStorage.work > 0)
-        #expect(throws: KernelError.self) { try OriginalSingularFieldElement.constant(two, in: value.context,
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try OriginalSingularFieldElement.constant(two, in: value.context,
             maximumDepth: 24, usage: &noStorage) }
         var noWork = Admission(maximumWork: 0)
-        #expect(throws: KernelError.self) { try OriginalSingularFieldElement.constant(.one, in: value.context,
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try OriginalSingularFieldElement.constant(.one, in: value.context,
             maximumDepth: 24, usage: &noWork) }
-        #expect(throws: KernelError.self) { try rationalOne.embedded(in: value.context, maximumDepth: 24, usage: &noWork) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try rationalOne.embedded(in: value.context, maximumDepth: 24, usage: &noWork) }
         var constructionRefused = Admission(maximumStorage: 0)
-        #expect(throws: KernelError.self) { try OriginalSingularFieldContext(usage: &constructionRefused) }
-        #expect(throws: KernelError.self) { try root.value(maximumDepth: 24, usage: &constructionRefused) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try OriginalSingularFieldContext(usage: &constructionRefused) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try root.value(maximumDepth: 24, usage: &constructionRefused) }
         if case .extended(let zero, let unit) = value.context.constantAuthority {
             #expect(zero.isZero && unit.degree == 0)
             #expect(zero.context === rational && unit.context === rational)
@@ -700,7 +879,7 @@ struct AdmittedIntersectionRingTests {
             do {
                 _ = try OriginalSingularFieldElement.constant(.one, in: value.context, maximumDepth: 24, usage: &usage)
                 return false
-            } catch is CancellationError { return true }
+            } catch let error where geometryTestIsCancelled(error) { return true }
             catch { return false }
         }.value
         #expect(cancelled)
@@ -739,14 +918,14 @@ struct AdmittedIntersectionRingTests {
         #expect(try result.quotient.subtracting(quotient, maximumDepth: 24, usage: &usage).isZero)
         var noWork = Admission(maximumWork: 0)
         var noStorage = Admission(maximumStorage: 0)
-        #expect(throws: KernelError.self) { try dividend.divided(by: divisor, maximumDepth: 24, usage: &noWork) }
-        #expect(throws: KernelError.self) { try dividend.divided(by: divisor, maximumDepth: 24, usage: &noStorage) }
-        #expect(throws: KernelError.self) { try dividend.divided(by: divisor, maximumDepth: 0, usage: &usage) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try dividend.divided(by: divisor, maximumDepth: 24, usage: &noWork) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try dividend.divided(by: divisor, maximumDepth: 24, usage: &noStorage) }
+        geometryTestExpectFailure({ matchesCanonicalFailure($0, expected: .valueDepth) }) { try dividend.divided(by: divisor, maximumDepth: 0, usage: &usage) }
         let zeroDivisor = try OriginalSingularFieldPolynomial(context: x.context, coefficients: [], maximumDepth: 24, usage: &usage)
-        #expect(throws: KernelError.self) { try dividend.divided(by: zeroDivisor, maximumDepth: 24, usage: &usage) }
+        geometryTestExpectFailure({ matchesCanonicalFailure($0, expected: .invalidEvidence) }) { try dividend.divided(by: zeroDivisor, maximumDepth: 24, usage: &usage) }
         let foreign = try OriginalSingularFieldPolynomial(context: rational,
             coefficients: [.constant(.one, in: rational, maximumDepth: 24, usage: &usage)], maximumDepth: 24, usage: &usage)
-        #expect(throws: KernelError.self) { try dividend.divided(by: foreign, maximumDepth: 24, usage: &usage) }
+        geometryTestExpectFailure({ matchesCanonicalFailure($0, expected: .invalidEvidence) }) { try dividend.divided(by: foreign, maximumDepth: 24, usage: &usage) }
     }
 
     @Test
@@ -772,10 +951,10 @@ struct AdmittedIntersectionRingTests {
         #expect(left.context === original.context && right.context === original.context)
         #expect(left.degree == original.degree && right.degree == original.degree && noStorage.storage == 0)
         var noWork = Admission(maximumWork: 0)
-        #expect(throws: KernelError.self) { try original.multiplied(by: unit, maximumDepth: 24, usage: &noWork) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try original.multiplied(by: unit, maximumDepth: 24, usage: &noWork) }
         let inherited = try OriginalSingularFieldPolynomial(context: x.context, coefficients: [one, x],
             maximumDepth: 24, usage: &construction)
-        #expect(throws: KernelError.self) { try inherited.multiplied(by: unit, maximumDepth: 0, usage: &construction) }
+        geometryTestExpectFailure({ matchesCanonicalFailure($0, expected: .invalidEvidence) }) { try inherited.multiplied(by: unit, maximumDepth: 0, usage: &construction) }
         let oneLaw = try OriginalSingularFieldPolynomial(context: rational,
             coefficients: [.constant(.one, in: rational, maximumDepth: 24, usage: &construction)],
             maximumDepth: 24, usage: &construction)
@@ -786,7 +965,7 @@ struct AdmittedIntersectionRingTests {
             maximumDepth: 24, usage: &construction)
         let retainedUndefined = try undefinedLaw.multiplied(by: unit, maximumDepth: 24, usage: &construction)
         let zero = try OriginalSingularFieldElement.constant(.zero, in: x.context, maximumDepth: 24, usage: &construction)
-        #expect(throws: KernelError.self) { try retainedUndefined.evaluated(at: zero, maximumDepth: 24, usage: &construction)
+        geometryTestExpectFailure({ matchesCanonicalFailure($0, expected: .invalidEvidence) }) { try retainedUndefined.evaluated(at: zero, maximumDepth: 24, usage: &construction)
             .sign(maximumDepth: 24, usage: &construction) }
     }
 
@@ -821,13 +1000,13 @@ struct AdmittedIntersectionRingTests {
         }
         #expect(positive.polynomial.context === source.context && positive.polynomial.degree == source.degree)
         #expect(positive.isolation.depth >= ancestor.isolation.depth)
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ matchesCanonicalFailure($0, expected: .invalidEvidence) }) {
             try positive.sign(of: againstParent, maximumDepth: positive.isolation.depth - 1, usage: &usage)
         }
         var noWork = Admission(maximumWork: 0)
-        #expect(throws: KernelError.self) { try positive.sign(of: againstParent, maximumDepth: 24, usage: &noWork) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try positive.sign(of: againstParent, maximumDepth: 24, usage: &noWork) }
         var noStorage = Admission(maximumStorage: 0)
-        #expect(throws: KernelError.self) { try positive.sign(of: againstParent, maximumDepth: 24, usage: &noStorage) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try positive.sign(of: againstParent, maximumDepth: 24, usage: &noStorage) }
     }
 
     @Test
@@ -867,19 +1046,19 @@ struct AdmittedIntersectionRingTests {
         let expanded = try OriginalSingularFieldRoot.Isolation(lower: first.isolation.lower.subtracting(.one, usage: &usage),
             upper: first.isolation.upper, excludesLower: false, excludesUpper: first.isolation.excludesUpper,
             depth: first.isolation.depth)
-        #expect(throws: KernelError.self) { try first.countOriginalRoots(in: expanded, maximumDepth: 24, usage: &usage) }
+        geometryTestExpectFailure({ matchesCanonicalFailure($0, expected: .invalidEvidence) }) { try first.countOriginalRoots(in: expanded, maximumDepth: 24, usage: &usage) }
         let reset = OriginalSingularFieldRoot.Isolation(lower: inside.lower, upper: inside.upper,
             excludesLower: inside.excludesLower, excludesUpper: inside.excludesUpper, depth: first.isolation.depth - 1)
-        #expect(throws: KernelError.self) { try first.countOriginalRoots(in: reset, maximumDepth: 24, usage: &usage) }
+        geometryTestExpectFailure({ matchesCanonicalFailure($0, expected: .invalidEvidence) }) { try first.countOriginalRoots(in: reset, maximumDepth: 24, usage: &usage) }
         if first.isolation.excludesLower {
             let changedEndpoint = OriginalSingularFieldRoot.Isolation(lower: first.isolation.lower, upper: first.isolation.upper,
                 excludesLower: false, excludesUpper: first.isolation.excludesUpper, depth: first.isolation.depth)
-            #expect(throws: KernelError.self) { try first.countOriginalRoots(in: changedEndpoint, maximumDepth: 24, usage: &usage) }
+            geometryTestExpectFailure({ matchesCanonicalFailure($0, expected: .invalidEvidence) }) { try first.countOriginalRoots(in: changedEndpoint, maximumDepth: 24, usage: &usage) }
         }
         var noWork = Admission(maximumWork: 0)
-        #expect(throws: KernelError.self) { try first.countOriginalRoots(in: inside, maximumDepth: 24, usage: &noWork) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try first.countOriginalRoots(in: inside, maximumDepth: 24, usage: &noWork) }
         var noStorage = Admission(maximumStorage: 0)
-        #expect(throws: KernelError.self) { try first.countOriginalRoots(in: inside, maximumDepth: 24, usage: &noStorage) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try first.countOriginalRoots(in: inside, maximumDepth: 24, usage: &noStorage) }
     }
 
     @Test(arguments: [false, true])
@@ -918,9 +1097,9 @@ struct AdmittedIntersectionRingTests {
         #expect(first.isolation.depth == 17 && equal.isolation.depth == 17)
         #expect(first.isolation.lower == .one && first.isolation.upper == two)
         var noWork = Admission(maximumWork: 0)
-        #expect(throws: KernelError.self) { try OriginalRationalIntersectionCells.ordered(&first, &second, maximumDepth: 24, usage: &noWork) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try OriginalRationalIntersectionCells.ordered(&first, &second, maximumDepth: 24, usage: &noWork) }
         var noStorage = Admission(maximumStorage: 0)
-        #expect(throws: KernelError.self) { try OriginalRationalIntersectionCells.ordered(&first, &second, maximumDepth: 24, usage: &noStorage) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try OriginalRationalIntersectionCells.ordered(&first, &second, maximumDepth: 24, usage: &noStorage) }
     }
 
     @Test
@@ -976,9 +1155,9 @@ struct AdmittedIntersectionRingTests {
         #expect(try ExactNaturalMagnitude.gcd(.init([UInt32.max, UInt32.max]), .init([1, 1]), usage: &usage) == .init([1, 1]))
         #expect(try ExactNaturalMagnitude.gcd(.init([0, 0, 1]), .init([1, 0, 1]), usage: &usage) == .one)
         var noWork = Admission(maximumWork: 0)
-        #expect(throws: KernelError.self) { try ExactNaturalMagnitude([7, 0, 1]).quotientAndRemainder(dividingBy: .init([1, 1]), usage: &noWork) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try ExactNaturalMagnitude([7, 0, 1]).quotientAndRemainder(dividingBy: .init([1, 1]), usage: &noWork) }
         var noStorage = Admission(maximumStorage: 0)
-        #expect(throws: KernelError.self) { try ExactNaturalMagnitude([7, 0, 1]).quotientAndRemainder(dividingBy: .init([3]), usage: &noStorage) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try ExactNaturalMagnitude([7, 0, 1]).quotientAndRemainder(dividingBy: .init([3]), usage: &noStorage) }
     }
 
     @Test
@@ -986,7 +1165,7 @@ struct AdmittedIntersectionRingTests {
         var usage = Admission()
         var invalid = Array(repeating: 0, count: 12)
         invalid[10] = -1; invalid[11] = 1
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try Polynomial.monomial(variableCount: 12, powers: invalid, coefficient: .one, usage: &usage)
         }
         var maximum = Array(repeating: 0, count: 12)
@@ -994,14 +1173,14 @@ struct AdmittedIntersectionRingTests {
         let source = try Polynomial.monomial(variableCount: 12, powers: maximum,
             coefficient: .one, usage: &usage)
         let z = try Polynomial.coordinate(variableCount: 12, at: 11, usage: &usage)
-        #expect(throws: KernelError.self) { try source.multiplied(by: z, usage: &usage) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try source.multiplied(by: z, usage: &usage) }
         var exhaustedStorage = Admission(maximumStorage: 0)
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try Polynomial.coordinate(variableCount: 12, at: 11, usage: &exhaustedStorage)
         }
         #expect(exhaustedStorage.storage == 0)
         var exhaustedWork = Admission(maximumWork: 0)
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try Polynomial.coordinate(variableCount: 12, at: 11, usage: &exhaustedWork)
         }
         #expect(exhaustedWork.storage == 0)

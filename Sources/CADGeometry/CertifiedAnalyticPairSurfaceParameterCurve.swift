@@ -36,6 +36,19 @@ public struct CertifiedAnalyticPairSurfaceParameterCurve: Hashable, Sendable {
         endFraction: Double = 1.0,
         tolerance: ModelingTolerance
     ) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try self.init(intersection: intersection, role: role, startFraction: startFraction, endFraction: endFraction, tolerance: tolerance, using: &execution)
+    }
+
+    public init(
+        intersection: CertifiedAnalyticAnalyticIntersectionCurve,
+        role: SurfaceIntersectionSurfaceRole,
+        startFraction: Double = 0.0,
+        endFraction: Double = 1.0,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard startFraction.isFinite,
               endFraction.isFinite,
@@ -52,7 +65,14 @@ public struct CertifiedAnalyticPairSurfaceParameterCurve: Hashable, Sendable {
     }
 
     public func validate(on surface: Surface3D, tolerance: ModelingTolerance) throws {
-        try intersection.validate(tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(on: surface, tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(on surface: Surface3D, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try intersection.validate(tolerance: tolerance, using: &execution)
         guard surface == intersection.surface(for: role),
               startFraction.isFinite,
               endFraction.isFinite,
@@ -72,12 +92,22 @@ public struct CertifiedAnalyticPairSurfaceParameterCurve: Hashable, Sendable {
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameter {
-        let mapped = try mappedFraction(fraction, tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try parameter(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+    public func parameter(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> SurfaceParameter {
+        try execution.consumeWork(1)
+        let mapped = try mappedFraction(fraction, tolerance: tolerance, using: &execution)
         let evaluation = try intersection.pointAndInternalParameter(
             for: role,
             atNormalizedFraction: mapped,
             tolerance: tolerance
-        )
+        , using: &execution)
         let point = evaluation.point
         let result = evaluation.parameter
         let surface = intersection.surface(for: role)
@@ -85,7 +115,7 @@ public struct CertifiedAnalyticPairSurfaceParameterCurve: Hashable, Sendable {
             u: result.u,
             v: result.v,
             tolerance: tolerance
-        )
+        , using: &execution)
         let residual = (reconstructed - point).length
         guard residual <= tolerance.distance else {
             throw KernelError(
@@ -103,15 +133,25 @@ public struct CertifiedAnalyticPairSurfaceParameterCurve: Hashable, Sendable {
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterCurveDifferential {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try differential(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+    public func differential(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> SurfaceParameterCurveDifferential {
+        try execution.consumeWork(1)
         let parameter = try parameter(
             atNormalizedFraction: fraction,
             tolerance: tolerance
-        )
+        , using: &execution)
         return try differential(
             atNormalizedFraction: fraction,
             knownParameter: parameter,
             tolerance: tolerance
-        )
+        , using: &execution)
     }
 
     package func differential(
@@ -119,15 +159,26 @@ public struct CertifiedAnalyticPairSurfaceParameterCurve: Hashable, Sendable {
         knownParameter parameter: SurfaceParameter,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterCurveDifferential {
-        let mapped = try mappedFraction(fraction, tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try differential(atNormalizedFraction: fraction, knownParameter: parameter, tolerance: tolerance, using: &execution)
+    }
+
+    package func differential(
+        atNormalizedFraction fraction: Double,
+        knownParameter parameter: SurfaceParameter,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> SurfaceParameterCurveDifferential {
+        try execution.consumeWork(1)
+        let mapped = try mappedFraction(fraction, tolerance: tolerance, using: &execution)
         let curveDifferential = try intersection.differential(
             atNormalizedFraction: mapped,
             tolerance: tolerance
-        )
+        , using: &execution)
         let surfaceDifferential = try intersection.surface(for: role).differentialGeometry(
             u: parameter.u,
             v: parameter.v,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         let tangentU = surfaceDifferential.tangentU
         let tangentV = surfaceDifferential.tangentV
@@ -171,7 +222,7 @@ public struct CertifiedAnalyticPairSurfaceParameterCurve: Hashable, Sendable {
             spatialSecondDerivative: curveDifferential.secondDerivative,
             tolerance: tolerance,
             diagnosticContext: "Certified analytic-pair pcurve"
-        )
+        , using: &execution)
         let scale = endFraction - startFraction
         return SurfaceParameterCurveDifferential(
             parameter: parameter,
@@ -187,21 +238,31 @@ public struct CertifiedAnalyticPairSurfaceParameterCurve: Hashable, Sendable {
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> Point2D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try thirdDerivative(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+    func thirdDerivative(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Point2D {
+        try execution.consumeWork(1)
         let lower = try differential(
             atNormalizedFraction: fraction,
             tolerance: tolerance
-        )
-        let mapped = try mappedFraction(fraction, tolerance: tolerance)
+        , using: &execution)
+        let mapped = try mappedFraction(fraction, tolerance: tolerance, using: &execution)
         let scale = endFraction - startFraction
         let spatialThirdDerivative = try intersection.thirdDerivative(
             atNormalizedFraction: mapped,
             tolerance: tolerance
-        ) * (scale * scale * scale)
+        , using: &execution) * (scale * scale * scale)
         let surface = try intersection.surface(for: role)
             .parameterDerivativesThroughThirdOrder(
                 u: lower.parameter.u,
                 v: lower.parameter.v,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         return try SurfaceParameterThirdDerivativeSolver().solve(
             surface: surface,
@@ -210,21 +271,31 @@ public struct CertifiedAnalyticPairSurfaceParameterCurve: Hashable, Sendable {
             spatialThirdDerivative: spatialThirdDerivative,
             tolerance: tolerance,
             diagnosticContext: "Certified analytic-pair pcurve"
-        )
+        , using: &execution)
     }
 
     func modelSpaceDifferential(
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> CertifiedAnalyticAnalyticIntersectionCurve.DifferentialGeometry {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try modelSpaceDifferential(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+    func modelSpaceDifferential(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> CertifiedAnalyticAnalyticIntersectionCurve.DifferentialGeometry {
+        try execution.consumeWork(1)
         let mapped = try mappedFraction(
             fraction,
             tolerance: tolerance
-        )
+        , using: &execution)
         let source = try intersection.differential(
             atNormalizedFraction: mapped,
             tolerance: tolerance
-        )
+        , using: &execution)
         let scale = endFraction - startFraction
         return CertifiedAnalyticAnalyticIntersectionCurve
             .DifferentialGeometry(
@@ -239,27 +310,45 @@ public struct CertifiedAnalyticPairSurfaceParameterCurve: Hashable, Sendable {
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> Vector3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try modelSpaceThirdDerivative(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+    func modelSpaceThirdDerivative(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Vector3D {
+        try execution.consumeWork(1)
         let mapped = try mappedFraction(
             fraction,
             tolerance: tolerance
-        )
+        , using: &execution)
         let scale = endFraction - startFraction
         return try intersection.thirdDerivative(
             atNormalizedFraction: mapped,
             tolerance: tolerance
-        ) * (scale * scale * scale)
+        , using: &execution) * (scale * scale * scale)
     }
 
     public func reversed(
         tolerance: ModelingTolerance
     ) throws -> CertifiedAnalyticPairSurfaceParameterCurve {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try reversed(tolerance: tolerance, using: &execution)
+    }
+
+    public func reversed(
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> CertifiedAnalyticPairSurfaceParameterCurve {
+        try execution.consumeWork(1)
         try tolerance.validate()
         return CertifiedAnalyticPairSurfaceParameterCurve(
             validatedIntersection: intersection,
             role: role,
             startFraction: endFraction,
-            endFraction: startFraction
-        )
+            endFraction: startFraction)
     }
 
     public func subcurve(
@@ -267,6 +356,17 @@ public struct CertifiedAnalyticPairSurfaceParameterCurve: Hashable, Sendable {
         toNormalizedFraction upper: Double,
         tolerance: ModelingTolerance
     ) throws -> CertifiedAnalyticPairSurfaceParameterCurve {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try subcurve(fromNormalizedFraction: lower, toNormalizedFraction: upper, tolerance: tolerance, using: &execution)
+    }
+
+    public func subcurve(
+        fromNormalizedFraction lower: Double,
+        toNormalizedFraction upper: Double,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> CertifiedAnalyticPairSurfaceParameterCurve {
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard lower.isFinite,
               upper.isFinite,
@@ -278,16 +378,16 @@ public struct CertifiedAnalyticPairSurfaceParameterCurve: Hashable, Sendable {
         return CertifiedAnalyticPairSurfaceParameterCurve(
             validatedIntersection: intersection,
             role: role,
-            startFraction: interpolate(
+            startFraction: try interpolate(
                 startFraction,
                 endFraction,
                 fraction: min(max(lower, 0.0), 1.0)
-            ),
-            endFraction: interpolate(
+            , using: &execution),
+            endFraction: try interpolate(
                 startFraction,
                 endFraction,
                 fraction: min(max(upper, 0.0), 1.0)
-            )
+            , using: &execution)
         )
     }
 
@@ -297,16 +397,28 @@ public struct CertifiedAnalyticPairSurfaceParameterCurve: Hashable, Sendable {
         curveDomain: ParameterDomain,
         tolerance: ModelingTolerance
     ) throws -> CertifiedAnalyticPairSurfaceParameterCurve {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try trimmed(from: startParameter, to: endParameter, curveDomain: curveDomain, tolerance: tolerance, using: &execution)
+    }
+
+    public func trimmed(
+        from startParameter: Double,
+        to endParameter: Double,
+        curveDomain: ParameterDomain,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> CertifiedAnalyticPairSurfaceParameterCurve {
+        try execution.consumeWork(1)
         var lower = try normalizedFraction(
             startParameter,
             domain: curveDomain,
             tolerance: tolerance
-        )
+        , using: &execution)
         var upper = try normalizedFraction(
             endParameter,
             domain: curveDomain,
             tolerance: tolerance
-        )
+        , using: &execution)
         // Periodic representatives align to the window middle independently,
         // so an endpoint exactly half a period from the middle can round
         // onto the wrong sheet and invert the span; shifting the endpoint
@@ -322,31 +434,39 @@ public struct CertifiedAnalyticPairSurfaceParameterCurve: Hashable, Sendable {
             fromNormalizedFraction: lower,
             toNormalizedFraction: upper,
             tolerance: tolerance
-        )
+        , using: &execution)
     }
+
+
 
     private func mappedFraction(
         _ fraction: Double,
         tolerance: ModelingTolerance
-    ) throws -> Double {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard fraction.isFinite,
               fraction >= -tolerance.relative,
               fraction <= 1.0 + tolerance.relative else {
             throw GeometryError.invalidDistance(fraction)
         }
-        return canonicalFraction(interpolate(
+        return try canonicalFraction(try interpolate(
             startFraction,
             endFraction,
             fraction: min(max(fraction, 0.0), 1.0)
-        ), tolerance: tolerance)
+        , using: &execution), tolerance: tolerance, using: &execution)
     }
+
+
 
     private func normalizedFraction(
         _ parameter: Double,
         domain: ParameterDomain,
         tolerance: ModelingTolerance
-    ) throws -> Double {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
         try domain.validate(tolerance: tolerance)
         guard parameter.isFinite else {
             throw GeometryError.invalidDistance(parameter)
@@ -375,21 +495,29 @@ public struct CertifiedAnalyticPairSurfaceParameterCurve: Hashable, Sendable {
         return min(max(local, 0.0), 1.0)
     }
 
+
+
     private func canonicalFraction(
         _ fraction: Double,
         tolerance: ModelingTolerance
-    ) -> Double {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
         if abs(fraction - 1.0) <= tolerance.relative { return 1.0 }
         let remainder = fraction.truncatingRemainder(dividingBy: 1.0)
         return remainder >= 0.0 ? remainder : remainder + 1.0
     }
 
+
+
     private func interpolate(
         _ lower: Double,
         _ upper: Double,
         fraction: Double
-    ) -> Double {
-        lower + (upper - lower) * fraction
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
+        return lower + (upper - lower) * fraction
     }
 
 #if !hasFeature(Embedded)
@@ -403,6 +531,7 @@ public struct CertifiedAnalyticPairSurfaceParameterCurve: Hashable, Sendable {
 
 #if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
+        var execution = try NativeRationalSourceDecodingContext.validationExecution(from: decoder)
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
             [.intersection, .role, .startFraction, .endFraction],
@@ -418,16 +547,17 @@ public struct CertifiedAnalyticPairSurfaceParameterCurve: Hashable, Sendable {
             startFraction: container.decode(Double.self, forKey: .startFraction),
             endFraction: container.decode(Double.self, forKey: .endFraction),
             tolerance: intersection.certificationTolerance
-        )
+        , using: &execution)
     }
 #endif
 
 #if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
+        var execution = try NativeOriginalSourceEncodingContext.execution(from: encoder)
         try validate(
             on: intersection.surface(for: role),
             tolerance: intersection.certificationTolerance
-        )
+        , using: &execution)
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(intersection, forKey: .intersection)
         try container.encode(role, forKey: .role)

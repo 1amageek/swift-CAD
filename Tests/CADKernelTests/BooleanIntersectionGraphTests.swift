@@ -139,6 +139,10 @@ struct BooleanIntersectionGraphTests {
                 return value.residual <= ModelingTolerance.standard.distance
             case let .coincident(value):
                 return value.residual <= ModelingTolerance.standard.distance
+            case .originalCoaxial, .originalBoundedSphereCone, .originalFullSphereCone,
+                 .originalFullConeCone, .originalApexSphereCone, .originalCommonApexCone,
+                 .originalCoincidentCone:
+                return false
             }
         })
         #expect(first.boundaryContacts.contains { contact in

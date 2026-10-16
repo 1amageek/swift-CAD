@@ -35,11 +35,11 @@ struct PeriodicBSplineSurfaceTests {
             controlPoints: cyclic.controlPoints, weights: cyclic.weights)
     }
 
-    private func densePoint(_ surface: BSplineSurface3D, u: Double, v: Double) -> Point3D {
-        let us = BSplineBasis.values(parameter: u, degree: surface.uDegree,
-            knots: surface.uKnots, count: surface.uControlPointCount)
-        let vs = BSplineBasis.values(parameter: v, degree: surface.vDegree,
-            knots: surface.vKnots, count: surface.vControlPointCount)
+    private func densePoint(_ surface: BSplineSurface3D, u: Double, v: Double, using execution: inout OriginalQueryExecution) throws -> Point3D {
+        let us = try BSplineBasis.values(parameter: u, degree: surface.uDegree,
+            knots: surface.uKnots, count: surface.uControlPointCount, using: &execution)
+        let vs = try BSplineBasis.values(parameter: v, degree: surface.vDegree,
+            knots: surface.vKnots, count: surface.vControlPointCount, using: &execution)
         var numerator = Vector3D.zero
         var denominator = 0.0
         for j in vs.indices {
@@ -65,6 +65,8 @@ struct PeriodicBSplineSurfaceTests {
 
     @Test(.timeLimit(.minutes(1)))
     func independentPeriodicAxesMatchTheDenseTensorBasis() throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
         for (uPeriodic, vPeriodic) in [(true, false), (false, true), (true, true)] {
             for rational in [false, true] {
                 let cyclic = try surface(uPeriodic: uPeriodic, vPeriodic: vPeriodic, rational: rational)
@@ -73,7 +75,7 @@ struct PeriodicBSplineSurfaceTests {
                 for k in 0..<7 {
                     let u = uPeriodic ? 3 + (Double(k) + 0.25) * 5 / 7 : (Double(k) + 0.25) / 7
                     let v = vPeriodic ? -2 + (Double(k) + 0.4) * 4 / 7 : (Double(k) + 0.4) / 7
-                    let expected = densePoint(cyclic, u: u, v: v)
+                    let expected = try densePoint(cyclic, u: u, v: v, using: &execution)
                     for a in -2...2 {
                         for b in -2...2 {
                             let actual = try Surface3D.bSpline(cyclic).point(
@@ -89,38 +91,42 @@ struct PeriodicBSplineSurfaceTests {
 
     @Test(.timeLimit(.minutes(1)))
     func seamFirstSecondAndMixedDerivativesAgreeWithoutWrappingTheReference() throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
         for rational in [false, true] {
             let cyclic = try surface(rational: rational)
             let raw = unwrapped(cyclic)
             #expect(cyclic.periodicSeamContinuityOrder(direction: .u) == 2)
             #expect(cyclic.periodicSeamContinuityOrder(direction: .v) == 2)
             for v in [-2.0, -1.5, -0.25, 1, 2] {
-                checkJets(try raw.surfaceDerivatives(u: 3, v: v, tolerance: tolerance),
-                          try raw.surfaceDerivatives(u: 8, v: v, tolerance: tolerance))
+                checkJets(try raw.surfaceDerivatives(u: 3, v: v, tolerance: tolerance, using: &execution),
+                          try raw.surfaceDerivatives(u: 8, v: v, tolerance: tolerance, using: &execution))
             }
             for u in [3.0, 3.25, 4.5, 6.25, 8] {
-                checkJets(try raw.surfaceDerivatives(u: u, v: -2, tolerance: tolerance),
-                          try raw.surfaceDerivatives(u: u, v: 2, tolerance: tolerance))
-                checkJets(try cyclic.surfaceDerivatives(u: u, v: -2, tolerance: tolerance),
-                          try cyclic.surfaceDerivatives(u: u - 15, v: 10, tolerance: tolerance))
+                checkJets(try raw.surfaceDerivatives(u: u, v: -2, tolerance: tolerance, using: &execution),
+                          try raw.surfaceDerivatives(u: u, v: 2, tolerance: tolerance, using: &execution))
+                checkJets(try cyclic.surfaceDerivatives(u: u, v: -2, tolerance: tolerance, using: &execution),
+                          try cyclic.surfaceDerivatives(u: u - 15, v: 10, tolerance: tolerance, using: &execution))
             }
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func mixedDerivativeMatchesIndependentFiniteDifferences() throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
         let cyclic = try surface()
         let u = 4.25, v = -0.25, h = 1e-4
-        let center = densePoint(cyclic, u: u, v: v)
-        let a = densePoint(cyclic, u: u + h, v: v)
-        let b = densePoint(cyclic, u: u - h, v: v)
-        let c = densePoint(cyclic, u: u, v: v + h)
-        let d = densePoint(cyclic, u: u, v: v - h)
-        let pp = densePoint(cyclic, u: u + h, v: v + h)
-        let pm = densePoint(cyclic, u: u + h, v: v - h)
-        let mp = densePoint(cyclic, u: u - h, v: v + h)
-        let mm = densePoint(cyclic, u: u - h, v: v - h)
-        let jet = try cyclic.surfaceDerivatives(u: u + 10, v: v - 8, tolerance: tolerance)
+        let center = try densePoint(cyclic, u: u, v: v, using: &execution)
+        let a = try densePoint(cyclic, u: u + h, v: v, using: &execution)
+        let b = try densePoint(cyclic, u: u - h, v: v, using: &execution)
+        let c = try densePoint(cyclic, u: u, v: v + h, using: &execution)
+        let d = try densePoint(cyclic, u: u, v: v - h, using: &execution)
+        let pp = try densePoint(cyclic, u: u + h, v: v + h, using: &execution)
+        let pm = try densePoint(cyclic, u: u + h, v: v - h, using: &execution)
+        let mp = try densePoint(cyclic, u: u - h, v: v + h, using: &execution)
+        let mm = try densePoint(cyclic, u: u - h, v: v - h, using: &execution)
+        let jet = try cyclic.surfaceDerivatives(u: u + 10, v: v - 8, tolerance: tolerance, using: &execution)
         #expect((jet.tangentU - (a - b) / (2 * h)).length < 2e-7)
         #expect((jet.tangentV - (c - d) / (2 * h)).length < 2e-7)
         #expect((jet.secondDerivativeUU - ((a - center) + (b - center)) / (h * h)).length < 2e-6)
@@ -130,6 +136,8 @@ struct PeriodicBSplineSurfaceTests {
 
     @Test(.timeLimit(.minutes(1)))
     func originsChangeRepresentativesWithoutChangingTheFunctionOrCurvature() throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
         let original = try surface()
         let changed = try original.changingPeriodicOrigin(direction: .u, to: 7.25, tolerance: tolerance)
             .changingPeriodicOrigin(direction: .v, to: 1.75, tolerance: tolerance)
@@ -141,8 +149,8 @@ struct PeriodicBSplineSurfaceTests {
             #expect(a >= 7.25 && a < 12.25 && b >= 1.75 && b < 5.75)
             #expect((try changed.point(u: a, v: b, tolerance: tolerance)
                 - original.point(u: u, v: v, tolerance: tolerance)).length < 2e-12)
-            checkJets(try changed.surfaceDerivatives(u: u, v: v, tolerance: tolerance),
-                      try original.surfaceDerivatives(u: u, v: v, tolerance: tolerance))
+            checkJets(try changed.surfaceDerivatives(u: u, v: v, tolerance: tolerance, using: &execution),
+                      try original.surfaceDerivatives(u: u, v: v, tolerance: tolerance, using: &execution))
         }
         let expected = try original.differentialGeometry(u: 4.25, v: -0.25, tolerance: tolerance)
         let actual = try changed.differentialGeometry(u: 14.25, v: -8.25, tolerance: tolerance)
@@ -164,6 +172,8 @@ struct PeriodicBSplineSurfaceTests {
 
     @Test(.timeLimit(.minutes(1)))
     func isocurvesNormalizeTheirFixedAxisAndRetainTheVaryingCycle() throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
         let cyclic = try surface().changingPeriodicOrigin(direction: .u, to: 7.25, tolerance: tolerance)
             .changingPeriodicOrigin(direction: .v, to: 1.75, tolerance: tolerance)
         let uCurve = try cyclic.uIsoparametricCurve(atV: 7.75, tolerance: tolerance)
@@ -172,12 +182,12 @@ struct PeriodicBSplineSurfaceTests {
         #expect(vCurve.isPeriodic && vCurve.periodicOrigin == 1.75)
         for t in [-12.25, 0.25, 4.25, 8.5, 13.5] {
             let uJet = try uCurve.parameterDerivatives(at: t, tolerance: tolerance)
-            let surfaceU = try cyclic.surfaceDerivatives(u: t, v: 7.75, tolerance: tolerance)
+            let surfaceU = try cyclic.surfaceDerivatives(u: t, v: 7.75, tolerance: tolerance, using: &execution)
             #expect((uJet.position - surfaceU.position).length < 2e-12)
             #expect((uJet.firstDerivative - surfaceU.tangentU).length < 2e-12)
             #expect((uJet.secondDerivative - surfaceU.secondDerivativeUU).length < 2e-12)
             let vJet = try vCurve.parameterDerivatives(at: t, tolerance: tolerance)
-            let surfaceV = try cyclic.surfaceDerivatives(u: -5.75, v: t, tolerance: tolerance)
+            let surfaceV = try cyclic.surfaceDerivatives(u: -5.75, v: t, tolerance: tolerance, using: &execution)
             #expect((vJet.position - surfaceV.position).length < 2e-12)
             #expect((vJet.firstDerivative - surfaceV.tangentV).length < 2e-12)
             #expect((vJet.secondDerivative - surfaceV.secondDerivativeVV).length < 2e-12)
@@ -257,6 +267,8 @@ struct PeriodicBSplineSurfaceTests {
 
     @Test(.timeLimit(.minutes(1)))
     func degreeGreaterThanTheCycleCountRetainsTranslatedEvaluation() throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
         let cyclic = try BSplineSurface3D.periodic(uDegree: 5, vDegree: 1,
             uKnots: [0, 2, 4], vKnots: [0, 0, 1, 1],
             controlPoints: [[.origin, Point3D(x: 1, y: 0, z: 0)],
@@ -264,8 +276,8 @@ struct PeriodicBSplineSurfaceTests {
             isUPeriodic: true, isVPeriodic: false, tolerance: tolerance)
         #expect(cyclic.uControlPointCount == 7)
         for u in [0.0, 0.25, 1, 3.5, 4] {
-            checkJets(try cyclic.surfaceDerivatives(u: u, v: 0.4, tolerance: tolerance),
-                      try cyclic.surfaceDerivatives(u: u + 12, v: 0.4, tolerance: tolerance))
+            checkJets(try cyclic.surfaceDerivatives(u: u, v: 0.4, tolerance: tolerance, using: &execution),
+                      try cyclic.surfaceDerivatives(u: u + 12, v: 0.4, tolerance: tolerance, using: &execution))
         }
     }
 }

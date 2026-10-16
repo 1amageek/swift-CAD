@@ -39,4 +39,34 @@ public struct AffineCurveConversionSource: GeometryCurveConversionSource {
         try CurrentTaskCancellationChecker().checkCancellation()
         return result
     }
+
+    public func validate(over parameters: ScalarInterval, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.checkpoint()
+        try tolerance.validate()
+        guard parameters.width > 0, parameters.width.isFinite else {
+            throw GeometryConversionError.invalidInput("Curve conversion requires a finite positive interval.")
+        }
+        try source.validate(over: chart.image(parameters), tolerance: tolerance, using: &execution)
+    }
+
+    public func pointAndDerivative(at parameter: Double, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws
+        -> (point: Point3D, derivative: Vector3D) {
+        let value = try source.pointAndDerivative(at: chart.parameter(parameter), tolerance: tolerance, using: &execution)
+        let derivative = value.derivative * chart.scale
+        try value.point.validate()
+        try derivative.validate()
+        try execution.checkpoint()
+        return (value.point, derivative)
+    }
+
+    public func enclosure(over parameters: ScalarInterval, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> CurveDifferentialEnclosure {
+        try validate(over: parameters, tolerance: tolerance, using: &execution)
+        let original = try source.enclosure(over: chart.image(parameters), tolerance: tolerance, using: &execution)
+        let scale = OutwardScalarInterval.exact(chart.scale)
+        let result = try CurveDifferentialEnclosure(position: original.position,
+            firstDerivative: AffineConversionChart.multiply(original.firstDerivative, by: scale),
+            secondDerivative: AffineConversionChart.multiply(original.secondDerivative, by: scale * scale))
+        try execution.checkpoint()
+        return result
+    }
 }

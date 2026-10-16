@@ -23,13 +23,13 @@ public struct DefaultOriginalIssuedGraphCompiler<S: Sendable,E: Sendable>: Origi
         throws(NativeExactRelationFailure) -> OriginalIssuedGraphPreparation<S,E> {
         let binding=copy binding
         do {
-            return try OriginalSourceProofAdmission<A>.withBorrow(&admission) { tracked in
+            return try admission.withProofScope() { tracked in
                 try compileTracked(binding: binding, field: copy field, limits: limits, using: &tracked)
             }
         } catch { throw .preserving(error) }
     }
     private func compileTracked<A: ExactScalarAdmission & ~Copyable>(binding: borrowing OriginalDomainBoundParametricGraph<S,Base,E>,
-        field: borrowing Field, limits: OriginalDomainIdentityLimits, using admission:inout OriginalSourceProofAdmission<A>)
+        field: borrowing Field, limits: OriginalDomainIdentityLimits, using admission:inout A)
         throws -> OriginalIssuedGraphPreparation<S,E> {
             try admission.checkpoint();try binding.admitProof(limits:limits,using:&admission)
             let original=binding.graph,n=original.layout.variableCount,p=original.layout.parameters.count

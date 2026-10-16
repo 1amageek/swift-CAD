@@ -397,3 +397,33 @@ be reused only after exact additive-body and source/product receipt admission.
 The changed producer file is freshly compiled in the independent assembly; private
 producer symbols cannot be linked through an isolated extension. Production source
 adapters and this producer assembly use ordinary access control.
+
+
+## Direct Query Execution Ownership
+
+This component follows the [module direct execution contract](../DESIGN.md) through its existing owner hierarchy. High-level retained geometry preparation and queries borrow the same concrete `OriginalQueryExecution`; pure original rational/source arithmetic borrows generic `ExactScalarAdmission & ~Copyable`. Original corner, join, supporting-plane, native adjacent-chart and M6 guard proofs retain their existing mathematics and authority. Work/storage callbacks, private borrowed ledgers and private allowances are removed rather than reconstructed. Explicit source/span/geometric policies remain independent of scalar proof ceilings; optional scalar caps create local proof scopes on the same owner. Actual typed retained buffers and actual loops are charged before their operation, without proxy prepayment. Ordinary roots invoke the same body once; retained readers keep immutable source/policy/common budget and re-admit actual proof evidence for later queries.
+
+Focused syntax parsing only establishes preparatory source validity. Existing behavioral tests and M6/source-proof receipts require the new direct implementation path to compile and execute before this migration is complete.
+
+
+### Retained Preparation Proof
+
+Persistent endpoint, corner, projection and chart caches retain one immutable
+operation-local preparation receipt. It records attained scalar, source,
+geometric and transport depths; configured policy ceilings are not evidence.
+Each authored child edge is admitted with the common execution source offset
+once. A child receipt remains relative to its own root. A reader applies its
+current offset once and readmits the actual receipt before cached values are
+consumed, without replaying original preparation work or scratch allocations.
+Pure rational issuers readmit the scalar part and rely on their original source
+binding for source-tree authority. Derived receipts do not participate in source
+equality or serialization. High retained constructors and queries use the
+concrete common execution; rational expression helpers remain generic over the
+same scalar admission owner.
+
+Native repeated-knot and periodic C0 checks evaluate the two retained original
+homogeneous polynomial owners at their authored knot endpoints and compare by
+exact positive-weight cross multiplication. This pure scalar proof borrows
+`ExactScalarAdmission & ~Copyable`; it does not route through a new high-level
+query execution. The continuity tests retain unequal weights and a nonzero gap
+smaller than modeling tolerance as distinct original source endpoints.

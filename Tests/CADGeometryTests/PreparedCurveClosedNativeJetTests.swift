@@ -1,6 +1,7 @@
 import CADCore
 @testable import CADGeometry
 import Foundation
+import Synchronization
 import Testing
 
 @Suite("Original closed native curve jets", .timeLimit(.minutes(1)))
@@ -19,12 +20,15 @@ struct PreparedCurveClosedNativeJetTests {
         let blend = RollingBallBlendSurface3D(centerSpine: center, firstContact: first,
             secondContact: second, radius: 0.01, tolerance: tolerance)
         try blend.validate()
-        var work = 0
+        let work = Mutex(0)
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(consumeWorkUnits: { units in
+            work.withLock { $0 += units }
+        }), limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
         for source in [center, first, second] {
             let prepared = try PreparedCurveDifferentialEncloser(curve: source, tolerance: tolerance,
-                consumeWork: { work += 1 })
+                using: &execution)
             let receipt = try prepared.closedNativeJets(over: interval(0.37, 0.37), tolerance: tolerance,
-                consumeWork: { work += 1 })
+                using: &execution)
             #expect(receipt.source == source)
             #expect(receipt.spans.map(\.nativeIndex) == [1, 2])
             for (index, speed) in [0.01 / 0.37, 0.01 / 0.63].enumerated() {
@@ -34,7 +38,7 @@ struct PreparedCurveClosedNativeJetTests {
                 contains(receipt.spans[index].jet.x.thirdDerivativeUUU, 0)
             }
             let end = try prepared.closedNativeJets(over: interval(1, 1), tolerance: tolerance,
-                consumeWork: { work += 1 })
+                using: &execution)
             #expect(end.spans.count == 1)
             contains(end.spans[0].jet.x.value, 0.02)
         }
@@ -44,19 +48,22 @@ struct PreparedCurveClosedNativeJetTests {
         #expect(abs(lowerContact.x - 0.01) < 1e-14)
         #expect(abs(lowerContact.y - 0.01) < 1e-14)
         #expect(abs(upperContact.z - 0.01) < 1e-14)
-        #expect(work == 18)
+        // The former 18 high-level callbacks did not count canonical validation and payload work.
+        #expect(work.withLock { $0 } == execution.budget.snapshot.work)
+        #expect(execution.budget.snapshot.work > 0)
     }
 
     @Test(arguments: [false, true])
     func unequalWeightsRetainLiteralNativeEndpointAndThirdDerivatives(reversed: Bool) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
         var source = BSplineCurve3D(degree: 2, knots: [2, 2, 2, 5, 5, 5],
             controlPoints: [Point3D(x: 0, y: 0, z: 0), Point3D(x: 0, y: 0.5, z: 0), Point3D(x: 1, y: 1, z: 0)],
             weights: [4, 2, 1])
         if reversed { source = try source.reversed(tolerance: tolerance) }
-        let prepared = try PreparedCurveDifferentialEncloser(curve: .bSpline(source), tolerance: tolerance)
+        let prepared = try PreparedCurveDifferentialEncloser(curve: .bSpline(source), tolerance: tolerance, using: &execution)
         for q in [0.0, 0.375, 1.0] {
             let receipt = try prepared.closedNativeJets(over: interval(2 + 3 * q, 2 + 3 * q),
-                tolerance: tolerance, consumeWork: {})
+                tolerance: tolerance, using: &execution)
             #expect(receipt.spans.count == 1)
             let t = reversed ? 1 - q : q, d = 2 - t
             let sign = reversed ? -1.0 : 1.0
@@ -75,14 +82,15 @@ struct PreparedCurveClosedNativeJetTests {
 
     @Test
     func c0KnotKeepsDistinctOneSidedDirectionAndCurvatureJets() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
         let source = BSplineCurve3D(degree: 2, knots: [0, 0, 0, 0.37, 0.37, 1, 1, 1],
             controlPoints: [Point3D(x: 0, y: 0, z: 0), Point3D(x: 1, y: 0, z: 0),
                 Point3D(x: 1, y: 1, z: 0), Point3D(x: 2, y: 1, z: 0), Point3D(x: 3, y: 0, z: 0)])
-        let prepared = try PreparedCurveDifferentialEncloser(curve: .bSpline(source), tolerance: tolerance)
+        let prepared = try PreparedCurveDifferentialEncloser(curve: .bSpline(source), tolerance: tolerance, using: &execution)
         for range in [try interval(0.37, 0.37), try interval(0.2, 0.37)] {
-            let receipt = try prepared.closedNativeJets(over: range, tolerance: tolerance, consumeWork: {})
+            let receipt = try prepared.closedNativeJets(over: range, tolerance: tolerance, using: &execution)
             #expect(receipt.spans.map(\.nativeIndex) == [2, 4])
-            let point = try prepared.closedNativeJets(over: interval(0.37, 0.37), tolerance: tolerance, consumeWork: {})
+            let point = try prepared.closedNativeJets(over: interval(0.37, 0.37), tolerance: tolerance, using: &execution)
             let left = point.spans[0].jet, right = point.spans[1].jet
             contains(left.x.derivativeU, 0); contains(left.y.derivativeU, 2 / 0.37)
             contains(right.x.derivativeU, 2 / 0.63); contains(right.y.derivativeU, 0)
@@ -99,12 +107,13 @@ struct PreparedCurveClosedNativeJetTests {
 
     @Test
     func nonBezierNativeSpanIsCertifiedFromOriginalBasisRatherThanRoundedPatch() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
         let source = BSplineCurve3D(degree: 2, knots: [0, 0, 0, 0.37, 1, 1, 1],
             controlPoints: [Point3D(x: 0, y: 0, z: 0), Point3D(x: 1, y: 0, z: 0),
                 Point3D(x: 1, y: 1, z: 0), Point3D(x: 2, y: 1, z: 0)])
-        let prepared = try PreparedCurveDifferentialEncloser(curve: .bSpline(source), tolerance: tolerance)
+        let prepared = try PreparedCurveDifferentialEncloser(curve: .bSpline(source), tolerance: tolerance, using: &execution)
         let result = try prepared.closedNativeJets(over: interval(0.37 / 2, 0.37 / 2),
-            tolerance: tolerance, consumeWork: {})
+            tolerance: tolerance, using: &execution)
         let jet = try #require(result.spans.first).jet
         // The first original span is exactly [(0,0),(1,0),(1,.37)] in Bernstein form.
         contains(jet.x.value, 0.75); contains(jet.y.value, 0.37 / 4)
@@ -118,23 +127,32 @@ struct PreparedCurveClosedNativeJetTests {
     func preparationAndClosedQueriesUseTheSameCallerWorkAndExactTolerance() throws {
         let source = Curve3D.bSpline(BSplineCurve3D(degree: 1, knots: [0, 0, 0.37, 1, 1],
             controlPoints: [Point3D(x: 0, y: 0, z: 0), Point3D(x: 0.01, y: 0, z: 0), Point3D(x: 0.02, y: 0, z: 0)]))
-        var work = 0
-        func consume() throws {
-            work += 1
-            if work > 4 { throw KernelError(phase: .geometry, code: .resourceLimitExceeded, residual: Double(work), tolerance: tolerance, message: "Test caller work exhausted.") }
-        }
-        let prepared = try PreparedCurveDifferentialEncloser(curve: source, tolerance: tolerance, consumeWork: consume)
-        #expect(work == 3)
+        var baseline = try OriginalQueryExecution.independentGeometry()
+        let prepared = try PreparedCurveDifferentialEncloser(curve: source, tolerance: tolerance, using: &baseline)
+        let preparationWork = baseline.budget.snapshot.work
+        let complete = try prepared.closedNativeJets(over: interval(0.37, 0.37), tolerance: tolerance, using: &baseline)
+        let completeWork = baseline.budget.snapshot.work
+        #expect(complete.spans.map(\.nativeIndex) == [1, 2])
+        #expect(preparationWork > 0 && completeWork > preparationWork)
+        // Historical prelude 3 / ceiling 4 were callback units, not cumulative canonical work.
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(workLimit: completeWork - 1),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
+        let limited = try PreparedCurveDifferentialEncloser(curve: source, tolerance: tolerance, using: &execution)
+        #expect(execution.budget.snapshot.work == preparationWork)
         do {
-            _ = try prepared.closedNativeJets(over: interval(0.37, 0.37), tolerance: tolerance, consumeWork: consume)
+            _ = try limited.closedNativeJets(over: interval(0.37, 0.37), tolerance: tolerance, using: &execution)
             Issue.record("Both owning sides must consume the same aggregate caller budget.")
-        } catch let error as KernelError { #expect(error.code == .resourceLimitExceeded); #expect(error.residual == 5) }
-        let foreignTolerance = ModelingTolerance(distance: tolerance.distance * 2, angle: tolerance.angle, relative: tolerance.relative)
-        #expect(throws: KernelError.self) {
-            try prepared.closedNativeJets(over: interval(0, 0), tolerance: foreignTolerance, consumeWork: {})
+        } catch {
+            guard let scalar = geometryTestOriginalFailure(error) as? ExactScalarFailure,
+                case .resourceLimit(.work) = scalar else { throw error }
+            #expect(execution.budget.snapshot.work < completeWork)
         }
-        #expect(throws: KernelError.self) {
-            try prepared.closedNativeJets(over: interval(-0.01, 0), tolerance: tolerance, consumeWork: {})
+        let foreignTolerance = ModelingTolerance(distance: tolerance.distance * 2, angle: tolerance.angle, relative: tolerance.relative)
+        geometryTestExpectFailure({ geometryTestKernelFailure($0) != nil }) {
+            try prepared.closedNativeJets(over: interval(0, 0), tolerance: foreignTolerance, using: &baseline)
+        }
+        geometryTestExpectFailure({ geometryTestKernelFailure($0) != nil }) {
+            try prepared.closedNativeJets(over: interval(-0.01, 0), tolerance: tolerance, using: &baseline)
         }
     }
 
@@ -145,10 +163,11 @@ struct PreparedCurveClosedNativeJetTests {
         let prepared = try PreparedCurveDifferentialEncloser(curve: source, tolerance: tolerance)
         let task = Task {
             withUnsafeCurrentTask { $0?.cancel() }
-            return try prepared.closedNativeJets(over: interval(0.5, 0.5), tolerance: tolerance, consumeWork: {})
+            var execution = try OriginalQueryExecution.independentGeometry()
+            return try prepared.closedNativeJets(over: interval(0.5, 0.5), tolerance: tolerance, using: &execution)
         }
         do { _ = try await task.value; Issue.record("Cancelled closed curve queries must fail.") }
-        catch is CancellationError { }
+        catch where geometryTestIsCancelled(error) { }
     }
 
     private func interval(_ lower: Double, _ upper: Double) throws -> ScalarInterval {

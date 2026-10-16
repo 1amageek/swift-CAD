@@ -4,12 +4,12 @@ import CADGeometry
 /// Resolves open boundary traversal while preserving explicit source endpoint selections.
 package struct LoftOpenCorrespondenceResolver {
     package func reversals(endpoints: [(Point3D, Point3D)], lockedSectionIndexes: Set<Int>,
-        closesSectionLoop: Bool, allowance: inout LoftCorrespondenceAllowance,
+        closesSectionLoop: Bool, using execution: inout OriginalQueryExecution,
         tolerance: ModelingTolerance) throws -> [Bool] {
         guard !endpoints.isEmpty else {
             throw FeatureEvaluationError.invalidGraph("Open Loft correspondence requires retained source endpoints.")
         }
-        try allowance.charge(endpoints.count)
+        try execution.consumeWork(endpoints.count)
         let states = endpoints.indices.map { index in
             index == 0 || lockedSectionIndexes.contains(index) ? [false] : [false, true]
         }
@@ -38,8 +38,8 @@ package struct LoftOpenCorrespondenceResolver {
                 try cost(section - 1, states[section - 1][previous], section, states[section][next])
             }, closing: { state in
                 closesSectionLoop ? try cost(endpoints.count - 1, states[states.count - 1][state], 0, false) : .exact(0)
-            }, allowance: &allowance, tolerance: tolerance)
-        try allowance.charge(states.count)
+            }, using: &execution, tolerance: tolerance)
+        try execution.consumeWork(states.count)
         return states.indices.map { states[$0][selected[$0]] }
     }
 }

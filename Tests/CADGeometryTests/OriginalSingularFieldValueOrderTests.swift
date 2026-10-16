@@ -4,7 +4,8 @@ import Testing
 
 @Suite(.timeLimit(.minutes(1)))
 struct OriginalSingularFieldValueOrderTests {
-    private struct Admission: RationalAlgebraAdmitting {
+    private struct Admission: ~Copyable, GeometryScalarTestAdmission {
+        var proofScopes = ExactScalarProofScopes()
         var maximumWork = 50_000_000
         var maximumStorage = 50_000_000
         var maximumParameterDepth = 96
@@ -16,28 +17,61 @@ struct OriginalSingularFieldValueOrderTests {
         var coefficientVisits = 0
         var storageCalls = 0
         var cancelOnStorageCall: Int?
-        mutating func consumeExactWork(_ count: Int) throws {
+        mutating func consumeWork(_ count: Int) throws(ExactScalarFailure) {
+            try checkpoint()
+            try proofScopes.checkWork(count)
+            do {
             guard count >= 0, count <= maximumWork - work else { throw failure("work") }
             work += count
+        
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            proofScopes.recordWork(count)
+            try checkpoint()
         }
-        mutating func retainExactStorage(_ count: Int) throws {
+        mutating func retainStorage(bytes: Int) throws(ExactScalarFailure) {
+            try checkpoint()
+            let count = try geometryTestStorageWords(bytes)
+            do {
             guard count >= 0, count <= maximumStorage - storage else { throw failure("storage") }
             storage += count
             storageCalls += 1
             if storageCalls == cancelOnStorageCall { withUnsafeCurrentTask { $0?.cancel() } }
+        
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            try checkpoint()
         }
-        mutating func visitExactCell(depth: Int) throws {
-            guard depth >= 0, depth <= maximumParameterDepth else { throw failure("parameter") }
-            parameterDepth = max(parameterDepth, depth)
-        }
-        mutating func visitCoefficientCell(depth: Int) throws {
-            guard depth >= 0, depth <= maximumCoefficientDepth else { throw failure("coefficient") }
-            coefficientDepth = max(coefficientDepth, depth); coefficientVisits += 1
-        }
+        
+        
         private func failure(_ domain: String) -> KernelError {
             .init(phase: .geometry, code: .resourceLimitExceeded, tolerance: nil,
                 message: "Original field order test exhausted independent \(domain).")
         }
+            mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
+            try admitDepth(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+            let mapped = try proofScopes.mapped(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+            do {
+                switch (axis == .coefficient || proofScopes.exactDepthResource == .coefficientDepth) ? ExactScalarRootAxis.coefficient : .value {
+                case .value:
+                    let depth = mapped.value
+
+            guard depth >= 0, depth <= maximumParameterDepth else { throw failure("parameter") }
+            parameterDepth = max(parameterDepth, depth)
+        
+                case .coefficient:
+                    let depth = mapped.coefficient
+
+            guard depth >= 0, depth <= maximumCoefficientDepth else { throw failure("coefficient") }
+            coefficientDepth = max(coefficientDepth, depth); coefficientVisits += 1
+        
+                }
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            try checkpoint()
+        }
+        var maximumTestValueDepth: Int { maximumParameterDepth }
+        var maximumTestCoefficientDepth: Int { maximumCoefficientDepth }
     }
 
     private func squareRoot(_ radicand: Int, coefficient: Bool = false,
@@ -142,16 +176,16 @@ struct OriginalSingularFieldValueOrderTests {
         var second = try seed(squareRoot(3, usage: &preparation), usage: &preparation)
         let bounds = (first.lower, first.upper, first.sourceDepth)
         var depth = Admission()
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try OriginalSingularFieldValueOrder.compare(&first, &second, maximumDepth: 7, usage: &depth)
         }
         #expect(depth.work == 0 && depth.storage == 0)
         var work = Admission(); work.maximumWork = 0
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try OriginalSingularFieldValueOrder.compare(&first, &second, maximumDepth: 96, usage: &work)
         }
         var storage = Admission(); storage.maximumStorage = 0
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try OriginalSingularFieldValueOrder.compare(&first, &second, maximumDepth: 96, usage: &storage)
         }
         #expect(first.original.context === value.context)
@@ -159,7 +193,7 @@ struct OriginalSingularFieldValueOrderTests {
         let coefficientValue = try squareRoot(2, coefficient: true, usage: &preparation)
         first = try seed(coefficientValue, usage: &preparation)
         var coefficient = Admission()
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try OriginalSingularFieldValueOrder.compare(&first, &second,
                 maximumDepth: 96, maximumCoefficientDepth: 0, usage: &coefficient)
         }
@@ -181,7 +215,7 @@ struct OriginalSingularFieldValueOrderTests {
                 _ = try OriginalSingularFieldValueOrder.compare(&first, &second,
                     maximumDepth: 96, usage: &usage)
                 Issue.record("Cancelled scalar order published a result.")
-            } catch is CancellationError {
+            } catch let error where geometryTestIsCancelled(error) {
                 return usage.work == 0 && usage.storage == 0 && first.sourceDepth == depth
             }
             return false
@@ -194,11 +228,11 @@ struct OriginalSingularFieldValueOrderTests {
         let value = try squareRoot(2, coefficient: true, usage: &preparation)
         #expect(value.context.coefficientDepth == 3)
         var usage = Admission()
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try OriginalSingularRationalCoordinateRoot(original: value,
                 maximumDepth: 96, maximumAlgebraicDepth: 0, usage: &usage)
         }
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try OriginalSingularRationalCoordinateRoot(original: value,
                 maximumDepth: 96, maximumAlgebraicDepth: 2, usage: &usage)
         }
@@ -225,7 +259,7 @@ struct OriginalSingularFieldValueOrderTests {
                 _ = try OriginalSingularFieldValueOrder.compare(&first, &second,
                     maximumDepth: 96, usage: &usage)
                 Issue.record("Final callback cancellation published scalar order.")
-            } catch is CancellationError {
+            } catch let error where geometryTestIsCancelled(error) {
                 return usage.storageCalls == baseline.storageCalls
                     && first.original.context === firstSeed.original.context
                     && second.original.context === secondSeed.original.context

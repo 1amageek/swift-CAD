@@ -15,10 +15,7 @@ struct NativeExactCurveSurfacePointProducer {
     ) throws(NativeExactGeometricRelationFailure) -> CurveSurfaceIntersectionResult {
         do {
             try options.validate(tolerance: tolerance)
-            _ = try ExactScalarNumericAccess.withAdmission(&admission) { usage in
-                try surface.validate(tolerance: tolerance,
-                    consumeWork: { try usage.consumeExactWork(1) })
-            }
+            try surface.validate(tolerance: tolerance, using: &admission)
             let u = try ScalarInterval(lower: surface.uKnots[surface.uDegree],
                 upper: surface.uKnots[surface.uControlPointCount])
             let v = try ScalarInterval(lower: surface.vKnots[surface.vDegree],

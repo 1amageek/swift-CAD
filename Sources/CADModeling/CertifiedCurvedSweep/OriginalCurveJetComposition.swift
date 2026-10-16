@@ -7,14 +7,14 @@ package struct OriginalCurveJetComposition {
 
     package func compose(_ curve: IntervalVectorDerivativeJet,
         parameter: IntervalDerivativeJet, order: Int,
-        consumeWork: () throws -> Void, consumeStorage: (Int) throws -> Void
+        using execution: inout OriginalQueryExecution
     ) throws -> IntervalVectorDerivativeJet {
         guard order >= 0, order <= 5, curve.x.order >= order,
               curve.y.order >= order, curve.z.order >= order, parameter.order >= order else {
             throw GeometryConversionError.invalidInput("Original derivative composition needs a complete order-zero-through-five jet.")
         }
         let side = order + 1
-        try consumeStorage((side * side + 3 * side) * MemoryLayout<OutwardScalarInterval>.stride)
+        try execution.retainStorage(bytes:(side * side + 3 * side) * MemoryLayout<OutwardScalarInterval>.stride)
         var bell = Array(repeating: OutwardScalarInterval.exact(0), count: side * side)
         bell[0] = .exact(1)
         func binomial(_ n: Int, _ k: Int) -> Double {
@@ -28,7 +28,7 @@ package struct OriginalCurveJetComposition {
                 for k in 1...n {
                     var value = OutwardScalarInterval.exact(0)
                     for j in 1...(n-k+1) {
-                        try consumeWork()
+                        try execution.consumeWork(1)
                         value = value + .exact(binomial(n-1, j-1)) * parameter.derivatives[j]
                             * bell[(n-j) * side + k-1]
                     }
@@ -42,7 +42,7 @@ package struct OriginalCurveJetComposition {
             derivatives.append(source.value)
             if order > 0 { for n in 1...order {
                 var value = OutwardScalarInterval.exact(0)
-                for k in 1...n { try consumeWork(); value = value + source.derivatives[k] * bell[n * side + k] }
+                for k in 1...n { try execution.consumeWork(1); value = value + source.derivatives[k] * bell[n * side + k] }
                 guard value.isFinite else { throw GeometryConversionError.resourceLimitExceeded("Original derivative composition has nonfinite closed bounds.") }
                 derivatives.append(value)
             } }

@@ -12,7 +12,7 @@ package struct OriginalSingularRegularChart: Sendable {
     package let sourceDepth: Int
     package var parameterDomain: ScalarInterval { freeAlongU ? localDomain.u : localDomain.v }
 
-    package init<B: RationalAlgebraAdmitting>(germ: OriginalSingularResolution.Germ,
+    package init<B: ExactScalarAdmission & ~Copyable>(germ: OriginalSingularResolution.Germ,
         maximumDepth: Int, maximumRadius: Double = 0.5, inheritedDepth: Int? = nil, usage: inout B) throws {
         guard maximumRadius.isFinite, maximumRadius > 0, maximumRadius <= 0.5 else {
             throw rationalAlgebraFailure("Original ramified chart requires a positive retained radius.")
@@ -23,7 +23,7 @@ package struct OriginalSingularRegularChart: Sendable {
         self.germ = germ; freeAlongU = germ.freeAlongU
         var radius = maximumRadius, depth = max(germ.depth, inheritedDepth ?? germ.depth)
         while true {
-            try usage.visitExactCell(depth: depth)
+            try usage.visitCell(axis: .value, depth: depth)
             let freeRadius = radius * radius
             guard freeRadius > 0, freeRadius.isFinite else { throw rationalAlgebraFailure("Original ramified chart radius cannot be represented outward.") }
             let free = try ScalarInterval(lower: -freeRadius, upper: freeRadius)
@@ -50,7 +50,7 @@ package struct OriginalSingularRegularChart: Sendable {
         }
     }
 
-    package func enclosure<B: RationalAlgebraAdmitting>(over parameter: ScalarInterval,
+    package func enclosure<B: ExactScalarAdmission & ~Copyable>(over parameter: ScalarInterval,
         maximumCoefficientWidth: ExactRationalCoefficient? = nil,
         maximumDepth: Int, inheritedDepth: Int? = nil, usage: inout B) throws -> Enclosure {
         guard parameter.lower >= parameterDomain.lower, parameter.upper <= parameterDomain.upper,
@@ -62,7 +62,7 @@ package struct OriginalSingularRegularChart: Sendable {
         var depth = max(sourceDepth, inheritedDepth ?? sourceDepth)
         guard depth <= maximumDepth else { throw rationalAlgebraFailure("Original ramified query exceeds causal caller depth.") }
         while true {
-            try usage.visitExactCell(depth: depth)
+            try usage.visitCell(axis: .value, depth: depth)
             let midpoint = transverse.lower + transverse.width * 0.5
             let derivative = try germ.strictTransform.partial(over: box(transverse),
                 uOrder: freeAlongU ? 0 : 1, vOrder: freeAlongU ? 1 : 0,
@@ -107,7 +107,7 @@ package struct OriginalSingularRegularChart: Sendable {
         }
         let u = try composed(germ.originalU), v = try composed(germ.originalV)
         var derivatives: [CoordinateEnclosure2D] = []
-        try usage.retainExactStorage(4)
+        try RationalAlgebraStorage.retain(4, of: CoordinateEnclosure2D.self, usage: &usage)
         for i in 0..<4 {
             guard u[i].isFinite, v[i].isFinite else { throw rationalAlgebraFailure("Original ramified UV derivative is nonfinite.") }
             derivatives.append(try .init(x: .init(lower: u[i].lower, upper: u[i].upper),

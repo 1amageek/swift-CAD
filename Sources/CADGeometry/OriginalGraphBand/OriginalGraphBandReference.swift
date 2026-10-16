@@ -14,13 +14,13 @@ enum OriginalGraphBandReference: Sendable {
     }
 
     func graphJet(over u: ScalarInterval, tolerance: ModelingTolerance,
-                  proofUsage: inout OriginalTessellationProofUsage)
+                  using execution: inout OriginalQueryExecution)
       throws -> OriginalGraphBandRationalPiece.GraphJet {
         switch self {
         case let .original(piece):
-            return try piece.graphJet(over: u, tolerance: tolerance, proofUsage: &proofUsage)
+            return try piece.graphJet(over: u, tolerance: tolerance, using: &execution)
         case let .connector(domain, entryV, exitV, originalV):
-            try proofUsage.consume(depth: 0, tolerance: tolerance)
+            try execution.visitGeometricCell(depth: 0)
             guard u.lower >= domain.lower, u.upper <= domain.upper, domain.upper > domain.lower else {
                 throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
                                   message: "An affine reference connector requires its retained exact entry and exit stations.")

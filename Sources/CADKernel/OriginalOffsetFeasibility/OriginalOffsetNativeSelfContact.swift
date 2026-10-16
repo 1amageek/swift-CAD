@@ -25,9 +25,9 @@ enum OriginalOffsetNativeSelfContact {
     }
     static func validate(surface: BSplineSurface3D, domain: SurfaceParameterBox,
         faceID: FaceID, original: ValidatedBRepModel, limits: OffsetFeasibilityLimits,
-        invocation: OffsetFeasibilityInvocation) throws {
+        using execution: inout OriginalQueryExecution) throws {
         let options = limits.surfaceIntersectionOptions
-        let count = invocation.maximumSpanCount
+        let count = min(execution.effectiveLimits.maximumSpans, limits.surfaceIntersectionOptions.maximumSubdivisionCells)
         let domainLimits = try OriginalDomainIdentityLimits(source:.init(remainingSourceDepth:limits.remainingSourceDepth),
             maximumTransportDepth:limits.maximumAlgebraicDepth,maximumCharts:count,
             maximumFamilies:count,maximumIdentityProofs:count)
@@ -37,20 +37,19 @@ enum OriginalOffsetNativeSelfContact {
             maximumRootsPerStack:options.maximumRootAttempts,maximumClosures:options.maximumSubdivisionCells,
             maximumAttachmentPieces:options.maximumContinuationPointCount,
             maximumComponents:options.maximumSeedCount)
-        var a = OffsetExactScalarAdmission(invocation:invocation,maximumDepth:limits.maximumAlgebraicDepth)
         let selected = try prepare(surface:surface,domain:domain,faceID:faceID,original:original,
             selection:.closed,limits:domainLimits,maximumMaps:count,maximumPairs:count,
-            cellLimits:cellLimits,topologyLimits:topologyLimits,using:&a)
+            cellLimits:cellLimits,topologyLimits:topologyLimits,using:&execution)
         for pair in selected.firstRefinements {
             for included in pair.parameters.pullback.region.included {
-                try a.consumeWork(1)
+                try execution.consumeWork(1)
                 if included {
-                    try a.checkpoint()
+                    try execution.checkpoint()
                     throw KernelError(phase:.topology,code:.topologyFailure,tolerance:original.tolerance,
                         message:"Original offset result self-intersects at distinct material parameters.")
                 }
             }
         }
-        try a.checkpoint()
+        try execution.checkpoint()
     }
 }

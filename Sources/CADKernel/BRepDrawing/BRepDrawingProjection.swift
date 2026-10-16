@@ -11,6 +11,12 @@ public struct BRepDrawingProjection: Sendable {
     let sourceSnapshot: BRepDrawingSourceSnapshot
 
     public func validateCurrent(_ evaluated: EvaluatedDocument) throws {
-        try sourceSnapshot.validateCurrent(evaluated)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try validateCurrent(evaluated, using: &execution)
+    }
+
+    public func validateCurrent(_ evaluated: EvaluatedDocument, using execution: inout OriginalQueryExecution) throws {
+        try execution.checkpoint()
+        try sourceSnapshot.validateCurrent(evaluated, using: &execution)
     }
 }

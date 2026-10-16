@@ -7,7 +7,7 @@ struct OriginalRationalPolynomialShearChart: Sendable {
     let chartV: ExactBivariatePolynomial
     let swapped: Bool
 
-    static func candidates<B: RationalAlgebraAdmitting>(original: ExactBivariatePolynomial,
+    static func candidates<B: ExactScalarAdmission & ~Copyable>(original: ExactBivariatePolynomial,
         usage: inout B) throws -> [Self] {
         var result: [Self] = []
         for swapped in [false, true] {
@@ -33,7 +33,7 @@ struct OriginalRationalPolynomialShearChart: Sendable {
                 try chartV.composed(withU: originalU, v: originalV, usage: &usage).subtracting(y, usage: &usage).isZero else {
                 throw rationalAlgebraFailure("Original polynomial shear failed its exact full inverse-coordinate law.")
             }
-            try usage.retainExactStorage(1)
+            try RationalAlgebraStorage.retain(1, of: Self.self, usage: &usage)
             result.append(Self(transformed: transformed, originalU: originalU, originalV: originalV,
                 chartU: chartU, chartV: chartV, swapped: swapped))
         }

@@ -9,8 +9,8 @@ enum ExactSurfaceParameterCodec {
         on surface: Surface3D,
         unit: LengthUnit,
         convention: ExactSurfaceParameterConvention = .step
-    ) -> SurfaceParameter {
-        encode(
+    ) throws -> SurfaceParameter {
+        try encode(
             SurfaceParameter(u: parameter.u, v: parameter.v),
             on: surface,
             unit: unit,
@@ -23,7 +23,7 @@ enum ExactSurfaceParameterCodec {
         on surface: Surface3D,
         unit: LengthUnit,
         convention: ExactSurfaceParameterConvention = .step
-    ) -> SurfaceParameter {
+    ) throws -> SurfaceParameter {
         switch surface {
         case .plane:
             return SurfaceParameter(
@@ -58,7 +58,7 @@ enum ExactSurfaceParameterCodec {
         case let .procedural(procedural):
             switch procedural {
             case let .offset(offset):
-                return encode(
+                return try encode(
                     parameter,
                     on: offset.source,
                     unit: unit,
@@ -69,6 +69,10 @@ enum ExactSurfaceParameterCodec {
                 return parameter
             case .ruled, .rollingBall, .originalRevolution, .originalCoons, .originalAffineWord:
                 return parameter
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Exact neutral exchange has no chart carrier for these source laws.
+            // STEP/IGES encode must refuse until original UV transport and round-trip fidelity are proved.
+            case .originalAngularTransport, .originalBoundaryCorrected, .originalPlaneDerivative, .originalDrafted:
+                throw unavailableOriginalChart(tolerance: nil)
             }
         }
     }
@@ -136,6 +140,10 @@ enum ExactSurfaceParameterCodec {
                 return parameter
             case .ruled, .rollingBall, .originalRevolution, .originalCoons, .originalAffineWord:
                 return parameter
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Exact neutral exchange has no chart carrier for these source laws.
+            // STEP/IGES decode must refuse until original UV transport and round-trip fidelity are proved.
+            case .originalAngularTransport, .originalBoundaryCorrected, .originalPlaneDerivative, .originalDrafted:
+                throw unavailableOriginalChart(tolerance: tolerance)
             }
         }
     }
@@ -144,7 +152,7 @@ enum ExactSurfaceParameterCodec {
         on surface: Surface3D,
         unit: LengthUnit,
         tolerance: ModelingTolerance
-    ) -> Double {
+    ) throws -> Double {
         switch surface {
         case .plane, .cylinder:
             return max(tolerance.angle, unit.fromInternal(tolerance.distance))
@@ -160,17 +168,26 @@ enum ExactSurfaceParameterCodec {
         case let .procedural(procedural):
             switch procedural {
             case let .offset(offset):
-                return encodedTolerance(
+                return try encodedTolerance(
                     on: offset.source,
                     unit: unit,
                     tolerance: tolerance
                 )
             case .originalImage(let image):
-                let native = encodedTolerance(on: image.source, unit: .meter, tolerance: tolerance)
+                let native = try encodedTolerance(on: image.source, unit: .meter, tolerance: tolerance)
                 return native / min(abs(image.uGain), abs(image.vGain))
             case .ruled, .rollingBall, .originalRevolution, .originalCoons, .originalAffineWord:
                 return max(tolerance.angle, tolerance.relative)
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Exact neutral exchange cannot assign a schema tolerance to an unissued chart.
+            // STEP/IGES publication must refuse until these original charts have faithful standard transport.
+            case .originalAngularTransport, .originalBoundaryCorrected, .originalPlaneDerivative, .originalDrafted:
+                throw unavailableOriginalChart(tolerance: tolerance)
             }
         }
+    }
+
+    private static func unavailableOriginalChart(tolerance: ModelingTolerance?) -> KernelError {
+        KernelError(phase: .exchange, code: .unsupportedCapability, tolerance: tolerance,
+            message: "This original procedural chart has no faithful STEP/IGES parameter transport.")
     }
 }

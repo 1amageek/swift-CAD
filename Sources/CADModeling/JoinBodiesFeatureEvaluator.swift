@@ -80,8 +80,8 @@ public struct JoinBodiesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
             }
             return body
         }
-        let removedSubshapeIDs = Set(bodyIDs.flatMap { bodyID in
-            context.subshapeIDs(for: .body(bodyID))
+        let removedSubshapeIDs = try Set(bodyIDs.flatMap { bodyID in
+            try context.subshapeIDs(for: .body(bodyID))
         })
         if join.mode != .solidComponents {
             guard bodies.allSatisfy({ $0.kind == .sheet }) else {

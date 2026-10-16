@@ -1,0 +1,92 @@
+{
+  "scope": "Focused structural surface metering debit, exact/cumulative work, overflow and cancellation behavior only; no whole-G01/U1 or Drawing integration claim.",
+  "family": "structural-surface",
+  "lane": "wasm",
+  "status": "passed",
+  "receipt": {
+    "original": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/structural-surface-portable-wasm-r1/receipt.json",
+    "sha256": "6897449be152accfe63f8ee286a37ecdd076eff5f700a40ce20c3c0e15f87ee6"
+  },
+  "nativeSourceAuthority": {
+    "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-structural-surface-r1/receipt.json",
+    "sha256": "53a65398fd6a177d3a9e604c743ed8391a0d16ab0c919132b91225e211f5958c"
+  },
+  "sourceCount": {
+    "CADCore": 65,
+    "CADGeometry": 2170
+  },
+  "fixture": {
+    "path": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalQueryExecutionVerification/StructuralSurfaceMeteringPortable.swift",
+    "sha256": "fe043859ebb6d290c4cc0c85a2d584d4a5c01bca3f139d48bd19df34c7c97bc8",
+    "expectedOutputLines": [
+      "PASS structural surface original debit sequences",
+      "PASS structural surface exact and cumulative work",
+      "PASS structural surface checked overflow",
+      "PASS structural surface cancellation"
+    ]
+  },
+  "matchedOracleLines": [
+    "PASS structural surface original debit sequences",
+    "PASS structural surface exact and cumulative work",
+    "PASS structural surface checked overflow",
+    "PASS structural surface cancellation"
+  ],
+  "bounds": {
+    "compileLinkSecondsPerLane": 1200,
+    "runtimeSeconds": 120,
+    "aggregateRSSBytes": 10737418240,
+    "compilerProcessesAtOnce": 1
+  },
+  "elapsedSeconds": 114.3627157499941,
+  "phases": [
+    {
+      "name": "wasm-compile",
+      "exitCode": 0,
+      "elapsedSeconds": 110.79300120800326,
+      "peakRSSBytes": 6444236800,
+      "stopReason": null,
+      "wallLimitSeconds": 1199.9999949580015
+    },
+    {
+      "name": "wasm-link",
+      "exitCode": 0,
+      "elapsedSeconds": 1.6008817090041703,
+      "peakRSSBytes": 767442944,
+      "stopReason": null,
+      "wallLimitSeconds": 1088.5640354999996
+    },
+    {
+      "name": "wasm-runtime",
+      "exitCode": 0,
+      "elapsedSeconds": 0.22787220899772365,
+      "peakRSSBytes": 933888,
+      "stopReason": null,
+      "wallLimitSeconds": 120
+    }
+  ],
+  "geometryReuse": null,
+  "logs": {
+    "wasm-compile.log": {
+      "original": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/structural-surface-portable-wasm-r1/wasm-compile.log",
+      "sha256": "6d881d57ac139e5eaecd8f712c669fe5f73d71644859728c1df8942497d666af"
+    },
+    "wasm-link.log": {
+      "original": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/structural-surface-portable-wasm-r1/wasm-link.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "wasm-runtime.log": {
+      "original": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/structural-surface-portable-wasm-r1/wasm-runtime.log",
+      "sha256": "a256c71bbc1529cbe6f89d530f2eae5c71ef3e7d2828425f4e52a3598b66545b"
+    }
+  },
+  "productSHA256": {
+    "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/structural-surface-portable-wasm-r1/wasm/CADGeometry.swiftmodule": "2b251fc58b6594b8faac2d0a255c60e965f1caa56d83f36df001a27d0f3c901e",
+    "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/structural-surface-portable-wasm-r1/wasm/CADGeometry.code.o": "85911e53f96190d93681aa859a4271d8c7740e93da644ed8a28f2c4c7ade3904"
+  },
+  "executableSHA256": "1db291368b897a24719111a26af03a79f0bab6141e5eb439800074922f8270cf",
+  "terminalDrift": {
+    "currentDrift": [],
+    "snapshotDrift": [],
+    "productDrift": []
+  }
+}

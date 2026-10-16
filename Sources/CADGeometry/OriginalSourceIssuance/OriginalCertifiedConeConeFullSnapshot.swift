@@ -30,9 +30,9 @@ public struct OriginalCertifiedConeConeFullSnapshot: Sendable {
         try admitProof(using: &a)
         guard phaseOrdinal >= 0, phaseOrdinal < 2 else { throw OriginalSourceIssuanceFailure.invalidChart }
         let alpha = try CertifiedRotationTrigonometry.evaluate(.exact(referenceField.originalRadians),
-            tolerance: tolerance, consumeWork: { try a.consumeWork(1) })
+            tolerance: tolerance, using: &a)
         let beta = try CertifiedRotationTrigonometry.evaluate(.exact(parameterizedField.originalRadians),
-            tolerance: tolerance, consumeWork: { try a.consumeWork(1) })
+            tolerance: tolerance, using: &a)
         let sign = original.componentKind == .positiveFullBranch ? 1.0 : -1.0
         let tau = phaseOrdinal == 0 ? 1.0 : -1.0
         let ac = alpha.cosine * beta.cosine

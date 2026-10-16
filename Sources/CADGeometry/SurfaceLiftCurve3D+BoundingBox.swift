@@ -10,6 +10,13 @@ extension SurfaceLiftCurve3D {
         over interval: ScalarInterval,
         tolerance: ModelingTolerance
     ) throws -> BoundingBox3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try boundingBox(over: interval, tolerance: tolerance, using: &execution)
+    }
+
+    package func boundingBox(over interval: ScalarInterval, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> BoundingBox3D {
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard interval.lower >= -tolerance.relative,
               interval.upper <= 1.0 + tolerance.relative else {
@@ -21,18 +28,20 @@ extension SurfaceLiftCurve3D {
             )
         }
         if case .originalAffineWord(let image) = parameterCurve {
-            let original = try image.source.boundingBox(over: image.mappedRange(interval), tolerance: tolerance)
+            let original = try image.source.boundingBox(over: image.mappedRange(interval), tolerance: tolerance, using: &execution)
             let sourceBounds = IntervalVector3DBounds(
                 x: .init(lower: original.minimum.x, upper: original.maximum.x),
                 y: .init(lower: original.minimum.y, upper: original.maximum.y),
                 z: .init(lower: original.minimum.z, upper: original.maximum.z))
             let bounds = try OriginalAffineWordJetTransport.position(image.target.preparedWord,
-                bounds: sourceBounds, consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
+                bounds: sourceBounds, using: &execution)
             return try .init(minimum: .init(x: bounds.x.lower, y: bounds.y.lower, z: bounds.z.lower),
                 maximum: .init(x: bounds.x.upper, y: bounds.y.upper, z: bounds.z.upper))
         }
         if case .originalImage(let image) = parameterCurve {
-            let original = try image.source.boundingBox(over: image.mappedRange(interval), tolerance: tolerance)
+            let original = try image.source.boundingBox(over: image.mappedRange(interval), tolerance: tolerance, using: &execution)
+            try execution.retainStorage(count: 16, stride: MemoryLayout<Point3D>.stride)
+            try execution.consumeWork(8)
             let points = [original.minimum, original.maximum,
                 Point3D(x: original.minimum.x, y: original.minimum.y, z: original.maximum.z),
                 Point3D(x: original.minimum.x, y: original.maximum.y, z: original.minimum.z),
@@ -44,7 +53,7 @@ extension SurfaceLiftCurve3D {
                 .expanded(by: tolerance.distance)
         }
         let bounder = SurfaceLiftDifferentialBounder()
-        if supportsIntervalLocalParameterBounds(parameterCurve) {
+        if try supportsIntervalLocalParameterBounds(parameterCurve, using: &execution) {
             // A position box is only as tight as its interval, so a cell is widened only as far
             // as a pcurve trim needs (wider than the relative tolerance), not to the derivative
             // certificates' minimum width: a closest-point search refining toward a root must see
@@ -60,11 +69,11 @@ extension SurfaceLiftCurve3D {
             let localCurve = try parameterCurve.subcurveForParameterBounds(
                 fromNormalizedFraction: containingInterval.lower,
                 toNormalizedFraction: containingInterval.upper,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
             if let parameters = try bounder.parameterBounds(
                 localCurve,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             ) {
                 let u = try intervalInsideDomain(
                     parameters.u,
@@ -80,7 +89,7 @@ extension SurfaceLiftCurve3D {
                     .enclosure(
                         of: surface,
                         over: SurfaceParameterBox(u: u, v: v),
-                        tolerance: tolerance
+                        tolerance: tolerance, using: &execution
                     ).position
                 return try BoundingBox3D(
                     minimum: Point3D(
@@ -97,21 +106,21 @@ extension SurfaceLiftCurve3D {
             }
         }
         if let exact = try parameterCurve.exactIntersectionBoundingBox(
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         ) {
             return exact
         }
         if let rationalSupport = try bounder.bSplineSupportBounds(
             lift: self,
             interval: interval,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         ) {
             return rationalSupport
         }
         guard let speed = try bounder.firstDerivativeMagnitude(
             lift: self,
             interval: interval,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         ) else {
             throw KernelError(
                 phase: .geometry,
@@ -123,7 +132,7 @@ extension SurfaceLiftCurve3D {
         let middle = interval.lower + interval.width * 0.5
         let center = try point(
             atNormalizedFraction: middle,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         let radius = (speed.nextUp * (interval.width * 0.5).nextUp)
             .nextUp
@@ -151,14 +160,15 @@ extension SurfaceLiftCurve3D {
 
     private func supportsIntervalLocalParameterBounds(
         _ curve: SurfaceParameterCurve
-    ) -> Bool {
+    , using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.consumeWork(1)
         switch curve {
         case .affine, .constantU, .constantV, .polyline, .bSpline, .originalBSplineContinuation, .certifiedImplicit:
             return true
         case let .offsetSurfaceImage(image):
-            return supportsIntervalLocalParameterBounds(image.source)
+            return try supportsIntervalLocalParameterBounds(image.source, using: &execution)
         case let .periodicTranslation(base, _, _):
-            return supportsIntervalLocalParameterBounds(base)
+            return try supportsIntervalLocalParameterBounds(base, using: &execution)
         case .originalImage, .originalAffineWord, .harmonic, .sphericalGreatCircle,
              .certifiedAnalyticImplicit, .certifiedAnalyticPair,
              .projectedAnalytic, .rigidImage:

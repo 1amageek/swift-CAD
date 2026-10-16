@@ -1,6 +1,6 @@
 /// Causal enclosure/refinement of a retained original ordered-field parameter pair.
 package extension OriginalSingularFieldSystemRoot {
-    func hasSameValue<B: RationalAlgebraAdmitting>(as other: Self,
+    func hasSameValue<B: ExactScalarAdmission & ~Copyable>(as other: Self,
         maximumDepth: Int, usage: inout B) throws -> Bool {
         guard projectionRoot.polynomial.context === other.projectionRoot.polynomial.context else {
             throw rationalAlgebraFailure("Original field point comparison needs identical original coefficient authority.")
@@ -22,7 +22,7 @@ package extension OriginalSingularFieldSystemRoot {
             .sign(maximumDepth: maximumDepth, usage: &usage) { return true }
         return false
     }
-    func enclosure<B: RationalAlgebraAdmitting>(usage: inout B) throws -> SurfaceParameterBox {
+    func enclosure<B: ExactScalarAdmission & ~Copyable>(usage: inout B) throws -> SurfaceParameterBox {
         let first = try projectionRoot.isolation.lower.outwardInterval(usage: &usage)
         let second = try projectionRoot.isolation.upper.outwardInterval(usage: &usage)
         let third = try fiberRoot.isolation.lower.outwardInterval(usage: &usage)
@@ -32,7 +32,7 @@ package extension OriginalSingularFieldSystemRoot {
             v: ScalarInterval(lower: max(sourceDomain.v.lower, third.lower), upper: min(sourceDomain.v.upper, fourth.upper)))
     }
 
-    func refined<B: RationalAlgebraAdmitting>(maximumUWidth: ExactRationalCoefficient,
+    func refined<B: ExactScalarAdmission & ~Copyable>(maximumUWidth: ExactRationalCoefficient,
         maximumVWidth: ExactRationalCoefficient, maximumDepth: Int, usage: inout B) throws -> Self {
         guard maximumUWidth.isPositive, maximumVWidth.isPositive, !equations.isEmpty else {
             throw rationalAlgebraFailure("Original field pair refinement needs positive widths and retained original equations.")
@@ -54,7 +54,7 @@ package extension OriginalSingularFieldSystemRoot {
         guard !common.isZero else { throw rationalAlgebraFailure("Original field pair refinement lost finite fiber authority.") }
         let depth = max(projection.isolation.depth, fiberRoot.isolation.depth)
         guard depth <= maximumDepth else { throw rationalAlgebraFailure("Original field pair refinement exceeds causal caller depth.") }
-        try usage.visitExactCell(depth: depth)
+        try usage.visitCell(axis: .value, depth: depth)
         let sequence = try OriginalSingularFieldSturm(common, maximumDepth: maximumDepth, usage: &usage)
         let bounds = fiberRoot.isolation
         guard try sequence.count(lower: bounds.lower, upper: bounds.upper,

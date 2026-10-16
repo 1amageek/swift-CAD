@@ -6,7 +6,7 @@ public enum OriginalAngularParameterTransport: Hashable, Sendable {
     case physicalRadians(gain: ExactRationalCoefficient, offset: ExactRationalCoefficient)
     case physicalRadianArc(start: ExactRationalCoefficient, end: ExactRationalCoefficient, additionalTurns: Int)
 
-    package func orientationSign<B: RationalAlgebraAdmitting>(usage: inout B) throws -> Int {
+    package func orientationSign<B: ExactScalarAdmission & ~Copyable>(usage: inout B) throws -> Int {
         switch self {
         case .intrinsic: return 1
         case .physicalRadians(let gain, _): return gain.isNegative ? -1 : 1
@@ -24,7 +24,7 @@ public enum OriginalAngularParameterTransport: Hashable, Sendable {
 
     package var isNormalizedArc: Bool { if case .physicalRadianArc = self { return true }; return false }
 
-    private func arcGain<B: RationalAlgebraAdmitting>(usage: inout B) throws -> OutwardScalarInterval {
+    private func arcGain<B: ExactScalarAdmission & ~Copyable>(usage: inout B) throws -> OutwardScalarInterval {
         guard case .physicalRadianArc(let start, let end, let turns) = self else {
             throw GeometryConversionError.invalidInput("Original angular source is not a normalized physical arc.")
         }
@@ -39,19 +39,16 @@ public enum OriginalAngularParameterTransport: Hashable, Sendable {
 
     package var isIntrinsic: Bool { if case .intrinsic = self { return true }; return false }
 
-    package func validate<B: RationalAlgebraAdmitting>(usage: inout B) throws {
-        try usage.consumeExactWork(1)
+    package func validate<B: ExactScalarAdmission & ~Copyable>(usage: inout B) throws {
+        try usage.consumeWork(1)
         if case .physicalRadianArc = self { _ = try orientationSign(usage: &usage) }
         if case .physicalRadians(let gain, _) = self, gain.isZero {
             throw GeometryConversionError.invalidInput("Original physical-angle transport requires a nonzero gain.")
         }
     }
 
-    package func phaseAndGain(over range: ScalarInterval, consumeWork: () throws -> Void,
-        consumeStorage: ((Int) throws -> Void)? = nil) throws -> (phase: OutwardScalarInterval, gain: OutwardScalarInterval) {
-        return try withoutActuallyEscaping(consumeWork) { work in
-            var usage = OriginalGeometryValidationAdmission(consumeWork: { _ in try work() }, consumeStorage: consumeStorage)
-            try validate(usage: &usage)
+    package func phaseAndGain<A: ExactScalarAdmission & ~Copyable>(over range: ScalarInterval, using usage: inout A) throws -> (phase: OutwardScalarInterval, gain: OutwardScalarInterval) {
+        try validate(usage: &usage)
             switch self {
             case .intrinsic:
                 return (.init(lower: range.lower, upper: range.upper), CanonicalSphereAngularPhase.scaleBounds)
@@ -72,20 +69,18 @@ public enum OriginalAngularParameterTransport: Hashable, Sendable {
                 }
                 return (try station(range.lower).union(station(range.upper)), try gain.outwardInterval(usage: &usage))
             }
-        }
     }
 
-    package func harmonic(over range: ScalarInterval, cosine: Bool, consumeWork: () throws -> Void,
-        consumeStorage: ((Int) throws -> Void)? = nil) throws -> (value: OutwardScalarInterval, gain: OutwardScalarInterval) {
-        let original = try phaseAndGain(over: range, consumeWork: consumeWork, consumeStorage: consumeStorage)
+    package func harmonic<A: ExactScalarAdmission & ~Copyable>(over range: ScalarInterval, cosine: Bool, using usage: inout A) throws -> (value: OutwardScalarInterval, gain: OutwardScalarInterval) {
+        let original = try phaseAndGain(over: range, using: &usage)
         let argument = SurfaceIntervalJet(value: original.phase, derivativeU: .exact(0), derivativeV: .exact(0),
             secondDerivativeUU: .exact(0), secondDerivativeUV: .exact(0), secondDerivativeVV: .exact(0),
             thirdDerivativeUUU: .exact(0), thirdDerivativeUUV: .exact(0), thirdDerivativeUVV: .exact(0), thirdDerivativeVVV: .exact(0))
         let result: SurfaceIntervalJet
         switch self {
-        case .intrinsic: result = try CanonicalSphereAngularPhase.harmonic(of: argument, cosine: cosine, consumeWork: consumeWork)
+        case .intrinsic: result = try CanonicalSphereAngularPhase.harmonic(of: argument, cosine: cosine, using: &usage)
         case .physicalRadians, .physicalRadianArc:
-            result = try cosine ? .cosine(of: argument, consumeWork: consumeWork) : .sine(of: argument, consumeWork: consumeWork)
+            result = try cosine ? .cosine(of: argument, using: &usage) : .sine(of: argument, using: &usage)
         }
         return (result.value, original.gain)
     }
@@ -94,8 +89,7 @@ public enum OriginalAngularParameterTransport: Hashable, Sendable {
 extension OriginalAngularParameterTransport {
     /// The authored sphere latitude branch is checked in its original coordinate
     /// meaning. Certified containment failure never becomes a clipped latitude.
-    package func requireSphereLatitude(over range: ScalarInterval,consumeWork: () throws -> Void,
-        consumeStorage: ((Int) throws -> Void)? = nil) throws {
+    package func requireSphereLatitude<A: ExactScalarAdmission & ~Copyable>(over range: ScalarInterval, using usage: inout A) throws {
         guard range.lower.isFinite,range.upper.isFinite,range.lower <= range.upper else {
             throw GeometryConversionError.invalidInput("Original latitude query requires finite ordered endpoints.")
         }
@@ -107,16 +101,12 @@ extension OriginalAngularParameterTransport {
         }
         let phase: OutwardScalarInterval
         if case .physicalRadianArc(let start,_,_) = self {
-            phase = try withoutActuallyEscaping(consumeWork) { work in
-                var usage = OriginalGeometryValidationAdmission(consumeWork:{ _ in try work() },consumeStorage:consumeStorage)
-                guard range.lower >= 0,range.upper <= 1 else {
-                    throw GeometryConversionError.invalidInput("Original normalized latitude exceeds its authored unit interval.")
-                }
-                // Preserve full turns when checking the latitude branch, even at
-                // an endpoint whose harmonic image is unchanged by those turns.
-                return try start.outwardInterval(usage:&usage) + arcGain(usage:&usage) * .init(lower:range.lower,upper:range.upper)
+            guard range.lower >= 0,range.upper <= 1 else {
+                throw GeometryConversionError.invalidInput("Original normalized latitude exceeds its authored unit interval.")
             }
-        } else { phase = try phaseAndGain(over:range,consumeWork:consumeWork,consumeStorage:consumeStorage).phase }
+            // Preserve full turns for latitude support even when the endpoint harmonic repeats.
+            phase = try start.outwardInterval(usage:&usage) + arcGain(usage:&usage) * .init(lower:range.lower,upper:range.upper)
+        } else { phase = try phaseAndGain(over:range,using:&usage).phase }
         let halfPi = CanonicalSphereAngularPhase.piBounds * .exact(0.5)
         guard phase.lower >= -halfPi.lower,phase.upper <= halfPi.lower else {
             if phase.upper < -halfPi.upper || phase.lower > halfPi.upper {

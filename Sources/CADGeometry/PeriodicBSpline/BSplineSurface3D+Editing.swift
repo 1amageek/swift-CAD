@@ -1,10 +1,11 @@
 import CADCore
 
 extension BSplineSurface3D {
-    func refiningTensorAxis(
+    func refiningTensorAxis<A: ExactScalarAdmission & ~Copyable>(
         direction: SurfaceParameterDirection, value: Double,
-        options: PeriodicBSplineExpansionOptions, tolerance: ModelingTolerance
+        options: PeriodicBSplineExpansionOptions, tolerance: ModelingTolerance, using execution: inout A
     ) throws -> BSplineSurface3D {
+        try execution.consumeWork(1)
         try options.validate(tolerance: tolerance)
         guard value.isFinite else {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
@@ -24,15 +25,16 @@ extension BSplineSurface3D {
             PeriodicBSplineEditPlan.product(8, plan.workspaceControlPointCount, tolerance), tolerance)
         let work = try PeriodicBSplineEditPlan.product(plan.knotInsertionWork, perpendicular, tolerance)
         try admitTensorEdit(storage: storage, work: work, options: options, tolerance: tolerance)
-        return try applyingTensorLineEdit(direction: direction, tolerance: tolerance) { line in
-            try line.insertingKnot(value, expansionOptions: options, tolerance: tolerance)
+        return try applyingTensorLineEdit(direction: direction, tolerance: tolerance, using: &execution) { line, execution in
+            try line.insertingKnot(value, expansionOptions: options, tolerance: tolerance, using: &execution)
         }
     }
 
-    func restrictingTensor(
+    func restrictingTensor<A: ExactScalarAdmission & ~Copyable>(
         uFrom: Double, uTo: Double, vFrom: Double, vTo: Double,
-        options: PeriodicBSplineExpansionOptions, tolerance: ModelingTolerance
+        options: PeriodicBSplineExpansionOptions, tolerance: ModelingTolerance, using execution: inout A
     ) throws -> BSplineSurface3D {
+        try execution.consumeWork(1)
         try options.validate(tolerance: tolerance)
         let uPlan = try PeriodicBSplineEditPlan.restriction(degree: uDegree, knots: uKnots,
             controlPointCount: uControlPointCount, periodic: isUPeriodic,
@@ -55,24 +57,25 @@ extension BSplineSurface3D {
             PeriodicBSplineEditPlan.product(vPlan.knotInsertionWork, uPlan.workspaceControlPointCount, tolerance), tolerance)
         try admitTensorEdit(storage: max(firstPeak, secondPeak), work: work,
             options: options, tolerance: tolerance)
-        let intermediateSurface = try applyingTensorLineEdit(direction: .u, tolerance: tolerance) { line in
+        let intermediateSurface = try applyingTensorLineEdit(direction: .u, tolerance: tolerance, using: &execution) { line, execution in
             try Self.restrictControlLine(line, lower: uFrom, upper: uTo,
-                options: options, tolerance: tolerance)
+                options: options, tolerance: tolerance, using: &execution)
         }
-        return try intermediateSurface.applyingTensorLineEdit(direction: .v, tolerance: tolerance) { line in
+        return try intermediateSurface.applyingTensorLineEdit(direction: .v, tolerance: tolerance, using: &execution) { line, execution in
             try Self.restrictControlLine(line, lower: vFrom, upper: vTo,
-                options: options, tolerance: tolerance)
+                options: options, tolerance: tolerance, using: &execution)
         }
     }
 
-    private static func restrictControlLine(
+    private static func restrictControlLine<A: ExactScalarAdmission & ~Copyable>(
         _ line: BSplineCurve3D, lower: Double, upper: Double,
-        options: PeriodicBSplineExpansionOptions, tolerance: ModelingTolerance
+        options: PeriodicBSplineExpansionOptions, tolerance: ModelingTolerance, using execution: inout A
     ) throws -> BSplineCurve3D {
+        try execution.consumeWork(1)
         if line.isPeriodic {
-            return try line.trimmed(from: lower, to: upper, expansionOptions: options, tolerance: tolerance)
+            return try line.trimmed(from: lower, to: upper, expansionOptions: options, tolerance: tolerance, using: &execution)
         }
-        return try BSplineCurveSegmentExtractor().segment(of: line, from: lower, to: upper, tolerance: tolerance)
+        return try BSplineCurveSegmentExtractor().segment(of: line, from: lower, to: upper, tolerance: tolerance, using: &execution)
     }
 
     private func admitTensorEdit(
@@ -84,29 +87,36 @@ extension BSplineSurface3D {
     }
 
     /// Edits one control line at a time; no complete expanded tensor is retained.
-    private func applyingTensorLineEdit(
+    private func applyingTensorLineEdit<A: ExactScalarAdmission & ~Copyable>(
         direction: SurfaceParameterDirection, tolerance: ModelingTolerance,
-        edit: (BSplineCurve3D) throws -> BSplineCurve3D
+        using execution: inout A, edit: (BSplineCurve3D, inout A) throws -> BSplineCurve3D
     ) throws -> BSplineSurface3D {
-        let first = try edit(controlLine(direction: direction, index: 0))
+        try execution.consumeWork(1)
+        let first = try edit(controlLine(direction: direction, index: 0, using: &execution), &execution)
         let lineCount = direction == .u ? vControlPointCount : uControlPointCount
         var points: [[Point3D]]
         var newWeights: [[Double]]
         if direction == .u {
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: lineCount, of: [Point3D].self))
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: lineCount, of: [Double].self))
             points = [first.controlPoints]
             newWeights = [first.weights]
             points.reserveCapacity(lineCount)
             newWeights.reserveCapacity(lineCount)
         } else {
+            try retainNumericMatrix(rows: first.controlPointCount, columns: lineCount, of: Point3D.self, using: &execution)
+            try retainNumericMatrix(rows: first.controlPointCount, columns: lineCount, of: Double.self, using: &execution)
             points = Array(repeating: Array(repeating: .origin, count: lineCount), count: first.controlPointCount)
             newWeights = Array(repeating: Array(repeating: 0.0, count: lineCount), count: first.controlPointCount)
             for j in first.controlPoints.indices {
+                try execution.consumeWork(1)
                 points[j][0] = first.controlPoints[j]
                 newWeights[j][0] = first.weights[j]
             }
         }
         for index in 1..<lineCount {
-            let line = try edit(controlLine(direction: direction, index: index))
+            try execution.consumeWork(1)
+            let line = try edit(controlLine(direction: direction, index: index, using: &execution), &execution)
             guard line.degree == first.degree, line.knots == first.knots,
                   line.controlPointCount == first.controlPointCount,
                   line.isPeriodic == first.isPeriodic, line.periodicOrigin == first.periodicOrigin else {
@@ -118,6 +128,7 @@ extension BSplineSurface3D {
                 newWeights.append(line.weights)
             } else {
                 for j in line.controlPoints.indices {
+                    try execution.consumeWork(1)
                     points[j][index] = line.controlPoints[j]
                     newWeights[j][index] = line.weights[j]
                 }
@@ -133,18 +144,21 @@ extension BSplineSurface3D {
             isVPeriodic: direction == .v ? first.isPeriodic : isVPeriodic,
             uPeriodicOrigin: direction == .u ? first.periodicOrigin : uPeriodicOrigin,
             vPeriodicOrigin: direction == .v ? first.periodicOrigin : vPeriodicOrigin)
-        try result.validate(tolerance: tolerance)
+        try result.validate(tolerance: tolerance, using: &execution)
         return result
     }
 
-    private func controlLine(direction: SurfaceParameterDirection, index: Int) -> BSplineCurve3D {
+    private func controlLine<A: ExactScalarAdmission & ~Copyable>(direction: SurfaceParameterDirection, index: Int, using execution: inout A) throws -> BSplineCurve3D {
+        try execution.consumeWork(1)
         if direction == .u {
             return BSplineCurve3D(degree: uDegree, knots: uKnots,
                 controlPoints: controlPoints[index], weights: weights[index],
                 isPeriodic: isUPeriodic, periodicOrigin: uPeriodicOrigin)
         }
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: controlPoints.count, of: Point3D.self))
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: weights.count, of: Double.self))
         return BSplineCurve3D(degree: vDegree, knots: vKnots,
-            controlPoints: controlPoints.map { $0[index] }, weights: weights.map { $0[index] },
+            controlPoints: try controlPoints.map { try execution.consumeWork(1); return $0[index] }, weights: try weights.map { try execution.consumeWork(1); return $0[index] },
             isPeriodic: isVPeriodic, periodicOrigin: vPeriodicOrigin)
     }
 }

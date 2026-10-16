@@ -6,6 +6,6 @@ protocol SurfaceNormalResolving: Sendable {
         on surface: Surface3D,
         u: Double,
         v: Double,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Vector3D
 }

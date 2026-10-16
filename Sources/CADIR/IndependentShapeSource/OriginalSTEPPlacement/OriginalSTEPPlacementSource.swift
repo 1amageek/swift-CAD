@@ -19,9 +19,11 @@ public enum OriginalSTEPPlacementSource: Equatable, Sendable {
         case .cartesian(let value): value.adjustments }
     }
     public func adjusted(by displacement: Vector3D, conjugates: Bool,
-                         consumeWork: (Int) throws -> Void) throws -> Self {
+                         using execution: inout OriginalQueryExecution) throws -> Self {
         try displacement.validate()
-        try consumeWork(adjustments.count + 1)
+        let count = adjustments.count.addingReportingOverflow(1)
+        guard !count.overflow else { throw IndependentShapeSourceError.resourceLimitExceeded("Original STEP placement adjustment count overflows.") }
+        try execution.consumeWork(count.partialValue)
         var sequence = adjustments
         sequence.append(.init(displacement: displacement, conjugates: conjugates))
         switch self {

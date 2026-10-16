@@ -7,14 +7,13 @@ package struct OriginalDraftedWallPartition {
     package func walls(curve: Curve3D, parameters: ScalarInterval,
         normal: Vector3D, axis: Vector3D, pull: Vector3D, lowerHeight: Double,
         upperHeight: Double, angle: Double, tolerance: ModelingTolerance,
-        admission: GeometryConversionAdmission,
+        using execution: inout OriginalQueryExecution,
         reversedTraversal: Bool = false) throws -> [OriginalDraftedRuledSurface3D] {
-        var usage = OriginalDraftedConstructionAdmission(admission)
         var generators = try generators(curve: curve, parameters: parameters,
-            tolerance: tolerance, admission: admission, remainingSourceDepth: admission.remainingSourceDepth, usage: &usage)
+            tolerance: tolerance, remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth, using: &execution)
         if reversedTraversal {
             for index in 0..<((generators.count + 1) / 2) {
-                try admission.chargeWork()
+                try execution.consumeWork(1)
                 let opposite = generators.count - 1 - index
                 let first = generators[index], last = generators[opposite]
                 generators[index] = last.reversed()
@@ -23,23 +22,23 @@ package struct OriginalDraftedWallPartition {
         }
         let bytes = generators.count.multipliedReportingOverflow(by: MemoryLayout<OriginalDraftedRuledSurface3D>.stride)
         guard !bytes.overflow else { throw GeometryConversionError.resourceLimitExceeded("Original draft wall payload overflows.") }
-        try admission.chargeStorage(bytes: bytes.partialValue)
+        try execution.retainStorage(bytes: bytes.partialValue)
         var walls: [OriginalDraftedRuledSurface3D] = []; walls.reserveCapacity(generators.count)
         for generator in generators {
-            try admission.chargeWork()
+            try execution.consumeWork(1)
             let start = try OriginalDraftedCurve3D(generator: generator, normal: normal,
                 axis: axis, pull: pull, height: lowerHeight, angle: angle,
-                remainingSourceDepth: admission.remainingSourceDepth, tolerance: tolerance, usage: &usage)
+                remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth, tolerance: tolerance, usage: &execution)
             walls.append(try OriginalDraftedRuledSurface3D(start: start, endHeight: upperHeight,
-                remainingSourceDepth: admission.remainingSourceDepth, tolerance: tolerance, usage: &usage))
+                remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth, tolerance: tolerance, usage: &execution))
         }
         return walls
     }
 
     private func generators(curve: Curve3D, parameters: ScalarInterval,
-        tolerance: ModelingTolerance, admission: GeometryConversionAdmission,
-        remainingSourceDepth: Int, usage: inout OriginalDraftedConstructionAdmission) throws -> [OriginalCurveRootSpan3D] {
-        try admission.chargeWork()
+        tolerance: ModelingTolerance, remainingSourceDepth: Int,
+        using execution: inout OriginalQueryExecution) throws -> [OriginalCurveRootSpan3D] {
+        try execution.consumeWork(1)
         guard remainingSourceDepth >= 0 else {
             throw GeometryConversionError.resourceLimitExceeded("Original draft chart traversal exhausted source nesting.")
         }
@@ -47,9 +46,9 @@ package struct OriginalDraftedWallPartition {
             image.offset == 0, image.parameterGain == .binary(-1) {
             var result = try generators(curve: image.source,
                 parameters: .init(lower: -parameters.upper, upper: -parameters.lower),
-                tolerance: tolerance, admission: admission, remainingSourceDepth: remainingSourceDepth - 1, usage: &usage)
+                tolerance: tolerance, remainingSourceDepth: remainingSourceDepth - 1, using: &execution)
             for i in 0..<((result.count + 1)/2) {
-                try admission.chargeWork()
+                try execution.consumeWork(1)
                 let j = result.count-1-i, first = result[i], last = result[j]
                 result[i] = last.reversed()
                 if i != j { result[j] = first.reversed() }
@@ -60,14 +59,14 @@ package struct OriginalDraftedWallPartition {
             try OriginalCurveRootSpan3D(source: curve, start: .authored(lower), end: .authored(upper),
                 nativeSpanIndex: span,
                 maximumParameterWidth: curve.parameterDomain.parameterResolution(tolerance: tolerance),
-                maximumSubdivisionDepth: min(32, admission.maximumSubdivisionDepth), tolerance: tolerance,
-                storageByteStride: MemoryLayout<UInt32>.stride, usage: &usage,
-                maximumSpanCount: min(4096, admission.maximumSpanCount),
+                maximumSubdivisionDepth: min(32, execution.effectiveLimits.maximumSubdivisionDepth), tolerance: tolerance,
+                usage: &execution,
+                maximumSpanCount: min(4096, execution.effectiveLimits.maximumSpans),
                 remainingSourceDepth: remainingSourceDepth,
-                maximumAlgebraicDepth: admission.maximumAlgebraicDepth ?? 32)
+                maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth)
         }
         guard case let .bSpline(spline) = curve else {
-            try admission.chargeStorage(bytes: MemoryLayout<OriginalCurveRootSpan3D>.stride)
+            try execution.retainStorage(bytes: MemoryLayout<OriginalCurveRootSpan3D>.stride)
             return [try prepared(parameters.lower, parameters.upper, nil)]
         }
         guard parameters.lower >= spline.knots[spline.degree],
@@ -80,18 +79,18 @@ package struct OriginalDraftedWallPartition {
         }
         var count = 0
         for i in spline.degree..<spline.controlPoints.count {
-            try admission.chargeWork()
+            try execution.consumeWork(1)
             if max(parameters.lower,spline.knots[i]) < min(parameters.upper,spline.knots[i+1]) { count += 1 }
         }
-        guard count > 0, count <= min(4096, admission.maximumSpanCount) else {
+        guard count > 0, count <= min(4096, execution.effectiveLimits.maximumSpans) else {
             throw GeometryConversionError.resourceLimitExceeded("Original draft native owning charts exceed their admitted count.")
         }
         let bytes = count.multipliedReportingOverflow(by: MemoryLayout<OriginalCurveRootSpan3D>.stride)
         guard !bytes.overflow else { throw GeometryConversionError.resourceLimitExceeded("Original draft generator payload overflows.") }
-        try admission.chargeStorage(bytes: bytes.partialValue)
+        try execution.retainStorage(bytes: bytes.partialValue)
         var result: [OriginalCurveRootSpan3D] = []; result.reserveCapacity(count)
         for i in spline.degree..<spline.controlPoints.count {
-            try admission.chargeWork()
+            try execution.consumeWork(1)
             let lower = max(parameters.lower,spline.knots[i]), upper = min(parameters.upper,spline.knots[i+1])
             if lower < upper { result.append(try prepared(lower,upper,i)) }
         }

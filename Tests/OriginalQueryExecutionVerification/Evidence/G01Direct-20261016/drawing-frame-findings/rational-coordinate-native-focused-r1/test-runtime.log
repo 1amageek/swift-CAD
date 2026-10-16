@@ -1,0 +1,27 @@
+􀟈  Test run started.
+􀄵  Swift Standard Library Version: 6.4
+􀄵  Swift Compiler Version: 6.4
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀄵  OS Version: 27.0.1 (26A434)
+􀟈  Suite "Silhouette rational coordinate source selection" (aka 'SurfaceSilhouetteRationalCoordinateSelectionTests') started.
+􀟈  Test actualNativeSourceRetainsOnlyItsAdmittedRationalLaw(_:) started.
+􀟈  Test case passing 1 argument selection → .affineV (FocusedTests.SurfaceSilhouetteRationalCoordinateSelectionTests.SelectionCase) to actualNativeSourceRetainsOnlyItsAdmittedRationalLaw(_:) started.
+􀟈  Test case passing 1 argument selection → .affineU (FocusedTests.SurfaceSilhouetteRationalCoordinateSelectionTests.SelectionCase) to actualNativeSourceRetainsOnlyItsAdmittedRationalLaw(_:) started.
+􀟈  Test case passing 1 argument selection → .linearUThroughOrigin (FocusedTests.SurfaceSilhouetteRationalCoordinateSelectionTests.SelectionCase) to actualNativeSourceRetainsOnlyItsAdmittedRationalLaw(_:) started.
+􀟈  Test case passing 1 argument selection → .constant (FocusedTests.SurfaceSilhouetteRationalCoordinateSelectionTests.SelectionCase) to actualNativeSourceRetainsOnlyItsAdmittedRationalLaw(_:) started.
+􀟈  Test case passing 1 argument selection → .zero (FocusedTests.SurfaceSilhouetteRationalCoordinateSelectionTests.SelectionCase) to actualNativeSourceRetainsOnlyItsAdmittedRationalLaw(_:) started.
+􀟈  Test case passing 1 argument selection → .mixed (FocusedTests.SurfaceSilhouetteRationalCoordinateSelectionTests.SelectionCase) to actualNativeSourceRetainsOnlyItsAdmittedRationalLaw(_:) started.
+􀟈  Test case passing 1 argument selection → .twoLinearAxes (FocusedTests.SurfaceSilhouetteRationalCoordinateSelectionTests.SelectionCase) to actualNativeSourceRetainsOnlyItsAdmittedRationalLaw(_:) started.
+􀟈  Test case passing 1 argument selection → .repeatedOriginal (FocusedTests.SurfaceSilhouetteRationalCoordinateSelectionTests.SelectionCase) to actualNativeSourceRetainsOnlyItsAdmittedRationalLaw(_:) started.
+􁁛  Test case passing 1 argument selection → .zero (FocusedTests.SurfaceSilhouetteRationalCoordinateSelectionTests.SelectionCase) to actualNativeSourceRetainsOnlyItsAdmittedRationalLaw(_:) passed after 0.009 seconds.
+􁁛  Test case passing 1 argument selection → .constant (FocusedTests.SurfaceSilhouetteRationalCoordinateSelectionTests.SelectionCase) to actualNativeSourceRetainsOnlyItsAdmittedRationalLaw(_:) passed after 0.010 seconds.
+􁁛  Test case passing 1 argument selection → .twoLinearAxes (FocusedTests.SurfaceSilhouetteRationalCoordinateSelectionTests.SelectionCase) to actualNativeSourceRetainsOnlyItsAdmittedRationalLaw(_:) passed after 0.013 seconds.
+􁁛  Test case passing 1 argument selection → .mixed (FocusedTests.SurfaceSilhouetteRationalCoordinateSelectionTests.SelectionCase) to actualNativeSourceRetainsOnlyItsAdmittedRationalLaw(_:) passed after 0.014 seconds.
+􁁛  Test case passing 1 argument selection → .linearUThroughOrigin (FocusedTests.SurfaceSilhouetteRationalCoordinateSelectionTests.SelectionCase) to actualNativeSourceRetainsOnlyItsAdmittedRationalLaw(_:) passed after 0.014 seconds.
+􁁛  Test case passing 1 argument selection → .affineU (FocusedTests.SurfaceSilhouetteRationalCoordinateSelectionTests.SelectionCase) to actualNativeSourceRetainsOnlyItsAdmittedRationalLaw(_:) passed after 0.014 seconds.
+􁁛  Test case passing 1 argument selection → .repeatedOriginal (FocusedTests.SurfaceSilhouetteRationalCoordinateSelectionTests.SelectionCase) to actualNativeSourceRetainsOnlyItsAdmittedRationalLaw(_:) passed after 0.014 seconds.
+􁁛  Test case passing 1 argument selection → .affineV (FocusedTests.SurfaceSilhouetteRationalCoordinateSelectionTests.SelectionCase) to actualNativeSourceRetainsOnlyItsAdmittedRationalLaw(_:) passed after 0.015 seconds.
+􁁛  Test actualNativeSourceRetainsOnlyItsAdmittedRationalLaw(_:) with 8 test cases passed after 0.015 seconds.
+􁁛  Suite "Silhouette rational coordinate source selection" (aka 'SurfaceSilhouetteRationalCoordinateSelectionTests') passed after 0.015 seconds.
+􁁛  Test run with 1 test in 1 suite passed after 0.015 seconds.

@@ -9,7 +9,7 @@ enum ExactExchangePolylinePcurveFixture {
             guard var loop = model.loops[loopID] else { continue }
             for index in loop.coedges.indices {
                 guard let curve = loop.coedges[index].surfaceParameterCurve,
-                      isLinear(curve) else { continue }
+                      try isLinear(curve) else { continue }
                 let start = try curve.parameter(atNormalizedFraction: 0.0, tolerance: .standard)
                 let midpoint = try curve.parameter(atNormalizedFraction: 0.5, tolerance: .standard)
                 let end = try curve.parameter(atNormalizedFraction: 1.0, tolerance: .standard)
@@ -27,10 +27,16 @@ enum ExactExchangePolylinePcurveFixture {
         )
     }
 
-    private static func isLinear(_ curve: SurfaceParameterCurve) -> Bool {
+    private static func isLinear(_ curve: SurfaceParameterCurve) throws -> Bool {
         switch curve {
         case .affine, .constantU, .constantV:
-            true
+            return true
+        // FIXME(INCOMPLETE_IMPLEMENTATION): This fixture selects original linear
+        // coedges but has no retained continuation/image linearity proof. Verify
+        // that source law before permitting these fixture inputs to succeed.
+        case .originalBSplineContinuation, .originalAffineWord, .originalImage:
+            throw KernelError(phase: .exchange, code: .unsupportedCapability, tolerance: .standard,
+                message: "The polyline fixture requires the original wrapper's linearity proof.")
         case .harmonic,
              .sphericalGreatCircle,
              .polyline,
@@ -40,11 +46,11 @@ enum ExactExchangePolylinePcurveFixture {
              .certifiedAnalyticPair,
              .projectedAnalytic,
              .rigidImage:
-            false
+            return false
         case let .offsetSurfaceImage(image):
-            isLinear(image.source)
+            return try isLinear(image.source)
         case let .periodicTranslation(base, _, _):
-            isLinear(base)
+            return try isLinear(base)
         }
     }
 }

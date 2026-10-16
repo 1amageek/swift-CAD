@@ -14,7 +14,7 @@ public struct DefaultOriginalRationalGraphIssuer<S:Sendable,C:Sendable,F:ExactSc
         throws(OriginalSourceIssuanceFailure)->OriginalParametricGraphReceipt<S,F,Evidence> {
         let law=copy evidence
         do {
-            return try OriginalSourceProofAdmission<A>.withBorrow(&admission) { a in
+            return try admission.withProofScope { a in
                 try law.source.require(limits);try law.admitProof(using:&a)
                 let n=law.polynomials.variableCount
                 guard n==law.support.count,law.homogeneous.count==4,

@@ -38,7 +38,7 @@ public struct OriginalSphereConeSurfaceSectionValues: Sendable {
     private static func issue<A:ExactScalarAdmission & ~Copyable>(halfAngle t:Field.Value,chart:Int,
         sourceSine:Field.Value,sourceCosine:Field.Value,apex:Point3D,dx:Field.Value,dy:Field.Value,dz:Field.Value,
         constant:Field.Value,isDoubleRoot:Bool,discriminantRoot:Bool = false,using a:inout A) throws -> Self {
-        try OriginalSourceProofAdmission<A>.withBorrow(&a) { a in
+        try a.withProofScope { a in
             let base = try Field(retaining: t, using: &a)
             let s = try base.importing(sourceSine, using: &a), c = try base.importing(sourceCosine, using: &a)
             let one = try base.integer(1, using: &a), two = try base.integer(2, using: &a)
@@ -104,7 +104,7 @@ public struct OriginalSphereConeSurfaceSectionValues: Sendable {
     }
     static func endpoint<A:ExactScalarAdmission & ~Copyable>(halfAngle:Field.Value,sine:Field.Value,cosine:Field.Value,
         slant:Field.Value,sourceSine:Field.Value,sourceCosine:Field.Value,apex:Point3D,using a:inout A) throws -> Self {
-        try OriginalSourceProofAdmission<A>.withBorrow(&a) { a in
+        try a.withProofScope { a in
             let f=try Field(retaining:halfAngle,using:&a)
             let s=try f.importing(sine,using:&a),c=try f.importing(cosine,using:&a),root=try f.importing(slant,using:&a)
             let ss=try f.importing(sourceSine,using:&a),cc=try f.importing(sourceCosine,using:&a)

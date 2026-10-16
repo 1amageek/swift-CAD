@@ -24,13 +24,18 @@ struct BRepCellComplexBuilder {
     }
 
     func request(patches: [BRepSewingFacePatch], featureID: FeatureID) throws -> BRepSewingRequest {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try request(patches: patches, featureID: featureID, using: &execution)
+    }
+
+    func request(patches: [BRepSewingFacePatch], featureID: FeatureID, using execution: inout OriginalQueryExecution) throws -> BRepSewingRequest {
         try tolerance.validate()
         let fan = BRepSewingEdgeFan(tolerance: tolerance)
         var kept = patches.sorted { $0.stableID < $1.stableID }
         var groups: [[BRepSewingEdgeFan.Use]] = []
         // Drop patches with a free edge until none has one.
         while true {
-            groups = try fan.groups(of: kept)
+            groups = try fan.groups(of: kept, using: &execution)
             let dangling = Set(groups.filter { $0.count == 1 }.map { $0[0].patchIndex })
             guard dangling.isEmpty == false else { break }
             kept = kept.enumerated().filter { dangling.contains($0.offset) == false }.map(\.element)
@@ -48,7 +53,7 @@ struct BRepCellComplexBuilder {
         }
         func union(_ a: Int, _ b: Int) { parent[find(a)] = find(b) }
         for group in groups {
-            let rays = try fan.rays(group, patches: kept)
+            let rays = try fan.rays(group, patches: kept, using: &execution)
             for index in rays.indices {
                 let next = (index + 1) % rays.count
                 // The wedge after ray `index` and before ray `next`.
@@ -73,13 +78,13 @@ struct BRepCellComplexBuilder {
                 let turned = try adapter.reorient(
                     patch,
                     to: isFront ? opposite(patch.orientation) : patch.orientation,
-                    tolerance: tolerance
+                    tolerance: tolerance, using: &execution
                 )
                 return renamed(turned, suffix: isFront ? "front" : "back")
             }
             shells.append(BRepSewingShell(stableID: shellID, patches: shellPatches))
         }
-        let classified = try classify(shells, featureID: featureID)
+        let classified = try classify(shells, featureID: featureID, using: &execution)
         guard classified.isEmpty == false else {
             throw KernelError(phase: .topology, code: .emptyResult, tolerance: tolerance,
                 message: "The operands enclose no region.")
@@ -95,7 +100,7 @@ struct BRepCellComplexBuilder {
 
     /// Outer shells of bounded regions with the voids each holds; the unbounded region's shells
     /// are dropped.
-    private func classify(_ shells: [BRepSewingShell], featureID: FeatureID) throws -> [(outer: BRepSewingShell, voids: [BRepSewingShell])] {
+    private func classify(_ shells: [BRepSewingShell], featureID: FeatureID, using execution: inout OriginalQueryExecution) throws -> [(outer: BRepSewingShell, voids: [BRepSewingShell])] {
         struct Probe {
             let shell: BRepSewingShell
             let model: BRepModel
@@ -111,7 +116,7 @@ struct BRepCellComplexBuilder {
         let probes = try shells.map { shell -> Probe in
             let sewn = try DefaultBRepSewer().sew(
                 BRepSewingRequest(featureID: featureID, bodyTopology: .sheet(shellStableIDs: [shell.stableID]), shells: [shell]),
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
             guard let body = sewn.brep.bodies[sewn.bodyID], let shellID = body.shellIDs.first,
                   let faceIDs = sewn.brep.shells[shellID]?.faceIDs, let faceID = faceIDs.first,
@@ -119,26 +124,27 @@ struct BRepCellComplexBuilder {
                 throw KernelError(phase: .topology, code: .topologyFailure, tolerance: tolerance,
                     message: "A region shell did not sew.")
             }
-            let sample = try BRepFaceInteriorPointSampler().sample(on: faceID, in: sewn.brep, tolerance: tolerance)
+            let sample = try BRepFaceInteriorPointSampler().sample(on: faceID, in: sewn.brep, tolerance: tolerance, using: &execution)
             let point = sample.point
-            let geometric = try surface.normal(u: sample.parameter.u, v: sample.parameter.v, tolerance: tolerance)
+            let geometric = try surface.normal(u: sample.parameter.u, v: sample.parameter.v, tolerance: tolerance, using: &execution)
                 .normalized(tolerance: tolerance.distance)
             let outward = face.orientation == .forward ? geometric : geometric * -1.0
-            let bounds = try BRepBodyBoundingBoxBuilder().bounds(for: sewn.bodyID, in: sewn.brep, tolerance: tolerance)
+            let bounds = try BRepBodyBoundingBoxBuilder().bounds(for: sewn.bodyID, in: sewn.brep, tolerance: tolerance, using: &execution)
             let step = max(tolerance.distance * 100, (bounds.maximum - bounds.minimum).length * 1e-6)
             return Probe(shell: shell, model: sewn.brep, faceIDs: faceIDs, bounds: bounds, inside: point + outward * -step)
         }
-        func encloses(_ probe: Probe, _ point: Point3D) throws -> Bool {
+        func encloses(_ probe: Probe, _ point: Point3D, using execution: inout OriginalQueryExecution) throws -> Bool {
             let upper = crossings.upperBound(from: point, bounds: probe.bounds, tolerance: tolerance)
             var counts: [Bool] = []
             for direction in try BRepRayFaceCrossings.directions(tolerance: tolerance) {
                 do {
                     let count = try crossings.crossings(
                         from: point, direction: direction, upperBound: upper, faceIDs: probe.faceIDs,
-                        model: probe.model, containmentSession: nil, tolerance: tolerance
+                        model: probe.model, containmentSession: nil, tolerance: tolerance, using: &execution
                     ).count
                     counts.append(count.isMultiple(of: 2) == false)
-                } catch let error as KernelError where error.code == .nonDiscreteIntersection {
+                } catch {
+                    guard OriginalQueryFailure.classification(of: error)?.code == .nonDiscreteIntersection else { throw error }
                     continue
                 }
             }
@@ -151,14 +157,14 @@ struct BRepCellComplexBuilder {
         var outers: [(probe: Probe, volume: Double)] = []
         var others: [Probe] = []
         for probe in probes {
-            if try encloses(probe, probe.inside) {
+            if try encloses(probe, probe.inside, using: &execution) {
                 let solid = try DefaultBRepSewer().sew(
                     BRepSewingRequest(featureID: featureID, bodyTopology: .solid(components: [
                         BRepSewingSolidComponent(outerShellStableID: probe.shell.stableID, voidShellStableIDs: []),
                     ]), shells: [probe.shell]),
-                    tolerance: tolerance
+                    tolerance: tolerance, using: &execution
                 )
-                outers.append((probe, try solid.brep.volume(of: solid.bodyID, tolerance: tolerance)))
+                outers.append((probe, try solid.brep.volume(of: solid.bodyID, tolerance: tolerance, using: &execution)))
             } else {
                 others.append(probe)
             }
@@ -167,20 +173,20 @@ struct BRepCellComplexBuilder {
         for other in others {
             // A void shell's region lies around it: the smallest outer shell holding that belongs
             // to the region the void is cut out of.
-            let holders = try outers.indices.filter { try encloses(outers[$0].probe, other.inside) }
+            let holders = try outers.indices.filter { try encloses(outers[$0].probe, other.inside, using: &execution) }
             guard let holder = holders.min(by: { outers[$0].volume < outers[$1].volume }) else { continue }
-            voids[holder, default: []].append(try voidShell(other.shell))
+            voids[holder, default: []].append(try voidShell(other.shell, using: &execution))
         }
         return outers.indices.map { (outers[$0].probe.shell, voids[$0] ?? []) }
     }
 
     /// A void shell's faces face out of the cavity, the shell reversed: `shell` faces out of its
     /// region, into the cavity, so each face turns back.
-    private func voidShell(_ shell: BRepSewingShell) throws -> BRepSewingShell {
+    private func voidShell(_ shell: BRepSewingShell, using execution: inout OriginalQueryExecution) throws -> BRepSewingShell {
         let adapter = BRepSewingPatchOrientationAdapter()
         return BRepSewingShell(
             stableID: shell.stableID,
-            patches: try shell.patches.map { try adapter.reorient($0, to: opposite($0.orientation), tolerance: tolerance) },
+            patches: try shell.patches.map { try adapter.reorient($0, to: opposite($0.orientation), tolerance: tolerance, using: &execution) },
             orientation: .reversed
         )
     }

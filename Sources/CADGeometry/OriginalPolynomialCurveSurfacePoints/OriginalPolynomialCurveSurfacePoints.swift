@@ -33,9 +33,9 @@ public final class OriginalPolynomialCurveSurfacePoints: Sendable {
         let localizations: [NativeCurveSurfaceScalarLocalization?]
     }
 
-    static func admitStorage(usage: inout NativeCurveSurfacePointAllowance) throws {
+    static func admitStorage(usage: inout OriginalQueryExecution) throws {
         let headers = try rationalAlgebraCount(2, MemoryLayout<UInt>.stride, multiply: true)
-        try usage.retainBytes(rationalAlgebraCount(headers, MemoryLayout<StorageLayout>.stride))
+        try usage.retainStorage(bytes: rationalAlgebraCount(headers, MemoryLayout<StorageLayout>.stride))
     }
 
     init(curve: BSplineCurve3D, source: OriginalRuledIntersectionRelation,

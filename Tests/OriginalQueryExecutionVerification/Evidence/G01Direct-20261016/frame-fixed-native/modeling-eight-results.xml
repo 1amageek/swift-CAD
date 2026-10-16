@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="TestResults" errors="0" tests="9" failures="2" skipped="0" time="0.130115875">
+    <testcase classname="FocusedTests.CanonicalConstructionAdmissionTests" name="fiveMatchingStationsCannotAuthorizeAShellConnection()" time="0.075137292" />
+    <testcase classname="FocusedTests.CanonicalConstructionAdmissionTests" name="shellEdgeFanRetainsNativeLineSpanCorrespondence()" time="0.017250625" />
+    <testcase classname="FocusedTests.CanonicalConstructionAdmissionTests" name="sewingRequestBodyParentsDebitTheActualScanAndRetainRefusal()" time="0.012061208" />
+    <testcase classname="FocusedTests.CanonicalConstructionAdmissionTests" name="aChartAgreeingAtEveryInitialStationCannotBorrowWholeBoundaryAuthority()" time="0.09689825" />
+    <testcase classname="FocusedTests.CanonicalConstructionAdmissionTests" name="bothActualBuildersRefuseResourceExhaustionAndCancellationBeforePublication()" time="0.003233375" />
+    <testcase classname="FocusedTests.CanonicalConstructionAdmissionTests" name="callbackBoundariesPublishRawRefusalsBeforeClassifyingThem()" time="0.003987375" >
+      <failure message="Expectation failed: failure.context.stage == (boundary == .ordinary ? .publication : .request) (error)" />
+      <failure message="Expectation failed: failure.context.entry == (boundary == .ordinary ? .ordinary : .admitted) (error)" />
+    </testcase>
+    <testcase classname="FocusedTests.CanonicalConstructionAdmissionTests" name="retainedValidityEqualityAdmitsAnIndependentlyBackedSourceGraph()" time="0.047686208" />
+    <testcase classname="FocusedTests.CanonicalConstructionAdmissionTests" name="authoredPlanarWallChartsConstructTheBridge()" time="0.129737042" />
+    <testcase classname="FocusedTests.CanonicalConstructionAdmissionTests" name="unrepresentedOriginalBoundaryCannotUseAnApproximateSplineFallback()" time="0.016810542" />
+  </testsuite>
+</testsuites>

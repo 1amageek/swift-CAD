@@ -56,8 +56,17 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
         sourceBudget: CurvedSweepSourceBudget? = nil
     ) throws -> Bool {
         guard options.alignment == .normal, exactCircularSolid == false else { return false }
-        let admission = try sourceBudget?.conversionAdmission()
-        return try !OriginalSweepPathLinearity(tolerance: tolerance, admission: admission).isStraight(pathSpans)
+        let owner = try sourceBudget ?? CurvedSweepSourceBudget(tolerance: tolerance)
+        var execution = try owner.execution()
+        return try applies(options, pathSpans: pathSpans, exactCircularSolid: exactCircularSolid,
+            tolerance: tolerance, using: &execution)
+    }
+
+    package static func applies(_ options: SweepOptions, pathSpans: [ExactBSplineCurveSpan],
+        exactCircularSolid: Bool, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> Bool {
+        guard options.alignment == .normal, !exactCircularSolid else { return false }
+        return try !OriginalSweepPathLinearity(tolerance: tolerance).isStraight(pathSpans, using: &execution)
     }
 
     /// The plan for a resolved section: a profile's loops, or a curve as one open or closed loop.
@@ -77,24 +86,9 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
         featureID: FeatureID?,
         tolerance: ModelingTolerance
     ) throws {
-        let invocation = try sourceBudget ?? CurvedSweepSourceBudget(tolerance: tolerance)
-        let spans = try ExactBSplineCurveSpanBuilder(tolerance: tolerance, admission: invocation.conversionAdmission())
-        switch section {
-        case .profile, .face, .constructedRegion:
-            try self.init(sectionLoops: try spans.loopSpans(from: section), sectionIsClosed: true,
-                profilePlane: try section.plane(), pathSpans: pathSpans, sweep: sweep, values: values, guide: guide, secondGuide: secondGuide,
-                pathIsClosed: pathIsClosed, closesSeam: closesSeam, authoredSeam: authoredSeam, sourceBudget: invocation,
-                originalLengthLaw: originalLengthLaw,
-                originalPathPieces: originalPathPieces,
-                featureID: featureID, tolerance: tolerance)
-        case .curve(let curve):
-            try self.init(sectionLoops: [try spans.sectionSpans(from: curve)], sectionIsClosed: curve.isClosed,
-                profilePlane: try section.plane(), pathSpans: pathSpans, sweep: sweep, values: values, guide: guide, secondGuide: secondGuide,
-                pathIsClosed: pathIsClosed, closesSeam: closesSeam, authoredSeam: authoredSeam, sourceBudget: invocation,
-                originalLengthLaw: originalLengthLaw,
-                originalPathPieces: originalPathPieces,
-                featureID: featureID, tolerance: tolerance)
-        }
+        let owner = try sourceBudget ?? CurvedSweepSourceBudget(tolerance: tolerance)
+        var execution = try owner.execution()
+        try self.init(section: section, pathSpans: pathSpans, sweep: sweep, values: values, guide: guide, secondGuide: secondGuide, pathIsClosed: pathIsClosed, closesSeam: closesSeam, authoredSeam: authoredSeam, sourceBudget: owner, originalLengthLaw: originalLengthLaw, originalPathPieces: originalPathPieces, featureID: featureID, tolerance: tolerance, using: &execution)
     }
 
     package init(
@@ -115,6 +109,65 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
         featureID: FeatureID?,
         tolerance: ModelingTolerance
     ) throws {
+        let owner = try sourceBudget ?? CurvedSweepSourceBudget(tolerance: tolerance)
+        var execution = try owner.execution()
+        try self.init(sectionLoops: sectionLoops, sectionIsClosed: sectionIsClosed, profilePlane: profilePlane, pathSpans: pathSpans, sweep: sweep, values: values, guide: guideSpans, secondGuide: secondGuideSpans, pathIsClosed: pathIsClosed, closesSeam: closesSeam, authoredSeam: authoredSeam, sourceBudget: owner, originalLengthLaw: originalLengthLaw, originalPathPieces: originalPathPieces, featureID: featureID, tolerance: tolerance, using: &execution)
+    }
+
+    package init(
+        section: ResolvedModelingSection,
+        pathSpans: [ExactBSplineCurveSpan],
+        sweep: SweepFeature,
+        values: SweepOptionValues,
+        guide: [BSplineCurve3D]? = nil,
+        secondGuide: [BSplineCurve3D]? = nil,
+        pathIsClosed: Bool = false,
+        closesSeam: Bool = false,
+        authoredSeam: ClosedSweepSectionCorrespondence? = nil,
+        sourceBudget: CurvedSweepSourceBudget? = nil,
+        originalLengthLaw: OriginalCurvedSweepArcLengthLaw? = nil,
+        originalPathPieces: [OriginalSweepPathPiece]? = nil,
+        featureID: FeatureID?,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws {
+        let invocation = try sourceBudget ?? CurvedSweepSourceBudget(tolerance: tolerance, using: &execution)
+        let spans = try ExactBSplineCurveSpanBuilder(tolerance: tolerance, using: &execution)
+        switch section {
+        case .profile, .face, .constructedRegion:
+            try self.init(sectionLoops: try spans.loopSpans(from: section, using: &execution), sectionIsClosed: true,
+                profilePlane: try section.plane(), pathSpans: pathSpans, sweep: sweep, values: values, guide: guide, secondGuide: secondGuide,
+                pathIsClosed: pathIsClosed, closesSeam: closesSeam, authoredSeam: authoredSeam, sourceBudget: invocation,
+                originalLengthLaw: originalLengthLaw,
+                originalPathPieces: originalPathPieces,
+                featureID: featureID, tolerance: tolerance, using: &execution)
+        case .curve(let curve):
+            try self.init(sectionLoops: [try spans.sectionSpans(from: curve, using: &execution)], sectionIsClosed: curve.isClosed,
+                profilePlane: try section.plane(), pathSpans: pathSpans, sweep: sweep, values: values, guide: guide, secondGuide: secondGuide,
+                pathIsClosed: pathIsClosed, closesSeam: closesSeam, authoredSeam: authoredSeam, sourceBudget: invocation,
+                originalLengthLaw: originalLengthLaw,
+                originalPathPieces: originalPathPieces,
+                featureID: featureID, tolerance: tolerance, using: &execution)
+        }
+    }
+
+    package init(
+        sectionLoops: [[ExactBSplineCurveSpan]],
+        sectionIsClosed: Bool,
+        profilePlane: SketchPlane,
+        pathSpans: [ExactBSplineCurveSpan],
+        sweep: SweepFeature,
+        values: SweepOptionValues,
+        guide guideSpans: [BSplineCurve3D]? = nil,
+        secondGuide secondGuideSpans: [BSplineCurve3D]? = nil,
+        pathIsClosed: Bool = false,
+        closesSeam: Bool = false,
+        authoredSeam: ClosedSweepSectionCorrespondence? = nil,
+        sourceBudget: CurvedSweepSourceBudget? = nil,
+        originalLengthLaw: OriginalCurvedSweepArcLengthLaw? = nil,
+        originalPathPieces: [OriginalSweepPathPiece]? = nil,
+        featureID: FeatureID?,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws {
         try tolerance.validate()
         guard let allowance = values.approximationTolerance, allowance.isFinite, allowance > 0 else {
             throw Self.failure(.sweepPathNormalUnavailable,
@@ -183,33 +236,33 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
         guard maximumPieces > 0 else { throw Self.exhausted(featureID, tolerance) }
 
         let lawful = (twists || scales) && guided == false
-        let invocation = try sourceBudget ?? CurvedSweepSourceBudget(tolerance: tolerance)
+        let invocation = try sourceBudget ?? CurvedSweepSourceBudget(tolerance: tolerance, using: &execution)
         let beziers = try originalPathPieces ?? OriginalSweepPathPiece.prepare(pathSpans,
-            tolerance: tolerance, budget: invocation)
+            tolerance: tolerance, budget: invocation, using: &execution)
         guard beziers.count == pathSpans.count else {
             throw Self.failure(.invalidInput, "Retained original path pieces must cover every source span.", featureID, tolerance)
         }
         for index in pathSpans.indices {
-            guard try beziers[index].belongs(to: pathSpans[index], tolerance: tolerance, budget: invocation) else {
+            guard try beziers[index].belongs(to: pathSpans[index], tolerance: tolerance, budget: invocation, using: &execution) else {
                 throw Self.failure(.invalidInput, "A retained original path piece belongs to another source or invocation.", featureID, tolerance)
             }
         }
         let lengthLaw = lawful ? try originalLengthLaw ?? OriginalCurvedSweepArcLengthLaw(
-            spans: pathSpans, tolerance: tolerance, budget: invocation) : nil
+            spans: pathSpans, tolerance: tolerance, budget: invocation, using: &execution) : nil
         var stationFractions: [Int: [Double: Interval]] = [:]
-        func fractionEnclosure(span: Int, at parameter: Double) throws -> Interval {
+        func fractionEnclosure(span: Int, at parameter: Double, using execution: inout OriginalQueryExecution) throws -> Interval {
             guard let lengthLaw else { return .exact(0) }
             if let retained = stationFractions[span]?[parameter] { return retained }
-            let enclosed = try lengthLaw.fraction(span: span, at: parameter)
-            try invocation.retainScalars(3)
+            let enclosed = try lengthLaw.fraction(span: span, at: parameter, using: &execution)
+            try execution.retainStorage(count: 3, stride: MemoryLayout<Double>.stride)
             stationFractions[span, default: [:]][parameter] = enclosed
             return enclosed
         }
-        func fraction(span: Int, at parameter: Double) throws -> Double {
-            try fractionEnclosure(span: span, at: parameter).midpoint
+        func fraction(span: Int, at parameter: Double, using execution: inout OriginalQueryExecution) throws -> Double {
+            try fractionEnclosure(span: span, at: parameter, using: &execution).midpoint
         }
-        func originalTwist(at fraction: Double) throws -> Interval {
-            try invocation.consume(depth: 0)
+        func originalTwist(at fraction: Double, using execution: inout OriginalQueryExecution) throws -> Interval {
+            try invocation.consume(depth: 0, using: &execution)
             if fraction <= 0 { return .exact(twistAngles[0]) }
             if fraction >= 1 { return .exact(twistAngles[twistAngles.count - 1]) }
             guard let upper = twistPositions.firstIndex(where: { $0 >= fraction }), upper > 0,
@@ -223,7 +276,7 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
         var maximumTwistSlope = 0.0
         if lawful {
             for index in 1..<twistPositions.count {
-                try invocation.consume(depth: 0)
+                try invocation.consume(depth: 0, using: &execution)
                 guard let slope = (Interval.exact(twistAngles[index]) - .exact(twistAngles[index - 1]))
                     .divided(by: .exact(twistPositions[index]) - .exact(twistPositions[index - 1])),
                       slope.absoluteUpperBound.isFinite else {
@@ -233,9 +286,9 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
             }
         }
         let joinSine = try CertifiedRotationTrigonometry.evaluate(.exact(tolerance.angle),
-            tolerance: tolerance, consumeWork: { try invocation.consume(depth: 0) }).sine
-        func requireSmoothJoin(_ before: PathJet, _ after: PathJet, message: String) throws {
-            try invocation.consume(depth: 0)
+            tolerance: tolerance, using: &execution).sine
+        func requireSmoothJoin(_ before: PathJet, _ after: PathJet, message: String, using execution: inout OriginalQueryExecution) throws {
+            try invocation.consume(depth: 0, using: &execution)
             guard let a = before.unitTangent()?.derivative(0),
                   let b = after.unitTangent()?.derivative(0) else {
                 throw Self.failure(.singularGeometry, "An original path join has no certified nonzero tangent.", featureID, tolerance)
@@ -255,18 +308,18 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
         }
         // Tangent continuity along the path: a corner needs a mitre or a round.
         for index in beziers.indices.dropFirst() {
-            try requireSmoothJoin(beziers[index - 1].pointJet(at: .end, order: 1),
-                beziers[index].pointJet(at: .start, order: 1),
-                message: "A curved path-normal sweep needs a path without corners.")
+            try requireSmoothJoin(beziers[index - 1].pointJet(at: .end, order: 1, using: &execution),
+                beziers[index].pointJet(at: .start, order: 1, using: &execution),
+                message: "A curved path-normal sweep needs a path without corners.", using: &execution)
         }
         if pathIsClosed {
             // A closed path closes smoothly, its end leaving the way its start does.
-            try requireSmoothJoin(beziers[beziers.count - 1].pointJet(at: .end, order: 1),
-                beziers[0].pointJet(at: .start, order: 1),
-                message: "A closed curved path sweeps only where it closes smoothly.")
+            try requireSmoothJoin(beziers[beziers.count - 1].pointJet(at: .end, order: 1, using: &execution),
+                beziers[0].pointJet(at: .start, order: 1, using: &execution),
+                message: "A closed curved path sweeps only where it closes smoothly.", using: &execution)
         }
-        let startJet = try beziers[0].pointJet(at: .start, order: 1)
-        guard let startTangent = try startJet.tangent() else {
+        let startJet = try beziers[0].pointJet(at: .start, order: 1, using: &execution)
+        guard let startTangent = try startJet.tangent(using: &execution) else {
             throw Self.failure(.invalidInput, "The sweep path has no tangent at its start.", featureID, tolerance)
         }
         let pathStart = pathSpans[0].startPoint
@@ -287,7 +340,7 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
         let sectionPoints = sectionLoops.flatMap { $0.flatMap { $0.curve.controlPoints } }
         // Across the start tangent the section spans two lateral axes the frame also carries, so
         // the overlap certificate reads the section's extent along each of them.
-        let lateral = try Self.lateralAxes(of: startTangent, tolerance: tolerance)
+        let lateral = try Self.lateralAxes(of: startTangent, tolerance: tolerance, using: &execution)
         // The frame carries the section normal and the two lateral axes; each section point is
         // its offsets along the start tangent and those axes.
         var carried: [[Interval]] = [Self.values(normal), Self.values(lateral.0), Self.values(lateral.1)]
@@ -305,12 +358,12 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
         let guideLaw = try guideSpans.map { spans in
             try CurvedSweepGuideLaw(method: sweep.options.guideMethod, guide: spans,
                                     section: sectionLoops.flatMap { $0.map { $0.curve } }, pathStart: pathStart,
-                                    startTangent: startTangent, startAxes: (lateral.0, lateral.1), featureID: featureID, tolerance: tolerance)
+                                    startTangent: startTangent, startAxes: (lateral.0, lateral.1), featureID: featureID, tolerance: tolerance, using: &execution)
         }
         let secondLaw = try secondGuideSpans.map { spans in
             try CurvedSweepGuideLaw(method: .point, guide: spans,
                                     section: sectionLoops.flatMap { $0.map { $0.curve } }, pathStart: pathStart,
-                                    startTangent: startTangent, startAxes: (lateral.0, lateral.1), featureID: featureID, tolerance: tolerance)
+                                    startTangent: startTangent, startAxes: (lateral.0, lateral.1), featureID: featureID, tolerance: tolerance, using: &execution)
         }
         // The two contacts' lateral offsets at the start, whose inverse the linear maps share.
         let contacts = guideLaw.flatMap { first in secondLaw.map { (first.start, $0.start) } }
@@ -362,7 +415,7 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
         }
         /// The twist's cosine and sine and the scale over a piece (or at an end), linear in its
         /// parameter from `start` to `end`.
-        func laws(_ start: (angle: Double, scale: Double), _ end: (angle: Double, scale: Double), at place: OriginalSweepPathPiece.Place, order: Int)
+        func laws(_ start: (angle: Double, scale: Double), _ end: (angle: Double, scale: Double), at place: OriginalSweepPathPiece.Place, order: Int, using execution: inout OriginalQueryExecution)
             throws -> (cosine: IntervalDerivativeJet, sine: IntervalDerivativeJet, scale: IntervalDerivativeJet) {
             let rate = Interval.exact(end.angle) - .exact(start.angle)
             let range: Interval
@@ -372,19 +425,19 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
             case .end: range = .exact(end.angle)
             }
             let trig = try CertifiedRotationTrigonometry.evaluate(range, tolerance: tolerance,
-                consumeWork: { try invocation.consume(depth: 0) })
+                using: &execution)
             let count = order.addingReportingOverflow(1)
             let bytes = count.partialValue.multipliedReportingOverflow(by: 3 * MemoryLayout<Interval>.stride)
             guard order >= 0, !count.overflow, !bytes.overflow else {
                 throw Self.exhausted(featureID, tolerance)
             }
-            try invocation.retainBytes(bytes.partialValue)
+            try execution.retainStorage(bytes:bytes.partialValue)
             // The k-th derivative of cos(θ0 + δτ) is δᵏ cos(θ + kπ/2), and likewise for the sine.
             var cosine: [Interval] = [], sine: [Interval] = []
             cosine.reserveCapacity(count.partialValue); sine.reserveCapacity(count.partialValue)
             var power = Interval.exact(1)
             for k in 0...order {
-                try invocation.consume(depth: 0)
+                try invocation.consume(depth: 0, using: &execution)
                 let c: Interval, s: Interval
                 switch k % 4 {
                 case 0: c = trig.cosine; s = trig.sine
@@ -405,7 +458,7 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
             }
             var scaleFields: [Interval] = []; scaleFields.reserveCapacity(count.partialValue)
             for k in 0...order {
-                try invocation.consume(depth: 0)
+                try invocation.consume(depth: 0, using: &execution)
                 scaleFields.append(k == 0 ? scaleValue : k == 1 ? growth : .exact(0))
             }
             return (IntervalDerivativeJet(derivatives: cosine), IntervalDerivativeJet(derivatives: sine),
@@ -423,9 +476,10 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
             return path + frame.tangent.scaled(by: .constant(point.along, order: order)) + first.scaled(by: x) + second.scaled(by: y)
         }
         /// The linear map's entries over a piece (or at an end), linear in its parameter.
-        func mapJets(_ start: LinearMap, _ end: LinearMap, at place: OriginalSweepPathPiece.Place, order: Int)
+        func mapJets(_ start: LinearMap, _ end: LinearMap, at place: OriginalSweepPathPiece.Place, order: Int,
+            using execution: inout OriginalQueryExecution)
             -> (a: IntervalDerivativeJet, b: IntervalDerivativeJet, c: IntervalDerivativeJet, d: IntervalDerivativeJet) {
-            func jet(_ s: Double, _ e: Double) -> IntervalDerivativeJet {
+            func jet(_ s: Double, _ e: Double, using execution: inout OriginalQueryExecution) -> IntervalDerivativeJet {
                 let value: Interval
                 switch place {
                 case .whole: value = Interval(lower: min(s, e).nextDown, upper: max(s, e).nextUp)
@@ -435,7 +489,11 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
                 return IntervalDerivativeJet(derivatives: Array(([value, .exact(e) - .exact(s)]
                     + Array(repeating: .exact(0), count: max(0, order - 1))).prefix(order + 1)))
             }
-            return (jet(start.a, end.a), jet(start.b, end.b), jet(start.c, end.c), jet(start.d, end.d))
+            let a = jet(start.a, end.a, using: &execution)
+            let b = jet(start.b, end.b, using: &execution)
+            let c = jet(start.c, end.c, using: &execution)
+            let d = jet(start.d, end.d, using: &execution)
+            return (a, b, c, d)
         }
 
         var frameReference = startTangent
@@ -454,14 +512,13 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
         var endLateral = lateral.0
         var startSectionAction: ClosedSweepIntervalFrameAction?
         var endSectionAction: ClosedSweepIntervalFrameAction?
-        let sectionAdmission = try invocation.conversionAdmission()
         let third = Interval(lower: (1.0 / 3).nextDown, upper: (1.0 / 3).nextUp)
 
         /// Accepts the piece, or says why it must be halved and how deep halving may go.
         func accept(_ bezier: OriginalSweepPathPiece, span: Int, lower: Double, upper: Double,
-            depth: Int) throws -> (reason: String, limit: Int)? {
+            depth: Int, using execution: inout OriginalQueryExecution) throws -> (reason: String, limit: Int)? {
             guard pieces.count < maximumPieces else { throw Self.exhausted(featureID, tolerance) }
-            let whole = try bezier.jet(over: .whole, order: 5)
+            let whole = try bezier.jet(over: .whole, order: 5, using: &execution)
             guard let tangent = whole.unitTangent(), let path = whole.position else {
                 return ("The sweep path's speed is not certified positive.", 20)
             }
@@ -471,8 +528,8 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
                 guard chunkStarted == false else {
                     return ("The sweep path turns too sharply to follow.", 20)
                 }
-                let station = try bezier.pointJet(at: .start, order: 1)
-                guard let restart = try station.tangent() else {
+                let station = try bezier.pointJet(at: .start, order: 1, using: &execution)
+                guard let restart = try station.tangent(using: &execution) else {
                     throw Self.failure(.invalidInput, "The sweep path has no tangent where its frame restarts.", featureID, tolerance)
                 }
                 guard let turn = try RotationJet(reference: frameReference, tangent: .constant(Self.values(restart), order: 0)) else {
@@ -510,28 +567,28 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
             // retained implicit guide/normal-plane enclosures and multiple-guide deformation
             // before this domain may be reported as complete.
             if let guideLaw, let secondLaw {
-                func station(_ jet: PathJet) throws -> (Point3D, Vector3D, (first: Vector3D, second: Vector3D))? {
-                    guard let position = jet.position?.derivative(0), let direction = try jet.tangent(),
+                func station(_ jet: PathJet, using execution: inout OriginalQueryExecution) throws -> (Point3D, Vector3D, (first: Vector3D, second: Vector3D))? {
+                    guard let position = jet.position?.derivative(0), let direction = try jet.tangent(using: &execution),
                           let stationFrame = try RotationJet(reference: frameReference, tangent: .constant(Self.values(direction), order: 0)) else { return nil }
                     let first = stationFrame.rotated(carried[1]).derivative(0), second = stationFrame.rotated(carried[2]).derivative(0)
                     func point(_ v: [Interval]) -> Vector3D { Vector3D(x: v[0].midpoint, y: v[1].midpoint, z: v[2].midpoint) }
                     return (Point3D(x: position[0].midpoint, y: position[1].midpoint, z: position[2].midpoint), direction,
                             (try point(first).normalized(tolerance: tolerance.distance), try point(second).normalized(tolerance: tolerance.distance)))
                 }
-                guard let endStation = try station(try bezier.pointJet(at: .end, order: 1)),
-                      let middleStation = try station(try bezier.halves().1.pointJet(at: .start, order: 1)) else {
+                guard let endStation = try station(try bezier.pointJet(at: .end, order: 1, using: &execution), using: &execution),
+                      let middleStation = try station(try bezier.halves().1.pointJet(at: .start, order: 1, using: &execution), using: &execution) else {
                     return ("The sweep frame is not certified at a guide station.", 20)
                 }
                 func onward(_ state: CurvedSweepGuideLaw.State, _ at: (span: Int, parameter: Double)) -> CurvedSweepGuideLaw.State {
                     CurvedSweepGuideLaw.State(span: at.span, parameter: at.parameter, contact: state.contact, angle: state.angle)
                 }
                 let (begin1, begin2) = (guideState ?? guideLaw.initial, secondState ?? secondLaw.initial)
-                let middle1 = try guideLaw.crossing(at: middleStation.0, tangent: middleStation.1, axes: middleStation.2, from: begin1, featureID: featureID)
-                let middle2 = try secondLaw.crossing(at: middleStation.0, tangent: middleStation.1, axes: middleStation.2, from: begin2, featureID: featureID)
+                let middle1 = try guideLaw.crossing(at: middleStation.0, tangent: middleStation.1, axes: middleStation.2, from: begin1, featureID: featureID, using: &execution)
+                let middle2 = try secondLaw.crossing(at: middleStation.0, tangent: middleStation.1, axes: middleStation.2, from: begin2, featureID: featureID, using: &execution)
                 let end1 = try guideLaw.crossing(at: endStation.0, tangent: endStation.1, axes: endStation.2,
-                                                 from: onward(begin1, middle1.at), featureID: featureID)
+                                                 from: onward(begin1, middle1.at), featureID: featureID, using: &execution)
                 let end2 = try secondLaw.crossing(at: endStation.0, tangent: endStation.1, axes: endStation.2,
-                                                  from: onward(begin2, middle2.at), featureID: featureID)
+                                                  from: onward(begin2, middle2.at), featureID: featureID, using: &execution)
                 let (middleMap, endMap) = (linearMap(middle1.offset, middle2.offset), linearMap(end1.offset, end2.offset))
                 // The section must not fold: the map's determinant, quadratic along the piece, stays positive.
                 let change = LinearMap(a: endMap.a - mapStart.a, b: endMap.b - mapStart.b, c: endMap.c - mapStart.c, d: endMap.d - mapStart.d)
@@ -543,7 +600,7 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
                 }
                 let stray = baseReach * middleMap.distance(to: mapStart.midway(to: endMap))
                 guard stray <= allowance * 0.25 else {
-                    if (endStation.0 - (try bezier.pointJet(at: .start, order: 0).position.map { position in
+                    if (endStation.0 - (try bezier.pointJet(at: .start, order: 0, using: &execution).position.map { position in
                         Point3D(x: position.derivative(0)[0].midpoint, y: position.derivative(0)[1].midpoint, z: position.derivative(0)[2].midpoint)
                     } ?? endStation.0)).length <= 16 * tolerance.distance {
                         throw Self.failure(.sweepGuideContactUnavailable,
@@ -560,8 +617,8 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
             } else if let guideLaw {
                 // The guide's law at the piece's ends (its start the last piece's end), and in its
                 // middle to bound how far the linear law between them strays from the guide.
-                func station(_ jet: PathJet) throws -> (Point3D, Vector3D, (first: Vector3D, second: Vector3D))? {
-                    guard let position = jet.position?.derivative(0), let direction = try jet.tangent(),
+                func station(_ jet: PathJet, using execution: inout OriginalQueryExecution) throws -> (Point3D, Vector3D, (first: Vector3D, second: Vector3D))? {
+                    guard let position = jet.position?.derivative(0), let direction = try jet.tangent(using: &execution),
                           let stationFrame = try RotationJet(reference: frameReference, tangent: .constant(Self.values(direction), order: 0)) else { return nil }
                     let first = stationFrame.rotated(carried[1]).derivative(0), second = stationFrame.rotated(carried[2]).derivative(0)
                     func point(_ v: [Interval]) -> Vector3D { Vector3D(x: v[0].midpoint, y: v[1].midpoint, z: v[2].midpoint) }
@@ -569,12 +626,12 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
                             (try point(first).normalized(tolerance: tolerance.distance), try point(second).normalized(tolerance: tolerance.distance)))
                 }
                 let begin = guideState ?? guideLaw.initial
-                guard let endStation = try station(try bezier.pointJet(at: .end, order: 1)),
-                      let middleStation = try station(try bezier.halves().1.pointJet(at: .start, order: 1)) else {
+                guard let endStation = try station(try bezier.pointJet(at: .end, order: 1, using: &execution), using: &execution),
+                      let middleStation = try station(try bezier.halves().1.pointJet(at: .start, order: 1, using: &execution), using: &execution) else {
                     return ("The sweep frame is not certified at a guide station.", 20)
                 }
-                let middle = try guideLaw.evaluate(at: middleStation.0, tangent: middleStation.1, axes: middleStation.2, from: begin, featureID: featureID)
-                let end = try guideLaw.evaluate(at: endStation.0, tangent: endStation.1, axes: endStation.2, from: middle.state, featureID: featureID)
+                let middle = try guideLaw.evaluate(at: middleStation.0, tangent: middleStation.1, axes: middleStation.2, from: begin, featureID: featureID, using: &execution)
+                let end = try guideLaw.evaluate(at: endStation.0, tangent: endStation.1, axes: endStation.2, from: middle.state, featureID: featureID, using: &execution)
                 startLaw = guideStart
                 endLaw = (end.angle, end.scale)
                 middleScale = middle.scale
@@ -587,7 +644,7 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
                     // pieces its sewing keeps apart: the guide turns the section faster there
                     // than any allowance follows (a Curve guide starting square to the section's
                     // side turns it as the square root of the run), which is refused.
-                    if (endStation.0 - (try bezier.pointJet(at: .start, order: 0).position.map { position in
+                    if (endStation.0 - (try bezier.pointJet(at: .start, order: 0, using: &execution).position.map { position in
                         Point3D(x: position.derivative(0)[0].midpoint, y: position.derivative(0)[1].midpoint, z: position.derivative(0)[2].midpoint)
                     } ?? endStation.0)).length <= 16 * tolerance.distance {
                         throw Self.failure(.sweepGuideContactUnavailable,
@@ -598,21 +655,21 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
                 }
                 guideEndState = end.state
             } else {
-                let startFraction = try fraction(span: span, at: lower), endFraction = try fraction(span: span, at: upper)
+                let startFraction = try fraction(span: span, at: lower, using: &execution), endFraction = try fraction(span: span, at: upper, using: &execution)
                 startLaw = (angle: twist(at: startFraction), scale: scale(at: startFraction))
                 endLaw = (angle: twist(at: endFraction), scale: scale(at: endFraction))
             }
             var originalLawError = 0.0
             if let lengthLaw {
-                let first = try fractionEnclosure(span: span, at: lower)
-                let last = try fractionEnclosure(span: span, at: upper)
+                let first = try fractionEnclosure(span: span, at: lower, using: &execution)
+                let last = try fractionEnclosure(span: span, at: upper, using: &execution)
                 let f0 = first.midpoint, f1 = last.midpoint
                 let endpointError = max((first - .exact(f0)).absoluteUpperBound,
                     (last - .exact(f1)).absoluteUpperBound)
                 // In this piece's normalized parameter F'' = speed'/L and
                 // |speed'| <= |C''|. The linear interpolation remainder is M/8.
                 let interpolation = try lengthLaw.fractionInterpolationError(span: span,
-                    from: lower, to: upper, depth: depth)
+                    from: lower, to: upper, depth: depth, using: &execution)
                 let fractionError = Interval.exact(endpointError) + interpolation
                 var knotError = 0.0
                 let stations = [f0, f1] + twistPositions.filter { $0 > min(f0, f1) && $0 < max(f0, f1) }
@@ -628,7 +685,7 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
                     let candidate = Interval.exact(startLaw.angle)
                         + (.exact(endLaw.angle) - .exact(startLaw.angle)) * ratio
                     knotError = max(knotError,
-                        (try originalTwist(at: station) - candidate).absoluteUpperBound)
+                        (try originalTwist(at: station, using: &execution) - candidate).absoluteUpperBound)
                 }
                 let angleError = Interval.exact(knotError) + .exact(maximumTwistSlope) * fractionError
                 let scaleSlope = Interval.exact(values.endScale) - .exact(1)
@@ -645,17 +702,20 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
                     return ("The original arc-length twist or scale law exceeds its complete interpolation allowance.", 20)
                 }
             }
-            let pieceLaws = try laws(startLaw, endLaw, at: .whole, order: 4)
+            let pieceLaws = try laws(startLaw, endLaw, at: .whole, order: 4, using: &execution)
             /// A section point placed over the piece or at one of its ends.
             func placed(_ point: SectionCoordinates, path: IntervalVectorDerivativeJet, frame: RotationJet,
-                        at place: OriginalSweepPathPiece.Place, order: Int) throws -> IntervalVectorDerivativeJet {
-                if let mapEnd { return movedLinear(point, path: path, frame: frame, map: mapJets(mapStart, mapEnd, at: place, order: order)) }
-                let placeLaws = place == .whole && order == 4 ? pieceLaws : try laws(startLaw, endLaw, at: place, order: order)
+                        at place: OriginalSweepPathPiece.Place, order: Int, using execution: inout OriginalQueryExecution) throws -> IntervalVectorDerivativeJet {
+                if let mapEnd {
+                    let map = mapJets(mapStart, mapEnd, at: place, order: order, using: &execution)
+                    return movedLinear(point, path: path, frame: frame, map: map)
+                }
+                let placeLaws = place == .whole && order == 4 ? pieceLaws : try laws(startLaw, endLaw, at: place, order: order, using: &execution)
                 return moved(point, path: path, frame: frame, cosine: placeLaws.cosine, sine: placeLaws.sine, scale: placeLaws.scale)
             }
             var remainder = 0.0
             for point in coordinates {
-                let swept = try placed(point, path: path, frame: frame, at: .whole, order: 4)
+                let swept = try placed(point, path: path, frame: frame, at: .whole, order: 4, using: &execution)
                 let fourth = swept.derivative(4).reduce(Interval.exact(0)) { $0 + .exact($1.absoluteUpperBound) }
                 remainder = max(remainder, (fourth * .exact(1.0 / 384)).upper)
             }
@@ -668,39 +728,39 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
                     : "The section reaches past the path's bend and would overlap itself.", 20)
             }
             // Hermite rows from the piece's ends, the start shared with the previous piece.
-            let startFrame = try RotationJet(reference: frameReference, tangent: try bezier.pointJet(at: .start, order: 2).unitTangentJet())
-            let endFrame = try RotationJet(reference: frameReference, tangent: try bezier.pointJet(at: .end, order: 2).unitTangentJet())
+            let startFrame = try RotationJet(reference: frameReference, tangent: try bezier.pointJet(at: .start, order: 2, using: &execution).unitTangentJet(using: &execution))
+            let endFrame = try RotationJet(reference: frameReference, tangent: try bezier.pointJet(at: .end, order: 2, using: &execution).unitTangentJet(using: &execution))
             guard let startFrame, let endFrame,
-                  let startPath = try bezier.pointJet(at: .start, order: 2).position,
-                  let endPath = try bezier.pointJet(at: .end, order: 2).position else {
+                  let startPath = try bezier.pointJet(at: .start, order: 2, using: &execution).position,
+                  let endPath = try bezier.pointJet(at: .end, order: 2, using: &execution).position else {
                 throw Self.failure(.invalidInput, "The sweep piece's ends are not certified.", featureID, tolerance)
             }
             var pieceRows: [[Point3D]] = Array(repeating: [], count: 4)
             var numeric = 0.0
             var nextStation: [[Interval]] = []
-            let startLaws = try laws(startLaw, endLaw, at: .start, order: 1)
-            let endLaws = try laws(startLaw, endLaw, at: .end, order: 1)
+            let startLaws = try laws(startLaw, endLaw, at: .start, order: 1, using: &execution)
+            let endLaws = try laws(startLaw, endLaw, at: .end, order: 1, using: &execution)
             if pathIsClosed, closesSeam {
                 func sectionAction(path: IntervalVectorDerivativeJet, frame: RotationJet,
                     cosine: IntervalDerivativeJet, sine: IntervalDerivativeJet,
-                    scale: IntervalDerivativeJet) throws -> ClosedSweepIntervalFrameAction {
+                    scale: IntervalDerivativeJet, using execution: inout OriginalQueryExecution) throws -> ClosedSweepIntervalFrameAction {
                     try ClosedSweepIntervalFrameAction(origin: pathStart, position: path.derivative(0),
                         tangent: frame.tangent.derivative(0), first: frame.rotated(carried[1]).derivative(0),
                         second: frame.rotated(carried[2]).derivative(0), originalTangent: startTangent,
                         originalFirst: lateral.0, originalSecond: lateral.1,
                         cosine: cosine.derivatives[0], sine: sine.derivatives[0], scale: scale.derivatives[0],
-                        admission: sectionAdmission)
+                        using: &execution)
                 }
                 if startSectionAction == nil {
                     startSectionAction = try sectionAction(path: startPath, frame: startFrame,
-                        cosine: startLaws.cosine, sine: startLaws.sine, scale: startLaws.scale)
+                        cosine: startLaws.cosine, sine: startLaws.sine, scale: startLaws.scale, using: &execution)
                 }
                 endSectionAction = try sectionAction(path: endPath, frame: endFrame,
-                    cosine: endLaws.cosine, sine: endLaws.sine, scale: endLaws.scale)
+                    cosine: endLaws.cosine, sine: endLaws.sine, scale: endLaws.scale, using: &execution)
             }
             for (index, point) in coordinates.enumerated() {
-                let atStart = try placed(point, path: startPath, frame: startFrame, at: .start, order: 1)
-                let atEnd = try placed(point, path: endPath, frame: endFrame, at: .end, order: 1)
+                let atStart = try placed(point, path: startPath, frame: startFrame, at: .start, order: 1, using: &execution)
+                let atEnd = try placed(point, path: endPath, frame: endFrame, at: .end, order: 1, using: &execution)
                 let s0 = stationValues?[index] ?? atStart.derivative(0)
                 let s1 = atEnd.derivative(0)
                 let enclosures = [
@@ -739,8 +799,8 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
             smallestScale = min(smallestScale, startLaw.scale, endLaw.scale, guideEndState == nil ? 1 : middleScale)
             chunkStarted = false
             rows.append(pieceRows)
-            let middle = try bezier.halves().1.pointJet(at: .start, order: 1)
-            guard let middlePoint = middle.position?.derivative(0), let middleTangent = try middle.tangent() else {
+            let middle = try bezier.halves().1.pointJet(at: .start, order: 1, using: &execution)
+            guard let middlePoint = middle.position?.derivative(0), let middleTangent = try middle.tangent(using: &execution) else {
                 throw Self.failure(.invalidInput, "The sweep piece's middle is not certified.", featureID, tolerance)
             }
             // Eighths of the piece bound where its sections can be, finely enough that a nearby
@@ -748,7 +808,7 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
             var parts = [bezier]
             for _ in 0..<3 { parts = parts.flatMap { part -> [OriginalSweepPathPiece] in let halves = part.halves(); return [halves.0, halves.1] } }
             let bounds = try parts.map { part -> PartBounds in
-                let jet = try part.jet(over: .whole, order: 1)
+                let jet = try part.jet(over: .whole, order: 1, using: &execution)
                 guard let position = jet.position, let direction = jet.unitTangent(),
                       let partFrame = try RotationJet(reference: frameReference,
                           tangent: .constant(direction.derivative(0), order: 0)) else {
@@ -782,7 +842,7 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
             var pending: [(piece: OriginalSweepPathPiece, lower: Double, upper: Double, depth: Int)] = [(bezier, 0, 1, 0)]
             while let next = pending.popLast() {
                 guard let refusal = try accept(next.piece, span: span, lower: next.lower,
-                    upper: next.upper, depth: next.depth) else { continue }
+                    upper: next.upper, depth: next.depth, using: &execution) else { continue }
                 guard next.depth < refusal.limit else {
                     throw Self.failure(.sweepPathNormalUnavailable, refusal.reason, featureID, tolerance)
                 }
@@ -799,7 +859,7 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
             second: (twists ? turned : extent(lateral.1)) * scaleRange
         )
         try Self.certifyApart(pieces, reach: baseReach * scaleRange.upper, extent: sectionExtent, closed: pathIsClosed,
-                              featureID: featureID, tolerance: tolerance)
+                              featureID: featureID, tolerance: tolerance, using: &execution)
         // The bare frame turn; authored twist remains in the seam's rows.
         let turnAxis = startTangent.cross(lateral.0)
         let closingTurn = pathIsClosed ? atan2(endLateral.dot(turnAxis), endLateral.dot(lateral.0)) : 0
@@ -813,7 +873,7 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
             if let transport = try authoredSeam.transport(loops: sectionLoops,
                 firstRow: rows[0][0], lastRow: rows[last][3],
                 startAction: startSectionAction, endAction: endSectionAction,
-                tolerance: tolerance, admission: sectionAdmission) {
+                tolerance: tolerance, using: &execution) {
                 let completeError = (Interval.exact(transport.maximumControlDisplacement)
                     + .exact(maximumError)).upper
                 if completeError <= allowance {
@@ -876,7 +936,7 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
         featureID: FeatureID?,
         tolerance: ModelingTolerance,
         sourceBudget suppliedBudget: CurvedSweepSourceBudget? = nil
-    ) throws -> Self {
+    , using execution: inout OriginalQueryExecution) throws -> Self {
         guard values.endScale == 1, sweep.guides.isEmpty,
               values.approximationTolerance != nil else {
             throw failure(.sweepTwistUnavailable,
@@ -888,34 +948,33 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
             throw failure(.sweepTwistUnavailable, "A closed sweep twist requires matching retained knots.", featureID, tolerance)
         }
         var correction = 0.0
-        let sourceBudget = try suppliedBudget ?? CurvedSweepSourceBudget(tolerance: tolerance)
-        let admission = try sourceBudget.conversionAdmission()
-        let builder = ExactBSplineCurveSpanBuilder(tolerance: tolerance, admission: admission)
+        let sourceBudget = try suppliedBudget ?? CurvedSweepSourceBudget(tolerance: tolerance, using: &execution)
+        let builder = try ExactBSplineCurveSpanBuilder(tolerance: tolerance, using: &execution)
         let sectionLoops: [[ExactBSplineCurveSpan]]
         let sectionIsClosed: Bool
         switch section {
         case .profile, .face, .constructedRegion:
-            sectionLoops = try builder.loopSpans(from: section); sectionIsClosed = true
+            sectionLoops = try builder.loopSpans(from: section, using: &execution); sectionIsClosed = true
         case .curve(let curve):
-            sectionLoops = [try builder.sectionSpans(from: curve)]; sectionIsClosed = curve.isClosed
+            sectionLoops = [try builder.sectionSpans(from: curve, using: &execution)]; sectionIsClosed = curve.isClosed
         }
         let originalPathPieces = try OriginalSweepPathPiece.prepare(pathSpans,
-            tolerance: tolerance, budget: sourceBudget)
+            tolerance: tolerance, budget: sourceBudget, using: &execution)
         guard let firstPiece = originalPathPieces.first,
-              let tangent = try firstPiece.pointJet(at: .start, order: 1).tangent(),
+              let tangent = try firstPiece.pointJet(at: .start, order: 1, using: &execution).tangent(using: &execution),
               let pathStart = pathSpans.first?.startPoint else {
             throw failure(.invalidInput, "The closed sweep has no original initial frame.", featureID, tolerance)
         }
-        let axes = try lateralAxes(of: tangent, tolerance: tolerance)
+        let axes = try lateralAxes(of: tangent, tolerance: tolerance, using: &execution)
         let turn = Interval.exact(authoredAngles[authoredAngles.count - 1]) - .exact(authoredAngles[0])
         let harmonic = try CertifiedRotationTrigonometry.evaluate(turn, tolerance: tolerance,
-            consumeWork: { try sourceBudget.consume(depth: 0) })
+            using: &execution)
         let authoredAction = try ClosedSweepIntervalFrameAction(origin: pathStart,
             position: Self.values(pathStart), tangent: Self.values(tangent), first: Self.values(axes.0), second: Self.values(axes.1),
             originalTangent: tangent, originalFirst: axes.0, originalSecond: axes.1,
-            cosine: harmonic.cosine, sine: harmonic.sine, scale: .exact(1), admission: admission)
+            cosine: harmonic.cosine, sine: harmonic.sine, scale: .exact(1), using: &execution)
         let authoredSeam = try ClosedSweepSectionCorrespondence(loops: sectionLoops,
-            authoredAction: authoredAction, tolerance: tolerance, admission: admission)
+            authoredAction: authoredAction, tolerance: tolerance, using: &execution)
         var originalLengthLaw: OriginalCurvedSweepArcLengthLaw?
         for _ in 0..<6 {
             var corrected = values
@@ -925,14 +984,14 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
             corrected.twistPositions = authoredPositions
             if originalLengthLaw == nil, corrected.twistAngles.contains(where: { $0 != 0 }) {
                 originalLengthLaw = try OriginalCurvedSweepArcLengthLaw(spans: pathSpans,
-                    tolerance: tolerance, budget: sourceBudget)
+                    tolerance: tolerance, budget: sourceBudget, using: &execution)
             }
             let plan = try Self(sectionLoops: sectionLoops, sectionIsClosed: sectionIsClosed,
                                 profilePlane: section.plane(), pathSpans: pathSpans, sweep: sweep, values: corrected,
                                 pathIsClosed: true, closesSeam: true, authoredSeam: authoredSeam, sourceBudget: sourceBudget,
                                 originalLengthLaw: originalLengthLaw,
                                 originalPathPieces: originalPathPieces,
-                                featureID: featureID, tolerance: tolerance)
+                                featureID: featureID, tolerance: tolerance, using: &execution)
             if plan.seamClosed { return plan }
             correction = -plan.closingTurn
         }
@@ -946,7 +1005,7 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
     private static func certifyApart(
         _ pieces: [AcceptedPiece], reach: Double, extent: SectionExtent, closed: Bool,
         featureID: FeatureID?, tolerance: ModelingTolerance
-    ) throws {
+    , using execution: inout OriginalQueryExecution) throws {
         guard pieces.count >= 3 else { return }
         /// The signed distances from `plane` of the sections of every part of `piece`.
         func side(_ piece: AcceptedPiece, of plane: (Point3D, Vector3D)) -> (lower: Double, upper: Double) {
@@ -1034,7 +1093,7 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
     }
 
     /// Two unit axes across `tangent`, completing a right-handed frame.
-    private static func lateralAxes(of tangent: Vector3D, tolerance: ModelingTolerance) throws -> (Vector3D, Vector3D) {
+    private static func lateralAxes(of tangent: Vector3D, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> (Vector3D, Vector3D) {
         let seed: Vector3D = abs(tangent.x) < 0.6 ? .unitX : .unitY
         let first = try tangent.cross(seed).normalized(tolerance: tolerance.distance)
         return (first, tangent.cross(first))
@@ -1062,12 +1121,12 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
 }
 
 private extension OriginalSweepPathPiece {
-    func jet(over place: Place, order: Int) throws -> PathJet {
-        PathJet(originalPosition: try derivativeJet(over: place, order: order))
+    func jet(over place: Place, order: Int, using execution: inout OriginalQueryExecution) throws -> PathJet {
+        PathJet(originalPosition: try derivativeJet(over: place, order: order, using: &execution))
     }
 
-    func pointJet(at place: Place, order: Int) throws -> PathJet {
-        try jet(over: place, order: order)
+    func pointJet(at place: Place, order: Int, using execution: inout OriginalQueryExecution) throws -> PathJet {
+        try jet(over: place, order: order, using: &execution)
     }
 }
 
@@ -1083,7 +1142,7 @@ private struct PathJet {
         return velocity.scaled(by: inverse)
     }
 
-    func unitTangentJet() throws -> IntervalVectorDerivativeJet {
+    func unitTangentJet(using execution: inout OriginalQueryExecution) throws -> IntervalVectorDerivativeJet {
         guard let tangent = unitTangent() else {
             throw KernelError(phase: .geometry, code: .singularGeometry, tolerance: .standard,
                 message: "The sweep path's speed vanishes at a piece end.")
@@ -1092,7 +1151,7 @@ private struct PathJet {
     }
 
     /// The unit tangent's midpoint, for a frame reference.
-    func tangent() throws -> Vector3D? {
+    func tangent(using execution: inout OriginalQueryExecution) throws -> Vector3D? {
         guard let tangent = unitTangent() else { return nil }
         let value = tangent.derivative(0)
         let vector = Vector3D(x: value[0].midpoint, y: value[1].midpoint, z: value[2].midpoint)

@@ -66,3 +66,34 @@ This component consumes the unchanged current-task cancellation and direct
 collection import contracts owned by [CADTopology](../DESIGN.md#m6-portable-validation-wiring).
 Its algorithms, budgets, immutable source owners and existing isolation remain
 unchanged on Native, ordinary WASM and Embedded.
+
+### Canonical Geometry API rebinding
+
+Existing numerical consumers borrow the common
+[execution](../../CADGeometry/OriginalQueryExecution/DESIGN.md) through actual
+source preparation and Geometry queries. Ordinary roots delegate once into the
+same body. Independent local limits, formulas, result meaning and all supported
+branches remain unchanged; resource and cancellation failures stay explicit.
+This delivery binding does not add an independent algorithm or feature fix.
+
+### Direct protocol witnesses
+
+`BRepVolumeMomentMeasuring` declares non-generic direct requirements for both
+raw `BRepModel` and immutable `ValidatedBRepModel` inputs. Kernel mass composition
+invokes these requirements on its injected existential provider with the existing
+`inout OriginalQueryExecution`; extension-only dispatch cannot supply that witness.
+`DefaultBRepVolumeMomentMeasurer` already implements both direct bodies. Its ordinary
+entries create one root and delegate, while direct entries retain their immutable
+request contribution on the same budget for validation and integration.
+
+```text
+Kernel execution -> BRepVolumeMomentMeasuring direct witness
+                 -> existing validated/raw concrete moment body -> same budget
+```
+
+This protocol binding leaves the existing ten integrals, local request limits,
+source/depth/algebra policies, receipt authority, and typed failures unchanged.
+The direct requirements have no ordinary-method fallback and no default success
+implementation. Every injected conformer must provide its actual direct witness.
+The next production gate must compile the protocol and the Kernel existential
+calls together. Earlier receipts do not cover this added public witness contract.

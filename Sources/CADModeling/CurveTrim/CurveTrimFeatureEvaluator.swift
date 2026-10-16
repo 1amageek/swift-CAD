@@ -46,17 +46,17 @@ public struct CurveTrimFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
             try curveTrim.validate(tolerance: context.tolerance)
         }
         let sourceBudget = try CurvedSweepSourceBudget(tolerance: context.tolerance)
-        let admission = try sourceBudget.conversionAdmission()
+        var execution = try sourceBudget.execution()
         let source = try sourceCurve(curveTrim.source, featureID: feature.id, context: context,
-            admission: admission)
+            using: &execution)
         let generatedCurve = try trimmedCurve(
             featureID: feature.id,
             source: source,
             domain: curveTrim.domain,
             tolerance: context.tolerance,
-            admission: admission
+            using: &execution
         )
-        try admission.chargeStorage(bytes: MemoryLayout<EvaluatedCurve>.stride)
+        try execution.retainStorage(bytes: MemoryLayout<EvaluatedCurve>.stride)
         var result = EvaluationResult(
             brep: context.brep,
             generatedCurves: [generatedCurve]
@@ -69,7 +69,7 @@ public struct CurveTrimFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
         _ reference: CurveOutputReference,
         featureID: FeatureID,
         context: EvaluationContext,
-        admission: GeometryConversionAdmission
+        using execution: inout OriginalQueryExecution
     ) throws -> EvaluatedCurve {
         try reference.validate()
         guard let curves = context.curves[reference.featureID] else {
@@ -79,7 +79,7 @@ public struct CurveTrimFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
             throw kernelError(.missingReference, featureID: featureID, tolerance: context.tolerance, "Curve trim source index could not be resolved.")
         }
         let curve = curves[reference.curveIndex]
-        try admission.chargeWork()
+        try execution.consumeWork(1)
         guard curve.exactCurve != nil else {
             throw kernelError(.missingReference, featureID: featureID, tolerance: context.tolerance, "Curve trim source does not contain exact curve geometry.")
         }
@@ -91,8 +91,22 @@ public struct CurveTrimFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
         source: EvaluatedCurve,
         domain: ParameterDomain,
         tolerance: ModelingTolerance,
-        admission: GeometryConversionAdmission? = nil
+        using execution: inout OriginalQueryExecution
     ) throws -> EvaluatedCurve {
+        try trimmedCurveImpl(featureID: featureID, source: source, domain: domain,
+            tolerance: tolerance, originalProof: true, using: &execution)
+    }
+
+    package func trimmedCurve(featureID: FeatureID, source: EvaluatedCurve,
+        domain: ParameterDomain, tolerance: ModelingTolerance) throws -> EvaluatedCurve {
+        var execution = try CurvedSweepSourceBudget(tolerance: tolerance).execution()
+        return try trimmedCurveImpl(featureID: featureID, source: source, domain: domain,
+            tolerance: tolerance, originalProof: false, using: &execution)
+    }
+
+    package func trimmedCurveImpl(featureID: FeatureID, source: EvaluatedCurve,
+        domain: ParameterDomain, tolerance: ModelingTolerance, originalProof: Bool,
+        using execution: inout OriginalQueryExecution) throws -> EvaluatedCurve {
         guard let exactCurve = source.exactCurve else {
             throw kernelError(.missingReference, featureID: featureID, tolerance: tolerance, "Curve trim source does not contain exact curve geometry.")
         }
@@ -110,23 +124,16 @@ public struct CurveTrimFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
         let samples: (points: [Point3D], parameters: [Double])
         let closed: Bool
         let kind: EvaluatedCurveKind
-        if let admission {
-            _ = try source.validateOriginalGeometry(tolerance: tolerance,
-                maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
-                remainingSourceDepth: admission.remainingSourceDepth,
-                consumeWork: { try admission.visit(depth: $0) },
-                consumeStorage: { try admission.chargeStorage(bytes: $0) },
-                maximumAlgebraicDepth: admission.maximumAlgebraicDepth)
+        if originalProof {
+            _ = try source.validateOriginalGeometry(tolerance: tolerance, using: &execution)
             samples = try samplePoints(exactCurve, lowerBound: lowerBound, upperBound: upperBound,
-                tolerance: tolerance, admission: admission)
-            closed = try BRepEdgeGeometryClassifier(maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
-                remainingSourceDepth: admission.remainingSourceDepth,
-                consumeWork: { try admission.visit(depth: $0) },
-                consumeStorage: { try admission.chargeStorage(bytes: $0) },
-                maximumAlgebraicDepth: admission.maximumAlgebraicDepth)
-                .kind(curve: exactCurve, from: lowerBound, to: upperBound, tolerance: tolerance) == .closed
+                tolerance: tolerance, using: &execution)
+            closed = try BRepEdgeGeometryClassifier(maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth,
+                remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+                maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth)
+                .kind(curve: exactCurve, from: lowerBound, to: upperBound, tolerance: tolerance, using: &execution) == .closed
             kind = try boundedTrimmedKind(sourceKind: source.kind, curve: exactCurve,
-                isClosed: closed, remainingSourceDepth: admission.remainingSourceDepth, admission: admission)
+                isClosed: closed, remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth, using: &execution)
         } else {
             samples = try samplePoints(exactCurve, lowerBound: lowerBound, upperBound: upperBound, tolerance: tolerance)
             closed = trimmedCurveIsClosed(source: source, exactCurve: exactCurve,
@@ -148,26 +155,25 @@ public struct CurveTrimFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
         // The admitted route preserves the already validated raw curve, binds
         // this contained domain above and proves every new display position.
         // Replaying source preparation here would not establish a new premise.
-        if admission == nil { try evaluated.validate(tolerance: tolerance) }
+        if !originalProof { try evaluated.validate(tolerance: tolerance) }
         return evaluated
     }
 
     private func samplePoints(_ curve: Curve3D, lowerBound: Double, upperBound: Double,
-        tolerance: ModelingTolerance, admission: GeometryConversionAdmission) throws
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws
         -> (points: [Point3D], parameters: [Double]) {
         guard lowerBound.isFinite, upperBound.isFinite, lowerBound < upperBound else {
             throw GeometryConversionError.invalidInput("Original trim samples require distinct finite authored endpoints.")
         }
         let prepared = try PreparedCurveDifferentialEncloser(curve: curve, tolerance: tolerance,
-            remainingSourceDepth: admission.remainingSourceDepth,
-            maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
-            consumeWork: { try admission.chargeWork() }, consumeStorage: { try admission.chargeStorage(bytes: $0) })
+            remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+            maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth, using: &execution)
         let count = 33
-        try admission.chargeStorage(bytes: count * (MemoryLayout<Point3D>.stride + MemoryLayout<Double>.stride))
+        try execution.retainStorage(bytes: count * (MemoryLayout<Point3D>.stride + MemoryLayout<Double>.stride))
         var points: [Point3D] = [], parameters: [Double] = []
         points.reserveCapacity(count); parameters.reserveCapacity(count)
         for index in 0..<count {
-            try admission.chargeWork()
+            try execution.consumeWork(1)
             let fraction = Double(index) / Double(count - 1)
             let parameter = index == 0 ? lowerBound : (index == count - 1 ? upperBound
                 : lowerBound * (1 - fraction) + upperBound * fraction)
@@ -175,13 +181,12 @@ public struct CurveTrimFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
                 throw GeometryConversionError.invalidInput("Original trim sample station escaped its authored interval.")
             }
             let enclosure = try prepared.closedNativeJets(over: ScalarInterval(lower: parameter, upper: parameter),
-                tolerance: tolerance, maximumSpanCount: admission.maximumSpanCount,
-                maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
-                remainingSourceDepth: admission.remainingSourceDepth,
-                consumeWork: { try admission.chargeWork() }, consumeStorage: { try admission.chargeStorage(bytes: $0) })
+                tolerance: tolerance, maximumSpanCount: execution.effectiveLimits.maximumSpans,
+                maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth,
+                remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth, using: &execution)
             var position: IntervalVector3DBounds?
             for owner in enclosure.spans {
-                try admission.chargeWork()
+                try execution.consumeWork(1)
                 let next = IntervalVector3DBounds(x: owner.jet.x.value, y: owner.jet.y.value, z: owner.jet.z.value)
                 if let previous = position {
                     func hull(_ a: OutwardScalarInterval, _ b: OutwardScalarInterval) -> OutwardScalarInterval {
@@ -204,8 +209,8 @@ public struct CurveTrimFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
     }
 
     private func boundedTrimmedKind(sourceKind: EvaluatedCurveKind, curve: Curve3D,
-        isClosed: Bool, remainingSourceDepth: Int, admission: GeometryConversionAdmission) throws -> EvaluatedCurveKind {
-        try admission.chargeWork()
+        isClosed: Bool, remainingSourceDepth: Int, using execution: inout OriginalQueryExecution) throws -> EvaluatedCurveKind {
+        try execution.consumeWork(1)
         guard remainingSourceDepth >= 0 else { throw GeometryConversionError.resourceLimitExceeded("Original trim metadata exhausted source depth.") }
         switch curve {
         case .line, .analytic(.line): return .line
@@ -214,13 +219,13 @@ public struct CurveTrimFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
         case .bSpline: return sourceKind == .arc ? .spline : sourceKind
         case .rigidImage(let image):
             return try boundedTrimmedKind(sourceKind: sourceKind, curve: image.source, isClosed: isClosed,
-                remainingSourceDepth: remainingSourceDepth - 1, admission: admission)
+                remainingSourceDepth: remainingSourceDepth - 1, using: &execution)
         case .parameterImage(let image):
             return try boundedTrimmedKind(sourceKind: sourceKind, curve: image.source, isClosed: isClosed,
-                remainingSourceDepth: remainingSourceDepth - 1, admission: admission)
+                remainingSourceDepth: remainingSourceDepth - 1, using: &execution)
         case .originalAngularTransport(let image):
             return try boundedTrimmedKind(sourceKind: sourceKind, curve: image.source, isClosed: isClosed,
-                remainingSourceDepth: remainingSourceDepth - 1, admission: admission)
+                remainingSourceDepth: remainingSourceDepth - 1, using: &execution)
         case .affineImage, .originalAffineWord: return curve.hasExactLinearParameterization ? .line : .spline
         case .analytic, .implicit, .surfaceLift, .certifiedIntersection, .originalEndpointConnector,
              .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline,

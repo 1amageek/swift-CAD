@@ -8,10 +8,8 @@ struct SurfaceAreaRuledTensorAuthority: Sendable {
 
     init?(original: RuledSurface3D, maximumControlPointCount: Int,
           tolerance: ModelingTolerance, maximumSubdivisionDepth: Int? = nil,
-          remainingSourceDepth: Int = 16, maximumAlgebraicDepth: Int? = nil,
-          consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() },
-          consumeStorage: ((Int) throws -> Void)? = nil) throws {
-        try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
+          remainingSourceDepth: Int = 16, maximumAlgebraicDepth: Int? = nil, using execution: inout OriginalQueryExecution) throws {
+        try CurrentTaskCancellationChecker().checkCancellation(); try execution.consumeWork(1)
         guard case .bSpline(let start) = original.startBoundary,
               case .bSpline(let end) = original.endBoundary else { return nil }
         let limit = maximumControlPointCount
@@ -19,7 +17,7 @@ struct SurfaceAreaRuledTensorAuthority: Sendable {
             throw Self.failure(.resourceLimitExceeded, tolerance, "Ruled tensor control admission has no finite limit.")
         }
         func admitRail(_ rail: BSplineCurve3D) throws {
-            try consumeWork()
+            try execution.consumeWork(1)
             guard rail.controlPoints.count <= limit, rail.weights.count <= limit,
                   rail.knots.count <= 2 * limit + 1 else {
                 throw Self.failure(.resourceLimitExceeded, tolerance, "Original ruled rail dimensions exceed area admission.")
@@ -33,12 +31,11 @@ struct SurfaceAreaRuledTensorAuthority: Sendable {
         try admitRail(start); try admitRail(end)
         if let maximumSubdivisionDepth {
             try Surface3D.procedural(.ruled(original)).validateOriginalSource(tolerance:tolerance,
-                remainingSourceDepth:remainingSourceDepth,maximumSubdivisionDepth:maximumSubdivisionDepth,
-                consumeWork:{ _ in try consumeWork() },consumeStorage:consumeStorage,maximumAlgebraicDepth:maximumAlgebraicDepth)
-        } else { try original.validate(tolerance: tolerance) }
+                remainingSourceDepth:remainingSourceDepth,maximumSubdivisionDepth:maximumSubdivisionDepth,maximumAlgebraicDepth:maximumAlgebraicDepth, using: &execution)
+        } else { try original.validate(tolerance: tolerance, using: &execution) }
         func equal(_ first: [Double], _ second: [Double]) throws -> Bool {
             guard first.count == second.count else { return false }
-            for index in first.indices { try consumeWork(); if first[index] != second[index] { return false } }
+            for index in first.indices { try execution.consumeWork(1); if first[index] != second[index] { return false } }
             return true
         }
         guard !start.isPeriodic, !end.isPeriodic, start.degree == end.degree,
@@ -53,7 +50,7 @@ struct SurfaceAreaRuledTensorAuthority: Sendable {
         }
         var expanded = 1
         func admitFactor(_ factor: Int) throws {
-            try consumeWork()
+            try execution.consumeWork(1)
             guard factor > 0, factor <= limit / expanded else {
                 throw Self.failure(.resourceLimitExceeded, tolerance, "Original ruled tensor native span preparation exceeds area admission.")
             }
@@ -63,11 +60,10 @@ struct SurfaceAreaRuledTensorAuthority: Sendable {
         try CurrentTaskCancellationChecker().checkCancellation()
         self.original = original
         translatesAlongV = try SurfaceAreaTranslationCertificate.direction(of: .procedural(.ruled(original)),
-            remainingSourceDepth:remainingSourceDepth,maximumAlgebraicDepth:maximumAlgebraicDepth,
-            consumeWork:consumeWork,consumeStorage:consumeStorage) == .v
-        try OriginalCoefficientAllocation.reserve(count:2,of:[Point3D].self,consumeStorage:consumeStorage)
-        try OriginalCoefficientAllocation.reserve(count:2,of:[Double].self,consumeStorage:consumeStorage)
-        try OriginalCoefficientAllocation.reserve(count:4,of:Double.self,consumeStorage:consumeStorage)
+            remainingSourceDepth:remainingSourceDepth,maximumAlgebraicDepth:maximumAlgebraicDepth, using: &execution) == .v
+        try OriginalCoefficientAllocation.reserve(count:2,of:[Point3D].self, using: &execution)
+        try OriginalCoefficientAllocation.reserve(count:2,of:[Double].self, using: &execution)
+        try OriginalCoefficientAllocation.reserve(count:4,of:Double.self, using: &execution)
         tensor = BSplineSurface3D(uDegree: start.degree, vDegree: 1,
             uKnots: start.knots, vKnots: [0, 0, 1, 1],
             controlPoints: [start.controlPoints, end.controlPoints],
@@ -77,9 +73,7 @@ struct SurfaceAreaRuledTensorAuthority: Sendable {
     /// Integrates the original rational line image, never converted coefficients.
     func rectangleIntegral(rectangle: SurfaceParameterBox, fraction: ScalarInterval,
                            nativeLower: Double, nativeUpper: Double,
-                           reference: Point3D, tolerance: ModelingTolerance,
-                           consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() },
-                           consumeStorage: ((Int) throws -> Void)? = nil)
+                           reference: Point3D, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution)
         throws -> [OutwardScalarInterval]? {
         try CurrentTaskCancellationChecker().checkCancellation()
         guard case .bSpline(let start) = original.startBoundary,
@@ -98,7 +92,7 @@ struct SurfaceAreaRuledTensorAuthority: Sendable {
         // prepared span alone cannot authorize unrelated extracted coefficients.
         var owner: Int?
         for index in 1..<start.controlPoints.count {
-            try consumeWork()
+            try execution.consumeWork(1)
             if start.knots[index] == nativeLower, start.knots[index + 1] == nativeUpper,
                nativeLower < nativeUpper {
                 owner = index
@@ -163,11 +157,11 @@ struct SurfaceAreaRuledTensorAuthority: Sendable {
         let area = norm * (h1 - h0) * band
         let meanH = (h0 + h1) * .exact(0.5)
         let meanV = (OutwardScalarInterval.exact(rectangle.v.lower) + .exact(rectangle.v.upper)) * .exact(0.5)
-        try consumeWork()
+        try execution.consumeWork(1)
         let centerX = origin.x + displacement.x * meanH + translation.x * meanV
         let centerY = origin.y + displacement.y * meanH + translation.y * meanV
         let centerZ = origin.z + displacement.z * meanH + translation.z * meanV
-        try OriginalCoefficientAllocation.reserve(count:4,of:OutwardScalarInterval.self,consumeStorage:consumeStorage)
+        try OriginalCoefficientAllocation.reserve(count:4,of:OutwardScalarInterval.self, using: &execution)
         let result = [area,area*(centerX - .exact(reference.x)),area*(centerY - .exact(reference.y)),area*(centerZ - .exact(reference.z))]
         guard result.allSatisfy({ $0.isFinite }) else {
             throw Self.failure(.classificationFailure, tolerance, "Original ruled rectangle integral exceeded finite arithmetic.")

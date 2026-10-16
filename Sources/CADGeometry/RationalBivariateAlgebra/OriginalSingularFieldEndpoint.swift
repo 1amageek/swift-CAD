@@ -6,7 +6,7 @@ package enum OriginalSingularFieldEndpoint: Sendable {
     package var upper: ExactRationalCoefficient { switch self { case .authored(let a): a; case .algebraic(let a): a.isolation.upper } }
     package var depth: Int { switch self { case .authored: 0; case .algebraic(let a): a.isolation.depth } }
 
-    package func sign<B: RationalAlgebraAdmitting>(of polynomial: OriginalSingularFieldPolynomial,
+    package func sign<B: ExactScalarAdmission & ~Copyable>(of polynomial: OriginalSingularFieldPolynomial,
         maximumDepth: Int, usage: inout B) throws -> ExactAlgebraicRealRoot.Sign {
         switch self {
         case .algebraic(let root): return try root.sign(of: polynomial, maximumDepth: maximumDepth, usage: &usage)
@@ -18,7 +18,7 @@ package enum OriginalSingularFieldEndpoint: Sendable {
         }
     }
 
-    package static func compare<B: RationalAlgebraAdmitting>(_ first: inout Self, _ second: inout Self,
+    package static func compare<B: ExactScalarAdmission & ~Copyable>(_ first: inout Self, _ second: inout Self,
         maximumDepth: Int, usage: inout B) throws -> Int {
         switch (first, second) {
         case (.authored(let a), .authored(let b)):
@@ -58,7 +58,7 @@ package enum OriginalSingularFieldEndpoint: Sendable {
             }
         }
     }
-    package static func between<B: RationalAlgebraAdmitting>(_ lower: inout Self, _ upper: inout Self,
+    package static func between<B: ExactScalarAdmission & ~Copyable>(_ lower: inout Self, _ upper: inout Self,
         maximumDepth: Int, usage: inout B) throws -> ExactRationalCoefficient {
         guard try compare(&lower, &upper, maximumDepth: maximumDepth, usage: &usage) < 0 else {
             throw rationalAlgebraFailure("Original local sector has no positive exact parameter width.")
@@ -69,7 +69,7 @@ package enum OriginalSingularFieldEndpoint: Sendable {
         }
         return try lower.upper.adding(upper.lower, usage: &usage).divided(by: .natural(2, usage: &usage), usage: &usage)
     }
-    private static func sign<B: RationalAlgebraAdmitting>(_ root: OriginalSingularFieldRoot,
+    private static func sign<B: ExactScalarAdmission & ~Copyable>(_ root: OriginalSingularFieldRoot,
         minus station: ExactRationalCoefficient, maximumDepth: Int, usage: inout B) throws -> Int {
         let constant = try OriginalSingularFieldElement.constant(station.negated, in: root.polynomial.context, maximumDepth: maximumDepth, usage: &usage)
         let one = try OriginalSingularFieldElement.constant(.one, in: root.polynomial.context, maximumDepth: maximumDepth, usage: &usage)

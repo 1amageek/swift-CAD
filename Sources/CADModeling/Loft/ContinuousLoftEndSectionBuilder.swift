@@ -9,14 +9,12 @@ import CADGeometry
 /// this affine law; construction images are certified again after amplification.
 package struct ContinuousLoftEndSectionBuilder {
     private let tolerance: ModelingTolerance
-    private let admission: GeometryConversionAdmission?
 
-    package init(tolerance: ModelingTolerance, admission: GeometryConversionAdmission? = nil) {
+    package init(tolerance: ModelingTolerance) {
         self.tolerance = tolerance
-        self.admission = admission
     }
 
-    package func endSection(of section: [ExactBSplineCurveSpan], guides: [[ExactBSplineCurveSpan]], featureID: FeatureID) throws -> [ExactBSplineCurveSpan] {
+    package func endSection(of section: [ExactBSplineCurveSpan], guides: [[ExactBSplineCurveSpan]], featureID: FeatureID, using execution: inout OriginalQueryExecution) throws -> [ExactBSplineCurveSpan] {
         guard let first = section.first, let last = section.last, guides.count == 2 else {
             throw failure(featureID, "A Loft from one section runs along two guides.")
         }
@@ -38,14 +36,14 @@ package struct ContinuousLoftEndSectionBuilder {
         guard let farStart = far[true], let farEnd = far[false] else {
             throw failure(featureID, "A Loft from one section needs a guide leaving each of its ends.")
         }
-        return try carried(section, from: (start, end), to: (farStart, farEnd), featureID: featureID)
+        return try carried(section, from: (start, end), to: (farStart, farEnd), featureID: featureID, using: &execution)
     }
 
     /// The section carried by the similarity — the least rotation, a uniform scale and a move —
     /// taking the points `from` to the points `to` (a Loft's end section carried along its guides
     /// to their ends, Trim overlap off).
     package func carried(_ section: [ExactBSplineCurveSpan], from: (Point3D, Point3D), to: (Point3D, Point3D),
-                         featureID: FeatureID) throws -> [ExactBSplineCurveSpan] {
+                         featureID: FeatureID, using execution: inout OriginalQueryExecution) throws -> [ExactBSplineCurveSpan] {
         let (start, farStart) = (from.0, to.0)
         let across = from.1 - from.0
         let target = to.1 - to.0
@@ -74,31 +72,26 @@ package struct ContinuousLoftEndSectionBuilder {
             basisY: rotated(.unitY) * scale, basisZ: rotated(.unitZ) * scale,
             translation: (farStart - .origin) - rotated(start - .origin) * scale)
         var result: [ExactBSplineCurveSpan] = []
-        let builder = ExactBSplineCurveSpanBuilder(tolerance: tolerance, admission: admission)
+        let builder = try ExactBSplineCurveSpanBuilder(tolerance: tolerance, using: &execution)
         for span in section {
             try Task.checkCancellation()
             // FIXME(INCOMPLETE_IMPLEMENTATION): Continuous Loft publishes this
             // retained original chart only after final candidate correspondence
             // succeeds. General source-family closed jets and side embedding
             // remain lower completion premises; source authoring is not proof.
-            guard let admission else {
-                throw KernelError(phase: .geometry, code: .unsupportedCapability,
-                    featureID: featureID, tolerance: tolerance,
-                    message: "Continuous Loft needs its aggregate original construction admission.")
-            }
-            let retained = try span.originalChart.persistentCurve(tolerance: tolerance, admission: admission)
+            let retained = try span.originalChart.persistentCurve(tolerance: tolerance, using: &execution)
             let original = Curve3D.affineImage(try AffineImageCurve3D(source: retained,
                 transform: transform, tolerance: tolerance))
             let sourceOwner = try OriginalCurveSpanSource(curve: original,
-                tolerance: tolerance, admission: admission)
-            let converted = try builder.sectionSpans(sourceOwner: sourceOwner, lower: 0, upper: 1)
+                tolerance: tolerance, using: &execution)
+            let converted = try builder.sectionSpans(sourceOwner: sourceOwner, lower: 0, upper: 1, using: &execution)
             let count = converted.count.multipliedReportingOverflow(by: MemoryLayout<ExactBSplineCurveSpan>.stride)
             guard !count.overflow else {
                 throw KernelError(phase: .geometry, code: .resourceLimitExceeded,
                     featureID: featureID, tolerance: tolerance,
                     message: "Continuous Loft final source span storage overflowed.")
             }
-            try admission.chargeStorage(bytes: count.partialValue)
+            try execution.retainStorage(bytes: count.partialValue)
             result.append(contentsOf: converted)
         }
         return result

@@ -1,5 +1,6 @@
 import Foundation
 import CADCore
+import CADGeometry
 import CADIR
 import CADKernel
 
@@ -217,20 +218,20 @@ public struct OfficialFormatExchange: Sendable {
     }
 
     public func write(_ page: DrawingExchangePage, as format: ExchangeFileFormat,
-                      outputUnit: LengthUnit = .millimeter, usage: inout DrawingExchangeUsage,
+                      outputUnit: LengthUnit = .millimeter, usage: DrawingExchangeOwner, using execution: inout OriginalQueryExecution,
                       to sink: any ByteSink) throws {
         switch format {
-        case .dxf: try dxfExchange.write(page, outputUnit: outputUnit, usage: &usage, to: sink)
-        case .svg: try svgExchange.write(page, outputUnit: outputUnit, usage: &usage, to: sink)
-        case .pdf: try pdfExporter.write(page, outputUnit: outputUnit, usage: &usage, to: sink)
+        case .dxf: try dxfExchange.write(page, outputUnit: outputUnit, usage: usage, using: &execution, to: sink)
+        case .svg: try svgExchange.write(page, outputUnit: outputUnit, usage: usage, using: &execution, to: sink)
+        case .pdf: try pdfExporter.write(page, outputUnit: outputUnit, usage: usage, using: &execution, to: sink)
         default: throw ImportError.unsupportedFormat(format.displayName)
         }
     }
     public func export(_ page: DrawingExchangePage, as format: ExchangeFileFormat,
-                       outputUnit: LengthUnit = .millimeter, usage: inout DrawingExchangeUsage,
+                       outputUnit: LengthUnit = .millimeter, usage: DrawingExchangeOwner, using execution: inout OriginalQueryExecution,
                        to url: URL) throws {
         do { try writeFileAtomically(to: url) { sink in
-            try write(page, as: format, outputUnit: outputUnit, usage: &usage, to: sink)
+            try write(page, as: format, outputUnit: outputUnit, usage: usage, using: &execution, to: sink)
         } }
         catch let error as ByteSinkError { throw ExportError.fileWriteFailure(error.localizedDescription) }
     }

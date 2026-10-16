@@ -4,11 +4,11 @@ extension OriginalAngularTransportCurve3D: Codable {
     private enum Keys: String, CodingKey { case source, transport }
     public init(from decoder: Decoder) throws {
         if #available(macOS 15, iOS 18, visionOS 2, watchOS 11, tvOS 18, *) {
-            var usage = try NativeRationalSourceDecodingContext.allowance(from: decoder)
+            var usage = try NativeRationalSourceDecodingContext.execution(from: decoder)
             try OriginalAffineWordDecodingContext.validateSourceNesting(from: decoder)
-            try usage.visitExactCell(depth: 0)
+            try usage.visitCell(axis: .value, depth: 0)
             let c = try decoder.container(keyedBy: Keys.self)
-            try usage.consumeExactWork(c.allKeys.count)
+            try usage.consumeWork(c.allKeys.count)
             try c.validateOnlyExpectedKeys([.source, .transport], in: decoder)
             let source = try c.decode(Curve3D.self, forKey: .source)
             try self.init(source: source, transport: try c.decode(OriginalAngularParameterTransport.self, forKey: .transport),

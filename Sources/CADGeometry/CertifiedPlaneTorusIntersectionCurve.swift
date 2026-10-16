@@ -99,8 +99,10 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
             return result
         }
 
-        var tangentHalfAngleCoefficients: [Double] {
-            [
+        func tangentHalfAngleCoefficients(using execution: inout OriginalQueryExecution) throws -> [Double] {
+            try execution.consumeWork(1)
+            try execution.retainStorage(count: 5, stride: MemoryLayout<Double>.stride)
+            return [
                 constant + cosine + cosineDouble,
                 2.0 * sine,
                 2.0 * constant - 6.0 * cosineDouble,
@@ -217,14 +219,14 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
         let tolerance: ModelingTolerance
     }
 
-    // Validation re-isolates the discriminant boundary roots with exact
-    // arithmetic and reconstructs sample points, and every evaluation entry
-    // point revalidates the same immutable value, so successful validations
-    // are memoized per process. Older Apple platforms validate every call
-    // instead of weakening the shared-state isolation contract.
-    @available(macOS 15.0, iOS 18.0, visionOS 2.0, *)
+    // Successful immutable validation retains its actual depth authority.
     private enum ValidationCache {
-        static let storage = Mutex<Set<ValidationCacheKey>>([])
+        struct State: Sendable {
+            var entries: [ValidationCacheKey: OriginalGeometryPreparationReceipt] = [:]
+            var hasCapacity = false
+            var allocatingCapacity = false
+        }
+        static let storage = Mutex(State())
     }
 
     public let planeSurface: Surface3D
@@ -250,24 +252,37 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
     ) throws -> [CertifiedPlaneTorusIntersectionCurve] {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try regularComponents(planeSurface: planeSurface, torusSurface: torusSurface, options: options, tolerance: tolerance, using: &execution)
+    }
+
+    public static func regularComponents(
+        planeSurface: Surface3D,
+        torusSurface: Surface3D,
+        options: SurfaceSurfaceIntersectionOptions,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> [CertifiedPlaneTorusIntersectionCurve] {
+        try execution.consumeWork(1)
         try options.validate(tolerance: tolerance)
         let configuration = try makeConfiguration(
             planeSurface: planeSurface,
             torusSurface: torusSurface,
             tolerance: tolerance
-        )
-        let classificationTolerance = Self.classificationTolerance(
+        , using: &execution)
+        let classificationTolerance = try Self.classificationTolerance(
             configuration: configuration,
             tolerance: tolerance
-        )
-        if let innerTangency = Self.innerTangencyCertificate(
+        , using: &execution)
+        if let innerTangency = try Self.innerTangencyCertificate(
             configuration: configuration,
             tolerance: tolerance
-        ) {
-            return try [
+        , using: &execution) {
+            try execution.retainStorage(count: 2, stride: MemoryLayout<ComponentKind>.stride)
+            return try CertifiedAnalyticCurveEvaluation.map([
                 ComponentKind.negativeInnerTangencyBranch,
                 .positiveInnerTangencyBranch,
-            ].map { componentKind in
+            ], using: &execution) {componentKind, execution in
                 try CertifiedPlaneTorusIntersectionCurve(
                     planeSurface: planeSurface,
                     torusSurface: torusSurface,
@@ -275,7 +290,7 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
                     lowerMinorAngle: innerTangency.minorAngle,
                     upperMinorAngle: innerTangency.minorAngle + 2.0 * Double.pi,
                     tolerance: tolerance
-                )
+                , using: &execution)
             }
         }
         let boundaries = try boundaryAngles(
@@ -283,7 +298,7 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
             classificationTolerance: classificationTolerance,
             options: options,
             tolerance: tolerance
-        )
+        , using: &execution)
         if boundaries.isEmpty {
             let value = configuration.discriminant.value(at: 0.0)
             if value < -classificationTolerance {
@@ -304,7 +319,7 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
                     lowerMinorAngle: 0.0,
                     upperMinorAngle: 2.0 * Double.pi,
                     tolerance: tolerance
-                ),
+                , using: &execution),
                 CertifiedPlaneTorusIntersectionCurve(
                     planeSurface: planeSurface,
                     torusSurface: torusSurface,
@@ -312,7 +327,7 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
                     lowerMinorAngle: 0.0,
                     upperMinorAngle: 2.0 * Double.pi,
                     tolerance: tolerance
-                ),
+                , using: &execution),
             ]
         }
 
@@ -330,8 +345,8 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
             configuration: configuration,
             classificationTolerance: classificationTolerance,
             tolerance: tolerance
-        )
-        return try intervals.map { interval in
+        , using: &execution)
+        return try CertifiedAnalyticCurveEvaluation.map(intervals, using: &execution) {interval, execution in
             try CertifiedPlaneTorusIntersectionCurve(
                 planeSurface: planeSurface,
                 torusSurface: torusSurface,
@@ -339,7 +354,7 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
                 lowerMinorAngle: interval.lower,
                 upperMinorAngle: interval.upper,
                 tolerance: tolerance
-            )
+            , using: &execution)
         }
     }
 
@@ -351,6 +366,20 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
         upperMinorAngle: Double,
         tolerance: ModelingTolerance
     ) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try self.init(planeSurface: planeSurface, torusSurface: torusSurface, componentKind: componentKind, lowerMinorAngle: lowerMinorAngle, upperMinorAngle: upperMinorAngle, tolerance: tolerance, using: &execution)
+    }
+
+    public init(
+        planeSurface: Surface3D,
+        torusSurface: Surface3D,
+        componentKind: ComponentKind,
+        lowerMinorAngle: Double,
+        upperMinorAngle: Double,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         self.planeSurface = planeSurface
         self.torusSurface = torusSurface
         self.componentKind = componentKind
@@ -361,36 +390,72 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
             planeSurface: planeSurface,
             torusSurface: torusSurface,
             tolerance: tolerance
-        )
+        , using: &execution)
         maximumResidualUpperBound = try Self.residualUpperBound(
             componentKind: componentKind,
             lowerMinorAngle: lowerMinorAngle,
             upperMinorAngle: upperMinorAngle,
             configuration: configuration,
             tolerance: tolerance
-        )
-        try validate(tolerance: tolerance)
+        , using: &execution)
+        try validate(tolerance: tolerance, using: &execution)
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
-        guard #available(macOS 15.0, iOS 18.0, visionOS 2.0, *) else {
-            try validateUncached(tolerance: tolerance)
-            return
-        }
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try GeometryStructuralComparisonWork.charge(surface: planeSurface, using: &execution)
+        try GeometryStructuralComparisonWork.charge(surface: torusSurface, using: &execution)
         let key = ValidationCacheKey(curve: self, tolerance: tolerance)
-        if ValidationCache.storage.withLock({ $0.contains(key) }) {
+        if let receipt = ValidationCache.storage.withLock({ $0.entries[key] }) {
+            try receipt.withContributionScopes(using: &execution) { execution in
+                try receipt.admit(tolerance: tolerance, using: &execution)
+            }
             return
         }
-        try validateUncached(tolerance: tolerance)
-        ValidationCache.storage.withLock { cache in
-            if cache.count >= 256 {
-                cache.removeAll(keepingCapacity: true)
+        let prepared = try execution.withPreparationScope { execution in
+            try validateUncached(tolerance: tolerance, using: &execution)
+        }
+        let receipt = try OriginalGeometryPreparationReceipt(tolerance: tolerance,
+            depth: prepared.depth, using: &execution)
+        let allocation = ValidationCache.storage.withLock { state -> Bool? in
+            if state.allocatingCapacity { return nil }
+            if !state.hasCapacity {
+                state.allocatingCapacity = true
+                return true
             }
-            cache.insert(key)
+            return false
+        }
+        // A concurrent validated query can skip this optional cache insertion.
+        guard let allocation else { return }
+        if allocation {
+            do {
+                try execution.retainStorage(count: 256,
+                    stride: MemoryLayout<(ValidationCacheKey, OriginalGeometryPreparationReceipt)>.stride)
+                ValidationCache.storage.withLock { state in
+                    state.entries.reserveCapacity(256)
+                    state.hasCapacity = true
+                    state.allocatingCapacity = false
+                }
+            } catch {
+                ValidationCache.storage.withLock { $0.allocatingCapacity = false }
+                throw error
+            }
+        }
+        ValidationCache.storage.withLock { state in
+            if state.entries.count >= 256 { state.entries.removeAll(keepingCapacity: true) }
+            state.entries[key] = receipt
         }
     }
 
-    private func validateUncached(tolerance: ModelingTolerance) throws {
+    private func validateUncached(tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try tolerance.validate()
         try certificationTolerance.validate()
         guard certificationTolerance.distance <= tolerance.distance,
@@ -407,17 +472,17 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
             planeSurface: planeSurface,
             torusSurface: torusSurface,
             tolerance: tolerance
-        )
+        , using: &execution)
         guard lowerMinorAngle.isFinite,
               upperMinorAngle.isFinite,
               upperMinorAngle > lowerMinorAngle,
               upperMinorAngle - lowerMinorAngle <= 2.0 * Double.pi + tolerance.angle else {
             throw GeometryError.invalidAngle(upperMinorAngle - lowerMinorAngle)
         }
-        let classificationTolerance = Self.classificationTolerance(
+        let classificationTolerance = try Self.classificationTolerance(
             configuration: configuration,
             tolerance: tolerance
-        )
+        , using: &execution)
         switch componentKind {
         case .negativeFullBranch, .positiveFullBranch:
             let certifiedBoundaries = try Self.boundaryAngles(
@@ -425,7 +490,7 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
                 classificationTolerance: classificationTolerance,
                 options: SurfaceSurfaceIntersectionOptions(),
                 tolerance: tolerance
-            )
+            , using: &execution)
             guard abs(lowerMinorAngle) <= tolerance.angle,
                   abs(upperMinorAngle - 2.0 * Double.pi) <= tolerance.angle,
                   certifiedBoundaries.isEmpty,
@@ -443,7 +508,7 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
                 classificationTolerance: classificationTolerance,
                 options: SurfaceSurfaceIntersectionOptions(),
                 tolerance: tolerance
-            )
+            , using: &execution)
             let lowerResidual = abs(configuration.discriminant.value(at: lowerMinorAngle))
             let upperResidual = abs(configuration.discriminant.value(at: upperMinorAngle))
             let midpoint = lowerMinorAngle + (upperMinorAngle - lowerMinorAngle) * 0.5
@@ -452,7 +517,7 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
                 configuration: configuration,
                 classificationTolerance: classificationTolerance,
                 tolerance: tolerance
-            )
+            , using: &execution)
             let matchesCompleteComponent = certifiedIntervals.contains { interval in
                 abs(interval.lower - lowerMinorAngle) <= tolerance.angle
                     && abs(interval.upper - upperMinorAngle) <= tolerance.angle
@@ -470,10 +535,10 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
                 )
             }
         case .negativeInnerTangencyBranch, .positiveInnerTangencyBranch:
-            guard let certificate = Self.innerTangencyCertificate(
+            guard let certificate = try Self.innerTangencyCertificate(
                 configuration: configuration,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             abs(certificate.minorAngle - lowerMinorAngle) <= tolerance.angle,
             abs(upperMinorAngle - lowerMinorAngle - 2.0 * Double.pi)
                 <= tolerance.angle else {
@@ -491,7 +556,7 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
             upperMinorAngle: upperMinorAngle,
             configuration: configuration,
             tolerance: tolerance
-        )
+        , using: &execution)
         guard maximumResidualUpperBound.isFinite,
               maximumResidualUpperBound >= reproducedBound,
               maximumResidualUpperBound <= tolerance.distance else {
@@ -503,6 +568,7 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
                 message: "A plane-torus curve exceeded its certified geometric residual."
             )
         }
+        try execution.retainStorage(count: 5, stride: MemoryLayout<Double>.stride)
         for parameter in [
             0.0,
             Double.pi * 0.5,
@@ -510,15 +576,16 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
             Double.pi * 1.5,
             2.0 * Double.pi,
         ] {
-            let point = try point(at: parameter, tolerance: tolerance)
+            try execution.consumeWork(1)
+            let point = try point(at: parameter, tolerance: tolerance, using: &execution)
             let planeProjection = try planeSurface.parameterProjection(
                 of: point,
                 tolerance: tolerance
-            )
+            , using: &execution)
             let torusProjection = try torusSurface.parameterProjection(
                 of: point,
                 tolerance: tolerance
-            )
+            , using: &execution)
             guard max(planeProjection.residual, torusProjection.residual)
                 <= maximumResidualUpperBound else {
                 throw KernelError(
@@ -536,17 +603,37 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
         at parameter: Double,
         tolerance: ModelingTolerance
     ) throws -> Point3D {
-        try differentialGeometry(at: parameter, tolerance: tolerance).position
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try point(at: parameter, tolerance: tolerance, using: &execution)
+    }
+
+    public func point(
+        at parameter: Double,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Point3D {
+        try execution.consumeWork(1)
+        return try differentialGeometry(at: parameter, tolerance: tolerance, using: &execution).position
     }
 
     public func differentialGeometry(
         at parameter: Double,
         tolerance: ModelingTolerance
     ) throws -> DifferentialGeometry {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try differentialGeometry(at: parameter, tolerance: tolerance, using: &execution)
+    }
+
+    public func differentialGeometry(
+        at parameter: Double,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> DifferentialGeometry {
+        try execution.consumeWork(1)
         let geometry = try derivativesThroughThirdOrder(
             at: parameter,
             tolerance: tolerance
-        )
+        , using: &execution)
         return DifferentialGeometry(
             position: geometry.position,
             firstDerivative: geometry.firstDerivative,
@@ -558,16 +645,30 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
         at parameter: Double,
         tolerance: ModelingTolerance
     ) throws -> Vector3D {
-        try derivativesThroughThirdOrder(
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try thirdDerivative(at: parameter, tolerance: tolerance, using: &execution)
+    }
+
+    func thirdDerivative(
+        at parameter: Double,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Vector3D {
+        try execution.consumeWork(1)
+        return try derivativesThroughThirdOrder(
             at: parameter,
             tolerance: tolerance
-        ).thirdDerivative
+        , using: &execution).thirdDerivative
     }
+
+
 
     private func derivativesThroughThirdOrder(
         at parameter: Double,
         tolerance: ModelingTolerance
-    ) throws -> ThirdOrderDifferentialGeometry {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> ThirdOrderDifferentialGeometry {
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard parameter.isFinite else {
             throw GeometryError.invalidDistance(parameter)
@@ -576,18 +677,18 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
             planeSurface: planeSurface,
             torusSurface: torusSurface,
             tolerance: tolerance
-        )
+        , using: &execution)
         let curveParameter: Double
         switch componentKind {
         case .negativeFullBranch, .positiveFullBranch, .boundedMinorAngle:
-            curveParameter = Self.normalizedAngle(parameter)
+            curveParameter = try Self.normalizedAngle(parameter, using: &execution)
         case .negativeInnerTangencyBranch, .positiveInnerTangencyBranch:
             guard parameterDomain.contains(parameter, tolerance: tolerance.angle) else {
                 throw GeometryError.invalidDistance(parameter)
             }
             curveParameter = min(max(parameter, 0.0), 2.0 * Double.pi)
         }
-        let minor = minorAngleDifferential(at: curveParameter)
+        let minor = try minorAngleDifferential(at: curveParameter, using: &execution)
         let radialScale = configuration.torus.majorRadius
             + configuration.torus.minorRadius * cos(minor.value)
         let radialScaleFirst = -configuration.torus.minorRadius
@@ -646,7 +747,7 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
             parameter: curveParameter,
             configuration: configuration,
             tolerance: tolerance
-        )
+        , using: &execution)
         let inverseRadialNormalLength = 1.0 / configuration.radialNormalLength
         let along = ScalarDifferential(
             value: -axialTerm * inverseRadialNormalLength,
@@ -713,20 +814,30 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
         at parameter: Double,
         tolerance: ModelingTolerance
     ) throws -> (plane: SurfaceParameter, torus: SurfaceParameter) {
-        let point = try point(at: parameter, tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try surfaceParameters(at: parameter, tolerance: tolerance, using: &execution)
+    }
+
+    public func surfaceParameters(
+        at parameter: Double,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> (plane: SurfaceParameter, torus: SurfaceParameter) {
+        try execution.consumeWork(1)
+        let point = try point(at: parameter, tolerance: tolerance, using: &execution)
         let planeProjection = try planeSurface.parameterProjection(
             of: point,
             tolerance: tolerance
-        )
+        , using: &execution)
         let configuration = try Self.makeConfiguration(
             planeSurface: planeSurface,
             torusSurface: torusSurface,
             tolerance: tolerance
-        )
+        , using: &execution)
         let curveParameter: Double
         switch componentKind {
         case .negativeFullBranch, .positiveFullBranch, .boundedMinorAngle:
-            curveParameter = Self.normalizedAngle(parameter)
+            curveParameter = try Self.normalizedAngle(parameter, using: &execution)
         case .negativeInnerTangencyBranch, .positiveInnerTangencyBranch:
             guard parameterDomain.contains(parameter, tolerance: tolerance.angle) else {
                 throw GeometryError.invalidDistance(parameter)
@@ -744,11 +855,11 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
         let minorAngle: Double
         switch componentKind {
         case .negativeFullBranch, .positiveFullBranch, .boundedMinorAngle:
-            majorAngle = Self.normalizedAngle(rawMajorAngle)
-            minorAngle = Self.normalizedAngle(atan2(
+            majorAngle = try Self.normalizedAngle(rawMajorAngle, using: &execution)
+            minorAngle = try Self.normalizedAngle(atan2(
                 height,
                 radial.length - configuration.torus.majorRadius
-            ))
+            ), using: &execution)
         case .negativeInnerTangencyBranch, .positiveInnerTangencyBranch:
             let nodeMinorAngle = lowerMinorAngle
             let nodeAxialTerm = configuration.centerDistance
@@ -760,7 +871,7 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
                 nodeRadial.dot(configuration.torusBasisV),
                 nodeRadial.dot(configuration.torusBasisU)
             )
-            majorAngle = Self.unwrappedAngle(rawMajorAngle, nearest: nodeMajorAngle)
+            majorAngle = try Self.unwrappedAngle(rawMajorAngle, nearest: nodeMajorAngle, using: &execution)
             minorAngle = lowerMinorAngle + curveParameter
         }
         return (
@@ -770,11 +881,18 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
     }
 
     public func boundingBox(tolerance: ModelingTolerance) throws -> BoundingBox3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try boundingBox(tolerance: tolerance, using: &execution)
+    }
+
+    public func boundingBox(tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> BoundingBox3D {
+        try execution.consumeWork(1)
         let configuration = try Self.makeConfiguration(
             planeSurface: planeSurface,
             torusSurface: torusSurface,
             tolerance: tolerance
-        )
+        , using: &execution)
         let radius = configuration.torus.majorRadius
             + configuration.torus.minorRadius
             + tolerance.distance
@@ -795,7 +913,16 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
     func fullBranchSpatialDifferentialMagnitudeBounds(
         tolerance: ModelingTolerance
     ) throws -> SpatialDifferentialMagnitudeBounds {
-        try validate(tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try fullBranchSpatialDifferentialMagnitudeBounds(tolerance: tolerance, using: &execution)
+    }
+
+    func fullBranchSpatialDifferentialMagnitudeBounds(
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> SpatialDifferentialMagnitudeBounds {
+        try execution.consumeWork(1)
+        try validate(tolerance: tolerance, using: &execution)
         guard componentKind == .negativeFullBranch
                 || componentKind == .positiveFullBranch else {
             throw KernelError(
@@ -809,7 +936,7 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
             planeSurface: planeSurface,
             torusSurface: torusSurface,
             tolerance: tolerance
-        )
+        , using: &execution)
         let discriminant = configuration.discriminant
         let arithmeticEnvelope = (
             Double.ulpOfOne * discriminant.coefficientScale * 65_536.0
@@ -914,7 +1041,18 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
         toParameter upper: Double,
         tolerance: ModelingTolerance
     ) throws -> SpatialDifferentialMagnitudeBounds {
-        try validate(tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try spatialDifferentialMagnitudeBounds(fromParameter: lower, toParameter: upper, tolerance: tolerance, using: &execution)
+    }
+
+    func spatialDifferentialMagnitudeBounds(
+        fromParameter lower: Double,
+        toParameter upper: Double,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> SpatialDifferentialMagnitudeBounds {
+        try execution.consumeWork(1)
+        try validate(tolerance: tolerance, using: &execution)
         guard lower.isFinite, upper.isFinite, upper > lower else {
             throw GeometryError.invalidDistance(upper - lower)
         }
@@ -925,13 +1063,13 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
                     fromNormalizedFraction: 0.0,
                     toNormalizedFraction: 1.0,
                     tolerance: tolerance
-                )
+                , using: &execution)
             }
             return try spatialDifferentialMagnitudeBounds(
-                fromNormalizedFraction: Self.normalizedAngle(lower) / period,
-                toNormalizedFraction: Self.normalizedAngle(upper) / period,
+                fromNormalizedFraction: try Self.normalizedAngle(lower, using: &execution) / period,
+                toNormalizedFraction: try Self.normalizedAngle(upper, using: &execution) / period,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .bounded(domainLower, domainUpper):
             guard parameterDomain.contains(lower, tolerance: tolerance.angle),
                   parameterDomain.contains(upper, tolerance: tolerance.angle) else {
@@ -956,7 +1094,7 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
                     0.0
                 ), 1.0),
                 tolerance: tolerance
-            )
+            , using: &execution)
         case .unbounded:
             throw KernelError(
                 phase: .geometry,
@@ -972,7 +1110,18 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
         toNormalizedFraction upperFraction: Double,
         tolerance: ModelingTolerance
     ) throws -> SpatialDifferentialMagnitudeBounds {
-        try validate(tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try spatialDifferentialMagnitudeBounds(fromNormalizedFraction: lowerFraction, toNormalizedFraction: upperFraction, tolerance: tolerance, using: &execution)
+    }
+
+    func spatialDifferentialMagnitudeBounds(
+        fromNormalizedFraction lowerFraction: Double,
+        toNormalizedFraction upperFraction: Double,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> SpatialDifferentialMagnitudeBounds {
+        try execution.consumeWork(1)
+        try validate(tolerance: tolerance, using: &execution)
         guard lowerFraction.isFinite,
               upperFraction.isFinite,
               lowerFraction >= -tolerance.relative,
@@ -990,12 +1139,12 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
                     fromNormalizedFraction: lowerFraction,
                     toNormalizedFraction: 1.0,
                     tolerance: tolerance
-                )
+                , using: &execution)
                 let tail = try spatialDifferentialMagnitudeBounds(
                     fromNormalizedFraction: 0.0,
                     toNormalizedFraction: upperFraction,
                     tolerance: tolerance
-                )
+                , using: &execution)
                 guard let headThird = head.third,
                       let tailThird = tail.third else {
                     throw Self.resourceFailure(
@@ -1018,24 +1167,28 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
         case .negativeFullBranch, .positiveFullBranch:
             return try fullBranchSpatialDifferentialMagnitudeBounds(
                 tolerance: tolerance
-            )
+            , using: &execution)
         case .boundedMinorAngle:
             return try boundedBranchSpatialDifferentialMagnitudeBounds(
                 fromNormalizedFraction: max(lowerFraction, 0.0),
                 toNormalizedFraction: min(upperFraction, 1.0),
                 tolerance: tolerance
-            )
+            , using: &execution)
         case .negativeInnerTangencyBranch,
              .positiveInnerTangencyBranch:
             return try innerTangencyBranchSpatialDifferentialMagnitudeBounds(
                 tolerance: tolerance
-            )
+            , using: &execution)
         }
     }
 
+
+
     private func innerTangencyBranchSpatialDifferentialMagnitudeBounds(
         tolerance: ModelingTolerance
-    ) throws -> SpatialDifferentialMagnitudeBounds {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> SpatialDifferentialMagnitudeBounds {
+        try execution.consumeWork(1)
         guard componentKind == .negativeInnerTangencyBranch
                 || componentKind == .positiveInnerTangencyBranch else {
             throw KernelError(
@@ -1049,11 +1202,11 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
             planeSurface: planeSurface,
             torusSurface: torusSurface,
             tolerance: tolerance
-        )
-        guard Self.innerTangencyCertificate(
+        , using: &execution)
+        guard try Self.innerTangencyCertificate(
             configuration: configuration,
             tolerance: tolerance
-        ) != nil else {
+        , using: &execution) != nil else {
             throw KernelError(
                 phase: .geometry,
                 code: .intersectionFailure,
@@ -1061,10 +1214,10 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
                 message: "An inner-tangency plane-torus branch lost its nodal certificate."
             )
         }
-        let factor = Self.periodicDoubleRootFactor(
+        let factor = try Self.periodicDoubleRootFactor(
             configuration.discriminant,
             rootAngle: lowerMinorAngle
-        )
+        , using: &execution)
         let arithmeticEnvelope = (
             Double.ulpOfOne * factor.coefficientScale * 131_072.0
         ).nextUp
@@ -1185,11 +1338,15 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
         )
     }
 
+
+
     private func boundedBranchSpatialDifferentialMagnitudeBounds(
         fromNormalizedFraction lowerFraction: Double,
         toNormalizedFraction upperFraction: Double,
         tolerance: ModelingTolerance
-    ) throws -> SpatialDifferentialMagnitudeBounds {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> SpatialDifferentialMagnitudeBounds {
+        try execution.consumeWork(1)
         guard componentKind == .boundedMinorAngle else {
             throw KernelError(
                 phase: .geometry,
@@ -1202,19 +1359,19 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
             planeSurface: planeSurface,
             torusSurface: torusSurface,
             tolerance: tolerance
-        )
+        , using: &execution)
         let discriminant = configuration.discriminant
         let arithmeticEnvelope = (
             Double.ulpOfOne * discriminant.coefficientScale * 131_072.0
         ).nextUp
         let phaseLower = 2.0 * Double.pi * lowerFraction
         let phaseUpper = 2.0 * Double.pi * upperFraction
-        let minorRange = Self.boundedMinorAngleRange(
+        let minorRange = try Self.boundedMinorAngleRange(
             phaseLower: phaseLower,
             phaseUpper: phaseUpper,
             lowerMinorAngle: lowerMinorAngle,
             upperMinorAngle: upperMinorAngle
-        )
+        , using: &execution)
         let factor = try EndpointRegularizedFactorBounder().bounds(
             componentLower: lowerMinorAngle,
             componentUpper: upperMinorAngle,
@@ -1237,17 +1394,17 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
             fourthDerivativeMagnitudeUpperBound:
                 discriminant.fourthDerivativeAbsoluteUpperBound,
             arithmeticEnvelope: arithmeticEnvelope,
-            valueRange: { lower, upper in
-                Self.discriminantRange(
+            valueRange: { lower, upper, execution in
+                try Self.discriminantRange(
                     discriminant,
                     lower: lower,
                     upper: upper,
                     arithmeticEnvelope: arithmeticEnvelope
-                )
+                , using: &execution)
             },
             tolerance: tolerance,
             label: "Plane-torus bounded branch"
-        )
+        , using: &execution)
         let rootLower = sqrt(factor.lower).nextDown
         let rootUpper = sqrt(factor.upper).nextUp
         guard rootLower > 0.0, rootUpper.isFinite else {
@@ -1280,16 +1437,16 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
         let halfSpan = (
             (upperMinorAngle - lowerMinorAngle) * 0.5
         ).nextUp
-        let sineMagnitude = Self.maximumAbsoluteTrigonometricValue(
+        let sineMagnitude = try Self.maximumAbsoluteTrigonometricValue(
             lower: phaseLower,
             upper: phaseUpper,
             phase: Double.pi * 0.5
-        )
-        let cosineMagnitude = Self.maximumAbsoluteTrigonometricValue(
+        , using: &execution)
+        let cosineMagnitude = try Self.maximumAbsoluteTrigonometricValue(
             lower: phaseLower,
             upper: phaseUpper,
             phase: 0.0
-        )
+        , using: &execution)
         let minorFirst = (
             halfSpan * sineMagnitude
         ).nextUp
@@ -1403,7 +1560,11 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
         )
     }
 
-    private func minorAngleDifferential(at parameter: Double) -> ScalarDifferential {
+
+
+    private func minorAngleDifferential(at parameter: Double,
+        using execution: inout OriginalQueryExecution) throws -> ScalarDifferential {
+        try execution.consumeWork(1)
         switch componentKind {
         case .negativeFullBranch, .positiveFullBranch:
             return ScalarDifferential(
@@ -1432,6 +1593,8 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
         }
     }
 
+
+
     private func signedSquareRootDifferential(
         value: Double,
         first: Double,
@@ -1441,11 +1604,13 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
         parameter: Double,
         configuration: Configuration,
         tolerance: ModelingTolerance
-    ) throws -> ScalarDifferential {
-        let classificationTolerance = Self.classificationTolerance(
+    ,
+        using execution: inout OriginalQueryExecution) throws -> ScalarDifferential {
+        try execution.consumeWork(1)
+        let classificationTolerance = try Self.classificationTolerance(
             configuration: configuration,
             tolerance: tolerance
-        )
+        , using: &execution)
         let branchSign: Double
         switch componentKind {
         case .negativeFullBranch, .negativeInnerTangencyBranch:
@@ -1460,7 +1625,7 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
                 at: minorAngle,
                 configuration: configuration,
                 tolerance: tolerance
-            )
+            , using: &execution)
             guard factor.value > 0.0, factor.value.isFinite else {
                 throw Self.singularSection(
                     residual: factor.value,
@@ -1481,7 +1646,7 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
                     + 3.0 * factor.first * factor.first * factor.first
                         / (8.0 * pow(root, 5.0))
             )
-            let minor = minorAngleDifferential(at: parameter)
+            let minor = try minorAngleDifferential(at: parameter, using: &execution)
             let rootByParameter = ScalarDifferential(
                 value: rootByMinor.value,
                 first: rootByMinor.first * minor.first,
@@ -1499,10 +1664,10 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
                 second: -sin(parameter),
                 third: -cos(parameter)
             )
-            let result = Self.product(
+            let result = try Self.product(
                 sine,
                 rootByParameter
-            ).scaled(
+            , using: &execution).scaled(
                 by: (upperMinorAngle - lowerMinorAngle) * 0.5
             )
             guard result.value.isFinite,
@@ -1518,15 +1683,15 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
         }
         if componentKind == .negativeInnerTangencyBranch
             || componentKind == .positiveInnerTangencyBranch {
-            let factorPolynomial = Self.periodicDoubleRootFactor(
+            let factorPolynomial = try Self.periodicDoubleRootFactor(
                 configuration.discriminant,
                 rootAngle: lowerMinorAngle
-            )
+            , using: &execution)
             let factor = ScalarDifferential(
                 value: factorPolynomial.value(at: parameter),
                 first: factorPolynomial.derivative(at: parameter),
                 second: factorPolynomial.secondDerivative(at: parameter),
-                third: factorPolynomial.thirdDerivative(at: parameter)
+                third: try factorPolynomial.thirdDerivative(at: parameter)
             )
             guard factor.value > 0.0, factor.value.isFinite else {
                 throw Self.singularSection(
@@ -1555,10 +1720,10 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
                 second: -0.5 * sin(halfParameter),
                 third: -0.25 * cos(halfParameter)
             )
-            let result = Self.product(
+            let result = try Self.product(
                 periodicDistance,
                 rootDifferential
-            ).scaled(by: branchSign)
+            , using: &execution).scaled(by: branchSign)
             guard result.value.isFinite,
                   result.first.isFinite,
                   result.second.isFinite,
@@ -1601,11 +1766,15 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
         )
     }
 
+
+
     private func regularizedDiscriminantFactorDifferential(
         at minorAngle: Double,
         configuration: Configuration,
         tolerance: ModelingTolerance
-    ) throws -> ScalarDifferential {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> ScalarDifferential {
+        try execution.consumeWork(1)
         let span = upperMinorAngle - lowerMinorAngle
         let lowerDistance = minorAngle - lowerMinorAngle
         let upperDistance = upperMinorAngle - minorAngle
@@ -1628,11 +1797,11 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
         let endpoint = usesLowerEndpoint
             ? lowerMinorAngle
             : upperMinorAngle
-        let dividedDifference = Self.trigonometricDividedDifference(
+        let dividedDifference = try Self.trigonometricDividedDifference(
             discriminant,
             value: minorAngle,
             endpoint: endpoint
-        )
+        , using: &execution)
         let numerator = usesLowerEndpoint
             ? dividedDifference.adding(.constant(-correctionSlope))
             : ScalarDifferential.constant(correctionSlope)
@@ -1655,13 +1824,17 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
             denominator,
             tolerance: tolerance,
             message: "A bounded plane-torus regularized factor lost its opposite-endpoint denominator."
-        )
+        , using: &execution)
     }
+
+
 
     private static func periodicDoubleRootFactor(
         _ polynomial: TrigonometricPolynomial,
         rootAngle: Double
-    ) -> TrigonometricPolynomial {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> TrigonometricPolynomial {
+        try execution.consumeWork(1)
         let firstCosine = polynomial.cosine * cos(rootAngle)
             + polynomial.sine * sin(rootAngle)
         let secondCosine = polynomial.cosineDouble
@@ -1676,23 +1849,29 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
         )
     }
 
+
+
     private static func trigonometricDividedDifference(
         _ polynomial: TrigonometricPolynomial,
         value: Double,
         endpoint: Double
-    ) -> ScalarDifferential {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> ScalarDifferential {
+        try execution.consumeWork(1)
         var result = ScalarDifferential.constant(0.0)
+        try execution.retainStorage(count: 2, stride: MemoryLayout<(order: Double, cosine: Double, sine: Double)>.stride)
         for harmonic in [
             (order: 1.0, cosine: polynomial.cosine, sine: polynomial.sine),
             (order: 2.0, cosine: polynomial.cosineDouble, sine: 0.0),
         ] {
+            try execution.consumeWork(1)
             let halfOrder = harmonic.order * 0.5
             let difference = value - endpoint
             let midpoint = (value + endpoint) * halfOrder
-            let sinc = sincDifferential(
+            let sinc = try sincDifferential(
                 at: difference * halfOrder,
                 derivativeScale: halfOrder
-            )
+            , using: &execution)
             let amplitude = ScalarDifferential(
                 value: -harmonic.cosine * sin(midpoint)
                     + harmonic.sine * cos(midpoint),
@@ -1710,16 +1889,20 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
                 )
             )
             result = result.adding(
-                product(sinc, amplitude).scaled(by: harmonic.order)
+                try product(sinc, amplitude, using: &execution).scaled(by: harmonic.order)
             )
         }
         return result
     }
 
+
+
     private static func sincDifferential(
         at value: Double,
         derivativeScale: Double
-    ) -> ScalarDifferential {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> ScalarDifferential {
+        try execution.consumeWork(1)
         let valueResult: Double
         let firstByValue: Double
         let secondByValue: Double
@@ -1731,6 +1914,7 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
             var accumulatedThird = 0.0
             var coefficient = 1.0
             for index in 0...12 {
+                try execution.consumeWork(1)
                 let exponent = index * 2
                 accumulatedValue += coefficient
                     * pow(value, Double(exponent))
@@ -1779,11 +1963,15 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
         )
     }
 
+
+
     private static func product(
         _ first: ScalarDifferential,
         _ second: ScalarDifferential
-    ) -> ScalarDifferential {
-        ScalarDifferential(
+    ,
+        using execution: inout OriginalQueryExecution) throws -> ScalarDifferential {
+        try execution.consumeWork(1)
+        return ScalarDifferential(
             value: first.value * second.value,
             first: first.first * second.value
                 + first.value * second.first,
@@ -1797,12 +1985,16 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
         )
     }
 
+
+
     private static func quotient(
         _ numerator: ScalarDifferential,
         _ denominator: ScalarDifferential,
         tolerance: ModelingTolerance,
         message: String
-    ) throws -> ScalarDifferential {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> ScalarDifferential {
+        try execution.consumeWork(1)
         guard abs(denominator.value) > tolerance.angle else {
             throw KernelError(
                 phase: .geometry,
@@ -1822,7 +2014,7 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
             + 6.0 * denominator.first * denominator.second
                 * inverse * inverse * inverse
             - denominator.third * inverse * inverse
-        return product(
+        return try product(
             numerator,
             ScalarDifferential(
                 value: inverse,
@@ -1830,16 +2022,20 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
                 second: inverseSecond,
                 third: inverseThird
             )
-        )
+        , using: &execution)
     }
+
+
 
     private static func makeConfiguration(
         planeSurface: Surface3D,
         torusSurface: Surface3D,
         tolerance: ModelingTolerance
-    ) throws -> Configuration {
-        try planeSurface.validate(tolerance: tolerance)
-        try torusSurface.validate(tolerance: tolerance)
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Configuration {
+        try execution.consumeWork(1)
+        try planeSurface.validate(tolerance: tolerance, using: &execution)
+        try torusSurface.validate(tolerance: tolerance, using: &execution)
         guard case let .plane(plane) = CanonicalAnalyticSurface(planeSurface),
               case let .torus(torus) = CanonicalAnalyticSurface(torusSurface) else {
             throw KernelError(
@@ -1894,21 +2090,29 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
         )
     }
 
+
+
     private static func classificationTolerance(
         configuration: Configuration,
         tolerance: ModelingTolerance
-    ) -> Double {
-        max(
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
+        return max(
             tolerance.distance * configuration.characteristicLength * 8.0,
             Double.ulpOfOne
                 * pow(configuration.characteristicLength, 2.0) * 2_048.0
         )
     }
 
+
+
     private static func innerTangencyCertificate(
         configuration: Configuration,
         tolerance: ModelingTolerance
-    ) -> InnerTangencyCertificate? {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> InnerTangencyCertificate? {
+        try execution.consumeWork(1)
         let radialSupport = configuration.torus.majorRadius
             * configuration.radialNormalLength
         let innerSupport = radialSupport - configuration.torus.minorRadius
@@ -1920,10 +2124,10 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
         guard offsetResidual <= arithmeticLengthTolerance else { return nil }
 
         let centerSign = configuration.centerDistance >= 0.0 ? 1.0 : -1.0
-        let minorAngle = normalizedAngle(atan2(
+        let minorAngle = try normalizedAngle(atan2(
             centerSign * configuration.axialNormal,
             -configuration.radialNormalLength
-        ))
+        ), using: &execution)
         let valueResidual = abs(configuration.discriminant.value(at: minorAngle))
         let derivativeResidual = abs(configuration.discriminant.derivative(at: minorAngle))
         let arithmeticSquaredTolerance = Double.ulpOfOne
@@ -1949,12 +2153,16 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
         )
     }
 
+
+
     private static func boundaryAngles(
         configuration: Configuration,
         classificationTolerance: Double,
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
-    ) throws -> [Double] {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> [Double] {
+        try execution.consumeWork(1)
         let polynomial = configuration.discriminant
         if polynomial.globalLowerBound > classificationTolerance {
             return []
@@ -1972,8 +2180,8 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
             tolerance: tolerance
         )
         let tangentRoots = try solver.roots(
-            coefficients: polynomial.tangentHalfAngleCoefficients
-        )
+            coefficients: (try polynomial.tangentHalfAngleCoefficients(using: &execution))
+        , using: &execution)
         guard tangentRoots.count <= options.maximumSeedCount else {
             throw KernelError(
                 phase: .geometry,
@@ -1982,34 +2190,38 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
                 message: "Plane-torus section exceeded its quartic boundary-root limit."
             )
         }
-        var values = tangentRoots.map {
-            normalizedAngle(2.0 * atan($0.value))
+        var values = try CertifiedAnalyticCurveEvaluation.map(tangentRoots, using: &execution) {element, execution in
+            try normalizedAngle(2.0 * atan(element.value), using: &execution)
         }
+        var valuesCapacity = values.count
         if abs(polynomial.value(at: Double.pi)) <= classificationTolerance {
-            values.append(Double.pi)
+            try CertifiedAnalyticCurveEvaluation.append(Double.pi, to: &values, using: &execution, capacity: &valuesCapacity)
         }
-        values = values.map {
-            refinedAngle(
-                $0,
+        values = try CertifiedAnalyticCurveEvaluation.map(values, using: &execution) {element, execution in
+            try refinedAngle(
+                element,
                 polynomial: polynomial,
                 maximumIterations: options.maximumIterations,
                 residualTolerance: classificationTolerance * 1.0e-8,
                 tolerance: tolerance
-            )
-        }.filter {
-            abs(polynomial.value(at: $0)) <= classificationTolerance * 16.0
-        }.sorted()
+            , using: &execution)
+         }
+        values = try CertifiedAnalyticCurveEvaluation.filter(values, using: &execution) { value, execution in
+            abs(polynomial.value(at: value)) <= classificationTolerance * 16.0
+        }
+        values = try CertifiedAnalyticCurveEvaluation.sorted(values, using: &execution)
 
         var result: [Double] = []
-        for value in values where result.last.map({
-            angularDistance($0, value) <= tolerance.angle
-        }) != true {
-            result.append(value)
+        var resultCapacity = result.count
+        for value in values {
+            try execution.consumeWork(1)
+            if let last = result.last, try angularDistance(last, value, using: &execution) <= tolerance.angle { continue }
+            try CertifiedAnalyticCurveEvaluation.append(value, to: &result, using: &execution, capacity: &resultCapacity)
         }
         if result.count > 1,
            let first = result.first,
            let last = result.last,
-           angularDistance(first, last) <= tolerance.angle {
+           try angularDistance(first, last, using: &execution) <= tolerance.angle {
             result.removeLast()
         }
         let derivativeThreshold = max(
@@ -2018,6 +2230,7 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
                 * pow(configuration.characteristicLength, 2.0) * 2_048.0
         )
         for angle in result {
+            try execution.consumeWork(1)
             let derivative = abs(polynomial.derivative(at: angle))
             guard derivative > derivativeThreshold else {
                 throw singularSection(
@@ -2030,15 +2243,21 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
         return result
     }
 
+
+
     private static func validIntervals(
         boundaries: [Double],
         configuration: Configuration,
         classificationTolerance: Double,
         tolerance: ModelingTolerance
-    ) throws -> [(lower: Double, upper: Double)] {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> [(lower: Double, upper: Double)] {
+        try execution.consumeWork(1)
         let period = 2.0 * Double.pi
         var result: [(lower: Double, upper: Double)] = []
+        var resultCapacity = result.count
         for index in boundaries.indices {
+            try execution.consumeWork(1)
             let lower = boundaries[index]
             let upper = index + 1 < boundaries.count
                 ? boundaries[index + 1]
@@ -2046,7 +2265,7 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
             let midpoint = lower + (upper - lower) * 0.5
             let value = configuration.discriminant.value(at: midpoint)
             if value > classificationTolerance {
-                result.append((lower, upper))
+                try CertifiedAnalyticCurveEvaluation.append((lower, upper), to: &result, using: &execution, capacity: &resultCapacity)
             } else if abs(value) <= classificationTolerance {
                 throw singularSection(
                     residual: abs(value),
@@ -2058,23 +2277,27 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
         return result
     }
 
+
+
     private static func residualUpperBound(
         componentKind: ComponentKind,
         lowerMinorAngle: Double,
         upperMinorAngle: Double,
         configuration: Configuration,
         tolerance: ModelingTolerance
-    ) throws -> Double {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
         let machineBound = Double.ulpOfOne
             * configuration.characteristicLength * 65_536.0
         switch componentKind {
         case .negativeFullBranch, .positiveFullBranch:
             return machineBound
         case .negativeInnerTangencyBranch, .positiveInnerTangencyBranch:
-            guard let certificate = innerTangencyCertificate(
+            guard let certificate = try innerTangencyCertificate(
                 configuration: configuration,
                 tolerance: tolerance
-            ) else {
+            , using: &execution) else {
                 throw KernelError(
                     phase: .geometry,
                     code: .intersectionFailure,
@@ -2116,19 +2339,24 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
         return result
     }
 
+
+
     private static func refinedAngle(
         _ initial: Double,
         polynomial: TrigonometricPolynomial,
         maximumIterations: Int,
         residualTolerance: Double,
         tolerance: ModelingTolerance
-    ) -> Double {
-        var angle = normalizedAngle(initial)
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
+        var angle = try normalizedAngle(initial, using: &execution)
         let effectiveResidual = max(
             residualTolerance,
             Double.ulpOfOne * polynomial.coefficientScale * 128.0
         )
         for _ in 0..<maximumIterations {
+            try execution.consumeWork(1)
             let value = polynomial.value(at: angle)
             if abs(value) <= effectiveResidual { break }
             let derivative = polynomial.derivative(at: angle)
@@ -2137,7 +2365,7 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
             }
             let step = value / derivative
             guard step.isFinite, abs(step) <= Double.pi * 0.5 else { break }
-            angle = normalizedAngle(angle - step)
+            angle = try normalizedAngle(angle - step, using: &execution)
             if abs(step) <= Double.ulpOfOne * max(abs(angle), 1.0) * 128.0 {
                 break
             }
@@ -2145,23 +2373,30 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
         return angle
     }
 
+
+
     private static func boundedMinorAngleRange(
         phaseLower: Double,
         phaseUpper: Double,
         lowerMinorAngle: Double,
         upperMinorAngle: Double
-    ) -> (lower: Double, upper: Double) {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> (lower: Double, upper: Double) {
+        try execution.consumeWork(1)
         let midpoint = lowerMinorAngle
             + (upperMinorAngle - lowerMinorAngle) * 0.5
         let halfSpan = (upperMinorAngle - lowerMinorAngle) * 0.5
+        try execution.retainStorage(count: 2, stride: MemoryLayout<Double>.stride)
         var values = [
             midpoint - halfSpan * cos(phaseLower),
             midpoint - halfSpan * cos(phaseUpper),
         ]
+        var valuesCapacity = values.count
         for index in 0...2 {
+            try execution.consumeWork(1)
             let phase = Double(index) * Double.pi
             if phase > phaseLower, phase < phaseUpper {
-                values.append(midpoint - halfSpan * cos(phase))
+                try CertifiedAnalyticCurveEvaluation.append(midpoint - halfSpan * cos(phase), to: &values, using: &execution, capacity: &valuesCapacity)
             }
         }
         return (
@@ -2170,12 +2405,16 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
         )
     }
 
+
+
     private static func discriminantRange(
         _ discriminant: TrigonometricPolynomial,
         lower: Double,
         upper: Double,
         arithmeticEnvelope: Double
-    ) -> (lower: Double, upper: Double) {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> (lower: Double, upper: Double) {
+        try execution.consumeWork(1)
         let midpoint = lower + (upper - lower) * 0.5
         let radius = (
             discriminant.firstDerivativeAbsoluteUpperBound
@@ -2189,16 +2428,21 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
         )
     }
 
+
+
     private static func maximumAbsoluteTrigonometricValue(
         lower: Double,
         upper: Double,
         phase: Double
-    ) -> Double {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
         var result = max(
             abs(cos(lower - phase)),
             abs(cos(upper - phase))
         )
         for index in -2...4 {
+            try execution.consumeWork(1)
             let extremum = phase + Double(index) * Double.pi
             if extremum > lower, extremum < upper {
                 result = 1.0
@@ -2208,18 +2452,30 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
         return result.nextUp
     }
 
-    private static func normalizedAngle(_ angle: Double) -> Double {
+
+
+    private static func normalizedAngle(_ angle: Double,
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
         let period = 2.0 * Double.pi
         let remainder = angle.truncatingRemainder(dividingBy: period)
         return remainder >= 0.0 ? remainder : remainder + period
     }
 
-    private static func unwrappedAngle(_ angle: Double, nearest reference: Double) -> Double {
+
+
+    private static func unwrappedAngle(_ angle: Double, nearest reference: Double,
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
         let period = 2.0 * Double.pi
         return angle + round((reference - angle) / period) * period
     }
 
-    private static func angularDistance(_ first: Double, _ second: Double) -> Double {
+
+
+    private static func angularDistance(_ first: Double, _ second: Double,
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
         let period = 2.0 * Double.pi
         let difference = abs(first - second).truncatingRemainder(dividingBy: period)
         return min(difference, period - difference)
@@ -2264,6 +2520,7 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
 
 #if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
+        var execution = try NativeRationalSourceDecodingContext.validationExecution(from: decoder)
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
             [
@@ -2286,13 +2543,14 @@ public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
                 ModelingTolerance.self,
                 forKey: .certificationTolerance
             )
-        )
+        , using: &execution)
     }
 #endif
 
 #if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
-        try validate(tolerance: certificationTolerance)
+        var execution = try NativeOriginalSourceEncodingContext.execution(from: encoder)
+        try validate(tolerance: certificationTolerance, using: &execution)
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(planeSurface, forKey: .planeSurface)
         try container.encode(torusSurface, forKey: .torusSurface)

@@ -1,0 +1,92 @@
+{
+  "scope": "DesignGraph.validateOperationContract Native worker stack finding only",
+  "ips": "/Users/1amageek/Library/Logs/DiagnosticReports/swiftpm-testing-helper-2026-10-16-103412.ips",
+  "ipsSHA256": "cc453ed14bd0d0d51e7aea25966422728b62abe414acbfbc403654a6b19c28e4",
+  "faultingThread": 4,
+  "exception": {
+    "codes": "0x0000000000000002, 0x000000016cfebdc0",
+    "message": "Could not determine thread index for stack guard region",
+    "rawCodes": [
+      2,
+      6123601344
+    ],
+    "type": "EXC_BAD_ACCESS",
+    "signal": "SIGBUS",
+    "subtype": "KERN_PROTECTION_FAILURE at 0x000000016cfebdc0"
+  },
+  "frames": [
+    {
+      "imageOffset": 57494372,
+      "symbol": "DesignGraph.validateOperationContract(for:tolerance:)",
+      "symbolLocation": 328,
+      "imageIndex": 1
+    },
+    {
+      "imageOffset": 57210040,
+      "symbol": "DesignGraph.validate(tolerance:)",
+      "symbolLocation": 1392,
+      "imageIndex": 1
+    },
+    {
+      "imageOffset": 57204328,
+      "symbol": "CADDocument.validate(tolerance:independentShapeLimits:using:)",
+      "symbolLocation": 508,
+      "imageIndex": 1
+    },
+    {
+      "imageOffset": 80396852,
+      "symbol": "BRepDrawingProjector.projectEdges(in:onto:maximumProjectedUses:using:)",
+      "symbolLocation": 616,
+      "imageIndex": 1
+    },
+    {
+      "imageOffset": 26048,
+      "sourceLine": 83,
+      "sourceFile": "DocumentDrawingCanonicalAdmissionTests.swift",
+      "symbol": "DocumentDrawingCanonicalAdmissionTests.query(_:curved:using:)",
+      "imageIndex": 1,
+      "symbolLocation": 788
+    },
+    {
+      "imageOffset": 68480,
+      "sourceLine": 208,
+      "sourceFile": "DocumentDrawingCanonicalAdmissionTests.swift",
+      "symbol": "DocumentDrawingCanonicalAdmissionTests.originalArchAndProjectedEndpointContactsShareExactResourceBoundaries()",
+      "imageIndex": 1,
+      "symbolLocation": 360
+    },
+    {
+      "imageOffset": 66933,
+      "sourceLine": 4,
+      "sourceFile": "@__swiftmacro_12FocusedTests033DocumentDrawingCanonicalAdmissionB0V68originalArchAndProjectedEndpointContactsShareExactResourceBoundaries4TestfMp_.swift",
+      "symbol": "static DocumentDrawingCanonicalAdmissionTests.$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V68originalArchAndProjectedEndpointContactsShareExactResourceBoundaries4TestfMp_17Z30d1832921727c0ffMu_@Sendable ()",
+      "imageIndex": 1,
+      "symbolLocation": 1
+    },
+    {
+      "imageOffset": 76117,
+      "sourceFile": "@__swiftmacro_12FocusedTests033DocumentDrawingCanonicalAdmissionB0V68originalArchAndProjectedEndpointContactsShareExactResourceBoundaries4TestfMp_.swift",
+      "symbol": "implicit closure #1 in static DocumentDrawingCanonicalAdmissionTests.$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V68originalArchAndProjectedEndpointContactsShareExactResourceBoundaries4TestfMp_25generator30d1832921727c0ffMu_@Sendable ()",
+      "symbolLocation": 1,
+      "imageIndex": 1
+    }
+  ],
+  "binarySHA256": "0b7e223b5551f6ab5f990c4505ac5a112831c5d222c7e96494e5df4d1b236394",
+  "symbol": "_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF",
+  "prologueAddress": "0x36d4a1c",
+  "stackFrameBytes": 200176,
+  "frameArithmetic": "32 + 196608 + 3536",
+  "prologue": [
+    "stp x28, x20, [sp, #-0x20]!",
+    "stp x29, x30, [sp, #0x10]",
+    "add x29, sp, #0x10",
+    "sub sp, sp, #0x30, lsl #12",
+    "sub sp, sp, #0xdd0"
+  ],
+  "disassemblySHA256": "8e4d18e1d6b9801f3082fae4d38983f33cc77fa500d5f4b6a520588aa5e3414a",
+  "sourcePath": "Sources/CADIR/DesignGraph.swift",
+  "sourceEntryLine": 660,
+  "nativeBSplineArmLine": 754,
+  "nativeBSplineHelperLine": 1167,
+  "behaviorConclusion": "Runtime failed at document operation-contract validation after projectEdges entry; silhouette/contact results remain unverified."
+}

@@ -12,7 +12,7 @@ public struct DefaultOriginalRollingBallCurveGraphPreparer: OriginalCompleteCurv
         throws(OriginalSourceIssuanceFailure) -> Family {
         let source=copy source
         do {
-            return try OriginalSourceProofAdmission<A>.withBorrow(&admission) { a in
+            return try admission.withProofScope { a in
                 let family=try compose(source:source,field:field,maximumCharts:maximumCharts,limits:limits,using:&a)
                 guard try field.compare(family.support.lower,field.integer(0,using:&a),using:&a) == .equal,
                     try field.compare(family.support.upper,field.integer(1,using:&a),using:&a) == .equal else {
@@ -27,7 +27,7 @@ public struct DefaultOriginalRollingBallCurveGraphPreparer: OriginalCompleteCurv
     }
     private func compose<A: ExactScalarAdmission & ~Copyable>(source: OriginalSourceBinding<Source>,
         field: OriginalExactScalarDomain,maximumCharts: Int,limits: OriginalSourceIssuanceLimits,
-        using a: inout OriginalSourceProofAdmission<A>) throws -> Prepared {
+        using a: inout A) throws -> Prepared {
         try a.checkpoint();try source.require(limits)
         guard limits.remainingSourceDepth>0 else { throw OriginalSourceIssuanceFailure.sourceDepthLimit }
         guard maximumCharts>=0 else { throw OriginalSourceIssuanceFailure.chartLimit }
@@ -37,7 +37,7 @@ public struct DefaultOriginalRollingBallCurveGraphPreparer: OriginalCompleteCurv
         var graphs:[Family.Graph]=[]
         var support=OriginalSourceParameterInterval(lower:zero,upper:one)
         func retain<S: Sendable,Selection: Sendable>(_ law: OriginalRationalChartReceipt<S,Selection,OriginalExactScalarDomain>,
-            evidence: OriginalRollingBallCurveGraphEvidence,_ a: inout OriginalSourceProofAdmission<A>) throws {
+            evidence: OriginalRollingBallCurveGraphEvidence,_ a: inout A) throws {
             try a.consumeWork(1)
             try law.admitProof(using:&a)
             try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:Int.self))
@@ -50,7 +50,7 @@ public struct DefaultOriginalRollingBallCurveGraphPreparer: OriginalCompleteCurv
                 parameterTransport:law.parameterTransport,proofDepth:try a.depth))
         }
         func retain<E: Sendable>(_ graph: OriginalParametricGraphReceipt<E,OriginalExactScalarDomain,OriginalSurfaceLiftGraphEvidence<E>>,
-            evidence: OriginalRollingBallCurveGraphEvidence,_ a: inout OriginalSourceProofAdmission<A>) throws where E: OriginalLiftGraphSourceReading {
+            evidence: OriginalRollingBallCurveGraphEvidence,_ a: inout A) throws where E: OriginalLiftGraphSourceReading {
             try a.consumeWork(1)
             graphs.append(.init(source:source,evidence:evidence,field:graph.field,polynomials:graph.polynomials,
                 homogeneous:graph.homogeneous,support:graph.support,includesUpperBoundary:graph.includesUpperBoundary,

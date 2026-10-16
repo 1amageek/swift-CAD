@@ -28,18 +28,26 @@ public struct FaceRebuildFeature: Hashable, Sendable {
     }
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try target.validate()
         guard faces.isEmpty == false else {
             throw FeatureEvaluationError.invalidGraph("Rebuild Face requires at least one face.")
         }
+        try execution.retainStorage(count: faces.count, stride: MemoryLayout<StableSubshapeReference>.stride)
         var seen = Set<StableSubshapeReference>()
         for face in faces {
-            try face.validate()
+            try execution.consumeWork(1)
+            try face.validate(using: &execution)
             guard seen.insert(face).inserted else {
                 throw FeatureEvaluationError.invalidGraph("Rebuild Face faces must be unique.")
             }
         }
-        try method.validate()
+        try method.validate(using: &execution)
         guard Self.extensions.contains(extendU), Self.extensions.contains(extendV) else {
             throw FeatureEvaluationError.invalidGraph("Rebuild Face extends each way by 0 to 1 of the face's extent.")
         }
@@ -109,13 +117,19 @@ public enum FaceRebuildMethod: Hashable, Sendable {
     case given(BSplineSurface3D)
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         switch self {
         case let .explicit(layout): try layout.validate()
         case let .tolerance(distance): try distance.validateLiteralQuantities()
         case .nominal: break
         case let .square(refit): try refit.validate()
         case let .given(surface):
-            try surface.validate(tolerance: CADIRPersistenceValidation.tolerance)
+            try surface.validate(tolerance: CADIRPersistenceValidation.tolerance, using: &execution)
         }
     }
 

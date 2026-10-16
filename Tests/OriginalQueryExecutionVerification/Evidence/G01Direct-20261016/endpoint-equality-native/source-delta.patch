@@ -1,0 +1,37 @@
+--- a/Sources/CADGeometry/OriginalRootSpan/OriginalCurveEndpointPositionRelation.swift
++++ b/Sources/CADGeometry/OriginalRootSpan/OriginalCurveEndpointPositionRelation.swift
+@@ -37,7 +37,7 @@
+         if firstParameter == secondParameter, firstNativeSpanIndex == secondNativeSpanIndex {
+             try GeometryStructuralComparisonWork.charge(curve: first, using: &usage)
+             try GeometryStructuralComparisonWork.charge(curve: second, using: &usage)
+-            if first == second {
++            if hasSameOriginalSource(first: first, second: second) {
+                 var admitted = true
+                 switch first.parameterDomain {
+                 case .closed(let lower, let upper): admitted = firstParameter >= lower && firstParameter <= upper
+@@ -106,6 +106,16 @@
+             secondNativeSpanIndex: secondNativeSpanIndex, tolerance: tolerance)
+     }
+ 
++    // Preserve synthesized source equality without the aggregate enum comparator on Native worker stacks.
++    @inline(never)
++    private static func hasSameOriginalSource(first: Curve3D, second: Curve3D) -> Bool {
++        if case .bSpline(let a) = first {
++            guard case .bSpline(let b) = second else { return false }
++            return a == b
++        }
++        return first == second
++    }
++
+     private static func retainBytes<B: ExactScalarAdmission & ~Copyable>(_ bytes: Int,
+         usage: inout B) throws {
+         guard bytes >= 0 else {
+@@ -119,7 +129,7 @@
+         remainingSourceDepth: Int, usage: inout B) throws -> Bool {
+         try GeometryStructuralComparisonWork.charge(curve: first, using: &usage)
+         try GeometryStructuralComparisonWork.charge(curve: second, using: &usage)
+-        guard first == second else { return false }
++        guard hasSameOriginalSource(first: first, second: second) else { return false }
+         func angle(_ curve: Curve3D, _ station: ExactRationalCoefficient, _ depth: Int, usage: inout B) throws -> ExactRationalCoefficient? {
+             try usage.consumeWork(1)
+             guard depth >= 0 else { throw GeometryConversionError.resourceLimitExceeded("Original physical endpoint exhausted source depth.") }

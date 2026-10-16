@@ -35,3 +35,8 @@ Affine Cartesian inversion computes the determinant and Cramer numerators from t
 The periodic resolver derives the original deepest native period and complete signed parameter gain from the retained curve graph, proves the minimal directed turn count using exact rational arithmetic, and retains an OriginalParameterPeriodicTranslation when the endpoint is not binary64. The shared basis is unchanged; the item owns a normalized directed chart with original selector provenance. Actual readers use that chart and [0,1] selection, while STEP egress emits the original basis and original selectors. No estimated foreign period becomes source authority. The same caller work/storage/depth ledger owns the factory and all exact arithmetic.
 
 ExchangeResourceLimits.maximumCurveSubdivisionDepth forwards the existing operation's separate supported 0...32 algorithm ceiling, default32. maximumNesting continues to bound retained source graph recursion only. Cartesian inverse and exact cyclic factory use the caller subdivision value; remaining exchange phases retain it unchanged.
+
+
+## Canonical Trim Admission Binding
+
+Periodic selection, retained gain/turn arithmetic, original affine inversion and lower parameter projection borrow the same `OriginalQueryExecution` as exact ingress. The independent exchange owner retains format limits/deadline; it does not implement the removed rational admission protocol. Existing source recursion bounds, integer turn search, directed chart construction and residual validation are preserved. Canonical source-cell and scalar admission replace only the old usage calls.

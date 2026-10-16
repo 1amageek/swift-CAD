@@ -1,0 +1,6 @@
+{
+  "sectorLoopExactBodyEqualIgnoringWhitespace": true,
+  "originalSectorBodySHA256": "9b8b952b2f2e4ecc34c598cd4a16789cd1ff36f19465df9780f05b94353cab25",
+  "allOtherOriginalFunctionsExceptDispatchExactTextEqual": true,
+  "sameBorrowedCurveAndExplicitExistingCopyBoundary": true
+}

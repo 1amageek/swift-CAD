@@ -1,0 +1,55 @@
+{
+  "checks": [
+    {
+      "name": "subdivision",
+      "equalAfterListedMechanicalInverse": true,
+      "originalBodySHA256": "86d725950c216396b7391125bbace29c99c6540faab09a579eb8b3d9e243bb27"
+    },
+    {
+      "name": "native/non-native initial cover",
+      "equalAfterListedMechanicalInverse": true,
+      "originalBodySHA256": "c01c913866c7a7aefad7fc34f9d548ddd74d0e74b70a34c2aee1e85bdb8a75e6"
+    },
+    {
+      "name": "fieldAtlas",
+      "equalAfterListedMechanicalInverse": true,
+      "originalBodySHA256": "ad2ee6946704d7b0cbd0660f4e03bac67afa5100e195fab6d813f1e4efcdb9cb"
+    },
+    {
+      "name": "rationalAtlas",
+      "equalAfterListedMechanicalInverse": true,
+      "originalBodySHA256": "4f8c1b036c6fde298a906d38fbd332af3a00d50870303abbfe1a12585a75e0de"
+    },
+    {
+      "name": "cusp",
+      "equalAfterListedMechanicalInverse": true,
+      "originalBodySHA256": "f654ef90aa48eb6c53a9293d5831b4325e0fdc3de15dcc074f5f802dbdf28077"
+    },
+    {
+      "name": "finiteRealLocus",
+      "equalAfterListedMechanicalInverse": true,
+      "originalBodySHA256": "37a3b04426e485177f6d8b28fdf9612241c2ba2382a23b6bdee61f8db487b0eb"
+    },
+    {
+      "name": "critical point branch",
+      "equalAfterListedMechanicalInverse": true,
+      "originalBodySHA256": "5ff0dd56735ee41b3513d0ad5776cdeb170ce57627527d042006ebc87e8d08f7"
+    },
+    {
+      "name": "monotone graph branch",
+      "equalAfterListedMechanicalInverse": true,
+      "originalBodySHA256": "c4a529c053f5e4a2e9e804541b92daf10740beafff046d7fc7ada946e6fa2299"
+    },
+    {
+      "name": "atomic final publication",
+      "equalAfterListedMechanicalInverse": true,
+      "originalBodySHA256": "f4289584cf493d41c4e8e1ec8c2cc5071dc5fdcf08cfdb972a28765d66b12c6e"
+    }
+  ],
+  "mechanicalInverse": [
+    "outer cell continuation true returns restore continue",
+    "new explicit subdivision tolerance/using labels restore local capture call",
+    "helper trailing false means original guard not entered/branch not terminal",
+    "no nested loop continue was changed"
+  ]
+}

@@ -5,15 +5,16 @@ public struct OriginalAngularTransportCurve3D: Hashable, Sendable {
     public let source: Curve3D
     public let transport: OriginalAngularParameterTransport
     package let coefficients: OriginalAffineWordCircularCoefficients
+    private let coefficientProofDepth: ExactScalarDepth
 
     // FIXME(INCOMPLETE_IMPLEMENTATION): Foreign authored angle ingress consumes
     // this direct ideal conic transport. Spatial word coefficient preparation is
     // connected; generic conic images, inverse phase charts and non-binary pole
     // endpoint carriers remain required before full foreign angular completion.
-    public init<B: RationalAlgebraAdmitting>(source: Curve3D, transport: OriginalAngularParameterTransport,
+    public init<B: ExactScalarAdmission & ~Copyable>(source: Curve3D, transport: OriginalAngularParameterTransport,
         tolerance: ModelingTolerance, usage: inout B) throws {
+        let calculation = try usage.withProofScope { usage in
         try tolerance.validate(); try transport.validate(usage: &usage)
-        self.source = source; self.transport = transport
         let identity = try OriginalAffineOperationWord(operation: .forward(try AffineTransform3D(basisX: .unitX, basisY: .unitY, basisZ: .unitZ, translation: .zero)),
             tolerance: tolerance, maximumDepth: 0, usage: &usage).prepared(usage: &usage)
         guard let prepared = try OriginalAffineWordCircularCoefficients.prepare(source: source, word: identity,
@@ -21,7 +22,10 @@ public struct OriginalAngularTransportCurve3D: Hashable, Sendable {
             throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
                 message: "Original physical-radian curve requires a direct ideal circular source.")
         }
-        coefficients = prepared.replacingTransport(transport, parameterDomain: Self.domain(source: source, transport: transport))
+            return (value: prepared.replacingTransport(transport, parameterDomain: Self.domain(source: source, transport: transport)), depth: try usage.depth)
+        }
+        self.source = source; self.transport = transport
+        coefficients = calculation.value; coefficientProofDepth = calculation.depth
         try RationalAlgebraStorage.retain(1, of: Self.self, usage: &usage)
     }
     private static func domain(source: Curve3D, transport: OriginalAngularParameterTransport) -> ParameterDomain {
@@ -35,10 +39,10 @@ public struct OriginalAngularTransportCurve3D: Hashable, Sendable {
     public func hash(into hasher: inout Hasher) { hasher.combine(source); hasher.combine(transport) }
 
     public func validate(tolerance: ModelingTolerance) throws {
-        var usage = OriginalAffineImageLegacyUsage()
+        var usage = try OriginalQueryExecution.independentGeometry()
         try validateOriginalRelation(tolerance: tolerance, usage: &usage)
     }
-    package func validateOriginalRelation<B: RationalAlgebraAdmitting>(tolerance: ModelingTolerance, usage: inout B) throws {
+    package func validateOriginalRelation<B: ExactScalarAdmission & ~Copyable>(tolerance: ModelingTolerance, usage: inout B) throws {
         try tolerance.validate(); try transport.validate(usage: &usage)
         let identity = try OriginalAffineOperationWord(operation: .forward(try AffineTransform3D(basisX: .unitX, basisY: .unitY, basisZ: .unitZ, translation: .zero)), tolerance: tolerance,
             maximumDepth: 0, usage: &usage).prepared(usage: &usage)
@@ -47,22 +51,35 @@ public struct OriginalAngularTransportCurve3D: Hashable, Sendable {
             throw GeometryConversionError.invalidInput("Original angular curve lost its admitted primitive source.")
         }
     }
-    package func intervalTaylorJet(over range: ScalarInterval, throughOrder order: Int, tolerance: ModelingTolerance,
-        consumeWork: () throws -> Void, consumeStorage: ((Int) throws -> Void)? = nil) throws -> SurfaceAreaIntervalTaylorVectorJet {
-        try coefficients.intervalTaylorJet(over: range, throughOrder: order, tolerance: tolerance,
-            consumeWork: consumeWork, consumeStorage: consumeStorage)
+    package func intervalTaylorJet<A: ExactScalarAdmission & ~Copyable>(over range: ScalarInterval, throughOrder order: Int, tolerance: ModelingTolerance,
+        using execution: inout A) throws -> SurfaceAreaIntervalTaylorVectorJet {
+        try execution.admitDepth(value: coefficientProofDepth.value, coefficient: coefficientProofDepth.coefficient)
+        return try coefficients.intervalTaylorJet(over: range, throughOrder: order, tolerance: tolerance,
+            using: &execution)
     }
     public func point(at parameter: Double, tolerance: ModelingTolerance) throws -> Point3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try point(at: parameter, tolerance: tolerance, using: &execution)
+    }
+
+    public func point(at parameter: Double, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Point3D {
+        try execution.consumeWork(1)
         let q = try intervalTaylorJet(over: .init(lower: parameter, upper: parameter), throughOrder: 0,
-            tolerance: tolerance, consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
+            tolerance: tolerance, using: &execution)
         let x = try q.x.coefficient(0, 0), y = try q.y.coefficient(0, 0), z = try q.z.coefficient(0, 0)
         guard x.isFinite, y.isFinite, z.isFinite else { throw GeometryConversionError.resourceLimitExceeded("Original physical-angle point has no finite representative.") }
         return .init(x: x.midpoint, y: y.midpoint, z: z.midpoint)
     }
     package func differentialGeometry(at parameter: Double, tolerance: ModelingTolerance) throws -> Curve3D.DifferentialGeometry {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try differentialGeometry(at: parameter, tolerance: tolerance, using: &execution)
+    }
+
+    package func differentialGeometry(at parameter: Double, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Curve3D.DifferentialGeometry {
+        try execution.consumeWork(1)
         let q = try intervalTaylorJet(over: .init(lower: parameter, upper: parameter), throughOrder: 2,
-            tolerance: tolerance, consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
-        return try Curve3D.differentialGeometry(position: point(at: parameter, tolerance: tolerance),
+            tolerance: tolerance, using: &execution)
+        return try Curve3D.differentialGeometry(position: point(at: parameter, tolerance: tolerance, using: &execution),
             firstDerivative: .init(x: q.x.coefficient(1, 0).midpoint, y: q.y.coefficient(1, 0).midpoint, z: q.z.coefficient(1, 0).midpoint),
             secondDerivative: .init(x: (q.x.coefficient(2, 0) * .exact(2)).midpoint, y: (q.y.coefficient(2, 0) * .exact(2)).midpoint, z: (q.z.coefficient(2, 0) * .exact(2)).midpoint), tolerance: tolerance)
     }

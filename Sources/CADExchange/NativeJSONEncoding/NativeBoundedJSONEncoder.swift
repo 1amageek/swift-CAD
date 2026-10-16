@@ -1,12 +1,14 @@
 import Foundation
 import CADCore
+import CADGeometry
 import Synchronization
 
 /// Native token serialization under the composing invocation's actual payload ceiling.
 struct NativeBoundedJSONEncoder {
     func encode<T: Encodable>(_ value: T, canonicalDocument: Bool = false,
-        resources: any NativeJSONAccounting) throws -> Data {
-        let context = Context(resources: resources)
+        resources: any NativeJSONAccounting, using execution: inout OriginalQueryExecution) throws -> Data {
+        let binding = try NativeOriginalSourceEncodingContext(using: &execution)
+        let context = Context(resources: resources, binding: binding)
         let root = try context.node(path: [])
         try ValueEncoder(node: root, context: context, codingPath: []).encode(value)
         try context.check()
@@ -19,8 +21,11 @@ struct NativeBoundedJSONEncoder {
 
     private final class Context: Sendable {
         let resources: any NativeJSONAccounting
+        let binding: NativeOriginalSourceEncodingContext
         let failure = Mutex<(any Error)?>(nil)
-        init(resources: any NativeJSONAccounting) { self.resources = resources }
+        init(resources: any NativeJSONAccounting, binding: NativeOriginalSourceEncodingContext) {
+            self.resources = resources; self.binding = binding
+        }
         func check() throws {
             try resources.checkTime()
             if let error = failure.withLock({ $0 }) { throw error }
@@ -139,7 +144,7 @@ struct NativeBoundedJSONEncoder {
     }
     private struct ValueEncoder: Encoder {
         let node: Node; let context: Context; let codingPath: [any CodingKey]
-        var userInfo: [CodingUserInfoKey: Any] { [:] }
+        var userInfo: [CodingUserInfoKey: Any] { [NativeOriginalSourceEncodingContext.key: context.binding] }
         func encode<T: Encodable>(_ value: T) throws {
             try context.check()
             if let date = value as? Date { var c = singleValueContainer(); try c.encode(date.timeIntervalSinceReferenceDate) }

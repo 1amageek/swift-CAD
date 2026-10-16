@@ -44,6 +44,14 @@ public struct SketchSplineLeastSquaresFit: Sendable {
     /// golden-section search between its neighboring samples. Either side alone can miss where
     /// the other strays.
     public func fit(_ curve: SketchSplineCurve, degree: Int, controlPointCount: Int, shapeWeight: Double = 1) throws -> Result {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try OriginalQueryExecutionLimits(maximumValueDepth: 32, maximumCoefficientDepth: 32))
+        return try fit(curve, degree: degree, controlPointCount: controlPointCount, shapeWeight: shapeWeight, using: &execution)
+    }
+
+    public func fit(_ curve: SketchSplineCurve, degree: Int, controlPointCount: Int, shapeWeight: Double = 1,
+        using execution: inout OriginalQueryExecution) throws -> Result {
+        try execution.checkpoint()
         guard shapeWeight.isFinite, shapeWeight >= 0, shapeWeight <= 1 else {
             throw invalid("A fit's shape weight must lie between 0 and 1.")
         }
@@ -88,7 +96,7 @@ public struct SketchSplineLeastSquaresFit: Sendable {
             var rightX = Array(repeating: 0.0, count: unknowns), rightY = Array(repeating: 0.0, count: unknowns)
             let sampleScale = shapeWeight / Double(samples.count)
             for (k, u) in parameters.enumerated() where k > 0 && k < samples.count - 1 {
-                let basis = BSplineBasis.nonzeroValues(parameter: u, degree: degree, knots: knots, count: n)
+                let basis = try BSplineBasis.nonzeroValues(parameter: u, degree: degree, knots: knots, count: n, using: &execution)
                 var residual = samples[k]
                 var row: [(Int, Double)] = []
                 for (offset, value) in basis.values.enumerated() {

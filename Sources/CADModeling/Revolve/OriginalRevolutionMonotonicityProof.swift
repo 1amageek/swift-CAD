@@ -11,7 +11,7 @@ package struct OriginalRevolutionMonotonicityProof: Sendable {
         self.radialSign = radialSign
     }
 
-    package static func prepare<B: RationalAlgebraAdmitting>(
+    package static func prepare<B: ExactScalarAdmission & ~Copyable>(
         for span: OriginalRevolveGeneratorResolver.Span,
         maximumSubdivisionDepth: Int, tolerance: ModelingTolerance, usage: inout B
     ) throws -> Self {
@@ -51,11 +51,11 @@ package struct OriginalRevolutionMonotonicityProof: Sendable {
         return Self(axialSign: axial, radialSign: radial)
     }
 
-    private static func endpointSign<B: RationalAlgebraAdmitting>(
+    private static func endpointSign<B: ExactScalarAdmission & ~Copyable>(
         _ expression: ExactBivariatePolynomial, at endpoint: OriginalCurveRootEndpoint,
         maximumSubdivisionDepth: Int, usage: inout B
     ) throws -> Int {
-        try usage.consumeExactWork(1)
+        try usage.consumeWork(1)
         switch endpoint {
         case let .authored(parameter):
             let value = try expression.evaluated(atU:
@@ -71,7 +71,7 @@ package struct OriginalRevolutionMonotonicityProof: Sendable {
         }
     }
 
-    private static func variations<B: RationalAlgebraAdmitting>(
+    private static func variations<B: ExactScalarAdmission & ~Copyable>(
         _ chain: [ExactBivariatePolynomial], at endpoint: OriginalCurveRootEndpoint,
         maximumSubdivisionDepth: Int, usage: inout B
     ) throws -> Int {
@@ -87,7 +87,7 @@ package struct OriginalRevolutionMonotonicityProof: Sendable {
         return count
     }
 
-    private static func openSign<B: RationalAlgebraAdmitting>(
+    private static func openSign<B: ExactScalarAdmission & ~Copyable>(
         of expression: ExactBivariatePolynomial, span: OriginalRevolveGeneratorResolver.Span,
         maximumSubdivisionDepth: Int, usage: inout B
     ) throws -> Int {

@@ -5180,7 +5180,7 @@ struct CADKernelTests {
         case .affine, .harmonic, .polyline, .bSpline, .sphericalGreatCircle,
              .certifiedImplicit, .certifiedAnalyticImplicit, .certifiedAnalyticPair,
              .projectedAnalytic, .rigidImage, .offsetSurfaceImage,
-             .periodicTranslation:
+             .periodicTranslation, .originalBSplineContinuation, .originalAffineWord, .originalImage:
             Issue.record("Expected a boundary B-spline trim to collapse to a constant parameter curve.")
             return
         }

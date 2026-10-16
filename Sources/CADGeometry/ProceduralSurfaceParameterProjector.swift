@@ -12,31 +12,42 @@ import WASILibc
 #endif
 
 struct ProceduralSurfaceParameterProjector: Sendable {
-  private let invocation:CurveSurfaceQueryInvocation?
-  private let originalDomain:SurfaceParameterBox?
-  private let originalPreparation:PreparedSurfaceDifferentialEncloser?
-  init(invocation:CurveSurfaceQueryInvocation? = nil,originalDomain:SurfaceParameterBox? = nil,
-      originalPreparation:PreparedSurfaceDifferentialEncloser? = nil) {
-    self.invocation = invocation; self.originalDomain = originalDomain; self.originalPreparation = originalPreparation
+  private let originalProof: Bool
+  private let originalDomain: SurfaceParameterBox?
+  private let originalPreparation: PreparedSurfaceDifferentialEncloser?
+  private let maximumSpanCount: Int
+  private let maximumSubdivisionDepth: Int
+  private let remainingSourceDepth: Int
+  init(originalDomain: SurfaceParameterBox? = nil,
+      originalPreparation: PreparedSurfaceDifferentialEncloser? = nil,
+      originalProof: Bool = false, maximumSpanCount: Int = Int.max,
+      maximumSubdivisionDepth: Int = Int.max, remainingSourceDepth: Int = Int.max) {
+    self.originalProof = originalProof; self.originalDomain = originalDomain
+    self.originalPreparation = originalPreparation; self.maximumSpanCount = maximumSpanCount
+    self.maximumSubdivisionDepth = maximumSubdivisionDepth; self.remainingSourceDepth = remainingSourceDepth
   }
-  private func originalEnclosure(_ prepared:PreparedSurfaceDifferentialEncloser,cell:Cell,
-      tolerance:ModelingTolerance) throws -> SurfaceDifferentialEnclosure {
-    if let invocation {
-      let depth = cell.uDepth+cell.vDepth
-      return try prepared.enclosure(over:parameterBox(cell),tolerance:tolerance,
-        maximumSpanCount:invocation.maximumSpanCount,
-        maximumSubdivisionDepth:invocation.maximumSubdivisionDepth-depth,
-        remainingSourceDepth:invocation.remainingSourceDepth-depth,
-        consumeWork:{ try invocation.consume(depth:depth) })
+  private func originalEnclosure(_ prepared: PreparedSurfaceDifferentialEncloser, cell: Cell,
+      tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> SurfaceDifferentialEnclosure {
+    if originalProof {
+      let depth = cell.uDepth.addingReportingOverflow(cell.vDepth)
+      guard !depth.overflow else { throw ExactScalarFailure.countOverflow }
+      return try execution.withGeometricDepthOffset(depth.partialValue) { execution in
+        try prepared.enclosure(over: parameterBox(cell), tolerance: tolerance,
+          maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: min(32, maximumSubdivisionDepth),
+          remainingSourceDepth: remainingSourceDepth, using: &execution)
+      }
     }
-    return try prepared.enclosure(over:parameterBox(cell),tolerance:tolerance)
+    return try prepared.enclosure(over: parameterBox(cell), tolerance: tolerance, using: &execution)
   }
-  private func originalStation(u:Double,v:Double,tolerance:ModelingTolerance,depth:Int = 0) throws -> SurfaceIntervalVectorJet? {
-    guard let invocation,let prepared = originalPreparation else { return nil }
-    return try prepared.intervalJet(overClosedBox:.init(u:.init(lower:u,upper:u),v:.init(lower:v,upper:v)),
-      tolerance:tolerance,maximumSpanCount:invocation.maximumSpanCount,
-      maximumSubdivisionDepth:invocation.maximumSubdivisionDepth-depth,remainingSourceDepth:invocation.remainingSourceDepth-depth,
-      consumeWork:{ try invocation.consume(depth:depth) })
+  private func originalStation(u: Double, v: Double, tolerance: ModelingTolerance, depth: Int = 0,
+      using execution: inout OriginalQueryExecution) throws -> SurfaceIntervalVectorJet? {
+    guard originalProof, let prepared = originalPreparation else { return nil }
+    return try execution.withGeometricDepthOffset(depth) { execution in
+      try prepared.intervalJet(overClosedBox: .init(u:.init(lower:u,upper:u),v:.init(lower:v,upper:v)),
+        tolerance: tolerance, maximumSpanCount: maximumSpanCount,
+        maximumSubdivisionDepth: min(32, maximumSubdivisionDepth), remainingSourceDepth: remainingSourceDepth,
+        using: &execution)
+    }
   }
   private func representative(_ jet:SurfaceIntervalVectorJet)->SurfaceParameterDerivatives {
     func vector(_ key:(SurfaceIntervalJet) -> OutwardScalarInterval)->Vector3D {
@@ -52,9 +63,10 @@ struct ProceduralSurfaceParameterProjector: Sendable {
       z:jet.z.value - .exact(point.z)).lengthUpperBound
   }
   private func excludesDistance(lower:Double,best:Double,tolerance:ModelingTolerance)->Bool {
-    if invocation != nil { return lower >= (best-tolerance.distance).nextUp }
+    if originalProof { return lower >= (best-tolerance.distance).nextUp }
     return lower+tolerance.distance >= best
   }
+
 
   func parameterProjectionResult(
     of point: Point3D,
@@ -62,11 +74,111 @@ struct ProceduralSurfaceParameterProjector: Sendable {
     options: SurfaceParameterProjectionOptions,
     tolerance: ModelingTolerance
   ) throws -> SurfaceParameterProjectionResult {
+
+      var execution = try OriginalQueryExecution.independentGeometry()
+
+      return try parameterProjectionResult(of: point, on: blend, options: options, tolerance: tolerance, using: &execution)
+
+  }
+
+
+  func parameterProjectionResult(
+    of point: Point3D,
+    on offset: OffsetSurface3D,
+    options: SurfaceParameterProjectionOptions,
+    tolerance: ModelingTolerance
+  ) throws -> SurfaceParameterProjectionResult {
+
+      var execution = try OriginalQueryExecution.independentGeometry()
+
+      return try parameterProjectionResult(of: point, on: offset, options: options, tolerance: tolerance, using: &execution)
+
+  }
+
+
+  func parameterProjectionResult(
+    of point: Point3D,
+    on ruled: RuledSurface3D,
+    options: SurfaceParameterProjectionOptions,
+    tolerance: ModelingTolerance
+  ) throws -> SurfaceParameterProjectionResult {
+
+      var execution = try OriginalQueryExecution.independentGeometry()
+
+      return try parameterProjectionResult(of: point, on: ruled, options: options, tolerance: tolerance, using: &execution)
+
+  }
+
+
+  func closestProjection(
+    of point: Point3D,
+    on offset: OffsetSurface3D,
+    options: SurfaceParameterProjectionOptions,
+    tolerance: ModelingTolerance
+  ) throws -> SurfaceParameterProjection {
+
+      var execution = try OriginalQueryExecution.independentGeometry()
+
+      return try closestProjection(of: point, on: offset, options: options, tolerance: tolerance, using: &execution)
+
+  }
+
+
+  func closestProjection(
+    of point: Point3D,
+    on ruled: RuledSurface3D,
+    options: SurfaceParameterProjectionOptions,
+    tolerance: ModelingTolerance
+  ) throws -> SurfaceParameterProjection {
+
+      var execution = try OriginalQueryExecution.independentGeometry()
+
+      return try closestProjection(of: point, on: ruled, options: options, tolerance: tolerance, using: &execution)
+
+  }
+
+
+  func closestProjection(
+    of point: Point3D,
+    on surface: Surface3D,
+    options: SurfaceParameterProjectionOptions,
+    tolerance: ModelingTolerance
+  ) throws -> SurfaceParameterProjection {
+
+      var execution = try OriginalQueryExecution.independentGeometry()
+
+      return try closestProjection(of: point, on: surface, options: options, tolerance: tolerance, using: &execution)
+
+  }
+
+
+  func boundedProjectionResult(
+    of point: Point3D,
+    on surface: Surface3D,
+    uBounds: ClosedRange<Double>,
+    vBounds: ClosedRange<Double>,
+    options: SurfaceParameterProjectionOptions,
+    tolerance: ModelingTolerance
+  ) throws -> SurfaceParameterProjectionResult {
+
+      var execution = try OriginalQueryExecution.independentGeometry()
+
+      return try boundedProjectionResult(of: point, on: surface, uBounds: uBounds, vBounds: vBounds, options: options, tolerance: tolerance, using: &execution)
+
+  }
+
+  func parameterProjectionResult(
+    of point: Point3D,
+    on blend: RollingBallBlendSurface3D,
+    options: SurfaceParameterProjectionOptions,
+    tolerance: ModelingTolerance
+  , using execution: inout OriginalQueryExecution) throws -> SurfaceParameterProjectionResult {
+        try execution.consumeWork(1)
     try options.validate(tolerance: tolerance)
-    try blend.validate()
+    try blend.validate(using: &execution)
     try point.validate()
     return try boundedProjectionResult(of: point, on: .procedural(.rollingBall(blend)),
-      uBounds: 0...1, vBounds: 0...1, options: options, tolerance: tolerance)
+      uBounds: 0...1, vBounds: 0...1, options: options, tolerance: tolerance, using: &execution)
   }
 
   private struct Cell: Sendable {
@@ -104,7 +216,9 @@ struct ProceduralSurfaceParameterProjector: Sendable {
       )
     }
 
-    func multiplied(by other: ProjectionInterval) -> ProjectionInterval {
+    func multiplied(by other: ProjectionInterval, using execution: inout OriginalQueryExecution) throws -> ProjectionInterval {
+      try execution.consumeWork(1)
+      try execution.retainStorage(count: 4, stride: MemoryLayout<Double>.stride)
       let products = [
         lower * other.lower,
         lower * other.upper,
@@ -123,26 +237,27 @@ struct ProceduralSurfaceParameterProjector: Sendable {
     on offset: OffsetSurface3D,
     options: SurfaceParameterProjectionOptions,
     tolerance: ModelingTolerance
-  ) throws -> SurfaceParameterProjectionResult {
+  , using execution: inout OriginalQueryExecution) throws -> SurfaceParameterProjectionResult {
+        try execution.consumeWork(1)
     try options.validate(tolerance: tolerance)
-    try offset.validate(tolerance: tolerance)
+    try offset.validate(tolerance: tolerance, using: &execution)
     try point.validate()
     if let equivalent = try offset.exactChartPreservingSurface(
       tolerance: tolerance
-    ) {
+    , using: &execution) {
       return try equivalent.parameterProjectionResult(
         of: point,
         options: options,
         tolerance: tolerance
-      )
+      , using: &execution)
     }
-    if let cone = flattenedCone(offset) {
+    if let cone = try flattenedCone(offset, using: &execution) {
       return try coneProjectionResult(
         of: point,
         offset: offset,
         cone: cone,
         tolerance: tolerance
-      )
+      , using: &execution)
     }
     guard let uBounds = finiteBounds(offset.uDomain),
       let vBounds = finiteBounds(offset.vDomain)
@@ -162,7 +277,7 @@ struct ProceduralSurfaceParameterProjector: Sendable {
       vBounds: vBounds,
       options: options,
       tolerance: tolerance
-    )
+    , using: &execution)
   }
 
   func parameterProjectionResult(
@@ -170,9 +285,10 @@ struct ProceduralSurfaceParameterProjector: Sendable {
     on ruled: RuledSurface3D,
     options: SurfaceParameterProjectionOptions,
     tolerance: ModelingTolerance
-  ) throws -> SurfaceParameterProjectionResult {
+  , using execution: inout OriginalQueryExecution) throws -> SurfaceParameterProjectionResult {
+        try execution.consumeWork(1)
     try options.validate(tolerance: tolerance)
-    try ruled.validate(tolerance: tolerance)
+    try ruled.validate(tolerance: tolerance, using: &execution)
     try point.validate()
     let surface = Surface3D.procedural(.ruled(ruled))
     guard let uBounds = originalDomain.map({ $0.u.lower...$0.u.upper }) ?? finiteBounds(surface.uDomain),
@@ -193,7 +309,7 @@ struct ProceduralSurfaceParameterProjector: Sendable {
       vBounds: vBounds,
       options: options,
       tolerance: tolerance
-    )
+    , using: &execution)
   }
 
   func closestProjection(
@@ -201,11 +317,12 @@ struct ProceduralSurfaceParameterProjector: Sendable {
     on offset: OffsetSurface3D,
     options: SurfaceParameterProjectionOptions,
     tolerance: ModelingTolerance
-  ) throws -> SurfaceParameterProjection {
+  , using execution: inout OriginalQueryExecution) throws -> SurfaceParameterProjection {
+        try execution.consumeWork(1)
     try options.validate(tolerance: tolerance)
-    try offset.validate(tolerance: tolerance)
+    try offset.validate(tolerance: tolerance, using: &execution)
     try point.validate()
-    guard try offset.exactChartPreservingSurface(tolerance: tolerance) == nil else {
+    guard try offset.exactChartPreservingSurface(tolerance: tolerance, using: &execution) == nil else {
       throw KernelError(
         phase: .geometry,
         code: .invalidInput,
@@ -219,7 +336,7 @@ struct ProceduralSurfaceParameterProjector: Sendable {
       on: .procedural(.offset(offset)),
       options: options,
       tolerance: tolerance
-    )
+    , using: &execution)
   }
 
   func closestProjection(
@@ -227,16 +344,17 @@ struct ProceduralSurfaceParameterProjector: Sendable {
     on ruled: RuledSurface3D,
     options: SurfaceParameterProjectionOptions,
     tolerance: ModelingTolerance
-  ) throws -> SurfaceParameterProjection {
+  , using execution: inout OriginalQueryExecution) throws -> SurfaceParameterProjection {
+        try execution.consumeWork(1)
     try options.validate(tolerance: tolerance)
-    try ruled.validate(tolerance: tolerance)
+    try ruled.validate(tolerance: tolerance, using: &execution)
     try point.validate()
     return try closestProjection(
       of: point,
       on: .procedural(.ruled(ruled)),
       options: options,
       tolerance: tolerance
-    )
+    , using: &execution)
   }
 
   func closestProjection(
@@ -244,10 +362,11 @@ struct ProceduralSurfaceParameterProjector: Sendable {
     on surface: Surface3D,
     options: SurfaceParameterProjectionOptions,
     tolerance: ModelingTolerance
-  ) throws -> SurfaceParameterProjection {
+  , using execution: inout OriginalQueryExecution) throws -> SurfaceParameterProjection {
+        try execution.consumeWork(1)
     try options.validate(tolerance: tolerance)
-    if invocation == nil { try surface.validate(tolerance:tolerance) }
-    try invocation?.consumeFixedWork()
+    if !originalProof { try surface.validate(tolerance:tolerance, using: &execution) }
+    try execution.consumeWork(1)
     try point.validate()
     guard let uBounds = originalDomain.map({ $0.u.lower...$0.u.upper }) ?? finiteBounds(surface.uDomain),
       let vBounds = originalDomain.map({ $0.v.lower...$0.v.upper }) ?? finiteBounds(surface.vDomain)
@@ -259,7 +378,7 @@ struct ProceduralSurfaceParameterProjector: Sendable {
         message: "Certified closest-point projection requires finite or periodic parameter domains."
       )
     }
-    let encloser = try originalPreparation ?? PreparedSurfaceDifferentialEncloser(surface:surface,tolerance:tolerance)
+    let encloser = try originalPreparation ?? PreparedSurfaceDifferentialEncloser(surface:surface,tolerance:tolerance, using: &execution)
 
     var best = try refine(
       u: midpoint(uBounds),
@@ -270,11 +389,13 @@ struct ProceduralSurfaceParameterProjector: Sendable {
       vBounds: vBounds,
       options: options,
       tolerance: tolerance
-    )
+    , using: &execution)
     var remainingCells = options.maximumSubdivisionCells
+    try execution.retainStorage(count: 1, stride: MemoryLayout<Cell>.stride)
     var stack = [Cell(u: uBounds, v: vBounds, uDepth: 0, vDepth: 0)]
     while let cell = stack.popLast() {
-      try invocation?.consume(depth:cell.uDepth+cell.vDepth)
+      try execution.visitGeometricCell(depth: cell.uDepth+cell.vDepth)
+      try execution.consumeWork(1)
       guard remainingCells > 0 else {
         throw resourceLimit(
           residual: best.residual,
@@ -285,7 +406,7 @@ struct ProceduralSurfaceParameterProjector: Sendable {
       remainingCells -= 1
       let enclosure: SurfaceDifferentialEnclosure
       do {
-        enclosure = try originalEnclosure(encloser,cell:cell,tolerance:tolerance)
+        enclosure = try originalEnclosure(encloser,cell:cell,tolerance:tolerance, using: &execution)
       } catch let error as KernelError where error.code == .singularSystem {
         guard
           hasSubdivisionCapacity(
@@ -306,7 +427,7 @@ struct ProceduralSurfaceParameterProjector: Sendable {
             surface: surface,
             maximumDepth: options.maximumSubdivisionDepth,
             tolerance: tolerance
-          ).reversed())
+          , using: &execution).reversed())
         continue
       }
       let lowerBound = distanceLowerBound(from: point, to: enclosure.position)
@@ -314,7 +435,7 @@ struct ProceduralSurfaceParameterProjector: Sendable {
         continue
       }
       guard
-        mayContainClosestPoint(
+        try mayContainClosestPoint(
           to: point,
           enclosure: enclosure,
           cell: cell,
@@ -322,7 +443,7 @@ struct ProceduralSurfaceParameterProjector: Sendable {
           vDomain: surface.vDomain,
           uBounds: uBounds,
           vBounds: vBounds
-        )
+        , using: &execution)
       else {
         continue
       }
@@ -335,7 +456,7 @@ struct ProceduralSurfaceParameterProjector: Sendable {
         vBounds: vBounds,
         options: options,
         tolerance: tolerance,depth:cell.uDepth+cell.vDepth
-      )
+      , using: &execution)
       if witnessOrder(witness, best) {
         best = witness
       }
@@ -360,7 +481,7 @@ struct ProceduralSurfaceParameterProjector: Sendable {
           surface: surface,
           maximumDepth: options.maximumSubdivisionDepth,
           tolerance: tolerance
-        ).reversed())
+        , using: &execution).reversed())
     }
     return try projection(best)
   }
@@ -372,8 +493,9 @@ struct ProceduralSurfaceParameterProjector: Sendable {
     vBounds: ClosedRange<Double>,
     options: SurfaceParameterProjectionOptions,
     tolerance: ModelingTolerance
-  ) throws -> SurfaceParameterProjectionResult {
-    let encloser = try originalPreparation ?? PreparedSurfaceDifferentialEncloser(surface:surface,tolerance:tolerance)
+  , using execution: inout OriginalQueryExecution) throws -> SurfaceParameterProjectionResult {
+        try execution.consumeWork(1)
+    let encloser = try originalPreparation ?? PreparedSurfaceDifferentialEncloser(surface:surface,tolerance:tolerance, using: &execution)
     var best = try refine(
       u: midpoint(uBounds),
       v: midpoint(vBounds),
@@ -383,14 +505,16 @@ struct ProceduralSurfaceParameterProjector: Sendable {
       vBounds: vBounds,
       options: options,
       tolerance: tolerance
-    )
+    , using: &execution)
     var candidates: [Witness] = []
+    try execution.retainStorage(count: 1, stride: MemoryLayout<Cell>.stride)
     var stack = [Cell(u: uBounds, v: vBounds, uDepth: 0, vDepth: 0)]
     var remainingCells = options.maximumSubdivisionCells
     var unresolvedResidual: Double?
 
     while let cell = stack.popLast() {
-      try invocation?.consume(depth:cell.uDepth+cell.vDepth)
+      try execution.visitGeometricCell(depth: cell.uDepth+cell.vDepth)
+      try execution.consumeWork(1)
       guard remainingCells > 0 else {
         throw resourceLimit(
           residual: best.residual,
@@ -401,7 +525,7 @@ struct ProceduralSurfaceParameterProjector: Sendable {
       remainingCells -= 1
       let enclosure: SurfaceDifferentialEnclosure
       do {
-        enclosure = try originalEnclosure(encloser,cell:cell,tolerance:tolerance)
+        enclosure = try originalEnclosure(encloser,cell:cell,tolerance:tolerance, using: &execution)
       } catch let error as KernelError where error.code == .singularSystem {
         if hasSubdivisionCapacity(
           cell,
@@ -413,7 +537,7 @@ struct ProceduralSurfaceParameterProjector: Sendable {
               surface: surface,
               maximumDepth: options.maximumSubdivisionDepth,
               tolerance: tolerance
-            ).reversed())
+            , using: &execution).reversed())
           continue
         }
         throw resourceLimit(
@@ -444,7 +568,7 @@ struct ProceduralSurfaceParameterProjector: Sendable {
             surface: surface,
             maximumDepth: options.maximumSubdivisionDepth,
             tolerance: tolerance
-          ).reversed())
+          , using: &execution).reversed())
         continue
       }
 
@@ -457,18 +581,18 @@ struct ProceduralSurfaceParameterProjector: Sendable {
         vBounds: vBounds,
         options: options,
         tolerance: tolerance,depth:cell.uDepth+cell.vDepth
-      )
+      , using: &execution)
       if witness.residual < best.residual {
         best = witness
       }
       if witness.residual <= tolerance.distance {
-        appendDistinct(
+        try appendDistinct(
           witness,
           to: &candidates,
           uDomain: surface.uDomain,
           vDomain: surface.vDomain,
           tolerance: tolerance
-        )
+        , using: &execution)
       } else if lowerBound <= tolerance.distance {
         unresolvedResidual = min(
           unresolvedResidual ?? witness.residual,
@@ -484,7 +608,10 @@ struct ProceduralSurfaceParameterProjector: Sendable {
         message: "Procedural surface projection left an unresolved certified candidate cell."
       )
     }
-    guard let selected = candidates.min(by: witnessOrder) else {
+    guard let selected = try candidates.min(by: { first, second in
+      try execution.consumeWork(1)
+      return witnessOrder(first, second)
+    }) else {
       return .outsideTolerance(residual: best.residual)
     }
     guard candidates.count == 1 else {
@@ -509,18 +636,20 @@ struct ProceduralSurfaceParameterProjector: Sendable {
     options: SurfaceParameterProjectionOptions,
     tolerance: ModelingTolerance,
     depth:Int = 0
-  ) throws -> Witness {
+  , using execution: inout OriginalQueryExecution) throws -> Witness {
+        try execution.consumeWork(1)
     var u = initialU
     var v = initialV
     var iterations = 0
     var damping = max(tolerance.relative, Double.ulpOfOne.squareRoot())
     for iteration in 0..<options.maximumIterations {
-      try invocation?.consume(depth:depth)
+      try execution.consumeWork(1)
+      try execution.admitGeometricDepth(depth)
       iterations = iteration + 1
-      let station = try originalStation(u:u,v:v,tolerance:tolerance,depth:depth)
+      let station = try originalStation(u:u,v:v,tolerance:tolerance,depth:depth, using: &execution)
       let derivatives:SurfaceParameterDerivatives
       if let station { derivatives = representative(station) }
-      else { derivatives = try surface.parameterDerivatives(u:u,v:v,tolerance:tolerance) }
+      else { derivatives = try surface.parameterDerivatives(u:u,v:v,tolerance:tolerance, using: &execution) }
       let residual = derivatives.position - point
       let gradientU = residual.dot(derivatives.tangentU)
       let gradientV = residual.dot(derivatives.tangentV)
@@ -551,7 +680,8 @@ struct ProceduralSurfaceParameterProjector: Sendable {
       let scale = max(1.0, abs(hessianUU), abs(hessianUV), abs(hessianVV))
       var accepted: (u: Double, v: Double, residual: Double)?
       for _ in 0..<12 {
-        try invocation?.consume(depth:depth)
+        try execution.consumeWork(1)
+      try execution.admitGeometricDepth(depth)
         let a = hessianUU + damping * scale
         let d = hessianVV + damping * scale
         let determinant = a * d - hessianUV * hessianUV
@@ -563,10 +693,10 @@ struct ProceduralSurfaceParameterProjector: Sendable {
           let nextU = min(max(u - deltaU, uBounds.lowerBound), uBounds.upperBound)
           let nextV = min(max(v - deltaV, vBounds.lowerBound), vBounds.upperBound)
           let nextResidual:Double
-          if let station = try originalStation(u:nextU,v:nextV,tolerance:tolerance,depth:depth) {
+          if let station = try originalStation(u:nextU,v:nextV,tolerance:tolerance,depth:depth, using: &execution) {
             nextResidual = realResidual(station,to:point)
           } else {
-            nextResidual = outwardLength(try surface.point(u:nextU,v:nextV,tolerance:tolerance)-point)
+            nextResidual = outwardLength(try surface.point(u:nextU,v:nextV,tolerance:tolerance, using: &execution)-point)
           }
           if nextResidual < residualLength {
             accepted = (nextU, nextV, nextResidual)
@@ -593,16 +723,16 @@ struct ProceduralSurfaceParameterProjector: Sendable {
     }
     let surfacePoint:Point3D
     let residual:Double
-    if let station = try originalStation(u:u,v:v,tolerance:tolerance,depth:depth) {
+    if let station = try originalStation(u:u,v:v,tolerance:tolerance,depth:depth, using: &execution) {
       surfacePoint = representative(station).position; residual = realResidual(station,to:point)
     } else {
-      surfacePoint = try surface.point(u:u,v:v,tolerance:tolerance); residual = outwardLength(surfacePoint-point)
+      surfacePoint = try surface.point(u:u,v:v,tolerance:tolerance, using: &execution); residual = outwardLength(surfacePoint-point)
     }
     guard residual.isFinite else { throw resourceLimit(residual:residual,tolerance:tolerance,
       message:"Original surface station has no finite residual upper bound.") }
     return Witness(
-      u: invocation == nil ? canonical(u,domain:surface.uDomain) : u,
-      v: invocation == nil ? canonical(v,domain:surface.vDomain) : v,
+      u: !originalProof ? canonical(u,domain:surface.uDomain) : u,
+      v: !originalProof ? canonical(v,domain:surface.vDomain) : v,
       point: surfacePoint,
       residual: residual,
       iterations: iterations
@@ -614,13 +744,16 @@ struct ProceduralSurfaceParameterProjector: Sendable {
     offset: OffsetSurface3D,
     cone: (apex: Point3D, axis: Vector3D, halfAngle: Double, distance: Double),
     tolerance: ModelingTolerance
-  ) throws -> SurfaceParameterProjectionResult {
+  , using execution: inout OriginalQueryExecution) throws -> SurfaceParameterProjectionResult {
+        try execution.consumeWork(1)
     let basis = try analyticOrthonormalBasis(cone.axis, tolerance: tolerance)
     let displacement = point - cone.apex
     let axial = displacement.dot(cone.axis)
     let planar = displacement - cone.axis * axial
     var candidates: [Witness] = []
+    try execution.retainStorage(count: 2, stride: MemoryLayout<Double>.stride)
     for sign in [-1.0, 1.0] {
+      try execution.consumeWork(1)
       let v =
         (axial + sign * cone.distance * sin(cone.halfAngle))
         / cos(cone.halfAngle)
@@ -639,7 +772,7 @@ struct ProceduralSurfaceParameterProjector: Sendable {
             radialDirection.dot(basis.u)
           ))
         : 0.0
-      let surfacePoint = try offset.point(u: u, v: v, tolerance: tolerance)
+      let surfacePoint = try offset.point(u: u, v: v, tolerance: tolerance, using: &execution)
       let witness = Witness(
         u: u,
         v: v,
@@ -648,16 +781,20 @@ struct ProceduralSurfaceParameterProjector: Sendable {
         iterations: 0
       )
       if witness.residual <= tolerance.distance {
-        appendDistinct(
+        try appendDistinct(
           witness,
           to: &candidates,
           uDomain: offset.uDomain,
           vDomain: offset.vDomain,
           tolerance: tolerance
-        )
+        , using: &execution)
       }
     }
-    guard let selected = candidates.min(by: witnessOrder) else {
+    guard let selected = try candidates.min(by: { first, second in
+      try execution.consumeWork(1)
+      return witnessOrder(first, second)
+    }) else {
+      try execution.retainStorage(count: candidates.count, stride: MemoryLayout<Double>.stride)
       let residual = candidates.map({ $0.residual }).min() ?? planar.length
       return .outsideTolerance(residual: residual)
     }
@@ -674,11 +811,12 @@ struct ProceduralSurfaceParameterProjector: Sendable {
   }
 
   private func flattenedCone(
-    _ offset: OffsetSurface3D
-  ) -> (apex: Point3D, axis: Vector3D, halfAngle: Double, distance: Double)? {
+    _ offset: OffsetSurface3D, using execution: inout OriginalQueryExecution
+  ) throws -> (apex: Point3D, axis: Vector3D, halfAngle: Double, distance: Double)? {
     var source = offset.source
     var distance = offset.distance
     while case .procedural(.offset(let nested)) = source {
+      try execution.consumeWork(1)
       distance += nested.distance
       source = nested.source
     }
@@ -717,7 +855,8 @@ struct ProceduralSurfaceParameterProjector: Sendable {
     surface: Surface3D,
     maximumDepth: Int,
     tolerance: ModelingTolerance
-  ) throws -> [Cell] {
+  , using execution: inout OriginalQueryExecution) throws -> [Cell] {
+        try execution.consumeWork(1)
     let uMidpoint = midpoint(cell.u)
     let vMidpoint = midpoint(cell.v)
     let canSplitU =
@@ -740,6 +879,8 @@ struct ProceduralSurfaceParameterProjector: Sendable {
       && (canSplitV == false
         || relativeWidth(cell.u, domain: surface.uDomain)
           >= relativeWidth(cell.v, domain: surface.vDomain))
+    try execution.retainStorage(count: 2, stride: MemoryLayout<Cell>.stride)
+    try execution.retainStorage(count: 2, stride: MemoryLayout<Cell>.stride)
     if splitU {
       return [
         Cell(
@@ -834,12 +975,12 @@ struct ProceduralSurfaceParameterProjector: Sendable {
     vDomain: ParameterDomain,
     uBounds: ClosedRange<Double>,
     vBounds: ClosedRange<Double>
-  ) -> Bool {
-    let gradientU = distanceGradientInterval(
+  , using execution: inout OriginalQueryExecution) throws -> Bool {
+    let gradientU = try distanceGradientInterval(
       point: point,
       position: enclosure.position,
       tangent: enclosure.tangentU
-    )
+    , using: &execution)
     guard
       stationarityIsPossible(
         gradientU,
@@ -850,11 +991,11 @@ struct ProceduralSurfaceParameterProjector: Sendable {
     else {
       return false
     }
-    let gradientV = distanceGradientInterval(
+    let gradientV = try distanceGradientInterval(
       point: point,
       position: enclosure.position,
       tangent: enclosure.tangentV
-    )
+    , using: &execution)
     return stationarityIsPossible(
       gradientV,
       range: cell.v,
@@ -867,7 +1008,7 @@ struct ProceduralSurfaceParameterProjector: Sendable {
     point: Point3D,
     position: CoordinateEnclosure3D,
     tangent: CoordinateEnclosure3D
-  ) -> ProjectionInterval {
+  , using execution: inout OriginalQueryExecution) throws -> ProjectionInterval {
     let displacementX = ProjectionInterval(
       lower: position.x.lower - point.x,
       upper: position.x.upper - point.x
@@ -880,23 +1021,23 @@ struct ProceduralSurfaceParameterProjector: Sendable {
       lower: position.z.lower - point.z,
       upper: position.z.upper - point.z
     )
-    return displacementX.multiplied(
+    return try displacementX.multiplied(
       by: ProjectionInterval(
         lower: tangent.x.lower,
         upper: tangent.x.upper
       )
-    ).adding(
+    , using: &execution).adding(
       displacementY.multiplied(
         by: ProjectionInterval(
           lower: tangent.y.lower,
           upper: tangent.y.upper
-        ))
+        ), using: &execution)
     ).adding(
       displacementZ.multiplied(
         by: ProjectionInterval(
           lower: tangent.z.lower,
           upper: tangent.z.upper
-        )))
+        ), using: &execution))
   }
 
   private func stationarityIsPossible(
@@ -963,16 +1104,18 @@ struct ProceduralSurfaceParameterProjector: Sendable {
     uDomain: ParameterDomain,
     vDomain: ParameterDomain,
     tolerance: ModelingTolerance
-  ) {
+  , using execution: inout OriginalQueryExecution) throws {
     let resolution = max(tolerance.relative * 64.0, Double.ulpOfOne * 256.0)
-    if let index = candidates.firstIndex(where: { existing in
-      parameterDistance(existing.u, candidate.u, domain: uDomain) <= resolution
+    if let index = try candidates.firstIndex(where: { existing in
+      try execution.consumeWork(1)
+      return parameterDistance(existing.u, candidate.u, domain: uDomain) <= resolution
         && parameterDistance(existing.v, candidate.v, domain: vDomain) <= resolution
     }) {
       if candidate.residual < candidates[index].residual {
         candidates[index] = candidate
       }
     } else {
+      try execution.retainStorage(count: 1, stride: MemoryLayout<Witness>.stride)
       candidates.append(candidate)
     }
   }

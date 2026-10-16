@@ -5,7 +5,7 @@ import L0
 extension ExactPolynomialDomain {
     func productOrder<A: ExactScalarAdmission & ~Copyable>(_ a: ExactPolynomialProductIndex,
         _ b: ExactPolynomialProductIndex, rows: [ExactPolynomialTerm<Coefficient>],
-        columns: [ExactPolynomialTerm<Coefficient>], _ usage: inout ExactPolynomialAdmission<A>
+        columns: [ExactPolynomialTerm<Coefficient>], _ usage: inout A
     ) throws -> Int {
         try usage.consumeWork(try ExactPolynomialAccess.count(variableCount, 1))
         // The per-axis maxima check precedes every heap operation, proving these sums fit.
@@ -19,7 +19,7 @@ extension ExactPolynomialDomain {
     func productPush<A: ExactScalarAdmission & ~Copyable>(_ node: ExactPolynomialProductIndex,
         rows: [ExactPolynomialTerm<Coefficient>], columns: [ExactPolynomialTerm<Coefficient>],
         heap: inout [ExactPolynomialProductIndex], cursors: inout [Int], chains: inout [Int],
-        _ usage: inout ExactPolynomialAdmission<A>
+        _ usage: inout A
     ) throws {
         try usage.consumeWork(1)
         cursors[node.row] = node.column; chains[node.row] = -1
@@ -45,7 +45,7 @@ extension ExactPolynomialDomain {
     }
     func productPop<A: ExactScalarAdmission & ~Copyable>(rows: [ExactPolynomialTerm<Coefficient>],
         columns: [ExactPolynomialTerm<Coefficient>], heap: inout [ExactPolynomialProductIndex],
-        _ usage: inout ExactPolynomialAdmission<A>
+        _ usage: inout A
     ) throws -> ExactPolynomialProductIndex {
         try usage.consumeWork(1)
         let node = heap[0], last = heap.removeLast()
@@ -66,7 +66,7 @@ extension ExactPolynomialDomain {
         return node
     }
     func heapProduct<A: ExactScalarAdmission & ~Copyable>(_ lhs: borrowing Polynomial,
-        _ rhs: borrowing Polynomial, _ usage: inout ExactPolynomialAdmission<A>
+        _ rhs: borrowing Polynomial, _ usage: inout A
     ) throws -> Polynomial {
         let rows = lhs.termCount <= rhs.termCount ? lhs.terms : rhs.terms
         let columns = lhs.termCount <= rhs.termCount ? rhs.terms : lhs.terms

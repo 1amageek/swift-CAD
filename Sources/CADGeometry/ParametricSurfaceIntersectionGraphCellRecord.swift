@@ -33,7 +33,7 @@ struct ParametricSurfaceIntersectionGraphCellRecord: Sendable {
     direction: CertifiedImplicitIntersectionDirection,
     first: PreparedSurfaceDifferentialEncloser,
     second: PreparedSurfaceDifferentialEncloser,
-    tolerance: ModelingTolerance, admission: SurfaceSurfaceQueryAdmission = .legacy
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> CertifiedImplicitIntersectionGraphCell {
     try CertifiedImplicitIntersectionGraphCell(
       parameterBox: parameterBox,
@@ -44,7 +44,7 @@ struct ParametricSurfaceIntersectionGraphCellRecord: Sendable {
       upperAnchor: upperAnchor,
       firstSurface: first,
       secondSurface: second,
-      tolerance: tolerance, admission: admission
+      tolerance: tolerance, using: &execution
     )
   }
 }

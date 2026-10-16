@@ -1,0 +1,145 @@
+{
+  "scope": "Focused endpoint exact-payload equality and Native boundary correspondence behavior only; no whole-G01/U1 claim.",
+  "family": "boundary",
+  "lane": "wasm",
+  "status": "passed",
+  "receipt": {
+    "original": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/boundary-portable-wasm-r1/receipt.json",
+    "sha256": "39d045452616bad6868bc1c4175057a7f9eddd57619013c198d95fbe46325f56"
+  },
+  "nativeSourceAuthority": {
+    "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-production-r1/receipt.json",
+    "sha256": "7432d8f66382f64727a09d00855477623f40099f337b0b8992e37995365b4041"
+  },
+  "sourceCount": {
+    "CADCore": 65,
+    "CADGeometry": 2170
+  },
+  "fixture": {
+    "path": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalQueryExecutionVerification/NativeBoundaryPortable.swift",
+    "sha256": "bb7dc36f277993b00b2938a9a943106f4abb60f27618c8a0d131f3fc6fddbc25",
+    "expectedOutputLines": [
+      "PASS native boundary whole closed laws",
+      "PASS native boundary exact payload and map refusal",
+      "PASS native boundary caller resources and lifetime",
+      "PASS native boundary cancellation",
+      "PASS native boundary portable all"
+    ]
+  },
+  "matchedOracleLines": [
+    "PASS native boundary whole closed laws",
+    "PASS native boundary exact payload and map refusal",
+    "PASS native boundary caller resources and lifetime",
+    "PASS native boundary cancellation",
+    "PASS native boundary portable all"
+  ],
+  "bounds": {
+    "compileLinkSecondsPerLane": 1200,
+    "runtimeSeconds": 120,
+    "aggregateRSSBytes": 10737418240,
+    "compilerProcessesAtOnce": 1
+  },
+  "elapsedSeconds": 3.052402291999897,
+  "phases": [
+    {
+      "name": "wasm-link",
+      "exitCode": 0,
+      "elapsedSeconds": 1.6072610830015037,
+      "peakRSSBytes": 766328832,
+      "stopReason": null,
+      "wallLimitSeconds": 1199.891006083999
+    },
+    {
+      "name": "wasm-runtime",
+      "exitCode": 0,
+      "elapsedSeconds": 0.23037374999694293,
+      "peakRSSBytes": 950272,
+      "stopReason": null,
+      "wallLimitSeconds": 120
+    }
+  ],
+  "geometryReuse": {
+    "receipt": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/endpoint-portable-wasm-r1/receipt.json",
+    "receiptSHA256": "dab51f7a1e652a25a91c5144c6fe8f55ac504ce03f30ea462b835135a2e047ff",
+    "compilePhase": {
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+        "-parse-as-library",
+        "-Onone",
+        "-g",
+        "-swift-version",
+        "6",
+        "-package-name",
+        "swift_cad",
+        "-DSWIFT_PACKAGE",
+        "-DDEBUG",
+        "-DNativeExchange",
+        "-whole-module-optimization",
+        "-num-threads",
+        "0",
+        "-j1",
+        "-enable-testing",
+        "-I",
+        "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/endpoint-portable-wasm-r1/wasm",
+        "-I",
+        "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/endpoint-portable-wasm-r1/wasm/dependencies",
+        "-target",
+        "wasm32-unknown-wasip1",
+        "-sdk",
+        "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk",
+        "-resource-dir",
+        "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static",
+        "-static-stdlib",
+        "-tools-directory",
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin",
+        "-Xclang-linker",
+        "-resource-dir",
+        "-Xclang-linker",
+        "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/clang",
+        "-module-name",
+        "CADGeometry",
+        "-emit-module",
+        "-emit-module-path",
+        "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/endpoint-portable-wasm-r1/wasm/CADGeometry.swiftmodule",
+        "-emit-object",
+        "-o",
+        "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/endpoint-portable-wasm-r1/wasm/CADGeometry.code.o",
+        "@/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/endpoint-portable-wasm-r1/wasm/GeometrySources.rsp"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 172.72581774999708,
+      "sampledPeakProcessTreeRSSBytes": 5425790976,
+      "stopReason": null,
+      "rssAccounting": "tracked PPID descendants including separate process groups",
+      "maximumObservedProcessCount": 2,
+      "wallLimitSeconds": 1199.9999947500037,
+      "logSHA256": "f4eb5f82c93550bb6f566f1b1f84a3ac29143feae76e59850d7bc71b0096c8ec",
+      "peakRSSBytes": 5425790976,
+      "rssScope": "tracked PPID descendants including separate process groups",
+      "name": "wasm-compile",
+      "log": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/endpoint-portable-wasm-r1/wasm-compile.log"
+    },
+    "resourceBoundProven": false,
+    "resourceLimitation": "Initial PGID sampler did not capture the entire frontend tree."
+  },
+  "logs": {
+    "wasm-link.log": {
+      "original": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/boundary-portable-wasm-r1/wasm-link.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "wasm-runtime.log": {
+      "original": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/boundary-portable-wasm-r1/wasm-runtime.log",
+      "sha256": "a93b60401271742f838cbb931cfe016529419457e18b96a1a6cf735fd7cdd3e6"
+    }
+  },
+  "productSHA256": {
+    "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/boundary-portable-wasm-r1/wasm/CADGeometry.swiftmodule": "cb3eeaea9481a67eca9b5aa71ac2a6a1b8b5aa93f8bf2b551c584850e9622c1d",
+    "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/boundary-portable-wasm-r1/wasm/CADGeometry.code.o": "d3266152fabcc7554d8bd7d981b3979d5021ad6fb712e9e3d9de9348094c1099"
+  },
+  "executableSHA256": "2cd9f0dfadc308cb35ab9be0187a1aeae932219aa5dc4425000874772c4122d1",
+  "terminalDrift": {
+    "currentDrift": [],
+    "snapshotDrift": [],
+    "productDrift": []
+  }
+}

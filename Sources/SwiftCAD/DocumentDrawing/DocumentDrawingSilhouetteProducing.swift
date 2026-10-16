@@ -7,9 +7,9 @@ public protocol DocumentDrawingSilhouetteProducing: Sendable {
         currentEvaluation: EvaluatedDocument, onto frame: OrthographicProjectionFrame,
         maximumSourceEntities: Int, maximumSourceFaces: Int, maximumProjectedSpans: Int,
         maximumControlPointCount: Int, maximumBoundaryCurveCount: Int,
-        usage: inout SurfaceSilhouetteUsage) throws -> BRepDrawingSilhouettes
+        using execution: inout OriginalQueryExecution) throws -> BRepDrawingSilhouettes
     func silhouettes(document: CADDocument, currentEvaluation: EvaluatedDocument,
         onto frame: OrthographicProjectionFrame, maximumSourceFaces: Int,
         maximumProjectedSpans: Int, maximumControlPointCount: Int,
-        maximumBoundaryCurveCount: Int, usage: inout SurfaceSilhouetteUsage) throws -> BRepDrawingSilhouettes
+        maximumBoundaryCurveCount: Int, using execution: inout OriginalQueryExecution) throws -> BRepDrawingSilhouettes
 }

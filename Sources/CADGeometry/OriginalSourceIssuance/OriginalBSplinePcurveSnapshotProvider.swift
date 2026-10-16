@@ -8,7 +8,7 @@ public struct OriginalBSplinePcurveSnapshotProvider: OriginalSourceSnapshotting 
     ) throws(OriginalSourceIssuanceFailure) -> OriginalSourceSnapshot<BSplineCurve2D> {
         do {
             try a.checkpoint()
-            try input.validate(tolerance: tolerance, consumeWork: { try a.consumeWork(1) })
+            try input.validate(tolerance: tolerance, using: &a)
             try a.checkpoint(); return .init(original: copy input, sourceDepth: 0)
         } catch { throw .init(preserving: error) }
     }

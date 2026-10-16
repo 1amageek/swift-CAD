@@ -552,10 +552,9 @@ Read-only Array buffers are shared; no unsafe view can outlive its owner.
 
 Use native structs/enums, immutable final classes, Array/COW and generic static
 dispatch. No mutable global cache, actor, scheduler, custom allocator or type-erased
-public adapter is needed. A fixed internal non-Sendable invocation handle may
-follow the scoped L2 forwarding pattern to keep recursive admission specialization
-finite in Embedded. Any new unsafe borrow needs its own minimal owner/lifetime,
-non-escape and ASAN evidence; private L2 forwarding types are not an L3 port.
+public adapter is needed. Every kernel receives the same original generic
+admission; local proof scopes belong to that admission and introduce no
+caller pointer, captured callback owner or recursive handle specialization.
 
 ## Failure, Concurrency, and Constraints
 
@@ -732,7 +731,7 @@ polynomial order, derivative/reductum enumeration, zero/constant exclusion,
 nullification, cell coverage and lifting do not change. L1 owns the determinant
 orientation and PRS recurrence; L3 contains no second PRS or determinant engine.
 Its existing coefficient vectors remain for coefficient/degree evidence.
-The same borrowed admission flows through L1 without a budget reset.
+The same original inout admission flows through L1 without a budget reset.
 [HeapPSCVerification](../../../../Tests/HeapPSCVerification/DESIGN.md) compares
 projection witness values and full lower topology; Native integration verifies
 source-to-public success, absence, limits and retained correspondence.
@@ -749,11 +748,9 @@ a one-element view. Independent target visibility previously hid this collision.
 
 ## Caller Cell Visit Propagation
 
-L3 forwards every required L0 `visitCell(axis:depth:)` through its scoped
-invocation owner and borrowed admission to the same caller. The owner retains
-the maximum attained depth on the supplied value/coefficient axis after a
-successful visit. It neither remaps the caller depth nor creates a cell ceiling.
-Its fifth forwarding closure and scoped context are admitted before allocation.
+L3 invokes every required L0 `visitCell(axis:depth:)` directly on the original
+caller admission. Its local observation scope retains the attained independent
+value/coefficient depths. It adds no mapping, copied allowance or cell ceiling.
 
 Decomposition visits the R^0 origin before materializing its record and each
 accepted in-domain branch before materializing its coordinates and record.
@@ -957,3 +954,14 @@ GCD with the retained computational factor and proves root correspondence. L3
 does not assume a divisor of the full union also divides each retained factor.
 Original laws, multiplicities, global root order, full-domain coverage and caller
 admission remain unchanged. Mixed CS is the concrete integration regression.
+
+
+### Direct Admission Execution
+
+Operations pass the original `inout A: ExactScalarAdmission & ~Copyable` directly
+into arithmetic, polynomial, root and cell owners. Local observation scopes belong
+to that admission and retain decision-only and inherited depths. No caller pointer,
+fixed forwarding admission or invocation callback owner remains. Generic recursion
+retains the same admission type rather than introducing a new nested handle type.
+Resource/cell limits and exact source/root authority are unchanged. Full target
+compile and behavioral acceptance are required to establish this migration.

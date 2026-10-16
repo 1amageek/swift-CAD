@@ -301,6 +301,27 @@ not certify this merged source snapshot.
 
 ## Verification and Change Impact
 
+[Original Query Execution Verification](Tests/OriginalQueryExecutionVerification/DESIGN.md) owns canonical admission and the finite G01 delivery harness.
+
+Native focused verification may extend an accepted module prefix through
+CADCapabilities, CADUSD, CADExchange and SwiftCAD using the actual package graph.
+The shared generation and test runners keep production checkout, test checkout
+and harness outputs separate. OpenUSD modules, original per-source objects and
+their schema resource bundle require a successful fixed-revision SwiftPM receipt
+with source, compiler/SDK, command/log and product/resource hashes. The original
+compiled resource accessor and its verified absolute bundle fallback remain
+intact; private test targets copy real Fixtures and let SwiftPM generate their
+own Bundle.module accessor. Only SwiftCAD receives CAD_EXCHANGE. These gates
+establish the exact compiled/tested Native paths and do not expand historical
+lower-module or geometric-family proof scope.
+An explicit reuse-through selection requires a resume receipt and chooses only
+its verified successful unchanged prefix, no later than the requested output
+target. The selected receipt bytes/hash and prefix are retained; all compiler,
+SDK, source, flags, original logs and product checks remain inside that prefix.
+Dependents after the selected boundary compile freshly, while a mismatch inside
+it fails explicitly instead of silently changing the reuse selection.
+
+
 The affected module tests must prove every generated sphere body, face, edge,
 and vertex can produce a stable reference and that JSON round-trip preserves
 the complete signature. They must also retain rejection tests for nonfinite,
@@ -351,3 +372,27 @@ Independent domain/identity verification owner: [OriginalDomainIdentityVerificat
 
 ## Domain Consumer Verification Index
 [Independent Native consumer composition](Tests/OriginalDomainConsumerVerification/DESIGN.md)
+
+## Supported Deployment Baseline
+
+This package supports the current OS release only. The baseline is macOS 27.0,
+iOS 27.0, and visionOS 27.0, matching the installed Xcode SDK deployment versions
+used for this task. `Package.swift` owns these minimum deployment declarations;
+`.swift-version` and the package manifest pin Swift 6.4.0 and Swift tools 6.4.
+Normal WASM and Embedded WASM retain the matching Swift 6.4.0 SDKs.
+
+Affected SwiftPM assertions are owned by their actual test targets, including
+[Geometry](Tests/CADGeometryTests/DESIGN.md) and
+[Topology](Tests/CADTopologyTests/DESIGN.md). The focused Native runner may select
+an independent source checkout, but must match that checkout to the production
+receipt, complete module inventory, original compiler inputs and logs, and linked
+objects. Test sources are copied byte-for-byte from that same checkout and run
+with `swift test`; a typecheck-only run is reported separately from runtime.
+
+The shared execution and retained owners use `Synchronization.Mutex` with the
+same state and isolation contract on every target. Older Apple deployment
+versions are outside the supported contract. No separate legacy lock or
+unprotected Embedded state is introduced. SDK or baseline updates require
+compile/link checks on the changed targets and runtime evidence for the execution
+paths they affect. Existing exact source, resource, and failure contracts remain
+unchanged by this deployment selection.

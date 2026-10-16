@@ -5,8 +5,7 @@ public struct DefaultOriginalNativeBoundaryClipper: OriginalNativeBoundaryClippi
     public init() {}
     public func clip(_ boundary: OriginalNativeBoundaryDomain, selection: OriginalNativeBoundaryDomain.Selection,
         maximumDepth: Int, maximumCoefficientDepth: Int,
-        usage: OriginalRelationUsage) throws -> OriginalClippedNativeParameters {
-        var admission = usage
+        using admission: inout OriginalQueryExecution) throws -> OriginalClippedNativeParameters {
         try intersectionAlgebraStep(&admission)
         guard maximumDepth >= 0, (0...32).contains(maximumCoefficientDepth) else {
             throw rationalAlgebraFailure("Original boundary clipping requires independent nonnegative caller depths.")
@@ -16,11 +15,15 @@ public struct DefaultOriginalNativeBoundaryClipper: OriginalNativeBoundaryClippi
         var compiler = OriginalBoundaryBooleanCompiler()
         // Preserve original source equations and nonzero denominator laws even when
         // derivative-closed cell conditions already imply their selected signs.
-        for law in source.laws { _ = try compiler.atom(law, .zero, usage: &admission) }
+        for law in source.laws {
+            try intersectionAlgebraStep(&admission)
+            _ = try compiler.atom(law, .zero, usage: &admission)
+        }
         var rawNodes: [Int] = []
         try RationalAlgebraStorage.retain(source.conditions.count, of: Int.self, usage: &admission)
         var rawUnion = try compiler.node(.literal(false), usage: &admission)
         for (index, condition) in source.conditions.enumerated() {
+            try intersectionAlgebraStep(&admission)
             let cell = try compiler.condition(condition, usage: &admission)
             let originalSystem = try compiler.sourceSystem(source.systems[index], usage: &admission)
             let node = try compiler.conjunction(cell, originalSystem, usage: &admission)
@@ -33,13 +36,18 @@ public struct DefaultOriginalNativeBoundaryClipper: OriginalNativeBoundaryClippi
         try RationalAlgebraStorage.retain(compiler.laws.count, of: OriginalRationalPolynomial.self, usage: &admission)
         var laws: [OriginalRationalPolynomial] = []; laws.reserveCapacity(compiler.laws.count)
         for law in compiler.laws {
+            try intersectionAlgebraStep(&admission)
             let terms = try law.orderedTerms(usage: &admission)
             try RationalAlgebraStorage.retain(terms.count, of: OriginalRationalPolynomial.Term.self, usage: &admission)
             var original: [OriginalRationalPolynomial.Term] = []; original.reserveCapacity(terms.count)
             for (power, coefficient) in terms {
+            try intersectionAlgebraStep(&admission)
                 try RationalAlgebraStorage.retain(boundary.source.variableCount, of: Int.self, usage: &admission)
                 var powers: [Int] = []; powers.reserveCapacity(boundary.source.variableCount)
-                for axis in 0..<boundary.source.variableCount { powers.append(try power.exponent(at: axis)) }
+                for axis in 0..<boundary.source.variableCount {
+                    try intersectionAlgebraStep(&admission)
+                    powers.append(try power.exponent(at: axis))
+                }
                 original.append(.init(coefficient: coefficient, powers: powers))
             }
             let retained = try OriginalRationalPolynomial(variableCount: boundary.source.variableCount,
@@ -52,10 +60,12 @@ public struct DefaultOriginalNativeBoundaryClipper: OriginalNativeBoundaryClippi
         let input = try OriginalPolynomialRelation(variableCount: boundary.source.variableCount,
             polynomials: laws, predicate: program, domains: boundary.source.domains, usage: &admission)
         let baseline = OriginalBoundaryAdmission(parameterDepth: source.parameterDepth, coefficientDepth: source.coefficientDepth)
-        let descendant = try baseline.borrowing(admission, maximumDepth: maximumDepth, maximumCoefficientDepth: maximumCoefficientDepth)
-        let result = try DefaultOriginalPolynomialRelationResolver().decompose(input,
-            maximumDepth: maximumDepth - baseline.parameterDepth,
-            maximumCoefficientDepth: maximumCoefficientDepth - baseline.coefficientDepth, usage: descendant)
+        let result = try baseline.withScope(maximumDepth: maximumDepth,
+            maximumCoefficientDepth: maximumCoefficientDepth, usage: &admission) { admission in
+            try DefaultOriginalPolynomialRelationResolver().decompose(input,
+                maximumDepth: maximumDepth - baseline.parameterDepth,
+                maximumCoefficientDepth: maximumCoefficientDepth - baseline.coefficientDepth, usage: &admission)
+        }
         return try OriginalClippedNativeParameters(boundary: boundary, selection: selection, relation: result,
             source: source, rawNodes: rawNodes, compiler: compiler, baseline: baseline, usage: &admission)
     }

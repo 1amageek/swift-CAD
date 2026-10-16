@@ -12,21 +12,21 @@ public struct OriginalPolynomialRelation: Sendable {
     public let predicate: OriginalPolynomialPredicate
     public let domains: [OriginalRationalParameterDomain]
 
-    public init<B: RationalAlgebraAdmitting>(variableCount: Int,
+    public init<B: ExactScalarAdmission & ~Copyable>(variableCount: Int,
         polynomials: [OriginalRationalPolynomial], predicate: OriginalPolynomialPredicate,
         domains: [OriginalRationalParameterDomain], usage: inout B) throws {
         try self.init(variableCount: variableCount, polynomials: .rational(polynomials),
             predicate: predicate, domains: domains, usage: &usage)
     }
 
-    public init<B: RationalAlgebraAdmitting>(variableCount: Int,
+    public init<B: ExactScalarAdmission & ~Copyable>(variableCount: Int,
         orderedPolynomials: [OriginalOrderedPolynomial], predicate: OriginalPolynomialPredicate,
         domains: [OriginalRationalParameterDomain], usage: inout B) throws {
         try self.init(variableCount: variableCount, polynomials: .ordered(orderedPolynomials),
             predicate: predicate, domains: domains, usage: &usage)
     }
 
-    private init<B: RationalAlgebraAdmitting>(variableCount: Int, polynomials: Polynomials,
+    private init<B: ExactScalarAdmission & ~Copyable>(variableCount: Int, polynomials: Polynomials,
         predicate: OriginalPolynomialPredicate, domains: [OriginalRationalParameterDomain], usage: inout B) throws {
         try intersectionAlgebraStep(&usage)
         guard (1...4).contains(variableCount), domains.count == variableCount,

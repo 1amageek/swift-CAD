@@ -8,10 +8,10 @@ package enum OriginalSTEPIdentityCoding {
         guard #available(macOS 15.0, iOS 18.0, visionOS 2.0, watchOS 11.0, tvOS 18.0, *) else {
             throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable
         }
-        let allowance = try NativeRationalSourceDecodingContext.allowance(from: decoder)
+        var allowance = try NativeRationalSourceDecodingContext.execution(from: decoder)
         let container = try decoder.singleValueContainer()
         let text = try container.decode(String.self)
-        try allowance.consumeExactWork(37)
+        try allowance.consumeWork(37)
         guard text.utf8.prefix(37).count == 36 else {
             throw DecodingError.dataCorruptedError(in: container,
                 debugDescription: "Original STEP identity requires exactly 36 UTF-8 bytes.")
@@ -23,11 +23,11 @@ package enum OriginalSTEPIdentityCoding {
         }
         let stride = MemoryLayout<UInt32>.stride
         let words = bytes.partialValue / stride + (bytes.partialValue % stride == 0 ? 0 : 1)
-        try allowance.retainExactStorage(words)
-        try allowance.consumeExactWork(36 + 36 + 16)
+        try RationalAlgebraStorage.retain(words, of: UInt32.self, usage: &allowance)
+        try allowance.consumeWork(36 + 36 + 16)
         do {
             let identity = try PortableIdentity128(canonicalString: text)
-            try allowance.consumeExactWork(0)
+            try allowance.consumeWork(0)
             return identity
         } catch PortableIdentityError.invalidCanonicalString {
             throw DecodingError.dataCorruptedError(in: container,

@@ -1,0 +1,559 @@
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-boundary-root-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000001429cc4 <_$s11CADGeometry19OriginalQueryBudgetC10checkpoint7contextyAA0bC14FailureContextV_tAA011ExactScalarG0OYKF>:
+ 1429cc4:      	sub	sp, sp, #0xf0
+ 1429cc8:      	str	x20, [sp, #0xd0]
+ 1429ccc:      	stp	x29, x30, [sp, #0xe0]
+ 1429cd0:      	add	x29, sp, #0xe0
+ 1429cd4:      	stur	x0, [x29, #-0x58]
+ 1429cd8:      	stur	x20, [x29, #-0x50]
+ 1429cdc:      	stur	x21, [x29, #-0x48]
+ 1429ce0:      	stur	xzr, [x29, #-0x18]
+ 1429ce4:      	stur	xzr, [x29, #-0x20]
+ 1429ce8:      	stur	xzr, [x29, #-0x38]
+ 1429cec:      	stur	x0, [x29, #-0x18]
+ 1429cf0:      	stur	x20, [x29, #-0x20]
+ 1429cf4:      	bl	0x633cc20 <_write+0x633cc20>
+ 1429cf8:      	tbnz	w0, #0x0, 0x1429de4 <_$s11CADGeometry19OriginalQueryBudgetC10checkpoint7contextyAA0bC14FailureContextV_tAA011ExactScalarG0OYKF+0x120>
+ 1429cfc:      	b	0x1429d00 <_$s11CADGeometry19OriginalQueryBudgetC10checkpoint7contextyAA0bC14FailureContextV_tAA011ExactScalarG0OYKF+0x3c>
+ 1429d00:      	ldur	x8, [x29, #-0x50]
+ 1429d04:      	ldr	x0, [x8, #0xd0]
+ 1429d08:      	stur	x0, [x29, #-0x60]
+ 1429d0c:      	ldr	x1, [x8, #0xd8]
+ 1429d10:      	stur	x1, [x29, #-0x68]
+ 1429d14:      	bl	0x2251250 <_$ss5Error_pIeghzo_SgWOy>
+ 1429d18:      	ldur	x8, [x29, #-0x60]
+ 1429d1c:      	cbz	x8, 0x1429dd8 <_$s11CADGeometry19OriginalQueryBudgetC10checkpoint7contextyAA0bC14FailureContextV_tAA011ExactScalarG0OYKF+0x114>
+ 1429d20:      	b	0x1429d24 <_$s11CADGeometry19OriginalQueryBudgetC10checkpoint7contextyAA0bC14FailureContextV_tAA011ExactScalarG0OYKF+0x60>
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-boundary-root-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+000000000043d854 <_$s11CADGeometry22OriginalQueryExecutionV10checkpointyyAA18ExactScalarFailureOYKF>:
+  43d854:      	stp	x28, x20, [sp, #-0x20]!
+  43d858:      	stp	x29, x30, [sp, #0x10]
+  43d85c:      	add	x29, sp, #0x10
+  43d860:      	sub	sp, sp, #0x200
+  43d864:      	str	x20, [sp, #0x20]
+  43d868:      	str	x21, [sp, #0x28]
+  43d86c:      	stur	xzr, [x29, #-0x18]
+  43d870:      	mov	x8, x20
+  43d874:      	stur	x8, [x29, #-0x18]
+  43d878:      	ldr	x20, [x20]
+  43d87c:      	str	x20, [sp, #0x18]
+  43d880:      	mov	x0, x20
+  43d884:      	bl	0x633e924 <_write+0x633e924>
+  43d888:      	ldr	x8, [sp, #0x20]
+  43d88c:      	add	x0, x8, #0x78
+  43d890:      	add	x1, sp, #0x48
+  43d894:      	str	x1, [sp, #0x30]
+  43d898:      	bl	0x4963f4 <_$s11CADGeometry27OriginalQueryFailureContextVWOc>
+  43d89c:      	ldr	x21, [sp, #0x28]
+  43d8a0:      	ldr	x0, [sp, #0x30]
+  43d8a4:      	bl	0x1429cc4 <_$s11CADGeometry19OriginalQueryBudgetC10checkpoint7contextyAA0bC14FailureContextV_tAA011ExactScalarG0OYKF>
+  43d8a8:      	str	x0, [sp, #0x38]
+  43d8ac:      	str	x21, [sp, #0x40]
+  43d8b0:      	cbz	x21, 0x43d8c4 <_$s11CADGeometry22OriginalQueryExecutionV10checkpointyyAA18ExactScalarFailureOYKF+0x70>
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-boundary-root-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000001438bdc <_$s11CADGeometry22OriginalQueryExecutionVAA20ExactScalarAdmissionA2aDP10checkpointyyAA0eF7FailureOYKFTW>:
+ 1438bdc:      	sub	sp, sp, #0x30
+ 1438be0:      	stp	x29, x30, [sp, #0x20]
+ 1438be4:      	add	x29, sp, #0x20
+ 1438be8:      	bl	0x43d854 <_$s11CADGeometry22OriginalQueryExecutionV10checkpointyyAA18ExactScalarFailureOYKF>
+ 1438bec:      	str	x0, [sp, #0x10]
+ 1438bf0:      	stur	x21, [x29, #-0x8]
+ 1438bf4:      	cbz	x21, 0x1438c08 <_$s11CADGeometry22OriginalQueryExecutionVAA20ExactScalarAdmissionA2aDP10checkpointyyAA0eF7FailureOYKFTW+0x2c>
+ 1438bf8:      	b	0x1438bfc <_$s11CADGeometry22OriginalQueryExecutionVAA20ExactScalarAdmissionA2aDP10checkpointyyAA0eF7FailureOYKFTW+0x20>
+ 1438bfc:      	ldr	x8, [sp, #0x10]
+ 1438c00:      	str	x8, [sp, #0x8]
+ 1438c04:      	b	0x1438c1c <_$s11CADGeometry22OriginalQueryExecutionVAA20ExactScalarAdmissionA2aDP10checkpointyyAA0eF7FailureOYKFTW+0x40>
+ 1438c08:      	ldur	x21, [x29, #-0x8]
+ 1438c0c:      	ldr	x0, [sp]
+ 1438c10:      	ldp	x29, x30, [sp, #0x20]
+ 1438c14:      	add	sp, sp, #0x30
+ 1438c18:      	ret
+ 1438c1c:      	ldr	x0, [sp, #0x8]
+ 1438c20:      	mov	w8, #0x1                ; =1
+ 1438c24:      	mov	x21, x8
+ 1438c28:      	ldp	x29, x30, [sp, #0x20]
+ 1438c2c:      	add	sp, sp, #0x30
+ 1438c30:      	ret
+
+0000000001438c34 <_$s11CADGeometry22OriginalQueryExecutionVAA20ExactScalarAdmissionA2aDP11consumeWorkyySiAA0eF7FailureOYKFTW>:
+ 1438c34:      	sub	sp, sp, #0x30
+ 1438c38:      	stp	x29, x30, [sp, #0x20]
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-boundary-root-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000001a37364 <_$s11CADGeometry21ExactNaturalMagnitudeV20quotientAndRemainder10dividingBy5usageAC_ACtAC_xztKAA0B15ScalarAdmissionRzRi_zlF>:
+ 1a37364:      	stp	x28, x20, [sp, #-0x20]!
+ 1a37368:      	stp	x29, x30, [sp, #0x10]
+ 1a3736c:      	add	x29, sp, #0x10
+ 1a37370:      	sub	sp, sp, #0xa60
+ 1a37374:      	str	x0, [sp, #0x600]
+ 1a37378:      	str	x1, [sp, #0x608]
+ 1a3737c:      	str	x2, [sp, #0x610]
+ 1a37380:      	str	x3, [sp, #0x618]
+ 1a37384:      	str	x4, [sp, #0x620]
+ 1a37388:      	str	x21, [sp, #0x628]
+ 1a3738c:      	mov	x8, #0x0                ; =0
+ 1a37390:      	str	x8, [sp, #0x630]
+ 1a37394:      	mov	w8, #0x0                ; =0
+ 1a37398:      	str	w8, [sp, #0x63c]
+ 1a3739c:      	adrp	x8, 0x637e000 <_write+0x637e000>
+ 1a373a0:      	add	x8, x8, #0x34
+ 1a373a4:      	str	x8, [sp, #0x640]
+ 1a373a8:      	adrp	x8, 0x637d000 <_write+0x637d000>
+ 1a373ac:      	add	x8, x8, #0xf10
+ 1a373b0:      	str	x8, [sp, #0x648]
+ 1a373b4:      	adrp	x8, 0x6380000 <_write+0x6380000>
+ 1a373b8:      	add	x8, x8, #0x3b0
+ 1a373bc:      	str	x8, [sp, #0x650]
+ 1a373c0:      	adrp	x8, 0x638e000 <_write+0x638e000>
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-boundary-root-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000001a3d49c <_$s11CADGeometry24ExactRationalCoefficientV16dividedMagnitude33_C47DE6DF2244F2150CA7BC9A2379859ELL_2by5usageAA0b7NaturalF0VAI_AIxztKAA0B15ScalarAdmissionRzRi_zlFZ>:
+ 1a3d49c:      	sub	sp, sp, #0x120
+ 1a3d4a0:      	stp	x28, x20, [sp, #0x100]
+ 1a3d4a4:      	stp	x29, x30, [sp, #0x110]
+ 1a3d4a8:      	add	x29, sp, #0x110
+ 1a3d4ac:      	str	x0, [sp, #0x78]
+ 1a3d4b0:      	stur	x1, [x29, #-0x70]
+ 1a3d4b4:      	str	x2, [sp, #0x80]
+ 1a3d4b8:      	str	x3, [sp, #0x88]
+ 1a3d4bc:      	stur	x4, [x29, #-0x80]
+ 1a3d4c0:      	stur	x21, [x29, #-0x78]
+ 1a3d4c4:      	stur	xzr, [x29, #-0x20]
+ 1a3d4c8:      	stur	xzr, [x29, #-0x28]
+ 1a3d4cc:      	stur	xzr, [x29, #-0x30]
+ 1a3d4d0:      	stur	xzr, [x29, #-0x50]
+ 1a3d4d4:      	stur	xzr, [x29, #-0x48]
+ 1a3d4d8:      	stur	x3, [x29, #-0x18]
+ 1a3d4dc:      	stur	x0, [x29, #-0x20]
+ 1a3d4e0:      	mov	x8, x1
+ 1a3d4e4:      	stur	x8, [x29, #-0x28]
+ 1a3d4e8:      	stur	x2, [x29, #-0x30]
+ 1a3d4ec:      	stur	x1, [x29, #-0x38]
+ 1a3d4f0:      	bl	0x192d93c <_$s11CADGeometry21ExactNaturalMagnitudeV3oneACvau>
+ 1a3d4f4:      	ldr	x0, [x0]
+ 1a3d4f8:      	stur	x0, [x29, #-0x68]
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-boundary-root-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+000000000055ad5c <_$s11CADGeometry24ExactRationalCoefficientV10multiplied2by5usageA2C_xztKAA0B15ScalarAdmissionRzRi_zlF>:
+  55ad5c:      	stp	x28, x20, [sp, #-0x20]!
+  55ad60:      	stp	x29, x30, [sp, #0x10]
+  55ad64:      	add	x29, sp, #0x10
+  55ad68:      	sub	sp, sp, #0x470
+  55ad6c:      	mov	x9, x0
+  55ad70:      	str	x9, [sp, #0x358]
+  55ad74:      	mov	x8, x1
+  55ad78:      	str	x8, [sp, #0x360]
+  55ad7c:      	str	x2, [sp, #0x368]
+  55ad80:      	mov	x20, x3
+  55ad84:      	str	x20, [sp, #0x370]
+  55ad88:      	str	x4, [sp, #0x378]
+  55ad8c:      	stur	x5, [x29, #-0x100]
+  55ad90:      	stur	x6, [x29, #-0xf8]
+  55ad94:      	mov	x0, x7
+  55ad98:      	stur	x0, [x29, #-0xf0]
+  55ad9c:      	ldr	x1, [x29, #0x10]
+  55ada0:      	stur	x1, [x29, #-0xe8]
+  55ada4:      	stur	xzr, [x29, #-0x30]
+  55ada8:      	stur	xzr, [x29, #-0x28]
+  55adac:      	stur	xzr, [x29, #-0x20]
+  55adb0:      	stur	xzr, [x29, #-0x38]
+  55adb4:      	stur	xzr, [x29, #-0x50]
+  55adb8:      	stur	xzr, [x29, #-0x48]
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-boundary-root-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+00000000008896e8 <_$s11CADGeometry24ExactBivariatePolynomialV6scaled2by5usageAcA0B19RationalCoefficientV_xztKAA0B15ScalarAdmissionRzRi_zlF>:
+  8896e8:      	stp	x28, x20, [sp, #-0x20]!
+  8896ec:      	stp	x29, x30, [sp, #0x10]
+  8896f0:      	add	x29, sp, #0x10
+  8896f4:      	sub	sp, sp, #0x2b0
+  8896f8:      	str	x0, [sp, #0x190]
+  8896fc:      	str	x1, [sp, #0x1b0]
+  889700:      	str	x2, [sp, #0x1b8]
+  889704:      	str	x3, [sp, #0x1a0]
+  889708:      	str	x4, [sp, #0x1a8]
+  88970c:      	str	x5, [sp, #0x198]
+  889710:      	str	x6, [sp, #0x180]
+  889714:      	str	x21, [sp, #0x188]
+  889718:      	stur	xzr, [x29, #-0x30]
+  88971c:      	stur	xzr, [x29, #-0x28]
+  889720:      	stur	xzr, [x29, #-0x20]
+  889724:      	stur	xzr, [x29, #-0x38]
+  889728:      	stur	xzr, [x29, #-0x40]
+  88972c:      	stur	xzr, [x29, #-0x48]
+  889730:      	stur	xzr, [x29, #-0x58]
+  889734:      	stur	xzr, [x29, #-0x50]
+  889738:      	sub	x0, x29, #0xb0
+  88973c:      	mov	w8, #0x28               ; =40
+  889740:      	mov	x2, x8
+  889744:      	mov	w1, #0x0                ; =0
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-boundary-root-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000001afde24 <_$s11CADGeometry34OriginalRationalSurfaceHomogeneousV15validatedSource6domain10uSpanIndex01viJ012uTranslation01vK05usageAcA16BSplineSurface3DV_AA0D12ParameterBoxVS2iS2dxztKcAA20ExactScalarAdmissionRzRi_zlu33_A2EBB6541B0F06358DF013A7D64AC1F0LlfC>:
+ 1afde24:      	str	x28, [sp, #-0x30]!
+ 1afde28:      	stp	x20, x19, [sp, #0x10]
+ 1afde2c:      	stp	x29, x30, [sp, #0x20]
+ 1afde30:      	add	x29, sp, #0x20
+ 1afde34:      	sub	sp, sp, #0xc30
+ 1afde38:      	mov	x19, sp
+ 1afde3c:      	str	x8, [x19, #0x670]
+ 1afde40:      	str	x0, [x19, #0x6f0]
+ 1afde44:      	str	d0, [x19, #0x690]
+ 1afde48:      	str	d1, [x19, #0x698]
+ 1afde4c:      	str	d2, [x19, #0x6a0]
+ 1afde50:      	str	d3, [x19, #0x6a8]
+ 1afde54:      	str	x1, [x19, #0x6e8]
+ 1afde58:      	str	x2, [x19, #0x6b0]
+ 1afde5c:      	str	d4, [x19, #0x6b8]
+ 1afde60:      	str	d5, [x19, #0x6c0]
+ 1afde64:      	str	x3, [x19, #0x6c8]
+ 1afde68:      	str	x4, [x19, #0x6d0]
+ 1afde6c:      	str	x5, [x19, #0x6d8]
+ 1afde70:      	str	x21, [x19, #0x6e0]
+ 1afde74:      	adrp	x8, 0x637e000 <_write+0x637e000>
+ 1afde78:      	add	x8, x8, #0x34
+ 1afde7c:      	str	x8, [x19, #0x678]
+ 1afde80:      	adrp	x8, 0x637d000 <_write+0x637d000>
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-boundary-root-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000001aff334 <_$s11CADGeometry34OriginalRationalSurfaceHomogeneousV6source6native6domain9tolerance5usageAcA16BSplineSurface3DV_AA08PreparedkD20DifferentialEncloserV0B10NativeSpanVAA0D12ParameterBoxV7CADCore17ModelingToleranceVxztKcAA20ExactScalarAdmissionRzRi_zlufC>:
+ 1aff334:      	stp	x28, x20, [sp, #-0x20]!
+ 1aff338:      	stp	x29, x30, [sp, #0x10]
+ 1aff33c:      	add	x29, sp, #0x10
+ 1aff340:      	sub	sp, sp, #0x3d0
+ 1aff344:      	add	x9, sp, #0x270
+ 1aff348:      	str	x9, [sp, #0x70]
+ 1aff34c:      	str	x8, [sp, #0x58]
+ 1aff350:      	str	x0, [sp, #0x68]
+ 1aff354:      	mov	x20, x1
+ 1aff358:      	str	x20, [sp, #0x60]
+ 1aff35c:      	str	d0, [sp, #0x78]
+ 1aff360:      	str	d1, [sp, #0x80]
+ 1aff364:      	str	d2, [sp, #0x88]
+ 1aff368:      	str	d3, [sp, #0x90]
+ 1aff36c:      	str	d4, [sp, #0x98]
+ 1aff370:      	str	d5, [sp, #0xa0]
+ 1aff374:      	str	d6, [sp, #0xa8]
+ 1aff378:      	str	x2, [sp, #0xb0]
+ 1aff37c:      	str	x3, [sp, #0xb8]
+ 1aff380:      	str	x4, [sp, #0xc0]
+ 1aff384:      	add	x0, sp, #0x2a8
+ 1aff388:      	mov	w8, #0x90               ; =144
+ 1aff38c:      	mov	x2, x8
+ 1aff390:      	mov	w1, #0x0                ; =0
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-boundary-root-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000000a2a730 <_$s11CADGeometry33OriginalRationalSurfacePolynomialV6source6native6domain4view9tolerance5usageAcA16BSplineSurface3DV_AA08PreparedlD20DifferentialEncloserV0B10NativeSpanVAA0D12ParameterBoxV7CADCore8Vector3DVAR17ModelingToleranceVxztKcAA20ExactScalarAdmissionRzRi_zlufC>:
+  a2a730:      	stp	x28, x20, [sp, #-0x20]!
+  a2a734:      	stp	x29, x30, [sp, #0x10]
+  a2a738:      	add	x29, sp, #0x10
+  a2a73c:      	sub	sp, sp, #0xe40
+  a2a740:      	add	x9, sp, #0xcc0
+  a2a744:      	str	x9, [sp, #0x5f0]
+  a2a748:      	str	x8, [sp, #0x5e8]
+  a2a74c:      	str	x0, [sp, #0x670]
+  a2a750:      	str	x1, [sp, #0x610]
+  a2a754:      	str	d0, [sp, #0x618]
+  a2a758:      	str	d1, [sp, #0x620]
+  a2a75c:      	str	d2, [sp, #0x628]
+  a2a760:      	str	d3, [sp, #0x630]
+  a2a764:      	str	d4, [sp, #0x5f8]
+  a2a768:      	str	d5, [sp, #0x600]
+  a2a76c:      	str	d6, [sp, #0x608]
+  a2a770:      	str	d7, [sp, #0x638]
+  a2a774:      	ldr	d0, [x29, #0x10]
+  a2a778:      	str	d0, [sp, #0x640]
+  a2a77c:      	ldr	d0, [x29, #0x18]
+  a2a780:      	str	d0, [sp, #0x648]
+  a2a784:      	str	x2, [sp, #0x650]
+  a2a788:      	str	x3, [sp, #0x658]
+  a2a78c:      	str	x4, [sp, #0x660]
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-boundary-root-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000001cd691c <_$s11CADGeometry30OriginalSurfaceSilhouetteFieldV7surface6domain4view9tolerance15sourceAuthority6native15polePreparation0M11Authorities5usageAcA9Surface3DO_AA0C12ParameterBoxV7CADCore8Vector3DVAQ17ModelingToleranceVAA0cd6SourceN0VAA015PreparedBSplineC20DifferentialEncloserV0B10NativeSpanVSgAA0bZ10PoleNormalVSgSayAA0b16UniquePoleNormalK0VGAA0B14QueryExecutionVztKcfC>:
+ 1cd691c:      	stp	x28, x20, [sp, #-0x20]!
+ 1cd6920:      	stp	x29, x30, [sp, #0x10]
+ 1cd6924:      	add	x29, sp, #0x10
+ 1cd6928:      	sub	sp, sp, #0x9, lsl #12   ; =0x9000
+ 1cd692c:      	sub	sp, sp, #0x800
+ 1cd6930:      	add	x9, sp, #0x6, lsl #12   ; =0x6000
+ 1cd6934:      	add	x9, x9, #0x6e0
+ 1cd6938:      	str	x9, [sp, #0x660]
+ 1cd693c:      	add	x9, sp, #0x2, lsl #12   ; =0x2000
+ 1cd6940:      	add	x9, x9, #0x628
+ 1cd6944:      	str	x9, [sp, #0x670]
+ 1cd6948:      	str	x8, [sp, #0x668]
+ 1cd694c:      	str	x0, [sp, #0x678]
+ 1cd6950:      	str	d0, [sp, #0x680]
+ 1cd6954:      	str	d1, [sp, #0x688]
+ 1cd6958:      	str	d2, [sp, #0x690]
+ 1cd695c:      	str	d3, [sp, #0x698]
+ 1cd6960:      	str	d4, [sp, #0x6a0]
+ 1cd6964:      	str	d5, [sp, #0x6a8]
+ 1cd6968:      	str	d6, [sp, #0x6b0]
+ 1cd696c:      	str	d7, [sp, #0x6b8]
+ 1cd6970:      	ldr	d0, [x29, #0x10]
+ 1cd6974:      	str	d0, [sp, #0x6c0]
+ 1cd6978:      	ldr	d0, [x29, #0x18]
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-boundary-root-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000001cd4e54 <_$s11CADGeometry32DefaultSurfaceSilhouetteProducerV13preparedCover33_9BA4431057C25E404349C321699D6735LL7surface6domain4view9tolerance15sourceAuthority5usingSayAC7PendingAELLVGAA9Surface3DO_AA0C12ParameterBoxV7CADCore8Vector3DVAS17ModelingToleranceVAA0cD17SourcePreparationVAA22OriginalQueryExecutionVztKF>:
+ 1cd4e54:      	stp	x28, x20, [sp, #-0x20]!
+ 1cd4e58:      	stp	x29, x30, [sp, #0x10]
+ 1cd4e5c:      	add	x29, sp, #0x10
+ 1cd4e60:      	sub	sp, sp, #0x9, lsl #12   ; =0x9000
+ 1cd4e64:      	sub	sp, sp, #0xe10
+ 1cd4e68:      	add	x8, sp, #0x2, lsl #12   ; =0x2000
+ 1cd4e6c:      	add	x8, x8, #0x850
+ 1cd4e70:      	str	x8, [sp, #0x4c0]
+ 1cd4e74:      	str	x0, [sp, #0x440]
+ 1cd4e78:      	mov.16b	v17, v0
+ 1cd4e7c:      	str	d17, [sp, #0x448]
+ 1cd4e80:      	mov.16b	v16, v1
+ 1cd4e84:      	str	d16, [sp, #0x450]
+ 1cd4e88:      	str	d2, [sp, #0x458]
+ 1cd4e8c:      	str	d3, [sp, #0x460]
+ 1cd4e90:      	str	d4, [sp, #0x468]
+ 1cd4e94:      	str	d5, [sp, #0x470]
+ 1cd4e98:      	str	d6, [sp, #0x478]
+ 1cd4e9c:      	str	d7, [sp, #0x480]
+ 1cd4ea0:      	ldr	d1, [x29, #0x10]
+ 1cd4ea4:      	str	d1, [sp, #0x488]
+ 1cd4ea8:      	ldr	d0, [x29, #0x18]
+ 1cd4eac:      	str	d0, [sp, #0x490]
+ 1cd4eb0:      	str	x1, [sp, #0x4a8]
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-boundary-root-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000001ccef3c <_$s11CADGeometry32DefaultSurfaceSilhouetteProducerV012closedDomainD033_9BA4431057C25E404349C321699D6735LL2of4over4view9tolerance5usingAA0cD8EnvelopeVAA9Surface3DO_AA0C12ParameterBoxV7CADCore8Vector3DVAQ17ModelingToleranceVAA22OriginalQueryExecutionVztKF>:
+ 1ccef3c:      	stp	x28, x20, [sp, #-0x20]!
+ 1ccef40:      	stp	x29, x30, [sp, #0x10]
+ 1ccef44:      	add	x29, sp, #0x10
+ 1ccef48:      	sub	sp, sp, #0x16, lsl #12  ; =0x16000
+ 1ccef4c:      	sub	sp, sp, #0x950
+ 1ccef50:      	add	x9, sp, #0x8, lsl #12   ; =0x8000
+ 1ccef54:      	add	x9, x9, #0xe10
+ 1ccef58:      	str	x9, [sp, #0x270]
+ 1ccef5c:      	mov	x2, x8
+ 1ccef60:      	ldr	x8, [sp, #0x270]
+ 1ccef64:      	str	x2, [sp, #0x230]
+ 1ccef68:      	str	x0, [sp, #0x2a0]
+ 1ccef6c:      	str	d0, [sp, #0x238]
+ 1ccef70:      	str	d1, [sp, #0x240]
+ 1ccef74:      	str	d2, [sp, #0x248]
+ 1ccef78:      	str	d3, [sp, #0x250]
+ 1ccef7c:      	str	d4, [sp, #0x258]
+ 1ccef80:      	str	d5, [sp, #0x260]
+ 1ccef84:      	str	d6, [sp, #0x268]
+ 1ccef88:      	str	d7, [sp, #0x278]
+ 1ccef8c:      	ldr	d0, [x29, #0x10]
+ 1ccef90:      	str	d0, [sp, #0x280]
+ 1ccef94:      	ldr	d0, [x29, #0x18]
+ 1ccef98:      	str	d0, [sp, #0x288]
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-boundary-root-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000001cca76c <_$s11CADGeometry32DefaultSurfaceSilhouetteProducerV10silhouette2of4over4view9tolerance5usingAA0cD8EnvelopeVAA9Surface3DO_AA0C12ParameterBoxV7CADCore8Vector3DVAP17ModelingToleranceVAA22OriginalQueryExecutionVztKF>:
+ 1cca76c:      	str	x28, [sp, #-0x30]!
+ 1cca770:      	stp	x20, x19, [sp, #0x10]
+ 1cca774:      	stp	x29, x30, [sp, #0x20]
+ 1cca778:      	add	x29, sp, #0x20
+ 1cca77c:      	sub	sp, sp, #0x8, lsl #12   ; =0x8000
+ 1cca780:      	sub	sp, sp, #0x920
+ 1cca784:      	mov	x19, sp
+ 1cca788:      	add	x9, x19, #0x8, lsl #12  ; =0x8000
+ 1cca78c:      	add	x9, x9, #0x470
+ 1cca790:      	str	x9, [x19, #0x378]
+ 1cca794:      	add	x9, x19, #0x3, lsl #12  ; =0x3000
+ 1cca798:      	add	x9, x9, #0x9b4
+ 1cca79c:      	str	x9, [x19, #0x380]
+ 1cca7a0:      	mov	x2, x8
+ 1cca7a4:      	ldr	x8, [x19, #0x380]
+ 1cca7a8:      	str	x2, [x19, #0x388]
+ 1cca7ac:      	str	x0, [x19, #0x3f0]
+ 1cca7b0:      	str	d0, [x19, #0x390]
+ 1cca7b4:      	str	d1, [x19, #0x398]
+ 1cca7b8:      	str	d2, [x19, #0x3a0]
+ 1cca7bc:      	str	d3, [x19, #0x3a8]
+ 1cca7c0:      	str	d4, [x19, #0x3b0]
+ 1cca7c4:      	str	d5, [x19, #0x3b8]
+ 1cca7c8:      	str	d6, [x19, #0x3c0]
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-boundary-root-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000001d0e094 <_$s11CADGeometry32DefaultSurfaceSilhouetteProducerVAA0cD9ProducingA2aDP10silhouette2of4over4view9tolerance5usingAA0cD8EnvelopeVAA9Surface3DO_AA0C12ParameterBoxV7CADCore8Vector3DVAR17ModelingToleranceVAA22OriginalQueryExecutionVztKFTW>:
+ 1d0e094:      	sub	sp, sp, #0x130
+ 1d0e098:      	stp	x28, x20, [sp, #0x110]
+ 1d0e09c:      	stp	x29, x30, [sp, #0x120]
+ 1d0e0a0:      	add	x29, sp, #0x120
+ 1d0e0a4:      	str	x8, [sp, #0x18]
+ 1d0e0a8:      	ldr	x10, [x29, #0x10]
+ 1d0e0ac:      	ldr	x8, [x29, #0x18]
+ 1d0e0b0:      	mov	x9, sp
+ 1d0e0b4:      	str	x10, [x9]
+ 1d0e0b8:      	str	x8, [x9, #0x8]
+ 1d0e0bc:      	add	x8, sp, #0x30
+ 1d0e0c0:      	bl	0x1cca76c <_$s11CADGeometry32DefaultSurfaceSilhouetteProducerV10silhouette2of4over4view9tolerance5usingAA0cD8EnvelopeVAA9Surface3DO_AA0C12ParameterBoxV7CADCore8Vector3DVAP17ModelingToleranceVAA22OriginalQueryExecutionVztKF>
+ 1d0e0c4:      	str	x21, [sp, #0x20]
+ 1d0e0c8:      	mov	x8, x21
+ 1d0e0cc:      	str	x8, [sp, #0x28]
+ 1d0e0d0:      	cbnz	x21, 0x1d0e100 <_$s11CADGeometry32DefaultSurfaceSilhouetteProducerVAA0cD9ProducingA2aDP10silhouette2of4over4view9tolerance5usingAA0cD8EnvelopeVAA9Surface3DO_AA0C12ParameterBoxV7CADCore8Vector3DVAR17ModelingToleranceVAA22OriginalQueryExecutionVztKFTW+0x6c>
+ 1d0e0d4:      	b	0x1d0e0d8 <_$s11CADGeometry32DefaultSurfaceSilhouetteProducerVAA0cD9ProducingA2aDP10silhouette2of4over4view9tolerance5usingAA0cD8EnvelopeVAA9Surface3DO_AA0C12ParameterBoxV7CADCore8Vector3DVAR17ModelingToleranceVAA22OriginalQueryExecutionVztKFTW+0x44>
+ 1d0e0d8:      	ldr	x21, [sp, #0x20]
+ 1d0e0dc:      	ldr	x0, [sp, #0x18]
+ 1d0e0e0:      	add	x1, sp, #0x30
+ 1d0e0e4:      	mov	w8, #0xe0               ; =224
+ 1d0e0e8:      	mov	x2, x8
+ 1d0e0ec:      	bl	0x633e528 <_write+0x633e528>
+ 1d0e0f0:      	ldp	x29, x30, [sp, #0x120]
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-boundary-root-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000004c89a28 <_$s9CADKernel29BRepDrawingSilhouetteProducerV7extract33_45515EBCE735E3D06E49191B278BE829LL_2in9placement4onto18maximumSourceFaces0P14ProjectedSpans0P17ControlPointCount0p13BoundaryCurveW05usingAA0bC11SilhouettesV11CADTopology0B5ModelV_AA17EvaluatedDocumentVAA0bC9PlacementVSg11CADGeometry27OrthographicProjectionFrameVS4iAX22OriginalQueryExecutionVztKF>:
+ 4c89a28:      	stp	x28, x20, [sp, #-0x20]!
+ 4c89a2c:      	stp	x29, x30, [sp, #0x10]
+ 4c89a30:      	add	x29, sp, #0x10
+ 4c89a34:      	sub	sp, sp, #0x12, lsl #12  ; =0x12000
+ 4c89a38:      	sub	sp, sp, #0x2c0
+ 4c89a3c:      	add	x9, sp, #0xa, lsl #12   ; =0xa000
+ 4c89a40:      	add	x9, x9, #0xd60
+ 4c89a44:      	str	x9, [sp, #0x1530]
+ 4c89a48:      	add	x9, sp, #0xa, lsl #12   ; =0xa000
+ 4c89a4c:      	add	x9, x9, #0x9e8
+ 4c89a50:      	str	x9, [sp, #0x14c8]
+ 4c89a54:      	add	x9, sp, #0x8, lsl #12   ; =0x8000
+ 4c89a58:      	add	x9, x9, #0x6c8
+ 4c89a5c:      	str	x9, [sp, #0x14d0]
+ 4c89a60:      	add	x9, sp, #0x4, lsl #12   ; =0x4000
+ 4c89a64:      	add	x9, x9, #0x4f
+ 4c89a68:      	str	x9, [sp, #0x1498]
+ 4c89a6c:      	add	x9, sp, #0x2, lsl #12   ; =0x2000
+ 4c89a70:      	add	x9, x9, #0xac0
+ 4c89a74:      	str	x9, [sp, #0x14d8]
+ 4c89a78:      	mov	x9, x8
+ 4c89a7c:      	ldr	x8, [sp, #0x1530]
+ 4c89a80:      	str	x9, [sp, #0x14a0]
+ 4c89a84:      	str	x0, [sp, #0x14c0]
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-boundary-root-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000004c898c8 <_$s9CADKernel29BRepDrawingSilhouetteProducerV11silhouettes2in4onto18maximumSourceFaces0I14ProjectedSpans0I17ControlPointCount0i13BoundaryCurveP05usingAA0bC11SilhouettesVAA17EvaluatedDocumentV_11CADGeometry27OrthographicProjectionFrameVS4iAP22OriginalQueryExecutionVztKF>:
+ 4c898c8:      	str	x28, [sp, #-0x20]!
+ 4c898cc:      	stp	x29, x30, [sp, #0x10]
+ 4c898d0:      	add	x29, sp, #0x10
+ 4c898d4:      	sub	sp, sp, #0x930
+ 4c898d8:      	str	x8, [sp, #0x10]
+ 4c898dc:      	str	x0, [sp, #0x38]
+ 4c898e0:      	str	x1, [sp, #0x48]
+ 4c898e4:      	str	x2, [sp, #0x50]
+ 4c898e8:      	str	x3, [sp, #0x58]
+ 4c898ec:      	str	x4, [sp, #0x60]
+ 4c898f0:      	str	x5, [sp, #0x68]
+ 4c898f4:      	str	x6, [sp, #0x30]
+ 4c898f8:      	str	x21, [sp, #0x20]
+ 4c898fc:      	str	xzr, [sp, #0x178]
+ 4c89900:      	str	xzr, [sp, #0x170]
+ 4c89904:      	str	xzr, [sp, #0x168]
+ 4c89908:      	str	xzr, [sp, #0x160]
+ 4c8990c:      	str	xzr, [sp, #0x158]
+ 4c89910:      	str	xzr, [sp, #0x150]
+ 4c89914:      	str	xzr, [sp, #0x148]
+ 4c89918:      	str	xzr, [sp, #0x140]
+ 4c8991c:      	str	x0, [sp, #0x178]
+ 4c89920:      	str	x1, [sp, #0x170]
+ 4c89924:      	str	x2, [sp, #0x168]
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-boundary-root-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000004c9cbd0 <_$s9CADKernel29BRepDrawingSilhouetteProducerVAA0bcD9ProducingA2aDP11silhouettes2in4onto18maximumSourceFaces0J14ProjectedSpans0J17ControlPointCount0j13BoundaryCurveQ05usingAA0bC11SilhouettesVAA17EvaluatedDocumentV_11CADGeometry27OrthographicProjectionFrameVS4iAR22OriginalQueryExecutionVztKFTW>:
+ 4c9cbd0:      	str	x28, [sp, #-0x20]!
+ 4c9cbd4:      	stp	x29, x30, [sp, #0x10]
+ 4c9cbd8:      	add	x29, sp, #0x10
+ 4c9cbdc:      	sub	sp, sp, #0x4a0
+ 4c9cbe0:      	str	x8, [sp, #0x8]
+ 4c9cbe4:      	add	x8, sp, #0x20
+ 4c9cbe8:      	bl	0x4c898c8 <_$s9CADKernel29BRepDrawingSilhouetteProducerV11silhouettes2in4onto18maximumSourceFaces0I14ProjectedSpans0I17ControlPointCount0i13BoundaryCurveP05usingAA0bC11SilhouettesVAA17EvaluatedDocumentV_11CADGeometry27OrthographicProjectionFrameVS4iAP22OriginalQueryExecutionVztKF>
+ 4c9cbec:      	str	x21, [sp, #0x10]
+ 4c9cbf0:      	mov	x8, x21
+ 4c9cbf4:      	str	x8, [sp, #0x18]
+ 4c9cbf8:      	cbnz	x21, 0x4c9cc28 <_$s9CADKernel29BRepDrawingSilhouetteProducerVAA0bcD9ProducingA2aDP11silhouettes2in4onto18maximumSourceFaces0J14ProjectedSpans0J17ControlPointCount0j13BoundaryCurveQ05usingAA0bC11SilhouettesVAA17EvaluatedDocumentV_11CADGeometry27OrthographicProjectionFrameVS4iAR22OriginalQueryExecutionVztKFTW+0x58>
+ 4c9cbfc:      	b	0x4c9cc00 <_$s9CADKernel29BRepDrawingSilhouetteProducerVAA0bcD9ProducingA2aDP11silhouettes2in4onto18maximumSourceFaces0J14ProjectedSpans0J17ControlPointCount0j13BoundaryCurveQ05usingAA0bC11SilhouettesVAA17EvaluatedDocumentV_11CADGeometry27OrthographicProjectionFrameVS4iAR22OriginalQueryExecutionVztKFTW+0x30>
+ 4c9cc00:      	ldr	x21, [sp, #0x10]
+ 4c9cc04:      	ldr	x0, [sp, #0x8]
+ 4c9cc08:      	add	x1, sp, #0x20
+ 4c9cc0c:      	mov	w8, #0x480              ; =1152
+ 4c9cc10:      	mov	x2, x8
+ 4c9cc14:      	bl	0x633e528 <_write+0x633e528>
+ 4c9cc18:      	add	sp, sp, #0x4a0
+ 4c9cc1c:      	ldp	x29, x30, [sp, #0x10]
+ 4c9cc20:      	ldr	x28, [sp], #0x20
+ 4c9cc24:      	ret
+ 4c9cc28:      	ldr	x21, [sp, #0x18]
+ 4c9cc2c:      	add	sp, sp, #0x4a0

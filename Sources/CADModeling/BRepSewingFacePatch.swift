@@ -28,31 +28,39 @@ public struct BRepSewingFacePatch: Sendable {
     package init(
         stableID: String, surface: Surface3D, orientation: Orientation,
         loops: [BRepSewingLoop], parentSubshapeIDs: [SubshapeID] = [],
-        consumeWork: @Sendable (Int) throws -> Void,
-        consumeStorage: (@Sendable (Int) throws -> Void)?
+        using execution: inout OriginalQueryExecution
     ) throws {
         try CurrentTaskCancellationChecker().checkCancellation()
-        try consumeWork(0)
+        try execution.consumeWork(1)
         self.stableID = stableID
         self.surface = surface
         self.orientation = orientation
         self.loops = loops
         self.parentSubshapeIDs = try AdmittedSewingProvenance.canonical(parentSubshapeIDs,
-            consumeWork: consumeWork, consumeStorage: consumeStorage)
+            using: &execution)
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
+        return try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try tolerance.validate()
         do {
-            try surface.validate(tolerance: tolerance)
-        } catch {
-            throw KernelError(
-                phase: .topology,
-                code: .topologyFailure,
-                tolerance: tolerance,
-                message: "Sewing face patch \(stableID) has an invalid support surface. \(portableFailureDescription(error))"
-            )
+            try surface.validate(tolerance: tolerance, using: &execution)
+} catch {
+            throw contextualizedSewingFailure(error, tolerance: tolerance, context: execution.context,
+                message: "Sewing face patch \(stableID) has an invalid support surface.")
         }
+        try execution.consumeWork(loops.count)
+        try execution.consumeWork(loops.count)
+        try execution.consumeWork(parentSubshapeIDs.count)
+        try execution.retainStorage(count: loops.count, stride: MemoryLayout<BRepSewingLoop>.stride)
+        try execution.retainStorage(count: loops.count, stride: MemoryLayout<String>.stride)
+        try execution.retainStorage(count: loops.count, stride: MemoryLayout<String>.stride)
         guard stableID.isEmpty == false,
               loops.isEmpty == false,
               loops.filter({ $0.role == .outer }).count == 1,
@@ -66,23 +74,12 @@ public struct BRepSewingFacePatch: Sendable {
             )
         }
         for loop in loops {
+            try execution.consumeWork(1)
             do {
-                try loop.validate(on: surface, tolerance: tolerance)
-            } catch let error as KernelError {
-                throw KernelError(
-                    phase: error.phase,
-                    code: error.code,
-                    residual: error.residual,
-                    tolerance: tolerance,
-                    message: "Sewing face patch \(stableID) contains invalid loop \(loop.stableID). \(error.message)"
-                )
+                try loop.validate(on: surface, tolerance: tolerance, using: &execution)
             } catch {
-                throw KernelError(
-                    phase: .topology,
-                    code: .topologyFailure,
-                    tolerance: tolerance,
-                    message: "Sewing face patch \(stableID) contains invalid loop \(loop.stableID). \(portableFailureDescription(error))"
-                )
+                throw contextualizedSewingFailure(error, tolerance: tolerance,
+                    context: execution.context, message: "Sewing face patch \(stableID) contains invalid loop \(loop.stableID).")
             }
         }
     }
@@ -90,20 +87,12 @@ public struct BRepSewingFacePatch: Sendable {
     /// Admits the original patch value invariants with the composing caller's allowance.
     public func validate(tolerance: ModelingTolerance, maximumSpanCount: Int,
         maximumSubdivisionDepth: Int, remainingSourceDepth: Int, maximumAlgebraicDepth: Int = 32,
-        consumeWork: @escaping @Sendable (Int) throws -> Void,
-        consumeStorage: (@Sendable (Int) throws -> Void)? = nil) throws {
+        using execution: inout OriginalQueryExecution) throws {
         try OriginalSewingPatchValidator(maximumSpanCount: maximumSpanCount,
             maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
-            maximumAlgebraicDepth: maximumAlgebraicDepth, consumeWork: consumeWork,
-            consumeStorage: consumeStorage).validate(self, tolerance: tolerance)
+            maximumAlgebraicDepth: maximumAlgebraicDepth).validate(self, tolerance: tolerance,
+                using: &execution)
     }
-    private func portableFailureDescription(_ error: any Error) -> String {
-#if hasFeature(Embedded)
-        if let kernel = error as? KernelError { return kernel.message }
-        return "Original producer failed."
-#else
-        return String(describing:error)
-#endif
-    }
+
 
 }

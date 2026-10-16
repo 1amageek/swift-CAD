@@ -28,14 +28,21 @@ public struct AffineTransform3D: Hashable, Sendable {
     }
 
     /// Exact orientation of the original stored linear columns.
-    package func originalDeterminantSign(consumeWork: () throws -> Void) throws -> RobustSign {
-        try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork(); try validate()
-        func original(_ value: Vector3D) -> ExactExpansionArithmetic.Vector3 {
-            .init(x: [value.x], y: [value.y], z: [value.z])
+    package func originalDeterminantSign<A: ExactScalarAdmission & ~Copyable>(
+        using execution: inout A) throws -> RobustSign {
+        try execution.consumeWork(1)
+        try validate()
+        func original(_ value: Vector3D, using execution: inout A) throws
+            -> ExactExpansionArithmetic.Vector3 {
+            try OriginalCoefficientAllocation.reserve(count: 3, of: Double.self, using: &execution)
+            return .init(x: [value.x], y: [value.y], z: [value.z])
         }
-        try consumeWork()
-        let sign = ExactExpansionArithmetic.sign(ExactExpansionArithmetic.tripleProduct(
-            original(basisX), original(basisY), original(basisZ)))
+        let x = try original(basisX, using: &execution)
+        let y = try original(basisY, using: &execution)
+        let z = try original(basisZ, using: &execution)
+        let determinant = try ExactExpansionArithmetic.tripleProduct(x, y, z, using: &execution)
+        let sign = try ExactExpansionArithmetic.sign(determinant, using: &execution)
+        try execution.checkpoint()
         switch sign {
         case .positive, .negative: return sign
         case .zero:
@@ -45,8 +52,9 @@ public struct AffineTransform3D: Hashable, Sendable {
         }
     }
 
-    package func originalDeterminantBounds(consumeWork:()throws->Void) throws -> ScalarInterval {
-        try OriginalAffineDeterminantBounds.bounds(of:self,consumeWork:consumeWork)
+    package func originalDeterminantBounds<A: ExactScalarAdmission & ~Copyable>(
+        using execution: inout A) throws -> ScalarInterval {
+        try OriginalAffineDeterminantBounds.bounds(of: self, using: &execution)
     }
 
     public func applying(to point: Point3D) -> Point3D {
@@ -90,21 +98,31 @@ public struct AffineTransform3D: Hashable, Sendable {
         )
     }
 
-    package func applying(
-        to curve: BSplineCurve3D,
-        tolerance: ModelingTolerance
-    ) throws -> BSplineCurve3D {
-        let transformed = BSplineCurve3D(
-            degree: curve.degree,
-            knots: curve.knots,
-            controlPoints: curve.controlPoints.map(applying(to:)),
-            weights: curve.weights,
-            isPeriodic: curve.isPeriodic,
-            periodicOrigin: curve.periodicOrigin
-        )
-        try transformed.validate(tolerance: tolerance)
+    package func applying(to curve: BSplineCurve3D,
+        tolerance: ModelingTolerance) throws -> BSplineCurve3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try applying(to: curve, tolerance: tolerance, using: &execution)
+    }
+
+    package func applying<A: ExactScalarAdmission & ~Copyable>(to curve: BSplineCurve3D,
+        tolerance: ModelingTolerance, using execution: inout A) throws -> BSplineCurve3D {
+        try execution.consumeWork(1)
+        try OriginalCoefficientAllocation.reserve(count: curve.controlPoints.count,
+            of: Point3D.self, using: &execution)
+        var points: [Point3D] = []
+        points.reserveCapacity(curve.controlPoints.count)
+        for point in curve.controlPoints {
+            try execution.consumeWork(1)
+            points.append(applying(to: point))
+        }
+        let transformed = BSplineCurve3D(degree: curve.degree, knots: curve.knots,
+            controlPoints: points, weights: curve.weights, isPeriodic: curve.isPeriodic,
+            periodicOrigin: curve.periodicOrigin)
+        try transformed.validate(tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
         return transformed
     }
+
 }
 
 #if !hasFeature(Embedded)

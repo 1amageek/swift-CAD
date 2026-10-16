@@ -7,4 +7,8 @@ public protocol RationalBezierHalfSpaceClassifying: Sendable {
         nonnegativeMargin: Double,
         tolerance: ModelingTolerance
     ) throws -> RationalBezierHalfSpaceClassification
+    func classify(
+        controlValues: [Double], weights: [Double], nonnegativeMargin: Double,
+        tolerance: ModelingTolerance, using admission: inout OriginalQueryExecution
+    ) throws -> RationalBezierHalfSpaceClassification
 }

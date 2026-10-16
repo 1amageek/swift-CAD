@@ -43,11 +43,18 @@ public extension Surface3D {
         v: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterDerivatives {
-        try validate(tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try parameterDerivatives(u: u, v: v, tolerance: tolerance, using: &execution)
+    }
+
+    func parameterDerivatives(u: Double, v: Double, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> SurfaceParameterDerivatives {
+        try execution.consumeWork(1)
+        try validate(tolerance: tolerance, using: &execution)
         return try parameterDerivativesAssumingValid(
             u: u,
             v: v,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
     }
 }
@@ -58,6 +65,13 @@ package extension Surface3D {
         v: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterDerivatives {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try parameterDerivativesAssumingValid(u: u, v: v, tolerance: tolerance, using: &execution)
+    }
+
+    func parameterDerivativesAssumingValid(u: Double, v: Double, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> SurfaceParameterDerivatives {
+        try execution.consumeWork(1)
         guard try uDomain.contains(u, tolerance: tolerance),
               try vDomain.contains(v, tolerance: tolerance) else {
             throw GeometryError.invalidDistance(0.0)
@@ -104,19 +118,19 @@ package extension Surface3D {
             return try surface.parameterDerivatives(
                 u: u,
                 v: v,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         case let .bSpline(surface):
             return try surface.parameterDerivativesAssumingValid(
                 u: u,
                 v: v,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         case let .procedural(surface):
             return try surface.parameterDerivatives(
                 u: u,
                 v: v,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         }
     }
@@ -128,11 +142,18 @@ public extension BSplineSurface3D {
         v: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterDerivatives {
-        try validate(tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try parameterDerivatives(u: u, v: v, tolerance: tolerance, using: &execution)
+    }
+
+    func parameterDerivatives(u: Double, v: Double, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> SurfaceParameterDerivatives {
+        try execution.consumeWork(1)
+        try validate(tolerance: tolerance, using: &execution)
         return try parameterDerivativesAssumingValid(
             u: u,
             v: v,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
     }
 }
@@ -143,6 +164,13 @@ package extension BSplineSurface3D {
         v: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterDerivatives {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try parameterDerivativesAssumingValid(u: u, v: v, tolerance: tolerance, using: &execution)
+    }
+
+    func parameterDerivativesAssumingValid(u: Double, v: Double, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> SurfaceParameterDerivatives {
+        try execution.consumeWork(1)
         guard try uDomain.contains(u, tolerance: tolerance),
               try vDomain.contains(v, tolerance: tolerance) else {
             throw GeometryError.invalidDistance(0.0)
@@ -150,7 +178,7 @@ package extension BSplineSurface3D {
         let derivatives = try surfaceDerivatives(
             u: u,
             v: v,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         return SurfaceParameterDerivatives(
             position: derivatives.position,
@@ -169,7 +197,14 @@ public extension AnalyticSurface3D {
         v: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterDerivatives {
-        try validate(tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try parameterDerivatives(u: u, v: v, tolerance: tolerance, using: &execution)
+    }
+
+    func parameterDerivatives(u: Double, v: Double, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> SurfaceParameterDerivatives {
+        try execution.consumeWork(1)
+        try validate(tolerance: tolerance, using: &execution)
         guard uDomain.contains(u, tolerance: tolerance.distance),
               vDomain.contains(v, tolerance: tolerance.distance) else {
             throw GeometryError.invalidDistance(u)

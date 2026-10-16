@@ -1,0 +1,52 @@
+􀟈  Test run started.
+􀄵  Swift Standard Library Version: 6.4
+􀄵  Swift Compiler Version: 6.4
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀄵  OS Version: 27.0.1 (26A434)
+􀟈  Suite "Independent graph original owner binding" (aka 'IndependentGraphOwnerBindingTests') started.
+􀟈  Suite "Hosted curve retained contribution" (aka 'ExchangeHostedCurveContributionTests') started.
+􀟈  Test matchedZeroWorkContributionRefusesBeforeFieldsOrSourceMutation() started.
+􀟈  Test foreignSTEPReadRejectsBeforeLexicalOrProducerCalls() started.
+􀟈  Test exactSelectedWorkBoundaryIncludesPreparationAndRetainedEnclosure() started.
+􀟈  Test foreignIGESWriteRejectsBeforeFormatSemanticsOrProducerCalls() started.
+􀟈  Test foreignSTEPWriteRejectsBeforeSourceValidationOrProducerCalls() started.
+􀟈  Test realGroupWriterRestoresProducerOnSuccessAppendFailureAndFinishFailure() started.
+􀟈  Test foreignSTEPAppendRejectsBeforeSourceValidationOrProducerCalls() started.
+􀟈  Test selectedGroupChargesIncludeTheEntireLexicalPathAtExactWorkBoundary() started.
+􀟈  Test ordinaryReadsRetainTheIssuingHandleAfterExecutionLifetimeEnds() started.
+􀟈  Test directReadsReattachTheSelectedHandleAroundTheirActualBody() started.
+􀟈  Test foreignBudgetIsStillRejectedBeforeAnyQueryWork() started.
+􀟈  Test sameOwnerRetainsTheActualOriginalGroupWithoutPrimitiveCalls() started.
+􀟈  Test foreignIGESReadRejectsBeforeLexicalOrProducerCalls() started.
+􁁛  Test foreignIGESReadRejectsBeforeLexicalOrProducerCalls() passed after 0.001 seconds.
+􁁛  Test foreignSTEPReadRejectsBeforeLexicalOrProducerCalls() passed after 0.001 seconds.
+􁁛  Test matchedZeroWorkContributionRefusesBeforeFieldsOrSourceMutation() passed after 0.002 seconds.
+􁁛  Test foreignBudgetIsStillRejectedBeforeAnyQueryWork() passed after 0.003 seconds.
+􁁛  Test sameOwnerRetainsTheActualOriginalGroupWithoutPrimitiveCalls() passed after 0.004 seconds.
+􁁛  Test foreignSTEPWriteRejectsBeforeSourceValidationOrProducerCalls() passed after 0.004 seconds.
+􁁛  Test foreignIGESWriteRejectsBeforeFormatSemanticsOrProducerCalls() passed after 0.004 seconds.
+􁁛  Test foreignSTEPAppendRejectsBeforeSourceValidationOrProducerCalls() passed after 0.004 seconds.
+􁁛  Test directReadsReattachTheSelectedHandleAroundTheirActualBody() passed after 0.005 seconds.
+􀢄  Test selectedGroupChargesIncludeTheEntireLexicalPathAtExactWorkBoundary() recorded an issue at IndependentGraphOwnerBindingTests.swift:253:13: Expectation failed: isWorkRefusal(error)
+􀄵  isWorkRefusal(error): Swift.Bool → false
+􀄵    error: () → ()
+􁁛  Test realGroupWriterRestoresProducerOnSuccessAppendFailureAndFinishFailure() passed after 0.005 seconds.
+􀢄  Test selectedGroupChargesIncludeTheEntireLexicalPathAtExactWorkBoundary() failed after 0.005 seconds with 1 issue.
+􀢄  Suite "Independent graph original owner binding" (aka 'IndependentGraphOwnerBindingTests') failed after 0.005 seconds with 1 issue.
+􁁛  Test exactSelectedWorkBoundaryIncludesPreparationAndRetainedEnclosure() passed after 0.005 seconds.
+􀢄  Test ordinaryReadsRetainTheIssuingHandleAfterExecutionLifetimeEnds() recorded an issue at ExchangeHostedCurveContributionTests.swift:69:9: Expectation failed: station.point == .origin
+􀄵  station.point == .origin: Swift.Bool → false
+􀄵    station.point: CADCore.Point3D → Point3D(x: 0.0, y: 1e-323, z: 0.0)
+􀄵      x: Swift.Double → 0.0
+􀄵      y: Swift.Double → 1e-323
+􀄵      z: Swift.Double → 0.0
+􀄵    .origin: CADCore.Point3D → Point3D(x: 0.0, y: 0.0, z: 0.0)
+􀄵      x: Swift.Double → 0.0
+􀄵      y: Swift.Double → 0.0
+􀄵      z: Swift.Double → 0.0
+􀢄  Test ordinaryReadsRetainTheIssuingHandleAfterExecutionLifetimeEnds() failed after 0.005 seconds with 1 issue.
+􀢄  Suite "Hosted curve retained contribution" (aka 'ExchangeHostedCurveContributionTests') failed after 0.005 seconds with 1 issue.
+􀢄  Test run with 13 tests in 2 suites failed after 0.005 seconds with 2 issues.
+Note: Some test targets reported failures:
+  - FocusedTests (Swift Testing)

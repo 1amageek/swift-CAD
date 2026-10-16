@@ -17,21 +17,31 @@ extension BSplineSurface3D {
         options: SurfaceParameterProjectionOptions,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterProjectionResult {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try parameterProjectionResult(of: point, options: options, tolerance: tolerance, using: &execution)
+    }
+
+    func parameterProjectionResult(
+        of point: Point3D,
+        options: SurfaceParameterProjectionOptions,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceParameterProjectionResult {
+        try execution.consumeWork(1)
         try options.validate(tolerance: tolerance)
-        try validate(tolerance: tolerance)
+        try validate(tolerance: tolerance, using: &execution)
         try point.validate()
         let uLower = uKnots[uDegree], uUpper = uKnots[uControlPointCount]
         let vLower = vKnots[vDegree], vUpper = vKnots[vControlPointCount]
-        if let affine = ExactAffineBSplineSurfacePatch(self) {
+        if let affine = try ExactAffineBSplineSurfacePatch(self, using: &execution) {
             return try affine.parameterProjectionResult(
                 of: point,
                 tolerance: tolerance
-            )
+            , using: &execution)
         }
         let sourcePatches = try BSplineSurfaceBezierDecomposer().surfacePatches(
             surface: self,
             tolerance: tolerance
-        )
+        , using: &execution)
         guard sourcePatches.isEmpty == false else {
             throw KernelError(
                 phase: .geometry,
@@ -40,19 +50,24 @@ extension BSplineSurface3D {
                 message: "B-spline inverse projection produced no bounded Bezier patches."
             )
         }
-        let patches = sourcePatches.map(RationalBezierPointProjectionPatch.init(patch:))
+        let patches = try OriginalCoefficientAllocation.map(elements: sourcePatches, using: &execution) { patch, execution in
+            try RationalBezierPointProjectionPatch(patch: patch, using: &execution)
+        }
         var bestWitness = try initialWitness(
             patches: patches,
             point: point,
             tolerance: tolerance
-        )
-        var stack = patches.indices.reversed().map {
-            ProjectionCell(patch: patches[$0], depth: 0, sourcePatchIndex: $0)
+        , using: &execution)
+        var stack = try OriginalCoefficientAllocation.map(elements: patches.indices.reversed(), using: &execution) { index, _ in
+            ProjectionCell(patch: patches[index], depth: 0, sourcePatchIndex: index)
         }
+        var stackCapacity = stack.count
         var preparedOriginalPatches: [Int: RationalBezierSurfaceJetEncloser.PreparedPatch] = [:]
+        var preparedCapacity = 0
         var remainingCells = options.maximumSubdivisionCells
         var remainingCandidates = options.maximumCandidateCount
         var candidates: [ProjectionCandidate] = []
+        var candidateCapacity = 0
         var unresolvedResidual: Double?
 
         while let cell = stack.popLast() {
@@ -64,7 +79,8 @@ extension BSplineSurface3D {
                 )
             }
             remainingCells -= 1
-            let box = try cell.patch.boundingBox(tolerance: tolerance)
+            try execution.visitGeometricCell(depth: cell.depth)
+            let box = try cell.patch.boundingBox(tolerance: tolerance, using: &execution)
             let distanceLowerBound = boundingBoxDistanceLowerBound(
                 point: point,
                 box: box
@@ -88,7 +104,9 @@ extension BSplineSurface3D {
                         || cell.patch.vUpper - cell.patch.vLower > vResolution
                 )
             if requiresSubdivision {
-                for child in cell.patch.subdivided().reversed() {
+                for child in try cell.patch.subdivided(using: &execution).reversed() {
+                    try execution.consumeWork(1)
+                    try OriginalCoefficientAllocation.reserveAppend(to: &stack, capacity: &stackCapacity, using: &execution)
                     stack.append(ProjectionCell(patch: child, depth: cell.depth + 1, sourcePatchIndex: cell.sourcePatchIndex))
                 }
                 continue
@@ -101,7 +119,7 @@ extension BSplineSurface3D {
                 vBounds: (cell.patch.vLower, cell.patch.vUpper),
                 options: options,
                 tolerance: tolerance
-            )
+            , using: &execution)
             if localRefined.residual < bestWitness.residual {
                 bestWitness = localRefined
             }
@@ -116,26 +134,33 @@ extension BSplineSurface3D {
                     vBounds: (vLower, vUpper),
                     options: options,
                     tolerance: tolerance
-                )
+                , using: &execution)
                 if canonical.residual < bestWitness.residual {
                     bestWitness = canonical
                 }
                 if canonical.residual <= tolerance.distance {
                     if isUPeriodic || isVPeriodic {
                         // Rank at a witness does not rule out another root in its leaf.
-                        _ = try normal(u: canonical.u, v: canonical.v, tolerance: tolerance)
+                        _ = try normal(u: canonical.u, v: canonical.v, tolerance: tolerance, using: &execution)
                         let encloser = RationalBezierSurfaceJetEncloser()
                         let prepared: RationalBezierSurfaceJetEncloser.PreparedPatch
                         if let cached = preparedOriginalPatches[cell.sourcePatchIndex] {
                             prepared = cached
                         } else {
-                            prepared = try encloser.prepare(sourcePatches[cell.sourcePatchIndex], tolerance: tolerance)
+                            prepared = try encloser.prepare(sourcePatches[cell.sourcePatchIndex], tolerance: tolerance, using: &execution)
+                            if preparedOriginalPatches.count == preparedCapacity {
+                                let next = preparedCapacity == 0 ? 1 : try exactScalarCount(preparedCapacity, 2, multiply: true)
+                                try OriginalCoefficientAllocation.reserve(count: next,
+                                    of: (Int, RationalBezierSurfaceJetEncloser.PreparedPatch).self, using: &execution)
+                                preparedOriginalPatches.reserveCapacity(next)
+                                preparedCapacity = next
+                            }
                             preparedOriginalPatches[cell.sourcePatchIndex] = prepared
                         }
                         let sourceJet = try encloser.enclosure(of: prepared,
                             u: ScalarInterval(lower: cell.patch.uLower, upper: cell.patch.uUpper),
                             v: ScalarInterval(lower: cell.patch.vLower, upper: cell.patch.vUpper),
-                            tolerance: tolerance)
+                            tolerance: tolerance, using: &execution)
                         let difference = sourceJet + .constant(.origin - point)
                         let squaredDistance = difference.dot(difference)
                         let uu = squaredDistance.secondDerivativeUU
@@ -148,13 +173,13 @@ extension BSplineSurface3D {
                         }
                     }
                     let candidate = ProjectionCandidate(projection: canonical)
-                    if let index = duplicateCandidateIndex(
+                    if let index = try duplicateCandidateIndex(
                         candidate,
                         in: candidates,
                         uBounds: (uLower, uUpper),
                         vBounds: (vLower, vUpper),
                         tolerance: tolerance
-                    ) {
+                    , using: &execution) {
                         if canonical.residual < candidates[index].projection.residual {
                             candidates[index] = candidate
                         }
@@ -167,6 +192,7 @@ extension BSplineSurface3D {
                             )
                         }
                         remainingCandidates -= 1
+                        try OriginalCoefficientAllocation.reserveAppend(to: &candidates, capacity: &candidateCapacity, using: &execution)
                         candidates.append(candidate)
                     }
                     continue
@@ -187,12 +213,12 @@ extension BSplineSurface3D {
                 message: "B-spline inverse projection could not certify all remaining control-hull candidates."
             )
         }
-        let uniqueCandidates = deduplicated(
+        let uniqueCandidates = try deduplicated(
             candidates,
             sourcePatches: patches,
             tolerance: tolerance
-        )
-        guard let selected = uniqueCandidates.min(by: projectionOrder) else {
+        , using: &execution)
+        guard let selected = try uniqueCandidates.min(by: { try execution.consumeWork(1); return projectionOrder($0, $1) }) else {
             return .outsideTolerance(residual: bestWitness.residual)
         }
         guard uniqueCandidates.count == 1 else {
@@ -212,19 +238,21 @@ extension BSplineSurface3D {
             iterations: selected.projection.iterations
         )
         return .projected(try representativeProjection(projection, target: point,
-            requiringInverseTolerance: true, tolerance: tolerance))
+            requiringInverseTolerance: true, tolerance: tolerance, using: &execution))
     }
 
     private func initialWitness(
         patches: [RationalBezierPointProjectionPatch],
         point: Point3D,
         tolerance: ModelingTolerance
-    ) throws -> RefinedProjection {
+    , using execution: inout OriginalQueryExecution) throws -> RefinedProjection {
+        try execution.consumeWork(1)
         var result: RefinedProjection?
         for patch in patches {
+            try execution.consumeWork(1)
             let u = midpoint(patch.uLower, patch.uUpper)
             let v = midpoint(patch.vLower, patch.vUpper)
-            let surfacePoint = try self.point(u: u, v: v, tolerance: tolerance)
+            let surfacePoint = try self.point(u: u, v: v, tolerance: tolerance, using: &execution)
             let candidate = RefinedProjection(
                 u: u,
                 v: v,
@@ -255,7 +283,8 @@ extension BSplineSurface3D {
         vBounds: (lower: Double, upper: Double),
         options: SurfaceParameterProjectionOptions,
         tolerance: ModelingTolerance
-    ) throws -> RefinedProjection {
+    , using execution: inout OriginalQueryExecution) throws -> RefinedProjection {
+        try execution.consumeWork(1)
         var u = initialU
         var v = initialV
         var iterations = 0
@@ -269,8 +298,9 @@ extension BSplineSurface3D {
             Double.ulpOfOne * max(1.0, abs(vBounds.lower), abs(vBounds.upper)) * 128.0
         )
         for iteration in 0..<options.maximumIterations {
+            try execution.consumeWork(1)
             iterations = iteration + 1
-            let geometry = try surfaceDerivatives(u: u, v: v, tolerance: tolerance)
+            let geometry = try surfaceDerivatives(u: u, v: v, tolerance: tolerance, using: &execution)
             let residual = geometry.position - point
             let gradientU = residual.dot(geometry.tangentU)
             let gradientV = residual.dot(geometry.tangentV)
@@ -316,6 +346,7 @@ extension BSplineSurface3D {
             var acceptedV = v
             var acceptedResidual = residualLength
             for _ in 0..<12 {
+                try execution.consumeWork(1)
                 let diagonalDamping = damping * scale
                 let a = hessianUU + diagonalDamping
                 let d = hessianVV + diagonalDamping
@@ -326,7 +357,7 @@ extension BSplineSurface3D {
                     let deltaV = (a * gradientV - hessianUV * gradientU) / determinant
                     let nextU = min(max(u - deltaU, uBounds.lower), uBounds.upper)
                     let nextV = min(max(v - deltaV, vBounds.lower), vBounds.upper)
-                    let nextPoint = try self.point(u: nextU, v: nextV, tolerance: tolerance)
+                    let nextPoint = try self.point(u: nextU, v: nextV, tolerance: tolerance, using: &execution)
                     let nextResidual = outwardLength(nextPoint - point)
                     if nextResidual < acceptedResidual {
                         accepted = true
@@ -345,7 +376,7 @@ extension BSplineSurface3D {
             // A heavily damped step may be tiny while the undamped correction is unresolved.
             // The next existing-budget iteration applies the conditioning-aware stopping test.
         }
-        let projectedPoint = try self.point(u: u, v: v, tolerance: tolerance)
+        let projectedPoint = try self.point(u: u, v: v, tolerance: tolerance, using: &execution)
         return RefinedProjection(
             u: u,
             v: v,
@@ -359,18 +390,25 @@ extension BSplineSurface3D {
         _ candidates: [ProjectionCandidate],
         sourcePatches: [RationalBezierPointProjectionPatch],
         tolerance: ModelingTolerance
-    ) -> [ProjectionCandidate] {
-        guard let uLower = sourcePatches.map({ $0.uLower }).min(),
-              let uUpper = sourcePatches.map({ $0.uUpper }).max(),
-              let vLower = sourcePatches.map({ $0.vLower }).min(),
-              let vUpper = sourcePatches.map({ $0.vUpper }).max() else {
-            return []
+    , using execution: inout OriginalQueryExecution) throws -> [ProjectionCandidate] {
+        try execution.consumeWork(1)
+        guard let first = sourcePatches.first else { return [] }
+        var uLower = first.uLower, uUpper = first.uUpper
+        var vLower = first.vLower, vUpper = first.vUpper
+        for patch in sourcePatches.dropFirst() {
+            try execution.consumeWork(1)
+            if patch.uLower < uLower { uLower = patch.uLower }
+            if uUpper < patch.uUpper { uUpper = patch.uUpper }
+            if patch.vLower < vLower { vLower = patch.vLower }
+            if vUpper < patch.vUpper { vUpper = patch.vUpper }
         }
-        let ordered = candidates.sorted(by: projectionOrder)
-        var result: [ProjectionCandidate] = []
+        let ordered = try orderedCandidates(candidates, using: &execution)
+        try OriginalCoefficientAllocation.reserve(count: candidates.count, of: ProjectionCandidate.self, using: &execution)
+        var result: [ProjectionCandidate] = []; result.reserveCapacity(candidates.count)
         for candidate in ordered {
-            if let index = duplicateCandidateIndex(candidate, in: result,
-                uBounds: (uLower, uUpper), vBounds: (vLower, vUpper), tolerance: tolerance) {
+            try execution.consumeWork(1)
+            if let index = try duplicateCandidateIndex(candidate, in: result,
+                uBounds: (uLower, uUpper), vBounds: (vLower, vUpper), tolerance: tolerance, using: &execution) {
                 if candidate.projection.residual < result[index].projection.residual {
                     result[index] = candidate
                 }
@@ -379,6 +417,41 @@ extension BSplineSurface3D {
             }
         }
         return result
+    }
+
+    /// Bottom-up stable merge retains the existing residual/u/v ordering and left-first ties.
+    private func orderedCandidates(_ candidates: [ProjectionCandidate],
+        using execution: inout OriginalQueryExecution) throws -> [ProjectionCandidate] {
+        var ordered = try OriginalCoefficientAllocation.map(elements: candidates, using: &execution) { value, _ in value }
+        guard ordered.count > 1 else { return ordered }
+        var scratch = try OriginalCoefficientAllocation.map(elements: candidates, using: &execution) { value, _ in value }
+        var width = 1
+        while width < ordered.count {
+            var start = 0
+            while start < ordered.count {
+                let middle = start + min(width, ordered.count - start)
+                let end = middle + min(width, ordered.count - middle)
+                var left = start, right = middle, output = start
+                while left < middle || right < end {
+                    try execution.consumeWork(1)
+                    let takeRight: Bool
+                    if left == middle { takeRight = true }
+                    else if right == end { takeRight = false }
+                    else {
+                        try execution.consumeWork(1)
+                        takeRight = projectionOrder(ordered[right], ordered[left])
+                    }
+                    if takeRight { scratch[output] = ordered[right]; right += 1 }
+                    else { scratch[output] = ordered[left]; left += 1 }
+                    output += 1
+                }
+                start = end
+            }
+            swap(&ordered, &scratch)
+            if width > ordered.count / 2 { break }
+            width *= 2
+        }
+        return ordered
     }
 
     private func projectionOrder(
@@ -400,7 +473,8 @@ extension BSplineSurface3D {
         uBounds: (lower: Double, upper: Double),
         vBounds: (lower: Double, upper: Double),
         tolerance: ModelingTolerance
-    ) -> Int? {
+    , using execution: inout OriginalQueryExecution) throws -> Int? {
+        try execution.consumeWork(1)
         let uResolution = max(
             (uBounds.upper - uBounds.lower) * tolerance.relative,
             Double.ulpOfOne
@@ -411,8 +485,9 @@ extension BSplineSurface3D {
             Double.ulpOfOne
                 * max(1.0, abs(vBounds.lower), abs(vBounds.upper)) * 128.0
         )
-        return candidates.firstIndex { existing in
-            parameterDistance(existing.projection.u, candidate.projection.u, direction: .u) <= uResolution
+        return try candidates.firstIndex { existing in
+            try execution.consumeWork(1)
+            return parameterDistance(existing.projection.u, candidate.projection.u, direction: .u) <= uResolution
                 && parameterDistance(existing.projection.v, candidate.projection.v, direction: .v) <= vResolution
         }
     }

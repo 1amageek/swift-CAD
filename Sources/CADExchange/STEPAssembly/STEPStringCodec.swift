@@ -1,3 +1,5 @@
+import CADGeometry
+
 /// Standard lexical decoding preserves Unicode scalars without normalization or repair.
 public struct STEPStringCodec: STEPStringCoding {
     public init() {}
@@ -95,13 +97,39 @@ public struct STEPStringCodec: STEPStringCoding {
         return count
     }
     public func encode(_ value: String, limits: STEPStringLimits = .standard) throws -> STEPStringResult {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try encode(value, limits: limits, using: &execution)
+    }
+    public func encode<A: ExactScalarAdmission & ~Copyable>(_ value: String,
+        limits: STEPStringLimits = .standard, using execution: inout A) throws -> STEPStringResult {
         try limits.validate(); try Task.checkCancellation()
-        let inputBytes = try inputByteCount(value, ceiling: min(limits.maximumInputBytes, limits.maximumWork))
+        var inputBytes = 0
+        for _ in value.utf8 {
+            try execution.consumeWork(1)
+            guard inputBytes < min(limits.maximumInputBytes, limits.maximumWork) else { throw STEPStringError.resourceLimitExceeded }
+            inputBytes += 1
+        }
+        var capacity = 2
+        for scalar in value.unicodeScalars {
+            try execution.consumeWork(1)
+            let size: Int
+            switch scalar.value {
+            case 39, 92: size = 2
+            case 32...126: size = 1
+            default: size = scalar.value <= 255 ? 5 : scalar.value <= 65535 ? 12 : 16
+            }
+            guard size <= min(limits.maximumOutputBytes, 32769) - capacity else { throw STEPStringError.resourceLimitExceeded }
+            capacity += size
+        }
+        guard capacity <= min(limits.maximumOutputBytes, 32769) else { throw STEPStringError.resourceLimitExceeded }
+        try execution.retainStorage(bytes: capacity)
         var output = "", bytes = 0, work = inputBytes
+        output.reserveCapacity(capacity)
         func append(_ piece: String) throws {
             let count = piece.utf8.count
             guard count <= min(limits.maximumOutputBytes, 32769) - bytes,
                   count <= limits.maximumWork - work else { throw STEPStringError.resourceLimitExceeded }
+            try execution.consumeWork(count)
             bytes += count; work += count; output += piece
         }
         try append("'")
@@ -115,8 +143,12 @@ public struct STEPStringCodec: STEPStringCoding {
                 let width = scalar.value <= 255 ? 2 : scalar.value <= 65535 ? 4 : 8
                 let hex = String(scalar.value, radix: 16, uppercase: true)
                 let digits = String(repeating: "0", count: width - hex.count) + hex
-                if width == 2 { try append(#"\X\"# + digits) }
-                else { try append((width == 4 ? #"\X2\"# : #"\X4\"#) + digits + #"\X0\"#) }
+                if width == 2 {
+                    try append(#"\X\"#); try append(digits)
+                } else {
+                    try append(width == 4 ? #"\X2\"# : #"\X4\"#)
+                    try append(digits); try append(#"\X0\"#)
+                }
             }
         }
         try append("'")

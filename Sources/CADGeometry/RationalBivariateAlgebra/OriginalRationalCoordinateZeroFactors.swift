@@ -5,7 +5,7 @@ package struct OriginalRationalCoordinateZeroFactors: Sendable {
     package let vFactor: ExactBivariatePolynomial
     package let scalar: ExactRationalCoefficient
 
-    package static func proven<B: RationalAlgebraAdmitting>(original: ExactBivariatePolynomial,
+    package static func proven<B: ExactScalarAdmission & ~Copyable>(original: ExactBivariatePolynomial,
         usage: inout B) throws -> Self? {
         guard !original.isZero else { return nil }
         let gcd = ExactBivariateGCD()
@@ -34,7 +34,7 @@ package struct OriginalRationalCoordinateZeroFactors: Sendable {
         return Self(original: original, uFactor: u, vFactor: nativeV, scalar: scalar)
     }
 
-    package func roots<B: RationalAlgebraAdmitting>(alongU: Bool, over interval: ScalarInterval,
+    package func roots<B: ExactScalarAdmission & ~Copyable>(alongU: Bool, over interval: ScalarInterval,
         maximumDepth: Int, usage: inout B) throws -> [ExactMonotoneGraphEndpoint] {
         let polynomial = alongU ? uFactor : try vFactor.exchangedAxes(usage: &usage)
         let isolated = try ExactUnivariateRootIsolator().isolate(polynomial,
@@ -42,7 +42,7 @@ package struct OriginalRationalCoordinateZeroFactors: Sendable {
             upper: .originalDouble(interval.upper, usage: &usage), maximumDepth: maximumDepth, usage: &usage)
         var result: [ExactMonotoneGraphEndpoint] = []
         for isolation in isolated {
-            try usage.retainExactStorage(1)
+            try RationalAlgebraStorage.retain(1, of: ExactMonotoneGraphEndpoint.self, usage: &usage)
             result.append(try .algebraic(ExactAlgebraicRealRoot(polynomial: polynomial,
                 isolation: isolation, usage: &usage)))
         }

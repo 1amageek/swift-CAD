@@ -1,4 +1,4 @@
-public struct KernelError: Error, Equatable, Sendable {
+public struct KernelError: KernelFailureClassifying, Equatable, Sendable {
     public let phase: KernelPhase
     public let code: KernelErrorCode
     public let featureID: FeatureID?
@@ -26,6 +26,7 @@ public struct KernelError: Error, Equatable, Sendable {
     }
 
     public var category: KernelFailureCategory { code.category }
+    public var kernelFailure: KernelError { self }
 
     public static func unsupportedEvaluation(
         featureID: FeatureID? = nil,

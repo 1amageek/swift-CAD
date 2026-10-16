@@ -192,37 +192,39 @@ struct OriginalPeriodicSurfaceJetTests {
 
     @Test(.timeLimit(.minutes(1)))
     func periodicPreparationPreservesExistingToleranceDomainAndTokenFailures() throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
         let source = try fixture(axes: "u", rational: false)
-        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: source, tolerance: tolerance)
+        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: source, tolerance: tolerance, using: &execution)
         var invalidTolerance = tolerance
         invalidTolerance.distance = -1
         #expect(throws: GeometryError.self) {
-            _ = try prepared.pointJet(u: 0.375, v: 0.5, tolerance: invalidTolerance)
+            _ = try prepared.pointJet(u: 0.375, v: 0.5, tolerance: invalidTolerance, using: &execution)
         }
         var differentTolerance = tolerance
         differentTolerance.distance *= 2
-        verify(try prepared.pointJet(u: 0.375, v: 0.5, tolerance: differentTolerance),
+        verify(try prepared.pointJet(u: 0.375, v: 0.5, tolerance: differentTolerance, using: &execution),
                axes: "u", rational: false, u: 0.375, v: 0.5)
         for (u, v) in [(0.375, -0.1), (0.375, 1.1), (Double.infinity, 0.5)] {
             do {
-                _ = try prepared.pointJet(u: u, v: v, tolerance: tolerance)
+                _ = try prepared.pointJet(u: u, v: v, tolerance: tolerance, using: &execution)
                 Issue.record("A periodic prepared query accepted invalid original support.")
             } catch let error as KernelError { #expect(error.code == .invalidInput) }
         }
-        let owners = try prepared.originalNativeSpans(over: box((0.375, 0.375), (0.5, 0.5)), tolerance: tolerance)
+        let owners = try prepared.originalNativeSpans(over: box((0.375, 0.375), (0.5, 0.5)), tolerance: tolerance, using: &execution)
         #expect(owners.count == 1)
         let owner = try #require(owners.first)
-        verify(try owner.pointJet(u: 0.375, v: 0.5, on: source, tolerance: tolerance),
+        verify(try owner.pointJet(u: 0.375, v: 0.5, on: source, tolerance: tolerance, using: &execution),
                axes: "u", rational: false, u: 0.375, v: 0.5)
         var invalid = source
         invalid.uKnots.removeLast()
         #expect(throws: GeometryError.self) {
-            _ = try PreparedBSplineSurfaceDifferentialEncloser(surface: invalid, tolerance: tolerance)
+            _ = try PreparedBSplineSurfaceDifferentialEncloser(surface: invalid, tolerance: tolerance, using: &execution)
         }
         invalid = source
         invalid.controlPoints[0][0].x = .infinity
         #expect(throws: GeometryError.self) {
-            _ = try PreparedBSplineSurfaceDifferentialEncloser(surface: invalid, tolerance: tolerance)
+            _ = try PreparedBSplineSurfaceDifferentialEncloser(surface: invalid, tolerance: tolerance, using: &execution)
         }
         #expect(prepared.surface == source)
     }

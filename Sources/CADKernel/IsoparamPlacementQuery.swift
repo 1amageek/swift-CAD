@@ -21,12 +21,25 @@ public struct IsoparamPlacementQuery: Sendable {
         direction: SurfaceParameterDirection,
         in document: EvaluatedDocument
     ) throws -> Double {
-        let projection = try SurfaceQueryEvaluator(tolerance: tolerance).closestPoint(to: point, on: face, in: document)
-        guard case let .face(faceID) = try document.topologyReference(for: face.subshape) else {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try fraction(at: point, on: face, direction: direction, in: document, using: &execution)
+    }
+
+    public func fraction(
+        at point: Point3D,
+        on face: SurfaceReference,
+        direction: SurfaceParameterDirection,
+        in document: EvaluatedDocument,
+        using execution: inout OriginalQueryExecution
+    ) throws -> Double {
+        try execution.consumeWork(1)
+        let projection = try SurfaceQueryEvaluator(tolerance: tolerance).closestPoint(to: point, on: face, in: document, using: &execution)
+        guard case let .face(faceID) = try document.originalTopologyReference(for: face.subshape, tolerance: tolerance,
+            maximumSubdivisionDepth: 32, remainingSourceDepth: 16, maximumAlgebraicDepth: 32, using: &execution) else {
             throw KernelError(phase: .evaluation, code: .invalidInput, tolerance: tolerance, message: "An Isoparam line lies on a face.")
         }
         let bounds = try BRepFaceCurveClipper.parameterBounds(
-            of: faceID, model: document.brep, sourceSubshapes: document.subshapes.entries, tolerance: tolerance
+            of: faceID, model: document.brep, sourceSubshapes: document.subshapes.entries, tolerance: tolerance, using: &execution
         )
         let (range, value) = direction == .u
             ? (bounds.u, projection.parameterReference.u)
@@ -40,6 +53,7 @@ public struct IsoparamPlacementQuery: Sendable {
             throw KernelError(phase: .evaluation, code: .invalidInput, tolerance: tolerance,
                               message: "An Isoparam line through the face's border imprints nothing.")
         }
+        try execution.checkpoint()
         return fraction
     }
 }

@@ -7,9 +7,22 @@ package enum SurfaceFittingLeastSquares {
         relativeRankTolerance: Double, constraintTolerance: Double,
         maximumElements: Int
     ) throws -> [Double] {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try OriginalQueryExecutionLimits(maximumValueDepth: 32, maximumCoefficientDepth: 32))
+        return try solve(objective: objective, target: target, constraints: constraints, values: values, columns: columns, relativeRankTolerance: relativeRankTolerance,
+            constraintTolerance: constraintTolerance, maximumElements: maximumElements, using: &execution)
+    }
+
+    package static func solve(
+        objective: [Double], target: [Double],
+        constraints: [Double], values: [Double], columns: Int,
+        relativeRankTolerance: Double, constraintTolerance: Double,
+        maximumElements: Int,
+        using execution: inout OriginalQueryExecution
+    ) throws -> [Double] {
         try solve(objective: objective, targets: [target], constraints: constraints,
             values: [values], columns: columns, relativeRankTolerance: relativeRankTolerance,
-            constraintTolerance: constraintTolerance, maximumElements: maximumElements)[0]
+            constraintTolerance: constraintTolerance, maximumElements: maximumElements, using: &execution)[0]
     }
 
     /// Right-hand sides share both QR factorizations, including XYZ surface coordinates.
@@ -18,6 +31,19 @@ package enum SurfaceFittingLeastSquares {
         constraints: [Double], values: [[Double]], columns: Int,
         relativeRankTolerance: Double, constraintTolerance: Double,
         maximumElements: Int
+    ) throws -> [[Double]] {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try OriginalQueryExecutionLimits(maximumValueDepth: 32, maximumCoefficientDepth: 32))
+        return try solve(objective: objective, targets: targets, constraints: constraints, values: values, columns: columns, relativeRankTolerance: relativeRankTolerance,
+            constraintTolerance: constraintTolerance, maximumElements: maximumElements, using: &execution)
+    }
+
+    package static func solve(
+        objective: [Double], targets: [[Double]],
+        constraints: [Double], values: [[Double]], columns: Int,
+        relativeRankTolerance: Double, constraintTolerance: Double,
+        maximumElements: Int,
+        using execution: inout OriginalQueryExecution
     ) throws -> [[Double]] {
         guard columns > 0, let firstTarget = targets.first, let firstValue = values.first,
               targets.count == values.count,
@@ -50,8 +76,10 @@ package enum SurfaceFittingLeastSquares {
         }
         try charge(objective.count)
         try charge(constraints.count)
-        for rhs in targets { try charge(rhs.count) }
-        for rhs in values { try charge(rhs.count) }
+        for rhs in targets {
+                try execution.consumeWork(1); try charge(rhs.count) }
+        for rhs in values {
+                try execution.consumeWork(1); try charge(rhs.count) }
         guard objective.allSatisfy({ $0.isFinite }), constraints.allSatisfy({ $0.isFinite }),
               targets.allSatisfy({ $0.allSatisfy({ $0.isFinite }) }),
               values.allSatisfy({ $0.allSatisfy({ $0.isFinite }) }) else {
@@ -62,18 +90,22 @@ package enum SurfaceFittingLeastSquares {
                 throw failure(.singularSystem, "Surface fitting has no determining equations.")
             }
             let qr = try SurfaceFittingQR(coefficients: objective, rows: rows, columns: columns,
-                relativeRankTolerance: relativeRankTolerance, maximumElements: maximumElements)
-            return try targets.map { try qr.solveFullRankLeastSquares($0) }
+                relativeRankTolerance: relativeRankTolerance, maximumElements: maximumElements, using: &execution)
+            try OriginalCoefficientAllocation.reserve(count: targets.count, of: [Double].self, using: &execution)
+            return try targets.map { try qr.solveFullRankLeastSquares($0, using: &execution) }
         }
 
+            try OriginalCoefficientAllocation.reserve(count: constraints.count, of: Double.self, using: &execution)
         var transpose = Array(repeating: 0.0, count: constraints.count)
         for row in 0..<equalityRows {
+                try execution.consumeWork(1)
             for column in 0..<columns {
+                try execution.consumeWork(1)
                 transpose[column * equalityRows + row] = constraints[row * columns + column]
             }
         }
         let equality = try SurfaceFittingQR(coefficients: transpose, rows: columns, columns: equalityRows,
-            relativeRankTolerance: relativeRankTolerance, maximumElements: maximumElements)
+            relativeRankTolerance: relativeRankTolerance, maximumElements: maximumElements, using: &execution)
         let freeCount = columns - equality.rank
         guard rows >= freeCount else {
             throw failure(.singularSystem, "Surface fitting objective does not determine the free coordinates.")
@@ -83,14 +115,19 @@ package enum SurfaceFittingLeastSquares {
         let scale = magnitude == 0 ? 1 : magnitude
         let reducedQR: SurfaceFittingQR?
         if freeCount > 0 {
+            try OriginalCoefficientAllocation.reserve(count: rows * freeCount, of: Double.self, using: &execution)
             var reduced = Array(repeating: 0.0, count: rows * freeCount)
             for free in 0..<freeCount {
+                try execution.consumeWork(1)
+            try OriginalCoefficientAllocation.reserve(count: columns, of: Double.self, using: &execution)
                 var unit = Array(repeating: 0.0, count: columns)
                 unit[equality.rank + free] = 1
-                let direction = try equality.applyingQ(to: unit)
+                let direction = try equality.applyingQ(to: unit, using: &execution)
                 for row in 0..<rows {
+                try execution.consumeWork(1)
                     var coefficient = 0.0
                     for column in 0..<columns {
+                try execution.consumeWork(1)
                         coefficient += (objective[row * columns + column] / scale) * direction[column]
                     }
                     reduced[row * freeCount + free] = coefficient
@@ -100,50 +137,61 @@ package enum SurfaceFittingLeastSquares {
                 throw failure(.resourceLimitExceeded, "Surface fitting reduced objective exceeded finite arithmetic range.")
             }
             reducedQR = try SurfaceFittingQR(coefficients: reduced, rows: rows, columns: freeCount,
-                relativeRankTolerance: relativeRankTolerance, maximumElements: maximumElements)
+                relativeRankTolerance: relativeRankTolerance, maximumElements: maximumElements, using: &execution)
         } else {
             reducedQR = nil
         }
 
+        try OriginalCoefficientAllocation.reserve(count: targets.count, of: [Double].self, using: &execution)
         return try targets.indices.map { rhs in
+            try OriginalCoefficientAllocation.reserve(count: columns, of: Double.self, using: &execution)
             var coordinates = Array(repeating: 0.0, count: columns)
             for row in 0..<equality.rank {
+                try execution.consumeWork(1)
                 var value = values[rhs][equality.permutation[row]] / equality.scale
                 for column in 0..<row {
-                    value -= try equality.upperCoefficient(row: column, column: row) * coordinates[column]
+                try execution.consumeWork(1)
+                    value -= try equality.upperCoefficient(row: column, column: row, using: &execution) * coordinates[column]
                 }
-                coordinates[row] = value / (try equality.upperCoefficient(row: row, column: row))
+                coordinates[row] = value / (try equality.upperCoefficient(row: row, column: row, using: &execution))
             }
             guard coordinates.allSatisfy({ $0.isFinite }) else {
                 throw failure(.resourceLimitExceeded, "Surface fitting equality solve exceeded finite arithmetic range.")
             }
-            let particular = try equality.applyingQ(to: coordinates)
-            try verify(particular, constraints: constraints, values: values[rhs], tolerance: constraintTolerance)
+            let particular = try equality.applyingQ(to: coordinates, using: &execution)
+            try verify(particular, constraints: constraints, values: values[rhs], tolerance: constraintTolerance, using: &execution)
             guard let reducedQR else { return particular }
+            try OriginalCoefficientAllocation.reserve(count: targets[rhs].count, of: Double.self, using: &execution)
             var residual = targets[rhs].map { $0 / scale }
             for row in 0..<rows {
+                try execution.consumeWork(1)
                 for column in 0..<columns {
+                try execution.consumeWork(1)
                     residual[row] -= (objective[row * columns + column] / scale) * particular[column]
                 }
             }
             guard residual.allSatisfy({ $0.isFinite }) else {
                 throw failure(.resourceLimitExceeded, "Surface fitting reduced target exceeded finite arithmetic range.")
             }
-            let free = try reducedQR.solveFullRankLeastSquares(residual)
-            for index in free.indices { coordinates[equality.rank + index] = free[index] }
-            let result = try equality.applyingQ(to: coordinates)
-            try verify(result, constraints: constraints, values: values[rhs], tolerance: constraintTolerance)
+            let free = try reducedQR.solveFullRankLeastSquares(residual, using: &execution)
+            for index in free.indices {
+                try execution.consumeWork(1); coordinates[equality.rank + index] = free[index] }
+            let result = try equality.applyingQ(to: coordinates, using: &execution)
+            try verify(result, constraints: constraints, values: values[rhs], tolerance: constraintTolerance, using: &execution)
             return result
         }
     }
 
     private static func verify(_ solution: [Double], constraints: [Double], values: [Double],
-                               tolerance: Double) throws {
+                               tolerance: Double, using execution: inout OriginalQueryExecution) throws {
         for row in values.indices {
+                try execution.consumeWork(1)
             var scale = max(1, abs(values[row]))
-            for column in solution.indices { scale = max(scale, abs(constraints[row * solution.count + column])) }
+            for column in solution.indices {
+                try execution.consumeWork(1); scale = max(scale, abs(constraints[row * solution.count + column])) }
             var residual = -values[row] / scale
             for column in solution.indices {
+                try execution.consumeWork(1)
                 residual += (constraints[row * solution.count + column] / scale) * solution[column]
             }
             guard residual.isFinite else {

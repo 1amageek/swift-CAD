@@ -45,3 +45,12 @@ Original construction chart curves retain their normalized original parameter la
 Physical-angle transport retains its original conic phase expression. It cannot inherit the scalar native-angle harmonic projection shortcut from its primitive source. Original lifted/image chart witnesses remain eligible; other inverse phase charts require their retained Geometry producer and whole original correspondence, rather than sampled coefficients.
 
 The caller-admitted direct planar native-spline entry retains the complete raw 3D spline as spatial authority. It generates a projected 2D control proposal in the authored plane chart without Boehm trimming or reversed knot materialization. The original 2D continuation carrier retains that full proposal with the requested oriented native endpoints; its bounded constructor and complete spatial/support correspondence validator consume the same live admission. Rounded projection coefficients cannot authorize correspondence by themselves. Original native knots and weights are shared immutable COW values, while the projected control buffer is admitted before allocation. General image/inverse families need their actual bounded producer and cannot delegate to the legacy projection path when admission is selected.
+
+## Canonical Construction and Proof Binding
+
+The existing general source-family construction proposes the pcurve for both
+entry paths. The separate admission-only planar midpoint helper is removed.
+Accounting presence cannot choose UV geometry. Image/lift/harmonic/native source
+inputs may select their existing proposals, and every published UV law still
+requires the existing original curve/surface correspondence proof under the
+[borrowed execution](../../CADGeometry/OriginalQueryExecution/DESIGN.md).

@@ -5,20 +5,19 @@ import CADTopology
 enum OriginalFaceParameterBounds {
     static func resolve(for faceID: FaceID, surface: Surface3D, model: BRepModel,
         tolerance: ModelingTolerance, maximumSubdivisionDepth: Int = 48,
-        consumeWork: (@Sendable (Int) throws -> Void)? = nil,
-        consumeStorage: (@Sendable (Int) throws -> Void)? = nil,
-        remainingSourceDepth: Int = 16, maximumAlgebraicDepth: Int = 32) throws -> SurfaceParameterBox {
-        try consumeWork?(0)
+        remainingSourceDepth: Int = 16, maximumAlgebraicDepth: Int = 32,
+        using execution: inout OriginalQueryExecution) throws -> SurfaceParameterBox {
+        execution.context = execution.context.at(stage: .domain)
+        try execution.consumeWork(1)
         guard let face = model.faces[faceID], model.geometry.surfaces[face.surfaceID] == surface else {
             throw TopologyError.missingReference("Finite parameter bounds require the face's exact original support.")
         }
         let extent = try FaceParameterExtentResolver(
-            maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: consumeWork,
-            consumeStorage: consumeStorage, remainingSourceDepth: remainingSourceDepth,
+            maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
             maximumAlgebraicDepth: maximumAlgebraicDepth
-        ).bounds(for: faceID, in: model, tolerance: tolerance)
-        func contained(_ interval: ScalarInterval, within domain: ParameterDomain) throws -> ScalarInterval {
-            try consumeWork?(0)
+        ).bounds(for: faceID, in: model, tolerance: tolerance, using: &execution)
+        func contained(_ interval: ScalarInterval, within domain: ParameterDomain, using execution: inout OriginalQueryExecution) throws -> ScalarInterval {
+            try execution.consumeWork(1)
             let lower: Double, upper: Double
             if case let .closed(a, b) = domain {
                 lower = max(interval.lower, a)
@@ -33,7 +32,7 @@ enum OriginalFaceParameterBounds {
             }
             return try ScalarInterval(lower: lower, upper: upper)
         }
-        return try SurfaceParameterBox(u: contained(extent.u, within: surface.uDomain),
-            v: contained(extent.v, within: surface.vDomain))
+        return try SurfaceParameterBox(u: contained(extent.u, within: surface.uDomain, using: &execution),
+            v: contained(extent.v, within: surface.vDomain, using: &execution))
     }
 }

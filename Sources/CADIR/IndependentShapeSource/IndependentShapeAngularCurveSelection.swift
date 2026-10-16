@@ -3,37 +3,37 @@ import CADGeometry
 
 /// Composes a selected foreign chart without replacing its shared intrinsic basis.
 public enum IndependentShapeAngularCurveSelection {
-    public static func physicalArc<B: RationalAlgebraAdmitting>(basis: Curve3D, gain: ExactRationalCoefficient,
+    public static func physicalArc(basis: Curve3D, gain: ExactRationalCoefficient,
         first: Double, last: Double, increasing: Bool, tolerance: ModelingTolerance,
         maximumSourceDepth: Int, maximumSubdivisionDepth: Int, maximumAlgebraicDepth: Int,
-        usage: inout B) throws -> Curve3D {
-        let start = try gain.multiplied(by: .originalDouble(first, usage: &usage), usage: &usage)
-        let end = try gain.multiplied(by: .originalDouble(last, usage: &usage), usage: &usage)
-        let difference = try end.subtracting(start, usage: &usage)
+        using execution: inout OriginalQueryExecution) throws -> Curve3D {
+        let start = try gain.multiplied(by: .originalDouble(first, usage: &execution), usage: &execution)
+        let end = try gain.multiplied(by: .originalDouble(last, usage: &execution), usage: &execution)
+        let difference = try end.subtracting(start, usage: &execution)
         let desired = increasing ? 1 : -1
         let turns: Int
         if difference.canonicalSign == desired { turns = 0 }
         else {
-            func agrees(_ count: Int, usage: inout B) throws -> Bool {
+            func agrees(_ count: Int, using execution: inout OriginalQueryExecution) throws -> Bool {
                 let transport = OriginalAngularParameterTransport.physicalRadianArc(start: start, end: end,
                     additionalTurns: increasing ? count : -count)
-                return try transport.orientationSign(usage: &usage) == desired
+                return try transport.orientationSign(usage: &execution) == desired
             }
             var lower = 0, upper = Int.max
-            guard try agrees(upper, usage: &usage) else {
+            guard try agrees(upper, using: &execution) else {
                 throw IndependentShapeSourceError.resourceLimitExceeded("Physical-radian trim exceeds the retained integer turn domain.")
             }
             while upper - lower > 1 {
-                try usage.consumeExactWork(1)
+                try execution.consumeWork(1)
                 let middle = lower + (upper - lower) / 2
-                if try agrees(middle, usage: &usage) { upper = middle } else { lower = middle }
+                if try agrees(middle, using: &execution) { upper = middle } else { lower = middle }
             }
             turns = increasing ? upper : -upper
         }
         let transport = OriginalAngularParameterTransport.physicalRadianArc(start: start, end: end, additionalTurns: turns)
         return try transportedCurve(basis: basis, transport: transport, tolerance: tolerance,
             maximumSourceDepth: maximumSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth,
-            maximumAlgebraicDepth: maximumAlgebraicDepth, usage: &usage)
+            maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
     }
     package static func physicalArcTransport(in curve: Curve3D) -> OriginalAngularParameterTransport? {
         let original: Curve3D
@@ -42,45 +42,37 @@ public enum IndependentShapeAngularCurveSelection {
            case .physicalRadianArc = image.transport { return image.transport }
         return nil
     }
-    private static func transportedCurve<B: RationalAlgebraAdmitting>(basis: Curve3D,
+    private static func transportedCurve(basis: Curve3D,
         transport: OriginalAngularParameterTransport, tolerance: ModelingTolerance, maximumSourceDepth: Int,
-        maximumSubdivisionDepth: Int, maximumAlgebraicDepth: Int, usage: inout B) throws -> Curve3D {
+        maximumSubdivisionDepth: Int, maximumAlgebraicDepth: Int, using execution: inout OriginalQueryExecution) throws -> Curve3D {
         if case .originalAffineWord(let image) = basis {
             let local = try OriginalAngularTransportCurve3D(source: image.source, transport: transport,
-                tolerance: tolerance, usage: &usage)
+                tolerance: tolerance, usage: &execution)
             return .originalAffineWord(try OriginalAffineWordCurve3D(source: .originalAngularTransport(local),
                 operationWord: image.operationWord, tolerance: tolerance, remainingSourceDepth: maximumSourceDepth,
                 maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth,
-                usage: &usage))
+                usage: &execution))
         }
         return .originalAngularTransport(try OriginalAngularTransportCurve3D(source: basis,
-            transport: transport, tolerance: tolerance, usage: &usage))
+            transport: transport, tolerance: tolerance, usage: &execution))
     }
-    public static func foreignCurve<B: RationalAlgebraAdmitting>(basis: Curve3D,
+    public static func foreignCurve(basis: Curve3D,
         law: IndependentShapeAngularSource.CoordinateLaw, tolerance: ModelingTolerance,
         maximumSourceDepth: Int, maximumSubdivisionDepth: Int, maximumAlgebraicDepth: Int,
-        usage: inout B) throws -> Curve3D {
+        using execution: inout OriginalQueryExecution) throws -> Curve3D {
         switch law {
         case .canonicalGain(let gain):
             let selected = Curve3D.parameterImage(ParameterImageCurve3D(validatedSource: basis,
                 parameterGain: gain, offset: 0))
-            func storage(_ bytes: Int) throws {
-                let rounded = bytes.addingReportingOverflow(MemoryLayout<UInt32>.stride - 1)
-                guard bytes >= 0, !rounded.overflow else { throw IndependentShapeSourceError.resourceLimitExceeded("Angular selected chart storage overflows.") }
-                try usage.retainExactStorage(rounded.partialValue / MemoryLayout<UInt32>.stride)
-            }
-            // Original source validation is synchronous and does not retain its callbacks.
-            try withoutActuallyEscaping(storage) { storage in
-                try selected.validateOriginalSource(tolerance: tolerance, remainingSourceDepth: maximumSourceDepth,
-                    maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: { _ in try usage.consumeExactWork(1) },
-                    consumeStorage: storage, maximumAlgebraicDepth: maximumAlgebraicDepth)
-            }
+            try selected.validateOriginalSource(tolerance: tolerance, remainingSourceDepth: maximumSourceDepth,
+                maximumSubdivisionDepth: maximumSubdivisionDepth,
+                maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
             return selected
         case .physicalRadians(let gain):
             let transport = OriginalAngularParameterTransport.physicalRadians(gain: gain, offset: .zero)
             return try transportedCurve(basis: basis, transport: transport, tolerance: tolerance,
                 maximumSourceDepth: maximumSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth,
-                maximumAlgebraicDepth: maximumAlgebraicDepth, usage: &usage)
+                maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
         }
     }
 }

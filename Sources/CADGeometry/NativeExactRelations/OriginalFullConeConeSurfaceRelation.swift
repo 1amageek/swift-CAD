@@ -35,7 +35,7 @@ public final class OriginalFullConeConeSurfaceRelation: Sendable {
         firstBox: SurfaceParameterBox?, secondBox: SurfaceParameterBox?, maximumComponents: Int,
         limits: OriginalDomainIdentityLimits, prepared: OriginalFullConeConeSurfaceRelation? = nil,
         using a: inout A) throws -> OriginalFullConeConeSurfaceRelation {
-        return try OriginalSourceProofAdmission<A>.withBorrow(&a) { a in
+        return try a.withProofScope() { a in
             try a.checkpoint(); try source.require(limits.source); try requireLimits(limits)
             let s = source.original, f = s.field
             let issuer = DefaultOriginalAnalyticDomainIssuer<OriginalAnalyticCoordinateSnapshot, Field>()

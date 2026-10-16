@@ -11,7 +11,7 @@ package struct ExactIntersectionProjectionTower: Sendable {
         self.variableCount = variableCount; self.levels = levels; self.hasThomEncoding = hasThomEncoding
     }
 
-    package static func prepare<B: RationalAlgebraAdmitting>(
+    package static func prepare<B: ExactScalarAdmission & ~Copyable>(
         sources: [ExactIntersectionPolynomial], variableCount: Int, thomEncoding: Bool = false,
         usage: inout B) throws -> Self {
         guard (1...ExactIntersectionPolynomial.maximumVariableCount).contains(variableCount) else {
@@ -31,7 +31,7 @@ package struct ExactIntersectionProjectionTower: Sendable {
         }
         return Self(variableCount: variableCount, levels: levels, hasThomEncoding: thomEncoding)
     }
-    package func retainedPrefix<B: RationalAlgebraAdmitting>(variableCount count: Int,
+    package func retainedPrefix<B: ExactScalarAdmission & ~Copyable>(variableCount count: Int,
         sources: [ExactIntersectionPolynomial], usage: inout B) throws -> Self? {
         try intersectionAlgebraStep(&usage)
         guard count > 0, count <= variableCount else {
@@ -57,7 +57,7 @@ package struct ExactIntersectionProjectionTower: Sendable {
         return Self(variableCount: count, levels: prefix, hasThomEncoding: hasThomEncoding)
     }
 
-    private static func derivativeClosure<B: RationalAlgebraAdmitting>(_ sources: [ExactIntersectionPolynomial],
+    private static func derivativeClosure<B: ExactScalarAdmission & ~Copyable>(_ sources: [ExactIntersectionPolynomial],
         at axis: Int, usage: inout B) throws -> [ExactIntersectionPolynomial] {
         try RationalAlgebraStorage.retain(sources.count, of: ExactIntersectionPolynomial.self, usage: &usage)
         var result = sources

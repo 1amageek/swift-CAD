@@ -17,24 +17,24 @@ struct OriginalSphereCurvePullbackTests {
         var spent: (work: Int, storage: Int, storageCalls: Int, cells: Int) {
             state.withLock { ($0.work, $0.storage, $0.storageCalls, $0.cells) }
         }
-        var usage: OriginalRelationUsage {
-            .init(consumeWork: { count in
+        var usage: GeometryTestScalarRecorder {
+            .init(maximumValueDepth: 24, maximumCoefficientDepth: 24, observeWork: { count in
                 try self.state.withLock { state in
                     guard count <= self.maximumWork - state.work else { throw Self.exhausted() }
                     state.work += count
                 }
-            }, retainStorage: { count in
+            }, observeStorageWords: { count in
                 let cancel = try self.state.withLock { state in
                     guard count <= self.maximumStorage - state.storage else { throw Self.exhausted() }
                     state.storage += count; state.storageCalls += 1
                     return state.storageCalls == self.cancelAtStorageCall
                 }
                 if cancel { withUnsafeCurrentTask { $0?.cancel() } }
-            }, visitCell: { depth in
+            }, observeValueCell: { depth in
                 try self.state.withLock { state in
                     guard depth <= 24 else { throw Self.exhausted() }; state.cells += 1
                 }
-            }, visitCoefficientCell: { _ in
+            }, observeCoefficientCell: { _ in
                 Issue.record("A rational sphere source cannot invent coefficient roots.")
                 throw Self.exhausted()
             })
@@ -54,7 +54,7 @@ struct OriginalSphereCurvePullbackTests {
             controlPoints: [.init(x: -2, y: 1, z: 0), .init(x: 2, y: 1, z: 0)], weights: [1, weight])
     }
 
-    private func curveLaw(_ source: BSplineCurve3D, usage: inout OriginalRelationUsage)
+    private func curveLaw(_ source: BSplineCurve3D, usage: inout GeometryTestScalarRecorder)
         throws -> OriginalRationalCurvePolynomial {
         try .init(source: source, spanIndex: source.degree, tolerance: tolerance, usage: &usage)
     }
@@ -62,7 +62,7 @@ struct OriginalSphereCurvePullbackTests {
     private func decompose(_ pullback: OriginalSphereCurvePullback, budget: Budget) throws -> OriginalRealRelation {
         var usage = budget.usage
         let relation = try pullback.relation(usage: &usage)
-        return try resolver.decompose(relation, maximumDepth: 24, maximumCoefficientDepth: 0, usage: usage)
+        return try resolver.decompose(relation, maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -80,8 +80,8 @@ struct OriginalSphereCurvePullbackTests {
         let result = try decompose(pullback, budget: budget)
         let half = try ExactRationalCoefficient.one.divided(by: .originalDouble(2, usage: &usage), usage: &usage)
         #expect(result.cells.count == 1 && result.components.count == 1 && result.cells[0].dimension == 0)
-        #expect(try result.contains(rationalPoint: [half], maximumDepth: 24, maximumCoefficientDepth: 0, usage: usage))
-        #expect(try !result.contains(rationalPoint: [.zero], maximumDepth: 24, maximumCoefficientDepth: 0, usage: usage))
+        #expect(try result.contains(rationalPoint: [half], maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage))
+        #expect(try !result.contains(rationalPoint: [.zero], maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage))
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -105,8 +105,8 @@ struct OriginalSphereCurvePullbackTests {
         #expect(pullback.equation == (try linear.multiplied(by: linear, usage: &usage)))
         let result = try decompose(pullback, budget: budget)
         #expect(result.cells.count == 1 && result.components.count == 1 && result.cells[0].dimension == 0)
-        #expect(try result.contains(rationalPoint: [.one.negated], maximumDepth: 24, maximumCoefficientDepth: 0, usage: usage))
-        #expect(try !result.contains(rationalPoint: [.zero], maximumDepth: 24, maximumCoefficientDepth: 0, usage: usage))
+        #expect(try result.contains(rationalPoint: [.one.negated], maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage))
+        #expect(try !result.contains(rationalPoint: [.zero], maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage))
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -136,8 +136,8 @@ struct OriginalSphereCurvePullbackTests {
         #expect(weight == (try .one.adding(third, usage: &usage)))
         let result = try decompose(pullback, budget: budget)
         #expect(result.cells.count == 1)
-        #expect(try result.contains(rationalPoint: [station], maximumDepth: 24, maximumCoefficientDepth: 0, usage: usage))
-        #expect(try !result.contains(rationalPoint: [third], maximumDepth: 24, maximumCoefficientDepth: 0, usage: usage))
+        #expect(try result.contains(rationalPoint: [station], maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage))
+        #expect(try !result.contains(rationalPoint: [third], maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage))
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -158,10 +158,10 @@ struct OriginalSphereCurvePullbackTests {
         let result = try decompose(pullback, budget: budget)
         #expect(result.components.count == 1 && result.components[0].dimension == 1)
         for station in [ExactRationalCoefficient.zero, .one] {
-            #expect(try result.contains(rationalPoint: [station], maximumDepth: 24, maximumCoefficientDepth: 0, usage: usage))
+            #expect(try result.contains(rationalPoint: [station], maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage))
         }
         let two = try ExactRationalCoefficient.originalDouble(2, usage: &usage)
-        #expect(try !result.contains(rationalPoint: [two], maximumDepth: 24, maximumCoefficientDepth: 0, usage: usage))
+        #expect(try !result.contains(rationalPoint: [two], maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage))
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -182,7 +182,7 @@ struct OriginalSphereCurvePullbackTests {
     func invalidSourceAndIndependentWorkStorageRejectReceiptAndAdapter() throws {
         let construction = Budget(); var originalUsage = construction.usage
         let native = try curveLaw(tangentSource(), usage: &originalUsage)
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestKernelFailure($0) != nil }) {
             try OriginalSphereCurvePullback(sphere: .plane(origin: .origin, normal: .unitZ), curve: native,
                 tolerance: tolerance, usage: &originalUsage)
         }
@@ -201,13 +201,13 @@ struct OriginalSphereCurvePullbackTests {
             tolerance: tolerance, usage: &exactUsage).equation == pullback.equation)
         for budget in [Budget(work: measured.spent.work - 1), Budget(storage: measured.spent.storage - 1)] {
             var usage = budget.usage
-            #expect(throws: KernelError.self) {
+            geometryTestExpectFailure({ geometryTestKernelFailure($0) != nil }) {
                 try OriginalSphereCurvePullback(sphere: sphere, curve: native, tolerance: tolerance, usage: &usage)
             }
         }
         for budget in [Budget(work: 0), Budget(storage: 0)] {
             var usage = budget.usage
-            #expect(throws: KernelError.self) { try pullback.relation(usage: &usage) }
+            geometryTestExpectFailure({ geometryTestKernelFailure($0) != nil }) { try pullback.relation(usage: &usage) }
         }
     }
 
@@ -230,7 +230,7 @@ struct OriginalSphereCurvePullbackTests {
                     else { _ = try OriginalSphereCurvePullback(sphere: sphere, curve: native,
                         tolerance: tolerance, usage: &operation) }
                     return false
-                } catch is CancellationError { return true }
+                } catch where geometryTestIsCancelled(error) { return true }
             }.value
             #expect(cancelled)
             if atEntry { #expect(budget.spent.work == 0 && budget.spent.storage == 0) }

@@ -20,7 +20,7 @@ public struct OriginalFullSphereConeSurfaceSection: Sendable {
     }
     static func issue<A: ExactScalarAdmission & ~Copyable>(relation: OriginalFullSphereConeSurfaceRelation,
         chart: Int, halfAngle: Field.Value, using a: inout A) throws -> Self {
-        try OriginalSourceProofAdmission<A>.withBorrow(&a) { a in
+        try a.withProofScope() { a in
             let values = try relation.source.original.sectionValues(chart: chart, halfAngle: halfAngle, using: &a)
             try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: Self.self))
             let result = Self(relation: relation, chart: chart, halfAngle: values.halfAngle,
@@ -46,7 +46,7 @@ public struct OriginalFullSphereConeSurfaceSection: Sendable {
     public func member<A: ExactScalarAdmission & ~Copyable>(branch: Int, coneCycle: OriginalParameterCycle,
         sphereCycle: OriginalParameterCycle, limits: OriginalDomainIdentityLimits,
         using a: inout A) throws -> OriginalFullSphereConeSurfaceMember {
-        try OriginalSourceProofAdmission<A>.withBorrow(&a) { a in
+        try a.withProofScope() { a in
             try relation.admitProof(limits: limits, using: &a)
             try a.admitDepth(value: proofDepth.value, coefficient: proofDepth.coefficient)
             guard branch == 0 || branch == 1 else { throw OriginalDomainIdentityFailure.outsideSupport }

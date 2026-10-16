@@ -71,10 +71,13 @@ package struct OriginalGraphBandReceipt: Sendable {
     package let joinCells: [JoinCell]
     package let originalBoundaryIntervals: [OriginalBoundaryInterval]
     private let identity = Identity()
+    private let preparation: OriginalGeometryPreparationReceipt
+    package let contribution: OriginalQueryContributionHandle
 
     init(input: OriginalGraphBandInput, fidelity: OriginalGraphBandInput.Fidelity,
          tolerance: ModelingTolerance, winding: Int, referenceCells: [ReferenceCell], joinCells: [JoinCell],
-         originalBoundaryIntervals: [OriginalBoundaryInterval]) {
+         originalBoundaryIntervals: [OriginalBoundaryInterval], preparation: OriginalGeometryPreparationReceipt,
+         contribution: OriginalQueryContributionHandle) {
         self.input = input
         self.fidelity = fidelity
         self.tolerance = tolerance
@@ -82,42 +85,54 @@ package struct OriginalGraphBandReceipt: Sendable {
         self.referenceCells = referenceCells
         self.joinCells = joinCells
         self.originalBoundaryIntervals = originalBoundaryIntervals
+        self.preparation = preparation
+        self.contribution = contribution
     }
 
     /// Retains one original lower/upper inverse proof for a closed U station.
     package func stationRow(cellIndex: Int, u: Double,
-                            proofUsage: inout OriginalTessellationProofUsage) throws -> Row {
+                            using execution: inout OriginalQueryExecution) throws -> Row {
+        return try preparation.withContributionScopes(using: &execution) { execution in
+            try preparation.admit(tolerance: tolerance, using: &execution)
         guard referenceCells.indices.contains(cellIndex), u.isFinite,
               referenceCells[cellIndex].u.contains(u) else {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
                               message: "A graph-band row requires its original retained reference cell.")
         }
-        try proofUsage.consume(depth: 0, tolerance: tolerance)
+        try execution.visitGeometricCell(depth: 0)
         let cell = referenceCells[cellIndex]
         let pointU = try ScalarInterval(lower: u, upper: u)
-        let lower = try cell.lowerPiece.graphJet(over: pointU, tolerance: tolerance, proofUsage: &proofUsage)
-        let upper = try cell.upperPiece.graphJet(over: pointU, tolerance: tolerance, proofUsage: &proofUsage)
+        let lower = try cell.lowerPiece.graphJet(over: pointU, tolerance: tolerance, using: &execution)
+        let upper = try cell.upperPiece.graphJet(over: pointU, tolerance: tolerance, using: &execution)
         let surfaceRow = try cell.nativePanel.span.prepareStationRow(u: u, on: input.surface,
-            tolerance: tolerance) { try proofUsage.consume(depth: 0, tolerance: tolerance) }
+            tolerance: tolerance, using: &execution)
         try CurrentTaskCancellationChecker().checkCancellation()
         return Row(owner: identity, cellIndex: cellIndex, u: u, lower: lower, upper: upper, surfaceRow: surfaceRow)
+    
+        }
     }
 
     /// The station is a mesh approximation, paired with its original inverse uncertainty.
     package func station(cellIndex: Int, u: Double, w: Double,
                          pointCandidate: Point3D? = nil,
-                         proofUsage: inout OriginalTessellationProofUsage) throws -> Station {
+                         using execution: inout OriginalQueryExecution) throws -> Station {
+        return try preparation.withContributionScopes(using: &execution) { execution in
+            try preparation.admit(tolerance: tolerance, using: &execution)
         guard w.isFinite, (0...1).contains(w) else {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
                               message: "A graph-band station requires a finite normalized W value.")
         }
-        let row = try stationRow(cellIndex: cellIndex, u: u, proofUsage: &proofUsage)
-        return try station(row: row, w: w, pointCandidate: pointCandidate, proofUsage: &proofUsage)
+        let row = try stationRow(cellIndex: cellIndex, u: u, using: &execution)
+        return try station(row: row, w: w, pointCandidate: pointCandidate, using: &execution)
+    
+        }
     }
 
     /// Reuses original U preparation; each actual V station retains its independent proof.
     package func station(row: Row, w: Double, pointCandidate: Point3D? = nil,
-                         proofUsage: inout OriginalTessellationProofUsage) throws -> Station {
+                         using execution: inout OriginalQueryExecution) throws -> Station {
+        return try preparation.withContributionScopes(using: &execution) { execution in
+            try preparation.admit(tolerance: tolerance, using: &execution)
         guard row.owner === identity, referenceCells.indices.contains(row.cellIndex),
               row.u.isFinite, referenceCells[row.cellIndex].u.contains(row.u),
               w.isFinite, (0...1).contains(w) else {
@@ -126,7 +141,7 @@ package struct OriginalGraphBandReceipt: Sendable {
         }
         // Original surface materialization remains paid even when row inverse
         // evidence was already retained or used at another W station.
-        try proofUsage.consume(depth: 0, tolerance: tolerance)
+        try execution.visitGeometricCell(depth: 0)
         let cellIndex = row.cellIndex
         let u = row.u
         let value = (OutwardScalarInterval.exact(1) - .exact(w)) * row.lower.v + .exact(w) * row.upper.v
@@ -137,7 +152,7 @@ package struct OriginalGraphBandReceipt: Sendable {
         let v = value.midpoint
         let parameter = SurfaceParameter(u: u, v: v)
         let intervalV = try ScalarInterval(lower: value.lower, upper: value.upper)
-        let materialized = try row.surfaceRow.materialize(v: v, overClosedV: intervalV, pointCandidate: pointCandidate)
+        let materialized = try row.surfaceRow.materialize(v: v, overClosedV: intervalV, pointCandidate: pointCandidate, using: &execution)
         let point = materialized.point
         guard point.x.isFinite, point.y.isFinite, point.z.isFinite else {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
@@ -159,12 +174,16 @@ package struct OriginalGraphBandReceipt: Sendable {
         return Station(parameter: parameter, point: point, normal: normal,
                        positionErrorUpperBound: positionError, normalErrorUpperBound: normalError,
                        owner: identity, cellIndex: cellIndex, w: w)
+    
+        }
     }
 
     /// Whole Taylor interpolation includes the trim Hessian and actual station errors.
     package func admitReferenceFacet(cellIndex: Int, stations: [Station],
                                     positions: [Point3D], normals: [Vector3D],
-                                    proofUsage: inout OriginalTessellationProofUsage) throws {
+                                    using execution: inout OriginalQueryExecution) throws {
+        return try preparation.withContributionScopes(using: &execution) { execution in
+            try preparation.admit(tolerance: tolerance, using: &execution)
         guard referenceCells.indices.contains(cellIndex), stations.count == 3,
               positions.count == 3, normals.count == 3,
               stations.indices.allSatisfy({ stations[$0].owner === identity
@@ -173,16 +192,16 @@ package struct OriginalGraphBandReceipt: Sendable {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
                               message: "Original reference-facet admission requires its complete retained station evidence.")
         }
-        try proofUsage.consume(depth: 0, tolerance: tolerance)
+        try execution.visitGeometricCell(depth: 0)
         let bounds = referenceCells[cellIndex].bounds
-        let uValues = stations.map { $0.parameter.u }
-        let wValues = stations.map({ $0.w })
+        let uValues = try OriginalGraphBandStorage.map(stations, using: &execution) { station, execution in station.parameter.u }
+        let wValues = try OriginalGraphBandStorage.map(stations, using: &execution) { station, execution in station.w }
         let du = OutwardScalarInterval.exact(uValues.max()!) - .exact(uValues.min()!)
         let dw = OutwardScalarInterval.exact(wValues.max()!) - .exact(wValues.min()!)
         let error = (OutwardScalarInterval.exact(bounds.secondDerivativeUUMagnitudeUpperBound) * du * du
             + .exact(2) * .exact(bounds.secondDerivativeUVMagnitudeUpperBound) * du * dw
             + .exact(bounds.secondDerivativeVVMagnitudeUpperBound) * dw * dw) * .exact(0.5)
-            + .exact(stations.map({ $0.positionErrorUpperBound }).max()!)
+            + .exact(try OriginalGraphBandStorage.map(stations, using: &execution) { station, execution in station.positionErrorUpperBound }.max()!)
             + .exact(referenceCells[cellIndex].boundaryUncertaintyUpperBound)
         guard error.isFinite, error.upper <= fidelity.linearTolerance else {
             throw KernelError(phase: .geometry, code: .unsupportedCapability,
@@ -191,7 +210,7 @@ package struct OriginalGraphBandReceipt: Sendable {
         }
         let angularError = OutwardScalarInterval.exact(bounds.unitNormalDerivativeUMagnitudeUpperBound) * du
             + .exact(bounds.unitNormalDerivativeVMagnitudeUpperBound) * dw
-            + .exact(2) * .exact(stations.map({ $0.normalErrorUpperBound }).max()!)
+            + .exact(2) * .exact(try OriginalGraphBandStorage.map(stations, using: &execution) { station, execution in station.normalErrorUpperBound }.max()!)
             + .exact(referenceCells[cellIndex].boundaryNormalUncertaintyUpperBound)
         guard angularError.isFinite, angularError.upper <= fidelity.angularTolerance else {
             throw KernelError(phase: .geometry, code: .unsupportedCapability,
@@ -200,21 +219,25 @@ package struct OriginalGraphBandReceipt: Sendable {
         }
         try admitEdges(positions)
         try CurrentTaskCancellationChecker().checkCancellation()
+    
+        }
     }
 
     /// E + D holds for every retained source tail and every admissible completion in the join box.
     package func admitJoinFacet(joinIndex: Int, panelIndex: Int,
                                positions: [Point3D], normals: [Vector3D],
-                               proofUsage: inout OriginalTessellationProofUsage) throws {
+                               using execution: inout OriginalQueryExecution) throws {
+        return try preparation.withContributionScopes(using: &execution) { execution in
+            try preparation.admit(tolerance: tolerance, using: &execution)
         guard joinCells.indices.contains(joinIndex), positions.count == 3, normals.count == 3,
               joinCells[joinIndex].panels.indices.contains(panelIndex),
               joinCells[joinIndex].originalPanelJets.count == joinCells[joinIndex].panels.count else {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
                               message: "A join facet requires its retained original uncertainty cell.")
         }
-        try proofUsage.consume(depth: 0, tolerance: tolerance)
+        try execution.visitGeometricCell(depth: 0)
         let join = joinCells[joinIndex]
-        let distances = positions.map { point in
+        let distances = try OriginalGraphBandStorage.map(positions, using: &execution) { point, execution in
             IntervalVector3DBounds(x: .exact(point.x) - .exact(join.sourceVertex.x),
                                   y: .exact(point.y) - .exact(join.sourceVertex.y),
                                   z: .exact(point.z) - .exact(join.sourceVertex.z)).lengthUpperBound
@@ -240,6 +263,8 @@ package struct OriginalGraphBandReceipt: Sendable {
         }
         try admitEdges(positions)
         try CurrentTaskCancellationChecker().checkCancellation()
+    
+        }
     }
 
     private static func normalAngleUpper(jet: SurfaceIntervalVectorJet,

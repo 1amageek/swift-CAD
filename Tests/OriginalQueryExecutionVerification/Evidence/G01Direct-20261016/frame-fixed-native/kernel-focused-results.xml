@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="TestResults" errors="0" tests="5" failures="0" skipped="0" time="0.244394125">
+    <testcase classname="FocusedTests.NonlinearBooleanOpenFaceArrangementTests" name="interiorSamplerEndpointsConsumeTheSameExactWorkAllowance()" time="0.002044667" />
+    <testcase classname="FocusedTests.FaceRebuildDirectExecutionTests" name="givenMethodValidationRequiresEveryNativeSourceDebit()" time="0.00135225" />
+    <testcase classname="FocusedTests.FaceRebuildDirectExecutionTests" name="nativeGivenPreservesCallerCancellation()" time="0.003077" />
+    <testcase classname="FocusedTests.FaceRebuildDirectExecutionTests" name="squareRequiredProducerRefusesWithoutPublishing()" time="0.040991209" />
+    <testcase classname="FocusedTests.FaceRebuildDirectExecutionTests" name="nativeGivenKeepsItsEdgesUnderTheIncomingExecution()" time="0.244044917" />
+  </testsuite>
+</testsuites>

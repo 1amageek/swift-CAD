@@ -1,0 +1,1791 @@
+
+/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-native-designgraph-stack-fixed-upper-20261016-r1/modules/CADIR.o:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+00000000000642c4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF>:
+   642c4:      	stp	x28, x20, [sp, #-0x20]!
+   642c8:      	stp	x29, x30, [sp, #0x10]
+   642cc:      	add	x29, sp, #0x10
+   642d0:      	sub	sp, sp, #0x3, lsl #12   ; =0x3000
+   642d4:      	sub	sp, sp, #0xc40
+   642d8:      	str	x0, [sp, #0x770]
+   642dc:      	str	d0, [sp, #0x728]
+   642e0:      	str	d1, [sp, #0x730]
+   642e4:      	str	d2, [sp, #0x738]
+   642e8:      	str	x20, [sp, #0x740]
+   642ec:      	str	x21, [sp, #0x748]
+   642f0:      	str	xzr, [sp, #0x2208]
+   642f4:      	str	xzr, [sp, #0x21f0]
+   642f8:      	str	xzr, [sp, #0x21f8]
+   642fc:      	str	xzr, [sp, #0x2200]
+   64300:      	str	xzr, [sp, #0x21e8]
+   64304:      	str	xzr, [sp, #0x21c0]
+   64308:      	mov	x8, x0
+   6430c:      	str	x8, [sp, #0x2208]
+   64310:      	str	d0, [sp, #0x21f0]
+   64314:      	str	d1, [sp, #0x21f8]
+   64318:      	str	d2, [sp, #0x2200]
+   6431c:      	str	x20, [sp, #0x21e8]
+   64320:      	ldr	x8, [x0, #0x1a40]
+   64324:      	sub	x0, x29, #0x18
+   64328:      	stur	x8, [x29, #-0x18]
+   6432c:      	add	x1, sp, #0x2, lsl #12   ; =0x2000
+   64330:      	add	x1, x1, #0x1e0
+   64334:      	bl	0x64334 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x70>
+   64338:      	ldur	x8, [x29, #-0x18]
+   6433c:      	add	x9, sp, #0x2, lsl #12   ; =0x2000
+   64340:      	add	x9, x9, #0x1d8
+   64344:      	str	x9, [sp, #0x758]
+   64348:      	str	x8, [sp, #0x21d8]
+   6434c:      	adrp	x0, 0x64000 <_$s5CADIR11DesignGraphV6encode2toys7Encoder_p_tKF+0x208>
+   64350:      	add	x0, x0, #0x0
+   64354:      	bl	0x64354 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x90>
+   64358:      	str	x0, [sp, #0x750]
+   6435c:      	bl	0x6435c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x98>
+   64360:      	str	x0, [sp, #0x760]
+   64364:      	bl	0x64364 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xa0>
+   64368:      	ldr	x2, [sp, #0x750]
+   6436c:      	ldr	x3, [sp, #0x760]
+   64370:      	mov	x4, x0
+   64374:      	ldr	x0, [sp, #0x758]
+   64378:      	adrp	x8, 0x64000 <_$s5CADIR11DesignGraphV6encode2toys7Encoder_p_tKF+0x208>
+   6437c:      	add	x8, x8, #0x0
+   64380:      	add	x1, x8, #0x10
+   64384:      	str	x1, [sp, #0x778]
+   64388:      	bl	0x64388 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xc4>
+   6438c:      	ldr	x2, [sp, #0x760]
+   64390:      	ldr	x1, [sp, #0x778]
+   64394:      	str	x0, [sp, #0x768]
+   64398:      	bl	0x64398 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xd4>
+   6439c:      	mov	x8, x0
+   643a0:      	ldr	x0, [sp, #0x768]
+   643a4:      	str	x8, [sp, #0x790]
+   643a8:      	bl	0x643a8 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xe4>
+   643ac:      	ldr	x0, [sp, #0x770]
+   643b0:      	ldr	x0, [x0, #0x1a40]
+   643b4:      	str	x0, [sp, #0x780]
+   643b8:      	bl	0x643b8 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xf4>
+   643bc:      	ldr	x0, [sp, #0x780]
+   643c0:      	ldr	x1, [sp, #0x778]
+   643c4:      	bl	0x643c4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x100>
+   643c8:      	mov	x8, x0
+   643cc:      	ldr	x0, [sp, #0x780]
+   643d0:      	str	x8, [sp, #0x788]
+   643d4:      	bl	0x643d4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x110>
+   643d8:      	ldr	x8, [sp, #0x788]
+   643dc:      	ldr	x0, [sp, #0x790]
+   643e0:      	subs	x8, x0, x8
+   643e4:      	b.ne	0x6569c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x13d8>
+   643e8:      	b	0x643ec <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x128>
+   643ec:      	ldr	x8, [sp, #0x770]
+   643f0:      	ldr	x8, [x8, #0x1a48]
+   643f4:      	sub	x0, x29, #0x20
+   643f8:      	stur	x8, [x29, #-0x20]
+   643fc:      	add	x1, sp, #0x2, lsl #12   ; =0x2000
+   64400:      	add	x1, x1, #0x1d0
+   64404:      	bl	0x64404 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x140>
+   64408:      	ldr	x1, [sp, #0x710]
+   6440c:      	ldur	x8, [x29, #-0x20]
+   64410:      	add	x20, sp, #0x2, lsl #12  ; =0x2000
+   64414:      	add	x20, x20, #0x1c8
+   64418:      	str	x8, [sp, #0x21c8]
+   6441c:      	adrp	x0, 0x64000 <_$s5CADIR11DesignGraphV6encode2toys7Encoder_p_tKF+0x208>
+   64420:      	add	x0, x0, #0x0
+   64424:      	bl	0x64424 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x160>
+   64428:      	str	x0, [sp, #0x700]
+   6442c:      	bl	0x6442c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x168>
+   64430:      	adrp	x0, 0x64000 <_$s5CADIR11DesignGraphV6encode2toys7Encoder_p_tKF+0x208>
+   64434:      	add	x0, x0, #0x0
+   64438:      	bl	0x64438 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x174>
+   6443c:      	str	x0, [sp, #0x708]
+   64440:      	bl	0x64440 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x17c>
+   64444:      	ldr	x1, [sp, #0x700]
+   64448:      	ldr	x2, [sp, #0x708]
+   6444c:      	ldr	x21, [sp, #0x748]
+   64450:      	ldr	x7, [sp, #0x710]
+   64454:      	mov	x5, x0
+   64458:      	adrp	x0, 0x64000 <_$s5CADIR11DesignGraphV6encode2toys7Encoder_p_tKF+0x208>
+   6445c:      	add	x0, x0, #0x0
+   64460:      	adrp	x8, 0x64000 <_$s5CADIR11DesignGraphV6encode2toys7Encoder_p_tKF+0x208>
+   64464:      	add	x8, x8, #0x0
+   64468:      	add	x3, x8, #0x10
+   6446c:      	adrp	x4, 0x64000 <_$s5CADIR11DesignGraphV6encode2toys7Encoder_p_tKF+0x208>
+   64470:      	ldr	x4, [x4]
+   64474:      	adrp	x6, 0x64000 <_$s5CADIR11DesignGraphV6encode2toys7Encoder_p_tKF+0x208>
+   64478:      	ldr	x6, [x6]
+   6447c:      	bl	0x6447c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1b8>
+   64480:      	str	x21, [sp, #0x718]
+   64484:      	str	x0, [sp, #0x720]
+   64488:      	cbnz	x21, 0x65714 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1450>
+   6448c:      	b	0x64490 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1cc>
+   64490:      	ldr	x0, [sp, #0x700]
+   64494:      	ldr	x8, [sp, #0x720]
+   64498:      	str	x8, [sp, #0x6e8]
+   6449c:      	bl	0x6449c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1d8>
+   644a0:      	ldr	x0, [sp, #0x700]
+   644a4:      	bl	0x644a4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1e0>
+   644a8:      	add	x0, sp, #0x2, lsl #12   ; =0x2000
+   644ac:      	add	x0, x0, #0x1c8
+   644b0:      	bl	0x644b0 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1ec>
+   644b4:      	ldr	x0, [sp, #0x6e8]
+   644b8:      	str	x0, [sp, #0x21c0]
+   644bc:      	bl	0x644bc <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1f8>
+   644c0:      	ldr	x8, [sp, #0x6e8]
+   644c4:      	add	x9, sp, #0x2, lsl #12   ; =0x2000
+   644c8:      	add	x9, x9, #0x1b8
+   644cc:      	str	x9, [sp, #0x6d0]
+   644d0:      	str	x8, [sp, #0x21b8]
+   644d4:      	adrp	x0, 0x64000 <_$s5CADIR11DesignGraphV6encode2toys7Encoder_p_tKF+0x208>
+   644d8:      	add	x0, x0, #0x0
+   644dc:      	bl	0x644dc <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x218>
+   644e0:      	str	x0, [sp, #0x6c8]
+   644e4:      	bl	0x644e4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x220>
+   644e8:      	str	x0, [sp, #0x6d8]
+   644ec:      	bl	0x644ec <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x228>
+   644f0:      	ldr	x2, [sp, #0x6c8]
+   644f4:      	ldr	x3, [sp, #0x6d8]
+   644f8:      	mov	x4, x0
+   644fc:      	ldr	x0, [sp, #0x6d0]
+   64500:      	adrp	x8, 0x64000 <_$s5CADIR11DesignGraphV6encode2toys7Encoder_p_tKF+0x208>
+   64504:      	add	x8, x8, #0x0
+   64508:      	add	x1, x8, #0x10
+   6450c:      	str	x1, [sp, #0x6f0]
+   64510:      	bl	0x64510 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x24c>
+   64514:      	ldr	x2, [sp, #0x6d8]
+   64518:      	ldr	x1, [sp, #0x6f0]
+   6451c:      	str	x0, [sp, #0x6e0]
+   64520:      	bl	0x64520 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x25c>
+   64524:      	mov	x8, x0
+   64528:      	ldr	x0, [sp, #0x6e0]
+   6452c:      	str	x8, [sp, #0x6f8]
+   64530:      	bl	0x64530 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x26c>
+   64534:      	ldr	x0, [sp, #0x6e8]
+   64538:      	ldr	x1, [sp, #0x6f0]
+   6453c:      	bl	0x6453c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x278>
+   64540:      	mov	x8, x0
+   64544:      	ldr	x0, [sp, #0x6f8]
+   64548:      	subs	x8, x0, x8
+   6454c:      	b.ne	0x6561c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1358>
+   64550:      	b	0x64554 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x290>
+   64554:      	ldr	x8, [sp, #0x770]
+   64558:      	add	x1, x8, #0x20
+   6455c:      	add	x20, sp, #0x2, lsl #12  ; =0x2000
+   64560:      	add	x20, x20, #0x210
+   64564:      	str	x20, [sp, #0x6b0]
+   64568:      	mov	w8, #0x1a19             ; =6681
+   6456c:      	mov	x2, x8
+   64570:      	mov	x0, x20
+   64574:      	bl	0x64574 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x2b0>
+   64578:      	mov	x0, x20
+   6457c:      	add	x1, sp, #0x798
+   64580:      	bl	0x64580 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x2bc>
+   64584:      	bl	0x64584 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x2c0>
+   64588:      	mov	x8, x0
+   6458c:      	ldr	x0, [sp, #0x6b0]
+   64590:      	str	w8, [sp, #0x6bc]
+   64594:      	bl	0x64594 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x2d0>
+   64598:      	ldr	w0, [sp, #0x6bc]
+   6459c:      	add	w9, w0, #0x0
+   645a0:      	mov	x8, x9
+   645a4:      	and	x8, x8, #0xff
+   645a8:      	str	x8, [sp, #0x6c0]
+   645ac:      	ldr	x11, [sp, #0x6c0]
+   645b0:      	adrp	x10, 0x64000 <_$s5CADIR11DesignGraphV6encode2toys7Encoder_p_tKF+0x208>
+   645b4:      	add	x10, x10, #0x0
+   645b8:      	adr	x8, 0x645b8 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x2f4>
+   645bc:      	ldrsw	x9, [x10, x11, lsl #2]
+   645c0:      	add	x8, x8, x9
+   645c4:      	br	x8
+   645c8:      	ldr	x21, [sp, #0x718]
+   645cc:      	ldr	x20, [sp, #0x740]
+   645d0:      	ldr	d2, [sp, #0x738]
+   645d4:      	ldr	d1, [sp, #0x730]
+   645d8:      	ldr	d0, [sp, #0x728]
+   645dc:      	ldr	x1, [sp, #0x6e8]
+   645e0:      	ldr	x0, [sp, #0x770]
+   645e4:      	bl	0x645e4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x320>
+   645e8:      	str	x21, [sp, #0x6a0]
+   645ec:      	mov	x8, x21
+   645f0:      	str	x8, [sp, #0x6a8]
+   645f4:      	cbnz	x21, 0x65720 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x145c>
+   645f8:      	b	0x645fc <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x338>
+   645fc:      	ldr	x21, [sp, #0x6a0]
+   64600:      	str	x21, [sp, #0x698]
+   64604:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   64608:      	ldr	x21, [sp, #0x718]
+   6460c:      	ldr	x20, [sp, #0x740]
+   64610:      	ldr	d2, [sp, #0x738]
+   64614:      	ldr	d1, [sp, #0x730]
+   64618:      	ldr	d0, [sp, #0x728]
+   6461c:      	ldr	x1, [sp, #0x6e8]
+   64620:      	ldr	x0, [sp, #0x770]
+   64624:      	bl	0x64624 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x360>
+   64628:      	str	x21, [sp, #0x688]
+   6462c:      	mov	x8, x21
+   64630:      	str	x8, [sp, #0x690]
+   64634:      	cbnz	x21, 0x6573c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1478>
+   64638:      	b	0x6463c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x378>
+   6463c:      	ldr	x21, [sp, #0x688]
+   64640:      	str	x21, [sp, #0x698]
+   64644:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   64648:      	ldr	x21, [sp, #0x718]
+   6464c:      	ldr	x20, [sp, #0x740]
+   64650:      	ldr	d2, [sp, #0x738]
+   64654:      	ldr	d1, [sp, #0x730]
+   64658:      	ldr	d0, [sp, #0x728]
+   6465c:      	ldr	x1, [sp, #0x6e8]
+   64660:      	ldr	x0, [sp, #0x770]
+   64664:      	bl	0x64664 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x3a0>
+   64668:      	str	x21, [sp, #0x678]
+   6466c:      	mov	x8, x21
+   64670:      	str	x8, [sp, #0x680]
+   64674:      	cbnz	x21, 0x65758 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1494>
+   64678:      	b	0x6467c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x3b8>
+   6467c:      	ldr	x21, [sp, #0x678]
+   64680:      	str	x21, [sp, #0x698]
+   64684:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   64688:      	ldr	x21, [sp, #0x718]
+   6468c:      	ldr	x20, [sp, #0x740]
+   64690:      	ldr	d2, [sp, #0x738]
+   64694:      	ldr	d1, [sp, #0x730]
+   64698:      	ldr	d0, [sp, #0x728]
+   6469c:      	ldr	x1, [sp, #0x6e8]
+   646a0:      	ldr	x0, [sp, #0x770]
+   646a4:      	bl	0x646a4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x3e0>
+   646a8:      	str	x21, [sp, #0x668]
+   646ac:      	mov	x8, x21
+   646b0:      	str	x8, [sp, #0x670]
+   646b4:      	cbnz	x21, 0x65774 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x14b0>
+   646b8:      	b	0x646bc <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x3f8>
+   646bc:      	ldr	x21, [sp, #0x668]
+   646c0:      	str	x21, [sp, #0x698]
+   646c4:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   646c8:      	ldr	x21, [sp, #0x718]
+   646cc:      	ldr	x20, [sp, #0x740]
+   646d0:      	ldr	d2, [sp, #0x738]
+   646d4:      	ldr	d1, [sp, #0x730]
+   646d8:      	ldr	d0, [sp, #0x728]
+   646dc:      	ldr	x1, [sp, #0x6e8]
+   646e0:      	ldr	x0, [sp, #0x770]
+   646e4:      	bl	0x646e4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x420>
+   646e8:      	str	x21, [sp, #0x658]
+   646ec:      	mov	x8, x21
+   646f0:      	str	x8, [sp, #0x660]
+   646f4:      	cbnz	x21, 0x65790 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x14cc>
+   646f8:      	b	0x646fc <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x438>
+   646fc:      	ldr	x21, [sp, #0x658]
+   64700:      	str	x21, [sp, #0x698]
+   64704:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   64708:      	ldr	x21, [sp, #0x718]
+   6470c:      	ldr	x20, [sp, #0x740]
+   64710:      	ldr	d2, [sp, #0x738]
+   64714:      	ldr	d1, [sp, #0x730]
+   64718:      	ldr	d0, [sp, #0x728]
+   6471c:      	ldr	x1, [sp, #0x6e8]
+   64720:      	ldr	x0, [sp, #0x770]
+   64724:      	bl	0x64724 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x460>
+   64728:      	str	x21, [sp, #0x648]
+   6472c:      	mov	x8, x21
+   64730:      	str	x8, [sp, #0x650]
+   64734:      	cbnz	x21, 0x657ac <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x14e8>
+   64738:      	b	0x6473c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x478>
+   6473c:      	ldr	x21, [sp, #0x648]
+   64740:      	str	x21, [sp, #0x698]
+   64744:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   64748:      	ldr	x21, [sp, #0x718]
+   6474c:      	ldr	x20, [sp, #0x740]
+   64750:      	ldr	d2, [sp, #0x738]
+   64754:      	ldr	d1, [sp, #0x730]
+   64758:      	ldr	d0, [sp, #0x728]
+   6475c:      	ldr	x1, [sp, #0x6e8]
+   64760:      	ldr	x0, [sp, #0x770]
+   64764:      	bl	0x64764 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x4a0>
+   64768:      	str	x21, [sp, #0x638]
+   6476c:      	mov	x8, x21
+   64770:      	str	x8, [sp, #0x640]
+   64774:      	cbnz	x21, 0x657c8 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1504>
+   64778:      	b	0x6477c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x4b8>
+   6477c:      	ldr	x21, [sp, #0x638]
+   64780:      	str	x21, [sp, #0x698]
+   64784:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   64788:      	ldr	x21, [sp, #0x718]
+   6478c:      	ldr	x20, [sp, #0x740]
+   64790:      	ldr	d2, [sp, #0x738]
+   64794:      	ldr	d1, [sp, #0x730]
+   64798:      	ldr	d0, [sp, #0x728]
+   6479c:      	ldr	x1, [sp, #0x6e8]
+   647a0:      	ldr	x0, [sp, #0x770]
+   647a4:      	bl	0x647a4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x4e0>
+   647a8:      	str	x21, [sp, #0x628]
+   647ac:      	mov	x8, x21
+   647b0:      	str	x8, [sp, #0x630]
+   647b4:      	cbnz	x21, 0x657e4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1520>
+   647b8:      	b	0x647bc <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x4f8>
+   647bc:      	ldr	x21, [sp, #0x628]
+   647c0:      	str	x21, [sp, #0x698]
+   647c4:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   647c8:      	ldr	x21, [sp, #0x718]
+   647cc:      	ldr	x20, [sp, #0x740]
+   647d0:      	ldr	x1, [sp, #0x6e8]
+   647d4:      	ldr	x0, [sp, #0x770]
+   647d8:      	bl	0x647d8 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x514>
+   647dc:      	str	x21, [sp, #0x618]
+   647e0:      	mov	x8, x21
+   647e4:      	str	x8, [sp, #0x620]
+   647e8:      	cbnz	x21, 0x65800 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x153c>
+   647ec:      	b	0x647f0 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x52c>
+   647f0:      	ldr	x21, [sp, #0x618]
+   647f4:      	str	x21, [sp, #0x698]
+   647f8:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   647fc:      	ldr	x21, [sp, #0x718]
+   64800:      	ldr	x20, [sp, #0x740]
+   64804:      	ldr	x1, [sp, #0x6e8]
+   64808:      	ldr	x0, [sp, #0x770]
+   6480c:      	bl	0x6480c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x548>
+   64810:      	str	x21, [sp, #0x608]
+   64814:      	mov	x8, x21
+   64818:      	str	x8, [sp, #0x610]
+   6481c:      	cbnz	x21, 0x6581c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1558>
+   64820:      	b	0x64824 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x560>
+   64824:      	ldr	x21, [sp, #0x608]
+   64828:      	str	x21, [sp, #0x698]
+   6482c:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   64830:      	ldr	x21, [sp, #0x718]
+   64834:      	ldr	x20, [sp, #0x740]
+   64838:      	ldr	x1, [sp, #0x6e8]
+   6483c:      	ldr	x0, [sp, #0x770]
+   64840:      	bl	0x64840 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x57c>
+   64844:      	str	x21, [sp, #0x5f8]
+   64848:      	mov	x8, x21
+   6484c:      	str	x8, [sp, #0x600]
+   64850:      	cbnz	x21, 0x65838 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1574>
+   64854:      	b	0x64858 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x594>
+   64858:      	ldr	x21, [sp, #0x5f8]
+   6485c:      	str	x21, [sp, #0x698]
+   64860:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   64864:      	ldr	x21, [sp, #0x718]
+   64868:      	ldr	x20, [sp, #0x740]
+   6486c:      	ldr	x1, [sp, #0x6e8]
+   64870:      	ldr	x0, [sp, #0x770]
+   64874:      	bl	0x64874 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x5b0>
+   64878:      	str	x21, [sp, #0x5e8]
+   6487c:      	mov	x8, x21
+   64880:      	str	x8, [sp, #0x5f0]
+   64884:      	cbnz	x21, 0x65854 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1590>
+   64888:      	b	0x6488c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x5c8>
+   6488c:      	ldr	x21, [sp, #0x5e8]
+   64890:      	str	x21, [sp, #0x698]
+   64894:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   64898:      	ldr	x21, [sp, #0x718]
+   6489c:      	ldr	x20, [sp, #0x740]
+   648a0:      	ldr	x1, [sp, #0x6e8]
+   648a4:      	ldr	x0, [sp, #0x770]
+   648a8:      	bl	0x648a8 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x5e4>
+   648ac:      	str	x21, [sp, #0x5d8]
+   648b0:      	mov	x8, x21
+   648b4:      	str	x8, [sp, #0x5e0]
+   648b8:      	cbnz	x21, 0x65870 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x15ac>
+   648bc:      	b	0x648c0 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x5fc>
+   648c0:      	ldr	x21, [sp, #0x5d8]
+   648c4:      	str	x21, [sp, #0x698]
+   648c8:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   648cc:      	ldr	x21, [sp, #0x718]
+   648d0:      	ldr	x20, [sp, #0x740]
+   648d4:      	ldr	x1, [sp, #0x6e8]
+   648d8:      	ldr	x0, [sp, #0x770]
+   648dc:      	bl	0x648dc <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x618>
+   648e0:      	str	x21, [sp, #0x5c8]
+   648e4:      	mov	x8, x21
+   648e8:      	str	x8, [sp, #0x5d0]
+   648ec:      	cbnz	x21, 0x6588c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x15c8>
+   648f0:      	b	0x648f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x630>
+   648f4:      	ldr	x21, [sp, #0x5c8]
+   648f8:      	str	x21, [sp, #0x698]
+   648fc:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   64900:      	ldr	x21, [sp, #0x718]
+   64904:      	ldr	x20, [sp, #0x740]
+   64908:      	ldr	d2, [sp, #0x738]
+   6490c:      	ldr	d1, [sp, #0x730]
+   64910:      	ldr	d0, [sp, #0x728]
+   64914:      	ldr	x1, [sp, #0x6e8]
+   64918:      	ldr	x0, [sp, #0x770]
+   6491c:      	bl	0x6491c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x658>
+   64920:      	str	x21, [sp, #0x5b8]
+   64924:      	mov	x8, x21
+   64928:      	str	x8, [sp, #0x5c0]
+   6492c:      	cbnz	x21, 0x658a8 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x15e4>
+   64930:      	b	0x64934 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x670>
+   64934:      	ldr	x21, [sp, #0x5b8]
+   64938:      	str	x21, [sp, #0x698]
+   6493c:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   64940:      	ldr	x21, [sp, #0x718]
+   64944:      	ldr	x20, [sp, #0x740]
+   64948:      	ldr	d2, [sp, #0x738]
+   6494c:      	ldr	d1, [sp, #0x730]
+   64950:      	ldr	d0, [sp, #0x728]
+   64954:      	ldr	x1, [sp, #0x6e8]
+   64958:      	ldr	x0, [sp, #0x770]
+   6495c:      	bl	0x6495c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x698>
+   64960:      	str	x21, [sp, #0x5a8]
+   64964:      	mov	x8, x21
+   64968:      	str	x8, [sp, #0x5b0]
+   6496c:      	cbnz	x21, 0x658c4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1600>
+   64970:      	b	0x64974 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x6b0>
+   64974:      	ldr	x21, [sp, #0x5a8]
+   64978:      	str	x21, [sp, #0x698]
+   6497c:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   64980:      	ldr	x21, [sp, #0x718]
+   64984:      	ldr	x20, [sp, #0x740]
+   64988:      	ldr	d2, [sp, #0x738]
+   6498c:      	ldr	d1, [sp, #0x730]
+   64990:      	ldr	d0, [sp, #0x728]
+   64994:      	ldr	x1, [sp, #0x6e8]
+   64998:      	ldr	x0, [sp, #0x770]
+   6499c:      	bl	0x6499c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x6d8>
+   649a0:      	str	x21, [sp, #0x598]
+   649a4:      	mov	x8, x21
+   649a8:      	str	x8, [sp, #0x5a0]
+   649ac:      	cbnz	x21, 0x658e0 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x161c>
+   649b0:      	b	0x649b4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x6f0>
+   649b4:      	ldr	x21, [sp, #0x598]
+   649b8:      	str	x21, [sp, #0x698]
+   649bc:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   649c0:      	ldr	x21, [sp, #0x718]
+   649c4:      	ldr	x20, [sp, #0x740]
+   649c8:      	ldr	d2, [sp, #0x738]
+   649cc:      	ldr	d1, [sp, #0x730]
+   649d0:      	ldr	d0, [sp, #0x728]
+   649d4:      	ldr	x1, [sp, #0x6e8]
+   649d8:      	ldr	x0, [sp, #0x770]
+   649dc:      	bl	0x649dc <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x718>
+   649e0:      	str	x21, [sp, #0x588]
+   649e4:      	mov	x8, x21
+   649e8:      	str	x8, [sp, #0x590]
+   649ec:      	cbnz	x21, 0x658fc <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1638>
+   649f0:      	b	0x649f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x730>
+   649f4:      	ldr	x21, [sp, #0x588]
+   649f8:      	str	x21, [sp, #0x698]
+   649fc:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   64a00:      	ldr	x21, [sp, #0x718]
+   64a04:      	ldr	x20, [sp, #0x740]
+   64a08:      	ldr	d2, [sp, #0x738]
+   64a0c:      	ldr	d1, [sp, #0x730]
+   64a10:      	ldr	d0, [sp, #0x728]
+   64a14:      	ldr	x1, [sp, #0x6e8]
+   64a18:      	ldr	x0, [sp, #0x770]
+   64a1c:      	bl	0x64a1c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x758>
+   64a20:      	str	x21, [sp, #0x578]
+   64a24:      	mov	x8, x21
+   64a28:      	str	x8, [sp, #0x580]
+   64a2c:      	cbnz	x21, 0x65918 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1654>
+   64a30:      	b	0x64a34 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x770>
+   64a34:      	ldr	x21, [sp, #0x578]
+   64a38:      	str	x21, [sp, #0x698]
+   64a3c:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   64a40:      	ldr	x21, [sp, #0x718]
+   64a44:      	ldr	x20, [sp, #0x740]
+   64a48:      	ldr	d2, [sp, #0x738]
+   64a4c:      	ldr	d1, [sp, #0x730]
+   64a50:      	ldr	d0, [sp, #0x728]
+   64a54:      	ldr	x1, [sp, #0x6e8]
+   64a58:      	ldr	x0, [sp, #0x770]
+   64a5c:      	bl	0x64a5c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x798>
+   64a60:      	str	x21, [sp, #0x568]
+   64a64:      	mov	x8, x21
+   64a68:      	str	x8, [sp, #0x570]
+   64a6c:      	cbnz	x21, 0x65934 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1670>
+   64a70:      	b	0x64a74 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x7b0>
+   64a74:      	ldr	x21, [sp, #0x568]
+   64a78:      	str	x21, [sp, #0x698]
+   64a7c:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   64a80:      	ldr	x21, [sp, #0x718]
+   64a84:      	ldr	x20, [sp, #0x740]
+   64a88:      	ldr	x1, [sp, #0x6e8]
+   64a8c:      	ldr	x0, [sp, #0x770]
+   64a90:      	bl	0x64a90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x7cc>
+   64a94:      	str	x21, [sp, #0x558]
+   64a98:      	mov	x8, x21
+   64a9c:      	str	x8, [sp, #0x560]
+   64aa0:      	cbnz	x21, 0x65950 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x168c>
+   64aa4:      	b	0x64aa8 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x7e4>
+   64aa8:      	ldr	x21, [sp, #0x558]
+   64aac:      	str	x21, [sp, #0x698]
+   64ab0:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   64ab4:      	ldr	x21, [sp, #0x718]
+   64ab8:      	ldr	x20, [sp, #0x740]
+   64abc:      	ldr	d2, [sp, #0x738]
+   64ac0:      	ldr	d1, [sp, #0x730]
+   64ac4:      	ldr	d0, [sp, #0x728]
+   64ac8:      	ldr	x1, [sp, #0x6e8]
+   64acc:      	ldr	x0, [sp, #0x770]
+   64ad0:      	bl	0x64ad0 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x80c>
+   64ad4:      	str	x21, [sp, #0x548]
+   64ad8:      	mov	x8, x21
+   64adc:      	str	x8, [sp, #0x550]
+   64ae0:      	cbnz	x21, 0x6596c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x16a8>
+   64ae4:      	b	0x64ae8 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x824>
+   64ae8:      	ldr	x21, [sp, #0x548]
+   64aec:      	str	x21, [sp, #0x698]
+   64af0:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   64af4:      	ldr	x21, [sp, #0x718]
+   64af8:      	ldr	x20, [sp, #0x740]
+   64afc:      	ldr	d2, [sp, #0x738]
+   64b00:      	ldr	d1, [sp, #0x730]
+   64b04:      	ldr	d0, [sp, #0x728]
+   64b08:      	ldr	x1, [sp, #0x6e8]
+   64b0c:      	ldr	x0, [sp, #0x770]
+   64b10:      	bl	0x64b10 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x84c>
+   64b14:      	str	x21, [sp, #0x538]
+   64b18:      	mov	x8, x21
+   64b1c:      	str	x8, [sp, #0x540]
+   64b20:      	cbnz	x21, 0x65988 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x16c4>
+   64b24:      	b	0x64b28 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x864>
+   64b28:      	ldr	x21, [sp, #0x538]
+   64b2c:      	str	x21, [sp, #0x698]
+   64b30:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   64b34:      	ldr	x21, [sp, #0x718]
+   64b38:      	ldr	x20, [sp, #0x740]
+   64b3c:      	ldr	d2, [sp, #0x738]
+   64b40:      	ldr	d1, [sp, #0x730]
+   64b44:      	ldr	d0, [sp, #0x728]
+   64b48:      	ldr	x1, [sp, #0x6e8]
+   64b4c:      	ldr	x0, [sp, #0x770]
+   64b50:      	bl	0x64b50 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x88c>
+   64b54:      	str	x21, [sp, #0x528]
+   64b58:      	mov	x8, x21
+   64b5c:      	str	x8, [sp, #0x530]
+   64b60:      	cbnz	x21, 0x659a4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x16e0>
+   64b64:      	b	0x64b68 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x8a4>
+   64b68:      	ldr	x21, [sp, #0x528]
+   64b6c:      	str	x21, [sp, #0x698]
+   64b70:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   64b74:      	ldr	x21, [sp, #0x718]
+   64b78:      	ldr	x20, [sp, #0x740]
+   64b7c:      	ldr	d2, [sp, #0x738]
+   64b80:      	ldr	d1, [sp, #0x730]
+   64b84:      	ldr	d0, [sp, #0x728]
+   64b88:      	ldr	x1, [sp, #0x6e8]
+   64b8c:      	ldr	x0, [sp, #0x770]
+   64b90:      	bl	0x64b90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x8cc>
+   64b94:      	str	x21, [sp, #0x518]
+   64b98:      	mov	x8, x21
+   64b9c:      	str	x8, [sp, #0x520]
+   64ba0:      	cbnz	x21, 0x659c0 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x16fc>
+   64ba4:      	b	0x64ba8 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x8e4>
+   64ba8:      	ldr	x21, [sp, #0x518]
+   64bac:      	str	x21, [sp, #0x698]
+   64bb0:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   64bb4:      	ldr	x21, [sp, #0x718]
+   64bb8:      	ldr	x20, [sp, #0x740]
+   64bbc:      	ldr	d2, [sp, #0x738]
+   64bc0:      	ldr	d1, [sp, #0x730]
+   64bc4:      	ldr	d0, [sp, #0x728]
+   64bc8:      	ldr	x1, [sp, #0x6e8]
+   64bcc:      	ldr	x0, [sp, #0x770]
+   64bd0:      	bl	0x64bd0 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x90c>
+   64bd4:      	str	x21, [sp, #0x508]
+   64bd8:      	mov	x8, x21
+   64bdc:      	str	x8, [sp, #0x510]
+   64be0:      	cbnz	x21, 0x659dc <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1718>
+   64be4:      	b	0x64be8 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x924>
+   64be8:      	ldr	x21, [sp, #0x508]
+   64bec:      	str	x21, [sp, #0x698]
+   64bf0:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   64bf4:      	ldr	x21, [sp, #0x718]
+   64bf8:      	ldr	x20, [sp, #0x740]
+   64bfc:      	ldr	d2, [sp, #0x738]
+   64c00:      	ldr	d1, [sp, #0x730]
+   64c04:      	ldr	d0, [sp, #0x728]
+   64c08:      	ldr	x1, [sp, #0x6e8]
+   64c0c:      	ldr	x0, [sp, #0x770]
+   64c10:      	bl	0x64c10 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x94c>
+   64c14:      	str	x21, [sp, #0x4f8]
+   64c18:      	mov	x8, x21
+   64c1c:      	str	x8, [sp, #0x500]
+   64c20:      	cbnz	x21, 0x659f8 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1734>
+   64c24:      	b	0x64c28 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x964>
+   64c28:      	ldr	x21, [sp, #0x4f8]
+   64c2c:      	str	x21, [sp, #0x698]
+   64c30:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   64c34:      	ldr	x21, [sp, #0x718]
+   64c38:      	ldr	x20, [sp, #0x740]
+   64c3c:      	ldr	d2, [sp, #0x738]
+   64c40:      	ldr	d1, [sp, #0x730]
+   64c44:      	ldr	d0, [sp, #0x728]
+   64c48:      	ldr	x1, [sp, #0x6e8]
+   64c4c:      	ldr	x0, [sp, #0x770]
+   64c50:      	bl	0x64c50 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x98c>
+   64c54:      	str	x21, [sp, #0x4e8]
+   64c58:      	mov	x8, x21
+   64c5c:      	str	x8, [sp, #0x4f0]
+   64c60:      	cbnz	x21, 0x65a14 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1750>
+   64c64:      	b	0x64c68 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x9a4>
+   64c68:      	ldr	x21, [sp, #0x4e8]
+   64c6c:      	str	x21, [sp, #0x698]
+   64c70:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   64c74:      	ldr	x21, [sp, #0x718]
+   64c78:      	ldr	x20, [sp, #0x740]
+   64c7c:      	ldr	d2, [sp, #0x738]
+   64c80:      	ldr	d1, [sp, #0x730]
+   64c84:      	ldr	d0, [sp, #0x728]
+   64c88:      	ldr	x1, [sp, #0x6e8]
+   64c8c:      	ldr	x0, [sp, #0x770]
+   64c90:      	bl	0x64c90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x9cc>
+   64c94:      	str	x21, [sp, #0x4d8]
+   64c98:      	mov	x8, x21
+   64c9c:      	str	x8, [sp, #0x4e0]
+   64ca0:      	cbnz	x21, 0x65a30 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x176c>
+   64ca4:      	b	0x64ca8 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x9e4>
+   64ca8:      	ldr	x21, [sp, #0x4d8]
+   64cac:      	str	x21, [sp, #0x698]
+   64cb0:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   64cb4:      	ldr	x21, [sp, #0x718]
+   64cb8:      	ldr	x20, [sp, #0x740]
+   64cbc:      	ldr	d2, [sp, #0x738]
+   64cc0:      	ldr	d1, [sp, #0x730]
+   64cc4:      	ldr	d0, [sp, #0x728]
+   64cc8:      	ldr	x1, [sp, #0x6e8]
+   64ccc:      	ldr	x0, [sp, #0x770]
+   64cd0:      	bl	0x64cd0 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xa0c>
+   64cd4:      	str	x21, [sp, #0x4c8]
+   64cd8:      	mov	x8, x21
+   64cdc:      	str	x8, [sp, #0x4d0]
+   64ce0:      	cbnz	x21, 0x65a4c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1788>
+   64ce4:      	b	0x64ce8 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xa24>
+   64ce8:      	ldr	x21, [sp, #0x4c8]
+   64cec:      	str	x21, [sp, #0x698]
+   64cf0:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   64cf4:      	ldr	x21, [sp, #0x718]
+   64cf8:      	ldr	x20, [sp, #0x740]
+   64cfc:      	ldr	d2, [sp, #0x738]
+   64d00:      	ldr	d1, [sp, #0x730]
+   64d04:      	ldr	d0, [sp, #0x728]
+   64d08:      	ldr	x1, [sp, #0x6e8]
+   64d0c:      	ldr	x0, [sp, #0x770]
+   64d10:      	bl	0x64d10 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xa4c>
+   64d14:      	str	x21, [sp, #0x4b8]
+   64d18:      	mov	x8, x21
+   64d1c:      	str	x8, [sp, #0x4c0]
+   64d20:      	cbnz	x21, 0x65a68 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x17a4>
+   64d24:      	b	0x64d28 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xa64>
+   64d28:      	ldr	x21, [sp, #0x4b8]
+   64d2c:      	str	x21, [sp, #0x698]
+   64d30:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   64d34:      	ldr	x21, [sp, #0x718]
+   64d38:      	ldr	x20, [sp, #0x740]
+   64d3c:      	ldr	d2, [sp, #0x738]
+   64d40:      	ldr	d1, [sp, #0x730]
+   64d44:      	ldr	d0, [sp, #0x728]
+   64d48:      	ldr	x1, [sp, #0x6e8]
+   64d4c:      	ldr	x0, [sp, #0x770]
+   64d50:      	bl	0x64d50 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xa8c>
+   64d54:      	str	x21, [sp, #0x4a8]
+   64d58:      	mov	x8, x21
+   64d5c:      	str	x8, [sp, #0x4b0]
+   64d60:      	cbnz	x21, 0x65a84 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x17c0>
+   64d64:      	b	0x64d68 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xaa4>
+   64d68:      	ldr	x21, [sp, #0x4a8]
+   64d6c:      	str	x21, [sp, #0x698]
+   64d70:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   64d74:      	ldr	x21, [sp, #0x718]
+   64d78:      	ldr	x20, [sp, #0x740]
+   64d7c:      	ldr	d2, [sp, #0x738]
+   64d80:      	ldr	d1, [sp, #0x730]
+   64d84:      	ldr	d0, [sp, #0x728]
+   64d88:      	ldr	x1, [sp, #0x6e8]
+   64d8c:      	ldr	x0, [sp, #0x770]
+   64d90:      	bl	0x64d90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xacc>
+   64d94:      	str	x21, [sp, #0x498]
+   64d98:      	mov	x8, x21
+   64d9c:      	str	x8, [sp, #0x4a0]
+   64da0:      	cbnz	x21, 0x65aa0 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x17dc>
+   64da4:      	b	0x64da8 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xae4>
+   64da8:      	ldr	x21, [sp, #0x498]
+   64dac:      	str	x21, [sp, #0x698]
+   64db0:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   64db4:      	ldr	x21, [sp, #0x718]
+   64db8:      	ldr	x20, [sp, #0x740]
+   64dbc:      	ldr	d2, [sp, #0x738]
+   64dc0:      	ldr	d1, [sp, #0x730]
+   64dc4:      	ldr	d0, [sp, #0x728]
+   64dc8:      	ldr	x1, [sp, #0x6e8]
+   64dcc:      	ldr	x0, [sp, #0x770]
+   64dd0:      	bl	0x64dd0 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xb0c>
+   64dd4:      	str	x21, [sp, #0x488]
+   64dd8:      	mov	x8, x21
+   64ddc:      	str	x8, [sp, #0x490]
+   64de0:      	cbnz	x21, 0x65abc <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x17f8>
+   64de4:      	b	0x64de8 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xb24>
+   64de8:      	ldr	x21, [sp, #0x488]
+   64dec:      	str	x21, [sp, #0x698]
+   64df0:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   64df4:      	ldr	x21, [sp, #0x718]
+   64df8:      	ldr	x20, [sp, #0x740]
+   64dfc:      	ldr	d2, [sp, #0x738]
+   64e00:      	ldr	d1, [sp, #0x730]
+   64e04:      	ldr	d0, [sp, #0x728]
+   64e08:      	ldr	x1, [sp, #0x6e8]
+   64e0c:      	ldr	x0, [sp, #0x770]
+   64e10:      	bl	0x64e10 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xb4c>
+   64e14:      	str	x21, [sp, #0x478]
+   64e18:      	mov	x8, x21
+   64e1c:      	str	x8, [sp, #0x480]
+   64e20:      	cbnz	x21, 0x65ad8 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1814>
+   64e24:      	b	0x64e28 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xb64>
+   64e28:      	ldr	x21, [sp, #0x478]
+   64e2c:      	str	x21, [sp, #0x698]
+   64e30:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   64e34:      	ldr	x21, [sp, #0x718]
+   64e38:      	ldr	x20, [sp, #0x740]
+   64e3c:      	ldr	d2, [sp, #0x738]
+   64e40:      	ldr	d1, [sp, #0x730]
+   64e44:      	ldr	d0, [sp, #0x728]
+   64e48:      	ldr	x1, [sp, #0x6e8]
+   64e4c:      	ldr	x0, [sp, #0x770]
+   64e50:      	bl	0x64e50 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xb8c>
+   64e54:      	str	x21, [sp, #0x468]
+   64e58:      	mov	x8, x21
+   64e5c:      	str	x8, [sp, #0x470]
+   64e60:      	cbnz	x21, 0x65af4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1830>
+   64e64:      	b	0x64e68 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xba4>
+   64e68:      	ldr	x21, [sp, #0x468]
+   64e6c:      	str	x21, [sp, #0x698]
+   64e70:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   64e74:      	ldr	x21, [sp, #0x718]
+   64e78:      	ldr	x20, [sp, #0x740]
+   64e7c:      	ldr	d2, [sp, #0x738]
+   64e80:      	ldr	d1, [sp, #0x730]
+   64e84:      	ldr	d0, [sp, #0x728]
+   64e88:      	ldr	x1, [sp, #0x6e8]
+   64e8c:      	ldr	x0, [sp, #0x770]
+   64e90:      	bl	0x64e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xbcc>
+   64e94:      	str	x21, [sp, #0x458]
+   64e98:      	mov	x8, x21
+   64e9c:      	str	x8, [sp, #0x460]
+   64ea0:      	cbnz	x21, 0x65b10 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x184c>
+   64ea4:      	b	0x64ea8 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xbe4>
+   64ea8:      	ldr	x21, [sp, #0x458]
+   64eac:      	str	x21, [sp, #0x698]
+   64eb0:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   64eb4:      	ldr	x21, [sp, #0x718]
+   64eb8:      	ldr	x20, [sp, #0x740]
+   64ebc:      	ldr	d2, [sp, #0x738]
+   64ec0:      	ldr	d1, [sp, #0x730]
+   64ec4:      	ldr	d0, [sp, #0x728]
+   64ec8:      	ldr	x1, [sp, #0x6e8]
+   64ecc:      	ldr	x0, [sp, #0x770]
+   64ed0:      	bl	0x64ed0 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xc0c>
+   64ed4:      	str	x21, [sp, #0x448]
+   64ed8:      	mov	x8, x21
+   64edc:      	str	x8, [sp, #0x450]
+   64ee0:      	cbnz	x21, 0x65b2c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1868>
+   64ee4:      	b	0x64ee8 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xc24>
+   64ee8:      	ldr	x21, [sp, #0x448]
+   64eec:      	str	x21, [sp, #0x698]
+   64ef0:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   64ef4:      	ldr	x21, [sp, #0x718]
+   64ef8:      	ldr	x20, [sp, #0x740]
+   64efc:      	ldr	x1, [sp, #0x6e8]
+   64f00:      	ldr	x0, [sp, #0x770]
+   64f04:      	bl	0x64f04 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xc40>
+   64f08:      	str	x21, [sp, #0x438]
+   64f0c:      	mov	x8, x21
+   64f10:      	str	x8, [sp, #0x440]
+   64f14:      	cbnz	x21, 0x65b48 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1884>
+   64f18:      	b	0x64f1c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xc58>
+   64f1c:      	ldr	x21, [sp, #0x438]
+   64f20:      	str	x21, [sp, #0x698]
+   64f24:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   64f28:      	ldr	x21, [sp, #0x718]
+   64f2c:      	ldr	x20, [sp, #0x740]
+   64f30:      	ldr	x1, [sp, #0x6e8]
+   64f34:      	ldr	x0, [sp, #0x770]
+   64f38:      	bl	0x64f38 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xc74>
+   64f3c:      	str	x21, [sp, #0x428]
+   64f40:      	mov	x8, x21
+   64f44:      	str	x8, [sp, #0x430]
+   64f48:      	cbnz	x21, 0x65b64 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x18a0>
+   64f4c:      	b	0x64f50 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xc8c>
+   64f50:      	ldr	x21, [sp, #0x428]
+   64f54:      	str	x21, [sp, #0x698]
+   64f58:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   64f5c:      	b	0x64f6c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xca8>
+   64f60:      	b	0x64f6c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xca8>
+   64f64:      	b	0x64f6c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xca8>
+   64f68:      	b	0x64f6c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xca8>
+   64f6c:      	ldr	x21, [sp, #0x718]
+   64f70:      	ldr	x20, [sp, #0x740]
+   64f74:      	ldr	x1, [sp, #0x6e8]
+   64f78:      	ldr	x0, [sp, #0x770]
+   64f7c:      	bl	0x64f7c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xcb8>
+   64f80:      	str	x21, [sp, #0x418]
+   64f84:      	mov	x8, x21
+   64f88:      	str	x8, [sp, #0x420]
+   64f8c:      	cbnz	x21, 0x65e74 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bb0>
+   64f90:      	b	0x64f94 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xcd0>
+   64f94:      	ldr	x21, [sp, #0x418]
+   64f98:      	str	x21, [sp, #0x698]
+   64f9c:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   64fa0:      	ldr	x21, [sp, #0x718]
+   64fa4:      	ldr	x20, [sp, #0x740]
+   64fa8:      	ldr	x1, [sp, #0x6e8]
+   64fac:      	ldr	x0, [sp, #0x770]
+   64fb0:      	bl	0x64fb0 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xcec>
+   64fb4:      	str	x21, [sp, #0x408]
+   64fb8:      	mov	x8, x21
+   64fbc:      	str	x8, [sp, #0x410]
+   64fc0:      	cbnz	x21, 0x65b80 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x18bc>
+   64fc4:      	b	0x64fc8 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xd04>
+   64fc8:      	ldr	x21, [sp, #0x408]
+   64fcc:      	str	x21, [sp, #0x698]
+   64fd0:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   64fd4:      	ldr	x21, [sp, #0x718]
+   64fd8:      	ldr	x20, [sp, #0x740]
+   64fdc:      	ldr	x1, [sp, #0x6e8]
+   64fe0:      	ldr	x0, [sp, #0x770]
+   64fe4:      	bl	0x64fe4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xd20>
+   64fe8:      	str	x21, [sp, #0x3f8]
+   64fec:      	mov	x8, x21
+   64ff0:      	str	x8, [sp, #0x400]
+   64ff4:      	cbnz	x21, 0x65b9c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x18d8>
+   64ff8:      	b	0x64ffc <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xd38>
+   64ffc:      	ldr	x21, [sp, #0x3f8]
+   65000:      	str	x21, [sp, #0x698]
+   65004:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   65008:      	ldr	x21, [sp, #0x718]
+   6500c:      	ldr	x20, [sp, #0x740]
+   65010:      	ldr	x1, [sp, #0x6e8]
+   65014:      	ldr	x0, [sp, #0x770]
+   65018:      	bl	0x65018 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xd54>
+   6501c:      	str	x21, [sp, #0x3e8]
+   65020:      	mov	x8, x21
+   65024:      	str	x8, [sp, #0x3f0]
+   65028:      	cbnz	x21, 0x65bb8 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x18f4>
+   6502c:      	b	0x65030 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xd6c>
+   65030:      	ldr	x21, [sp, #0x3e8]
+   65034:      	str	x21, [sp, #0x698]
+   65038:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   6503c:      	ldr	x21, [sp, #0x718]
+   65040:      	ldr	x20, [sp, #0x740]
+   65044:      	ldr	x1, [sp, #0x6e8]
+   65048:      	ldr	x0, [sp, #0x770]
+   6504c:      	bl	0x6504c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xd88>
+   65050:      	str	x21, [sp, #0x3d8]
+   65054:      	mov	x8, x21
+   65058:      	str	x8, [sp, #0x3e0]
+   6505c:      	cbnz	x21, 0x65bd4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1910>
+   65060:      	b	0x65064 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xda0>
+   65064:      	ldr	x21, [sp, #0x3d8]
+   65068:      	str	x21, [sp, #0x698]
+   6506c:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   65070:      	ldr	x21, [sp, #0x718]
+   65074:      	ldr	x20, [sp, #0x740]
+   65078:      	ldr	x1, [sp, #0x6e8]
+   6507c:      	ldr	x0, [sp, #0x770]
+   65080:      	bl	0x65080 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xdbc>
+   65084:      	str	x21, [sp, #0x3c8]
+   65088:      	mov	x8, x21
+   6508c:      	str	x8, [sp, #0x3d0]
+   65090:      	cbnz	x21, 0x65bf0 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x192c>
+   65094:      	b	0x65098 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xdd4>
+   65098:      	ldr	x21, [sp, #0x3c8]
+   6509c:      	str	x21, [sp, #0x698]
+   650a0:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   650a4:      	ldr	x21, [sp, #0x718]
+   650a8:      	ldr	x20, [sp, #0x740]
+   650ac:      	ldr	x1, [sp, #0x6e8]
+   650b0:      	ldr	x0, [sp, #0x770]
+   650b4:      	bl	0x650b4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xdf0>
+   650b8:      	str	x21, [sp, #0x3b8]
+   650bc:      	mov	x8, x21
+   650c0:      	str	x8, [sp, #0x3c0]
+   650c4:      	cbnz	x21, 0x65c0c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1948>
+   650c8:      	b	0x650cc <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xe08>
+   650cc:      	ldr	x21, [sp, #0x3b8]
+   650d0:      	str	x21, [sp, #0x698]
+   650d4:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   650d8:      	ldr	x21, [sp, #0x718]
+   650dc:      	ldr	x20, [sp, #0x740]
+   650e0:      	ldr	x1, [sp, #0x6e8]
+   650e4:      	ldr	x0, [sp, #0x770]
+   650e8:      	bl	0x650e8 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xe24>
+   650ec:      	str	x21, [sp, #0x3a8]
+   650f0:      	mov	x8, x21
+   650f4:      	str	x8, [sp, #0x3b0]
+   650f8:      	cbnz	x21, 0x65c28 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1964>
+   650fc:      	b	0x65100 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xe3c>
+   65100:      	ldr	x21, [sp, #0x3a8]
+   65104:      	str	x21, [sp, #0x698]
+   65108:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   6510c:      	ldr	x21, [sp, #0x718]
+   65110:      	ldr	x20, [sp, #0x740]
+   65114:      	ldr	x1, [sp, #0x6e8]
+   65118:      	ldr	x0, [sp, #0x770]
+   6511c:      	bl	0x6511c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xe58>
+   65120:      	str	x21, [sp, #0x398]
+   65124:      	mov	x8, x21
+   65128:      	str	x8, [sp, #0x3a0]
+   6512c:      	cbnz	x21, 0x65c44 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1980>
+   65130:      	b	0x65134 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xe70>
+   65134:      	ldr	x21, [sp, #0x398]
+   65138:      	str	x21, [sp, #0x698]
+   6513c:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   65140:      	ldr	x21, [sp, #0x718]
+   65144:      	ldr	x20, [sp, #0x740]
+   65148:      	ldr	x1, [sp, #0x6e8]
+   6514c:      	ldr	x0, [sp, #0x770]
+   65150:      	bl	0x65150 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xe8c>
+   65154:      	str	x21, [sp, #0x388]
+   65158:      	mov	x8, x21
+   6515c:      	str	x8, [sp, #0x390]
+   65160:      	cbnz	x21, 0x65c60 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x199c>
+   65164:      	b	0x65168 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xea4>
+   65168:      	ldr	x21, [sp, #0x388]
+   6516c:      	str	x21, [sp, #0x698]
+   65170:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   65174:      	ldr	x21, [sp, #0x718]
+   65178:      	ldr	x20, [sp, #0x740]
+   6517c:      	ldr	d2, [sp, #0x738]
+   65180:      	ldr	d1, [sp, #0x730]
+   65184:      	ldr	d0, [sp, #0x728]
+   65188:      	ldr	x1, [sp, #0x6e8]
+   6518c:      	ldr	x0, [sp, #0x770]
+   65190:      	bl	0x65190 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xecc>
+   65194:      	str	x21, [sp, #0x378]
+   65198:      	mov	x8, x21
+   6519c:      	str	x8, [sp, #0x380]
+   651a0:      	cbnz	x21, 0x65c7c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x19b8>
+   651a4:      	b	0x651a8 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xee4>
+   651a8:      	ldr	x21, [sp, #0x378]
+   651ac:      	str	x21, [sp, #0x698]
+   651b0:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   651b4:      	ldr	x21, [sp, #0x718]
+   651b8:      	ldr	x20, [sp, #0x740]
+   651bc:      	ldr	d2, [sp, #0x738]
+   651c0:      	ldr	d1, [sp, #0x730]
+   651c4:      	ldr	d0, [sp, #0x728]
+   651c8:      	ldr	x1, [sp, #0x6e8]
+   651cc:      	ldr	x0, [sp, #0x770]
+   651d0:      	bl	0x651d0 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xf0c>
+   651d4:      	str	x21, [sp, #0x368]
+   651d8:      	mov	x8, x21
+   651dc:      	str	x8, [sp, #0x370]
+   651e0:      	cbnz	x21, 0x65c98 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x19d4>
+   651e4:      	b	0x651e8 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xf24>
+   651e8:      	ldr	x21, [sp, #0x368]
+   651ec:      	str	x21, [sp, #0x698]
+   651f0:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   651f4:      	ldr	x21, [sp, #0x718]
+   651f8:      	ldr	x20, [sp, #0x740]
+   651fc:      	ldr	d2, [sp, #0x738]
+   65200:      	ldr	d1, [sp, #0x730]
+   65204:      	ldr	d0, [sp, #0x728]
+   65208:      	ldr	x1, [sp, #0x6e8]
+   6520c:      	ldr	x0, [sp, #0x770]
+   65210:      	bl	0x65210 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xf4c>
+   65214:      	str	x21, [sp, #0x358]
+   65218:      	mov	x8, x21
+   6521c:      	str	x8, [sp, #0x360]
+   65220:      	cbnz	x21, 0x65cb4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x19f0>
+   65224:      	b	0x65228 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xf64>
+   65228:      	ldr	x21, [sp, #0x358]
+   6522c:      	str	x21, [sp, #0x698]
+   65230:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   65234:      	ldr	x21, [sp, #0x718]
+   65238:      	ldr	x20, [sp, #0x740]
+   6523c:      	ldr	d2, [sp, #0x738]
+   65240:      	ldr	d1, [sp, #0x730]
+   65244:      	ldr	d0, [sp, #0x728]
+   65248:      	ldr	x1, [sp, #0x6e8]
+   6524c:      	ldr	x0, [sp, #0x770]
+   65250:      	bl	0x65250 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xf8c>
+   65254:      	str	x21, [sp, #0x348]
+   65258:      	mov	x8, x21
+   6525c:      	str	x8, [sp, #0x350]
+   65260:      	cbnz	x21, 0x65cd0 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1a0c>
+   65264:      	b	0x65268 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xfa4>
+   65268:      	ldr	x21, [sp, #0x348]
+   6526c:      	str	x21, [sp, #0x698]
+   65270:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   65274:      	ldr	x21, [sp, #0x718]
+   65278:      	ldr	x20, [sp, #0x740]
+   6527c:      	ldr	d2, [sp, #0x738]
+   65280:      	ldr	d1, [sp, #0x730]
+   65284:      	ldr	d0, [sp, #0x728]
+   65288:      	ldr	x1, [sp, #0x6e8]
+   6528c:      	ldr	x0, [sp, #0x770]
+   65290:      	bl	0x65290 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xfcc>
+   65294:      	str	x21, [sp, #0x338]
+   65298:      	mov	x8, x21
+   6529c:      	str	x8, [sp, #0x340]
+   652a0:      	cbnz	x21, 0x65cec <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1a28>
+   652a4:      	b	0x652a8 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xfe4>
+   652a8:      	ldr	x21, [sp, #0x338]
+   652ac:      	str	x21, [sp, #0x698]
+   652b0:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   652b4:      	ldr	x21, [sp, #0x718]
+   652b8:      	ldr	x20, [sp, #0x740]
+   652bc:      	ldr	d2, [sp, #0x738]
+   652c0:      	ldr	d1, [sp, #0x730]
+   652c4:      	ldr	d0, [sp, #0x728]
+   652c8:      	ldr	x1, [sp, #0x6e8]
+   652cc:      	ldr	x0, [sp, #0x770]
+   652d0:      	bl	0x652d0 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x100c>
+   652d4:      	str	x21, [sp, #0x328]
+   652d8:      	mov	x8, x21
+   652dc:      	str	x8, [sp, #0x330]
+   652e0:      	cbnz	x21, 0x65d08 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1a44>
+   652e4:      	b	0x652e8 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1024>
+   652e8:      	ldr	x21, [sp, #0x328]
+   652ec:      	str	x21, [sp, #0x698]
+   652f0:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   652f4:      	ldr	x21, [sp, #0x718]
+   652f8:      	ldr	x20, [sp, #0x740]
+   652fc:      	ldr	d2, [sp, #0x738]
+   65300:      	ldr	d1, [sp, #0x730]
+   65304:      	ldr	d0, [sp, #0x728]
+   65308:      	ldr	x1, [sp, #0x6e8]
+   6530c:      	ldr	x0, [sp, #0x770]
+   65310:      	bl	0x65310 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x104c>
+   65314:      	str	x21, [sp, #0x318]
+   65318:      	mov	x8, x21
+   6531c:      	str	x8, [sp, #0x320]
+   65320:      	cbnz	x21, 0x65d24 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1a60>
+   65324:      	b	0x65328 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1064>
+   65328:      	ldr	x21, [sp, #0x318]
+   6532c:      	str	x21, [sp, #0x698]
+   65330:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   65334:      	ldr	x21, [sp, #0x718]
+   65338:      	ldr	x20, [sp, #0x740]
+   6533c:      	ldr	d2, [sp, #0x738]
+   65340:      	ldr	d1, [sp, #0x730]
+   65344:      	ldr	d0, [sp, #0x728]
+   65348:      	ldr	x1, [sp, #0x6e8]
+   6534c:      	ldr	x0, [sp, #0x770]
+   65350:      	bl	0x65350 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x108c>
+   65354:      	str	x21, [sp, #0x308]
+   65358:      	mov	x8, x21
+   6535c:      	str	x8, [sp, #0x310]
+   65360:      	cbnz	x21, 0x65d40 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1a7c>
+   65364:      	b	0x65368 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x10a4>
+   65368:      	ldr	x21, [sp, #0x308]
+   6536c:      	str	x21, [sp, #0x698]
+   65370:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   65374:      	ldr	x21, [sp, #0x718]
+   65378:      	ldr	x20, [sp, #0x740]
+   6537c:      	ldr	d2, [sp, #0x738]
+   65380:      	ldr	d1, [sp, #0x730]
+   65384:      	ldr	d0, [sp, #0x728]
+   65388:      	ldr	x1, [sp, #0x6e8]
+   6538c:      	ldr	x0, [sp, #0x770]
+   65390:      	bl	0x65390 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x10cc>
+   65394:      	str	x21, [sp, #0x2f8]
+   65398:      	mov	x8, x21
+   6539c:      	str	x8, [sp, #0x300]
+   653a0:      	cbnz	x21, 0x65d5c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1a98>
+   653a4:      	b	0x653a8 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x10e4>
+   653a8:      	ldr	x21, [sp, #0x2f8]
+   653ac:      	str	x21, [sp, #0x698]
+   653b0:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   653b4:      	ldr	x21, [sp, #0x718]
+   653b8:      	ldr	x20, [sp, #0x740]
+   653bc:      	ldr	d2, [sp, #0x738]
+   653c0:      	ldr	d1, [sp, #0x730]
+   653c4:      	ldr	d0, [sp, #0x728]
+   653c8:      	ldr	x1, [sp, #0x6e8]
+   653cc:      	ldr	x0, [sp, #0x770]
+   653d0:      	bl	0x653d0 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x110c>
+   653d4:      	str	x21, [sp, #0x2e8]
+   653d8:      	mov	x8, x21
+   653dc:      	str	x8, [sp, #0x2f0]
+   653e0:      	cbnz	x21, 0x65d78 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1ab4>
+   653e4:      	b	0x653e8 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1124>
+   653e8:      	ldr	x21, [sp, #0x2e8]
+   653ec:      	str	x21, [sp, #0x698]
+   653f0:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   653f4:      	ldr	x21, [sp, #0x718]
+   653f8:      	ldr	x20, [sp, #0x740]
+   653fc:      	ldr	d2, [sp, #0x738]
+   65400:      	ldr	d1, [sp, #0x730]
+   65404:      	ldr	d0, [sp, #0x728]
+   65408:      	ldr	x1, [sp, #0x6e8]
+   6540c:      	ldr	x0, [sp, #0x770]
+   65410:      	bl	0x65410 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x114c>
+   65414:      	str	x21, [sp, #0x2d8]
+   65418:      	mov	x8, x21
+   6541c:      	str	x8, [sp, #0x2e0]
+   65420:      	cbnz	x21, 0x65d94 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1ad0>
+   65424:      	b	0x65428 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1164>
+   65428:      	ldr	x21, [sp, #0x2d8]
+   6542c:      	str	x21, [sp, #0x698]
+   65430:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   65434:      	ldr	x21, [sp, #0x718]
+   65438:      	ldr	x20, [sp, #0x740]
+   6543c:      	ldr	d2, [sp, #0x738]
+   65440:      	ldr	d1, [sp, #0x730]
+   65444:      	ldr	d0, [sp, #0x728]
+   65448:      	ldr	x1, [sp, #0x6e8]
+   6544c:      	ldr	x0, [sp, #0x770]
+   65450:      	bl	0x65450 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x118c>
+   65454:      	str	x21, [sp, #0x2c8]
+   65458:      	mov	x8, x21
+   6545c:      	str	x8, [sp, #0x2d0]
+   65460:      	cbnz	x21, 0x65db0 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1aec>
+   65464:      	b	0x65468 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x11a4>
+   65468:      	ldr	x21, [sp, #0x2c8]
+   6546c:      	str	x21, [sp, #0x698]
+   65470:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   65474:      	ldr	x21, [sp, #0x718]
+   65478:      	ldr	x20, [sp, #0x740]
+   6547c:      	ldr	d2, [sp, #0x738]
+   65480:      	ldr	d1, [sp, #0x730]
+   65484:      	ldr	d0, [sp, #0x728]
+   65488:      	ldr	x1, [sp, #0x6e8]
+   6548c:      	ldr	x0, [sp, #0x770]
+   65490:      	bl	0x65490 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x11cc>
+   65494:      	str	x21, [sp, #0x2b8]
+   65498:      	mov	x8, x21
+   6549c:      	str	x8, [sp, #0x2c0]
+   654a0:      	cbnz	x21, 0x65dcc <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1b08>
+   654a4:      	b	0x654a8 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x11e4>
+   654a8:      	ldr	x21, [sp, #0x2b8]
+   654ac:      	str	x21, [sp, #0x698]
+   654b0:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   654b4:      	ldr	x21, [sp, #0x718]
+   654b8:      	ldr	x20, [sp, #0x740]
+   654bc:      	ldr	d2, [sp, #0x738]
+   654c0:      	ldr	d1, [sp, #0x730]
+   654c4:      	ldr	d0, [sp, #0x728]
+   654c8:      	ldr	x1, [sp, #0x6e8]
+   654cc:      	ldr	x0, [sp, #0x770]
+   654d0:      	bl	0x654d0 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x120c>
+   654d4:      	str	x21, [sp, #0x2a8]
+   654d8:      	mov	x8, x21
+   654dc:      	str	x8, [sp, #0x2b0]
+   654e0:      	cbnz	x21, 0x65de8 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1b24>
+   654e4:      	b	0x654e8 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1224>
+   654e8:      	ldr	x21, [sp, #0x2a8]
+   654ec:      	str	x21, [sp, #0x698]
+   654f0:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   654f4:      	ldr	x21, [sp, #0x718]
+   654f8:      	ldr	x20, [sp, #0x740]
+   654fc:      	ldr	d2, [sp, #0x738]
+   65500:      	ldr	d1, [sp, #0x730]
+   65504:      	ldr	d0, [sp, #0x728]
+   65508:      	ldr	x1, [sp, #0x6e8]
+   6550c:      	ldr	x0, [sp, #0x770]
+   65510:      	bl	0x65510 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x124c>
+   65514:      	str	x21, [sp, #0x298]
+   65518:      	mov	x8, x21
+   6551c:      	str	x8, [sp, #0x2a0]
+   65520:      	cbnz	x21, 0x65e04 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1b40>
+   65524:      	b	0x65528 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1264>
+   65528:      	ldr	x21, [sp, #0x298]
+   6552c:      	str	x21, [sp, #0x698]
+   65530:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   65534:      	ldr	x21, [sp, #0x718]
+   65538:      	ldr	x20, [sp, #0x740]
+   6553c:      	ldr	d2, [sp, #0x738]
+   65540:      	ldr	d1, [sp, #0x730]
+   65544:      	ldr	d0, [sp, #0x728]
+   65548:      	ldr	x1, [sp, #0x6e8]
+   6554c:      	ldr	x0, [sp, #0x770]
+   65550:      	bl	0x65550 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x128c>
+   65554:      	str	x21, [sp, #0x288]
+   65558:      	mov	x8, x21
+   6555c:      	str	x8, [sp, #0x290]
+   65560:      	cbnz	x21, 0x65e20 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1b5c>
+   65564:      	b	0x65568 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x12a4>
+   65568:      	ldr	x21, [sp, #0x288]
+   6556c:      	str	x21, [sp, #0x698]
+   65570:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   65574:      	ldr	x21, [sp, #0x718]
+   65578:      	ldr	x20, [sp, #0x740]
+   6557c:      	ldr	d2, [sp, #0x738]
+   65580:      	ldr	d1, [sp, #0x730]
+   65584:      	ldr	d0, [sp, #0x728]
+   65588:      	ldr	x1, [sp, #0x6e8]
+   6558c:      	ldr	x0, [sp, #0x770]
+   65590:      	bl	0x65590 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x12cc>
+   65594:      	str	x21, [sp, #0x278]
+   65598:      	mov	x8, x21
+   6559c:      	str	x8, [sp, #0x280]
+   655a0:      	cbnz	x21, 0x65e3c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1b78>
+   655a4:      	b	0x655a8 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x12e4>
+   655a8:      	ldr	x21, [sp, #0x278]
+   655ac:      	str	x21, [sp, #0x698]
+   655b0:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   655b4:      	ldr	x21, [sp, #0x718]
+   655b8:      	ldr	x20, [sp, #0x740]
+   655bc:      	ldr	d2, [sp, #0x738]
+   655c0:      	ldr	d1, [sp, #0x730]
+   655c4:      	ldr	d0, [sp, #0x728]
+   655c8:      	ldr	x1, [sp, #0x6e8]
+   655cc:      	ldr	x0, [sp, #0x770]
+   655d0:      	bl	0x655d0 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x130c>
+   655d4:      	str	x21, [sp, #0x268]
+   655d8:      	mov	x8, x21
+   655dc:      	str	x8, [sp, #0x270]
+   655e0:      	cbnz	x21, 0x65e58 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1b94>
+   655e4:      	b	0x655e8 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1324>
+   655e8:      	ldr	x0, [sp, #0x268]
+   655ec:      	str	x0, [sp, #0x698]
+   655f0:      	b	0x655f4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1330>
+   655f4:      	ldr	x0, [sp, #0x6e8]
+   655f8:      	ldr	x1, [sp, #0x698]
+   655fc:      	str	x1, [sp, #0x260]
+   65600:      	bl	0x65600 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x133c>
+   65604:      	ldr	x21, [sp, #0x260]
+   65608:      	add	sp, sp, #0x3, lsl #12   ; =0x3000
+   6560c:      	add	sp, sp, #0xc40
+   65610:      	ldp	x29, x30, [sp, #0x10]
+   65614:      	ldp	x28, x20, [sp], #0x20
+   65618:      	ret
+   6561c:      	ldr	x20, [sp, #0x710]
+   65620:      	adrp	x0, 0x65000 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xd3c>
+   65624:      	add	x0, x0, #0x0
+   65628:      	mov	w8, #0x28               ; =40
+   6562c:      	mov	x1, x8
+   65630:      	mov	w8, #0x1                ; =1
+   65634:      	and	w2, w8, #0x1
+   65638:      	bl	0x65638 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1374>
+   6563c:      	str	x0, [sp, #0x248]
+   65640:      	str	x1, [sp, #0x240]
+   65644:      	bl	0x65644 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1380>
+   65648:      	mov	x1, x0
+   6564c:      	adrp	x0, 0x65000 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xd3c>
+   65650:      	ldr	x0, [x0]
+   65654:      	mov	x2, #0x0                ; =0
+   65658:      	mov	w8, #0x0                ; =0
+   6565c:      	and	w3, w8, #0x1
+   65660:      	bl	0x65660 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x139c>
+   65664:      	ldr	x8, [sp, #0x240]
+   65668:      	mov	x21, x0
+   6566c:      	ldr	x0, [sp, #0x248]
+   65670:      	str	x21, [sp, #0x250]
+   65674:      	str	x0, [x1]
+   65678:      	str	x8, [x1, #0x8]
+   6567c:      	str	xzr, [x1, #0x10]
+   65680:      	strb	wzr, [x1, #0x18]
+   65684:      	bl	0x65684 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x13c0>
+   65688:      	ldr	x0, [sp, #0x6e8]
+   6568c:      	bl	0x6568c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x13c8>
+   65690:      	ldr	x0, [sp, #0x250]
+   65694:      	str	x0, [sp, #0x258]
+   65698:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   6569c:      	ldr	x20, [sp, #0x710]
+   656a0:      	adrp	x0, 0x65000 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xd3c>
+   656a4:      	add	x0, x0, #0x0
+   656a8:      	mov	w8, #0x2c               ; =44
+   656ac:      	mov	x1, x8
+   656b0:      	mov	w8, #0x1                ; =1
+   656b4:      	and	w2, w8, #0x1
+   656b8:      	bl	0x656b8 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x13f4>
+   656bc:      	str	x0, [sp, #0x230]
+   656c0:      	str	x1, [sp, #0x228]
+   656c4:      	bl	0x656c4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1400>
+   656c8:      	mov	x1, x0
+   656cc:      	adrp	x0, 0x65000 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0xd3c>
+   656d0:      	ldr	x0, [x0]
+   656d4:      	mov	x2, #0x0                ; =0
+   656d8:      	mov	w8, #0x0                ; =0
+   656dc:      	and	w3, w8, #0x1
+   656e0:      	bl	0x656e0 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x141c>
+   656e4:      	ldr	x8, [sp, #0x228]
+   656e8:      	mov	x21, x0
+   656ec:      	ldr	x0, [sp, #0x230]
+   656f0:      	str	x21, [sp, #0x238]
+   656f4:      	str	x0, [x1]
+   656f8:      	str	x8, [x1, #0x8]
+   656fc:      	str	xzr, [x1, #0x10]
+   65700:      	strb	wzr, [x1, #0x18]
+   65704:      	bl	0x65704 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1440>
+   65708:      	ldr	x0, [sp, #0x238]
+   6570c:      	str	x0, [sp, #0x258]
+   65710:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65714:      	ldr	x0, [sp, #0x700]
+   65718:      	bl	0x65718 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1454>
+   6571c:      	brk	#0x1
+   65720:      	ldr	x0, [sp, #0x6e8]
+   65724:      	ldr	x8, [sp, #0x6a8]
+   65728:      	str	x8, [sp, #0x220]
+   6572c:      	bl	0x6572c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1468>
+   65730:      	ldr	x8, [sp, #0x220]
+   65734:      	str	x8, [sp, #0x258]
+   65738:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   6573c:      	ldr	x0, [sp, #0x6e8]
+   65740:      	ldr	x8, [sp, #0x690]
+   65744:      	str	x8, [sp, #0x218]
+   65748:      	bl	0x65748 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1484>
+   6574c:      	ldr	x8, [sp, #0x218]
+   65750:      	str	x8, [sp, #0x258]
+   65754:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65758:      	ldr	x0, [sp, #0x6e8]
+   6575c:      	ldr	x8, [sp, #0x680]
+   65760:      	str	x8, [sp, #0x210]
+   65764:      	bl	0x65764 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x14a0>
+   65768:      	ldr	x8, [sp, #0x210]
+   6576c:      	str	x8, [sp, #0x258]
+   65770:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65774:      	ldr	x0, [sp, #0x6e8]
+   65778:      	ldr	x8, [sp, #0x670]
+   6577c:      	str	x8, [sp, #0x208]
+   65780:      	bl	0x65780 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x14bc>
+   65784:      	ldr	x8, [sp, #0x208]
+   65788:      	str	x8, [sp, #0x258]
+   6578c:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65790:      	ldr	x0, [sp, #0x6e8]
+   65794:      	ldr	x8, [sp, #0x660]
+   65798:      	str	x8, [sp, #0x200]
+   6579c:      	bl	0x6579c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x14d8>
+   657a0:      	ldr	x8, [sp, #0x200]
+   657a4:      	str	x8, [sp, #0x258]
+   657a8:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   657ac:      	ldr	x0, [sp, #0x6e8]
+   657b0:      	ldr	x8, [sp, #0x650]
+   657b4:      	str	x8, [sp, #0x1f8]
+   657b8:      	bl	0x657b8 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x14f4>
+   657bc:      	ldr	x8, [sp, #0x1f8]
+   657c0:      	str	x8, [sp, #0x258]
+   657c4:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   657c8:      	ldr	x0, [sp, #0x6e8]
+   657cc:      	ldr	x8, [sp, #0x640]
+   657d0:      	str	x8, [sp, #0x1f0]
+   657d4:      	bl	0x657d4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1510>
+   657d8:      	ldr	x8, [sp, #0x1f0]
+   657dc:      	str	x8, [sp, #0x258]
+   657e0:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   657e4:      	ldr	x0, [sp, #0x6e8]
+   657e8:      	ldr	x8, [sp, #0x630]
+   657ec:      	str	x8, [sp, #0x1e8]
+   657f0:      	bl	0x657f0 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x152c>
+   657f4:      	ldr	x8, [sp, #0x1e8]
+   657f8:      	str	x8, [sp, #0x258]
+   657fc:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65800:      	ldr	x0, [sp, #0x6e8]
+   65804:      	ldr	x8, [sp, #0x620]
+   65808:      	str	x8, [sp, #0x1e0]
+   6580c:      	bl	0x6580c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1548>
+   65810:      	ldr	x8, [sp, #0x1e0]
+   65814:      	str	x8, [sp, #0x258]
+   65818:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   6581c:      	ldr	x0, [sp, #0x6e8]
+   65820:      	ldr	x8, [sp, #0x610]
+   65824:      	str	x8, [sp, #0x1d8]
+   65828:      	bl	0x65828 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1564>
+   6582c:      	ldr	x8, [sp, #0x1d8]
+   65830:      	str	x8, [sp, #0x258]
+   65834:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65838:      	ldr	x0, [sp, #0x6e8]
+   6583c:      	ldr	x8, [sp, #0x600]
+   65840:      	str	x8, [sp, #0x1d0]
+   65844:      	bl	0x65844 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1580>
+   65848:      	ldr	x8, [sp, #0x1d0]
+   6584c:      	str	x8, [sp, #0x258]
+   65850:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65854:      	ldr	x0, [sp, #0x6e8]
+   65858:      	ldr	x8, [sp, #0x5f0]
+   6585c:      	str	x8, [sp, #0x1c8]
+   65860:      	bl	0x65860 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x159c>
+   65864:      	ldr	x8, [sp, #0x1c8]
+   65868:      	str	x8, [sp, #0x258]
+   6586c:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65870:      	ldr	x0, [sp, #0x6e8]
+   65874:      	ldr	x8, [sp, #0x5e0]
+   65878:      	str	x8, [sp, #0x1c0]
+   6587c:      	bl	0x6587c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x15b8>
+   65880:      	ldr	x8, [sp, #0x1c0]
+   65884:      	str	x8, [sp, #0x258]
+   65888:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   6588c:      	ldr	x0, [sp, #0x6e8]
+   65890:      	ldr	x8, [sp, #0x5d0]
+   65894:      	str	x8, [sp, #0x1b8]
+   65898:      	bl	0x65898 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x15d4>
+   6589c:      	ldr	x8, [sp, #0x1b8]
+   658a0:      	str	x8, [sp, #0x258]
+   658a4:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   658a8:      	ldr	x0, [sp, #0x6e8]
+   658ac:      	ldr	x8, [sp, #0x5c0]
+   658b0:      	str	x8, [sp, #0x1b0]
+   658b4:      	bl	0x658b4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x15f0>
+   658b8:      	ldr	x8, [sp, #0x1b0]
+   658bc:      	str	x8, [sp, #0x258]
+   658c0:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   658c4:      	ldr	x0, [sp, #0x6e8]
+   658c8:      	ldr	x8, [sp, #0x5b0]
+   658cc:      	str	x8, [sp, #0x1a8]
+   658d0:      	bl	0x658d0 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x160c>
+   658d4:      	ldr	x8, [sp, #0x1a8]
+   658d8:      	str	x8, [sp, #0x258]
+   658dc:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   658e0:      	ldr	x0, [sp, #0x6e8]
+   658e4:      	ldr	x8, [sp, #0x5a0]
+   658e8:      	str	x8, [sp, #0x1a0]
+   658ec:      	bl	0x658ec <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1628>
+   658f0:      	ldr	x8, [sp, #0x1a0]
+   658f4:      	str	x8, [sp, #0x258]
+   658f8:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   658fc:      	ldr	x0, [sp, #0x6e8]
+   65900:      	ldr	x8, [sp, #0x590]
+   65904:      	str	x8, [sp, #0x198]
+   65908:      	bl	0x65908 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1644>
+   6590c:      	ldr	x8, [sp, #0x198]
+   65910:      	str	x8, [sp, #0x258]
+   65914:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65918:      	ldr	x0, [sp, #0x6e8]
+   6591c:      	ldr	x8, [sp, #0x580]
+   65920:      	str	x8, [sp, #0x190]
+   65924:      	bl	0x65924 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1660>
+   65928:      	ldr	x8, [sp, #0x190]
+   6592c:      	str	x8, [sp, #0x258]
+   65930:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65934:      	ldr	x0, [sp, #0x6e8]
+   65938:      	ldr	x8, [sp, #0x570]
+   6593c:      	str	x8, [sp, #0x188]
+   65940:      	bl	0x65940 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x167c>
+   65944:      	ldr	x8, [sp, #0x188]
+   65948:      	str	x8, [sp, #0x258]
+   6594c:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65950:      	ldr	x0, [sp, #0x6e8]
+   65954:      	ldr	x8, [sp, #0x560]
+   65958:      	str	x8, [sp, #0x180]
+   6595c:      	bl	0x6595c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1698>
+   65960:      	ldr	x8, [sp, #0x180]
+   65964:      	str	x8, [sp, #0x258]
+   65968:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   6596c:      	ldr	x0, [sp, #0x6e8]
+   65970:      	ldr	x8, [sp, #0x550]
+   65974:      	str	x8, [sp, #0x178]
+   65978:      	bl	0x65978 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x16b4>
+   6597c:      	ldr	x8, [sp, #0x178]
+   65980:      	str	x8, [sp, #0x258]
+   65984:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65988:      	ldr	x0, [sp, #0x6e8]
+   6598c:      	ldr	x8, [sp, #0x540]
+   65990:      	str	x8, [sp, #0x170]
+   65994:      	bl	0x65994 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x16d0>
+   65998:      	ldr	x8, [sp, #0x170]
+   6599c:      	str	x8, [sp, #0x258]
+   659a0:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   659a4:      	ldr	x0, [sp, #0x6e8]
+   659a8:      	ldr	x8, [sp, #0x530]
+   659ac:      	str	x8, [sp, #0x168]
+   659b0:      	bl	0x659b0 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x16ec>
+   659b4:      	ldr	x8, [sp, #0x168]
+   659b8:      	str	x8, [sp, #0x258]
+   659bc:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   659c0:      	ldr	x0, [sp, #0x6e8]
+   659c4:      	ldr	x8, [sp, #0x520]
+   659c8:      	str	x8, [sp, #0x160]
+   659cc:      	bl	0x659cc <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1708>
+   659d0:      	ldr	x8, [sp, #0x160]
+   659d4:      	str	x8, [sp, #0x258]
+   659d8:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   659dc:      	ldr	x0, [sp, #0x6e8]
+   659e0:      	ldr	x8, [sp, #0x510]
+   659e4:      	str	x8, [sp, #0x158]
+   659e8:      	bl	0x659e8 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1724>
+   659ec:      	ldr	x8, [sp, #0x158]
+   659f0:      	str	x8, [sp, #0x258]
+   659f4:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   659f8:      	ldr	x0, [sp, #0x6e8]
+   659fc:      	ldr	x8, [sp, #0x500]
+   65a00:      	str	x8, [sp, #0x150]
+   65a04:      	bl	0x65a04 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1740>
+   65a08:      	ldr	x8, [sp, #0x150]
+   65a0c:      	str	x8, [sp, #0x258]
+   65a10:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65a14:      	ldr	x0, [sp, #0x6e8]
+   65a18:      	ldr	x8, [sp, #0x4f0]
+   65a1c:      	str	x8, [sp, #0x148]
+   65a20:      	bl	0x65a20 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x175c>
+   65a24:      	ldr	x8, [sp, #0x148]
+   65a28:      	str	x8, [sp, #0x258]
+   65a2c:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65a30:      	ldr	x0, [sp, #0x6e8]
+   65a34:      	ldr	x8, [sp, #0x4e0]
+   65a38:      	str	x8, [sp, #0x140]
+   65a3c:      	bl	0x65a3c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1778>
+   65a40:      	ldr	x8, [sp, #0x140]
+   65a44:      	str	x8, [sp, #0x258]
+   65a48:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65a4c:      	ldr	x0, [sp, #0x6e8]
+   65a50:      	ldr	x8, [sp, #0x4d0]
+   65a54:      	str	x8, [sp, #0x138]
+   65a58:      	bl	0x65a58 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1794>
+   65a5c:      	ldr	x8, [sp, #0x138]
+   65a60:      	str	x8, [sp, #0x258]
+   65a64:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65a68:      	ldr	x0, [sp, #0x6e8]
+   65a6c:      	ldr	x8, [sp, #0x4c0]
+   65a70:      	str	x8, [sp, #0x130]
+   65a74:      	bl	0x65a74 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x17b0>
+   65a78:      	ldr	x8, [sp, #0x130]
+   65a7c:      	str	x8, [sp, #0x258]
+   65a80:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65a84:      	ldr	x0, [sp, #0x6e8]
+   65a88:      	ldr	x8, [sp, #0x4b0]
+   65a8c:      	str	x8, [sp, #0x128]
+   65a90:      	bl	0x65a90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x17cc>
+   65a94:      	ldr	x8, [sp, #0x128]
+   65a98:      	str	x8, [sp, #0x258]
+   65a9c:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65aa0:      	ldr	x0, [sp, #0x6e8]
+   65aa4:      	ldr	x8, [sp, #0x4a0]
+   65aa8:      	str	x8, [sp, #0x120]
+   65aac:      	bl	0x65aac <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x17e8>
+   65ab0:      	ldr	x8, [sp, #0x120]
+   65ab4:      	str	x8, [sp, #0x258]
+   65ab8:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65abc:      	ldr	x0, [sp, #0x6e8]
+   65ac0:      	ldr	x8, [sp, #0x490]
+   65ac4:      	str	x8, [sp, #0x118]
+   65ac8:      	bl	0x65ac8 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1804>
+   65acc:      	ldr	x8, [sp, #0x118]
+   65ad0:      	str	x8, [sp, #0x258]
+   65ad4:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65ad8:      	ldr	x0, [sp, #0x6e8]
+   65adc:      	ldr	x8, [sp, #0x480]
+   65ae0:      	str	x8, [sp, #0x110]
+   65ae4:      	bl	0x65ae4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1820>
+   65ae8:      	ldr	x8, [sp, #0x110]
+   65aec:      	str	x8, [sp, #0x258]
+   65af0:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65af4:      	ldr	x0, [sp, #0x6e8]
+   65af8:      	ldr	x8, [sp, #0x470]
+   65afc:      	str	x8, [sp, #0x108]
+   65b00:      	bl	0x65b00 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x183c>
+   65b04:      	ldr	x8, [sp, #0x108]
+   65b08:      	str	x8, [sp, #0x258]
+   65b0c:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65b10:      	ldr	x0, [sp, #0x6e8]
+   65b14:      	ldr	x8, [sp, #0x460]
+   65b18:      	str	x8, [sp, #0x100]
+   65b1c:      	bl	0x65b1c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1858>
+   65b20:      	ldr	x8, [sp, #0x100]
+   65b24:      	str	x8, [sp, #0x258]
+   65b28:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65b2c:      	ldr	x0, [sp, #0x6e8]
+   65b30:      	ldr	x8, [sp, #0x450]
+   65b34:      	str	x8, [sp, #0xf8]
+   65b38:      	bl	0x65b38 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1874>
+   65b3c:      	ldr	x8, [sp, #0xf8]
+   65b40:      	str	x8, [sp, #0x258]
+   65b44:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65b48:      	ldr	x0, [sp, #0x6e8]
+   65b4c:      	ldr	x8, [sp, #0x440]
+   65b50:      	str	x8, [sp, #0xf0]
+   65b54:      	bl	0x65b54 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1890>
+   65b58:      	ldr	x8, [sp, #0xf0]
+   65b5c:      	str	x8, [sp, #0x258]
+   65b60:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65b64:      	ldr	x0, [sp, #0x6e8]
+   65b68:      	ldr	x8, [sp, #0x430]
+   65b6c:      	str	x8, [sp, #0xe8]
+   65b70:      	bl	0x65b70 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x18ac>
+   65b74:      	ldr	x8, [sp, #0xe8]
+   65b78:      	str	x8, [sp, #0x258]
+   65b7c:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65b80:      	ldr	x0, [sp, #0x6e8]
+   65b84:      	ldr	x8, [sp, #0x410]
+   65b88:      	str	x8, [sp, #0xe0]
+   65b8c:      	bl	0x65b8c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x18c8>
+   65b90:      	ldr	x8, [sp, #0xe0]
+   65b94:      	str	x8, [sp, #0x258]
+   65b98:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65b9c:      	ldr	x0, [sp, #0x6e8]
+   65ba0:      	ldr	x8, [sp, #0x400]
+   65ba4:      	str	x8, [sp, #0xd8]
+   65ba8:      	bl	0x65ba8 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x18e4>
+   65bac:      	ldr	x8, [sp, #0xd8]
+   65bb0:      	str	x8, [sp, #0x258]
+   65bb4:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65bb8:      	ldr	x0, [sp, #0x6e8]
+   65bbc:      	ldr	x8, [sp, #0x3f0]
+   65bc0:      	str	x8, [sp, #0xd0]
+   65bc4:      	bl	0x65bc4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1900>
+   65bc8:      	ldr	x8, [sp, #0xd0]
+   65bcc:      	str	x8, [sp, #0x258]
+   65bd0:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65bd4:      	ldr	x0, [sp, #0x6e8]
+   65bd8:      	ldr	x8, [sp, #0x3e0]
+   65bdc:      	str	x8, [sp, #0xc8]
+   65be0:      	bl	0x65be0 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x191c>
+   65be4:      	ldr	x8, [sp, #0xc8]
+   65be8:      	str	x8, [sp, #0x258]
+   65bec:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65bf0:      	ldr	x0, [sp, #0x6e8]
+   65bf4:      	ldr	x8, [sp, #0x3d0]
+   65bf8:      	str	x8, [sp, #0xc0]
+   65bfc:      	bl	0x65bfc <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1938>
+   65c00:      	ldr	x8, [sp, #0xc0]
+   65c04:      	str	x8, [sp, #0x258]
+   65c08:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65c0c:      	ldr	x0, [sp, #0x6e8]
+   65c10:      	ldr	x8, [sp, #0x3c0]
+   65c14:      	str	x8, [sp, #0xb8]
+   65c18:      	bl	0x65c18 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1954>
+   65c1c:      	ldr	x8, [sp, #0xb8]
+   65c20:      	str	x8, [sp, #0x258]
+   65c24:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65c28:      	ldr	x0, [sp, #0x6e8]
+   65c2c:      	ldr	x8, [sp, #0x3b0]
+   65c30:      	str	x8, [sp, #0xb0]
+   65c34:      	bl	0x65c34 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1970>
+   65c38:      	ldr	x8, [sp, #0xb0]
+   65c3c:      	str	x8, [sp, #0x258]
+   65c40:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65c44:      	ldr	x0, [sp, #0x6e8]
+   65c48:      	ldr	x8, [sp, #0x3a0]
+   65c4c:      	str	x8, [sp, #0xa8]
+   65c50:      	bl	0x65c50 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x198c>
+   65c54:      	ldr	x8, [sp, #0xa8]
+   65c58:      	str	x8, [sp, #0x258]
+   65c5c:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65c60:      	ldr	x0, [sp, #0x6e8]
+   65c64:      	ldr	x8, [sp, #0x390]
+   65c68:      	str	x8, [sp, #0xa0]
+   65c6c:      	bl	0x65c6c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x19a8>
+   65c70:      	ldr	x8, [sp, #0xa0]
+   65c74:      	str	x8, [sp, #0x258]
+   65c78:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65c7c:      	ldr	x0, [sp, #0x6e8]
+   65c80:      	ldr	x8, [sp, #0x380]
+   65c84:      	str	x8, [sp, #0x98]
+   65c88:      	bl	0x65c88 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x19c4>
+   65c8c:      	ldr	x8, [sp, #0x98]
+   65c90:      	str	x8, [sp, #0x258]
+   65c94:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65c98:      	ldr	x0, [sp, #0x6e8]
+   65c9c:      	ldr	x8, [sp, #0x370]
+   65ca0:      	str	x8, [sp, #0x90]
+   65ca4:      	bl	0x65ca4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x19e0>
+   65ca8:      	ldr	x8, [sp, #0x90]
+   65cac:      	str	x8, [sp, #0x258]
+   65cb0:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65cb4:      	ldr	x0, [sp, #0x6e8]
+   65cb8:      	ldr	x8, [sp, #0x360]
+   65cbc:      	str	x8, [sp, #0x88]
+   65cc0:      	bl	0x65cc0 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x19fc>
+   65cc4:      	ldr	x8, [sp, #0x88]
+   65cc8:      	str	x8, [sp, #0x258]
+   65ccc:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65cd0:      	ldr	x0, [sp, #0x6e8]
+   65cd4:      	ldr	x8, [sp, #0x350]
+   65cd8:      	str	x8, [sp, #0x80]
+   65cdc:      	bl	0x65cdc <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1a18>
+   65ce0:      	ldr	x8, [sp, #0x80]
+   65ce4:      	str	x8, [sp, #0x258]
+   65ce8:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65cec:      	ldr	x0, [sp, #0x6e8]
+   65cf0:      	ldr	x8, [sp, #0x340]
+   65cf4:      	str	x8, [sp, #0x78]
+   65cf8:      	bl	0x65cf8 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1a34>
+   65cfc:      	ldr	x8, [sp, #0x78]
+   65d00:      	str	x8, [sp, #0x258]
+   65d04:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65d08:      	ldr	x0, [sp, #0x6e8]
+   65d0c:      	ldr	x8, [sp, #0x330]
+   65d10:      	str	x8, [sp, #0x70]
+   65d14:      	bl	0x65d14 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1a50>
+   65d18:      	ldr	x8, [sp, #0x70]
+   65d1c:      	str	x8, [sp, #0x258]
+   65d20:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65d24:      	ldr	x0, [sp, #0x6e8]
+   65d28:      	ldr	x8, [sp, #0x320]
+   65d2c:      	str	x8, [sp, #0x68]
+   65d30:      	bl	0x65d30 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1a6c>
+   65d34:      	ldr	x8, [sp, #0x68]
+   65d38:      	str	x8, [sp, #0x258]
+   65d3c:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65d40:      	ldr	x0, [sp, #0x6e8]
+   65d44:      	ldr	x8, [sp, #0x310]
+   65d48:      	str	x8, [sp, #0x60]
+   65d4c:      	bl	0x65d4c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1a88>
+   65d50:      	ldr	x8, [sp, #0x60]
+   65d54:      	str	x8, [sp, #0x258]
+   65d58:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65d5c:      	ldr	x0, [sp, #0x6e8]
+   65d60:      	ldr	x8, [sp, #0x300]
+   65d64:      	str	x8, [sp, #0x58]
+   65d68:      	bl	0x65d68 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1aa4>
+   65d6c:      	ldr	x8, [sp, #0x58]
+   65d70:      	str	x8, [sp, #0x258]
+   65d74:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65d78:      	ldr	x0, [sp, #0x6e8]
+   65d7c:      	ldr	x8, [sp, #0x2f0]
+   65d80:      	str	x8, [sp, #0x50]
+   65d84:      	bl	0x65d84 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1ac0>
+   65d88:      	ldr	x8, [sp, #0x50]
+   65d8c:      	str	x8, [sp, #0x258]
+   65d90:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65d94:      	ldr	x0, [sp, #0x6e8]
+   65d98:      	ldr	x8, [sp, #0x2e0]
+   65d9c:      	str	x8, [sp, #0x48]
+   65da0:      	bl	0x65da0 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1adc>
+   65da4:      	ldr	x8, [sp, #0x48]
+   65da8:      	str	x8, [sp, #0x258]
+   65dac:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65db0:      	ldr	x0, [sp, #0x6e8]
+   65db4:      	ldr	x8, [sp, #0x2d0]
+   65db8:      	str	x8, [sp, #0x40]
+   65dbc:      	bl	0x65dbc <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1af8>
+   65dc0:      	ldr	x8, [sp, #0x40]
+   65dc4:      	str	x8, [sp, #0x258]
+   65dc8:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65dcc:      	ldr	x0, [sp, #0x6e8]
+   65dd0:      	ldr	x8, [sp, #0x2c0]
+   65dd4:      	str	x8, [sp, #0x38]
+   65dd8:      	bl	0x65dd8 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1b14>
+   65ddc:      	ldr	x8, [sp, #0x38]
+   65de0:      	str	x8, [sp, #0x258]
+   65de4:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65de8:      	ldr	x0, [sp, #0x6e8]
+   65dec:      	ldr	x8, [sp, #0x2b0]
+   65df0:      	str	x8, [sp, #0x30]
+   65df4:      	bl	0x65df4 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1b30>
+   65df8:      	ldr	x8, [sp, #0x30]
+   65dfc:      	str	x8, [sp, #0x258]
+   65e00:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65e04:      	ldr	x0, [sp, #0x6e8]
+   65e08:      	ldr	x8, [sp, #0x2a0]
+   65e0c:      	str	x8, [sp, #0x28]
+   65e10:      	bl	0x65e10 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1b4c>
+   65e14:      	ldr	x8, [sp, #0x28]
+   65e18:      	str	x8, [sp, #0x258]
+   65e1c:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65e20:      	ldr	x0, [sp, #0x6e8]
+   65e24:      	ldr	x8, [sp, #0x290]
+   65e28:      	str	x8, [sp, #0x20]
+   65e2c:      	bl	0x65e2c <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1b68>
+   65e30:      	ldr	x8, [sp, #0x20]
+   65e34:      	str	x8, [sp, #0x258]
+   65e38:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65e3c:      	ldr	x0, [sp, #0x6e8]
+   65e40:      	ldr	x8, [sp, #0x280]
+   65e44:      	str	x8, [sp, #0x18]
+   65e48:      	bl	0x65e48 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1b84>
+   65e4c:      	ldr	x8, [sp, #0x18]
+   65e50:      	str	x8, [sp, #0x258]
+   65e54:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65e58:      	ldr	x0, [sp, #0x6e8]
+   65e5c:      	ldr	x8, [sp, #0x270]
+   65e60:      	str	x8, [sp, #0x10]
+   65e64:      	bl	0x65e64 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1ba0>
+   65e68:      	ldr	x8, [sp, #0x10]
+   65e6c:      	str	x8, [sp, #0x258]
+   65e70:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65e74:      	ldr	x0, [sp, #0x6e8]
+   65e78:      	ldr	x8, [sp, #0x420]
+   65e7c:      	str	x8, [sp, #0x8]
+   65e80:      	bl	0x65e80 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bbc>
+   65e84:      	ldr	x8, [sp, #0x8]
+   65e88:      	str	x8, [sp, #0x258]
+   65e8c:      	b	0x65e90 <_$s5CADIR11DesignGraphV25validateOperationContract3for9toleranceyAA11FeatureNodeV_7CADCore17ModelingToleranceVtKF+0x1bcc>
+   65e90:      	ldr	x21, [sp, #0x258]
+   65e94:      	add	sp, sp, #0x3, lsl #12   ; =0x3000
+   65e98:      	add	sp, sp, #0xc40
+   65e9c:      	ldp	x29, x30, [sp, #0x10]
+   65ea0:      	ldp	x28, x20, [sp], #0x20
+   65ea4:      	ret

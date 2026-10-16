@@ -158,11 +158,12 @@ struct GeometryKernelTests {
 
     @Test
     func polynomialRootIsolationPreservesRepeatedQuarticRoot() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
         let solver = try RealPolynomialRootSolver(
             rootTolerance: 1.0e-12,
             residualTolerance: 1.0e-12
         )
-        let roots = try solver.realRoots(coefficients: [1.0, -4.0, 6.0, -4.0, 1.0])
+        let roots = try solver.realRoots(coefficients: [1.0, -4.0, 6.0, -4.0, 1.0], using: &execution)
 
         guard roots.count == 1 else {
             Issue.record("Expected one repeated real root, received \(roots).")
@@ -173,11 +174,12 @@ struct GeometryKernelTests {
 
     @Test
     func polynomialRootIsolationFindsFourDistinctQuarticRoots() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
         let solver = try RealPolynomialRootSolver(
             rootTolerance: 1.0e-12,
             residualTolerance: 1.0e-12
         )
-        let roots = try solver.realRoots(coefficients: [4.0, 0.0, -5.0, 0.0, 1.0])
+        let roots = try solver.realRoots(coefficients: [4.0, 0.0, -5.0, 0.0, 1.0], using: &execution)
 
         guard roots.count == 4 else {
             Issue.record("Expected four distinct real roots, received \(roots).")
@@ -191,12 +193,14 @@ struct GeometryKernelTests {
 
     @Test
     func polynomialRootIsolationPreservesSymmetricRootsAcrossZero() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
         let solver = try RealPolynomialRootSolver(
             rootTolerance: 1.0e-12,
             residualTolerance: 1.0e-12
         )
         let roots = try solver.realRoots(
-            coefficients: [1.75, 0.0, -12.5, 0.0, 1.75]
+            coefficients: [1.75, 0.0, -12.5, 0.0, 1.75],
+            using: &execution
         )
 
         #expect(roots.count == 4)
@@ -208,12 +212,14 @@ struct GeometryKernelTests {
 
     @Test
     func polynomialRootIsolationPreservesRepeatedZeroRoot() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
         let solver = try RealPolynomialRootSolver(
             rootTolerance: 1.0e-12,
             residualTolerance: 1.0e-12
         )
         let roots = try solver.realRoots(
-            coefficients: [0.0, 0.0, 1.0, 0.0, 1.0]
+            coefficients: [0.0, 0.0, 1.0, 0.0, 1.0],
+            using: &execution
         )
 
         #expect(roots.count == 1)

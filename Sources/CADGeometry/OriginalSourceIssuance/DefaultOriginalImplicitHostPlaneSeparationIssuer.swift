@@ -11,7 +11,7 @@ public struct DefaultOriginalImplicitHostPlaneSeparationIssuer: OriginalImplicit
     ) throws(OriginalSourceIssuanceFailure) -> OriginalImplicitHostPlaneSeparationReceipt {
         do {
             let source = copy source, plane = copy plane
-            return try OriginalSourceProofAdmission<A>.withBorrow(&a) { a in
+            return try a.withProofScope { a in
                 try a.checkpoint(); try a.consumeWork(64)
                 try source.require(limits); try plane.source.require(limits)
                 try source.original.first.require(limits); try source.original.second.require(limits)
@@ -42,7 +42,7 @@ public struct DefaultOriginalImplicitHostPlaneSeparationIssuer: OriginalImplicit
                     throw OriginalSourceIssuanceFailure.unsupportedRepresentation
                 }
                 func admitPlane(_ values: [OriginalExactScalar],
-                    _ a: inout OriginalSourceProofAdmission<A>) throws {
+                    _ a: inout A) throws {
                     for value in values {
                         try a.consumeWork(1); _ = try f.importing(value, using: &a)
                     }

@@ -1,0 +1,382 @@
+{
+  "status": "passed",
+  "scope": "Causal constant admission correction only: actual235 lower input closure and unchanged27Core+63Geometry common execution/predicates. Not full package, all Geometry families or whole U1\u2013U4.",
+  "sourceRoot": "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD",
+  "inputsReceipt": {
+    "path": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/u1-constant-depth-reverify-20261016/inputs.json",
+    "sha256": "5ef324d4091351c7e128706f9c68047bcf789a3eac5be4e98dbb969cdfd4ed7e"
+  },
+  "changedLowerProduction": [
+    "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/OriginalSingularFieldElement.swift"
+  ],
+  "commonProductionChanged": [],
+  "lanes": {
+    "native": {
+      "phases": [
+        {
+          "name": "native-compile",
+          "exitCode": 0,
+          "seconds": 12.808667417004472,
+          "peakAggregateRSSBytes": 381747200,
+          "logSHA256": "20c6ac2d4b768b1d58689c3a2add4bfd9d18c17da53dbd67ceb0cd29e180dcef",
+          "stage": "lower"
+        },
+        {
+          "name": "native-runtime",
+          "exitCode": 0,
+          "seconds": 7.471806790999835,
+          "peakAggregateRSSBytes": 49283072,
+          "logSHA256": "5e39903fc80b5ced1dbc8aa435f4ca32b57d90c4fa55983bd491f47ebe4cf62f",
+          "stage": "lower"
+        },
+        {
+          "name": "native-scope-compile",
+          "exitCode": 0,
+          "seconds": 0.5364167920051841,
+          "peakAggregateRSSBytes": 294912,
+          "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stage": "lower"
+        },
+        {
+          "name": "native-scope-runtime",
+          "exitCode": 0,
+          "seconds": 0.5377796669999952,
+          "peakAggregateRSSBytes": 212992,
+          "logSHA256": "8ad9da04e9ec8231ad83199f1a703de57c0eda9c297cefe6e0668fdcf026b9cc",
+          "stage": "lower"
+        },
+        {
+          "name": "native-CADCore",
+          "exitCode": 0,
+          "seconds": 1.0708693749984377,
+          "peakAggregateRSSBytes": 205602816,
+          "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stage": "common"
+        },
+        {
+          "name": "native-CADGeometry",
+          "exitCode": 0,
+          "seconds": 1.6067300840004464,
+          "peakAggregateRSSBytes": 198066176,
+          "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stage": "common"
+        },
+        {
+          "name": "native-link",
+          "exitCode": 0,
+          "seconds": 1.0673003330011852,
+          "peakAggregateRSSBytes": 177340416,
+          "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stage": "common"
+        },
+        {
+          "name": "native-runtime",
+          "exitCode": 0,
+          "seconds": 0.5358884999950533,
+          "peakAggregateRSSBytes": 32768,
+          "logSHA256": "8dabc3871de564942f90b53e648b5356cd49cba1408ef052d190441dc28d4d92",
+          "stage": "common"
+        }
+      ],
+      "totalSeconds": 25.63545895900461,
+      "peakRSSBytes": 381747200,
+      "runtimeTail": {
+        "lower/native-runtime": [
+          "PASS weighted source-equivalent CS full box: cells=245, work=1829042/16777216, storage=15585518, depths=28/0",
+          "PASS: public prefixes, non-sample branches, nullification, lengths, field lineage, outside domains and dimensions zero/five",
+          "PASS: public projection provenance, whole-parent bindings, original multiplicity and L2 sector separation evidence",
+          "PASS: combined L0-L3 exact arithmetic, polynomial algebra, roots, real cells and optimization regressions"
+        ],
+        "lower/native-scope-runtime": [
+          "PASS direct admission local decisions, nested mapping/routing, foreign/order rejection, cleanup, exact nested work ceilings, cancellation and allocation/overflow failures"
+        ],
+        "common/native-runtime": [
+          "PASS admitted exact 2D/3D predicates, tolerance, underflow/overflow-safe exact source signs and rejection",
+          "PASS preparation/conversion descendant cleanup preserves original error and restores scopes",
+          "PASS true 3D cancellation branch, exact work/storage N and N-1, and binary expansion oracle",
+          "PASS direct original execution: totals, overflow, callback reentry, local scopes, retained evidence, shared cells/records and cancellation"
+        ]
+      }
+    },
+    "asan": {
+      "phases": [
+        {
+          "name": "asan-compile",
+          "exitCode": 0,
+          "seconds": 17.28077358300652,
+          "peakAggregateRSSBytes": 378257408,
+          "logSHA256": "f820c9a61fe08298aa4a9d904f5f8f964a1a42e1bc5265eee1288ae3cf091811",
+          "stage": "lower"
+        },
+        {
+          "name": "asan-runtime",
+          "exitCode": 0,
+          "seconds": 42.56533341699833,
+          "peakAggregateRSSBytes": 945225728,
+          "logSHA256": "5e39903fc80b5ced1dbc8aa435f4ca32b57d90c4fa55983bd491f47ebe4cf62f",
+          "stage": "lower"
+        },
+        {
+          "name": "asan-scope-compile",
+          "exitCode": 0,
+          "seconds": 1.0732750829993165,
+          "peakAggregateRSSBytes": 73760768,
+          "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stage": "lower"
+        },
+        {
+          "name": "asan-scope-runtime",
+          "exitCode": 0,
+          "seconds": 0.5374847499988391,
+          "peakAggregateRSSBytes": 229376,
+          "logSHA256": "8ad9da04e9ec8231ad83199f1a703de57c0eda9c297cefe6e0668fdcf026b9cc",
+          "stage": "lower"
+        },
+        {
+          "name": "asan-CADCore",
+          "exitCode": 0,
+          "seconds": 2.199480458002654,
+          "peakAggregateRSSBytes": 254951424,
+          "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stage": "common"
+        },
+        {
+          "name": "asan-CADGeometry",
+          "exitCode": 0,
+          "seconds": 3.362487582999165,
+          "peakAggregateRSSBytes": 308330496,
+          "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stage": "common"
+        },
+        {
+          "name": "asan-link",
+          "exitCode": 0,
+          "seconds": 1.6223737089967472,
+          "peakAggregateRSSBytes": 176701440,
+          "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stage": "common"
+        },
+        {
+          "name": "asan-runtime",
+          "exitCode": 0,
+          "seconds": 1.602032416005386,
+          "peakAggregateRSSBytes": 34471936,
+          "logSHA256": "8dabc3871de564942f90b53e648b5356cd49cba1408ef052d190441dc28d4d92",
+          "stage": "common"
+        }
+      ],
+      "totalSeconds": 70.24324099900696,
+      "peakRSSBytes": 945225728,
+      "runtimeTail": {
+        "lower/asan-runtime": [
+          "PASS weighted source-equivalent CS full box: cells=245, work=1829042/16777216, storage=15585518, depths=28/0",
+          "PASS: public prefixes, non-sample branches, nullification, lengths, field lineage, outside domains and dimensions zero/five",
+          "PASS: public projection provenance, whole-parent bindings, original multiplicity and L2 sector separation evidence",
+          "PASS: combined L0-L3 exact arithmetic, polynomial algebra, roots, real cells and optimization regressions"
+        ],
+        "lower/asan-scope-runtime": [
+          "PASS direct admission local decisions, nested mapping/routing, foreign/order rejection, cleanup, exact nested work ceilings, cancellation and allocation/overflow failures"
+        ],
+        "common/asan-runtime": [
+          "PASS admitted exact 2D/3D predicates, tolerance, underflow/overflow-safe exact source signs and rejection",
+          "PASS preparation/conversion descendant cleanup preserves original error and restores scopes",
+          "PASS true 3D cancellation branch, exact work/storage N and N-1, and binary expansion oracle",
+          "PASS direct original execution: totals, overflow, callback reentry, local scopes, retained evidence, shared cells/records and cancellation"
+        ]
+      }
+    },
+    "wasm": {
+      "phases": [
+        {
+          "name": "wasm-compile",
+          "exitCode": 0,
+          "seconds": 15.623196207998262,
+          "peakAggregateRSSBytes": 354254848,
+          "logSHA256": "af704baabd546d80699f667e3f2a00af9a355fc1081b158ac80cb4bbde45c7a2",
+          "stage": "lower"
+        },
+        {
+          "name": "wasm-runtime",
+          "exitCode": 0,
+          "seconds": 12.495517333001771,
+          "peakAggregateRSSBytes": 168181760,
+          "logSHA256": "0a78d913c844e580ac8fa85799c1cb5d522827e0fb832cd989ad03aa9e7f7897",
+          "stage": "lower"
+        },
+        {
+          "name": "wasm-scope-compile",
+          "exitCode": 0,
+          "seconds": 0.5281124159955652,
+          "peakAggregateRSSBytes": 278528,
+          "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stage": "lower"
+        },
+        {
+          "name": "wasm-scope-runtime",
+          "exitCode": 0,
+          "seconds": 0.5281101250002393,
+          "peakAggregateRSSBytes": 114688,
+          "logSHA256": "d429ab7e455a874f19897159916b7a17bb3fc6502f0d442c58c0f57dfd9801ef",
+          "stage": "lower"
+        },
+        {
+          "name": "wasm-CADCore",
+          "exitCode": 0,
+          "seconds": 1.0777692080009729,
+          "peakAggregateRSSBytes": 185253888,
+          "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stage": "common"
+        },
+        {
+          "name": "wasm-CADGeometry",
+          "exitCode": 0,
+          "seconds": 1.6138645829996676,
+          "peakAggregateRSSBytes": 275972096,
+          "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stage": "common"
+        },
+        {
+          "name": "wasm-link",
+          "exitCode": 0,
+          "seconds": 2.1412537080032052,
+          "peakAggregateRSSBytes": 460177408,
+          "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stage": "common"
+        },
+        {
+          "name": "wasm-runtime",
+          "exitCode": 0,
+          "seconds": 0.541235582997615,
+          "peakAggregateRSSBytes": 950272,
+          "logSHA256": "03f83f862516e4ed11c4bd802fbc2900219b995f6f85c3c63a3d9777e308b456",
+          "stage": "common"
+        }
+      ],
+      "totalSeconds": 34.5490591639973,
+      "peakRSSBytes": 460177408,
+      "runtimeTail": {
+        "lower/wasm-runtime": [
+          "PASS weighted source-equivalent CS full box: cells=245, work=1816266/16777216, storage=8317446, depths=28/0",
+          "PASS: public prefixes, non-sample branches, nullification, lengths, field lineage, outside domains and dimensions zero/five",
+          "PASS: public projection provenance, whole-parent bindings, original multiplicity and L2 sector separation evidence",
+          "PASS: combined L0-L3 exact arithmetic, polynomial algebra, roots, real cells and optimization regressions"
+        ],
+        "lower/wasm-scope-runtime": [
+          "(node:52682) ExperimentalWarning: WASI is an experimental feature and might change at any time",
+          "(Use `node --trace-warnings ...` to show where the warning was created)",
+          "PASS direct admission local decisions, nested mapping/routing, foreign/order rejection, cleanup, exact nested work ceilings, cancellation and allocation/overflow failures"
+        ],
+        "common/wasm-runtime": [
+          "PASS admitted exact 2D/3D predicates, tolerance, underflow/overflow-safe exact source signs and rejection",
+          "PASS preparation/conversion descendant cleanup preserves original error and restores scopes",
+          "PASS true 3D cancellation branch, exact work/storage N and N-1, and binary expansion oracle",
+          "PASS direct original execution: totals, overflow, callback reentry, local scopes, retained evidence, shared cells/records and cancellation"
+        ]
+      }
+    },
+    "embedded": {
+      "phases": [
+        {
+          "name": "embedded-compile",
+          "exitCode": 0,
+          "seconds": 63.37697399999888,
+          "peakAggregateRSSBytes": 1907294208,
+          "logSHA256": "3a31ab88db69f10806c80313fe5dea4bad883d34e22f830f0aaa8ac80c010c92",
+          "stage": "lower"
+        },
+        {
+          "name": "embedded-runtime",
+          "exitCode": 0,
+          "seconds": 3.7222580000016023,
+          "peakAggregateRSSBytes": 260947968,
+          "logSHA256": "fe5f97d6fdf58066b8db1d9d7900d9a89ddae0a136826c1c7a818b82f0831b52",
+          "stage": "lower"
+        },
+        {
+          "name": "embedded-scope-compile",
+          "exitCode": 0,
+          "seconds": 0.5370224169964786,
+          "peakAggregateRSSBytes": 278528,
+          "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stage": "lower"
+        },
+        {
+          "name": "embedded-scope-runtime",
+          "exitCode": 0,
+          "seconds": 0.5343104580024374,
+          "peakAggregateRSSBytes": 114688,
+          "logSHA256": "05b45285cac56a8adc3df0153490c44df81ff08ed487a3af62f515d311aaff30",
+          "stage": "lower"
+        },
+        {
+          "name": "embedded-CADCore",
+          "exitCode": 0,
+          "seconds": 2.726694625001983,
+          "peakAggregateRSSBytes": 211337216,
+          "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stage": "common"
+        },
+        {
+          "name": "embedded-CADGeometry",
+          "exitCode": 0,
+          "seconds": 2.7060215000019525,
+          "peakAggregateRSSBytes": 363347968,
+          "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stage": "common"
+        },
+        {
+          "name": "embedded-link",
+          "exitCode": 0,
+          "seconds": 3.2274151669989806,
+          "peakAggregateRSSBytes": 354828288,
+          "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stage": "common"
+        },
+        {
+          "name": "embedded-runtime",
+          "exitCode": 0,
+          "seconds": 0.5309759579977253,
+          "peakAggregateRSSBytes": 983040,
+          "logSHA256": "4232f68dd7cdf43a5641ecbee5cb45bf1aa784c2e3fbd14817dc81379585e41c",
+          "stage": "common"
+        }
+      ],
+      "totalSeconds": 77.36167212500004,
+      "peakRSSBytes": 1907294208,
+      "runtimeTail": {
+        "lower/embedded-runtime": [
+          "PASS weighted source-equivalent CS full box: cells=245, work=1816266/16777216, storage=8317446, depths=28/0",
+          "PASS: public prefixes, non-sample branches, nullification, lengths, field lineage, outside domains and dimensions zero/five",
+          "PASS: public projection provenance, whole-parent bindings, original multiplicity and L2 sector separation evidence",
+          "PASS: combined L0-L3 exact arithmetic, polynomial algebra, roots, real cells and optimization regressions"
+        ],
+        "lower/embedded-scope-runtime": [
+          "(node:56543) ExperimentalWarning: WASI is an experimental feature and might change at any time",
+          "(Use `node --trace-warnings ...` to show where the warning was created)",
+          "PASS direct admission local decisions, nested mapping/routing, foreign/order rejection, cleanup, exact nested work ceilings, cancellation and allocation/overflow failures"
+        ],
+        "common/embedded-runtime": [
+          "PASS admitted exact 2D/3D predicates, tolerance, underflow/overflow-safe exact source signs and rejection",
+          "PASS preparation/conversion descendant cleanup preserves original error and restores scopes",
+          "PASS true 3D cancellation branch, exact work/storage N and N-1, and binary expansion oracle",
+          "PASS direct original execution: totals, overflow, callback reentry, local scopes, retained evidence, shared cells/records and cancellation"
+        ]
+      }
+    }
+  },
+  "sourceSnapshotRunnerProductLogDrift": [],
+  "executableRuntimeSeconds": 120,
+  "aggregateRSSBytes": 10737418240,
+  "laneAggregateSeconds": 1200,
+  "compilerSlotReleased": true,
+  "limitation": "WASI cooperative tasks do not prove multi-threaded WASM locking.",
+  "lowerReceipt": {
+    "path": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/u1-constant-depth-reverify-20261016/lower/receipt.json",
+    "sha256": "d8d352a226d4aa844494b7946736130eca074ced0d5afad9c5b1115e5a560201"
+  },
+  "commonReceipt": {
+    "path": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/u1-constant-depth-reverify-20261016/common/receipt.json",
+    "sha256": "46805725c20195620771ae1881aad4bb7e05ab3e5b6403282cffd92f2f5da06a"
+  },
+  "totalMeasuredPhaseSeconds": 207.7894312470089
+}

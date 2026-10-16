@@ -2,18 +2,18 @@ import CADCore
 
 /// Builds a persistent normalized traversal from original endpoints and exact turns.
 public enum OriginalPeriodicCurveTraversal {
-    public static func normalized<B: RationalAlgebraAdmitting>(source: Curve3D,
+    public static func normalized(source: Curve3D,
         originalStart: Double, originalEnd: Double,
         translation: OriginalParameterPeriodicTranslation,
         remainingSourceDepth: Int, maximumSubdivisionDepth: Int,
-        tolerance: ModelingTolerance, usage: inout B) throws -> ParameterImageCurve3D {
+        tolerance: ModelingTolerance, usage: inout OriginalQueryExecution) throws -> ParameterImageCurve3D {
         guard originalStart.isFinite, originalEnd.isFinite, remainingSourceDepth >= 0 else {
             throw GeometryConversionError.invalidInput("Original cyclic traversal requires finite selectors and source admission.")
         }
         try source.validateOriginalSource(tolerance: tolerance, remainingSourceDepth: remainingSourceDepth,
-            maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: { _ in try usage.consumeExactWork(1) })
+            maximumSubdivisionDepth: maximumSubdivisionDepth, using: &usage)
         func authority(_ curve: Curve3D, depth: Int) throws -> (period: Double, gain: ExactRationalCoefficient) {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             guard depth >= 0 else {
                 throw GeometryConversionError.resourceLimitExceeded("Original cyclic source authority exhausted caller depth.")
             }

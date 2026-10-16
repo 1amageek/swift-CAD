@@ -1,0 +1,69 @@
+{
+  "scope": "Finding-only private dispatch/frame isolation; no compiler/runtime claim",
+  "candidate_root": "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD",
+  "baseline_receipt": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-candidate-native-constant-upper-20261016-r2/receipt.json",
+  "baseline_receipt_sha256": "43e353985747806881ed10c2655445a08dd0455705062aac5622ca880e180465",
+  "counterexample_ips_sha256": "991975f72c78dab01bd6c7fdf0597b52d61c079a3273d5dfa37e967617fc557f",
+  "files": [
+    {
+      "path": "Sources/CADGeometry/OriginalGeometrySourceValidation/Surface3D+BoundedValidation.swift",
+      "candidate_path": "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD/Sources/CADGeometry/OriginalGeometrySourceValidation/Surface3D+BoundedValidation.swift",
+      "sha256": "77d825db746a0e6b83e0aba1a3dce5dd588f0f29886450b1eb6d82e63d4e2ea4",
+      "baseline_snapshot": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-candidate-native-constant-upper-20261016-r2/snapshot/Sources/CADGeometry/OriginalGeometrySourceValidation/Surface3D+BoundedValidation.swift",
+      "baseline_sha256": "61d87b0f23f0c50fd04acc40c7ee305db1e484fa518e0d5e75a82a97ea6d3fff"
+    },
+    {
+      "path": "Sources/CADGeometry/OriginalGeometrySourceValidation/Curve3D+BoundedValidation.swift",
+      "candidate_path": "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD/Sources/CADGeometry/OriginalGeometrySourceValidation/Curve3D+BoundedValidation.swift",
+      "sha256": "0324e8b11a4a7cd133c7dfa1fb02f4be1c8114147aed168ea771b36ea7396bdc",
+      "baseline_snapshot": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-candidate-native-constant-upper-20261016-r2/snapshot/Sources/CADGeometry/OriginalGeometrySourceValidation/Curve3D+BoundedValidation.swift",
+      "baseline_sha256": "394a973f52c27c62d190515ec17252b258e4fc3e424712996cb908287551d04f"
+    },
+    {
+      "path": "Sources/CADGeometry/PreparedCurveDifferentialEncloser.swift",
+      "candidate_path": "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD/Sources/CADGeometry/PreparedCurveDifferentialEncloser.swift",
+      "sha256": "697fddbbdf553091c3afa679eb97bd25a11b9712854151fc003dc6e97a8f1796",
+      "baseline_snapshot": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-candidate-native-constant-upper-20261016-r2/snapshot/Sources/CADGeometry/PreparedCurveDifferentialEncloser.swift",
+      "baseline_sha256": "f0a265f7db593d409d3b48c5f1de832f870c1b797a215a2d14b052b78707c826"
+    },
+    {
+      "path": "Sources/CADGeometry/OriginalGeometrySourceValidation/DESIGN.md",
+      "candidate_path": "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD/Sources/CADGeometry/OriginalGeometrySourceValidation/DESIGN.md",
+      "sha256": "3ada5643612f2ec16992f3e30136b78711b4debe1255da018741b856ec6d20d9"
+    },
+    {
+      "path": "Sources/CADGeometry/GeometryConversion/DESIGN.md",
+      "candidate_path": "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD/Sources/CADGeometry/GeometryConversion/DESIGN.md",
+      "sha256": "6612c0c0ec3b2714538e4426a363be2af78cb0b4e74f04ded528d247992fad0c"
+    }
+  ],
+  "body_comparison": {
+    "path": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-source-validation-stack-20261016/source-body-comparison.json",
+    "sha256": "d140a31b985620b60c3922b5f2a0b4f9fdf55e3248d8002bb4c44362b4bff92a",
+    "original_cases_compared": 42,
+    "whitespace_only_normalization": true
+  },
+  "comparison_script": {
+    "path": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-source-validation-stack-20261016/compare-bodies.py",
+    "sha256": "44cdb0cabb9b875082ddb930df130269bd401b4c69c380a0a77987c264f274a5"
+  },
+  "diff": {
+    "path": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-source-validation-stack-20261016/candidate-diff.patch",
+    "sha256": "98f99a86f9cb118f3ee7fb00cd018fa670ec19ea6d88ee03f0998a4bae7f3996"
+  },
+  "checks": {
+    "git_diff_check": true,
+    "source_brace_balance_diagnostic": true,
+    "all_original_branch_bodies_and_entry_debit_order_preserved": true,
+    "relative_child_depth_helpers_unchanged": true,
+    "new_helpers_private_and_inline_never": true,
+    "shared_state_or_conditional_target_storage_changes": false,
+    "compiler_run": false,
+    "runtime_run": false
+  },
+  "remaining_evidence": [
+    "Root fresh Native actual module/object/frame prologues",
+    "Same genuine Face Rebuild 4 caller tests and G01 controls",
+    "Portable regenerated only after Native finding closes"
+  ]
+}

@@ -50,9 +50,14 @@ public final class OriginalNativeBoundaryDomain: Sendable {
     package let loops: [Loop]
 
     /// Only a face issuer can establish topology/source authority before sealing this domain.
-    package init(source: Source, loops: [Loop], usage: inout OriginalRelationUsage) throws {
+    package init<A: ExactScalarAdmission & ~Copyable>(source: Source, loops: [Loop], usage: inout A) throws {
         try intersectionAlgebraStep(&usage)
-        guard !loops.isEmpty, loops.contains(where: { !$0.isInner }) else {
+        var hasOuter = false
+        for loop in loops {
+            try intersectionAlgebraStep(&usage)
+            if !loop.isInner { hasOuter = true; break }
+        }
+        guard !loops.isEmpty, hasOuter else {
             throw GeometryConversionError.invalidInput("Original face clipping requires its complete outer and inner loop cover.")
         }
         // FIXME(INCOMPLETE_IMPLEMENTATION): Periodic and pole-chart boundary domains need their

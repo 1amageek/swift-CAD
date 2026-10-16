@@ -33,11 +33,11 @@ on selected singleton cells; positive-dimensional coverage fails atomically.
 | [Rational Algebra](../../RationalBivariateAlgebra/DESIGN.md) | depends on | homogeneous laws, ordered fields, retained isolation | Exact coordinates and representatives | Retain immutable field owners |
 | [Curve Chart Cover](../../OriginalNativeCurveChartCover/DESIGN.md) | depends on | original finite span/cycle owners | Exact translated curve laws | Every seam incident owner retained before publication |
 | [Surface Chart Cover](../../OriginalNativeSurfaceChartCover/DESIGN.md) | depends on | original finite tensor span/cycle owners | Exact independent U/V transports | Selected closed support and source binding retained |
-| [Query Admission](../../CurveSurfaceQueryAdmission/DESIGN.md) | coordinates with | independent depth, work and bytes | Shared caller allowance | Check word to byte arithmetic |
+| [Query Admission](../../OriginalQueryExecution/DESIGN.md) | coordinates with | independent depth, work and bytes | Shared caller budget owner | Check word to byte arithmetic |
 
 ## Architecture
 ```text
-public rich/discrete entry -> source eligibility -> query-local allowance
+public rich/discrete entry -> source eligibility -> original caller execution
   -> original curve spans x source-issued surface chart tokens
   -> original laws -> local proof or common original refinement
   -> all selected cells zero dimensional -> exact source endpoint ownership
@@ -116,13 +116,13 @@ surface laws. A new source issuer must provide its original homogeneous laws and
 exact derivative cross-product numerators, retain the original shape owner and
 reject incomplete or positive-dimensional coverage before calling the port. No
 Native substitute, fitted law, approximate existence test or budget reset is
-permitted. All calls use the same value-local NativeCurveSurfacePointAllowance.
+permitted. All calls receive the original caller execution directly.
 The extraction preserves Native source identity, classification, representative
 guarantees, limits and immutable localization lifetime; Native focused regression
 and the new source public entry tests verify the respective composition boundaries.
 
 ## Runtime Flows
-The same allowance admits preparation, source bindings, selected complete decomposition, exact ordering,
+The same execution admits preparation, source bindings, selected complete decomposition, exact ordering,
 retention and localization. Product count uses checked multiplication and the
 existing caller maximumSpanCount (ordinary maximumCandidateCount) as one cumulative
 ceiling; it never resets for a curve span or surface axis. The result ceiling
@@ -134,8 +134,8 @@ when earlier products yield points; any later
 positive-dimensional, unresolved, resource or cancellation failure rejects the
 entire query. All collection allocation is admitted before reserve/append.
 Iteration limits bound publication. Geometric, source recursion and exact algebra
-depths remain independent. Ordinary queries use local value option allowances;
-selected queries forward caller callbacks. The ordinary allowance admits at most
+depths remain independent. Ordinary entries create one budget from their options; admitted queries receive
+the existing original execution directly. The ordinary policy admits at most
 maximumSubdivisionCells visited exact cells, maximumSubdivisionCells times
 maximumIterations scalar work units, and scalar-work allowance times
 retained Cell stride in cumulative storage bytes. These products use checked arithmetic;
@@ -154,7 +154,7 @@ Publication checks cancellation after the final storage-admission callback retur
 and before exposing either points or complete empty coverage. A callback that cancels
 the current task and returns normally must still produce CancellationError.
 No tolerance equality, XYZ deduplication, fitted law or fallback grants authority.
-Later public coordinate queries receive their own explicit allowance.
+Later public coordinate queries receive an explicit execution and budget owner.
 
 ## Verification and Change Impact
 [NativeCurveSurfacePointTests](../../../../Tests/CADGeometryTests/NativeCurveSurfacePointTests.swift)
@@ -167,3 +167,13 @@ coverage, independent translated tuples, closed seams/singletons, full positive
 and mixed components, empty exclusion, retained lifetime and independent failure.
 Review the actual public entry, preparation, decomposition, all-cell dimension
 gate and exact-root publication paths when this contract changes.
+
+## Direct Execution Admission
+
+Source arithmetic borrows `A: ExactScalarAdmission & ~Copyable`; composed query
+operations borrow `inout OriginalQueryExecution`. Source validation, native span
+validation, structural comparisons and exact refinement receive that same admission.
+The [execution owner](../../OriginalQueryExecution/DESIGN.md) defines cumulative
+work and actual byte accounting, independent depth axes, cancellation and lexical
+proof scopes. Retained geometry and relation evidence stay immutable; no callback
+adapter, copied counter or second allowance supplies arithmetic authority.

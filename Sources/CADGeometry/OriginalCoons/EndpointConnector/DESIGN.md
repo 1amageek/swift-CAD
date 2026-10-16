@@ -88,3 +88,10 @@ endpoint derivative bounds, shared seam incidence, serialization source
 preservation, cancellation and exhaustion. Parent curve dispatch and actual
 Loft edge/side publication must consume this law. Source authoring alone is
 not completed behavioral evidence.
+
+
+## Direct Query Execution Ownership
+
+This component follows the [module direct execution contract](../../DESIGN.md) through its existing owner hierarchy. High-level retained geometry preparation and queries borrow the same concrete `OriginalQueryExecution`; pure original rational/source arithmetic borrows generic `ExactScalarAdmission & ~Copyable`. Original corner, join, supporting-plane, native adjacent-chart and M6 guard proofs retain their existing mathematics and authority. Work/storage callbacks, private borrowed ledgers and private allowances are removed rather than reconstructed. Explicit source/span/geometric policies remain independent of scalar proof ceilings; optional scalar caps create local proof scopes on the same owner. Actual typed retained buffers and actual loops are charged before their operation, without proxy prepayment. Ordinary roots invoke the same body once; retained readers keep immutable source/policy/common budget and re-admit actual proof evidence for later queries.
+
+Focused syntax parsing only establishes preparatory source validity. Existing behavioral tests and M6/source-proof receipts require the new direct implementation path to compile and execute before this migration is complete.

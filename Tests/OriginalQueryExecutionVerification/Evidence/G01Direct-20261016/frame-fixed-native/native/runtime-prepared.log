@@ -1,0 +1,43 @@
+START G01 query prepared singleton swapped=false
+USAGE G01 prepared singleton swapped=false work=2707821 bytes=2742789
+STAGE G01 query produced prepared singleton swapped=false
+STAGE G01 check reader singleton swapped=false
+STAGE G01 check chart singleton swapped=false
+STAGE G01 check metadata singleton swapped=false
+PASS G01 query prepared singleton swapped=false
+START G01 query prepared singleton swapped=true
+USAGE G01 prepared singleton swapped=true work=2707821 bytes=2742789
+STAGE G01 query produced prepared singleton swapped=true
+STAGE G01 check reader singleton swapped=true
+STAGE G01 check chart singleton swapped=true
+STAGE G01 check metadata singleton swapped=true
+PASS G01 query prepared singleton swapped=true
+START G01 query prepared wide swapped=false
+USAGE G01 prepared wide swapped=false work=7639634 bytes=6307776
+STAGE G01 query produced prepared wide swapped=false
+STAGE G01 check reader wide swapped=false
+STAGE G01 check chart wide swapped=false
+STAGE G01 check metadata wide swapped=false
+PASS G01 query prepared wide swapped=false
+START G01 query prepared wide swapped=true
+USAGE G01 prepared wide swapped=true work=7982513 bytes=6485968
+STAGE G01 query produced prepared wide swapped=true
+STAGE G01 check reader wide swapped=true
+STAGE G01 check chart wide swapped=true
+STAGE G01 check metadata wide swapped=true
+PASS G01 query prepared wide swapped=true
+START G01 query prepared regression swapped=false
+USAGE G01 prepared regression swapped=false work=4469925 bytes=4109409
+STAGE G01 query produced prepared regression swapped=false
+STAGE G01 check reader regression swapped=false
+STAGE G01 check chart regression swapped=false
+STAGE G01 check metadata regression swapped=false
+PASS G01 query prepared regression swapped=false
+START G01 query prepared regression swapped=true
+USAGE G01 prepared regression swapped=true work=4469925 bytes=4109409
+STAGE G01 query produced prepared regression swapped=true
+STAGE G01 check reader regression swapped=true
+STAGE G01 check chart regression swapped=true
+STAGE G01 check metadata regression swapped=true
+PASS G01 query prepared regression swapped=true
+PASS G01 public prepared

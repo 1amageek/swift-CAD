@@ -9,7 +9,7 @@ package struct ExactIntersectionSubresultants: Sendable {
         package let axis: Int
         package let coefficients: [ExactIntersectionPolynomial]
 
-        package init<B: RationalAlgebraAdmitting>(_ original: ExactIntersectionPolynomial,
+        package init<B: ExactScalarAdmission & ~Copyable>(_ original: ExactIntersectionPolynomial,
             axis: Int, usage: inout B) throws {
             try intersectionAlgebraStep(&usage)
             self.original = original; self.axis = axis
@@ -17,7 +17,7 @@ package struct ExactIntersectionSubresultants: Sendable {
         }
     }
 
-    package static func principal<B: RationalAlgebraAdmitting>(
+    package static func principal<B: ExactScalarAdmission & ~Copyable>(
         _ first: ExactIntersectionPolynomial, _ second: ExactIntersectionPolynomial,
         axis: Int, usage: inout B) throws -> [ExactIntersectionPolynomial] {
         guard first.variableCount == second.variableCount else {
@@ -28,7 +28,7 @@ package struct ExactIntersectionSubresultants: Sendable {
         return try principal(a, b, usage: &usage)
     }
 
-    package static func principal<B: RationalAlgebraAdmitting>(
+    package static func principal<B: ExactScalarAdmission & ~Copyable>(
         _ first: PreparedPolynomial, _ second: PreparedPolynomial,
         usage: inout B) throws -> [ExactIntersectionPolynomial] {
         try intersectionAlgebraStep(&usage)

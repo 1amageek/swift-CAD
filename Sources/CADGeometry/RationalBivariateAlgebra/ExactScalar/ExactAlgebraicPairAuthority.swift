@@ -4,7 +4,7 @@ struct ExactAlgebraicPairAuthority: Sendable {
     let fiber: ExactAlgebraicFiberPolynomial
     let fiberRoot: ExactAlgebraicFiberRootIsolator.Root
 
-    func refined<B: RationalAlgebraAdmitting>(maximumUWidth: ExactRationalCoefficient,
+    func refined<B: ExactScalarAdmission & ~Copyable>(maximumUWidth: ExactRationalCoefficient,
         maximumVWidth: ExactRationalCoefficient, maximumDepth: Int, usage: inout B) throws -> Self {
         let uWidth = maximumUWidth, vWidth = maximumVWidth
         guard uWidth.isPositive, vWidth.isPositive, maximumDepth >= 0 else {
@@ -22,7 +22,7 @@ struct ExactAlgebraicPairAuthority: Sendable {
             throw ExactScalarFailure.resourceLimit(usage.exactDepthResource)
         }
         while try upper.subtracting(lower, usage: &usage).subtracting(vWidth, usage: &usage).isPositive {
-            try usage.visitExactCell(depth: depth)
+            try usage.visitCell(axis: .value, depth: depth)
             guard depth < maximumDepth else {
                 throw ExactScalarFailure.resourceLimit(usage.exactDepthResource)
             }
@@ -46,12 +46,12 @@ struct ExactAlgebraicPairAuthority: Sendable {
     }
 
     /// Sign at the actual original parameter pair, never at a rounded midpoint.
-    func sign<B: RationalAlgebraAdmitting>(of expression: ExactBivariatePolynomial,
+    func sign<B: ExactScalarAdmission & ~Copyable>(of expression: ExactBivariatePolynomial,
         maximumDepth: Int, usage: inout B) throws -> ExactAlgebraicRealRoot.Sign {
         var pair = self
         let two = try ExactRationalCoefficient.natural(2, usage: &usage)
         while true {
-            try exactScalarTaskCheckpoint()
+            try usage.checkpoint()
             let value = try ExactAlgebraicFiberPolynomial(source: expression,
                 at: pair.projectionRoot, maximumDepth: maximumDepth, usage: &usage)
             if value.isZero { return .zero }

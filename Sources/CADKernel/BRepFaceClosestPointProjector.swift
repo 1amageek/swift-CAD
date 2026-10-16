@@ -21,6 +21,11 @@ struct BRepFaceClosestPointProjector {
     let tolerance: ModelingTolerance
 
     func closest(to point: Point3D) throws -> Projection {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try closest(to: point, using: &execution)
+    }
+
+    func closest(to point: Point3D, using execution: inout OriginalQueryExecution) throws -> Projection {
         let divisions = 8
         var best: Projection?
         for i in 0...divisions {
@@ -29,7 +34,7 @@ struct BRepFaceClosestPointProjector {
                     u: extent.u.lowerBound + (extent.u.upperBound - extent.u.lowerBound) * Double(i) / Double(divisions),
                     v: extent.v.lowerBound + (extent.v.upperBound - extent.v.lowerBound) * Double(j) / Double(divisions)
                 )
-                let position = try surface.point(u: parameter.u, v: parameter.v, tolerance: tolerance)
+                let position = try surface.point(u: parameter.u, v: parameter.v, tolerance: tolerance, using: &execution)
                 let distance = (position - point).length
                 if distance < best?.distance ?? .infinity {
                     best = Projection(parameter: parameter, point: position, distance: distance)
@@ -40,7 +45,7 @@ struct BRepFaceClosestPointProjector {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance, message: "A face has no extent to project onto.")
         }
         for _ in 0..<40 {
-            let geometry = try surface.differentialGeometry(u: current.parameter.u, v: current.parameter.v, tolerance: tolerance)
+            let geometry = try surface.differentialGeometry(u: current.parameter.u, v: current.parameter.v, tolerance: tolerance, using: &execution)
             let offset = geometry.position - point
             let gu = geometry.tangentU.dot(offset)
             let gv = geometry.tangentV.dot(offset)
@@ -63,7 +68,7 @@ struct BRepFaceClosestPointProjector {
                 u: min(max(current.parameter.u + du, extent.u.lowerBound), extent.u.upperBound),
                 v: min(max(current.parameter.v + dv, extent.v.lowerBound), extent.v.upperBound)
             )
-            let position = try surface.point(u: next.u, v: next.v, tolerance: tolerance)
+            let position = try surface.point(u: next.u, v: next.v, tolerance: tolerance, using: &execution)
             let distance = (position - point).length
             let moved = abs(next.u - current.parameter.u) + abs(next.v - current.parameter.v)
             if distance <= current.distance {

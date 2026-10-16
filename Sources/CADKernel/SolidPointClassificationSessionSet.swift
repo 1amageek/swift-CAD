@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 import CADIR
 import CADTopology
 
@@ -14,6 +15,8 @@ struct SolidPointClassificationSessionSet: Sendable {
         pointClassifier: any SolidPointClassifying,
         model: BRepModel,
         tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution
     ) throws {
         try tolerance.validate()
         self.pointClassifier = pointClassifier
@@ -21,11 +24,15 @@ struct SolidPointClassificationSessionSet: Sendable {
         self.tolerance = tolerance
 
         var preparedSessions: [BodyID: any SolidPointClassificationSession] = [:]
+        try execution.retainKernelValues(count: bodyIDs.count,
+            stride: MemoryLayout<BodyID>.stride + MemoryLayout<(BodyID, any SolidPointClassificationSession)>.stride)
+        try execution.consumeWork(bodyIDs.count)
         for bodyID in Set(bodyIDs).sorted() {
+            try execution.consumeWork(1)
             preparedSessions[bodyID] = try pointClassifier.preparedClassificationSession(
                 in: bodyID,
                 model: model,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         }
         sessions = preparedSessions
@@ -34,15 +41,17 @@ struct SolidPointClassificationSessionSet: Sendable {
     func classify(
         _ point: Point3D,
         in bodyID: BodyID
+    ,
+        using execution: inout OriginalQueryExecution
     ) throws -> SolidPointClassification {
         if let session = sessions[bodyID] {
-            return try session.classify(point)
+            return try session.classify(point, using: &execution)
         }
         return try pointClassifier.classify(
             point,
             in: bodyID,
             model: model,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
     }
 }

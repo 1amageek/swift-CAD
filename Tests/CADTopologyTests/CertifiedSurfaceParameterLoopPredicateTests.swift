@@ -108,6 +108,7 @@ struct CertifiedSurfaceParameterLoopPredicateTests {
 
     @Test(.timeLimit(.minutes(1)))
     func sphericalGreatCircleEnclosuresRetainDeclaredUniversalCoverSheet() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
         let start = 2.0 * Double.pi
         let end = 2.5 * Double.pi
         let curve = SurfaceParameterCurve.sphericalGreatCircle(
@@ -120,7 +121,7 @@ struct CertifiedSurfaceParameterLoopPredicateTests {
             for: curve,
             maximumWidth: 0.25,
             tolerance: tolerance
-        ).sorted { $0.lowerFraction < $1.lowerFraction }
+        , using: &execution).sorted { $0.lowerFraction < $1.lowerFraction }
 
         let first = try #require(enclosures.first)
         let last = try #require(enclosures.last)
@@ -140,6 +141,7 @@ struct CertifiedSurfaceParameterLoopPredicateTests {
 
     @Test(.timeLimit(.minutes(1)))
     func borrowedPolylineRangeCanBeCertifiedBelowTopologyDistanceTolerance() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
         let curve = SurfaceParameterCurve.polyline([
             SurfaceParameter(u: 0.0, v: 0.0),
             SurfaceParameter(u: 0.01, v: 0.0),
@@ -160,7 +162,7 @@ struct CertifiedSurfaceParameterLoopPredicateTests {
             toNormalizedFraction: upperFraction,
             maximumWidth: 1.0,
             tolerance: tolerance
-        )
+        , using: &execution)
         #expect(enclosures.count == 1)
         let enclosure = try #require(enclosures.first)
         let exactUpperU = 0.01 * upperFraction

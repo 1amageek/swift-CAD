@@ -1,6 +1,6 @@
 /// Primitive original plane GCD over one retained exact ordered coefficient field.
 struct OriginalSingularFieldPlaneGCD {
-    static func gcd<B: RationalAlgebraAdmitting>(_ first: OriginalSingularFieldPlanePolynomial,
+    static func gcd<B: ExactScalarAdmission & ~Copyable>(_ first: OriginalSingularFieldPlanePolynomial,
         _ second: OriginalSingularFieldPlanePolynomial, maximumDepth: Int, usage: inout B) throws -> OriginalSingularFieldPlanePolynomial {
         if first.isZero { return try second.normalized(maximumDepth: maximumDepth, usage: &usage) }
         if second.isZero { return try first.normalized(maximumDepth: maximumDepth, usage: &usage) }
@@ -20,7 +20,7 @@ struct OriginalSingularFieldPlaneGCD {
         return try a.multiplied(by: plane(common, vPower: 0, maximumDepth: maximumDepth, usage: &usage),
             maximumDepth: maximumDepth, usage: &usage).normalized(maximumDepth: maximumDepth, usage: &usage)
     }
-    static func coefficient<B: RationalAlgebraAdmitting>(_ original: OriginalSingularFieldPlanePolynomial,
+    static func coefficient<B: ExactScalarAdmission & ~Copyable>(_ original: OriginalSingularFieldPlanePolynomial,
         vPower: Int, maximumDepth: Int, usage: inout B) throws -> OriginalSingularFieldPolynomial {
         let zero = try OriginalSingularFieldElement.constant(.zero, in: original.context, maximumDepth: maximumDepth, usage: &usage)
         let count = max(0, original.uDegree + 1)
@@ -29,7 +29,7 @@ struct OriginalSingularFieldPlaneGCD {
         for (power, value) in try original.orderedTerms(usage: &usage) where power.v == vPower { values[power.u] = value }
         return try .init(context: original.context, coefficients: values, maximumDepth: maximumDepth, usage: &usage)
     }
-    static func plane<B: RationalAlgebraAdmitting>(_ source: OriginalSingularFieldPolynomial,
+    static func plane<B: ExactScalarAdmission & ~Copyable>(_ source: OriginalSingularFieldPolynomial,
         vPower: Int, maximumDepth: Int, usage: inout B) throws -> OriginalSingularFieldPlanePolynomial {
         var values: [ExactBivariatePolynomial.Power: OriginalSingularFieldElement] = [:]
         try RationalAlgebraStorage.retain(source.coefficients.count,
@@ -37,7 +37,7 @@ struct OriginalSingularFieldPlaneGCD {
         for (degree, value) in source.coefficients.enumerated() { values[try .init(u: degree, v: vPower)] = value }
         return try .init(context: source.context, coefficients: values, maximumDepth: maximumDepth, usage: &usage)
     }
-    static func content<B: RationalAlgebraAdmitting>(_ original: OriginalSingularFieldPlanePolynomial,
+    static func content<B: ExactScalarAdmission & ~Copyable>(_ original: OriginalSingularFieldPlanePolynomial,
         maximumDepth: Int, usage: inout B) throws -> OriginalSingularFieldPolynomial {
         var result = try OriginalSingularFieldPolynomial(context: original.context, coefficients: [], maximumDepth: maximumDepth, usage: &usage)
         if original.vDegree >= 0 { for degree in 0...original.vDegree {
@@ -47,7 +47,7 @@ struct OriginalSingularFieldPlaneGCD {
         } }
         return result
     }
-    static func primitive<B: RationalAlgebraAdmitting>(_ original: OriginalSingularFieldPlanePolynomial,
+    static func primitive<B: ExactScalarAdmission & ~Copyable>(_ original: OriginalSingularFieldPlanePolynomial,
         content: OriginalSingularFieldPolynomial, maximumDepth: Int, usage: inout B) throws -> OriginalSingularFieldPlanePolynomial {
         var result = try OriginalSingularFieldPlanePolynomial(context: original.context, coefficients: [:], maximumDepth: maximumDepth, usage: &usage)
         if original.vDegree >= 0 { for degree in 0...original.vDegree {
@@ -59,7 +59,7 @@ struct OriginalSingularFieldPlaneGCD {
         } }
         return result
     }
-    private static func pseudoRemainder<B: RationalAlgebraAdmitting>(_ numerator: OriginalSingularFieldPlanePolynomial,
+    private static func pseudoRemainder<B: ExactScalarAdmission & ~Copyable>(_ numerator: OriginalSingularFieldPlanePolynomial,
         _ divisor: OriginalSingularFieldPlanePolynomial, maximumDepth: Int, usage: inout B) throws -> OriginalSingularFieldPlanePolynomial {
         let divisorLead = try coefficient(divisor, vPower: divisor.vDegree, maximumDepth: maximumDepth, usage: &usage)
         var remainder = numerator

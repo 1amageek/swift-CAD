@@ -4,23 +4,27 @@ import CADCore
 public protocol CallerAdmittedGeometryConverting: GeometryConverting {
     func interpolateCurve(source: any GeometryCurveConversionSource, at parameters: [Double],
         requirements: GeometryConversionRequirements, tolerance: ModelingTolerance,
-        admission: GeometryConversionAdmission) throws -> GeometryCurveConversionResult
+        using execution: inout OriginalQueryExecution) throws -> GeometryCurveConversionResult
     func approximateCurve(source: any GeometryCurveConversionSource, over parameters: ScalarInterval,
         requirements: GeometryConversionRequirements, tolerance: ModelingTolerance,
-        admission: GeometryConversionAdmission) throws -> GeometryCurveConversionResult
+        using execution: inout OriginalQueryExecution) throws -> GeometryCurveConversionResult
     func certifyCurve(source: any GeometryCurveConversionSource, candidate: BSplineCurve3D,
         over parameters: ScalarInterval, requirements: GeometryConversionRequirements,
-        tolerance: ModelingTolerance, admission: GeometryConversionAdmission) throws -> GeometryConversionGuarantee
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> GeometryConversionGuarantee
     func certifyCurveCorrespondence(source: any GeometryCurveConversionSource,
         target: any GeometryCurveConversionSource, over parameters: ScalarInterval,
         requirements: GeometryConversionRequirements, tolerance: ModelingTolerance,
-        admission: GeometryConversionAdmission) throws -> GeometryConversionGuarantee
+        using execution: inout OriginalQueryExecution) throws -> GeometryConversionGuarantee
     func approximateSurface(source: any GeometrySurfaceConversionSource, over parameters: SurfaceParameterBox,
         requirements: GeometryConversionRequirements, tolerance: ModelingTolerance,
-        admission: GeometryConversionAdmission) throws -> GeometrySurfaceConversionResult
+        using execution: inout OriginalQueryExecution) throws -> GeometrySurfaceConversionResult
+    func interpolateSurface(source: any GeometrySurfaceConversionSource, template: BSplineSurface3D,
+        points: [GeometrySurfaceInterpolationPoint], over parameters: SurfaceParameterBox,
+        requirements: GeometryConversionRequirements, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> GeometrySurfaceConversionResult
     func certifySurface(source: any GeometrySurfaceConversionSource, candidate: BSplineSurface3D,
         over parameters: SurfaceParameterBox, requirements: GeometryConversionRequirements,
-        tolerance: ModelingTolerance, admission: GeometryConversionAdmission) throws -> GeometryConversionGuarantee
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> GeometryConversionGuarantee
 }
 
 public extension CallerAdmittedGeometryConverting {
@@ -31,7 +35,7 @@ public extension CallerAdmittedGeometryConverting {
     func certifyCurveCorrespondence(source: any GeometryCurveConversionSource,
         target: any GeometryCurveConversionSource, over parameters: ScalarInterval,
         requirements: GeometryConversionRequirements, tolerance: ModelingTolerance,
-        admission: GeometryConversionAdmission) throws -> GeometryConversionGuarantee {
+        using execution: inout OriginalQueryExecution) throws -> GeometryConversionGuarantee {
         throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
             message: "This converter has no caller-admitted original curve correspondence witness.")
     }

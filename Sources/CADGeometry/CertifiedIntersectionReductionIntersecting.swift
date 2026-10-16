@@ -9,4 +9,14 @@ protocol CertifiedIntersectionReductionIntersecting: Sendable {
         tolerance: ModelingTolerance,
         sectionCurveIntersector: any CurveSurfaceIntersecting
     ) throws -> [CurveSurfaceIntersection]
+
+    func intersections(
+        curve: CertifiedIntersectionCurve3D,
+        targetSurface: Surface3D,
+        reduction: CertifiedIntersectionReduction,
+        options: CurveSurfaceIntersectionOptions,
+        tolerance: ModelingTolerance,
+        sectionCurveIntersector: any CurveSurfaceIntersecting,
+        using execution: inout OriginalQueryExecution
+    ) throws -> [CurveSurfaceIntersection]
 }

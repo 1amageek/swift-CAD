@@ -116,6 +116,12 @@ struct RebuiltFaceEdgeResolver {
     /// where the surfaces of its three faces meet, new for the rebuilt ones.
     func resolve(surfaces: [FaceID: BSplineSurface3D], patches: [(faceID: FaceID, patch: BRepSewingFacePatch)],
                  model: BRepModel, featureID: FeatureID) throws -> [BRepSewingFacePatch] {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try resolve(surfaces: surfaces, patches: patches, model: model, featureID: featureID, using: &execution)
+    }
+
+    func resolve(surfaces: [FaceID: BSplineSurface3D], patches: [(faceID: FaceID, patch: BRepSewingFacePatch)],
+                 model: BRepModel, featureID: FeatureID, using execution: inout OriginalQueryExecution) throws -> [BRepSewingFacePatch] {
         func refuse(_ message: String) -> KernelError {
             KernelError(phase: .evaluation, code: .unsupportedCapability, featureID: featureID, tolerance: tolerance, message: message)
         }
@@ -430,7 +436,7 @@ struct RebuiltFaceEdgeResolver {
                     if let replaced = try replacement(edge, of: entry.faceID, on: patch.surface) { return replaced }
                     let (start, end) = (movedPoint(edge.startPoint), movedPoint(edge.endPoint))
                     guard start != nil || end != nil else { return edge }
-                    return try movedEdge(edge, start: start ?? edge.startPoint, end: end ?? edge.endPoint, on: patch.surface, refuse)
+                    return try movedEdge(edge, start: start ?? edge.startPoint, end: end ?? edge.endPoint, on: patch.surface, refuse, using: &execution)
                 })
             }
             return BRepSewingFacePatch(stableID: patch.stableID, surface: patch.surface, orientation: patch.orientation, loops: loops,
@@ -441,15 +447,15 @@ struct RebuiltFaceEdgeResolver {
     /// A neighbour's edge run to its moved ends along its own line, circle or curve, with its
     /// trimming curve on the neighbour.
     private func movedEdge(_ edge: BRepSewingEdge, start p: Point3D, end q: Point3D, on surface: Surface3D,
-                           _ refuse: (String) -> KernelError) throws -> BRepSewingEdge {
+                           _ refuse: (String) -> KernelError, using execution: inout OriginalQueryExecution) throws -> BRepSewingEdge {
         let curve: Curve3D
         let (t0, t1): (Double, Double)
         // Where the new ends fall along the old edge, as fractions of it.
         let fractions: (Double, Double)
         switch edge.curve {
         case .line:
-            let (a, b) = (try edge.curve.parameterProjection(of: p, tolerance: tolerance).parameter,
-                          try edge.curve.parameterProjection(of: q, tolerance: tolerance).parameter)
+            let (a, b) = (try edge.curve.parameterProjection(of: p, tolerance: tolerance, using: &execution).parameter,
+                          try edge.curve.parameterProjection(of: q, tolerance: tolerance, using: &execution).parameter)
             fractions = ((a - edge.startParameter) / (edge.endParameter - edge.startParameter),
                          (b - edge.startParameter) / (edge.endParameter - edge.startParameter))
             let delta = q - p
@@ -462,7 +468,7 @@ struct RebuiltFaceEdgeResolver {
             // The same circle, each end's parameter the turn nearest its old one.
             curve = edge.curve
             func near(_ point: Point3D, _ old: Double) throws -> Double {
-                let raw = try curve.parameterProjection(of: point, tolerance: tolerance).parameter
+                let raw = try curve.parameterProjection(of: point, tolerance: tolerance, using: &execution).parameter
                 var delta = (raw - old).truncatingRemainder(dividingBy: 2 * Double.pi)
                 if delta > Double.pi { delta -= 2 * Double.pi }
                 if delta < -Double.pi { delta += 2 * Double.pi }
@@ -477,13 +483,13 @@ struct RebuiltFaceEdgeResolver {
         default:
             // Any other curve: the moved corners lie on it (they are on both faces it divides),
             // so it is trimmed anew at their parameters — a B-spline cut exactly to that piece.
-            let (a, b) = (try edge.curve.parameterProjection(of: p, tolerance: tolerance).parameter,
-                          try edge.curve.parameterProjection(of: q, tolerance: tolerance).parameter)
+            let (a, b) = (try edge.curve.parameterProjection(of: p, tolerance: tolerance, using: &execution).parameter,
+                          try edge.curve.parameterProjection(of: q, tolerance: tolerance, using: &execution).parameter)
             guard (b - a) * (edge.endParameter - edge.startParameter) > 0 else {
                 throw refuse("A rebuilt face's new corners pass the ends of its neighbours' edges.")
             }
             if case let .bSpline(spline) = edge.curve {
-                curve = .bSpline(try BSplineCurveSegmentExtractor().segment(of: spline, from: min(a, b), to: max(a, b), tolerance: tolerance))
+                curve = .bSpline(try BSplineCurveSegmentExtractor().segment(of: spline, from: min(a, b), to: max(a, b), tolerance: tolerance, using: &execution))
             } else {
                 curve = edge.curve
             }
@@ -492,11 +498,11 @@ struct RebuiltFaceEdgeResolver {
                          (b - edge.startParameter) / (edge.endParameter - edge.startParameter))
         }
         let pcurve: SurfaceParameterCurve
-        if let trimmed = try trimmedPcurve(edge.surfaceParameterCurve, from: fractions.0, to: fractions.1) {
+        if let trimmed = try trimmedPcurve(edge.surfaceParameterCurve, from: fractions.0, to: fractions.1, using: &execution) {
             // The old trimming curve, exact, cut to the new ends.
             pcurve = trimmed
         } else if case .line = curve, case .plane = surface {
-            let (a, b) = (try surface.parameterProjection(of: p, tolerance: tolerance), try surface.parameterProjection(of: q, tolerance: tolerance))
+            let (a, b) = (try surface.parameterProjection(of: p, tolerance: tolerance, using: &execution), try surface.parameterProjection(of: q, tolerance: tolerance, using: &execution))
             pcurve = .polyline([SurfaceParameter(u: a.u, v: a.v), SurfaceParameter(u: b.u, v: b.v)])
         } else {
             pcurve = try fittedPcurve(curve, from: t0, to: t1, on: surface)
@@ -510,7 +516,7 @@ struct RebuiltFaceEdgeResolver {
     /// `pcurve` cut to the fractions `f0` to `f1` of it, for the kinds that cut exactly (iso-lines,
     /// segments and B-splines); nil for others. The fraction runs with the edge's own parameter,
     /// as the trimming curves of exact edges do.
-    private func trimmedPcurve(_ pcurve: SurfaceParameterCurve, from f0: Double, to f1: Double) throws -> SurfaceParameterCurve? {
+    private func trimmedPcurve(_ pcurve: SurfaceParameterCurve, from f0: Double, to f1: Double, using execution: inout OriginalQueryExecution) throws -> SurfaceParameterCurve? {
         func along(_ a: Double, _ b: Double, _ f: Double) -> Double { a + (b - a) * f }
         switch pcurve {
         case let .constantU(u, vStart, vEnd):
@@ -525,11 +531,11 @@ struct RebuiltFaceEdgeResolver {
             let lifted = BSplineCurve3D(degree: spline.degree, knots: spline.knots,
                                         controlPoints: spline.controlPoints.map { Point3D(x: $0.x, y: $0.y, z: 0) }, weights: spline.weights)
             let (a, b) = (along(first, last, f0), along(first, last, f1))
-            let piece = try BSplineCurveSegmentExtractor().segment(of: lifted, from: min(a, b), to: max(a, b), tolerance: tolerance)
+            let piece = try BSplineCurveSegmentExtractor().segment(of: lifted, from: min(a, b), to: max(a, b), tolerance: tolerance, using: &execution)
             let cut = SurfaceParameterCurve.bSpline(BSplineCurve2D(degree: piece.degree, knots: piece.knots,
                                                                    controlPoints: piece.controlPoints.map { Point2D(x: $0.x, y: $0.y) },
                                                                    weights: piece.weights))
-            return a < b ? cut : try cut.reversed(tolerance: tolerance)
+            return a < b ? cut : try cut.reversed(tolerance: tolerance, using: &execution)
         default:
             return nil
         }

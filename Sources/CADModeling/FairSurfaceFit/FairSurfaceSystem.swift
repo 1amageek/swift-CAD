@@ -22,10 +22,23 @@ package struct FairSurfaceSystem {
         }
 
         /// derivatives[k][i]: the k-th derivative of basis function i at `x`.
-        package func derivatives(at x: Double, order: Int) -> [[Double]] {
+        package func derivatives(at x: Double, order: Int) throws -> [[Double]] {
+            var execution = try OriginalQueryExecution.independentGeometry()
+            return try derivatives(at: x, order: order, using: &execution)
+        }
+
+        package func derivatives<A: ExactScalarAdmission & ~Copyable>(at x: Double,
+            order: Int, using execution: inout A) throws -> [[Double]] {
+            guard order >= 0 else { throw ExactScalarFailure.countOverflow }
+            let (rows, overflow) = order.addingReportingOverflow(1)
+            let (bytes, byteOverflow) = rows.multipliedReportingOverflow(by: MemoryLayout<[Double]>.stride)
+            guard !overflow, !byteOverflow else { throw ExactScalarFailure.countOverflow }
+            try execution.retainStorage(bytes: bytes)
             let clamped = BSplineBasis.clampedParameter(x, knots: knots, degree: degree)
-            return (0...order).map {
-                BSplineBasis.derivativeValues(parameter: clamped, degree: degree, derivativeOrder: $0, knots: knots, count: count)
+            return try (0...order).map {
+                try execution.consumeWork(1)
+                return try BSplineBasis.derivativeValues(parameter: clamped, degree: degree,
+                    derivativeOrder: $0, knots: knots, count: count, using: &execution)
             }
         }
     }
@@ -52,9 +65,9 @@ package struct FairSurfaceSystem {
     package mutating func addFairness(uBasis: Basis, vBasis: Basis, flatness: Double) throws {
         let nu = uBasis.count
         for (u, wu) in try Self.gaussPoints(knots: uBasis.knots, count: uBasis.degree + 1) {
-            let bu = uBasis.derivatives(at: u, order: 2)
+            let bu = try uBasis.derivatives(at: u, order: 2)
             for (v, wv) in try Self.gaussPoints(knots: vBasis.knots, count: vBasis.degree + 1) {
-                let bv = vBasis.derivatives(at: v, order: 2)
+                let bv = try vBasis.derivatives(at: v, order: 2)
                 let w = wu * wv
                 var terms: [(Double, Int, Int)] = [((flatness * w).squareRoot(), 2, 0), ((2 * flatness * w).squareRoot(), 1, 1),
                                                     ((flatness * w).squareRoot(), 0, 2)]
@@ -77,9 +90,9 @@ package struct FairSurfaceSystem {
                                           metric: (Double, Double) throws -> (e: Double, f: Double, g: Double)?) throws {
         let nu = uBasis.count
         for (u, wu) in try Self.gaussPoints(knots: uBasis.knots, count: uBasis.degree + 1) {
-            let bu = uBasis.derivatives(at: u, order: 1)
+            let bu = try uBasis.derivatives(at: u, order: 1)
             for (v, wv) in try Self.gaussPoints(knots: vBasis.knots, count: vBasis.degree + 1) {
-                let bv = vBasis.derivatives(at: v, order: 1)
+                let bv = try vBasis.derivatives(at: v, order: 1)
                 var (a, b, c) = (1.0, 0.0, 1.0)
                 if let (e, f, g) = try metric(u, v) {
                     let area = (e * g - f * f).squareRoot()

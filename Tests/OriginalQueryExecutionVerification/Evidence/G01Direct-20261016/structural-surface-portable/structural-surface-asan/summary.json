@@ -1,0 +1,92 @@
+{
+  "scope": "Focused structural surface metering debit, exact/cumulative work, overflow and cancellation behavior only; no whole-G01/U1 or Drawing integration claim.",
+  "family": "structural-surface",
+  "lane": "asan",
+  "status": "passed",
+  "receipt": {
+    "original": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/structural-surface-portable-asan-r1/receipt.json",
+    "sha256": "27222a476566157f07e7d490495f1ab9ea71e9ba24958a49ca1f6b17804a84c0"
+  },
+  "nativeSourceAuthority": {
+    "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-structural-surface-r1/receipt.json",
+    "sha256": "53a65398fd6a177d3a9e604c743ed8391a0d16ab0c919132b91225e211f5958c"
+  },
+  "sourceCount": {
+    "CADCore": 65,
+    "CADGeometry": 2170
+  },
+  "fixture": {
+    "path": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/Tests/OriginalQueryExecutionVerification/StructuralSurfaceMeteringPortable.swift",
+    "sha256": "fe043859ebb6d290c4cc0c85a2d584d4a5c01bca3f139d48bd19df34c7c97bc8",
+    "expectedOutputLines": [
+      "PASS structural surface original debit sequences",
+      "PASS structural surface exact and cumulative work",
+      "PASS structural surface checked overflow",
+      "PASS structural surface cancellation"
+    ]
+  },
+  "matchedOracleLines": [
+    "PASS structural surface original debit sequences",
+    "PASS structural surface exact and cumulative work",
+    "PASS structural surface checked overflow",
+    "PASS structural surface cancellation"
+  ],
+  "bounds": {
+    "compileLinkSecondsPerLane": 1200,
+    "runtimeSeconds": 120,
+    "aggregateRSSBytes": 10737418240,
+    "compilerProcessesAtOnce": 1
+  },
+  "elapsedSeconds": 125.45628812500217,
+  "phases": [
+    {
+      "name": "asan-compile",
+      "exitCode": 0,
+      "elapsedSeconds": 120.16437616699841,
+      "peakRSSBytes": 6957481984,
+      "stopReason": null,
+      "wallLimitSeconds": 1199.999994165999
+    },
+    {
+      "name": "asan-link",
+      "exitCode": 0,
+      "elapsedSeconds": 2.277759167001932,
+      "peakRSSBytes": 790446080,
+      "stopReason": null,
+      "wallLimitSeconds": 1079.1527499580043
+    },
+    {
+      "name": "asan-runtime",
+      "exitCode": 0,
+      "elapsedSeconds": 1.1657905839965679,
+      "peakRSSBytes": 933888,
+      "stopReason": null,
+      "wallLimitSeconds": 120
+    }
+  ],
+  "geometryReuse": null,
+  "logs": {
+    "asan-compile.log": {
+      "original": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/structural-surface-portable-asan-r1/asan-compile.log",
+      "sha256": "c11946ee74ea3ad775659c1dbad3378d5b95db0a0185c5fbcbbd9232e250a1f5"
+    },
+    "asan-link.log": {
+      "original": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/structural-surface-portable-asan-r1/asan-link.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "asan-runtime.log": {
+      "original": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/structural-surface-portable-asan-r1/asan-runtime.log",
+      "sha256": "cb09ed449363568018949e087a5c76e4bd0f30066b817d7a6eb06af591c15b21"
+    }
+  },
+  "productSHA256": {
+    "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/structural-surface-portable-asan-r1/asan/CADGeometry.swiftmodule": "cf34f3f84be08e6b76284d543958bae69cb72612df4218329551454177c1afcc",
+    "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/structural-surface-portable-asan-r1/asan/CADGeometry.code.o": "aabb3c6649f556d5a17fdf16808a57e56d793b7ffb76f7a473435eaf107adbde"
+  },
+  "executableSHA256": "d8102bde1280b39e2507c0e326a8257d2a4c2a7202be60cc38e889c582b096b1",
+  "terminalDrift": {
+    "currentDrift": [],
+    "snapshotDrift": [],
+    "productDrift": []
+  }
+}

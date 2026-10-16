@@ -496,6 +496,9 @@ struct SurfaceSurfaceIntersectionTests {
 
   @Test(.timeLimit(.minutes(1)))
   func parametricGaugeCertifiesAKnownRegularCircleArc() throws {
+    var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+      limits: try .init(maximumValueDepth: Int.max, maximumCoefficientDepth: Int.max,
+        maximumSubdivisionDepth: 32, maximumSpans: 262_144))
     let (planarSurface, graphSurface) = proceduralCircleSurfaces()
     for rootV in [0.5, 0.5625, 0.625] {
       let rootU =
@@ -525,13 +528,15 @@ struct SurfaceSurfaceIntersectionTests {
         firstSurface: planarSurface,
         secondSurface: graphSurface,
         parameterBox: parameterBox,
-        tolerance: tolerance
+        tolerance: tolerance,
+        using: &execution
       )
-      #expect(prover.rankCertifiedFreeParameters().contains(.firstV))
+      #expect(try prover.rankCertifiedFreeParameters(using: &execution).contains(.firstV))
       let certificate = try prover.gaugeCertificate(
         freeParameter: .firstV,
         atNormalizedFraction: 0.5,
-        tolerance: tolerance
+        tolerance: tolerance,
+        using: &execution
       )
       guard case .uniqueRoot = certificate else {
         Issue.record(
@@ -544,6 +549,9 @@ struct SurfaceSurfaceIntersectionTests {
 
   @Test(.timeLimit(.minutes(1)))
   func parametricContractorExcludesACorrelatedNearMiss() throws {
+    var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+      limits: try .init(maximumValueDepth: Int.max, maximumCoefficientDepth: Int.max,
+        maximumSubdivisionDepth: 32, maximumSpans: 262_144))
     let (planarSurface, graphSurface) = proceduralCircleSurfaces()
     let parameterBox = SurfaceIntersectionParameterBox(
       firstU: try ScalarInterval(
@@ -561,19 +569,22 @@ struct SurfaceSurfaceIntersectionTests {
       firstSurface: planarSurface,
       secondSurface: graphSurface,
       parameterBox: parameterBox,
-      tolerance: tolerance
+      tolerance: tolerance,
+      using: &execution
     )
-    let freeParameters = prover.rankCertifiedFreeParameters()
+    let freeParameters = try prover.rankCertifiedFreeParameters(using: &execution)
     let certificates = try freeParameters.map {
       try prover.parameterizedGraphCertificate(
         freeParameter: $0,
-        tolerance: tolerance
+        tolerance: tolerance,
+        using: &execution
       )
     }
     let diagnostics = try freeParameters.map {
       try prover.parameterizedGraphDiagnostic(
         freeParameter: $0,
-        tolerance: tolerance
+        tolerance: tolerance,
+        using: &execution
       )
     }
     let boundaryCertificates =
@@ -583,7 +594,8 @@ struct SurfaceSurfaceIntersectionTests {
           try prover.gaugeCertificate(
             freeParameter: coordinate,
             atNormalizedFraction: fraction,
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
           )
         }
       }
@@ -604,6 +616,9 @@ struct SurfaceSurfaceIntersectionTests {
 
   @Test(.timeLimit(.minutes(1)))
   func parametricContractorClassifiesARegularBoundaryHandoff() throws {
+    var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+      limits: try .init(maximumValueDepth: Int.max, maximumCoefficientDepth: Int.max,
+        maximumSubdivisionDepth: 32, maximumSpans: 262_144))
     let (planarSurface, graphSurface) = proceduralCircleSurfaces()
     let parameterBox = SurfaceIntersectionParameterBox(
       firstU: try ScalarInterval(
@@ -621,13 +636,15 @@ struct SurfaceSurfaceIntersectionTests {
       firstSurface: planarSurface,
       secondSurface: graphSurface,
       parameterBox: parameterBox,
-      tolerance: tolerance
+      tolerance: tolerance,
+      using: &execution
     )
-    let freeParameters = prover.rankCertifiedFreeParameters()
+    let freeParameters = try prover.rankCertifiedFreeParameters(using: &execution)
     let graphCertificates = try freeParameters.map {
       try prover.parameterizedGraphCertificate(
         freeParameter: $0,
-        tolerance: tolerance
+        tolerance: tolerance,
+        using: &execution
       )
     }
     let boundaryCertificates =
@@ -637,7 +654,8 @@ struct SurfaceSurfaceIntersectionTests {
           try prover.gaugeCertificate(
             freeParameter: coordinate,
             atNormalizedFraction: fraction,
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
           )
         }
       }

@@ -72,7 +72,8 @@ point evaluation does not require finite differential condition bounds.
 ## State, Ownership, and Lifecycle
 
 COW source values and immutable word caches remain retained with the image.
-Query callbacks are borrowed lexically and are never stored in source values.
+Query operations take the original execution by `inout`; source values retain
+actual coefficient proof depths and never store the mutable execution.
 
 ## Failure, Concurrency, and Constraints
 
@@ -133,3 +134,76 @@ transport. Exact support/period/fiber authority belongs to
 [OriginalSourceIssuance](../OriginalSourceIssuance/DESIGN.md); numerical enclosures
 never substitute for those exact source values. General cone silhouette relation
 consumption remains an explicit M7 capability refusal.
+
+## Direct Original Query Calling
+
+The [module direct execution contract](../DESIGN.md#u1-direct-execution-ownership)
+governs caller composition. Scalar source construction consumes the original
+`inout A: ExactScalarAdmission & ~Copyable`, with explicit work units, checked
+allocation bytes, independent value/coefficient scope observations and unchanged
+source laws. Geometry query composition uses the same original execution;
+ordinary conveniences create one cumulative owner only at their real entry.
+Callback-to-admission reconstruction, copied budget writeback and cancellation-
+only legacy allowances are removed. Actual structural and parameter guards,
+original source ownership and scoped identities remain required.
+
+### Direct Source Execution
+
+Pure original word/coefficient operations receive the original generic
+`inout A: ExactScalarAdmission & ~Copyable`. General geometry construction,
+validation and retained queries receive the original `inout OriginalQueryExecution`.
+Actual lower calculations keep that same object; no legacy, validation or borrowed
+admission is reconstructed from resource callbacks. Configured capabilities
+remain independent of attained proof metadata. Actual payload bytes are checked
+and admitted before materialization; failures and cancellation publish no partial
+source or complete query. Ordinary numerical entry points may create one explicit
+independent execution and delegate to the direct operation. Source-only generic
+branches consume their genuine Native/word law without acquiring a general
+geometry capability.
+
+```text
+Original caller execution -> source validation/query -> original lower operation
+generic caller A -> pure Native/word coefficient law -> retained source proof
+```
+
+Owning behavioral success, guard rejection, independent budgets/depth, terminal
+cancellation and retained lifetime must execute through the actual direct path.
+Syntax or signature checks alone are not completion evidence.
+
+World harmonic/circular coefficient caches retain the attained scalar depth of
+their actual coefficient preparation in an operation-local observation scope.
+Each later query re-admits that depth on its original caller before consuming
+the cached enclosures. The configured word ceiling is not a proof depth, and
+previous unrelated queries cannot contaminate this immutable receipt. Ordinary
+construction delegates to the same admitted constructor on one independent
+execution. General child-source validation remains on the high-level execution.
+
+### Native Harmonic Preparation Stack Boundary
+
+A bare Native B-spline source has no harmonic primitive coefficient adapter.
+Preparation preserves its existing two intrinsic angular-transport validations
+in U-then-V order on the same caller admission, followed by the existing nil
+result. A non-inlined thin entry selects only that bare Native case before the
+large non-Native preparation frame. Every other source, including original image
+and angular wrappers, enters the non-inlined private original preparation body
+unchanged; recursive calls continue through the same entry.
+
+```text
+bare Native B-spline -> intrinsic U validation -> intrinsic V validation -> nil
+other original source -> unchanged harmonic preparation body
+nil adapter -> existing caller physical admission and source validation
+```
+
+The thin branch changes neither support/UV authority nor coefficient capability.
+The caller still re-admits retained coefficient depth and validates the operation
+word before relation preparation, then performs the existing source-tolerance and
+Native source validation after nil. No coefficient, metric, source-depth scope,
+allocation, cancellation or work obligation is waived. The two validations keep
+the original two one-unit debits and their admission/cancellation failures.
+
+The concrete placed-Drawing worker counterexample reserved 57,456 bytes in the
+old harmonic prepare entry before reaching its Native nil branch. Source-byte
+inverse comparison must retain all old preparation expressions and their order;
+Root owns the actual Native prologue and Drawing/resource/cancellation checks.
+A successful nil fast path does not establish a missing harmonic family or whole
+Drawing capability.

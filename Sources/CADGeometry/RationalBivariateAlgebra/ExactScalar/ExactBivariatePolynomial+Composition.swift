@@ -1,12 +1,12 @@
 /// Original exact polynomial substitution, preserving actual coefficient identity.
 extension ExactBivariatePolynomial {
-    package func composed<B: RationalAlgebraAdmitting>(withU u: Self, v: Self,
+    package func composed<B: ExactScalarAdmission & ~Copyable>(withU u: Self, v: Self,
         usage: inout B) throws -> Self {
         func power(_ source: Self, _ exponent: Int, usage: inout B) throws -> Self {
             var remaining = exponent, factor = source
             var result = try Self.constant(.one, usage: &usage)
             while remaining > 0 {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 if remaining % 2 == 1 { result = try result.multiplied(by: factor, usage: &usage) }
                 remaining /= 2
                 if remaining > 0 { factor = try factor.multiplied(by: factor, usage: &usage) }

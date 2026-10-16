@@ -27,7 +27,7 @@ public struct OriginalApexSphereConeSurfaceMember: Sendable {
     }
     static func apex<A: ExactScalarAdmission & ~Copyable>(relation: OriginalApexSphereConeSurfaceRelation,
         coneU: Field.Value, sphereOffset: Field.Value, using a: inout A) throws -> Self {
-        try OriginalSourceProofAdmission<A>.withBorrow(&a) { a in
+        try a.withProofScope() { a in
         let f = relation.source.original.field, zero = try f.integer(0, using: &a)
         try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: Self.self))
         let result = Self(relation: relation, section: nil, slant: zero, x: try f.integer(1, using: &a),

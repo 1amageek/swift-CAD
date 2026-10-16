@@ -23,15 +23,24 @@ public struct BSplineSurfaceRegularityValidator: Sendable {
         self.maximumCellCount = maximumCellCount
     }
 
+    public func validate(_ surface: BSplineSurface3D, uDomain: ParameterDomain,
+        vDomain: ParameterDomain, tolerance: ModelingTolerance,
+        allowStationaryBoundaryParameterization: Bool = false) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(surface, uDomain: uDomain, vDomain: vDomain, tolerance: tolerance,
+            allowStationaryBoundaryParameterization: allowStationaryBoundaryParameterization, using: &execution)
+    }
+
     public func validate(
         _ surface: BSplineSurface3D,
         uDomain: ParameterDomain,
         vDomain: ParameterDomain,
         tolerance: ModelingTolerance,
-        allowStationaryBoundaryParameterization: Bool = false
+        allowStationaryBoundaryParameterization: Bool = false,
+        using execution: inout OriginalQueryExecution
     ) throws {
         try tolerance.validate()
-        try surface.validate(tolerance: tolerance)
+        try surface.validate(tolerance: tolerance, using: &execution)
         guard maximumSubdivisionDepth >= 0, maximumCellCount > 0 else {
             throw KernelError(
                 phase: .geometry,
@@ -57,24 +66,28 @@ public struct BSplineSurfaceRegularityValidator: Sendable {
             tolerance.relative * max(abs(uLower), abs(uUpper), abs(vLower), abs(vUpper), 1.0),
             Double.ulpOfOne * 256.0
         )
-        let patches = try BSplineSurfaceBezierDecomposer()
-            .surfacePatches(surface: surface, tolerance: tolerance)
-            .compactMap { patch -> RationalBezierSurfacePatch3D? in
+        let sourcePatches = try BSplineSurfaceBezierDecomposer()
+            .surfacePatches(surface: surface, tolerance: tolerance, using: &execution)
+
+        try OriginalCoefficientAllocation.reserve(count: sourcePatches.count, of: RationalBezierSurfacePatch3D.self, using: &execution)
+        var patches: [RationalBezierSurfacePatch3D] = []; patches.reserveCapacity(sourcePatches.count)
+        for patch in sourcePatches {
+                try execution.consumeWork(1)
                 let clippedULower = max(patch.uLower, uLower)
                 let clippedUUpper = min(patch.uUpper, uUpper)
                 let clippedVLower = max(patch.vLower, vLower)
                 let clippedVUpper = min(patch.vUpper, vUpper)
                 guard clippedUUpper - clippedULower > parameterTolerance,
                       clippedVUpper - clippedVLower > parameterTolerance else {
-                    return nil
+                    continue
                 }
-                return try patch.trimmed(
+                patches.append(try patch.trimmed(
                     uFrom: clippedULower,
                     uTo: clippedUUpper,
                     vFrom: clippedVLower,
                     vTo: clippedVUpper,
-                    tolerance: tolerance
-                )
+                    tolerance: tolerance, using: &execution
+                ))
             }
         guard patches.isEmpty == false else {
             throw KernelError(
@@ -85,9 +98,11 @@ public struct BSplineSurfaceRegularityValidator: Sendable {
             )
         }
 
-        var pending = patches.map { Cell(patch: $0, depth: 0) }
+        var pending = try OriginalCoefficientAllocation.map(elements: patches, using: &execution) { patch, _ in Cell(patch: patch, depth: 0) }
+        var pendingCapacity = pending.count
         var visitedCellCount = 0
         while let cell = pending.popLast() {
+            try execution.visitGeometricCell(depth: cell.depth)
             visitedCellCount += 1
             guard visitedCellCount <= maximumCellCount else {
                 throw resourceLimit(
@@ -96,18 +111,21 @@ public struct BSplineSurfaceRegularityValidator: Sendable {
                     message: "B-spline surface regularity exhausted its certified cell budget."
                 )
             }
+            if allowStationaryBoundaryParameterization {
+                try OriginalCoefficientAllocation.reserve(count: 4, of: SurfaceParameterBoundary.self, using: &execution)
+            }
             let stationaryBoundaries = allowStationaryBoundaryParameterization
                 ? RationalBezierSurfaceDifferentialBounds.outerBoundaries(of: cell.patch,
                     uDomain: uDomain, vDomain: vDomain) : []
             if try certificate(for: cell.patch, tolerance: tolerance,
-                stationaryBoundaries: stationaryBoundaries).isRegular {
+                stationaryBoundaries: stationaryBoundaries, using: &execution).isRegular {
                 continue
             }
             try rejectSampledSingularity(
                 in: cell.patch,
                 surface: surface,
                 tolerance: tolerance,
-                stationaryBoundaries: stationaryBoundaries
+                stationaryBoundaries: stationaryBoundaries, using: &execution
             )
             guard cell.depth < maximumSubdivisionDepth else {
                 throw resourceLimit(
@@ -116,9 +134,11 @@ public struct BSplineSurfaceRegularityValidator: Sendable {
                     message: "B-spline surface regularity could not certify a cell within the subdivision limit."
                 )
             }
-            pending.append(contentsOf: try cell.patch.subdivided().map {
-                Cell(patch: $0, depth: cell.depth + 1)
-            })
+            let children = try cell.patch.subdivided(using: &execution)
+            for patch in children {
+                try OriginalCoefficientAllocation.reserveAppend(to: &pending, capacity: &pendingCapacity, using: &execution)
+                pending.append(Cell(patch: patch, depth: cell.depth + 1))
+            }
         }
     }
 
@@ -134,9 +154,9 @@ public struct BSplineSurfaceRegularityValidator: Sendable {
     private func certificate(
         for patch: RationalBezierSurfacePatch3D,
         tolerance: ModelingTolerance,
-        stationaryBoundaries: Set<SurfaceParameterBoundary>
+        stationaryBoundaries: Set<SurfaceParameterBoundary>, using execution: inout OriginalQueryExecution
     ) throws -> Certificate {
-        let weights = patch.weights.flatMap { $0 }
+        let weights = try OriginalCoefficientAllocation.flatten(rows: patch.weights, using: &execution)
         guard let minimumWeight = weights.min(),
               let maximumWeightValue = weights.max(),
               minimumWeight.isFinite,
@@ -144,8 +164,8 @@ public struct BSplineSurfaceRegularityValidator: Sendable {
               maximumWeightValue.isFinite else {
             return Certificate(isRegular: false)
         }
-        let differentialBounds = RationalBezierSurfaceDifferentialBounds(patch: patch,
-            stationaryBoundaries: stationaryBoundaries)
+        let differentialBounds = try RationalBezierSurfaceDifferentialBounds.prepared(patch: patch,
+            stationaryBoundaries: stationaryBoundaries, using: &execution)
         let maximumWeight = maximumWeightValue.nextUp
         let maximumWeightSquared = (maximumWeight * maximumWeight).nextUp
         let tangentULower = max(
@@ -185,7 +205,7 @@ public struct BSplineSurfaceRegularityValidator: Sendable {
         in patch: RationalBezierSurfacePatch3D,
         surface: BSplineSurface3D,
         tolerance: ModelingTolerance,
-        stationaryBoundaries: Set<SurfaceParameterBoundary>
+        stationaryBoundaries: Set<SurfaceParameterBoundary>, using execution: inout OriginalQueryExecution
     ) throws {
         for uFraction in [0.0, 0.5, 1.0] {
             let u = patch.uLower + (patch.uUpper - patch.uLower) * uFraction
@@ -196,7 +216,7 @@ public struct BSplineSurfaceRegularityValidator: Sendable {
                     || (vFraction == 1 && stationaryBoundaries.contains(.vUpper)) { continue }
                 let v = patch.vLower + (patch.vUpper - patch.vLower) * vFraction
                 do {
-                    _ = try surface.normal(u: u, v: v, tolerance: tolerance)
+                    _ = try surface.normal(u: u, v: v, tolerance: tolerance, using: &execution)
                 } catch let error as KernelError where error.code == .singularSystem {
                     throw KernelError(
                         phase: .geometry,

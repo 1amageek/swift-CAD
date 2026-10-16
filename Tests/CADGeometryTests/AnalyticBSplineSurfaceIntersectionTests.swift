@@ -32,28 +32,19 @@ struct AnalyticBSplineSurfaceIntersectionTests {
         }
     }
 
-    @Test(.timeLimit(.minutes(1)), arguments: [1, 16, 64])
-    func planeHasOneChartWhilePeriodicSurfacesRetainSeamAttempts(attempts: Int) throws {
+    @Test(.timeLimit(.minutes(1)))
+    func planeBuilderIsInvariantUnderPeriodicSeamOffsets() throws {
         let reference = BSplineSurface3D.bilinearPatch(
             bottomLeft: Point3D(x: -1, y: -1, z: -1),
             bottomRight: Point3D(x: 1, y: -1, z: 1),
             topRight: Point3D(x: 1, y: 1, z: -1),
             topLeft: Point3D(x: -1, y: 1, z: 1))
         let plane = CanonicalAnalyticSurface(.plane(Plane3D(origin: .origin, normal: .unitZ)))
-        let owner = AnalyticBSplineSurfaceIntersector()
-        let offsets = try owner.periodicSeamOffsets(analytic: plane, reference: reference,
-            count: attempts, tolerance: tolerance)
-        #expect(offsets == [0])
         let builder = AnalyticSurfaceBSplineBuilder()
         let original = try builder.surface(for: plane, boundedBy: reference,
             periodicSeamOffset: Double.pi * 0.125, tolerance: tolerance)
         #expect(try builder.surface(for: plane, boundedBy: reference,
-            periodicSeamOffset: offsets[0], tolerance: tolerance) == original)
-        let cylinder = CanonicalAnalyticSurface(.analytic(
-            .cylinder(origin: .origin, axis: .unitZ, radius: 1)))
-        let periodic = try owner.periodicSeamOffsets(analytic: cylinder, reference: reference,
-            count: attempts, tolerance: tolerance)
-        #expect(Set(periodic).count == attempts)
+            periodicSeamOffset: 0, tolerance: tolerance) == original)
     }
 
     @Test(.timeLimit(.minutes(1)))

@@ -8,7 +8,7 @@ extension OriginalDraftedRuledSurface3D: Codable {
         try c.validateOnlyExpectedKeys([.start,.endHeight],in:decoder)
         if #available(macOS 15,iOS 18,visionOS 2,watchOS 11,tvOS 18,*) {
             try OriginalAffineWordDecodingContext.validateSourceNesting(from:decoder)
-            var usage = try NativeRationalSourceDecodingContext.allowance(from:decoder)
+            var usage = try NativeRationalSourceDecodingContext.execution(from:decoder)
             let start = try c.decode(OriginalDraftedCurve3D.self,forKey:.start)
             let depth = try OriginalAffineWordDecodingContext.maximumSourceDepth(from:decoder)-decoder.codingPath.count
             try self.init(start:start,endHeight:c.decode(Double.self,forKey:.endHeight),

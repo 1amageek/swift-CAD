@@ -14,6 +14,15 @@ package struct SurfaceFootResolver: Sendable {
     package init() {}
 
     package func foot(of point: Point3D, on surface: Surface3D, tolerance: ModelingTolerance) throws -> (point: Point3D, normal: Vector3D) {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try foot(of: point, on: surface, tolerance: tolerance, using: &execution)
+    }
+
+    package func foot(of point: Point3D, on surface: Surface3D, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> (point: Point3D, normal: Vector3D) {
+        try execution.consumeWork(1)
+        try point.validate()
+        try tolerance.validate()
         let onSurface: Point3D
         switch surface {
         case let .plane(plane):
@@ -37,6 +46,7 @@ package struct SurfaceFootResolver: Sendable {
             let height = offset.dot(unitAxis)
             let outward = try radialDirection(offset - unitAxis * height, fallback: unitAxis, tolerance: tolerance)
             let radius = offset.dot(outward)
+            try execution.retainStorage(count: 2, stride: MemoryLayout<Point3D>.stride)
             let candidates = [1.0, -1.0].map { side -> Point3D in
                 let along = max(0, side * height * cos(halfAngle) + radius * sin(halfAngle))
                 return apex + unitAxis * (side * along * cos(halfAngle)) + outward * (along * sin(halfAngle))
@@ -49,24 +59,24 @@ package struct SurfaceFootResolver: Sendable {
             let tube = center + outward * majorRadius
             onSurface = tube + (try radialDirection(point - tube, tolerance: tolerance)) * minorRadius
         case let .bSpline(spline):
-            let projection = try spline.closestParameterProjection(of: point, tolerance: tolerance)
-            return try frame(on: surface, u: projection.u, v: projection.v, tolerance: tolerance)
+            let projection = try spline.closestParameterProjection(of: point, tolerance: tolerance, using: &execution)
+            return try frame(on: surface, u: projection.u, v: projection.v, tolerance: tolerance, using: &execution)
         case let .procedural(procedural):
-            let projection = try procedural.closestParameterProjection(of: point, options: SurfaceParameterProjectionOptions(), tolerance: tolerance)
-            return try frame(on: surface, u: projection.u, v: projection.v, tolerance: tolerance)
+            let projection = try procedural.closestParameterProjection(of: point, options: SurfaceParameterProjectionOptions(), tolerance: tolerance, using: &execution)
+            return try frame(on: surface, u: projection.u, v: projection.v, tolerance: tolerance, using: &execution)
         default:
             throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
                               message: "The nearest point of this kind of surface is not available.")
         }
-        guard case let .projected(projection) = try surface.parameterProjectionResult(of: onSurface, tolerance: tolerance) else {
+        guard case let .projected(projection) = try surface.parameterProjectionResult(of: onSurface, tolerance: tolerance, using: &execution) else {
             throw KernelError(phase: .geometry, code: .topologyFailure, tolerance: tolerance,
                               message: "A surface's nearest point does not lie on it.")
         }
-        return try frame(on: surface, u: projection.u, v: projection.v, tolerance: tolerance)
+        return try frame(on: surface, u: projection.u, v: projection.v, tolerance: tolerance, using: &execution)
     }
 
-    private func frame(on surface: Surface3D, u: Double, v: Double, tolerance: ModelingTolerance) throws -> (point: Point3D, normal: Vector3D) {
-        let geometry = try surface.differentialGeometry(u: u, v: v, tolerance: tolerance)
+    private func frame(on surface: Surface3D, u: Double, v: Double, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> (point: Point3D, normal: Vector3D) {
+        let geometry = try surface.differentialGeometry(u: u, v: v, tolerance: tolerance, using: &execution)
         return (geometry.position, try geometry.normal.normalized(tolerance: tolerance.distance))
     }
 

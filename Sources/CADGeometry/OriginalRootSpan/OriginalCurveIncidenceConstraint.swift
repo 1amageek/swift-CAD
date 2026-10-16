@@ -6,14 +6,14 @@ public enum OriginalCurveIncidenceConstraint: Hashable, Sendable {
     case axis(origin: Point3D, direction: Vector3D)
     case parameterPolynomial(ExactBivariatePolynomial)
 
-    func numerators<B: RationalAlgebraAdmitting>(from source: OriginalRationalCurvePolynomial,
+    func numerators<B: ExactScalarAdmission & ~Copyable>(from source: OriginalRationalCurvePolynomial,
         usage: inout B) throws -> [ExactBivariatePolynomial] {
         switch self {
         case .parameterPolynomial(let polynomial):
             guard polynomial.vDegree <= 0, polynomial.uDegree > 0 else {
                 throw GeometryConversionError.invalidInput("Original parameter root requires a nonconstant univariate polynomial.")
             }
-            try usage.retainExactStorage(1)
+            try RationalAlgebraStorage.retain(1, of: ExactBivariatePolynomial.self, usage:&usage)
             return [polynomial]
         case .axis(let origin, let direction):
             return try source.axisIncidenceNumerators(origin: origin, direction: direction, usage: &usage)

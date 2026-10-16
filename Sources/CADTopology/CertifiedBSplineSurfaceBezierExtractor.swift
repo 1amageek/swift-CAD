@@ -15,13 +15,19 @@ struct CertifiedBSplineSurfaceBezierExtractor {
         self.maximumControlOperations = maximumControlOperations
     }
 
+    func patches(surface: BSplineSurface3D, tolerance: ModelingTolerance) throws -> [CertifiedHomogeneousBezierSurfacePatch]? {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try patches(surface: surface, tolerance: tolerance, using: &execution)
+    }
+
     func patches(
         surface: BSplineSurface3D,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> [CertifiedHomogeneousBezierSurfacePatch]? {
-        try checkCancellation()
+        try execution.consumeWork(1)
+        try execution.checkpoint()
         try tolerance.validate()
-        try surface.validate(tolerance: tolerance)
+        try surface.validate(tolerance: tolerance, using: &execution)
         guard surface.uDegree >= 1,
               surface.vDegree >= 1,
               case let .closed(uDomainLower, uDomainUpper) = surface.uDomain,
@@ -35,21 +41,21 @@ struct CertifiedBSplineSurfaceBezierExtractor {
                 message: "Certified B-spline surface extraction requires positive bounded parameter domains."
             )
         }
-        if isSingleBezierPatch(
+        if try isSingleBezierPatch(
             degree: surface.uDegree,
             knots: surface.uKnots,
             controlCount: surface.uControlPointCount,
             lower: uDomainLower,
-            upper: uDomainUpper
-        ), isSingleBezierPatch(
+            upper: uDomainUpper, using: &execution
+        ), try isSingleBezierPatch(
             degree: surface.vDegree,
             knots: surface.vKnots,
             controlCount: surface.vControlPointCount,
             lower: vDomainLower,
-            upper: vDomainUpper
+            upper: vDomainUpper, using: &execution
         ) {
-            let controls = surface.controlPoints.indices.map { vIndex in
-                surface.controlPoints[vIndex].indices.map { uIndex in
+            let controls = (try OriginalParameterQueryStorage.map(surface.controlPoints.indices, using: &execution) { vIndex, execution in
+                (try OriginalParameterQueryStorage.map(surface.controlPoints[vIndex].indices, using: &execution) { uIndex, execution in
                     let point = surface.controlPoints[vIndex][uIndex]
                     let weight = Scalar.exact(surface.weights[vIndex][uIndex])
                     return Point(
@@ -58,11 +64,11 @@ struct CertifiedBSplineSurfaceBezierExtractor {
                         z: Scalar.exact(point.z) * weight,
                         weight: weight
                     )
-                }
-            }
-            guard controls.flatMap({ $0 }).allSatisfy(
-                { $0.isFiniteAndPositiveWeight }
-            ) else {
+                })
+            })
+            guard try OriginalParameterQueryStorage.allSatisfy(controls, using: &execution, predicate: { row, execution in
+                try OriginalParameterQueryStorage.allSatisfy(row, using: &execution) { point, execution in point.isFiniteAndPositiveWeight }
+            }) else {
                 throw KernelError(
                     phase: .topology,
                     code: .singularSystem,
@@ -70,13 +76,13 @@ struct CertifiedBSplineSurfaceBezierExtractor {
                     message: "Certified Bezier surface extraction requires finite positive homogeneous controls."
                 )
             }
-            return [Patch(
+            return try OriginalParameterQueryStorage.repeated(Patch(
                 controls: controls,
                 uLower: uDomainLower,
                 uUpper: uDomainUpper,
                 vLower: vDomainLower,
                 vUpper: vDomainUpper
-            )]
+            ), count: 1, using: &execution)
         }
         var operationCount = 0
         let uBreaks = try parameterBreaks(
@@ -84,16 +90,16 @@ struct CertifiedBSplineSurfaceBezierExtractor {
             lower: uDomainLower,
             upper: uDomainUpper,
             operationCount: &operationCount,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         let vBreaks = try parameterBreaks(
             knots: surface.vKnots,
             lower: vDomainLower,
             upper: vDomainUpper,
             operationCount: &operationCount,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
-        let constantWeight = exactConstantWeight(surface.weights)
+        let constantWeight = try exactConstantWeight(surface.weights, using: &execution)
         guard uBreaks.count >= 2, vBreaks.count >= 2 else {
             throw KernelError(
                 phase: .topology,
@@ -124,10 +130,11 @@ struct CertifiedBSplineSurfaceBezierExtractor {
             operationCount: &operationCount,
             tolerance: tolerance
         )
-        result.reserveCapacity(patchCount)
+        try OriginalParameterQueryStorage.reserve(patchCount, in: &result, using: &execution)
         var vSpanCursor = surface.vDegree
         for vSpanIndex in 0..<(vBreaks.count - 1) {
-            try checkCancellation()
+            try execution.consumeWork(1)
+            try execution.checkpoint()
             let vLower = vBreaks[vSpanIndex]
             let vUpper = vBreaks[vSpanIndex + 1]
             let vSpanWidth = Scalar.exact(vUpper) - Scalar.exact(vLower)
@@ -144,14 +151,14 @@ struct CertifiedBSplineSurfaceBezierExtractor {
                 controlCount: surface.vControlPointCount,
                 spanCursor: &vSpanCursor,
                 operationCount: &operationCount,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
             let vLocalKnots = try localKnots(
                 degree: surface.vDegree,
                 knots: surface.vKnots,
                 span: vSpan,
                 operationCount: &operationCount,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
             let vBasis = try basisDerivativeTable(
                 parameter: vLower,
@@ -159,17 +166,18 @@ struct CertifiedBSplineSurfaceBezierExtractor {
                 knots: vLocalKnots,
                 count: surface.vDegree + 1,
                 operationCount: &operationCount,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
             let vScales = try bernsteinScales(
                 degree: surface.vDegree,
                 span: vSpanWidth,
                 operationCount: &operationCount,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
             var uSpanCursor = surface.uDegree
             for uSpanIndex in 0..<(uBreaks.count - 1) {
-                try checkCancellation()
+                try execution.consumeWork(1)
+                try execution.checkpoint()
                 let uLower = uBreaks[uSpanIndex]
                 let uUpper = uBreaks[uSpanIndex + 1]
                 let uSpanWidth = Scalar.exact(uUpper) - Scalar.exact(uLower)
@@ -186,14 +194,14 @@ struct CertifiedBSplineSurfaceBezierExtractor {
                     controlCount: surface.uControlPointCount,
                     spanCursor: &uSpanCursor,
                     operationCount: &operationCount,
-                    tolerance: tolerance
+                    tolerance: tolerance, using: &execution
                 )
                 let uLocalKnots = try localKnots(
                     degree: surface.uDegree,
                     knots: surface.uKnots,
                     span: uSpan,
                     operationCount: &operationCount,
-                    tolerance: tolerance
+                    tolerance: tolerance, using: &execution
                 )
                 let uBasis = try basisDerivativeTable(
                     parameter: uLower,
@@ -201,13 +209,13 @@ struct CertifiedBSplineSurfaceBezierExtractor {
                     knots: uLocalKnots,
                     count: surface.uDegree + 1,
                     operationCount: &operationCount,
-                    tolerance: tolerance
+                    tolerance: tolerance, using: &execution
                 )
                 let uScales = try bernsteinScales(
                     degree: surface.uDegree,
                     span: uSpanWidth,
                     operationCount: &operationCount,
-                    tolerance: tolerance
+                    tolerance: tolerance, using: &execution
                 )
                 // Charge both local source windows before reading their control
                 // points or weights. The basis arrays contain only the active
@@ -235,13 +243,9 @@ struct CertifiedBSplineSurfaceBezierExtractor {
                     operationCount: &operationCount,
                     tolerance: tolerance
                 )
-                var derivatives = Array(
-                    repeating: Array(
-                        repeating: zeroPoint,
-                        count: uLocalCount
-                    ),
-                    count: vLocalCount
-                )
+                var derivatives = try OriginalParameterQueryStorage.map(0..<vLocalCount, using: &execution) { _, execution in
+                    try OriginalParameterQueryStorage.repeated(zeroPoint, count: uLocalCount, using: &execution)
+                }
                 let uControlStart = try checkedDifference(
                     uSpan,
                     surface.uDegree,
@@ -253,7 +257,9 @@ struct CertifiedBSplineSurfaceBezierExtractor {
                     tolerance: tolerance
                 )
                 for vOrder in 0...surface.vDegree {
+                    try execution.consumeWork(1)
                     for uOrder in 0...surface.uDegree {
+                        try execution.consumeWork(1)
                         derivatives[vOrder][uOrder] = try homogeneousDerivative(
                             surface: surface,
                             uBasis: uBasis[uOrder],
@@ -261,7 +267,7 @@ struct CertifiedBSplineSurfaceBezierExtractor {
                             uControlStart: uControlStart,
                             vControlStart: vControlStart,
                             operationCount: &operationCount,
-                            tolerance: tolerance
+                            tolerance: tolerance, using: &execution
                         )
                     }
                 }
@@ -270,23 +276,23 @@ struct CertifiedBSplineSurfaceBezierExtractor {
                     uScales: uScales,
                     vScales: vScales,
                     operationCount: &operationCount,
-                    tolerance: tolerance
+                    tolerance: tolerance, using: &execution
                 )
                 if let constantWeight {
-                    controls = controls.map { row in
-                        row.map { control in
+                    controls = (try OriginalParameterQueryStorage.map(controls, using: &execution) { row, execution in
+                        (try OriginalParameterQueryStorage.map(row, using: &execution) { control, execution in
                             Point(
                                 x: control.x,
                                 y: control.y,
                                 z: control.z,
                                 weight: .exact(constantWeight)
                             )
-                        }
-                    }
+                        })
+                    })
                 }
-                guard controls.flatMap({ $0 }).allSatisfy(
-                    { $0.isFiniteAndPositiveWeight }
-                ) else {
+                guard try OriginalParameterQueryStorage.allSatisfy(controls, using: &execution, predicate: { row, execution in
+                    try OriginalParameterQueryStorage.allSatisfy(row, using: &execution) { point, execution in point.isFiniteAndPositiveWeight }
+                }) else {
                     throw KernelError(
                         phase: .topology,
                         code: .singularSystem,
@@ -294,13 +300,13 @@ struct CertifiedBSplineSurfaceBezierExtractor {
                         message: "Certified B-spline surface extraction could not prove positive finite homogeneous weights."
                     )
                 }
-                result.append(Patch(
+                try OriginalParameterQueryStorage.append(Patch(
                     controls: controls,
                     uLower: uLower,
                     uUpper: uUpper,
                     vLower: vLower,
                     vUpper: vUpper
-                ))
+                ), to: &result, using: &execution)
             }
         }
         return result
@@ -312,9 +318,10 @@ struct CertifiedBSplineSurfaceBezierExtractor {
         knots: [Double],
         count: Int,
         operationCount: inout Int,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> [[Scalar]] {
-        try (0...degree).map { derivativeOrder in
+        try execution.consumeWork(1)
+        return try OriginalParameterQueryStorage.map(0...degree, using: &execution) { derivativeOrder, execution in
             try basisDerivativeValues(
                 parameter: parameter,
                 degree: degree,
@@ -322,7 +329,7 @@ struct CertifiedBSplineSurfaceBezierExtractor {
                 knots: knots,
                 count: count,
                 operationCount: &operationCount,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         }
     }
@@ -334,8 +341,9 @@ struct CertifiedBSplineSurfaceBezierExtractor {
         knots: [Double],
         count: Int,
         operationCount: inout Int,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> [Scalar] {
+        try execution.consumeWork(1)
         if derivativeOrder == 0 {
             return try basisValues(
                 parameter: parameter,
@@ -343,11 +351,11 @@ struct CertifiedBSplineSurfaceBezierExtractor {
                 knots: knots,
                 count: count,
                 operationCount: &operationCount,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         }
         guard derivativeOrder <= degree else {
-            return Array(repeating: .exact(0.0), count: count)
+            return try OriginalParameterQueryStorage.repeated(Scalar.exact(0.0), count: count, using: &execution)
         }
         let lowerDegree = try basisDerivativeValues(
             parameter: parameter,
@@ -356,11 +364,12 @@ struct CertifiedBSplineSurfaceBezierExtractor {
             knots: knots,
             count: count + 1,
             operationCount: &operationCount,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         let factor = Scalar.exact(Double(degree))
-        var result = Array(repeating: Scalar.exact(0.0), count: count)
+        var result = try OriginalParameterQueryStorage.repeated(Scalar.exact(0.0), count: count, using: &execution)
         for index in 0..<count {
+            try execution.consumeWork(1)
             try consume(4, operationCount: &operationCount, tolerance: tolerance)
             let leftDenominator = knots[index + degree] - knots[index]
             let rightDenominator = knots[index + degree + 1] - knots[index + 1]
@@ -381,10 +390,11 @@ struct CertifiedBSplineSurfaceBezierExtractor {
         knots: [Double],
         count: Int,
         operationCount: inout Int,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> [Scalar] {
+        try execution.consumeWork(1)
         guard degree > 0 else {
-            return (0..<count).map { index in
+            return try OriginalParameterQueryStorage.map(0..<count, using: &execution) { index, execution in
                 parameter >= knots[index] && parameter < knots[index + 1]
                     ? Scalar.exact(1.0)
                     : Scalar.exact(0.0)
@@ -396,10 +406,11 @@ struct CertifiedBSplineSurfaceBezierExtractor {
             knots: knots,
             count: count + 1,
             operationCount: &operationCount,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
-        var result = Array(repeating: Scalar.exact(0.0), count: count)
+        var result = try OriginalParameterQueryStorage.repeated(Scalar.exact(0.0), count: count, using: &execution)
         for index in 0..<count {
+            try execution.consumeWork(1)
             try consume(6, operationCount: &operationCount, tolerance: tolerance)
             let leftDenominator = knots[index + degree] - knots[index]
             let rightDenominator = knots[index + degree + 1] - knots[index + 1]
@@ -430,10 +441,12 @@ struct CertifiedBSplineSurfaceBezierExtractor {
         controlCount: Int,
         spanCursor: inout Int,
         operationCount: inout Int,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Int {
+        try execution.consumeWork(1)
         var span = spanCursor
         while span + 1 < controlCount {
+            try execution.consumeWork(1)
             try consume(
                 1,
                 operationCount: &operationCount,
@@ -453,8 +466,9 @@ struct CertifiedBSplineSurfaceBezierExtractor {
         knots: [Double],
         span: Int,
         operationCount: inout Int,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> [Double] {
+        try execution.consumeWork(1)
         let lowerIndex = try checkedDifference(
             span,
             degree,
@@ -491,7 +505,7 @@ struct CertifiedBSplineSurfaceBezierExtractor {
             operationCount: &operationCount,
             tolerance: tolerance
         )
-        return Array(knots[lowerIndex...upperIndex])
+        return try OriginalParameterQueryStorage.map(knots[lowerIndex...upperIndex], using: &execution) { knot, execution in knot }
     }
 
     private func checkedIncrement(
@@ -548,11 +562,14 @@ struct CertifiedBSplineSurfaceBezierExtractor {
         uControlStart: Int,
         vControlStart: Int,
         operationCount: inout Int,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Point {
+        try execution.consumeWork(1)
         var result = zeroPoint
         for vIndex in vBasis.indices {
+            try execution.consumeWork(1)
             for uIndex in uBasis.indices {
+                try execution.consumeWork(1)
                 let basis = uBasis[uIndex] * vBasis[vIndex]
                 guard !isExactlyZero(basis) else { continue }
                 try consume(
@@ -583,17 +600,17 @@ struct CertifiedBSplineSurfaceBezierExtractor {
         degree: Int,
         span: Scalar,
         operationCount: inout Int,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> [[Scalar]] {
+        try execution.consumeWork(1)
         var result: [[Scalar]] = []
-        result.reserveCapacity(degree + 1)
+        try OriginalParameterQueryStorage.reserve(degree + 1, in: &result, using: &execution)
         for controlIndex in 0...degree {
-            var scales = Array(
-                repeating: Scalar.exact(0.0),
-                count: controlIndex + 1
-            )
+            try execution.consumeWork(1)
+            var scales = try OriginalParameterQueryStorage.repeated(Scalar.exact(0.0), count: controlIndex + 1, using: &execution)
             var scale = Scalar.exact(1.0)
             for derivativeOrder in 0...controlIndex {
+                try execution.consumeWork(1)
                 scales[derivativeOrder] = scale
                 guard derivativeOrder < controlIndex else { continue }
                 try consume(
@@ -607,7 +624,7 @@ struct CertifiedBSplineSurfaceBezierExtractor {
                     / Scalar.exact(Double(derivativeOrder + 1))
                     / Scalar.exact(Double(degree - derivativeOrder))
             }
-            result.append(scales)
+            try OriginalParameterQueryStorage.append(scales, to: &result, using: &execution)
         }
         return result
     }
@@ -617,17 +634,22 @@ struct CertifiedBSplineSurfaceBezierExtractor {
         uScales: [[Scalar]],
         vScales: [[Scalar]],
         operationCount: inout Int,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> [[Point]] {
+        try execution.consumeWork(1)
         var result: [[Point]] = []
-        result.reserveCapacity(vScales.count)
+        try OriginalParameterQueryStorage.reserve(vScales.count, in: &result, using: &execution)
         for vControl in vScales.indices {
+            try execution.consumeWork(1)
             var row: [Point] = []
-            row.reserveCapacity(uScales.count)
+            try OriginalParameterQueryStorage.reserve(uScales.count, in: &row, using: &execution)
             for uControl in uScales.indices {
+                try execution.consumeWork(1)
                 var control = zeroPoint
                 for vOrder in vScales[vControl].indices {
+                    try execution.consumeWork(1)
                     for uOrder in uScales[uControl].indices {
+                        try execution.consumeWork(1)
                         try consume(
                             16,
                             operationCount: &operationCount,
@@ -643,9 +665,9 @@ struct CertifiedBSplineSurfaceBezierExtractor {
                         )
                     }
                 }
-                row.append(control)
+                try OriginalParameterQueryStorage.append(control, to: &row, using: &execution)
             }
-            result.append(row)
+            try OriginalParameterQueryStorage.append(row, to: &result, using: &execution)
         }
         return result
     }
@@ -669,10 +691,6 @@ struct CertifiedBSplineSurfaceBezierExtractor {
         operationCount += amount
     }
 
-    private func checkCancellation() throws {
-        try CurrentTaskCancellationChecker().checkCancellation()
-    }
-
     private func resourceLimitFailure(
         tolerance: ModelingTolerance
     ) -> KernelError {
@@ -689,8 +707,9 @@ struct CertifiedBSplineSurfaceBezierExtractor {
         lower: Double,
         upper: Double,
         operationCount: inout Int,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> [Double] {
+        try execution.consumeWork(1)
         let scanAndSlotCount = try checkedSum(
             knots.count,
             2,
@@ -701,11 +720,14 @@ struct CertifiedBSplineSurfaceBezierExtractor {
             operationCount: &operationCount,
             tolerance: tolerance
         )
-        var result = [lower]
-        for knot in knots where knot > lower && knot < upper && result.last != knot {
-            result.append(knot)
+        var result: [Double] = []
+        try OriginalParameterQueryStorage.append(lower, to: &result, using: &execution)
+        for knot in knots {
+            try execution.consumeWork(1)
+            guard knot > lower && knot < upper && result.last != knot else { continue }
+            try OriginalParameterQueryStorage.append(knot, to: &result, using: &execution)
         }
-        result.append(upper)
+        try OriginalParameterQueryStorage.append(upper, to: &result, using: &execution)
         return result
     }
 
@@ -714,20 +736,22 @@ struct CertifiedBSplineSurfaceBezierExtractor {
         knots: [Double],
         controlCount: Int,
         lower: Double,
-        upper: Double
-    ) -> Bool {
+        upper: Double, using execution: inout OriginalQueryExecution
+    ) throws -> Bool {
+        try execution.consumeWork(1)
         guard controlCount == degree + 1,
               knots.count == 2 * (degree + 1) else {
             return false
         }
-        return knots.prefix(degree + 1).allSatisfy { $0 == lower }
-            && knots.suffix(degree + 1).allSatisfy { $0 == upper }
+        return try OriginalParameterQueryStorage.allSatisfy(knots.prefix(degree + 1), using: &execution) { knot, execution in knot == lower }
+            && OriginalParameterQueryStorage.allSatisfy(knots.suffix(degree + 1), using: &execution) { knot, execution in knot == upper }
     }
 
-    private func exactConstantWeight(_ weights: [[Double]]) -> Double? {
+    private func exactConstantWeight(_ weights: [[Double]], using execution: inout OriginalQueryExecution) throws -> Double? {
+        try execution.consumeWork(1)
         guard let first = weights.first?.first,
-              weights.allSatisfy({ row in
-                  !row.isEmpty && row.allSatisfy { $0 == first }
+              (try OriginalParameterQueryStorage.allSatisfy(weights, using: &execution) { row, execution in
+                  try !row.isEmpty && (try OriginalParameterQueryStorage.allSatisfy(row, using: &execution) { item, execution in item == first })
               }) else {
             return nil
         }

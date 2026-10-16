@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 import CADIR
 import CADTopology
 
@@ -22,6 +23,19 @@ public struct BRepSewingLoop: Sendable {
         on surface: Surface3D,
         tolerance: ModelingTolerance
     ) throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
+        return try validate(on: surface, tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(
+        on surface: Surface3D,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try execution.consumeWork(edges.count)
+        try execution.retainStorage(count: edges.count, stride: MemoryLayout<String>.stride)
+        try execution.retainStorage(count: edges.count, stride: MemoryLayout<String>.stride)
         guard stableID.isEmpty == false,
               edges.count >= 2,
               Set(edges.map { $0.stableID }).count == edges.count else {
@@ -33,15 +47,15 @@ public struct BRepSewingLoop: Sendable {
             )
         }
         for index in edges.indices {
+            try execution.consumeWork(1)
             let edge = edges[index]
             let next = edges[(index + 1) % edges.count]
             do {
-                try edge.validate(on: surface, tolerance: tolerance)
+                try edge.validate(on: surface, tolerance: tolerance, using: &execution)
             } catch {
-                throw contextualized(
-                    error,
-                    message: "Sewing loop \(stableID) contains invalid edge \(edge.stableID).",
-                    tolerance: tolerance
+                throw contextualizedSewingFailure(
+                    error, tolerance: tolerance, context: execution.context,
+                    message: "Sewing loop \(stableID) contains invalid edge \(edge.stableID)."
                 )
             }
             guard edge.endPoint.isApproximatelyEqual(
@@ -60,34 +74,7 @@ public struct BRepSewingLoop: Sendable {
         }
     }
 
-    private func contextualized(
-        _ error: any Error,
-        message: String,
-        tolerance: ModelingTolerance
-    ) -> KernelError {
-        if let error = error as? KernelError {
-            return KernelError(
-                phase: error.phase,
-                code: error.code,
-                residual: error.residual,
-                tolerance: tolerance,
-                message: "\(message) \(error.message)"
-            )
-        }
-        return KernelError(
-            phase: .topology,
-            code: .topologyFailure,
-            tolerance: tolerance,
-            message: "\(message) \(sewingFailureDescription(error))"
-        )
-    }
-    private func sewingFailureDescription(_ error: any Error) -> String {
-#if hasFeature(Embedded)
-        if let kernel = error as? KernelError { return kernel.message }
-        return "Original sewing producer failed."
-#else
-        return String(describing:error)
-#endif
-    }
+
+
 
 }

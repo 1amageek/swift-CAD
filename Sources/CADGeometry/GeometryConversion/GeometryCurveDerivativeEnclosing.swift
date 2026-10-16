@@ -2,6 +2,8 @@ import CADCore
 
 /// Original complete-range derivatives, including the third Taylor remainder.
 package protocol GeometryCurveDerivativeEnclosing: Sendable {
+    func derivatives(over parameters: ScalarInterval, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> IntervalVectorDerivativeJet
     func derivatives(over parameters: ScalarInterval,
         tolerance: ModelingTolerance) throws -> IntervalVectorDerivativeJet
 }

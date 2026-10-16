@@ -51,7 +51,7 @@ package struct ExactIntersectionQuantifiedCells: Sendable {
         self.coefficientVariableCount = coefficientVariableCount; self.maximumCoefficientDepth = maximumCoefficientDepth
     }
 
-    package static func prepare<B: RationalAlgebraAdmitting>(polynomials: [ExactIntersectionPolynomial],
+    package static func prepare<B: ExactScalarAdmission & ~Copyable>(polynomials: [ExactIntersectionPolynomial],
         program: ExactIntersectionBooleanProgram, variableCount: Int, freeVariableCount: Int,
         quantifiers: [Quantifier], freeDomainEquations: [ExactIntersectionPolynomial] = [],
         freeDomains: [OriginalRationalParameterDomain]? = nil,
@@ -155,7 +155,7 @@ package struct ExactIntersectionQuantifiedCells: Sendable {
     }
 
     /// Original atom signs needed to prove the whole leaf formula; omitted signs remain unknown.
-    package static func evaluateLeaf<B: RationalAlgebraAdmitting>(polynomials: [ExactIntersectionPolynomial],
+    package static func evaluateLeaf<B: ExactScalarAdmission & ~Copyable>(polynomials: [ExactIntersectionPolynomial],
         program: ExactIntersectionBooleanProgram, context: OriginalSingularFieldContext,
         coordinates: [OriginalSingularFieldElement], inheritedSigns: [ExactAlgebraicRealRoot.Sign?],
         maximumDepth: Int, scratch: inout [Bool?], usage: inout B) throws
@@ -181,7 +181,7 @@ package struct ExactIntersectionQuantifiedCells: Sendable {
         return (signs, truth)
     }
 
-    private static func decide<B: RationalAlgebraAdmitting>(axis: Int,
+    private static func decide<B: ExactScalarAdmission & ~Copyable>(axis: Int,
         context: OriginalSingularFieldContext, coordinates: [OriginalSingularFieldElement], inheritedDepth: Int,
         tower: ExactIntersectionProjectionTower, program: ExactIntersectionBooleanProgram,
         inheritedSigns: [ExactAlgebraicRealRoot.Sign?]?,
@@ -286,7 +286,7 @@ package struct ExactIntersectionQuantifiedCells: Sendable {
             }
             depth = max(depth, value.context.depth)
             guard depth <= maximumDepth else { throw rationalAlgebraFailure("Quantified truth cannot reset inherited root depth.") }
-            try usage.visitExactCell(depth: depth)
+            try usage.visitCell(axis:.value,depth: depth)
             try RationalAlgebraStorage.retain(axis + 1, of: OriginalSingularFieldElement.self, usage: &usage)
             var tuple: [OriginalSingularFieldElement] = []; tuple.reserveCapacity(axis + 1)
             for coordinate in coordinates {

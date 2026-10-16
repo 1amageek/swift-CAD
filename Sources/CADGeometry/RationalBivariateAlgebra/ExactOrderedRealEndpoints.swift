@@ -1,10 +1,10 @@
 /// Exact endpoint ordering without replacing original algebraic events by binary labels.
 package struct ExactOrderedRealEndpoints {
-    package static func compare<B: RationalAlgebraAdmitting>(_ a: inout ExactMonotoneGraphEndpoint,
+    package static func compare<B: ExactScalarAdmission & ~Copyable>(_ a: inout ExactMonotoneGraphEndpoint,
         _ b: inout ExactMonotoneGraphEndpoint, maximumDepth: Int, usage: inout B) throws -> Int {
         if try a.hasSameValue(as: b, maximumDepth: maximumDepth, usage: &usage) { return 0 }
         while true {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             if try b.lower.subtracting(a.upper, usage: &usage).isPositive { return -1 }
             if try a.lower.subtracting(b.upper, usage: &usage).isPositive { return 1 }
             try refine(&a, maximumDepth: maximumDepth, usage: &usage)
@@ -12,7 +12,7 @@ package struct ExactOrderedRealEndpoints {
         }
     }
 
-    package static func between<B: RationalAlgebraAdmitting>(_ lower: inout ExactMonotoneGraphEndpoint,
+    package static func between<B: ExactScalarAdmission & ~Copyable>(_ lower: inout ExactMonotoneGraphEndpoint,
         _ upper: inout ExactMonotoneGraphEndpoint, maximumDepth: Int, usage: inout B) throws -> ExactRationalCoefficient {
         guard try compare(&lower, &upper, maximumDepth: maximumDepth, usage: &usage) < 0 else {
             throw rationalAlgebraFailure("Original branch sector endpoints are not strictly ordered.")
@@ -28,9 +28,9 @@ package struct ExactOrderedRealEndpoints {
         }
     }
 
-    package static func ordered<B: RationalAlgebraAdmitting>(_ input: [ExactMonotoneGraphEndpoint],
+    package static func ordered<B: ExactScalarAdmission & ~Copyable>(_ input: [ExactMonotoneGraphEndpoint],
         maximumDepth: Int, usage: inout B) throws -> [ExactMonotoneGraphEndpoint] {
-        try usage.retainExactStorage(input.count)
+        try RationalAlgebraStorage.retain(input.count, of: ExactMonotoneGraphEndpoint.self, usage: &usage)
         var output: [ExactMonotoneGraphEndpoint] = []
         for endpoint in input {
             var item = endpoint, insertion = output.count, duplicate = false
@@ -46,7 +46,7 @@ package struct ExactOrderedRealEndpoints {
         return output
     }
 
-    private static func refine<B: RationalAlgebraAdmitting>(_ endpoint: inout ExactMonotoneGraphEndpoint,
+    private static func refine<B: ExactScalarAdmission & ~Copyable>(_ endpoint: inout ExactMonotoneGraphEndpoint,
         maximumDepth: Int, usage: inout B) throws {
         if case .authored = endpoint { return }
         let width = try endpoint.upper.subtracting(endpoint.lower, usage: &usage)

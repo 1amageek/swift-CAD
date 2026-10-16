@@ -26,8 +26,8 @@ enum ExactExchangePeriodicTrimAssertions {
             ))
         }
 
-        let sourcePcurveSpans = periodicPcurveSpans(in: source)
-        let resultPcurveSpans = periodicPcurveSpans(in: result)
+        let sourcePcurveSpans = try periodicPcurveSpans(in: source)
+        let resultPcurveSpans = try periodicPcurveSpans(in: result)
         #expect(resultPcurveSpans.count == sourcePcurveSpans.count)
         for (expected, actual) in zip(sourcePcurveSpans, resultPcurveSpans) {
             #expect(abs(actual - expected) <= ModelingTolerance.standard.angle)
@@ -48,6 +48,15 @@ enum ExactExchangePeriodicTrimAssertions {
                 kind = .analyticCircle
             case .analytic(.ellipse):
                 kind = .ellipse
+            // FIXME(INCOMPLETE_IMPLEMENTATION): This round-trip assertion helper
+            // does not classify retained original wrappers. Their original periodic
+            // laws must be checked before these fixture branches can succeed.
+            case .originalConstructionChart, .originalEndpointConnector,
+                 .originalPlaneDerivative, .originalGuideTraversalChain, .originalPolyline,
+                 .originalGuideEndpointConnector, .originalDrafted, .originalAngularTransport,
+                 .originalAffineWord, .parameterImage:
+                throw KernelError(phase: .exchange, code: .unsupportedCapability, tolerance: .standard,
+                    message: "Periodic trim assertions require the original wrapper's periodic law.")
             case .line,
                  .bSpline,
                  .implicit,
@@ -75,18 +84,18 @@ enum ExactExchangePeriodicTrimAssertions {
         return samples.sorted(by: sampleOrder)
     }
 
-    private static func periodicPcurveSpans(in model: BRepModel) -> [Double] {
-        model.loops.values.flatMap(\.coedges).compactMap { coedge in
+    private static func periodicPcurveSpans(in model: BRepModel) throws -> [Double] {
+        try model.loops.values.flatMap(\.coedges).compactMap { coedge in
             guard let pcurve = coedge.surfaceParameterCurve else {
                 return nil
             }
-            return periodicPcurveSpan(pcurve)
+            return try periodicPcurveSpan(pcurve)
         }.sorted()
     }
 
     private static func periodicPcurveSpan(
         _ pcurve: SurfaceParameterCurve
-    ) -> Double? {
+    ) throws -> Double? {
         switch pcurve {
             case let .constantV(_, uStart, uEnd):
                 return uEnd - uStart
@@ -111,6 +120,12 @@ enum ExactExchangePeriodicTrimAssertions {
                     return nil
                 }
                 return end.x - start.x
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Round-trip assertions have no
+            // original continuation/image periodic classifier. Validate the retained
+            // periodic law before supporting these inputs rather than omitting them.
+            case .originalBSplineContinuation, .originalAffineWord, .originalImage:
+                throw KernelError(phase: .exchange, code: .unsupportedCapability, tolerance: .standard,
+                    message: "Periodic p-curve assertions require the original wrapper's periodic law.")
             case .affine,
                  .constantU,
                  .sphericalGreatCircle,
@@ -121,9 +136,9 @@ enum ExactExchangePeriodicTrimAssertions {
                  .rigidImage:
                 return nil
             case let .offsetSurfaceImage(image):
-                return periodicPcurveSpan(image.source)
+                return try periodicPcurveSpan(image.source)
             case let .periodicTranslation(base, _, _):
-                return periodicPcurveSpan(base)
+                return try periodicPcurveSpan(base)
         }
     }
 

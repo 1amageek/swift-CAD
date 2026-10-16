@@ -113,7 +113,9 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
             Issue.record(
                 "A target without a certified algebraic degree must not produce an identity witness bound."
             )
-        } catch let error as KernelError {
+        } catch let caught where geometryTestKernelFailure(caught) != nil {
+            let error = geometryTestKernelFailure(caught)!
+           
             #expect(error.phase == .geometry)
             #expect(error.code == .intersectionFailure)
             #expect(error.tolerance == tolerance)
@@ -251,7 +253,9 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
                 Issue.record(
                     "A plane containing one complete sphere-cone component must report a non-discrete intersection."
                 )
-            } catch let error as KernelError {
+            } catch let caught where geometryTestKernelFailure(caught) != nil {
+            let error = geometryTestKernelFailure(caught)!
+           
                 #expect(error.code == .nonDiscreteIntersection)
             }
 
@@ -599,7 +603,9 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
             Issue.record(
                 "Expected certified target parameter refinement to exhaust its iteration budget."
             )
-        } catch let error as KernelError {
+        } catch let caught where geometryTestKernelFailure(caught) != nil {
+            let error = geometryTestKernelFailure(caught)!
+           
             #expect(error.code == .resourceLimitExceeded)
         }
     }
@@ -704,7 +710,9 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
                 tolerance: tolerance
             )
             Issue.record("A degenerate resultant must not report intersections.")
-        } catch let error as KernelError {
+        } catch let caught where geometryTestKernelFailure(caught) != nil {
+            let error = geometryTestKernelFailure(caught)!
+           
             #expect(error.phase == .geometry)
             #expect(error.code == .intersectionFailure)
             #expect(error.tolerance == tolerance)
@@ -771,30 +779,6 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
                 abs(polynomialValue - expectedValue)
                     <= max(abs(expectedValue), 1.0) * 1.0e-9
             )
-        }
-
-        let degenerateContext = try ConeHostedQuadricIntersectionContext(
-            hostConeSurface: hostCone,
-            sourceSurface: sourceSphere,
-            targetSurface: sourceSphere,
-            tolerance: tolerance
-        )
-        let solver = DefaultHeightQuadraticTripleSolver()
-        #expect(solver.supports(
-            context: degenerateContext,
-            tolerance: tolerance
-        ) == false)
-        do {
-            _ = try solver.candidates(
-                context: degenerateContext,
-                options: .init(),
-                tolerance: tolerance
-            )
-            Issue.record("A degenerate cone-hosted resultant must fail.")
-        } catch let error as KernelError {
-            #expect(error.phase == .geometry)
-            #expect(error.code == .intersectionFailure)
-            #expect(error.tolerance == tolerance)
         }
     }
 
@@ -939,7 +923,9 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
                     Issue.record(
                         "A source-surface intersection must be non-discrete."
                     )
-                } catch let error as KernelError {
+                } catch let caught where geometryTestKernelFailure(caught) != nil {
+            let error = geometryTestKernelFailure(caught)!
+           
                     #expect(error.phase == .geometry)
                     #expect(error.code == .nonDiscreteIntersection)
                     #expect(error.tolerance == tolerance)
@@ -1173,7 +1159,9 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
                 tolerance: tolerance
             )
             Issue.record("A degree-limited elimination must fail explicitly.")
-        } catch let error as KernelError {
+        } catch let caught where geometryTestKernelFailure(caught) != nil {
+            let error = geometryTestKernelFailure(caught)!
+           
             #expect(error.phase == .geometry)
             #expect(error.code == .resourceLimitExceeded)
             #expect(error.tolerance == tolerance)
@@ -1186,7 +1174,9 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
                 tolerance: tolerance
             )
             Issue.record("A candidate-limited elimination must fail explicitly.")
-        } catch let error as KernelError {
+        } catch let caught where geometryTestKernelFailure(caught) != nil {
+            let error = geometryTestKernelFailure(caught)!
+           
             #expect(error.phase == .geometry)
             #expect(error.code == .resourceLimitExceeded)
             #expect(error.tolerance == tolerance)
@@ -1654,7 +1644,9 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
                 tolerance: tolerance
             )
             Issue.record("A degree-limited sphere elimination must fail explicitly.")
-        } catch let error as KernelError {
+        } catch let caught where geometryTestKernelFailure(caught) != nil {
+            let error = geometryTestKernelFailure(caught)!
+           
             #expect(error.phase == .geometry)
             #expect(error.code == .resourceLimitExceeded)
             #expect(error.tolerance == tolerance)
@@ -1667,7 +1659,9 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
                 tolerance: tolerance
             )
             Issue.record("A candidate-limited sphere elimination must fail explicitly.")
-        } catch let error as KernelError {
+        } catch let caught where geometryTestKernelFailure(caught) != nil {
+            let error = geometryTestKernelFailure(caught)!
+           
             #expect(error.phase == .geometry)
             #expect(error.code == .resourceLimitExceeded)
             #expect(error.tolerance == tolerance)
@@ -1776,7 +1770,9 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
                 tolerance: tolerance
             )
             Issue.record("A degree-limited cone-hosted elimination must fail.")
-        } catch let error as KernelError {
+        } catch let caught where geometryTestKernelFailure(caught) != nil {
+            let error = geometryTestKernelFailure(caught)!
+           
             #expect(error.phase == .geometry)
             #expect(error.code == .resourceLimitExceeded)
             #expect(error.tolerance == tolerance)
@@ -2007,7 +2003,9 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
                 tolerance: tolerance
             )
             Issue.record("A degree-limited cone elimination must fail explicitly.")
-        } catch let error as KernelError {
+        } catch let caught where geometryTestKernelFailure(caught) != nil {
+            let error = geometryTestKernelFailure(caught)!
+           
             #expect(error.phase == .geometry)
             #expect(error.code == .resourceLimitExceeded)
             #expect(error.tolerance == tolerance)

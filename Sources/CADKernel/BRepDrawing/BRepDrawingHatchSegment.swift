@@ -20,22 +20,34 @@ public struct BRepDrawingHatchSegment: Sendable {
     }
 
     public func validateCurrent(_ evaluated: EvaluatedDocument) throws {
-        try sourceSnapshot.validateCurrent(evaluated)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try validateCurrent(evaluated, using: &execution)
+    }
+
+    public func validateCurrent(_ evaluated: EvaluatedDocument, using execution: inout OriginalQueryExecution) throws {
+        try execution.checkpoint()
+        try sourceSnapshot.validateCurrent(evaluated, using: &execution)
     }
     public func validateCurrent(_ evaluated: EvaluatedDocument, for section: BRepDrawingSection) throws {
-        try section.validateCurrent(evaluated)
-        try sourceSnapshot.validateCurrent(evaluated)
-        guard sectionIdentity === section.publicationIdentity, placement == section.placement else {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try validateCurrent(evaluated, for: section, using: &execution)
+    }
+
+    public func validateCurrent(_ evaluated: EvaluatedDocument, for section: BRepDrawingSection, using execution: inout OriginalQueryExecution) throws {
+        try execution.checkpoint()
+        try section.validateCurrent(evaluated, using: &execution)
+        try sourceSnapshot.validateCurrent(evaluated, using: &execution)
+        guard sectionIdentity === section.publicationIdentity, try BRepDrawingPlacementComparison.equal(placement, section.placement, using: &execution) else {
             throw KernelError(phase: .evaluation, code: .missingReference,
                 tolerance: evaluated.configuration.tolerance,
                 message: "Section publication mixes different source planes or authored occurrences.")
         }
     }
     /// Retains the original world row curve under the same caller publication ledger.
-    public func originalCurve<B: RationalAlgebraAdmitting>(in evaluated: EvaluatedDocument,
+    public func originalCurve(in evaluated: EvaluatedDocument,
         for section: BRepDrawingSection, maximumSourceDepth: Int, maximumSubdivisionDepth: Int, maximumAlgebraicDepth: Int,
-        usage: inout B) throws -> Curve3D {
-        try validateCurrent(evaluated, for: section)
+        using execution: inout OriginalQueryExecution) throws -> Curve3D {
+        try validateCurrent(evaluated, for: section, using: &execution)
         let tolerance = evaluated.configuration.tolerance
         guard start.x.isFinite, start.y.isFinite, end.x.isFinite, end.y.isFinite else {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
@@ -45,18 +57,9 @@ public struct BRepDrawingHatchSegment: Sendable {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
                 message: "A hatch curve requires distinct original chart endpoints.")
         }
-        func storage(_ count: Int, _ stride: Int) throws -> Int {
-            let bytes = count.multipliedReportingOverflow(by: stride)
-            let rounded = bytes.partialValue.addingReportingOverflow(MemoryLayout<UInt32>.stride - 1)
-            guard count >= 0, !bytes.overflow, !rounded.overflow else {
-                throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
-                    message: "Original hatch curve storage count overflowed.")
-            }
-            return rounded.partialValue / MemoryLayout<UInt32>.stride
-        }
-        try usage.consumeExactWork(1)
-        try usage.retainExactStorage(storage(2, MemoryLayout<Point2D>.stride))
-        try usage.retainExactStorage(storage(6, MemoryLayout<Double>.stride))
+        try execution.consumeWork(1)
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 2, of: Point2D.self))
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 6, of: Double.self))
         let chart = SurfaceParameterCurve.bSpline(BSplineCurve2D(degree: 1, knots: [0, 0, 1, 1],
             controlPoints: [start, end], weights: [1, 1]))
         let plane: Plane3D
@@ -69,14 +72,14 @@ public struct BRepDrawingHatchSegment: Sendable {
             let transform = try AffineTransform3D(basisX: frame.horizontal, basisY: frame.vertical,
                 basisZ: frame.normal, translation: Vector3D(x: frame.origin.x, y: frame.origin.y, z: frame.origin.z))
             word = try OriginalAffineOperationWord(operation: .forward(transform), tolerance: tolerance,
-                maximumDepth: 0, usage: &usage)
+                maximumDepth: 0, usage: &execution)
         }
-        try usage.retainExactStorage(storage(1, MemoryLayout<SurfaceLiftCurve3D>.stride))
+        try execution.retainStorage(bytes: MemoryLayout<SurfaceLiftCurve3D>.stride)
         let lift = SurfaceLiftCurve3D(surface: .plane(plane), parameterCurve: chart)
-        try usage.retainExactStorage(storage(1, MemoryLayout<OriginalAffineWordCurve3D>.stride))
+        try execution.retainStorage(bytes: MemoryLayout<OriginalAffineWordCurve3D>.stride)
         return .originalAffineWord(try OriginalAffineWordCurve3D(source: .surfaceLift(lift),
             operationWord: word, tolerance: tolerance, remainingSourceDepth: maximumSourceDepth,
-            maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, usage: &usage))
+            maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, usage: &execution))
     }
 
 }

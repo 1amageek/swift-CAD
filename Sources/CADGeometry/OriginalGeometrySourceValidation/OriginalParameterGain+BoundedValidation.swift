@@ -2,11 +2,12 @@ import CADCore
 
 extension OriginalParameterGain {
     func validateOriginalSource(remainingSourceDepth: Int,
-        consumeWork: (Int) throws -> Void) throws {
+        atSourceDepth sourceDepth: Int = 0, using execution: inout OriginalQueryExecution) throws {
         guard remainingSourceDepth >= 0 else {
             throw GeometryConversionError.resourceLimitExceeded("Original gain validation exhausted source depth.")
         }
-        try consumeWork(0); try CurrentTaskCancellationChecker().checkCancellation()
+        try execution.admitSourceDepth(sourceDepth)
+        try execution.consumeWork(1); try CurrentTaskCancellationChecker().checkCancellation()
         switch self {
         case .binary, .ratio:
             try validate()
@@ -15,7 +16,7 @@ extension OriginalParameterGain {
                 throw GeometryConversionError.resourceLimitExceeded("Original product validation requires remaining source depth.")
             }
             for factor in product.factors {
-                try factor.validateOriginalSource(remainingSourceDepth: remainingSourceDepth - 1, consumeWork: consumeWork)
+                try factor.validateOriginalSource(remainingSourceDepth: remainingSourceDepth - 1, atSourceDepth: sourceDepth + 1, using: &execution)
             }
             // The immutable exact coefficient cache was admitted by the only
             // constructor/decoder. No independent rational proof is replayed.
@@ -31,7 +32,7 @@ extension OriginalParameterGain {
                 throw GeometryConversionError.invalidInput("Original difference source fields are not admitted.")
             }
             try difference.periodicTranslation.parameterGain.validateOriginalSource(
-                remainingSourceDepth: remainingSourceDepth - 1, consumeWork: consumeWork)
+                remainingSourceDepth: remainingSourceDepth - 1, atSourceDepth: sourceDepth + 1, using: &execution)
             let bounds = try interval()
             guard bounds.isFinite, bounds.excludesZero else {
                 throw GeometryConversionError.invalidInput("Original difference cache has no finite nonzero gain.")

@@ -1,0 +1,247 @@
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-silhouette-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000001cd87e4 <_$s11CADGeometry32DefaultSurfaceSilhouetteProducerV10fieldAtlas33_9BA4431057C25E404349C321699D6735LL4cell7regular1f6domain9tolerance7pending6curves8excluded10coincident8contacts17algebraicContacts20originalPlaneAtlases5usingSbAC7PendingAELLVz_SbAA0cD9ScalarJetVAA0C12ParameterBoxV7CADCore17ModelingToleranceVSayATGzSayAA08OriginalcD5CurveVGzSayAXGzA4_zSayAA0cD7ContactVGzSayAA0cD16AlgebraicContactVGzSayAA0cdyG0VGzAA22OriginalQueryExecutionVztKF>:
+ 1cd87e4:      	stp	x28, x20, [sp, #-0x20]!
+ 1cd87e8:      	stp	x29, x30, [sp, #0x10]
+ 1cd87ec:      	add	x29, sp, #0x10
+ 1cd87f0:      	sub	sp, sp, #0x9, lsl #12   ; =0x9000
+ 1cd87f4:      	sub	sp, sp, #0xf50
+ 1cd87f8:      	add	x9, sp, #0x7, lsl #12   ; =0x7000
+ 1cd87fc:      	add	x9, x9, #0xc50
+ 1cd8800:      	str	x9, [sp, #0x1f8]
+ 1cd8804:      	str	x0, [sp, #0x200]
+ 1cd8808:      	str	x4, [sp, #0x208]
+ 1cd880c:      	str	x5, [sp, #0x210]
+ 1cd8810:      	ldr	x11, [x29, #0x10]
+ 1cd8814:      	str	x11, [sp, #0x218]
+ 1cd8818:      	ldr	x10, [x29, #0x18]
+ 1cd881c:      	str	x10, [sp, #0x220]
+ 1cd8820:      	ldr	x8, [x29, #0x20]
+ 1cd8824:      	str	x8, [sp, #0x228]
+ 1cd8828:      	str	x21, [sp, #0x230]
+ 1cd882c:      	str	xzr, [x9, #0xe98]
+ 1cd8830:      	strb	wzr, [x9, #0xe90]
+ 1cd8834:      	str	xzr, [x9, #0xe88]
+ 1cd8838:      	movi.2d	v7, #0000000000000000
+ 1cd883c:      	str	q7, [x9, #0xe60]
+ 1cd8840:      	str	q7, [x9, #0xe70]
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-silhouette-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000001cdf98c <_$s11CADGeometry32DefaultSurfaceSilhouetteProducerV13rationalAtlas33_9BA4431057C25E404349C321699D6735LL4cell7regular1f6domain9tolerance7pending6curves8excluded10coincident8contacts17algebraicContacts20originalPlaneAtlases5usingSbAC7PendingAELLVz_SbAA0cD9ScalarJetVAA0C12ParameterBoxV7CADCore17ModelingToleranceVSayATGzSayAA08OriginalcD5CurveVGzSayAXGzA4_zSayAA0cD7ContactVGzSayAA0cD16AlgebraicContactVGzSayAA0cdyG0VGzAA22OriginalQueryExecutionVztKF>:
+ 1cdf98c:      	stp	x28, x20, [sp, #-0x20]!
+ 1cdf990:      	stp	x29, x30, [sp, #0x10]
+ 1cdf994:      	add	x29, sp, #0x10
+ 1cdf998:      	sub	sp, sp, #0xd, lsl #12   ; =0xd000
+ 1cdf99c:      	sub	sp, sp, #0x6d0
+ 1cdf9a0:      	add	x9, sp, #0xb, lsl #12   ; =0xb000
+ 1cdf9a4:      	add	x9, x9, #0x430
+ 1cdf9a8:      	str	x9, [sp, #0x2a8]
+ 1cdf9ac:      	add	x8, sp, #0x9, lsl #12   ; =0x9000
+ 1cdf9b0:      	add	x8, x8, #0x898
+ 1cdf9b4:      	str	x8, [sp, #0x2b0]
+ 1cdf9b8:      	add	x8, sp, #0x8, lsl #12   ; =0x8000
+ 1cdf9bc:      	add	x8, x8, #0xab0
+ 1cdf9c0:      	str	x8, [sp, #0x2b8]
+ 1cdf9c4:      	add	x12, sp, #0x3, lsl #12  ; =0x3000
+ 1cdf9c8:      	add	x12, x12, #0x800
+ 1cdf9cc:      	str	x12, [sp, #0x2c0]
+ 1cdf9d0:      	str	x0, [sp, #0x2c8]
+ 1cdf9d4:      	str	x4, [sp, #0x2d0]
+ 1cdf9d8:      	str	x5, [sp, #0x2d8]
+ 1cdf9dc:      	ldr	x11, [x29, #0x10]
+ 1cdf9e0:      	str	x11, [sp, #0x2e0]
+ 1cdf9e4:      	ldr	x10, [x29, #0x18]
+ 1cdf9e8:      	str	x10, [sp, #0x2e8]
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-silhouette-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000001ce3c84 <_$s11CADGeometry32DefaultSurfaceSilhouetteProducerV4cusp33_9BA4431057C25E404349C321699D6735LL4cell7regular1f6domain9tolerance7pending6curves8excluded10coincident8contacts17algebraicContacts20originalPlaneAtlases5usingSbAC7PendingAELLVz_SbAA0cD9ScalarJetVAA0C12ParameterBoxV7CADCore17ModelingToleranceVSayATGzSayAA08OriginalcD5CurveVGzSayAXGzA4_zSayAA0cD7ContactVGzSayAA0cD16AlgebraicContactVGzSayAA0cdX5AtlasVGzAA22OriginalQueryExecutionVztKF>:
+ 1ce3c84:      	stp	x28, x20, [sp, #-0x20]!
+ 1ce3c88:      	stp	x29, x30, [sp, #0x10]
+ 1ce3c8c:      	add	x29, sp, #0x10
+ 1ce3c90:      	sub	sp, sp, #0x12, lsl #12  ; =0x12000
+ 1ce3c94:      	sub	sp, sp, #0xdd0
+ 1ce3c98:      	add	x8, sp, #0xf, lsl #12   ; =0xf000
+ 1ce3c9c:      	add	x8, x8, #0xc88
+ 1ce3ca0:      	str	x8, [sp, #0x4b0]
+ 1ce3ca4:      	add	x13, sp, #0xc, lsl #12  ; =0xc000
+ 1ce3ca8:      	add	x13, x13, #0x4a0
+ 1ce3cac:      	str	x13, [sp, #0x4b8]
+ 1ce3cb0:      	add	x9, sp, #0x9, lsl #12   ; =0x9000
+ 1ce3cb4:      	add	x9, x9, #0xa30
+ 1ce3cb8:      	str	x9, [sp, #0x4c0]
+ 1ce3cbc:      	add	x8, sp, #0x7, lsl #12   ; =0x7000
+ 1ce3cc0:      	add	x8, x8, #0xe98
+ 1ce3cc4:      	str	x8, [sp, #0x4c8]
+ 1ce3cc8:      	add	x8, sp, #0x7, lsl #12   ; =0x7000
+ 1ce3ccc:      	add	x8, x8, #0x6e
+ 1ce3cd0:      	str	x8, [sp, #0x4d0]
+ 1ce3cd4:      	str	x0, [sp, #0x4d8]
+ 1ce3cd8:      	str	d0, [sp, #0x4e0]
+ 1ce3cdc:      	str	d1, [sp, #0x4e8]
+ 1ce3ce0:      	str	d2, [sp, #0x4f0]
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-silhouette-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000001ce6f20 <_$s11CADGeometry32DefaultSurfaceSilhouetteProducerV15finiteRealLocus33_9BA4431057C25E404349C321699D6735LL4cell7regular1f6domain9tolerance7pending6curves8excluded10coincident8contacts17algebraicContacts20originalPlaneAtlases05planegH5Cache5usingSbAC7PendingAELLVz_SbAA0cD9ScalarJetVAA0C12ParameterBoxV7CADCore17ModelingToleranceVSayAUGzSayAA08OriginalcD5CurveVGzSayAYGzA5_zSayAA0cD7ContactVGzSayAA0cD16AlgebraicContactVGzSayAA0cdZ5AtlasVGzSDyAC17CriticalSourceKeyAELLVAC0zgH0AELLOGzAA22OriginalQueryExecutionVztKF>:
+ 1ce6f20:      	stp	d15, d14, [sp, #-0xa0]!
+ 1ce6f24:      	stp	d13, d12, [sp, #0x10]
+ 1ce6f28:      	stp	d11, d10, [sp, #0x20]
+ 1ce6f2c:      	stp	d9, d8, [sp, #0x30]
+ 1ce6f30:      	str	x28, [sp, #0x40]
+ 1ce6f34:      	stp	x27, x26, [sp, #0x50]
+ 1ce6f38:      	stp	x25, x24, [sp, #0x60]
+ 1ce6f3c:      	stp	x23, x22, [sp, #0x70]
+ 1ce6f40:      	stp	x20, x19, [sp, #0x80]
+ 1ce6f44:      	stp	x29, x30, [sp, #0x90]
+ 1ce6f48:      	add	x29, sp, #0x90
+ 1ce6f4c:      	sub	sp, sp, #0x21, lsl #12  ; =0x21000
+ 1ce6f50:      	sub	sp, sp, #0x4c0
+ 1ce6f54:      	add	x13, sp, #0x1d, lsl #12 ; =0x1d000
+ 1ce6f58:      	add	x13, x13, #0xf40
+ 1ce6f5c:      	str	x13, [sp, #0x55c8]
+ 1ce6f60:      	add	x9, sp, #0x1b, lsl #12  ; =0x1b000
+ 1ce6f64:      	add	x9, x9, #0x588
+ 1ce6f68:      	str	x9, [sp, #0x55d0]
+ 1ce6f6c:      	add	x8, sp, #0x1a, lsl #12  ; =0x1a000
+ 1ce6f70:      	add	x8, x8, #0x7c0
+ 1ce6f74:      	str	x8, [sp, #0x55d8]
+ 1ce6f78:      	add	x16, sp, #0x19, lsl #12 ; =0x19000
+ 1ce6f7c:      	add	x16, x16, #0x9d0
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-silhouette-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000001cf3670 <_$s11CADGeometry32DefaultSurfaceSilhouetteProducerV14criticalPoints33_9BA4431057C25E404349C321699D6735LL4cell7regular1f6domain9tolerance7pending6curves8excluded10coincident8contacts17algebraicContacts20originalPlaneAtlases11determinant0F11SourceCache5usingSbAC7PendingAELLVz_SbAA0cD9ScalarJetVAA0C12ParameterBoxV7CADCore17ModelingToleranceVSayAVGzSayAA08OriginalcD5CurveVGzSayAZGzA6_zSayAA0cD7ContactVGzSayAA0cD16AlgebraicContactVGzSayAA0cdY5AtlasVGzAA21OutwardScalarIntervalVSDyAC17CriticalSourceKeyAELLVSayAA27ExactBivariateCriticalPointVGGzAA22OriginalQueryExecutionVztKF>:
+ 1cf3670:      	stp	x28, x20, [sp, #-0x20]!
+ 1cf3674:      	stp	x29, x30, [sp, #0x10]
+ 1cf3678:      	add	x29, sp, #0x10
+ 1cf367c:      	sub	sp, sp, #0xd, lsl #12   ; =0xd000
+ 1cf3680:      	sub	sp, sp, #0x790
+ 1cf3684:      	add	x14, sp, #0xb, lsl #12  ; =0xb000
+ 1cf3688:      	add	x14, x14, #0x400
+ 1cf368c:      	str	x14, [sp, #0x3e0]
+ 1cf3690:      	add	x9, sp, #0x8, lsl #12   ; =0x8000
+ 1cf3694:      	add	x9, x9, #0xa38
+ 1cf3698:      	str	x9, [sp, #0x3e8]
+ 1cf369c:      	add	x8, sp, #0x7, lsl #12   ; =0x7000
+ 1cf36a0:      	add	x8, x8, #0xc70
+ 1cf36a4:      	str	x8, [sp, #0x3f0]
+ 1cf36a8:      	add	x16, sp, #0x6, lsl #12  ; =0x6000
+ 1cf36ac:      	add	x16, x16, #0xe80
+ 1cf36b0:      	add	x15, sp, #0x2, lsl #12  ; =0x2000
+ 1cf36b4:      	add	x15, x15, #0x507
+ 1cf36b8:      	str	x15, [sp, #0x3f8]
+ 1cf36bc:      	str	x0, [sp, #0x400]
+ 1cf36c0:      	str	x2, [sp, #0x408]
+ 1cf36c4:      	str	d0, [sp, #0x410]
+ 1cf36c8:      	str	d1, [sp, #0x418]
+ 1cf36cc:      	str	d2, [sp, #0x420]
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-silhouette-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000001cf5a10 <_$s11CADGeometry32DefaultSurfaceSilhouetteProducerV13monotoneGraph33_9BA4431057C25E404349C321699D6735LL4cell7regular1f6domain9tolerance7pending6curves8excluded10coincident8contacts17algebraicContacts20originalPlaneAtlases5usingSbAC7PendingAELLVz_SbAA0cD9ScalarJetVAA0C12ParameterBoxV7CADCore17ModelingToleranceVSayATGzSayAA08OriginalcD5CurveVGzSayAXGzA4_zSayAA0cD7ContactVGzSayAA0cD16AlgebraicContactVGzSayAA0cdY5AtlasVGzAA22OriginalQueryExecutionVztKF>:
+ 1cf5a10:      	stp	d15, d14, [sp, #-0x60]!
+ 1cf5a14:      	stp	d13, d12, [sp, #0x10]
+ 1cf5a18:      	stp	d11, d10, [sp, #0x20]
+ 1cf5a1c:      	stp	d9, d8, [sp, #0x30]
+ 1cf5a20:      	stp	x28, x20, [sp, #0x40]
+ 1cf5a24:      	stp	x29, x30, [sp, #0x50]
+ 1cf5a28:      	add	x29, sp, #0x50
+ 1cf5a2c:      	sub	sp, sp, #0x24, lsl #12  ; =0x24000
+ 1cf5a30:      	sub	sp, sp, #0x130
+ 1cf5a34:      	add	x8, sp, #0x17, lsl #12  ; =0x17000
+ 1cf5a38:      	add	x8, x8, #0x7a0
+ 1cf5a3c:      	str	x8, [sp, #0x1318]
+ 1cf5a40:      	add	x8, sp, #0x17, lsl #12  ; =0x17000
+ 1cf5a44:      	add	x8, x8, #0x6ae
+ 1cf5a48:      	str	x8, [sp, #0x1320]
+ 1cf5a4c:      	add	x15, sp, #0x15, lsl #12 ; =0x15000
+ 1cf5a50:      	add	x15, x15, #0xa70
+ 1cf5a54:      	str	x15, [sp, #0x1328]
+ 1cf5a58:      	add	x9, sp, #0x14, lsl #12  ; =0x14000
+ 1cf5a5c:      	add	x9, x9, #0x798
+ 1cf5a60:      	str	x9, [sp, #0x1330]
+ 1cf5a64:      	add	x14, sp, #0x13, lsl #12 ; =0x13000
+ 1cf5a68:      	add	x14, x14, #0x448
+ 1cf5a6c:      	str	x14, [sp, #0x1338]
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-silhouette-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000001cd4b44 <_$s11CADGeometry32DefaultSurfaceSilhouetteProducerV13preparedCover33_9BA4431057C25E404349C321699D6735LL7surface6domain4view9tolerance15sourceAuthority5usingSayAC7PendingAELLVGAA9Surface3DO_AA0C12ParameterBoxV7CADCore8Vector3DVAS17ModelingToleranceVAA0cD17SourcePreparationVAA22OriginalQueryExecutionVztKF>:
+ 1cd4b44:      	stp	x28, x20, [sp, #-0x20]!
+ 1cd4b48:      	stp	x29, x30, [sp, #0x10]
+ 1cd4b4c:      	add	x29, sp, #0x10
+ 1cd4b50:      	sub	sp, sp, #0x9, lsl #12   ; =0x9000
+ 1cd4b54:      	sub	sp, sp, #0xe10
+ 1cd4b58:      	add	x8, sp, #0x2, lsl #12   ; =0x2000
+ 1cd4b5c:      	add	x8, x8, #0x850
+ 1cd4b60:      	str	x8, [sp, #0x4c0]
+ 1cd4b64:      	str	x0, [sp, #0x440]
+ 1cd4b68:      	mov.16b	v17, v0
+ 1cd4b6c:      	str	d17, [sp, #0x448]
+ 1cd4b70:      	mov.16b	v16, v1
+ 1cd4b74:      	str	d16, [sp, #0x450]
+ 1cd4b78:      	str	d2, [sp, #0x458]
+ 1cd4b7c:      	str	d3, [sp, #0x460]
+ 1cd4b80:      	str	d4, [sp, #0x468]
+ 1cd4b84:      	str	d5, [sp, #0x470]
+ 1cd4b88:      	str	d6, [sp, #0x478]
+ 1cd4b8c:      	str	d7, [sp, #0x480]
+ 1cd4b90:      	ldr	d1, [x29, #0x10]
+ 1cd4b94:      	str	d1, [sp, #0x488]
+ 1cd4b98:      	ldr	d0, [x29, #0x18]
+ 1cd4b9c:      	str	d0, [sp, #0x490]
+ 1cd4ba0:      	str	x1, [sp, #0x4a8]
+
+
+/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-silhouette-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000001ccffe8 <_$s11CADGeometry32DefaultSurfaceSilhouetteProducerV11subdivision33_9BA4431057C25E404349C321699D6735LL_9tolerance5usingAC7PendingAELLV_AItAI_7CADCore17ModelingToleranceVAA22OriginalQueryExecutionVztKF>:
+ 1ccffe8:      	stp	d15, d14, [sp, #-0xa0]!
+ 1ccffec:      	stp	d13, d12, [sp, #0x10]
+ 1ccfff0:      	stp	d11, d10, [sp, #0x20]
+ 1ccfff4:      	stp	d9, d8, [sp, #0x30]
+ 1ccfff8:      	str	x28, [sp, #0x40]
+ 1ccfffc:      	stp	x27, x26, [sp, #0x50]
+ 1cd0000:      	stp	x25, x24, [sp, #0x60]
+ 1cd0004:      	stp	x23, x22, [sp, #0x70]
+ 1cd0008:      	stp	x20, x19, [sp, #0x80]
+ 1cd000c:      	stp	x29, x30, [sp, #0x90]
+ 1cd0010:      	add	x29, sp, #0x90
+ 1cd0014:      	sub	sp, sp, #0xa, lsl #12   ; =0xa000
+ 1cd0018:      	sub	sp, sp, #0xa20
+ 1cd001c:      	add	x9, sp, #0x6, lsl #12   ; =0x6000
+ 1cd0020:      	add	x9, x9, #0xfc8
+ 1cd0024:      	str	x9, [sp, #0x1c38]
+ 1cd0028:      	add	x10, sp, #0x2, lsl #12  ; =0x2000
+ 1cd002c:      	add	x10, x10, #0xa30
+ 1cd0030:      	str	x10, [sp, #0x1bf8]
+ 1cd0034:      	str	x8, [sp, #0x1c00]
+ 1cd0038:      	str	x0, [sp, #0x1c08]
+ 1cd003c:      	str	d0, [sp, #0x1c10]
+ 1cd0040:      	str	d1, [sp, #0x1c18]
+ 1cd0044:      	str	d2, [sp, #0x1c20]

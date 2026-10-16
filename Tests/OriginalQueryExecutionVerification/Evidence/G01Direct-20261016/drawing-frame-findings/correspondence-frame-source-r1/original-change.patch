@@ -1,0 +1,178 @@
+--- original-before.swift
++++ Sources/CADGeometry/OriginalCurveSurfaceCorrespondence/OriginalBoundedCurveSurfaceCorrespondence.swift
+@@ -13,6 +13,7 @@
+     // Nonlinear correspondence and critical/global branch coverage, along with
+     // required nonlinear source laws, must close before full-family
+     // accounting or correspondence completeness can be reported.
++    @inline(never)
+     static func deviationBound(curve: Curve3D, from start: Double, to end: Double,
+         surface: Surface3D, parameterCurve: SurfaceParameterCurve,
+         options: CurveSurfaceCorrespondenceValidationOptions, tolerance: ModelingTolerance,
+@@ -34,6 +35,33 @@
+         try parameterCurve.validateOriginalSource(on: surface, tolerance: tolerance,
+             remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: depthLimit,
+             maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
++        if let bound = try exactSourceBound(curve: curve, from: start, to: end,
++            surface: surface, parameterCurve: parameterCurve, using: &execution) { return bound }
++        if let bound = try wordTransportBound(curve: curve, from: start, to: end,
++            surface: surface, parameterCurve: parameterCurve, options: options, tolerance: tolerance,
++            maximumSpanCount: maximumSpanCount, depthLimit: depthLimit, remainingSourceDepth: remainingSourceDepth,
++            maximumAlgebraicDepth: maximumAlgebraicDepth, acceptance: acceptance, using: &execution) { return bound }
++        if let bound = try affineTransportBound(curve: curve, from: start, to: end,
++            surface: surface, parameterCurve: parameterCurve, options: options, tolerance: tolerance,
++            maximumSpanCount: maximumSpanCount, depthLimit: depthLimit, remainingSourceDepth: remainingSourceDepth,
++            maximumAlgebraicDepth: maximumAlgebraicDepth, acceptance: acceptance, using: &execution) { return bound }
++        return try residualBound(curve: curve, from: start, to: end,
++            surface: surface, parameterCurve: parameterCurve, options: options, tolerance: tolerance,
++            maximumSpanCount: maximumSpanCount, depthLimit: depthLimit, remainingSourceDepth: remainingSourceDepth,
++            maximumAlgebraicDepth: maximumAlgebraicDepth, acceptance: acceptance, using: &execution)
++    }
++
++    @inline(never)
++    private static func exactSourceBound(curve: Curve3D, from start: Double, to end: Double,
++        surface: Surface3D, parameterCurve: SurfaceParameterCurve,
++        using execution: inout OriginalQueryExecution) throws -> Double? {
++        if case .bSpline(let nativeCurve) = curve,
++           case .bSpline(let nativeSurface) = surface,
++           try hasExactUnitNativeBoundaryLaw(curve: nativeCurve, from: start, to: end,
++               surface: nativeSurface, parameterCurve: parameterCurve, using: &execution) {
++            try execution.checkpoint()
++            return 0
++        }
+         if case .surfaceLift(let hosted) = curve, start == 0, end == 1 {
+             try GeometryStructuralComparisonWork.charge(surface: hosted.surface, using: &execution)
+             try GeometryStructuralComparisonWork.charge(surface: surface, using: &execution)
+@@ -41,6 +69,16 @@
+             try GeometryStructuralComparisonWork.charge(parameterCurve: parameterCurve, using: &execution)
+             if hosted.surface == surface, hosted.parameterCurve == parameterCurve { return 0 }
+         }
++        return nil
++    }
++
++    @inline(never)
++    private static func wordTransportBound(curve: Curve3D, from start: Double, to end: Double,
++        surface: Surface3D, parameterCurve: SurfaceParameterCurve,
++        options: CurveSurfaceCorrespondenceValidationOptions, tolerance: ModelingTolerance,
++        maximumSpanCount: Int, depthLimit: Int, remainingSourceDepth: Int,
++        maximumAlgebraicDepth: Int?, acceptance: Double, using execution: inout OriginalQueryExecution)
++        throws -> Double? {
+         if case .originalAffineWord(let spatial) = curve,
+            case .procedural(.originalAffineWord(let support)) = surface,
+            case .originalAffineWord(let chart) = parameterCurve,
+@@ -80,6 +118,16 @@
+                 return transported
+             }
+         }
++        return nil
++    }
++
++    @inline(never)
++    private static func affineTransportBound(curve: Curve3D, from start: Double, to end: Double,
++        surface: Surface3D, parameterCurve: SurfaceParameterCurve,
++        options: CurveSurfaceCorrespondenceValidationOptions, tolerance: ModelingTolerance,
++        maximumSpanCount: Int, depthLimit: Int, remainingSourceDepth: Int,
++        maximumAlgebraicDepth: Int?, acceptance: Double, using execution: inout OriginalQueryExecution)
++        throws -> Double? {
+         if case .affineImage(let spatial) = curve,
+            case .procedural(.originalImage(let support)) = surface,
+            case .originalImage(let chart) = parameterCurve,
+@@ -118,6 +166,16 @@
+                 return transported
+             }
+         }
++        return nil
++    }
++
++    @inline(never)
++    private static func residualBound(curve: Curve3D, from start: Double, to end: Double,
++        surface: Surface3D, parameterCurve: SurfaceParameterCurve,
++        options: CurveSurfaceCorrespondenceValidationOptions, tolerance: ModelingTolerance,
++        maximumSpanCount: Int, depthLimit: Int, remainingSourceDepth: Int,
++        maximumAlgebraicDepth: Int?, acceptance: Double, using execution: inout OriginalQueryExecution)
++        throws -> Double {
+         guard remainingSourceDepth > 0 else {
+             throw GeometryConversionError.resourceLimitExceeded("Original correspondence lift exhausted source depth.")
+         }
+@@ -208,6 +266,82 @@
+         return result
+     }
+ 
++    /// Source validation and independent depth admission precede this private law check.
++    @inline(never)
++    private static func hasExactUnitNativeBoundaryLaw(curve: BSplineCurve3D,
++        from start: Double, to end: Double, surface: BSplineSurface3D,
++        parameterCurve: SurfaceParameterCurve, using execution: inout OriginalQueryExecution) throws -> Bool {
++        try execution.consumeWork(1)
++        guard (surface.uDegree == 1 || surface.uDegree == 2), surface.vDegree == 1,
++              !surface.isUPeriodic, !surface.isVPeriodic,
++              surface.uPeriodicOrigin == nil, surface.vPeriodicOrigin == nil,
++              !curve.isPeriodic, curve.periodicOrigin == nil,
++              (start == 0 && end == 1) || (start == 1 && end == 0) else { return false }
++        try execution.consumeWork(1)
++        guard surface.uControlPointCount == surface.uDegree + 1,
++              surface.vControlPointCount == 2,
++              surface.uKnots.count == 2 * (surface.uDegree + 1), surface.vKnots.count == 4,
++              surface.uDomain == .closed(0, 1), surface.vDomain == .closed(0, 1),
++              curve.domain == .closed(0, 1) else { return false }
++        for index in surface.uKnots.indices {
++            try execution.consumeWork(1)
++            guard surface.uKnots[index] == (index <= surface.uDegree ? 0 : 1) else { return false }
++        }
++        for index in surface.vKnots.indices {
++            try execution.consumeWork(1)
++            guard surface.vKnots[index] == (index <= surface.vDegree ? 0 : 1) else { return false }
++        }
++        for row in surface.weights.indices {
++            for column in surface.weights[row].indices {
++                try execution.consumeWork(1)
++                guard surface.weights[row][column] == 1 else { return false }
++            }
++        }
++        let varyingU: Bool
++        let boundary: Int
++        let chartStart: Double
++        let chartEnd: Double
++        try execution.consumeWork(1)
++        switch parameterCurve {
++        case .constantV(let v, let uStart, let uEnd):
++            guard v == 0 || v == 1 else { return false }
++            varyingU = true
++            boundary = v == 0 ? 0 : surface.vControlPointCount - 1
++            chartStart = uStart; chartEnd = uEnd
++        case .constantU(let u, let vStart, let vEnd):
++            guard u == 0 || u == 1 else { return false }
++            varyingU = false
++            boundary = u == 0 ? 0 : surface.uControlPointCount - 1
++            chartStart = vStart; chartEnd = vEnd
++        default: return false
++        }
++        let count = varyingU ? surface.uControlPointCount : surface.vControlPointCount
++        let degree = varyingU ? surface.uDegree : surface.vDegree
++        try execution.consumeWork(1)
++        guard curve.degree == degree, curve.controlPointCount == count,
++              curve.weights.count == count, curve.knots.count == count + degree + 1,
++              (chartStart == 0 && chartEnd == 1) || (chartStart == 1 && chartEnd == 0) else { return false }
++        for index in curve.knots.indices {
++            try execution.consumeWork(1)
++            let knot = varyingU ? surface.uKnots[index] : surface.vKnots[index]
++            guard curve.knots[index] == knot else { return false }
++        }
++        var forward = true, reversed = true
++        for index in 0..<count {
++            // One weight and both three-coordinate comparisons share the caller work owner.
++            try execution.consumeWork(7)
++            guard curve.weights[index] == 1 else { return false }
++            let first = varyingU ? surface.controlPoints[boundary][index] : surface.controlPoints[index][boundary]
++            let last = varyingU ? surface.controlPoints[boundary][count - index - 1] : surface.controlPoints[count - index - 1][boundary]
++            let matchesForward = curve.controlPoints[index] == first
++            let matchesReversed = curve.controlPoints[index] == last
++            forward = forward && matchesForward
++            reversed = reversed && matchesReversed
++        }
++        return (forward && chartStart == start && chartEnd == end)
++            || (reversed && chartStart == end && chartEnd == start)
++    }
++
+     private static func admittedContinuity(_ prepared: PreparedCurveDifferentialEncloser,
+         over range: ScalarInterval, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
+         tolerance: ModelingTolerance, maximumAlgebraicDepth: Int?,

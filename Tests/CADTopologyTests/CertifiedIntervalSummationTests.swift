@@ -1,9 +1,11 @@
+import CADGeometry
 import Testing
 @testable import CADTopology
 
 struct CertifiedIntervalSummationTests {
     @Test
-    func balancedCompositionContainsLargeIntervalSumWithoutLinearInflation() {
+    func balancedCompositionContainsLargeIntervalSumWithoutLinearInflation() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
         let count = 1 << 16
         let lower = 8.0
         let upper = lower.nextUp
@@ -15,7 +17,7 @@ struct CertifiedIntervalSummationTests {
             count: count
         )
 
-        let balanced = CertifiedIntervalSummation.sum(values)
+        let balanced = try CertifiedIntervalSummation.sum(values, using: &execution)
         var sequential = SurfaceParameterAreaBounds.zero
         for value in values {
             sequential = sequential.adding(value)

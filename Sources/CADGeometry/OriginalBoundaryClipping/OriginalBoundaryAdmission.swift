@@ -5,23 +5,15 @@ struct OriginalBoundaryAdmission: Sendable {
     let parameterDepth: Int
     let coefficientDepth: Int
 
-    func borrowing(_ original: OriginalRelationUsage, maximumDepth: Int,
-        maximumCoefficientDepth: Int) throws -> OriginalRelationUsage {
+    func withScope<A: ExactScalarAdmission & ~Copyable, Result>(
+        maximumDepth: Int, maximumCoefficientDepth: Int, usage: inout A,
+        _ body: (inout A) throws -> Result
+    ) throws -> Result {
         guard parameterDepth <= maximumDepth, coefficientDepth <= maximumCoefficientDepth else {
             throw rationalAlgebraFailure("Boundary query cannot reset its retained source depth.")
         }
-        return .init(consumeWork: { count in
-            var owner = original; try owner.consumeExactWork(count)
-        }, retainStorage: { count in
-            var owner = original; try owner.retainExactStorage(count)
-        }, visitCell: { depth in
-            let retained = try rationalAlgebraCount(parameterDepth, depth)
-            guard retained <= maximumDepth else { throw rationalAlgebraFailure("Boundary refinement exceeds the original parameter depth.") }
-            var owner = original; try owner.visitExactCell(depth: retained)
-        }, visitCoefficientCell: { depth in
-            let retained = try rationalAlgebraCount(coefficientDepth, depth)
-            guard retained <= maximumCoefficientDepth else { throw rationalAlgebraFailure("Boundary refinement exceeds the original coefficient depth.") }
-            var owner = original; try owner.visitCoefficientCell(depth: retained)
-        })
+        return try usage.withProofScope(
+            inherited: .init(value: parameterDepth, coefficient: coefficientDepth),
+            maximum: .init(value: maximumDepth, coefficient: maximumCoefficientDepth), body)
     }
 }

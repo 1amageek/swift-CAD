@@ -46,6 +46,9 @@ struct NativeTrimCrossingTests {
     }
 
     @Test func contactCrossesNativeBoundaryAtItsEndpoint() throws {
+        var execution = OriginalQueryExecution(budget: try .init(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32,
+                remainingSourceDepth: 16, maximumSubdivisionDepth: 32))
         let pair = try pair()
         let contact = pair.edge(1)
         let reversed = BRepSewingEdge(stableID: "reversed-contact", curve: contact.curve,
@@ -54,7 +57,7 @@ struct NativeTrimCrossingTests {
             surfaceParameterCurve: try contact.surfaceParameterCurve.reversed(tolerance: tolerance))
         for edges in [(pair.edge(0), contact), (contact, pair.edge(0)), (pair.edge(0), reversed)] {
             let result = try ExactTrimEdgeIntersector().intersections(
-                edges.0, edges.1, sharedSurface: pair.surface, tolerance: tolerance)
+                edges.0, edges.1, sharedSurface: pair.surface, tolerance: tolerance, using: &execution)
             guard case .subdivisionPoints(let points) = result else {
                 Issue.record("The contact and source edge are not coincident."); return
             }
@@ -64,6 +67,9 @@ struct NativeTrimCrossingTests {
     }
 
     @Test func boundaryTrimExcludesTheContact() throws {
+        var execution = OriginalQueryExecution(budget: try .init(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32,
+                remainingSourceDepth: 16, maximumSubdivisionDepth: 32))
         let pair = try pair()
         let source = pair.edge(0)
         let trimmed = BRepSewingEdge(stableID: "trimmed-source", curve: source.curve,
@@ -71,7 +77,7 @@ struct NativeTrimCrossingTests {
             endPoint: try source.curve.point(at: 0.5, tolerance: tolerance),
             surfaceParameterCurve: .constantU(u: 1, vStart: 0, vEnd: 0.5))
         let result = try ExactTrimEdgeIntersector().intersections(
-            trimmed, pair.edge(1), sharedSurface: pair.surface, tolerance: tolerance)
+            trimmed, pair.edge(1), sharedSurface: pair.surface, tolerance: tolerance, using: &execution)
         guard case .subdivisionPoints(let points) = result else {
             Issue.record("Disjoint trimmed edges cannot be coincident."); return
         }
@@ -79,6 +85,9 @@ struct NativeTrimCrossingTests {
     }
 
     @Test func separatedIsoparametricBoundaryExcludesTheWholeContact() throws {
+        var execution = OriginalQueryExecution(budget: try .init(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32,
+                remainingSourceDepth: 16, maximumSubdivisionDepth: 32))
         let pair = try pair()
         let uv = SurfaceParameterCurve.constantV(v: 0, uStart: 0, uEnd: 1)
         let curve = Curve3D.surfaceLift(.init(surface: pair.surface, parameterCurve: uv))
@@ -90,7 +99,7 @@ struct NativeTrimCrossingTests {
         let reversed = try BRepSewingPatchOrientationAdapter().reversed(contact, tolerance: tolerance)
         for edges in [(boundary, contact), (contact, boundary), (boundary, reversed)] {
             let result = try ExactTrimEdgeIntersector().intersections(
-                edges.0, edges.1, sharedSurface: pair.surface, tolerance: tolerance)
+                edges.0, edges.1, sharedSurface: pair.surface, tolerance: tolerance, using: &execution)
             guard case .subdivisionPoints(let points) = result else {
                 Issue.record("Separated coordinate ranges cannot represent coincident curves."); return
             }

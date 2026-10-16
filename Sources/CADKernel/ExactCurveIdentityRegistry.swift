@@ -1,4 +1,5 @@
 import CADGeometry
+import CADTopology
 
 /// Allocates compact process-local identities using complete Curve3D equality.
 ///
@@ -7,11 +8,15 @@ import CADGeometry
 struct ExactCurveIdentityRegistry: Sendable {
     private var curves: [Curve3D] = []
 
-    mutating func identity(for curve: Curve3D) -> ExactCurveIdentity {
-        if let index = curves.firstIndex(of: curve) {
-            return ExactCurveIdentity(ordinal: index)
+    mutating func identity(for curve: Curve3D,
+        using execution: inout OriginalQueryExecution) throws -> ExactCurveIdentity {
+        try GeometryStructuralComparisonWork.charge(curve: curve, using: &execution)
+        for (index, existing) in curves.enumerated() {
+            try execution.consumeWork(1)
+            try GeometryStructuralComparisonWork.charge(curve: existing, using: &execution)
+            if existing == curve { return ExactCurveIdentity(ordinal: index) }
         }
-        curves.append(curve)
+        try OriginalParameterQueryStorage.append(curve, to: &curves, using: &execution)
         return ExactCurveIdentity(ordinal: curves.count - 1)
     }
 }

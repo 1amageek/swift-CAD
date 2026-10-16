@@ -35,7 +35,13 @@ public struct BRepDrawingProjectedContacts: Sendable {
     public let cells: [Cell]
 
     public func validateCurrent(_ evaluated: EvaluatedDocument) throws {
-        try projection.validateCurrent(evaluated)
-        for source in silhouettes { try source.validateCurrent(evaluated) }
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try validateCurrent(evaluated, using: &execution)
+    }
+
+    public func validateCurrent(_ evaluated: EvaluatedDocument, using execution: inout OriginalQueryExecution) throws {
+        try execution.checkpoint()
+        try projection.validateCurrent(evaluated, using: &execution)
+        for source in silhouettes { try source.validateCurrent(evaluated, using: &execution) }
     }
 }

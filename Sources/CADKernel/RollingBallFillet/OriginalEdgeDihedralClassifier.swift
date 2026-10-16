@@ -11,7 +11,8 @@ struct OriginalEdgeDihedralClassifier {
     private struct Cell { let lower: Double; let upper: Double; let depth: Int }
 
     func isConcave(edgeID: EdgeID, first: Face, second: Face, shell: Shell,
-        input: ValidatedBRepModel, budget: RollingBallIntersectionBudget) throws -> Bool {
+        input: ValidatedBRepModel, using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.checkpoint()
         let model = input.model, tolerance = input.tolerance
         guard input.validationLevel != .modeling,
               let edge = model.edges[edgeID], edge.trim != nil,
@@ -20,14 +21,14 @@ struct OriginalEdgeDihedralClassifier {
               let secondSurface = model.geometry.surfaces[second.surfaceID] else {
             throw failure(.invalidInput, tolerance, "Original dihedral classification requires retained exact edge and face sources.")
         }
-        func use(_ face: Face) throws -> (coedge: Coedge, loop: Loop) {
+        func use(_ face: Face, using execution: inout OriginalQueryExecution) throws -> (coedge: Coedge, loop: Loop) {
             var selected: (coedge: Coedge, loop: Loop)?
             for loopID in face.loops {
                 guard let loop = model.loops[loopID] else {
                     throw failure(.missingReference, tolerance, "Missing original dihedral loop.")
                 }
                 for coedge in loop.edges {
-                    try budget.consume()
+                    try execution.consumeWork(1)
                     if coedge.edgeID == edgeID {
                         guard selected == nil else {
                             throw failure(.ambiguousSelection, tolerance, "An original dihedral requires one edge use per incident face.")
@@ -39,42 +40,42 @@ struct OriginalEdgeDihedralClassifier {
             guard let selected else { throw failure(.missingReference, tolerance, "Missing original dihedral coedge.") }
             return selected
         }
-        let aUse = try use(first), bUse = try use(second)
+        let aUse = try use(first, using: &execution), bUse = try use(second, using: &execution)
         let a = aUse.coedge, b = bUse.coedge
         guard let aCurve = a.surfaceParameterCurve, let bCurve = b.surfaceParameterCurve else {
             throw failure(.missingReference, tolerance, "Original dihedral uses require native face pcurves.")
         }
         let preparedA = try PreparedSurfaceDifferentialEncloser(surface: firstSurface,
-            tolerance: tolerance, remainingSourceDepth: budget.maximumSourceDepth,
-            maximumSubdivisionDepth: budget.maximumDepth, consumeWork: { try budget.consume() },
-            consumeStorage: { try budget.retainBytes($0) }, maximumAlgebraicDepth: budget.maximumAlgebraicDepth)
+            tolerance: tolerance, remainingSourceDepth: RollingBallIntersectionPolicy.maximumSourceDepth,
+            maximumSubdivisionDepth: RollingBallIntersectionPolicy.maximumDepth,
+            maximumAlgebraicDepth: RollingBallIntersectionPolicy.maximumAlgebraicDepth, using: &execution)
         let preparedB = try PreparedSurfaceDifferentialEncloser(surface: secondSurface,
-            tolerance: tolerance, remainingSourceDepth: budget.maximumSourceDepth,
-            maximumSubdivisionDepth: budget.maximumDepth, consumeWork: { try budget.consume() },
-            consumeStorage: { try budget.retainBytes($0) }, maximumAlgebraicDepth: budget.maximumAlgebraicDepth)
+            tolerance: tolerance, remainingSourceDepth: RollingBallIntersectionPolicy.maximumSourceDepth,
+            maximumSubdivisionDepth: RollingBallIntersectionPolicy.maximumDepth,
+            maximumAlgebraicDepth: RollingBallIntersectionPolicy.maximumAlgebraicDepth, using: &execution)
         let originalBoundary = Curve3D.surfaceLift(.init(surface: secondSurface, parameterCurve: bCurve))
         let preparedCurve = try PreparedCurveDifferentialEncloser(curve: originalBoundary,
-            tolerance: tolerance, remainingSourceDepth: budget.maximumSourceDepth,
-            maximumSubdivisionDepth: budget.maximumDepth, consumeWork: { try budget.consume() },
-            consumeStorage: { try budget.retainBytes($0) }, maximumAlgebraicDepth: budget.maximumAlgebraicDepth)
+            tolerance: tolerance, remainingSourceDepth: RollingBallIntersectionPolicy.maximumSourceDepth,
+            maximumSubdivisionDepth: RollingBallIntersectionPolicy.maximumDepth,
+            maximumAlgebraicDepth: RollingBallIntersectionPolicy.maximumAlgebraicDepth, using: &execution)
         var loopOrientation: Int?
         var requestedWidth = 1.0
-        for refinement in 0...budget.maximumDepth {
-            try budget.consume(depth: refinement)
+        for refinement in 0...RollingBallIntersectionPolicy.maximumDepth {
+            try execution.admitGeometricDepth(refinement); try execution.consumeWork(1)
             let integral = SurfaceParameterCurveAreaIntegrator(
-                maximumSubdivisionDepth: budget.maximumDepth - refinement,
-                consumeWork: { try budget.consume(depth: refinement + $0) },
-                consumeStorage: { try budget.retainBytes($0) },
-                remainingSourceDepth: min(16, budget.maximumSourceDepth),
-                maximumAlgebraicDepth: budget.maximumAlgebraicDepth)
+                maximumSubdivisionDepth: RollingBallIntersectionPolicy.maximumDepth - refinement,
+                remainingSourceDepth: min(16, RollingBallIntersectionPolicy.maximumSourceDepth),
+                maximumAlgebraicDepth: RollingBallIntersectionPolicy.maximumAlgebraicDepth)
             var area = OutwardScalarInterval.exact(0)
             for use in bUse.loop.edges {
-                try budget.consume(depth: refinement)
+                try execution.admitGeometricDepth(refinement); try execution.consumeWork(1)
                 guard let pcurve = use.surfaceParameterCurve else {
                     throw failure(.missingReference, tolerance, "Original material-side winding requires every source pcurve.")
                 }
-                let contribution = try integral.bounds(for: pcurve, on: secondSurface,
-                    uShift: 0, requestedWidth: requestedWidth, tolerance: tolerance)
+                let contribution = try execution.withGeometricDepthOffset(refinement) { execution in
+                    try integral.bounds(for: pcurve, on: secondSurface,
+                    uShift: 0, requestedWidth: requestedWidth, tolerance: tolerance, using: &execution)
+                }
                 area = area + .init(lower: contribution.lower, upper: contribution.upper)
             }
             if area.lower > 0 { loopOrientation = 1; break }
@@ -91,20 +92,21 @@ struct OriginalEdgeDihedralClassifier {
         let materialLeftSign = Double(bUse.loop.role == .outer ? loopOrientation : -loopOrientation)
         let outwardSign = first.orientation == shell.orientation ? 1.0 : -1.0
         func box(_ pcurve: SurfaceParameterCurve, on surface: Surface3D,
-            cell: Cell) throws -> SurfaceParameterBox {
+            cell: Cell, using execution: inout OriginalQueryExecution) throws -> SurfaceParameterBox {
             let enclosure = CertifiedSurfaceParameterCurveEncloser(
-                maximumSubdivisionDepth: budget.maximumDepth - cell.depth,
-                consumeWork: { try budget.consume(depth: cell.depth + $0) },
-                consumeStorage: { try budget.retainBytes($0) }, maximumAlgebraicDepth: budget.maximumAlgebraicDepth)
-            let cover = try enclosure.enclosures(for: pcurve, on: surface,
+                maximumSubdivisionDepth: RollingBallIntersectionPolicy.maximumDepth - cell.depth,
+                maximumAlgebraicDepth: RollingBallIntersectionPolicy.maximumAlgebraicDepth)
+            let cover = try execution.withGeometricDepthOffset(cell.depth) { execution in
+                try enclosure.enclosures(for: pcurve, on: surface,
                 fromNormalizedFraction: cell.lower, toNormalizedFraction: cell.upper,
-                maximumWidth: Double.greatestFiniteMagnitude, tolerance: tolerance)
+                maximumWidth: Double.greatestFiniteMagnitude, tolerance: tolerance, using: &execution)
+            }
             guard let first = cover.first else {
                 throw failure(.classificationFailure, tolerance, "An original pcurve cover cannot be empty.")
             }
             var u = first.u, v = first.v
             for panel in cover {
-                try budget.consume(depth: cell.depth)
+                try execution.admitGeometricDepth(cell.depth); try execution.consumeWork(1)
                 u = try ScalarInterval(lower: min(u.lower, panel.u.lower), upper: max(u.upper, panel.u.upper))
                 v = try ScalarInterval(lower: min(v.lower, panel.v.lower), upper: max(v.upper, panel.v.upper))
             }
@@ -117,37 +119,41 @@ struct OriginalEdgeDihedralClassifier {
             return try SurfaceParameterBox(u: retained(u, domain: surface.uDomain), v: retained(v, domain: surface.vDomain))
         }
         func normal(_ prepared: PreparedSurfaceDifferentialEncloser, box: SurfaceParameterBox,
-            cell: Cell) throws -> IntervalVector3DBounds {
-            let q = try prepared.intervalJet(overClosedBox: box, tolerance: tolerance,
-                maximumSpanCount: 4096, maximumSubdivisionDepth: budget.maximumDepth - cell.depth,
-                remainingSourceDepth: budget.maximumSourceDepth, consumeWork: { try budget.consume(depth: cell.depth) },
-                consumeStorage: { try budget.retainBytes($0) })
+            cell: Cell, using execution: inout OriginalQueryExecution) throws -> IntervalVector3DBounds {
+            let q = try execution.withGeometricDepthOffset(cell.depth) { execution in
+                try prepared.intervalJet(overClosedBox: box, tolerance: tolerance,
+                maximumSpanCount: 4096, maximumSubdivisionDepth: RollingBallIntersectionPolicy.maximumDepth - cell.depth,
+                remainingSourceDepth: RollingBallIntersectionPolicy.maximumSourceDepth, using: &execution)
+            }
             let u = IntervalVector3DBounds(x: q.x.derivativeU, y: q.y.derivativeU, z: q.z.derivativeU)
             let v = IntervalVector3DBounds(x: q.x.derivativeV, y: q.y.derivativeV, z: q.z.derivativeV)
             return u.cross(v)
         }
-        let capacity = budget.maximumDepth + 1
-        try budget.retainBytes(capacity * MemoryLayout<Cell>.stride)
+        let capacity = RollingBallIntersectionPolicy.maximumDepth + 1
+        try execution.retainStorage(bytes: capacity * MemoryLayout<Cell>.stride)
         var pending: [Cell] = []
         pending.reserveCapacity(capacity)
         pending.append(Cell(lower: 0, upper: 1, depth: 0))
         var selectedSign: Int?
         while let cell = pending.popLast() {
-            try budget.consume(depth: cell.depth)
+            try execution.admitGeometricDepth(cell.depth); try execution.consumeWork(1)
             let firstCell = a.orientation == b.orientation ? cell
                 : Cell(lower: 1 - cell.upper, upper: 1 - cell.lower, depth: cell.depth)
-            let na = try normal(preparedA, box: box(aCurve, on: firstSurface, cell: firstCell), cell: cell)
-            let nb = try normal(preparedB, box: box(bCurve, on: secondSurface, cell: cell), cell: cell)
-            let receipt = try preparedCurve.closedNativeJets(
+            let aBox = try box(aCurve, on: firstSurface, cell: firstCell, using: &execution)
+            let bBox = try box(bCurve, on: secondSurface, cell: cell, using: &execution)
+            let na = try normal(preparedA, box: aBox, cell: cell, using: &execution)
+            let nb = try normal(preparedB, box: bBox, cell: cell, using: &execution)
+            let receipt = try execution.withGeometricDepthOffset(cell.depth) { execution in
+                try preparedCurve.closedNativeJets(
                 over: ScalarInterval(lower: cell.lower, upper: cell.upper), tolerance: tolerance,
-                maximumSpanCount: 4096, maximumSubdivisionDepth: budget.maximumDepth - cell.depth,
-                remainingSourceDepth: budget.maximumSourceDepth, consumeWork: { try budget.consume(depth: cell.depth) },
-                consumeStorage: { try budget.retainBytes($0) })
+                maximumSpanCount: 4096, maximumSubdivisionDepth: RollingBallIntersectionPolicy.maximumDepth - cell.depth,
+                remainingSourceDepth: RollingBallIntersectionPolicy.maximumSourceDepth, using: &execution)
+            }
             guard let firstJet = receipt.spans.first else {
                 throw failure(.classificationFailure, tolerance, "An original edge tangent cover cannot be empty.")
             }
             var jet = firstJet.jet
-            for owner in receipt.spans { try budget.consume(depth: cell.depth); jet = jet.union(owner.jet) }
+            for owner in receipt.spans { try execution.admitGeometricDepth(cell.depth); try execution.consumeWork(1); jet = jet.union(owner.jet) }
             let tangent = IntervalVector3DBounds(x: jet.x.derivativeU, y: jet.y.derivativeU,
                 z: jet.z.derivativeU)
             let side = nb.cross(tangent).dot(na) * .exact(outwardSign * materialLeftSign)
@@ -164,7 +170,7 @@ struct OriginalEdgeDihedralClassifier {
                 continue
             }
             let middle = cell.lower + (cell.upper - cell.lower) * 0.5
-            guard cell.depth < budget.maximumDepth, middle > cell.lower, middle < cell.upper else {
+            guard cell.depth < RollingBallIntersectionPolicy.maximumDepth, middle > cell.lower, middle < cell.upper else {
                 throw failure(.resourceLimitExceeded, tolerance, "Original dihedral sign exhausted whole-edge subdivision precision.")
             }
             guard pending.count <= capacity - 2 else {
@@ -176,6 +182,7 @@ struct OriginalEdgeDihedralClassifier {
         guard let selectedSign else {
             throw failure(.classificationFailure, tolerance, "Original dihedral cover supplied no material-side witness.")
         }
+        try execution.checkpoint()
         return selectedSign > 0
     }
 

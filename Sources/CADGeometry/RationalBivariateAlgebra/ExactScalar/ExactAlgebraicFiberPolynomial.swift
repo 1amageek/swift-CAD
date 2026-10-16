@@ -4,7 +4,7 @@ struct ExactAlgebraicFiberPolynomial: Sendable {
     let coefficients: [Int: ExactAlgebraicFieldElement]
     var degree: Int { coefficients.keys.max() ?? -1 }
     var isZero: Bool { coefficients.isEmpty }
-    init<B: RationalAlgebraAdmitting>(source: ExactBivariatePolynomial,
+    init<B: ExactScalarAdmission & ~Copyable>(source: ExactBivariatePolynomial,
         at root: ExactAlgebraicRealRoot, maximumDepth: Int, usage: inout B) throws {
         self.root = root
         var values: [Int: ExactAlgebraicFieldElement] = [:]
@@ -19,7 +19,7 @@ struct ExactAlgebraicFiberPolynomial: Sendable {
     init(root: ExactAlgebraicRealRoot, coefficients: [Int: ExactAlgebraicFieldElement]) {
         self.root = root; self.coefficients = coefficients
     }
-    func differentiated<B: RationalAlgebraAdmitting>(usage: inout B) throws -> Self {
+    func differentiated<B: ExactScalarAdmission & ~Copyable>(usage: inout B) throws -> Self {
         var values: [Int: ExactAlgebraicFieldElement] = [:]
         for degree in try orderedDegrees(usage: &usage) where degree > 0 {
             guard let coefficient = coefficients[degree] else { throw exactScalarBackendFailure("Missing original fiber coefficient.") }
@@ -29,18 +29,18 @@ struct ExactAlgebraicFiberPolynomial: Sendable {
         }
         return Self(root: root, coefficients: values)
     }
-    func evaluated<B: RationalAlgebraAdmitting>(at station: ExactRationalCoefficient,
+    func evaluated<B: ExactScalarAdmission & ~Copyable>(at station: ExactRationalCoefficient,
         usage: inout B) throws -> ExactAlgebraicFieldElement {
         var result = try ExactAlgebraicFieldElement(polynomial: .zero, usage: &usage)
         let factor = try ExactAlgebraicFieldElement(polynomial: .constant(station, usage: &usage), usage: &usage)
         if degree >= 0 { for index in (0...degree).reversed() {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             result = try result.multiplied(by: factor, usage: &usage)
             if let coefficient = coefficients[index] { result = try result.adding(coefficient, usage: &usage) }
         } }
         return result
     }
-    func divided<B: RationalAlgebraAdmitting>(by divisor: Self,
+    func divided<B: ExactScalarAdmission & ~Copyable>(by divisor: Self,
         maximumDepth: Int, usage: inout B) throws -> (quotient: Self, remainder: Self) {
         try requireSameRootAuthority(divisor, usage: &usage)
         guard let leading = divisor.coefficients[divisor.degree] else {
@@ -74,13 +74,13 @@ struct ExactAlgebraicFiberPolynomial: Sendable {
         }
         return (Self(root: root, coefficients: quotient), Self(root: root, coefficients: pending))
     }
-    func negated<B: RationalAlgebraAdmitting>(usage: inout B) throws -> Self {
+    func negated<B: ExactScalarAdmission & ~Copyable>(usage: inout B) throws -> Self {
         try RationalAlgebraStorage.retain(coefficients.count, of: (Int, ExactAlgebraicFieldElement).self, usage: &usage)
         var values: [Int: ExactAlgebraicFieldElement] = [:]
         for (degree, value) in coefficients { values[degree] = try value.negated(usage: &usage) }
         return Self(root: root, coefficients: values)
     }
-    static func gcd<B: RationalAlgebraAdmitting>(_ first: Self, _ second: Self,
+    static func gcd<B: ExactScalarAdmission & ~Copyable>(_ first: Self, _ second: Self,
         maximumDepth: Int, usage: inout B) throws -> Self {
         try first.requireSameRootAuthority(second, usage: &usage)
         var a = first, b = second
@@ -90,15 +90,15 @@ struct ExactAlgebraicFiberPolynomial: Sendable {
         }
         return a
     }
-    private func orderedDegrees<B: RationalAlgebraAdmitting>(usage: inout B) throws -> [Int] {
+    private func orderedDegrees<B: ExactScalarAdmission & ~Copyable>(usage: inout B) throws -> [Int] {
         let count = coefficients.count
-        try usage.consumeExactWork(try exactScalarCount(count, max(1, count), multiply: true))
+        try usage.consumeWork(try exactScalarCount(count, max(1, count), multiply: true))
         try RationalAlgebraStorage.retain(count, of: Int.self, usage: &usage)
         return coefficients.keys.sorted()
     }
-    private func requireSameRootAuthority<B: RationalAlgebraAdmitting>(_ other: Self,
+    private func requireSameRootAuthority<B: ExactScalarAdmission & ~Copyable>(_ other: Self,
         usage: inout B) throws {
-        try usage.consumeExactWork(try exactScalarCount(root.polynomial.coefficients.count,
+        try usage.consumeWork(try exactScalarCount(root.polynomial.coefficients.count,
             other.root.polynomial.coefficients.count))
         let first = root.isolation, second = other.root.isolation
         guard root.polynomial == other.root.polynomial, first.lower == second.lower,

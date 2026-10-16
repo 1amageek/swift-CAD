@@ -55,21 +55,28 @@ struct KernelIntersectionPrerequisiteTests {
             u: .init(lower: -1, upper: 1), v: .init(lower: -1, upper: 1)), tolerance: .standard)
     }
 
-    private func partition(_ budget: TessellationProofBudget) throws -> TrimmedNativePartition.Result {
+    private func execution() throws -> OriginalQueryExecution {
+        OriginalQueryExecution(budget: try .init(workLimit: 262_144,
+            storageByteLimit: 268_435_456), limits: try .init(maximumValueDepth: 32,
+                maximumCoefficientDepth: 32, remainingSourceDepth: 16,
+                maximumSubdivisionDepth: 32))
+    }
+
+    private func partition(using execution: inout OriginalQueryExecution) throws -> TrimmedNativePartition.Result {
         let tiny = 1e-200
         return try TrimmedNativePartition().partition(parameters: [
             .init(u: -tiny, v: -tiny), .init(u: tiny, v: -tiny), .init(u: tiny, v: tiny)],
-            triangles: [.init(first: 0, second: 1, third: 2)], spans: owners(), budget: budget, tolerance: .standard)
+            triangles: [.init(first: 0, second: 1, third: 2)], spans: owners(), tolerance: .standard, using: &execution)
     }
 
     @Test(.timeLimit(.minutes(1)))
     func tinyNonzeroOriginalTrianglesRetainBothNativeOwners() throws {
-        let budget = TessellationProofBudget()
-        let result = try partition(budget)
+        var budget = try execution()
+        let result = try partition(using: &budget)
         #expect(result.triangles.count == 3)
         #expect(result.owners.count == result.triangles.count)
         #expect(Set(result.owners.map(\.uSpanIndex)) == Set([1, 2]))
-        #expect(budget.remaining < 262_144)
+        #expect(budget.availableWork < 262_144)
         for (triangle, owner) in zip(result.triangles, result.owners) {
             for index in [triangle.first, triangle.second, triangle.third] {
                 #expect(owner.uBounds.lower <= result.parameters[index].u)
@@ -80,17 +87,31 @@ struct KernelIntersectionPrerequisiteTests {
 
     @Test(.timeLimit(.minutes(1)))
     func partitionSharesItsOriginalWorkAndCoefficientByteCeiling() throws {
-        let measurement = TessellationProofBudget()
-        _ = try partition(measurement)
-        let cost = 262_144 - measurement.remaining
+        var measurement = try execution()
+        _ = try partition(using: &measurement)
+        let cost = measurement.localWork
         #expect(cost > 0)
-        let exact = TessellationProofBudget()
-        try exact.charge(262_144 - cost)
-        _ = try partition(exact)
-        #expect(exact.remaining == 0)
-        let insufficient = TessellationProofBudget()
-        try insufficient.charge(262_144 - cost + 1)
-        #expect(throws: KernelError.self) { try partition(insufficient) }
-        #expect(throws: KernelError.self) { try insufficient.chargeStorageBytes(Int.max) }
+        var exact = try execution()
+        try exact.consumeWork(262_144 - cost)
+        _ = try partition(using: &exact)
+        #expect(exact.availableWork == 0)
+        var insufficient = try execution()
+        try insufficient.consumeWork(262_144 - cost + 1)
+        do {
+            _ = try partition(using: &insufficient)
+            Issue.record("Expected the shared work ceiling to reject partitioning.")
+        } catch {
+            let published = OriginalQueryFailure.published(error,
+                context: insufficient.context, tolerance: .standard)
+            #expect(OriginalQueryFailure.classification(of: published)?.code == .resourceLimitExceeded)
+        }
+        do {
+            try insufficient.retainStorage(bytes: Int.max)
+            Issue.record("Expected the shared coefficient byte ceiling to reject retention.")
+        } catch {
+            let published = OriginalQueryFailure.published(error,
+                context: insufficient.context, tolerance: .standard)
+            #expect(OriginalQueryFailure.classification(of: published)?.code == .resourceLimitExceeded)
+        }
     }
 }

@@ -34,32 +34,30 @@ struct RationalBezierSurfacePatch3D: Sendable {
     let vLower: Double
     let vUpper: Double
 
-    func boundingBox(admission: NativeSurfaceEmbeddingAdmission) throws -> BoundingBox3D {
-        let count = try NativeSurfaceEmbeddingPreparationReservation.net(controlPoints, admission: admission)
-        try admission.work(count); try admission.storage(count)
-        return try boundingBox()
-    }
-    func subdivided(admission: NativeSurfaceEmbeddingAdmission) throws -> [Self] {
-        try NativeSurfaceEmbeddingPreparationReservation.split(rows: controlPoints.count,
-            columns: controlPoints[0].count, axisSplits: 2, admission: admission)
-        return try subdivided()
-    }
-    func trimmed(uFrom: Double, uTo: Double, vFrom: Double, vTo: Double,
-        tolerance: ModelingTolerance, admission: NativeSurfaceEmbeddingAdmission) throws -> Self {
-        try NativeSurfaceEmbeddingPreparationReservation.split(rows: controlPoints.count,
-            columns: controlPoints[0].count, axisSplits: 2, admission: admission)
-        return try trimmed(uFrom: uFrom, uTo: uTo, vFrom: vFrom, vTo: vTo, tolerance: tolerance)
-    }
-
-    func boundingBox() throws -> BoundingBox3D {
-        try BoundingBox3D(points: controlPoints.flatMap { $0 })
+    func boundingBox<A: ExactScalarAdmission & ~Copyable>(using execution: inout A) throws -> BoundingBox3D {
+        try execution.consumeWork(1)
+        var count = 0
+        for row in controlPoints {
+            let next = count.addingReportingOverflow(row.count)
+            guard !next.overflow else { throw ExactScalarFailure.countOverflow }
+            count = next.partialValue
+        }
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: count, of: Point3D.self))
+        let points = try controlPoints.flatMap { row in
+            for _ in row { try execution.consumeWork(1) }
+            return row
+        }
+        return try BoundingBox3D(points: points)
     }
 
-    func subdivided() throws -> [RationalBezierSurfacePatch3D] {
-        let homogeneous = homogeneousControlNet()
-        let quadrants = subdivided(controlNet: homogeneous)
+    func subdivided<A: ExactScalarAdmission & ~Copyable>(using execution: inout A) throws -> [RationalBezierSurfacePatch3D] {
+        try execution.consumeWork(1)
+        let homogeneous = try homogeneousControlNet(using: &execution)
+        let quadrants = try subdivided(controlNet: homogeneous, using: &execution)
         let uMiddle = uLower + (uUpper - uLower) * 0.5
         let vMiddle = vLower + (vUpper - vLower) * 0.5
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 4, of: (Double, Double, Double, Double).self))
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 4, of: Self.self))
         let bounds = [
             (uLower, uMiddle, vLower, vMiddle),
             (uMiddle, uUpper, vLower, vMiddle),
@@ -70,18 +68,19 @@ struct RationalBezierSurfacePatch3D: Sendable {
             try patch(
                 controlNet: quadrants[index],
                 uBounds: (bounds[index].0, bounds[index].1),
-                vBounds: (bounds[index].2, bounds[index].3)
+                vBounds: (bounds[index].2, bounds[index].3), using: &execution
             )
         }
     }
 
-    func trimmed(
+    func trimmed<A: ExactScalarAdmission & ~Copyable>(
         uFrom requestedULower: Double,
         uTo requestedUUpper: Double,
         vFrom requestedVLower: Double,
         vTo requestedVUpper: Double,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout A
     ) throws -> RationalBezierSurfacePatch3D {
+        try execution.consumeWork(1)
         let parameterTolerance = max(
             tolerance.relative * max(
                 1.0,
@@ -121,7 +120,7 @@ struct RationalBezierSurfacePatch3D: Sendable {
         let targetVUpper = abs(requestedVUpper - vUpper) <= parameterTolerance
             ? vUpper
             : requestedVUpper
-        var net = homogeneousControlNet()
+        var net = try homogeneousControlNet(using: &execution)
         var currentULower = uLower
         var currentUUpper = uUpper
         var currentVLower = vLower
@@ -129,39 +128,45 @@ struct RationalBezierSurfacePatch3D: Sendable {
 
         if targetULower > currentULower {
             let parameter = (targetULower - currentULower) / (currentUUpper - currentULower)
-            net = net.map { split($0, parameter: parameter).upper }
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: net.count, of: [HomogeneousPoint].self))
+            net = try net.map { try split($0, parameter: parameter, using: &execution).upper }
             currentULower = targetULower
         }
         if targetUUpper < currentUUpper {
             let parameter = (targetUUpper - currentULower) / (currentUUpper - currentULower)
-            net = net.map { split($0, parameter: parameter).lower }
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: net.count, of: [HomogeneousPoint].self))
+            net = try net.map { try split($0, parameter: parameter, using: &execution).lower }
             currentUUpper = targetUUpper
         }
         if targetVLower > currentVLower {
             let parameter = (targetVLower - currentVLower) / (currentVUpper - currentVLower)
-            net = splitColumns(net, parameter: parameter).upper
+            net = try splitColumns(net, parameter: parameter, using: &execution).upper
             currentVLower = targetVLower
         }
         if targetVUpper < currentVUpper {
             let parameter = (targetVUpper - currentVLower) / (currentVUpper - currentVLower)
-            net = splitColumns(net, parameter: parameter).lower
+            net = try splitColumns(net, parameter: parameter, using: &execution).lower
             currentVUpper = targetVUpper
         }
         return try patch(
             controlNet: net,
             uBounds: (currentULower, currentUUpper),
-            vBounds: (currentVLower, currentVUpper)
+            vBounds: (currentVLower, currentVUpper), using: &execution
         )
     }
 
-    func subdivided(parameterIndex: Int) throws -> [RationalBezierSurfacePatch3D] {
-        let homogeneous = homogeneousControlNet()
+    func subdivided<A: ExactScalarAdmission & ~Copyable>(parameterIndex: Int, using execution: inout A) throws -> [RationalBezierSurfacePatch3D] {
+        try execution.consumeWork(1)
+        let homogeneous = try homogeneousControlNet(using: &execution)
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 2, of: Self.self))
         switch parameterIndex {
         case 0:
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: homogeneous.count, of: [HomogeneousPoint].self))
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: homogeneous.count, of: [HomogeneousPoint].self))
             var lowerRows: [[HomogeneousPoint]] = []
             var upperRows: [[HomogeneousPoint]] = []
             for row in homogeneous {
-                let halves = split(row, parameter: 0.5)
+                let halves = try split(row, parameter: 0.5, using: &execution)
                 lowerRows.append(halves.lower)
                 upperRows.append(halves.upper)
             }
@@ -170,27 +175,27 @@ struct RationalBezierSurfacePatch3D: Sendable {
                 try patch(
                     controlNet: lowerRows,
                     uBounds: (uLower, middle),
-                    vBounds: (vLower, vUpper)
+                    vBounds: (vLower, vUpper), using: &execution
                 ),
                 try patch(
                     controlNet: upperRows,
                     uBounds: (middle, uUpper),
-                    vBounds: (vLower, vUpper)
+                    vBounds: (vLower, vUpper), using: &execution
                 ),
             ]
         case 1:
-            let halves = splitColumns(homogeneous)
+            let halves = try splitColumns(homogeneous, using: &execution)
             let middle = vLower + (vUpper - vLower) * 0.5
             return [
                 try patch(
                     controlNet: halves.lower,
                     uBounds: (uLower, uUpper),
-                    vBounds: (vLower, middle)
+                    vBounds: (vLower, middle), using: &execution
                 ),
                 try patch(
                     controlNet: halves.upper,
                     uBounds: (uLower, uUpper),
-                    vBounds: (middle, vUpper)
+                    vBounds: (middle, vUpper), using: &execution
                 ),
             ]
         default:
@@ -198,118 +203,94 @@ struct RationalBezierSurfacePatch3D: Sendable {
         }
     }
 
-    private func homogeneousControlNet() -> [[HomogeneousPoint]] {
-        controlPoints.indices.map { rowIndex in
-            controlPoints[rowIndex].indices.map { columnIndex in
+    private func homogeneousControlNet<A: ExactScalarAdmission & ~Copyable>(using execution: inout A) throws -> [[HomogeneousPoint]] {
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: controlPoints.count, of: [HomogeneousPoint].self))
+        return try controlPoints.indices.map { rowIndex in
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: controlPoints[rowIndex].count, of: HomogeneousPoint.self))
+            return try controlPoints[rowIndex].indices.map { columnIndex in
+                try execution.consumeWork(1)
                 let point = controlPoints[rowIndex][columnIndex]
                 let weight = weights[rowIndex][columnIndex]
-                return HomogeneousPoint(
-                    x: point.x * weight,
-                    y: point.y * weight,
-                    z: point.z * weight,
-                    weight: weight
-                )
+                return HomogeneousPoint(x: point.x * weight, y: point.y * weight, z: point.z * weight, weight: weight)
             }
         }
     }
 
-    private func patch(
-        controlNet: [[HomogeneousPoint]],
-        uBounds: (Double, Double),
-        vBounds: (Double, Double)
-    ) throws -> RationalBezierSurfacePatch3D {
+    private func patch<A: ExactScalarAdmission & ~Copyable>(controlNet: [[HomogeneousPoint]],
+        uBounds: (Double, Double), vBounds: (Double, Double), using execution: inout A) throws -> Self {
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: controlNet.count, of: [Point3D].self))
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: controlNet.count, of: [Double].self))
         let points = try controlNet.map { row in
-            try row.map { try $0.point() }
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: row.count, of: Point3D.self))
+            return try row.map { try execution.consumeWork(1); return try $0.point() }
         }
-        return RationalBezierSurfacePatch3D(
-            controlPoints: points,
-            weights: controlNet.map { $0.map({ $0.weight }) },
-            uLower: uBounds.0,
-            uUpper: uBounds.1,
-            vLower: vBounds.0,
-            vUpper: vBounds.1
-        )
+        let weights = try controlNet.map { row in
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: row.count, of: Double.self))
+            return try row.map { try execution.consumeWork(1); return $0.weight }
+        }
+        return Self(controlPoints: points, weights: weights,
+            uLower: uBounds.0, uUpper: uBounds.1, vLower: vBounds.0, vUpper: vBounds.1)
     }
 
-    private func subdivided(controlNet: [[HomogeneousPoint]]) -> [[[HomogeneousPoint]]] {
-        var uLowerRows: [[HomogeneousPoint]] = []
-        var uUpperRows: [[HomogeneousPoint]] = []
+    private func subdivided<A: ExactScalarAdmission & ~Copyable>(controlNet: [[HomogeneousPoint]], using execution: inout A) throws -> [[[HomogeneousPoint]]] {
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: controlNet.count, of: [HomogeneousPoint].self))
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: controlNet.count, of: [HomogeneousPoint].self))
+        var uLowerRows: [[HomogeneousPoint]] = [], uUpperRows: [[HomogeneousPoint]] = []
+        uLowerRows.reserveCapacity(controlNet.count); uUpperRows.reserveCapacity(controlNet.count)
         for row in controlNet {
-            let halves = split(row, parameter: 0.5)
-            uLowerRows.append(halves.lower)
-            uUpperRows.append(halves.upper)
+            let halves = try split(row, parameter: 0.5, using: &execution)
+            uLowerRows.append(halves.lower); uUpperRows.append(halves.upper)
         }
-        let lowerUHalves = splitColumns(uLowerRows)
-        let upperUHalves = splitColumns(uUpperRows)
-        return [
-            lowerUHalves.lower,
-            upperUHalves.lower,
-            lowerUHalves.upper,
-            upperUHalves.upper,
-        ]
+        let lower = try splitColumns(uLowerRows, using: &execution)
+        let upper = try splitColumns(uUpperRows, using: &execution)
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 4, of: [[HomogeneousPoint]].self))
+        return [lower.lower, upper.lower, lower.upper, upper.upper]
     }
 
-    private func splitColumns(
-        _ controlNet: [[HomogeneousPoint]]
-    ) -> (lower: [[HomogeneousPoint]], upper: [[HomogeneousPoint]]) {
-        guard let firstRow = controlNet.first else { return ([], []) }
-        var lowerColumns: [[HomogeneousPoint]] = []
-        var upperColumns: [[HomogeneousPoint]] = []
-        for columnIndex in firstRow.indices {
-            let halves = split(
-                controlNet.map { $0[columnIndex] },
-                parameter: 0.5
-            )
-            lowerColumns.append(halves.lower)
-            upperColumns.append(halves.upper)
+    private func splitColumns<A: ExactScalarAdmission & ~Copyable>(_ controlNet: [[HomogeneousPoint]], using execution: inout A) throws -> (lower: [[HomogeneousPoint]], upper: [[HomogeneousPoint]]) {
+        try splitColumns(controlNet, parameter: 0.5, using: &execution)
+    }
+
+    private func splitColumns<A: ExactScalarAdmission & ~Copyable>(_ controlNet: [[HomogeneousPoint]], parameter: Double, using execution: inout A) throws -> (lower: [[HomogeneousPoint]], upper: [[HomogeneousPoint]]) {
+        guard let first = controlNet.first else { return ([], []) }
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: first.count, of: [HomogeneousPoint].self))
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: first.count, of: [HomogeneousPoint].self))
+        var lowerColumns: [[HomogeneousPoint]] = [], upperColumns: [[HomogeneousPoint]] = []
+        lowerColumns.reserveCapacity(first.count); upperColumns.reserveCapacity(first.count)
+        for column in first.indices {
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: controlNet.count, of: HomogeneousPoint.self))
+            let values = try controlNet.map { try execution.consumeWork(1); return $0[column] }
+            let halves = try split(values, parameter: parameter, using: &execution)
+            lowerColumns.append(halves.lower); upperColumns.append(halves.upper)
         }
-        let lower = controlNet.indices.map { rowIndex in
-            lowerColumns.map { $0[rowIndex] }
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: controlNet.count, of: [HomogeneousPoint].self))
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: controlNet.count, of: [HomogeneousPoint].self))
+        let lower = try controlNet.indices.map { row in
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: lowerColumns.count, of: HomogeneousPoint.self))
+            return try lowerColumns.map { try execution.consumeWork(1); return $0[row] }
         }
-        let upper = controlNet.indices.map { rowIndex in
-            upperColumns.map { $0[rowIndex] }
+        let upper = try controlNet.indices.map { row in
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: upperColumns.count, of: HomogeneousPoint.self))
+            return try upperColumns.map { try execution.consumeWork(1); return $0[row] }
         }
         return (lower, upper)
     }
 
-    private func split(
-        _ values: [HomogeneousPoint],
-        parameter: Double
-    ) -> (lower: [HomogeneousPoint], upper: [HomogeneousPoint]) {
+    private func split<A: ExactScalarAdmission & ~Copyable>(_ values: [HomogeneousPoint], parameter: Double, using execution: inout A) throws -> (lower: [HomogeneousPoint], upper: [HomogeneousPoint]) {
         guard values.count > 1 else { return (values, values) }
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: [HomogeneousPoint].self))
         var levels = [values]
         while let previous = levels.last, previous.count > 1 {
-            levels.append((0..<(previous.count - 1)).map { index in
-                previous[index].interpolated(
-                    to: previous[index + 1],
-                    parameter: parameter
-                )
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: [HomogeneousPoint].self))
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: previous.count - 1, of: HomogeneousPoint.self))
+            levels.append(try (0..<(previous.count - 1)).map { index in
+                try execution.consumeWork(1)
+                return previous[index].interpolated(to: previous[index + 1], parameter: parameter)
             })
         }
-        return (
-            levels.map { $0[0] },
-            levels.reversed().map { $0[$0.count - 1] }
-        )
-    }
-
-    private func splitColumns(
-        _ controlNet: [[HomogeneousPoint]],
-        parameter: Double
-    ) -> (lower: [[HomogeneousPoint]], upper: [[HomogeneousPoint]]) {
-        guard let firstRow = controlNet.first else { return ([], []) }
-        var lowerColumns: [[HomogeneousPoint]] = []
-        var upperColumns: [[HomogeneousPoint]] = []
-        for columnIndex in firstRow.indices {
-            let halves = split(
-                controlNet.map { $0[columnIndex] },
-                parameter: parameter
-            )
-            lowerColumns.append(halves.lower)
-            upperColumns.append(halves.upper)
-        }
-        return (
-            controlNet.indices.map { rowIndex in lowerColumns.map { $0[rowIndex] } },
-            controlNet.indices.map { rowIndex in upperColumns.map { $0[rowIndex] } }
-        )
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: levels.count, of: HomogeneousPoint.self))
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: levels.count, of: HomogeneousPoint.self))
+        return (try levels.map { try execution.consumeWork(1); return $0[0] },
+            try levels.reversed().map { try execution.consumeWork(1); return $0[$0.count - 1] })
     }
 }

@@ -17,7 +17,30 @@ extension CertifiedBoundedPlaneConeIntersectionCurve {
         toNormalizedFraction upperFraction: Double,
         tolerance: ModelingTolerance
     ) throws -> SpatialDifferentialMagnitudeBounds {
-        try validate(tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try spatialDifferentialMagnitudeBounds(fromNormalizedFraction: lowerFraction, toNormalizedFraction: upperFraction, tolerance: tolerance, using: &execution)
+    }
+
+    func spatialDifferentialMagnitudeBounds(
+        fromNormalizedFraction lowerFraction: Double,
+        toNormalizedFraction upperFraction: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> SpatialDifferentialMagnitudeBounds {
+        try execution.checkpoint()
+        let result = try spatialDifferentialMagnitudeBoundsImplementation(fromNormalizedFraction: lowerFraction, toNormalizedFraction: upperFraction, tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+
+    private func spatialDifferentialMagnitudeBoundsImplementation(
+        fromNormalizedFraction lowerFraction: Double,
+        toNormalizedFraction upperFraction: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> SpatialDifferentialMagnitudeBounds {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
+        try validate(tolerance: tolerance, using: &execution)
         guard lowerFraction.isFinite,
               upperFraction.isFinite,
               lowerFraction >= -tolerance.relative,
@@ -60,74 +83,74 @@ extension CertifiedBoundedPlaneConeIntersectionCurve {
                     curve.transverseRadius,
                     hyperbolicSine,
                     tolerance: tolerance
-                ),
+                , using: &execution),
                 try upperProduct(
                     curve.conjugateRadius,
                     hyperbolicCosine,
                     tolerance: tolerance
-                )
+                , using: &execution)
             ).nextUp
             let sourceSecond = hypot(
                 try upperProduct(
                     curve.transverseRadius,
                     hyperbolicCosine,
                     tolerance: tolerance
-                ),
+                , using: &execution),
                 try upperProduct(
                     curve.conjugateRadius,
                     hyperbolicSine,
                     tolerance: tolerance
-                )
+                , using: &execution)
             ).nextUp
             first = try upperProduct(
                 sourceFirst,
                 parameterSpan,
                 tolerance: tolerance
-            )
+            , using: &execution)
             second = try upperProduct(
                 try upperProduct(
                     sourceSecond,
                     parameterSpan,
                     tolerance: tolerance
-                ),
+                , using: &execution),
                 parameterSpan,
                 tolerance: tolerance
-            )
+            , using: &execution)
             third = try upperProduct(
                 try upperProduct(
                     try upperProduct(
                         sourceFirst,
                         parameterSpan,
                         tolerance: tolerance
-                    ),
+                    , using: &execution),
                     parameterSpan,
                     tolerance: tolerance
-                ),
+                , using: &execution),
                 parameterSpan,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .parabola(curve):
             let scaledParameter = try upperProduct(
                 maximumParameterMagnitude,
                 (1.0 / (2.0 * curve.focalLength)).nextUp,
                 tolerance: tolerance
-            )
+            , using: &execution)
             let sourceFirst = hypot(1.0, scaledParameter).nextUp
             let sourceSecond = (1.0 / (2.0 * curve.focalLength)).nextUp
             first = try upperProduct(
                 sourceFirst,
                 parameterSpan,
                 tolerance: tolerance
-            )
+            , using: &execution)
             second = try upperProduct(
                 try upperProduct(
                     sourceSecond,
                     parameterSpan,
                     tolerance: tolerance
-                ),
+                , using: &execution),
                 parameterSpan,
                 tolerance: tolerance
-            )
+            , using: &execution)
             third = 0.0
         case .line, .circle, .arc, .ellipse, .planeTorus:
             throw KernelError(
@@ -151,11 +174,13 @@ extension CertifiedBoundedPlaneConeIntersectionCurve {
         )
     }
 
-    private func upperProduct(
+    private func upperProduct<A: ExactScalarAdmission & ~Copyable>(
         _ first: Double,
         _ second: Double,
         tolerance: ModelingTolerance
-    ) throws -> Double {
+    , using execution: inout A) throws -> Double {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let result = (first * second).nextUp
         guard result.isFinite else {
             throw resourceFailure(

@@ -1,3 +1,4 @@
+import Foundation
 import CADCore
 import CADIR
 import CADKernel
@@ -149,7 +150,7 @@ extension STEPAttributesReader.Builder {
                 }
                 try budget.charge(work: 1, targets: 1); components.append(usage)
             }
-            let path = AssemblyOccurrencePath(components: components)
+            let path = AssemblyOccurrencePath(components)
             guard components.last == leaf, evaluated.assembly?.occurrences.contains(where: { $0.path == path }) == true else {
                 throw ProductAttributeError.missingTarget("PMI contextual path does not exist.")
             }

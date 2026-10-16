@@ -53,7 +53,7 @@ public final class OriginalCoincidentConeRelation: Sendable {
         firstBox: SurfaceParameterBox?, secondBox: SurfaceParameterBox?, maximumComponents: Int,
         limits: OriginalDomainIdentityLimits, prepared: OriginalCoincidentConeRelation? = nil,
         using a: inout A) throws -> OriginalCoincidentConeRelation {
-        return try OriginalSourceProofAdmission<A>.withBorrow(&a) { a in
+        return try a.withProofScope() { a in
             try a.checkpoint(); try source.require(limits.source); try requireLimits(limits)
             let s = source.original
             let issuer = DefaultOriginalAnalyticDomainIssuer<OriginalAnalyticCoordinateSnapshot, Field>()
@@ -192,7 +192,7 @@ public final class OriginalCoincidentConeRelation: Sendable {
     public func regular<A:ExactScalarAdmission & ~Copyable>(phase p:Field.Value,slant:Field.Value,
         firstCycle:OriginalParameterCycle,secondCycle:OriginalParameterCycle,
         limits:OriginalDomainIdentityLimits,using a:inout A) throws -> OriginalCoincidentConeMember {
-        try OriginalSourceProofAdmission<A>.withBorrow(&a) { a in
+        try a.withProofScope() { a in
             try admitProof(limits:limits,using:&a);let f=source.original.field
             let normalized=try f.compare(p,f.integer(1,using:&a),using:&a) == .equal ? f.integer(0,using:&a):p
             guard hasRegular,try phaseDomain.contains(normalized,in:phase,using:&a),
@@ -205,7 +205,7 @@ public final class OriginalCoincidentConeRelation: Sendable {
     }
     public func apex<A:ExactScalarAdmission & ~Copyable>(firstU:Field.Value,secondU:Field.Value,
         limits:OriginalDomainIdentityLimits,using a:inout A) throws -> OriginalCoincidentConeMember {
-        try OriginalSourceProofAdmission<A>.withBorrow(&a) { a in
+        try a.withProofScope() { a in
             try admitProof(limits:limits,using:&a)
             guard hasApex else { throw OriginalDomainIdentityFailure.outsideSupport }
             let zero=try source.original.field.integer(0,using:&a)
@@ -214,7 +214,7 @@ public final class OriginalCoincidentConeRelation: Sendable {
     }
     private func member<A:ExactScalarAdmission & ~Copyable>(firstU:Field.Value,secondU:Field.Value,slant:Field.Value,
         label:Field.Value,isApex:Bool,limits:OriginalDomainIdentityLimits,using a:inout A) throws -> OriginalCoincidentConeMember {
-        try OriginalSourceProofAdmission<A>.withBorrow(&a) { a in
+        try a.withProofScope() { a in
             try a.retainStorage(bytes:exactScalarPayloadBytes(count:4,of:Field.Value.self))
             guard try firstEffective.contains([firstU,slant],limits:limits,using:&a),
                 try secondEffective.contains([secondU,slant],limits:limits,using:&a) else { throw OriginalDomainIdentityFailure.outsideSupport }

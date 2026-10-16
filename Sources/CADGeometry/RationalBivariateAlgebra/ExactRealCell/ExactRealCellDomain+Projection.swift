@@ -5,7 +5,7 @@ import L2
 #endif
 
 extension ExactRealCellDomain {
-    func coefficientVector(_ law: Polynomial, axis: Int, _ a: inout ExactCellBorrowedAdmission) throws -> [Polynomial] {
+    func coefficientVector<A: ExactScalarAdmission & ~Copyable>(_ law: Polynomial, axis: Int, _ a: inout A) throws -> [Polynomial] {
         guard let degree = try polynomials.degree(of: law, in: axis, using: &a) else { return [] }
         let count = try ExactCellAccess.add(degree, 1)
         try ExactCellAccess.storage(count, Polynomial.self, &a)
@@ -33,7 +33,7 @@ extension ExactRealCellDomain {
         }
         return result
     }
-    func normalizedCondition(_ law: Polynomial, _ a: inout ExactCellBorrowedAdmission) throws -> (Polynomial, Field.Value) {
+    func normalizedCondition<A: ExactScalarAdmission & ~Copyable>(_ law: Polynomial, _ a: inout A) throws -> (Polynomial, Field.Value) {
         guard let first = law.terms.first else { return (law, try context.field.integer(1, using: &a)) }
         let monic = try polynomials.normalized(law, using: &a)
         let negative = try context.field.sign(of: first.coefficient, using: &a) == .negative
@@ -44,8 +44,8 @@ extension ExactRealCellDomain {
         }
         return (normalized, multiplier)
     }
-    func insert(_ law: Polynomial, into result: inout [Polynomial],
-        witnesses: inout [ExactRealCellProjectionWitness<Base>], _ a: inout ExactCellBorrowedAdmission) throws {
+    func insert<A: ExactScalarAdmission & ~Copyable>(_ law: Polynomial, into result: inout [Polynomial],
+        witnesses: inout [ExactRealCellProjectionWitness<Base>], _ a: inout A) throws {
         let (normalized, multiplier) = try normalizedCondition(law, &a)
         try ExactCellAccess.storage(1, ExactRealCellProjectionWitness<Base>.self, &a)
         witnesses.append(.normalization(original: law, result: normalized, multiplier: multiplier))
@@ -58,8 +58,8 @@ extension ExactRealCellDomain {
         for existing in result { if try polynomials.equals(existing, normalized, using: &a) { return } }
         try ExactCellAccess.storage(1, Polynomial.self, &a); result.append(normalized)
     }
-    func conditionBindings(_ level: ExactRealCellProjectionLevel<Base>, lower: ExactRealCellProjectionLevel<Base>?,
-        _ a: inout ExactCellBorrowedAdmission) throws -> [ExactRealCellProjectionBinding<Base>] {
+    func conditionBindings<A: ExactScalarAdmission & ~Copyable>(_ level: ExactRealCellProjectionLevel<Base>, lower: ExactRealCellProjectionLevel<Base>?,
+        _ a: inout A) throws -> [ExactRealCellProjectionBinding<Base>] {
         var result: [ExactRealCellProjectionBinding<Base>] = []
         for witness in level.witnesses {
             let law: Polynomial
@@ -90,7 +90,7 @@ extension ExactRealCellDomain {
         }
         return result
     }
-    func projection(_ source: ExactRealCellSource<Base>, _ a: inout ExactCellBorrowedAdmission) throws -> [ExactRealCellProjectionLevel<Base>] {
+    func projection<A: ExactScalarAdmission & ~Copyable>(_ source: ExactRealCellSource<Base>, _ a: inout A) throws -> [ExactRealCellProjectionLevel<Base>] {
         try require(source, &a)
         var pending: [Polynomial] = [], inputWitnesses: [ExactRealCellProjectionWitness<Base>] = []
         for law in source.polynomials { try insert(law, into: &pending, witnesses: &inputWitnesses, &a) }

@@ -92,18 +92,27 @@ public struct SurfaceSurfaceIntersectionCurve: Hashable, Sendable {
     atCurveParameter parameter: Double,
     tolerance: ModelingTolerance
   ) throws -> SurfaceIntersectionParameterPair {
+    var execution = try OriginalQueryExecution.independentGeometry()
+    return try surfaceParameterPair(atCurveParameter: parameter, tolerance: tolerance, using: &execution)
+  }
+
+  package func surfaceParameterPair(
+    atCurveParameter parameter: Double,
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+  ) throws -> SurfaceIntersectionParameterPair {
+    try execution.consumeWork(1)
     switch truth {
     case .parametric, .quadraticTangency, .analyticBSpline,
       .analyticBSplineTangency, .analyticAnalytic:
       let first = try firstSurfaceParameterCurve.parameter(
         atCurveParameter: parameter,
         curveDomain: curve.parameterDomain,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
       let second = try secondSurfaceParameterCurve.parameter(
         atCurveParameter: parameter,
         curveDomain: curve.parameterDomain,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
       return try SurfaceIntersectionParameterPair(
         first: first,
@@ -129,7 +138,7 @@ public struct SurfaceSurfaceIntersectionCurve: Hashable, Sendable {
       }
       return try implicitCurve.parameterPair(
         atNormalizedFraction: canonical,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
     }
   }
@@ -144,6 +153,17 @@ public struct SurfaceSurfaceIntersectionCurve: Hashable, Sendable {
     secondSurface: Surface3D,
     tolerance: ModelingTolerance
   ) throws -> SurfaceSurfaceIntersectionCurveEvaluation {
+    var execution = try OriginalQueryExecution.independentGeometry()
+    return try evaluatedCorrespondenceAssumingValidated(atCurveParameter: parameter, firstSurface: firstSurface, secondSurface: secondSurface, tolerance: tolerance, using: &execution)
+  }
+
+  package func evaluatedCorrespondenceAssumingValidated(
+    atCurveParameter parameter: Double,
+    firstSurface: Surface3D,
+    secondSurface: Surface3D,
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+  ) throws -> SurfaceSurfaceIntersectionCurveEvaluation {
+    try execution.consumeWork(1)
     try tolerance.validate()
     guard
       try curve.parameterDomain.contains(
@@ -155,17 +175,17 @@ public struct SurfaceSurfaceIntersectionCurve: Hashable, Sendable {
     }
     let parameters = try surfaceParameterPair(
       atCurveParameter: parameter,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
     let firstPoint = try firstSurface.point(
       u: parameters.first.u,
       v: parameters.first.v,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
     let secondPoint = try secondSurface.point(
       u: parameters.second.u,
       v: parameters.second.v,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
     let point: Point3D
     switch truth {
@@ -179,7 +199,7 @@ public struct SurfaceSurfaceIntersectionCurve: Hashable, Sendable {
       .analyticBSplineTangency, .analyticAnalytic:
       point = try curve.pointAssumingValid(
         at: parameter,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
     }
     let residual = max(
@@ -233,17 +253,30 @@ public struct SurfaceSurfaceIntersectionCurve: Hashable, Sendable {
     secondSurfaceAnchor: SurfaceParameterProjection,
     tolerance: ModelingTolerance
   ) throws {
+    var execution = try OriginalQueryExecution.independentGeometry()
+    try self.init(truth: truth, derivedRepresentation: derivedRepresentation, kind: kind,
+      firstSurfaceAnchor: firstSurfaceAnchor, secondSurfaceAnchor: secondSurfaceAnchor,
+      tolerance: tolerance, using: &execution)
+  }
+
+  public init(
+    truth: SurfaceSurfaceIntersectionCurveTruth,
+    derivedRepresentation: SurfaceSurfaceIntersectionDerivedRepresentation,
+    kind: CurveSurfaceIntersectionKind,
+    firstSurfaceAnchor: SurfaceParameterProjection,
+    secondSurfaceAnchor: SurfaceParameterProjection,
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+  ) throws {
+    try execution.consumeWork(1)
     try tolerance.validate()
-    try truth.validate(tolerance: tolerance)
-    try derivedRepresentation.validate(tolerance: tolerance)
-    try self.init(
-      validatedTruth: truth,
-      validatedDerivedRepresentation: derivedRepresentation,
-      kind: kind,
-      firstSurfaceAnchor: firstSurfaceAnchor,
-      secondSurfaceAnchor: secondSurfaceAnchor,
-      tolerance: tolerance
-    )
+    try truth.validate(tolerance: tolerance, using: &execution)
+    try derivedRepresentation.validate(tolerance: tolerance, using: &execution)
+    try GeometryStructuralComparisonWork.charge(curve: truth.curve, using: &execution)
+    try GeometryStructuralComparisonWork.charge(curve: derivedRepresentation.curve, using: &execution)
+    try GeometryStructuralComparisonWork.charge(parameterCurve: derivedRepresentation.firstSurfaceParameterCurve, using: &execution)
+    try GeometryStructuralComparisonWork.charge(parameterCurve: derivedRepresentation.secondSurfaceParameterCurve, using: &execution)
+    try self.init(validatedTruth: truth, validatedDerivedRepresentation: derivedRepresentation,
+      kind: kind, firstSurfaceAnchor: firstSurfaceAnchor, secondSurfaceAnchor: secondSurfaceAnchor, tolerance: tolerance)
   }
 
   package init(
@@ -317,6 +350,12 @@ public struct SurfaceSurfaceIntersectionCurve: Hashable, Sendable {
   }
 
   public func validate(tolerance: ModelingTolerance) throws {
+    var execution = try OriginalQueryExecution.independentGeometry()
+    try validate(tolerance: tolerance, using: &execution)
+  }
+
+  public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+    try execution.consumeWork(1)
     try tolerance.validate()
     try certificationTolerance.validate()
     guard certificationTolerance.distance <= tolerance.distance,
@@ -337,7 +376,7 @@ public struct SurfaceSurfaceIntersectionCurve: Hashable, Sendable {
       kind: kind,
       firstSurfaceAnchor: firstSurfaceAnchor,
       secondSurfaceAnchor: secondSurfaceAnchor,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
   }
 

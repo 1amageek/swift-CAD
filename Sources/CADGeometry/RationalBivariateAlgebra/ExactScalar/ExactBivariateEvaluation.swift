@@ -1,5 +1,5 @@
 public extension ExactBivariatePolynomial {
-    func evaluated<B: RationalAlgebraAdmitting>(atU u: ExactRationalCoefficient,
+    func evaluated<B: ExactScalarAdmission & ~Copyable>(atU u: ExactRationalCoefficient,
         v: ExactRationalCoefficient, usage: inout B) throws -> ExactRationalCoefficient {
         var result = ExactRationalCoefficient.zero
         for term in try orderedTerms(usage: &usage) {
@@ -11,7 +11,7 @@ public extension ExactBivariatePolynomial {
         return result
     }
 
-    func restricted<B: RationalAlgebraAdmitting>(alongU: Bool, station: ExactRationalCoefficient,
+    func restricted<B: ExactScalarAdmission & ~Copyable>(alongU: Bool, station: ExactRationalCoefficient,
         usage: inout B) throws -> Self {
         var result = Self.zero
         for term in try orderedTerms(usage: &usage) {
@@ -26,20 +26,20 @@ public extension ExactBivariatePolynomial {
         return result
     }
 
-    package func orderedTerms<B: RationalAlgebraAdmitting>(usage: inout B)
+    package func orderedTerms<B: ExactScalarAdmission & ~Copyable>(usage: inout B)
         throws -> [(key: Power, value: ExactRationalCoefficient)] {
         let count = coefficients.count
         let levels = count <= 1 ? 0 : Int.bitWidth - (count - 1).leadingZeroBitCount
-        try usage.consumeExactWork(exactScalarCount(count, levels + 1, multiply: true))
+        try usage.consumeWork(exactScalarCount(count, levels + 1, multiply: true))
         try RationalAlgebraStorage.retain(count, of: (key: Power, value: ExactRationalCoefficient).self, usage: &usage)
         return coefficients.sorted { a, b in a.key.v == b.key.v ? a.key.u < b.key.u : a.key.v < b.key.v }
     }
 
-    private static func power<B: RationalAlgebraAdmitting>(_ source: ExactRationalCoefficient,
+    private static func power<B: ExactScalarAdmission & ~Copyable>(_ source: ExactRationalCoefficient,
         exponent: Int, usage: inout B) throws -> ExactRationalCoefficient {
         var result = ExactRationalCoefficient.one, factor = source, remaining = exponent
         while remaining > 0 {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             if remaining & 1 == 1 { result = try result.multiplied(by: factor, usage: &usage) }
             remaining >>= 1
             if remaining > 0 { factor = try factor.multiplied(by: factor, usage: &usage) }

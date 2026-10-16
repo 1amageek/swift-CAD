@@ -13,18 +13,15 @@ package struct ExactProfileExtrudeBodyBuilder: Sendable {
     private let featureID: FeatureID
     private let context: EvaluationContext
     private let sewer: any BRepSewing
-    private let admission: GeometryConversionAdmission?
 
     package init(
         featureID: FeatureID,
         context: EvaluationContext,
-        sewer: any BRepSewing,
-        admission: GeometryConversionAdmission? = nil
+        sewer: any BRepSewing
     ) {
         self.featureID = featureID
         self.context = context
         self.sewer = sewer
-        self.admission = admission
     }
 
     package func build(
@@ -41,8 +38,25 @@ package struct ExactProfileExtrudeBodyBuilder: Sendable {
         originalFaceSection: ResolvedFaceSection? = nil,
         originalCurveSpans: [ExactBSplineCurveSpan]? = nil
     ) throws -> EvaluationResult {
+        var execution = try CurvedSweepSourceBudget(tolerance: context.tolerance).execution()
+        return try build(from: profile, direction: direction, distance: distance, startOffset: startOffset, bodyKind: bodyKind, includesCaps: includesCaps, draftTangent: draftTangent, draftDirection: draftDirection, wallThickness: wallThickness, sourceDraftAngle: sourceDraftAngle, originalFaceSection: originalFaceSection, originalCurveSpans: originalCurveSpans, using: &execution)
+    }
+
+    package func build(
+        from profile: Profile,
+        direction: ExtrudeDirection,
+        distance: Double,
+        startOffset: Double = 0,
+        bodyKind: BodyKind,
+        includesCaps: Bool,
+        draftTangent: Double = 0,
+        draftDirection: Vector3D? = nil,
+        wallThickness: Double = 0,
+        sourceDraftAngle: Double? = nil,
+        originalFaceSection: ResolvedFaceSection? = nil,
+        originalCurveSpans: [ExactBSplineCurveSpan]? = nil
+    , using execution: inout OriginalQueryExecution) throws -> EvaluationResult {
         try context.tolerance.validate()
-        let sourceAdmission = try admission ?? CurvedSweepSourceBudget(tolerance: context.tolerance).conversionAdmission()
         guard profile.vertices.count >= 3 else {
             throw SketchError.openProfile
         }
@@ -93,27 +107,28 @@ package struct ExactProfileExtrudeBodyBuilder: Sendable {
             let lower = axis.dot(bottomOffset)
             let reach = max(abs(lower * draftTangent), abs((lower + distance) * draftTangent)) + wallThickness
             let walls = ExactDraftedProfileBoundaryBuilder(tolerance: context.tolerance,
-                splineReach: reach, admission: sourceAdmission)
+                splineReach: reach)
             let bottom = try walls.wallRegions(
                 from: profile, planeNormal: profileNormal, axis: axis, height: lower, tangent: draftTangent, thickness: wallThickness
-            )
+            , using: &execution)
             let top = try walls.wallRegions(
                 from: profile, planeNormal: profileNormal, axis: axis, height: lower + distance, tangent: draftTangent, thickness: wallThickness
-            )
-            let shells = try zip(bottom, top).enumerated().flatMap { index, region in
-                try patchBuilder.request(
+            , using: &execution)
+            let shells = try zip(bottom, top).enumerated().flatMap { element in
+                let (index, region) = element
+                return try patchBuilder.request(
                     bottom: region.0, top: region.1, featureID: featureID, stablePrefix: "extrude:wall:\(index)",
                     bodyKind: .solid, includesCaps: true, sideOrientation: sideOrientation, capNormal: capNormal
-                ).shells
+                , using: &execution).shells
             }
             let sewn = try sewer.sew(
-                BRepSewingRequest(featureID: featureID, bodyKind: .solid, shells: shells), tolerance: context.tolerance
+                BRepSewingRequest(featureID: featureID, bodyKind: .solid, shells: shells), tolerance: context.tolerance, using: &execution
             )
             let subshapes = try wallSubshapes(sewn: sewn, regionCounts: bottom.map { $0.map { $0.count } })
             return EvaluationResult(
-                brep: try BRepModelCombiner().combined([context.brep, sewn.brep]),
+                brep: try BRepModelCombiner().combined([context.brep, sewn.brep], using: &execution),
                 subshapes: subshapes,
-                lineage: try GeneratedTopologyLineageBuilder().build(featureID: featureID, subshapes: subshapes)
+                lineage: try GeneratedTopologyLineageBuilder().build(featureID: featureID, subshapes: subshapes, using: &execution)
             )
         } else if independentDraft {
             let lower = axis.dot(bottomOffset)
@@ -123,23 +138,23 @@ package struct ExactProfileExtrudeBodyBuilder: Sendable {
                     normal: originalDirections.normal, axis: originalDirections.axis, pull: originalDirections.pull,
                     lowerHeight: lower, upperHeight: lower + distance,
                     angle: sourceDraftAngle ?? atan(draftTangent), tolerance: context.tolerance,
-                    admission: sourceAdmission)
+                    using: &execution)
             } else if let originalFaceSection {
                 sections = try DraftedProfileSectionPairBuilder().pair(face: originalFaceSection,
                     normal: originalDirections.normal, axis: originalDirections.axis, pull: originalDirections.pull,
                     lowerHeight: lower, upperHeight: lower + distance,
                     angle: sourceDraftAngle ?? atan(draftTangent), tolerance: context.tolerance,
-                    admission: sourceAdmission)
+                    using: &execution)
             } else {
                 sections = try DraftedProfileSectionPairBuilder().pair(profile: profile,
                     normal: originalDirections.normal, axis: originalDirections.axis, pull: originalDirections.pull,
                     lowerHeight: lower, upperHeight: lower + distance,
-                    angle: sourceDraftAngle ?? atan(draftTangent), tolerance: context.tolerance, admission: sourceAdmission)
+                    angle: sourceDraftAngle ?? atan(draftTangent), tolerance: context.tolerance, using: &execution)
             }
             boundaries = sections.lower
             request = try patchBuilder.request(bottom: sections.lower, top: sections.upper,
                 featureID: featureID, stablePrefix: "extrude", bodyKind: bodyKind,
-                includesCaps: includesCaps, sideOrientation: sideOrientation, capNormal: capNormal)
+                includesCaps: includesCaps, sideOrientation: sideOrientation, capNormal: capNormal, using: &execution)
         // FIXME(INCOMPLETE_IMPLEMENTATION): Direct tangent-only compatibility callers lack an original angle receipt.
         // Public authored-angle non-thin extrusion selects the original ruling above. This candidate-only
         // route cannot establish a final physical-radian draft certificate without its retained angle law.
@@ -153,19 +168,18 @@ package struct ExactProfileExtrudeBodyBuilder: Sendable {
             let lower = axis.dot(bottomOffset)
             let drafted = ExactDraftedProfileBoundaryBuilder(
                 tolerance: context.tolerance,
-                splineReach: max(abs(lower * draftTangent), abs((lower + distance) * draftTangent)),
-                admission: sourceAdmission
+                splineReach: max(abs(lower * draftTangent), abs((lower + distance) * draftTangent))
             )
             boundaries = try drafted.boundaries(
                 from: profile, planeNormal: profileNormal, axis: axis, height: lower, tangent: draftTangent
-            )
+            , using: &execution)
             let top = try drafted.boundaries(
                 from: profile, planeNormal: profileNormal, axis: axis, height: lower + distance, tangent: draftTangent
-            )
+            , using: &execution)
             request = try patchBuilder.request(
                 bottom: boundaries, top: top, featureID: featureID, stablePrefix: "extrude", bodyKind: bodyKind,
                 includesCaps: includesCaps, sideOrientation: sideOrientation, capNormal: capNormal
-            )
+            , using: &execution)
         } else if includesCaps {
             boundaries = try ExactProfileBoundaryConverter(
                 tolerance: context.tolerance
@@ -173,7 +187,7 @@ package struct ExactProfileExtrudeBodyBuilder: Sendable {
                 from: profile,
                 offset: bottomOffset,
                 extrusionAxis: axis
-            )
+            , using: &execution)
             request = try patchBuilder.request(
                 outerBoundary: boundaries[0],
                 innerBoundaries: Array(boundaries.dropFirst()),
@@ -185,7 +199,7 @@ package struct ExactProfileExtrudeBodyBuilder: Sendable {
                 includesCaps: true,
                 sideOrientation: sideOrientation,
                 capNormal: capNormal
-            )
+            , using: &execution)
         } else {
             boundaries = try ExactProfileBoundaryConverter(
                 tolerance: context.tolerance
@@ -193,7 +207,7 @@ package struct ExactProfileExtrudeBodyBuilder: Sendable {
                 from: profile,
                 offset: bottomOffset,
                 extrusionAxis: axis
-            )
+            , using: &execution)
             request = try patchBuilder.request(
                 boundaries: boundaries,
                 axis: axis,
@@ -204,16 +218,16 @@ package struct ExactProfileExtrudeBodyBuilder: Sendable {
                 includesCaps: false,
                 sideOrientation: sideOrientation,
                 capNormal: capNormal
-            )
+            , using: &execution)
         }
         let sewn = try sewer.sew(
             request,
             tolerance: context.tolerance
-        )
+        , using: &execution)
         let combined = try BRepModelCombiner().combined([
             context.brep,
             sewn.brep,
-        ])
+        ], using: &execution)
         let subshapes = try semanticSubshapes(
             sewn: sewn,
             boundaryCounts: boundaries.map { $0.count },
@@ -225,7 +239,7 @@ package struct ExactProfileExtrudeBodyBuilder: Sendable {
             lineage: try GeneratedTopologyLineageBuilder().build(
                 featureID: featureID,
                 subshapes: subshapes
-            )
+            , using: &execution)
         )
     }
 

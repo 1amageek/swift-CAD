@@ -24,8 +24,8 @@ struct NativeCurveSurfacePointTests {
             .init(x: 0.5, y: 0.5, z: -1), .init(x: 0.5, y: 0.5, z: 1)], weights: [1,2])
     }
 
-    private func usage() -> OriginalRelationUsage {
-        .init(consumeWork: { _ in }, retainStorage: { _ in }, visitCell: { _ in }, visitCoefficientCell: { _ in })
+    private func usage() throws -> OriginalQueryExecution {
+        try .independentGeometry()
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -39,26 +39,42 @@ struct NativeCurveSurfacePointTests {
         #expect(abs(point.curveParameter - 1.0 / 3) < 1e-12)
         #expect(abs(point.surfaceU - 1.0 / 3) < 1e-12 && point.surfaceV == 0.25 && point.kind == .transverse)
         #expect(point.residual <= tolerance.distance)
-        var admission = usage()
+        var admission = try usage()
         let third = try ExactRationalCoefficient.one.divided(by: .originalDouble(3, usage: &admission), usage: &admission)
         let tuple = try receipt.point(at: 0)
         #expect(try tuple.compareParameter(axis: 0, to: third, in: receipt,
             maximumAlgebraicDepth: 32, usage: &admission) == .zero)
         let exact = try tuple.parameter(axis: 0, in: receipt).enclosed(maximumDepth: 32,
-            maximumCoefficientDepth: 0, usage: admission)
+            maximumCoefficientDepth: 0, usage: &admission)
         #expect(exact.lower == third && exact.upper == third)
         let work = Mutex(0), bytes = Mutex(0)
-        let selected = try solver.intersectionResult(curve: curve, surface: surface, tolerance: tolerance,
-            maximumSpanCount: 1, maximumSubdivisionDepth: 0, remainingSourceDepth: 1,
-            consumeWork: { _ in work.withLock { $0 += 1 } },
-            consumeStorage: { value in bytes.withLock { $0 += value } }, maximumAlgebraicDepth: 32)
+        let selected = try geometryTestWithQuery(maximumSpanCount: 1,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            maximumAlgebraicDepth: 32,
+            consumeWorkUnits: { _ in work.withLock { $0 += 1 } },
+            consumeStorageBytes: { value in bytes.withLock { $0 += value } }) { queryExecution in
+            try solver.intersectionResult(curve: curve,
+            surface: surface,
+            tolerance: tolerance,
+            using: &queryExecution)
+        }
         #expect(selected.points == result.points)
         #expect(work.withLock { $0 } > 0 && bytes.withLock { $0 } > 0)
         print("Native two-axis weighted admitted work=\(work.withLock { $0 }) bytes=\(bytes.withLock { $0 })")
         #expect(try solver.intersections(curve: curve, surface: surface, options: .init(), tolerance: tolerance) == result.points)
-        #expect(try solver.intersections(curve: curve, surface: surface, options: .init(), tolerance: tolerance,
-            maximumSpanCount: 1, maximumSubdivisionDepth: 0, remainingSourceDepth: 1,
-            consumeWork: { _ in }, consumeStorage: { _ in }, maximumAlgebraicDepth: 32) == result.points)
+        #expect(try geometryTestWithQuery(maximumSpanCount: 1,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            maximumAlgebraicDepth: 32,
+            consumeWorkUnits: { _ in },
+            consumeStorageBytes: { _ in }) { queryExecution in
+            try solver.intersections(curve: curve,
+            surface: surface,
+            options: .init(),
+            tolerance: tolerance,
+            using: &queryExecution)
+        } == result.points)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -101,7 +117,7 @@ struct NativeCurveSurfacePointTests {
         #expect(result.points[0].point == result.points[1].point)
         #expect(result.points[0].curveParameter == result.points[1].curveParameter)
         #expect(result.points[0].surfaceU == -0.5 && result.points[1].surfaceU == 0.5)
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestKernelFailure($0) != nil }) {
             try DefaultCurveSurfaceIntersector().intersectionResult(curve: .bSpline(curve), surface: .bSpline(surface),
                 options: .init(maximumCandidateCount: 1), tolerance: tolerance)
         }
@@ -109,6 +125,7 @@ struct NativeCurveSurfacePointTests {
 
     @Test(.timeLimit(.minutes(1)))
     func closeOriginalRootsRemainSeparate() throws {
+        var readerExecution = try usage()
         let epsilon = 1.0 / 1_048_576.0, square = epsilon * epsilon
         let curve = BSplineCurve3D(degree: 2, knots: [0,0,0,1,1,1], controlPoints: [
             .init(x: 0,y: 0.5,z: 0.25 - square), .init(x: 0.5,y: 0.5,z: -0.25 - square), .init(x: 1,y: 0.5,z: 0.25 - square)])
@@ -121,8 +138,8 @@ struct NativeCurveSurfacePointTests {
         let receipt = try #require(result.originalNativePoints)
         for ordinal in 0..<receipt.count {
             let coordinate = try receipt.point(at: ordinal).parameter(axis: 1, in: receipt)
-            let enclosure = try coordinate.enclosed(maximumDepth: 32, maximumCoefficientDepth: 0, usage: usage())
-            var admission = usage()
+            let enclosure = try coordinate.enclosed(maximumDepth: 32, maximumCoefficientDepth: 0, usage: &readerExecution)
+            var admission = try usage()
             let width = try enclosure.upper.subtracting(enclosure.lower, usage: &admission)
             let limit = try ExactRationalCoefficient.originalDouble(largeTolerance.distance, usage: &admission)
             #expect(try !width.subtracting(limit, usage: &admission).isPositive)
@@ -155,7 +172,7 @@ struct NativeCurveSurfacePointTests {
         #expect(receipt.curve == weighted() && receipt.surface == plane())
         #expect(receipt.owns(handle) && !foreign.owns(handle))
         #expect(throws: GeometryConversionError.self) { try handle.parameter(axis: 0, in: foreign) }
-        var admission = usage()
+        var admission = try usage()
         #expect(try handle.compareParameter(axis: 1, to: .originalDouble(0.5, usage: &admission),
             in: receipt, maximumAlgebraicDepth: 32, usage: &admission) == .zero)
     }
@@ -171,7 +188,9 @@ struct NativeCurveSurfacePointTests {
         do {
             _ = try solver.intersections(curve: .bSpline(curve), surface: .bSpline(plane()), options: .init(), tolerance: tolerance)
             Issue.record("Positive-dimensional original coverage was published as discrete points.")
-        } catch let error as KernelError { #expect(error.code == .nonDiscreteIntersection) }
+        } catch let caught where geometryTestKernelFailure(caught) != nil {
+            let error = geometryTestKernelFailure(caught)!
+            #expect(error.code == .nonDiscreteIntersection) }
     }
 
     @Test(.timeLimit(.minutes(1)), arguments: [0,1,2,3])
@@ -179,14 +198,20 @@ struct NativeCurveSurfacePointTests {
         let solver = DefaultCurveSurfaceIntersector()
         let exhausted = KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: nil, message: "Test admission exhausted.")
         #expect(throws: (any Error).self) {
+            try geometryTestWithQuery(maximumSpanCount: 1,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: mode == 2 ? 0 : 1,
+            maximumAlgebraicDepth: mode == 3 ? 0 : 32,
+            consumeWorkUnits: { _ in if mode == 0 { throw exhausted } },
+            consumeStorageBytes: { _ in if mode == 1 { throw exhausted } }) { queryExecution in
             try solver.intersectionResult(curve: .bSpline(mode == 3
                 ? BSplineCurve3D(degree: 2, knots: [0,0,0,1,1,1], controlPoints: [
                     .init(x: 0,y: 0.5,z: -0.5), .init(x: 0.5,y: 0.5,z: -0.5), .init(x: 1,y: 0.5,z: 0.5)])
-                : weighted()), surface: .bSpline(plane()), tolerance: tolerance,
-                maximumSpanCount: 1, maximumSubdivisionDepth: 0, remainingSourceDepth: mode == 2 ? 0 : 1,
-                consumeWork: { _ in if mode == 0 { throw exhausted } },
-                consumeStorage: { _ in if mode == 1 { throw exhausted } },
-                maximumAlgebraicDepth: mode == 3 ? 0 : 32)
+                : weighted()),
+            surface: .bSpline(plane()),
+            tolerance: tolerance,
+            using: &queryExecution)
+        }
         }
     }
     @Test(.timeLimit(.minutes(1)))
@@ -199,7 +224,9 @@ struct NativeCurveSurfacePointTests {
         do {
             _ = try DefaultCurveSurfaceIntersector().intersections(curve: .bSpline(curve), surface: .bSpline(surface), options: .init(), tolerance: tolerance)
             Issue.record("Mixed-dimensional coverage published its isolated subset as discrete points.")
-        } catch let error as KernelError { #expect(error.code == .nonDiscreteIntersection) }
+        } catch let caught where geometryTestKernelFailure(caught) != nil {
+            let error = geometryTestKernelFailure(caught)!
+            #expect(error.code == .nonDiscreteIntersection) }
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -214,23 +241,33 @@ struct NativeCurveSurfacePointTests {
     @Test(.timeLimit(.minutes(1)))
     func optionWorkDegreeAndRefinementFailuresPropagate() throws {
         let solver = DefaultCurveSurfaceIntersector()
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestKernelFailure($0) != nil }) {
             try solver.intersectionResult(curve: .bSpline(weighted()), surface: .bSpline(plane()),
                 options: .init(maximumSubdivisionCells: 1), tolerance: tolerance)
         }
         let irrational = BSplineCurve3D(degree: 2, knots: [0,0,0,1,1,1], controlPoints: [
             .init(x: 0,y: 0.5,z: -0.5), .init(x: 0.5,y: 0.5,z: -0.5), .init(x: 1,y: 0.5,z: 0.5)])
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestKernelFailure($0) != nil }) {
             try solver.intersectionResult(curve: .bSpline(irrational), surface: .bSpline(plane()),
                 options: .init(maximumPolynomialDegree: 1), tolerance: tolerance)
         }
         do {
-            _ = try solver.intersectionResult(curve: .bSpline(irrational), surface: .bSpline(plane()),
-                options: .init(maximumIterations: 1), tolerance: tolerance,
-                maximumSpanCount: 1, maximumSubdivisionDepth: 0, remainingSourceDepth: 1,
-                consumeWork: { _ in }, consumeStorage: { _ in }, maximumAlgebraicDepth: 32)
+            _ = try geometryTestWithQuery(maximumSpanCount: 1,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            maximumAlgebraicDepth: 32,
+            consumeWorkUnits: { _ in },
+            consumeStorageBytes: { _ in }) { queryExecution in
+            try solver.intersectionResult(curve: .bSpline(irrational),
+            surface: .bSpline(plane()),
+            options: .init(maximumIterations: 1),
+            tolerance: tolerance,
+            using: &queryExecution)
+        }
             Issue.record("Unlocalized exact roots escaped the publication iteration limit.")
-        } catch let error as KernelError {
+        } catch let caught where geometryTestKernelFailure(caught) != nil {
+            let error = geometryTestKernelFailure(caught)!
+           
             #expect(error.code == .resourceLimitExceeded)
             #expect(error.message.contains("publication exhausted refinement iterations"))
         }
@@ -244,13 +281,31 @@ struct NativeCurveSurfacePointTests {
             surfaceURange: empty ? try ScalarInterval(lower: 2, upper: 3) : nil)
         @Sendable func query(_ consumeStorage: @escaping @Sendable (Int) throws -> Void) throws -> [CurveSurfaceIntersection] {
             if discrete {
-                return try solver.intersections(curve: curve, surface: surface, options: options, tolerance: tolerance,
-                    maximumSpanCount: 1, maximumSubdivisionDepth: 0, remainingSourceDepth: 1,
-                    consumeWork: { _ in }, consumeStorage: consumeStorage, maximumAlgebraicDepth: 32)
+                return try geometryTestWithQuery(maximumSpanCount: 1,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            maximumAlgebraicDepth: 32,
+            consumeWorkUnits: { _ in },
+            consumeStorageBytes: consumeStorage) { queryExecution in
+            try solver.intersections(curve: curve,
+            surface: surface,
+            options: options,
+            tolerance: tolerance,
+            using: &queryExecution)
+        }
             }
-            let result = try solver.intersectionResult(curve: curve, surface: surface, options: options, tolerance: tolerance,
-                maximumSpanCount: 1, maximumSubdivisionDepth: 0, remainingSourceDepth: 1,
-                consumeWork: { _ in }, consumeStorage: consumeStorage, maximumAlgebraicDepth: 32)
+            let result = try geometryTestWithQuery(maximumSpanCount: 1,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            maximumAlgebraicDepth: 32,
+            consumeWorkUnits: { _ in },
+            consumeStorageBytes: consumeStorage) { queryExecution in
+            try solver.intersectionResult(curve: curve,
+            surface: surface,
+            options: options,
+            tolerance: tolerance,
+            using: &queryExecution)
+        }
             #expect(result.originalNativePoints?.count == (empty ? 0 : 1))
             return result.points
         }
@@ -269,7 +324,7 @@ struct NativeCurveSurfacePointTests {
         do {
             _ = try await operation.value
             Issue.record("Cancellation in final native storage admission returned success.")
-        } catch is CancellationError {
+        } catch where geometryTestIsCancelled(error) {
             #expect(visits.withLock { $0 } == finalCall)
         }
     }
@@ -279,17 +334,25 @@ struct NativeCurveSurfacePointTests {
         let visits = Mutex(0)
         let curve = Curve3D.bSpline(weighted()), surface = Surface3D.bSpline(plane())
         let operation = Task {
-            try DefaultCurveSurfaceIntersector().intersectionResult(curve: curve, surface: surface, tolerance: tolerance,
-                maximumSpanCount: 1, maximumSubdivisionDepth: 0, remainingSourceDepth: 1,
-                consumeWork: { _ in
+            try geometryTestWithQuery(maximumSpanCount: 1,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            maximumAlgebraicDepth: 32,
+            consumeWorkUnits: { _ in
                     let count = visits.withLock { $0 += 1; return $0 }
                     if count == 20 { withUnsafeCurrentTask { $0?.cancel() } }
-                }, consumeStorage: { _ in }, maximumAlgebraicDepth: 32)
+                },
+            consumeStorageBytes: { _ in }) { queryExecution in
+            try DefaultCurveSurfaceIntersector().intersectionResult(curve: curve,
+            surface: surface,
+            tolerance: tolerance,
+            using: &queryExecution)
+        }
         }
         do {
             _ = try await operation.value
             Issue.record("Cancelled original native preparation returned success.")
-        } catch is CancellationError { #expect(visits.withLock { $0 } >= 20) }
+        } catch where geometryTestIsCancelled(error) { #expect(visits.withLock { $0 } >= 20) }
     }
 
     private func multiSpanCurve(spanCount: Int = 3) -> BSplineCurve3D {
@@ -311,15 +374,32 @@ struct NativeCurveSurfacePointTests {
         let receipt = try #require(result.originalNativePoints)
         #expect(receipt.count == 3 && result.points.map(\.curveParameter) == [0.5,1.5,2.5])
         #expect(result.points.allSatisfy { $0.surfaceU == 0.5 && $0.surfaceV == 0.5 })
-        let selected = try solver.intersectionResult(curve: curve, surface: surface, tolerance: tolerance,
-            maximumSpanCount: 6, maximumSubdivisionDepth: 0, remainingSourceDepth: 1,
-            consumeWork: { _ in }, consumeStorage: { _ in }, maximumAlgebraicDepth: 32)
+        let selected = try geometryTestWithQuery(maximumSpanCount: 6,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            maximumAlgebraicDepth: 32,
+            consumeWorkUnits: { _ in },
+            consumeStorageBytes: { _ in }) { queryExecution in
+            try solver.intersectionResult(curve: curve,
+            surface: surface,
+            tolerance: tolerance,
+            using: &queryExecution)
+        }
         #expect(selected.points == result.points)
         #expect(try solver.intersections(curve: curve, surface: surface, options: .init(), tolerance: tolerance) == result.points)
-        #expect(try solver.intersections(curve: curve, surface: surface, options: .init(), tolerance: tolerance,
-            maximumSpanCount: 6, maximumSubdivisionDepth: 0, remainingSourceDepth: 1,
-            consumeWork: { _ in }, consumeStorage: { _ in }, maximumAlgebraicDepth: 32) == result.points)
-        var admission = usage()
+        #expect(try geometryTestWithQuery(maximumSpanCount: 6,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            maximumAlgebraicDepth: 32,
+            consumeWorkUnits: { _ in },
+            consumeStorageBytes: { _ in }) { queryExecution in
+            try solver.intersections(curve: curve,
+            surface: surface,
+            options: .init(),
+            tolerance: tolerance,
+            using: &queryExecution)
+        } == result.points)
+        var admission = try usage()
         for ordinal in 0..<receipt.count {
             #expect(try receipt.point(at: ordinal).compareParameter(axis: 0,
                 to: .originalDouble(Double(ordinal) + 0.5, usage: &admission), in: receipt,
@@ -376,7 +456,7 @@ struct NativeCurveSurfacePointTests {
             retained = try #require(result.originalNativePoints)
         }
         #expect(retained.coverageChartCount == 4 && retained.count == 2)
-        var admission = usage()
+        var admission = try usage()
         #expect(try retained.point(at: 1).compareParameter(axis: 0,
             to: .originalDouble(1.5, usage: &admission), in: retained,
             maximumAlgebraicDepth: 32, usage: &admission) == .zero)
@@ -403,7 +483,9 @@ struct NativeCurveSurfacePointTests {
         do {
             _ = try solver.intersections(curve: .bSpline(source), surface: .bSpline(plane()), options: .init(), tolerance: tolerance)
             Issue.record("A later positive-dimensional chart published an earlier isolated subset.")
-        } catch let error as KernelError { #expect(error.code == .nonDiscreteIntersection) }
+        } catch let caught where geometryTestKernelFailure(caught) != nil {
+            let error = geometryTestKernelFailure(caught)!
+            #expect(error.code == .nonDiscreteIntersection) }
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -411,36 +493,68 @@ struct NativeCurveSurfacePointTests {
         let solver = DefaultCurveSurfaceIntersector()
         let curve = Curve3D.bSpline(multiSpanCurve(spanCount: 2)), surface = Surface3D.bSpline(multiChartPlane())
         #expect(throws: (any Error).self) {
-            try solver.intersectionResult(curve: curve, surface: surface, tolerance: tolerance,
-                maximumSpanCount: 3, maximumSubdivisionDepth: 0, remainingSourceDepth: 1,
-                consumeWork: { _ in }, consumeStorage: { _ in }, maximumAlgebraicDepth: 32)
+            try geometryTestWithQuery(maximumSpanCount: 3,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            maximumAlgebraicDepth: 32,
+            consumeWorkUnits: { _ in },
+            consumeStorageBytes: { _ in }) { queryExecution in
+            try solver.intersectionResult(curve: curve,
+            surface: surface,
+            tolerance: tolerance,
+            using: &queryExecution)
         }
-        #expect(throws: KernelError.self) {
-            try solver.intersectionResult(curve: curve, surface: surface,
-                options: .init(maximumCandidateCount: 1), tolerance: tolerance,
-                maximumSpanCount: 4, maximumSubdivisionDepth: 0, remainingSourceDepth: 1,
-                consumeWork: { _ in }, consumeStorage: { _ in }, maximumAlgebraicDepth: 32)
         }
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestKernelFailure($0) != nil }) {
+            try geometryTestWithQuery(maximumSpanCount: 4,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            maximumAlgebraicDepth: 32,
+            consumeWorkUnits: { _ in },
+            consumeStorageBytes: { _ in }) { queryExecution in
+            try solver.intersectionResult(curve: curve,
+            surface: surface,
+            options: .init(maximumCandidateCount: 1),
+            tolerance: tolerance,
+            using: &queryExecution)
+        }
+        }
+        geometryTestExpectFailure({ geometryTestKernelFailure($0) != nil }) {
             try solver.intersectionResult(curve: curve, surface: surface,
                 options: .init(maximumSubdivisionCells: 1), tolerance: tolerance)
         }
         let work = Mutex(0), bytes = Mutex(0)
-        _ = try solver.intersectionResult(curve: curve, surface: surface, tolerance: tolerance,
-            maximumSpanCount: 4, maximumSubdivisionDepth: 0, remainingSourceDepth: 1,
-            consumeWork: { _ in work.withLock { $0 += 1 } }, consumeStorage: { n in bytes.withLock { $0 += n } }, maximumAlgebraicDepth: 32)
+        _ = try geometryTestWithQuery(maximumSpanCount: 4,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            maximumAlgebraicDepth: 32,
+            consumeWorkUnits: { _ in work.withLock { $0 += 1 } },
+            consumeStorageBytes: { n in bytes.withLock { $0 += n } }) { queryExecution in
+            try solver.intersectionResult(curve: curve,
+            surface: surface,
+            tolerance: tolerance,
+            using: &queryExecution)
+        }
         let workCap = work.withLock { $0 } - 1, byteCap = bytes.withLock { $0 } - 1
         let exhausted = KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: nil, message: "Cumulative test allowance exhausted.")
         for storage in [false,true] {
             let visits = Mutex(0)
-            #expect(throws: KernelError.self) {
-                try solver.intersectionResult(curve: curve, surface: surface, tolerance: tolerance,
-                    maximumSpanCount: 4, maximumSubdivisionDepth: 0, remainingSourceDepth: 1,
-                    consumeWork: { _ in
+            geometryTestExpectFailure({ geometryTestKernelFailure($0) != nil }) {
+                try geometryTestWithQuery(maximumSpanCount: 4,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            maximumAlgebraicDepth: 32,
+            consumeWorkUnits: { _ in
                         if !storage, visits.withLock({ $0 += 1; return $0 > workCap }) { throw exhausted }
-                    }, consumeStorage: { n in
+                    },
+            consumeStorageBytes: { n in
                         if storage, visits.withLock({ $0 += n; return $0 > byteCap }) { throw exhausted }
-                    }, maximumAlgebraicDepth: 32)
+                    }) { queryExecution in
+            try solver.intersectionResult(curve: curve,
+            surface: surface,
+            tolerance: tolerance,
+            using: &queryExecution)
+        }
             }
         }
     }
@@ -449,26 +563,43 @@ struct NativeCurveSurfacePointTests {
     func multiSpanCancellationAfterChartSuccessOrFinalCallback(final: Bool) async throws {
         let curve = Curve3D.bSpline(multiSpanCurve(spanCount: 2)), surface = Surface3D.bSpline(plane())
         let solver = DefaultCurveSurfaceIntersector(), calls = Mutex(0)
-        _ = try solver.intersectionResult(curve: curve, surface: surface, tolerance: tolerance,
-            maximumSpanCount: 2, maximumSubdivisionDepth: 0, remainingSourceDepth: 1,
-            consumeWork: { _ in }, consumeStorage: { _ in calls.withLock { $0 += 1 } }, maximumAlgebraicDepth: 32)
+        _ = try geometryTestWithQuery(maximumSpanCount: 2,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            maximumAlgebraicDepth: 32,
+            consumeWorkUnits: { _ in },
+            consumeStorageBytes: { _ in calls.withLock { $0 += 1 } }) { queryExecution in
+            try solver.intersectionResult(curve: curve,
+            surface: surface,
+            tolerance: tolerance,
+            using: &queryExecution)
+        }
         let finalCall = calls.withLock { $0 }, visits = Mutex(0)
         // Both equal-size linear products have the same source cost; three quarters
         // of cumulative storage callbacks is after the first completed product.
         let stop = final ? finalCall : finalCall * 3 / 4
         let operation = Task {
-            try solver.intersectionResult(curve: curve, surface: surface, tolerance: tolerance,
-                maximumSpanCount: 2, maximumSubdivisionDepth: 0, remainingSourceDepth: 1,
-                consumeWork: { _ in }, consumeStorage: { _ in
+            try geometryTestWithQuery(maximumSpanCount: 2,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            maximumAlgebraicDepth: 32,
+            consumeWorkUnits: { _ in },
+            consumeStorageBytes: { _ in
                     if visits.withLock({ $0 += 1; return $0 }) == stop { withUnsafeCurrentTask { $0?.cancel() } }
-                }, maximumAlgebraicDepth: 32)
+                }) { queryExecution in
+            try solver.intersectionResult(curve: curve,
+            surface: surface,
+            tolerance: tolerance,
+            using: &queryExecution)
+        }
         }
         do { _ = try await operation.value; Issue.record("Cancelled multi-span query published a subset or success.") }
-        catch is CancellationError { #expect(visits.withLock { $0 } == stop) }
+        catch where geometryTestIsCancelled(error) { #expect(visits.withLock { $0 } == stop) }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func independentChartFieldsRetainTheSameIrrationalT() throws {
+        var readerExecution = try usage()
         let surface = BSplineSurface3D(uDegree: 2, vDegree: 1, uKnots: [-1,-1,-1,0,0,1,1,1], vKnots: [0,0,1,1], controlPoints: [
             [1.0,0,0,0,1].map { .init(x: $0,y: 0,z: 0) },
             [1.0,0,0,0,1].map { .init(x: $0,y: 1,z: 0) }])
@@ -481,13 +612,21 @@ struct NativeCurveSurfacePointTests {
         let receipt = try #require(result.originalNativePoints)
         let first = try receipt.point(at: 0).parameter(axis: 0, in: receipt)
         let second = try receipt.point(at: 1).parameter(axis: 0, in: receipt)
-        let a = try first.enclosed(maximumDepth: 32, maximumCoefficientDepth: 0, usage: usage())
-        let b = try second.enclosed(maximumDepth: 32, maximumCoefficientDepth: 0, usage: usage())
+        let a = try first.enclosed(maximumDepth: 32, maximumCoefficientDepth: 0, usage: &readerExecution)
+        let b = try second.enclosed(maximumDepth: 32, maximumCoefficientDepth: 0, usage: &readerExecution)
         #expect(a.lower == b.lower && a.upper == b.upper)
         #expect(throws: (any Error).self) {
-            try DefaultCurveSurfaceIntersector().intersectionResult(curve: .bSpline(curve), surface: .bSpline(surface), tolerance: tolerance,
-                maximumSpanCount: 2, maximumSubdivisionDepth: 0, remainingSourceDepth: 1,
-                consumeWork: { _ in }, consumeStorage: { _ in }, maximumAlgebraicDepth: 0)
+            try geometryTestWithQuery(maximumSpanCount: 2,
+            maximumSubdivisionDepth: 0,
+            remainingSourceDepth: 1,
+            maximumAlgebraicDepth: 0,
+            consumeWorkUnits: { _ in },
+            consumeStorageBytes: { _ in }) { queryExecution in
+            try DefaultCurveSurfaceIntersector().intersectionResult(curve: .bSpline(curve),
+            surface: .bSpline(surface),
+            tolerance: tolerance,
+            using: &queryExecution)
+        }
         }
     }
 

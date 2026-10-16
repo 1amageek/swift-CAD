@@ -28,7 +28,8 @@ struct WholeBodyBooleanFacePatchMaterializer {
         hasBoundaryContact: Bool,
         operands: BooleanOperandContext,
         tolerance: ModelingTolerance
-    ) throws -> BRepSewingRequest {
+    , using execution: inout OriginalQueryExecution) throws -> BRepSewingRequest {
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard !targetBodyIDs.isEmpty else {
             throw KernelError(
@@ -43,8 +44,8 @@ struct WholeBodyBooleanFacePatchMaterializer {
             pointClassifier: operands.pointClassifier,
             model: model,
             tolerance: tolerance
-        )
-        let relations = try targetBodyIDs.map { targetBodyID in
+        , using: &execution)
+        let relations = try OriginalParameterQueryStorage.map(targetBodyIDs, using: &execution) { targetBodyID, execution in
             try relation(
                 targetBodyID: targetBodyID,
                 toolBodyID: toolBodyID,
@@ -52,7 +53,7 @@ struct WholeBodyBooleanFacePatchMaterializer {
                 classificationSessions: classificationSessions,
                 operands: operands,
                 tolerance: tolerance
-            )
+            , using: &execution)
         }
         switch operation {
         case .union:
@@ -96,7 +97,7 @@ struct WholeBodyBooleanFacePatchMaterializer {
             // coverage below must establish coincidence before selecting a representative.
             coincidentRepresentative = try coincidentBoundaries(targetBodyIDs: targetBodyIDs, toolBodyID: toolBodyID,
                 relations: relations, model: model, sourceSubshapes: sourceSubshapes,
-                tolerance: tolerance)
+                tolerance: tolerance, using: &execution)
             // Union/intersection retain one coincident representative. Difference removes
             // coincident targets and may still hollow another target around the tool.
             let uncovered = zip(targetBodyIDs, relations).compactMap { bodyID, relation in
@@ -143,15 +144,16 @@ struct WholeBodyBooleanFacePatchMaterializer {
 
         var shells: [BRepSewingShell] = []
         for (bodyIndex, item) in selected.enumerated() {
+            try execution.consumeWork(1)
             let originalShells: [BRepSewingShell]
             if item.bodyID == toolBodyID, !item.reversedShells, let coincidentRepresentative {
                 originalShells = coincidentRepresentative
             } else {
                 originalShells = try extractedShells(bodyID: item.bodyID,
                     stablePrefix: "whole-body:\(bodyIndex)", reversed: item.reversedShells,
-                    model: model, sourceSubshapes: sourceSubshapes, tolerance: tolerance)
+                    model: model, sourceSubshapes: sourceSubshapes, tolerance: tolerance, using: &execution)
             }
-            shells.append(contentsOf: originalShells)
+            try OriginalParameterQueryStorage.append(contentsOf: originalShells, to: &shells, using: &execution)
         }
         let keptTool = selected.contains { $0.bodyID == toolBodyID && !$0.reversedShells }
         let parentBodyIDs = sourceSubshapes.compactMap { subshapeID, reference -> SubshapeID? in
@@ -167,24 +169,25 @@ struct WholeBodyBooleanFacePatchMaterializer {
             shells: shells,
             bodyParentSubshapeIDs: parentBodyIDs
         )
-        try request.validate(tolerance: tolerance)
+        try request.validate(tolerance: tolerance, using: &execution)
         return request
     }
 
     private func coincidentBoundaries(targetBodyIDs: [BodyID], toolBodyID: BodyID,
         relations: [Relation], model: BRepModel,
-        sourceSubshapes: [SubshapeID: TopologyReference], tolerance: ModelingTolerance) throws -> [BRepSewingShell] {
+        sourceSubshapes: [SubshapeID: TopologyReference], tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> [BRepSewingShell] {
+        try execution.consumeWork(1)
         var retained = try extractedShells(bodyID: toolBodyID,
             stablePrefix: "whole-body:coincident:0", reversed: false, model: model,
-            sourceSubshapes: sourceSubshapes, tolerance: tolerance)
+            sourceSubshapes: sourceSubshapes, tolerance: tolerance, using: &execution)
         for (index, bodyID) in targetBodyIDs.enumerated() where relations[index].isCoincident {
-            try CurrentTaskCancellationChecker().checkCancellation()
+            try execution.consumeWork(1)
             let originals = retained.flatMap(\.patches)
             let targetPatches = try extractedShells(bodyID: bodyID,
                 stablePrefix: "whole-body:coincident:1:\(index)", reversed: false, model: model,
-                sourceSubshapes: sourceSubshapes, tolerance: tolerance).flatMap(\.patches)
+                sourceSubshapes: sourceSubshapes, tolerance: tolerance, using: &execution).flatMap(\.patches)
             let merged = try CoincidentFacePatchMerger().merge(originals + targetPatches,
-                tolerance: tolerance)
+                tolerance: tolerance, using: &execution)
             guard originals.count == targetPatches.count, merged.count == originals.count else {
                 // FIXME(INCOMPLETE_IMPLEMENTATION): The general Boolean whole-body path
                 // requires shared arrangement for differently partitioned coincident faces.
@@ -195,8 +198,8 @@ struct WholeBodyBooleanFacePatchMaterializer {
                     message: "Whole-body coincidence needs complete original face-region correspondence.")
             }
             let mergedByID = Dictionary(uniqueKeysWithValues: merged.map { ($0.stableID, $0) })
-            retained = try retained.map { shell in
-                let patches = try shell.patches.map { patch in
+            retained = try OriginalParameterQueryStorage.map(retained, using: &execution) { shell, execution in
+                let patches = try OriginalParameterQueryStorage.map(shell.patches, using: &execution) { patch, execution in
                     guard let kept = mergedByID[patch.stableID] else {
                         throw missingReference("Coincident source ancestry lost the original representative.",
                             tolerance: tolerance)
@@ -217,7 +220,8 @@ struct WholeBodyBooleanFacePatchMaterializer {
         classificationSessions: SolidPointClassificationSessionSet,
         operands: BooleanOperandContext,
         tolerance: ModelingTolerance
-    ) throws -> Relation {
+    , using execution: inout OriginalQueryExecution) throws -> Relation {
+        try execution.consumeWork(1)
         let relation = Relation(
             target: try classification(
                 of: targetBodyID,
@@ -225,14 +229,14 @@ struct WholeBodyBooleanFacePatchMaterializer {
                 model: model,
                 classificationSessions: classificationSessions,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             tool: try classification(
                 of: toolBodyID,
                 relativeTo: targetBodyID,
                 model: model,
                 classificationSessions: classificationSessions,
                 tolerance: tolerance
-            )
+            , using: &execution)
         )
         // A boundary on the other's boundary without the other on it (or the reverse) needs a
         // partition, never a whole-body decision. Two volumes cannot each hold the other's
@@ -257,19 +261,21 @@ struct WholeBodyBooleanFacePatchMaterializer {
         model: BRepModel,
         classificationSessions: SolidPointClassificationSessionSet,
         tolerance: ModelingTolerance
-    ) throws -> SolidPointClassification {
+    , using execution: inout OriginalQueryExecution) throws -> SolidPointClassification {
+        try execution.consumeWork(1)
         let points = try boundaryVertices(
             of: bodyID,
             model: model,
             tolerance: tolerance
-        )
+        , using: &execution)
         var nonBoundary: SolidPointClassification?
         var boundaryCount = 0
         for point in points {
+            try execution.consumeWork(1)
             let value = try classificationSessions.classify(
                 point,
                 in: oppositeBodyID
-            )
+            , using: &execution)
             if value == .boundary {
                 boundaryCount += 1
                 continue
@@ -300,7 +306,8 @@ struct WholeBodyBooleanFacePatchMaterializer {
         of bodyID: BodyID,
         model: BRepModel,
         tolerance: ModelingTolerance
-    ) throws -> [Point3D] {
+    , using execution: inout OriginalQueryExecution) throws -> [Point3D] {
+        try execution.consumeWork(1)
         guard let body = model.bodies[bodyID] else {
             throw KernelError(
                 phase: .topology,
@@ -311,18 +318,22 @@ struct WholeBodyBooleanFacePatchMaterializer {
         }
         var points: [Point3D] = []
         for shellID in body.shellIDs {
+            try execution.consumeWork(1)
             guard let shell = model.shells[shellID] else {
                 throw missingReference("Whole-body Boolean references a missing shell.", tolerance: tolerance)
             }
             for faceID in shell.faceIDs {
+            try execution.consumeWork(1)
                 guard let face = model.faces[faceID] else {
                     throw missingReference("Whole-body Boolean references a missing face.", tolerance: tolerance)
                 }
                 for loopID in face.loops {
+            try execution.consumeWork(1)
                     guard let loop = model.loops[loopID] else {
                         throw missingReference("Whole-body Boolean references a missing loop.", tolerance: tolerance)
                     }
                     for coedge in loop.coedges {
+            try execution.consumeWork(1)
                         guard let edge = model.edges[coedge.edgeID],
                               let point = model.vertices[edge.startVertexID]?.point else {
                             throw missingReference("Whole-body Boolean references missing edge topology.", tolerance: tolerance)
@@ -330,7 +341,7 @@ struct WholeBodyBooleanFacePatchMaterializer {
                         if !points.contains(where: {
                             $0.isApproximatelyEqual(to: point, tolerance: tolerance.distance)
                         }) {
-                            points.append(point)
+                            try OriginalParameterQueryStorage.append(point, to: &points, using: &execution)
                         }
                     }
                 }
@@ -354,23 +365,28 @@ struct WholeBodyBooleanFacePatchMaterializer {
         model: BRepModel,
         sourceSubshapes: [SubshapeID: TopologyReference],
         tolerance: ModelingTolerance
-    ) throws -> [BRepSewingShell] {
+    , using execution: inout OriginalQueryExecution) throws -> [BRepSewingShell] {
+        try execution.consumeWork(1)
         guard let body = model.bodies[bodyID] else {
             throw missingReference("Whole-body Boolean extraction references a missing body.", tolerance: tolerance)
         }
-        return try body.shellIDs.enumerated().map { shellIndex, shellID in
+        try execution.retainKernelValues(count: body.shellIDs.count, stride: MemoryLayout<(Int, ShellID)>.stride)
+        return try OriginalParameterQueryStorage.map(Array(body.shellIDs.enumerated()), using: &execution) { entry, execution in
+            let (shellIndex, shellID) = entry
             guard let shell = model.shells[shellID] else {
                 throw missingReference("Whole-body Boolean extraction references a missing shell.", tolerance: tolerance)
             }
             let shellStableID = "\(stablePrefix):shell:\(shellIndex)"
-            let patches = try shell.faceIDs.enumerated().map { faceIndex, faceID in
-                try SourceBRepFacePatchBuilder().build(
+            try execution.retainKernelValues(count: shell.faceIDs.count, stride: MemoryLayout<(Int, FaceID)>.stride)
+            let patches = try OriginalParameterQueryStorage.map(Array(shell.faceIDs.enumerated()), using: &execution) { entry, execution in
+                let (faceIndex, faceID) = entry
+                return try SourceBRepFacePatchBuilder().build(
                     faceID: faceID,
                     stableID: "\(shellStableID):face:\(faceIndex)",
                     from: model,
                     sourceSubshapes: sourceSubshapes,
                     tolerance: tolerance
-                ).patch
+                , using: &execution).patch
             }
             let orientation: Orientation
             if reversed {

@@ -1,0 +1,17 @@
+􀟈  Test run started.
+􀄵  Swift Standard Library Version: 6.4
+􀄵  Swift Compiler Version: 6.4
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀄵  OS Version: 27.0.1 (26A434)
+􀟈  Suite "Structural surface metering stack boundary" (aka 'StructuralSurfaceMeteringTests') started.
+􀟈  Test checkedOverflow() started.
+􀟈  Test entryAndTerminalCancellation() started.
+􀟈  Test originalDebitSequences() started.
+􀟈  Test exactAndCumulativeCallerWork() started.
+􁁛  Test entryAndTerminalCancellation() passed after 0.001 seconds.
+􁁛  Test checkedOverflow() passed after 0.001 seconds.
+􁁛  Test exactAndCumulativeCallerWork() passed after 0.001 seconds.
+􁁛  Test originalDebitSequences() passed after 0.001 seconds.
+􁁛  Suite "Structural surface metering stack boundary" (aka 'StructuralSurfaceMeteringTests') passed after 0.001 seconds.
+􁁛  Test run with 4 tests in 1 suite passed after 0.001 seconds.

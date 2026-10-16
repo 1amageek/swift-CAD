@@ -322,6 +322,9 @@ struct CurveLoftFeatureTests {
     }
 
     @Test func guideContactsUseExactSpatialBoundariesAndRejectAmbiguity() throws {
+        var execution = OriginalQueryExecution(budget: try .init(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32,
+                remainingSourceDepth: 16, maximumSubdivisionDepth: 32))
         let first = BSplineCurve3D(degree: 3, knots: [0, 0, 0, 0, 1, 1, 1, 1],
             controlPoints: [Point3D(x: 0, y: 0, z: 0), Point3D(x: 1, y: 0, z: 0.5),
                 Point3D(x: 1, y: 1, z: -0.5), Point3D(x: 2, y: 1, z: 0)])
@@ -336,14 +339,14 @@ struct CurveLoftFeatureTests {
             profiles: [:], curves: [guide.sourceFeatureID: [guide]], tolerance: .standard)
         let references = [LoftGuideReference(featureID: guide.sourceFeatureID)]
         let resolver = ExactLoftGuideCurveResolver()
-        let resolved = try resolver.resolve(guides: references, sections: boundaries, context: context)
+        let resolved = try resolver.resolve(guides: references, sections: boundaries, context: context, using: &execution)
         let result = try #require(resolved.first)
         #expect(result.sectionPoints == [.origin, Point3D(x: 0, y: 0, z: 2)])
         #expect(try #require(result.sectionParameters.first) < #require(result.sectionParameters.last))
         #expect(try result.curve.point(at: 0.5, tolerance: .standard).x < 0)
         let ambiguous = boundaries.map { ExactLoftGuideSection(loops: $0.loops + $0.loops) }
         do {
-            _ = try resolver.resolve(guides: references, sections: ambiguous, context: context)
+            _ = try resolver.resolve(guides: references, sections: ambiguous, context: context, using: &execution)
             Issue.record("Guide contact on multiple boundary loops must be rejected.")
         } catch let error as KernelError {
             #expect(error.code == .ambiguousSelection)
@@ -353,7 +356,7 @@ struct CurveLoftFeatureTests {
             profiles: [:], curves: [coincidentGuide.sourceFeatureID: [coincidentGuide]], tolerance: .standard)
         do {
             _ = try resolver.resolve(guides: [LoftGuideReference(featureID: coincidentGuide.sourceFeatureID)],
-                sections: [boundaries[0], boundaries[0]], context: coincidentContext)
+                sections: [boundaries[0], boundaries[0]], context: coincidentContext, using: &execution)
             Issue.record("A guide with both valid traversal directions must be rejected.")
         } catch let error as KernelError {
             #expect(error.code == .ambiguousSelection)

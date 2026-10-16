@@ -25,7 +25,7 @@ struct OriginalProjectedNativeBranchProjection: Sendable {
 
     init(component: ExactSurfaceLocusCommonFiber.Component, domain: SurfaceParameterBox,
         edgeRange: ScalarInterval, freeAlongU selectedFreeAlongU: Bool,
-        originalTrimFreeValues: [OriginalSingularFieldElement], usage: inout SurfaceSilhouetteUsage) throws {
+        originalTrimFreeValues: [OriginalSingularFieldElement], usage: inout OriginalQueryExecution) throws {
         originalComponent = component
         freeAlongU = selectedFreeAlongU
         let locus = try freeAlongU ? component.originalLocus : component.originalLocus.exchangedAxes(usage: &usage)
@@ -124,7 +124,7 @@ struct OriginalProjectedNativeBranchProjection: Sendable {
         trimCuts.reserveCapacity(originalTrimFreeValues.count)
         for original in originalTrimFreeValues {
             let cut = try OriginalSingularRationalCoordinateRoot(original: original,
-                maximumDepth: usage.maximumDepth, maximumAlgebraicDepth: usage.maximumAlgebraicDepth, usage: &usage)
+                maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, maximumAlgebraicDepth: usage.effectiveLimits.maximumCoefficientDepth, usage: &usage)
             all = try all.multiplied(by: cut.annihilator, usage: &usage)
             trimCuts.append(cut)
         }
@@ -134,19 +134,19 @@ struct OriginalProjectedNativeBranchProjection: Sendable {
         let first = try ExactRationalCoefficient.originalDouble(free.lower, usage: &usage)
         let last = try ExactRationalCoefficient.originalDouble(free.upper, usage: &usage)
         freeStations = try OriginalRationalPlaneCurveProjection.sliceRoots(sequence.source, lower: first, upper: last,
-            parentDepth: 0, maximumDepth: usage.maximumDepth, usage: &usage)
+            parentDepth: 0, maximumDepth: usage.effectiveLimits.maximumSubdivisionDepth, usage: &usage)
         try RationalAlgebraStorage.retain(1, of: Self.self, usage: &usage)
     }
 
     private static func exchanged(_ original: ExactSurfaceCoefficientPolynomial,
-        usage: inout SurfaceSilhouetteUsage) throws -> ExactSurfaceCoefficientPolynomial {
+        usage: inout OriginalQueryExecution) throws -> ExactSurfaceCoefficientPolynomial {
         try RationalAlgebraStorage.retain(original.coefficients.count, of: ExactBivariatePolynomial.self, usage: &usage)
         var values: [ExactBivariatePolynomial] = []; values.reserveCapacity(original.coefficients.count)
         for value in original.coefficients { values.append(try value.exchangedAxes(usage: &usage)) }
         return try .init(coefficients: values, usage: &usage)
     }
     private static func parameterDerivative(_ original: ExactSurfaceCoefficientPolynomial,
-        usage: inout SurfaceSilhouetteUsage) throws -> ExactSurfaceCoefficientPolynomial {
+        usage: inout OriginalQueryExecution) throws -> ExactSurfaceCoefficientPolynomial {
         try RationalAlgebraStorage.retain(max(0, original.degree), of: ExactBivariatePolynomial.self, usage: &usage)
         var values: [ExactBivariatePolynomial] = []; values.reserveCapacity(max(0, original.degree))
         if original.degree > 0 { for index in 1...original.degree {
@@ -155,7 +155,7 @@ struct OriginalProjectedNativeBranchProjection: Sendable {
         return try .init(coefficients: values, usage: &usage)
     }
     private static func evaluated(_ original: ExactSurfaceCoefficientPolynomial,
-        at station: ExactRationalCoefficient, usage: inout SurfaceSilhouetteUsage) throws -> ExactBivariatePolynomial {
+        at station: ExactRationalCoefficient, usage: inout OriginalQueryExecution) throws -> ExactBivariatePolynomial {
         var result = ExactBivariatePolynomial.zero
         for coefficient in original.coefficients.reversed() {
             result = try result.scaled(by: station, usage: &usage).adding(coefficient, usage: &usage)

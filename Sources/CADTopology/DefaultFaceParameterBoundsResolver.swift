@@ -4,8 +4,6 @@ import CADGeometry
 
 package struct DefaultFaceParameterBoundsResolver: FaceParameterBoundsResolving {
     private let maximumSubdivisionDepth: Int
-    private let consumeWork: (@Sendable (Int) throws -> Void)?
-    private let consumeStorage: (@Sendable (Int) throws -> Void)?
     private let remainingSourceDepth: Int
     private let maximumAlgebraicDepth: Int
     private let rectangularDomainResolver:
@@ -16,25 +14,30 @@ package struct DefaultFaceParameterBoundsResolver: FaceParameterBoundsResolving 
             any ExactRectangularPcurveDomainResolving =
                 ExactRectangularPcurveDomainResolver(),
         maximumSubdivisionDepth: Int = 48,
-        consumeWork: (@Sendable (Int) throws -> Void)? = nil,
-        consumeStorage: (@Sendable (Int) throws -> Void)? = nil,
         remainingSourceDepth: Int = 16,
         maximumAlgebraicDepth: Int = 32
     ) {
         self.maximumSubdivisionDepth = maximumSubdivisionDepth
-        self.consumeWork = consumeWork
-        self.consumeStorage = consumeStorage
         self.remainingSourceDepth = min(16, remainingSourceDepth)
         self.maximumAlgebraicDepth = maximumAlgebraicDepth
         self.rectangularDomainResolver = rectangularDomainResolver
     }
 
+    package func bounds(for faceID: FaceID, in model: BRepModel, tolerance: ModelingTolerance) throws -> SurfaceParameterBox {
+        let budget = try OriginalQueryBudget()
+        var execution = OriginalQueryExecution(budget: budget,
+            limits: try .init(maximumValueDepth: maximumAlgebraicDepth,
+                maximumCoefficientDepth: maximumAlgebraicDepth,
+                remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth))
+        return try bounds(for: faceID, in: model, tolerance: tolerance, using: &execution)
+    }
+
     package func bounds(
         for faceID: FaceID,
         in model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> SurfaceParameterBox {
-        try consumeWork?(0)
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard (0...32).contains(maximumAlgebraicDepth) else {
             throw KernelError(phase: .topology, code: .invalidInput, tolerance: tolerance,
@@ -68,10 +71,7 @@ package struct DefaultFaceParameterBoundsResolver: FaceParameterBoundsResolving 
             model: model,
             tolerance: tolerance,
             maximumSubdivisionDepth: maximumSubdivisionDepth,
-            remainingSourceDepth: remainingSourceDepth,
-            consumeWork: consumeWork,
-            consumeStorage: consumeStorage
-        ) {
+            remainingSourceDepth: remainingSourceDepth, using: &execution) {
             return SurfaceParameterBox(
                 u: try ScalarInterval(
                     lower: rectangle.uLower,
@@ -98,7 +98,7 @@ package struct DefaultFaceParameterBoundsResolver: FaceParameterBoundsResolving 
                 )
             }
             for coedge in loop.coedges {
-                try consumeWork?(0)
+                try execution.consumeWork(1)
                 guard let pcurve = coedge.surfaceParameterCurve else {
                     throw KernelError(
                         phase: .topology,
@@ -108,14 +108,12 @@ package struct DefaultFaceParameterBoundsResolver: FaceParameterBoundsResolving 
                     )
                 }
                 let enclosures = try CertifiedSurfaceParameterCurveEncloser(maximumSubdivisionDepth: maximumSubdivisionDepth,
-                    consumeWork: consumeWork, consumeStorage: consumeStorage,
-                    maximumAlgebraicDepth: maximumAlgebraicDepth, remainingSourceDepth: remainingSourceDepth)
+                                maximumAlgebraicDepth: maximumAlgebraicDepth, remainingSourceDepth: remainingSourceDepth)
                     .enclosures(
                         for: pcurve,
                         on: surface,
                         maximumWidth: 0.25,
-                        tolerance: tolerance
-                    )
+                        tolerance: tolerance, using: &execution)
                 guard enclosures.isEmpty == false else {
                     throw KernelError(
                         phase: .topology,
@@ -125,7 +123,7 @@ package struct DefaultFaceParameterBoundsResolver: FaceParameterBoundsResolving 
                     )
                 }
                 for enclosure in enclosures {
-                    try consumeWork?(0)
+                    try execution.consumeWork(1)
                     lowerU = min(lowerU, enclosure.u.lower)
                     upperU = max(upperU, enclosure.u.upper)
                     lowerV = min(lowerV, enclosure.v.lower)

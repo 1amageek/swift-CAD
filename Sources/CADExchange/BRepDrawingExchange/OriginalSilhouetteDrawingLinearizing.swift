@@ -6,6 +6,6 @@ import CADKernel
 public protocol OriginalSilhouetteDrawingLinearizing: Sendable {
     func linearize(_ span: BRepDrawingExactSilhouetteSpan, pointsPerMeter: Double, translation: Point2D,
         maximumDeviation: Double, maximumParameterWidth: ExactRationalCoefficient,
-        admission: DrawingSilhouetteAdmission, usage: inout DrawingExchangeUsage,
-        silhouetteUsage: inout SurfaceSilhouetteUsage) throws -> OriginalSilhouetteDrawingPath
+        admission: DrawingSilhouetteAdmission, usage: DrawingExchangeOwner,
+        silhouetteContext: SurfaceSilhouetteContext, using execution: inout OriginalQueryExecution) throws -> OriginalSilhouetteDrawingPath
 }

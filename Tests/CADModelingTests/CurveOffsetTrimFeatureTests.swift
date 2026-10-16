@@ -324,7 +324,17 @@ struct CurveOffsetTrimFeatureTests {
              .surfaceLift,
              .certifiedIntersection,
              .rigidImage,
-             .affineImage:
+             .affineImage,
+             .originalConstructionChart,
+             .originalEndpointConnector,
+             .originalPlaneDerivative,
+             .originalGuideTraversalChain,
+             .originalPolyline,
+             .originalGuideEndpointConnector,
+             .originalDrafted,
+             .originalAngularTransport,
+             .originalAffineWord,
+             .parameterImage:
             throw GeometryError.invalidRadius(0.0)
         }
     }

@@ -36,8 +36,9 @@ struct LoftCapContactTests {
         }
         try ExactFacePcurveBuilder().populateMissingPcurves(in: &model, tolerance: .standard)
         let operation = {
+            var execution = try OriginalQueryExecution.independentGeometry()
             try ExactLoftBodyBuilder(featureID: FeatureID(), context: context).validateCapContacts(
-                capFaceIDs: [cap.id], sideFaceIDs: [side.id], edgeIDs: Array(model.edges.keys), model: model)
+                capFaceIDs: [cap.id], sideFaceIDs: [side.id], edgeIDs: Array(model.edges.keys), model: model, using: &execution)
         }
         if centerX <= 1.5 { #expect(throws: KernelError.self, performing: operation) }
         else { try operation() }
@@ -96,8 +97,9 @@ struct LoftCapContactTests {
         try ExactFacePcurveBuilder().populateMissingPcurves(in: &model, tolerance: .standard)
         let builder = ExactLoftBodyBuilder(featureID: FeatureID(), context: context)
         let operation = {
+            var execution = try OriginalQueryExecution.independentGeometry()
             try builder.validateCapContacts(capFaceIDs: [cap.id], sideFaceIDs: [side.id],
-                edgeIDs: loop.coedges.map(\.edgeID), model: model)
+                edgeIDs: loop.coedges.map(\.edgeID), model: model, using: &execution)
         }
         if shared && !overlap { try operation() }
         else { #expect(throws: KernelError.self, performing: operation) }
@@ -145,10 +147,11 @@ struct LoftCapContactTests {
         let sideID = try #require(result.brep.faces.keys.first { $0 != capFace.id })
         let edgeIDs = Array(result.brep.edges.keys)
         let builder = ExactLoftBodyBuilder(featureID: FeatureID(), context: context)
+        var execution = try OriginalQueryExecution.independentGeometry()
         if centerX == 0 {
             do {
                 try builder.validateCapContacts(capFaceIDs: [capFace.id], sideFaceIDs: [sideID],
-                    edgeIDs: edgeIDs, model: result.brep)
+                    edgeIDs: edgeIDs, model: result.brep, using: &execution)
                 Issue.record("Side-interior intersection must not be admitted.")
             } catch let error as KernelError {
                 #expect(error.code == .invalidInput)
@@ -158,7 +161,7 @@ struct LoftCapContactTests {
             }
         } else {
             try builder.validateCapContacts(capFaceIDs: [capFace.id], sideFaceIDs: [sideID],
-                edgeIDs: edgeIDs, model: result.brep)
+                edgeIDs: edgeIDs, model: result.brep, using: &execution)
         }
     }
 }

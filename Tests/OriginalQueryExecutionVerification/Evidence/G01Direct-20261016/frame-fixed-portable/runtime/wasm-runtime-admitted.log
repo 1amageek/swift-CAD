@@ -1,0 +1,53 @@
+(node:34957) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+START G01 query admitted singleton swapped=false
+USAGE G01 admitted singleton swapped=false work=2705281 bytes=2036077
+STAGE G01 query produced admitted singleton swapped=false
+STAGE G01 check reader singleton swapped=false
+STAGE G01 check chart singleton swapped=false
+STAGE G01 check metadata singleton swapped=false
+PASS G01 query admitted singleton swapped=false
+START G01 query admitted singleton swapped=true
+USAGE G01 admitted singleton swapped=true work=2705281 bytes=2036077
+STAGE G01 query produced admitted singleton swapped=true
+STAGE G01 check reader singleton swapped=true
+STAGE G01 check chart singleton swapped=true
+STAGE G01 check metadata singleton swapped=true
+PASS G01 query admitted singleton swapped=true
+START G01 query admitted wide swapped=false
+USAGE G01 admitted wide swapped=false work=7635762 bytes=5545780
+STAGE G01 query produced admitted wide swapped=false
+STAGE G01 check reader wide swapped=false
+STAGE G01 check chart wide swapped=false
+STAGE G01 check metadata wide swapped=false
+PASS G01 query admitted wide swapped=false
+START G01 query admitted wide swapped=true
+USAGE G01 admitted wide swapped=true work=7978641 bytes=5723972
+STAGE G01 query produced admitted wide swapped=true
+STAGE G01 check reader wide swapped=true
+STAGE G01 check chart wide swapped=true
+STAGE G01 check metadata wide swapped=true
+PASS G01 query admitted wide swapped=true
+START G01 query admitted regression swapped=false
+USAGE G01 admitted regression swapped=false work=4466798 bytes=3381153
+STAGE G01 query produced admitted regression swapped=false
+STAGE G01 check reader regression swapped=false
+STAGE G01 check chart regression swapped=false
+STAGE G01 check metadata regression swapped=false
+PASS G01 member u=1.0 swapped=false
+PASS G01 member u=1.5 swapped=false
+PASS G01 member u=2.0 swapped=false
+PASS G01 direct arc source0/source1 readers swapped=false
+PASS G01 query admitted regression swapped=false
+START G01 query admitted regression swapped=true
+USAGE G01 admitted regression swapped=true work=4466798 bytes=3381153
+STAGE G01 query produced admitted regression swapped=true
+STAGE G01 check reader regression swapped=true
+STAGE G01 check chart regression swapped=true
+STAGE G01 check metadata regression swapped=true
+PASS G01 member u=1.0 swapped=true
+PASS G01 member u=1.5 swapped=true
+PASS G01 member u=2.0 swapped=true
+PASS G01 direct arc source0/source1 readers swapped=true
+PASS G01 query admitted regression swapped=true
+PASS G01 public admitted

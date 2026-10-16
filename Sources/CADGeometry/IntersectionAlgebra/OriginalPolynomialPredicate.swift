@@ -14,7 +14,7 @@ public struct OriginalPolynomialPredicate: Sendable {
     package let original: ExactIntersectionBooleanProgram
     public var polynomialCount: Int { original.polynomialCount }
 
-    public init<B: RationalAlgebraAdmitting>(polynomialCount: Int,
+    public init<B: ExactScalarAdmission & ~Copyable>(polynomialCount: Int,
         instructions: [Instruction], usage: inout B) throws {
         try intersectionAlgebraStep(&usage)
         try RationalAlgebraStorage.retain(instructions.count, of: ExactIntersectionBooleanProgram.Instruction.self, usage: &usage)

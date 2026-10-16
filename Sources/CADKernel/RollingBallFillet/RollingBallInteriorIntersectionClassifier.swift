@@ -20,31 +20,47 @@ struct RollingBallInteriorIntersectionClassifier: Sendable {
         self.containment = containment
     }
 
+    func rejectProvenCrossings(in patches: [BRepSewingFacePatch], generatedStart: Int,
+        tolerance: ModelingTolerance, unchangedFaces: [FaceID?] = [],
+        originalInput: ValidatedBRepModel? = nil) throws {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        try rejectProvenCrossings(in: patches, generatedStart: generatedStart, tolerance: tolerance,
+            unchangedFaces: unchangedFaces, originalInput: originalInput, using: &execution)
+    }
+
     // FIXME(INCOMPLETE_IMPLEMENTATION): The ordinary fillet request builder
     // consumes this positive witness classifier before sewing. Shared contact
     // separation, graph boxes crossing a trim, nonimplicit witnesses and complete
     // paid patch admission remain necessary for full global intersection support.
     func rejectProvenCrossings(in patches: [BRepSewingFacePatch], generatedStart: Int,
                               tolerance: ModelingTolerance,
-                              sourceBudget: RollingBallIntersectionBudget? = nil,
                               unchangedFaces: [FaceID?] = [],
-                              originalInput: ValidatedBRepModel? = nil) throws {
+                              originalInput: ValidatedBRepModel? = nil,
+                              requestContribution: OriginalQueryContributionHandle? = nil,
+                              using execution: inout OriginalQueryExecution) throws {
+        let contribution = try requestContribution ?? RollingBallIntersectionPolicy.contribution(tolerance: tolerance, using: &execution)
+        try execution.withContributionScope(contribution) { execution in
+            try rejectProvenCrossingsBody(in: patches, generatedStart: generatedStart, tolerance: tolerance,
+                unchangedFaces: unchangedFaces, originalInput: originalInput, using: &execution)
+        }
+        try execution.checkpoint()
+    }
+
+    private func rejectProvenCrossingsBody(in patches: [BRepSewingFacePatch], generatedStart: Int,
+        tolerance: ModelingTolerance, unchangedFaces: [FaceID?], originalInput: ValidatedBRepModel?,
+        using execution: inout OriginalQueryExecution) throws {
         guard generatedStart >= 0, generatedStart <= patches.count else {
             throw failure(.invalidInput, tolerance, "The generated patch range is invalid.")
-        }
-        let budget = try sourceBudget ?? RollingBallIntersectionBudget(tolerance: tolerance)
-        guard budget.hasOriginalTolerance(tolerance) else {
-            throw failure(.invalidInput, tolerance, "The retained crossing allowance belongs to another source tolerance.")
         }
         guard unchangedFaces.isEmpty || (unchangedFaces.count == patches.count &&
             originalInput?.validationLevel != .modeling && originalInput?.tolerance == tolerance) else {
             throw failure(.invalidInput, tolerance, "Unchanged fillet faces require the retained exact input receipt and complete patch binding.")
         }
         for (index, patch) in patches.enumerated() {
-            try budget.consume()
+            try execution.consumeWork(1)
             if !unchangedFaces.isEmpty, let faceID = unchangedFaces[index], let originalInput {
                 try GeometryStructuralComparisonWork.charge(surface: patch.surface,
-                    using: { try budget.consume(count: $0) })
+                    using: &execution)
                 guard let face = originalInput.model.faces[faceID],
                     originalInput.model.geometry.surfaces[face.surfaceID] == patch.surface,
                     face.orientation == patch.orientation else {
@@ -57,29 +73,24 @@ struct RollingBallInteriorIntersectionClassifier: Sendable {
             // Whole nonlinear curve/pcurve correspondence remains a separate sewer
             // premise before complete final crossing support may be reported.
             try patch.validate(tolerance: tolerance, maximumSpanCount: 4096,
-                maximumSubdivisionDepth: budget.maximumDepth, remainingSourceDepth: min(16, budget.maximumSourceDepth),
-                maximumAlgebraicDepth: budget.maximumAlgebraicDepth, consumeWork: { try budget.consume(depth: $0) },
-                consumeStorage: { try budget.retainBytes($0) })
+                maximumSubdivisionDepth: RollingBallIntersectionPolicy.maximumDepth, remainingSourceDepth: min(16, RollingBallIntersectionPolicy.maximumSourceDepth),
+                maximumAlgebraicDepth: RollingBallIntersectionPolicy.maximumAlgebraicDepth, using: &execution)
         }
         for secondIndex in generatedStart..<patches.count {
             for firstIndex in 0..<secondIndex {
-                try budget.consume()
+                try execution.consumeWork(1)
                 let first = patches[firstIndex]
                 let second = patches[secondIndex]
                 let intersections = try intersector.intersections(first: first.surface,
                     second: second.surface,
-                    options: .init(maximumSubdivisionDepth: budget.maximumDepth,
+                    options: .init(maximumSubdivisionDepth: RollingBallIntersectionPolicy.maximumDepth,
                         maximumSubdivisionCells: 65_536, maximumRootAttempts: 4096),
-                    tolerance: tolerance, maximumSpanCount: 4096,
-                    maximumSubdivisionDepth: budget.maximumDepth,
-                    remainingSourceDepth: budget.maximumSourceDepth,
-                    consumeWork: { try budget.consume() },
-                    consumeStorage: { try budget.retainBytes($0) }, maximumAlgebraicDepth: budget.maximumAlgebraicDepth)
+                    tolerance: tolerance, using: &execution)
                 for intersection in intersections {
-                    try budget.consume()
+                    try execution.consumeWork(1)
                     if case .curve(let component) = intersection,
                        try isCompleteOriginalBoundaryComponent(component.curve,
-                           first: first, second: second, budget: budget) {
+                           first: first, second: second, using: &execution) {
                         continue
                     }
                     guard case .curve(let curve) = intersection,
@@ -91,6 +102,10 @@ struct RollingBallInteriorIntersectionClassifier: Sendable {
                         throw failure(.unsupportedCapability, tolerance,
                             "This fillet crossing has no retained original graph-box witness.")
                     }
+                    try GeometryStructuralComparisonWork.charge(surface: graph.firstSurface, using: &execution)
+                    try GeometryStructuralComparisonWork.charge(surface: graph.secondSurface, using: &execution)
+                    try GeometryStructuralComparisonWork.charge(surface: first.surface, using: &execution)
+                    try GeometryStructuralComparisonWork.charge(surface: second.surface, using: &execution)
                     guard graph.firstSurface == first.surface,
                           graph.secondSurface == second.surface else {
                         throw failure(.invalidInput, tolerance,
@@ -99,7 +114,7 @@ struct RollingBallInteriorIntersectionClassifier: Sendable {
                     try graph.validateCertificationContract(tolerance: tolerance)
                     var localizer: ImplicitCurveIntervalJetEncloser?
                     for cellIndex in graph.cells.indices {
-                        try budget.consume()
+                        try execution.consumeWork(1)
                         let cell = graph.cells[cellIndex]
                         let firstBox = SurfaceParameterBox(u: cell.parameterBox.firstU,
                             v: cell.parameterBox.firstV)
@@ -107,11 +122,11 @@ struct RollingBallInteriorIntersectionClassifier: Sendable {
                             v: cell.parameterBox.secondV)
                         let onFirst = try classify(firstBox, patch: first,
                             faceID: unchangedFaces.isEmpty ? nil : unchangedFaces[firstIndex],
-                            originalInput: originalInput, depth: 0, budget: budget, tolerance: tolerance)
+                            originalInput: originalInput, depth: 0, tolerance: tolerance, using: &execution)
                         if onFirst == .outside { continue }
                         let onSecond = try classify(secondBox, patch: second,
                             faceID: unchangedFaces.isEmpty ? nil : unchangedFaces[secondIndex],
-                            originalInput: originalInput, depth: 0, budget: budget, tolerance: tolerance)
+                            originalInput: originalInput, depth: 0, tolerance: tolerance, using: &execution)
                         if onSecond == .outside { continue }
                         if onFirst == .inside, onSecond == .inside {
                             throw failure(.filletSelfIntersection, tolerance,
@@ -124,10 +139,8 @@ struct RollingBallInteriorIntersectionClassifier: Sendable {
                             // requirements beyond this retained cell-local owner.
                             localizer = try ImplicitCurveIntervalJetEncloser(localizing: graph,
                                 tolerance: tolerance, maximumSpanCount: 4096,
-                                maximumSubdivisionDepth: budget.maximumDepth,
-                                remainingSourceDepth: budget.maximumSourceDepth,
-                                consumeWork: { try budget.consume() },
-                                consumeStorage: { try budget.retainBytes($0) }, maximumAlgebraicDepth: budget.maximumAlgebraicDepth)
+                                maximumSubdivisionDepth: RollingBallIntersectionPolicy.maximumDepth,
+                                remainingSourceDepth: RollingBallIntersectionPolicy.maximumSourceDepth, maximumAlgebraicDepth: RollingBallIntersectionPolicy.maximumAlgebraicDepth, using: &execution)
                         }
                         guard let localizer else {
                             throw failure(.classificationFailure, tolerance,
@@ -138,7 +151,7 @@ struct RollingBallInteriorIntersectionClassifier: Sendable {
                             firstFaceID: unchangedFaces.isEmpty ? nil : unchangedFaces[firstIndex],
                             secondFaceID: unchangedFaces.isEmpty ? nil : unchangedFaces[secondIndex],
                             originalInput: originalInput, localizer: localizer,
-                            budget: budget, tolerance: tolerance)
+                            tolerance: tolerance, using: &execution)
                     }
                 }
             }
@@ -148,34 +161,34 @@ struct RollingBallInteriorIntersectionClassifier: Sendable {
     private func rejectLocalizedCrossing(_ graph: CertifiedImplicitIntersectionCurve,
         cellIndex: Int, first: BRepSewingFacePatch, second: BRepSewingFacePatch,
         firstFaceID: FaceID?, secondFaceID: FaceID?, originalInput: ValidatedBRepModel?,
-        localizer: ImplicitCurveIntervalJetEncloser, budget: RollingBallIntersectionBudget,
-        tolerance: ModelingTolerance) throws {
+        localizer: ImplicitCurveIntervalJetEncloser, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws {
         let whole = try ScalarInterval(lower: 0, upper: 1)
-        let capacity = budget.maximumDepth + 1
+        let capacity = RollingBallIntersectionPolicy.maximumDepth + 1
         let (bytes, overflow) = capacity.multipliedReportingOverflow(by: MemoryLayout<GraphCell>.stride)
         guard !overflow else {
             throw failure(.resourceLimitExceeded, tolerance, "The original graph DFS capacity overflowed.")
         }
-        try budget.retainBytes(bytes)
+        try execution.retainStorage(bytes: bytes)
         var pending: [GraphCell] = []
         pending.reserveCapacity(capacity)
         pending.append(GraphCell(interval: whole, state: try localizer.prepareParameterEnclosure(
             of: graph, cellIndex: cellIndex, overClosedInterval: whole,
-            tolerance: tolerance, consumeWork: { try budget.consume() },
-            consumeStorage: { try budget.retainBytes($0) }), depth: 0))
+            tolerance: tolerance, using: &execution), depth: 0))
         while let cell = pending.popLast() {
-            try budget.consume(depth: cell.depth)
+            try execution.admitGeometricDepth(cell.depth); try execution.consumeWork(1)
             var state = cell.state
             var needsSubdivision = false
             var separated = false
             while !needsSubdivision && !separated {
-                try budget.consume(depth: cell.depth)
+                try execution.admitGeometricDepth(cell.depth); try execution.consumeWork(1)
                 let baseDepth = cell.depth
-                switch try localizer.advanceParameterEnclosure(state, tolerance: tolerance,
-                    maximumSpanCount: 4096, maximumSubdivisionDepth: budget.maximumDepth - baseDepth,
-                    remainingSourceDepth: budget.maximumSourceDepth,
-                    consumeWork: { try budget.consume(depth: baseDepth) },
-                    consumeStorage: { try budget.retainBytes($0) }) {
+                let step = try execution.withGeometricDepthOffset(baseDepth) { execution in
+                    try localizer.advanceParameterEnclosure(state, tolerance: tolerance,
+                    maximumSpanCount: 4096, maximumSubdivisionDepth: RollingBallIntersectionPolicy.maximumDepth - baseDepth,
+                    remainingSourceDepth: RollingBallIntersectionPolicy.maximumSourceDepth, using: &execution)
+                }
+                switch step {
                 case .contracted(let contracted):
                     state = contracted
                 case .subdivisionRequired:
@@ -184,10 +197,10 @@ struct RollingBallInteriorIntersectionClassifier: Sendable {
                     let firstBox = SurfaceParameterBox(u: jet[.firstU].value, v: jet[.firstV].value)
                     let secondBox = SurfaceParameterBox(u: jet[.secondU].value, v: jet[.secondV].value)
                     let onFirst = try classify(firstBox, patch: first, faceID: firstFaceID,
-                        originalInput: originalInput, depth: baseDepth, budget: budget, tolerance: tolerance)
+                        originalInput: originalInput, depth: baseDepth, tolerance: tolerance, using: &execution)
                     if onFirst == .outside { separated = true; break }
                     let onSecond = try classify(secondBox, patch: second, faceID: secondFaceID,
-                        originalInput: originalInput, depth: baseDepth, budget: budget, tolerance: tolerance)
+                        originalInput: originalInput, depth: baseDepth, tolerance: tolerance, using: &execution)
                     if onSecond == .outside { separated = true; break }
                     if onFirst == .inside, onSecond == .inside {
                         throw failure(.filletSelfIntersection, tolerance,
@@ -198,7 +211,7 @@ struct RollingBallInteriorIntersectionClassifier: Sendable {
             }
             if separated { continue }
             let middle = cell.interval.lower + cell.interval.width * 0.5
-            guard cell.depth < budget.maximumDepth, middle > cell.interval.lower,
+            guard cell.depth < RollingBallIntersectionPolicy.maximumDepth, middle > cell.interval.lower,
                   middle < cell.interval.upper else {
                 throw failure(.resourceLimitExceeded, tolerance,
                     "An original fillet graph cannot separate from finite trims within its depth allowance.")
@@ -207,40 +220,37 @@ struct RollingBallInteriorIntersectionClassifier: Sendable {
             let upper = try ScalarInterval(lower: middle, upper: cell.interval.upper)
             for index in 0..<2 {
                 let interval = index == 0 ? upper : lower
-                try budget.consume(depth: cell.depth + 1)
+                try execution.admitGeometricDepth(cell.depth + 1); try execution.consumeWork(1)
                 guard pending.count < capacity else {
                     throw failure(.resourceLimitExceeded, tolerance, "The original graph exceeded its admitted live DFS capacity.")
                 }
-                pending.append(GraphCell(interval: interval,
-                    state: try localizer.prepareParameterEnclosure(restricting: state,
-                        cellIndex: cellIndex, overClosedInterval: interval, tolerance: tolerance,
-                        consumeWork: { try budget.consume(depth: cell.depth + 1) },
-                        consumeStorage: { try budget.retainBytes($0) }),
-                    depth: cell.depth + 1))
+                let child = try execution.withGeometricDepthOffset(cell.depth + 1) { execution in
+                    try localizer.prepareParameterEnclosure(restricting: state,
+                        cellIndex: cellIndex, overClosedInterval: interval, tolerance: tolerance, using: &execution)
+                }
+                pending.append(GraphCell(interval: interval, state: child, depth: cell.depth + 1))
             }
         }
     }
 
     private func classify(_ box: SurfaceParameterBox, patch: BRepSewingFacePatch,
         faceID: FaceID?, originalInput: ValidatedBRepModel?, depth: Int,
-        budget: RollingBallIntersectionBudget, tolerance: ModelingTolerance) throws -> OriginalFaceTrimBoxClassification {
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> OriginalFaceTrimBoxClassification {
+        return try execution.withGeometricDepthOffset(depth) { execution in
         if let faceID, let originalInput {
             return try containment.classify(box, in: faceID, validatedModel: originalInput,
-                maximumSubdivisionDepth: budget.maximumDepth - depth,
-                consumeWork: { try budget.consume(depth: depth + $0) },
-                consumeStorage: { try budget.retainBytes($0) })
+                maximumSubdivisionDepth: RollingBallIntersectionPolicy.maximumDepth - depth, using: &execution)
         }
         return try containment.classify(box, inAdmitted: patch, tolerance: tolerance,
-            maximumSubdivisionDepth: budget.maximumDepth - depth,
-            remainingSourceDepth: min(16, budget.maximumSourceDepth),
-            maximumAlgebraicDepth: budget.maximumAlgebraicDepth,
-            consumeWork: { try budget.consume(depth: depth + $0) },
-            consumeStorage: { try budget.retainBytes($0) })
+            maximumSubdivisionDepth: RollingBallIntersectionPolicy.maximumDepth - depth,
+            remainingSourceDepth: min(16, RollingBallIntersectionPolicy.maximumSourceDepth),
+            maximumAlgebraicDepth: RollingBallIntersectionPolicy.maximumAlgebraicDepth, using: &execution)
+        }
     }
 
     private func isCompleteOriginalBoundaryComponent(_ curve: Curve3D,
         first: BRepSewingFacePatch, second: BRepSewingFacePatch,
-        budget: RollingBallIntersectionBudget) throws -> Bool {
+        using execution: inout OriginalQueryExecution) throws -> Bool {
         let lower: Double
         let upper: Double
         switch curve.parameterDomain {
@@ -250,20 +260,20 @@ struct RollingBallInteriorIntersectionClassifier: Sendable {
         }
         guard lower.isFinite, upper.isFinite, lower < upper else { return false }
         try GeometryStructuralComparisonWork.charge(curve: curve,
-            using: { try budget.consume(count: $0) })
+            using: &execution)
         for firstLoop in first.loops {
             for firstEdge in firstLoop.edges {
-                try budget.consume()
+                try execution.consumeWork(1)
                 try GeometryStructuralComparisonWork.charge(curve: firstEdge.curve,
-                    using: { try budget.consume(count: $0) })
+                    using: &execution)
                 guard firstEdge.curve == curve,
                       min(firstEdge.startParameter, firstEdge.endParameter) <= lower,
                       max(firstEdge.startParameter, firstEdge.endParameter) >= upper else { continue }
                 for secondLoop in second.loops {
                     for secondEdge in secondLoop.edges {
-                        try budget.consume()
+                        try execution.consumeWork(1)
                         try GeometryStructuralComparisonWork.charge(curve: secondEdge.curve,
-                            using: { try budget.consume(count: $0) })
+                            using: &execution)
                         if secondEdge.curve == curve,
                            min(secondEdge.startParameter, secondEdge.endParameter) <= lower,
                            max(secondEdge.startParameter, secondEdge.endParameter) >= upper {

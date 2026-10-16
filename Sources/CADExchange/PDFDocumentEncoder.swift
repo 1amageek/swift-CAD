@@ -1,5 +1,6 @@
 import Foundation
 import CADCore
+import CADGeometry
 
 struct PDFDocumentEncoder: Sendable {
     func encode(lines: [String], projection: PDFMeshProjection) throws -> Data {
@@ -21,7 +22,7 @@ struct PDFDocumentEncoder: Sendable {
         return try encodeContent(content, pageWidth: 612, pageHeight: 792)
     }
 
-    func encodeDrawing(paths: [BRepDrawingOutputPath], regions: [BRepDrawingOutputRegion] = [], glyphs: [DrawingGlyphOutline] = [], pageWidth: Double, pageHeight: Double, styles: DrawingExchangeStyles, maximumBytes: Int, maximumGlyphDeviation: Double = 0, resources: inout SharedExchangeResourceAccountant) throws -> Data {
+    func encodeDrawing(paths: [BRepDrawingOutputPath], regions: [BRepDrawingOutputRegion] = [], glyphs: [DrawingGlyphOutline] = [], pageWidth: Double, pageHeight: Double, styles: DrawingExchangeStyles, maximumBytes: Int, maximumGlyphDeviation: Double = 0, resources: SharedExchangeResourceAccountant, using execution: inout OriginalQueryExecution) throws -> Data {
         guard pageWidth.isFinite, pageHeight.isFinite, pageWidth > 0, pageHeight > 0 else { throw ExportError.invalidMesh("Invalid PDF drawing page size.") }
         var content = "q\n"
         for region in regions {
@@ -103,10 +104,9 @@ struct PDFDocumentEncoder: Sendable {
                 case .move(let point): current = point; first = point; token = "\(pdfNumber(point.x)) \(pdfNumber(point.y)) m "
                 case .line(let point): current = point; token = "\(pdfNumber(point.x)) \(pdfNumber(point.y)) l "
                 case .quadratic(let control, let end):
-                    var originalUsage = DrawingExchangeUsage(resources: resources)
                     let controls = try DrawingGlyphQuadraticConversion.controls(start: current, control: control, end: end,
-                        allowance: maximumGlyphDeviation, usage: &originalUsage)
-                    resources = originalUsage.resources; current = end
+                        allowance: maximumGlyphDeviation, maximumAlgebraicDepth: resources.limits.maximumAlgebraicDepth, using: &execution)
+                    current = end
                     token = "\(pdfNumber(controls.0.x)) \(pdfNumber(controls.0.y)) \(pdfNumber(controls.1.x)) \(pdfNumber(controls.1.y)) \(pdfNumber(end.x)) \(pdfNumber(end.y)) c "
                     // Original quadratic controls are preserved separately from admitted target controls.
                     record += "% OriginalQuadratic \(pdfNumber(control.x)) \(pdfNumber(control.y)) \(pdfNumber(end.x)) \(pdfNumber(end.y))\n"

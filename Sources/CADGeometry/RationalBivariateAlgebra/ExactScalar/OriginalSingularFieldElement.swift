@@ -8,13 +8,12 @@ package struct OriginalSingularFieldElement: Sendable {
     let storage: Storage
     init(context: OriginalSingularFieldContext, storage: Storage) { self.context = context; self.storage = storage }
 
-    package static func constant<B: RationalAlgebraAdmitting>(_ value: ExactRationalCoefficient,
+    package static func constant<B: ExactScalarAdmission & ~Copyable>(_ value: ExactRationalCoefficient,
         in context: OriginalSingularFieldContext, maximumDepth: Int, usage: inout B) throws -> Self {
-        try exactScalarTaskCheckpoint()
+        try usage.checkpoint()
         guard maximumDepth >= context.depth else { throw ExactScalarFailure.resourceLimit(.valueDepth) }
-        try usage.visitExactCell(depth: context.depth)
-        try usage.visitCoefficientCell(depth: context.coefficientDepth)
-        try usage.consumeExactWork(1)
+        try usage.admitDepth(value: context.depth, coefficient: context.coefficientDepth)
+        try usage.consumeWork(1)
         let result: Self
         switch (context.source, context.constantAuthority) {
         case (.rational, .original(let unit)), (.original, .original(let unit)):
@@ -29,23 +28,23 @@ package struct OriginalSingularFieldElement: Sendable {
             }
         default: throw exactScalarBackendFailure("Structural constants contradict their immutable field owner.")
         }
-        try exactScalarTaskCheckpoint()
+        try usage.checkpoint()
         return result
     }
 
-    package static func original<B: RationalAlgebraAdmitting>(_ polynomial: ExactBivariatePolynomial,
+    package static func original<B: ExactScalarAdmission & ~Copyable>(_ polynomial: ExactBivariatePolynomial,
         in context: OriginalSingularFieldContext, usage: inout B) throws -> Self {
         guard case .original = context.source else { throw exactScalarBackendFailure("Original station polynomial needs its original field context.") }
         return try Self(context: context, storage: .original(polynomial, .constant(.one, usage: &usage)))
     }
 
-    package func rationalValue<B: RationalAlgebraAdmitting>(usage: inout B) throws -> ExactRationalCoefficient? {
+    package func rationalValue<B: ExactScalarAdmission & ~Copyable>(usage: inout B) throws -> ExactRationalCoefficient? {
         switch storage {
         case .original(let n, let d):
             guard let a = try n.originalConstantCoefficient(usage: &usage),
                 let b = try d.originalConstantCoefficient(usage: &usage) else { return nil }
             guard !b.isZero else { throw exactScalarBackendFailure("Original singular field denominator vanishes.") }
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             if b == .one { return a }
             return try a.divided(by: b, usage: &usage)
         case .extended(let n, let d):
@@ -58,7 +57,7 @@ package struct OriginalSingularFieldElement: Sendable {
         }
     }
 
-    package func sign<B: RationalAlgebraAdmitting>(maximumDepth: Int, usage: inout B) throws -> ExactAlgebraicRealRoot.Sign {
+    package func sign<B: ExactScalarAdmission & ~Copyable>(maximumDepth: Int, usage: inout B) throws -> ExactAlgebraicRealRoot.Sign {
         switch (context.source, storage) {
         case (.rational, .original), (.original, .original): break
         case (.extended(let root), .extended(let n, let d)):
@@ -93,15 +92,15 @@ package struct OriginalSingularFieldElement: Sendable {
         case (.extended(let root), .extended(let n, let d)):
             func operandSign(_ polynomial: OriginalSingularFieldPolynomial, usage: inout B)
                 throws -> ExactAlgebraicRealRoot.Sign {
-                try exactScalarTaskCheckpoint()
-                try usage.consumeExactWork(1)
+                try usage.checkpoint()
+                try usage.consumeWork(1)
                 if polynomial.isZero {
-                    try exactScalarTaskCheckpoint()
+                    try usage.checkpoint()
                     return .zero
                 }
                 if polynomial.degree == 0, let coefficient = polynomial.coefficients.first,
                     let value = try coefficient.rationalValue(usage: &usage) {
-                    try exactScalarTaskCheckpoint()
+                    try usage.checkpoint()
                     return value.isPositive ? .positive : value.isNegative ? .negative : .zero
                 }
                 return try root.sign(of: polynomial, maximumDepth: maximumDepth, usage: &usage)
@@ -118,10 +117,10 @@ package struct OriginalSingularFieldElement: Sendable {
         }
     }
 
-    package func embedded<B: RationalAlgebraAdmitting>(in target: OriginalSingularFieldContext,
+    package func embedded<B: ExactScalarAdmission & ~Copyable>(in target: OriginalSingularFieldContext,
         maximumDepth: Int, usage: inout B) throws -> Self {
-        try exactScalarTaskCheckpoint(); try usage.consumeExactWork(1)
-        try exactScalarTaskCheckpoint()
+        try usage.checkpoint(); try usage.consumeWork(1)
+        try usage.checkpoint()
         if context === target { return self }
         guard let parent = target.parent, case .extended(let zero, let unit) = target.constantAuthority else {
             throw exactScalarBackendFailure("Unrelated original field contexts cannot be implicitly identified.")
@@ -129,23 +128,23 @@ package struct OriginalSingularFieldElement: Sendable {
         let value = try embedded(in: parent, maximumDepth: maximumDepth, usage: &usage)
         if let constant = try value.rationalValue(usage: &usage) {
             if constant.isZero {
-                try exactScalarTaskCheckpoint()
+                try usage.checkpoint()
                 return Self(context: target, storage: .extended(zero, unit))
             }
             if constant == .one {
-                try exactScalarTaskCheckpoint()
+                try usage.checkpoint()
                 return Self(context: target, storage: .extended(unit, unit))
             }
         }
         try RationalAlgebraStorage.retain(1, of: Self.self, usage: &usage)
         let result = try Self(context: target, storage: .extended(
             OriginalSingularFieldPolynomial(context: parent, coefficients: [value], maximumDepth: maximumDepth, usage: &usage), unit))
-        try exactScalarTaskCheckpoint()
+        try usage.checkpoint()
         return result
     }
 
-    package func adding<B: RationalAlgebraAdmitting>(_ other: Self, maximumDepth: Int, usage: inout B) throws -> Self {
-        try exactScalarTaskCheckpoint(); try usage.consumeExactWork(1)
+    package func adding<B: ExactScalarAdmission & ~Copyable>(_ other: Self, maximumDepth: Int, usage: inout B) throws -> Self {
+        try usage.checkpoint(); try usage.consumeWork(1)
         let b = try other.embedded(in: context, maximumDepth: maximumDepth, usage: &usage)
         if try rationalValue(usage: &usage)?.isZero == true { return b }
         if try b.rationalValue(usage: &usage)?.isZero == true { return self }
@@ -165,17 +164,17 @@ package struct OriginalSingularFieldElement: Sendable {
         }
     }
 
-    package func negated<B: RationalAlgebraAdmitting>(maximumDepth: Int, usage: inout B) throws -> Self {
+    package func negated<B: ExactScalarAdmission & ~Copyable>(maximumDepth: Int, usage: inout B) throws -> Self {
         switch storage {
         case .original(let n, let d): return try Self(context: context, storage: .original(n.scaled(by: .one.negated, usage: &usage), d))
         case .extended(let n, let d): return try Self(context: context, storage: .extended(n.negated(maximumDepth: maximumDepth, usage: &usage), d))
         }
     }
-    package func subtracting<B: RationalAlgebraAdmitting>(_ other: Self, maximumDepth: Int, usage: inout B) throws -> Self {
+    package func subtracting<B: ExactScalarAdmission & ~Copyable>(_ other: Self, maximumDepth: Int, usage: inout B) throws -> Self {
         try adding(other.negated(maximumDepth: maximumDepth, usage: &usage), maximumDepth: maximumDepth, usage: &usage)
     }
-    package func multiplied<B: RationalAlgebraAdmitting>(by other: Self, maximumDepth: Int, usage: inout B) throws -> Self {
-        try exactScalarTaskCheckpoint(); try usage.consumeExactWork(1)
+    package func multiplied<B: ExactScalarAdmission & ~Copyable>(by other: Self, maximumDepth: Int, usage: inout B) throws -> Self {
+        try usage.checkpoint(); try usage.consumeWork(1)
         let b = try other.embedded(in: context, maximumDepth: maximumDepth, usage: &usage)
         let first = try rationalValue(usage: &usage), second = try b.rationalValue(usage: &usage)
         if first == .one { return b }
@@ -212,8 +211,8 @@ package struct OriginalSingularFieldElement: Sendable {
         default: throw exactScalarBackendFailure("Original field product has incompatible value storage.")
         }
     }
-    package func divided<B: RationalAlgebraAdmitting>(by other: Self, maximumDepth: Int, usage: inout B) throws -> Self {
-        try exactScalarTaskCheckpoint(); try usage.consumeExactWork(1)
+    package func divided<B: ExactScalarAdmission & ~Copyable>(by other: Self, maximumDepth: Int, usage: inout B) throws -> Self {
+        try usage.checkpoint(); try usage.consumeWork(1)
         let b = try other.embedded(in: context, maximumDepth: maximumDepth, usage: &usage)
         if case .zero = try b.sign(maximumDepth: maximumDepth, usage: &usage) { throw exactScalarBackendFailure("Original field division by zero.") }
         if try b.rationalValue(usage: &usage) == .one { return self }
@@ -234,10 +233,10 @@ package struct OriginalSingularFieldElement: Sendable {
     }
 
     /// Original constant laws remain exact and retain their immutable field owner.
-    private func originalConstants<B: RationalAlgebraAdmitting>(with other: Self,
+    private func originalConstants<B: ExactScalarAdmission & ~Copyable>(with other: Self,
         usage: inout B) throws -> (ExactRationalCoefficient, ExactRationalCoefficient)? {
-        try usage.consumeExactWork(1)
-        try exactScalarTaskCheckpoint()
+        try usage.consumeWork(1)
+        try usage.checkpoint()
         guard case .original = storage, case .original = other.storage else { return nil }
         switch context.source {
         case .rational, .original: break
@@ -249,7 +248,7 @@ package struct OriginalSingularFieldElement: Sendable {
     }
 
     /// Bounds symbolic degree without changing the selected original root.
-    private static func reducedFraction<B: RationalAlgebraAdmitting>(in context: OriginalSingularFieldContext,
+    private static func reducedFraction<B: ExactScalarAdmission & ~Copyable>(in context: OriginalSingularFieldContext,
         numerator: OriginalSingularFieldPolynomial, denominator: OriginalSingularFieldPolynomial,
         maximumDepth: Int, usage: inout B) throws -> Self {
         guard case .extended(let root) = context.source,

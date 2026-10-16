@@ -30,16 +30,22 @@ struct TorusTorusBooleanVolumeEvaluator {
         case outside
     }
 
+    func volume(of shell: Shell, in model: BRepModel, tolerance: ModelingTolerance) throws -> Double? {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try volume(of: shell, in: model, tolerance: tolerance, using: &execution)
+    }
+
     func volume(
         of shell: Shell,
         in model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Double? {
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard let groups = try surfaceGroups(
             of: shell,
             in: model,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         ) else {
             return nil
         }
@@ -49,8 +55,8 @@ struct TorusTorusBooleanVolumeEvaluator {
             centerOffset - groups.first.torus.axis * axialOffset
         ).length
         guard radialOffset > tolerance.distance else { return nil }
-        guard let firstOrientation = uniformOrientation(groups.first.faces),
-              let secondOrientation = uniformOrientation(groups.second.faces) else {
+        guard let firstOrientation = try uniformOrientation(groups.first.faces, using: &execution),
+              let secondOrientation = try uniformOrientation(groups.second.faces, using: &execution) else {
             throw KernelError(
                 phase: .topology,
                 code: .topologyFailure,
@@ -64,7 +70,7 @@ struct TorusTorusBooleanVolumeEvaluator {
                 signedDistance(point, from: groups.second.torus)
             },
             in: model,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         ) else {
             throw KernelError(
                 phase: .classification,
@@ -79,7 +85,7 @@ struct TorusTorusBooleanVolumeEvaluator {
                 signedDistance(point, from: groups.first.torus)
             },
             in: model,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         ) else {
             throw KernelError(
                 phase: .classification,
@@ -93,7 +99,7 @@ struct TorusTorusBooleanVolumeEvaluator {
             second: groups.second.torus,
             axialOffset: axialOffset,
             radialOffset: radialOffset,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         let firstVolume = torusVolume(groups.first.torus)
         let secondVolume = torusVolume(groups.second.torus)
@@ -122,7 +128,7 @@ struct TorusTorusBooleanVolumeEvaluator {
             firstOrientation: firstOrientation,
             secondOrientation: secondOrientation,
             in: model,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         return totalRegionVolume / Double(componentCount)
     }
@@ -133,16 +139,20 @@ struct TorusTorusBooleanVolumeEvaluator {
         firstOrientation: Orientation,
         secondOrientation: Orientation,
         in model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Int {
-        let owners = model.bodies.values.filter { $0.shellIDs.contains(shell.id) }
+        try execution.consumeWork(1)
+        let owners = try OriginalParameterQueryStorage.filter(model.bodies.values, using: &execution) { body, execution in
+            try OriginalParameterQueryStorage.contains(body.originalShellIDs(using: &execution), using: &execution) { id, execution in id == shell.id }
+        }
         guard owners.count == 1, let owner = owners.first else {
             throw TopologyError.unreferencedTopology(
                 "Offset torus-torus shell must have exactly one owning body."
             )
         }
         var count = 0
-        for candidateID in owner.shellIDs {
+        for candidateID in try owner.originalShellIDs(using: &execution) {
+            try execution.consumeWork(1)
             guard let candidate = model.shells[candidateID] else {
                 throw TopologyError.missingReference(
                     "Offset torus-torus body references a missing shell."
@@ -152,7 +162,7 @@ struct TorusTorusBooleanVolumeEvaluator {
                   let candidateGroups = try surfaceGroups(
                       of: candidate,
                       in: model,
-                      tolerance: tolerance
+                      tolerance: tolerance, using: &execution
                   ),
                   sameTorus(
                       candidateGroups.first.torus,
@@ -164,8 +174,8 @@ struct TorusTorusBooleanVolumeEvaluator {
                       groups.second.torus,
                       tolerance: tolerance
                   ),
-                  uniformOrientation(candidateGroups.first.faces) == firstOrientation,
-                  uniformOrientation(candidateGroups.second.faces) == secondOrientation else {
+                  try uniformOrientation(candidateGroups.first.faces, using: &execution) == firstOrientation,
+                  try uniformOrientation(candidateGroups.second.faces, using: &execution) == secondOrientation else {
                 continue
             }
             count += 1
@@ -184,10 +194,12 @@ struct TorusTorusBooleanVolumeEvaluator {
     private func surfaceGroups(
         of shell: Shell,
         in model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> (first: TorusGroup, second: TorusGroup)? {
+        try execution.consumeWork(1)
         var groups: [TorusGroup] = []
-        for faceID in shell.faceIDs.sorted() {
+        for faceID in try OriginalParameterQueryStorage.ordered(shell.faceIDs, using: &execution, less: <) {
+            try execution.consumeWork(1)
             guard let face = model.faces[faceID],
                   let surface = model.geometry.surfaces[face.surfaceID] else {
                 throw TopologyError.missingReference(
@@ -208,16 +220,16 @@ struct TorusTorusBooleanVolumeEvaluator {
                 majorRadius: majorRadius,
                 minorRadius: minorRadius
             )
-            if let index = groups.firstIndex(where: {
-                sameTorus($0.torus, torus, tolerance: tolerance)
+            if let index = (try OriginalParameterQueryStorage.firstIndex(groups, using: &execution) { item, execution in
+                sameTorus(item.torus, torus, tolerance: tolerance)
             }) {
-                groups[index].faces.append(face)
+                try OriginalParameterQueryStorage.append(face, to: &groups[index].faces, using: &execution)
             } else {
-                groups.append(TorusGroup(torus: torus, faces: [face]))
+                try OriginalParameterQueryStorage.append(TorusGroup(torus: torus, faces: try OriginalParameterQueryStorage.repeated(face, count: 1, using: &execution)), to: &groups, using: &execution)
             }
         }
         guard groups.count == 2 else { return nil }
-        groups.sort { torusKey($0.torus).lexicographicallyPrecedes(torusKey($1.torus)) }
+        try OriginalParameterQueryStorage.sort(&groups, using: &execution) { torusKey($0.torus) < torusKey($1.torus) }
         guard groups[0].torus.axis.cross(groups[1].torus.axis).length
             <= tolerance.angle else {
             return nil
@@ -229,29 +241,35 @@ struct TorusTorusBooleanVolumeEvaluator {
         of faces: [Face],
         relativeTo signedDistance: (Point3D) -> Double,
         in model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> RegionSide? {
+        try execution.consumeWork(1)
         let boundaryTolerance = tolerance.distance * 4.0
         var sides = Set<RegionSide>()
         for face in faces {
+            try execution.consumeWork(1)
             guard let surface = model.geometry.surfaces[face.surfaceID] else {
                 throw TopologyError.missingReference(
                     "Torus-torus volume references missing face geometry."
                 )
             }
             for loopID in face.loops {
+                try execution.consumeWork(1)
                 guard let loop = model.loops[loopID] else {
                     throw TopologyError.missingReference(
                         "Torus-torus volume references a missing loop."
                     )
                 }
                 for coedge in loop.coedges {
+                    try execution.consumeWork(1)
                     guard let parameterCurve = coedge.surfaceParameterCurve else {
                         throw TopologyError.missingReference(
                             "Torus-torus volume requires an exact face-local pcurve."
                         )
                     }
+                    try execution.retainStorage(bytes: 4 * MemoryLayout<Double>.stride)
                     for fraction in [0.125, 0.375, 0.625, 0.875] {
+                        try execution.consumeWork(1)
                         guard let witness = try interiorWitness(
                             near: fraction,
                             parameterCurve: parameterCurve,
@@ -259,14 +277,14 @@ struct TorusTorusBooleanVolumeEvaluator {
                             surface: surface,
                             signedDistance: signedDistance,
                             boundaryTolerance: boundaryTolerance,
-                            tolerance: tolerance
+                            tolerance: tolerance, using: &execution
                         ) else {
                             continue
                         }
-                        recordSide(
+                        try recordSide(
                             witness,
                             boundaryTolerance: boundaryTolerance,
-                            in: &sides
+                            in: &sides, using: &execution
                         )
                         break
                     }
@@ -284,8 +302,9 @@ struct TorusTorusBooleanVolumeEvaluator {
         surface: Surface3D,
         signedDistance: (Point3D) -> Double,
         boundaryTolerance: Double,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Double? {
+        try execution.consumeWork(1)
         let derivativeFraction = 1.0e-4
         let center = try parameterCurve.parameter(
             atNormalizedFraction: fraction,
@@ -333,13 +352,17 @@ struct TorusTorusBooleanVolumeEvaluator {
         let physicalScale = physicalDirection.length
         guard physicalScale > tolerance.distance else { return nil }
 
+        try execution.retainStorage(bytes: 5 * MemoryLayout<Double>.stride)
+
         for toleranceMultiplier in [16.0, 64.0, 256.0, 1_024.0, 4_096.0] {
+
+            try execution.consumeWork(1)
             let parameterOffset = tolerance.distance
                 * toleranceMultiplier / physicalScale
             let candidate = try surface.point(
                 u: center.u + inwardU * parameterOffset,
                 v: center.v + inwardV * parameterOffset,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
             let value = signedDistance(candidate)
             if abs(value) > boundaryTolerance {
@@ -361,12 +384,13 @@ struct TorusTorusBooleanVolumeEvaluator {
     private func recordSide(
         _ signedDistance: Double,
         boundaryTolerance: Double,
-        in sides: inout Set<RegionSide>
-    ) {
+        in sides: inout Set<RegionSide>, using execution: inout OriginalQueryExecution
+    ) throws {
+        try execution.consumeWork(1)
         if signedDistance < -boundaryTolerance {
-            sides.insert(.inside)
+            try OriginalParameterQueryStorage.insert(.inside, in: &sides, using: &execution)
         } else if signedDistance > boundaryTolerance {
-            sides.insert(.outside)
+            try OriginalParameterQueryStorage.insert(.outside, in: &sides, using: &execution)
         }
     }
 
@@ -375,22 +399,27 @@ struct TorusTorusBooleanVolumeEvaluator {
         second: Torus,
         axialOffset: Double,
         radialOffset: Double,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Double {
+        try execution.consumeWork(1)
         let lower = max(-first.minorRadius, axialOffset - second.minorRadius)
         let upper = min(first.minorRadius, axialOffset + second.minorRadius)
         guard upper - lower > tolerance.distance else { return 0.0 }
+        try execution.retainStorage(bytes: 2 * MemoryLayout<Double>.stride)
         var breakpoints = [lower, upper]
-        for candidate in [0.0, axialOffset] where
-            candidate > lower + tolerance.distance
-                && candidate < upper - tolerance.distance {
-            breakpoints.append(candidate)
+        try execution.retainStorage(bytes: 2 * MemoryLayout<Double>.stride)
+        for candidate in [0.0, axialOffset] {
+            try execution.consumeWork(1)
+            guard candidate > lower + tolerance.distance
+                && candidate < upper - tolerance.distance else { continue }
+            try OriginalParameterQueryStorage.append(candidate, to: &breakpoints, using: &execution)
         }
-        breakpoints.sort()
+        try OriginalParameterQueryStorage.sort(&breakpoints, using: &execution, less: <)
         var uniqueBreakpoints: [Double] = []
-        for value in breakpoints where
-            uniqueBreakpoints.last.map({ value - $0 > tolerance.distance }) != false {
-            uniqueBreakpoints.append(value)
+        for value in breakpoints {
+            try execution.consumeWork(1)
+            guard uniqueBreakpoints.last.map({ value - $0 > tolerance.distance }) != false else { continue }
+            try OriginalParameterQueryStorage.append(value, to: &uniqueBreakpoints, using: &execution)
         }
 
         let characteristicLength = max(
@@ -433,7 +462,7 @@ struct TorusTorusBooleanVolumeEvaluator {
             firstInnerRadiusAt: firstInner,
             firstOuterRadiusAt: firstOuter,
             secondInnerRadiusAt: secondInner,
-            secondOuterRadiusAt: secondOuter
+            secondOuterRadiusAt: secondOuter, using: &execution
         )
         let volumeTolerance = tolerance.distance
             * characteristicLength * characteristicLength * 8.0
@@ -477,10 +506,11 @@ struct TorusTorusBooleanVolumeEvaluator {
             && abs(first.minorRadius - second.minorRadius) <= tolerance.distance
     }
 
-    private func uniformOrientation(_ faces: [Face]) -> Orientation? {
-        let orientations = Set(faces.map({ $0.orientation }))
-        guard orientations.count == 1 else { return nil }
-        return orientations.first
+    private func uniformOrientation(_ faces: [Face], using execution: inout OriginalQueryExecution) throws -> Orientation? {
+        try execution.consumeWork(1)
+        guard let reference = faces.first,
+              try OriginalParameterQueryStorage.allSatisfy(faces, using: &execution, predicate: { face, execution in face.orientation == reference.orientation }) else { return nil }
+        return reference.orientation
     }
 
     private func canonicalAxis(
@@ -496,13 +526,7 @@ struct TorusTorusBooleanVolumeEvaluator {
         return result
     }
 
-    private func torusKey(_ torus: Torus) -> [Double] {
-        [
-            torus.minorRadius,
-            torus.majorRadius,
-            torus.center.x,
-            torus.center.y,
-            torus.center.z,
-        ]
+    private func torusKey(_ torus: Torus) -> (Double, Double, Double, Double, Double) {
+        (torus.minorRadius, torus.majorRadius, torus.center.x, torus.center.y, torus.center.z)
     }
 }

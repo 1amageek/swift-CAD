@@ -22,8 +22,7 @@ struct SurfaceAreaOffsetTranslationAuthority: Sendable {
     let constantRailCoordinates: (Double?,Double?,Double?)
     let constantNormal: IntervalVector3DBounds?
 
-    init?(source: BSplineSurface3D, tolerance: ModelingTolerance,
-          consumeWork: () throws -> Void) throws {
+    init?(source: BSplineSurface3D, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
         let alongV = !source.isVPeriodic && source.vDegree == 1 && source.vControlPointCount == 2
             && source.vKnots.count == 4
         let alongU = !source.isUPeriodic && source.uDegree == 1 && source.uControlPointCount == 2
@@ -32,7 +31,7 @@ struct SurfaceAreaOffsetTranslationAuthority: Sendable {
         let count = alongV ? source.uControlPointCount : source.vControlPointCount
         guard count > 0, source.controlPoints.count == source.weights.count else { return nil }
         for row in source.controlPoints.indices {
-            try consumeWork()
+            try execution.consumeWork(1)
             guard source.controlPoints[row].count == source.uControlPointCount,
                   source.weights[row].count == source.uControlPointCount else { return nil }
         }
@@ -52,14 +51,14 @@ struct SurfaceAreaOffsetTranslationAuthority: Sendable {
             let tail = (a-virtualA)+(virtualB-b)
             return head.isFinite && tail.isFinite ? (head,tail) : nil
         }
-        try consumeWork()
+        try execution.consumeWork(1)
         let first = point(0,false)
-        try consumeWork()
+        try execution.consumeWork(1)
         let last = point(count-1,false)
-        try consumeWork()
+        try execution.consumeWork(1)
         let translatedFirst = point(0,true)
         let a = values(first), b = values(translatedFirst)
-        try consumeWork(); try consumeWork(); try consumeWork()
+        try execution.consumeWork(1); try execution.consumeWork(1); try execution.consumeWork(1)
         guard let dx = difference(b.0,a.0), let dy = difference(b.1,a.1),
               let dz = difference(b.2,a.2) else { return nil }
         var constantX = true, constantY = true, constantZ = true
@@ -67,27 +66,27 @@ struct SurfaceAreaOffsetTranslationAuthority: Sendable {
         var decreasingX = true, decreasingY = true, decreasingZ = true
         var previous = first
         for index in 0..<count {
-            try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
-            try consumeWork()
+            try CurrentTaskCancellationChecker().checkCancellation(); try execution.consumeWork(1)
+            try execution.consumeWork(1)
             let firstWeight = weight(index,false)
-            try consumeWork()
+            try execution.consumeWork(1)
             let secondWeight = weight(index,true)
             guard firstWeight > 0, firstWeight == secondWeight else { return nil }
-            try consumeWork()
+            try execution.consumeWork(1)
             let p = point(index,false)
-            try consumeWork()
+            try execution.consumeWork(1)
             let q = point(index,true)
             let pv = values(p), qv = values(q)
-            try consumeWork(); try consumeWork(); try consumeWork()
+            try execution.consumeWork(1); try execution.consumeWork(1); try execution.consumeWork(1)
             guard let ax = difference(qv.0,pv.0), ax.0 == dx.0, ax.1 == dx.1,
                   let ay = difference(qv.1,pv.1), ay.0 == dy.0, ay.1 == dy.1,
                   let az = difference(qv.2,pv.2), az.0 == dz.0, az.1 == dz.1 else { return nil }
-            try consumeWork(); try consumeWork(); try consumeWork()
+            try execution.consumeWork(1); try execution.consumeWork(1); try execution.consumeWork(1)
             constantX = constantX && p.x == first.x
             constantY = constantY && p.y == first.y
             constantZ = constantZ && p.z == first.z
             if index > 0 {
-                try consumeWork(); try consumeWork(); try consumeWork()
+                try execution.consumeWork(1); try execution.consumeWork(1); try execution.consumeWork(1)
                 increasingX = increasingX && p.x > previous.x
                 increasingY = increasingY && p.y > previous.y
                 increasingZ = increasingZ && p.z > previous.z
@@ -113,7 +112,7 @@ struct SurfaceAreaOffsetTranslationAuthority: Sendable {
         var single = !periodic && degree > 0 && count == degree+1
         if single {
             for index in knots.indices {
-                try consumeWork()
+                try execution.consumeWork(1)
                 single = single && (index <= degree ? knots[index] == knots[degree] : knots[index] == knots[count])
             }
         }

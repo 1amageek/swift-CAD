@@ -1,6 +1,6 @@
 /// Exact whole-polynomial isolated point proof, including higher-order flat contacts.
 package struct OriginalRationalIsolatedPointCertifier {
-    package static func provesOnlyZero<B: RationalAlgebraAdmitting>(
+    package static func provesOnlyZero<B: ExactScalarAdmission & ~Copyable>(
         at root: ExactBivariateCriticalPoint, maximumDepth: Int, usage: inout B) throws -> Bool {
         guard !root.original.isZero else { return false }
         if try evenTaylor(at: root, maximumDepth: maximumDepth, usage: &usage) { return true }
@@ -10,7 +10,7 @@ package struct OriginalRationalIsolatedPointCertifier {
             maximumDepth: maximumDepth, usage: &usage)
     }
 
-    private static func evenTaylor<B: RationalAlgebraAdmitting>(at root: ExactBivariateCriticalPoint,
+    private static func evenTaylor<B: ExactScalarAdmission & ~Copyable>(at root: ExactBivariateCriticalPoint,
         maximumDepth: Int, usage: inout B) throws -> Bool {
         let source = root.original
         var commonSign: ExactAlgebraicRealRoot.Sign?
@@ -19,7 +19,7 @@ package struct OriginalRationalIsolatedPointCertifier {
         for uOrder in 0...source.uDegree {
             var derivative = uDerivative
             for vOrder in 0...source.vDegree {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 let sign = try root.sign(of: derivative, maximumDepth: maximumDepth, usage: &usage)
                 switch sign {
                 case .zero: break

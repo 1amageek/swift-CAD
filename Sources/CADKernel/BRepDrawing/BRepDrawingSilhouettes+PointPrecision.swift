@@ -4,18 +4,18 @@ import CADGeometry
 extension BRepDrawingSilhouettes {
     /// Retains source-root localization when requesting finer paper point proposals.
     public func refiningAlgebraicPoints(maximumParameterWidth: ExactRationalCoefficient,
-        usage: inout SurfaceSilhouetteUsage) throws -> BRepDrawingSilhouettes {
+        using execution: inout OriginalQueryExecution) throws -> BRepDrawingSilhouettes {
         guard maximumParameterWidth.isPositive else {
             throw GeometryConversionError.invalidInput("Silhouette point native precision must be positive.")
         }
-        let width = try maximumParameterWidth.outwardInterval(usage: &usage).lower
+        let width = try maximumParameterWidth.outwardInterval(usage: &execution).lower
         guard width.isFinite, width > 0 else {
             throw GeometryConversionError.resourceLimitExceeded("Silhouette point native precision has no positive binary query bound.")
         }
         func retain<T>(_ count: Int, _ type: T.Type) throws {
             let bytes = count.multipliedReportingOverflow(by: MemoryLayout<T>.stride)
             guard !bytes.overflow else { throw GeometryConversionError.resourceLimitExceeded("Silhouette point receipt storage overflowed.") }
-            try usage.preparationStorageCallback(bytes.partialValue)
+            try execution.retainStorage(bytes: bytes.partialValue)
         }
         func project(_ point: CoordinateEnclosure3D) throws -> CoordinateEnclosure2D {
             let x = OutwardScalarInterval(lower: point.x.lower, upper: point.x.upper) - .exact(frame.origin.x)
@@ -33,14 +33,14 @@ extension BRepDrawingSilhouettes {
         var refined: [BRepDrawingSilhouetteAlgebraicContact] = []; refined.reserveCapacity(algebraicContacts.count)
         var stations: [BRepDrawingSilhouetteAtlasStation] = []; stations.reserveCapacity(atlasStations.count)
         for contact in algebraicContacts {
-            try usage.consumeWork()
-            let source = try contact.source.refined(maximumUWidth: width, maximumVWidth: width, usage: &usage)
+            try execution.consumeWork(1)
+            let source = try contact.source.refined(maximumUWidth: width, maximumVWidth: width, using: &execution)
             refined.append(.init(bodyID: contact.bodyID, faceID: contact.faceID, source: source,
                 projectedEnclosure: try project(source.spatialEnclosure)))
         }
         for station in atlasStations {
-            try usage.consumeWork()
-            let source = try station.admittedContact.refined(maximumUWidth: width, maximumVWidth: width, usage: &usage)
+            try execution.consumeWork(1)
+            let source = try station.admittedContact.refined(maximumUWidth: width, maximumVWidth: width, using: &execution)
             stations.append(.init(bodyID: station.bodyID, faceID: station.faceID,
                 atlasOrdinal: station.atlasOrdinal, stationOrdinal: station.stationOrdinal,
                 source: station.source, admittedContact: source, projectedEnclosure: try project(source.spatialEnclosure)))

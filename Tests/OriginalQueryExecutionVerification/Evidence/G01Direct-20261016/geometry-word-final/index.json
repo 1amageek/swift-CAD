@@ -1,0 +1,334 @@
+{
+  "scope": "Current rational-word Geometry silhouette producer, source/world retained readers, projected endpoint contacts, guarded scalar-only Newton reader, and exact-unit-W1 borrowed polynomial Taylor connection. No whole M4/G01/U1-U4 completion, Kernel Embedded, Drawing facade, or main-delivery claim.",
+  "sourceRoot": "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD",
+  "sourceAuthority": {
+    "path": "native/source-receipt.json",
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-rational-word-world-taylor-r3/receipt.json",
+    "sha256": "a5162c5ce0dfdc6b18247a2a9b35acc9808f8f85cf8418ef2363a8c3f80a9b95"
+  },
+  "sourceCounts": {
+    "CADCore": 65,
+    "CADGeometry": 2170
+  },
+  "fixture": {
+    "path": "fixture/SurfaceSilhouetteCurrentPortable.swift",
+    "sha256": "430702f2f97872c1d9ac5924bb1e506a6919788a0b560771fa03720fca9362ec",
+    "expectedOutputLines": [
+      "PASS current silhouette eight Native source selections",
+      "PASS current silhouette arch whole UV and retained trim endpoints",
+      "PASS current silhouette shared resources lifetime and source refusal",
+      "PASS current silhouette entry and terminal cancellation",
+      "PASS current silhouette original word source and world readers",
+      "PASS current silhouette original word projected endpoint contacts",
+      "PASS current silhouette portable all"
+    ]
+  },
+  "native": [
+    {
+      "kind": "client",
+      "receipt": {
+        "path": "native/client-receipt.json",
+        "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/silhouette-rational-word-native-client-r3/receipt.json",
+        "sha256": "153117a58b3b69c5d4fbc2fed8e0ca9d802ebb72547b72843374385bfe45b1d2"
+      },
+      "oracles": 7
+    },
+    {
+      "kind": "guard",
+      "receipt": {
+        "path": "native/guard-receipt.json",
+        "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/silhouette-unit-world-taylor-native-guards-r4/receipt.json",
+        "sha256": "3a6a0c1f3db2f1027711d592774ed7b7c1a9a93a2e76611e98e6e410cf1f080b"
+      },
+      "oracles": {
+        "functions": 3,
+        "inputCases": 5
+      }
+    }
+  ],
+  "portable": [
+    {
+      "lane": "asan",
+      "receipt": {
+        "path": "asan/receipt.json",
+        "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/receipt.json",
+        "sha256": "bf20f072da81c10cea883eb19bd10468ff03f231143d4734af48b0ddf3f3b792"
+      },
+      "matchedOracleLines": 7,
+      "phases": [
+        {
+          "name": "asan-compile",
+          "elapsedSeconds": 126.83244654200098,
+          "peakRSSBytes": 6337363968
+        },
+        {
+          "name": "asan-link",
+          "elapsedSeconds": 3.9071840830001747,
+          "peakRSSBytes": 763428864
+        },
+        {
+          "name": "asan-runtime",
+          "elapsedSeconds": 4.367128458005027,
+          "peakRSSBytes": 305512448
+        }
+      ]
+    },
+    {
+      "lane": "wasm",
+      "receipt": {
+        "path": "wasm/receipt.json",
+        "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-wasm-r1/receipt.json",
+        "sha256": "33b1a947229753849ab286e172936f021d8bee8f319eeb7cb712e4db425f13b3"
+      },
+      "matchedOracleLines": 7,
+      "phases": [
+        {
+          "name": "wasm-compile",
+          "elapsedSeconds": 116.395135209008,
+          "peakRSSBytes": 5842731008
+        },
+        {
+          "name": "wasm-link",
+          "elapsedSeconds": 5.377591249998659,
+          "peakRSSBytes": 858406912
+        },
+        {
+          "name": "wasm-runtime",
+          "elapsedSeconds": 2.3143585419893498,
+          "peakRSSBytes": 501727232
+        }
+      ]
+    },
+    {
+      "lane": "embedded",
+      "receipt": {
+        "path": "embedded/receipt.json",
+        "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-embedded-r1/receipt.json",
+        "sha256": "24cd092e8d726931da5400b1e3b28ea87cfb2792feb52598812b072cc264c866"
+      },
+      "matchedOracleLines": 7,
+      "phases": [
+        {
+          "name": "embedded-compile",
+          "elapsedSeconds": 60.79926595899451,
+          "peakRSSBytes": 3095429120
+        },
+        {
+          "name": "embedded-link",
+          "elapsedSeconds": 49.89562416700937,
+          "peakRSSBytes": 5047713792
+        },
+        {
+          "name": "embedded-runtime",
+          "elapsedSeconds": 0.6849486249993788,
+          "peakRSSBytes": 251707392
+        }
+      ]
+    }
+  ],
+  "sourceFreezes": [
+    {
+      "freeze": {
+        "path": "source-freezes/silhouette-rational-word-source-r1.json",
+        "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/silhouette-rational-word-source-r1/source-freeze.json",
+        "sha256": "a97e0dae53cecd183fc0fffedbf39d4c42082f0108d9c107656d5fe3de3d0efb"
+      },
+      "scope": "Initial rational-word implementation snapshot; superseded for Field/Curve by later freezes."
+    },
+    {
+      "freeze": {
+        "path": "source-freezes/silhouette-scalar-reader-source-r1.json",
+        "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/silhouette-scalar-reader-source-r1/source-freeze.json",
+        "sha256": "b8b809e07b2a81196261578fbb8cd87587632419743821f0f242ba9d3d0d05f2"
+      },
+      "scope": "Measured scalar-only Newton reader correction; superseded Field by final unit-W1 reader."
+    },
+    {
+      "freeze": {
+        "path": "source-freezes/silhouette-unit-world-taylor-source-r1.json",
+        "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/silhouette-unit-world-taylor-source-r1/source-freeze.json",
+        "sha256": "0ef21a6c65ea8767d5a66f5336fbc35d311f71365037721082ed9f4ab5e95442"
+      },
+      "scope": "Final exact-unit-W1 borrowed world Taylor selection and independent derivative oracles."
+    }
+  ],
+  "historicalCausalReferences": [
+    {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/silhouette-rational-word-native-client-r1/receipt.json",
+      "sha256": "0f24a3305468ab0d3c44fc822d410e261c878b10153adc5ff6576431fcd104b9",
+      "recordedStatus": "failed",
+      "scope": "Historical RED: original shear whole enclosure exceeded work cap."
+    },
+    {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/silhouette-rational-word-native-diagnostic-r1/receipt.json",
+      "sha256": "9d73494cff114e4ec0229589aec341c99e32e55ed28fe7e3136f56fd75d49d3a",
+      "recordedStatus": "failed",
+      "scope": "Marker-only historical phase localization, not success."
+    },
+    {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/silhouette-rational-word-native-client-r2/receipt.json",
+      "sha256": "a32ca12f99439720d838c52b57efe864d2b25c54899658ecf29960477b73cf28",
+      "recordedStatus": "failed",
+      "scope": "Historical RED after scalar correction: shear singleton world read exceeded cap."
+    },
+    {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/silhouette-rational-word-native-diagnostic-r2/receipt.json",
+      "sha256": "5a317c7892afbbf6c015f834d5b042259c81973a518d01eea37346d9ed72ef6f",
+      "recordedStatus": "failed",
+      "scope": "Marker-only successor phase localization, not success."
+    },
+    {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/silhouette-scalar-phase-native-r2/receipt.json",
+      "sha256": "704d6e547c5069d91dcc705b9b0ca1ec810238ca166b42fa83ae63db257c9f1a",
+      "recordedStatus": "passed",
+      "scope": "Historical same-box scalar/full microprobe, not final performance claim."
+    },
+    {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/silhouette-endpoint-phase-native-r1/receipt.json",
+      "sha256": "7e74a475c4f03a4577330b7658719bed3168da01cb4068214fe8204314ddc160",
+      "recordedStatus": "passed",
+      "scope": "Historical singleton scalar/full microprobe, not final performance claim."
+    }
+  ],
+  "old42Evidence": "../geometry-final-portable/index.json retains its historical source and path scope; unchanged and not replayed.",
+  "limits": {
+    "compileLinkSecondsPerLane": 1200,
+    "runtimeSeconds": 120,
+    "aggregateRSSBytes": 10737418240
+  },
+  "geometryGenerations": {
+    "asan": 1,
+    "wasm": 1,
+    "embedded": 1
+  },
+  "coreCollectionsOrLowerRegenerated": false,
+  "metrics": {
+    "portableOracleLines": 21,
+    "portableRuntimeProcesses": 3,
+    "nativeClientOracleLines": 7,
+    "nativeGuardFunctions": 3,
+    "nativeGuardInputCases": 5,
+    "freshGeometryCompileSeconds": 304.0268477100035,
+    "portableRuntimeSeconds": 7.3664356249937555
+  },
+  "files": {
+    "native/source-receipt.json": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-rational-word-world-taylor-r3/receipt.json",
+      "sha256": "a5162c5ce0dfdc6b18247a2a9b35acc9808f8f85cf8418ef2363a8c3f80a9b95"
+    },
+    "native/client-compiler-version.log": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/silhouette-rational-word-native-client-r3/compiler-version.log",
+      "sha256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c"
+    },
+    "native/client-client-compile-link.log": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/silhouette-rational-word-native-client-r3/client-compile-link.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "native/client-runtime.log": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/silhouette-rational-word-native-client-r3/runtime.log",
+      "sha256": "88c5c4ec6571b6f58fe3f73df2859cb6d47ffac78b55e53988f0098383addb0e"
+    },
+    "native/client-receipt.json": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/silhouette-rational-word-native-client-r3/receipt.json",
+      "sha256": "153117a58b3b69c5d4fbc2fed8e0ca9d802ebb72547b72843374385bfe45b1d2"
+    },
+    "native/guard-compiler-version.log": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/silhouette-unit-world-taylor-native-guards-r4/compiler-version.log",
+      "sha256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c"
+    },
+    "native/guard-test-build-and-list.log": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/silhouette-unit-world-taylor-native-guards-r4/test-build-and-list.log",
+      "sha256": "4c9ebb37ca840448226a6ec587f36f109ff8db194d98bf22a0aa8d39afb514bc"
+    },
+    "native/guard-test-runtime.log": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/silhouette-unit-world-taylor-native-guards-r4/test-runtime.log",
+      "sha256": "0cbc7d98e9d6cae93df86e306de4b5573233e148f3464e349f5095cd3584dc1e"
+    },
+    "native/guard-receipt.json": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/silhouette-unit-world-taylor-native-guards-r4/receipt.json",
+      "sha256": "3a6a0c1f3db2f1027711d592774ed7b7c1a9a93a2e76611e98e6e410cf1f080b"
+    },
+    "asan/asan-compile.log": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/asan-compile.log",
+      "sha256": "66da2c3de2126d7106daec379c323c93a910db72007db75b815330b5a2cd49e1"
+    },
+    "asan/asan-link.log": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/asan-link.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "asan/asan-runtime.log": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/asan-runtime.log",
+      "sha256": "88c5c4ec6571b6f58fe3f73df2859cb6d47ffac78b55e53988f0098383addb0e"
+    },
+    "asan/receipt.json": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-asan-r1/receipt.json",
+      "sha256": "bf20f072da81c10cea883eb19bd10468ff03f231143d4734af48b0ddf3f3b792"
+    },
+    "wasm/wasm-compile.log": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-wasm-r1/wasm-compile.log",
+      "sha256": "60a843ff1548542e1ad1e6b21d18f24420682af0e23bbd642c0be5c0d60fbd1c"
+    },
+    "wasm/wasm-link.log": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-wasm-r1/wasm-link.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "wasm/wasm-runtime.log": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-wasm-r1/wasm-runtime.log",
+      "sha256": "90c850b3e38b8b212f69b33a12f7df5954c527ac391c06e837bcb72098fdb9eb"
+    },
+    "wasm/receipt.json": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-wasm-r1/receipt.json",
+      "sha256": "33b1a947229753849ab286e172936f021d8bee8f319eeb7cb712e4db425f13b3"
+    },
+    "embedded/embedded-compile.log": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-embedded-r1/embedded-compile.log",
+      "sha256": "3e7a3ffcc011f691757776bc59d3eec10bab47ddfe0bd68e44e6b2d49707aae1"
+    },
+    "embedded/embedded-link.log": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-embedded-r1/embedded-link.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "embedded/embedded-runtime.log": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-embedded-r1/embedded-runtime.log",
+      "sha256": "8afbff4df62c3508bded64b36399287f650d648d77ad5afa8f2a552d08812ab3"
+    },
+    "embedded/receipt.json": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/geometry-word-final-portable-embedded-r1/receipt.json",
+      "sha256": "24cd092e8d726931da5400b1e3b28ea87cfb2792feb52598812b072cc264c866"
+    },
+    "source-freezes/silhouette-rational-word-source-r1.json": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/silhouette-rational-word-source-r1/source-freeze.json",
+      "sha256": "a97e0dae53cecd183fc0fffedbf39d4c42082f0108d9c107656d5fe3de3d0efb"
+    },
+    "source-freezes/silhouette-scalar-reader-source-r1.json": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/silhouette-scalar-reader-source-r1/source-freeze.json",
+      "sha256": "b8b809e07b2a81196261578fbb8cd87587632419743821f0f242ba9d3d0d05f2"
+    },
+    "source-freezes/silhouette-unit-world-taylor-source-r1.json": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/silhouette-unit-world-taylor-source-r1/source-freeze.json",
+      "sha256": "0ef21a6c65ea8767d5a66f5336fbc35d311f71365037721082ed9f4ab5e95442"
+    },
+    "fixture/SurfaceSilhouetteCurrentPortable.swift": {
+      "origin": "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD/Tests/OriginalQueryExecutionVerification/SurfaceSilhouetteCurrentPortable.swift",
+      "sha256": "430702f2f97872c1d9ac5924bb1e506a6919788a0b560771fa03720fca9362ec"
+    }
+  },
+  "finalChecks": {
+    "uniqueCurrentSnapshotArtifactHashesVerified": 11339,
+    "all2235CurrentProductionHashesMatch": true,
+    "fixtureBothRootsMatch": true,
+    "allSuccessfulCompileLinkRuntimeLogHashesMatch": true,
+    "packagingStartedCompilerOrRuntime": false
+  },
+  "currentSuccessorEvidence": {
+    "path": "partition-view-final/index.json",
+    "sha256": "fdd8ee7ca245d1374b570b61c56570408124db5606845cf2bd0cb8ef7e0c133c",
+    "sourceAuthoritySHA256": "ce70b1a795f1b923941eebde77612357eba8e804c12769e9e7c9ec409e07d116",
+    "fixtureSHA256": "6dc36928fc163cab2f4a8f3605fa212fefd8e8560b5999f80dee797fa267c98b",
+    "scope": "Current604b/279f+6dc accepted Native7 and portable21; this parent preserves its historicala516+4307 evidence.",
+    "preservedParentSnapshot": {
+      "path": "index-before-partition-view-successor.json",
+      "sha256": "38e6d5b006565eb7b654107c06654e41c69dfed909efb6190fb9685f664520cb"
+    }
+  }
+}

@@ -67,7 +67,7 @@ public struct RemoveFilletsFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         return EvaluationResult(
             brep: model,
             subshapes: identity.subshapes,
-            removedSubshapeIDs: scope.subshapeIDs(in: context.subshapes),
+            removedSubshapeIDs: try scope.subshapeIDs(in: context.subshapes),
             lineage: identity.lineage
         )
     }

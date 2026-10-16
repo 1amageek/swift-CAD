@@ -14,6 +14,28 @@ import CADCore
 struct PlaneSphereSurfaceIntersector {
     private let verifier = SurfaceSurfaceIntersectionVerifier()
 
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Ordinary SSI dispatch reaches this direct entry.
+    // The former numerical/tolerance branches did not establish original common-set
+    // authority. U4 must supply complete original source/UV coverage before success.
+    func intersections(
+        plane: CanonicalAnalyticSurface.Plane,
+        sphere: CanonicalAnalyticSurface.Sphere,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution
+    ) throws -> [SurfaceSurfaceIntersection] {
+        execution.context = execution.context.at(stage: .relation)
+        do {
+            try execution.checkpoint()
+            throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+                message: "PlaneSphereSurfaceIntersector requires complete original source relation authority.")
+        } catch { throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance) }
+    }
+
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Existing candidate/source helper methods call
+    // this ordinary publication entry. It performs no numeric solve or fallback;
+    // U4 must provide source-bound relation proof and direct execution before success.
     func intersections(
         plane: CanonicalAnalyticSurface.Plane,
         sphere: CanonicalAnalyticSurface.Sphere,
@@ -21,31 +43,8 @@ struct PlaneSphereSurfaceIntersector {
         secondSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws -> [SurfaceSurfaceIntersection] {
-        try plane.requireLegacyUnitNormal(tolerance: tolerance)
-        let signedDistance = (sphere.center - plane.origin).dot(plane.normal)
-        let distance = abs(signedDistance)
-        guard distance <= sphere.radius + tolerance.distance else { return [] }
-        let center = sphere.center + plane.normal * -signedDistance
-        let squaredRadius = max(0.0, sphere.radius * sphere.radius - distance * distance)
-        if squaredRadius <= tolerance.distance * tolerance.distance {
-            return [try verifier.point(
-                center,
-                firstSurface: firstSurface,
-                secondSurface: secondSurface,
-                tolerance: tolerance
-            )]
-        }
-        return [try verifier.curve(
-            .circle(Circle3D(
-                center: center,
-                normal: plane.normal,
-                radius: sqrt(squaredRadius)
-            )),
-            kind: .transverse,
-            firstSurface: firstSurface,
-            secondSurface: secondSurface,
-            sampleParameters: SurfaceSurfaceIntersectionVerifier.closedCurveSamples,
-            tolerance: tolerance
-        )]
+        try CurrentTaskCancellationChecker().checkCancellation()
+        throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+            message: "PlaneSphereSurfaceIntersector has no ordinary original-proof publication.")
     }
 }

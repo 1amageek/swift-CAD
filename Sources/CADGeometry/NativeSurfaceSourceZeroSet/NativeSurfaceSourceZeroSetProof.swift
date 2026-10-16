@@ -38,7 +38,7 @@ package final class NativeSurfaceSourceZeroSetProof: Sendable {
         let secondCoefficient: ExactRationalCoefficient
         let reconstruction: ExactBivariatePolynomial
     }
-    package static func prepare<B: RationalAlgebraAdmitting>(chart: NativeSurfaceSurfaceSourceChart,
+    package static func prepare<B: ExactScalarAdmission & ~Copyable>(chart: NativeSurfaceSurfaceSourceChart,
         usage: inout B) throws -> NativeSurfaceSourceZeroSetProof? {
         try intersectionAlgebraStep(&usage)
         try validateChart(chart, usage: &usage)
@@ -90,7 +90,7 @@ package final class NativeSurfaceSourceZeroSetProof: Sendable {
         return nil
     }
 
-    package func validate<B: RationalAlgebraAdmitting>(chart: NativeSurfaceSurfaceSourceChart, usage: inout B) throws {
+    package func validate<B: ExactScalarAdmission & ~Copyable>(chart: NativeSurfaceSurfaceSourceChart, usage: inout B) throws {
         try Self.validateChart(chart, usage: &usage)
         try Self.matching(originalChart.first, chart.first, usage: &usage)
         try Self.matching(originalChart.second, chart.second, usage: &usage)
@@ -108,7 +108,7 @@ package final class NativeSurfaceSourceZeroSetProof: Sendable {
         }
         try CurrentTaskCancellationChecker().checkCancellation()
     }
-    static func validateChart<B: RationalAlgebraAdmitting>(_ chart: NativeSurfaceSurfaceSourceChart,
+    static func validateChart<B: ExactScalarAdmission & ~Copyable>(_ chart: NativeSurfaceSurfaceSourceChart,
         usage: inout B) throws {
         try intersectionAlgebraStep(&usage)
         guard chart.system.variableCount == 4,chart.system.equations.count == 3,
@@ -138,10 +138,10 @@ package final class NativeSurfaceSourceZeroSetProof: Sendable {
             }
         }
     }
-    private static func owner<B: RationalAlgebraAdmitting>(_ native: PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan,
+    private static func owner<B: ExactScalarAdmission & ~Copyable>(_ native: PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan,
         law: OriginalRationalSurfacePolynomial,usage: inout B) throws {
         try native.validate(on: law.source,over: law.domain,tolerance: native.tolerance,
-            consumeWork: { try usage.consumeExactWork(1) })
+            using: &usage)
         try intersectionAlgebraStep(&usage)
         guard !law.source.isUPeriodic,!law.source.isVPeriodic,native.uCycle == 0,native.vCycle == 0,
             law.domain.u == native.uBounds,law.domain.v == native.vBounds,
@@ -153,10 +153,10 @@ package final class NativeSurfaceSourceZeroSetProof: Sendable {
             guard value.isFinite,value > 0 else { throw rationalAlgebraFailure("Native source zero proof requires positive original denominators.") }
         } }
     }
-    static func matching<B: RationalAlgebraAdmitting>(_ original: OriginalRationalSurfacePolynomial,
+    static func matching<B: ExactScalarAdmission & ~Copyable>(_ original: OriginalRationalSurfacePolynomial,
         _ other: OriginalRationalSurfacePolynomial,usage: inout B) throws {
-        try GeometryStructuralComparisonWork.charge(surface: .bSpline(original.source), using: { try usage.consumeExactWork($0) })
-        try GeometryStructuralComparisonWork.charge(surface: .bSpline(other.source), using: { try usage.consumeExactWork($0) })
+        try GeometryStructuralComparisonWork.charge(surface: .bSpline(original.source), using: &usage)
+        try GeometryStructuralComparisonWork.charge(surface: .bSpline(other.source), using: &usage)
         try intersectionAlgebraStep(&usage)
         guard original.source == other.source,original.domain.u == other.domain.u,original.domain.v == other.domain.v,
             original.uSpanIndex == other.uSpanIndex,original.vSpanIndex == other.vSpanIndex else {
@@ -168,7 +168,7 @@ package final class NativeSurfaceSourceZeroSetProof: Sendable {
             }
         }
     }
-    static func constantCoordinate<B: RationalAlgebraAdmitting>(_ law: OriginalRationalSurfacePolynomial,
+    static func constantCoordinate<B: ExactScalarAdmission & ~Copyable>(_ law: OriginalRationalSurfacePolynomial,
         axis: Int,usage: inout B) throws -> ExactRationalCoefficient? {
         for (power,weight) in law.homogeneous[3].originalCoefficients {
             try intersectionAlgebraStep(&usage)
@@ -179,12 +179,12 @@ package final class NativeSurfaceSourceZeroSetProof: Sendable {
         }
         return nil
     }
-    private static func coefficient<B: RationalAlgebraAdmitting>(_ law: ExactBivariatePolynomial,
+    private static func coefficient<B: ExactScalarAdmission & ~Copyable>(_ law: ExactBivariatePolynomial,
         u: Int,v: Int,usage: inout B) throws -> ExactRationalCoefficient {
         try intersectionAlgebraStep(&usage)
         return law.originalCoefficients[try .init(u: u,v: v)] ?? .zero
     }
-    private static func completed<B: RationalAlgebraAdmitting>(_ n: ExactBivariatePolynomial,
+    private static func completed<B: ExactScalarAdmission & ~Copyable>(_ n: ExactBivariatePolynomial,
         alongU: Bool,usage: inout B) throws -> Candidate? {
         let originalLeading = try coefficient(n,u: alongU ? 4 : 0,v: alongU ? 0 : 4,usage: &usage)
         if originalLeading.isZero { return nil }

@@ -205,6 +205,12 @@ public enum AnalyticSurface3D: Equatable, Hashable, Sendable {
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate<A: ExactScalarAdmission & ~Copyable>(tolerance: ModelingTolerance, using execution: inout A) throws {
+        try execution.consumeWork(1)
         try tolerance.validate()
         switch self {
         case let .plane(origin, normal):
@@ -243,7 +249,17 @@ public enum AnalyticSurface3D: Equatable, Hashable, Sendable {
         v: Double,
         tolerance: ModelingTolerance
     ) throws -> DifferentialGeometry {
-        try validate(tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try differentialGeometry(u: u, v: v, tolerance: tolerance, using: &execution)
+    }
+
+    public func differentialGeometry<A: ExactScalarAdmission & ~Copyable>(
+        u: Double,
+        v: Double,
+        tolerance: ModelingTolerance, using execution: inout A
+    ) throws -> DifferentialGeometry {
+        try execution.consumeWork(1)
+        try validate(tolerance: tolerance, using: &execution)
         guard uDomain.contains(u, tolerance: tolerance.distance),
               vDomain.contains(v, tolerance: tolerance.distance) else {
             throw GeometryError.invalidDistance(u)
@@ -262,8 +278,8 @@ public enum AnalyticSurface3D: Equatable, Hashable, Sendable {
             )
         case let .cylinder(origin, axis, radius):
             let basis = try analyticOrthonormalBasis(axis, tolerance: tolerance)
-            let radial = basis.u * CanonicalSphereAngularPhase.candidate(at: u, cosine: true) + basis.v * CanonicalSphereAngularPhase.candidate(at: u, cosine: false)
-            let tangent = (-basis.u * CanonicalSphereAngularPhase.candidate(at: u, cosine: false) + basis.v * CanonicalSphereAngularPhase.candidate(at: u, cosine: true)) * (radius * angularScale)
+            let radial = basis.u * (try CanonicalSphereAngularPhase.candidate(at: u, cosine: true, using: &execution)) + basis.v * (try CanonicalSphereAngularPhase.candidate(at: u, cosine: false, using: &execution))
+            let tangent = (-basis.u * (try CanonicalSphereAngularPhase.candidate(at: u, cosine: false, using: &execution)) + basis.v * (try CanonicalSphereAngularPhase.candidate(at: u, cosine: true, using: &execution))) * (radius * angularScale)
             return try makeDifferential(
                 origin + radial * radius + axis * v,
                 tangent,
@@ -274,8 +290,8 @@ public enum AnalyticSurface3D: Equatable, Hashable, Sendable {
             )
         case let .cone(apex, axis, halfAngle):
             let basis = try analyticOrthonormalBasis(axis, tolerance: tolerance)
-            let radial = basis.u * CanonicalSphereAngularPhase.candidate(at: u, cosine: true) + basis.v * CanonicalSphereAngularPhase.candidate(at: u, cosine: false)
-            let tangent = (-basis.u * CanonicalSphereAngularPhase.candidate(at: u, cosine: false) + basis.v * CanonicalSphereAngularPhase.candidate(at: u, cosine: true)) * (v * sin(halfAngle) * angularScale)
+            let radial = basis.u * (try CanonicalSphereAngularPhase.candidate(at: u, cosine: true, using: &execution)) + basis.v * (try CanonicalSphereAngularPhase.candidate(at: u, cosine: false, using: &execution))
+            let tangent = (-basis.u * (try CanonicalSphereAngularPhase.candidate(at: u, cosine: false, using: &execution)) + basis.v * (try CanonicalSphereAngularPhase.candidate(at: u, cosine: true, using: &execution))) * (v * sin(halfAngle) * angularScale)
             let tangentV = radial * sin(halfAngle) + axis * cos(halfAngle)
             let position = apex + axis * (v * cos(halfAngle)) + radial * (v * sin(halfAngle))
             return try makeDifferential(
@@ -283,17 +299,17 @@ public enum AnalyticSurface3D: Equatable, Hashable, Sendable {
                 tangent,
                 tangentV,
                 secondDerivativeUU: -radial * (v * sin(halfAngle) * angularScale * angularScale),
-                secondDerivativeUV: (-basis.u * CanonicalSphereAngularPhase.candidate(at: u, cosine: false) + basis.v * CanonicalSphereAngularPhase.candidate(at: u, cosine: true)) * (sin(halfAngle) * angularScale),
+                secondDerivativeUV: (-basis.u * (try CanonicalSphereAngularPhase.candidate(at: u, cosine: false, using: &execution)) + basis.v * (try CanonicalSphereAngularPhase.candidate(at: u, cosine: true, using: &execution))) * (sin(halfAngle) * angularScale),
                 secondDerivativeVV: .zero,
                 normal: try tangent.cross(tangentV).normalized(tolerance: tolerance.distance),
                 tolerance: tolerance
             )
         case let .sphere(center, radius):
             let basis = try analyticOrthonormalBasis(Vector3D.unitZ, tolerance: tolerance)
-            let cu = CanonicalSphereAngularPhase.candidate(at: u, cosine: true)
-            let su = CanonicalSphereAngularPhase.candidate(at: u, cosine: false)
-            let cv = CanonicalSphereAngularPhase.candidate(at: v, cosine: true)
-            let sv = CanonicalSphereAngularPhase.candidate(at: v, cosine: false)
+            let cu = (try CanonicalSphereAngularPhase.candidate(at: u, cosine: true, using: &execution))
+            let su = (try CanonicalSphereAngularPhase.candidate(at: u, cosine: false, using: &execution))
+            let cv = (try CanonicalSphereAngularPhase.candidate(at: v, cosine: true, using: &execution))
+            let sv = (try CanonicalSphereAngularPhase.candidate(at: v, cosine: false, using: &execution))
             let scale = CanonicalSphereAngularPhase.scaleBounds.midpoint
             let radialU = basis.u * cu + basis.v * su
             let angularTangent = -basis.u * su + basis.v * cu
@@ -310,18 +326,18 @@ public enum AnalyticSurface3D: Equatable, Hashable, Sendable {
             )
         case let .torus(center, axis, majorRadius, minorRadius):
             let basis = try analyticOrthonormalBasis(axis, tolerance: tolerance)
-            let radial = basis.u * CanonicalSphereAngularPhase.candidate(at: u, cosine: true) + basis.v * CanonicalSphereAngularPhase.candidate(at: u, cosine: false)
-            let tangent = -basis.u * CanonicalSphereAngularPhase.candidate(at: u, cosine: false) + basis.v * CanonicalSphereAngularPhase.candidate(at: u, cosine: true)
-            let tube = radial * CanonicalSphereAngularPhase.candidate(at: v, cosine: true) + axis * CanonicalSphereAngularPhase.candidate(at: v, cosine: false)
-            let tangentU = tangent * ((majorRadius + minorRadius * CanonicalSphereAngularPhase.candidate(at: v, cosine: true)) * angularScale)
-            let tangentV = (-radial * CanonicalSphereAngularPhase.candidate(at: v, cosine: false) + axis * CanonicalSphereAngularPhase.candidate(at: v, cosine: true)) * (minorRadius * angularScale)
+            let radial = basis.u * (try CanonicalSphereAngularPhase.candidate(at: u, cosine: true, using: &execution)) + basis.v * (try CanonicalSphereAngularPhase.candidate(at: u, cosine: false, using: &execution))
+            let tangent = -basis.u * (try CanonicalSphereAngularPhase.candidate(at: u, cosine: false, using: &execution)) + basis.v * (try CanonicalSphereAngularPhase.candidate(at: u, cosine: true, using: &execution))
+            let tube = radial * (try CanonicalSphereAngularPhase.candidate(at: v, cosine: true, using: &execution)) + axis * (try CanonicalSphereAngularPhase.candidate(at: v, cosine: false, using: &execution))
+            let tangentU = tangent * ((majorRadius + minorRadius * (try CanonicalSphereAngularPhase.candidate(at: v, cosine: true, using: &execution))) * angularScale)
+            let tangentV = (-radial * (try CanonicalSphereAngularPhase.candidate(at: v, cosine: false, using: &execution)) + axis * (try CanonicalSphereAngularPhase.candidate(at: v, cosine: true, using: &execution))) * (minorRadius * angularScale)
             return try makeDifferential(
-                center + radial * (majorRadius + minorRadius * CanonicalSphereAngularPhase.candidate(at: v, cosine: true)) + axis * (minorRadius * CanonicalSphereAngularPhase.candidate(at: v, cosine: false)),
+                center + radial * (majorRadius + minorRadius * (try CanonicalSphereAngularPhase.candidate(at: v, cosine: true, using: &execution))) + axis * (minorRadius * (try CanonicalSphereAngularPhase.candidate(at: v, cosine: false, using: &execution))),
                 tangentU,
                 tangentV,
-                secondDerivativeUU: -radial * ((majorRadius + minorRadius * CanonicalSphereAngularPhase.candidate(at: v, cosine: true)) * angularScale * angularScale),
-                secondDerivativeUV: tangent * (-minorRadius * CanonicalSphereAngularPhase.candidate(at: v, cosine: false) * angularScale * angularScale),
-                secondDerivativeVV: (-radial * CanonicalSphereAngularPhase.candidate(at: v, cosine: true) - axis * CanonicalSphereAngularPhase.candidate(at: v, cosine: false)) * (minorRadius * angularScale * angularScale),
+                secondDerivativeUU: -radial * ((majorRadius + minorRadius * (try CanonicalSphereAngularPhase.candidate(at: v, cosine: true, using: &execution))) * angularScale * angularScale),
+                secondDerivativeUV: tangent * (-minorRadius * (try CanonicalSphereAngularPhase.candidate(at: v, cosine: false, using: &execution)) * angularScale * angularScale),
+                secondDerivativeVV: (-radial * (try CanonicalSphereAngularPhase.candidate(at: v, cosine: true, using: &execution)) - axis * (try CanonicalSphereAngularPhase.candidate(at: v, cosine: false, using: &execution))) * (minorRadius * angularScale * angularScale),
                 normal: tube,
                 tolerance: tolerance
             )
@@ -333,7 +349,17 @@ public enum AnalyticSurface3D: Equatable, Hashable, Sendable {
         v: Double,
         tolerance: ModelingTolerance
     ) throws -> Point3D {
-        try validate(tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try point(u: u, v: v, tolerance: tolerance, using: &execution)
+    }
+
+    public func point<A: ExactScalarAdmission & ~Copyable>(
+        u: Double,
+        v: Double,
+        tolerance: ModelingTolerance, using execution: inout A
+    ) throws -> Point3D {
+        try execution.consumeWork(1)
+        try validate(tolerance: tolerance, using: &execution)
         guard uDomain.contains(u, tolerance: tolerance.distance),
               vDomain.contains(v, tolerance: tolerance.distance) else {
             throw GeometryError.invalidDistance(u)
@@ -344,24 +370,24 @@ public enum AnalyticSurface3D: Equatable, Hashable, Sendable {
             return origin + basis.u * u + basis.v * v
         case let .cylinder(origin, axis, radius):
             let basis = try analyticOrthonormalBasis(axis, tolerance: tolerance)
-            let radial = basis.u * CanonicalSphereAngularPhase.candidate(at: u, cosine: true) + basis.v * CanonicalSphereAngularPhase.candidate(at: u, cosine: false)
+            let radial = basis.u * (try CanonicalSphereAngularPhase.candidate(at: u, cosine: true, using: &execution)) + basis.v * (try CanonicalSphereAngularPhase.candidate(at: u, cosine: false, using: &execution))
             return origin + radial * radius + axis * v
         case let .cone(apex, axis, halfAngle):
             let basis = try analyticOrthonormalBasis(axis, tolerance: tolerance)
-            let radial = basis.u * CanonicalSphereAngularPhase.candidate(at: u, cosine: true) + basis.v * CanonicalSphereAngularPhase.candidate(at: u, cosine: false)
+            let radial = basis.u * (try CanonicalSphereAngularPhase.candidate(at: u, cosine: true, using: &execution)) + basis.v * (try CanonicalSphereAngularPhase.candidate(at: u, cosine: false, using: &execution))
             return apex + axis * (v * cos(halfAngle)) + radial * (v * sin(halfAngle))
         case let .sphere(center, radius):
             let basis = try analyticOrthonormalBasis(.unitZ, tolerance: tolerance)
-            let cu = CanonicalSphereAngularPhase.candidate(at: u, cosine: true)
-            let su = CanonicalSphereAngularPhase.candidate(at: u, cosine: false)
-            let cv = CanonicalSphereAngularPhase.candidate(at: v, cosine: true)
-            let sv = CanonicalSphereAngularPhase.candidate(at: v, cosine: false)
+            let cu = (try CanonicalSphereAngularPhase.candidate(at: u, cosine: true, using: &execution))
+            let su = (try CanonicalSphereAngularPhase.candidate(at: u, cosine: false, using: &execution))
+            let cv = (try CanonicalSphereAngularPhase.candidate(at: v, cosine: true, using: &execution))
+            let sv = (try CanonicalSphereAngularPhase.candidate(at: v, cosine: false, using: &execution))
             let radial = (basis.u * cu + basis.v * su) * cv + Vector3D.unitZ * sv
             return center + radial * radius
         case let .torus(center, axis, majorRadius, minorRadius):
             let basis = try analyticOrthonormalBasis(axis, tolerance: tolerance)
-            let radial = basis.u * CanonicalSphereAngularPhase.candidate(at: u, cosine: true) + basis.v * CanonicalSphereAngularPhase.candidate(at: u, cosine: false)
-            return center + radial * (majorRadius + minorRadius * CanonicalSphereAngularPhase.candidate(at: v, cosine: true)) + axis * (minorRadius * CanonicalSphereAngularPhase.candidate(at: v, cosine: false))
+            let radial = basis.u * (try CanonicalSphereAngularPhase.candidate(at: u, cosine: true, using: &execution)) + basis.v * (try CanonicalSphereAngularPhase.candidate(at: u, cosine: false, using: &execution))
+            return center + radial * (majorRadius + minorRadius * (try CanonicalSphereAngularPhase.candidate(at: v, cosine: true, using: &execution))) + axis * (minorRadius * (try CanonicalSphereAngularPhase.candidate(at: v, cosine: false, using: &execution)))
         }
     }
 
@@ -370,7 +396,17 @@ public enum AnalyticSurface3D: Equatable, Hashable, Sendable {
         v: Double,
         tolerance: ModelingTolerance
     ) throws -> UVNFrame {
-        let differential = try differentialGeometry(u: u, v: v, tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try uvnFrame(u: u, v: v, tolerance: tolerance, using: &execution)
+    }
+
+    public func uvnFrame<A: ExactScalarAdmission & ~Copyable>(
+        u: Double,
+        v: Double,
+        tolerance: ModelingTolerance, using execution: inout A
+    ) throws -> UVNFrame {
+        try execution.consumeWork(1)
+        let differential = try differentialGeometry(u: u, v: v, tolerance: tolerance, using: &execution)
         let tangentU = try differential.tangentU.normalized(tolerance: tolerance.distance)
         let normal = try differential.normal.normalized(tolerance: tolerance.distance)
         let tangentV = try normal.cross(tangentU).normalized(tolerance: tolerance.distance)

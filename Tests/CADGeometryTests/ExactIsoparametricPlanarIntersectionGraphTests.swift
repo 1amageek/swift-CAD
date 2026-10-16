@@ -8,6 +8,7 @@ struct ExactIsoparametricPlanarIntersectionGraphTests {
 
     @Test
     func sphereEquatorProducesFourCompleteGraphCellsInBothOrders() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
         let plane = BSplineSurface3D(
             uDegree: 1,
             vDegree: 1,
@@ -39,7 +40,8 @@ struct ExactIsoparametricPlanarIntersectionGraphTests {
             let candidate = try ExactIsoparametricPlanarIntersectionGraph.certified(
                 first: operands.0,
                 second: operands.1,
-                tolerance: tolerance
+                tolerance: tolerance,
+                using: &execution
             )
             let graph = try #require(candidate)
             #expect(graph.cells.count == 4)
@@ -48,7 +50,7 @@ struct ExactIsoparametricPlanarIntersectionGraphTests {
                     let parameters = try graph.normalizedParameterPair(
                         in: cell,
                         at: fraction,
-                        tolerance: tolerance
+                        tolerance: tolerance, using: &execution
                     )
                     let values = parameters.values
                     let firstPoint = try operands.0.point(
@@ -74,7 +76,8 @@ struct ExactIsoparametricPlanarIntersectionGraphTests {
         let perturbedCandidate = try ExactIsoparametricPlanarIntersectionGraph.certified(
             first: perturbedSphere,
             second: plane,
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
         )
         #expect(perturbedCandidate == nil)
 
@@ -83,7 +86,8 @@ struct ExactIsoparametricPlanarIntersectionGraphTests {
         let nonAffineCandidate = try ExactIsoparametricPlanarIntersectionGraph.certified(
             first: sphere,
             second: nonAffinePlane,
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
         )
         #expect(nonAffineCandidate == nil)
     }

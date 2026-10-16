@@ -5,17 +5,55 @@ Child of [CADGeometry](../DESIGN.md), without children. Owns immutable caller
 admission forwarded across one original surface-pair intersection invocation.
 
 ## Responsibilities and Boundaries
-This component owns SSI invocation composition under the
-[direct original-query execution target](../DESIGN.md#direct-original-query-execution).
-Source owners, exact operations and public callers must directly consume the
-common execution contracts. Per-route allowance wrapping is not its target.
 
-The current implementation retains an immutable value that forwards work-visit
-and retained-byte callbacks, source depth and enclosure limits. It never creates
-or resets a private allowance. Search, continuation, atlas and final source proof
-retain existing local option ceilings in addition to caller admission. The
-callback paths documented below remain current implementation until their
-actual owners/callers migrate; preserving them does not complete the target.
+This component publishes direct SSI requirements and the retained original-pair
+session. Ordinary convenience creates one common budget/execution and calls the
+same direct resolver as admitted entries. Array and rich results use one source
+dispatch with an explicit `includeRelations` policy, so a miss never repeats
+source preparation through a second public entry. The original analytic branch
+conditions remain with the ordinary dispatcher, which forwards the same
+execution to each concrete owner. Unconverted analytic publication owners fail
+explicitly before numerical candidate work; they cannot authorize original truth.
+
+Prepared sessions retain immutable source/enclosure evidence, immutable local
+policy/context and the shared `OriginalQueryBudget`. An ordinary later query creates
+one exclusive `OriginalQueryExecution` with its own counters and proof scopes.
+A direct later query borrows the incoming execution and verifies the retained
+budget identity before consuming the immutable prepared sources. Both forms
+apply query option ceilings to the retained policy, share cumulative
+work/bytes, and never copy or share a mutable scope stack. Self preparation
+aliases one original support for both roles. Callback requirements and the old
+SSI admission value are removed by this migration.
+
+The [common execution owner](../OriginalQueryExecution/DESIGN.md) owns resource
+semantics; source/relation owners retain their mathematical laws. Signature and
+structural migration does not close any runtime acceptance cell.
+
+### Original Source Boundary Gauges
+
+The internal original-pair gauge entry consumes source-issued quantitative jets
+for its initial closed boxes, every outward raw center box and every contracted
+box. The [source issuer](../OriginalSourceIssuance/DESIGN.md) owns original-law,
+order, owner, domain and attained coefficient checks before a jet is consumed.
+The existing determinant, inverse and Krawczyk algorithms retain their theorem;
+only their evaluation source changes. Raw derivative columns are normalized once
+by the original box widths. The original-source path uses the existing midpoint
+proposal, which remains defined for a singleton boundary axis.
+
+A unique gauge root, a proved empty gauge and an unresolved gauge remain distinct.
+Native interval bounds alone issue no source-bound endpoint or complete cover.
+The [mathematical relation owner](../NativeExactRelations/DESIGN.md#retained-bounded-sphere-cone-finite-cuts)
+retains each endpoint theorem and accounts for every remaining boundary cell
+before the public selected intersection can be complete. All cells
+and coefficient refinements use the incoming execution and independent caller
+source, geometric and scalar ceilings.
+
+The internal source gauge exposes a quantitative mathematical proof operation,
+independent of public dispatch. Necessary Krawczyk bounds retain every root but
+prove neither existence nor uniqueness. The relation consumer may compose these
+bounds on one continuing source session; only the existing unique theorem issues
+an endpoint. The operational dependency is source law -> gauge theorem -> retained
+relation -> public dispatch; a gauge never re-enters a public query or publisher.
 
 ## Related Designs
 | Design | Relationship | Contract Used | Summary | Cautions |
@@ -25,20 +63,28 @@ actual owners/callers migrate; preserving them does not complete the target.
 | [Original Geometry Source Validation](../OriginalGeometrySourceValidation/DESIGN.md) | depends on | paid original source traversal | Bounds preparation | Preserve exact source depth |
 
 ## Architecture
-The target flow and owner boundaries are defined by the parent contract above.
-The following is the current callback implementation, not the target structure:
 
 ```text
-caller callback and limits -> immutable invocation value
- -> original preparation -> search -> root candidates -> continuation
- -> original graph atlas -> completeness -> original curve publication
+ordinary entry -> one shared budget + exclusive execution
+admitted entry ---------------------------> same execution
+    -> original source / DI -> relation -> refinement -> atomic publication
+prepared session -> retained budget + immutable evidence/policy
+    -> ordinary: new exclusive execution over the retained budget
+    -> direct: same incoming execution and verified retained budget identity
 ```
 
 ## Contracts and Invariants
-Every source-sized loop forwards the same callback before inspecting its item.
+The ordinary bounded rich-result requirement creates one execution from the
+supplied options, with both authored box requests in its ordinary-entry context,
+then invokes the same admitted bounded resolver. It performs no surface trimming,
+source conversion, query replay or separate allowance. Custom conformers without
+that witness retain explicit unsupported failure. Witness-table dispatch is
+required on Embedded as on Native and ordinary WASM.
+
+Every source-sized loop admits work on the same execution before inspecting its item.
 Prepared closed enclosures use the exact caller source depth, subdivision depth
-and span bound. Legacy entry points retain historical enclosure defaults and
-cancellation checks without inventing a cumulative work ceiling. Numerical
+and span bound. Ordinary entry policy preserves the original option-derived ceilings under one
+cumulative common budget; admitted and prepared entries retain the caller owner. Numerical
 evaluation remains a candidate; original closed interval proof is authoritative.
 Predictor anchor coordinates enclose the original endpoint quotient and retain
 its rounding uncertainty in every Krawczyk center bound. Rounded numerical
@@ -80,12 +126,11 @@ explicit failure when a particular chart cannot be certified.
 Implicit cell admission likewise requires finite ordered original endpoints
 with positive spans; the modeling relative tolerance is not a minimum cell
 width. Geometric containment, rank, uniqueness and resource proofs still apply.
-Stored callbacks are Sendable and retain only the caller's isolated allowance.
-Byte admission never flows through a source-depth callback. Preparation forwards
-the same retained-byte callback through the native coefficients and nested
-prepared curve/surface owners before those allocations. Query-local enclosure
-coefficients and numerical candidate buffers must also use their actual allocation
-owners; complete invocation storage admission remains open until those ports connect.
+The shared budget retains Sendable external callbacks outside its Mutex.
+Preparation and query-local buffers directly admit bytes through the original
+execution before materialization. Source depth, geometric depth and scalar axes
+remain independent. Behavioral evidence must include nested prepared owners and
+actual enclosure/candidate allocation paths; signatures alone cannot close this gap.
 
 ### Exact Authored Plane Boundary Graphs
 
@@ -99,7 +144,7 @@ coordinates equal to zero or one. Gauge publication brackets the same rational
 solution. Numerical normalizations and interval rounding slack cannot establish
 incidence. Other surface families retain their separate proof owners; absence
 of this producer's supported source law means unresolved, never empty.
-The producer borrows the same work and optional checked UInt32-byte admission.
+The producer directly receives the same scalar work/byte execution.
 It creates no private allowance or algebraic extension and does not change
 the legacy normalized plane-basis selection rule.
 
@@ -114,19 +159,23 @@ coverage or complete exclusion. The producer prepares each original
 support once and uses the same domain map, completeness search, continuation,
 atlas and final original curve publication as the whole-domain entry. It does
 not construct or round a restricted surface. Completeness is scoped to this
-requested box pair, and all local/caller limits and callbacks remain unchanged.
+requested box pair, and its local policy cannot reset the cumulative budget.
 Same-support global self-contact composition owns its independent exclusion of
 the diagonal and local injectivity proofs; a domain-pair entry never supplies
 those proofs merely because its input boxes are distinct.
 `OriginalSurfacePairIntersecting` is the public invocation-session requirement.
 The prepared implementation retains the two admitted immutable original support
-owners, their preparation tolerance and the same caller callbacks. Every box
+owners, their preparation tolerance and the same shared caller budget. Every box
 query derives its sources from those owners and reuses them; callers cannot
 replace a surface, tolerance or ledger after preparation. Single-span Native selection precedes the
 [Native multi-chart producer](../NativeMultiChartSurfaceSurfaceRelations/DESIGN.md).
 An applicability nil selects the next producer; an admitted producer failure
-propagates. Both rich and discrete session queries pass the identical retained
-admission, original supports and closed requested boxes. The rich path retains
+propagates. Rich, discrete, continuity and enclosure queries use the same prepared
+support owners. Ordinary queries derive an exclusive execution from the retained
+budget/policy; direct requirements consume the incoming execution after checking
+that budget identity and applying the immutable local ceilings. A foreign budget
+fails explicitly before prepared evidence consumption. Both forms use identical
+original supports and closed requested boxes. The rich path retains
 complete point/relation authority; the discrete path rejects any positive
 component atomically. Options remain local
 query limits in addition to the session's cumulative admission. Unsupported
@@ -141,15 +190,16 @@ the retained original prepared support and the same algebra/work/byte admission;
 a missing original join issuer is not an affirmative continuity receipt.
 
 ## Failure, Concurrency, and Constraints
-Cancellation and caller exhaustion propagate directly. Nonpositive span limits
-and negative depth fail before preparation. This immutable adapter owns no shared
-mutable state and introduces no platform-dependent isolation differences.
+Cancellation and caller exhaustion propagate with immutable query-stage, request
+and retained-owner context. Negative policy values fail before preparation. The
+session retains a shared Mutex-protected budget and no shared query-local mutable
+state. Every target preserves the same isolation and Sendable contract.
 
 ## Verification and Change Impact
 After the complete implementation phase, exercise public success, failure and
 one-less cumulative limits through preparation, root iterations, continuation,
 atlas and final assembly. Recheck Geometry producers and drawing/Boolean callers
-if callback semantics or original source limits change. Source wiring alone is
+if direct admission semantics or original source limits change. Source wiring alone is
 not behavioral completion evidence.
 
 Atlas construction borrows traced sample slices, rather than copying the same
@@ -190,10 +240,10 @@ closed restrictions are legal; original affine widths and reversal are outward
 interval operations. All prepared owners, visits and typed buffers use the same
 caller admission.
 
-Caller work admission and byte policy are independent. A selected caller work
-ledger retains its source/span/depth contract when storage admission is nil.
-Only a nonnil byte callback selects bounded descendant allocation admission;
-legacy work-only callers receive no no-op callback and no storage guarantee.
+Work and byte accounting remain independent on the common budget. Optional
+external callbacks do not change direct local source/span/depth policy or permit
+allocation to bypass the execution. Internal cumulative observations remain
+distinct from an opaque external ledger.
 
 ### Native Isolated Rich Publication
 
@@ -209,7 +259,14 @@ cancellation check; a cancelled callback cannot publish success. No synchronizat
 or Sendable contract changes across targets.
 
 ### Bounded Protocol Witness
-The bounded intersector requirement carries optional byte admission and optional independent algebra depth in addition to source and spatial depth. Its concrete implementation has exactly the same optional storage signature. A selected algebra cap is forwarded unchanged to the existing original surface-pair producer. The compatibility admitted overload delegates with no selected algebra cap; an injected legacy conformer without the new admission witness fails explicitly rather than invoking an unmetered method. Nil storage stays nil throughout dispatch. [BoundedSurfaceSurfaceAdmissionWitnessTests](../../../Tests/CADGeometryTests/BoundedSurfaceSurfaceAdmissionWitnessTests.swift) verifies concrete and existential dispatch, separate depth/work/byte refusal and cancellation.
+
+The direct requirement receives the actual noncopyable execution. Injected
+conformers implement this requirement before their results can supply complete
+caller-admitted evidence. Array and rich entries share one actual source dispatch;
+no callback overload or ordinary replay supplies the direct witness. Verification
+must exercise concrete and existential calls, separate depth/work/byte refusal,
+prepared cumulative reuse, concurrent local scope isolation and final cancellation.
+Existing historical callback receipts are not evidence for the direct API.
 
 ### Root-free sphere-cone preparation selection
 
@@ -218,3 +275,96 @@ Preparation selects the existing apex or bounded receipt before the broader
 It prepares a full sphere-cone receipt only when neither specialized receipt
 was selected. Array and rich session queries preserve that same order and
 retain the chosen immutable owner under the original caller admission.
+
+### Unconverted Analytic Publication Gates
+
+The legacy analytic and bounded-candidate SSI entries receive the original
+execution, observe its checkpoint and fail with contextual `unsupportedCapability`
+where complete original common-set authority is missing. Their former success
+bodies are removed. Literal identical analytic/cylinder sources and fully identical
+validated BSpline source snapshots retain their existing exact stored-equality
+coincidence branch; comparison work and output bytes use the same execution.
+Source-certified producers earlier in dispatch remain authoritative and unchanged.
+
+| Rejected path | Concrete contract violation | Current owner action | Required completion |
+|---|---|---|---|
+| [SphereSphereSurfaceIntersector](../SphereSphereSurfaceIntersector.swift) near-center branch | Distinct centers within distance tolerance were published as coincident | Remove tolerance equality; keep only literal stored source equality | Complete original sphere-pair relation and UV coverage |
+| [SurfaceSurfaceIntersectionVerifier](../SurfaceSurfaceIntersectionVerifier.swift) sampled curve acceptance | A unit sphere cut at z=0.5 produced a rounded circle radius whose exact square differs from 3/4; sampled residual did not prove common-set truth | Delete sampled publication body; direct and remaining ordinary ports explicitly fail | Consume complete original source-law/parameter correspondence proof |
+| [SurfaceIntersectionSplineBuilder](../SurfaceIntersectionSplineBuilder.swift) fitted-spline truth | A fitted spline and sampled source residual were promoted to original intersection truth | Remove truth publication; preserve candidate-only representation/source expressions | Publish source-certified truth with a separately identified derived cache |
+
+The failure-only ordinary signatures serve existing candidate/source helper
+references and perform no solve, admission translation or success fallback. Pure
+source expressions used by certified source constructors remain available. The
+obsolete private bounded BSpline candidate solver and its unused certificate
+resolver are removed; independent exact source-law owners remain in place.
+
+These gates record mandatory U4 coverage gaps, not completed source capability.
+U4 must reconnect every required source/request family to existing exact source,
+DI and retained relation authority and verify success, exclusion, coincidence,
+proximity and indeterminate behavior. A failure gate and syntax checks close no
+acceptance cell. Verification must keep the near-sphere and rounded-circle
+counterexamples from regaining false success and exercise preserved source-certified
+routes on each required target.
+
+### Regular Graph Execution and Exact Connections
+
+The regular SSI coordinator, graph prover, root refiner, continuation tracer,
+atlas and completeness verifier consume the original exclusive execution directly.
+They retain immutable prepared sources and graph evidence, never a callback
+admission or a query-local proof stack. Their closed original jets and strict
+Krawczyk/self-map certificates remain the authority for existence and coverage.
+Continuation samples select candidates and never establish topology identity.
+
+Original authored-plane graph parameters may be read through a proof-bound
+exact rational port that retains the original planes, selected box and free
+coordinate. Endpoint identity compares all four exact native source parameters
+and oriented graph directions under the same execution. This consumes the
+existing affine source equation and creates no new solver or replacement source.
+A general graph endpoint connection requires source identity evidence; nearby
+parameter boxes, points or tangents cannot establish it. Unproved connections
+fail explicitly with an incomplete marker and remain mandatory U4 gaps.
+
+Verification must reject distinct nearby branches (for example the two roots
+of z=x(x-delta) against z=0) while preserving exact authored-plane joins,
+single-cell certified graphs, cumulative accounting and cancellation.
+
+The former graph-cell Cartesian `differencePatch` fallback is removed: trimming
+canonicalized a selected boundary near a knot to that knot, then decomposed a
+rounded replacement source. Its certificate did not establish the original
+selected-domain relation. Original exact structural graphs remain first; other
+cells consume the original prepared closed jets in the existing graph prover
+under the same execution. Required verification includes distinct near-knot
+selection boundaries and the preserved exact structural cases.
+
+Regular graph membership and localization keep explicit caller span, source,
+geometric and optional common scalar ceilings at their actual algorithms.
+Each ceiling intersects the current execution limit independently; an omitted
+common scalar ceiling leaves value and coefficient axes independent. Prepared
+localizers retain immutable local ceilings and the original cumulative budget;
+ordinary later queries create an exclusive local execution over that owner.
+Direct later queries use the incoming execution throughout. Configured ceilings
+are not attained-depth receipts.
+
+| Retained state | Native | WASM | Embedded | Mutation owner |
+|---|---|---|---|---|
+| Prepared implicit sources, local ceilings and context | Immutable value/COW views | Same | Same | Construction only |
+| Cumulative query budget | OriginalQueryBudget | Same | Same | Shared execution budget contract |
+| Proof scopes, query counters and phase | Exclusive local OriginalQueryExecution | Same | Same | Inout invocation |
+
+The shared budget's storage/isolation/runtime guarantees belong to the
+[execution owner](../OriginalQueryExecution/DESIGN.md). This component introduces
+no target-dependent state, callback accounting or independently copied budget.
+Syntax checks do not establish the required graph behavior or runtime budget
+semantics; preserved structural/single-cell proofs, rejected proximity joins,
+local-cap exhaustion, cumulative reuse and cancellation require focused execution.
+
+### Bounded Public Caller Closure
+
+The bounded default entry validates boundary points under the supplied execution,
+then invokes the same genuine surface-pair original producer used by ordinary,
+admitted and rich calls. Boundary samples never infer a finite source domain or
+authorize intersection coverage. Unbounded plane-cone support without a retained
+original selected domain remains explicitly unsupported. The bounded protocol
+exposes direct execution in its requirement table; ordinary-only conformers
+cannot establish this witness and their direct requirement fails explicitly. Ordinary convenience entries
+create one root and invoke the direct body, without a private solver allowance.

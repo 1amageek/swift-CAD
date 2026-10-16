@@ -13,45 +13,32 @@ package struct OriginalSweepPathLinearity {
         var direction: [ExactRationalCoefficient]
         var frames: [Frame] = []
     }
-    private struct Usage: RationalAlgebraAdmitting {
-        let admission: GeometryConversionAdmission
-        func consumeExactWork(_ count: Int) throws { try admission.chargeWork(count) }
-        func retainExactStorage(_ count: Int) throws {
-            let bytes = count.multipliedReportingOverflow(by: MemoryLayout<UInt32>.stride)
-            guard count >= 0, !bytes.overflow else { throw GeometryConversionError.resourceLimitExceeded("Original straight-path exact storage overflowed.") }
-            try admission.chargeStorage(bytes: bytes.partialValue)
-        }
-        func visitExactCell(depth: Int) throws {
-            guard depth >= 0, depth <= (admission.maximumAlgebraicDepth ?? 32) else { throw GeometryConversionError.resourceLimitExceeded("Original straight-path algebra depth exhausted.") }
-            try admission.chargeWork()
-        }
-    }
     private let tolerance: ModelingTolerance
-    private let admission: GeometryConversionAdmission
 
-    package init(tolerance: ModelingTolerance, admission: GeometryConversionAdmission? = nil) throws {
+    package init(tolerance: ModelingTolerance) {
         self.tolerance = tolerance
-        if let admission { self.admission = admission }
-        else { self.admission = try CurvedSweepSourceBudget(tolerance: tolerance).conversionAdmission() }
     }
 
-    package func containsOnlyLinearArms(_ spans: [ExactBSplineCurveSpan]) throws -> Bool {
+    package func containsOnlyLinearArms(_ spans: [ExactBSplineCurveSpan],
+        using usage: inout OriginalQueryExecution) throws -> Bool {
         guard !spans.isEmpty else { return false }
-        var usage = Usage(admission: admission)
         for span in spans {
             if try axis(for: span, usage: &usage) == nil { return false }
         }
         return true
     }
 
-    package func isStraight(_ spans: [ExactBSplineCurveSpan]) throws -> Bool {
+    package func isStraight(_ spans: [ExactBSplineCurveSpan],
+        using usage: inout OriginalQueryExecution) throws -> Bool {
         guard let first = spans.first else { return false }
-        var usage = Usage(admission: admission)
         guard let initial = try axis(for: first, usage: &usage) else { return false }
         for span in spans.dropFirst() {
             guard let next = try axis(for: span, usage: &usage) else { return false }
             let a: Axis, b: Axis
-            try admission.chargeWork(initial.frames.count + next.frames.count + 1)
+            let frameCount = initial.frames.count.addingReportingOverflow(next.frames.count)
+            let workCount = frameCount.partialValue.addingReportingOverflow(1)
+            guard !frameCount.overflow, !workCount.overflow else { throw ExactScalarFailure.countOverflow }
+            try usage.consumeWork(workCount.partialValue)
             if initial.frames == next.frames { a = initial; b = next }
             else {
                 guard let firstWorld = try worldAxis(initial, usage: &usage),
@@ -75,7 +62,7 @@ package struct OriginalSweepPathLinearity {
         return true
     }
 
-    private func axis(for span: ExactBSplineCurveSpan, usage: inout Usage) throws -> Axis? {
+    private func axis(for span: ExactBSplineCurveSpan, usage: inout OriginalQueryExecution) throws -> Axis? {
         let chart = span.originalChart
         guard var result = try axis(curve: chart.curve,
             parameters: ScalarInterval(lower: min(chart.startParameter, chart.endParameter),
@@ -85,18 +72,18 @@ package struct OriginalSweepPathLinearity {
             throw GeometryConversionError.invalidInput("Original straight-path traversal has equal directed fractions.")
         }
         if (chart.endParameter < chart.startParameter) != fractionGain.isNegative {
-            try admission.chargeStorage(bytes: 3 * MemoryLayout<ExactRationalCoefficient>.stride)
+            try usage.retainStorage(bytes: 3 * MemoryLayout<ExactRationalCoefficient>.stride)
             result.direction = result.direction.map { $0.negated }
         }
         return result
     }
 
     private func axis(curve: Curve3D, parameters: ScalarInterval, depth: Int,
-        usage: inout Usage) throws -> Axis? {
-        guard depth <= admission.remainingSourceDepth else {
+        usage: inout OriginalQueryExecution) throws -> Axis? {
+        guard depth <= usage.effectiveLimits.remainingSourceDepth else {
             throw GeometryConversionError.resourceLimitExceeded("Original straight-path source nesting exhausted.")
         }
-        try admission.chargeWork()
+        try usage.consumeWork(1)
         switch curve {
         case .line(let line):
             return try axis(origin: line.origin, direction: line.direction, usage: &usage)
@@ -108,22 +95,22 @@ package struct OriginalSweepPathLinearity {
             return try polylineAxis(source, parameters: parameters, usage: &usage)
         case .rigidImage(let image):
             guard var result = try axis(curve: image.source, parameters: parameters, depth: depth + 1, usage: &usage) else { return nil }
-            try admission.chargeStorage(bytes: MemoryLayout<Frame>.stride)
+            try usage.retainStorage(bytes: MemoryLayout<Frame>.stride)
             result.frames.append(.rigid(image.transform)); return result
         case .affineImage(let image):
             guard var result = try axis(curve: image.source, parameters: parameters, depth: depth + 1, usage: &usage) else { return nil }
-            try admission.chargeStorage(bytes: MemoryLayout<Frame>.stride)
+            try usage.retainStorage(bytes: MemoryLayout<Frame>.stride)
             result.frames.append(.affine(image.transform)); return result
         case .originalAffineWord(let image):
             guard var result = try axis(curve: image.source, parameters: parameters, depth: depth + 1, usage: &usage) else { return nil }
-            try admission.chargeStorage(bytes: MemoryLayout<Frame>.stride)
+            try usage.retainStorage(bytes: MemoryLayout<Frame>.stride)
             result.frames.append(.word(image.preparedWord)); return result
         case .parameterImage(let image):
-            let native = try image.originalInterval(parameters, consumeWork: { try admission.chargeWork() })
+            let native = try image.originalInterval(parameters, using: &usage)
             guard var result = try axis(curve: image.source, parameters: native, depth: depth + 1, usage: &usage) else { return nil }
             let gain = try image.parameterGain.exactCoefficient(usage: &usage)
             if gain.isNegative {
-                try admission.chargeStorage(bytes: 3 * MemoryLayout<ExactRationalCoefficient>.stride)
+                try usage.retainStorage(bytes: 3 * MemoryLayout<ExactRationalCoefficient>.stride)
                 result.direction = result.direction.map { $0.negated }
             }
             return result
@@ -143,7 +130,7 @@ package struct OriginalSweepPathLinearity {
                         upper: max(firstBox.upper, lastBox.upper)), depth: depth + 1, usage: &usage) else { return nil }
                 let directed = try last.subtracting(first, usage: &usage)
                 if directed.isNegative {
-                    try admission.chargeStorage(bytes: 3 * MemoryLayout<ExactRationalCoefficient>.stride)
+                    try usage.retainStorage(bytes: 3 * MemoryLayout<ExactRationalCoefficient>.stride)
                     result.direction = result.direction.map { $0.negated }
                 }
                 return result
@@ -154,7 +141,7 @@ package struct OriginalSweepPathLinearity {
                         parameters: ScalarInterval(lower: min(first, last), upper: max(first, last)),
                         depth: depth + 1, usage: &usage) else { return nil }
                     if last < first {
-                        try admission.chargeStorage(bytes: 3 * MemoryLayout<ExactRationalCoefficient>.stride)
+                        try usage.retainStorage(bytes: 3 * MemoryLayout<ExactRationalCoefficient>.stride)
                         result.direction = result.direction.map { $0.negated }
                     }
                     return result
@@ -177,8 +164,8 @@ package struct OriginalSweepPathLinearity {
         }
     }
 
-    private func axis(origin: Point3D, direction: Vector3D, usage: inout Usage) throws -> Axis {
-        try admission.chargeStorage(bytes: 6 * MemoryLayout<ExactRationalCoefficient>.stride)
+    private func axis(origin: Point3D, direction: Vector3D, usage: inout OriginalQueryExecution) throws -> Axis {
+        try usage.retainStorage(bytes: 6 * MemoryLayout<ExactRationalCoefficient>.stride)
         return Axis(origin: [try .originalDouble(origin.x, usage: &usage),
             try .originalDouble(origin.y, usage: &usage), try .originalDouble(origin.z, usage: &usage)],
             direction: [try .originalDouble(direction.x, usage: &usage),
@@ -186,17 +173,17 @@ package struct OriginalSweepPathLinearity {
     }
 
     private func polylineAxis(_ source: OriginalPolylineCurve3D, parameters: ScalarInterval,
-        usage: inout Usage) throws -> Axis? {
+        usage: inout OriginalQueryExecution) throws -> Axis? {
         guard !source.isClosed, parameters.lower >= 0, parameters.upper <= 1,
             parameters.lower < parameters.upper, let first = source.points.first,
             let last = source.points.last, source.points.count > 1 else { return nil }
-        func point(_ value: Point3D, usage: inout Usage) throws -> [ExactRationalCoefficient] {
-            try admission.chargeStorage(bytes: 3 * MemoryLayout<ExactRationalCoefficient>.stride)
+        func point(_ value: Point3D, usage: inout OriginalQueryExecution) throws -> [ExactRationalCoefficient] {
+            try usage.retainStorage(bytes: 3 * MemoryLayout<ExactRationalCoefficient>.stride)
             return [try .originalDouble(value.x, usage: &usage),
                 try .originalDouble(value.y, usage: &usage), try .originalDouble(value.z, usage: &usage)]
         }
         let start = try point(first, usage: &usage), end = try point(last, usage: &usage)
-        try admission.chargeStorage(bytes: 3 * MemoryLayout<ExactRationalCoefficient>.stride)
+        try usage.retainStorage(bytes: 3 * MemoryLayout<ExactRationalCoefficient>.stride)
         var direction: [ExactRationalCoefficient] = []; direction.reserveCapacity(3)
         for index in 0..<3 {
             direction.append(try end[index].subtracting(start[index], usage: &usage))
@@ -204,9 +191,9 @@ package struct OriginalSweepPathLinearity {
         guard direction.contains(where: { !$0.isZero }) else { return nil }
         var previous = start
         for raw in source.points.dropFirst() {
-            try admission.chargeWork()
+            try usage.consumeWork(1)
             let next = try point(raw, usage: &usage)
-            try admission.chargeStorage(bytes: 3 * MemoryLayout<ExactRationalCoefficient>.stride)
+            try usage.retainStorage(bytes: 3 * MemoryLayout<ExactRationalCoefficient>.stride)
             var displacement: [ExactRationalCoefficient] = []; displacement.reserveCapacity(3)
             for index in 0..<3 {
                 displacement.append(try next[index].subtracting(previous[index], usage: &usage))
@@ -226,7 +213,7 @@ package struct OriginalSweepPathLinearity {
     }
 
     private func nativeAxis(_ source: BSplineCurve3D, parameters: ScalarInterval,
-        usage: inout Usage) throws -> Axis? {
+        usage: inout OriginalQueryExecution) throws -> Axis? {
         guard case let .closed(lower, upper) = source.domain,
               parameters.lower >= lower, parameters.upper <= upper else {
             // FIXME(INCOMPLETE_IMPLEMENTATION): Periodic translated native
@@ -236,37 +223,37 @@ package struct OriginalSweepPathLinearity {
         }
         var ownerCount = 0
         for index in source.degree..<source.controlPoints.count {
-            try admission.chargeWork()
+            try usage.consumeWork(1)
             if source.knots[index] < source.knots[index + 1],
                source.knots[index + 1] > parameters.lower, source.knots[index] < parameters.upper {
                 ownerCount += 1
-                guard ownerCount <= admission.maximumSpanCount else {
+                guard ownerCount <= usage.effectiveLimits.maximumSpans else {
                     throw GeometryConversionError.resourceLimitExceeded("Original straight-path owning span count exhausted.")
                 }
             }
         }
-        try admission.chargeStorage(bytes: ownerCount * MemoryLayout<OriginalRationalCurvePolynomial>.stride)
+        try RationalAlgebraStorage.retain(ownerCount, of: OriginalRationalCurvePolynomial.self, usage: &usage)
         var owners: [OriginalRationalCurvePolynomial] = []
         owners.reserveCapacity(ownerCount)
         for index in source.degree..<source.controlPoints.count {
-            try admission.chargeWork()
+            try usage.consumeWork(1)
             if source.knots[index] < source.knots[index + 1],
                source.knots[index + 1] > parameters.lower, source.knots[index] < parameters.upper {
-                guard owners.count < admission.maximumSpanCount else {
+                guard owners.count < usage.effectiveLimits.maximumSpans else {
                     throw GeometryConversionError.resourceLimitExceeded("Original straight-path owning span count exhausted.")
                 }
-                try usage.visitExactCell(depth: 0)
+                try usage.visitCell(axis: .value, depth: 0)
                 owners.append(try OriginalRationalCurvePolynomial(source: source,
                     spanIndex: index, tolerance: tolerance, usage: &usage))
             }
         }
         guard let first = owners.first, let last = owners.last else { return nil }
         func point(_ law: OriginalRationalCurvePolynomial, at parameter: Double,
-            usage: inout Usage) throws -> [ExactRationalCoefficient] {
+            usage: inout OriginalQueryExecution) throws -> [ExactRationalCoefficient] {
             let station = try ExactRationalCoefficient.originalDouble(parameter, usage: &usage)
             let weight = try law.homogeneous[3].evaluated(atU: station, v: .zero, usage: &usage)
             guard weight.isPositive else { throw GeometryConversionError.invalidInput("Original line incidence requires positive homogeneous endpoint weight.") }
-            try admission.chargeStorage(bytes: 3 * MemoryLayout<ExactRationalCoefficient>.stride)
+            try usage.retainStorage(bytes: 3 * MemoryLayout<ExactRationalCoefficient>.stride)
             return try (0..<3).map { index in
                 try law.homogeneous[index].evaluated(atU: station, v: .zero, usage: &usage)
                     .divided(by: weight, usage: &usage)
@@ -274,7 +261,7 @@ package struct OriginalSweepPathLinearity {
         }
         let start = try point(first, at: parameters.lower, usage: &usage)
         let end = try point(last, at: parameters.upper, usage: &usage)
-        try admission.chargeStorage(bytes: 3 * MemoryLayout<ExactRationalCoefficient>.stride)
+        try usage.retainStorage(bytes: 3 * MemoryLayout<ExactRationalCoefficient>.stride)
         var direction: [ExactRationalCoefficient] = []; direction.reserveCapacity(3)
         for index in 0..<3 { direction.append(try end[index].subtracting(start[index], usage: &usage)) }
         guard direction.contains(where: { !$0.isZero }) else { return nil }
@@ -285,7 +272,7 @@ package struct OriginalSweepPathLinearity {
                 let left = try point(prior, at: parameter, usage: &usage)
                 let right = try point(owner, at: parameter, usage: &usage)
                 for component in 0..<3 {
-                    try admission.chargeWork()
+                    try usage.consumeWork(1)
                     if left[component] != right[component] { return nil }
                 }
             }
@@ -314,23 +301,23 @@ package struct OriginalSweepPathLinearity {
             let critical = try speed.differentiated(alongU: true, usage: &usage)
             if !critical.isZero {
                 let roots = try ExactUnivariateRootIsolator().isolate(critical,
-                    lower: lower, upper: upper, maximumDepth: admission.maximumAlgebraicDepth ?? 32, usage: &usage)
+                    lower: lower, upper: upper, maximumDepth: usage.effectiveLimits.maximumValueDepth, usage: &usage)
                 for isolation in roots {
                     let root = try ExactAlgebraicRealRoot(polynomial: critical,
                         isolation: isolation, usage: &usage)
-                    if try root.sign(of: speed, maximumDepth: admission.maximumAlgebraicDepth ?? 32, usage: &usage) == .negative { return nil }
+                    if try root.sign(of: speed, maximumDepth: usage.effectiveLimits.maximumValueDepth, usage: &usage) == .negative { return nil }
                 }
             }
         }
         return Axis(origin: start, direction: direction)
     }
 
-    private func worldAxis(_ axis: Axis, usage: inout Usage) throws -> Axis? {
+    private func worldAxis(_ axis: Axis, usage: inout OriginalQueryExecution) throws -> Axis? {
         var result = axis
         for frame in axis.frames {
             if case .word(let word) = frame {
                 for factor in word.source.factors {
-                    try admission.chargeWork()
+                    try usage.consumeWork(1)
                     switch factor {
                     case .normalizedForward, .normalizedInverse:
                         // FIXME(INCOMPLETE_IMPLEMENTATION): Distinct algebraic
@@ -344,14 +331,14 @@ package struct OriginalSweepPathLinearity {
             func coordinate(_ vector: Vector3D, _ component: Int) -> Double {
                 switch component { case 0: vector.x; case 1: vector.y; default: vector.z }
             }
-            func translation(row: Int, usage: inout Usage) throws -> ExactRationalCoefficient {
+            func translation(row: Int, usage: inout OriginalQueryExecution) throws -> ExactRationalCoefficient {
                 switch frame {
                 case .word(let word): return try word.translationCoefficient(row: row)
                 case .rigid(let transform): return try .originalDouble(coordinate(transform.translation, row), usage: &usage)
                 case .affine(let transform): return try .originalDouble(coordinate(transform.translation, row), usage: &usage)
                 }
             }
-            func coefficient(row: Int, column: Int, usage: inout Usage) throws -> ExactRationalCoefficient {
+            func coefficient(row: Int, column: Int, usage: inout OriginalQueryExecution) throws -> ExactRationalCoefficient {
                 let vector: Vector3D
                 switch frame {
                 case .word(let word): return try word.linearCoefficient(row: row, column: column)
@@ -362,7 +349,7 @@ package struct OriginalSweepPathLinearity {
                 }
                 return try .originalDouble(coordinate(vector, row), usage: &usage)
             }
-            try admission.chargeStorage(bytes: 6 * MemoryLayout<ExactRationalCoefficient>.stride)
+            try usage.retainStorage(bytes: 6 * MemoryLayout<ExactRationalCoefficient>.stride)
             var origin: [ExactRationalCoefficient] = [], direction: [ExactRationalCoefficient] = []
             origin.reserveCapacity(3); direction.reserveCapacity(3)
             for row in 0..<3 {

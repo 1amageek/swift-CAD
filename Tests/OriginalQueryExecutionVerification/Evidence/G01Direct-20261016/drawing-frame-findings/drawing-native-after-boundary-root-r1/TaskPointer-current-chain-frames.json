@@ -1,0 +1,385 @@
+{
+  "binarySHA256": "765778c079534121a252f193907b07e1677fdbe76675c7310cee2fad6f3b3a1b",
+  "ipsSHA256": "f331e7a10947ce0e21deaeb05adb3a7ce2429567028386aa73c64dd14df21ec5",
+  "exception": {
+    "codes": "0x0000000000000001, 0xffffffff7700005f",
+    "rawCodes": [
+      1,
+      -2298478497
+    ],
+    "type": "EXC_BAD_ACCESS",
+    "signal": "SIGSEGV",
+    "subtype": "KERN_INVALID_ADDRESS at 0xffffffff7700005f"
+  },
+  "allReportedFrames": [
+    {
+      "imageOffset": 44276,
+      "symbol": "swift_task_isCancelledWithFlags",
+      "symbolLocation": 0,
+      "imageIndex": 33
+    },
+    {
+      "imageOffset": 374164,
+      "symbol": "static Task<>.isCancelled.getter",
+      "symbolLocation": 80,
+      "imageIndex": 33
+    },
+    {
+      "imageOffset": 21142776,
+      "symbol": "OriginalQueryBudget.checkpoint(context:)",
+      "symbolLocation": 52,
+      "imageIndex": 1
+    },
+    {
+      "imageOffset": 4446376,
+      "symbol": "OriginalQueryExecution.checkpoint()",
+      "symbolLocation": 84,
+      "imageIndex": 1
+    },
+    {
+      "imageOffset": 21203948,
+      "symbol": "protocol witness for ExactScalarAdmission.checkpoint() in conformance OriginalQueryExecution",
+      "symbolLocation": 16,
+      "imageIndex": 1
+    },
+    {
+      "imageOffset": 27490420,
+      "symbol": "ExactNaturalMagnitude.quotientAndRemainder<A>(dividingBy:usage:)",
+      "symbolLocation": 1296,
+      "imageIndex": 1
+    },
+    {
+      "imageOffset": 27514228,
+      "symbol": "static ExactRationalCoefficient.dividedMagnitude<A>(_:by:usage:)",
+      "symbolLocation": 216,
+      "imageIndex": 1
+    },
+    {
+      "imageOffset": 5617092,
+      "symbol": "ExactRationalCoefficient.multiplied<A>(by:usage:)",
+      "symbolLocation": 2152,
+      "imageIndex": 1
+    },
+    {
+      "imageOffset": 8952336,
+      "symbol": "ExactBivariatePolynomial.scaled<A>(by:usage:)",
+      "symbolLocation": 808,
+      "imageIndex": 1
+    },
+    {
+      "imageOffset": 28305840,
+      "symbol": "OriginalRationalSurfaceHomogeneous.init<A>(validatedSource:domain:uSpanIndex:vSpanIndex:uTranslation:vTranslation:usage:)",
+      "symbolLocation": 2956,
+      "imageIndex": 1
+    },
+    {
+      "imageOffset": 28308656,
+      "symbol": "OriginalRationalSurfaceHomogeneous.init<A>(source:native:domain:tolerance:usage:)",
+      "symbolLocation": 380,
+      "imageIndex": 1
+    },
+    {
+      "imageOffset": 10660100,
+      "symbol": "OriginalRationalSurfacePolynomial.init<A>(source:native:domain:view:tolerance:usage:)",
+      "symbolLocation": 468,
+      "imageIndex": 1
+    },
+    {
+      "imageOffset": 30240252,
+      "symbol": "OriginalSurfaceSilhouetteField.init(surface:domain:view:tolerance:sourceAuthority:native:polePreparation:poleAuthorities:usage:)",
+      "symbolLocation": 1248,
+      "imageIndex": 1
+    },
+    {
+      "imageOffset": 30235404,
+      "symbol": "DefaultSurfaceSilhouetteProducer.preparedCover(surface:domain:view:tolerance:sourceAuthority:using:)",
+      "symbolLocation": 3256,
+      "imageIndex": 1
+    },
+    {
+      "imageOffset": 30208284,
+      "symbol": "DefaultSurfaceSilhouetteProducer.closedDomainSilhouette(of:over:view:tolerance:using:)",
+      "symbolLocation": 480,
+      "imageIndex": 1
+    },
+    {
+      "imageOffset": 30193288,
+      "symbol": "DefaultSurfaceSilhouetteProducer.silhouette(of:over:view:tolerance:using:)",
+      "symbolLocation": 3868,
+      "imageIndex": 1
+    },
+    {
+      "imageOffset": 30466244,
+      "symbol": "protocol witness for SurfaceSilhouetteProducing.silhouette(of:over:view:tolerance:using:) in conformance DefaultSurfaceSilhouetteProducer",
+      "symbolLocation": 48,
+      "imageIndex": 1
+    },
+    {
+      "imageOffset": 80260560,
+      "symbol": "BRepDrawingSilhouetteProducer.extract(_:in:placement:onto:maximumSourceFaces:maximumProjectedSpans:maximumControlPointCount:maximumBoundaryCurveCount:using:)",
+      "symbolLocation": 5032,
+      "imageIndex": 1
+    },
+    {
+      "imageOffset": 80255424,
+      "symbol": "BRepDrawingSilhouetteProducer.silhouettes(in:onto:maximumSourceFaces:maximumProjectedSpans:maximumControlPointCount:maximumBoundaryCurveCount:using:)",
+      "symbolLocation": 248,
+      "imageIndex": 1
+    },
+    {
+      "imageOffset": 80333804,
+      "symbol": "protocol witness for BRepDrawingSilhouetteProducing.silhouettes(in:onto:maximumSourceFaces:maximumProjectedSpans:maximumControlPointCount:maximumBoundaryCurveCount:using:) in conformance BRepDrawingSilhouetteProducer",
+      "symbolLocation": 28,
+      "imageIndex": 1
+    }
+  ],
+  "frames": [
+    {
+      "frame": "OriginalQueryBudget.checkpoint(context:)",
+      "symbol": "_$s11CADGeometry19OriginalQueryBudgetC10checkpoint7contextyAA0bC14FailureContextV_tAA011ExactScalarG0OYKF",
+      "address": "0x1429cc4",
+      "location": 52,
+      "entryFrameBytes": 240
+    },
+    {
+      "frame": "OriginalQueryExecution.checkpoint()",
+      "symbol": "_$s11CADGeometry22OriginalQueryExecutionV10checkpointyyAA18ExactScalarFailureOYKF",
+      "address": "0x43d854",
+      "location": 84,
+      "entryFrameBytes": 544
+    },
+    {
+      "frame": "protocol witness for ExactScalarAdmission.checkpoint() in conformance OriginalQueryExecution",
+      "symbol": "_$s11CADGeometry22OriginalQueryExecutionVAA20ExactScalarAdmissionA2aDP10checkpointyyAA0eF7FailureOYKFTW",
+      "address": "0x1438bdc",
+      "location": 16,
+      "entryFrameBytes": 48
+    },
+    {
+      "frame": "ExactNaturalMagnitude.quotientAndRemainder<A>(dividingBy:usage:)",
+      "symbol": "_$s11CADGeometry21ExactNaturalMagnitudeV20quotientAndRemainder10dividingBy5usageAC_ACtAC_xztKAA0B15ScalarAdmissionRzRi_zlF",
+      "address": "0x1a37364",
+      "location": 1296,
+      "entryFrameBytes": 2688
+    },
+    {
+      "frame": "static ExactRationalCoefficient.dividedMagnitude<A>(_:by:usage:)",
+      "symbol": "_$s11CADGeometry24ExactRationalCoefficientV16dividedMagnitude33_C47DE6DF2244F2150CA7BC9A2379859ELL_2by5usageAA0b7NaturalF0VAI_AIxztKAA0B15ScalarAdmissionRzRi_zlFZ",
+      "address": "0x1a3d49c",
+      "location": 216,
+      "entryFrameBytes": 288
+    },
+    {
+      "frame": "ExactRationalCoefficient.multiplied<A>(by:usage:)",
+      "symbol": "_$s11CADGeometry24ExactRationalCoefficientV10multiplied2by5usageA2C_xztKAA0B15ScalarAdmissionRzRi_zlF",
+      "address": "0x55ad5c",
+      "location": 2152,
+      "entryFrameBytes": 1168
+    },
+    {
+      "frame": "ExactBivariatePolynomial.scaled<A>(by:usage:)",
+      "symbol": "_$s11CADGeometry24ExactBivariatePolynomialV6scaled2by5usageAcA0B19RationalCoefficientV_xztKAA0B15ScalarAdmissionRzRi_zlF",
+      "address": "0x8896e8",
+      "location": 808,
+      "entryFrameBytes": 720
+    },
+    {
+      "frame": "OriginalRationalSurfaceHomogeneous.init<A>(validatedSource:domain:uSpanIndex:vSpanIndex:uTranslation:vTranslation:usage:)",
+      "symbol": "_$s11CADGeometry34OriginalRationalSurfaceHomogeneousV15validatedSource6domain10uSpanIndex01viJ012uTranslation01vK05usageAcA16BSplineSurface3DV_AA0D12ParameterBoxVS2iS2dxztKcAA20ExactScalarAdmissionRzRi_zlu33_A2EBB6541B0F06358DF013A7D64AC1F0LlfC",
+      "address": "0x1afde24",
+      "location": 2956,
+      "entryFrameBytes": 3120
+    },
+    {
+      "frame": "OriginalRationalSurfaceHomogeneous.init<A>(source:native:domain:tolerance:usage:)",
+      "symbol": "_$s11CADGeometry34OriginalRationalSurfaceHomogeneousV6source6native6domain9tolerance5usageAcA16BSplineSurface3DV_AA08PreparedkD20DifferentialEncloserV0B10NativeSpanVAA0D12ParameterBoxV7CADCore17ModelingToleranceVxztKcAA20ExactScalarAdmissionRzRi_zlufC",
+      "address": "0x1aff334",
+      "location": 380,
+      "entryFrameBytes": 1008
+    },
+    {
+      "frame": "OriginalRationalSurfacePolynomial.init<A>(source:native:domain:view:tolerance:usage:)",
+      "symbol": "_$s11CADGeometry33OriginalRationalSurfacePolynomialV6source6native6domain4view9tolerance5usageAcA16BSplineSurface3DV_AA08PreparedlD20DifferentialEncloserV0B10NativeSpanVAA0D12ParameterBoxV7CADCore8Vector3DVAR17ModelingToleranceVxztKcAA20ExactScalarAdmissionRzRi_zlufC",
+      "address": "0xa2a730",
+      "location": 468,
+      "entryFrameBytes": 3680
+    },
+    {
+      "frame": "OriginalSurfaceSilhouetteField.init(surface:domain:view:tolerance:sourceAuthority:native:polePreparation:poleAuthorities:usage:)",
+      "symbol": "_$s11CADGeometry30OriginalSurfaceSilhouetteFieldV7surface6domain4view9tolerance15sourceAuthority6native15polePreparation0M11Authorities5usageAcA9Surface3DO_AA0C12ParameterBoxV7CADCore8Vector3DVAQ17ModelingToleranceVAA0cd6SourceN0VAA015PreparedBSplineC20DifferentialEncloserV0B10NativeSpanVSgAA0bZ10PoleNormalVSgSayAA0b16UniquePoleNormalK0VGAA0B14QueryExecutionVztKcfC",
+      "address": "0x1cd691c",
+      "location": 1248,
+      "entryFrameBytes": 38944
+    },
+    {
+      "frame": "DefaultSurfaceSilhouetteProducer.preparedCover(surface:domain:view:tolerance:sourceAuthority:using:)",
+      "symbol": "_$s11CADGeometry32DefaultSurfaceSilhouetteProducerV13preparedCover33_9BA4431057C25E404349C321699D6735LL7surface6domain4view9tolerance15sourceAuthority5usingSayAC7PendingAELLVGAA9Surface3DO_AA0C12ParameterBoxV7CADCore8Vector3DVAS17ModelingToleranceVAA0cD17SourcePreparationVAA22OriginalQueryExecutionVztKF",
+      "address": "0x1cd4e54",
+      "location": 3256,
+      "entryFrameBytes": 40496
+    },
+    {
+      "frame": "DefaultSurfaceSilhouetteProducer.closedDomainSilhouette(of:over:view:tolerance:using:)",
+      "symbol": "_$s11CADGeometry32DefaultSurfaceSilhouetteProducerV012closedDomainD033_9BA4431057C25E404349C321699D6735LL2of4over4view9tolerance5usingAA0cD8EnvelopeVAA9Surface3DO_AA0C12ParameterBoxV7CADCore8Vector3DVAQ17ModelingToleranceVAA22OriginalQueryExecutionVztKF",
+      "address": "0x1ccef3c",
+      "location": 480,
+      "entryFrameBytes": 92528
+    },
+    {
+      "frame": "DefaultSurfaceSilhouetteProducer.silhouette(of:over:view:tolerance:using:)",
+      "symbol": "_$s11CADGeometry32DefaultSurfaceSilhouetteProducerV10silhouette2of4over4view9tolerance5usingAA0cD8EnvelopeVAA9Surface3DO_AA0C12ParameterBoxV7CADCore8Vector3DVAP17ModelingToleranceVAA22OriginalQueryExecutionVztKF",
+      "address": "0x1cca76c",
+      "location": 3868,
+      "entryFrameBytes": 35104
+    },
+    {
+      "frame": "protocol witness for SurfaceSilhouetteProducing.silhouette(of:over:view:tolerance:using:) in conformance DefaultSurfaceSilhouetteProducer",
+      "symbol": "_$s11CADGeometry32DefaultSurfaceSilhouetteProducerVAA0cD9ProducingA2aDP10silhouette2of4over4view9tolerance5usingAA0cD8EnvelopeVAA9Surface3DO_AA0C12ParameterBoxV7CADCore8Vector3DVAR17ModelingToleranceVAA22OriginalQueryExecutionVztKFTW",
+      "address": "0x1d0e094",
+      "location": 48,
+      "entryFrameBytes": 304
+    },
+    {
+      "frame": "BRepDrawingSilhouetteProducer.extract(_:in:placement:onto:maximumSourceFaces:maximumProjectedSpans:maximumControlPointCount:maximumBoundaryCurveCount:using:)",
+      "symbol": "_$s9CADKernel29BRepDrawingSilhouetteProducerV7extract33_45515EBCE735E3D06E49191B278BE829LL_2in9placement4onto18maximumSourceFaces0P14ProjectedSpans0P17ControlPointCount0p13BoundaryCurveW05usingAA0bC11SilhouettesV11CADTopology0B5ModelV_AA17EvaluatedDocumentVAA0bC9PlacementVSg11CADGeometry27OrthographicProjectionFrameVS4iAX22OriginalQueryExecutionVztKF",
+      "address": "0x4c89a28",
+      "location": 5032,
+      "entryFrameBytes": 74464
+    },
+    {
+      "frame": "BRepDrawingSilhouetteProducer.silhouettes(in:onto:maximumSourceFaces:maximumProjectedSpans:maximumControlPointCount:maximumBoundaryCurveCount:using:)",
+      "symbol": "_$s9CADKernel29BRepDrawingSilhouetteProducerV11silhouettes2in4onto18maximumSourceFaces0I14ProjectedSpans0I17ControlPointCount0i13BoundaryCurveP05usingAA0bC11SilhouettesVAA17EvaluatedDocumentV_11CADGeometry27OrthographicProjectionFrameVS4iAP22OriginalQueryExecutionVztKF",
+      "address": "0x4c898c8",
+      "location": 248,
+      "entryFrameBytes": 2352
+    },
+    {
+      "frame": "protocol witness for BRepDrawingSilhouetteProducing.silhouettes(in:onto:maximumSourceFaces:maximumProjectedSpans:maximumControlPointCount:maximumBoundaryCurveCount:using:) in conformance BRepDrawingSilhouetteProducer",
+      "symbol": "_$s9CADKernel29BRepDrawingSilhouetteProducerVAA0bcD9ProducingA2aDP11silhouettes2in4onto18maximumSourceFaces0J14ProjectedSpans0J17ControlPointCount0j13BoundaryCurveQ05usingAA0bC11SilhouettesVAA17EvaluatedDocumentV_11CADGeometry27OrthographicProjectionFrameVS4iAR22OriginalQueryExecutionVztKFTW",
+      "address": "0x4c9cbd0",
+      "location": 28,
+      "entryFrameBytes": 1184
+    }
+  ],
+  "sumKnownEntryFrameBytes": 298880,
+  "threadState": {
+    "x": [
+      {
+        "value": 18446744071411073023
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 6962504916,
+        "symbolLocation": 0,
+        "symbol": "initializeAvailabilityCheck"
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 2
+      },
+      {
+        "value": 27
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 16463016566654894151
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 765541567913576598
+      },
+      {
+        "value": 765523975727530116
+      },
+      {
+        "value": 575488
+      },
+      {
+        "value": 17592186044416
+      },
+      {
+        "value": 6962492504,
+        "symbolLocation": 0,
+        "symbol": "swift_retain"
+      },
+      {
+        "value": 12254191720
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 18446744071411073023
+      },
+      {
+        "value": 1
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 9656883547861440571
+      },
+      {
+        "value": 6492565350338170542
+      },
+      {
+        "value": 9223372041495726880
+      }
+    ],
+    "flavor": "ARM_THREAD_STATE64",
+    "lr": {
+      "value": 11664147860
+    },
+    "cpsr": {
+      "value": 2684354560
+    },
+    "fp": {
+      "value": 6158481840
+    },
+    "sp": {
+      "value": 6158481824
+    },
+    "esr": {
+      "value": 2449473540,
+      "description": "(Data Abort) byte read Translation fault"
+    },
+    "pc": {
+      "value": 11663817972,
+      "matchesCrashFrame": 1
+    },
+    "far": {
+      "value": 18446744071411073119
+    }
+  },
+  "cause": "Invalid task pointer SIGSEGV; stack overwrite or Task runtime cause is not proven by entry-frame measurements."
+}

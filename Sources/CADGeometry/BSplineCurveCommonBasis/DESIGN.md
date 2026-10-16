@@ -30,12 +30,7 @@ caller allowance -> bounded resolver
 ## Contracts and Invariants
 
 The existing resolve signature preserves its numerical behavior and limits.
-The callback-bearing protocol requirement charges source scans, numeric work,
-allocation and retained output before performing the corresponding operation.
-Opaque lower operations reserve a conservative source-derived work and storage
-bound before invocation. All integer bound arithmetic checks overflow. This
-callback belongs to one caller ledger; the resolver creates no independent
-allowance, refund or reset. Already-identical normalized bases retain original
+The direct protocol requirement receives `using execution: inout OriginalQueryExecution` and sends it to actual native validation, decomposition, trimming and construction. Original loop work and concrete typed allocation bytes reach its sole cumulative budget. Independent span/count policy remains local; no callback allowance, refund or reset is constructed. All dimension arithmetic checks overflow. Already-identical normalized bases retain original
 arrays without reconstructing controls. The same ordered arithmetic, original
 span association, tolerance and maximum-span failure contracts are retained.
 
@@ -43,7 +38,7 @@ span association, tolerance and maximum-span failure contracts are retained.
 
 Validation and reservations precede decomposition. Each aligned positive span
 retains its selected source patch, trims it, elevates homogeneous controls and
-assembles the result. Cancellation or callback failure propagates before the
+assembles the result. Cancellation or execution failure propagates before the
 charged operation. Legacy conformers without bounded preparation do not silently
 invoke an uncharged implementation through the bounded requirement.
 
@@ -65,5 +60,7 @@ association and exhausted caller reservations propagate typed failures.
 Deferred behavioral verification must exercise unequal degrees/knots/weights,
 original normalized fast paths, endpoint alignment, cancellation and exhaustion
 before lower allocation. Native, WASM and Embedded protocol dispatch must use
-the callback requirement. Loft must check the actual shared-boundary and complete
+the direct execution requirement. Loft must check the actual shared-boundary and complete
 embedding publication paths. This source batch has not been built or tested.
+
+Ordinary resolution creates one independent execution and delegates to the same body. Work estimates formerly covering opaque native routines are removed when those actual routines charge the same execution; structural output and maximum-span ceilings remain unchanged.

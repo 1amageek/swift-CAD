@@ -18,7 +18,7 @@ public protocol ShapeOperating: Sendable {
         by transforms: [AffineTransform3D],
         maximumSubdivisionDepth: Int,
         remainingSourceDepth: Int,
-        consumeWork: @escaping @Sendable (Int) throws -> Void
+        using execution: inout OriginalQueryExecution
     ) throws -> BRepModel
 
     /// Retains a flat exact forward/inverse word and unchanged native UV topology.
@@ -27,8 +27,7 @@ public protocol ShapeOperating: Sendable {
         by operationWord: OriginalAffineOperationWord,
         maximumSubdivisionDepth: Int,
         remainingSourceDepth: Int,
-        consumeWork: @escaping @Sendable (Int) throws -> Void,
-        consumeStorage: (@Sendable (Int) throws -> Void)?
+        using execution: inout OriginalQueryExecution
     ) throws -> BRepModel
 
 }

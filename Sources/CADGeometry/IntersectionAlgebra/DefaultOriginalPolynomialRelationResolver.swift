@@ -2,20 +2,22 @@
 public struct DefaultOriginalPolynomialRelationResolver: OriginalPolynomialRelationResolving {
     public init() {}
 
-    public func decompose(_ relation: OriginalPolynomialRelation, maximumDepth: Int,
-        maximumCoefficientDepth: Int, usage: OriginalRelationUsage) throws -> OriginalRealRelation {
+    public func decompose<A: ExactScalarAdmission & ~Copyable>(_ relation: OriginalPolynomialRelation, maximumDepth: Int,
+        maximumCoefficientDepth: Int, usage: inout A) throws -> OriginalRealRelation {
         do {
             return try decomposeOriginal(relation, maximumDepth: maximumDepth,
-                maximumCoefficientDepth: maximumCoefficientDepth, usage: usage)
+                maximumCoefficientDepth: maximumCoefficientDepth, usage: &usage)
         } catch let failure as ExactScalarFailure {
-            throw GeometryExactScalarFailure.published(failure)
+            throw OriginalQueryFailure.published(failure,context:.unspecified,tolerance:nil)
         }
     }
 
-    private func decomposeOriginal(_ relation: OriginalPolynomialRelation, maximumDepth: Int,
-        maximumCoefficientDepth: Int, usage: OriginalRelationUsage) throws -> OriginalRealRelation {
-        var admission = try OriginalRelationDepthAdmission(base: usage, maximumDepth: maximumDepth,
-            maximumCoefficientDepth: maximumCoefficientDepth)
+    private func decomposeOriginal<A: ExactScalarAdmission & ~Copyable>(_ relation: OriginalPolynomialRelation, maximumDepth: Int,
+        maximumCoefficientDepth: Int, usage: inout A) throws -> OriginalRealRelation {
+        guard maximumDepth>=0,(0...32).contains(maximumCoefficientDepth) else {
+            throw rationalAlgebraFailure("Original relation requires independent valid caller depth limits.")
+        }
+        return try usage.withProofScope(maximum:try .init(value:maximumDepth,coefficient:maximumCoefficientDepth)) { admission in
         try intersectionAlgebraStep(&admission)
         let selected: OriginalRationalIntersectionCells
         let ordered: OriginalOrderedIntersectionCells?
@@ -43,5 +45,6 @@ public struct DefaultOriginalPolynomialRelationResolver: OriginalPolynomialRelat
             maximumDepth: maximumDepth, usage: &admission)
         return try OriginalRealRelation(original: relation, ordered: ordered, incidence: incidence,
             components: incidence.connectedComponents(usage: &admission), maximumDepth: maximumDepth, usage: &admission)
+        }
     }
 }

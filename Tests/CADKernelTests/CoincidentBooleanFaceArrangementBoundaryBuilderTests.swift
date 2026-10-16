@@ -12,6 +12,7 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilderTests {
 
     @Test(.timeLimit(.minutes(1)))
     func nestedCoincidentTrimProducesExactIntersectionPatch() throws {
+        var execution = try OriginalQueryExecution.kernelOriginal()
         let fixture = try fixture(
             targetPoints: rectangle(
                 minimumX: -0.020,
@@ -26,7 +27,7 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilderTests {
                 maximumY: 0.003
             )
         )
-        let resolution = try resolve(.intersect, fixture: fixture)
+        let resolution = try resolve(.intersect, fixture: fixture, using: &execution)
         #expect(resolution.partiallyCoincidentPairs.count == 1)
         #expect(resolution.forcedActions.isEmpty)
 
@@ -36,7 +37,8 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilderTests {
             model: fixture.model,
             sourceSubshapes: fixture.sourceSubshapes,
             operands: .volumes(targetBodyIDs: [], toolBodyID: BodyID()),
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
         )
         #expect(arrangement.constantActions[fixture.toolFaceID] == .discard)
         let targetBoundaries = arrangement.boundaries.filter {
@@ -50,7 +52,8 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilderTests {
             boundaries: targetBoundaries,
             model: fixture.model,
             sourceSubshapes: fixture.sourceSubshapes,
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
         )
         #expect(result.isPartitioned)
         let patch = try #require(result.patches.first)
@@ -62,6 +65,7 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilderTests {
 
     @Test(.timeLimit(.minutes(1)))
     func crossingCoincidentLinearTrimsAreSubdividedIntoExactOverlap() throws {
+        var execution = try OriginalQueryExecution.kernelOriginal()
         let fixture = try fixture(
             targetPoints: rectangle(
                 minimumX: -0.020,
@@ -76,14 +80,15 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilderTests {
                 maximumY: 0.005
             )
         )
-        let resolution = try resolve(.intersect, fixture: fixture)
+        let resolution = try resolve(.intersect, fixture: fixture, using: &execution)
         let arrangement = try CoincidentBooleanFaceArrangementBoundaryBuilder().build(
             operation: .intersect,
             pairs: resolution.partiallyCoincidentPairs,
             model: fixture.model,
             sourceSubshapes: fixture.sourceSubshapes,
             operands: .volumes(targetBodyIDs: [], toolBodyID: BodyID()),
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
         )
         let targetBoundaries = arrangement.boundaries.filter {
             $0.faceID == fixture.targetFaceID
@@ -93,7 +98,8 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilderTests {
             boundaries: targetBoundaries,
             model: fixture.model,
             sourceSubshapes: fixture.sourceSubshapes,
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
         )
 
         #expect(result.isPartitioned)
@@ -107,6 +113,7 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilderTests {
 
     @Test(.timeLimit(.minutes(1)))
     func alignedPartialUnionProducesTwinBoundaryForOwnedTargetAndToolRemainder() throws {
+        var execution = try OriginalQueryExecution.kernelOriginal()
         let fixture = try fixture(
             targetPoints: rectangle(
                 minimumX: -0.020,
@@ -121,14 +128,15 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilderTests {
                 maximumY: 0.010
             )
         )
-        let resolution = try resolve(.union, fixture: fixture)
+        let resolution = try resolve(.union, fixture: fixture, using: &execution)
         let arrangement = try CoincidentBooleanFaceArrangementBoundaryBuilder().build(
             operation: .union,
             pairs: resolution.partiallyCoincidentPairs,
             model: fixture.model,
             sourceSubshapes: fixture.sourceSubshapes,
             operands: .volumes(targetBodyIDs: [], toolBodyID: BodyID()),
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
         )
         #expect(arrangement.constantActions[fixture.targetFaceID] == .keep)
         #expect(arrangement.constantActions[fixture.toolFaceID] == nil)
@@ -145,14 +153,16 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilderTests {
             model: fixture.model,
             sourceSubshapes: fixture.sourceSubshapes,
             forcedAction: .keep,
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
         )
         let tool = try BooleanOpenFaceArrangementBuilder().build(
             faceID: fixture.toolFaceID,
             boundaries: toolBoundaries,
             model: fixture.model,
             sourceSubshapes: fixture.sourceSubshapes,
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
         )
 
         #expect(target.patches.count == 1)
@@ -169,7 +179,8 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilderTests {
 
     private func resolve(
         _ operation: BooleanOperation,
-        fixture: Fixture
+        fixture: Fixture,
+        using execution: inout OriginalQueryExecution
     ) throws -> CoincidentBooleanFaceOwnershipResolver.Resolution {
         try CoincidentBooleanFaceOwnershipResolver().resolve(
             operation: operation,
@@ -185,7 +196,8 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilderTests {
             )]),
             model: fixture.model,
             operands: .volumes(targetBodyIDs: [], toolBodyID: BodyID()),
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
         )
     }
 

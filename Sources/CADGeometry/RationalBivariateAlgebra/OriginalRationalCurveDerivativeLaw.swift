@@ -7,7 +7,7 @@ package struct OriginalRationalCurveDerivativeLaw: Sendable {
     package let numerators: [[ExactBivariatePolynomial]]
     package let denominators: [ExactBivariatePolynomial]
 
-    package init<B: RationalAlgebraAdmitting>(original: OriginalRationalCurvePolynomial,
+    package init<B: ExactScalarAdmission & ~Copyable>(original: OriginalRationalCurvePolynomial,
         throughOrder: Int, usage: inout B) throws {
         guard throughOrder >= 0 else {
             throw rationalAlgebraFailure("Original rational curve derivative order must be nonnegative.")
@@ -44,7 +44,7 @@ package struct OriginalRationalCurveDerivativeLaw: Sendable {
     }
 
     /// Exact difference numerators in the same original parameter chart.
-    package func equalityNumerators<B: RationalAlgebraAdmitting>(with other: Self,
+    package func equalityNumerators<B: ExactScalarAdmission & ~Copyable>(with other: Self,
         order: Int, usage: inout B) throws -> [ExactBivariatePolynomial] {
         guard order >= 0, order < numerators.count, order < other.numerators.count else {
             throw rationalAlgebraFailure("Original derivative equality requires an admitted derivative order.")

@@ -9,13 +9,13 @@ struct OriginalRollingBallGraphProducer<S: OriginalRollingBallChildSourceReading
     typealias Polynomial = ExactPolynomial<Field>
 
     func embedded<A: ExactScalarAdmission & ~Copyable>(_ p: Polynomial,map: [Int],
-        ring: ExactPolynomialDomain<Field>,field: Field,using a: inout OriginalSourceProofAdmission<A>) throws -> Polynomial {
+        ring: ExactPolynomialDomain<Field>,field: Field,using a: inout A) throws -> Polynomial {
         try OriginalParametricPolynomialEmbedding.applying(p,map:map,ring:ring,field:field,using:&a)
     }
 
     func issue<A: ExactScalarAdmission & ~Copyable>(source: OriginalSourceBinding<S>,
         evidence: OriginalRollingBallGraphEvidence<S>,lower: Field.Value,upper: Field.Value,
-        using a: inout OriginalSourceProofAdmission<A>) throws -> OriginalParametricGraphReceipt<S,Field,OriginalRollingBallGraphEvidence<S>>
+        using a: inout A) throws -> OriginalParametricGraphReceipt<S,Field,OriginalRollingBallGraphEvidence<S>>
         where S: OriginalRollingBallSourceReading {
         let f=evidence.center.field,ring=try ExactPolynomialDomain(field:f,variableCount:5,using:&a)
         try a.retainStorage(bytes:exactScalarPayloadBytes(count:3,of:OriginalRationalChartReceipt<S.Child,OriginalBSplineChartSelection,Field>.self))
@@ -39,7 +39,7 @@ struct OriginalRollingBallGraphProducer<S: OriginalRollingBallChildSourceReading
 
     func issue<E: Sendable,A: ExactScalarAdmission & ~Copyable>(source: OriginalSourceBinding<S>,
         evidence: OriginalRollingBallChildGraphEvidence<S,E>,field f: Field,lower: Field.Value,upper: Field.Value,
-        using a: inout OriginalSourceProofAdmission<A>) throws -> OriginalParametricGraphReceipt<S,Field,OriginalRollingBallChildGraphEvidence<S,E>> {
+        using a: inout A) throws -> OriginalParametricGraphReceipt<S,Field,OriginalRollingBallChildGraphEvidence<S,E>> {
         try a.retainStorage(bytes:exactScalarPayloadBytes(count:3,of:OriginalRollingBallChildGraphEvidence<S,E>.ChildGraph.self))
         let children=[evidence.center,evidence.first,evidence.second]
         var variableCount=5,conditionCount=0
@@ -84,7 +84,7 @@ struct OriginalRollingBallGraphProducer<S: OriginalRollingBallChildSourceReading
     private func produce<E: Sendable,A: ExactScalarAdmission & ~Copyable>(source: OriginalSourceBinding<S>,evidence: E,
         field f: Field,ring: ExactPolynomialDomain<Field>,children: [[Polynomial]],
         childConditions: [OriginalParametricGraphCondition<Field>],lower: Field.Value,upper: Field.Value,
-        using a: inout OriginalSourceProofAdmission<A>) throws -> OriginalParametricGraphReceipt<S,Field,E> {
+        using a: inout A) throws -> OriginalParametricGraphReceipt<S,Field,E> {
         func add(_ x: Polynomial, _ y: Polynomial) throws -> Polynomial { try ring.adding(x, y, using: &a) }
         func sub(_ x: Polynomial, _ y: Polynomial) throws -> Polynomial { try ring.subtracting(x, y, using: &a) }
         func mul(_ x: Polynomial, _ y: Polynomial) throws -> Polynomial { try ring.multiplying(x, y, using: &a) }

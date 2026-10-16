@@ -21,7 +21,7 @@ package struct OriginalRationalIntersectionDecomposition: Sendable {
         self.guardedEquations = guardedEquations
     }
 
-    package static func prepare<B: RationalAlgebraAdmitting>(system: OriginalRationalIntersectionSystem,
+    package static func prepare<B: ExactScalarAdmission & ~Copyable>(system: OriginalRationalIntersectionSystem,
         requestedDomains: [OriginalRationalParameterDomain]? = nil,
         pruneExcludedPrefixes: Bool = false, normalizeDenominatorFactors: Bool = false, isolatedOnly: Bool = false,
         reducePureEvenPowerZeroSets: Bool = false, preferIsolatedCells: Bool = false,
@@ -63,7 +63,7 @@ package struct OriginalRationalIntersectionDecomposition: Sendable {
             effectiveDomains: effective, coverage: .parameterCells(strata, incidence, components), guardedEquations: guarded)
     }
 
-    private static func nativeDomains<B: RationalAlgebraAdmitting>(system: OriginalRationalIntersectionSystem,
+    private static func nativeDomains<B: ExactScalarAdmission & ~Copyable>(system: OriginalRationalIntersectionSystem,
         usage: inout B) throws -> [OriginalRationalParameterDomain] {
         try RationalAlgebraStorage.retain(system.variableCount, of: OriginalRationalParameterDomain.self, usage: &usage)
         var result: [OriginalRationalParameterDomain] = []; result.reserveCapacity(system.variableCount)

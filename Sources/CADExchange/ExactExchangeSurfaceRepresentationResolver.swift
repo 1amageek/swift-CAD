@@ -25,6 +25,12 @@ struct ExactExchangeSurfaceRepresentationResolver: Sendable {
         case .procedural(.originalRevolution), .procedural(.originalCoons), .procedural(.originalAffineWord):
             throw exchangeError(.unsupportedCapability, tolerance: tolerance,
                 "Original procedural traversal needs chart-preserving standard transport or explicit certified conversion.")
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Exact STEP/IGES has no faithful chart-preserving carrier for these source laws.
+        // Production writers must refuse until original surface and pcurve round-trip fidelity are proved.
+        case .procedural(.originalAngularTransport), .procedural(.originalBoundaryCorrected),
+             .procedural(.originalPlaneDerivative), .procedural(.originalDrafted):
+            throw exchangeError(.unsupportedCapability, tolerance: tolerance,
+                "This original procedural surface has no chart-preserving standard exchange representation.")
         case let .procedural(.ruled(ruled)):
             let patch = try ExactRectangularBSplineSurfacePatchBuilder().build(
                 surface: .procedural(.ruled(ruled)),

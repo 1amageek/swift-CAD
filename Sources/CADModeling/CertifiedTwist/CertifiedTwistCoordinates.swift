@@ -8,13 +8,11 @@ package struct CertifiedTwistCoordinates {
     let advance: [I]
     let anchor: [I]
     let axis: [I]
-    private let admission: GeometryConversionAdmission
 
     package init(start: CoordinateEnclosure3D, fullEnd: CoordinateEnclosure3D, fraction: Double,
-        plane: Plane3D, tolerance: ModelingTolerance, admission: GeometryConversionAdmission) throws {
-        self.admission = admission
-        try admission.chargeStorage(bytes: 33 * MemoryLayout<I>.stride)
-        try admission.chargeWork(33)
+        plane: Plane3D, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.retainStorage(bytes: 33 * MemoryLayout<I>.stride)
+        try execution.consumeWork(33)
         self.start = Self.values(start)
         advance = zip(Self.values(fullEnd), Self.values(start)).map { ($0 - $1) * .exact(fraction) }
         let directed = IntervalVector3DBounds(x: advance[0], y: advance[1], z: advance[2])
@@ -38,23 +36,23 @@ package struct CertifiedTwistCoordinates {
         anchor = zip(Self.values(start), advance).map { $0 - $1 * ratio }
     }
 
-    package func radialBound(_ point: Point3D) throws -> Double {
-        try admission.chargeStorage(bytes: 3 * MemoryLayout<I>.stride)
-        try admission.chargeWork(3)
+    package func radialBound(_ point: Point3D, using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.retainStorage(bytes: 3 * MemoryLayout<I>.stride)
+        try execution.consumeWork(3)
         return zip(Self.values(point), anchor).reduce(I.exact(0)) { $0 + .exact(($1.0 - $1.1).absoluteUpperBound) }.upper
     }
 
-    package func pathPoint(station: I) throws -> [I] {
-        try admission.chargeStorage(bytes: 3 * MemoryLayout<I>.stride)
+    package func pathPoint(station: I, using execution: inout OriginalQueryExecution) throws -> [I] {
+        try execution.retainStorage(bytes: 3 * MemoryLayout<I>.stride)
         return try (0..<3).map {
-            try admission.chargeWork()
+            try execution.consumeWork(1)
             return start[$0] + advance[$0] * station
         }
     }
 
-    package func transformed(_ point: Point3D, station: I, cosine: I, sine: I, scale: I) throws -> [I] {
-        try admission.chargeStorage(bytes: 15 * MemoryLayout<I>.stride)
-        try admission.chargeWork(12)
+    package func transformed(_ point: Point3D, station: I, cosine: I, sine: I, scale: I, using execution: inout OriginalQueryExecution) throws -> [I] {
+        try execution.retainStorage(bytes: 15 * MemoryLayout<I>.stride)
+        try execution.consumeWork(12)
         let r = zip(Self.values(point), anchor).map { $0 - $1 }
         let projection = zip(axis, r).reduce(I.exact(0)) { $0 + $1.0 * $1.1 }
         let axial = axis.map { $0 * projection }
@@ -62,7 +60,7 @@ package struct CertifiedTwistCoordinates {
                      axis[2] * r[0] - axis[0] * r[2],
                      axis[0] * r[1] - axis[1] * r[0]]
         return try (0..<3).map { i in
-            try admission.chargeWork()
+            try execution.consumeWork(1)
             return start[i] + advance[i] * station + scale * axial[i] + cosine * (r[i] - axial[i]) + sine * cross[i]
         }
     }

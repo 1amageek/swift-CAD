@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 /// Equality is member-wise over every stored value: a document equals the one its own encoding
 /// decodes to exactly when the encoding reproduces it, which is how a project proves that its
@@ -136,8 +137,15 @@ public struct CADDocument: Equatable, Sendable {
     /// Validates the complete document while retaining the caller's independent-source allowance.
     @discardableResult
     public func validate(tolerance:ModelingTolerance, independentShapeLimits:IndependentShapeSourceLimits,
-                         check:@escaping () throws -> Void) throws -> IndependentShapeSourceValidation? {
-        try check()
+                         check:@escaping @Sendable () throws -> Void) throws -> IndependentShapeSourceValidation? {
+        var execution = try IndependentShapeSourceExecutionOwner.execution(limits: independentShapeLimits, check: check)
+        return try validate(tolerance: tolerance, independentShapeLimits: independentShapeLimits, using: &execution)
+    }
+
+    @discardableResult
+    public func validate(tolerance:ModelingTolerance, independentShapeLimits:IndependentShapeSourceLimits,
+                         using execution: inout OriginalQueryExecution) throws -> IndependentShapeSourceValidation? {
+        try execution.checkpoint()
         try schemaVersion.validate()
         try units.validate()
         try metadata.validate()
@@ -146,7 +154,7 @@ public struct CADDocument: Equatable, Sendable {
         try designGraph.validateExpressions(using: parameters, tolerance: tolerance)
         try documentFoundation.validate(in: self)
         try validateAssembly(tolerance: tolerance)
-        let independentValidation = try validateIndependentShapes(tolerance:tolerance,limits:independentShapeLimits,check:check)
+        let independentValidation = try validateIndependentShapes(tolerance:tolerance,limits:independentShapeLimits,using: &execution)
         try validateProductAttributes()
         var dimensionIDs: Set<SelectionDimensionID> = []
         for dimension in selectionDimensions {
@@ -155,7 +163,7 @@ public struct CADDocument: Equatable, Sendable {
             }
             try dimension.validate(parameters: parameters, tolerance: tolerance)
         }
-        try check()
+        try execution.checkpoint()
         return independentValidation
     }
 }
@@ -167,12 +175,18 @@ public extension CADDocument {
     }
 
     func validateIndependentShapes(tolerance:ModelingTolerance,limits:IndependentShapeSourceLimits,
-                                   check:@escaping () throws -> Void) throws -> IndependentShapeSourceValidation? {
+                                   check:@escaping @Sendable () throws -> Void) throws -> IndependentShapeSourceValidation? {
+        var execution = try IndependentShapeSourceExecutionOwner.execution(limits: limits, check: check)
+        return try validateIndependentShapes(tolerance: tolerance, limits: limits, using: &execution)
+    }
+
+    func validateIndependentShapes(tolerance:ModelingTolerance,limits:IndependentShapeSourceLimits,
+                                   using execution: inout OriginalQueryExecution) throws -> IndependentShapeSourceValidation? {
         guard let independentShapes else { return nil }
         let validation = try DefaultIndependentShapeSourceValidator().validate(independentShapes,
-            tolerance:tolerance,limits:limits,bodySourceGraph:designGraph,check:check)
+            tolerance:tolerance,limits:limits,bodySourceGraph:designGraph,using: &execution)
         return try independentShapes.validateProductAssociations(in: assembly,
-            limits: limits, after: validation, check: check)
+            limits: limits, after: validation, using: &execution)
     }
 
     func validateProductAttributes(limits: ProductAttributeLimits = .standard) throws {

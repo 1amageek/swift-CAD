@@ -1,0 +1,113 @@
+(lldb) command source -s 0 '/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-plane-debug-trim-r1/commands.lldb'
+Executing commands in '/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-plane-debug-trim-r1/commands.lldb'.
+(lldb) # Diagnostic preparation only. Root owns one 120-second bounded launch.
+(lldb) # Capture commands execute only on this exact abort-entry breakpoint.
+(lldb) settings set interpreter.stop-command-source-on-error false
+(lldb) settings set auto-confirm true
+(lldb) target create --arch arm64 "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/libexec/swift/pm/swiftpm-testing-helper"
+Current executable set to '/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/libexec/swift/pm/swiftpm-testing-helper' (arm64).
+(lldb) settings set target.disable-aslr false
+(lldb) settings set -- target.env-vars "DYLD_FRAMEWORK_PATH=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks:/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks" "DYLD_LIBRARY_PATH=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib"
+(lldb) settings set -- target.run-args "--test-bundle-path" "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-trim-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests" "--testing-library" "swift-testing" "--filter" "DocumentDrawingCanonicalAdmissionTests.planarWholeExclusionUsesTheRealDrawingWitnesses" "--xunit-output" "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-plane-debug-trim-r1/results.xml"
+(lldb) run
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Suite "Document drawing canonical admission" started.
+􀟈  Test planarWholeExclusionUsesTheRealDrawingWitnesses() started.
+DRAWING_STAGE curved=false main=false test.begin
+DRAWING_STAGE curved=false main=true source.builder.begin
+DRAWING_STAGE curved=false main=true source.builder.end
+DRAWING_STAGE curved=false main=true source.bSplineSurface.begin
+DRAWING_STAGE curved=false main=true source.bSplineSurface.end
+DRAWING_STAGE curved=false main=true source.build.begin
+DRAWING_STAGE curved=false main=true source.build.end
+DRAWING_STAGE curved=false main=true source.evaluateExact.begin
+DRAWING_STAGE curved=false main=true source.evaluateExact.end
+DRAWING_STAGE curved=false main=false query.projectEdges.begin
+DRAWING_STAGE curved=false main=false query.projectEdges.end
+DRAWING_STAGE curved=false main=false query.place.begin
+DRAWING_STAGE curved=false main=false query.place.end
+DRAWING_STAGE curved=false main=false query.unplacedSilhouettes.begin
+DRAWING_STAGE curved=false main=false query.unplacedSilhouettes.end
+DRAWING_STAGE curved=false main=false query.placedSilhouettes.begin
+Process 20930 launched: '/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/libexec/swift/pm/swiftpm-testing-helper' (arm64)
+Process 20930 stopped
+* thread #7, name = 'Task 15', queue = 'com.apple.root.default-qos.cooperative', stop reason = EXC_BAD_ACCESS (code=2, address=0x16d723e50)
+       frame #0: 0x000000011040eb30 FocusedTests`SurfaceParameterCurve.validate(on:tolerance:using:) + 44
+FocusedTests`validate:
+->  0x11040eb30 <+44>: str    x8, [sp, #0xb90]
+    0x11040eb34 <+48>: add    x8, sp, #0x1, lsl #12     ; =0x1000 
+    0x11040eb38 <+52>: add    x8, x8, #0x3f0
+    0x11040eb3c <+56>: str    x0, [sp, #0xba0]
+Target 0: (swiftpm-testing-helper) stopped.
+(lldb) process status
+Process 20930 stopped
+* thread #7, name = 'Task 15', queue = 'com.apple.root.default-qos.cooperative', stop reason = EXC_BAD_ACCESS (code=2, address=0x16d723e50)
+       frame #0: 0x000000011040eb30 FocusedTests`SurfaceParameterCurve.validate(on:tolerance:using:) + 44
+FocusedTests`validate:
+->  0x11040eb30 <+44>: str    x8, [sp, #0xb90]
+    0x11040eb34 <+48>: add    x8, sp, #0x1, lsl #12     ; =0x1000 
+    0x11040eb38 <+52>: add    x8, x8, #0x3f0
+    0x11040eb3c <+56>: str    x0, [sp, #0xba0]
+(lldb) thread backtrace --count 50 all
+  thread #1, queue = 'com.apple.main-thread'
+       frame #0: 0x000000018aa3cc20 libsystem_kernel.dylib`mach_msg2_trap + 8
+       frame #1: 0x000000016d73ed00 
+* thread #7, name = 'Task 15', queue = 'com.apple.root.default-qos.cooperative', stop reason = EXC_BAD_ACCESS (code=2, address=0x16d723e50)
+   * frame #0: 0x000000011040eb30 FocusedTests`SurfaceParameterCurve.validate(on:tolerance:using:) + 44
+     frame #1: 0x000000011122c248 FocusedTests`closure #3 in SurfaceParameterCurve.validateOriginalSource(on:tolerance:remainingSourceDepth:maximumSubdivisionDepth:maximumAlgebraicDepth:atSourceDepth:using:) + 1092
+     frame #2: 0x0000000111ebae80 FocusedTests`partial apply for closure #3 in SurfaceParameterCurve.validateOriginalSource(on:tolerance:remainingSourceDepth:maximumSubdivisionDepth:maximumAlgebraicDepth:atSourceDepth:using:) + 60
+     frame #3: 0x00000001103c99c8 FocusedTests`ExactScalarAdmission<>.withProofScope(original:inherited:maximum:valueAxis:maximumWorkUnits:_:) + 564
+     frame #4: 0x00000001109420c0 FocusedTests`SurfaceParameterCurve.validateOriginalSource(on:tolerance:remainingSourceDepth:maximumSubdivisionDepth:maximumAlgebraicDepth:atSourceDepth:using:) + 796
+     frame #5: 0x00000001109426e4 FocusedTests`static OriginalBoundedCurveSurfaceCorrespondence.deviationBound(curve:from:to:surface:parameterCurve:options:tolerance:maximumSpanCount:maximumSubdivisionDepth:remainingSourceDepth:maximumAlgebraicDepth:using:) + 1308
+     frame #6: 0x000000011094377c FocusedTests`static OriginalBoundedCurveSurfaceCorrespondence.deviationBound(curve:from:to:surface:parameterCurve:options:tolerance:maximumSpanCount:maximumSubdivisionDepth:remainingSourceDepth:maximumAlgebraicDepth:using:) + 5556
+     frame #7: 0x000000011096b260 FocusedTests`DefaultCurveSurfaceCorrespondenceValidator.validate(curve:from:to:surface:parameterCurve:options:tolerance:maximumSpanCount:maximumSubdivisionDepth:remainingSourceDepth:maximumAlgebraicDepth:using:) + 220
+     frame #8: 0x00000001131c8890 FocusedTests`OriginalBRepValidationInvocation.validate(_:on:curve:edge:orientedEdge:faceID:edgeID:startPoint:endPoint:tolerance:using:) + 2268
+     frame #9: 0x00000001131c2330 FocusedTests`OriginalBRepValidationInvocation.validate(loop:liesOn:faceID:tolerance:using:) + 2676
+     frame #10: 0x0000000112fde888 FocusedTests`OriginalBRepValidationInvocation.validate(tolerance:using:) + 8472
+     frame #11: 0x0000000112fe3f20 FocusedTests`OriginalBRepValidationInvocation.validate(level:tolerance:using:) + 108
+     frame #12: 0x000000011318c4bc FocusedTests`ValidatedBRepModel.init(_:tolerance:validationLevel:maximumSubdivisionDepth:remainingSourceDepth:maximumAlgebraicDepth:using:) + 576
+     frame #13: 0x0000000114ad2c94 FocusedTests`BRepDrawingSilhouetteProducer.extract(_:in:placement:onto:maximumSourceFaces:maximumProjectedSpans:maximumControlPointCount:maximumBoundaryCurveCount:using:) + 1488
+     frame #14: 0x0000000114ad979c FocusedTests`BRepDrawingSilhouetteProducer.silhouettes(_:in:onto:maximumSourceEntities:maximumSourceFaces:maximumProjectedSpans:maximumControlPointCount:maximumBoundaryCurveCount:using:) + 1528
+     frame #15: 0x0000000114ae584c FocusedTests`protocol witness for BRepDrawingSilhouetteProducing.silhouettes(_:in:onto:maximumSourceEntities:maximumSourceFaces:maximumProjectedSpans:maximumControlPointCount:maximumBoundaryCurveCount:using:) in conformance BRepDrawingSilhouetteProducer + 40
+     frame #16: 0x000000011609c78c FocusedTests`DocumentDrawingSilhouetteProducer.silhouettes(_:document:currentEvaluation:onto:maximumSourceEntities:maximumSourceFaces:maximumProjectedSpans:maximumControlPointCount:maximumBoundaryCurveCount:using:) + 420
+     frame #17: 0x000000011609cc4c FocusedTests`protocol witness for DocumentDrawingSilhouetteProducing.silhouettes(_:document:currentEvaluation:onto:maximumSourceEntities:maximumSourceFaces:maximumProjectedSpans:maximumControlPointCount:maximumBoundaryCurveCount:using:) in conformance DocumentDrawingSilhouetteProducer + 48
+     frame #18: 0x000000010fe70ac0 FocusedTests`DocumentDrawingCanonicalAdmissionTests.placedSilhouettes(silhouettes=SwiftCAD.DocumentDrawingSilhouetteProducer @ 0x000000768d108710, placement=CADKernel.BRepDrawingPlacement @ 0x000000016d7a69d0, source=FocusedTests.DocumentDrawingCanonicalAdmissionTests.Source @ 0x0000000102d75d20, curved=false, execution=CADGeometry.OriginalQueryExecution @ 0x0000000102d76f38) at DocumentDrawingCanonicalAdmissionTests.swift:129:38
+     frame #19: 0x000000010fe6f1fc FocusedTests`DocumentDrawingCanonicalAdmissionTests.query(source=FocusedTests.DocumentDrawingCanonicalAdmissionTests.Source @ 0x0000000102d75d20, curved=false, execution=CADGeometry.OriginalQueryExecution @ 0x0000000102d76f38) at DocumentDrawingCanonicalAdmissionTests.swift:86:26
+     frame #20: 0x000000010fe78f48 FocusedTests`DocumentDrawingCanonicalAdmissionTests.planarWholeExclusionUsesTheRealDrawingWitnesses() at DocumentDrawingCanonicalAdmissionTests.swift:242:17
+     frame #21: 0x000000010fe789d4 FocusedTests`static DocumentDrawingCanonicalAdmissionTests.$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V031planarWholeExclusionUsesTheRealD9Witnesses4TestfMp_17Z81eeaf2d173f9dc3fMu_@Sendable () at @__swiftmacro_12FocusedTests033DocumentDrawingCanonicalAdmissionB0V031planarWholeExclusionUsesTheRealD9Witnesses4TestfMp_.swift:4:220
+  ﹍ frame #22: 0x000000010fe79a1c FocusedTests`implicit closure #1 in static DocumentDrawingCanonicalAdmissionTests.$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V031planarWholeExclusionUsesTheRealD9Witnesses4TestfMp_25generator81eeaf2d173f9dc3fMu_@Sendable ($base$=FocusedTests.DocumentDrawingCanonicalAdmissionTests) at @__swiftmacro_12FocusedTests033DocumentDrawingCanonicalAdmissionB0V031planarWholeExclusionUsesTheRealD9Witnesses4TestfMp_.swift:0
+  ﹉ frame #24: 0x0000000107224cb0 Testing`closure #1 in __checkClosureCall(throws:performing:expression:comments:isRequired:sourceLocation:)
+     frame #25: 0x0000000107224cb4 Testing`partial apply for closure #1 in __checkClosureCall(throws:performing:expression:comments:isRequired:sourceLocation:)
+     frame #26: 0x0000000107224cb0 Testing`closure #1 in __checkClosureCall(throws:performing:expression:comments:isRequired:sourceLocation:)
+     frame #27: 0x0000000107224cb4 Testing`partial apply for closure #1 in __checkClosureCall(throws:performing:expression:comments:isRequired:sourceLocation:)
+     frame #28: 0x00000001072db064 Testing`specialized static Runner._applyScopingTraits(for:testCase:_:)
+     frame #29: 0x00000001072dcf88 Testing`specialized closure #1 in closure #1 in closure #1 in static Runner._runSingleTestCaseIteration(_:within:)
+     frame #30: 0x0000000107224cb0 Testing`closure #1 in __checkClosureCall(throws:performing:expression:comments:isRequired:sourceLocation:)
+     frame #31: 0x0000000107224cb4 Testing`partial apply for closure #1 in __checkClosureCall(throws:performing:expression:comments:isRequired:sourceLocation:)
+     frame #32: 0x0000000107223d94 Testing`static Configuration.withCurrentForXCTest(_:perform:)
+     frame #33: 0x000000010720ba7c Testing`partial apply for closure #1 in __checkClosureCall(performing:throws:mismatchExplanation:expression:comments:isRequired:sourceLocation:)
+     frame #34: 0x0000000107224cb0 Testing`closure #1 in __checkClosureCall(throws:performing:expression:comments:isRequired:sourceLocation:)
+     frame #35: 0x0000000107224cb4 Testing`partial apply for closure #1 in __checkClosureCall(throws:performing:expression:comments:isRequired:sourceLocation:)
+     frame #36: 0x0000000107224cb0 Testing`closure #1 in __checkClosureCall(throws:performing:expression:comments:isRequired:sourceLocation:)
+     frame #37: 0x0000000107224cb4 Testing`partial apply for closure #1 in __checkClosureCall(throws:performing:expression:comments:isRequired:sourceLocation:)
+  thread #3
+       frame #0: 0x000000018aa3e9ec libsystem_kernel.dylib`__workq_kernreturn + 8
+  thread #4
+       frame #0: 0x000000018aa3e9ec libsystem_kernel.dylib`__workq_kernreturn + 8
+  thread #5
+       frame #0: 0x000000018aa3e9ec libsystem_kernel.dylib`__workq_kernreturn + 8
+  thread #6
+       frame #0: 0x0000000000000000 
+(lldb) register read sp fp pc lr x0 x19 x20
+      sp = 0x000000016d7232c0
+      fp = 0x000000016d72b5b0
+      pc = 0x000000011040eb30  FocusedTests`CADGeometry.SurfaceParameterCurve.validate(on: CADGeometry.Surface3D, tolerance: CADCore.ModelingTolerance, using: inout CADGeometry.OriginalQueryExecution) throws -> () + 44
+      lr = 0x000000011122c248  FocusedTests`closure #3 (inout CADGeometry.OriginalQueryExecution) throws -> () in CADGeometry.SurfaceParameterCurve.validateOriginalSource(on: CADGeometry.Surface3D, tolerance: CADCore.ModelingTolerance, remainingSourceDepth: Swift.Int, maximumSubdivisionDepth: Swift.Int, maximumAlgebraicDepth: Swift.Optional<Swift.Int>, atSourceDepth: Swift.Int, using: inout CADGeometry.OriginalQueryExecution) throws -> () + 1092
+      x0 = 0x000000016d77c508
+     x19 = 0x000000016d72b5c0
+     x20 = 0x000000016d77c560
+(lldb) process kill
+Process 20930 exited with status = 9 (0x00000009) killed
+(lldb) quit

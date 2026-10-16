@@ -13,7 +13,7 @@ public struct OriginalRationalPolynomial: Sendable {
     public var variableCount: Int { original.variableCount }
     private init(_ original: ExactIntersectionPolynomial) { self.original = original }
 
-    public init<B: RationalAlgebraAdmitting>(variableCount: Int, terms: [Term], usage: inout B) throws {
+    public init<B: ExactScalarAdmission & ~Copyable>(variableCount: Int, terms: [Term], usage: inout B) throws {
         try intersectionAlgebraStep(&usage)
         guard (1...4).contains(variableCount) else {
             throw rationalAlgebraFailure("The original rational relation port requires one through four coordinates.")
@@ -33,7 +33,7 @@ public struct OriginalRationalPolynomial: Sendable {
         original = polynomial
     }
 
-    public static func coordinate<B: RationalAlgebraAdmitting>(variableCount: Int,
+    public static func coordinate<B: ExactScalarAdmission & ~Copyable>(variableCount: Int,
         at axis: Int, usage: inout B) throws -> Self {
         guard (1...4).contains(variableCount) else {
             throw rationalAlgebraFailure("The original rational relation port requires one through four coordinates.")
@@ -41,7 +41,7 @@ public struct OriginalRationalPolynomial: Sendable {
         return try Self(.coordinate(variableCount: variableCount, at: axis, usage: &usage))
     }
 
-    public static func constant<B: RationalAlgebraAdmitting>(variableCount: Int,
+    public static func constant<B: ExactScalarAdmission & ~Copyable>(variableCount: Int,
         value: ExactRationalCoefficient, usage: inout B) throws -> Self {
         guard (1...4).contains(variableCount) else {
             throw rationalAlgebraFailure("The original rational relation port requires one through four coordinates.")
@@ -49,13 +49,13 @@ public struct OriginalRationalPolynomial: Sendable {
         return try Self(.constant(variableCount: variableCount, value: value, usage: &usage))
     }
 
-    public func adding<B: RationalAlgebraAdmitting>(_ other: Self, usage: inout B) throws -> Self {
+    public func adding<B: ExactScalarAdmission & ~Copyable>(_ other: Self, usage: inout B) throws -> Self {
         try Self(original.adding(other.original, usage: &usage))
     }
-    public func subtracting<B: RationalAlgebraAdmitting>(_ other: Self, usage: inout B) throws -> Self {
+    public func subtracting<B: ExactScalarAdmission & ~Copyable>(_ other: Self, usage: inout B) throws -> Self {
         try Self(original.subtracting(other.original, usage: &usage))
     }
-    public func multiplied<B: RationalAlgebraAdmitting>(by other: Self, usage: inout B) throws -> Self {
+    public func multiplied<B: ExactScalarAdmission & ~Copyable>(by other: Self, usage: inout B) throws -> Self {
         try Self(original.multiplied(by: other.original, usage: &usage))
     }
 }

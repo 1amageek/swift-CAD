@@ -26,7 +26,7 @@ public struct DefaultOriginalScalarTransporter: OriginalScalarTransferring {
             var context = destination.context
             for index in sources.indices {
                 let value = sources[index]
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 context = try transport.importing(value.original.context, into: context,
                     maximumDepth: destination.maximumValueDepth, usage: &usage)
             }
@@ -36,7 +36,7 @@ public struct DefaultOriginalScalarTransporter: OriginalScalarTransferring {
             values.reserveCapacity(sources.count)
             for index in sources.indices {
                 let value = sources[index]
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 values.append(try transport.applying(to: value.original, in: context,
                     maximumDepth: destination.maximumValueDepth, usage: &usage))
             }

@@ -13,7 +13,7 @@ The issuer retains the original ruled value and both original native polynomial 
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
 | [CADGeometry](../DESIGN.md) | parent | Original procedural source semantics | Owns shared enum and public dispatch | Parent integration is root-owned |
-| [RationalBivariateAlgebra](../RationalBivariateAlgebra/DESIGN.md) | depends on | OriginalRationalCurvePolynomial, exact arithmetic, RationalAlgebraAdmitting | Preserves raw bits, native ownership and denominators | Storage is UInt32 words |
+| [RationalBivariateAlgebra](../RationalBivariateAlgebra/DESIGN.md) | depends on | OriginalRationalCurvePolynomial, exact arithmetic, ExactScalarAdmission | Preserves raw bits, native ownership and denominators | Storage admission uses actual bytes |
 | [IntersectionAlgebra](../IntersectionAlgebra/DESIGN.md) | depends on | OriginalPolynomialRelation | Consumes original closed domains and predicates | Exact equality does not decide tolerance absence |
 
 ## Architecture
@@ -52,3 +52,13 @@ Status: design only; current implementation guarantees above remain unchanged.
 Ruled intersection preparation will consume issued common-U laws and full finite covers; legacy boundary preparation remains authoritative until its replacement passes the public gate.
 The [common consumer handoff](../OriginalSourceIssuance/DESIGN.md#composition-consumer-handoff-design)
 owns coefficient transport, complete-cover, publication and migration acceptance.
+
+## Direct Execution Admission
+
+Source arithmetic borrows `A: ExactScalarAdmission & ~Copyable`; composed query
+operations borrow `inout OriginalQueryExecution`. Source validation, native span
+validation, structural comparisons and exact refinement receive that same admission.
+The [execution owner](../OriginalQueryExecution/DESIGN.md) defines cumulative
+work and actual byte accounting, independent depth axes, cancellation and lexical
+proof scopes. Retained geometry and relation evidence stay immutable; no callback
+adapter, copied counter or second allowance supplies arithmetic authority.

@@ -2,7 +2,7 @@
 package struct ExactSurfaceCoefficientResultant: Sendable {
     package init() {}
 
-    package func eliminatingParameter<B: RationalAlgebraAdmitting>(
+    package func eliminatingParameter<B: ExactScalarAdmission & ~Copyable>(
         _ first: ExactSurfaceCoefficientPolynomial, _ second: ExactSurfaceCoefficientPolynomial,
         usage: inout B
     ) throws -> ExactBivariatePolynomial {
@@ -16,11 +16,11 @@ package struct ExactSurfaceCoefficientResultant: Sendable {
         try RationalAlgebraStorage.retain(count, of: ExactBivariatePolynomial.self, usage: &usage)
         var matrix = [ExactBivariatePolynomial](repeating: .zero, count: count)
         for row in 0..<n { for index in 0...m {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             matrix[row * size + row + index] = first.coefficients[m - index]
         } }
         for row in 0..<m { for index in 0...n {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             matrix[(row + n) * size + row + index] = second.coefficients[n - index]
         } }
         var previous = try ExactBivariatePolynomial.constant(.one, usage: &usage)
@@ -28,13 +28,13 @@ package struct ExactSurfaceCoefficientResultant: Sendable {
         if size > 1 { for column in 0..<(size - 1) {
             var pivotRow: Int?
             for row in column..<size {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 if !matrix[row * size + column].isZero { pivotRow = row; break }
             }
             guard let pivotRow else { return .zero }
             if pivotRow != column {
                 for index in 0..<size {
-                    try usage.consumeExactWork(1)
+                    try usage.consumeWork(1)
                     matrix.swapAt(column * size + index, pivotRow * size + index)
                 }
                 sign = sign.negated

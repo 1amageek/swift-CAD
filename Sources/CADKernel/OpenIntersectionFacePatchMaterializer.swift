@@ -1,5 +1,6 @@
 import Foundation
 import CADCore
+import CADGeometry
 import CADIR
 import CADModeling
 import CADTopology
@@ -26,7 +27,8 @@ struct OpenIntersectionFacePatchMaterializer {
         coincidentFaceActions: [FaceID: BooleanRegionSelectionAction] = [:],
         operands: BooleanOperandContext,
         tolerance: ModelingTolerance
-    ) throws -> BRepSewingRequest {
+    , using execution: inout OriginalQueryExecution) throws -> BRepSewingRequest {
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard targetBodyIDs.isEmpty == false,
               Set(targetBodyIDs).count == targetBodyIDs.count,
@@ -42,12 +44,12 @@ struct OpenIntersectionFacePatchMaterializer {
             bodyIDs: targetBodyIDs,
             model: model,
             tolerance: tolerance
-        )
+        , using: &execution)
         let toolFaceIDs = try operandFaceIDs(
             bodyIDs: [toolBodyID],
             model: model,
             tolerance: tolerance
-        )
+        , using: &execution)
         let boundaries: [BooleanFaceArrangementBoundary]
         do {
             boundaries = try faceBoundaries(
@@ -60,7 +62,7 @@ struct OpenIntersectionFacePatchMaterializer {
                 coincidentArrangementBoundaries: coincidentArrangementBoundaries,
                 operands: operands,
                 tolerance: tolerance
-            )
+            , using: &execution)
         } catch {
             throw contextualized(
                 error,
@@ -71,9 +73,11 @@ struct OpenIntersectionFacePatchMaterializer {
         // Coincident-region ownership removes whole faces; boundaries whose
         // pair twin lives on such a face must drop on the surviving side as
         // well, or their intersection edges sew single-sided.
-        let discardedFaceIDs = Set(
-            coincidentFaceActions.filter { $0.value == .discard }.map(\.key)
-        )
+        var discardedFaceIDs: Set<FaceID> = []
+        for (id, action) in coincidentFaceActions {
+            try execution.consumeWork(1)
+            if action == .discard { try OriginalParameterQueryStorage.insert(id, in: &discardedFaceIDs, using: &execution) }
+        }
         let effectiveBoundaries = boundaries.filter { boundary in
             guard discardedFaceIDs.contains(boundary.faceID) == false else {
                 return false
@@ -88,7 +92,7 @@ struct OpenIntersectionFacePatchMaterializer {
             sourceSubshapes: sourceSubshapes,
             forcedActions: coincidentFaceActions,
             tolerance: tolerance
-        )
+        , using: &execution)
         let splitPatches = arrangement.patches
         let splitFaceIDs = arrangement.splitFaceIDs
         guard splitFaceIDs.isEmpty == false || coincidentFaceActions.isEmpty == false else {
@@ -112,7 +116,7 @@ struct OpenIntersectionFacePatchMaterializer {
                 sourceSubshapes: sourceSubshapes,
                 operands: operands,
                 tolerance: tolerance
-            )
+            , using: &execution)
         } catch {
             throw contextualized(
                 error,
@@ -122,7 +126,7 @@ struct OpenIntersectionFacePatchMaterializer {
         }
         let patches = try mergedCoincidentAncestry(splitPatches + carriedPatches,
             uvSplitGraph: uvSplitGraph, forcedActions: coincidentFaceActions,
-            model: model, sourceSubshapes: sourceSubshapes, tolerance: tolerance)
+            model: model, sourceSubshapes: sourceSubshapes, tolerance: tolerance, using: &execution)
         guard patches.isEmpty == false else {
             throw KernelError(
                 phase: .classification,
@@ -137,7 +141,7 @@ struct OpenIntersectionFacePatchMaterializer {
                 patches: patches,
                 stablePrefix: "open-intersection:shell",
                 tolerance: tolerance
-            )
+            , using: &execution)
         } catch {
             throw contextualized(
                 error,
@@ -145,13 +149,19 @@ struct OpenIntersectionFacePatchMaterializer {
                 tolerance: tolerance
             )
         }
+        var bodyParents: [SubshapeID] = []
+        for id in targetBodyIDs {
+            try execution.consumeWork(1)
+            let parents = try parentSubshapeIDs(for: .body(id), in: sourceSubshapes, using: &execution)
+            try OriginalParameterQueryStorage.append(contentsOf: parents, to: &bodyParents, using: &execution)
+        }
+        let toolParents = try parentSubshapeIDs(for: .body(toolBodyID), in: sourceSubshapes, using: &execution)
+        try OriginalParameterQueryStorage.append(contentsOf: toolParents, to: &bodyParents, using: &execution)
         let request = BRepSewingRequest(
             featureID: featureID,
             bodyKind: operands.resultBodyKind,
             shells: shells,
-            bodyParentSubshapeIDs: (targetBodyIDs + [toolBodyID]).flatMap {
-                parentSubshapeIDs(for: .body($0), in: sourceSubshapes)
-            }
+            bodyParentSubshapeIDs: bodyParents
         )
         return request
     }
@@ -159,10 +169,13 @@ struct OpenIntersectionFacePatchMaterializer {
     private func mergedCoincidentAncestry(_ original: [BRepSewingFacePatch],
         uvSplitGraph: BooleanUVSplitGraph, forcedActions: [FaceID: BooleanRegionSelectionAction],
         model: BRepModel, sourceSubshapes: [SubshapeID: TopologyReference],
-        tolerance: ModelingTolerance) throws -> [BRepSewingFacePatch] {
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> [BRepSewingFacePatch] {
+        try execution.consumeWork(1)
+        try execution.retainKernelValues(count: original.count, stride: MemoryLayout<BRepSewingFacePatch>.stride)
         var retained = original
         for split in uvSplitGraph.splits {
-            try CurrentTaskCancellationChecker().checkCancellation()
+            try execution.consumeWork(1)
+            try execution.consumeWork(1)
             guard split.components.contains(where: {
                 if case .coincident = $0.geometry { return true }; return false
             }) else { continue }
@@ -175,9 +188,9 @@ struct OpenIntersectionFacePatchMaterializer {
             }
             let duplicate = try SourceBRepFacePatchBuilder().build(faceID: discarded,
                 stableID: "~coincident-parent:\(a):\(b)", from: model,
-                sourceSubshapes: sourceSubshapes, tolerance: tolerance).patch
+                sourceSubshapes: sourceSubshapes, tolerance: tolerance, using: &execution).patch
             let merged = try CoincidentFacePatchMerger().merge(retained + [duplicate],
-                tolerance: tolerance)
+                tolerance: tolerance, using: &execution)
             guard merged.count == retained.count,
                   !merged.contains(where: { $0.stableID == duplicate.stableID }) else {
                 throw KernelError(phase: .classification, code: .classificationFailure,
@@ -199,7 +212,8 @@ struct OpenIntersectionFacePatchMaterializer {
         coincidentArrangementBoundaries: [BooleanFaceArrangementBoundary],
         operands: BooleanOperandContext,
         tolerance: ModelingTolerance
-    ) throws -> [BooleanFaceArrangementBoundary] {
+    , using execution: inout OriginalQueryExecution) throws -> [BooleanFaceArrangementBoundary] {
+        try execution.consumeWork(1)
         let operandFaceIDs = targetFaceIDs.union(toolFaceIDs)
         guard coincidentArrangementBoundaries.allSatisfy({
             operandFaceIDs.contains($0.faceID)
@@ -211,8 +225,10 @@ struct OpenIntersectionFacePatchMaterializer {
                 message: "Coincident arrangement boundary belongs to a face outside the Boolean operands."
             )
         }
+        try execution.retainKernelValues(count: coincidentArrangementBoundaries.count, stride: MemoryLayout<BooleanFaceArrangementBoundary>.stride)
         var result = coincidentArrangementBoundaries
         for split in uvSplitGraph.splits {
+            try execution.consumeWork(1)
             guard targetFaceIDs.contains(split.facePair.targetFaceID),
                   toolFaceIDs.contains(split.facePair.toolFaceID),
                   let targetFace = model.faces[split.facePair.targetFaceID],
@@ -224,14 +240,14 @@ struct OpenIntersectionFacePatchMaterializer {
                     message: "Open Boolean split references topology outside its declared operands."
                 )
             }
-            let componentParents = parentSubshapeIDs(
-                for: .face(targetFace.id),
-                in: sourceSubshapes
-            ) + parentSubshapeIDs(
-                for: .face(toolFace.id),
-                in: sourceSubshapes
-            )
+            let targetParents = try parentSubshapeIDs(
+                for: .face(targetFace.id), in: sourceSubshapes, using: &execution)
+            let toolParents = try parentSubshapeIDs(
+                for: .face(toolFace.id), in: sourceSubshapes, using: &execution)
+            let componentParents = try OriginalParameterQueryStorage.concatenated(
+                targetParents, toolParents, using: &execution)
             for component in split.components {
+            try execution.consumeWork(1)
                 if case .coincident = component.geometry {
                     continue
                 }
@@ -247,7 +263,7 @@ struct OpenIntersectionFacePatchMaterializer {
                     regionSelectionGraph: regionSelectionGraph,
                     parentSubshapeIDs: componentParents,
                     tolerance: tolerance
-                )
+                , using: &execution)
                 let toolBoundaries = try BooleanFaceArrangementBoundary.make(
                     reference: reference,
                     geometry: component.geometry,
@@ -256,15 +272,16 @@ struct OpenIntersectionFacePatchMaterializer {
                     regionSelectionGraph: regionSelectionGraph,
                     parentSubshapeIDs: componentParents,
                     tolerance: tolerance
-                )
-                result.append(contentsOf: targetBoundaries)
-                result.append(contentsOf: toolBoundaries)
+                , using: &execution)
+                try OriginalParameterQueryStorage.append(contentsOf: targetBoundaries, to: &result, using: &execution)
+                try OriginalParameterQueryStorage.append(contentsOf: toolBoundaries, to: &result, using: &execution)
             }
         }
         // An empty-shell operand has no material to change a face's action across, yet the
         // crossing is where the operands meet: a face crossing an empty shell is split there
         // when both sides stay.
         for index in result.indices where result[index].isPartitioning == false {
+            try execution.consumeWork(1)
             let boundary = result[index]
             let oppositeSolidity = targetFaceIDs.contains(boundary.faceID)
                 ? operands.solidities.tool
@@ -280,9 +297,11 @@ struct OpenIntersectionFacePatchMaterializer {
         // face to partition as well.
         var partitioningByComponent: [BooleanFaceSplitComponentReference: Bool] = [:]
         for boundary in result where boundary.isPartitioning {
-            partitioningByComponent[boundary.reference] = true
+            try execution.consumeWork(1)
+            try OriginalParameterQueryStorage.set(true, for: boundary.reference, in: &partitioningByComponent, using: &execution)
         }
         for index in result.indices {
+            try execution.consumeWork(1)
             let boundary = result[index]
             if boundary.isPartitioning == false,
                partitioningByComponent[boundary.reference] == true,
@@ -298,9 +317,11 @@ struct OpenIntersectionFacePatchMaterializer {
         bodyIDs: [BodyID],
         model: BRepModel,
         tolerance: ModelingTolerance
-    ) throws -> Set<FaceID> {
+    , using execution: inout OriginalQueryExecution) throws -> Set<FaceID> {
+        try execution.consumeWork(1)
         var result: Set<FaceID> = []
         for bodyID in bodyIDs {
+            try execution.consumeWork(1)
             guard let body = model.bodies[bodyID], body.shellIDs.isEmpty == false else {
                 throw KernelError(
                     phase: .topology,
@@ -310,6 +331,7 @@ struct OpenIntersectionFacePatchMaterializer {
                 )
             }
             for shellID in body.shellIDs {
+            try execution.consumeWork(1)
                 guard let shell = model.shells[shellID] else {
                     throw KernelError(
                         phase: .topology,
@@ -318,40 +340,40 @@ struct OpenIntersectionFacePatchMaterializer {
                         message: "Open Boolean materialization references a missing operand shell."
                     )
                 }
-                result.formUnion(shell.faceIDs)
+                for id in shell.faceIDs {
+            try execution.consumeWork(1)
+            try OriginalParameterQueryStorage.insert(id, in: &result, using: &execution) }
             }
         }
         return result
     }
 
-    private func parentSubshapeIDs(
-        for reference: TopologyReference,
-        in sourceSubshapes: [SubshapeID: TopologyReference]
-    ) -> [SubshapeID] {
-        sourceSubshapes.compactMap { subshapeID, candidate in
-            candidate == reference ? subshapeID : nil
-        }.sorted()
+    private func parentSubshapeIDs(for reference: TopologyReference,
+        in sourceSubshapes: [SubshapeID: TopologyReference], using execution: inout OriginalQueryExecution) throws -> [SubshapeID] {
+        var result: [SubshapeID] = []
+        for (id, candidate) in sourceSubshapes {
+            try execution.consumeWork(1)
+            if candidate == reference { try OriginalParameterQueryStorage.append(id, to: &result, using: &execution) }
+        }
+        try OriginalParameterQueryStorage.sort(&result, using: &execution) { $0 < $1 }
+        return result
     }
 
     private func contextualized(
         _ error: any Error,
         stage: String,
         tolerance: ModelingTolerance
-    ) -> KernelError {
-        if let error = error as? KernelError {
-            return KernelError(
-                phase: error.phase,
-                code: error.code,
-                residual: error.residual,
-                tolerance: tolerance,
-                message: "Open-intersection \(stage) failed: \(error.message)"
-            )
-        }
-        return KernelError(
-            phase: .topology,
-            code: .topologyFailure,
-            tolerance: tolerance,
-            message: "Open-intersection \(stage) failed: \(error)"
+    ) -> any Error {
+        let wrapped = KernelError.wrapping(error, phase: .topology, tolerance: tolerance)
+        let classification = KernelError(
+            phase: wrapped.phase,
+            code: wrapped.code,
+            featureID: wrapped.featureID,
+            subshapeID: wrapped.subshapeID,
+            residual: wrapped.residual,
+            tolerance: wrapped.tolerance ?? tolerance,
+            message: "Open-intersection \(stage) failed: \(wrapped.message)"
         )
+        return OriginalQueryFailure.contextualizing(error, classification: classification)
     }
 }

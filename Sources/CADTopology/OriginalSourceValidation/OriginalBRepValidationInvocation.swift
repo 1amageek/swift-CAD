@@ -17,18 +17,13 @@ struct OriginalBRepValidationInvocation: Sendable {
   let maximumSubdivisionDepth: Int
   let remainingSourceDepth: Int
   let maximumAlgebraicDepth: Int?
-  let consumeStorage: (@Sendable (Int) throws -> Void)?
-  let consumeWork: (@Sendable (Int) throws -> Void)?
 
   init(model: BRepModel, maximumSubdivisionDepth: Int = 32, remainingSourceDepth: Int = 16,
-       consumeWork: (@Sendable (Int) throws -> Void)? = nil,
-       consumeStorage: (@Sendable (Int) throws -> Void)? = nil, maximumAlgebraicDepth: Int? = nil) {
+       maximumAlgebraicDepth: Int? = nil) {
     self.model = model
     self.maximumSubdivisionDepth = min(32, maximumSubdivisionDepth)
     self.remainingSourceDepth = min(16, remainingSourceDepth)
     self.maximumAlgebraicDepth = maximumAlgebraicDepth
-    self.consumeStorage = consumeStorage
-    self.consumeWork = consumeWork
   }
 
   private var geometry: GeometryStore { model.geometry }
@@ -39,51 +34,50 @@ struct OriginalBRepValidationInvocation: Sendable {
   private var edges: PersistentMap<EdgeID, Edge> { model.edges }
   private var vertices: PersistentMap<VertexID, Vertex> { model.vertices }
 
-  private func charge(depth: Int = 0) throws {
-    try CurrentTaskCancellationChecker().checkCancellation()
+  private func charge(depth: Int = 0, using execution: inout OriginalQueryExecution) throws {
+    try execution.checkpoint()
     guard maximumSubdivisionDepth >= 0, remainingSourceDepth >= 0, depth >= 0, depth <= maximumSubdivisionDepth,
       maximumAlgebraicDepth.map({ (0...32).contains($0) }) ?? true else {
       throw KernelError(phase: .topology, code: .resourceLimitExceeded, tolerance: nil,
         message: "Original BRep validation exceeded its caller source or subdivision admission.")
     }
-    try consumeWork?(depth)
+    try execution.consumeWork(1)
   }
 
-  public func validate(tolerance: ModelingTolerance) throws {
+  public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
     try tolerance.validate()
-    try validateTopologyTables(tolerance: tolerance)
-    if let consumeWork {
+    try validateTopologyTables(tolerance: tolerance, using: &execution)
+    do {
       try geometry.validate(tolerance: tolerance, remainingSourceDepth: remainingSourceDepth,
-        maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: consumeWork,
-        consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
-    } else { try geometry.validate(tolerance: tolerance) }
+        maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
+    }
 
     var referencedShellIDs = Set<ShellID>()
     var ownedShellIDs = Set<ShellID>()
     var sheetShellIDs = Set<ShellID>()
     for body in bodies.values {
-      try charge()
-      let bodyShellIDs = try shellIDs(of: body)
+      try charge(using: &execution)
+      let bodyShellIDs = try shellIDs(of: body, using: &execution)
       guard !bodyShellIDs.isEmpty else {
         throw TopologyError.unreferencedTopology("Body \(body.id) has no shells.")
       }
-      try validateNoDuplicateReferences(bodyShellIDs, owner: "Body \(body.id)", child: "shell")
+      try validateNoDuplicateReferences(bodyShellIDs, owner: "Body \(body.id)", child: "shell", using: &execution)
       for shellID in bodyShellIDs {
-        try charge()
+        try charge(using: &execution)
         guard shells[shellID] != nil else {
           throw TopologyError.missingReference("Missing shell \(shellID).")
         }
-        try recordOwnership(shellID, in: &ownedShellIDs, child: "shell")
-        referencedShellIDs.insert(shellID)
+        try recordOwnership(shellID, in: &ownedShellIDs, child: "shell", using: &execution)
+        try OriginalParameterQueryStorage.insert(shellID, in: &referencedShellIDs, using: &execution)
         if body.kind == .sheet {
-          sheetShellIDs.insert(shellID)
+          try OriginalParameterQueryStorage.insert(shellID, in: &sheetShellIDs, using: &execution)
         }
       }
       if body.kind == .solid {
-        _ = try model.solidShellComponents(for: body.id, tolerance: tolerance, consumeWork: consumeWork)
+        _ = try model.solidShellComponents(for: body.id, tolerance: tolerance, using: &execution)
       }
     }
-    try validateReferences(referencedShellIDs, cover: try declaredKeys(shells), label: "shell")
+    try validateReferences(referencedShellIDs, cover: try declaredKeys(shells, using: &execution), label: "shell", using: &execution)
 
     var referencedFaceIDs = Set<FaceID>()
     var referencedLoopIDs = Set<LoopID>()
@@ -94,61 +88,59 @@ struct OriginalBRepValidationInvocation: Sendable {
     var ownedShellEdgeIDs = Set<EdgeID>()
     var ownedShellVertexIDs = Set<VertexID>()
     for shell in shells.values {
-      try charge()
+      try charge(using: &execution)
       let isSheetShell = sheetShellIDs.contains(shell.id)
       guard !shell.faceIDs.isEmpty else {
         throw TopologyError.openShell(shell.id)
       }
-      try validateNoDuplicateReferences(shell.faceIDs, owner: "Shell \(shell.id)", child: "face")
+      try validateNoDuplicateReferences(shell.faceIDs, owner: "Shell \(shell.id)", child: "face", using: &execution)
       var edgeUses: [EdgeID: EdgeUse] = [:]
       var shellEdgeIDs = Set<EdgeID>()
       var shellVertexIDs = Set<VertexID>()
       for faceID in shell.faceIDs {
-        try charge()
+        try charge(using: &execution)
         guard let face = faces[faceID] else {
           throw TopologyError.missingReference("Missing face \(faceID).")
         }
-        try recordOwnership(faceID, in: &ownedFaceIDs, child: "face")
-        referencedFaceIDs.insert(faceID)
+        try recordOwnership(faceID, in: &ownedFaceIDs, child: "face", using: &execution)
+        try OriginalParameterQueryStorage.insert(faceID, in: &referencedFaceIDs, using: &execution)
         guard let surface = geometry.surfaces[face.surfaceID] else {
           throw TopologyError.missingSurface(face.surfaceID)
         }
-        referencedSurfaceIDs.insert(face.surfaceID)
+        try OriginalParameterQueryStorage.insert(face.surfaceID, in: &referencedSurfaceIDs, using: &execution)
         guard !face.loops.isEmpty else {
           throw TopologyError.openShell(shell.id)
         }
-        try validateNoDuplicateReferences(face.loops, owner: "Face \(face.id)", child: "loop")
+        try validateNoDuplicateReferences(face.loops, owner: "Face \(face.id)", child: "loop", using: &execution)
         var outerLoopCount = 0
         for loopID in face.loops {
-          try charge()
+          try charge(using: &execution)
           guard let loop = loops[loopID] else {
             throw TopologyError.missingReference("Missing loop \(loopID).")
           }
-          try recordOwnership(loopID, in: &ownedLoopIDs, child: "loop")
+          try recordOwnership(loopID, in: &ownedLoopIDs, child: "loop", using: &execution)
           if loop.role == .outer {
             outerLoopCount += 1
           }
-          referencedLoopIDs.insert(loopID)
-          try validate(loop: loop, tolerance: tolerance)
-          if let consumeWork {
+          try OriginalParameterQueryStorage.insert(loopID, in: &referencedLoopIDs, using: &execution)
+          try validate(loop: loop, tolerance: tolerance, using: &execution)
+          do {
             try PeriodicFaceSeamValidator().validateRepeatedEdgeUses(in: loop, on: surface,
               tolerance: tolerance, maximumSubdivisionDepth: maximumSubdivisionDepth,
-              remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork,
-              consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
-          } else {
-            try PeriodicFaceSeamValidator().validateRepeatedEdgeUses(in: loop, on: surface,
-              tolerance: tolerance)
+              remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
           }
-          try validate(loop: loop, liesOn: surface, faceID: face.id, tolerance: tolerance)
+          try validate(loop: loop, liesOn: surface, faceID: face.id, tolerance: tolerance, using: &execution)
           for orientedEdge in loop.edges {
-            try charge()
-            referencedEdgeIDs.insert(orientedEdge.edgeID)
-            shellEdgeIDs.insert(orientedEdge.edgeID)
+            try charge(using: &execution)
+            try OriginalParameterQueryStorage.insert(orientedEdge.edgeID, in: &referencedEdgeIDs, using: &execution)
+            try OriginalParameterQueryStorage.insert(orientedEdge.edgeID, in: &shellEdgeIDs, using: &execution)
             if let edge = edges[orientedEdge.edgeID] {
-              shellVertexIDs.insert(edge.startVertexID)
-              shellVertexIDs.insert(edge.endVertexID)
+              try OriginalParameterQueryStorage.insert(edge.startVertexID, in: &shellVertexIDs, using: &execution)
+              try OriginalParameterQueryStorage.insert(edge.endVertexID, in: &shellVertexIDs, using: &execution)
             }
-            edgeUses[orientedEdge.edgeID, default: EdgeUse()].record(orientedEdge.orientation)
+            var uses = edgeUses[orientedEdge.edgeID] ?? EdgeUse()
+            uses.record(orientedEdge.orientation)
+            try OriginalParameterQueryStorage.set(uses, for: orientedEdge.edgeID, in: &edgeUses, using: &execution)
           }
         }
         guard outerLoopCount == 1 else {
@@ -158,11 +150,10 @@ struct OriginalBRepValidationInvocation: Sendable {
 
       for (edgeID, uses) in edgeUses {
 
-        try charge()
+        try charge(using: &execution)
         if let edge = edges[edgeID],
            try BRepEdgeGeometryClassifier(maximumSubdivisionDepth: maximumSubdivisionDepth,
-             remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork,
-             consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth).kind(of: edge, in: model, tolerance: tolerance) == .singular {
+             remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth).kind(of: edge, in: model, tolerance: tolerance, using: &execution) == .singular {
           guard uses.count == 1 else { throw TopologyError.nonManifoldEdge(edgeID, count: uses.count) }
           continue
         }
@@ -185,87 +176,71 @@ struct OriginalBRepValidationInvocation: Sendable {
         }
       }
       if isSheetShell == false {
-        try validateLineOnlyShellEnclosesVolume(shell, tolerance: tolerance)
+        try validateLineOnlyShellEnclosesVolume(shell, tolerance: tolerance, using: &execution)
       }
       for edgeID in shellEdgeIDs {
-        try charge()
-        try recordOwnership(edgeID, in: &ownedShellEdgeIDs, child: "edge")
+        try charge(using: &execution)
+        try recordOwnership(edgeID, in: &ownedShellEdgeIDs, child: "edge", using: &execution)
       }
       for vertexID in shellVertexIDs {
-        try charge()
-        try recordOwnership(vertexID, in: &ownedShellVertexIDs, child: "vertex")
+        try charge(using: &execution)
+        try recordOwnership(vertexID, in: &ownedShellVertexIDs, child: "vertex", using: &execution)
       }
     }
 
-    try validateReferences(referencedFaceIDs, cover: try declaredKeys(faces), label: "face")
-    try validateReferences(referencedLoopIDs, cover: try declaredKeys(loops), label: "loop")
-    try validateReferences(referencedEdgeIDs, cover: try declaredKeys(edges), label: "edge")
+    try validateReferences(referencedFaceIDs, cover: try declaredKeys(faces, using: &execution), label: "face", using: &execution)
+    try validateReferences(referencedLoopIDs, cover: try declaredKeys(loops, using: &execution), label: "loop", using: &execution)
+    try validateReferences(referencedEdgeIDs, cover: try declaredKeys(edges, using: &execution), label: "edge", using: &execution)
 
     var referencedCurveIDs = Set<CurveID>()
     var referencedVertexIDs = Set<VertexID>()
     for edge in edges.values {
-      try charge()
-      referencedCurveIDs.insert(edge.curveID)
-      referencedVertexIDs.insert(edge.startVertexID)
-      referencedVertexIDs.insert(edge.endVertexID)
+      try charge(using: &execution)
+      try OriginalParameterQueryStorage.insert(edge.curveID, in: &referencedCurveIDs, using: &execution)
+      try OriginalParameterQueryStorage.insert(edge.startVertexID, in: &referencedVertexIDs, using: &execution)
+      try OriginalParameterQueryStorage.insert(edge.endVertexID, in: &referencedVertexIDs, using: &execution)
     }
-    try validateReferences(referencedCurveIDs, cover: try declaredKeys(geometry.curves), label: "curve")
+    try validateReferences(referencedCurveIDs, cover: try declaredKeys(geometry.curves, using: &execution), label: "curve", using: &execution)
     try validateReferences(
-      referencedSurfaceIDs, cover: try declaredKeys(geometry.surfaces), label: "surface")
-    try validateReferences(referencedVertexIDs, cover: try declaredKeys(vertices), label: "vertex")
+      referencedSurfaceIDs, cover: try declaredKeys(geometry.surfaces, using: &execution), label: "surface", using: &execution)
+    try validateReferences(referencedVertexIDs, cover: try declaredKeys(vertices, using: &execution), label: "vertex", using: &execution)
   }
 
   public func validate(
     level: BRepValidationLevel,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws {
-    try validate(tolerance: tolerance)
+    try validate(tolerance: tolerance, using: &execution)
     guard level != .modeling else {
       return
     }
-    try validatePcurvesAfterBaseValidation(tolerance: tolerance)
+    try validatePcurvesAfterBaseValidation(tolerance: tolerance, using: &execution)
     if level == .volumetric,
       bodies.values.contains(where: { $0.kind == .solid })
     {
-      _ = try volumeAfterBaseValidation(tolerance: tolerance)
+      _ = try volumeAfterBaseValidation(tolerance: tolerance, using: &execution)
     }
   }
 
-  public func diagnose(tolerance: ModelingTolerance) -> TopologyValidationReport {
-    do {
-      return try DefaultBRepTopologyValidator().report(
-        for: model,
-        request: .all,
-        tolerance: tolerance
-      )
-    } catch {
-      return TopologyValidationReport(
-        isValid: false,
-        diagnostics: [
-          TopologyValidationDiagnostic(
-            scope: .references,
-            code: .invalidInput,
-            message: KernelError.wrapping(error, phase: .topology, tolerance: tolerance).message
-          )
-        ]
-      )
-    }
+  public func diagnose(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> TopologyValidationReport {
+    try DefaultBRepTopologyValidator().report(for: model, request: .all,
+      tolerance: tolerance, using: &execution)
   }
 
   /// Validates the face-local parameter curves required by exact CAD exchange.
   /// This is intentionally separate from the base topology check because some
   /// development features still carry a geometric edge without a persisted p-curve.
-  public func validatePcurves(tolerance: ModelingTolerance) throws {
+  public func validatePcurves(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
     try tolerance.validate()
-    try validate(tolerance: tolerance)
-    try validatePcurvesAfterBaseValidation(tolerance: tolerance)
+    try validate(tolerance: tolerance, using: &execution)
+    try validatePcurvesAfterBaseValidation(tolerance: tolerance, using: &execution)
   }
 
   private func validatePcurvesAfterBaseValidation(
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws {
     for face in faces.values {
-      try charge()
+      try charge(using: &execution)
       guard let surface = geometry.surfaces[face.surfaceID] else {
         throw KernelError(
           phase: .topology,
@@ -275,7 +250,7 @@ struct OriginalBRepValidationInvocation: Sendable {
         )
       }
       for loopID in face.loops {
-        try charge()
+        try charge(using: &execution)
         guard let loop = loops[loopID] else {
           throw KernelError(
             phase: .topology,
@@ -285,7 +260,7 @@ struct OriginalBRepValidationInvocation: Sendable {
           )
         }
         for coedge in loop.coedges {
-          try charge()
+          try charge(using: &execution)
           guard let pcurve = coedge.surfaceParameterCurve else {
             throw KernelError(
               phase: .topology,
@@ -294,32 +269,31 @@ struct OriginalBRepValidationInvocation: Sendable {
               message: "Every coedge must carry a face-local p-curve for exact exchange."
             )
           }
-          if let consumeWork {
+          do {
             try pcurve.validate(on: surface, tolerance: tolerance, remainingSourceDepth: remainingSourceDepth,
-              maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: consumeWork,
-              consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
-          } else { try pcurve.validate(on: surface, tolerance: tolerance) }
+              maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
+          }
         }
       }
     }
   }
 
-  public func volume(tolerance: ModelingTolerance) throws -> Double {
-    try validate(tolerance: tolerance)
-    return try volumeAfterBaseValidation(tolerance: tolerance)
+  public func volume(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Double {
+    try validate(tolerance: tolerance, using: &execution)
+    return try volumeAfterBaseValidation(tolerance: tolerance, using: &execution)
   }
 
   public func volume(
     of bodyID: BodyID,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> Double {
-    try validate(tolerance: tolerance)
+    try validate(tolerance: tolerance, using: &execution)
     guard bodies[bodyID] != nil else {
       throw TopologyError.missingReference("Missing measurable body \(bodyID).")
     }
     return try solidBodyVolumeAfterBaseValidation(
       bodyID: bodyID,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
   }
 
@@ -328,29 +302,35 @@ struct OriginalBRepValidationInvocation: Sendable {
   /// has a sign as well, which says which way its faces must face for it to bound a solid.
   public func signedVolume(
     ofShell shellID: ShellID,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> Double {
-    try validate(tolerance: tolerance)
+    try validate(tolerance: tolerance, using: &execution)
     guard let shell = shells[shellID] else {
       throw TopologyError.missingReference("Missing measurable shell \(shellID).")
     }
-    return try exactVolumeContribution(of: shell, tolerance: tolerance)
+    return try exactVolumeContribution(of: shell, tolerance: tolerance, using: &execution)
   }
 
   func volumeAfterBaseValidation(
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> Double {
     var total = 0.0
     var foundSolid = false
-    for bodyID in bodies.keys.sorted() {
-      try charge()
+    var bodyIDs: [BodyID] = []
+    for bodyID in bodies.keys {
+      try execution.consumeWork(1)
+      try OriginalParameterQueryStorage.append(bodyID, to: &bodyIDs, using: &execution)
+    }
+    try OriginalParameterQueryStorage.sort(&bodyIDs, using: &execution, less: <)
+    for bodyID in bodyIDs {
+      try charge(using: &execution)
       guard bodies[bodyID]?.kind == .solid else {
         continue
       }
       foundSolid = true
       total += try solidBodyVolumeAfterBaseValidation(
         bodyID: bodyID,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
     }
     guard foundSolid,
@@ -369,25 +349,25 @@ struct OriginalBRepValidationInvocation: Sendable {
 
   private func solidBodyVolumeAfterBaseValidation(
     bodyID: BodyID,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> Double {
     let components = try model.solidShellComponents(
       for: bodyID,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
     let minimumVolume = tolerance.distance * tolerance.distance * tolerance.distance
     var bodyVolume = 0.0
     for component in components {
-      try charge()
+      try charge(using: &execution)
       var componentVolume = 0.0
-      for shellID in component.shellIDs {
-        try charge()
+      for shellID in try component.originalShellIDs(using: &execution) {
+        try charge(using: &execution)
         guard let shell = shells[shellID] else {
           throw TopologyError.missingReference("Missing shell \(shellID).")
         }
         componentVolume += try exactVolumeContribution(
           of: shell,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
       }
       guard componentVolume.isFinite,
@@ -417,20 +397,20 @@ struct OriginalBRepValidationInvocation: Sendable {
 
   private func exactVolumeContribution(
     of shell: Shell,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> Double {
-    let reference = try lineOnlyShellReferencePoint(shell)
+    let reference = try lineOnlyShellReferencePoint(shell, using: &execution)
     if let lineOnlyContribution = try lineOnlyShellVolume(
       shell,
       origin: reference,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     ) {
       return lineOnlyContribution
     }
     if let analyticContribution = try AnalyticPrismaticVolumeEvaluator().volume(
       of: shell,
       in: model,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     ) {
       return shell.orientation == .forward
         ? analyticContribution
@@ -439,7 +419,7 @@ struct OriginalBRepValidationInvocation: Sendable {
     if let trimmedAnalyticContribution = try TrimmedAnalyticSurfaceVolumeEvaluator().volume(
       of: shell,
       in: model,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     ) {
       return shell.orientation == .forward
         ? trimmedAnalyticContribution
@@ -448,20 +428,21 @@ struct OriginalBRepValidationInvocation: Sendable {
     return try TrimmedParametricSurfaceVolumeEvaluator().volume(
       of: shell,
       in: model,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
       * (shell.orientation == .forward ? 1.0 : -1.0)
   }
 
-  public func orderedVertexIDs(for loopID: LoopID) throws -> [VertexID] {
+  public func orderedVertexIDs(for loopID: LoopID, using execution: inout OriginalQueryExecution) throws -> [VertexID] {
     guard let loop = loops[loopID] else {
       throw TopologyError.missingReference("Missing loop \(loopID).")
     }
-    return try orderedVertexIDs(for: loop)
+    return try orderedVertexIDs(for: loop, using: &execution)
   }
 
-  public func orderedPoints(for loopID: LoopID) throws -> [Point3D] {
-    try orderedVertexIDs(for: loopID).map { vertexID in
+  public func orderedPoints(for loopID: LoopID, using execution: inout OriginalQueryExecution) throws -> [Point3D] {
+    let ids = try orderedVertexIDs(for: loopID, using: &execution)
+    return try OriginalParameterQueryStorage.map(ids, using: &execution) { vertexID, execution in
       guard let vertex = vertices[vertexID] else {
         throw TopologyError.missingReference("Missing vertex \(vertexID).")
       }
@@ -473,10 +454,10 @@ struct OriginalBRepValidationInvocation: Sendable {
     loop: Loop,
     liesOn surface: Surface3D,
     faceID: FaceID,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws {
     for orientedEdge in loop.edges {
-      try charge()
+      try charge(using: &execution)
       guard let edge = edges[orientedEdge.edgeID],
         let startPoint = vertices[edge.startVertexID]?.point,
         let endPoint = vertices[edge.endVertexID]?.point,
@@ -485,8 +466,8 @@ struct OriginalBRepValidationInvocation: Sendable {
         throw TopologyError.missingReference("Missing loop edge geometry.")
       }
       if let surfaceParameterCurve = orientedEdge.surfaceParameterCurve {
-        let orientedStartVertexID = try startVertexID(for: orientedEdge)
-        let orientedEndVertexID = try endVertexID(for: orientedEdge)
+        let orientedStartVertexID = try startVertexID(for: orientedEdge, using: &execution)
+        let orientedEndVertexID = try endVertexID(for: orientedEdge, using: &execution)
         guard let orientedStartPoint = vertices[orientedStartVertexID]?.point,
           let orientedEndPoint = vertices[orientedEndVertexID]?.point
         else {
@@ -502,15 +483,15 @@ struct OriginalBRepValidationInvocation: Sendable {
           edgeID: orientedEdge.edgeID,
           startPoint: orientedStartPoint,
           endPoint: orientedEndPoint,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
       } else {
-        try validate(startPoint, liesOn: surface, faceID: faceID, tolerance: tolerance)
-        try validate(endPoint, liesOn: surface, faceID: faceID, tolerance: tolerance)
-        try validate(curve, liesOn: surface, faceID: faceID, tolerance: tolerance)
+        try validate(startPoint, liesOn: surface, faceID: faceID, tolerance: tolerance, using: &execution)
+        try validate(endPoint, liesOn: surface, faceID: faceID, tolerance: tolerance, using: &execution)
+        try validate(curve, liesOn: surface, faceID: faceID, tolerance: tolerance, using: &execution)
       }
     }
-    try validateLoopArea(loop, liesOn: surface, tolerance: tolerance)
+    try validateLoopArea(loop, liesOn: surface, tolerance: tolerance, using: &execution)
   }
 
   private func validate(
@@ -523,34 +504,27 @@ struct OriginalBRepValidationInvocation: Sendable {
     edgeID: EdgeID,
     startPoint: Point3D,
     endPoint: Point3D,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws {
     let startResidual: Double
     let endResidual: Double
     do {
-      if let consumeWork {
+      do {
         try surfaceParameterCurve.validate(on: surface, tolerance: tolerance, remainingSourceDepth: remainingSourceDepth,
-          maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: consumeWork,
-          consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+          maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
         let prepared = try PreparedCurveDifferentialEncloser(
           curve: .surfaceLift(SurfaceLiftCurve3D(surface: surface, parameterCurve: surfaceParameterCurve)),
           tolerance: tolerance, remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth,
-          consumeWork: { try consumeWork(0) }, consumeStorage: consumeStorage,
-          maximumAlgebraicDepth: maximumAlgebraicDepth)
+          maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
         startResidual = try originalPointResidual(from: startPoint, at: 0,
-          prepared: prepared, tolerance: tolerance, consumeWork: consumeWork)
+          prepared: prepared, tolerance: tolerance, using: &execution)
         endResidual = try originalPointResidual(from: endPoint, at: 1,
-          prepared: prepared, tolerance: tolerance, consumeWork: consumeWork)
-      } else {
-        try surfaceParameterCurve.validate(on: surface, tolerance: tolerance)
-        let lift = SurfaceLiftCurve3D(surface: surface, parameterCurve: surfaceParameterCurve)
-        startResidual = (startPoint - (try lift.point(atNormalizedFraction: 0, tolerance: tolerance))).length.nextUp
-        endResidual = (endPoint - (try lift.point(atNormalizedFraction: 1, tolerance: tolerance))).length.nextUp
+          prepared: prepared, tolerance: tolerance, using: &execution)
       }
     } catch is CancellationError {
       throw CancellationError()
     } catch {
-      throw contextualizedCoedgeError(error, faceID: faceID, edgeID: edgeID,
+      throw try contextualizedCoedgeError(error, faceID: faceID, edgeID: edgeID,
         stage: "pcurve endpoint validation", tolerance: tolerance)
     }
     // Boolean junction vertices snap to canonical points on source
@@ -579,7 +553,7 @@ struct OriginalBRepValidationInvocation: Sendable {
         endCurveParameter = trim.startParameter
       }
     } else {
-      guard try isUnboundedLineCurve(curve) else {
+      guard try isUnboundedLineCurve(curve, using: &execution) else {
         throw KernelError(
           phase: .topology,
           code: .topologyFailure,
@@ -588,26 +562,12 @@ struct OriginalBRepValidationInvocation: Sendable {
             "Face \(faceID) coedge \(edgeID) references a non-linear edge without an exact curve trim."
         )
       }
-      let needsOriginalParameters: Bool
-      if consumeWork != nil { needsOriginalParameters = true }
-      else { needsOriginalParameters = try containsOriginalWord(curve) }
-      if needsOriginalParameters {
-        startCurveParameter = try originalLineParameter(startPoint, on: curve, tolerance: tolerance)
-        endCurveParameter = try originalLineParameter(endPoint, on: curve, tolerance: tolerance)
-      } else {
-        startCurveParameter = try curve.parameterProjection(of: startPoint, tolerance: tolerance).parameter
-        endCurveParameter = try curve.parameterProjection(of: endPoint, tolerance: tolerance).parameter
+      do {
+        startCurveParameter = try originalLineParameter(startPoint, on: curve, tolerance: tolerance, using: &execution)
+        endCurveParameter = try originalLineParameter(endPoint, on: curve, tolerance: tolerance, using: &execution)
       }
     }
-    if consumeWork == nil, case .surfaceLift(let lift) = curve, lift.surface == surface {
-      let canonical = orientedEdge.orientation == .forward
-        ? surfaceParameterCurve : try surfaceParameterCurve.reversed(tolerance: tolerance)
-      if canonical == lift.parameterCurve,
-         min(startCurveParameter, endCurveParameter) == 0,
-         max(startCurveParameter, endCurveParameter) == 1 {
-        return
-      }
-    }
+
     do {
       // Boolean junction endpoints snap pcurve ends to canonical
       // points up to eight tolerances off the exact curve, so the
@@ -620,26 +580,14 @@ struct OriginalBRepValidationInvocation: Sendable {
       // forwards the caller into source preparation and complete residual cells.
       // Nonlinear/critical correspondence, continuous chart lifts and lower jet
       // temporary byte admission must close before full bounded validation.
-      if consumeWork != nil {
+      do {
         try DefaultCurveSurfaceCorrespondenceValidator().validate(
           curve: curve, from: startCurveParameter, to: endCurveParameter,
           surface: surface, parameterCurve: surfaceParameterCurve,
           options: options, tolerance: tolerance, maximumSpanCount: 1_048_576,
           maximumSubdivisionDepth: maximumSubdivisionDepth,
           remainingSourceDepth: remainingSourceDepth,
-          consumeWork: { try charge() },
-          consumeStorage: { bytes in
-            guard bytes >= 0 else {
-              throw GeometryConversionError.invalidInput("Original BRep storage admission requires nonnegative byte counts.")
-            }
-            try CurrentTaskCancellationChecker().checkCancellation()
-            try consumeStorage?(bytes)
-          })
-      } else {
-        try DefaultCurveSurfaceCorrespondenceValidator().validate(
-          curve: curve, from: startCurveParameter, to: endCurveParameter,
-          surface: surface, parameterCurve: surfaceParameterCurve,
-          options: options, tolerance: tolerance)
+          maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
       }
     } catch let error as KernelError {
       throw KernelError(
@@ -655,7 +603,7 @@ struct OriginalBRepValidationInvocation: Sendable {
     } catch is CancellationError {
       throw CancellationError()
     } catch {
-      throw contextualizedCoedgeError(
+      throw try contextualizedCoedgeError(
         error,
         faceID: faceID,
         edgeID: edgeID,
@@ -671,19 +619,14 @@ struct OriginalBRepValidationInvocation: Sendable {
     edgeID: EdgeID,
     stage: String,
     tolerance: ModelingTolerance
-  ) -> KernelError {
+  ) throws -> KernelError {
     if let original = error as? KernelError {
       return KernelError(phase: original.phase, code: original.code,
         featureID: original.featureID, subshapeID: original.subshapeID,
         residual: original.residual, tolerance: original.tolerance ?? tolerance,
         message: "Face \(faceID) coedge \(edgeID) failed \(stage): \(original.message)")
     }
-    return KernelError(
-      phase: .topology,
-      code: .topologyFailure,
-      tolerance: tolerance,
-      message: "Face \(faceID) coedge \(edgeID) failed \(stage): \(KernelError.wrapping(error, phase: .topology, tolerance: tolerance).message)"
-    )
+    throw error
   }
 
   private func interpolated(_ start: Point3D, _ end: Point3D, fraction: Double) -> Point3D {
@@ -694,23 +637,23 @@ struct OriginalBRepValidationInvocation: Sendable {
     )
   }
 
-  private func validateLineOnlyShellEnclosesVolume(_ shell: Shell, tolerance: ModelingTolerance)
+  private func validateLineOnlyShellEnclosesVolume(_ shell: Shell, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution)
     throws
   {
     // A shell-local reference keeps plane offsets and projected areas stable
     // when geometry is placed far from the world origin. The same reference
     // must be used by every face so the divergence-theorem flux remains
     // translation invariant.
-    let origin = try lineOnlyShellReferencePoint(shell)
+    let origin = try lineOnlyShellReferencePoint(shell, using: &execution)
     var signedVolume = 0.0
     for faceID in shell.faceIDs {
-      try charge()
+      try charge(using: &execution)
       guard let face = faces[faceID],
         let contribution = try lineOnlyFaceVolumeContribution(
           face,
           shellOrientation: shell.orientation,
           origin: origin,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
       else {
         return
@@ -723,7 +666,7 @@ struct OriginalBRepValidationInvocation: Sendable {
     }
   }
 
-  private func lineOnlyShellReferencePoint(_ shell: Shell) throws -> Point3D {
+  private func lineOnlyShellReferencePoint(_ shell: Shell, using execution: inout OriginalQueryExecution) throws -> Point3D {
     try BRepShellReferencePointResolver().referencePoint(
       for: shell,
       in: model,
@@ -734,17 +677,17 @@ struct OriginalBRepValidationInvocation: Sendable {
   private func lineOnlyShellVolume(
     _ shell: Shell,
     origin: Point3D,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> Double? {
     var signedVolume = 0.0
     for faceID in shell.faceIDs {
-      try charge()
+      try charge(using: &execution)
       guard let face = faces[faceID],
         let contribution = try lineOnlyFaceVolumeContribution(
           face,
           shellOrientation: shell.orientation,
           origin: origin,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
       else {
         return nil
@@ -758,7 +701,7 @@ struct OriginalBRepValidationInvocation: Sendable {
     _ face: Face,
     shellOrientation: Orientation,
     origin: Point3D,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> Double? {
     guard face.loops.isEmpty == false else {
       return nil
@@ -779,12 +722,12 @@ struct OriginalBRepValidationInvocation: Sendable {
 
     var materialArea = 0.0
     for loopID in face.loops {
-      try charge()
+      try charge(using: &execution)
       guard let loop = loops[loopID] else {
         throw TopologyError.missingReference("Missing face loop geometry.")
       }
       for orientedEdge in loop.edges {
-        try charge()
+        try charge(using: &execution)
         guard let edge = edges[orientedEdge.edgeID],
           let curve = geometry.curves[edge.curveID]
         else {
@@ -795,14 +738,14 @@ struct OriginalBRepValidationInvocation: Sendable {
         }
       }
 
-      let points = try orderedPoints(for: loopID)
+      let points = try orderedPoints(for: loopID, using: &execution)
       guard points.count >= 3 else {
         throw TopologyError.degenerateLoop(loopID)
       }
       let anchor = points[0]
       var signedDoubleArea = 0.0
       for index in 1..<(points.count - 1) {
-        try charge()
+        try charge(using: &execution)
         signedDoubleArea += (points[index] - anchor)
           .cross(points[index + 1] - anchor)
           .dot(planeNormal)
@@ -832,10 +775,10 @@ struct OriginalBRepValidationInvocation: Sendable {
   private func validateLoopArea(
     _ loop: Loop,
     liesOn surface: Surface3D,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws {
     if case .cylinder(let cylinder) = surface {
-      try validateCylinderLoopArea(loop, liesOn: cylinder, tolerance: tolerance)
+      try validateCylinderLoopArea(loop, liesOn: cylinder, tolerance: tolerance, using: &execution)
       return
     }
     if case .analytic(.sphere(let center, let radius)) = surface,
@@ -846,7 +789,7 @@ struct OriginalBRepValidationInvocation: Sendable {
         surface: surface,
         center: center,
         radius: radius,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
       return
     }
@@ -867,7 +810,7 @@ struct OriginalBRepValidationInvocation: Sendable {
         uClosureTolerance: parameterTolerance.u * 8.0,
         vClosureTolerance: parameterTolerance.v * 8.0,
         surface: surface,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
       guard let bounds,
         bounds.minimumAbsoluteValue > minimumParameterArea
@@ -877,7 +820,7 @@ struct OriginalBRepValidationInvocation: Sendable {
       return
     }
     for orientedEdge in loop.edges {
-      try charge()
+      try charge(using: &execution)
       guard let edge = edges[orientedEdge.edgeID],
         let curve = geometry.curves[edge.curveID]
       else {
@@ -888,7 +831,7 @@ struct OriginalBRepValidationInvocation: Sendable {
       }
     }
 
-    let vertexIDs = try orderedVertexIDs(for: loop)
+    let vertexIDs = try orderedVertexIDs(for: loop, using: &execution)
     guard vertexIDs.count >= 3 else {
       throw TopologyError.degenerateLoop(loop.id)
     }
@@ -908,7 +851,7 @@ struct OriginalBRepValidationInvocation: Sendable {
 
     var signedDoubleArea = 0.0
     for index in points.indices {
-      try charge()
+      try charge(using: &execution)
       let current = points[index] - plane.origin
       let next = points[(index + 1) % points.count] - plane.origin
       signedDoubleArea += current.cross(next).dot(normal)
@@ -922,7 +865,7 @@ struct OriginalBRepValidationInvocation: Sendable {
   private func validateCylinderLoopArea(
     _ loop: Loop,
     liesOn cylinder: Cylinder3D,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws {
     try cylinder.validate(tolerance: tolerance)
     if let parameterArea = try loopParameterAreaBounds(
@@ -936,7 +879,7 @@ struct OriginalBRepValidationInvocation: Sendable {
       ),
       vClosureTolerance: tolerance.distance,
       surface: .cylinder(cylinder),
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     ) {
       let guaranteedPhysicalArea =
         parameterArea.minimumAbsoluteValue
@@ -956,7 +899,7 @@ struct OriginalBRepValidationInvocation: Sendable {
 
     for orientedEdge in loop.edges {
 
-      try charge()
+      try charge(using: &execution)
       guard let edge = edges[orientedEdge.edgeID],
         let startPoint = vertices[edge.startVertexID]?.point,
         let endPoint = vertices[edge.endVertexID]?.point,
@@ -965,7 +908,7 @@ struct OriginalBRepValidationInvocation: Sendable {
         throw TopologyError.missingReference("Missing loop edge geometry.")
       }
       for point in [startPoint, endPoint] {
-        try charge()
+        try charge(using: &execution)
         let height = (point - cylinder.origin).dot(axis)
         minimumHeight = min(minimumHeight ?? height, height)
         maximumHeight = max(maximumHeight ?? height, height)
@@ -1009,67 +952,58 @@ struct OriginalBRepValidationInvocation: Sendable {
     uClosureTolerance: Double,
     vClosureTolerance: Double,
     surface: Surface3D,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> SurfaceParameterAreaBounds? {
     guard loop.coedges.isEmpty == false else {
       return .zero
     }
     for coedge in loop.coedges {
-      try charge()
+      try charge(using: &execution)
       guard coedge.surfaceParameterCurve != nil else { return nil }
     }
     let minimumRequestedLoopWidth = minimumArea * 0.25
     let shiftedCurves: [SurfaceParameterLoopUnwrapper.UnwrappedCurve]
-    if let consumeWork {
+    do {
       let bytes = loop.coedges.count.multipliedReportingOverflow(by: MemoryLayout<SurfaceParameterCurve>.stride)
       guard !bytes.overflow else {
         throw GeometryConversionError.resourceLimitExceeded("Original loop curve storage count overflowed.")
       }
-      try charge(); try consumeStorage?(bytes.partialValue)
+      try charge(using: &execution); try execution.retainStorage(bytes: bytes.partialValue)
       var curves: [SurfaceParameterCurve] = []
       curves.reserveCapacity(loop.coedges.count)
       for coedge in loop.coedges {
-        try charge()
+        try charge(using: &execution)
         guard let curve = coedge.surfaceParameterCurve else {
           throw GeometryConversionError.invalidInput("Original surface loop has an absent pcurve.")
         }
-        curves.append(curve)
+        try OriginalParameterQueryStorage.append(curve, to: &curves, using: &execution)
       }
       shiftedCurves = try SurfaceParameterLoopUnwrapper().unwrap(curves,
         uPeriod: uPeriod, vPeriod: vPeriod,
         uClosureTolerance: uClosureTolerance, vClosureTolerance: vClosureTolerance,
         on: surface, tolerance: tolerance, context: "Surface loop \(loop.id)",
-        maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
-        consumeWork: consumeWork, consumeStorage: consumeStorage)
-    } else {
-      shiftedCurves = try SurfaceParameterLoopUnwrapper().unwrap(
-        loop.coedges.compactMap({ $0.surfaceParameterCurve }), uPeriod: uPeriod, vPeriod: vPeriod,
-        uClosureTolerance: uClosureTolerance, vClosureTolerance: vClosureTolerance,
-        on: surface, tolerance: tolerance, context: "Surface loop \(loop.id)")
+        maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth, using: &execution)
     }
     let integrator = SurfaceParameterCurveAreaIntegrator(
-      maximumSubdivisionDepth: consumeWork == nil ? 40 : maximumSubdivisionDepth,
-      consumeWork: consumeWork)
+      maximumSubdivisionDepth: maximumSubdivisionDepth,
+      remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth ?? 32)
     // A loose first request keeps singular-endpoint pcurve integrands
     // affordable for loops whose area dwarfs the degeneracy threshold;
     // the refinement loop tightens the request only when the enclosure
     // stays inconclusive.
     var requestedLoopWidth = max(minimumRequestedLoopWidth, 1.0)
     while true {
-      try charge()
+      try charge(using: &execution)
       let requestedCurveWidth =
         requestedLoopWidth
         / Double(shiftedCurves.count)
       var result = SurfaceParameterAreaBounds.zero
       for shiftedCurve in shiftedCurves {
-        try charge()
+        try charge(using: &execution)
         let bounds: SurfaceParameterAreaBounds
-        if consumeWork != nil {
+        do {
           bounds = try integrator.bounds(for: shiftedCurve.curve, on: surface,
-            uShift: shiftedCurve.uShift, requestedWidth: requestedCurveWidth, tolerance: tolerance)
-        } else {
-          bounds = try integrator.bounds(for: shiftedCurve.curve, uShift: shiftedCurve.uShift,
-            requestedWidth: requestedCurveWidth, tolerance: tolerance)
+            uShift: shiftedCurve.uShift, requestedWidth: requestedCurveWidth, tolerance: tolerance, using: &execution)
         }
         result = result.adding(bounds)
       }
@@ -1165,7 +1099,7 @@ struct OriginalBRepValidationInvocation: Sendable {
     surface: Surface3D,
     center: Point3D,
     radius: Double,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws {
     if loop.coedges.allSatisfy({ coedge in
       guard let pcurve = coedge.surfaceParameterCurve else { return false }
@@ -1174,7 +1108,7 @@ struct OriginalBRepValidationInvocation: Sendable {
       try validateSphericalGreatCircleLoopArea(
         loop,
         radius: radius,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
       return
     }
@@ -1185,16 +1119,16 @@ struct OriginalBRepValidationInvocation: Sendable {
       surface: surface,
       center: center,
       subdivisionsPerCoedge: 4,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
     for subdivisions in [8, 16, 32, 64] {
-      try charge()
+      try charge(using: &execution)
       let current = try sampledSphericalLoopSolidAngle(
         loop,
         surface: surface,
         center: center,
         subdivisionsPerCoedge: subdivisions,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
       let refinementError = abs(current - previous)
       if abs(current) - refinementError * 2.0 > minimumSolidAngle {
@@ -1210,14 +1144,16 @@ struct OriginalBRepValidationInvocation: Sendable {
     surface: Surface3D,
     center: Point3D,
     subdivisionsPerCoedge: Int,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> Double {
     var segments: [(start: Vector3D, end: Vector3D)] = []
-    var referenceCandidates: [Vector3D] = [
-      .unitX, -.unitX, .unitY, -.unitY, .unitZ, -.unitZ,
-    ]
+    var referenceCandidates: [Vector3D] = []
+    try OriginalParameterQueryStorage.reserve(6, in: &referenceCandidates, using: &execution)
+    referenceCandidates.append(.unitX); referenceCandidates.append(-.unitX)
+    referenceCandidates.append(.unitY); referenceCandidates.append(-.unitY)
+    referenceCandidates.append(.unitZ); referenceCandidates.append(-.unitZ)
     for coedge in loop.coedges {
-      try charge()
+      try charge(using: &execution)
       guard let pcurve = coedge.surfaceParameterCurve else {
         throw TopologyError.missingReference(
           "Missing spherical pcurve for loop \(loop.id)."
@@ -1227,24 +1163,24 @@ struct OriginalBRepValidationInvocation: Sendable {
         for: pcurve,
         atNormalizedFraction: 0.0,
         on: surface,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
       var start = try (startPoint - center).normalized(tolerance: tolerance.distance)
       for index in 1...subdivisionsPerCoedge {
-        try charge()
+        try charge(using: &execution)
         let point = try sphericalPoint(
           for: pcurve,
           atNormalizedFraction: Double(index) / Double(subdivisionsPerCoedge),
           on: surface,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
         let end = try (point - center).normalized(tolerance: tolerance.distance)
-        segments.append((start: start, end: end))
+        try OriginalParameterQueryStorage.append((start: start, end: end), to: &segments, using: &execution)
         let cross = start.cross(end)
         if cross.length > tolerance.angle {
           let normal = try cross.normalized(tolerance: tolerance.angle)
-          referenceCandidates.append(normal)
-          referenceCandidates.append(-normal)
+          try OriginalParameterQueryStorage.append(normal, to: &referenceCandidates, using: &execution)
+          try OriginalParameterQueryStorage.append(-normal, to: &referenceCandidates, using: &execution)
         }
         start = end
       }
@@ -1252,7 +1188,7 @@ struct OriginalBRepValidationInvocation: Sendable {
     return try sphericalSolidAngle(
       segments: segments,
       referenceCandidates: referenceCandidates,
-      loopID: loop.id
+      loopID: loop.id, using: &execution
     )
   }
 
@@ -1260,7 +1196,7 @@ struct OriginalBRepValidationInvocation: Sendable {
     for pcurve: SurfaceParameterCurve,
     atNormalizedFraction fraction: Double,
     on surface: Surface3D,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> Point3D {
     switch pcurve {
     case .certifiedAnalyticImplicit(let curve):
@@ -1269,26 +1205,26 @@ struct OriginalBRepValidationInvocation: Sendable {
         + (curve.endFraction - curve.startFraction) * fraction
       return try curve.intersection.implicitCurve.point(
         atNormalizedFraction: mapped,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
     case .periodicTranslation(let base, _, _):
       return try sphericalPoint(
         for: base,
         atNormalizedFraction: fraction,
         on: surface,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
     case .affine, .constantU, .constantV, .harmonic, .sphericalGreatCircle,
       .polyline, .bSpline, .certifiedImplicit, .certifiedAnalyticPair,
       .projectedAnalytic, .rigidImage, .offsetSurfaceImage, .originalImage, .originalAffineWord, .originalBSplineContinuation:
       let parameter = try pcurve.parameter(
         atNormalizedFraction: fraction,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
       return try surface.point(
         u: parameter.u,
         v: parameter.v,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
     }
   }
@@ -1296,14 +1232,16 @@ struct OriginalBRepValidationInvocation: Sendable {
   private func validateSphericalGreatCircleLoopArea(
     _ loop: Loop,
     radius: Double,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws {
     var segments: [(start: Vector3D, end: Vector3D)] = []
-    var referenceCandidates: [Vector3D] = [
-      .unitX, -.unitX, .unitY, -.unitY, .unitZ, -.unitZ,
-    ]
+    var referenceCandidates: [Vector3D] = []
+    try OriginalParameterQueryStorage.reserve(6, in: &referenceCandidates, using: &execution)
+    referenceCandidates.append(.unitX); referenceCandidates.append(-.unitX)
+    referenceCandidates.append(.unitY); referenceCandidates.append(-.unitY)
+    referenceCandidates.append(.unitZ); referenceCandidates.append(-.unitZ)
     for coedge in loop.coedges {
-      try charge()
+      try charge(using: &execution)
       guard let pcurve = coedge.surfaceParameterCurve,
         let definition = sphericalGreatCircleDefinition(pcurve)
       else {
@@ -1314,8 +1252,8 @@ struct OriginalBRepValidationInvocation: Sendable {
       let normal = try definition.cosine.cross(definition.sine).normalized(
         tolerance: tolerance.distance
       )
-      referenceCandidates.append(normal)
-      referenceCandidates.append(-normal)
+      try OriginalParameterQueryStorage.append(normal, to: &referenceCandidates, using: &execution)
+      try OriginalParameterQueryStorage.append(-normal, to: &referenceCandidates, using: &execution)
 
       let span = definition.endParameter - definition.startParameter
       let segmentCount = max(1, Int(ceil(abs(span) / (0.5 * Double.pi))))
@@ -1323,26 +1261,26 @@ struct OriginalBRepValidationInvocation: Sendable {
         cosine: definition.cosine,
         sine: definition.sine,
         parameter: definition.startParameter,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
       for index in 1...segmentCount {
-        try charge()
+        try charge(using: &execution)
         let fraction = Double(index) / Double(segmentCount)
         let parameter = definition.startParameter + span * fraction
         let end = try sphericalGreatCircleRadial(
           cosine: definition.cosine,
           sine: definition.sine,
           parameter: parameter,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
-        segments.append((start: start, end: end))
+        try OriginalParameterQueryStorage.append((start: start, end: end), to: &segments, using: &execution)
         start = end
       }
     }
     let solidAngle = try sphericalSolidAngle(
       segments: segments,
       referenceCandidates: referenceCandidates,
-      loopID: loop.id
+      loopID: loop.id, using: &execution
     )
     let physicalArea = abs(solidAngle) * radius * radius
     guard physicalArea.isFinite,
@@ -1355,7 +1293,7 @@ struct OriginalBRepValidationInvocation: Sendable {
   private func sphericalSolidAngle(
     segments: [(start: Vector3D, end: Vector3D)],
     referenceCandidates: [Vector3D],
-    loopID: LoopID
+    loopID: LoopID, using execution: inout OriginalQueryExecution
   ) throws -> Double {
     guard segments.isEmpty == false else {
       throw TopologyError.degenerateLoop(loopID)
@@ -1364,10 +1302,10 @@ struct OriginalBRepValidationInvocation: Sendable {
     var reference: Vector3D?
     var bestScore = -Double.infinity
     for candidate in referenceCandidates {
-      try charge()
+      try charge(using: &execution)
       var score = Double.infinity
       for segment in segments {
-        try charge()
+        try charge(using: &execution)
         let numerator = candidate.dot(segment.start.cross(segment.end))
         let denominator =
           1.0
@@ -1389,7 +1327,7 @@ struct OriginalBRepValidationInvocation: Sendable {
 
     var solidAngle = 0.0
     for segment in segments {
-      try charge()
+      try charge(using: &execution)
       let numerator = reference.dot(segment.start.cross(segment.end))
       let denominator =
         1.0
@@ -1442,7 +1380,7 @@ struct OriginalBRepValidationInvocation: Sendable {
     cosine: Vector3D,
     sine: Vector3D,
     parameter: Double,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> Vector3D {
     try (cosine * cos(parameter) + sine * sin(parameter)).normalized(
       tolerance: tolerance.distance
@@ -1457,7 +1395,7 @@ struct OriginalBRepValidationInvocation: Sendable {
     _ point: Point3D,
     liesOn surface: Surface3D,
     faceID: FaceID,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws {
     switch surface {
     case .plane(let plane):
@@ -1477,8 +1415,8 @@ struct OriginalBRepValidationInvocation: Sendable {
         throw TopologyError.invalidFaceSurface(faceID)
       }
     case .bSpline(let surface):
-      try surface.validate(tolerance: tolerance)
-      guard try isPointOnBSplineBoundary(point, surface: surface, tolerance: tolerance) else {
+      try surface.validate(tolerance: tolerance, using: &execution)
+      guard try isPointOnBSplineBoundary(point, surface: surface, tolerance: tolerance, using: &execution) else {
         throw TopologyError.invalidFaceSurface(faceID)
       }
     case .analytic(let surface):
@@ -1510,7 +1448,7 @@ struct OriginalBRepValidationInvocation: Sendable {
     case .procedural:
       let projection = try surface.parameterProjection(
         of: point,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
       guard projection.residual <= tolerance.distance else {
         throw TopologyError.invalidFaceSurface(faceID)
@@ -1522,7 +1460,7 @@ struct OriginalBRepValidationInvocation: Sendable {
     _ curve: Curve3D,
     liesOn surface: Surface3D,
     faceID: FaceID,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws {
     if case .rigidImage(let image) = curve {
       let sourceSurface = try image.transform.inverted().applying(
@@ -1533,7 +1471,7 @@ struct OriginalBRepValidationInvocation: Sendable {
         image.source,
         liesOn: sourceSurface,
         faceID: faceID,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
     }
     if case .surfaceLift(let lift) = curve {
@@ -1550,7 +1488,7 @@ struct OriginalBRepValidationInvocation: Sendable {
           .line(Line3D(origin: origin, direction: direction)),
           liesOn: surface,
           faceID: faceID,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
       case .circle(let center, let normal, let radius),
         .arc(let center, let normal, let radius, _, _):
@@ -1558,7 +1496,7 @@ struct OriginalBRepValidationInvocation: Sendable {
           .circle(Circle3D(center: center, normal: normal, radius: radius)),
           liesOn: surface,
           faceID: faceID,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
       case .ellipse, .hyperbola, .parabola:
         return try AnalyticConicSurfaceValidator().validate(
@@ -1586,14 +1524,14 @@ struct OriginalBRepValidationInvocation: Sendable {
           curve,
           liesOn: .plane(Plane3D(origin: origin, normal: normal)),
           faceID: faceID,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
       case .cylinder(let origin, let axis, let radius):
         return try validate(
           curve,
           liesOn: .cylinder(Cylinder3D(origin: origin, axis: axis, radius: radius)),
           faceID: faceID,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
       case .cone(let apex, let axis, let halfAngle):
         return try validate(
@@ -1602,7 +1540,7 @@ struct OriginalBRepValidationInvocation: Sendable {
           axis: axis,
           halfAngle: halfAngle,
           faceID: faceID,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
       case .sphere(let center, let radius):
         return try validate(
@@ -1610,7 +1548,7 @@ struct OriginalBRepValidationInvocation: Sendable {
           liesOnSphereWithCenter: center,
           radius: radius,
           faceID: faceID,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
       case .torus(let center, let axis, let majorRadius, let minorRadius):
         return try validate(
@@ -1620,7 +1558,7 @@ struct OriginalBRepValidationInvocation: Sendable {
           majorRadius: majorRadius,
           minorRadius: minorRadius,
           faceID: faceID,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
       }
     }
@@ -1634,7 +1572,7 @@ struct OriginalBRepValidationInvocation: Sendable {
         curve,
         liesOn: equivalent,
         faceID: faceID,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
     }
 
@@ -1654,11 +1592,11 @@ struct OriginalBRepValidationInvocation: Sendable {
       guard abs(abs(direction.dot(axis)) - 1.0) <= max(tolerance.distance, tolerance.angle) else {
         throw TopologyError.invalidFaceSurface(faceID)
       }
-      try validate(line.origin, liesOn: surface, faceID: faceID, tolerance: tolerance)
+      try validate(line.origin, liesOn: surface, faceID: faceID, tolerance: tolerance, using: &execution)
     case (.circle(let circle), .plane(let plane)):
       try circle.validate(tolerance: tolerance)
       try plane.validate(tolerance: tolerance)
-      try validate(circle.center, liesOn: surface, faceID: faceID, tolerance: tolerance)
+      try validate(circle.center, liesOn: surface, faceID: faceID, tolerance: tolerance, using: &execution)
       let circleNormal = try circle.normal.normalized(tolerance: tolerance.distance)
       let planeNormal = try plane.normal.normalized(tolerance: tolerance.distance)
       guard
@@ -1684,7 +1622,7 @@ struct OriginalBRepValidationInvocation: Sendable {
     case (.line(let line), .bSpline(let surface)):
       try line.validate(tolerance: tolerance)
       try surface.validate(tolerance: tolerance)
-      guard try isLineOnBSplineBoundary(line, surface: surface, tolerance: tolerance) else {
+      guard try isLineOnBSplineBoundary(line, surface: surface, tolerance: tolerance, using: &execution) else {
         throw TopologyError.invalidFaceSurface(faceID)
       }
     case (.bSpline(let curve), .bSpline(let surface)):
@@ -1694,7 +1632,7 @@ struct OriginalBRepValidationInvocation: Sendable {
         try isBSplineCurveOnBSplineBoundary(
           curve,
           surface: surface,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
       else {
         throw TopologyError.invalidFaceSurface(faceID)
@@ -1742,7 +1680,7 @@ struct OriginalBRepValidationInvocation: Sendable {
     axis: Vector3D,
     halfAngle: Double,
     faceID: FaceID,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws {
     let normalizedAxis = try axis.normalized(tolerance: tolerance.distance)
     switch curve {
@@ -1779,7 +1717,7 @@ struct OriginalBRepValidationInvocation: Sendable {
     liesOnSphereWithCenter center: Point3D,
     radius: Double,
     faceID: FaceID,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws {
     guard case .circle(let circle) = curve else {
       throw TopologyError.invalidFaceSurface(faceID)
@@ -1802,7 +1740,7 @@ struct OriginalBRepValidationInvocation: Sendable {
     majorRadius: Double,
     minorRadius: Double,
     faceID: FaceID,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws {
     guard case .circle(let circle) = curve else {
       throw TopologyError.invalidFaceSurface(faceID)
@@ -1832,10 +1770,10 @@ struct OriginalBRepValidationInvocation: Sendable {
   private func isPointOnBSplineBoundary(
     _ point: Point3D,
     surface: BSplineSurface3D,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> Bool {
-    for segment in try bSplineBoundarySegments(surface: surface, tolerance: tolerance) {
-      try charge()
+    for segment in try bSplineBoundarySegments(surface: surface, tolerance: tolerance, using: &execution) {
+      try charge(using: &execution)
       if distance(point, toSegmentFrom: segment.start, to: segment.end) <= tolerance.distance {
         return true
       }
@@ -1846,7 +1784,7 @@ struct OriginalBRepValidationInvocation: Sendable {
   private func isBSplineCurveOnBSplineBoundary(
     _ curve: BSplineCurve3D,
     surface: BSplineSurface3D,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> Bool {
     guard case .closed(let uLower, let uUpper) = surface.uDomain,
       case .closed(let vLower, let vUpper) = surface.vDomain
@@ -1860,11 +1798,11 @@ struct OriginalBRepValidationInvocation: Sendable {
       try surface.vIsoparametricCurve(atU: uUpper, tolerance: tolerance),
     ]
     for boundary in boundaries {
-      try charge()
+      try charge(using: &execution)
       if try bSplineCurvesMatch(
         curve,
         boundary,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       ) {
         return true
       }
@@ -1875,7 +1813,7 @@ struct OriginalBRepValidationInvocation: Sendable {
   private func bSplineCurvesMatch(
     _ lhs: BSplineCurve3D,
     _ rhs: BSplineCurve3D,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> Bool {
     try tolerance.validate()
     if lhs == rhs {
@@ -1883,20 +1821,20 @@ struct OriginalBRepValidationInvocation: Sendable {
     }
     let reversedRHS = try rhs.reversed(tolerance: tolerance)
     if lhs == reversedRHS { return true }
-    if try commonBasisCurvesMatch(lhs, rhs, tolerance: tolerance) {
+    if try commonBasisCurvesMatch(lhs, rhs, tolerance: tolerance, using: &execution) {
       return true
     }
     return try commonBasisCurvesMatch(
       lhs,
       reversedRHS,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
   }
 
   private func commonBasisCurvesMatch(
     _ lhs: BSplineCurve3D,
     _ rhs: BSplineCurve3D,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> Bool {
     let common = try DefaultBSplineCurveCommonBasisResolver().resolve(
       first: lhs,
@@ -1918,7 +1856,7 @@ struct OriginalBRepValidationInvocation: Sendable {
       return false
     }
     for index in 0..<common.first.controlPointCount {
-      try charge()
+      try charge(using: &execution)
       guard
         common.first.controlPoints[index].isApproximatelyEqual(
           to: common.second.controlPoints[index],
@@ -1950,11 +1888,11 @@ struct OriginalBRepValidationInvocation: Sendable {
   private func isLineOnBSplineBoundary(
     _ line: Line3D,
     surface: BSplineSurface3D,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> Bool {
     let direction = try line.direction.normalized(tolerance: tolerance.distance)
-    for segment in try bSplineBoundarySegments(surface: surface, tolerance: tolerance) {
-      try charge()
+    for segment in try bSplineBoundarySegments(surface: surface, tolerance: tolerance, using: &execution) {
+      try charge(using: &execution)
       let segmentDirection = segment.end - segment.start
       guard segmentDirection.length > tolerance.distance else {
         continue
@@ -1975,14 +1913,14 @@ struct OriginalBRepValidationInvocation: Sendable {
 
   private func bSplineBoundarySegments(
     surface: BSplineSurface3D,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> [(start: Point3D, end: Point3D)] {
-    let uBounds = try parameterBounds(surface.uDomain, tolerance: tolerance)
-    let vBounds = try parameterBounds(surface.vDomain, tolerance: tolerance)
-    let bottomLeft = try surface.point(u: uBounds.lower, v: vBounds.lower, tolerance: tolerance)
-    let bottomRight = try surface.point(u: uBounds.upper, v: vBounds.lower, tolerance: tolerance)
-    let topRight = try surface.point(u: uBounds.upper, v: vBounds.upper, tolerance: tolerance)
-    let topLeft = try surface.point(u: uBounds.lower, v: vBounds.upper, tolerance: tolerance)
+    let uBounds = try parameterBounds(surface.uDomain, tolerance: tolerance, using: &execution)
+    let vBounds = try parameterBounds(surface.vDomain, tolerance: tolerance, using: &execution)
+    let bottomLeft = try surface.point(u: uBounds.lower, v: vBounds.lower, tolerance: tolerance, using: &execution)
+    let bottomRight = try surface.point(u: uBounds.upper, v: vBounds.lower, tolerance: tolerance, using: &execution)
+    let topRight = try surface.point(u: uBounds.upper, v: vBounds.upper, tolerance: tolerance, using: &execution)
+    let topLeft = try surface.point(u: uBounds.lower, v: vBounds.upper, tolerance: tolerance, using: &execution)
     return [
       (bottomLeft, bottomRight),
       (bottomRight, topRight),
@@ -1993,7 +1931,7 @@ struct OriginalBRepValidationInvocation: Sendable {
 
   private func parameterBounds(
     _ domain: ParameterDomain,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> (lower: Double, upper: Double) {
     try domain.validate(tolerance: tolerance)
     guard case .closed(let lower, let upper) = domain else {
@@ -2017,15 +1955,15 @@ struct OriginalBRepValidationInvocation: Sendable {
     return (point - closest).length
   }
 
-  private func validate(loop: Loop, tolerance: ModelingTolerance) throws {
+  private func validate(loop: Loop, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
     guard !loop.edges.isEmpty else {
       throw TopologyError.openLoop(loop.id)
     }
-    let orderedVertexIDs = try orderedVertexIDs(for: loop)
+    let orderedVertexIDs = try orderedVertexIDs(for: loop, using: &execution)
     guard let firstVertexID = orderedVertexIDs.first, let lastEdge = loop.edges.last else {
       throw TopologyError.openLoop(loop.id)
     }
-    let lastEndID = try endVertexID(for: lastEdge)
+    let lastEndID = try endVertexID(for: lastEdge, using: &execution)
     guard firstVertexID == lastEndID else {
       throw TopologyError.openLoop(loop.id)
     }
@@ -2040,23 +1978,23 @@ struct OriginalBRepValidationInvocation: Sendable {
     }
   }
 
-  private func orderedVertexIDs(for loop: Loop) throws -> [VertexID] {
+  private func orderedVertexIDs(for loop: Loop, using execution: inout OriginalQueryExecution) throws -> [VertexID] {
     var ordered: [VertexID] = []
     var expectedStart: VertexID?
     for orientedEdge in loop.edges {
-      try charge()
-      let start = try startVertexID(for: orientedEdge)
-      let end = try endVertexID(for: orientedEdge)
+      try charge(using: &execution)
+      let start = try startVertexID(for: orientedEdge, using: &execution)
+      let end = try endVertexID(for: orientedEdge, using: &execution)
       if let expectedStart, expectedStart != start {
         throw TopologyError.openLoop(loop.id)
       }
-      ordered.append(start)
+      try OriginalParameterQueryStorage.append(start, to: &ordered, using: &execution)
       expectedStart = end
     }
     return ordered
   }
 
-  private func startVertexID(for orientedEdge: Coedge) throws -> VertexID {
+  private func startVertexID(for orientedEdge: Coedge, using execution: inout OriginalQueryExecution) throws -> VertexID {
     guard let edge = edges[orientedEdge.edgeID] else {
       throw TopologyError.missingReference("Missing edge \(orientedEdge.edgeID).")
     }
@@ -2074,7 +2012,7 @@ struct OriginalBRepValidationInvocation: Sendable {
     }
   }
 
-  private func endVertexID(for orientedEdge: Coedge) throws -> VertexID {
+  private func endVertexID(for orientedEdge: Coedge, using execution: inout OriginalQueryExecution) throws -> VertexID {
     guard let edge = edges[orientedEdge.edgeID] else {
       throw TopologyError.missingReference("Missing edge \(orientedEdge.edgeID).")
     }
@@ -2092,47 +2030,46 @@ struct OriginalBRepValidationInvocation: Sendable {
     }
   }
 
-  private func validateTopologyTables(tolerance: ModelingTolerance) throws {
+  private func validateTopologyTables(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
     for (bodyID, body) in bodies {
-      try charge()
+      try charge(using: &execution)
       guard body.id == bodyID else {
         throw TopologyError.unreferencedTopology("Body table key does not match body ID \(bodyID).")
       }
     }
     for (shellID, shell) in shells {
-      try charge()
+      try charge(using: &execution)
       guard shell.id == shellID else {
         throw TopologyError.unreferencedTopology(
           "Shell table key does not match shell ID \(shellID).")
       }
     }
     for (faceID, face) in faces {
-      try charge()
+      try charge(using: &execution)
       guard face.id == faceID else {
         throw TopologyError.unreferencedTopology("Face table key does not match face ID \(faceID).")
       }
     }
     for (loopID, loop) in loops {
-      try charge()
+      try charge(using: &execution)
       guard loop.id == loopID else {
         throw TopologyError.unreferencedTopology("Loop table key does not match loop ID \(loopID).")
       }
     }
     for (edgeID, edge) in edges {
-      try charge()
+      try charge(using: &execution)
       guard edge.id == edgeID else {
         throw TopologyError.invalidEdge(edge.id)
       }
       if edge.startVertexID == edge.endVertexID,
          try BRepEdgeGeometryClassifier(maximumSubdivisionDepth: maximumSubdivisionDepth,
-             remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork,
-             consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth).kind(of: edge, in: model, tolerance: tolerance) == .open {
+             remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth).kind(of: edge, in: model, tolerance: tolerance, using: &execution) == .open {
         throw TopologyError.invalidEdge(edge.id)
       }
-      try validateEdgeGeometry(edge, edgeID: edgeID, tolerance: tolerance)
+      try validateEdgeGeometry(edge, edgeID: edgeID, tolerance: tolerance, using: &execution)
     }
     for (vertexID, vertex) in vertices {
-      try charge()
+      try charge(using: &execution)
       guard vertex.id == vertexID else {
         throw TopologyError.unreferencedTopology(
           "Vertex table key does not match vertex ID \(vertexID).")
@@ -2141,7 +2078,7 @@ struct OriginalBRepValidationInvocation: Sendable {
     }
   }
 
-  private func validateEdgeGeometry(_ edge: Edge, edgeID: EdgeID, tolerance: ModelingTolerance)
+  private func validateEdgeGeometry(_ edge: Edge, edgeID: EdgeID, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution)
     throws
   {
     guard let curve = geometry.curves[edge.curveID] else {
@@ -2154,31 +2091,29 @@ struct OriginalBRepValidationInvocation: Sendable {
     }
     if startPoint.isApproximatelyEqual(to: endPoint, tolerance: tolerance.distance),
        try BRepEdgeGeometryClassifier(maximumSubdivisionDepth: maximumSubdivisionDepth,
-             remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork,
-             consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth).kind(of: edge, in: model, tolerance: tolerance) == .open {
+             remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth).kind(of: edge, in: model, tolerance: tolerance, using: &execution) == .open {
       throw TopologyError.invalidEdge(edgeID)
     }
     if let trim = edge.trim {
       try trim.validate(on: curve, edgeID: edgeID, tolerance: tolerance,
-        remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage,
+        remainingSourceDepth: remainingSourceDepth,
         maximumAlgebraicDepth: maximumAlgebraicDepth ?? 32,
-        maximumSubdivisionDepth: maximumSubdivisionDepth)
-      if let consumeWork {
+        maximumSubdivisionDepth: maximumSubdivisionDepth, using: &execution)
+      do {
         let prepared = try PreparedCurveDifferentialEncloser(curve: curve, tolerance: tolerance,
           remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth,
-          consumeWork: { try consumeWork(0) }, consumeStorage: consumeStorage,
-          maximumAlgebraicDepth: maximumAlgebraicDepth)
+          maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
         let startResidual = try originalPointResidual(from: startPoint, at: trim.startParameter,
-          prepared: prepared, tolerance: tolerance, consumeWork: consumeWork)
+          prepared: prepared, tolerance: tolerance, using: &execution)
         let endResidual = try originalPointResidual(from: endPoint, at: trim.endParameter,
-          prepared: prepared, tolerance: tolerance, consumeWork: consumeWork)
+          prepared: prepared, tolerance: tolerance, using: &execution)
         guard startResidual <= tolerance.distance * 8, endResidual <= tolerance.distance * 8 else {
           throw TopologyError.invalidTrim(edgeID)
         }
         return
       }
-      let curveStart = try point(on: curve, at: trim.startParameter, tolerance: tolerance)
-      let curveEnd = try point(on: curve, at: trim.endParameter, tolerance: tolerance)
+      let curveStart = try point(on: curve, at: trim.startParameter, tolerance: tolerance, using: &execution)
+      let curveEnd = try point(on: curve, at: trim.endParameter, tolerance: tolerance, using: &execution)
       // Boolean junction vertices snap to canonical points on source
       // boundary geometry, up to eight tolerances from the exact
       // curve position at the trim parameter.
@@ -2193,13 +2128,13 @@ struct OriginalBRepValidationInvocation: Sendable {
       case .line, .analytic(.line):
         isUnboundedLine = true
       case .parameterImage(let image):
-        isUnboundedLine = try isUnboundedLineCurve(image.source)
+        isUnboundedLine = try isUnboundedLineCurve(image.source, using: &execution)
       case .rigidImage(let image):
-        isUnboundedLine = try isUnboundedLineCurve(image.source)
+        isUnboundedLine = try isUnboundedLineCurve(image.source, using: &execution)
       case .originalAffineWord(let image):
-        isUnboundedLine = try isUnboundedLineCurve(image.source)
+        isUnboundedLine = try isUnboundedLineCurve(image.source, using: &execution)
       case .affineImage(let image):
-        isUnboundedLine = try isUnboundedLineCurve(image.source)
+        isUnboundedLine = try isUnboundedLineCurve(image.source, using: &execution)
       case .circle, .analytic, .bSpline, .implicit, .surfaceLift,
         .certifiedIntersection, .originalAngularTransport, .originalPolyline, .originalEndpointConnector, .originalPlaneDerivative, .originalDrafted, .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalConstructionChart:
         isUnboundedLine = false
@@ -2207,18 +2142,16 @@ struct OriginalBRepValidationInvocation: Sendable {
       guard isUnboundedLine else {
         throw TopologyError.invalidTrim(edgeID)
       }
-      try validate(startPoint, liesOn: curve, edgeID: edgeID, tolerance: tolerance)
-      try validate(endPoint, liesOn: curve, edgeID: edgeID, tolerance: tolerance)
+      try validate(startPoint, liesOn: curve, edgeID: edgeID, tolerance: tolerance, using: &execution)
+      try validate(endPoint, liesOn: curve, edgeID: edgeID, tolerance: tolerance, using: &execution)
     }
   }
 
   private func originalPointResidual(from point: Point3D, at parameter: Double,
-    prepared: PreparedCurveDifferentialEncloser, tolerance: ModelingTolerance,
-    consumeWork: @Sendable (Int) throws -> Void) throws -> Double {
+    prepared: PreparedCurveDifferentialEncloser, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Double {
     let bounds = try prepared.positionBounds(over: ScalarInterval(lower: parameter, upper: parameter),
       tolerance: tolerance, maximumSpanCount: 1_048_576,
-      maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
-      consumeWork: { try consumeWork(0) }, consumeStorage: consumeStorage)
+      maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth, using: &execution)
     let originalPoint = IntervalVector3DBounds(x: .exact(point.x), y: .exact(point.y), z: .exact(point.z))
     let residual = (bounds - originalPoint).lengthUpperBound
     guard residual.isFinite else {
@@ -2228,17 +2161,17 @@ struct OriginalBRepValidationInvocation: Sendable {
     return residual
   }
 
-  private func point(on curve: Curve3D, at parameter: Double, tolerance: ModelingTolerance) throws
+  private func point(on curve: Curve3D, at parameter: Double, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws
     -> Point3D
   {
-    try curve.point(at: parameter, tolerance: tolerance)
+    try curve.point(at: parameter, tolerance: tolerance, using: &execution)
   }
 
   private func validate(
     _ point: Point3D,
     liesOn curve: Curve3D,
     edgeID: EdgeID,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws {
     switch curve {
     case .line(let line):
@@ -2264,7 +2197,7 @@ struct OriginalBRepValidationInvocation: Sendable {
           point,
           liesOn: .line(Line3D(origin: origin, direction: direction)),
           edgeID: edgeID,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
       case .circle(let center, let normal, let radius),
         .arc(let center, let normal, let radius, _, _):
@@ -2272,7 +2205,7 @@ struct OriginalBRepValidationInvocation: Sendable {
           point,
           liesOn: .circle(Circle3D(center: center, normal: normal, radius: radius)),
           edgeID: edgeID,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
       case .ellipse(let center, let normal, let majorAxis, let majorRadius, let minorRadius):
         let minorAxis = try normal.cross(majorAxis).normalized(tolerance: tolerance.distance)
@@ -2292,7 +2225,7 @@ struct OriginalBRepValidationInvocation: Sendable {
       case .hyperbola, .parabola, .planeTorus:
         _ = try Curve3D.analytic(curve).parameterProjection(
           of: point,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
       }
     case .bSpline:
@@ -2300,29 +2233,29 @@ struct OriginalBRepValidationInvocation: Sendable {
     case .implicit(let intersection):
       _ = try Curve3D.implicit(intersection).parameterProjection(
         of: point,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
     case .parameterImage(let image):
-      _ = try Curve3D.parameterImage(image).parameterProjection(of: point, tolerance: tolerance)
+      _ = try Curve3D.parameterImage(image).parameterProjection(of: point, tolerance: tolerance, using: &execution)
     case .surfaceLift(let lift):
       _ = try Curve3D.surfaceLift(lift).parameterProjection(
         of: point,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
     case .certifiedIntersection(let intersection):
       _ = try Curve3D.certifiedIntersection(intersection).parameterProjection(
         of: point,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
     case .rigidImage(let image):
       try validate(
         image.transform.inverted().applying(to: point),
         liesOn: image.source,
         edgeID: edgeID,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
     case .originalAffineWord:
-      try validateOriginalLinePoint(point, on: curve, edgeID: edgeID, tolerance: tolerance)
+      try validateOriginalLinePoint(point, on: curve, edgeID: edgeID, tolerance: tolerance, using: &execution)
     case .originalAngularTransport, .originalPolyline, .originalEndpointConnector, .originalPlaneDerivative, .originalDrafted, .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalConstructionChart:
       // Untrimmed normalized sources are rejected before this membership path;
       // directed trims use the owning closed original endpoint receipts.
@@ -2341,17 +2274,15 @@ struct OriginalBRepValidationInvocation: Sendable {
   }
 
   private func validateOriginalLinePoint(_ point: Point3D, on curve: Curve3D,
-    edgeID: EdgeID, tolerance: ModelingTolerance) throws {
-    guard try isUnboundedLineCurve(curve) else { throw TopologyError.invalidEdge(edgeID) }
+    edgeID: EdgeID, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+    guard try isUnboundedLineCurve(curve, using: &execution) else { throw TopologyError.invalidEdge(edgeID) }
     let prepared = try PreparedCurveDifferentialEncloser(curve: curve, tolerance: tolerance,
-      remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth,
-      consumeWork: { try charge() }, consumeStorage: consumeStorage)
+      remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth, using: &execution)
     let source = try prepared.closedNativeJets(over: .init(lower: 0, upper: 0),
       tolerance: tolerance, maximumSpanCount: 1_048_576,
-      maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
-      consumeWork: { try charge() }, consumeStorage: consumeStorage)
+      maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth, using: &execution)
     for span in source.spans {
-      try charge()
+      try charge(using: &execution)
       let jet = span.jet
       let origin = IntervalVector3DBounds(x: jet.x.value, y: jet.y.value, z: jet.z.value)
       let originalDirection = IntervalVector3DBounds(x: jet.x.derivativeU,
@@ -2382,36 +2313,34 @@ struct OriginalBRepValidationInvocation: Sendable {
     }
   }
 
-  private func containsOriginalWord(_ curve: Curve3D) throws -> Bool {
-    try charge()
+  private func containsOriginalWord(_ curve: Curve3D, using execution: inout OriginalQueryExecution) throws -> Bool {
+    try charge(using: &execution)
     switch curve {
     case .originalAffineWord: return true
-    case .parameterImage(let image): return try containsOriginalWord(image.source)
-    case .rigidImage(let image): return try containsOriginalWord(image.source)
-    case .affineImage(let image): return try containsOriginalWord(image.source)
+    case .parameterImage(let image): return try containsOriginalWord(image.source, using: &execution)
+    case .rigidImage(let image): return try containsOriginalWord(image.source, using: &execution)
+    case .affineImage(let image): return try containsOriginalWord(image.source, using: &execution)
     default: return false
     }
   }
 
   private func originalLineParameter(_ point: Point3D, on curve: Curve3D,
-    tolerance: ModelingTolerance) throws -> Double {
-    guard try isUnboundedLineCurve(curve) else {
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Double {
+    guard try isUnboundedLineCurve(curve, using: &execution) else {
       throw GeometryConversionError.invalidInput("Original line parameter requires an unbounded linear source law.")
     }
     let prepared = try PreparedCurveDifferentialEncloser(curve: curve, tolerance: tolerance,
-      remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth,
-      consumeWork: { try charge() }, consumeStorage: consumeStorage)
+      remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth, using: &execution)
     let receipt = try prepared.closedNativeJets(over: .init(lower: 0, upper: 0),
       tolerance: tolerance, maximumSpanCount: 1_048_576,
-      maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
-      consumeWork: { try charge() }, consumeStorage: consumeStorage)
+      maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth, using: &execution)
     guard let span = receipt.spans.first, receipt.spans.count == 1 else {
       throw GeometryConversionError.invalidInput("Original line station requires one complete retained chart jet.")
     }
     var quotient: OutwardScalarInterval?
     var strength = 0.0
     func consider(_ coordinate: Double, _ jet: SurfaceIntervalJet) throws {
-      try charge()
+      try charge(using: &execution)
       let direction = jet.derivativeU
       guard direction.absoluteLowerBound > strength,
         let candidate = (OutwardScalarInterval.exact(coordinate) - jet.value).divided(by: direction),
@@ -2426,8 +2355,7 @@ struct OriginalBRepValidationInvocation: Sendable {
     let parameter = quotient.midpoint
     let bounds = try prepared.closedNativeJets(over: .init(lower: parameter, upper: parameter),
       tolerance: tolerance, maximumSpanCount: 1_048_576,
-      maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
-      consumeWork: { try charge() }, consumeStorage: consumeStorage)
+      maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth, using: &execution)
     guard let final = bounds.spans.first, bounds.spans.count == 1 else {
       throw GeometryConversionError.invalidInput("Original line parameter needs its complete closed position receipt.")
     }
@@ -2441,20 +2369,20 @@ struct OriginalBRepValidationInvocation: Sendable {
     return parameter
   }
 
-  private func isUnboundedLineCurve(_ curve: Curve3D) throws -> Bool {
-    try charge()
+  private func isUnboundedLineCurve(_ curve: Curve3D, using execution: inout OriginalQueryExecution) throws -> Bool {
+    try charge(using: &execution)
     guard case .unbounded = curve.parameterDomain else { return false }
     switch curve {
     case .line, .analytic(.line):
       return true
     case .parameterImage(let image):
-      return try isUnboundedLineCurve(image.source)
+      return try isUnboundedLineCurve(image.source, using: &execution)
     case .rigidImage(let image):
-      return try isUnboundedLineCurve(image.source)
+      return try isUnboundedLineCurve(image.source, using: &execution)
     case .originalAffineWord(let image):
-      return try isUnboundedLineCurve(image.source)
+      return try isUnboundedLineCurve(image.source, using: &execution)
     case .affineImage(let image):
-      return try isUnboundedLineCurve(image.source)
+      return try isUnboundedLineCurve(image.source, using: &execution)
     case .circle, .analytic, .bSpline, .implicit, .surfaceLift,
       .certifiedIntersection, .originalAngularTransport, .originalPolyline, .originalEndpointConnector, .originalPlaneDerivative, .originalDrafted, .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalConstructionChart:
       return false
@@ -2464,12 +2392,12 @@ struct OriginalBRepValidationInvocation: Sendable {
   private func validateNoDuplicateReferences<ID: Hashable & CustomStringConvertible>(
     _ ids: [ID],
     owner: String,
-    child: String
+    child: String, using execution: inout OriginalQueryExecution
   ) throws {
     var seen = Set<ID>()
     for id in ids {
-      try charge()
-      guard seen.insert(id).inserted else {
+      try charge(using: &execution)
+      guard try OriginalParameterQueryStorage.insert(id, in: &seen, using: &execution) else {
         throw TopologyError.duplicateTopologyReference(
           "\(owner) contains duplicate \(child) \(id).")
       }
@@ -2479,50 +2407,38 @@ struct OriginalBRepValidationInvocation: Sendable {
   private func recordOwnership<ID: Hashable & CustomStringConvertible>(
     _ id: ID,
     in owned: inout Set<ID>,
-    child: String
+    child: String, using execution: inout OriginalQueryExecution
   ) throws {
-    guard owned.insert(id).inserted else {
+    guard try OriginalParameterQueryStorage.insert(id, in: &owned, using: &execution) else {
       throw TopologyError.duplicateTopologyReference(
         "\(child) \(id) is referenced by multiple owners.")
     }
   }
 
-  private func declaredKeys<ID: Hashable, Value>(_ table: PersistentMap<ID, Value>) throws -> Set<ID> {
+  private func declaredKeys<ID: Hashable, Value>(_ table: PersistentMap<ID, Value>, using execution: inout OriginalQueryExecution) throws -> Set<ID> {
     var result = Set<ID>()
-    for (id, _) in table { try charge(); result.insert(id) }
+    for (id, _) in table { try OriginalParameterQueryStorage.insert(id, in: &result, using: &execution) }
     return result
   }
 
-  private func shellIDs(of body: Body) throws -> [ShellID] {
-    switch body.topology {
-    case .sheet(let ids):
-      for _ in ids { try charge() }
-      return ids
-    case .solid(let components):
-      var result: [ShellID] = []
-      for component in components {
-        try charge()
-        result.append(component.outerShellID)
-        for id in component.voidShellIDs { try charge(); result.append(id) }
-      }
-      return result
-    }
+  private func shellIDs(of body: Body, using execution: inout OriginalQueryExecution) throws -> [ShellID] {
+    try body.originalShellIDs(using: &execution)
   }
 
   private func validateReferences<ID: Hashable & CustomStringConvertible>(
     _ referenced: Set<ID>,
     cover declared: Set<ID>,
-    label: String
+    label: String, using execution: inout OriginalQueryExecution
   ) throws {
     var missing: ID?
     for id in referenced {
-      try charge()
+      try charge(using: &execution)
       if !declared.contains(id), missing == nil || id.description < missing!.description { missing = id }
     }
     if let missing { throw TopologyError.missingReference("Missing \(label) \(missing).") }
     var unreferenced: ID?
     for id in declared {
-      try charge()
+      try charge(using: &execution)
       if !referenced.contains(id), unreferenced == nil || id.description < unreferenced!.description { unreferenced = id }
     }
     if let unreferenced { throw TopologyError.unreferencedTopology("Unreferenced \(label) \(unreferenced).") }

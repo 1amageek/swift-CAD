@@ -65,9 +65,14 @@ struct CubicSurfaceResidualCertifier {
         let secondVV: Double
 
         init(surface: BSplineSurface3D, tolerance: ModelingTolerance) throws {
-            try surface.validate(tolerance: tolerance)
-            let base = surface.controlPoints.indices.map { rowIndex in
-                surface.controlPoints[rowIndex].indices.map { columnIndex in
+            var execution = try OriginalQueryExecution.independentGeometry()
+            try self.init(surface: surface, tolerance: tolerance, using: &execution)
+        }
+
+        init(surface: BSplineSurface3D, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+            try surface.validate(tolerance: tolerance, using: &execution)
+            let base = try CertifiedAnalyticCurveEvaluation.map(surface.controlPoints.indices, using: &execution) { rowIndex, execution in
+                try CertifiedAnalyticCurveEvaluation.map(surface.controlPoints[rowIndex].indices, using: &execution) { columnIndex, _ in
                     let point = surface.controlPoints[rowIndex][columnIndex]
                     let weight = surface.weights[rowIndex][columnIndex]
                     return HomogeneousPoint(
@@ -81,41 +86,46 @@ struct CubicSurfaceResidualCertifier {
             let uFirst = try Self.derivativeU(
                 base,
                 degree: surface.uDegree,
-                knots: surface.uKnots,
-                tolerance: tolerance
-            )
+                knots: surface.uKnots[...],
+                tolerance: tolerance,
+            using: &execution)
             let vFirst = try Self.derivativeV(
                 base,
                 degree: surface.vDegree,
-                knots: surface.vKnots,
-                tolerance: tolerance
-            )
+                knots: surface.vKnots[...],
+                tolerance: tolerance,
+            using: &execution)
             let uSecond = try Self.derivativeU(
                 uFirst,
                 degree: surface.uDegree - 1,
-                knots: Array(surface.uKnots.dropFirst().dropLast()),
-                tolerance: tolerance
-            )
+                knots: surface.uKnots.dropFirst().dropLast(),
+                tolerance: tolerance,
+            using: &execution)
             let uvSecond = try Self.derivativeV(
                 uFirst,
                 degree: surface.vDegree,
-                knots: surface.vKnots,
-                tolerance: tolerance
-            )
+                knots: surface.vKnots[...],
+                tolerance: tolerance,
+            using: &execution)
             let vSecond = try Self.derivativeV(
                 vFirst,
                 degree: surface.vDegree - 1,
-                knots: Array(surface.vKnots.dropFirst().dropLast()),
-                tolerance: tolerance
-            )
+                knots: surface.vKnots.dropFirst().dropLast(),
+                tolerance: tolerance,
+            using: &execution)
 
-            let baseMagnitude = Self.coordinateMagnitudes(base)
-            let uFirstMagnitude = Self.coordinateMagnitudes(uFirst)
-            let vFirstMagnitude = Self.coordinateMagnitudes(vFirst)
-            let uSecondMagnitude = Self.coordinateMagnitudes(uSecond)
-            let uvSecondMagnitude = Self.coordinateMagnitudes(uvSecond)
-            let vSecondMagnitude = Self.coordinateMagnitudes(vSecond)
-            guard let minimumWeightValue = surface.weights.flatMap({ $0 }).min() else {
+            let baseMagnitude = try Self.coordinateMagnitudes(base, using: &execution)
+            let uFirstMagnitude = try Self.coordinateMagnitudes(uFirst, using: &execution)
+            let vFirstMagnitude = try Self.coordinateMagnitudes(vFirst, using: &execution)
+            let uSecondMagnitude = try Self.coordinateMagnitudes(uSecond, using: &execution)
+            let uvSecondMagnitude = try Self.coordinateMagnitudes(uvSecond, using: &execution)
+            let vSecondMagnitude = try Self.coordinateMagnitudes(vSecond, using: &execution)
+            var minimumWeightValue: Double?
+            for row in surface.weights { for weight in row {
+                try execution.consumeWork(1)
+                minimumWeightValue = min(minimumWeightValue ?? weight, weight)
+            } }
+            guard let minimumWeightValue else {
                 throw KernelError(
                     phase: .geometry,
                     code: .invalidInput,
@@ -133,6 +143,7 @@ struct CubicSurfaceResidualCertifier {
                     message: "Surface derivative certification could not bound the rational denominator away from zero."
                 )
             }
+            try execution.consumeWork(1)
             let weightSquared = try Self.lowerProduct(minimumWeight, minimumWeight, tolerance: tolerance)
             let weightCubed = try Self.lowerProduct(weightSquared, minimumWeight, tolerance: tolerance)
 
@@ -190,13 +201,15 @@ struct CubicSurfaceResidualCertifier {
         private static func derivativeU(
             _ values: [[HomogeneousPoint]],
             degree: Int,
-            knots: [Double],
-            tolerance: ModelingTolerance
-        ) throws -> [[HomogeneousPoint]] {
+            knots: ArraySlice<Double>,
+            tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> [[HomogeneousPoint]] {
             guard degree > 0 else {
-                return values.map { row in row.map { _ in .zero } }
+                return try CertifiedAnalyticCurveEvaluation.map(values, using: &execution) { row, execution in
+                    try CertifiedAnalyticCurveEvaluation.repeated(.zero, count: row.count, using: &execution)
+                }
             }
-            return try values.map { row in
+            return try CertifiedAnalyticCurveEvaluation.map(values, using: &execution) { row, execution in
                 guard row.count >= 2 else {
                     throw KernelError(
                         phase: .geometry,
@@ -205,8 +218,8 @@ struct CubicSurfaceResidualCertifier {
                         message: "Surface derivative certification requires at least two U control points."
                     )
                 }
-                return try (0..<(row.count - 1)).map { index in
-                    let denominator = knots[index + degree + 1] - knots[index + 1]
+                return try CertifiedAnalyticCurveEvaluation.map(0..<(row.count - 1), using: &execution) { index, _ in
+                    let denominator = knots[knots.startIndex + index + degree + 1] - knots[knots.startIndex + index + 1]
                     let difference = row[index + 1] - row[index]
                     guard denominator.isFinite else {
                         throw KernelError(
@@ -237,11 +250,13 @@ struct CubicSurfaceResidualCertifier {
         private static func derivativeV(
             _ values: [[HomogeneousPoint]],
             degree: Int,
-            knots: [Double],
-            tolerance: ModelingTolerance
-        ) throws -> [[HomogeneousPoint]] {
+            knots: ArraySlice<Double>,
+            tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> [[HomogeneousPoint]] {
             guard degree > 0 else {
-                return values.map { row in row.map { _ in .zero } }
+                return try CertifiedAnalyticCurveEvaluation.map(values, using: &execution) { row, execution in
+                    try CertifiedAnalyticCurveEvaluation.repeated(.zero, count: row.count, using: &execution)
+                }
             }
             guard values.count >= 2, let columnCount = values.first?.count else {
                 throw KernelError(
@@ -251,8 +266,8 @@ struct CubicSurfaceResidualCertifier {
                     message: "Surface derivative certification requires at least two V control points."
                 )
             }
-            return try (0..<(values.count - 1)).map { rowIndex in
-                let denominator = knots[rowIndex + degree + 1] - knots[rowIndex + 1]
+            return try CertifiedAnalyticCurveEvaluation.map(0..<(values.count - 1), using: &execution) { rowIndex, execution in
+                let denominator = knots[knots.startIndex + rowIndex + degree + 1] - knots[knots.startIndex + rowIndex + 1]
                 guard denominator.isFinite else {
                     throw KernelError(
                         phase: .geometry,
@@ -263,7 +278,7 @@ struct CubicSurfaceResidualCertifier {
                     )
                 }
                 if denominator == 0.0 {
-                    return Array(repeating: .zero, count: columnCount)
+                    return try CertifiedAnalyticCurveEvaluation.repeated(.zero, count: columnCount, using: &execution)
                 }
                 guard denominator > 0.0 else {
                     throw KernelError(
@@ -275,7 +290,7 @@ struct CubicSurfaceResidualCertifier {
                     )
                 }
                 let factor = Double(degree) / denominator
-                return (0..<columnCount).map { columnIndex in
+                return try CertifiedAnalyticCurveEvaluation.map(0..<columnCount, using: &execution) { columnIndex, _ in
                     (values[rowIndex + 1][columnIndex]
                         - values[rowIndex][columnIndex]) * factor
                 }
@@ -283,16 +298,18 @@ struct CubicSurfaceResidualCertifier {
         }
 
         private static func coordinateMagnitudes(
-            _ values: [[HomogeneousPoint]]
-        ) -> CoordinateMagnitudes {
+            _ values: [[HomogeneousPoint]],
+        using execution: inout OriginalQueryExecution) throws -> CoordinateMagnitudes {
             var result = CoordinateMagnitudes(x: 0.0, y: 0.0, z: 0.0, weight: 0.0)
-            for value in values.flatMap({ $0 }) {
+            for row in values { for value in row {
+                try execution.consumeWork(1)
                 result = CoordinateMagnitudes(
                     x: max(result.x, abs(value.x).nextUp),
                     y: max(result.y, abs(value.y).nextUp),
                     z: max(result.z, abs(value.z).nextUp),
                     weight: max(result.weight, abs(value.weight).nextUp)
                 )
+            }
             }
             return result
         }
@@ -341,14 +358,13 @@ struct CubicSurfaceResidualCertifier {
             weightSquared: Double,
             tolerance: ModelingTolerance
         ) throws -> Double {
-            try upperSum([
+            try upperSum(
                 try upperQuotient(first, minimumWeight, tolerance: tolerance),
                 try upperQuotient(
                     try upperProduct(base, weightFirst, tolerance: tolerance),
                     weightSquared,
                     tolerance: tolerance
-                ),
-            ], tolerance: tolerance)
+                ), tolerance: tolerance)
         }
 
         private static func secondDerivativeComponents(
@@ -418,16 +434,15 @@ struct CubicSurfaceResidualCertifier {
             weightCubed: Double,
             tolerance: ModelingTolerance
         ) throws -> Double {
-            let firstCross = try upperSum([
+            let firstCross = try upperSum(
                 try upperProduct(firstA, weightFirstB, tolerance: tolerance),
-                try upperProduct(firstB, weightFirstA, tolerance: tolerance),
-            ], tolerance: tolerance)
+                try upperProduct(firstB, weightFirstA, tolerance: tolerance), tolerance: tolerance)
             let weightCross = try upperProduct(
                 weightFirstA,
                 weightFirstB,
                 tolerance: tolerance
             )
-            return try upperSum([
+            return try upperSum(
                 try upperQuotient(second, minimumWeight, tolerance: tolerance),
                 try upperQuotient(
                     firstCross,
@@ -447,19 +462,17 @@ struct CubicSurfaceResidualCertifier {
                     ),
                     weightCubed,
                     tolerance: tolerance
-                ),
-            ], tolerance: tolerance)
+                ), tolerance: tolerance)
         }
 
         private static func vectorMagnitude(
             _ components: CoordinateMagnitudes,
             tolerance: ModelingTolerance
         ) throws -> Double {
-            let squared = try upperSum([
+            let squared = try upperSum(
                 try upperProduct(components.x, components.x, tolerance: tolerance),
                 try upperProduct(components.y, components.y, tolerance: tolerance),
-                try upperProduct(components.z, components.z, tolerance: tolerance),
-            ], tolerance: tolerance)
+                try upperProduct(components.z, components.z, tolerance: tolerance), tolerance: tolerance)
             let value = sqrt(squared).nextUp
             guard value.isFinite else {
                 throw resourceLimit(
@@ -522,20 +535,22 @@ struct CubicSurfaceResidualCertifier {
         }
 
         private static func upperSum(
-            _ values: [Double],
+            _ first: Double, _ second: Double, _ third: Double? = nil,
+            _ fourth: Double? = nil, _ fifth: Double? = nil,
             tolerance: ModelingTolerance
         ) throws -> Double {
             var result = 0.0
-            for value in values {
+            func accumulate(_ value: Double) throws {
                 result = (result + value).nextUp
                 guard result.isFinite, result >= 0.0 else {
-                    throw resourceLimit(
-                        residual: result,
-                        tolerance: tolerance,
-                        message: "Surface derivative sum bound overflowed."
-                    )
+                    throw resourceLimit(residual: result, tolerance: tolerance,
+                        message: "Surface derivative sum bound overflowed.")
                 }
             }
+            try accumulate(first); try accumulate(second)
+            if let third { try accumulate(third) }
+            if let fourth { try accumulate(fourth) }
+            if let fifth { try accumulate(fifth) }
             return result
         }
     }
@@ -585,16 +600,17 @@ struct CubicSurfaceResidualCertifier {
         }
 
         static func * (lhs: OutwardInterval, rhs: OutwardInterval) -> OutwardInterval {
-            let products = [
-                lhs.lower * rhs.lower,
-                lhs.lower * rhs.upper,
-                lhs.upper * rhs.lower,
-                lhs.upper * rhs.upper,
-            ]
-            return OutwardInterval(
-                lower: (products.min() ?? -.infinity).nextDown,
-                upper: (products.max() ?? .infinity).nextUp
-            )
+            let first = lhs.lower * rhs.lower
+            let second = lhs.lower * rhs.upper
+            let third = lhs.upper * rhs.lower
+            let fourth = lhs.upper * rhs.upper
+            var lower = first, upper = first
+            func include(_ value: Double) {
+                if value < lower { lower = value }
+                if value > upper { upper = value }
+            }
+            include(second); include(third); include(fourth)
+            return OutwardInterval(lower: lower.nextDown, upper: upper.nextUp)
         }
 
         static func / (lhs: OutwardInterval, rhs: OutwardInterval) -> OutwardInterval {
@@ -654,6 +670,21 @@ struct CubicSurfaceResidualCertifier {
         }
     }
 
+    func certify(pointControls: [Point3D], firstControls: [Point2D], secondControls: [Point2D],
+        first: BSplineSurface3D, second: BSplineSurface3D,
+        options: SurfaceSurfaceIntersectionOptions, tolerance: ModelingTolerance) throws -> Result {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try certify(pointControls: pointControls, firstControls: firstControls, secondControls: secondControls,
+            first: first, second: second, options: options, tolerance: tolerance, using: &execution)
+    }
+
+    func certify(segments: [Segment], first: BSplineSurface3D, second: BSplineSurface3D,
+        options: SurfaceSurfaceIntersectionOptions, tolerance: ModelingTolerance) throws -> Result {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try certify(segments: segments, first: first, second: second,
+            options: options, tolerance: tolerance, using: &execution)
+    }
+
     func certify(
         pointControls: [Point3D],
         firstControls: [Point2D],
@@ -661,9 +692,10 @@ struct CubicSurfaceResidualCertifier {
         first: BSplineSurface3D,
         second: BSplineSurface3D,
         options: SurfaceSurfaceIntersectionOptions,
-        tolerance: ModelingTolerance
-    ) throws -> Result {
-        try certify(
+        tolerance: ModelingTolerance,
+    using execution: inout OriginalQueryExecution) throws -> Result {
+        try OriginalCoefficientAllocation.reserve(count: 1, of: Segment.self, using: &execution)
+        return try certify(
             segments: [Segment(
                 pointControls: pointControls,
                 firstControls: firstControls,
@@ -672,8 +704,8 @@ struct CubicSurfaceResidualCertifier {
             first: first,
             second: second,
             options: options,
-            tolerance: tolerance
-        )
+            tolerance: tolerance,
+        using: &execution)
     }
 
     func certify(
@@ -681,9 +713,11 @@ struct CubicSurfaceResidualCertifier {
         first: BSplineSurface3D,
         second: BSplineSurface3D,
         options: SurfaceSurfaceIntersectionOptions,
-        tolerance: ModelingTolerance
-    ) throws -> Result {
+        tolerance: ModelingTolerance,
+    using execution: inout OriginalQueryExecution) throws -> Result {
+        try execution.checkpoint()
         try options.validate(tolerance: tolerance)
+        try execution.consumeWork(segments.count)
         guard segments.isEmpty == false,
               segments.allSatisfy({
                   $0.pointControls.count == 4
@@ -697,16 +731,17 @@ struct CubicSurfaceResidualCertifier {
                 message: "Cubic surface residual certification requires four control points per curve."
             )
         }
-        let firstBounds = try SurfaceDerivativeBounds(surface: first, tolerance: tolerance)
-        let secondBounds = try SurfaceDerivativeBounds(surface: second, tolerance: tolerance)
-        var stack = segments.reversed().map {
+        let firstBounds = try SurfaceDerivativeBounds(surface: first, tolerance: tolerance, using: &execution)
+        let secondBounds = try SurfaceDerivativeBounds(surface: second, tolerance: tolerance, using: &execution)
+        var stack = try CertifiedAnalyticCurveEvaluation.map(segments.reversed(), using: &execution) { segment, _ in
             CubicCell(
-                points: $0.pointControls,
-                firstParameters: $0.firstControls,
-                secondParameters: $0.secondControls,
+                points: segment.pointControls,
+                firstParameters: segment.firstControls,
+                secondParameters: segment.secondControls,
                 depth: 0
             )
         }
+        var stackCapacity = stack.count
         var remainingCells = options.maximumResidualCertificationCells
         var certifiedCellCount = 0
         var maximumResidualUpperBound = 0.0
@@ -718,6 +753,7 @@ struct CubicSurfaceResidualCertifier {
                     message: "Cubic surface residual certification exceeded its cell budget."
                 )
             }
+            try execution.visitCertificationCell(depth: cell.depth)
             remainingCells -= 1
             let bound = try cellBound(
                 cell,
@@ -725,8 +761,8 @@ struct CubicSurfaceResidualCertifier {
                 second: second,
                 firstBounds: firstBounds,
                 secondBounds: secondBounds,
-                tolerance: tolerance
-            )
+                tolerance: tolerance,
+            using: &execution)
             if bound.requiresParameterSubdivision == false,
                bound.residualUpperBound <= tolerance.distance {
                 maximumResidualUpperBound = max(
@@ -752,10 +788,11 @@ struct CubicSurfaceResidualCertifier {
                     message: "Cubic surface residual certification exceeded its subdivision depth."
                 )
             }
-            let halves = subdivided(cell)
-            stack.append(halves.upper)
-            stack.append(halves.lower)
+            let halves = try subdivided(cell, using: &execution)
+            try CertifiedAnalyticCurveEvaluation.append(halves.upper, to: &stack, using: &execution, capacity: &stackCapacity)
+            try CertifiedAnalyticCurveEvaluation.append(halves.lower, to: &stack, using: &execution, capacity: &stackCapacity)
         }
+        try execution.checkpoint()
         return Result(
             maximumResidualUpperBound: maximumResidualUpperBound,
             certifiedCellCount: certifiedCellCount
@@ -768,8 +805,9 @@ struct CubicSurfaceResidualCertifier {
         second: BSplineSurface3D,
         firstBounds: SurfaceDerivativeBounds,
         secondBounds: SurfaceDerivativeBounds,
-        tolerance: ModelingTolerance
-    ) throws -> CellBound {
+        tolerance: ModelingTolerance,
+    using execution: inout OriginalQueryExecution) throws -> CellBound {
+        try execution.consumeWork(1)
         let requiresParameterSubdivision = parameterControlsAreContained(
             cell.firstParameters,
             surface: first,
@@ -786,11 +824,11 @@ struct CubicSurfaceResidualCertifier {
                 requiresParameterSubdivision: true
             )
         }
-        if let polynomialUpperBound = polynomialResidualUpperBound(
+        if let polynomialUpperBound = try polynomialResidualUpperBound(
             cell,
             first: first,
-            second: second
-        ), polynomialUpperBound <= tolerance.distance {
+            second: second,
+        using: &execution), polynomialUpperBound <= tolerance.distance {
             return CellBound(
                 observedResidual: polynomialUpperBound,
                 residualUpperBound: polynomialUpperBound,
@@ -808,12 +846,12 @@ struct CubicSurfaceResidualCertifier {
         let firstGeometry = try first.differentialGeometry(
             u: firstUV.x,
             v: firstUV.y,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         let secondGeometry = try second.differentialGeometry(
             u: secondUV.x,
             v: secondUV.y,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         let firstDerivative = firstGeometry.tangentU * firstUVDerivative.x
             + firstGeometry.tangentV * firstUVDerivative.y
@@ -839,7 +877,7 @@ struct CubicSurfaceResidualCertifier {
             residual: firstResidual,
             derivativeResidual: outwardLength(curveDerivative - firstDerivative),
             secondDerivativeBound: try upperSum(
-                [curveSecondBound, firstSurfaceSecondBound],
+                curveSecondBound, firstSurfaceSecondBound,
                 tolerance: tolerance
             ),
             tolerance: tolerance
@@ -848,7 +886,7 @@ struct CubicSurfaceResidualCertifier {
             residual: secondResidual,
             derivativeResidual: outwardLength(curveDerivative - secondDerivative),
             secondDerivativeBound: try upperSum(
-                [curveSecondBound, secondSurfaceSecondBound],
+                curveSecondBound, secondSurfaceSecondBound,
                 tolerance: tolerance
             ),
             tolerance: tolerance
@@ -857,7 +895,7 @@ struct CubicSurfaceResidualCertifier {
             residual: mutualResidual,
             derivativeResidual: outwardLength(firstDerivative - secondDerivative),
             secondDerivativeBound: try upperSum(
-                [firstSurfaceSecondBound, secondSurfaceSecondBound],
+                firstSurfaceSecondBound, secondSurfaceSecondBound,
                 tolerance: tolerance
             ),
             tolerance: tolerance
@@ -872,33 +910,34 @@ struct CubicSurfaceResidualCertifier {
     private func polynomialResidualUpperBound(
         _ cell: CubicCell,
         first: BSplineSurface3D,
-        second: BSplineSurface3D
-    ) -> Double? {
-        guard let firstComposition = polynomialSurfaceComposition(
+        second: BSplineSurface3D,
+    using execution: inout OriginalQueryExecution) throws -> Double? {
+        guard let firstComposition = try polynomialSurfaceComposition(
             surface: first,
-            parameterControls: cell.firstParameters
-        ), let secondComposition = polynomialSurfaceComposition(
+            parameterControls: cell.firstParameters,
+        using: &execution), let secondComposition = try polynomialSurfaceComposition(
             surface: second,
-            parameterControls: cell.secondParameters
-        ) else {
+            parameterControls: cell.secondParameters,
+        using: &execution) else {
             return nil
         }
         let targetDegree = max(
             3,
             max(firstComposition.count - 1, secondComposition.count - 1)
         )
-        let points = elevated(
-            cell.points.map(IntervalVector.init(point:)),
-            to: targetDegree
-        )
-        let firstValues = elevated(firstComposition, to: targetDegree)
-        let secondValues = elevated(secondComposition, to: targetDegree)
+        let points = try elevated(
+            try CertifiedAnalyticCurveEvaluation.map(cell.points, using: &execution) { point, _ in IntervalVector(point: point) },
+            to: targetDegree,
+        using: &execution)
+        let firstValues = try elevated(firstComposition, to: targetDegree, using: &execution)
+        let secondValues = try elevated(secondComposition, to: targetDegree, using: &execution)
         guard points.count == firstValues.count,
               points.count == secondValues.count else {
             return nil
         }
         var result = 0.0
         for index in points.indices {
+            try execution.consumeWork(1)
             result = max(result, max(
                 (points[index] - firstValues[index]).lengthUpperBound,
                 max(
@@ -912,8 +951,9 @@ struct CubicSurfaceResidualCertifier {
 
     private func polynomialSurfaceComposition(
         surface: BSplineSurface3D,
-        parameterControls: [Point2D]
-    ) -> [IntervalVector]? {
+        parameterControls: [Point2D],
+    using execution: inout OriginalQueryExecution) throws -> [IntervalVector]? {
+        try GeometryStructuralComparisonWork.charge(surface: .bSpline(surface), using: &execution)
         guard isSinglePolynomialBezier(surface),
               parameterControls.count == 4,
               surface.uDegree + surface.vDegree <= 12 else {
@@ -929,30 +969,31 @@ struct CubicSurfaceResidualCertifier {
         }
         let uSpanInterval = OutwardInterval(uBounds.upper) - OutwardInterval(uBounds.lower)
         let vSpanInterval = OutwardInterval(vBounds.upper) - OutwardInterval(vBounds.lower)
-        let u = parameterControls.map {
-            (OutwardInterval($0.x) - OutwardInterval(uBounds.lower)) / uSpanInterval
+        let u = try CertifiedAnalyticCurveEvaluation.map(parameterControls, using: &execution) { point, _ in
+            (OutwardInterval(point.x) - OutwardInterval(uBounds.lower)) / uSpanInterval
         }
-        let v = parameterControls.map {
-            (OutwardInterval($0.y) - OutwardInterval(vBounds.lower)) / vSpanInterval
+        let v = try CertifiedAnalyticCurveEvaluation.map(parameterControls, using: &execution) { point, _ in
+            (OutwardInterval(point.y) - OutwardInterval(vBounds.lower)) / vSpanInterval
         }
-        let uBasis = (0...surface.uDegree).map {
-            bernsteinBasis(index: $0, degree: surface.uDegree, parameter: u)
+        let uBasis = try CertifiedAnalyticCurveEvaluation.map(0...surface.uDegree, using: &execution) { index, execution in
+            try bernsteinBasis(index: index, degree: surface.uDegree, parameter: u, using: &execution)
         }
-        let vBasis = (0...surface.vDegree).map {
-            bernsteinBasis(index: $0, degree: surface.vDegree, parameter: v)
+        let vBasis = try CertifiedAnalyticCurveEvaluation.map(0...surface.vDegree, using: &execution) { index, execution in
+            try bernsteinBasis(index: index, degree: surface.vDegree, parameter: v, using: &execution)
         }
         let resultDegree = 3 * (surface.uDegree + surface.vDegree)
-        var result = Array(repeating: IntervalVector.zero, count: resultDegree + 1)
+        var result = try CertifiedAnalyticCurveEvaluation.repeated(IntervalVector.zero, count: resultDegree + 1, using: &execution)
         for vIndex in 0...surface.vDegree {
             for uIndex in 0...surface.uDegree {
-                let basisProduct = multipliedBernstein(
+                let basisProduct = try multipliedBernstein(
                     uBasis[uIndex],
-                    vBasis[vIndex]
-                )
+                    vBasis[vIndex],
+                using: &execution)
                 let control = IntervalVector(
                     point: surface.controlPoints[vIndex][uIndex]
                 )
                 for index in basisProduct.indices {
+                    try execution.consumeWork(1)
                     result[index] = result[index] + control * basisProduct[index]
                 }
             }
@@ -973,7 +1014,7 @@ struct CubicSurfaceResidualCertifier {
               surface.uKnots.count == 2 * (surface.uDegree + 1),
               surface.vKnots.count == 2 * (surface.vDegree + 1),
               let firstWeight = surface.weights.first?.first,
-              surface.weights.flatMap({ $0 }).allSatisfy({ $0 == firstWeight }) else {
+              surface.weights.allSatisfy({ row in row.allSatisfy({ $0 == firstWeight }) }) else {
             return false
         }
         let uLower = surface.uKnots[0]
@@ -989,36 +1030,39 @@ struct CubicSurfaceResidualCertifier {
     private func bernsteinBasis(
         index: Int,
         degree: Int,
-        parameter: [OutwardInterval]
-    ) -> [OutwardInterval] {
-        let complement = parameter.map { OutwardInterval.one - $0 }
-        let parameterPower = bernsteinPower(parameter, exponent: index)
-        let complementPower = bernsteinPower(complement, exponent: degree - index)
-        let product = multipliedBernstein(parameterPower, complementPower)
+        parameter: [OutwardInterval],
+    using execution: inout OriginalQueryExecution) throws -> [OutwardInterval] {
+        let complement = try CertifiedAnalyticCurveEvaluation.map(parameter, using: &execution) { value, _ in OutwardInterval.one - value }
+        let parameterPower = try bernsteinPower(parameter, exponent: index, using: &execution)
+        let complementPower = try bernsteinPower(complement, exponent: degree - index, using: &execution)
+        let product = try multipliedBernstein(parameterPower, complementPower, using: &execution)
         let coefficient = OutwardInterval(binomial(degree, index))
-        return product.map { $0 * coefficient }
+        return try CertifiedAnalyticCurveEvaluation.map(product, using: &execution) { value, _ in value * coefficient }
     }
 
     private func bernsteinPower(
         _ values: [OutwardInterval],
-        exponent: Int
-    ) -> [OutwardInterval] {
-        guard exponent > 0 else { return [.one] }
-        return (1..<exponent).reduce(values) { result, _ in
-            multipliedBernstein(result, values)
+        exponent: Int,
+    using execution: inout OriginalQueryExecution) throws -> [OutwardInterval] {
+        guard exponent > 0 else { return try CertifiedAnalyticCurveEvaluation.values(.one, using: &execution) }
+        var result = values
+        for _ in 1..<exponent {
+            result = try multipliedBernstein(result, values, using: &execution)
         }
+        return result
     }
 
     private func multipliedBernstein(
         _ first: [OutwardInterval],
-        _ second: [OutwardInterval]
-    ) -> [OutwardInterval] {
+        _ second: [OutwardInterval],
+    using execution: inout OriginalQueryExecution) throws -> [OutwardInterval] {
         let firstDegree = first.count - 1
         let secondDegree = second.count - 1
         let resultDegree = firstDegree + secondDegree
-        var result = Array(repeating: OutwardInterval.zero, count: resultDegree + 1)
+        var result = try CertifiedAnalyticCurveEvaluation.repeated(OutwardInterval.zero, count: resultDegree + 1, using: &execution)
         for firstIndex in first.indices {
             for secondIndex in second.indices {
+                try execution.consumeWork(1)
                 let resultIndex = firstIndex + secondIndex
                 let factor = OutwardInterval(binomial(firstDegree, firstIndex))
                     * OutwardInterval(binomial(secondDegree, secondIndex))
@@ -1042,13 +1086,16 @@ struct CubicSurfaceResidualCertifier {
 
     private func elevated(
         _ controls: [IntervalVector],
-        to targetDegree: Int
-    ) -> [IntervalVector] {
+        to targetDegree: Int,
+    using execution: inout OriginalQueryExecution) throws -> [IntervalVector] {
         var result = controls
         while result.count - 1 < targetDegree {
             let degree = result.count - 1
-            var elevated = [result[0]]
+            var elevated: [IntervalVector] = []
+            try CertifiedAnalyticCurveEvaluation.reserveCapacity(degree + 2, in: &elevated, using: &execution)
+            elevated.append(result[0])
             for index in 1...degree {
+                try execution.consumeWork(1)
                 let incoming = OutwardInterval(Double(index) / Double(degree + 1))
                 let outgoing = OutwardInterval(1.0 - Double(index) / Double(degree + 1))
                 elevated.append(result[index - 1] * incoming + result[index] * outgoing)
@@ -1066,7 +1113,7 @@ struct CubicSurfaceResidualCertifier {
     ) throws -> Double {
         let first = cubicParameterDerivativeMagnitudes(controls)
         let second = cubicParameterSecondDerivativeMagnitudes(controls)
-        return try upperSum([
+        return try upperSum(
             try upperProduct(
                 bounds.secondUU,
                 try upperProduct(first.x, first.x, tolerance: tolerance),
@@ -1087,8 +1134,7 @@ struct CubicSurfaceResidualCertifier {
                 tolerance: tolerance
             ),
             try upperProduct(bounds.tangentU, second.x, tolerance: tolerance),
-            try upperProduct(bounds.tangentV, second.y, tolerance: tolerance),
-        ], tolerance: tolerance)
+            try upperProduct(bounds.tangentV, second.y, tolerance: tolerance), tolerance: tolerance)
     }
 
     private func taylorUpperBound(
@@ -1097,11 +1143,10 @@ struct CubicSurfaceResidualCertifier {
         secondDerivativeBound: Double,
         tolerance: ModelingTolerance
     ) throws -> Double {
-        try upperSum([
+        try upperSum(
             residual,
             try upperProduct(derivativeResidual, 0.5, tolerance: tolerance),
-            try upperProduct(secondDerivativeBound, 0.125, tolerance: tolerance),
-        ], tolerance: tolerance)
+            try upperProduct(secondDerivativeBound, 0.125, tolerance: tolerance), tolerance: tolerance)
     }
 
     private func parameterControlsAreContained(
@@ -1129,10 +1174,10 @@ struct CubicSurfaceResidualCertifier {
         }
     }
 
-    private func subdivided(_ cell: CubicCell) -> (lower: CubicCell, upper: CubicCell) {
-        let pointHalves = split(cell.points)
-        let firstHalves = split(cell.firstParameters)
-        let secondHalves = split(cell.secondParameters)
+    private func subdivided(_ cell: CubicCell, using execution: inout OriginalQueryExecution) throws -> (lower: CubicCell, upper: CubicCell) {
+        let pointHalves = try split(cell.points, using: &execution)
+        let firstHalves = try split(cell.firstParameters, using: &execution)
+        let secondHalves = try split(cell.secondParameters, using: &execution)
         return (
             CubicCell(
                 points: pointHalves.lower,
@@ -1149,30 +1194,34 @@ struct CubicSurfaceResidualCertifier {
         )
     }
 
-    private func split(_ values: [Point3D]) -> (lower: [Point3D], upper: [Point3D]) {
-        var levels = [values]
+    private func split(_ values: [Point3D], using execution: inout OriginalQueryExecution) throws -> (lower: [Point3D], upper: [Point3D]) {
+        var levels: [[Point3D]] = []
+        try CertifiedAnalyticCurveEvaluation.reserveCapacity(values.count, in: &levels, using: &execution)
+        levels.append(values)
         while let previous = levels.last, previous.count > 1 {
-            levels.append((0..<(previous.count - 1)).map { index in
+            let level = try CertifiedAnalyticCurveEvaluation.map(0..<(previous.count - 1), using: &execution) { index, _ in
                 midpoint(previous[index], previous[index + 1])
-            })
+            }
+            levels.append(level)
         }
-        return (
-            levels.map { $0[0] },
-            levels.reversed().map { $0[$0.count - 1] }
-        )
+        let lower = try CertifiedAnalyticCurveEvaluation.map(levels, using: &execution) { level, _ in level[0] }
+        let upper = try CertifiedAnalyticCurveEvaluation.map(levels.reversed(), using: &execution) { level, _ in level[level.count - 1] }
+        return (lower, upper)
     }
 
-    private func split(_ values: [Point2D]) -> (lower: [Point2D], upper: [Point2D]) {
-        var levels = [values]
+    private func split(_ values: [Point2D], using execution: inout OriginalQueryExecution) throws -> (lower: [Point2D], upper: [Point2D]) {
+        var levels: [[Point2D]] = []
+        try CertifiedAnalyticCurveEvaluation.reserveCapacity(values.count, in: &levels, using: &execution)
+        levels.append(values)
         while let previous = levels.last, previous.count > 1 {
-            levels.append((0..<(previous.count - 1)).map { index in
+            let level = try CertifiedAnalyticCurveEvaluation.map(0..<(previous.count - 1), using: &execution) { index, _ in
                 midpoint(previous[index], previous[index + 1])
-            })
+            }
+            levels.append(level)
         }
-        return (
-            levels.map { $0[0] },
-            levels.reversed().map { $0[$0.count - 1] }
-        )
+        let lower = try CertifiedAnalyticCurveEvaluation.map(levels, using: &execution) { level, _ in level[0] }
+        let upper = try CertifiedAnalyticCurveEvaluation.map(levels.reversed(), using: &execution) { level, _ in level[level.count - 1] }
+        return (lower, upper)
     }
 
     private func midpoint(_ first: Point3D, _ second: Point3D) -> Point3D {
@@ -1191,19 +1240,27 @@ struct CubicSurfaceResidualCertifier {
     }
 
     private func cubicPoint(_ controls: [Point3D], fraction: Double) -> Point3D {
-        let weights = cubicWeights(fraction: fraction)
+        let complement = 1.0 - fraction
+        let w0 = complement * complement * complement
+        let w1 = 3.0 * complement * complement * fraction
+        let w2 = 3.0 * complement * fraction * fraction
+        let w3 = fraction * fraction * fraction
         return Point3D(
-            x: zip(controls, weights).reduce(0.0) { $0 + $1.0.x * $1.1 },
-            y: zip(controls, weights).reduce(0.0) { $0 + $1.0.y * $1.1 },
-            z: zip(controls, weights).reduce(0.0) { $0 + $1.0.z * $1.1 }
+            x: ((0.0 + controls[0].x * w0) + controls[1].x * w1) + controls[2].x * w2 + controls[3].x * w3,
+            y: ((0.0 + controls[0].y * w0) + controls[1].y * w1) + controls[2].y * w2 + controls[3].y * w3,
+            z: ((0.0 + controls[0].z * w0) + controls[1].z * w1) + controls[2].z * w2 + controls[3].z * w3
         )
     }
 
     private func cubicPoint(_ controls: [Point2D], fraction: Double) -> Point2D {
-        let weights = cubicWeights(fraction: fraction)
+        let complement = 1.0 - fraction
+        let w0 = complement * complement * complement
+        let w1 = 3.0 * complement * complement * fraction
+        let w2 = 3.0 * complement * fraction * fraction
+        let w3 = fraction * fraction * fraction
         return Point2D(
-            x: zip(controls, weights).reduce(0.0) { $0 + $1.0.x * $1.1 },
-            y: zip(controls, weights).reduce(0.0) { $0 + $1.0.y * $1.1 }
+            x: ((0.0 + controls[0].x * w0) + controls[1].x * w1) + controls[2].x * w2 + controls[3].x * w3,
+            y: ((0.0 + controls[0].y * w0) + controls[1].y * w1) + controls[2].y * w2 + controls[3].y * w3
         )
     }
 
@@ -1241,10 +1298,12 @@ struct CubicSurfaceResidualCertifier {
     }
 
     private func cubicParameterDerivativeMagnitudes(_ controls: [Point2D]) -> Point2D {
-        Point2D(
-            x: (0..<3).map { abs(3.0 * (controls[$0 + 1].x - controls[$0].x)).nextUp }.max() ?? 0.0,
-            y: (0..<3).map { abs(3.0 * (controls[$0 + 1].y - controls[$0].y)).nextUp }.max() ?? 0.0
-        )
+        var x = 0.0, y = 0.0
+        for index in 0..<3 {
+            x = max(x, abs(3.0 * (controls[index + 1].x - controls[index].x)).nextUp)
+            y = max(y, abs(3.0 * (controls[index + 1].y - controls[index].y)).nextUp)
+        }
+        return Point2D(x: x, y: y)
     }
 
     private func cubicParameterSecondDerivativeMagnitudes(_ controls: [Point2D]) -> Point2D {
@@ -1260,15 +1319,6 @@ struct CubicSurfaceResidualCertifier {
         )
     }
 
-    private func cubicWeights(fraction: Double) -> [Double] {
-        let complement = 1.0 - fraction
-        return [
-            complement * complement * complement,
-            3.0 * complement * complement * fraction,
-            3.0 * complement * fraction * fraction,
-            fraction * fraction * fraction,
-        ]
-    }
 
     private func outwardLength(_ value: Vector3D) -> Double {
         value.length.nextUp
@@ -1291,20 +1341,22 @@ struct CubicSurfaceResidualCertifier {
     }
 
     private func upperSum(
-        _ values: [Double],
+        _ first: Double, _ second: Double, _ third: Double? = nil,
+        _ fourth: Double? = nil, _ fifth: Double? = nil,
         tolerance: ModelingTolerance
     ) throws -> Double {
         var result = 0.0
-        for value in values {
+        func accumulate(_ value: Double) throws {
             result = (result + value).nextUp
             guard result.isFinite, result >= 0.0 else {
-                throw resourceLimit(
-                    residual: result,
-                    tolerance: tolerance,
-                    message: "Cubic surface residual sum bound overflowed."
-                )
+                throw resourceLimit(residual: result, tolerance: tolerance,
+                    message: "Cubic surface residual sum bound overflowed.")
             }
         }
+        try accumulate(first); try accumulate(second)
+        if let third { try accumulate(third) }
+        if let fourth { try accumulate(fourth) }
+        if let fifth { try accumulate(fifth) }
         return result
     }
 

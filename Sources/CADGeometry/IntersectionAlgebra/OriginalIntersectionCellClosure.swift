@@ -31,7 +31,7 @@ package struct OriginalIntersectionCellClosure: Sendable {
         self.freeSupportReduction = freeSupportReduction
     }
 
-    package static func prepare<B: RationalAlgebraAdmitting>(partition: OriginalRationalIntersectionCells,
+    package static func prepare<B: ExactScalarAdmission & ~Copyable>(partition: OriginalRationalIntersectionCells,
         cellIndex: Int, allowAffineProofs: Bool = true, allowFiniteBranchProofs: Bool = true,
         maximumDepth: Int, usage: inout B) throws -> Self {
         let source = try OriginalIntersectionCellCondition(partition: partition, cellIndex: cellIndex, usage: &usage)
@@ -224,7 +224,7 @@ package struct OriginalIntersectionCellClosure: Sendable {
             originalPredicates: originalPredicates, predicateIdeal: predicateIdeal, candidateCoordinateMap: candidates, predicateReduction: predicateReduction, freeSupportReduction: freeSupportReduction)
     }
 
-    private static func isFixedOriginalCoordinate<B: RationalAlgebraAdmitting>(_ axis: Int,
+    private static func isFixedOriginalCoordinate<B: ExactScalarAdmission & ~Copyable>(_ axis: Int,
         source: OriginalIntersectionCellCondition, usage: inout B) throws -> Bool {
         for index in source.polynomials.indices where source.signs[index] == .zero {
             try intersectionAlgebraStep(&usage)

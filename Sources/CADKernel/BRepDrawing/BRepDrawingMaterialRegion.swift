@@ -1,3 +1,4 @@
+import CADGeometry
 import CADCore
 import CADIR
 import CADModeling
@@ -20,12 +21,24 @@ public struct BRepDrawingMaterialRegion: Sendable {
     }
 
     public func validateCurrent(_ evaluated: EvaluatedDocument) throws {
-        try sourceSnapshot.validateCurrent(evaluated)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try validateCurrent(evaluated, using: &execution)
+    }
+
+    public func validateCurrent(_ evaluated: EvaluatedDocument, using execution: inout OriginalQueryExecution) throws {
+        try execution.checkpoint()
+        try sourceSnapshot.validateCurrent(evaluated, using: &execution)
     }
     public func validateCurrent(_ evaluated: EvaluatedDocument, for section: BRepDrawingSection) throws {
-        try section.validateCurrent(evaluated)
-        try sourceSnapshot.validateCurrent(evaluated)
-        guard sectionIdentity === section.publicationIdentity, placement == section.placement else {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try validateCurrent(evaluated, for: section, using: &execution)
+    }
+
+    public func validateCurrent(_ evaluated: EvaluatedDocument, for section: BRepDrawingSection, using execution: inout OriginalQueryExecution) throws {
+        try execution.checkpoint()
+        try section.validateCurrent(evaluated, using: &execution)
+        try sourceSnapshot.validateCurrent(evaluated, using: &execution)
+        guard sectionIdentity === section.publicationIdentity, try BRepDrawingPlacementComparison.equal(placement, section.placement, using: &execution) else {
             throw KernelError(phase: .evaluation, code: .missingReference,
                 tolerance: evaluated.configuration.tolerance,
                 message: "Section publication mixes different source planes or authored occurrences.")

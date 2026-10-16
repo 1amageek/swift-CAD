@@ -1,0 +1,1368 @@
+{
+  "status": "passed",
+  "purpose": "Fresh dependency recovery after externally lost .build artifacts; prior receipt bytes unavailable",
+  "revision": "2c943c75ef9c0c32974663b13441a0972bec7d3e",
+  "cachedGitRepository": "/Users/1amageek/Library/Caches/org.swift.swiftpm/repositories/swift-OpenUSD-a016b073",
+  "sourceRoot": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/source",
+  "scratchPath": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build",
+  "toolchain": "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin",
+  "sdk": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+  "target": "arm64-apple-macosx27.0",
+  "compilerSHA256": "79ae5c26645489fb783ae980f0f1bdae810f90fb180c9ac39808807b65e9fd69",
+  "sdkSettingsSHA256": "7b93ad7e534cc4b31c6a4e39d19b5e0288acf2168c2649479a796d1cb51939fb",
+  "toolSHA256": {
+    "swift": "79ae5c26645489fb783ae980f0f1bdae810f90fb180c9ac39808807b65e9fd69",
+    "swiftc": "79ae5c26645489fb783ae980f0f1bdae810f90fb180c9ac39808807b65e9fd69",
+    "swift-frontend": "32d565dc81f4e714f91da71cc1a501a335c20347c15d5ab522f9cacf9d225caf",
+    "clang": "2301dabb68b7e854c7e65e975349addd00974beae38ef7d5e4e363d4e5edeb81",
+    "clang++": "2301dabb68b7e854c7e65e975349addd00974beae38ef7d5e4e363d4e5edeb81"
+  },
+  "linker": {
+    "path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld",
+    "sha256": "374d9f0713bce2c8a9e1e82bde51615d5433516a10d99b63107eb6ee70542e4c"
+  },
+  "runnerSHA256": "888153a16016a2e0ef4afbdf2cacc02c96d4e9a451a282f8744ffcd81e488d1e",
+  "monitor": {
+    "source": "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD/Tests/OriginalQueryExecutionVerification/native_tests.py",
+    "snapshot": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/monitor/native_tests.py",
+    "sha256": "01a353883f2ee661a3b4b55f11137a9b999ae58043c77513dbc19d438f4c03f5",
+    "mtimeNSBeforeExecution": 1792116673111246634,
+    "helperSnapshot": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/monitor/typecheck.py",
+    "helperSHA256": "67ccf2b9a9440e660235f3830419c588b57b95984998c5020264140dd810b567",
+    "unchangedSinceBeforeExecution": true
+  },
+  "limits": {
+    "maximumCompilerJobs": 1,
+    "wallSeconds": 1200,
+    "aggregateProcessTreeRSSBytes": 10737418240
+  },
+  "priorReceiptUnavailable": true,
+  "steps": {
+    "cached-head-before": {
+      "command": [
+        "git",
+        "--git-dir=/Users/1amageek/Library/Caches/org.swift.swiftpm/repositories/swift-OpenUSD-a016b073",
+        "rev-parse",
+        "HEAD"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 0.23668533300224226,
+      "sampledPeakProcessTreeRSSBytes": 4161536,
+      "stopReason": null,
+      "rssAccounting": "tracked PPID descendants including separate process groups",
+      "maximumObservedProcessCount": 1,
+      "wallLimitSeconds": 1199.6523955000011,
+      "logSHA256": "57f025bf8c1a355db2a45b07736eade5d59a9ba3b9b793f453500439ef169612"
+    },
+    "source-archive": {
+      "command": [
+        "git",
+        "--git-dir=/Users/1amageek/Library/Caches/org.swift.swiftpm/repositories/swift-OpenUSD-a016b073",
+        "archive",
+        "--format=tar",
+        "--output=/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/source.tar",
+        "2c943c75ef9c0c32974663b13441a0972bec7d3e"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 0.23335470799793256,
+      "sampledPeakProcessTreeRSSBytes": 4063232,
+      "stopReason": null,
+      "rssAccounting": "tracked PPID descendants including separate process groups",
+      "maximumObservedProcessCount": 1,
+      "wallLimitSeconds": 1199.4150871250022,
+      "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "compiler-version": {
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+        "--version"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 0.23263458399742376,
+      "sampledPeakProcessTreeRSSBytes": 180224,
+      "stopReason": null,
+      "rssAccounting": "tracked PPID descendants including separate process groups",
+      "maximumObservedProcessCount": 1,
+      "wallLimitSeconds": 1199.0728349170022,
+      "logSHA256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c"
+    },
+    "swiftpm-build": {
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "build",
+        "--package-path",
+        "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/source",
+        "--scratch-path",
+        "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build",
+        "--target",
+        "OpenUSDZ",
+        "--triple",
+        "arm64-apple-macosx27.0",
+        "--sdk",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+        "--build-system",
+        "native",
+        "--jobs",
+        "1",
+        "--verbose"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 25.113105958000233,
+      "sampledPeakProcessTreeRSSBytes": 633880576,
+      "stopReason": null,
+      "rssAccounting": "tracked PPID descendants including separate process groups",
+      "maximumObservedProcessCount": 4,
+      "wallLimitSeconds": 1198.8393363330033,
+      "logSHA256": "434826e461cf43d180a899f1f0d3b111c482274600a2e577fd8e7e4643e94704"
+    },
+    "cached-head-after": {
+      "command": [
+        "git",
+        "--git-dir=/Users/1amageek/Library/Caches/org.swift.swiftpm/repositories/swift-OpenUSD-a016b073",
+        "rev-parse",
+        "HEAD"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 0.23066300000209594,
+      "sampledPeakProcessTreeRSSBytes": 2834432,
+      "stopReason": null,
+      "rssAccounting": "tracked PPID descendants including separate process groups",
+      "maximumObservedProcessCount": 1,
+      "wallLimitSeconds": 29.999999499996193,
+      "logSHA256": "57f025bf8c1a355db2a45b07736eade5d59a9ba3b9b793f453500439ef169612"
+    }
+  },
+  "products": {
+    "OpenUSD": {
+      "module": {
+        "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/Modules/OpenUSD.swiftmodule",
+        "sha256": "edadedab95c6da0477fac37902d36d91c10ed0428c136f82447c219e577ddae5"
+      },
+      "objects": [
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/SdfAssetPath.swift.o",
+          "sha256": "a4463e7c0260f7116036c6592d39dc23d2932b881e75edb1fbda267e35352b42"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/SdfBinaryValueRepresentation.swift.o",
+          "sha256": "d1747c141d8259b483bd45379681359d6d20403d2306d7c7c29e1dd415bfc7f4"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/SdfEditTarget.swift.o",
+          "sha256": "0974ac9fa8c98567f3bd268c284dea3f75c771b5447660c5a37115e0eaa8c8c2"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/SdfFieldValue.swift.o",
+          "sha256": "1caf44f5fdaaffe25152bf9a6b5395ae1b31555d850e23a016ca1e16230731a9"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/SdfFieldValueTypeCompatibility.swift.o",
+          "sha256": "f5c0419078e1d818af92ec4830a8828fed5dc18be3caa8530e5e93dc2de06f16"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/SdfFloatingPointType.swift.o",
+          "sha256": "fd2c98a6d934c4c084af3e440ef464fdb0bdb5d96a0a05e5d79dda54336eb504"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/SdfHalf.swift.o",
+          "sha256": "8a6c0e69053483114c1809a0d4fa730e00b102f56157ebaf5ae4d1dbeb3285c7"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/SdfIntegerVector.swift.o",
+          "sha256": "f18bbd2ef888b40aa4fae4eb1741db3363c2fcf916eb6597b95c46d90bcedd89"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/SdfLayer.swift.o",
+          "sha256": "6f49b6765703745e47bbd62211c950423d38b62edc0115a9bfa2ccad37deace7"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/SdfLayerExportValidation.swift.o",
+          "sha256": "48413d1a2ff5f6d7552f33953ccc4906b5c40e0164d5d87bec306aeb36c1fe40"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/SdfLayerOffset.swift.o",
+          "sha256": "2c75d411bd7ae11635a8740753ae1258d0b0dd04d8f2c762db05dba40f937570"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/SdfListOperation.swift.o",
+          "sha256": "bd9e4dd1a2095f21f0f01c1b0c52f475ddd4c0099a246190233c99e1b3a2c031"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/SdfMatrix.swift.o",
+          "sha256": "5cc8af9948f6ecf4790090c1ba730b410c885c002cd4205b90bcd752e462d56e"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/SdfOpaqueValue.swift.o",
+          "sha256": "7e72131f49dd8749f205d29aa4d0483ae1a3566c6b9dcfcb0390f3e42b853436"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/SdfPath.swift.o",
+          "sha256": "56e63e31b03063bf67f2bd908eb2a9edd26341e633f21de9bd64edb5f63080bb"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/SdfPathExpression.swift.o",
+          "sha256": "b5861f7937b0cdc4964b956664614cd38889c3b2c157826460492a04bb87a618"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/SdfPathMap.swift.o",
+          "sha256": "ac5a49d1d6f3893ff282f4c582655acbe6a733bbeb75bafca576af353b2f881d"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/SdfPayload.swift.o",
+          "sha256": "2da120c4c0bf3acfc63287352b0732bfd039ff923456056feafaa51e81ae76a0"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/SdfPermission.swift.o",
+          "sha256": "4a322a76595b5d356c1c8be4d813c53295cd033e5569f2f44b27d2c46cc71f40"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/SdfQuaternion.swift.o",
+          "sha256": "ebcc641d4c961b4add75cffbcf930298e584cfd381d378856d73c622d8fb810a"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/SdfReference.swift.o",
+          "sha256": "e53225a5b8c4f929534bb9b7827c7ada41ac3bcc97f1549fa03964614b4f69c4"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/SdfRelocates.swift.o",
+          "sha256": "56b1986efb3d8b686104c7fe6748e19185bedce44c6966570070d80ed2de3c9a"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/SdfSpec.swift.o",
+          "sha256": "ea9b61a423969a1408b034ee49699399cf86f9058fb62f52c3ec09ed267065d0"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/SdfSpecType.swift.o",
+          "sha256": "a382dfda611c8228f841e0227cea570a09ad5bee88152ea358cf409b8edf14ca"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/SdfSpecifier.swift.o",
+          "sha256": "86bd21a9e5ccc1ba0de1331e31f94ccf5d97bd1ba8c99934b28f25f1d317370b"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/SdfTimeSample.swift.o",
+          "sha256": "7a71bdb949d1762f64d607ae1067abbeb641140b11af3f2fc3994285d870c207"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/SdfUSDAWriter.swift.o",
+          "sha256": "3c0371656ae6b83a6efcacd9925d716354eea429b5b54ae5e7af9d2796f4834c"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/SdfVariability.swift.o",
+          "sha256": "768036684676300fb22ecad19e8e66551ba1b8948da33e9cb71d67641753d798"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/SdfVariantEditTarget.swift.o",
+          "sha256": "26e350fd76e204cac0ddd79b64fcc9248036c5fc2a70ce0089913ac3385ec144"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/SdfVector.swift.o",
+          "sha256": "7d384b24666980aa657678acb10d5dea795d90d9e954abbae0723a147081184d"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/SdfVectorRole.swift.o",
+          "sha256": "7b44182af7b9836a4fc79066dfec4056df3a97b0ed7c5c0b26d6574cb3df6d15"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDALayer.swift.o",
+          "sha256": "b5fb6823fa3a9d5f6e0bfcf57e56f95c146d5af8380701900fbb35a93d664ee7"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDAReader.swift.o",
+          "sha256": "0e3cdd680da6663be6dc79d951172132e99c7c8838522b428462775ae5f6eb43"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDAWriter.swift.o",
+          "sha256": "2141a03fbbbbf0c8b06c1cd9cf40c969151b3a115b6975ef65f80edbc05eb1c0"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDAttribute.swift.o",
+          "sha256": "4a1141f8ffe3fc6a05aeb7884209266096f528628d64c1780255e16e9dd78e94"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDBasisCurvesBasis.swift.o",
+          "sha256": "213987aa7b4b27deef228ab41e53361e260bac6be9e2df8af5078582f166a4bb"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDBasisCurvesType.swift.o",
+          "sha256": "b76da81f2f062b2e129918447ced2df9754a2676fae4639562ee20611782ef4b"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDByteSlice.swift.o",
+          "sha256": "c38199ec2603173edc17f9881810717465521c05a7614b4c760e7fbc47253a69"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDByteStorage.swift.o",
+          "sha256": "b57d78edc14305a0b8d05910dd69932dfb1f858dfc1a57bd63db65d6ff04b915"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDColor3D.swift.o",
+          "sha256": "8fef25885d9da94bbda0de6ca7474648142f71240b23f088d197b14286d14376"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDColorRGB.swift.o",
+          "sha256": "f4ced8813c429d3fb322d9846d12a6402ad536c1bb6b44c46fa7fbdcbb633f23"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDCompositionArc.swift.o",
+          "sha256": "d2c5d0c3dfae8fc67cfc8b9a08000293a61e09857c2bfa3889c80c2149dc5c73"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDCompositionError.swift.o",
+          "sha256": "a27f1bbe7b95da7a38271ab6606a0419cfa6503c4a6ca08d60979fa42e0b692a"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDCompositionMissingDefaultPrimPolicy.swift.o",
+          "sha256": "87cad090b404badedc46c6fed21beed33fff47aa63a291fafcd144686b692d58"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDDisplayColorPrimvar.swift.o",
+          "sha256": "2912351ac7b316c47046260d5b3926315e15da12ee021533e869ceb12188ba84"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDDisplayOpacityPrimvar.swift.o",
+          "sha256": "ea9272c2cfe06db0594ec26508915936e19f0cc7d13ca44a1e6e520679c8a57f"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDError.swift.o",
+          "sha256": "c3b26febcd0c7117f441a3ac66143db237a4f775ed3e261e68f0083e98f9a868"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomAppliedAPISchema.swift.o",
+          "sha256": "4a6ae503f2bfe65ec2e1dbb69807b2974e0ffd38a9f441832f601fb97c064f71"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomAuthoringSupport.swift.o",
+          "sha256": "48d54ef8acb00aea4500eff57b5cedcdd43b565d831f8185ae8afa669932cbc2"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomAxis.swift.o",
+          "sha256": "d034f13dbd0f9fa5b89bc1c4fe4af047ab2739f1018e77cfb33c38f34324e1fb"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomBasisCurves.swift.o",
+          "sha256": "2384bba042a66d234a94fba6862f89d0c451d5081614f4e92090918453391838"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomBoundable.swift.o",
+          "sha256": "89feaef2351d84736912ccd2e1f6b9acab1179dbadbf6539a7f371d089f8b4a4"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomCamera.swift.o",
+          "sha256": "d2dab8136e651d283de2e50ff2207a0adf14d38c6a4dc69c9c2505efe30141b0"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomCapsule.swift.o",
+          "sha256": "e88d139cbae42fa22965337143e3c5ed8bdad6d6805cfd2706f908d6203968a9"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomCapsule1.swift.o",
+          "sha256": "18bae50e6a632371616ed07b327d04a7d9501a69e6450f5a5ac5f0dc35735e75"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomCone.swift.o",
+          "sha256": "77496ce79badc674573ee68a942b95f339d1e8f85d00de63e5d52333136adeb4"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomCube.swift.o",
+          "sha256": "2e9ff2590250d30b7037d31365d1d07b15c3043ce11d9a92fc5183681e753e6b"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomCurveWrap.swift.o",
+          "sha256": "30cf5a20a1a2e0dfe337b17787fd8d78d17ed75d5cb9886a03caa4ac27ebed62"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomCurves.swift.o",
+          "sha256": "17c777163311c3d36651b18362f753944887dd515f1a9463ce6cf56691b759d6"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomCylinder.swift.o",
+          "sha256": "aa7ba4655f80f7940b583aff91215b9fbfe21b87d276df73159162b6cd7425fe"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomCylinder1.swift.o",
+          "sha256": "8aa16d96e8c8b27d8e1cac180bf3ce7ca4df17fd4b4555550293d7f5d516a69f"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomGeomModelAPI.swift.o",
+          "sha256": "c43ce8356e67ea7d6ccb90d8a75feeb606459761eec52f3bb07adaa5fb2f21ab"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomGeomSubset.swift.o",
+          "sha256": "806c525ddc158d3f00cd1044e20450cdef15f244f595e3d51492999c60800baf"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomGprim.swift.o",
+          "sha256": "3ae2e1dfe0223cca380a5df9cb00e482a1ea6d47f0d28f4a787396285a0a0fea"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomHermiteCurves.swift.o",
+          "sha256": "94aaed8538ac5c3a33f041c6f3fb5b8497761ab867d3f180155f622488289a94"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomImageable.swift.o",
+          "sha256": "ddbae6b3e9254cf40cd07bdf6363af274dc325b1e51f2ff0e6eaa2a9c78652c4"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomMesh.swift.o",
+          "sha256": "610f36a6afb91454c88b5241076e62e4c97b0315fc99c19ebf631590d6a82d84"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomModelCardFace.swift.o",
+          "sha256": "b15f2f3ae3a449e220bd362e8367bb417f48a1588dd2c3a1150f64c2fe638d63"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomModelCardGeometry.swift.o",
+          "sha256": "e88d14e84b34ce0174cdeb9b8de447fa70daedd928a0dab14228d60d4042dd05"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomModelDrawMode.swift.o",
+          "sha256": "b94178e95a2323e774babba8aa92beab9f35583a450b2baff866586cb3aae399"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomMotionAPI.swift.o",
+          "sha256": "82ce34a2355a0c1902d149689ba399ea44b02dee1d9f4eaccd155c6b4c15ac9a"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomNurbsCurves.swift.o",
+          "sha256": "4ea2236c3809e998dbf4df1335129e394f3787be749cffe133728f000b0a9d81"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomNurbsForm.swift.o",
+          "sha256": "f250f75fecc8889445d21625c0d627bdfe59f715be1b66aeb5e27d840d78faf8"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomNurbsPatch.swift.o",
+          "sha256": "f866f50e670cbbeb7b47c7743b2bfe7584c927ceb61b571d7af7c2825fbbdbed"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomPlane.swift.o",
+          "sha256": "dd68eb6346f1b39951fc5ebd417750387c6d9b6a5b29dfee1df76068448be787"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomPointBased.swift.o",
+          "sha256": "fc70c2b14e3838c9508abbffc69a972bc136326cf014cae267883cecb236f013"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomPointInstancer.swift.o",
+          "sha256": "2803e50c67fd4fc48b5f2d0212cb7be29ff8ee9f23b0664aaf971aa85e8fe2c2"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomPoints.swift.o",
+          "sha256": "6521f9f8b35eb34a79a0f67700a9254f48ec28d83d5e2acd79fb9f0d37a4c1a9"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomPrimitiveSupport.swift.o",
+          "sha256": "286840a96d549897b3cf4ab0228236e4ee6fb30cb0f31cd39f4ea89f9913294d"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomPrimvarInterpolation.swift.o",
+          "sha256": "5e5699d428ced6c4dec5498fb496de8cb631428b3ba72b696895a301e90d8ac3"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomPrimvarsAPI.swift.o",
+          "sha256": "5f673f9eabf72f9f4215c51e6ee4606383fac72c762c7b1f56a692e32d4a1cbb"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomPurpose.swift.o",
+          "sha256": "0dcf79f76cd23ada1ceceb5a835f3ed4d7d76b3f699947e182ccddbdca0f08fb"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomRotationOrder.swift.o",
+          "sha256": "6ebdd4f29c1c45a990071686d05725da16fa57f90038a7fd5992ded9a66c8788"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomSchema.swift.o",
+          "sha256": "04a9b22a79ca45a84dcbd4ff6f50e00aee15c6cd469d5047d6382bc56d5d55bc"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomScope.swift.o",
+          "sha256": "3897036b7a5baca87462b882e7b1db6bb035340035d730bfb7e494de6ffbe751"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomSphere.swift.o",
+          "sha256": "a968a5661deac3c9fc0227e5add42a249b92f11778d9f47ed4a79c671176b126"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomSubsetElementType.swift.o",
+          "sha256": "28aa93d326d027bcac6e2794d02bc6a42fa0ec3af6fbd0ef23ec33d74b908a96"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomTetMesh.swift.o",
+          "sha256": "f9173270cb98740a5519298380197d824e415b54a2384e68a9323c6133fceea8"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomVisibility.swift.o",
+          "sha256": "02013d0e1d5b22606083429660b05c395405c79b9a5bac0225f715c74655d962"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomVisibilityAPI.swift.o",
+          "sha256": "f2fad33c832e700490e444d566cec082f6fa4ede3fafe457e40a7efc611186f7"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomXform.swift.o",
+          "sha256": "9a30b67bf80aa160fdce37e301e3da2f98edc07b7a069c03b897c87623231bc5"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomXformCommonAPI.swift.o",
+          "sha256": "2f4946ae868a453d68bbf0e87712c324eeb9b15f8845464ebb4005b790b48a3d"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDGeomXformable.swift.o",
+          "sha256": "021604fd0ad158195f95684a342c885fb496cc15b8322e557f9a9e1e44bebec9"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDInMemoryLayerProvider.swift.o",
+          "sha256": "c31035d9662a3ec077f5e59704da069b773e7f92b3edece9941b0f33b0002368"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDLayerComposition.swift.o",
+          "sha256": "488d0c15c10836984d0271ae0bc23b64a149423df437e7328e81814cffc4bf2a"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDLayerFieldValue.swift.o",
+          "sha256": "00731e520e82ea3a21be10dca2872e6ad9283075a22b893ba9edcd2ea4685d1e"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDLayerProvider.swift.o",
+          "sha256": "f5cd584ac8b41a6ce67697869e4447151fd79d278be96843f33b965477ee78d3"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDLayerSpec.swift.o",
+          "sha256": "4b3b3d53afd3298ca89097a75115805eafbc41c2b83011e7bfc0946b77b91917"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDMesh.swift.o",
+          "sha256": "2cbbd0cf755a33a2fbb8473fa96c1f787d67a8d94bdeddc9ecd5b702f32399ab"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDOrientation.swift.o",
+          "sha256": "63987dc53ca48a2cfbee9011ff528f7c6dd3cde4733624897cf2b7d0b4cb2058"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDPlugin.swift.o",
+          "sha256": "cca67db5a6f9daabb72820aba639bc34ce75f61330052be215322f891e7063ca"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDPluginFactory.swift.o",
+          "sha256": "1b4f5b9f0b0fde42fa9cb44e7a15eaccf9eb4621554dbcf5e60b85af8e3a30e6"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDPluginIncludeResolver.swift.o",
+          "sha256": "491fd96059d721e659a54cf483647c0433ddb9b5f988d8ab3f0868fa3892a126"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDPluginMetadataValue.swift.o",
+          "sha256": "627bc5292bf9bfd1866c7e519a277b8ce4ba29786956e0fb5d0b60eb1811ac2a"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDPluginRegistry.swift.o",
+          "sha256": "9ee875b5fabba82d840b61f0c007302df8a5f8ee4ce2de036aa5612454f3768f"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDPluginResourceResolver.swift.o",
+          "sha256": "b46fe9070ff1c220c550eea0fba94a7f825a82ffb1d8f07bed26b627af4b47e3"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDPluginType.swift.o",
+          "sha256": "226d445e7c09ef99df5bd20688e47b74a31bef138c52400a7afd2e9b8cbad5da"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDPoint2D+CoreGraphics.swift.o",
+          "sha256": "ae6de1ad8488d8051fcc88b16e07516ef9b329eca4f636524dca7dd27fe0d3f7"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDPoint2D.swift.o",
+          "sha256": "6c77466fec65b5e0a1f92e169e454c2cc603d02f8e924d2318838c8cb58c1bc7"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDPoint3D.swift.o",
+          "sha256": "f5b612c67c3631dc5ccd4a5d19169545c383fd65d7c8ad7933f4cca2c6281196"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDPrim.swift.o",
+          "sha256": "68fa2def9f38baca90f92d11545394801725aeba3af5e1b8d8b150605d32db59"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDPrimDefinition.swift.o",
+          "sha256": "28093564068c54198ce8ed3d3025ba440fbcd111653a0beb1e0e2ca2c4619878"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDPrimvarValidation.swift.o",
+          "sha256": "7597ee67d5bc9467c01be453843c76d0d12750756522c5df10f52e9c5f1cf3a6"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDProjection.swift.o",
+          "sha256": "9a4526dd0eb4cc0b3ce6d61ddf6747d535f42d6f19e03c1f649fe6b04068daa5"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDPropertyDefinition.swift.o",
+          "sha256": "c1b8e30de390baf076a13ab344a3df6aa565c9a5b2c2700dfc9760631cbc5dfe"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDReadingOptions.swift.o",
+          "sha256": "265290ed2c861d20c189b1a23b62b1337bed51fe51478a942f811685af95f5e3"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDRect2D+CoreGraphics.swift.o",
+          "sha256": "4aad995b94d2bc3083a29b3535d2a3d7f6166c0984ca948b694f5aa15117a414"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDRect2D.swift.o",
+          "sha256": "7611d7ca62cad6a9dc5a9b48c522a2c9dcbcba3d8225a9230d02f65a1366c62e"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDRelationship.swift.o",
+          "sha256": "69ce3c0f1de19f9f858ccddde50d8581d2c48cd56d7de9ac760d705bc08d934c"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDScene.swift.o",
+          "sha256": "4e3343a6adf02a11bfb6dec9fca2b5b93aa38fbb3e1f348ef90fe5939e6f0288"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDSceneReader.swift.o",
+          "sha256": "48b47de19594ec7a8c09b4da1dd2ec1e2e0c02b3cc0461858690fa5878ace4e2"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDSchemaKind.swift.o",
+          "sha256": "38333c9184f2ed4843bf3a8abf996a6b366d66cbf9fd21673f5f776c29616792"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDSchemaRegistry.swift.o",
+          "sha256": "1a0058ef4a53b36168180f4435a8a7d329c562d6823942145d4d8f2170600434"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDStage.swift.o",
+          "sha256": "705abd6aa1f03fea3c921151eacce4bcee0fbdab3d0fd6fafca82d9a0c3d2307"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDStageCompositionCache.swift.o",
+          "sha256": "eeb34a51867a75c8d714d7608dc692d22182ff1e2c919087f7038784991fdc36"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDStageCompositionEdge.swift.o",
+          "sha256": "38ea8cac17c23cdf356c7eac1c399ee38561b6dd9564b98cea644e577aa607bf"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDStageCompositionGraph.swift.o",
+          "sha256": "6012040a74df27c4b80f51bdd315885374db001135983251857d381a812cab7f"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDStageCompositionNode.swift.o",
+          "sha256": "a06a6c551e99afca11f6f2050aa586342623936b44aa026ae33c046e25532dac"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDStageCompositionResolver.swift.o",
+          "sha256": "4104cfe57ae3eda08b30d05f708e3717c91d910f80954cb3cc863fbbdb18eff5"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDStageOverlayLayerProvider.swift.o",
+          "sha256": "f320ecdf8ac1b0c6127521d61bad38ffcc2f969df550691548e533de8185274f"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDStagePayloadLoadState.swift.o",
+          "sha256": "73b0d1dcec937fa23a386b50a559d983a2d6b98afa0e5448f3c3f9adba36405c"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDStereoRole.swift.o",
+          "sha256": "78230d93f4106bde6eb85a437dd8bf5a34b43ae238e335e83acf931af778a6f4"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDSublayer.swift.o",
+          "sha256": "9a3eea24d91c4f9a4d8853046551fef8a7296595eb524d6e1c3c524e9d6ecb15"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDTextureCoordinatePrimvar.swift.o",
+          "sha256": "7fb486266cf153bee9d59beb4a19d10428586f96fbc80926466f2f5032a882c6"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDTimeSampleInterpolation.swift.o",
+          "sha256": "df72eb4c9c90194c595ea734aca2155d699ff44704b731d15a5014c2c9c3381a"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDTransformMatrix4x4.swift.o",
+          "sha256": "fad07b0123d789ecc8ca4da5c18c8429afeca6ac1b7253ddfb27ec743c717e64"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDTransformQuaternion.swift.o",
+          "sha256": "de60c45a14a9d2f16941acf87d5231786d8a23f275a5c8171354d894b40cf738"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDTransformVector3D.swift.o",
+          "sha256": "70f34bbe8285bd626246773d09459bcd1658fadf305e4cd0fd8aafbd2687a0f8"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/USDUpAxis.swift.o",
+          "sha256": "b4d0a6f7783d4871c3f3f7ae4b86bb5c020566a98b44271eda26588994af3b3b"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/resource_bundle_accessor.swift.o",
+          "sha256": "7c98b9b36bc3136d1869f37a375bdee81b79408524ee8d96f108e5704e960223"
+        }
+      ]
+    },
+    "OpenUSDC": {
+      "module": {
+        "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/Modules/OpenUSDC.swiftmodule",
+        "sha256": "20d8b3ac5252d12879b350cbb34b51410cac8a3500513fd35d67449e1f45e2f4"
+      },
+      "objects": [
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDC.build/SdfFieldValueUSDCConversion.swift.o",
+          "sha256": "d4576562cc8046c7bbc5019cc99c92de589d9b67e863de4b289d8a5428097184"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDC.build/SdfLayer+USDC.swift.o",
+          "sha256": "87c8cb58f2b742a09a79941219ae93328ffd02f157e69266f595a9776bb20743"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDC.build/SdfLayerUSDCConversion.swift.o",
+          "sha256": "640099e224c0f03be0b699936e26252e892f87234eb5522a6a12d2c93ed31b5a"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDC.build/SdfSpecUSDCConversion.swift.o",
+          "sha256": "ea66f7edd34374a75c2871f38fa3ac8cc65be7085a3ba4112ad747041039ec66"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDC.build/USDCCompressionWriter.swift.o",
+          "sha256": "8f542a6aca8d2fee70d526aaabfdaa7cafa7a95813ec04bc0d467eb9514cce55"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDC.build/USDCCrateField.swift.o",
+          "sha256": "6554e8a114d3af06cc55a06af9d3d93cce23d3027d93a20f4f1fd1ea04196473"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDC.build/USDCCrateIndexedStrings.swift.o",
+          "sha256": "81a2cab88faefe5043c6c52a761e6c7eafa327a645c1afdfa9dca800664db11a"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDC.build/USDCCrateSpec.swift.o",
+          "sha256": "f345440c86b5cfeee148b59b53b09a7e84189d56ac904902ee42735b0616645e"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDC.build/USDCCrateSpecType.swift.o",
+          "sha256": "869d8fd87252b6aa99ad527e69db60d5cc8880398fd0272b5ce6cadca0d9248a"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDC.build/USDCCrateStringCache.swift.o",
+          "sha256": "68e50034d8093914922f22aff9d7e5cd7db331add297ca50f5c3236fbc935d22"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDC.build/USDCCrateStringTable.swift.o",
+          "sha256": "5f13e3c9c2ae23a47fc6ac6dc10d14df6c19f606a4613b63754e218422bac695"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDC.build/USDCCrateTokenTable.swift.o",
+          "sha256": "aa107a7c53920e3dd18a1c689c9f99a1cacbd7e1d5904cdfd10b48814969bbd8"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDC.build/USDCCrateValue.swift.o",
+          "sha256": "ce2de5abfcfe07e535a6775caeed155348b93a5d8dd382382af02f8b475e97c2"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDC.build/USDCCrateValueDecoder.swift.o",
+          "sha256": "ed79de27dcb2601b551665b6ebbc63857f52a83105080b88960693920095b482"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDC.build/USDCCrateValueRep.swift.o",
+          "sha256": "5911fa8f50d1b2d511b4172170df04e18de0738280f5b323c73a34fe81e529e1"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDC.build/USDCCrateValueType.swift.o",
+          "sha256": "9697861a60d695c82f515a94d1bd53224700e9556a654acd76914f5503bda818"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDC.build/USDCIntegerCompression.swift.o",
+          "sha256": "1a1ea41962debaa8c13b67f8d9352315804f7eb5f8687fa4ba8054a6b056fa30"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDC.build/USDCLayer.swift.o",
+          "sha256": "c34fec97c3f958c845aedb28897783c3ab79d3b80dc0b333a7d25e4273a3ad74"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDC.build/USDCLayerFieldValue.swift.o",
+          "sha256": "1d15bc1b247c55e6443a4bfadd36858f1d807d495809e9101e96b8e52761d305"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDC.build/USDCLayerReader.swift.o",
+          "sha256": "6358c0503991d97a02323a476d32e049a04245cbd6b430bb073e80db7f9959cb"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDC.build/USDCLayerSpec.swift.o",
+          "sha256": "5af4a13809f8e628213824022d7c83c634e5956752aad3d83e3e797ae4a0c06e"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDC.build/USDCListOperation.swift.o",
+          "sha256": "7552330b2ee6324c23b110071895a30b58ff830763b4f63170edf84e83ddc7bf"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDC.build/USDCMatrix4x4.swift.o",
+          "sha256": "996efeb021170139e83e62be3e25bb58050123cd0a4725c17567141ae9e346f6"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDC.build/USDCPayload.swift.o",
+          "sha256": "f9c74a58788f13634fcea5039d9249a9e02ade496a5e6d234880b9ba851c4fa4"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDC.build/USDCPrimChildrenValidator.swift.o",
+          "sha256": "8813e95735e9fb70c620ff64c0d485738c9202e62c812c2609237bbf95f2ec58"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDC.build/USDCPrimSpecifier.swift.o",
+          "sha256": "6fb50c72b4eb025017485066fe7caefe597307b42cee38cc1e71c55c2355ca32"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDC.build/USDCQuaternion.swift.o",
+          "sha256": "f16279a08e174a1cd96a06f8988a7e5deccb0aee0e651e4c073014f36644a039"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDC.build/USDCReader.swift.o",
+          "sha256": "0b8d9b660f87b6611e875276c01b68c3024a8b60d1be54bf34d81768f9fc04a4"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDC.build/USDCReference.swift.o",
+          "sha256": "ed50db8f1a1e6b0410ca8e63106e337c7925a4d06bedfc83333b7c2c64b4c9c1"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDC.build/USDCRelocate.swift.o",
+          "sha256": "bb10a5904faa8aab4ef236a3adb2843e89af4e1daae534d4cb525ebf4e25a438"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDC.build/USDCSceneMaterializer.swift.o",
+          "sha256": "e4c4b6a44634a0f792654a1d5f3fe6368766ab2ccc06868a2b684507cbf7c133"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDC.build/USDCUnmaterializedValue.swift.o",
+          "sha256": "3121b3e0be5a9042d79deca9a7113eaf7a3c27345b87b3ee174ca0c9d0e546f4"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDC.build/USDCVector3D.swift.o",
+          "sha256": "1153e5e5163dd1f4e28634be659dce131da2f817d5ecd7a64f79c1380e35a8ff"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDC.build/USDCWriter.swift.o",
+          "sha256": "411d71378441006f3861416ecd515c00479f4d78c28efbecb1153ea6687ff4ae"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDC.build/USDCWritingOptions.swift.o",
+          "sha256": "d05c7f67991bc9aac20002fd47af4b40dc33dca71b85d73b111ce7fcc7741213"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDC.build/USDStage+USDC.swift.o",
+          "sha256": "43ca770e29a205e452deea840b531446c47bcc9ac0fea4b9df3425efc6e0651e"
+        }
+      ]
+    },
+    "OpenUSDZ": {
+      "module": {
+        "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/Modules/OpenUSDZ.swiftmodule",
+        "sha256": "e9c7e7d417c8eeeb0efc5f2197e2f0755b4e8644c5446f390afd86af3f71540d"
+      },
+      "objects": [
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDZ.build/USDStage+USDZ.swift.o",
+          "sha256": "4e81f382cc2cf217ba96a5b06e704d594bb4307c2977dc6831a2eca9b9e81580"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDZ.build/USDZArchive.swift.o",
+          "sha256": "65e65b35a4d7d36af5f1190a6c5bb96e5f7e02a51fd9eed188cca5db7123ced1"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDZ.build/USDZArchiveEntry.swift.o",
+          "sha256": "f4ac779d34f31dea48f102086a2da9094c1daee8f9884fedcb835b7ed46575df"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDZ.build/USDZArchiveInputEntry.swift.o",
+          "sha256": "d63691a042f0ee8d182186a8811e8b258fc422349fe8fc2f51576a6d60c267aa"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDZ.build/USDZArchiveWriter.swift.o",
+          "sha256": "e96a9cc1a9fb275b5b2b623d6d46334438c414028027f9e0b772447626988597"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDZ.build/USDZAsset.swift.o",
+          "sha256": "0a1584e01afb9afd2c94b1e81dc7726a9048973c8917ab89e8ee4c24fb648a3d"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDZ.build/USDZAssetResolver.swift.o",
+          "sha256": "db5f9cb8960969a37d7a134653b60d4fd0b697443de686d57d6bb6a43ef98377"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDZ.build/USDZLayerGraph.swift.o",
+          "sha256": "e34e5573e4d57a74c4fcab60d304b6eda54960b6b2b6fc813e5fe4d1f47609ef"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDZ.build/USDZLayerPath.swift.o",
+          "sha256": "77f3516a239c9b178fb971736e4edc3a4725cc2f4a8b6ab087a9d76accc0f7bd"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDZ.build/USDZReader.swift.o",
+          "sha256": "65451f833bbf4c36c148dac844e7b2355701b33c35e9cd3e6c8e36a7048397f8"
+        },
+        {
+          "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSDZ.build/USDZWriter.swift.o",
+          "sha256": "d35715db77230c8a4916c9bb307221339941f5fae318083e71b15d523e392077"
+        }
+      ]
+    }
+  },
+  "environment": {
+    "PATH": "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin:/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+    "SWIFT_EXEC": "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+    "CC": "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/clang",
+    "CXX": "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/clang++",
+    "SDKROOT": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk"
+  },
+  "elapsedSeconds": 26.5253255419957,
+  "cachedHEADBefore": "2c943c75ef9c0c32974663b13441a0972bec7d3e",
+  "archiveSHA256": "52e0f28da299174dc482228b900b319258018fcc6439fc29a4f20c3d6c452fa7",
+  "sourceSHA256": {
+    ".github/workflows/ci.yml": "c263d720fb0a935f5769453bae444abfd115c412287048b345353a94d919550e",
+    ".gitignore": "996affb937516ddff86c2b39a6ed208a3b9d5fccd0f8c3382cfc977f5f0636c9",
+    "LICENSE": "071ba6107b0bdc200727176795a0527099a333f42ff7b29a3d65bbdf9ce9d0e2",
+    "Package.swift": "eeddd05f8d4150f10ebb57fd42cf65a1c5820016a57b9aa6a47272d622b6fab7",
+    "README.md": "a1328985864705b5b393224102c85f870ee170c38c509c9c4246c864f8f82959",
+    "Sources/OpenUSD/Resources/usdGeom/generatedSchema.usda": "f9258a6cac37ea70df429df96dec6913f07ca4450834c3b07a2e1832a9354c3f",
+    "Sources/OpenUSD/SdfAssetPath.swift": "a862b8a7bae17f2c2dabd3fcc83ae253ab3b6290ca3ef40ebd31654c99d44331",
+    "Sources/OpenUSD/SdfBinaryValueRepresentation.swift": "56960bba94872cb188ea3916b5a267f1dbd76de23b463e6150d5764923d0363d",
+    "Sources/OpenUSD/SdfEditTarget.swift": "d6e4a28624db7d61b3428289393fac2cf54f3cc33a7cc83f1307fd6ce5af3670",
+    "Sources/OpenUSD/SdfFieldValue.swift": "b579cfbd4afc8413bde647c7766adaa4b445a0cd417a5c139b3f13177b049fdd",
+    "Sources/OpenUSD/SdfFieldValueTypeCompatibility.swift": "cce90bed21c350cc82dccf253f744d36a054cc73b51c4c4db925f3c499c6f16a",
+    "Sources/OpenUSD/SdfFloatingPointType.swift": "58705ec947f4e8bd0d24b9c7e50bf16c717915a1954dc175e55fb58c9f87a960",
+    "Sources/OpenUSD/SdfHalf.swift": "703545a05308859aee05e05b6509a1c91e6cef479641c3d238661ed731627f7c",
+    "Sources/OpenUSD/SdfIntegerVector.swift": "27aca53fd6b781e8e6f7a653f8710c82fcef4112ac8c4e3ebe2a92a7d2fb5a9e",
+    "Sources/OpenUSD/SdfLayer.swift": "c4a3c3c74f20e5d8b1f2bc64773e19fbc8dae92c5c3cb2084f1363040f18a85e",
+    "Sources/OpenUSD/SdfLayerExportValidation.swift": "4ee7a878e35783e7b195b43bfbf0f86b829a6f6ce23f39953b81286059397ee4",
+    "Sources/OpenUSD/SdfLayerOffset.swift": "52e1c8a6ca327b86617b02d47e459d61a1e3d9a4e8a55b8e2d14f784e5de5f4f",
+    "Sources/OpenUSD/SdfListOperation.swift": "53e94d29389048328e8bd6f2d0fff702b16fa163fb7919ea363ca7958fc8e24c",
+    "Sources/OpenUSD/SdfMatrix.swift": "8b958125aecf9094fef8381cb3e6b75409c7fad58c4826ddd007bb6a0bedcb6e",
+    "Sources/OpenUSD/SdfOpaqueValue.swift": "799816a7987f1dbf11b0292564be4a4a5f29754e8ce08389c075edceeb95213e",
+    "Sources/OpenUSD/SdfPath.swift": "df5a997df53bf2b6a1e55e2d52d49cedc48725bf66edc3a94706e7e0bb117bc7",
+    "Sources/OpenUSD/SdfPathExpression.swift": "342bfbbf09dc60bd16bfcb4c69403b957f8f92b7699be9d1e45c8774a3f19f38",
+    "Sources/OpenUSD/SdfPathMap.swift": "dfbba3e7c41a5825c5f5e918482edf4fdf6eab93048fa35575ef89cc91e48816",
+    "Sources/OpenUSD/SdfPayload.swift": "5a295e1e93bc0cb7d0788ed6bde49893a1fc3bdaa3ce503ee69b4ebec95d133c",
+    "Sources/OpenUSD/SdfPermission.swift": "8eb852bbc43d37fc73576bf5a5ffb08795896c9f533c1193b658ce03d71c76b2",
+    "Sources/OpenUSD/SdfQuaternion.swift": "dda390017dd6222314c92498d97b78a9b16888d03558d7c677fe0d51168829cd",
+    "Sources/OpenUSD/SdfReference.swift": "7dfbf49d5b49656b4c3969fa2104dcb2ceaec64bacdda21c41ea6f329703ee77",
+    "Sources/OpenUSD/SdfRelocates.swift": "e55e377372b36811b1ce144fb209eca10ec8ec8fab99682456967dbef62d7319",
+    "Sources/OpenUSD/SdfSpec.swift": "cf25e7152276bfbd2d735904e41dfc49a41a52d2d33ace22c42ee21d75e05b23",
+    "Sources/OpenUSD/SdfSpecType.swift": "bf19539ba2561c321603c26ce939ba5f93d38dd25cb0f25855ef5bebcae52513",
+    "Sources/OpenUSD/SdfSpecifier.swift": "224f2e57ab06414c034e633433b4396cb6f413aaaf10c8218621ab5edeb149e9",
+    "Sources/OpenUSD/SdfTimeSample.swift": "0fbd27dc685722e13cb56e5c4b291d84596466b784c3df59c651b27903f07380",
+    "Sources/OpenUSD/SdfUSDAWriter.swift": "02f879cea4a2f4e4de233091e3a18db4340060384d73aee3774b44cf2560e3ac",
+    "Sources/OpenUSD/SdfVariability.swift": "cbb742e3cc158222ce443810159739d79701af39d63bb3d07e53fdebc253dcb8",
+    "Sources/OpenUSD/SdfVariantEditTarget.swift": "ad357b13c4a1754de52cccd5588aa1d1a0c1e8889426f084b17e9a47d4ae9dbe",
+    "Sources/OpenUSD/SdfVector.swift": "cb2b148b8c8e7fbf48c900b4f4f5a6283e195a68d79d3a19c244d3ce2c327198",
+    "Sources/OpenUSD/SdfVectorRole.swift": "acc0c1f5a53e21692403b93f024bc7937b97e4a1a7caeb4a47b3d7a2a2908037",
+    "Sources/OpenUSD/USDALayer.swift": "9345db638b022a6e37977996711524e0083b5bdbf6159b08e6a910183ac55de5",
+    "Sources/OpenUSD/USDAReader.swift": "45a94228b118cbf2e146474824895f22c2834cc9efd1885a5e31ebb485cb9a39",
+    "Sources/OpenUSD/USDAWriter.swift": "93f65b25a06ba50a61e45a2f0f5f1207da87f4b34fe251c687cab7c29ea4ecde",
+    "Sources/OpenUSD/USDAttribute.swift": "60ebf754aa4b70c448970bd3b28020bb8df98ccb138d40fb2a0133a398fd6bec",
+    "Sources/OpenUSD/USDBasisCurvesBasis.swift": "3447264ecf2d05b8a54dada57363455282473fc5a031829696cc2d1372e0bfbe",
+    "Sources/OpenUSD/USDBasisCurvesType.swift": "ab61cbbf42ebd170aecb242de3e9889f8cfe04fd50455a12759a7e2f05d9032c",
+    "Sources/OpenUSD/USDByteSlice.swift": "e6ea3a41e76319b692ec40a96ef105bbd323ec82ab9a9bc43c51299126c9c250",
+    "Sources/OpenUSD/USDByteStorage.swift": "f2e26d004d69872b0bb29804adbc7a98fcce8d25e07fb14f684facd862c4ea64",
+    "Sources/OpenUSD/USDColor3D.swift": "56cf5b677b33e5fdc9da7e31047aa0ab88f0a96b2f97026ce428980c9f3758af",
+    "Sources/OpenUSD/USDColorRGB.swift": "984f5b38d22cfba8f8357e9095ae87ff099243637c56f8eaf72904eccca6b92a",
+    "Sources/OpenUSD/USDCompositionArc.swift": "d2fd6461051f72db9b1a2ffa928a6b198e2202605fdf014f4f19591a6a076585",
+    "Sources/OpenUSD/USDCompositionError.swift": "33881a6d57e49a2cf0595b27f0e4767c3b72a664a18a85ea0addfd0357839788",
+    "Sources/OpenUSD/USDCompositionMissingDefaultPrimPolicy.swift": "02b5794a00bfc8aec3cf50165c2bb8c27d3f03b7b7d90a608ce8a025b4da259b",
+    "Sources/OpenUSD/USDDisplayColorPrimvar.swift": "a102c5518c9c67dd6ac5fafdcde5e414d559aa25a4c6c819bb83820bc326b379",
+    "Sources/OpenUSD/USDDisplayOpacityPrimvar.swift": "1a4de28f39b6dac06867cf3361231ac119b7dc4d7c57dab0de903bae2fb873b6",
+    "Sources/OpenUSD/USDError.swift": "f3d608ff5b3f7cf5e206979c78aff821708a3dfbfeae3622f2d2d761e62af4e4",
+    "Sources/OpenUSD/USDGeomAppliedAPISchema.swift": "efdaf0f73a4a50ddcb5578f2eaa2cce9204ea93c79400f7caed9bc5a7f8dc460",
+    "Sources/OpenUSD/USDGeomAuthoringSupport.swift": "de827f6b27e6eb9ab0614dc9619f34c40c50cbc0147ca54e677b9bc2573759bc",
+    "Sources/OpenUSD/USDGeomAxis.swift": "e4982416ae18423d3330e0c0f964ba6dece9a0c516459a072106b4b18cb18939",
+    "Sources/OpenUSD/USDGeomBasisCurves.swift": "76a0a7e9a5f04ff860ee3562c16412a02b13280f22d877437cd72b5fed2eddb2",
+    "Sources/OpenUSD/USDGeomBoundable.swift": "eeb00f6cefafa81150a619b05c26278418613d81e069a06072e053d5073d0535",
+    "Sources/OpenUSD/USDGeomCamera.swift": "c5caba320fe17e29e0a0b8582d3efeb6c0232b9dc580950ce622c07e1075c33c",
+    "Sources/OpenUSD/USDGeomCapsule.swift": "d50809573216d53203f753d7b51751b9aac1fb40512ccbb1920fa42b3dbbdad1",
+    "Sources/OpenUSD/USDGeomCapsule1.swift": "852aa850a5dece06af004b0538743ae7a461bc2641be72a035a8b067010155cc",
+    "Sources/OpenUSD/USDGeomCone.swift": "c837862de189d67ba3d06ec46e3fce935defeafe3cafcb19882b5431981c4c21",
+    "Sources/OpenUSD/USDGeomCube.swift": "781f5015d56f3e9c444c6ec7ee84695ee47d9b8b31561ee9120881717760ad3d",
+    "Sources/OpenUSD/USDGeomCurveWrap.swift": "b1bec32d7e03f72dc81ab4017340c607c58a29e0287e930bf60a603b26cfbad4",
+    "Sources/OpenUSD/USDGeomCurves.swift": "7f27533c9769ff36b46f15c5146ad1c41a6fa320cce39269623a91b5f26e0c5f",
+    "Sources/OpenUSD/USDGeomCylinder.swift": "175f0eb88a827e4e5bb8f2875ab5fad4d9a6c2242fa27b82c90d275833083d93",
+    "Sources/OpenUSD/USDGeomCylinder1.swift": "ea58accab84aaffdef8207ada224e1f78fb197ac024e89a2c3624ccdf6f33ce7",
+    "Sources/OpenUSD/USDGeomGeomModelAPI.swift": "04fc8ece09e4b357a034e5e4fd19d12bf17b74fda049f81f76277d6fe37d1d8e",
+    "Sources/OpenUSD/USDGeomGeomSubset.swift": "df4a1c0e4414cdfcb59b76637b045f087913a5a7e427ffe7ca4e03917a386f40",
+    "Sources/OpenUSD/USDGeomGprim.swift": "2ecfa6ec6b22843cfeab8b8ce0e9f5a5e4b914610d7ebeb941e067c70fb777f2",
+    "Sources/OpenUSD/USDGeomHermiteCurves.swift": "65a8035f4c48161f7d84645214417233aee040c3cec360101f4a364c7d5c7dba",
+    "Sources/OpenUSD/USDGeomImageable.swift": "159209d59dfa91726fec403d9b2b58ba339ebc7c03bf44d743b4e6b17214332f",
+    "Sources/OpenUSD/USDGeomMesh.swift": "88c86bf9f3e78112b132d2398f6ce270b2e23c055c9a63b4c01ba507fba9950d",
+    "Sources/OpenUSD/USDGeomModelCardFace.swift": "b5bf003ccbe329108a469117b0aa88ee8fab5cc9bc372f806f9fdca73a105544",
+    "Sources/OpenUSD/USDGeomModelCardGeometry.swift": "3cc075ae823c98d5665183f699a8ae61763fab01f809bfd2c70feee4bf305d93",
+    "Sources/OpenUSD/USDGeomModelDrawMode.swift": "e4aa16e4ff5a80e7c37e938af5aaa5acbe34176b778c96e2cdf3eaa0ee527923",
+    "Sources/OpenUSD/USDGeomMotionAPI.swift": "5306d45d440388689417ad0eb6736c67496be3d62afb5bac9a828a745d3a4f03",
+    "Sources/OpenUSD/USDGeomNurbsCurves.swift": "be35be38cfb3eec7656e87fd9f41ae0fe4189143ba1781990e5457d468abdbdb",
+    "Sources/OpenUSD/USDGeomNurbsForm.swift": "0013610fcdebe5012cef73cee06f808e68eb89d8cbfd38a56c33e946da922952",
+    "Sources/OpenUSD/USDGeomNurbsPatch.swift": "782cfacd2d0f7378a6ca255088cc1c8aae23896427a2377d1ab0f527257783b8",
+    "Sources/OpenUSD/USDGeomPlane.swift": "b74c393cd4a44e227c01f32a943616abb78aa608fef4f6cea9a1e8cb632096dc",
+    "Sources/OpenUSD/USDGeomPointBased.swift": "2cfd7cdad3e149f2ffa49f239a279d6d5e85d42d16679b84af43b28bf4d91a0e",
+    "Sources/OpenUSD/USDGeomPointInstancer.swift": "c7610eea89ed51243bf4b9de2ed730c9f34053b9742ddc9b764cd1f98534d040",
+    "Sources/OpenUSD/USDGeomPoints.swift": "7152da62ea0f8e4b6cb0a05bba6273f4b47915889621ee565a3be1a0beb4253b",
+    "Sources/OpenUSD/USDGeomPrimitiveSupport.swift": "734d2125ba66606289c6c1626331d9fdadfbac49057a7601a3c1c404555352a4",
+    "Sources/OpenUSD/USDGeomPrimvarInterpolation.swift": "f853678644936f15abbf27dd7f38eae6c6e1cf5bf28b14a504e57821fe2d92ca",
+    "Sources/OpenUSD/USDGeomPrimvarsAPI.swift": "b778f5765cea87e239fad1cd14c69b27c3a36f2f3fd6db4b136abcb88e51a95b",
+    "Sources/OpenUSD/USDGeomPurpose.swift": "fa87a09db5d4570dbadbf3ae9d28bfa6d9d0502021c052526322e88e5f9d1b35",
+    "Sources/OpenUSD/USDGeomRotationOrder.swift": "5ac75f0dad45a5a977fcd94aa02f89ca0dcd805e725140c2933bbc426cf631ca",
+    "Sources/OpenUSD/USDGeomSchema.swift": "cc407049c9cf7b8af479fb2f6b65ced134a33299b0eefa2575aa742ae2ee8a1c",
+    "Sources/OpenUSD/USDGeomScope.swift": "17e468f968d26475f764a57a999fcf177a85b66ae3f6a7508492df2146b8e04c",
+    "Sources/OpenUSD/USDGeomSphere.swift": "723ead02cdc22514e2a6777178b3f7a24c7fa784191453e5bf81488d3e86cbff",
+    "Sources/OpenUSD/USDGeomSubsetElementType.swift": "a506a027a6863d48f1720cec42be870823075d9fadc774230a21927b188eb636",
+    "Sources/OpenUSD/USDGeomTetMesh.swift": "49e5e9e9201c348442a57abe9655cb9a90ede34c617bbf3c070f56b5252b1fc3",
+    "Sources/OpenUSD/USDGeomVisibility.swift": "f5da27e5552298334170f9b5bca2b29b607dfa4d7dd5d66cb6af2d828ff051ec",
+    "Sources/OpenUSD/USDGeomVisibilityAPI.swift": "0a1ebc34fbc3c725a93a848dead1c583fd51d6b720cae829082cd43824f4247c",
+    "Sources/OpenUSD/USDGeomXform.swift": "a9e236cbf3f216ad046092b9be6e52383ef2177e585a7347638b9c7b5620f41d",
+    "Sources/OpenUSD/USDGeomXformCommonAPI.swift": "958c2b95fcc4f73c298132075a5782f47a7533a666e21bebca2158001d59b498",
+    "Sources/OpenUSD/USDGeomXformable.swift": "6b9888a59caf96f3097a01b1c79a05cb353e2a79783a70e4ccd9ca4bde2b58ab",
+    "Sources/OpenUSD/USDInMemoryLayerProvider.swift": "cf72450b79bdf294a19d352ecb80eccb57746bc7c3446f4e59d8b51b58c82be9",
+    "Sources/OpenUSD/USDLayerComposition.swift": "45709e0150d28c1d4b88efd0c6641be6b1e4dc156214ceaa5f05332516d65a40",
+    "Sources/OpenUSD/USDLayerFieldValue.swift": "985dcf13d5558063426bcadc8c0aa80ca4a4f2a7192e8dbf7d27d3559a3de275",
+    "Sources/OpenUSD/USDLayerProvider.swift": "3beed0b55f82a92225e3a4cc629c65fa7cda8469089d8473ba8d12316c2d06a0",
+    "Sources/OpenUSD/USDLayerSpec.swift": "1526fa53d9d1bf0104912d7319ee8c4bb72da15d60a59029ac8493773d85d588",
+    "Sources/OpenUSD/USDMesh.swift": "0d4a0bfa2614d6b35b3e56e03e4cd3adf04e17fe03113ae9e4511650e91d2c68",
+    "Sources/OpenUSD/USDOrientation.swift": "2aece3f739f230243fca229e75e6151bbbba7d797bdfcd2d02637e398319ec39",
+    "Sources/OpenUSD/USDPlugin.swift": "966d0a41a8975496db8770ffc0a10ee4d64f34685fdacc221d84750b38707e3f",
+    "Sources/OpenUSD/USDPluginFactory.swift": "b9b265295b7e5b2480068c0d1f1d778f06671667ebb692e9cc38c9fe1332d01e",
+    "Sources/OpenUSD/USDPluginIncludeResolver.swift": "dd6cb8c1f3f75d58124e2c4a47a005ce728670937aad01b865e386f5be0aeda5",
+    "Sources/OpenUSD/USDPluginMetadataValue.swift": "a50b659b87bfa66310ce5c1d3f505ba05c708e0bb22bcfb4d18e428120381429",
+    "Sources/OpenUSD/USDPluginRegistry.swift": "3a1de000fc2de1b04d6bb8eda23245124ce275ffbe0895afa4973a1adff1f04d",
+    "Sources/OpenUSD/USDPluginResourceResolver.swift": "1bcfd9bc425db70d4b414594a533390861d222f2bb85bacb161bfa71d5a9c61c",
+    "Sources/OpenUSD/USDPluginType.swift": "010b9b95406dde21eca5f8a1c1b14cfdc839fb5943044accf80f090d4e9105e1",
+    "Sources/OpenUSD/USDPoint2D+CoreGraphics.swift": "b54735380ce707eeea0c716f72b9881bce50a696a83ecff4673b6f25bec1697c",
+    "Sources/OpenUSD/USDPoint2D.swift": "547201bbc428c5bbb0c4d50c0b12b1196ef085741d4bffc6e78cbe9fcb8a36b9",
+    "Sources/OpenUSD/USDPoint3D.swift": "d805f2f84a481cf838fe3256df37cdc0c401534adea6d4c85688ce05ac28298e",
+    "Sources/OpenUSD/USDPrim.swift": "4dc562e4a210cb30d6304c2231dfb0da538f7c17c5e952a4c96b7a1d15b37973",
+    "Sources/OpenUSD/USDPrimDefinition.swift": "400c8da71cbee928c2b08ad68a62f5c8c3fb090cefb37f175b86b3d9e0251c14",
+    "Sources/OpenUSD/USDPrimvarValidation.swift": "33b418b545faa0897e7b9310f6bf748b89b7c6322c9a0a25025a2dc5ea69c468",
+    "Sources/OpenUSD/USDProjection.swift": "61c1f70a2759fcc2f30559640d78a4efe0191421274a50fcb9b482aff12088ef",
+    "Sources/OpenUSD/USDPropertyDefinition.swift": "b9efa8d0d1b016835518086abca84e0bac934adb0f7819e5b78b198267568448",
+    "Sources/OpenUSD/USDReadingOptions.swift": "6edcee092c2b55b95ff2754302514bf8d1ad88de8c3c109596e2024aaf25a9c1",
+    "Sources/OpenUSD/USDRect2D+CoreGraphics.swift": "b4e1cd2254bddf60f9bcadb66e247e31d25827ce404bfa3a5590593f5d17d7f3",
+    "Sources/OpenUSD/USDRect2D.swift": "051037450910b742bc72b0193a4bd76f7b177c8637c3720ae6e8b15bb2082d4d",
+    "Sources/OpenUSD/USDRelationship.swift": "44765be4a3ddd51f2d3d68140ce2f94dfe0c5f885120e60fadcc7f0adcf61703",
+    "Sources/OpenUSD/USDScene.swift": "d072bea78949a28aaa910725ff38956f1d404f85f51cdf243733d9a823b3add8",
+    "Sources/OpenUSD/USDSceneReader.swift": "e1846a8f91941e5f7aaa17ad7b31f703bc0a7d8629580fd25a256f568ce1a408",
+    "Sources/OpenUSD/USDSchemaKind.swift": "4218900b1ad95b927dbd1e89c9cb2dc2e3a77e45c02c69c720b7326ff3b09ad1",
+    "Sources/OpenUSD/USDSchemaRegistry.swift": "b785885317cc102f812a4cca63c527bafbe0a33f9e4c9e52c748f02f859bf4fc",
+    "Sources/OpenUSD/USDStage.swift": "04eeeee2d548f9b46f470ea50c46bfaf271c6a5e002b3263d5abf0d3179e7411",
+    "Sources/OpenUSD/USDStageCompositionCache.swift": "1ced1f71a2c9092d03a2f996340beaf7b21213cb8b54603f612a20fd647205b6",
+    "Sources/OpenUSD/USDStageCompositionEdge.swift": "393f40fedb46735756bb693924b17de68595518b0d9f54077cd4ab93f5ef7b23",
+    "Sources/OpenUSD/USDStageCompositionGraph.swift": "292c41d65cc79894ec5dec660fe2528a2f9b7296d83de358ce11cdc6d2da4bd0",
+    "Sources/OpenUSD/USDStageCompositionNode.swift": "2c1db873d2f053dce1fdf5699ef3473cff7c822b5ff0152f26136054ae6d72fa",
+    "Sources/OpenUSD/USDStageCompositionResolver.swift": "237755e2a7e4d47ec273cc4128bef8d84145d128aad335bb521b0ca62e625125",
+    "Sources/OpenUSD/USDStageOverlayLayerProvider.swift": "74a7a4ad0cc83356fe57b8b0e49cf0150a2d31bc90e139910624ccb7bec90e9c",
+    "Sources/OpenUSD/USDStagePayloadLoadState.swift": "a97f9ed2f4dd65c5a61ae46701a78bcbb5c79cf38d48d9e5f9cc2eb7ed07df89",
+    "Sources/OpenUSD/USDStereoRole.swift": "4f62d9f7ad83bc798f36161a4028e87003ed04a76518bea5aa1bd1128b57cca6",
+    "Sources/OpenUSD/USDSublayer.swift": "b9bbb3f0c25771b5b7849d9b059c7be09a4e3b2c48b97a90624e97efc788f63d",
+    "Sources/OpenUSD/USDTextureCoordinatePrimvar.swift": "89ff257a1694ec8cf65aad9fffea6724d458811ea7c32f00d7c6bbdd37e985d5",
+    "Sources/OpenUSD/USDTimeSampleInterpolation.swift": "46ef8dd7ef3f03bf34a17acedc06cdae6336b11829a7714544327f60d286beed",
+    "Sources/OpenUSD/USDTransformMatrix4x4.swift": "cc0dcee797157407296b033255fb9178cf40eab446cbd89f344d0e23deb56b54",
+    "Sources/OpenUSD/USDTransformQuaternion.swift": "300d546f45307b1ff5947b26a1a424f5c3a4cfc793d0de0387e5705b2efbf94e",
+    "Sources/OpenUSD/USDTransformVector3D.swift": "708f70517f48ac5e23c41b8978fa6fb9fc42a2d290e80899aee720616bacedd4",
+    "Sources/OpenUSD/USDUpAxis.swift": "2214c4cebb350efe199a49ed61fc5aa3457cc07ba67806e65631c027b90d9f21",
+    "Sources/OpenUSDC/SdfFieldValueUSDCConversion.swift": "9154fef17be81aff89ef5f8fcf44a67b2ea0126916b308074408dae728e97889",
+    "Sources/OpenUSDC/SdfLayer+USDC.swift": "220ccf3253ce82f1fd9efcad491ed01383d81805d261b7e336168ae411ab34a9",
+    "Sources/OpenUSDC/SdfLayerUSDCConversion.swift": "234b3ec222556356177433e38ac695e72e362c19750ac12220feb6720a7f33be",
+    "Sources/OpenUSDC/SdfSpecUSDCConversion.swift": "851e9faa4052fe302bc83d67e11d31ab1e7b4111249ffa69185e24c2e6fd56f0",
+    "Sources/OpenUSDC/USDCCompressionWriter.swift": "453ca6a1a978dfc2f0037d8621515f848ba93e3508d29bed0649add0498ad151",
+    "Sources/OpenUSDC/USDCCrateField.swift": "5d4a1cd77be2c5e50e9954aa5d74d06c4f4daf50f8767a73c8bca457152909d5",
+    "Sources/OpenUSDC/USDCCrateIndexedStrings.swift": "32fbfea805782de6bda0f72aee458c35911ba9549c7d524bc13cafb2843d4a97",
+    "Sources/OpenUSDC/USDCCrateSpec.swift": "d949082e807823bf3b29b4c7b727804a5ff9a47f7544db37e81c1be961dcfe5d",
+    "Sources/OpenUSDC/USDCCrateSpecType.swift": "a651f3a2c4deb10987aad5176a8bdd376563896533350dfea7a6f82781ef1c34",
+    "Sources/OpenUSDC/USDCCrateStringCache.swift": "6c2f873d6b121454fbed52b156bdb4464e97d8b0b14bd057bdd177c2754b7899",
+    "Sources/OpenUSDC/USDCCrateStringTable.swift": "d6b41781d78d01d4d2c64816c5c7717c032bc4c2ae27b281fd80b886f534c1c8",
+    "Sources/OpenUSDC/USDCCrateTokenTable.swift": "bdb9ae4b683bf1bc87fdc34bb07d2ef302380a57b086658b5772ed1b2763d9b1",
+    "Sources/OpenUSDC/USDCCrateValue.swift": "ae64e03c5e11900487bc5c4f09cd96b022a8008df638b3f14e3f8d96c5f49a84",
+    "Sources/OpenUSDC/USDCCrateValueDecoder.swift": "8f076a5d5458042f3a28aa4c4d06dff475516af25da79a553810ba60c0e8738f",
+    "Sources/OpenUSDC/USDCCrateValueRep.swift": "8338b99afe5f490f7e55a30c09637b5f8dcf388b78754129c6f26eb4593ecb92",
+    "Sources/OpenUSDC/USDCCrateValueType.swift": "516f3f8ae08ce0770d4393a76fcbb5bad9726b7b00a9f2c1c7f81a27c760a98c",
+    "Sources/OpenUSDC/USDCIntegerCompression.swift": "edb693befb89da2168ba0cca3928e9e4a9e963fc3237ed68e4a352103dfd9f53",
+    "Sources/OpenUSDC/USDCLayer.swift": "3f71842e15a621d05b6681a929813a32f587d1b3341b37cc6fd95925022e1058",
+    "Sources/OpenUSDC/USDCLayerFieldValue.swift": "2f569e3cab5c77cf66bacb2eb1d872b9ada8642ea76b578e3fe9d013f471d9ad",
+    "Sources/OpenUSDC/USDCLayerReader.swift": "ccfb34a2bac454bb2220cc23ad938724b51bbecd74af17fa91584f8ffd8ee493",
+    "Sources/OpenUSDC/USDCLayerSpec.swift": "d75c5ccd2240bfec4aa779d7d065617080f600a5fb43b113c859852770d7440d",
+    "Sources/OpenUSDC/USDCListOperation.swift": "b4c4d1b8da938755c06e7c070f28724bce9272e003d35df95a74a342307b5e2c",
+    "Sources/OpenUSDC/USDCMatrix4x4.swift": "526c0940e3eba4e215a1b70e5968e33758c1109d59af4dd82e0ff34a881ba374",
+    "Sources/OpenUSDC/USDCPayload.swift": "5912469f2b4ad08ad9552a2d615fddda7a8273f5250bd88b0091ff3f7eccb885",
+    "Sources/OpenUSDC/USDCPrimChildrenValidator.swift": "4b39c30c010dfbe8197aeb6f6d8862b4c72eba679dd52eeae330a24d16cdf27e",
+    "Sources/OpenUSDC/USDCPrimSpecifier.swift": "ed131a60b16c639facee8bf953da69034f78aaf01005de572dc32d3bb430337c",
+    "Sources/OpenUSDC/USDCQuaternion.swift": "023a3333786159268d2cbf72ee12f353a08546bcaa340aeda080116f453ef1bb",
+    "Sources/OpenUSDC/USDCReader.swift": "951ad046c77261f92bfb704ce0a7cb8090bfa762600350e22c9ef1468ea8e7b3",
+    "Sources/OpenUSDC/USDCReference.swift": "85032716bd64166364d4bee964d063a2fd92a44498cfd14b1f25ba511200c363",
+    "Sources/OpenUSDC/USDCRelocate.swift": "53285b4f639100899143b8f51507cb42008fbe0ede8707dd2cbc1eee2f40697a",
+    "Sources/OpenUSDC/USDCSceneMaterializer.swift": "cfe5bef04a6f2d378004f0e953bd9af12330c0d2af9e00dd1bcf670cc179be37",
+    "Sources/OpenUSDC/USDCUnmaterializedValue.swift": "2b88e6a57ac5b61a200e0f4015b4ea78d06f30994e176a99d57b8bf5a4cccb20",
+    "Sources/OpenUSDC/USDCVector3D.swift": "5f49b35bdddb2d08648a20cdb10d1e0a5c170bfc23b976346ee2ed966009309b",
+    "Sources/OpenUSDC/USDCWriter.swift": "66ba92ad3705032257f8e8295c023af1a2b2a090b223c9fac41a8d36ed8a8c01",
+    "Sources/OpenUSDC/USDCWritingOptions.swift": "7effe1b91fb93871099750182ba1572e8245bc0f017481075e97748729f54916",
+    "Sources/OpenUSDC/USDStage+USDC.swift": "f363bb2aaa0aafe084bcab9126a07e8fbb4dd6bdd42acefe4e93d947fcbb7ae7",
+    "Sources/OpenUSDZ/USDStage+USDZ.swift": "aa132e9de184b7b3f3c9e5fd397dab1475e6f2c2d04b54bc94c1a8c69def247d",
+    "Sources/OpenUSDZ/USDZArchive.swift": "1d03d79670ad46530d004453c22b541b8b2882aa4f545411c85b066c46b8f4fd",
+    "Sources/OpenUSDZ/USDZArchiveEntry.swift": "1a1446721236c2f928b13ee2de410565aa895fb7a308d068dddc1b631b0b72c6",
+    "Sources/OpenUSDZ/USDZArchiveInputEntry.swift": "cf65e083967edb8be2c26ec12cea3ed2a4431b2d50d2485ec69f5268085bc3f0",
+    "Sources/OpenUSDZ/USDZArchiveWriter.swift": "32645f63dfebb8fce298970535ba1ed03c39787006962d054cdc37ade08c3f85",
+    "Sources/OpenUSDZ/USDZAsset.swift": "a6b5ee6f008308b785fb5312038e4851966f14c8f2c3da6866ef9c4d1048ce27",
+    "Sources/OpenUSDZ/USDZAssetResolver.swift": "19cdc7bc31b2abce67e810b71f7689405db0ae98fb6898cde2b55255c9841072",
+    "Sources/OpenUSDZ/USDZLayerGraph.swift": "06665be7bdcc8382f803ac03f2697ada7151dee75fd900d53fc8dc9eddcb1ec3",
+    "Sources/OpenUSDZ/USDZLayerPath.swift": "3d4b16e462fa3028f148b2d75044170dc73bc1a384fbef0d237bb3b09e4e2164",
+    "Sources/OpenUSDZ/USDZReader.swift": "0fec9c3ea9ac39820ea8d603bcdda62ed2a84a8361d69b3c4be7507e74e7b81c",
+    "Sources/OpenUSDZ/USDZWriter.swift": "2c3757afa7b39c1b4edbc2c6ea644a0e4106b3de0e6c6dca0acc228964ca4edf",
+    "Tests/OpenUSDBenchmarks/AuthoringExportBenchmarks.swift": "f8b2ae61c4f7313eda355152296b36eb9d2e0a7373d49018c017287f9c0d0770",
+    "Tests/OpenUSDBenchmarks/BENCHMARK_BASELINE.json": "2522419c2c88eb1419a709b262c61af8b6f0a5e0bc33a444153e66e644d420c1",
+    "Tests/OpenUSDBenchmarks/BenchmarkEnvironment.swift": "947861426143d91266262240b81a10b07779e3b4a9af216d40b1d4136aec8e4a",
+    "Tests/OpenUSDBenchmarks/BenchmarkMeasurement.swift": "dd2645a24a6e4db9d46be9c422688b2f74e790c093f5880d5b8edc21b2828ea8",
+    "Tests/OpenUSDBenchmarks/BenchmarkSetupError.swift": "fe3bf7e18ecb820e1b662b295fcfc14b6b1e1356847923a64e562672d5b0fe46",
+    "Tests/OpenUSDBenchmarks/BenchmarkTag.swift": "4023929dbd69ee91c8bb90246e188df49b0a52805087b156835b30491e857ce4",
+    "Tests/OpenUSDBenchmarks/Benchmarks.swift": "975031f3468d89cfbd9abe5d69e90ce0b38fd9ae488aea60f069f5bcc22d951c",
+    "Tests/OpenUSDBenchmarks/CompositionBenchmarks.swift": "d69f25b32181266a78f290da467ab7aefea5f1e2ed82633fb1f9bc014b6f79ca",
+    "Tests/OpenUSDBenchmarks/SyntheticUSDASource.swift": "d4dabb5def96bc96221c8287154480f9323beb7217f61774124f926ff9942b2f",
+    "Tests/OpenUSDBenchmarks/SyntheticUSDCFixture.swift": "ec8fb3f60b7a6efe61577f570878dc018d121705a266c0dc935ad3f09db93a09",
+    "Tests/OpenUSDBenchmarks/USDAParsingBenchmarks.swift": "2f9ba7317c77ddbf092f00b90ed12b359879b7f44561ef080df44b04593a9b2a",
+    "Tests/OpenUSDBenchmarks/USDCDecodeBenchmarks.swift": "4634efab3480bfe58601b77e273813a0ce29e3fb93b34e360426c7a14120e41a",
+    "Tests/OpenUSDBenchmarks/USDCEncodeBenchmarks.swift": "74cfbde06eea404589d9dff2ef203bd434dc9ee05414994d89b1c650080fa14d",
+    "Tests/OpenUSDBenchmarks/USDZDecodeBenchmarks.swift": "809f39a7b404c61a945fcafbc721e9105bcd623e03ef791f545f4448851e1681",
+    "Tests/OpenUSDTests/CompositionSemanticsTests.swift": "41b0b664933842ae4070468340feb34a7f44bf229257b4c929f6906321ce42fc",
+    "Tests/OpenUSDTests/Fixtures/Generated/README.md": "7b2ea2f3155190bb9818d35e1ead2a5453a1e0a40eb8a9547dba1338749bd70c",
+    "Tests/OpenUSDTests/Fixtures/Generated/animated_mesh.usda": "ec7092dc08391e98674b04554f9beeb0db9b0b7673db9c8e421d513e6bc2a935",
+    "Tests/OpenUSDTests/Fixtures/Generated/animated_mesh.usdc": "683e144ab6d9fd81e4e5a5bafa49762c8b6cb9b7ae5915b29268b3763ebfc999",
+    "Tests/OpenUSDTests/Fixtures/Generated/blocked_required_default_mesh.usda": "3c2d69c28cad1405e10d463f010493377c1659e2d004a40938253ff87efa17fd",
+    "Tests/OpenUSDTests/Fixtures/Generated/blocked_required_default_mesh.usdc": "89d5c77592c773336f5017442e1420b93f96aa218c7862eec6a685f92f18b937",
+    "Tests/OpenUSDTests/Fixtures/Generated/blocked_values_mesh.usda": "11d3d0034ad528eb275c4b4b06a9986348759a3acd30302dc0475d8fa1f99ddb",
+    "Tests/OpenUSDTests/Fixtures/Generated/blocked_values_mesh.usdc": "dca586250c9a8ee7f96165e6a2f0286012812c8cf292b10220b301012e504a06",
+    "Tests/OpenUSDTests/Fixtures/Generated/combined_rotation_mesh.usda": "c5cc4a192c7743c6894e6581c9c0eff2b875707e38a7eb718fcd065e0be321b3",
+    "Tests/OpenUSDTests/Fixtures/Generated/combined_rotation_mesh.usdc": "047b498ddd774cd0b32d5e56079abb75e11d5f28fbcb413aca8fd08e40931a80",
+    "Tests/OpenUSDTests/Fixtures/Generated/display_color_mesh.usda": "340f6a9bc8adec35fc3e4276b681461a28e77142eb23999b92d497b53bfcf322",
+    "Tests/OpenUSDTests/Fixtures/Generated/display_color_mesh.usdc": "7bdf5a9ca7a7b7b38870de40c1034360f748d681b63f76ffd5e7673a356a7a01",
+    "Tests/OpenUSDTests/Fixtures/Generated/extent_mesh.usda": "a4669fd130ba0bd2c92749e023116ec3fb98f1247492fc522d59ba6d2d9f544b",
+    "Tests/OpenUSDTests/Fixtures/Generated/extent_mesh.usdc": "2e483bb6d4f082fd25015e61c2fb79ffcab2340b883499ec26224a71837d22d2",
+    "Tests/OpenUSDTests/Fixtures/Generated/inverted_pivot_mesh.usda": "4e66743cdb5591a3f59947c16c56b8e5592f36c4d6fed6cce66be9dc91a33c15",
+    "Tests/OpenUSDTests/Fixtures/Generated/inverted_pivot_mesh.usdc": "b533d9c5993ad0f55564d94aca79c0e29b6c6702def75b6f6916156ac851a950",
+    "Tests/OpenUSDTests/Fixtures/Generated/left_handed_mesh.usda": "853a53d2ca43ad95064f6da5d3e74d73e3351d866a1ddbe42c2f6f516319fd05",
+    "Tests/OpenUSDTests/Fixtures/Generated/left_handed_mesh.usdc": "c30e922152e0ee5034dc37c27cd736275ef33a3ef1bb5c91dac44c30fd30aa2c",
+    "Tests/OpenUSDTests/Fixtures/Generated/minimal_mesh.usda": "517e96940434d794b4cb6245d6a68e37cd2f310eb15837c39a2b486b2ff208fe",
+    "Tests/OpenUSDTests/Fixtures/Generated/minimal_mesh.usdc": "811645254e7d132929d6c5c7d1be788652b5f60927f78ff42146db5d082519ee",
+    "Tests/OpenUSDTests/Fixtures/Generated/normals_mesh.usda": "034567e521d2a76c895f32848f25a441eced0f577253c2f3ca3a37f936a13830",
+    "Tests/OpenUSDTests/Fixtures/Generated/normals_mesh.usdc": "715eef24cf86e3f37a4ddbaf33903f56f31ad4af4ee0e233c92ebdddde7a4368",
+    "Tests/OpenUSDTests/Fixtures/Generated/orient_mesh.usda": "17e9c4ad02401bb422a9029623698958cfc4f578cb9c87ab334505d3c2ca396a",
+    "Tests/OpenUSDTests/Fixtures/Generated/orient_mesh.usdc": "91bec1062624b33a8309ba0196ca38e299bf2e57e9cdd3f5a36ebbf409a07bf0",
+    "Tests/OpenUSDTests/Fixtures/Generated/point3d_mesh.usda": "0d7e7673d5cc7fc4abc60468b06585806f01fb8cec33579ee273953746c0e421",
+    "Tests/OpenUSDTests/Fixtures/Generated/point3d_mesh.usdc": "4ead352975798ed6b2b88bc6649018425a31e9a3fda1cda179b1ff49d32e9f3d",
+    "Tests/OpenUSDTests/Fixtures/Generated/quad_mesh.usda": "b67ca7926fc9f663a8e6aa92910376d3fecfc2ea36570a0e824211ce498b62f3",
+    "Tests/OpenUSDTests/Fixtures/Generated/quad_mesh.usdc": "76fab50c80047b37edadf3ec2c59f2b01dad16da1f2fe8e137dba974cf47d410",
+    "Tests/OpenUSDTests/Fixtures/Generated/rotated_mesh.usda": "7c8a9d694d8335207e7781b6b816d1930b941acbda9844cfae1368814f0b2c12",
+    "Tests/OpenUSDTests/Fixtures/Generated/rotated_mesh.usdc": "51613a664264c3d1fcc89ebc53ab09e8f8d657a86537eb4df15c1ad4a61d77b6",
+    "Tests/OpenUSDTests/Fixtures/Generated/scalar_xform_mesh.usda": "508cbbb2852e7e8a0872e19a34099690f7ce4dcea3326a73237a2ed1fc165279",
+    "Tests/OpenUSDTests/Fixtures/Generated/scalar_xform_mesh.usdc": "4a4ac268cc14828d9a8180758ec06e8c03d8ba667d09d6411aae70059bfb3351",
+    "Tests/OpenUSDTests/Fixtures/Generated/subdivision_scheme_mesh.usda": "6c9fa684c054dc853064df85e04633335d2da52d7e5843aa601a9c94100811a9",
+    "Tests/OpenUSDTests/Fixtures/Generated/subdivision_scheme_mesh.usdc": "cc2afb7f100af3d78a05c5ad771fd8f10b31ffd77ef2c4b4aa5920f111ecfb9e",
+    "Tests/OpenUSDTests/Fixtures/Generated/translated_mesh.usda": "f26c43a1061cf49d3401ce28c1d6106faa73173185612e20ab52520b85011899",
+    "Tests/OpenUSDTests/Fixtures/Generated/translated_mesh.usdc": "5dbace793073d6726a4e9bfa743b2fbf997ca12d0cc61e6fbed2939ebacd0d59",
+    "Tests/OpenUSDTests/Fixtures/Generated/uv_mesh.usda": "6aafc8a085a56121d27b8711a0d8260f68efe49bdd9b865012bc3ea3c581c5a0",
+    "Tests/OpenUSDTests/Fixtures/Generated/uv_mesh.usdc": "fcc3e991a5a6738a3864e3be70422ac1bde318c8fcbecf1d26ec7966e361400a",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/README.md": "0e9f452917bb759a2d63e4dc4f2e37d088fbd1a2725160e38a472369c88f4f93",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/01_empty.usda": "d149b85b387fbd45e9f3054fabd882c537f0447cc1505c756f75d363ad26cc1a",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/02_simple.usda": "f856b72297f1882786665782db52edb54a3658d16d5b0d8652bcdc11d0c64310",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/03_bad_file.usda": "99ed717b49aa0a2c5e559b6c9ab0d317f5bdbc2d31925e3e171a7b3231dd9829",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/05_bad_file.usda": "f64a0dcdb37d207e33ae34da4db90792fe22415575b2f151d5c1fc35066f5079",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/07_end.usda": "0633b534c5c0bc632f70d1f81a2729e4281b271a3ba54cb426f07f6df1ce16a6",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/08_bad_file.usda": "168467e840996e5f4d883a5414b8fdbf7dcf62f1d6c506fb6933843a09eef7fe",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/09_bad_type.usda": "b869a902f9b785241fa1f7eae017371dea14b01a806108e694edae93e3afbcf2",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/104_uniformAttributes.usda": "e07ae1a01270cef40f644a8b101ae946d41472d8ae6cc63efe5784b7f863fbc3",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/10_bad_value.usda": "a146ba82a441571b9108c0544960fc27baf1b7f0a1b1127a7737c8d25909e1e1",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/111_string_arrays.usda": "919c1f7181ad64b59f43bbba659e505d506875dcc917eefcd50fe14e579b8fc8",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/113_displayName_metadata.usda": "272541ca8f4e0e77b9546539a952474c6137d496126fc2433eca99e3c9177c43",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/115_symmetricPeer_metadata.usda": "071ac851bad53020ab2b3fcc8081dd126d2fa6cce83692bde45708ec6603d559",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/116_permission_metadata.usda": "6c45442b41636c1370cdc55050c52f28aaabfc574f9c7f61601d063076fae1cf",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/117_bad_permission_metadata.usda": "e10967cd0213aac722deda717f8416c7c1d077f1110bcff87eed366b8bdef3fe",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/118_bad_permission_metadata_2.usda": "e404b46b5a56ff44c9e9e8e9d3b88d1cc264631425d3543d4460d333833d37d6",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/119_bad_permission_metadata_3.usda": "536079b1173a9c037965ddcd249cecd8081367194e5c689855f1300eb79e0814",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/127_varyingRelationship.usda": "0eb8f0a29476616cc250305188c0b069399c7f7cddf6ca8683afdc0c87d43be5",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/12_bad_value.usda": "00c4219548b0c3d57a5d00fff9cffe3e8290809f88ee1f6827a94b7bfb08aa52",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/132_references.usda": "0752f3056ff91d771dcf952e23085c2db983df1c9f92ceeeefeb74167a291fda",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/133_bad_reference.usda": "5024b110b54c6baf97faac365082a8d10fa1dcb179bcb2fb02e7c3035975bb3f",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/139_relocates_metadata.usda": "a20f77901343c3d3d7e2ac7d404a47618f42b90e62b1455afa04482ce2cfb939",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/13_bad_value.usda": "46f2b7f5ba34604fb135d19e0bc0321b32f62d05f351d7e05ccd2ccc4fbb5d64",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/140_bad_relocates_paths_1.usda": "8a97108a6388048601de50e06abec2dc4f758b8fa8199f713adca93bf2e22192",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/141_bad_relocates_paths_2.usda": "3d83353c0421a12eb3b16c6948ef4f141887403d94db7c0ff683116f12df0087",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/142_bad_relocates_paths_3.usda": "7932fcde785174549a67a1d9aa3c4c37b835bd5b4ae01b8c744cf1b417facce3",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/143_bad_relocates_formatting_1.usda": "19be62d99f90a39548fb9a0bacd0d261fbb2b6b503d0814d82b951fc181f271f",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/144_bad_relocates_formatting_2.usda": "99630b80188d6b6c60b91c4d8566303d9bbf5bbad1fb47882562822b5c8bc0cb",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/145_bad_relocates_formatting_3.usda": "9d102c7a057ce82cf722f649709b76def90e6d189051aef10d10628e025761c8",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/146_bad_relocates_formatting_4.usda": "4a6ce0110a394021bd03827ee329246a3ca534a65325eb6b0f53475edb513a18",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/147_bad_relocates_formatting_5.usda": "c93f7a645d0369d476137e2fb05ae6ffe70a66f80767942ddfa439f6c56e19cc",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/148_relocates_empty_map.usda": "f8325fe7cdb7e60b91a4b89824752fb4c1d798f439adc1450ca179c22765905b",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/149_kind_metadata.usda": "1a24bc391268ebffbc877141c661f4dc7305b8005150d71998f0445ab218916f",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/14_bad_value.usda": "385dfde80d59df89661f12c6ff70662b9eee0ff9599b264b756f557818e6e3c0",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/150_bad_kind_metadata_1.usda": "d069fcb496496c80dac3a1e350381744e3b008e831baddcfb1b90089386e7285",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/152_payloads.usda": "429ecbd2592a6956ec90fedf22122848ca4953d5b36e5682a7f56e79e5ad3c27",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/153_bad_payloads.usda": "973f8ea9ef5432e05bd317e92c66777278d78dbe3dcfff0cab50521484b682ad",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/154_relationship_noLoadHint.usda": "2a65517adf32534613e1462c08063377decb11277ad93ca7953205c25d2050f4",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/155_bad_relationship_noLoadHint.usda": "f385870ff9c743166ed7106bbfaa4f5399e4e4767f299300b287ee7abaa96231",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/15_bad_list.usda": "11476b55d332f5d3053d50f6cbb3caa4b099b37aba37fb2ab1a818c88d221717",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/16_bad_list.usda": "c0542ccb8639508e501c8c5d65afa3c8293b87dd77157bd5fc55c4cc3b4e93ac",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/176_empty_lists.usda": "22763385431a79237d40e2ef488269870df8b374cf0bfbf9a2353bd90a667990",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/177_bad_empty_lists.usda": "b91bb90cd7be1b5d9af8739c287e14cd40522da9486833c1f8e4eb7da1a58625",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/178_invalid_typeName.usda": "734b1a97d5a8ea9774c59fd6c313c8738879b13b0e5fd38f31616698724251f9",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/179_bad_shaped_attr_dimensions1.usda": "68c6de113ed654d48405b821dbc592250321c85f9dac471dd19ee15c0c3d51c3",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/17_bad_attributeaccess.usda": "8c73e60b1126724ec4d599d0d8eccdfcf60984d9f0a56cbeb0afc93596613f82",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/184_def_AnyType.usda": "9b114c15ca3e930d0d4265b51f930b4e08a47c4298197b0589301e3842fa4a8c",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/185_namespaced_properties.usda": "2557ae58f05d381c3c4b1b57a561237a88c92651dcf8d29a2642ca1bf7a01aaf",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/187_displayName_metadata.usda": "1b5afd61a9fd08beca06dccc168f50a710912f0e94e88f4090aebac560a0f2a9",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/18_bad_primaccess.usda": "2d7869a9bedb295c819b5a546264c56154dde0bf3b964dafa2a4ad82fd70b2ba",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/19_bad_relationshipaccess.usda": "46c6b64c3fa396b1feae9b9ec948556ab60de5930fe50fe2849d319baca6eeff",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/203_newlines.usda": "4a5c53065ef5c0a5a35c24c8e3644181718cf48cb42c6d6663519bab6e70d03a",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/204_really_empty.usda": "1c18c54d5a3f29abd62c564320532ef3d4112ea03856ba53088f5828f25cf109",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/20_optionalsemicolons.usda": "87f685c3d294738fa3b488552c8c8a9ff01b8e67a656b5c4e25bc9461b1abfa8",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/210_opaque_attributes.usda": "d1a822ea1513e83b0fb2ddaf7d68fce6b6d4d99bfc5250265d4a23d0a7e288c1",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/211_bad_authored_opaque_attributes.usda": "23b7969cd37124a3a93a5888750d67ef9d81eb302b92525a1049b2d9e0111f1e",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/216_bad_variant_in_relocates_path.usda": "4762c7536fdc88e95b2d5b7502dd354e98684a1b19e1d7c4c1e77028d6e6b934",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/217_utf8_identifiers.usda": "1a8e41f405dd3f179b0be074aea8a9bae5af14508088f747f39bcb817bd237c7",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/218_utf8_bad_identifier.usda": "c30bc3af3d3e9f77aafb71e89ab853ab09c2353f0729e66956377b76edc087da",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/219_utf8_bad_type_name.usda": "10550ea0cef899de67cf438144c99c8618975b1a4ff29e0cdd7c59614cdbaa50",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/21_bad_newline1.usda": "151bb99c00eb8c491f6173e8ec135863993d251cfbcfd7637ffb9ca6f7d4b72f",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/22_bad_newline2.usda": "ef1dbdb1b1b901dba4bc28c221c8d23320ec31fa72daeadb7d518d8e297b0a5e",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/23_bad_newline3.usda": "859e1e90349d0559e0afe6be1e4d369ab656909451de455ef172abc62f6be7f8",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/24_bad_newline4.usda": "bcee3151cb1cad5763bdb435809d6f68aef4f5d1c533cff2187760582f2ea098",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/26_bad_newline6.usda": "06f2bcaa632577f26c6f56fcdb7b172090604fa39a1748b2b259a4b665b41cee",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/30_bad_specifier.usda": "d22fd1d475bc9630644bfb93f1da2df9e50321581a16d6ae267d912d7a99962b",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/32_relationship_syntax.usda": "21a68bb67e73b15be693584853896f445406d83b1d61024598f1c4b635e6ed46",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/33_bad_relationship_duplicate_target.usda": "bdf7e80068c56023c9b180d6674c7ee9d51438003974ded60d18112d734673a7",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/38_attribute_connections.usda": "5edea67768be438b1e03f1c7a652d208951a17d691e67ed34c8f7cf6ea35e9f3",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/41_noEndingNewline.usda": "a9193098f764d276a8f5e0d8e8c4666b7fac382697b64e62395589fffbe266c3",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/46_weirdStringContent.usda": "860a5d169fe54a13efc2472e8f3ac16f3102174225f5b24d406db03c463bdcb0",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/53_bad_typeName.usda": "4402beb4cb73c4afebbe96035aaf0f45537a87c190e9d82295945b72c98e40b5",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/57_bad_relListEditing.usda": "cf28c18589a845cfe43ceac08a79210d69c5c965c8acfb7af6dbf682a0e72b9d",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/58_bad_relListEditing.usda": "27da6bdc4dac6da9fa6993eeed58299ef79753ce48bfc922eff85255bd65ba2f",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/59_bad_connectListEditing.usda": "d4ddb6bd1b5ac19960cceedebd7fbe94ce877d74a5385a3ea5836ff9dc51bc37",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/61_bad_primName.usda": "f708f5ba1042906ca76ed22f6ba023687b0bde09293c73f71151f451517ad5c6",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/64_bad_boolPrimInstantiate.usda": "28a9e770436bf43f6273819d55ef3141d986ab2a5a3f3368d9c372312a777e0e",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/66_bad_attrVariability.usda": "213dc91b7aa71af633d0b7f03145d2f43ce6639e3bb782e635fa6b8c8c67f38e",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/69_bad_list.usda": "803031a2fce6caab3f0e89c44f719beb1ac3044dbd6b85fb07e9aa75f0f2c366",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/70_bad_list.usda": "143b0414762ad961190709ee84fa91f3d2ddeac51f816e6a11b1d809fccd1982",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/71_empty_shaped_attrs.usda": "be0f02fc2f80a8abd0186581efab32b60972eb6da75b7ba29902bdeb10dae8d2",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/80_bad_hidden.usda": "28a9e770436bf43f6273819d55ef3141d986ab2a5a3f3368d9c372312a777e0e",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/90_bad_dupePrim.usda": "6067cca2557d28bc4d914f244d29b1f3496e75389e4d9831e39ea788755f3773",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/91_bad_valueType.usda": "6de80a6d3c2dae2740a3552ef9a07f21ad7d02025f0d5b11ac43cb2c3d1160d7",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/93_hidden.usda": "54001a5c283e4807ef15f8315d08f7c50f19769995c26784403dab6830623866",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/94_bad_hiddenAttr.usda": "8861d5bdf1c8dc08718788f41467e589abe653ed9034e27f94394a81dc6827f3",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/95_bad_hiddenRel.usda": "fdb796fe1487e3ca9fc2832a0dd406cd555bb3e352ad78921a5ccd822dc2d8cf",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/96_bad_valueType.usda": "8a31b9a55412551bb3d891d349f3633b5c09200576859e90b0c04413b7c0a0fa",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/97_bad_valueType.usda": "9f5b7f89fd646462a97a8fdb1a04b2808791639cb0c8645f3b007f05e352090e",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfParsing.testenv/98_bad_valueType.usda": "1daf3774d4dceb50767886a902a4e62f9b20f025d5b8dc8081dbfab7352a5223",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfUsdcInvalidPrimChildren.testenv/duplicate_prim_children.usdc": "fef49f6e66ca9642676e3ded270998068dbd24df766807d94f85eac13f4fcf89",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfUsdcInvalidPrimChildren.testenv/root.usdc": "15cb9b6ee68cd1fa0a834d874d8f86c82a372c034d1ac2713c1012dd921f06a4",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfUsdzResolver/src/file_1.usdc": "1be5dc396614fa2c5a13d504e784fb156bd355343839b8fb87f0d1529b78923b",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfUsdzResolver/src/file_2.usdc": "c24c3a6e9b7c81b32f8551ae08566d37914d2cf90f883f730293af904d48b835",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfUsdzResolver/src/nested.usdz": "04afbc5b89065a3838e15b1f067df9d92f74e045ec0850b9322ef4c30cd634e7",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfUsdzResolver/src/subdir/file_3.usdc": "624a3c8683c9b1620f2687bf590c82d857f7a386ed58ce585fd966252afb275d",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfUsdzResolver/test.usdz": "ae4a61179828e3a03d66af41662cc6d9bd0101c8d9df83507c1c7d998522d0ef",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfZipFile.testenv/src/a.test": "dd80a3542ca5374a3e5df5874a39bedc251cdc3a6a7e784715abb65c6176aea6",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfZipFile.testenv/src/b.png": "c9dc183aa5d87982c01218cb6d24df8cee5ae8050a8553ebb8927c171e115aa6",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfZipFile.testenv/src/sub/c.png": "9886d881072cf43c5773793503db7635a0cfc7105c9c235732bbc41bc765057c",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfZipFile.testenv/src/sub/d.txt": "3cdb66345bba61b57951b77fe7bfb31ba27f9014918a87d7710fe7f704dfbda4",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testSdfZipFile.testenv/test_reader.usdz": "1bb0777ad4ce198ae1aba69eb04b10b0b2602fca8f4123df2c05890cd7450fa2",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testUsdFileFormats/ascii.usd": "52d2770fe4a3d8831883e2d6c3209351e8ce6bb137ce23846a8e08ec68635645",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testUsdFileFormats/crate.usd": "2a63b7b35c6cc0c068def222d35aa93847ed0b6b60cc29aafc33af972c6ce9d8",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testUsdReadOutOfBounds/corrupt.usd": "57f36aae21a20ffae713c9705a384dee7b45e48c0831290009fdb8a7430c7b67",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testUsdUsdcBugGHSA02.testenv/root.usdc": "881ab643a9e1d557791ec8a546e196969158bee38c1af5a56bffd1f1da6e2556",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testUsdUsdzBugGHSA01.testenv/root.usdz": "0a6385b4b0d065e3afe3d6f50c65ed958323e38462e6eb64b76e70f26fbd06e6",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testUsdUsdzFileFormat/anchored_refs/ref.usd": "636efb00a109a287f1eee861615dcf64fc7af6e36a2698dfce94a17baf5bc534",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testUsdUsdzFileFormat/anchored_refs/root.usd": "3be38053d9dc9ba179cea08423492888aaf9d5971da7e32698ba6ef3f1f393d1",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testUsdUsdzFileFormat/anchored_refs/sub/ref.usda": "33d8701bd405eb08e9d41adf09129b6261df1e32a62f5b4bc7ea923a5b8f855c",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testUsdUsdzFileFormat/anchored_refs/sub/ref.usdc": "f1d6ed9c99191353ac26d7bbf776270125b150d4e7256daecd055546a95010cf",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testUsdUsdzFileFormat/anchored_refs.usdz": "93994b55b1fe5290828012d9759f3c7bb16cdc5e577d89f8398b3777bc533e3c",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testUsdUsdzFileFormat/anchored_refs_sub.usdz": "84ff8620b5fdcb8cf6c54e2d5163cd0cb0ea2fc005550cc26f132e8b98ad35f4",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testUsdUsdzFileFormat/first_file_not_usd.usdz": "efea9dc43ed9545a01285bbcfd0cf09b38971ffd22f730a4f2d2d20c5451c03b",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testUsdUsdzFileFormat/nested_anchored_refs.usdz": "aa309032713ac1c72255842c45f837d286dcd64d81b805ce24b04d776557da9e",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testUsdUsdzFileFormat/nested_anchored_refs_sub.usdz": "46a612a300444ce1f8ac458bd13dce5c186f0582295a38027d0925d96c3f6aad",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testUsdUsdzFileFormat/nested_search_refs.usdz": "884c7ef9ed5ee3c9948c29b2792e05dfa36a0833db25ead440a84ae9c6349657",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testUsdUsdzFileFormat/nested_search_refs_sub.usdz": "a31ebd5fa2f837c49696bda07a460c2e618825fd41e04f12ddedf253e4b890df",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testUsdUsdzFileFormat/refs.usda": "749bbcabb1546fd24906031f821fea667d1f8fe5915f9da8ef1759051a2ef567",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testUsdUsdzFileFormat/search_refs/refs/ref.usd": "c6fde257e09fd8e4f2ff3466c7a9e6f715f1394404db253ef7b0892f4c5bcb7a",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testUsdUsdzFileFormat/search_refs/refs/sub/ref_in_both.usd": "59755d788afa0e4083f0bc6dc6edff4bbfda1c49cadef71a11505040284dcb0c",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testUsdUsdzFileFormat/search_refs/refs/sub/ref_in_subdir.usd": "2bb2a8763df93deee0188aa0de33d45eb2c354c1115851df85d28ec5c6ab438a",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testUsdUsdzFileFormat/search_refs/root.usd": "621362a80b5caf3fe1c041624c05c3bfc487dd304528e3b720f8120e1dbfef80",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testUsdUsdzFileFormat/search_refs/sub/ref_in_both.usd": "8a624f407aa9c983b5fe7f95d1f390b4a02f821b549a75822856d300a65b35b7",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testUsdUsdzFileFormat/search_refs/sub/ref_in_root.usd": "5123a6d2ba2a586d2a6e079f8cc91a589fc55d2c77f1d86627c7686902d3f524",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testUsdUsdzFileFormat/search_refs.usdz": "b34d981731a3a8e081913e20aeef736c96837687d1bc739a363cb8b336b76566",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testUsdUsdzFileFormat/search_refs_sub.usdz": "00e06a89d0b1b687c36a032dbfeaa3c1b9854d127200d2033e7f3bdc082960a9",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testUsdUsdzFileFormat/single/test.usd": "fd699feed730f41fa2d76d1da087b90b71091fa80ede7dde5fbfe4c4d3b4a7be",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testUsdUsdzFileFormat/single/test.usda": "9626a3701e18ab8f771631e890db12ddc63ee01a5475041db08a026d2be009a3",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testUsdUsdzFileFormat/single/test.usdc": "bc5f88494117600f45ed82dfe7053398d1d15e5ba2c0f27f78fab45dcdcd09f4",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testUsdUsdzFileFormat/single_usd.usdz": "c5a6f8b11a21016ca796e9e539865fdb3d7de40925fa82213faf1ec31a34f56f",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testUsdUsdzFileFormat/single_usda.usdz": "79c9d36fe59a678ed3210be8376b40cb4ef92d4b74292d490555027c7c944f83",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testUsdUsdzFileFormat/single_usdc.usdz": "83c77d7500f8c60247b12c80a9a6c1d3dbf3a245e93daa63c19c8304d366850e",
+    "Tests/OpenUSDTests/Fixtures/OpenUSD/testUsdUsdzFileFormat/sublayers.usda": "604b3099d25e7084e62a4b2799f8225e8d27715cf13bedafadec97c0c0a7732c",
+    "Tests/OpenUSDTests/Fixtures/asset-array.usda": "4cbfb261deb7e0962c5bdba93905fb1f04b10d9f45000de1ef3b9f78de5037d5",
+    "Tests/OpenUSDTests/Fixtures/path-expression.usda": "66f4a1f1bc6b1b5ea3c72ee6be9bf25706b7a7ef73030e1ffefd4f6357f7ccee",
+    "Tests/OpenUSDTests/Fixtures/scalar-path.usda": "42e8aca3361864eb172d587d86c3f94d14d1ff45c5d9ab201ee0756b187b6924",
+    "Tests/OpenUSDTests/OpenUSDTests.swift": "723410278c68daadd8e6e039d0d766239278f29d8abd04df20b445ec34aa1509",
+    "Tests/OpenUSDTests/SdfCoreModelTests.swift": "457bab1eedb3e2d5d8c46710457d441f84d0eca713b4893c3778c8d3afb15336",
+    "Tests/OpenUSDTests/SdfHalfTests.swift": "2440ec1126535cc7a30031eafd62e27833195102154d7e15085f4bbc6507aa18",
+    "Tests/OpenUSDTests/SdfListOperationPropertyTests.swift": "4deb53c263609fc51eecf9be492d736d95d25ddb3bfa65541c27394e16d0f91d",
+    "Tests/OpenUSDTests/SdfPathPropertyTests.swift": "8695103dd9abfa22bc83cf9754c99e1cbb31b9a6fe72c1281cdf523dff541222",
+    "Tests/OpenUSDTests/TestLayerProviders.swift": "de72bc4b01c0c0de5b0d265a558759cefde4af6716f43ee03f4ff5da3f3b8c00",
+    "Tests/OpenUSDTests/UNSUPPORTED_FEATURES.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "Tests/OpenUSDTests/UPSTREAM_TEST_PARITY.md": "7489cced0e560086c880e348cef3a384068c47c911a1262ce8f6d76625fff4e6",
+    "Tests/OpenUSDTests/USDATextInteropTests.swift": "bc5f55d78564bd8836e6e3f440995748393dbaafd56a11c96ce99f0c4758ead8",
+    "Tests/OpenUSDTests/USDByteStorageTests.swift": "aa965968bc1af01b954e8bfb15ef0f0111330cca2d7b489391b31a3511fa1aeb",
+    "Tests/OpenUSDTests/USDCSafetyAndPerformanceTests.swift": "f5c16eec93fb8511bccc4705d21077d19df359ba799d505a816525966889f781",
+    "Tests/OpenUSDTests/USDCWriterTests.swift": "a4d004dbaf79c50b744e4675198744ecff8ca5c9d4f5521c28300d83b9d4cfb0",
+    "Tests/OpenUSDTests/USDGeomSchemaTests.swift": "97c90ad168136c7da340aebc79f1340fae8969268a93bc2a835344bf2f3919e2",
+    "Tests/OpenUSDTests/USDPluginRegistryTests.swift": "da1a243bd1840ee34767c9bbcb1d52b60f2b0fe9437c6ab3de5ccdb06145e090",
+    "Tests/OpenUSDTests/USDStageAuthoringTests.swift": "0a68d36ab98ed3ebbf5734a9f362f77cc5a58a1a779bf804ed237c79f546828b",
+    "Tests/OpenUSDTests/USDStageCompositionCacheTests.swift": "04b49bb86013ded0138fe3e1705b8b2973e5cc303c4ab20a1b4ef49d94b29a52",
+    "Tests/OpenUSDTests/USDStageCompositionGraphTests.swift": "a34fd62c830f1d849b9540837caec9df2082a560119cc64dba0673eddffcae7c",
+    "Tests/OpenUSDTests/USDZArchiveLayerTests.swift": "083049607e065b4c472b34d65c8a21d36b4caaedf8784a6292e4891136480d83",
+    "Tests/OpenUSDTests/USDZArchiveWriterTests.swift": "a09ffaf7303ab53c6a9c7c1f016e3620bc6afec26e883b734aa154c3e2badd10",
+    "Tests/OpenUSDTests/USDZWriterTests.swift": "2135a5e95ab04a7bd0a823a31edfed47d22f1043c738d5aa042f32bc0e8b2e79",
+    "scripts/OpenUSDWriterOracle.swift": "4af6056f2f42e558e016f435d51a6c2229be15ce42c0d093c8258edb7d728c45",
+    "scripts/enable-xctestrun-environment.py": "4261fcb419f35649a5928efe14d604267ffe7fa04e8c7e52bbd734085a39fb4a",
+    "scripts/install-wasm-sdk.sh": "dc8bc4153ca3ac7e205806a61fee16bb4e2b3d4842f04993958f29192622ce28",
+    "scripts/run-benchmarks.sh": "0337de93db11591a9954ae2800ccd2fb2c2e6c9f5ff6e5219d5bfeda03b98f6f",
+    "scripts/verify-benchmark-output.py": "54b6c1199a8b82b3fb5cc5353c387f8d69504d45fe767dc8bde11ab670b7315f",
+    "scripts/verify-openusd-writer-oracle.sh": "f132a74d0128ff30157794a0ebb9965487019373b2a7fe3a2e122871a56e1852",
+    "scripts/verify-public-api-symbols.py": "1e86ab253b15fe743645ea9b76240e1b84f5361f45598ec02bdaab3e0bd4765a",
+    "scripts/verify-unsupported-features.py": "f37b56c713bff65c38e742f06e98ba6799897f163d9c390fe33f7ef4dc43fd4c",
+    "scripts/verify-upstream-parity.py": "727649078c585efb3f7d0bdbf980f08aabf9a4e6d1b9ee8469a4c93b494a8b33"
+  },
+  "swiftSourceCounts": {
+    "OpenUSD": 139,
+    "OpenUSDC": 36,
+    "OpenUSDZ": 11
+  },
+  "compilerVersion": "Apple Swift version 6.4 (swift-6.4-RELEASE)\nTarget: arm64-apple-macosx27.0.0\n",
+  "productionResourceAccessors": [
+    {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/OpenUSD.build/DerivedSources/resource_bundle_accessor.swift",
+      "sha256": "212812f6af63973f90a5db8459af4721aa42088ce59d9be769d7cd0b789e50f6"
+    }
+  ],
+  "productionResourceBundles": [
+    {
+      "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/build/arm64-apple-macosx/debug/swift-OpenUSD_OpenUSD.bundle",
+      "files": {
+        "generatedSchema.usda": "f9258a6cac37ea70df429df96dec6913f07ca4450834c3b07a2e1832a9354c3f"
+      }
+    }
+  ],
+  "resourceLookupPolicy": "Original SwiftPM generated Bundle.module accessor retained unchanged, including the durable absolute fallback and its original raw bundle.",
+  "sourceUnchanged": true,
+  "productsAndResourcesUnchanged": true,
+  "cachedHEADUnchanged": true,
+  "collectionCorrection": {
+    "reason": "SwiftPM planned uncompiled test and benchmark resource accessors; select only the production OpenUSD.build accessor present in actual compiler commands.",
+    "initialFailureReceipt": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/collector-failure-receipt.json",
+    "initialFailureSHA256": "77333cfa1ba797b36977261dfb57c18c1acea2a4602d178dec2d930e6a1f11a0",
+    "finalizer": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/openusd-r1/finalize.py",
+    "finalizerSHA256": "8f60174ed4a098da865fb2da0fb8acf929a13812e49377bf07c91a38eb1bf29a",
+    "compilerRepeated": false
+  },
+  "schemaVerification": {
+    "snapshot": "passed",
+    "current": "passed",
+    "currentVerifierSHA256": "9a290a4391c71a3308753fbefb116d6fb8ed73ba6af679e1ec5d6822cbeab3c6"
+  }
+}

@@ -59,7 +59,7 @@ public final class OriginalNativeCurveSurfaceRelation: Sendable {
     package let composition: NativeCurveSurfaceRelationComposition?
     package let partition: OriginalRationalIntersectionCells?
 
-    package init<B: RationalAlgebraAdmitting>(charts: [NativeCurveSurfacePointChart],
+    package init<B: ExactScalarAdmission & ~Copyable>(charts: [NativeCurveSurfacePointChart],
         sourceCharts: [OriginalNativeCurveSurfaceChart],
         curve: BSplineCurve3D, surface: BSplineSurface3D, tolerance: ModelingTolerance,
         nativeDomains: [OriginalRationalParameterDomain], requestedDomains: [OriginalRationalParameterDomain],
@@ -185,11 +185,10 @@ public final class OriginalNativeCurveSurfaceRelation: Sendable {
     }
 
     /// Exact membership in the original requested relation or one whole original cell.
-    public func contains(rationalParameters: [ExactRationalCoefficient], inCell identifier: CellIdentifier? = nil,
-        maximumDepth: Int, usage: OriginalRelationUsage) throws -> Bool {
-        var admission = usage
+    public func contains<A: ExactScalarAdmission & ~Copyable>(rationalParameters: [ExactRationalCoefficient], inCell identifier: CellIdentifier? = nil,
+        maximumDepth: Int, usage admission: inout A) throws -> Bool {
         try intersectionAlgebraStep(&admission)
-        try admission.consumeExactWork(cells.count)
+        try admission.consumeWork(cells.count)
         guard rationalParameters.count == 3, maximumDepth >= 0,
             identifier.map({ owns($0) }) ?? true else {
             throw GeometryConversionError.invalidInput("Native relation membership requires its owner and all t/u/v coordinates.")
@@ -214,7 +213,7 @@ public final class OriginalNativeCurveSurfaceRelation: Sendable {
         return false
     }
 
-    private static func prefix<B: RationalAlgebraAdmitting>(_ index: Int,
+    private static func prefix<B: ExactScalarAdmission & ~Copyable>(_ index: Int,
         in partition: OriginalRationalIntersectionCells, usage: inout B) throws -> Int {
         var current = index
         while true {
@@ -226,7 +225,7 @@ public final class OriginalNativeCurveSurfaceRelation: Sendable {
         }
     }
 
-    private static func projections<B: RationalAlgebraAdmitting>(_ indexes: [Int],
+    private static func projections<B: ExactScalarAdmission & ~Copyable>(_ indexes: [Int],
         in partition: OriginalRationalIntersectionCells, maximumDepth: Int, usage: inout B) throws -> [Projection] {
         guard let first = indexes.first else { return [] }
         let prefix = try Self.prefix(first, in: partition, usage: &usage)

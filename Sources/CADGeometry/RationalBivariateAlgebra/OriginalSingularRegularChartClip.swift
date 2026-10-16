@@ -18,7 +18,7 @@ package struct OriginalSingularRegularChartClip: Sendable {
     /// A true entry retains an entire admitted graph on that exact original source boundary.
     package let coincidentBoundaries: [Bool]
 
-    package init<B: RationalAlgebraAdmitting>(chart: OriginalSingularRegularChart,
+    package init<B: ExactScalarAdmission & ~Copyable>(chart: OriginalSingularRegularChart,
         over sourceDomain: SurfaceParameterBox, maximumDepth: Int, usage: inout B) throws {
         self.chart = chart; self.sourceDomain = sourceDomain
         let original = chart.germ
@@ -35,17 +35,17 @@ package struct OriginalSingularRegularChartClip: Sendable {
                                (mapV, sourceDomain.v.lower), (mapV, sourceDomain.v.upper)] {
             let scalar = try OriginalSingularFieldElement.constant(.originalDouble(station, usage: &usage),
                 in: context, maximumDepth: maximumDepth, usage: &usage)
-            try usage.retainExactStorage(1)
+            try RationalAlgebraStorage.retain(1, of: OriginalSingularFieldPlanePolynomial.self, usage: &usage)
             boundaries.append(try map.subtracting(.constant(scalar, maximumDepth: maximumDepth, usage: &usage),
                 maximumDepth: maximumDepth, usage: &usage))
         }
         var endpoints: [OriginalSingularFieldEndpoint] = [
             .authored(try .originalDouble(domain.u.lower, usage: &usage)),
             .authored(try .originalDouble(domain.u.upper, usage: &usage))]
-        try usage.retainExactStorage(2)
+        try RationalAlgebraStorage.retain(2, of: OriginalSingularFieldEndpoint.self, usage: &usage)
         var coincident: [Bool] = []
         for boundary in boundaries {
-            if boundary.isZero { try usage.retainExactStorage(1); coincident.append(true); continue }
+            if boundary.isZero { try RationalAlgebraStorage.retain(1, of: Bool.self, usage: &usage); coincident.append(true); continue }
             let common = try OriginalSingularFieldPlaneGCD.gcd(law, boundary, maximumDepth: maximumDepth, usage: &usage)
             let atOrigin = common.coefficients[try .init(u: 0, v: 0)]
             if atOrigin == nil {
@@ -53,9 +53,9 @@ package struct OriginalSingularRegularChartClip: Sendable {
                 // original factor through its origin must therefore own that
                 // entire connected graph; any factor crossing would contradict
                 // the whole transverse derivative exclusion.
-                try usage.retainExactStorage(1); coincident.append(true); continue
+                try RationalAlgebraStorage.retain(1, of: Bool.self, usage: &usage); coincident.append(true); continue
             }
-            try usage.retainExactStorage(1); coincident.append(false)
+            try RationalAlgebraStorage.retain(1, of: Bool.self, usage: &usage); coincident.append(false)
             let first = try law.dividedExactly(by: common, maximumDepth: maximumDepth, usage: &usage)
             let second = try boundary.dividedExactly(by: common, maximumDepth: maximumDepth, usage: &usage)
             switch try OriginalSingularFieldSystemSolver.roots(of: [first, second], over: domain,
@@ -65,7 +65,7 @@ package struct OriginalSingularRegularChartClip: Sendable {
                     guard case .zero = try root.sign(of: law, maximumDepth: maximumDepth, usage: &usage) else {
                         throw rationalAlgebraFailure("Original clipped event is not on its admitted strict graph.")
                     }
-                    try usage.retainExactStorage(1); endpoints.append(.algebraic(root.projectionRoot))
+                    try RationalAlgebraStorage.retain(1, of: OriginalSingularFieldEndpoint.self, usage: &usage); endpoints.append(.algebraic(root.projectionRoot))
                 }
             case .positiveDimension:
                 throw rationalAlgebraFailure("Coprime original graph and boundary retained a positive-dimensional ideal.")
@@ -82,13 +82,13 @@ package struct OriginalSingularRegularChartClip: Sendable {
                 if comparison == 0 { duplicate = true; break }
                 if comparison < 0 { insertion = i; break }
             }
-            if !duplicate { try usage.retainExactStorage(1); ordered.insert(endpoint, at: insertion) }
+            if !duplicate { try RationalAlgebraStorage.retain(1, of: OriginalSingularFieldEndpoint.self, usage: &usage); ordered.insert(endpoint, at: insertion) }
         }
         var retainedStations: [Station] = []
         for endpoint in ordered {
             let point = try Self.point(on: law, endpoint: endpoint, domain: domain,
                 sourceDepth: chart.sourceDepth, maximumDepth: maximumDepth, usage: &usage)
-            try usage.retainExactStorage(1)
+            try RationalAlgebraStorage.retain(1, of: Station.self, usage: &usage)
             retainedStations.append(Station(endpoint: endpoint, point: point,
                 insideClosedSource: try Self.inside(point, boundaries: boundaries, maximumDepth: maximumDepth, usage: &usage)))
         }
@@ -100,7 +100,7 @@ package struct OriginalSingularRegularChartClip: Sendable {
             let point = try Self.point(on: law, endpoint: .authored(witness), domain: domain,
                 sourceDepth: max(chart.sourceDepth, max(lower.depth, upper.depth)), maximumDepth: maximumDepth, usage: &usage)
             if try Self.inside(point, boundaries: boundaries, maximumDepth: maximumDepth, usage: &usage) {
-                try usage.retainExactStorage(1)
+                try RationalAlgebraStorage.retain(1, of: Span.self, usage: &usage)
                 positive.append(Span(lowerStation: index, upperStation: index + 1,
                     originalFreeWitness: witness, originalPoint: point))
             }
@@ -108,7 +108,7 @@ package struct OriginalSingularRegularChartClip: Sendable {
         // Retain the refined endpoint authorities selected while forming each
         // positive-width sector; original point receipts remain source-identical.
         var finished: [Station] = []
-        try usage.retainExactStorage(retainedStations.count)
+        try RationalAlgebraStorage.retain(retainedStations.count, of: Station.self, usage: &usage)
         for i in retainedStations.indices {
             finished.append(Station(endpoint: ordered[i], point: retainedStations[i].point,
                 insideClosedSource: retainedStations[i].insideClosedSource))
@@ -116,7 +116,7 @@ package struct OriginalSingularRegularChartClip: Sendable {
         stations = finished; spans = positive; coincidentBoundaries = coincident
     }
 
-    private static func inside<B: RationalAlgebraAdmitting>(_ point: OriginalSingularFieldSystemRoot,
+    private static func inside<B: ExactScalarAdmission & ~Copyable>(_ point: OriginalSingularFieldSystemRoot,
         boundaries: [OriginalSingularFieldPlanePolynomial], maximumDepth: Int, usage: inout B) throws -> Bool {
         for i in boundaries.indices {
             let direction = try point.sign(of: boundaries[i], maximumDepth: maximumDepth, usage: &usage)
@@ -127,7 +127,7 @@ package struct OriginalSingularRegularChartClip: Sendable {
         return true
     }
 
-    private static func point<B: RationalAlgebraAdmitting>(on law: OriginalSingularFieldPlanePolynomial,
+    private static func point<B: ExactScalarAdmission & ~Copyable>(on law: OriginalSingularFieldPlanePolynomial,
         endpoint: OriginalSingularFieldEndpoint, domain: SurfaceParameterBox, sourceDepth: Int,
         maximumDepth: Int, usage: inout B) throws -> OriginalSingularFieldSystemRoot {
         let projected: OriginalSingularFieldRoot, u: OriginalSingularFieldElement

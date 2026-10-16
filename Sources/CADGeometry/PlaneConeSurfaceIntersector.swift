@@ -14,6 +14,28 @@ import CADCore
 struct PlaneConeSurfaceIntersector {
     private let verifier = SurfaceSurfaceIntersectionVerifier()
 
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Ordinary SSI dispatch reaches this direct entry.
+    // The former numerical/tolerance branches did not establish original common-set
+    // authority. U4 must supply complete original source/UV coverage before success.
+    func intersections(
+        plane: CanonicalAnalyticSurface.Plane,
+        cone: CanonicalAnalyticSurface.Cone,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution
+    ) throws -> [SurfaceSurfaceIntersection] {
+        execution.context = execution.context.at(stage: .relation)
+        do {
+            try execution.checkpoint()
+            throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+                message: "PlaneConeSurfaceIntersector requires complete original source relation authority.")
+        } catch { throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance) }
+    }
+
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Existing candidate/source helper methods call
+    // this ordinary publication entry. It performs no numeric solve or fallback;
+    // U4 must provide source-bound relation proof and direct execution before success.
     func intersections(
         plane: CanonicalAnalyticSurface.Plane,
         cone: CanonicalAnalyticSurface.Cone,
@@ -21,192 +43,9 @@ struct PlaneConeSurfaceIntersector {
         secondSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws -> [SurfaceSurfaceIntersection] {
-        try plane.requireLegacyUnitNormal(tolerance: tolerance)
-        let basis = try analyticOrthonormalBasis(plane.normal, tolerance: tolerance)
-        let cosineSquared = pow(cos(cone.halfAngle), 2.0)
-        let originOffset = plane.origin - cone.apex
-        let a00 = quadraticForm(
-            basis.u,
-            basis.u,
-            axis: cone.axis,
-            cosineSquared: cosineSquared
-        )
-        let a01 = quadraticForm(
-            basis.u,
-            basis.v,
-            axis: cone.axis,
-            cosineSquared: cosineSquared
-        )
-        let a11 = quadraticForm(
-            basis.v,
-            basis.v,
-            axis: cone.axis,
-            cosineSquared: cosineSquared
-        )
-        let b0 = quadraticForm(
-            basis.u,
-            originOffset,
-            axis: cone.axis,
-            cosineSquared: cosineSquared
-        )
-        let b1 = quadraticForm(
-            basis.v,
-            originOffset,
-            axis: cone.axis,
-            cosineSquared: cosineSquared
-        )
-        let constant = quadraticForm(
-            originOffset,
-            originOffset,
-            axis: cone.axis,
-            cosineSquared: cosineSquared
-        )
-        let determinant = a00 * a11 - a01 * a01
-        let coefficientScale = max(1.0, max(abs(a00), max(abs(a01), abs(a11))))
-        let determinantTolerance = max(
-            tolerance.angle * coefficientScale * coefficientScale,
-            Double.ulpOfOne * 64.0
-        )
-        let containsApex = abs((cone.apex - plane.origin).dot(plane.normal)) <= tolerance.distance
-
-        if determinant < -determinantTolerance {
-            if containsApex {
-                return try generatorLines(
-                    apex: cone.apex,
-                    basisU: basis.u,
-                    basisV: basis.v,
-                    a00: a00,
-                    a01: a01,
-                    a11: a11,
-                    firstSurface: firstSurface,
-                    secondSurface: secondSurface,
-                    tolerance: tolerance
-                )
-            }
-            return try hyperbola(
-                planeOrigin: plane.origin,
-                planeNormal: plane.normal,
-                basisU: basis.u,
-                basisV: basis.v,
-                a00: a00,
-                a01: a01,
-                a11: a11,
-                b0: b0,
-                b1: b1,
-                constant: constant,
-                firstSurface: firstSurface,
-                secondSurface: secondSurface,
-                tolerance: tolerance
-            )
-        }
-        if abs(determinant) <= determinantTolerance {
-            if containsApex {
-                return try generatorLines(
-                    apex: cone.apex,
-                    basisU: basis.u,
-                    basisV: basis.v,
-                    a00: a00,
-                    a01: a01,
-                    a11: a11,
-                    firstSurface: firstSurface,
-                    secondSurface: secondSurface,
-                    tolerance: tolerance
-                )
-            }
-            return try parabola(
-                planeOrigin: plane.origin,
-                planeNormal: plane.normal,
-                basisU: basis.u,
-                basisV: basis.v,
-                a00: a00,
-                a01: a01,
-                a11: a11,
-                b0: b0,
-                b1: b1,
-                constant: constant,
-                firstSurface: firstSurface,
-                secondSurface: secondSurface,
-                tolerance: tolerance
-            )
-        }
-
-        let centerU = (a01 * b1 - a11 * b0) / determinant
-        let centerV = (a01 * b0 - a00 * b1) / determinant
-        let center = plane.origin + basis.u * centerU + basis.v * centerV
-        let centeredOffset = center - cone.apex
-        let centerValue = quadraticForm(
-            centeredOffset,
-            centeredOffset,
-            axis: cone.axis,
-            cosineSquared: cosineSquared
-        )
-        let discriminant = sqrt(max(0.0, pow(a00 - a11, 2.0) + 4.0 * a01 * a01))
-        let firstEigenvalue = (a00 + a11 + discriminant) * 0.5
-        let secondEigenvalue = (a00 + a11 - discriminant) * 0.5
-        guard abs(firstEigenvalue) > determinantTolerance,
-              abs(secondEigenvalue) > determinantTolerance else {
-            throw KernelError(
-                phase: .geometry,
-                code: .singularGeometry,
-                residual: min(abs(firstEigenvalue), abs(secondEigenvalue)),
-                tolerance: tolerance,
-                message: "A plane-cone section has a singular conic eigenvalue."
-            )
-        }
-        let firstRadiusSquared = -centerValue / firstEigenvalue
-        let secondRadiusSquared = -centerValue / secondEigenvalue
-        let squaredTolerance = tolerance.distance * tolerance.distance
-        guard firstRadiusSquared >= -squaredTolerance,
-              secondRadiusSquared >= -squaredTolerance else {
-            return []
-        }
-        if max(firstRadiusSquared, secondRadiusSquared) <= squaredTolerance {
-            return [try verifier.point(
-                center,
-                firstSurface: firstSurface,
-                secondSurface: secondSurface,
-                tolerance: tolerance
-            )]
-        }
-
-        let firstEigenvector = try eigenvector(
-            a00: a00,
-            a01: a01,
-            eigenvalue: firstEigenvalue,
-            basisU: basis.u,
-            basisV: basis.v,
-            tolerance: tolerance
-        )
-        let secondEigenvector = try plane.normal.cross(firstEigenvector).normalized(
-            tolerance: tolerance.distance
-        )
-        let firstRadius = sqrt(max(0.0, firstRadiusSquared))
-        let secondRadius = sqrt(max(0.0, secondRadiusSquared))
-        let curve: Curve3D
-        if abs(firstRadius - secondRadius) <= tolerance.distance {
-            curve = .circle(Circle3D(
-                center: center,
-                normal: plane.normal,
-                radius: max(firstRadius, secondRadius)
-            ))
-        } else {
-            let firstIsMajor = firstRadius > secondRadius
-            curve = .analytic(.ellipse(
-                center: center,
-                normal: plane.normal,
-                majorAxis: firstIsMajor ? firstEigenvector : secondEigenvector,
-                majorRadius: max(firstRadius, secondRadius),
-                minorRadius: min(firstRadius, secondRadius)
-            ))
-        }
-        return [try verifier.curve(
-            curve,
-            kind: .transverse,
-            firstSurface: firstSurface,
-            secondSurface: secondSurface,
-            sampleParameters: SurfaceSurfaceIntersectionVerifier.closedCurveSamples,
-            tolerance: tolerance
-        )]
+        try CurrentTaskCancellationChecker().checkCancellation()
+        throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+            message: "PlaneConeSurfaceIntersector has no ordinary original-proof publication.")
     }
 
     private func hyperbola(

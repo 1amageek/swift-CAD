@@ -8,52 +8,52 @@ package struct DraftedProfileSectionPairBuilder: Sendable {
     /// Keeps a face section's original source authority through both drafted heights.
     package func pair(face: ResolvedFaceSection, normal: Vector3D, axis: Vector3D,
         pull: Vector3D, lowerHeight: Double, upperHeight: Double, angle: Double,
-        tolerance: ModelingTolerance, admission: GeometryConversionAdmission) throws
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws
         -> (lower: [[ExactPrismaticBoundarySegment]], upper: [[ExactPrismaticBoundarySegment]]) {
-        let loops = try ExactBSplineCurveSpanBuilder(tolerance: tolerance, admission: admission)
-            .faceLoopSpans(from: face)
+        let loops = try ExactBSplineCurveSpanBuilder(tolerance: tolerance, using: &execution)
+            .faceLoopSpans(from: face, using: &execution)
         return try pair(originalLoops: loops, normal: normal, axis: axis, pull: pull,
             lowerHeight: lowerHeight, upperHeight: upperHeight, angle: angle,
-            tolerance: tolerance, admission: admission)
+            tolerance: tolerance, using: &execution)
     }
 
     package func pair(originalCurveSpans: [ExactBSplineCurveSpan], normal: Vector3D, axis: Vector3D,
         pull: Vector3D, lowerHeight: Double, upperHeight: Double, angle: Double,
-        tolerance: ModelingTolerance, admission: GeometryConversionAdmission) throws
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws
         -> (lower: [[ExactPrismaticBoundarySegment]], upper: [[ExactPrismaticBoundarySegment]]) {
         guard originalCurveSpans.count >= 2 else {
             throw failure(.invalidInput, "A closed original draft region requires at least two retained directed spans.", tolerance)
         }
-        try admission.chargeStorage(bytes: MemoryLayout<[ExactBSplineCurveSpan]>.stride)
+        try execution.retainStorage(bytes: MemoryLayout<[ExactBSplineCurveSpan]>.stride)
         return try pair(originalLoops: [originalCurveSpans], normal: normal, axis: axis, pull: pull,
             lowerHeight: lowerHeight, upperHeight: upperHeight, angle: angle,
-            tolerance: tolerance, admission: admission)
+            tolerance: tolerance, using: &execution)
     }
 
     private func pair(originalLoops loops: [[ExactBSplineCurveSpan]], normal: Vector3D, axis: Vector3D,
         pull: Vector3D, lowerHeight: Double, upperHeight: Double, angle: Double,
-        tolerance: ModelingTolerance, admission: GeometryConversionAdmission) throws
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws
         -> (lower: [[ExactPrismaticBoundarySegment]], upper: [[ExactPrismaticBoundarySegment]]) {
-        try admission.chargeStorage(bytes: 2 * loops.count * MemoryLayout<[ExactPrismaticBoundarySegment]>.stride)
+        try execution.retainStorage(bytes: 2 * loops.count * MemoryLayout<[ExactPrismaticBoundarySegment]>.stride)
         var lower: [[ExactPrismaticBoundarySegment]] = [], upper: [[ExactPrismaticBoundarySegment]] = []
         lower.reserveCapacity(loops.count); upper.reserveCapacity(loops.count)
-        let linearity = try OriginalSweepPathLinearity(tolerance: tolerance, admission: admission)
+        let linearity = OriginalSweepPathLinearity(tolerance: tolerance)
         for loop in loops {
-            try admission.chargeWork()
-            try admission.chargeStorage(bytes: 3 * loop.count * MemoryLayout<ExactPrismaticBoundarySegment>.stride)
+            try execution.consumeWork(1)
+            try execution.retainStorage(bytes: 3 * loop.count * MemoryLayout<ExactPrismaticBoundarySegment>.stride)
             var bottom: [ExactPrismaticBoundarySegment] = [], top: [ExactPrismaticBoundarySegment] = []
             var constructionKinds: [ExactPrismaticBoundarySegment] = []
             bottom.reserveCapacity(loop.count); top.reserveCapacity(loop.count)
             constructionKinds.reserveCapacity(loop.count)
             for span in loop {
-                try admission.chargeWork()
-                let raw = try span.originalChart.persistentCurve(tolerance: tolerance, admission: admission)
+                try execution.consumeWork(1)
+                let raw = try span.originalChart.persistentCurve(tolerance: tolerance, using: &execution)
                 let pair = try DraftedSectionPairBuilder().pair(curve: raw,
                     parameters: ScalarInterval(lower: 0, upper: 1), normal: normal, axis: axis, pull: pull,
                     lowerHeight: lowerHeight, upperHeight: upperHeight, angle: angle,
-                    tolerance: tolerance, admission: admission)
-                try admission.chargeStorage(bytes: MemoryLayout<ExactBSplineCurveSpan>.stride)
-                if try linearity.containsOnlyLinearArms([span]) {
+                    tolerance: tolerance, using: &execution)
+                try execution.retainStorage(bytes: MemoryLayout<ExactBSplineCurveSpan>.stride)
+                if try linearity.containsOnlyLinearArms([span], using: &execution) {
                     guard let lowerStart = pair.lower.controlPoints.first, let lowerEnd = pair.lower.controlPoints.last,
                         let upperStart = pair.upper.controlPoints.first, let upperEnd = pair.upper.controlPoints.last else {
                         throw failure(.invalidInput, "Drafted original line lost its certified endpoint images.", tolerance)
@@ -71,10 +71,10 @@ package struct DraftedProfileSectionPairBuilder: Sendable {
             // only. Final wall publication still requires its raw ruling source.
             lower.append(try joined(bottom, originals: constructionKinds,
                 normal: OriginalDraftDirectionInputs.normalized(normal),
-                tolerance: tolerance, admission: admission))
+                tolerance: tolerance, using: &execution))
             upper.append(try joined(top, originals: constructionKinds,
                 normal: OriginalDraftDirectionInputs.normalized(normal),
-                tolerance: tolerance, admission: admission))
+                tolerance: tolerance, using: &execution))
         }
         return (lower, upper)
     }
@@ -82,7 +82,29 @@ package struct DraftedProfileSectionPairBuilder: Sendable {
     package func pair(profile: Profile, normal: Vector3D, axis: Vector3D,
                       pull: Vector3D, lowerHeight: Double, upperHeight: Double,
                       angle: Double, tolerance: ModelingTolerance,
-                      admission: GeometryConversionAdmission? = nil) throws
+                      using execution: inout OriginalQueryExecution) throws
+        -> (lower: [[ExactPrismaticBoundarySegment]], upper: [[ExactPrismaticBoundarySegment]]) {
+        try profilePair(profile: profile, normal: normal, axis: axis, pull: pull,
+            lowerHeight: lowerHeight, upperHeight: upperHeight, angle: angle,
+            tolerance: tolerance, originalProof: true, using: &execution)
+    }
+
+    package func pair(profile: Profile, normal: Vector3D, axis: Vector3D,
+        pull: Vector3D, lowerHeight: Double, upperHeight: Double, angle: Double,
+        tolerance: ModelingTolerance) throws
+        -> (lower: [[ExactPrismaticBoundarySegment]], upper: [[ExactPrismaticBoundarySegment]]) {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32,
+                remainingSourceDepth: 32, maximumSubdivisionDepth: 32, maximumSpans: 4096))
+        return try profilePair(profile: profile, normal: normal, axis: axis, pull: pull,
+            lowerHeight: lowerHeight, upperHeight: upperHeight, angle: angle,
+            tolerance: tolerance, originalProof: false, using: &execution)
+    }
+
+    private func profilePair(profile: Profile, normal: Vector3D, axis: Vector3D,
+        pull: Vector3D, lowerHeight: Double, upperHeight: Double, angle: Double,
+        tolerance: ModelingTolerance, originalProof: Bool,
+        using execution: inout OriginalQueryExecution) throws
         -> (lower: [[ExactPrismaticBoundarySegment]], upper: [[ExactPrismaticBoundarySegment]]) {
         let boundaries = try ExactProfileBoundaryConverter(tolerance: tolerance)
             .boundaries(from: profile, offset: .zero,
@@ -94,41 +116,39 @@ package struct DraftedProfileSectionPairBuilder: Sendable {
             var bottom: [ExactPrismaticBoundarySegment] = []
             var top: [ExactPrismaticBoundarySegment] = []
             for segment in boundary {
-                try admission?.chargeWork()
+                try execution.consumeWork(1)
                 if case .line = segment.geometry {
-                    try admission?.chargeStorage(bytes: 2 * (MemoryLayout<Point3D>.stride + MemoryLayout<Double>.stride)
+                    try execution.retainStorage(bytes: 2 * (MemoryLayout<Point3D>.stride + MemoryLayout<Double>.stride)
                         + 4 * MemoryLayout<Double>.stride)
                     let original = BSplineCurve3D(degree: 1, knots: [0, 0, 1, 1],
                         controlPoints: [segment.startPoint, segment.endPoint], weights: [1, 1])
                     let prepared: OriginalCurveRootSpan3D?
-                    if let admission {
-                        var usage = OriginalDraftedConstructionAdmission(admission)
+                    if originalProof {
                         prepared = try OriginalCurveRootSpan3D(source: .bSpline(original),
                             start: .authored(0), end: .authored(1), nativeSpanIndex: 1,
                             maximumParameterWidth: original.domain.parameterResolution(tolerance: tolerance),
-                            maximumSubdivisionDepth: min(32, admission.maximumSubdivisionDepth), tolerance: tolerance,
-                            storageByteStride: MemoryLayout<UInt32>.stride, usage: &usage,
-                            maximumSpanCount: min(4096, admission.maximumSpanCount),
-                            remainingSourceDepth: admission.remainingSourceDepth,
-                            maximumAlgebraicDepth: admission.maximumAlgebraicDepth ?? 32)
+                            maximumSubdivisionDepth: min(32, execution.effectiveLimits.maximumSubdivisionDepth), tolerance: tolerance,
+                            usage: &execution,
+                            maximumSpanCount: min(4096, execution.effectiveLimits.maximumSpans),
+                            remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+                            maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth)
                     } else { prepared = nil }
                     func moved(_ height: Double) throws -> ExactPrismaticBoundarySegment {
                         let source: any GeometryCurveConversionSource
-                        if let admission, let prepared {
-                            var usage = OriginalDraftedConstructionAdmission(admission)
+                        if let prepared {
                             let original = try OriginalDraftedCurve3D(generator: prepared, normal: normal,
                                 axis: axis, pull: pull, height: height, angle: angle,
-                                remainingSourceDepth: admission.remainingSourceDepth,
-                                tolerance: tolerance, usage: &usage)
-                            source = OriginalDraftedCurveConversionSource(source: original, admission: admission)
+                                remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+                                tolerance: tolerance, usage: &execution)
+                            source = try OriginalDraftedCurveConversionSource(source: original, using: &execution)
                         } else {
                             source = try DraftedSectionCurveSource(curve: .bSpline(original), normal: normal,
-                                axis: axis, pull: pull, height: height, angle: angle, tolerance: tolerance)
+                                axis: axis, pull: pull, height: height, angle: angle, tolerance: tolerance, using: &execution)
                         }
-                        let start = try source.pointAndDerivative(at: 0, tolerance: tolerance).point
-                        let end = try source.pointAndDerivative(at: 1, tolerance: tolerance).point
-                        if let admission {
-                            try admission.chargeStorage(bytes: 2 * (MemoryLayout<Point3D>.stride + MemoryLayout<Double>.stride)
+                        let start = try source.pointAndDerivative(at: 0, tolerance: tolerance, using: &execution).point
+                        let end = try source.pointAndDerivative(at: 1, tolerance: tolerance, using: &execution).point
+                        if originalProof {
+                            try execution.retainStorage(bytes: 2 * (MemoryLayout<Point3D>.stride + MemoryLayout<Double>.stride)
                                 + 4 * MemoryLayout<Double>.stride)
                             let candidate = BSplineCurve3D(degree: 1, knots: [0, 0, 1, 1],
                                 controlPoints: [start, end], weights: [1, 1])
@@ -136,7 +156,7 @@ package struct DraftedProfileSectionPairBuilder: Sendable {
                                 over: ScalarInterval(lower: 0, upper: 1),
                                 requirements: GeometryConversionRequirements(maximumPositionError: tolerance.distance * 0.25,
                                     maximumTangentAngle: tolerance.angle, maximumCurvatureError: tolerance.distance),
-                                tolerance: tolerance, admission: admission)
+                                tolerance: tolerance, using: &execution)
                         }
                         return try .line(from: start, to: end, tolerance: tolerance)
                     }
@@ -144,18 +164,26 @@ package struct DraftedProfileSectionPairBuilder: Sendable {
                     top.append(try moved(upperHeight))
                 } else {
                     let original = try originalBoundary(segment, tolerance: tolerance)
-                    let pair = try DraftedSectionPairBuilder().pair(curve: original.curve,
-                        parameters: original.parameters, normal: normal, axis: axis, pull: pull,
-                        lowerHeight: lowerHeight, upperHeight: upperHeight, angle: angle, tolerance: tolerance,
-                        admission: admission)
+                    let pair: (lower: BSplineCurve3D, upper: BSplineCurve3D)
+                    if originalProof {
+                        pair = try DraftedSectionPairBuilder().pair(curve: original.curve,
+                            parameters: original.parameters, normal: normal, axis: axis, pull: pull,
+                            lowerHeight: lowerHeight, upperHeight: upperHeight, angle: angle,
+                            tolerance: tolerance, using: &execution)
+                    } else {
+                        pair = try DraftedSectionPairBuilder().legacyPair(curve: original.curve,
+                            parameters: original.parameters, normal: normal, axis: axis, pull: pull,
+                            lowerHeight: lowerHeight, upperHeight: upperHeight, angle: angle,
+                            tolerance: tolerance, using: &execution)
+                    }
                     bottom.append(try .bSpline(pair.lower, tolerance: tolerance))
                     top.append(try .bSpline(pair.upper, tolerance: tolerance))
                 }
             }
             lower.append(try joined(bottom, originals: boundary,
-                normal: OriginalDraftDirectionInputs.normalized(normal), tolerance: tolerance, admission: admission))
+                normal: OriginalDraftDirectionInputs.normalized(normal), tolerance: tolerance, using: &execution))
             upper.append(try joined(top, originals: boundary,
-                normal: OriginalDraftDirectionInputs.normalized(normal), tolerance: tolerance, admission: admission))
+                normal: OriginalDraftDirectionInputs.normalized(normal), tolerance: tolerance, using: &execution))
         }
         return (lower, upper)
     }
@@ -184,12 +212,12 @@ package struct DraftedProfileSectionPairBuilder: Sendable {
 
     private func joined(_ moved: [ExactPrismaticBoundarySegment], originals: [ExactPrismaticBoundarySegment],
                         normal: Vector3D, tolerance: ModelingTolerance,
-                        admission: GeometryConversionAdmission? = nil) throws -> [ExactPrismaticBoundarySegment] {
-        try admission?.chargeStorage(bytes: moved.count * MemoryLayout<Point3D>.stride)
+                        using execution: inout OriginalQueryExecution) throws -> [ExactPrismaticBoundarySegment] {
+        try execution.retainStorage(bytes: moved.count * MemoryLayout<Point3D>.stride)
         var joints: [Point3D] = []
         joints.reserveCapacity(moved.count)
         for index in moved.indices {
-            try admission?.chargeWork()
+            try execution.consumeWork(1)
             let next = (index + 1) % moved.count
             let before = moved[index], after = moved[next]
             if case .line = originals[index].geometry, case .line = originals[next].geometry {
@@ -221,9 +249,9 @@ package struct DraftedProfileSectionPairBuilder: Sendable {
                 joints.append(before.endPoint)
             }
         }
-        try admission?.chargeStorage(bytes: moved.count * MemoryLayout<ExactPrismaticBoundarySegment>.stride)
+        try execution.retainStorage(bytes: moved.count * MemoryLayout<ExactPrismaticBoundarySegment>.stride)
         return try moved.indices.map { index in
-            try admission?.chargeWork()
+            try execution.consumeWork(1)
             let segment = moved[index]
             if case .line = segment.geometry {
                 let start = joints[(index + moved.count - 1) % moved.count], end = joints[index]

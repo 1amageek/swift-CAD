@@ -86,3 +86,5 @@ owners. Existing event sinks transport typed records without dispatch on this
 record type; the previous ExactBivariateSystemRoot record remains available for
 actual geometric system receipts. The owning integration fixture checks the
 scalar-authority fields and sink failure/cancellation under the same usage.
+
+Direct queries and source visitation borrow `OriginalQueryExecution` and retain/attach the issuing persistent contribution handles defined by the [parent execution contract](../DESIGN.md). Original root, source parameter, branch and coverage laws remain unchanged; no callback or copied allowance re-establishes admission.

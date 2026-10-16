@@ -25,7 +25,7 @@ package struct OriginalFieldPlaneAtlas: Sendable {
     package let incidences: [Incidence]
     package let strips: [Strip]
 
-    package init<B: RationalAlgebraAdmitting>(retaining projection: OriginalSingularFieldPlaneProjection,
+    package init<B: ExactScalarAdmission & ~Copyable>(retaining projection: OriginalSingularFieldPlaneProjection,
         maximumDepth: Int, usage: inout B) throws {
         let sourceIncidence = try OriginalFieldPlaneCurveIncidence(projection: projection,
             maximumDepth: maximumDepth, usage: &usage)

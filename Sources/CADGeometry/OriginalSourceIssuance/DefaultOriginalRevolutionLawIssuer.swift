@@ -14,14 +14,14 @@ public struct DefaultOriginalRevolutionLawIssuer<S:OriginalRevolutionSourceReadi
         limits:OriginalSourceIssuanceLimits,using a:inout A) throws(OriginalSourceIssuanceFailure) -> OriginalRevolutionLawReceipt<S,C,F> {
         let source=copy source,generator=copy generator,f=copy field
         do {
-            return try OriginalSourceProofAdmission<A>.withBorrow(&a) { usage in
+            return try a.withProofScope { usage in
                 try compose(source:source,generator:generator,field:f,axisLength:axisLength,limits:limits,using:&usage)
             }
         } catch { throw .init(preserving:error) }
     }
     private func compose<A:ExactScalarAdmission & ~Copyable>(source:OriginalSourceBinding<S>,
         generator:OriginalRationalChartReceipt<S.Generator,C,F>,field f:F,axisLength:F.Value,
-        limits:OriginalSourceIssuanceLimits,using a:inout OriginalSourceProofAdmission<A>) throws -> OriginalRevolutionLawReceipt<S,C,F> {
+        limits:OriginalSourceIssuanceLimits,using a:inout A) throws -> OriginalRevolutionLawReceipt<S,C,F> {
         try a.checkpoint(); try source.require(limits)
         guard limits.remainingSourceDepth > 0 else { throw OriginalSourceIssuanceFailure.sourceDepthLimit }
         try generator.source.require(.init(remainingSourceDepth:limits.remainingSourceDepth-1))
@@ -54,7 +54,7 @@ public struct DefaultOriginalRevolutionLawIssuer<S:OriginalRevolutionSourceReadi
         let cos=try ring.variable(0,using:&a),sin=try ring.variable(1,using:&a),v=try ring.variable(2,using:&a)
         let t=try ring.scaled(ring.subtracting(v,ring.constant(range.offset,using:&a),using:&a),
             by:f.dividing(one,range.gain,using:&a),using:&a)
-        func importCurve(_ p:ExactPolynomial<F>,_ a:inout OriginalSourceProofAdmission<A>) throws -> ExactPolynomial<F> {
+        func importCurve(_ p:ExactPolynomial<F>,_ a:inout A) throws -> ExactPolynomial<F> {
             try a.admitDepth(value:p.depth.value,coefficient:p.depth.coefficient)
             try a.retainStorage(bytes:exactScalarPayloadBytes(count:p.termCount,of:ExactPolynomialTerm<F.Value>.self))
             var terms:[ExactPolynomialTerm<F.Value>]=[]

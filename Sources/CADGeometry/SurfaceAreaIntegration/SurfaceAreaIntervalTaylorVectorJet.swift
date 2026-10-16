@@ -11,42 +11,42 @@ package struct SurfaceAreaIntervalTaylorVectorJet: Sendable {
             z: z.retagTolerance(to: tolerance))
     }
 
-    func adding(_ other: Self, consumeWork: () throws -> Void, consumeStorage: ((Int) throws -> Void)? = nil) throws -> Self {
-        try Self(x:x.adding(other.x,consumeWork:consumeWork,consumeStorage:consumeStorage),y:y.adding(other.y,consumeWork:consumeWork,consumeStorage:consumeStorage),
-            z:z.adding(other.z,consumeWork:consumeWork,consumeStorage:consumeStorage))
+    func adding<A: ExactScalarAdmission & ~Copyable>(_ other: Self, using execution: inout A) throws -> Self {
+        try Self(x:x.adding(other.x,using:&execution),y:y.adding(other.y,using:&execution),
+            z:z.adding(other.z,using:&execution))
     }
 
-    func scaled(by scale: OutwardScalarInterval, consumeWork: () throws -> Void, consumeStorage: ((Int) throws -> Void)? = nil) throws -> Self {
-        try Self(x:x.scaled(by:scale,consumeWork:consumeWork,consumeStorage:consumeStorage),y:y.scaled(by:scale,consumeWork:consumeWork,consumeStorage:consumeStorage),
-            z:z.scaled(by:scale,consumeWork:consumeWork,consumeStorage:consumeStorage))
+    func scaled<A: ExactScalarAdmission & ~Copyable>(by scale: OutwardScalarInterval, using execution: inout A) throws -> Self {
+        try Self(x:x.scaled(by:scale,using:&execution),y:y.scaled(by:scale,using:&execution),
+            z:z.scaled(by:scale,using:&execution))
     }
 
-    func multiplied(by scalar: SurfaceAreaIntervalTaylorScalarJet, consumeWork: () throws -> Void, consumeStorage: ((Int) throws -> Void)? = nil) throws -> Self {
-        try Self(x:x.multiplied(by:scalar,consumeWork:consumeWork,consumeStorage:consumeStorage),y:y.multiplied(by:scalar,consumeWork:consumeWork,consumeStorage:consumeStorage),
-            z:z.multiplied(by:scalar,consumeWork:consumeWork,consumeStorage:consumeStorage))
+    func multiplied<A: ExactScalarAdmission & ~Copyable>(by scalar: SurfaceAreaIntervalTaylorScalarJet, using execution: inout A) throws -> Self {
+        try Self(x:x.multiplied(by:scalar,using:&execution),y:y.multiplied(by:scalar,using:&execution),
+            z:z.multiplied(by:scalar,using:&execution))
     }
 
-    func cross(_ other: Self, consumeWork: () throws -> Void, consumeStorage: ((Int) throws -> Void)? = nil) throws -> Self {
-        try Self(x:y.multiplied(by:other.z,consumeWork:consumeWork,consumeStorage:consumeStorage).subtracting(z.multiplied(by:other.y,consumeWork:consumeWork,consumeStorage:consumeStorage),consumeWork:consumeWork,consumeStorage:consumeStorage),
-            y:z.multiplied(by:other.x,consumeWork:consumeWork,consumeStorage:consumeStorage).subtracting(x.multiplied(by:other.z,consumeWork:consumeWork,consumeStorage:consumeStorage),consumeWork:consumeWork,consumeStorage:consumeStorage),
-            z:x.multiplied(by:other.y,consumeWork:consumeWork,consumeStorage:consumeStorage).subtracting(y.multiplied(by:other.x,consumeWork:consumeWork,consumeStorage:consumeStorage),consumeWork:consumeWork,consumeStorage:consumeStorage))
+    func cross<A: ExactScalarAdmission & ~Copyable>(_ other: Self, using execution: inout A) throws -> Self {
+        try Self(x:y.multiplied(by:other.z,using:&execution).subtracting(z.multiplied(by:other.y,using:&execution),using:&execution),
+            y:z.multiplied(by:other.x,using:&execution).subtracting(x.multiplied(by:other.z,using:&execution),using:&execution),
+            z:x.multiplied(by:other.y,using:&execution).subtracting(y.multiplied(by:other.x,using:&execution),using:&execution))
     }
 
-    func normalized(consumeWork: () throws -> Void, consumeStorage: ((Int) throws -> Void)? = nil) throws -> Self {
-        let square = try x.multiplied(by:x,consumeWork:consumeWork,consumeStorage:consumeStorage)
-            .adding(y.multiplied(by:y,consumeWork:consumeWork,consumeStorage:consumeStorage),consumeWork:consumeWork,consumeStorage:consumeStorage)
-            .adding(z.multiplied(by:z,consumeWork:consumeWork,consumeStorage:consumeStorage),consumeWork:consumeWork,consumeStorage:consumeStorage)
-        return try multiplied(by:square.squareRoot(consumeWork:consumeWork,consumeStorage:consumeStorage).reciprocal(consumeWork:consumeWork,consumeStorage:consumeStorage),consumeWork:consumeWork,consumeStorage:consumeStorage)
+    func normalized<A: ExactScalarAdmission & ~Copyable>(using execution: inout A) throws -> Self {
+        let square = try x.multiplied(by:x,using:&execution)
+            .adding(y.multiplied(by:y,using:&execution),using:&execution)
+            .adding(z.multiplied(by:z,using:&execution),using:&execution)
+        return try multiplied(by:square.squareRoot(using:&execution).reciprocal(using:&execution),using:&execution)
     }
 
-    func truncated(to order: Int, consumeWork: () throws -> Void, consumeStorage: ((Int) throws -> Void)? = nil) throws -> Self {
-        try Self(x:x.truncated(to:order,consumeWork:consumeWork,consumeStorage:consumeStorage),y:y.truncated(to:order,consumeWork:consumeWork,consumeStorage:consumeStorage),
-            z:z.truncated(to:order,consumeWork:consumeWork,consumeStorage:consumeStorage))
+    func truncated<A: ExactScalarAdmission & ~Copyable>(to order: Int, using execution: inout A) throws -> Self {
+        try Self(x:x.truncated(to:order,using:&execution),y:y.truncated(to:order,using:&execution),
+            z:z.truncated(to:order,using:&execution))
     }
 
-    func differentiated(alongU: Bool, consumeWork: () throws -> Void, consumeStorage: ((Int) throws -> Void)? = nil) throws -> Self {
-        try Self(x:x.differentiated(alongU:alongU,consumeWork:consumeWork,consumeStorage:consumeStorage),y:y.differentiated(alongU:alongU,consumeWork:consumeWork,consumeStorage:consumeStorage),
-            z:z.differentiated(alongU:alongU,consumeWork:consumeWork,consumeStorage:consumeStorage))
+    func differentiated<A: ExactScalarAdmission & ~Copyable>(alongU: Bool, using execution: inout A) throws -> Self {
+        try Self(x:x.differentiated(alongU:alongU,using:&execution),y:y.differentiated(alongU:alongU,using:&execution),
+            z:z.differentiated(alongU:alongU,using:&execution))
     }
 
     /// Only established third-order coefficients are exposed to density algebra.

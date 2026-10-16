@@ -1,13 +1,14 @@
 import CADCore
 import CADGeometry
+
 #if canImport(Darwin)
-import Darwin
+  import Darwin
 #elseif canImport(Glibc)
-import Glibc
+  import Glibc
 #elseif canImport(WASILibc)
-import WASILibc
+  import WASILibc
 #else
-#error("A C math implementation is required.")
+  #error("A C math implementation is required.")
 #endif
 
 struct CertifiedAnalyticPairPcurveAreaIntegrator {
@@ -23,7 +24,11 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     static let zero = Interval(lower: 0.0, upper: 0.0)
     static let one = Interval(lower: 1.0, upper: 1.0)
 
-    static func scalar(_ value: Double) -> Interval {
+    static func scalar(_ value: Double, using execution: inout OriginalQueryExecution) throws
+      -> Interval
+    {
+      try execution.consumeWork(1)
+
       guard value != 0.0 else { return .zero }
       return Interval(lower: value.nextDown, upper: value.nextUp)
     }
@@ -40,21 +45,34 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
       lower <= 0.0 && upper >= 0.0
     }
 
-    func adding(_ other: Interval) -> Interval {
-      Interval(
-        lower: (lower + other.lower).nextDown,
-        upper: (upper + other.upper).nextUp
-      )
+    func adding(_ other: Interval, using execution: inout OriginalQueryExecution) throws -> Interval
+    {
+      try execution.consumeWork(1)
+      return
+
+        Interval(
+          lower: (lower + other.lower).nextDown,
+          upper: (upper + other.upper).nextUp
+        )
     }
 
-    func subtracting(_ other: Interval) -> Interval {
-      Interval(
-        lower: (lower - other.upper).nextDown,
-        upper: (upper - other.lower).nextUp
-      )
+    func subtracting(_ other: Interval, using execution: inout OriginalQueryExecution) throws
+      -> Interval
+    {
+      try execution.consumeWork(1)
+      return
+
+        Interval(
+          lower: (lower - other.upper).nextDown,
+          upper: (upper - other.lower).nextUp
+        )
     }
 
-    func multiplied(by other: Interval) -> Interval {
+    func multiplied(by other: Interval, using execution: inout OriginalQueryExecution) throws
+      -> Interval
+    {
+      try execution.consumeWork(1)
+
       let lowerLower = lower * other.lower
       let lowerUpper = lower * other.upper
       let upperLower = upper * other.lower
@@ -71,7 +89,10 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
       )
     }
 
-    func scaled(by scalar: Double) -> Interval {
+    func scaled(by scalar: Double, using execution: inout OriginalQueryExecution) throws -> Interval
+    {
+      try execution.consumeWork(1)
+
       guard scalar != 0.0 else { return .zero }
       let first = lower * scalar
       let second = upper * scalar
@@ -81,7 +102,9 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
       )
     }
 
-    func reciprocal() throws -> Interval {
+    func reciprocal(using execution: inout OriginalQueryExecution) throws -> Interval {
+      try execution.consumeWork(1)
+
       guard containsZero == false else {
         throw LocalProofFailure.intervalSingularity
       }
@@ -91,11 +114,18 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
       )
     }
 
-    func divided(by other: Interval) throws -> Interval {
-      try multiplied(by: other.reciprocal())
+    func divided(by other: Interval, using execution: inout OriginalQueryExecution) throws
+      -> Interval
+    {
+      try execution.consumeWork(1)
+      return
+
+        try multiplied(by: other.reciprocal(using: &execution), using: &execution)
     }
 
-    func squareRoot() throws -> Interval {
+    func squareRoot(using execution: inout OriginalQueryExecution) throws -> Interval {
+      try execution.consumeWork(1)
+
       guard lower > 0.0 else {
         throw LocalProofFailure.intervalSingularity
       }
@@ -105,11 +135,16 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
       )
     }
 
-    func expanded(toInclude value: Double) -> Interval {
-      Interval(
-        lower: min(lower, value.nextDown),
-        upper: max(upper, value.nextUp)
-      )
+    func expanded(toInclude value: Double, using execution: inout OriginalQueryExecution) throws
+      -> Interval
+    {
+      try execution.consumeWork(1)
+      return
+
+        Interval(
+          lower: min(lower, value.nextDown),
+          upper: max(upper, value.nextUp)
+        )
     }
   }
 
@@ -117,139 +152,258 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     static let order = 3
     var coefficients: [Interval]
 
-    static func variable(_ interval: Interval) -> Jet {
-      Jet(coefficients: [interval, .one, .zero, .zero])
+    static func variable(_ interval: Interval, using execution: inout OriginalQueryExecution) throws
+      -> Jet
+    {
+      try execution.consumeWork(1)
+      return
+
+        Jet(
+          coefficients: (try OriginalParameterQueryStorage.values(count: 4, using: &execution) {
+            execution in
+            [interval, .one, .zero, .zero]
+          }))
     }
 
-    static func constant(_ value: Double) -> Jet {
-      Jet(coefficients: [.scalar(value), .zero, .zero, .zero])
+    static func constant(_ value: Double, using execution: inout OriginalQueryExecution) throws
+      -> Jet
+    {
+      try execution.consumeWork(1)
+      return
+
+        Jet(
+          coefficients: (try OriginalParameterQueryStorage.values(count: 4, using: &execution) {
+            execution in
+            [(try .scalar(value, using: &execution)), .zero, .zero, .zero]
+          }))
     }
 
-    static func constant(_ value: Interval) -> Jet {
-      Jet(coefficients: [value, .zero, .zero, .zero])
+    static func constant(_ value: Interval, using execution: inout OriginalQueryExecution) throws
+      -> Jet
+    {
+      try execution.consumeWork(1)
+      return
+
+        Jet(
+          coefficients: (try OriginalParameterQueryStorage.values(count: 4, using: &execution) {
+            execution in
+            [value, .zero, .zero, .zero]
+          }))
     }
 
-    static func fromCoefficients(_ coefficients: [Interval]) -> Jet {
-      var result = Array(repeating: Interval.zero, count: order + 1)
+    static func fromCoefficients(
+      _ coefficients: [Interval], using execution: inout OriginalQueryExecution
+    ) throws -> Jet {
+      try execution.consumeWork(1)
+
+      var result =
+        (try OriginalParameterQueryStorage.repeated(
+          Interval.zero, count: order + 1, using: &execution))
       for index in 0..<min(coefficients.count, result.count) {
+        try execution.consumeWork(1)
+
         result[index] = coefficients[index]
       }
       return Jet(coefficients: result)
     }
 
-    func adding(_ other: Jet) -> Jet {
-      Jet.fromCoefficients(
-        zip(coefficients, other.coefficients).map { pair in
-          pair.0.adding(pair.1)
-        })
+    func adding(_ other: Jet, using execution: inout OriginalQueryExecution) throws -> Jet {
+      try execution.consumeWork(1)
+      return
+
+        (try Jet.fromCoefficients(
+          OriginalParameterQueryStorage.map(
+            zip(coefficients, other.coefficients), using: &execution,
+            transform: { pair, execution in
+              (try pair.0.adding(pair.1, using: &execution))
+            }), using: &execution))
     }
 
-    func subtracting(_ other: Jet) -> Jet {
-      Jet.fromCoefficients(
-        zip(coefficients, other.coefficients).map { pair in
-          pair.0.subtracting(pair.1)
-        })
+    func subtracting(_ other: Jet, using execution: inout OriginalQueryExecution) throws -> Jet {
+      try execution.consumeWork(1)
+      return
+
+        (try Jet.fromCoefficients(
+          OriginalParameterQueryStorage.map(
+            zip(coefficients, other.coefficients), using: &execution,
+            transform: { pair, execution in
+              (try pair.0.subtracting(pair.1, using: &execution))
+            }), using: &execution))
     }
 
-    func multiplied(by other: Jet) -> Jet {
-      var result = Array(repeating: Interval.zero, count: Self.order + 1)
+    func multiplied(by other: Jet, using execution: inout OriginalQueryExecution) throws -> Jet {
+      try execution.consumeWork(1)
+
+      var result =
+        (try OriginalParameterQueryStorage.repeated(
+          Interval.zero, count: Self.order + 1, using: &execution))
       for degree in 0...Self.order {
+        try execution.consumeWork(1)
+
         var coefficient = Interval.zero
         for index in 0...degree {
-          coefficient = coefficient.adding(
-            coefficients[index].multiplied(by: other.coefficients[degree - index])
-          )
+          try execution.consumeWork(1)
+
+          coefficient =
+            (try coefficient.adding(
+              coefficients[index].multiplied(
+                by: other.coefficients[degree - index], using: &execution), using: &execution
+            ))
         }
         result[degree] = coefficient
       }
       return Jet(coefficients: result)
     }
 
-    func scaled(by scalar: Double) -> Jet {
-      Jet.fromCoefficients(coefficients.map { $0.scaled(by: scalar) })
+    func scaled(by scalar: Double, using execution: inout OriginalQueryExecution) throws -> Jet {
+      try execution.consumeWork(1)
+      return
+
+        (try Jet.fromCoefficients(
+          OriginalParameterQueryStorage.map(
+            coefficients, using: &execution,
+            transform: { element, execution in (try element.scaled(by: scalar, using: &execution)) }
+          ), using: &execution))
     }
 
-    func scaled(by scalar: Interval) -> Jet {
-      Jet.fromCoefficients(coefficients.map { $0.multiplied(by: scalar) })
+    func scaled(by scalar: Interval, using execution: inout OriginalQueryExecution) throws -> Jet {
+      try execution.consumeWork(1)
+      return
+
+        (try Jet.fromCoefficients(
+          OriginalParameterQueryStorage.map(
+            coefficients, using: &execution,
+            transform: { element, execution in
+              (try element.multiplied(by: scalar, using: &execution))
+            }), using: &execution))
     }
 
-    func derivative() -> Jet {
-      Jet.fromCoefficients([
-        coefficients[1],
-        coefficients[2].scaled(by: 2.0),
-        coefficients[3].scaled(by: 3.0),
-        .zero,
-      ])
+    func derivative(using execution: inout OriginalQueryExecution) throws -> Jet {
+      try execution.consumeWork(1)
+      return
+
+        (try Jet.fromCoefficients(
+          OriginalParameterQueryStorage.values(count: 4, using: &execution) { execution in
+            [
+              coefficients[1],
+              (try coefficients[2].scaled(by: 2.0, using: &execution)),
+              (try coefficients[3].scaled(by: 3.0, using: &execution)),
+              .zero,
+            ]
+          }, using: &execution))
     }
 
-    func reciprocal() throws -> Jet {
-      let inverseConstant = try coefficients[0].reciprocal()
-      var result = Array(repeating: Interval.zero, count: Self.order + 1)
+    func reciprocal(using execution: inout OriginalQueryExecution) throws -> Jet {
+      try execution.consumeWork(1)
+
+      let inverseConstant = try coefficients[0].reciprocal(using: &execution)
+      var result =
+        (try OriginalParameterQueryStorage.repeated(
+          Interval.zero, count: Self.order + 1, using: &execution))
       result[0] = inverseConstant
       if Self.order > 0 {
         for degree in 1...Self.order {
+          try execution.consumeWork(1)
+
           var sum = Interval.zero
           for index in 1...degree {
-            sum = sum.adding(
-              coefficients[index].multiplied(by: result[degree - index])
-            )
+            try execution.consumeWork(1)
+
+            sum =
+              (try sum.adding(
+                coefficients[index].multiplied(by: result[degree - index], using: &execution),
+                using: &execution
+              ))
           }
-          result[degree] = inverseConstant.multiplied(by: sum).scaled(by: -1.0)
+          result[degree] =
+            (try inverseConstant.multiplied(by: sum, using: &execution).scaled(
+              by: -1.0, using: &execution))
         }
       }
       return Jet(coefficients: result)
     }
 
-    func divided(by other: Jet) throws -> Jet {
-      try multiplied(by: other.reciprocal())
+    func divided(by other: Jet, using execution: inout OriginalQueryExecution) throws -> Jet {
+      try execution.consumeWork(1)
+      return
+
+        try multiplied(by: other.reciprocal(using: &execution), using: &execution)
     }
 
-    func squareRoot() throws -> Jet {
-      let rootConstant = try coefficients[0].squareRoot()
-      let denominator = rootConstant.scaled(by: 2.0)
-      var result = Array(repeating: Interval.zero, count: Self.order + 1)
+    func squareRoot(using execution: inout OriginalQueryExecution) throws -> Jet {
+      try execution.consumeWork(1)
+
+      let rootConstant = try coefficients[0].squareRoot(using: &execution)
+      let denominator = (try rootConstant.scaled(by: 2.0, using: &execution))
+      var result =
+        (try OriginalParameterQueryStorage.repeated(
+          Interval.zero, count: Self.order + 1, using: &execution))
       result[0] = rootConstant
       if Self.order > 0 {
         for degree in 1...Self.order {
+          try execution.consumeWork(1)
+
           var crossTerms = Interval.zero
           if degree > 1 {
             for index in 1..<degree {
-              crossTerms = crossTerms.adding(
-                result[index].multiplied(by: result[degree - index])
-              )
+              try execution.consumeWork(1)
+
+              crossTerms =
+                (try crossTerms.adding(
+                  result[index].multiplied(by: result[degree - index], using: &execution),
+                  using: &execution
+                ))
             }
           }
           result[degree] = try coefficients[degree]
-            .subtracting(crossTerms)
-            .divided(by: denominator)
+            .subtracting(crossTerms, using: &execution)
+            .divided(by: denominator, using: &execution)
         }
       }
       return Jet(coefficients: result)
     }
 
-    func sineAndCosine() -> (sine: Jet, cosine: Jet) {
-      var sine = Array(repeating: Interval.zero, count: Self.order + 1)
-      var cosine = Array(repeating: Interval.zero, count: Self.order + 1)
-      sine[0] = Self.trigonometricBounds(coefficients[0], phase: 0.0)
-      cosine[0] = Self.trigonometricBounds(
-        coefficients[0],
-        phase: Double.pi * 0.5
-      )
+    func sineAndCosine(using execution: inout OriginalQueryExecution) throws -> (
+      sine: Jet, cosine: Jet
+    ) {
+      try execution.consumeWork(1)
+
+      var sine =
+        (try OriginalParameterQueryStorage.repeated(
+          Interval.zero, count: Self.order + 1, using: &execution))
+      var cosine =
+        (try OriginalParameterQueryStorage.repeated(
+          Interval.zero, count: Self.order + 1, using: &execution))
+      sine[0] = (try Self.trigonometricBounds(coefficients[0], phase: 0.0, using: &execution))
+      cosine[0] =
+        (try Self.trigonometricBounds(
+          coefficients[0],
+          phase: Double.pi * 0.5, using: &execution
+        ))
       if Self.order > 0 {
         for degree in 1...Self.order {
+          try execution.consumeWork(1)
+
           var sineSum = Interval.zero
           var cosineSum = Interval.zero
           for index in 1...degree {
-            let derivativeCoefficient = coefficients[index].scaled(by: Double(index))
-            sineSum = sineSum.adding(
-              derivativeCoefficient.multiplied(by: cosine[degree - index])
-            )
-            cosineSum = cosineSum.adding(
-              derivativeCoefficient.multiplied(by: sine[degree - index])
-            )
+            try execution.consumeWork(1)
+
+            let derivativeCoefficient =
+              (try coefficients[index].scaled(by: Double(index), using: &execution))
+            sineSum =
+              (try sineSum.adding(
+                derivativeCoefficient.multiplied(by: cosine[degree - index], using: &execution),
+                using: &execution
+              ))
+            cosineSum =
+              (try cosineSum.adding(
+                derivativeCoefficient.multiplied(by: sine[degree - index], using: &execution),
+                using: &execution
+              ))
           }
-          sine[degree] = sineSum.scaled(by: 1.0 / Double(degree))
-          cosine[degree] = cosineSum.scaled(by: -1.0 / Double(degree))
+          sine[degree] = (try sineSum.scaled(by: 1.0 / Double(degree), using: &execution))
+          cosine[degree] = (try cosineSum.scaled(by: -1.0 / Double(degree), using: &execution))
         }
       }
       return (Jet(coefficients: sine), Jet(coefficients: cosine))
@@ -257,14 +411,19 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
 
     static func trigonometricBounds(
       _ interval: Interval,
-      phase: Double
-    ) -> Interval {
+      phase: Double, using execution: inout OriginalQueryExecution
+    ) throws -> Interval {
+      try execution.consumeWork(1)
+
       let lower = interval.lower + phase
       let upper = interval.upper + phase
       guard upper - lower < 2.0 * Double.pi else {
         return Interval(lower: -1.0, upper: 1.0)
       }
-      var values = [sin(lower), sin(upper)]
+      var values =
+        (try OriginalParameterQueryStorage.values(count: 2, using: &execution) { execution in
+          [sin(lower), sin(upper)]
+        })
       let firstCriticalIndex = Int(
         ceil(
           (lower - Double.pi * 0.5) / Double.pi
@@ -275,12 +434,18 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
         ))
       if firstCriticalIndex <= lastCriticalIndex {
         for index in firstCriticalIndex...lastCriticalIndex {
-          values.append(sin(Double.pi * 0.5 + Double(index) * Double.pi))
+          try execution.consumeWork(1)
+
+          (try OriginalParameterQueryStorage.append(
+            sin(Double.pi * 0.5 + Double(index) * Double.pi), to: &values, using: &execution))
         }
       }
       return Interval(
-        lower: (values.min() ?? -1.0).nextDown,
-        upper: (values.max() ?? 1.0).nextUp
+        lower: ((try OriginalParameterQueryStorage.extrema(
+          values, using: &execution, projection: { element, _ in element }))?.lower ?? -1.0)
+          .nextDown,
+        upper: ((try OriginalParameterQueryStorage.extrema(
+          values, using: &execution, projection: { element, _ in element }))?.upper ?? 1.0).nextUp
       )
     }
   }
@@ -293,116 +458,179 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     let uv: Interval
     let vv: Interval
 
-    static func constant(_ value: Interval) -> BivariateJet {
-      BivariateJet(
-        value: value,
-        u: .zero,
-        v: .zero,
-        uu: .zero,
-        uv: .zero,
-        vv: .zero
-      )
+    static func constant(_ value: Interval, using execution: inout OriginalQueryExecution) throws
+      -> BivariateJet
+    {
+      try execution.consumeWork(1)
+      return
+
+        BivariateJet(
+          value: value,
+          u: .zero,
+          v: .zero,
+          uu: .zero,
+          uv: .zero,
+          vv: .zero
+        )
     }
 
-    static func parameterU(_ value: Interval) -> BivariateJet {
-      BivariateJet(
-        value: value,
-        u: .one,
-        v: .zero,
-        uu: .zero,
-        uv: .zero,
-        vv: .zero
-      )
+    static func parameterU(_ value: Interval, using execution: inout OriginalQueryExecution) throws
+      -> BivariateJet
+    {
+      try execution.consumeWork(1)
+      return
+
+        BivariateJet(
+          value: value,
+          u: .one,
+          v: .zero,
+          uu: .zero,
+          uv: .zero,
+          vv: .zero
+        )
     }
 
-    static func parameterV(_ value: Interval) -> BivariateJet {
-      BivariateJet(
-        value: value,
-        u: .zero,
-        v: .one,
-        uu: .zero,
-        uv: .zero,
-        vv: .zero
-      )
+    static func parameterV(_ value: Interval, using execution: inout OriginalQueryExecution) throws
+      -> BivariateJet
+    {
+      try execution.consumeWork(1)
+      return
+
+        BivariateJet(
+          value: value,
+          u: .zero,
+          v: .one,
+          uu: .zero,
+          uv: .zero,
+          vv: .zero
+        )
     }
 
-    func adding(_ other: BivariateJet) -> BivariateJet {
-      BivariateJet(
-        value: value.adding(other.value),
-        u: u.adding(other.u),
-        v: v.adding(other.v),
-        uu: uu.adding(other.uu),
-        uv: uv.adding(other.uv),
-        vv: vv.adding(other.vv)
-      )
+    func adding(_ other: BivariateJet, using execution: inout OriginalQueryExecution) throws
+      -> BivariateJet
+    {
+      try execution.consumeWork(1)
+      return
+
+        BivariateJet(
+          value: (try value.adding(other.value, using: &execution)),
+          u: (try u.adding(other.u, using: &execution)),
+          v: (try v.adding(other.v, using: &execution)),
+          uu: (try uu.adding(other.uu, using: &execution)),
+          uv: (try uv.adding(other.uv, using: &execution)),
+          vv: (try vv.adding(other.vv, using: &execution))
+        )
     }
 
-    func subtracting(_ other: BivariateJet) -> BivariateJet {
-      adding(other.scaled(by: -1.0))
+    func subtracting(_ other: BivariateJet, using execution: inout OriginalQueryExecution) throws
+      -> BivariateJet
+    {
+      try execution.consumeWork(1)
+      return
+
+        (try adding(other.scaled(by: -1.0, using: &execution), using: &execution))
     }
 
-    func multiplied(by other: BivariateJet) -> BivariateJet {
-      BivariateJet(
-        value: value.multiplied(by: other.value),
-        u: u.multiplied(by: other.value)
-          .adding(value.multiplied(by: other.u)),
-        v: v.multiplied(by: other.value)
-          .adding(value.multiplied(by: other.v)),
-        uu: uu.multiplied(by: other.value)
-          .adding(u.multiplied(by: other.u).scaled(by: 2.0))
-          .adding(value.multiplied(by: other.uu)),
-        uv: uv.multiplied(by: other.value)
-          .adding(u.multiplied(by: other.v))
-          .adding(v.multiplied(by: other.u))
-          .adding(value.multiplied(by: other.uv)),
-        vv: vv.multiplied(by: other.value)
-          .adding(v.multiplied(by: other.v).scaled(by: 2.0))
-          .adding(value.multiplied(by: other.vv))
-      )
+    func multiplied(by other: BivariateJet, using execution: inout OriginalQueryExecution) throws
+      -> BivariateJet
+    {
+      try execution.consumeWork(1)
+      return
+
+        BivariateJet(
+          value: (try value.multiplied(by: other.value, using: &execution)),
+          u: (try u.multiplied(by: other.value, using: &execution)
+            .adding(value.multiplied(by: other.u, using: &execution), using: &execution)),
+          v: (try v.multiplied(by: other.value, using: &execution)
+            .adding(value.multiplied(by: other.v, using: &execution), using: &execution)),
+          uu: (try uu.multiplied(by: other.value, using: &execution)
+            .adding(
+              u.multiplied(by: other.u, using: &execution).scaled(by: 2.0, using: &execution),
+              using: &execution
+            )
+            .adding(value.multiplied(by: other.uu, using: &execution), using: &execution)),
+          uv: (try uv.multiplied(by: other.value, using: &execution)
+            .adding(u.multiplied(by: other.v, using: &execution), using: &execution)
+            .adding(v.multiplied(by: other.u, using: &execution), using: &execution)
+            .adding(value.multiplied(by: other.uv, using: &execution), using: &execution)),
+          vv: (try vv.multiplied(by: other.value, using: &execution)
+            .adding(
+              v.multiplied(by: other.v, using: &execution).scaled(by: 2.0, using: &execution),
+              using: &execution
+            )
+            .adding(value.multiplied(by: other.vv, using: &execution), using: &execution))
+        )
     }
 
-    func scaled(by scalar: Double) -> BivariateJet {
-      BivariateJet(
-        value: value.scaled(by: scalar),
-        u: u.scaled(by: scalar),
-        v: v.scaled(by: scalar),
-        uu: uu.scaled(by: scalar),
-        uv: uv.scaled(by: scalar),
-        vv: vv.scaled(by: scalar)
-      )
+    func scaled(by scalar: Double, using execution: inout OriginalQueryExecution) throws
+      -> BivariateJet
+    {
+      try execution.consumeWork(1)
+      return
+
+        BivariateJet(
+          value: (try value.scaled(by: scalar, using: &execution)),
+          u: (try u.scaled(by: scalar, using: &execution)),
+          v: (try v.scaled(by: scalar, using: &execution)),
+          uu: (try uu.scaled(by: scalar, using: &execution)),
+          uv: (try uv.scaled(by: scalar, using: &execution)),
+          vv: (try vv.scaled(by: scalar, using: &execution))
+        )
     }
 
-    func scaled(by scalar: Interval) -> BivariateJet {
-      multiplied(by: .constant(scalar))
+    func scaled(by scalar: Interval, using execution: inout OriginalQueryExecution) throws
+      -> BivariateJet
+    {
+      try execution.consumeWork(1)
+      return
+
+        (try multiplied(by: .constant(scalar, using: &execution), using: &execution))
     }
 
-    func sineAndCosine() -> (sine: BivariateJet, cosine: BivariateJet) {
-      let sineValue = Jet.trigonometricBounds(value, phase: 0.0)
-      let cosineValue = Jet.trigonometricBounds(
-        value,
-        phase: Double.pi * 0.5
-      )
+    func sineAndCosine(using execution: inout OriginalQueryExecution) throws -> (
+      sine: BivariateJet, cosine: BivariateJet
+    ) {
+      try execution.consumeWork(1)
+
+      let sineValue = (try Jet.trigonometricBounds(value, phase: 0.0, using: &execution))
+      let cosineValue =
+        (try Jet.trigonometricBounds(
+          value,
+          phase: Double.pi * 0.5, using: &execution
+        ))
       let sine = BivariateJet(
         value: sineValue,
-        u: cosineValue.multiplied(by: u),
-        v: cosineValue.multiplied(by: v),
-        uu: cosineValue.multiplied(by: uu)
-          .subtracting(sineValue.multiplied(by: u.multiplied(by: u))),
-        uv: cosineValue.multiplied(by: uv)
-          .subtracting(sineValue.multiplied(by: u.multiplied(by: v))),
-        vv: cosineValue.multiplied(by: vv)
-          .subtracting(sineValue.multiplied(by: v.multiplied(by: v)))
+        u: (try cosineValue.multiplied(by: u, using: &execution)),
+        v: (try cosineValue.multiplied(by: v, using: &execution)),
+        uu: (try cosineValue.multiplied(by: uu, using: &execution)
+          .subtracting(
+            sineValue.multiplied(by: u.multiplied(by: u, using: &execution), using: &execution),
+            using: &execution)),
+        uv: (try cosineValue.multiplied(by: uv, using: &execution)
+          .subtracting(
+            sineValue.multiplied(by: u.multiplied(by: v, using: &execution), using: &execution),
+            using: &execution)),
+        vv: (try cosineValue.multiplied(by: vv, using: &execution)
+          .subtracting(
+            sineValue.multiplied(by: v.multiplied(by: v, using: &execution), using: &execution),
+            using: &execution))
       )
       let cosine = BivariateJet(
         value: cosineValue,
-        u: sineValue.multiplied(by: u).scaled(by: -1.0),
-        v: sineValue.multiplied(by: v).scaled(by: -1.0),
-        uu: sineValue.multiplied(by: uu).scaled(by: -1.0)
-          .subtracting(cosineValue.multiplied(by: u.multiplied(by: u))),
-        uv: sineValue.multiplied(by: uv).scaled(by: -1.0)
-          .subtracting(cosineValue.multiplied(by: u.multiplied(by: v))),
-        vv: sineValue.multiplied(by: vv).scaled(by: -1.0)
-          .subtracting(cosineValue.multiplied(by: v.multiplied(by: v)))
+        u: (try sineValue.multiplied(by: u, using: &execution).scaled(by: -1.0, using: &execution)),
+        v: (try sineValue.multiplied(by: v, using: &execution).scaled(by: -1.0, using: &execution)),
+        uu: (try sineValue.multiplied(by: uu, using: &execution).scaled(by: -1.0, using: &execution)
+          .subtracting(
+            cosineValue.multiplied(by: u.multiplied(by: u, using: &execution), using: &execution),
+            using: &execution)),
+        uv: (try sineValue.multiplied(by: uv, using: &execution).scaled(by: -1.0, using: &execution)
+          .subtracting(
+            cosineValue.multiplied(by: u.multiplied(by: v, using: &execution), using: &execution),
+            using: &execution)),
+        vv: (try sineValue.multiplied(by: vv, using: &execution).scaled(by: -1.0, using: &execution)
+          .subtracting(
+            cosineValue.multiplied(by: v.multiplied(by: v, using: &execution), using: &execution),
+            using: &execution))
       )
       return (sine, cosine)
     }
@@ -495,34 +723,47 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     var isEmpty: Bool { storage.isEmpty }
     var count: Int { storage.count }
 
-    mutating func push(_ item: WorkItem) {
-      storage.append(item)
+    mutating func push(_ item: WorkItem, using execution: inout OriginalQueryExecution) throws {
+      try execution.consumeWork(1)
+
+      (try OriginalParameterQueryStorage.append(item, to: &storage, using: &execution))
       var index = storage.count - 1
       while index > 0 {
+        try execution.consumeWork(1)
+
         let parent = (index - 1) / 2
-        guard priority(storage[index]) > priority(storage[parent]) else { break }
+        guard
+          (try priority(storage[index], using: &execution))
+            > (try priority(storage[parent], using: &execution))
+        else { break }
         storage.swapAt(index, parent)
         index = parent
       }
     }
 
-    mutating func popMaximum() -> WorkItem? {
+    mutating func popMaximum(using execution: inout OriginalQueryExecution) throws -> WorkItem? {
+      try execution.consumeWork(1)
+
       guard storage.isEmpty == false else { return nil }
       if storage.count == 1 { return storage.removeLast() }
       let result = storage[0]
       storage[0] = storage.removeLast()
       var index = 0
       while true {
+        try execution.consumeWork(1)
+
         let left = index * 2 + 1
         let right = left + 1
         var largest = index
         if left < storage.count,
-          priority(storage[left]) > priority(storage[largest])
+          (try priority(storage[left], using: &execution))
+            > (try priority(storage[largest], using: &execution))
         {
           largest = left
         }
         if right < storage.count,
-          priority(storage[right]) > priority(storage[largest])
+          (try priority(storage[right], using: &execution))
+            > (try priority(storage[largest], using: &execution))
         {
           largest = right
         }
@@ -533,8 +774,13 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
       return result
     }
 
-    private func priority(_ item: WorkItem) -> Double {
-      item.width.isFinite ? item.width : .infinity
+    private func priority(_ item: WorkItem, using execution: inout OriginalQueryExecution) throws
+      -> Double
+    {
+      try execution.consumeWork(1)
+      return
+
+        item.width.isFinite ? item.width : .infinity
     }
   }
 
@@ -543,17 +789,14 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     case volume(TrimmedAnalyticSurfaceVolumeEvaluator.Integrand)
   }
 
-  private let consumeWork: (@Sendable (Int) throws -> Void)?
   private let maximumSubdivisionDepth: Int
   private let maximumCellCount: Int
 
   init(
     maximumSubdivisionDepth: Int = 64,
-    maximumCellCount: Int = 2_097_152,
-    consumeWork: (@Sendable (Int) throws -> Void)? = nil
+    maximumCellCount: Int = 2_097_152
   ) {
     self.maximumSubdivisionDepth = maximumSubdivisionDepth
-    self.consumeWork = consumeWork
     self.maximumCellCount = maximumCellCount
   }
 
@@ -563,225 +806,294 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     requestedWidth: Double,
     tolerance: ModelingTolerance
   ) throws -> TrimmedAnalyticSurfaceVolumeEvaluator.Interval {
-    try tolerance.validate()
-    try curve.validate(
-      on: curve.intersection.surface(for: curve.role),
-      tolerance: tolerance
-    )
-    guard requestedWidth.isFinite, requestedWidth > 0.0 else {
-      throw KernelError(
-        phase: .topology,
-        code: .invalidInput,
-        residual: requestedWidth,
-        tolerance: tolerance,
-        message: "Analytic-pair flux integration requires a finite positive enclosure width."
-      )
-    }
-    if case .cylinder = integrand {
-      let result = try cylinderBoundaryBounds(
-        for: curve,
-        integrand: .volume(integrand),
-        requestedWidth: requestedWidth,
-        tolerance: tolerance
-      )
-      return TrimmedAnalyticSurfaceVolumeEvaluator.Interval(
-        lower: result.lower,
-        upper: result.upper
-      )
-    }
-    guard usesSpecializedPlaneTorusPath(curve, requireTorusRole: true),
-      integrand.requiresNonzeroPeriodicReferenceGauge == false
-    else {
-      let result = try genericIntegralBounds(
-        for: curve,
-        integrand: .volume(integrand),
-        usesPeriodicBoundaryGauge: integrand.usesPeriodicBoundaryGauge,
-        requestedWidth: requestedWidth,
-        tolerance: tolerance
-      )
-      return TrimmedAnalyticSurfaceVolumeEvaluator.Interval(
-        lower: result.lower,
-        upper: result.upper
-      )
-    }
-    guard case .torus = integrand else {
-      throw KernelError(
-        phase: .topology,
-        code: .invalidInput,
-        tolerance: tolerance,
-        message: "The specialized plane-torus flux path requires a torus integrand."
-      )
-    }
-    let configuration = try makeConfiguration(curve: curve, tolerance: tolerance)
-    guard !isPlaneRole(curve, configuration: configuration) else {
-      throw KernelError(
-        phase: .topology,
-        code: .invalidInput,
-        tolerance: tolerance,
-        message: "Plane analytic-pair flux must use the exact planar Green path."
-      )
-    }
-    let period = 2.0 * Double.pi
-    let lower = min(curve.startFraction, curve.endFraction) * period
-    let upper = max(curve.startFraction, curve.endFraction) * period
-    var breakpoints = [lower]
-    if configuration.componentKind == .boundedMinorAngle,
-      Double.pi > lower,
-      Double.pi < upper
-    {
-      breakpoints.append(Double.pi)
-    }
-    breakpoints.append(upper)
-    breakpoints.sort()
-    func cellContribution(
-      lower cellLower: Double,
-      upper cellUpper: Double
-    ) throws -> Interval {
-      let envelope = try geometricFluxFallbackBounds(
-        lower: cellLower,
-        upper: cellUpper,
-        curve: curve,
-        configuration: configuration,
-        integrand: integrand,
-        tolerance: tolerance
-      )
-      let jetBounds: Interval
-      do {
-        jetBounds = try midpointFluxBounds(
-          lower: cellLower,
-          upper: cellUpper,
-          curve: curve,
-          configuration: configuration,
-          integrand: integrand,
-          tolerance: tolerance
-        )
-      } catch LocalProofFailure.intervalSingularity,
-        LocalProofFailure.periodicSeam
-      {
-        return envelope
-      }
-      // Both enclosures certify the same integral, so their overlap
-      // does too: the geometric envelope wins on the square-root
-      // shoulder, where interval jets cannot see the substitution's
-      // cancellation, and the midpoint jets win in the interior.
-      let lower = max(jetBounds.lower, envelope.lower)
-      let upper = min(jetBounds.upper, envelope.upper)
-      guard lower <= upper else {
-        return jetBounds.upper - jetBounds.lower
-          <= envelope.upper - envelope.lower
-          ? jetBounds
-          : envelope
-      }
-      return Interval(lower: lower, upper: upper)
-    }
-    // Per-cell width budgets halve faster than a square-root endpoint
-    // singularity can converge, so the proof refines the globally widest
-    // cell until the summed enclosure width meets the request, mirroring
-    // the certified area path.
-    var heap = WorkHeap()
-    for index in 1..<breakpoints.count {
-      let segmentLower = breakpoints[index - 1]
-      let segmentUpper = breakpoints[index]
-      guard segmentUpper > segmentLower else { continue }
-      let contribution = try cellContribution(
-        lower: segmentLower,
-        upper: segmentUpper
-      )
-      heap.push(
-        WorkItem(
-          lower: segmentLower,
-          upper: segmentUpper,
-          depth: 0,
-          bounds: SurfaceParameterAreaBounds(
-            lower: contribution.lower,
-            upper: contribution.upper
+    var execution = OriginalQueryExecution(
+      budget: try OriginalQueryBudget(),
+      limits: try OriginalQueryExecutionLimits(
+        maximumValueDepth: 32, maximumCoefficientDepth: 32,
+        maximumCells: maximumCellCount, remainingSourceDepth: 16, maximumTransportDepth: 32,
+        maximumSubdivisionDepth: maximumSubdivisionDepth),
+      context: .init(
+        operation: .boundary, entry: .ordinary, stage: .source,
+        first: .init(role: .curve, request: .wholeSourceSupport)))
+    return try fluxBounds(
+      for: curve, integrand: integrand, requestedWidth: requestedWidth, tolerance: tolerance,
+      using: &execution)
+  }
+
+  func fluxBounds(
+    for curve: CertifiedAnalyticPairSurfaceParameterCurve,
+    integrand: TrimmedAnalyticSurfaceVolumeEvaluator.Integrand,
+    requestedWidth: Double,
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+  ) throws -> TrimmedAnalyticSurfaceVolumeEvaluator.Interval {
+    do {
+      return try execution.withProofScope { execution in
+        func produce(using execution: inout OriginalQueryExecution) throws
+          -> TrimmedAnalyticSurfaceVolumeEvaluator.Interval
+        {
+
+          try execution.consumeWork(1)
+          execution.context = execution.context.at(stage: .request)
+
+          try tolerance.validate()
+          execution.context = execution.context.at(stage: .refinement)
+          execution.context = execution.context.at(stage: .source)
+          try curve.validate(
+            on: curve.intersection.surface(for: curve.role),
+            tolerance: tolerance, using: &execution
           )
-        ))
-    }
-    var totalWidth = outwardWidthSum(heap.storage)
-    var subdivisionCount = 0
-    while totalWidth > requestedWidth {
-      guard let item = heap.popMaximum() else {
-        throw KernelError(
-          phase: .topology,
-          code: .topologyFailure,
-          tolerance: tolerance,
-          message: "Analytic-pair flux integration lost its active proof cells."
-        )
-      }
-      guard item.depth < maximumSubdivisionDepth else {
-        throw KernelError(
-          phase: .topology,
-          code: .resourceLimitExceeded,
-          residual: item.width,
-          tolerance: tolerance,
-          message: "Analytic-pair flux integration exceeded its subdivision depth."
-        )
-      }
-      guard heap.count + 2 <= maximumCellCount else {
-        throw KernelError(
-          phase: .topology,
-          code: .resourceLimitExceeded,
-          residual: Double(heap.count),
-          tolerance: tolerance,
-          message: "Analytic-pair flux integration exceeded its certified cell budget."
-        )
-      }
-      let midpoint = item.lower + (item.upper - item.lower) * 0.5
-      guard midpoint > item.lower, midpoint < item.upper else {
-        throw KernelError(
-          phase: .topology,
-          code: .resourceLimitExceeded,
-          tolerance: tolerance,
-          message: "Analytic-pair flux subdivision reached floating-point resolution."
-        )
-      }
-      var childWidthSum = 0.0
-      for (childLower, childUpper) in [
-        (item.lower, midpoint),
-        (midpoint, item.upper),
-      ] {
-        let contribution = try cellContribution(
-          lower: childLower,
-          upper: childUpper
-        )
-        let child = WorkItem(
-          lower: childLower,
-          upper: childUpper,
-          depth: item.depth + 1,
-          bounds: SurfaceParameterAreaBounds(
-            lower: contribution.lower,
-            upper: contribution.upper
+          execution.context = execution.context.at(stage: .refinement)
+          guard requestedWidth.isFinite, requestedWidth > 0.0 else {
+            throw KernelError(
+              phase: .topology,
+              code: .invalidInput,
+              residual: requestedWidth,
+              tolerance: tolerance,
+              message: "Analytic-pair flux integration requires a finite positive enclosure width."
+            )
+          }
+          if case .cylinder = integrand {
+            let result = try cylinderBoundaryBounds(
+              for: curve,
+              integrand: .volume(integrand),
+              requestedWidth: requestedWidth,
+              tolerance: tolerance, using: &execution
+            )
+            return TrimmedAnalyticSurfaceVolumeEvaluator.Interval(
+              lower: result.lower,
+              upper: result.upper
+            )
+          }
+          guard try usesSpecializedPlaneTorusPath(curve, requireTorusRole: true, using: &execution),
+            integrand.requiresNonzeroPeriodicReferenceGauge == false
+          else {
+            let result = try genericIntegralBounds(
+              for: curve,
+              integrand: .volume(integrand),
+              usesPeriodicBoundaryGauge: integrand.usesPeriodicBoundaryGauge,
+              requestedWidth: requestedWidth,
+              tolerance: tolerance, using: &execution
+            )
+            return TrimmedAnalyticSurfaceVolumeEvaluator.Interval(
+              lower: result.lower,
+              upper: result.upper
+            )
+          }
+          guard case .torus = integrand else {
+            throw KernelError(
+              phase: .topology,
+              code: .invalidInput,
+              tolerance: tolerance,
+              message: "The specialized plane-torus flux path requires a torus integrand."
+            )
+          }
+          let configuration = try makeConfiguration(
+            curve: curve, tolerance: tolerance, using: &execution)
+          guard !(try isPlaneRole(curve, configuration: configuration, using: &execution)) else {
+            throw KernelError(
+              phase: .topology,
+              code: .invalidInput,
+              tolerance: tolerance,
+              message: "Plane analytic-pair flux must use the exact planar Green path."
+            )
+          }
+          let period = 2.0 * Double.pi
+          let lower = min(curve.startFraction, curve.endFraction) * period
+          let upper = max(curve.startFraction, curve.endFraction) * period
+          var breakpoints =
+            (try OriginalParameterQueryStorage.values(count: 1, using: &execution) { execution in
+              [lower]
+            })
+          if configuration.componentKind == .boundedMinorAngle,
+            Double.pi > lower,
+            Double.pi < upper
+          {
+            (try OriginalParameterQueryStorage.append(
+              Double.pi, to: &breakpoints, using: &execution))
+          }
+          (try OriginalParameterQueryStorage.append(upper, to: &breakpoints, using: &execution))
+          try OriginalParameterQueryStorage.sort(&breakpoints, using: &execution, less: <)
+          func cellContribution(
+            lower cellLower: Double,
+            upper cellUpper: Double, using execution: inout OriginalQueryExecution
+          ) throws -> Interval {
+            try execution.consumeWork(1)
+
+            let envelope = try geometricFluxFallbackBounds(
+              lower: cellLower,
+              upper: cellUpper,
+              curve: curve,
+              configuration: configuration,
+              integrand: integrand,
+              tolerance: tolerance, using: &execution
+            )
+            let jetBounds: Interval
+            do {
+              jetBounds = try midpointFluxBounds(
+                lower: cellLower,
+                upper: cellUpper,
+                curve: curve,
+                configuration: configuration,
+                integrand: integrand,
+                tolerance: tolerance, using: &execution
+              )
+            } catch LocalProofFailure.intervalSingularity,
+              LocalProofFailure.periodicSeam
+            {
+              return envelope
+            }
+            // Both enclosures certify the same integral, so their overlap
+            // does too: the geometric envelope wins on the square-root
+            // shoulder, where interval jets cannot see the substitution's
+            // cancellation, and the midpoint jets win in the interior.
+            let lower = max(jetBounds.lower, envelope.lower)
+            let upper = min(jetBounds.upper, envelope.upper)
+            guard lower <= upper else {
+              return jetBounds.upper - jetBounds.lower
+                <= envelope.upper - envelope.lower
+                ? jetBounds
+                : envelope
+            }
+            return Interval(lower: lower, upper: upper)
+          }
+          // Per-cell width budgets halve faster than a square-root endpoint
+          // singularity can converge, so the proof refines the globally widest
+          // cell until the summed enclosure width meets the request, mirroring
+          // the certified area path.
+          var heap = WorkHeap()
+          for index in 1..<breakpoints.count {
+            try execution.consumeWork(1)
+
+            let segmentLower = breakpoints[index - 1]
+            let segmentUpper = breakpoints[index]
+            guard segmentUpper > segmentLower else { continue }
+            let contribution = try cellContribution(
+              lower: segmentLower,
+              upper: segmentUpper, using: &execution
+            )
+            (try heap.push(
+              WorkItem(
+                lower: segmentLower,
+                upper: segmentUpper,
+                depth: 0,
+                bounds: SurfaceParameterAreaBounds(
+                  lower: contribution.lower,
+                  upper: contribution.upper
+                )
+              ), using: &execution))
+          }
+          var totalWidth = (try outwardWidthSum(heap.storage, using: &execution))
+          var subdivisionCount = 0
+          while totalWidth > requestedWidth {
+            try execution.consumeWork(1)
+
+            guard let item = (try heap.popMaximum(using: &execution)) else {
+              throw KernelError(
+                phase: .topology,
+                code: .topologyFailure,
+                tolerance: tolerance,
+                message: "Analytic-pair flux integration lost its active proof cells."
+              )
+            }
+            try execution.visitGeometricCell(depth: item.depth)
+
+            guard
+              item.depth
+                < min(maximumSubdivisionDepth, execution.effectiveLimits.maximumSubdivisionDepth)
+            else {
+              throw KernelError(
+                phase: .topology,
+                code: .resourceLimitExceeded,
+                residual: item.width,
+                tolerance: tolerance,
+                message: "Analytic-pair flux integration exceeded its subdivision depth."
+              )
+            }
+            guard heap.count + 2 <= maximumCellCount else {
+              throw KernelError(
+                phase: .topology,
+                code: .resourceLimitExceeded,
+                residual: Double(heap.count),
+                tolerance: tolerance,
+                message: "Analytic-pair flux integration exceeded its certified cell budget."
+              )
+            }
+            let midpoint = item.lower + (item.upper - item.lower) * 0.5
+            guard midpoint > item.lower, midpoint < item.upper else {
+              throw KernelError(
+                phase: .topology,
+                code: .resourceLimitExceeded,
+                tolerance: tolerance,
+                message: "Analytic-pair flux subdivision reached floating-point resolution."
+              )
+            }
+            var childWidthSum = 0.0
+            for (childLower, childUpper)
+              in (try OriginalParameterQueryStorage.values(count: 2, using: &execution) {
+                execution in
+                [
+                  (item.lower, midpoint),
+                  (midpoint, item.upper),
+                ]
+              })
+            {
+              try execution.consumeWork(1)
+
+              let contribution = try cellContribution(
+                lower: childLower,
+                upper: childUpper, using: &execution
+              )
+              let child = WorkItem(
+                lower: childLower,
+                upper: childUpper,
+                depth: item.depth + 1,
+                bounds: SurfaceParameterAreaBounds(
+                  lower: contribution.lower,
+                  upper: contribution.upper
+                )
+              )
+              childWidthSum = (childWidthSum + child.width).nextUp
+              (try heap.push(child, using: &execution))
+            }
+            subdivisionCount += 1
+            totalWidth =
+              (try replacingWidthUpperBound(
+                totalWidth,
+                removing: item.width,
+                addingUpperBound: childWidthSum, using: &execution
+              ))
+            if subdivisionCount.nonzeroBitCount == 1 {
+              // Geometric checkpoints bound accumulated roundoff while
+              // keeping total heap scans linear in the final cell count.
+              totalWidth = (try outwardWidthSum(heap.storage, using: &execution))
+            }
+          }
+          let composed =
+            (try CertifiedIntervalSummation.sum(
+              heap.storage,
+              bounds: { item, _ in item.bounds }, using: &execution
+            ))
+          let result = Interval(
+            lower: composed.lower,
+            upper: composed.upper
           )
-        )
-        childWidthSum = (childWidthSum + child.width).nextUp
-        heap.push(child)
+          let oriented =
+            curve.startFraction <= curve.endFraction
+            ? result : (try result.scaled(by: -1.0, using: &execution))
+          return TrimmedAnalyticSurfaceVolumeEvaluator.Interval(
+            lower: oriented.lower,
+            upper: oriented.upper
+          )
+        }
+        execution.context = execution.context.at(stage: .refinement)
+        let result = try produce(using: &execution)
+        execution.context = execution.context.at(stage: .publication)
+        return result
+
       }
-      subdivisionCount += 1
-      totalWidth = replacingWidthUpperBound(
-        totalWidth,
-        removing: item.width,
-        addingUpperBound: childWidthSum
-      )
-      if subdivisionCount.nonzeroBitCount == 1 {
-        // Geometric checkpoints bound accumulated roundoff while
-        // keeping total heap scans linear in the final cell count.
-        totalWidth = outwardWidthSum(heap.storage)
-      }
+    } catch {
+      throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance)
     }
-    let composed = CertifiedIntervalSummation.sum(
-      heap.storage,
-      bounds: { $0.bounds }
-    )
-    let result = Interval(
-      lower: composed.lower,
-      upper: composed.upper
-    )
-    let oriented = curve.startFraction <= curve.endFraction ? result : result.scaled(by: -1.0)
-    return TrimmedAnalyticSurfaceVolumeEvaluator.Interval(
-      lower: oriented.lower,
-      upper: oriented.upper
-    )
   }
 
   func bounds(
@@ -790,172 +1102,237 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     requestedWidth: Double,
     tolerance: ModelingTolerance
   ) throws -> SurfaceParameterAreaBounds {
-    try tolerance.validate()
-    try curve.validate(
-      on: curve.intersection.surface(for: curve.role),
-      tolerance: tolerance
-    )
-    guard uShift.isFinite,
-      requestedWidth.isFinite,
-      requestedWidth > 0.0
-    else {
-      throw KernelError(
-        phase: .topology,
-        code: .invalidInput,
-        tolerance: tolerance,
-        message: "Analytic-pair area integration requires finite positive options."
-      )
-    }
-    if usesCylinderChart(curve) {
-      return try cylinderBoundaryBounds(
-        for: curve,
-        integrand: .parameterArea(uShift: uShift),
-        requestedWidth: requestedWidth,
-        tolerance: tolerance
-      )
-    }
-    guard usesSpecializedPlaneTorusPath(curve, requireTorusRole: false) else {
-      return try genericIntegralBounds(
-        for: curve,
-        integrand: .parameterArea(uShift: uShift),
-        usesPeriodicBoundaryGauge: false,
-        requestedWidth: requestedWidth,
-        tolerance: tolerance
-      )
-    }
-    let configuration = try makeConfiguration(curve: curve, tolerance: tolerance)
-    let period = 2.0 * Double.pi
-    let lower = min(curve.startFraction, curve.endFraction) * period
-    let upper = max(curve.startFraction, curve.endFraction) * period
-    var breakpoints = [lower]
-    if configuration.componentKind == .boundedMinorAngle,
-      Double.pi > lower,
-      Double.pi < upper
-    {
-      breakpoints.append(Double.pi)
-    }
-    breakpoints.append(upper)
-    breakpoints.sort()
+    var execution = OriginalQueryExecution(
+      budget: try OriginalQueryBudget(),
+      limits: try OriginalQueryExecutionLimits(
+        maximumValueDepth: 32, maximumCoefficientDepth: 32,
+        maximumCells: maximumCellCount, remainingSourceDepth: 16, maximumTransportDepth: 32,
+        maximumSubdivisionDepth: maximumSubdivisionDepth),
+      context: .init(
+        operation: .boundary, entry: .ordinary, stage: .source,
+        first: .init(role: .curve, request: .wholeSourceSupport)))
+    return try bounds(
+      for: curve, uShift: uShift, requestedWidth: requestedWidth, tolerance: tolerance,
+      using: &execution)
+  }
 
-    var heap = WorkHeap()
-    for index in 1..<breakpoints.count {
-      let segmentLower = breakpoints[index - 1]
-      let segmentUpper = breakpoints[index]
-      guard segmentUpper > segmentLower else { continue }
-      heap.push(
-        try makeWorkItem(
-          lower: segmentLower,
-          upper: segmentUpper,
-          depth: 0,
-          curve: curve,
-          configuration: configuration,
-          uShift: uShift,
-          tolerance: tolerance
-        ))
-    }
-    guard heap.isEmpty == false else {
-      throw KernelError(
-        phase: .topology,
-        code: .invalidInput,
-        tolerance: tolerance,
-        message: "Analytic-pair area integration received an empty trim."
-      )
-    }
+  func bounds(
+    for curve: CertifiedAnalyticPairSurfaceParameterCurve,
+    uShift: Double,
+    requestedWidth: Double,
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+  ) throws -> SurfaceParameterAreaBounds {
+    do {
+      return try execution.withProofScope { execution in
+        func produce(using execution: inout OriginalQueryExecution) throws
+          -> SurfaceParameterAreaBounds
+        {
 
-    let internalTargetWidth = (requestedWidth * 0.99).nextDown
-    var totalWidth = outwardWidthSum(heap.storage)
-    var subdivisionCount = 0
-    while totalWidth > internalTargetWidth {
-      guard let item = heap.popMaximum() else {
-        throw KernelError(
-          phase: .topology,
-          code: .topologyFailure,
-          tolerance: tolerance,
-          message: "Analytic-pair area integration lost its active proof cells."
-        )
-      }
-      guard item.depth < maximumSubdivisionDepth else {
-        throw KernelError(
-          phase: .topology,
-          code: .resourceLimitExceeded,
-          tolerance: tolerance,
-          message: "Analytic-pair area integration exceeded its subdivision depth."
-        )
-      }
-      guard heap.count + 2 <= maximumCellCount else {
-        throw KernelError(
-          phase: .topology,
-          code: .resourceLimitExceeded,
-          tolerance: tolerance,
-          message: "Analytic-pair area integration exceeded its certified cell budget."
-        )
-      }
-      let midpoint = item.lower + (item.upper - item.lower) * 0.5
-      guard midpoint > item.lower, midpoint < item.upper else {
-        throw KernelError(
-          phase: .topology,
-          code: .resourceLimitExceeded,
-          tolerance: tolerance,
-          message:
-            "Analytic-pair \(curve.role.rawValue) pcurve subdivision reached floating-point resolution."
-        )
-      }
-      let children = [
-        try makeWorkItem(
-          lower: item.lower,
-          upper: midpoint,
-          depth: item.depth + 1,
-          curve: curve,
-          configuration: configuration,
-          uShift: uShift,
-          tolerance: tolerance
-        ),
-        try makeWorkItem(
-          lower: midpoint,
-          upper: item.upper,
-          depth: item.depth + 1,
-          curve: curve,
-          configuration: configuration,
-          uShift: uShift,
-          tolerance: tolerance
-        ),
-      ]
-      for child in children { heap.push(child) }
-      subdivisionCount += 1
-      totalWidth = replacingWidthUpperBound(
-        totalWidth,
-        removing: item.width,
-        addingFirst: children[0].width,
-        second: children[1].width
-      )
-      if subdivisionCount.nonzeroBitCount == 1 {
-        totalWidth = outwardWidthSum(heap.storage)
-      }
-      if totalWidth <= internalTargetWidth {
-        totalWidth = outwardWidthSum(heap.storage)
-      }
-    }
+          try execution.consumeWork(1)
+          execution.context = execution.context.at(stage: .request)
 
-    let result = CertifiedIntervalSummation.sum(
-      heap.storage,
-      bounds: { $0.bounds }
-    )
-    guard result.width <= requestedWidth.nextUp else {
-      throw KernelError(
-        phase: .topology,
-        code: .topologyFailure,
-        residual: result.width,
-        tolerance: tolerance,
-        message: "Analytic-pair area cells did not compose to the requested enclosure."
-      )
+          try tolerance.validate()
+          execution.context = execution.context.at(stage: .refinement)
+          execution.context = execution.context.at(stage: .source)
+          try curve.validate(
+            on: curve.intersection.surface(for: curve.role),
+            tolerance: tolerance, using: &execution
+          )
+          execution.context = execution.context.at(stage: .refinement)
+          guard uShift.isFinite,
+            requestedWidth.isFinite,
+            requestedWidth > 0.0
+          else {
+            throw KernelError(
+              phase: .topology,
+              code: .invalidInput,
+              tolerance: tolerance,
+              message: "Analytic-pair area integration requires finite positive options."
+            )
+          }
+          if try usesCylinderChart(curve, using: &execution) {
+            return try cylinderBoundaryBounds(
+              for: curve,
+              integrand: .parameterArea(uShift: uShift),
+              requestedWidth: requestedWidth,
+              tolerance: tolerance, using: &execution
+            )
+          }
+          guard try usesSpecializedPlaneTorusPath(curve, requireTorusRole: false, using: &execution)
+          else {
+            return try genericIntegralBounds(
+              for: curve,
+              integrand: .parameterArea(uShift: uShift),
+              usesPeriodicBoundaryGauge: false,
+              requestedWidth: requestedWidth,
+              tolerance: tolerance, using: &execution
+            )
+          }
+          let configuration = try makeConfiguration(
+            curve: curve, tolerance: tolerance, using: &execution)
+          let period = 2.0 * Double.pi
+          let lower = min(curve.startFraction, curve.endFraction) * period
+          let upper = max(curve.startFraction, curve.endFraction) * period
+          var breakpoints =
+            (try OriginalParameterQueryStorage.values(count: 1, using: &execution) { execution in
+              [lower]
+            })
+          if configuration.componentKind == .boundedMinorAngle,
+            Double.pi > lower,
+            Double.pi < upper
+          {
+            (try OriginalParameterQueryStorage.append(
+              Double.pi, to: &breakpoints, using: &execution))
+          }
+          (try OriginalParameterQueryStorage.append(upper, to: &breakpoints, using: &execution))
+          try OriginalParameterQueryStorage.sort(&breakpoints, using: &execution, less: <)
+
+          var heap = WorkHeap()
+          for index in 1..<breakpoints.count {
+            try execution.consumeWork(1)
+
+            let segmentLower = breakpoints[index - 1]
+            let segmentUpper = breakpoints[index]
+            guard segmentUpper > segmentLower else { continue }
+            (try heap.push(
+              makeWorkItem(
+                lower: segmentLower,
+                upper: segmentUpper,
+                depth: 0,
+                curve: curve,
+                configuration: configuration,
+                uShift: uShift,
+                tolerance: tolerance, using: &execution
+              ), using: &execution))
+          }
+          guard heap.isEmpty == false else {
+            throw KernelError(
+              phase: .topology,
+              code: .invalidInput,
+              tolerance: tolerance,
+              message: "Analytic-pair area integration received an empty trim."
+            )
+          }
+
+          let internalTargetWidth = (requestedWidth * 0.99).nextDown
+          var totalWidth = (try outwardWidthSum(heap.storage, using: &execution))
+          var subdivisionCount = 0
+          while totalWidth > internalTargetWidth {
+            try execution.consumeWork(1)
+
+            guard let item = (try heap.popMaximum(using: &execution)) else {
+              throw KernelError(
+                phase: .topology,
+                code: .topologyFailure,
+                tolerance: tolerance,
+                message: "Analytic-pair area integration lost its active proof cells."
+              )
+            }
+            try execution.visitGeometricCell(depth: item.depth)
+
+            guard
+              item.depth
+                < min(maximumSubdivisionDepth, execution.effectiveLimits.maximumSubdivisionDepth)
+            else {
+              throw KernelError(
+                phase: .topology,
+                code: .resourceLimitExceeded,
+                tolerance: tolerance,
+                message: "Analytic-pair area integration exceeded its subdivision depth."
+              )
+            }
+            guard heap.count + 2 <= maximumCellCount else {
+              throw KernelError(
+                phase: .topology,
+                code: .resourceLimitExceeded,
+                tolerance: tolerance,
+                message: "Analytic-pair area integration exceeded its certified cell budget."
+              )
+            }
+            let midpoint = item.lower + (item.upper - item.lower) * 0.5
+            guard midpoint > item.lower, midpoint < item.upper else {
+              throw KernelError(
+                phase: .topology,
+                code: .resourceLimitExceeded,
+                tolerance: tolerance,
+                message:
+                  "Analytic-pair \(curve.role.rawValue) pcurve subdivision reached floating-point resolution."
+              )
+            }
+            let children =
+              (try OriginalParameterQueryStorage.values(count: 2, using: &execution) { execution in
+                [
+                  try makeWorkItem(
+                    lower: item.lower,
+                    upper: midpoint,
+                    depth: item.depth + 1,
+                    curve: curve,
+                    configuration: configuration,
+                    uShift: uShift,
+                    tolerance: tolerance, using: &execution
+                  ),
+                  try makeWorkItem(
+                    lower: midpoint,
+                    upper: item.upper,
+                    depth: item.depth + 1,
+                    curve: curve,
+                    configuration: configuration,
+                    uShift: uShift,
+                    tolerance: tolerance, using: &execution
+                  ),
+                ]
+              })
+            for child in children {
+              try execution.consumeWork(1)
+              (try heap.push(child, using: &execution))
+            }
+            subdivisionCount += 1
+            totalWidth =
+              (try replacingWidthUpperBound(
+                totalWidth,
+                removing: item.width,
+                addingFirst: children[0].width,
+                second: children[1].width, using: &execution
+              ))
+            if subdivisionCount.nonzeroBitCount == 1 {
+              totalWidth = (try outwardWidthSum(heap.storage, using: &execution))
+            }
+            if totalWidth <= internalTargetWidth {
+              totalWidth = (try outwardWidthSum(heap.storage, using: &execution))
+            }
+          }
+
+          let result =
+            (try CertifiedIntervalSummation.sum(
+              heap.storage,
+              bounds: { item, _ in item.bounds }, using: &execution
+            ))
+          guard result.width <= requestedWidth.nextUp else {
+            throw KernelError(
+              phase: .topology,
+              code: .topologyFailure,
+              residual: result.width,
+              tolerance: tolerance,
+              message: "Analytic-pair area cells did not compose to the requested enclosure."
+            )
+          }
+          guard curve.startFraction <= curve.endFraction else {
+            return SurfaceParameterAreaBounds(
+              lower: (-result.upper).nextDown,
+              upper: (-result.lower).nextUp
+            )
+          }
+          return result
+        }
+        execution.context = execution.context.at(stage: .refinement)
+        let result = try produce(using: &execution)
+        execution.context = execution.context.at(stage: .publication)
+        return result
+
+      }
+    } catch {
+      throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance)
     }
-    guard curve.startFraction <= curve.endFraction else {
-      return SurfaceParameterAreaBounds(
-        lower: (-result.upper).nextDown,
-        upper: (-result.lower).nextUp
-      )
-    }
-    return result
   }
 
   func periodicConeAreaBounds(
@@ -963,27 +1340,65 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     requestedWidth: Double,
     tolerance: ModelingTolerance
   ) throws -> SurfaceParameterAreaBounds {
-    try tolerance.validate()
-    guard isConeSurface(curve.intersection.surface(for: curve.role)),
-      requestedWidth.isFinite,
-      requestedWidth > 0.0
-    else {
-      throw KernelError(
-        phase: .topology,
-        code: .invalidInput,
-        residual: requestedWidth,
-        tolerance: tolerance,
-        message:
-          "Periodic cone parameter-area integration requires a cone pcurve and a finite positive enclosure width."
-      )
+    var execution = OriginalQueryExecution(
+      budget: try OriginalQueryBudget(),
+      limits: try OriginalQueryExecutionLimits(
+        maximumValueDepth: 32, maximumCoefficientDepth: 32,
+        maximumCells: maximumCellCount, remainingSourceDepth: 16, maximumTransportDepth: 32,
+        maximumSubdivisionDepth: maximumSubdivisionDepth),
+      context: .init(
+        operation: .boundary, entry: .ordinary, stage: .source,
+        first: .init(role: .curve, request: .wholeSourceSupport)))
+    return try periodicConeAreaBounds(
+      for: curve, requestedWidth: requestedWidth, tolerance: tolerance, using: &execution)
+  }
+
+  func periodicConeAreaBounds(
+    for curve: CertifiedAnalyticPairSurfaceParameterCurve,
+    requestedWidth: Double,
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+  ) throws -> SurfaceParameterAreaBounds {
+    do {
+      return try execution.withProofScope { execution in
+        func produce(using execution: inout OriginalQueryExecution) throws
+          -> SurfaceParameterAreaBounds
+        {
+
+          try execution.consumeWork(1)
+          execution.context = execution.context.at(stage: .request)
+
+          try tolerance.validate()
+          execution.context = execution.context.at(stage: .refinement)
+          guard try isConeSurface(curve.intersection.surface(for: curve.role), using: &execution),
+            requestedWidth.isFinite,
+            requestedWidth > 0.0
+          else {
+            throw KernelError(
+              phase: .topology,
+              code: .invalidInput,
+              residual: requestedWidth,
+              tolerance: tolerance,
+              message:
+                "Periodic cone parameter-area integration requires a cone pcurve and a finite positive enclosure width."
+            )
+          }
+          return try genericIntegralBounds(
+            for: curve,
+            integrand: .parameterArea(uShift: 0.0),
+            usesPeriodicBoundaryGauge: true,
+            requestedWidth: requestedWidth,
+            tolerance: tolerance, using: &execution
+          )
+        }
+        execution.context = execution.context.at(stage: .refinement)
+        let result = try produce(using: &execution)
+        execution.context = execution.context.at(stage: .publication)
+        return result
+
+      }
+    } catch {
+      throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance)
     }
-    return try genericIntegralBounds(
-      for: curve,
-      integrand: .parameterArea(uShift: 0.0),
-      usesPeriodicBoundaryGauge: true,
-      requestedWidth: requestedWidth,
-      tolerance: tolerance
-    )
   }
 
   func parameterEnclosures(
@@ -993,14 +1408,54 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     maximumWidth: Double,
     tolerance: ModelingTolerance
   ) throws -> [SurfaceParameterCurveEnclosure] {
-    try coordinateParameterEnclosures(
-      for: curve,
-      fromNormalizedFraction: lowerFraction,
-      toNormalizedFraction: upperFraction,
-      maximumWidth: maximumWidth,
-      requiresUWidth: true,
-      tolerance: tolerance
-    )
+    var execution = OriginalQueryExecution(
+      budget: try OriginalQueryBudget(),
+      limits: try OriginalQueryExecutionLimits(
+        maximumValueDepth: 32, maximumCoefficientDepth: 32,
+        maximumCells: maximumCellCount, remainingSourceDepth: 16, maximumTransportDepth: 32,
+        maximumSubdivisionDepth: maximumSubdivisionDepth),
+      context: .init(
+        operation: .boundary, entry: .ordinary, stage: .source,
+        first: .init(role: .curve, request: .wholeSourceSupport)))
+    return try parameterEnclosures(
+      for: curve, fromNormalizedFraction: lowerFraction, toNormalizedFraction: upperFraction,
+      maximumWidth: maximumWidth, tolerance: tolerance, using: &execution)
+  }
+
+  func parameterEnclosures(
+    for curve: CertifiedAnalyticPairSurfaceParameterCurve,
+    fromNormalizedFraction lowerFraction: Double = 0.0,
+    toNormalizedFraction upperFraction: Double = 1.0,
+    maximumWidth: Double,
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+  ) throws -> [SurfaceParameterCurveEnclosure] {
+    do {
+      return try execution.withProofScope { execution in
+        func produce(using execution: inout OriginalQueryExecution) throws
+          -> [SurfaceParameterCurveEnclosure]
+        {
+
+          try execution.consumeWork(1)
+          return
+
+            try coordinateParameterEnclosures(
+              for: curve,
+              fromNormalizedFraction: lowerFraction,
+              toNormalizedFraction: upperFraction,
+              maximumWidth: maximumWidth,
+              requiresUWidth: true,
+              tolerance: tolerance, using: &execution
+            )
+        }
+        execution.context = execution.context.at(stage: .refinement)
+        let result = try produce(using: &execution)
+        execution.context = execution.context.at(stage: .publication)
+        return result
+
+      }
+    } catch {
+      throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance)
+    }
   }
 
   /// Certifies only the V-coordinate width while retaining an enclosing U
@@ -1013,14 +1468,54 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     maximumWidth: Double,
     tolerance: ModelingTolerance
   ) throws -> [SurfaceParameterCurveEnclosure] {
-    try coordinateParameterEnclosures(
-      for: curve,
-      fromNormalizedFraction: lowerFraction,
-      toNormalizedFraction: upperFraction,
-      maximumWidth: maximumWidth,
-      requiresUWidth: false,
-      tolerance: tolerance
-    )
+    var execution = OriginalQueryExecution(
+      budget: try OriginalQueryBudget(),
+      limits: try OriginalQueryExecutionLimits(
+        maximumValueDepth: 32, maximumCoefficientDepth: 32,
+        maximumCells: maximumCellCount, remainingSourceDepth: 16, maximumTransportDepth: 32,
+        maximumSubdivisionDepth: maximumSubdivisionDepth),
+      context: .init(
+        operation: .boundary, entry: .ordinary, stage: .source,
+        first: .init(role: .curve, request: .wholeSourceSupport)))
+    return try vParameterEnclosures(
+      for: curve, fromNormalizedFraction: lowerFraction, toNormalizedFraction: upperFraction,
+      maximumWidth: maximumWidth, tolerance: tolerance, using: &execution)
+  }
+
+  func vParameterEnclosures(
+    for curve: CertifiedAnalyticPairSurfaceParameterCurve,
+    fromNormalizedFraction lowerFraction: Double = 0.0,
+    toNormalizedFraction upperFraction: Double = 1.0,
+    maximumWidth: Double,
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+  ) throws -> [SurfaceParameterCurveEnclosure] {
+    do {
+      return try execution.withProofScope { execution in
+        func produce(using execution: inout OriginalQueryExecution) throws
+          -> [SurfaceParameterCurveEnclosure]
+        {
+
+          try execution.consumeWork(1)
+          return
+
+            try coordinateParameterEnclosures(
+              for: curve,
+              fromNormalizedFraction: lowerFraction,
+              toNormalizedFraction: upperFraction,
+              maximumWidth: maximumWidth,
+              requiresUWidth: false,
+              tolerance: tolerance, using: &execution
+            )
+        }
+        execution.context = execution.context.at(stage: .refinement)
+        let result = try produce(using: &execution)
+        execution.context = execution.context.at(stage: .publication)
+        return result
+
+      }
+    } catch {
+      throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance)
+    }
   }
 
   private func coordinateParameterEnclosures(
@@ -1029,14 +1524,20 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     toNormalizedFraction upperFraction: Double,
     maximumWidth: Double,
     requiresUWidth: Bool,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> [SurfaceParameterCurveEnclosure] {
-    try consumeWork?(0)
+    try execution.consumeWork(1)
+
+    try execution.checkpoint()
+    execution.context = execution.context.at(stage: .request)
     try tolerance.validate()
+    execution.context = execution.context.at(stage: .refinement)
+    execution.context = execution.context.at(stage: .source)
     try curve.validate(
       on: curve.intersection.surface(for: curve.role),
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
+    execution.context = execution.context.at(stage: .refinement)
     guard lowerFraction.isFinite,
       upperFraction.isFinite,
       lowerFraction >= -tolerance.relative,
@@ -1065,13 +1566,14 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
         message: "Analytic-pair pcurve enclosure range collapsed at its normalized domain boundary."
       )
     }
-    guard usesSpecializedPlaneTorusPath(curve, requireTorusRole: false) else {
+    guard try usesSpecializedPlaneTorusPath(curve, requireTorusRole: false, using: &execution)
+    else {
       return try genericParameterEnclosures(
         for: curve,
         lowerFraction: boundedLower,
         upperFraction: boundedUpper,
         maximumWidth: maximumWidth,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
     }
     struct EnclosureWorkItem {
@@ -1081,19 +1583,24 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     }
     let configuration = try makeConfiguration(
       curve: curve,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
-    var pending = [
-      EnclosureWorkItem(
-        lowerFraction: boundedLower,
-        upperFraction: boundedUpper,
-        depth: 0
-      )
-    ]
+    var pending =
+      (try OriginalParameterQueryStorage.values(count: 1, using: &execution) { execution in
+        [
+          EnclosureWorkItem(
+            lowerFraction: boundedLower,
+            upperFraction: boundedUpper,
+            depth: 0
+          )
+        ]
+      })
     var result: [SurfaceParameterCurveEnclosure] = []
     var processedCount = 0
     while let item = pending.popLast() {
-      try consumeWork?(item.depth)
+      try execution.consumeWork(1)
+
+      try execution.visitGeometricCell(depth: item.depth)
       processedCount += 1
       guard processedCount <= maximumCellCount else {
         throw KernelError(
@@ -1119,26 +1626,27 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
         let geometry = try geometryRanges(
           parameter: Interval(lower: lower, upper: upper),
           configuration: configuration,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
-        if isPlaneRole(curve, configuration: configuration) {
-          ranges = planeCoordinateRanges(
-            geometry,
-            configuration: configuration,
-            uShift: 0.0
-          )
+        if try isPlaneRole(curve, configuration: configuration, using: &execution) {
+          ranges =
+            (try planeCoordinateRanges(
+              geometry,
+              configuration: configuration,
+              uShift: 0.0, using: &execution
+            ))
         } else {
           let middleFraction =
             item.lowerFraction
             + (item.upperFraction - item.lowerFraction) * 0.5
           let reference = try curve.parameter(
             atNormalizedFraction: middleFraction,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
           ).u
           let u = try torusAngleRange(
             geometry,
             configuration: configuration,
-            reference: reference
+            reference: reference, using: &execution
           )
           ranges = (u, geometry.minor)
         }
@@ -1155,28 +1663,32 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
         ranges.v.width <= maximumWidth,
         requiresUWidth == false || ranges.u.width <= maximumWidth
       {
-        result.append(
+        (try OriginalParameterQueryStorage.append(
           SurfaceParameterCurveEnclosure(
             lowerFraction: item.lowerFraction,
             upperFraction: item.upperFraction,
-            u: try ScalarInterval(
+            u: ScalarInterval(
               lower: ranges.u.lower,
               upper: ranges.u.upper
             ),
-            v: try ScalarInterval(
+            v: ScalarInterval(
               lower: ranges.v.lower,
               upper: ranges.v.upper
             )
-          ))
+          ), to: &result, using: &execution))
         continue
       }
-      guard item.depth < maximumSubdivisionDepth else {
+      guard
+        item.depth < min(maximumSubdivisionDepth, execution.effectiveLimits.maximumSubdivisionDepth)
+      else {
         throw KernelError(
           phase: .topology,
           code: .resourceLimitExceeded,
-          residual: ranges.map {
-            requiresUWidth ? max($0.u.width, $0.v.width) : $0.v.width
-          },
+          residual: (try OriginalParameterQueryStorage.optionalMap(
+            ranges, using: &execution,
+            { element, execution in
+              requiresUWidth ? max(element.u.width, element.v.width) : element.v.width
+            })),
           tolerance: tolerance,
           message:
             "Analytic-pair pcurve enclosure exceeded its proof depth for \(curve.role.rawValue) over [\(item.lowerFraction), \(item.upperFraction)]."
@@ -1195,29 +1707,31 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
           message: "Analytic-pair pcurve enclosure reached floating-point resolution."
         )
       }
-      pending.append(
+      (try OriginalParameterQueryStorage.append(
         EnclosureWorkItem(
           lowerFraction: middle,
           upperFraction: item.upperFraction,
           depth: item.depth + 1
-        ))
-      pending.append(
+        ), to: &pending, using: &execution))
+      (try OriginalParameterQueryStorage.append(
         EnclosureWorkItem(
           lowerFraction: item.lowerFraction,
           upperFraction: middle,
           depth: item.depth + 1
-        ))
+        ), to: &pending, using: &execution))
     }
-    return result.sorted { $0.lowerFraction < $1.lowerFraction }
+    return (try OriginalParameterQueryStorage.ordered(result, using: &execution, less: { $0.lowerFraction < $1.lowerFraction }))
   }
 
   private func cylinderBoundaryBounds(
     for curve: CertifiedAnalyticPairSurfaceParameterCurve,
     integrand: GenericBoundaryIntegrand,
     requestedWidth: Double,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> SurfaceParameterAreaBounds {
-    guard isCylinderBoundaryIntegrand(integrand) else {
+    try execution.consumeWork(1)
+
+    guard try isCylinderBoundaryIntegrand(integrand, using: &execution) else {
       throw KernelError(
         phase: .topology,
         code: .invalidInput,
@@ -1232,12 +1746,12 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     // its ends on one sheet, which `cylinderGlobalBoundary` chains.
     let cylinderSheetShift = try cylinderSheetShift(
       for: curve,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
     let globalBoundary = try cylinderGlobalBoundary(
       curve: curve,
       integrand: integrand,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
     let cellTargetWidth = (requestedWidth - globalBoundary.width).nextDown
     guard cellTargetWidth > 0.0 else {
@@ -1253,38 +1767,49 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     // The starting cells: halves, each halved again while its enclosure spans a turn (a curve
     // running round the cylinder), so every cell lifts onto one sheet.
     var ranges: [(Double, Double)] = []
-    var pending: [(Double, Double, Int)] = [(0.0, 0.5, 0), (0.5, 1.0, 0)]
+    var pending: [(Double, Double, Int)] =
+      (try OriginalParameterQueryStorage.values(count: 2, using: &execution) { execution in
+        [(0.0, 0.5, 0), (0.5, 1.0, 0)]
+      })
     while let (lower, upper, depth) = pending.popLast() {
+      try execution.consumeWork(1)
+
       let bounds = try curve.parameterCellBounds(
         fromNormalizedFraction: lower,
         toNormalizedFraction: upper,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
       if bounds.uLift.width >= 2.0 * Double.pi, depth < 20 {
         let middle = lower + (upper - lower) * 0.5
-        pending.append((middle, upper, depth + 1))
-        pending.append((lower, middle, depth + 1))
+        (try OriginalParameterQueryStorage.append(
+          (middle, upper, depth + 1), to: &pending, using: &execution))
+        (try OriginalParameterQueryStorage.append(
+          (lower, middle, depth + 1), to: &pending, using: &execution))
       } else {
-        ranges.append((lower, upper))
+        (try OriginalParameterQueryStorage.append((lower, upper), to: &ranges, using: &execution))
       }
     }
     for (lower, upper) in ranges {
-      heap.push(
-        try cylinderBoundaryWorkItem(
+      try execution.consumeWork(1)
+
+      (try heap.push(
+        cylinderBoundaryWorkItem(
           lower: lower,
           upper: upper,
           depth: 0,
           curve: curve,
           integrand: integrand,
           cylinderSheetShift: cylinderSheetShift,
-          tolerance: tolerance
-        ))
+          tolerance: tolerance, using: &execution
+        ), using: &execution))
     }
     let internalTargetWidth = (cellTargetWidth * 0.99).nextDown
-    var totalWidth = outwardWidthSum(heap.storage)
+    var totalWidth = (try outwardWidthSum(heap.storage, using: &execution))
     var subdivisionCount = 0
     while totalWidth > internalTargetWidth {
-      guard let item = heap.popMaximum() else {
+      try execution.consumeWork(1)
+
+      guard let item = (try heap.popMaximum(using: &execution)) else {
         throw KernelError(
           phase: .topology,
           code: .topologyFailure,
@@ -1292,7 +1817,11 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
           message: "Cylinder boundary integration lost its active proof cells."
         )
       }
-      guard item.depth < maximumSubdivisionDepth else {
+      try execution.visitGeometricCell(depth: item.depth)
+
+      guard
+        item.depth < min(maximumSubdivisionDepth, execution.effectiveLimits.maximumSubdivisionDepth)
+      else {
         throw KernelError(
           phase: .topology,
           code: .resourceLimitExceeded,
@@ -1319,45 +1848,53 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
           message: "Cylinder boundary integration reached floating-point subdivision resolution."
         )
       }
-      let children = try [
-        cylinderBoundaryWorkItem(
-          lower: item.lower,
-          upper: midpoint,
-          depth: item.depth + 1,
-          curve: curve,
-          integrand: integrand,
-          cylinderSheetShift: cylinderSheetShift,
-          tolerance: tolerance
-        ),
-        cylinderBoundaryWorkItem(
-          lower: midpoint,
-          upper: item.upper,
-          depth: item.depth + 1,
-          curve: curve,
-          integrand: integrand,
-          cylinderSheetShift: cylinderSheetShift,
-          tolerance: tolerance
-        ),
-      ]
-      for child in children { heap.push(child) }
+      let children = try OriginalParameterQueryStorage.values(count: 2, using: &execution) {
+        execution in
+        [
+          (try cylinderBoundaryWorkItem(
+            lower: item.lower,
+            upper: midpoint,
+            depth: item.depth + 1,
+            curve: curve,
+            integrand: integrand,
+            cylinderSheetShift: cylinderSheetShift,
+            tolerance: tolerance, using: &execution
+          )),
+          (try cylinderBoundaryWorkItem(
+            lower: midpoint,
+            upper: item.upper,
+            depth: item.depth + 1,
+            curve: curve,
+            integrand: integrand,
+            cylinderSheetShift: cylinderSheetShift,
+            tolerance: tolerance, using: &execution
+          )),
+        ]
+      }
+      for child in children {
+        try execution.consumeWork(1)
+        (try heap.push(child, using: &execution))
+      }
       subdivisionCount += 1
-      totalWidth = replacingWidthUpperBound(
-        totalWidth,
-        removing: item.width,
-        addingFirst: children[0].width,
-        second: children[1].width
-      )
+      totalWidth =
+        (try replacingWidthUpperBound(
+          totalWidth,
+          removing: item.width,
+          addingFirst: children[0].width,
+          second: children[1].width, using: &execution
+        ))
       if subdivisionCount.nonzeroBitCount == 1 {
-        totalWidth = outwardWidthSum(heap.storage)
+        totalWidth = (try outwardWidthSum(heap.storage, using: &execution))
       }
       if totalWidth <= internalTargetWidth {
-        totalWidth = outwardWidthSum(heap.storage)
+        totalWidth = (try outwardWidthSum(heap.storage, using: &execution))
       }
     }
-    var result = CertifiedIntervalSummation.sum(
-      heap.storage,
-      bounds: { $0.bounds }
-    )
+    var result =
+      (try CertifiedIntervalSummation.sum(
+        heap.storage,
+        bounds: { item, _ in item.bounds }, using: &execution
+      ))
     result = result.adding(
       SurfaceParameterAreaBounds(
         lower: globalBoundary.lower,
@@ -1382,9 +1919,11 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     curve: CertifiedAnalyticPairSurfaceParameterCurve,
     integrand: GenericBoundaryIntegrand,
     cylinderSheetShift: Double,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> WorkItem {
-    guard isCylinderBoundaryIntegrand(integrand) else {
+    try execution.consumeWork(1)
+
+    guard try isCylinderBoundaryIntegrand(integrand, using: &execution) else {
       throw KernelError(
         phase: .topology,
         code: .invalidInput,
@@ -1395,7 +1934,7 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     let parameterBounds = try curve.parameterCellBounds(
       fromNormalizedFraction: lower,
       toNormalizedFraction: upper,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
     guard parameterBounds.uLift.width < 2.0 * Double.pi,
       let uFirst = parameterBounds.uFirstDerivativeMagnitude,
@@ -1413,40 +1952,41 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     }
     let uLift = try translatedCylinderULift(
       parameterBounds.uLift,
-      by: cylinderSheetShift
+      by: cylinderSheetShift, using: &execution
     )
     let midpoint = lower + (upper - lower) * 0.5
     let middle = try curve.parameter(
       atNormalizedFraction: midpoint,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
     let middleU = try liftedPeriodicValue(
       middle.u,
       in: uLift,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
 
     let localScale = upper - lower
     let midpointDifferential = try curve.differential(
       atNormalizedFraction: midpoint,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
     let midpointDerivatives = try cylinderPrimitiveDerivatives(
-      at: .scalar(middleU),
+      at: .scalar(middleU, using: &execution),
       integrand: integrand,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
-    let midpointTransformed = Interval.scalar(middle.v)
-      .multiplied(by: midpointDerivatives.first)
-      .multiplied(
-        by: .scalar(
-          midpointDifferential.firstDerivative.x * localScale
-        ))
+    let midpointTransformed =
+      (try Interval.scalar(middle.v, using: &execution)
+        .multiplied(by: midpointDerivatives.first, using: &execution)
+        .multiplied(
+          by: .scalar(
+            midpointDifferential.firstDerivative.x * localScale, using: &execution
+          ), using: &execution))
 
     let rangedDerivatives = try cylinderPrimitiveDerivatives(
       at: Interval(lower: uLift.lower, upper: uLift.upper),
       integrand: integrand,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
     let vMagnitude = max(
       abs(parameterBounds.vLift.lower),
@@ -1456,42 +1996,47 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     let firstMagnitude = rangedDerivatives.first.maximumAbsoluteValue
     let secondMagnitude = rangedDerivatives.second.maximumAbsoluteValue
     let thirdMagnitude = rangedDerivatives.third.maximumAbsoluteValue
-    let firstTerm = upperProduct(vSecond, firstMagnitude, uFirst)
-    let secondTerm = upperProduct(
-      2.0,
-      vFirst,
-      secondMagnitude,
-      uFirst,
-      uFirst
-    )
-    let thirdTerm = upperProduct(2.0, vFirst, firstMagnitude, uSecond)
-    let fourthTerm = upperProduct(
-      vMagnitude,
-      thirdMagnitude,
-      uFirst,
-      uFirst,
-      uFirst
-    )
-    let fifthTerm = upperProduct(
-      3.0,
-      vMagnitude,
-      secondMagnitude,
-      uFirst,
-      uSecond
-    )
-    let sixthTerm = upperProduct(
-      vMagnitude,
-      firstMagnitude,
-      uThird
-    )
-    let secondDerivativeBound = upperSum(
-      firstTerm,
-      secondTerm,
-      thirdTerm,
-      fourthTerm,
-      fifthTerm,
-      sixthTerm
-    )
+    let firstTerm = (try upperProduct(vSecond, firstMagnitude, uFirst, using: &execution))
+    let secondTerm =
+      (try upperProduct(
+        2.0,
+        vFirst,
+        secondMagnitude,
+        uFirst,
+        uFirst, using: &execution
+      ))
+    let thirdTerm = (try upperProduct(2.0, vFirst, firstMagnitude, uSecond, using: &execution))
+    let fourthTerm =
+      (try upperProduct(
+        vMagnitude,
+        thirdMagnitude,
+        uFirst,
+        uFirst,
+        uFirst, using: &execution
+      ))
+    let fifthTerm =
+      (try upperProduct(
+        3.0,
+        vMagnitude,
+        secondMagnitude,
+        uFirst,
+        uSecond, using: &execution
+      ))
+    let sixthTerm =
+      (try upperProduct(
+        vMagnitude,
+        firstMagnitude,
+        uThird, using: &execution
+      ))
+    let secondDerivativeBound =
+      (try upperSum(
+        firstTerm,
+        secondTerm,
+        thirdTerm,
+        fourthTerm,
+        fifthTerm,
+        sixthTerm, using: &execution
+      ))
     let analyticError = (secondDerivativeBound / 24.0).nextUp
     // Directed interval operations already account for their own rounding.
     // This allowance covers the bounded number of scalar operations used
@@ -1537,8 +2082,10 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
   private func cylinderGlobalBoundary(
     curve: CertifiedAnalyticPairSurfaceParameterCurve,
     integrand: GenericBoundaryIntegrand,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> Interval {
+    try execution.consumeWork(1)
+
     // Each certified cell centres its U enclosure on its own principal
     // midpoint, so two cells need not share a sheet: a curve crossing the
     // seam would otherwise evaluate `v * F(u)` at its ends a turn apart and
@@ -1546,12 +2093,17 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     // through the shared boundaries of a left-to-right cell chain.
     let period = 2.0 * Double.pi
     var cells: [(lower: Double, lift: ScalarInterval)] = []
-    var pending: [(Double, Double, Int)] = [(0.0, 1.0, 0)]
+    var pending: [(Double, Double, Int)] =
+      (try OriginalParameterQueryStorage.values(count: 1, using: &execution) { execution in
+        [(0.0, 1.0, 0)]
+      })
     while let (lower, upper, depth) = pending.popLast() {
+      try execution.consumeWork(1)
+
       let bounds = try curve.parameterCellBounds(
         fromNormalizedFraction: lower,
         toNormalizedFraction: upper,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
       if bounds.uLift.width >= period * 0.5 {
         guard depth < 20 else {
@@ -1564,10 +2116,13 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
           )
         }
         let middle = lower + (upper - lower) * 0.5
-        pending.append((middle, upper, depth + 1))
-        pending.append((lower, middle, depth + 1))
+        (try OriginalParameterQueryStorage.append(
+          (middle, upper, depth + 1), to: &pending, using: &execution))
+        (try OriginalParameterQueryStorage.append(
+          (lower, middle, depth + 1), to: &pending, using: &execution))
       } else {
-        cells.append((lower: lower, lift: bounds.uLift))
+        (try OriginalParameterQueryStorage.append(
+          (lower: lower, lift: bounds.uLift), to: &cells, using: &execution))
       }
     }
     guard let first = cells.first, let last = cells.last else {
@@ -1578,53 +2133,64 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
         message: "Cylinder boundary integration produced no endpoint chain."
       )
     }
-    let start = try curve.parameter(atNormalizedFraction: 0.0, tolerance: tolerance)
-    let end = try curve.parameter(atNormalizedFraction: 1.0, tolerance: tolerance)
+    let start = try curve.parameter(
+      atNormalizedFraction: 0.0, tolerance: tolerance, using: &execution)
+    let end = try curve.parameter(
+      atNormalizedFraction: 1.0, tolerance: tolerance, using: &execution)
     // The declared start fixes the sheet of the first cell.
     var shift =
       round(
-        (start.u - (try liftedPeriodicValue(start.u, in: first.lift, tolerance: tolerance)))
+        (start.u
+          - (try liftedPeriodicValue(
+            start.u, in: first.lift, tolerance: tolerance, using: &execution)))
           / period) * period
     for index in cells.indices.dropFirst() {
+      try execution.consumeWork(1)
+
       let boundary = try curve.parameter(
         atNormalizedFraction: cells[index].lower,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       ).u
       let previous = try liftedPeriodicValue(
         boundary,
-        in: try translatedCylinderULift(cells[index - 1].lift, by: shift),
-        tolerance: tolerance
+        in: translatedCylinderULift(cells[index - 1].lift, by: shift, using: &execution),
+        tolerance: tolerance, using: &execution
       )
       let next = try liftedPeriodicValue(
         boundary,
         in: cells[index].lift,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
       shift = round((previous - next) / period) * period
     }
     let endU = try liftedPeriodicValue(
       end.u,
-      in: try translatedCylinderULift(last.lift, by: shift),
-      tolerance: tolerance
+      in: translatedCylinderULift(last.lift, by: shift, using: &execution),
+      tolerance: tolerance, using: &execution
     )
     let startPrimitive = try cylinderPrimitiveDerivatives(
-      at: .scalar(start.u),
+      at: .scalar(start.u, using: &execution),
       integrand: integrand,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     ).primitive
     let endPrimitive = try cylinderPrimitiveDerivatives(
-      at: .scalar(endU),
+      at: .scalar(endU, using: &execution),
       integrand: integrand,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     ).primitive
-    return endPrimitive.multiplied(by: .scalar(end.v))
-      .subtracting(startPrimitive.multiplied(by: .scalar(start.v)))
+    return
+      (try endPrimitive.multiplied(by: .scalar(end.v, using: &execution), using: &execution)
+      .subtracting(
+        startPrimitive.multiplied(by: .scalar(start.v, using: &execution), using: &execution),
+        using: &execution))
   }
 
   private func cylinderSheetShift(
     for curve: CertifiedAnalyticPairSurfaceParameterCurve,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> Double {
+    try execution.consumeWork(1)
+
     // The sheet is read off the start of the curve: halved until its enclosure there spans
     // less than a turn (a curve running round the cylinder spans a turn over much of itself).
     let period = 2.0 * Double.pi
@@ -1632,14 +2198,16 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     var initialBounds = try curve.parameterCellBounds(
       fromNormalizedFraction: 0.0,
       toNormalizedFraction: upper,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
     while initialBounds.uLift.width >= period, upper > 1.0 / 1_048_576 {
+      try execution.consumeWork(1)
+
       upper *= 0.5
       initialBounds = try curve.parameterCellBounds(
         fromNormalizedFraction: 0.0,
         toNormalizedFraction: upper,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
     }
     guard initialBounds.uLift.width < period else {
@@ -1653,20 +2221,22 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     }
     let declaredStart = try curve.parameter(
       atNormalizedFraction: 0.0,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     ).u
     let certifiedStart = try liftedPeriodicValue(
       declaredStart,
       in: initialBounds.uLift,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
     return round((declaredStart - certifiedStart) / period) * period
   }
 
   private func translatedCylinderULift(
     _ lift: ScalarInterval,
-    by shift: Double
+    by shift: Double, using execution: inout OriginalQueryExecution
   ) throws -> ScalarInterval {
+    try execution.consumeWork(1)
+
     return try ScalarInterval(
       lower: (lift.lower + shift).nextDown,
       upper: (lift.upper + shift).nextUp
@@ -1676,17 +2246,19 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
   private func cylinderPrimitiveDerivatives(
     at u: Interval,
     integrand: GenericBoundaryIntegrand,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> (
     primitive: Interval,
     first: Interval,
     second: Interval,
     third: Interval
   ) {
+    try execution.consumeWork(1)
+
     switch integrand {
     case .parameterArea(let uShift):
       return (
-        primitive: u.adding(.scalar(uShift)),
+        primitive: (try u.adding(.scalar(uShift, using: &execution), using: &execution)),
         first: .one,
         second: .zero,
         third: .zero
@@ -1695,34 +2267,42 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
       let radius = Interval(lower: radius.lower, upper: radius.upper)
       let offsetU = Interval(lower: offsetU.lower, upper: offsetU.upper)
       let offsetV = Interval(lower: offsetV.lower, upper: offsetV.upper)
-      let scale = radius.scaled(by: 1.0 / 3.0)
-      let sine = Jet.trigonometricBounds(u, phase: 0.0)
-      let cosine = Jet.trigonometricBounds(
-        u,
-        phase: Double.pi * 0.5
-      )
-      let primitive = scale.multiplied(
-        by:
-          offsetU.multiplied(by: sine)
-          .subtracting(offsetV.multiplied(by: cosine))
-          .adding(radius.multiplied(by: u))
-      )
-      let first = scale.multiplied(
-        by:
-          offsetU.multiplied(by: cosine)
-          .adding(offsetV.multiplied(by: sine))
-          .adding(radius)
-      )
-      let second = scale.multiplied(
-        by:
-          offsetU.multiplied(by: sine).scaled(by: -1.0)
-          .adding(offsetV.multiplied(by: cosine))
-      )
-      let third = scale.multiplied(
-        by:
-          offsetU.multiplied(by: cosine).scaled(by: -1.0)
-          .subtracting(offsetV.multiplied(by: sine))
-      )
+      let scale = (try radius.scaled(by: 1.0 / 3.0, using: &execution))
+      let sine = (try Jet.trigonometricBounds(u, phase: 0.0, using: &execution))
+      let cosine =
+        (try Jet.trigonometricBounds(
+          u,
+          phase: Double.pi * 0.5, using: &execution
+        ))
+      let primitive =
+        (try scale.multiplied(
+          by:
+            offsetU.multiplied(by: sine, using: &execution)
+            .subtracting(offsetV.multiplied(by: cosine, using: &execution), using: &execution)
+            .adding(radius.multiplied(by: u, using: &execution), using: &execution),
+          using: &execution
+        ))
+      let first =
+        (try scale.multiplied(
+          by:
+            offsetU.multiplied(by: cosine, using: &execution)
+            .adding(offsetV.multiplied(by: sine, using: &execution), using: &execution)
+            .adding(radius, using: &execution), using: &execution
+        ))
+      let second =
+        (try scale.multiplied(
+          by:
+            offsetU.multiplied(by: sine, using: &execution).scaled(by: -1.0, using: &execution)
+            .adding(offsetV.multiplied(by: cosine, using: &execution), using: &execution),
+          using: &execution
+        ))
+      let third =
+        (try scale.multiplied(
+          by:
+            offsetU.multiplied(by: cosine, using: &execution).scaled(by: -1.0, using: &execution)
+            .subtracting(offsetV.multiplied(by: sine, using: &execution), using: &execution),
+          using: &execution
+        ))
       return (primitive, first, second, third)
     case .volume:
       throw KernelError(
@@ -1735,9 +2315,12 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
   }
 
   private func usesCylinderChart(
-    _ curve: CertifiedAnalyticPairSurfaceParameterCurve
-  ) -> Bool {
-    switch curve.intersection.surface(for: curve.role) {
+    _ curve: CertifiedAnalyticPairSurfaceParameterCurve,
+    using execution: inout OriginalQueryExecution
+  ) throws -> Bool {
+    try execution.consumeWork(1)
+
+    return switch curve.intersection.surface(for: curve.role) {
     case .cylinder, .analytic(.cylinder):
       true
     case .plane, .analytic, .bSpline, .procedural:
@@ -1746,9 +2329,11 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
   }
 
   private func isCylinderBoundaryIntegrand(
-    _ integrand: GenericBoundaryIntegrand
-  ) -> Bool {
-    switch integrand {
+    _ integrand: GenericBoundaryIntegrand, using execution: inout OriginalQueryExecution
+  ) throws -> Bool {
+    try execution.consumeWork(1)
+
+    return switch integrand {
     case .parameterArea:
       true
     case .volume(.cylinder):
@@ -1761,14 +2346,22 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
   private func liftedPeriodicValue(
     _ value: Double,
     in lift: ScalarInterval,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> Double {
+    try execution.consumeWork(1)
+
     let period = 2.0 * Double.pi
     let nearestTurn = round((lift.midpoint - value) / period)
     let roundoff =
       (Double.ulpOfOne * max(abs(value), abs(lift.midpoint), 1.0)
       * 8_192.0).nextUp
-    for turn in [nearestTurn, nearestTurn - 1.0, nearestTurn + 1.0] {
+    for turn
+      in (try OriginalParameterQueryStorage.values(count: 3, using: &execution) { execution in
+        [nearestTurn, nearestTurn - 1.0, nearestTurn + 1.0]
+      })
+    {
+      try execution.consumeWork(1)
+
       let lifted = value + turn * period
       if lifted >= lift.lower - roundoff,
         lifted <= lift.upper + roundoff
@@ -1785,25 +2378,37 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     )
   }
 
-  private func upperProduct(_ first: Double, _ second: Double) -> Double {
-    (first * second).nextUp
+  private func upperProduct(
+    _ first: Double, _ second: Double, using execution: inout OriginalQueryExecution
+  ) throws -> Double {
+    try execution.consumeWork(1)
+    return
+
+      (first * second).nextUp
   }
 
   private func upperProduct(
     _ first: Double,
     _ second: Double,
-    _ third: Double
-  ) -> Double {
-    upperProduct(upperProduct(first, second), third)
+    _ third: Double, using execution: inout OriginalQueryExecution
+  ) throws -> Double {
+    try execution.consumeWork(1)
+    return
+
+      (try upperProduct(upperProduct(first, second, using: &execution), third, using: &execution))
   }
 
   private func upperProduct(
     _ first: Double,
     _ second: Double,
     _ third: Double,
-    _ fourth: Double
-  ) -> Double {
-    upperProduct(upperProduct(first, second, third), fourth)
+    _ fourth: Double, using execution: inout OriginalQueryExecution
+  ) throws -> Double {
+    try execution.consumeWork(1)
+    return
+
+      (try upperProduct(
+        upperProduct(first, second, third, using: &execution), fourth, using: &execution))
   }
 
   private func upperProduct(
@@ -1811,13 +2416,22 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     _ second: Double,
     _ third: Double,
     _ fourth: Double,
-    _ fifth: Double
-  ) -> Double {
-    upperProduct(upperProduct(first, second, third, fourth), fifth)
+    _ fifth: Double, using execution: inout OriginalQueryExecution
+  ) throws -> Double {
+    try execution.consumeWork(1)
+    return
+
+      (try upperProduct(
+        upperProduct(first, second, third, fourth, using: &execution), fifth, using: &execution))
   }
 
-  private func upperSum(_ first: Double, _ second: Double) -> Double {
-    (first + second).nextUp
+  private func upperSum(
+    _ first: Double, _ second: Double, using execution: inout OriginalQueryExecution
+  ) throws -> Double {
+    try execution.consumeWork(1)
+    return
+
+      (first + second).nextUp
   }
 
   private func upperSum(
@@ -1826,12 +2440,18 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     _ third: Double,
     _ fourth: Double,
     _ fifth: Double,
-    _ sixth: Double
-  ) -> Double {
-    upperSum(
-      upperSum(upperSum(upperSum(upperSum(first, second), third), fourth), fifth),
-      sixth
-    )
+    _ sixth: Double, using execution: inout OriginalQueryExecution
+  ) throws -> Double {
+    try execution.consumeWork(1)
+    return
+
+      (try upperSum(
+        upperSum(
+          upperSum(
+            upperSum(upperSum(first, second, using: &execution), third, using: &execution), fourth,
+            using: &execution), fifth, using: &execution),
+        sixth, using: &execution
+      ))
   }
 
   private func upperSum(
@@ -1842,12 +2462,15 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     _ fifth: Double,
     _ sixth: Double,
     _ seventh: Double,
-    _ eighth: Double
-  ) -> Double {
-    upperSum(
-      upperSum(first, second, third, fourth, fifth, sixth),
-      upperSum(seventh, eighth)
-    )
+    _ eighth: Double, using execution: inout OriginalQueryExecution
+  ) throws -> Double {
+    try execution.consumeWork(1)
+    return
+
+      (try upperSum(
+        upperSum(first, second, third, fourth, fifth, sixth, using: &execution),
+        upperSum(seventh, eighth, using: &execution), using: &execution
+      ))
   }
 
   private func genericIntegralBounds(
@@ -1855,27 +2478,25 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     integrand: GenericBoundaryIntegrand,
     usesPeriodicBoundaryGauge: Bool,
     requestedWidth: Double,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> SurfaceParameterAreaBounds {
-    // FIXME(INCOMPLETE_IMPLEMENTATION): Caller-bound face extent and query containment
-    // reach this original analytic-pair producer. Its native preparation and cell bounds
-    // still lack a shared-work callback; no complete query-budget receipt may succeed
-    // until those original producer visits debit the caller ledger.
-    if consumeWork != nil {
-      throw KernelError(phase: .topology, code: .unsupportedCapability, tolerance: tolerance,
-        message: "Original analytic-pair cell preparation lacks caller-owned work accounting.")
-    }
+    try execution.consumeWork(1)
+    execution.context = execution.context.at(stage: .domain)
+
     let parameterBoundsPreparation = try curve.prepareParameterCellBounds(
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
+    execution.context = execution.context.at(stage: .refinement)
     var heap = WorkHeap()
     let breakpoints = parameterBoundsPreparation.integrationBreakpoints
     for index in 1..<breakpoints.count {
+      try execution.consumeWork(1)
+
       let lower = breakpoints[index - 1]
       let upper = breakpoints[index]
       guard upper > lower else { continue }
-      heap.push(
-        try genericWorkItem(
+      (try heap.push(
+        genericWorkItem(
           lower: lower,
           upper: upper,
           depth: 0,
@@ -1883,8 +2504,8 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
           parameterBoundsPreparation: parameterBoundsPreparation,
           integrand: integrand,
           usesPeriodicBoundaryGauge: usesPeriodicBoundaryGauge,
-          tolerance: tolerance
-        ))
+          tolerance: tolerance, using: &execution
+        ), using: &execution))
     }
     guard heap.isEmpty == false else {
       throw KernelError(
@@ -1895,10 +2516,12 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
       )
     }
     let internalTargetWidth = (requestedWidth * 0.99).nextDown
-    var totalWidth = outwardWidthSum(heap.storage)
+    var totalWidth = (try outwardWidthSum(heap.storage, using: &execution))
     var subdivisionCount = 0
     while totalWidth > internalTargetWidth {
-      guard let item = heap.popMaximum() else {
+      try execution.consumeWork(1)
+
+      guard let item = (try heap.popMaximum(using: &execution)) else {
         throw KernelError(
           phase: .topology,
           code: .topologyFailure,
@@ -1906,7 +2529,11 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
           message: "Generic analytic-pair integration lost its active proof cells."
         )
       }
-      guard item.depth < maximumSubdivisionDepth else {
+      try execution.visitGeometricCell(depth: item.depth)
+
+      guard
+        item.depth < min(maximumSubdivisionDepth, execution.effectiveLimits.maximumSubdivisionDepth)
+      else {
         throw KernelError(
           phase: .topology,
           code: .resourceLimitExceeded,
@@ -1921,12 +2548,12 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
           toNormalizedFraction: item.upper,
           reusingStart: item.parameterStart,
           end: item.parameterEnd,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
         let diagnosticDifferential = try curve.differential(
           atNormalizedFraction: item.lower
             + (item.upper - item.lower) * 0.5,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
         throw KernelError(
           phase: .topology,
@@ -1948,52 +2575,60 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
             "Generic analytic-pair integration reached floating-point subdivision resolution for normalized interval [\(item.lower), \(item.upper)] at depth \(item.depth); cell width \(item.width), composed width \(totalWidth), requested width \(requestedWidth)."
         )
       }
-      let children = try [
-        genericWorkItem(
-          lower: item.lower,
-          upper: midpoint,
-          depth: item.depth + 1,
-          curve: curve,
-          parameterBoundsPreparation: parameterBoundsPreparation,
-          startParameter: item.parameterStart,
-          endParameter: item.parameterMiddle,
-          integrand: integrand,
-          usesPeriodicBoundaryGauge: usesPeriodicBoundaryGauge,
-          tolerance: tolerance
-        ),
-        genericWorkItem(
-          lower: midpoint,
-          upper: item.upper,
-          depth: item.depth + 1,
-          curve: curve,
-          parameterBoundsPreparation: parameterBoundsPreparation,
-          startParameter: item.parameterMiddle,
-          endParameter: item.parameterEnd,
-          integrand: integrand,
-          usesPeriodicBoundaryGauge: usesPeriodicBoundaryGauge,
-          tolerance: tolerance
-        ),
-      ]
-      for child in children { heap.push(child) }
+      let children = try OriginalParameterQueryStorage.values(count: 2, using: &execution) {
+        execution in
+        [
+          (try genericWorkItem(
+            lower: item.lower,
+            upper: midpoint,
+            depth: item.depth + 1,
+            curve: curve,
+            parameterBoundsPreparation: parameterBoundsPreparation,
+            startParameter: item.parameterStart,
+            endParameter: item.parameterMiddle,
+            integrand: integrand,
+            usesPeriodicBoundaryGauge: usesPeriodicBoundaryGauge,
+            tolerance: tolerance, using: &execution
+          )),
+          (try genericWorkItem(
+            lower: midpoint,
+            upper: item.upper,
+            depth: item.depth + 1,
+            curve: curve,
+            parameterBoundsPreparation: parameterBoundsPreparation,
+            startParameter: item.parameterMiddle,
+            endParameter: item.parameterEnd,
+            integrand: integrand,
+            usesPeriodicBoundaryGauge: usesPeriodicBoundaryGauge,
+            tolerance: tolerance, using: &execution
+          )),
+        ]
+      }
+      for child in children {
+        try execution.consumeWork(1)
+        (try heap.push(child, using: &execution))
+      }
       subdivisionCount += 1
-      totalWidth = replacingWidthUpperBound(
-        totalWidth,
-        removing: item.width,
-        addingFirst: children[0].width,
-        second: children[1].width
-      )
+      totalWidth =
+        (try replacingWidthUpperBound(
+          totalWidth,
+          removing: item.width,
+          addingFirst: children[0].width,
+          second: children[1].width, using: &execution
+        ))
       if subdivisionCount.nonzeroBitCount == 1 {
-        totalWidth = outwardWidthSum(heap.storage)
+        totalWidth = (try outwardWidthSum(heap.storage, using: &execution))
       }
       if totalWidth <= internalTargetWidth {
-        totalWidth = outwardWidthSum(heap.storage)
+        totalWidth = (try outwardWidthSum(heap.storage, using: &execution))
       }
     }
 
-    let result = CertifiedIntervalSummation.sum(
-      heap.storage,
-      bounds: { $0.bounds }
-    )
+    let result =
+      (try CertifiedIntervalSummation.sum(
+        heap.storage,
+        bounds: { item, _ in item.bounds }, using: &execution
+      ))
     guard result.width <= requestedWidth.nextUp else {
       throw KernelError(
         phase: .topology,
@@ -2016,14 +2651,16 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     endParameter: SurfaceParameter? = nil,
     integrand: GenericBoundaryIntegrand,
     usesPeriodicBoundaryGauge: Bool,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> WorkItem {
+    try execution.consumeWork(1)
+
     let parameterBounds = try parameterBoundsPreparation.bounds(
       fromNormalizedFraction: lower,
       toNormalizedFraction: upper,
       reusingStart: startParameter,
       end: endParameter,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
     let midpoint = lower + (upper - lower) * 0.5
     let middleParameter = parameterBounds.middle
@@ -2036,46 +2673,48 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
       parameterBounds.usesContinuousLiftForIntegration
       ? parameterBounds.vLift
       : parameterBounds.canonicalV
-    let primitiveBounds = genericOneFormBounds(
-      integrand: integrand,
-      u: integrationU,
-      v: integrationV,
-      usesPeriodicBoundaryGauge: usesPeriodicBoundaryGauge
-    )
+    let primitiveBounds =
+      (try genericOneFormBounds(
+        integrand: integrand,
+        u: integrationU,
+        v: integrationV,
+        usesPeriodicBoundaryGauge: usesPeriodicBoundaryGauge, using: &execution
+      ))
     let middleU =
-      try isUPeriodic(surface)
-      ? liftedPeriodicValue(
+      try isUPeriodic(surface, using: &execution)
+      ? (try liftedPeriodicValue(
         middleParameter.u,
         in: integrationU,
-        tolerance: tolerance
-      )
+        tolerance: tolerance, using: &execution
+      ))
       : middleParameter.u
     let middleV =
-      try isVPeriodic(surface)
-      ? liftedPeriodicValue(
+      try isVPeriodic(surface, using: &execution)
+      ? (try liftedPeriodicValue(
         middleParameter.v,
         in: integrationV,
-        tolerance: tolerance
-      )
+        tolerance: tolerance, using: &execution
+      ))
       : middleParameter.v
-    let middlePrimitive = genericOneFormBounds(
-      integrand: integrand,
-      u: try ScalarInterval(
-        lower: middleU,
-        upper: middleU
-      ),
-      v: try ScalarInterval(
-        lower: middleV,
-        upper: middleV
-      ),
-      usesPeriodicBoundaryGauge: usesPeriodicBoundaryGauge
-    )
+    let middlePrimitive =
+      (try genericOneFormBounds(
+        integrand: integrand,
+        u: ScalarInterval(
+          lower: middleU,
+          upper: middleU
+        ),
+        v: ScalarInterval(
+          lower: middleV,
+          upper: middleV
+        ),
+        usesPeriodicBoundaryGauge: usesPeriodicBoundaryGauge, using: &execution
+      ))
 
     let variationV = Interval(
       lower: (-parameterBounds.totalVariationV).nextDown,
       upper: parameterBounds.totalVariationV.nextUp
     )
-    var contribution = primitiveBounds.dv.multiplied(by: variationV)
+    var contribution = (try primitiveBounds.dv.multiplied(by: variationV, using: &execution))
     if primitiveBounds.du.maximumAbsoluteValue > 0.0 {
       guard let totalVariationU = parameterBounds.totalVariationU else {
         throw KernelError(
@@ -2089,9 +2728,10 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
         lower: (-totalVariationU).nextDown,
         upper: totalVariationU.nextUp
       )
-      contribution = contribution.adding(
-        primitiveBounds.du.multiplied(by: variationU)
-      )
+      contribution =
+        (try contribution.adding(
+          primitiveBounds.du.multiplied(by: variationU, using: &execution), using: &execution
+        ))
     }
     if parameterBounds.usesContinuousLiftForIntegration
       || (parameterBounds.crossesUSeam == false
@@ -2100,12 +2740,13 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
       let second = parameterBounds.parameterSecondDerivativeMagnitude,
       let third = parameterBounds.parameterThirdDerivativeMagnitude
     {
-      let primitive = bivariateOneFormBounds(
-        integrand: integrand,
-        u: integrationU,
-        v: integrationV,
-        usesPeriodicBoundaryGauge: usesPeriodicBoundaryGauge
-      )
+      let primitive =
+        (try bivariateOneFormBounds(
+          integrand: integrand,
+          u: integrationU,
+          v: integrationV,
+          usesPeriodicBoundaryGauge: usesPeriodicBoundaryGauge, using: &execution
+        ))
       let secondDerivativeBound: Double
       if let uFirst = parameterBounds.uFirstDerivativeMagnitude,
         let uSecond = parameterBounds.uSecondDerivativeMagnitude,
@@ -2117,104 +2758,107 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
         // f'' instead of collapsing the parameter jet into one norm.
         // This is especially important for analytic charts whose U
         // coordinate is affine while V carries all higher derivatives.
-        let dvSecondDerivativeBound = upperSum(
-          upperProduct(
-            primitive.dv.uu.maximumAbsoluteValue,
-            uFirst,
-            uFirst,
-            vFirst
-          ),
-          upperProduct(
-            2.0,
-            primitive.dv.uv.maximumAbsoluteValue,
-            uFirst,
-            vFirst,
-            vFirst
-          ),
-          upperProduct(
-            primitive.dv.vv.maximumAbsoluteValue,
-            vFirst,
-            vFirst,
-            vFirst
-          ),
-          upperProduct(
-            primitive.dv.u.maximumAbsoluteValue,
-            uSecond,
-            vFirst
-          ),
-          upperProduct(
-            primitive.dv.v.maximumAbsoluteValue,
-            vSecond,
-            vFirst
-          ),
-          upperProduct(
-            2.0,
-            primitive.dv.u.maximumAbsoluteValue,
-            uFirst,
-            vSecond
-          ),
-          upperProduct(
-            2.0,
-            primitive.dv.v.maximumAbsoluteValue,
-            vFirst,
-            vSecond
-          ),
-          upperProduct(
-            primitive.dv.value.maximumAbsoluteValue,
-            vThird
-          )
-        )
-        let duSecondDerivativeBound = upperSum(
-          upperProduct(
-            primitive.du.uu.maximumAbsoluteValue,
-            uFirst,
-            uFirst,
-            uFirst
-          ),
-          upperProduct(
-            2.0,
-            primitive.du.uv.maximumAbsoluteValue,
-            vFirst,
-            uFirst,
-            uFirst
-          ),
-          upperProduct(
-            primitive.du.vv.maximumAbsoluteValue,
-            vFirst,
-            vFirst,
-            uFirst
-          ),
-          upperProduct(
-            primitive.du.u.maximumAbsoluteValue,
-            uSecond,
-            uFirst
-          ),
-          upperProduct(
-            primitive.du.v.maximumAbsoluteValue,
-            vSecond,
-            uFirst
-          ),
-          upperProduct(
-            2.0,
-            primitive.du.u.maximumAbsoluteValue,
-            uFirst,
-            uSecond
-          ),
-          upperProduct(
-            2.0,
-            primitive.du.v.maximumAbsoluteValue,
-            vFirst,
-            uSecond
-          ),
-          upperProduct(
-            primitive.du.value.maximumAbsoluteValue,
-            parameterBounds.uThirdDerivativeMagnitude ?? third
-          )
-        )
-        secondDerivativeBound = upperSum(
-          dvSecondDerivativeBound,
-          duSecondDerivativeBound
-        )
+        let dvSecondDerivativeBound =
+          (try upperSum(
+            upperProduct(
+              primitive.dv.uu.maximumAbsoluteValue,
+              uFirst,
+              uFirst,
+              vFirst, using: &execution
+            ),
+            upperProduct(
+              2.0,
+              primitive.dv.uv.maximumAbsoluteValue,
+              uFirst,
+              vFirst,
+              vFirst, using: &execution
+            ),
+            upperProduct(
+              primitive.dv.vv.maximumAbsoluteValue,
+              vFirst,
+              vFirst,
+              vFirst, using: &execution
+            ),
+            upperProduct(
+              primitive.dv.u.maximumAbsoluteValue,
+              uSecond,
+              vFirst, using: &execution
+            ),
+            upperProduct(
+              primitive.dv.v.maximumAbsoluteValue,
+              vSecond,
+              vFirst, using: &execution
+            ),
+            upperProduct(
+              2.0,
+              primitive.dv.u.maximumAbsoluteValue,
+              uFirst,
+              vSecond, using: &execution
+            ),
+            upperProduct(
+              2.0,
+              primitive.dv.v.maximumAbsoluteValue,
+              vFirst,
+              vSecond, using: &execution
+            ),
+            upperProduct(
+              primitive.dv.value.maximumAbsoluteValue,
+              vThird, using: &execution
+            ), using: &execution
+          ))
+        let duSecondDerivativeBound =
+          (try upperSum(
+            upperProduct(
+              primitive.du.uu.maximumAbsoluteValue,
+              uFirst,
+              uFirst,
+              uFirst, using: &execution
+            ),
+            upperProduct(
+              2.0,
+              primitive.du.uv.maximumAbsoluteValue,
+              vFirst,
+              uFirst,
+              uFirst, using: &execution
+            ),
+            upperProduct(
+              primitive.du.vv.maximumAbsoluteValue,
+              vFirst,
+              vFirst,
+              uFirst, using: &execution
+            ),
+            upperProduct(
+              primitive.du.u.maximumAbsoluteValue,
+              uSecond,
+              uFirst, using: &execution
+            ),
+            upperProduct(
+              primitive.du.v.maximumAbsoluteValue,
+              vSecond,
+              uFirst, using: &execution
+            ),
+            upperProduct(
+              2.0,
+              primitive.du.u.maximumAbsoluteValue,
+              uFirst,
+              uSecond, using: &execution
+            ),
+            upperProduct(
+              2.0,
+              primitive.du.v.maximumAbsoluteValue,
+              vFirst,
+              uSecond, using: &execution
+            ),
+            upperProduct(
+              primitive.du.value.maximumAbsoluteValue,
+              parameterBounds.uThirdDerivativeMagnitude ?? third, using: &execution
+            ), using: &execution
+          ))
+        secondDerivativeBound =
+          (try upperSum(
+            dvSecondDerivativeBound,
+            duSecondDerivativeBound, using: &execution
+          ))
       } else {
         guard primitive.du.value.maximumAbsoluteValue == 0.0 else {
           throw KernelError(
@@ -2246,20 +2890,21 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
       } else {
         let differential = try curve.differential(
           atNormalizedFraction: midpoint,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         ).firstDerivative
         midpointFirstDerivative = Point2D(
           x: differential.x * localScale,
           y: differential.y * localScale
         )
       }
-      let midpointContribution = middlePrimitive.du.multiplied(
-        by: .scalar(midpointFirstDerivative.x)
-      ).adding(
-        middlePrimitive.dv.multiplied(
-          by: .scalar(midpointFirstDerivative.y)
-        )
-      )
+      let midpointContribution =
+        (try middlePrimitive.du.multiplied(
+          by: .scalar(midpointFirstDerivative.x, using: &execution), using: &execution
+        ).adding(
+          middlePrimitive.dv.multiplied(
+            by: .scalar(midpointFirstDerivative.y, using: &execution), using: &execution
+          ), using: &execution
+        ))
       let analyticError = (secondDerivativeBound / 24.0).nextUp
       let floatingPointError =
         (Double.ulpOfOne
@@ -2318,8 +2963,10 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
   private func genericPrimitiveBounds(
     integrand: GenericBoundaryIntegrand,
     u: ScalarInterval,
-    v: ScalarInterval
-  ) -> Interval {
+    v: ScalarInterval, using execution: inout OriginalQueryExecution
+  ) throws -> Interval {
+    try execution.consumeWork(1)
+
     switch integrand {
     case .parameterArea(let uShift):
       return Interval(
@@ -2345,19 +2992,21 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     integrand: GenericBoundaryIntegrand,
     u: ScalarInterval,
     v: ScalarInterval,
-    usesPeriodicBoundaryGauge: Bool
-  ) -> OneFormInterval {
+    usesPeriodicBoundaryGauge: Bool, using execution: inout OriginalQueryExecution
+  ) throws -> OneFormInterval {
+    try execution.consumeWork(1)
+
     guard usesPeriodicBoundaryGauge else {
       return OneFormInterval(
         du: .zero,
-        dv: genericPrimitiveBounds(integrand: integrand, u: u, v: v)
+        dv: (try genericPrimitiveBounds(integrand: integrand, u: u, v: v, using: &execution))
       )
     }
     let vInterval = Interval(lower: v.lower, upper: v.upper)
     switch integrand {
     case .parameterArea:
       return OneFormInterval(
-        du: vInterval.scaled(by: -1.0),
+        du: (try vInterval.scaled(by: -1.0, using: &execution)),
         dv: .zero
       )
     case .volume(let volumeIntegrand):
@@ -2382,29 +3031,33 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     integrand: GenericBoundaryIntegrand,
     u: ScalarInterval,
     v: ScalarInterval,
-    usesPeriodicBoundaryGauge: Bool
-  ) -> BivariateOneForm {
+    usesPeriodicBoundaryGauge: Bool, using execution: inout OriginalQueryExecution
+  ) throws -> BivariateOneForm {
+    try execution.consumeWork(1)
+
     guard usesPeriodicBoundaryGauge else {
       return BivariateOneForm(
-        du: .constant(.zero),
-        dv: bivariatePrimitiveBounds(integrand: integrand, u: u, v: v)
+        du: (try .constant(.zero, using: &execution)),
+        dv: (try bivariatePrimitiveBounds(integrand: integrand, u: u, v: v, using: &execution))
       )
     }
-    let uJet = BivariateJet.parameterU(
-      Interval(
-        lower: u.lower,
-        upper: u.upper
-      ))
-    let vJet = BivariateJet.parameterV(
-      Interval(
-        lower: v.lower,
-        upper: v.upper
-      ))
+    let uJet =
+      (try BivariateJet.parameterU(
+        Interval(
+          lower: u.lower,
+          upper: u.upper
+        ), using: &execution))
+    let vJet =
+      (try BivariateJet.parameterV(
+        Interval(
+          lower: v.lower,
+          upper: v.upper
+        ), using: &execution))
     switch integrand {
     case .parameterArea:
       return BivariateOneForm(
-        du: vJet.scaled(by: -1.0),
-        dv: .constant(.zero)
+        du: (try vJet.scaled(by: -1.0, using: &execution)),
+        dv: (try .constant(.zero, using: &execution))
       )
     case .volume(
       .cone(
@@ -2419,20 +3072,24 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
         let
           axialOffset
       )):
-      let trigonometry = uJet.sineAndCosine()
-      let azimuth = trigonometry.sine
-        .scaled(by: interval(radialOffsetU))
-        .subtracting(
-          trigonometry.cosine.scaled(by: interval(radialOffsetV))
-        )
-      let dv = azimuth.multiplied(by: vJet)
-        .scaled(by: interval(sine / .exact(3.0)))
-        .scaled(by: interval(cosine))
-      let du = vJet.multiplied(by: vJet)
-        .scaled(by: interval(sine))
-        .scaled(by: interval(sine))
-        .scaled(by: interval(axialOffset))
-        .scaled(by: 1.0 / 6.0)
+      let trigonometry = (try uJet.sineAndCosine(using: &execution))
+      let azimuth =
+        (try trigonometry.sine
+          .scaled(by: interval(radialOffsetU, using: &execution), using: &execution)
+          .subtracting(
+            trigonometry.cosine.scaled(
+              by: interval(radialOffsetV, using: &execution), using: &execution), using: &execution
+          ))
+      let dv =
+        (try azimuth.multiplied(by: vJet, using: &execution)
+          .scaled(by: interval(sine / .exact(3.0), using: &execution), using: &execution)
+          .scaled(by: interval(cosine, using: &execution), using: &execution))
+      let du =
+        (try vJet.multiplied(by: vJet, using: &execution)
+          .scaled(by: interval(sine, using: &execution), using: &execution)
+          .scaled(by: interval(sine, using: &execution), using: &execution)
+          .scaled(by: interval(axialOffset, using: &execution), using: &execution)
+          .scaled(by: 1.0 / 6.0, using: &execution))
       return BivariateOneForm(du: du, dv: dv)
     case .volume(
       .torus(
@@ -2447,46 +3104,72 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
         let
           axialOffset
       )):
-      let uTrigonometry = uJet.sineAndCosine()
-      let vTrigonometry = vJet.sineAndCosine()
-      let cosineSquaredV = vTrigonometry.cosine.multiplied(
-        by: vTrigonometry.cosine
-      )
-      let azimuth = uTrigonometry.sine
-        .scaled(by: interval(radialOffsetU))
-        .subtracting(
-          uTrigonometry.cosine.scaled(by: interval(radialOffsetV))
-        )
-      let radialFactor = vTrigonometry.cosine
-        .scaled(by: interval(majorRadius))
-        .adding(cosineSquaredV.scaled(by: interval(minorRadius)))
-      let intrinsicFactor = vTrigonometry.cosine
-        .scaled(by: interval(majorRadius * majorRadius))
-        .adding(
-          cosineSquaredV.scaled(by: interval(majorRadius * minorRadius))
-        )
-        .adding(.constant(interval(minorRadius * majorRadius)))
-        .adding(
-          vTrigonometry.cosine
-            .scaled(by: interval(minorRadius * minorRadius))
-        )
-      let du = vTrigonometry.cosine
-        .scaled(by: interval(majorRadius))
-        .adding(cosineSquaredV.scaled(by: interval(minorRadius / .exact(2.0))))
-        .scaled(by: interval(minorRadius * axialOffset / .exact(3.0)))
-      let dv = azimuth.multiplied(by: radialFactor)
-        .adding(uJet.multiplied(by: intrinsicFactor))
-        .scaled(by: interval(minorRadius / .exact(3.0)))
+      let uTrigonometry = (try uJet.sineAndCosine(using: &execution))
+      let vTrigonometry = (try vJet.sineAndCosine(using: &execution))
+      let cosineSquaredV =
+        (try vTrigonometry.cosine.multiplied(
+          by: vTrigonometry.cosine, using: &execution
+        ))
+      let azimuth =
+        (try uTrigonometry.sine
+          .scaled(by: interval(radialOffsetU, using: &execution), using: &execution)
+          .subtracting(
+            uTrigonometry.cosine.scaled(
+              by: interval(radialOffsetV, using: &execution), using: &execution), using: &execution
+          ))
+      let radialFactor =
+        (try vTrigonometry.cosine
+          .scaled(by: interval(majorRadius, using: &execution), using: &execution)
+          .adding(
+            cosineSquaredV.scaled(by: interval(minorRadius, using: &execution), using: &execution),
+            using: &execution))
+      let intrinsicFactor =
+        (try vTrigonometry.cosine
+          .scaled(by: interval(majorRadius * majorRadius, using: &execution), using: &execution)
+          .adding(
+            cosineSquaredV.scaled(
+              by: interval(majorRadius * minorRadius, using: &execution), using: &execution),
+            using: &execution
+          )
+          .adding(
+            .constant(interval(minorRadius * majorRadius, using: &execution), using: &execution),
+            using: &execution
+          )
+          .adding(
+            vTrigonometry.cosine
+              .scaled(
+                by: interval(minorRadius * minorRadius, using: &execution), using: &execution),
+            using: &execution
+          ))
+      let du =
+        (try vTrigonometry.cosine
+          .scaled(by: interval(majorRadius, using: &execution), using: &execution)
+          .adding(
+            cosineSquaredV.scaled(
+              by: interval(minorRadius / .exact(2.0), using: &execution), using: &execution),
+            using: &execution
+          )
+          .scaled(
+            by: interval(minorRadius * axialOffset / .exact(3.0), using: &execution),
+            using: &execution))
+      let dv =
+        (try azimuth.multiplied(by: radialFactor, using: &execution)
+          .adding(uJet.multiplied(by: intrinsicFactor, using: &execution), using: &execution)
+          .scaled(by: interval(minorRadius / .exact(3.0), using: &execution), using: &execution))
       return BivariateOneForm(du: du, dv: dv)
     case .volume:
       return BivariateOneForm(
-        du: .constant(.zero),
-        dv: bivariatePrimitiveBounds(integrand: integrand, u: u, v: v)
+        du: (try .constant(.zero, using: &execution)),
+        dv: (try bivariatePrimitiveBounds(integrand: integrand, u: u, v: v, using: &execution))
       )
     }
   }
 
-  private func isConeSurface(_ surface: Surface3D) -> Bool {
+  private func isConeSurface(_ surface: Surface3D, using execution: inout OriginalQueryExecution)
+    throws -> Bool
+  {
+    try execution.consumeWork(1)
+
     if case .analytic(.cone) = surface { return true }
     return false
   }
@@ -2513,13 +3196,20 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
   }
 
   private func isConeVolumeIntegrand(
-    _ integrand: TrimmedAnalyticSurfaceVolumeEvaluator.Integrand
-  ) -> Bool {
+    _ integrand: TrimmedAnalyticSurfaceVolumeEvaluator.Integrand,
+    using execution: inout OriginalQueryExecution
+  ) throws -> Bool {
+    try execution.consumeWork(1)
+
     if case .cone = integrand { return true }
     return false
   }
 
-  private func isUPeriodic(_ surface: Surface3D) -> Bool {
+  private func isUPeriodic(_ surface: Surface3D, using execution: inout OriginalQueryExecution)
+    throws -> Bool
+  {
+    try execution.consumeWork(1)
+
     switch surface {
     case .cylinder,
       .analytic(.cylinder),
@@ -2532,7 +3222,11 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     }
   }
 
-  private func isVPeriodic(_ surface: Surface3D) -> Bool {
+  private func isVPeriodic(_ surface: Surface3D, using execution: inout OriginalQueryExecution)
+    throws -> Bool
+  {
+    try execution.consumeWork(1)
+
     if case .analytic(.torus) = surface { return true }
     return false
   }
@@ -2540,35 +3234,46 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
   private func bivariatePrimitiveBounds(
     integrand: GenericBoundaryIntegrand,
     u uBounds: ScalarInterval,
-    v vBounds: ScalarInterval
-  ) -> BivariateJet {
-    let u = BivariateJet.parameterU(
-      Interval(
-        lower: uBounds.lower,
-        upper: uBounds.upper
-      ))
-    let v = BivariateJet.parameterV(
-      Interval(
-        lower: vBounds.lower,
-        upper: vBounds.upper
-      ))
+    v vBounds: ScalarInterval, using execution: inout OriginalQueryExecution
+  ) throws -> BivariateJet {
+    try execution.consumeWork(1)
+
+    let u =
+      (try BivariateJet.parameterU(
+        Interval(
+          lower: uBounds.lower,
+          upper: uBounds.upper
+        ), using: &execution))
+    let v =
+      (try BivariateJet.parameterV(
+        Interval(
+          lower: vBounds.lower,
+          upper: vBounds.upper
+        ), using: &execution))
     switch integrand {
     case .parameterArea(let uShift):
-      return u.adding(.constant(.scalar(uShift)))
+      return
+        (try u.adding(
+          .constant(.scalar(uShift, using: &execution), using: &execution), using: &execution))
     case .volume(let volumeIntegrand):
-      let uTrigonometry = u.sineAndCosine()
-      let vTrigonometry = v.sineAndCosine()
+      let uTrigonometry = (try u.sineAndCosine(using: &execution))
+      let vTrigonometry = (try v.sineAndCosine(using: &execution))
       switch volumeIntegrand {
       case .plane(let volumeScale):
-        return u.scaled(by: interval(volumeScale))
+        return (try u.scaled(by: interval(volumeScale, using: &execution), using: &execution))
       case .cylinder(let radius, let offsetU, let offsetV):
-        let azimuth = uTrigonometry.sine
-          .scaled(by: interval(offsetU))
-          .subtracting(
-            uTrigonometry.cosine.scaled(by: interval(offsetV))
+        let azimuth =
+          (try uTrigonometry.sine
+            .scaled(by: interval(offsetU, using: &execution), using: &execution)
+            .subtracting(
+              uTrigonometry.cosine.scaled(
+                by: interval(offsetV, using: &execution), using: &execution), using: &execution
+            ))
+        return
+          (try azimuth.adding(
+            u.scaled(by: interval(radius, using: &execution), using: &execution), using: &execution
           )
-        return azimuth.adding(u.scaled(by: interval(radius)))
-          .scaled(by: interval(radius / .exact(3.0)))
+          .scaled(by: interval(radius / .exact(3.0), using: &execution), using: &execution))
       case .cone(
         let
           sine,
@@ -2581,17 +3286,23 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
         let
           axialOffset
       ):
-        let azimuth = uTrigonometry.sine
-          .scaled(by: interval(radialOffsetU))
-          .subtracting(
-            uTrigonometry.cosine.scaled(by: interval(radialOffsetV))
-          )
-        let bracket = azimuth.scaled(by: interval(cosine))
-          .subtracting(
-            u.scaled(by: interval(sine * axialOffset))
-          )
-        return bracket.multiplied(by: v)
-          .scaled(by: interval(sine / .exact(3.0)))
+        let azimuth =
+          (try uTrigonometry.sine
+            .scaled(by: interval(radialOffsetU, using: &execution), using: &execution)
+            .subtracting(
+              uTrigonometry.cosine.scaled(
+                by: interval(radialOffsetV, using: &execution), using: &execution),
+              using: &execution
+            ))
+        let bracket =
+          (try azimuth.scaled(by: interval(cosine, using: &execution), using: &execution)
+            .subtracting(
+              u.scaled(by: interval(sine * axialOffset, using: &execution), using: &execution),
+              using: &execution
+            ))
+        return
+          (try bracket.multiplied(by: v, using: &execution)
+          .scaled(by: interval(sine / .exact(3.0), using: &execution), using: &execution))
       case .sphere(
         let
           radius,
@@ -2602,23 +3313,32 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
         let
           axialOffset
       ):
-        let azimuth = uTrigonometry.sine
-          .scaled(by: interval(radialOffsetU))
-          .subtracting(
-            uTrigonometry.cosine.scaled(by: interval(radialOffsetV))
-          )
-        let cosineSquared = vTrigonometry.cosine.multiplied(
-          by: vTrigonometry.cosine
-        )
-        let azimuthTerm = azimuth.multiplied(by: cosineSquared)
-        let axialTerm = u.multiplied(
-          by:
-            vTrigonometry.cosine.multiplied(by: vTrigonometry.sine)
-            .scaled(by: interval(axialOffset))
-            .adding(vTrigonometry.cosine.scaled(by: interval(radius)))
-        )
-        return azimuthTerm.adding(axialTerm)
-          .scaled(by: interval(radius * radius / .exact(3.0)))
+        let azimuth =
+          (try uTrigonometry.sine
+            .scaled(by: interval(radialOffsetU, using: &execution), using: &execution)
+            .subtracting(
+              uTrigonometry.cosine.scaled(
+                by: interval(radialOffsetV, using: &execution), using: &execution),
+              using: &execution
+            ))
+        let cosineSquared =
+          (try vTrigonometry.cosine.multiplied(
+            by: vTrigonometry.cosine, using: &execution
+          ))
+        let azimuthTerm = (try azimuth.multiplied(by: cosineSquared, using: &execution))
+        let axialTerm =
+          (try u.multiplied(
+            by:
+              vTrigonometry.cosine.multiplied(by: vTrigonometry.sine, using: &execution)
+              .scaled(by: interval(axialOffset, using: &execution), using: &execution)
+              .adding(
+                vTrigonometry.cosine.scaled(
+                  by: interval(radius, using: &execution), using: &execution), using: &execution),
+            using: &execution
+          ))
+        return
+          (try azimuthTerm.adding(axialTerm, using: &execution)
+          .scaled(by: interval(radius * radius / .exact(3.0), using: &execution), using: &execution))
       case .torus(
         let
           majorRadius,
@@ -2631,44 +3351,68 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
         let
           axialOffset
       ):
-        let azimuth = uTrigonometry.sine
-          .scaled(by: interval(radialOffsetU))
-          .subtracting(
-            uTrigonometry.cosine.scaled(by: interval(radialOffsetV))
-          )
-        let cosineSquared = vTrigonometry.cosine.multiplied(
-          by: vTrigonometry.cosine
-        )
-        let azimuthTerm = azimuth.multiplied(
-          by:
-            vTrigonometry.cosine.scaled(by: interval(majorRadius))
-            .adding(cosineSquared.scaled(by: interval(minorRadius)))
-        )
-        let axialTerm = u.multiplied(
-          by:
-            vTrigonometry.sine
-            .scaled(by: interval(axialOffset * majorRadius))
-            .adding(
-              vTrigonometry.cosine
-                .multiplied(by: vTrigonometry.sine)
-                .scaled(by: interval(axialOffset * minorRadius))
-            )
-            .adding(
-              vTrigonometry.cosine
-                .scaled(by: interval(majorRadius * majorRadius))
-            )
-            .adding(
-              cosineSquared
-                .scaled(by: interval(majorRadius * minorRadius))
-            )
-            .adding(.constant(interval(minorRadius * majorRadius)))
-            .adding(
-              vTrigonometry.cosine
-                .scaled(by: interval(minorRadius * minorRadius))
-            )
-        )
-        return azimuthTerm.adding(axialTerm)
-          .scaled(by: interval(minorRadius / .exact(3.0)))
+        let azimuth =
+          (try uTrigonometry.sine
+            .scaled(by: interval(radialOffsetU, using: &execution), using: &execution)
+            .subtracting(
+              uTrigonometry.cosine.scaled(
+                by: interval(radialOffsetV, using: &execution), using: &execution),
+              using: &execution
+            ))
+        let cosineSquared =
+          (try vTrigonometry.cosine.multiplied(
+            by: vTrigonometry.cosine, using: &execution
+          ))
+        let azimuthTerm =
+          (try azimuth.multiplied(
+            by:
+              vTrigonometry.cosine.scaled(
+                by: interval(majorRadius, using: &execution), using: &execution
+              )
+              .adding(
+                cosineSquared.scaled(
+                  by: interval(minorRadius, using: &execution), using: &execution),
+                using: &execution), using: &execution
+          ))
+        let axialTerm =
+          (try u.multiplied(
+            by:
+              vTrigonometry.sine
+              .scaled(by: interval(axialOffset * majorRadius, using: &execution), using: &execution)
+              .adding(
+                vTrigonometry.cosine
+                  .multiplied(by: vTrigonometry.sine, using: &execution)
+                  .scaled(
+                    by: interval(axialOffset * minorRadius, using: &execution), using: &execution),
+                using: &execution
+              )
+              .adding(
+                vTrigonometry.cosine
+                  .scaled(
+                    by: interval(majorRadius * majorRadius, using: &execution), using: &execution),
+                using: &execution
+              )
+              .adding(
+                cosineSquared
+                  .scaled(
+                    by: interval(majorRadius * minorRadius, using: &execution), using: &execution),
+                using: &execution
+              )
+              .adding(
+                .constant(
+                  interval(minorRadius * majorRadius, using: &execution), using: &execution),
+                using: &execution
+              )
+              .adding(
+                vTrigonometry.cosine
+                  .scaled(
+                    by: interval(minorRadius * minorRadius, using: &execution), using: &execution),
+                using: &execution
+              ), using: &execution
+          ))
+        return
+          (try azimuthTerm.adding(axialTerm, using: &execution)
+          .scaled(by: interval(minorRadius / .exact(3.0), using: &execution), using: &execution))
       }
     }
   }
@@ -2678,35 +3422,36 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     lowerFraction: Double,
     upperFraction: Double,
     maximumWidth: Double,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> [SurfaceParameterCurveEnclosure] {
+    try execution.consumeWork(1)
+
     struct Item {
       let lower: Double
       let upper: Double
       let depth: Int
     }
-    var pending = [
-      Item(
-        lower: lowerFraction,
-        upper: upperFraction,
-        depth: 0
-      )
-    ]
+    var pending =
+      (try OriginalParameterQueryStorage.values(count: 1, using: &execution) { execution in
+        [
+          Item(
+            lower: lowerFraction,
+            upper: upperFraction,
+            depth: 0
+          )
+        ]
+      })
     var result: [SurfaceParameterCurveEnclosure] = []
     var processedCount = 0
-    // FIXME(INCOMPLETE_IMPLEMENTATION): Caller-bound face extent and query containment
-    // reach this original analytic-pair producer. Its native preparation and cell bounds
-    // still lack a shared-work callback; no complete query-budget receipt may succeed
-    // until those original producer visits debit the caller ledger.
-    if consumeWork != nil {
-      throw KernelError(phase: .topology, code: .unsupportedCapability, tolerance: tolerance,
-        message: "Original analytic-pair cell preparation lacks caller-owned work accounting.")
-    }
+    execution.context = execution.context.at(stage: .domain)
     let parameterBoundsPreparation = try curve.prepareParameterCellBounds(
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
+    execution.context = execution.context.at(stage: .refinement)
     while let item = pending.popLast() {
-      try consumeWork?(item.depth)
+      try execution.consumeWork(1)
+
+      try execution.visitGeometricCell(depth: item.depth)
       processedCount += 1
       guard processedCount <= maximumCellCount else {
         throw KernelError(
@@ -2722,7 +3467,7 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
         bounds = try parameterBoundsPreparation.bounds(
           fromNormalizedFraction: item.lower,
           toNormalizedFraction: item.upper,
-          tolerance: tolerance
+          tolerance: tolerance, using: &execution
         )
       } catch let error as KernelError {
         throw KernelError(
@@ -2735,16 +3480,18 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
         )
       }
       if max(bounds.uLift.width, bounds.vLift.width) <= maximumWidth {
-        result.append(
+        (try OriginalParameterQueryStorage.append(
           SurfaceParameterCurveEnclosure(
             lowerFraction: item.lower,
             upperFraction: item.upper,
             u: bounds.uLift,
             v: bounds.vLift
-          ))
+          ), to: &result, using: &execution))
         continue
       }
-      guard item.depth < maximumSubdivisionDepth else {
+      guard
+        item.depth < min(maximumSubdivisionDepth, execution.effectiveLimits.maximumSubdivisionDepth)
+      else {
         throw KernelError(
           phase: .topology,
           code: .resourceLimitExceeded,
@@ -2763,20 +3510,20 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
           message: "Generic analytic-pair enclosure reached floating-point subdivision resolution."
         )
       }
-      pending.append(
+      (try OriginalParameterQueryStorage.append(
         Item(
           lower: midpoint,
           upper: item.upper,
           depth: item.depth + 1
-        ))
-      pending.append(
+        ), to: &pending, using: &execution))
+      (try OriginalParameterQueryStorage.append(
         Item(
           lower: item.lower,
           upper: midpoint,
           depth: item.depth + 1
-        ))
+        ), to: &pending, using: &execution))
     }
-    return result.sorted { $0.lowerFraction < $1.lowerFraction }
+    return (try OriginalParameterQueryStorage.ordered(result, using: &execution, less: { $0.lowerFraction < $1.lowerFraction }))
   }
 
   private func midpointFluxBounds(
@@ -2785,51 +3532,55 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     curve: CertifiedAnalyticPairSurfaceParameterCurve,
     configuration: Configuration,
     integrand: TrimmedAnalyticSurfaceVolumeEvaluator.Integrand,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> Interval {
+    try execution.consumeWork(1)
+
     let intervalGeometry = try geometryJets(
       parameter: Interval(lower: lower, upper: upper),
-      configuration: configuration
+      configuration: configuration, using: &execution
     )
     let midpoint = lower + (upper - lower) * 0.5
     let midpointGeometry = try geometryJets(
-      parameter: .scalar(midpoint),
-      configuration: configuration
+      parameter: .scalar(midpoint, using: &execution),
+      configuration: configuration, using: &execution
     )
     let reference = try curve.intersection.internalParameter(
       for: curve.role,
       atNormalizedFraction: wrappedEvaluationFraction(
         midpoint / (2.0 * Double.pi),
-        curve: curve
+        curve: curve, using: &execution
       ),
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     ).u
     let intervalU = try torusAngleJet(
       intervalGeometry,
       configuration: configuration,
-      reference: reference
+      reference: reference, using: &execution
     )
     let midpointU = try torusAngleJet(
       midpointGeometry,
       configuration: configuration,
-      reference: reference
+      reference: reference, using: &execution
     )
     let intervalFlux = try torusGreenPrimitive(
       integrand: integrand,
       u: intervalU,
       v: intervalGeometry.minor,
-      tolerance: tolerance
-    ).multiplied(by: intervalGeometry.minor.derivative())
+      tolerance: tolerance, using: &execution
+    ).multiplied(by: intervalGeometry.minor.derivative(using: &execution), using: &execution)
     let midpointFlux = try torusGreenPrimitive(
       integrand: integrand,
       u: midpointU,
       v: midpointGeometry.minor,
-      tolerance: tolerance
-    ).multiplied(by: midpointGeometry.minor.derivative())
+      tolerance: tolerance, using: &execution
+    ).multiplied(by: midpointGeometry.minor.derivative(using: &execution), using: &execution)
     let span = upper - lower
-    let midpointContribution = midpointFlux.coefficients[0].scaled(by: span)
-    let secondDerivative = intervalFlux.coefficients[2]
-      .scaled(by: 2.0)
+    let midpointContribution =
+      (try midpointFlux.coefficients[0].scaled(by: span, using: &execution))
+    let secondDerivative =
+      (try intervalFlux.coefficients[2]
+      .scaled(by: 2.0, using: &execution))
       .maximumAbsoluteValue
     let analyticError = (secondDerivative * span * span * span / 24.0).nextUp
     let floatingPointError =
@@ -2847,13 +3598,15 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     // third derivative, whose interval inflation near a square-root
     // shoulder is offset by the extra span power; both enclosures
     // certify the same integral, so their overlap does too.
-    let correctedContribution = midpointContribution.adding(
-      midpointFlux.coefficients[2].scaled(
-        by: span * span * span / 12.0
-      )
-    )
-    let thirdDerivative = intervalFlux.coefficients[3]
-      .scaled(by: 6.0)
+    let correctedContribution =
+      (try midpointContribution.adding(
+        midpointFlux.coefficients[2].scaled(
+          by: span * span * span / 12.0, using: &execution
+        ), using: &execution
+      ))
+    let thirdDerivative =
+      (try intervalFlux.coefficients[3]
+      .scaled(by: 6.0, using: &execution))
       .maximumAbsoluteValue
     let correctedAnalyticError = (thirdDerivative * span * span * span * span / 192.0).nextUp
     let correctedFloatingPointError =
@@ -2884,12 +3637,14 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     curve: CertifiedAnalyticPairSurfaceParameterCurve,
     configuration: Configuration,
     integrand: TrimmedAnalyticSurfaceVolumeEvaluator.Integrand,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> Interval {
+    try execution.consumeWork(1)
+
     let ranges = try geometryRanges(
       parameter: Interval(lower: lower, upper: upper),
       configuration: configuration,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
     // The cell's own radial frame usually pins the major angle to a
     // narrow window; only a frame that degenerates on the cell falls
@@ -2904,7 +3659,7 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
       curve: curve,
       ranges,
       configuration: configuration,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     ) {
       majorAngleRange = localized
     }
@@ -2923,24 +3678,28 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     // over the cell substitutes into an integral over the exact signed
     // minor-angle delta, which vanishes with the substitution slope at
     // a bounded-window endpoint.
-    let deltaMinor = minorDeltaEnclosure(
-      lower: lower,
-      upper: upper,
-      configuration: configuration,
-      minorRange: ranges.minor
-    )
-    return Interval(
-      lower: q.lower,
-      upper: q.upper
-    ).multiplied(by: deltaMinor)
+    let deltaMinor =
+      (try minorDeltaEnclosure(
+        lower: lower,
+        upper: upper,
+        configuration: configuration,
+        minorRange: ranges.minor, using: &execution
+      ))
+    return
+      (try Interval(
+        lower: q.lower,
+        upper: q.upper
+      ).multiplied(by: deltaMinor, using: &execution))
   }
 
   private func torusGreenPrimitive(
     integrand: TrimmedAnalyticSurfaceVolumeEvaluator.Integrand,
     u: Jet,
     v: Jet,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> Jet {
+    try execution.consumeWork(1)
+
     guard
       case .torus(
         let
@@ -2962,47 +3721,76 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
         message: "Torus Green primitive requires a torus integrand."
       )
     }
-    let uTrigonometry = u.sineAndCosine()
-    let vTrigonometry = v.sineAndCosine()
-    let azimuth = uTrigonometry.sine.multiplied(by: .constant(interval(radialOffsetU)))
-      .subtracting(
-        uTrigonometry.cosine.multiplied(by: .constant(interval(radialOffsetV)))
+    let uTrigonometry = (try u.sineAndCosine(using: &execution))
+    let vTrigonometry = (try v.sineAndCosine(using: &execution))
+    let azimuth =
+      (try uTrigonometry.sine.multiplied(
+        by: .constant(interval(radialOffsetU, using: &execution), using: &execution),
+        using: &execution
       )
-    let azimuthTerm = azimuth.multiplied(
-      by:
-        vTrigonometry.cosine.scaled(by: interval(majorRadius))
-        .adding(
-          vTrigonometry.cosine.multiplied(by: vTrigonometry.cosine)
-            .scaled(by: interval(minorRadius))
-        )
-    )
-    let axialTerm = u.multiplied(
-      by:
-        vTrigonometry.sine.scaled(by: interval(axialOffset * majorRadius))
-        .adding(
-          vTrigonometry.cosine.multiplied(by: vTrigonometry.sine)
-            .scaled(by: interval(axialOffset * minorRadius))
-        )
-        .adding(
-          vTrigonometry.cosine.scaled(by: interval(majorRadius * majorRadius))
-        )
-        .adding(
-          vTrigonometry.cosine.multiplied(by: vTrigonometry.cosine)
-            .scaled(by: interval(majorRadius * minorRadius))
-        )
-        .adding(.constant(interval(minorRadius * majorRadius)))
-        .adding(
-          vTrigonometry.cosine.scaled(by: interval(minorRadius * minorRadius))
-        )
-    )
-    return azimuthTerm.adding(axialTerm)
-      .scaled(by: interval(minorRadius / .exact(3.0)))
+      .subtracting(
+        uTrigonometry.cosine.multiplied(
+          by: .constant(interval(radialOffsetV, using: &execution), using: &execution),
+          using: &execution), using: &execution
+      ))
+    let azimuthTerm =
+      (try azimuth.multiplied(
+        by:
+          vTrigonometry.cosine.scaled(
+            by: interval(majorRadius, using: &execution), using: &execution
+          )
+          .adding(
+            vTrigonometry.cosine.multiplied(by: vTrigonometry.cosine, using: &execution)
+              .scaled(by: interval(minorRadius, using: &execution), using: &execution),
+            using: &execution
+          ), using: &execution
+      ))
+    let axialTerm =
+      (try u.multiplied(
+        by:
+          vTrigonometry.sine.scaled(
+            by: interval(axialOffset * majorRadius, using: &execution), using: &execution
+          )
+          .adding(
+            vTrigonometry.cosine.multiplied(by: vTrigonometry.sine, using: &execution)
+              .scaled(
+                by: interval(axialOffset * minorRadius, using: &execution), using: &execution),
+            using: &execution
+          )
+          .adding(
+            vTrigonometry.cosine.scaled(
+              by: interval(majorRadius * majorRadius, using: &execution), using: &execution),
+            using: &execution
+          )
+          .adding(
+            vTrigonometry.cosine.multiplied(by: vTrigonometry.cosine, using: &execution)
+              .scaled(
+                by: interval(majorRadius * minorRadius, using: &execution), using: &execution),
+            using: &execution
+          )
+          .adding(
+            .constant(interval(minorRadius * majorRadius, using: &execution), using: &execution),
+            using: &execution
+          )
+          .adding(
+            vTrigonometry.cosine.scaled(
+              by: interval(minorRadius * minorRadius, using: &execution), using: &execution),
+            using: &execution
+          ), using: &execution
+      ))
+    return
+      (try azimuthTerm.adding(axialTerm, using: &execution)
+      .scaled(by: interval(minorRadius / .exact(3.0), using: &execution), using: &execution))
   }
 
   private func interval(
-    _ value: TrimmedAnalyticSurfaceVolumeEvaluator.Interval
-  ) -> Interval {
-    Interval(lower: value.lower, upper: value.upper)
+    _ value: TrimmedAnalyticSurfaceVolumeEvaluator.Interval,
+    using execution: inout OriginalQueryExecution
+  ) throws -> Interval {
+    try execution.consumeWork(1)
+    return
+
+      Interval(lower: value.lower, upper: value.upper)
   }
 
   private func makeWorkItem(
@@ -3012,15 +3800,17 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     curve: CertifiedAnalyticPairSurfaceParameterCurve,
     configuration: Configuration,
     uShift: Double,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> WorkItem {
+    try execution.consumeWork(1)
+
     let envelope = try geometricFallbackBounds(
       lower: lower,
       upper: upper,
       curve: curve,
       configuration: configuration,
       uShift: uShift,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
     var bounds: SurfaceParameterAreaBounds
     do {
@@ -3030,7 +3820,7 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
         curve: curve,
         configuration: configuration,
         uShift: uShift,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
       // Both enclosures certify the same integral, so their overlap
       // does too: the geometric envelope wins on the square-root
@@ -3074,63 +3864,75 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     curve: CertifiedAnalyticPairSurfaceParameterCurve,
     configuration: Configuration,
     uShift: Double,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> SurfaceParameterAreaBounds {
+    try execution.consumeWork(1)
+
     let intervalJets = try geometryJets(
       parameter: Interval(lower: lower, upper: upper),
-      configuration: configuration
+      configuration: configuration, using: &execution
     )
     let midpoint = lower + (upper - lower) * 0.5
     let midpointJets = try geometryJets(
-      parameter: .scalar(midpoint),
-      configuration: configuration
+      parameter: .scalar(midpoint, using: &execution),
+      configuration: configuration, using: &execution
     )
     let intervalIntegrand: Jet
     let midpointIntegrand: Jet
-    if isPlaneRole(curve, configuration: configuration) {
-      let intervalCoordinates = planeCoordinateJets(
-        intervalJets,
-        configuration: configuration,
-        uShift: uShift
-      )
-      let midpointCoordinates = planeCoordinateJets(
-        midpointJets,
-        configuration: configuration,
-        uShift: uShift
-      )
-      intervalIntegrand = intervalCoordinates.u.multiplied(
-        by: intervalCoordinates.v.derivative()
-      )
-      midpointIntegrand = midpointCoordinates.u.multiplied(
-        by: midpointCoordinates.v.derivative()
-      )
+    if try isPlaneRole(curve, configuration: configuration, using: &execution) {
+      let intervalCoordinates =
+        (try planeCoordinateJets(
+          intervalJets,
+          configuration: configuration,
+          uShift: uShift, using: &execution
+        ))
+      let midpointCoordinates =
+        (try planeCoordinateJets(
+          midpointJets,
+          configuration: configuration,
+          uShift: uShift, using: &execution
+        ))
+      intervalIntegrand =
+        (try intervalCoordinates.u.multiplied(
+          by: intervalCoordinates.v.derivative(using: &execution), using: &execution
+        ))
+      midpointIntegrand =
+        (try midpointCoordinates.u.multiplied(
+          by: midpointCoordinates.v.derivative(using: &execution), using: &execution
+        ))
     } else {
       let reference = try curve.intersection.internalParameter(
         for: curve.role,
         atNormalizedFraction: wrappedEvaluationFraction(
           midpoint / (2.0 * Double.pi),
-          curve: curve
+          curve: curve, using: &execution
         ),
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       ).u
       let intervalU = try torusAngleJet(
         intervalJets,
         configuration: configuration,
-        reference: reference
-      ).adding(.constant(uShift))
+        reference: reference, using: &execution
+      ).adding(.constant(uShift, using: &execution), using: &execution)
       let midpointU = try torusAngleJet(
         midpointJets,
         configuration: configuration,
-        reference: reference
-      ).adding(.constant(uShift))
-      intervalIntegrand = intervalU.multiplied(by: intervalJets.minor.derivative())
-      midpointIntegrand = midpointU.multiplied(by: midpointJets.minor.derivative())
+        reference: reference, using: &execution
+      ).adding(.constant(uShift, using: &execution), using: &execution)
+      intervalIntegrand =
+        (try intervalU.multiplied(
+          by: intervalJets.minor.derivative(using: &execution), using: &execution))
+      midpointIntegrand =
+        (try midpointU.multiplied(
+          by: midpointJets.minor.derivative(using: &execution), using: &execution))
     }
 
     let span = upper - lower
-    let midpointContribution = midpointIntegrand.coefficients[0].scaled(by: span)
-    let secondDerivativeBound = intervalIntegrand.coefficients[2]
-      .scaled(by: 2.0)
+    let midpointContribution =
+      (try midpointIntegrand.coefficients[0].scaled(by: span, using: &execution))
+    let secondDerivativeBound =
+      (try intervalIntegrand.coefficients[2]
+      .scaled(by: 2.0, using: &execution))
       .maximumAbsoluteValue
     let analyticError = (secondDerivativeBound * span * span * span / 24.0).nextUp
     let floatingPointError =
@@ -3148,13 +3950,15 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     // third derivative, whose interval inflation near a square-root
     // shoulder is offset by the extra span power; both enclosures
     // certify the same integral, so their overlap does too.
-    let correctedContribution = midpointContribution.adding(
-      midpointIntegrand.coefficients[2].scaled(
-        by: span * span * span / 12.0
-      )
-    )
-    let thirdDerivativeBound = intervalIntegrand.coefficients[3]
-      .scaled(by: 6.0)
+    let correctedContribution =
+      (try midpointContribution.adding(
+        midpointIntegrand.coefficients[2].scaled(
+          by: span * span * span / 12.0, using: &execution
+        ), using: &execution
+      ))
+    let thirdDerivativeBound =
+      (try intervalIntegrand.coefficients[3]
+      .scaled(by: 6.0, using: &execution))
       .maximumAbsoluteValue
     let correctedAnalyticError = (thirdDerivativeBound * span * span * span * span / 192.0).nextUp
     let correctedFloatingPointError =
@@ -3187,44 +3991,51 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     curve: CertifiedAnalyticPairSurfaceParameterCurve,
     configuration: Configuration,
     uShift: Double,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> SurfaceParameterAreaBounds {
+    try execution.consumeWork(1)
+
     let ranges = try geometryRanges(
       parameter: Interval(lower: lower, upper: upper),
       configuration: configuration,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
-    if isPlaneRole(curve, configuration: configuration) {
-      let coordinateRanges = planeCoordinateRanges(
-        ranges,
-        configuration: configuration,
-        uShift: uShift
-      )
+    if try isPlaneRole(curve, configuration: configuration, using: &execution) {
+      let coordinateRanges =
+        (try planeCoordinateRanges(
+          ranges,
+          configuration: configuration,
+          uShift: uShift, using: &execution
+        ))
       let start = try curve.intersection.internalParameter(
         for: curve.role,
         atNormalizedFraction: wrappedEvaluationFraction(
           lower / (2.0 * Double.pi),
-          curve: curve
+          curve: curve, using: &execution
         ),
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
       let end = try curve.intersection.internalParameter(
         for: curve.role,
         atNormalizedFraction: wrappedEvaluationFraction(
           upper / (2.0 * Double.pi),
-          curve: curve
+          curve: curve, using: &execution
         ),
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
       let uRange = coordinateRanges.u
-      let vRange = coordinateRanges.v
-        .expanded(toInclude: start.v)
-        .expanded(toInclude: end.v)
-      let endpointVDelta = Interval.scalar(end.v).subtracting(.scalar(start.v))
+      let vRange =
+        (try coordinateRanges.v
+          .expanded(toInclude: start.v, using: &execution)
+          .expanded(toInclude: end.v, using: &execution))
+      let endpointVDelta =
+        (try Interval.scalar(end.v, using: &execution).subtracting(
+          .scalar(start.v, using: &execution), using: &execution))
       let centerU = uRange.lower + (uRange.upper - uRange.lower) * 0.5
-      let centerContribution = Interval.scalar(centerU).multiplied(
-        by: endpointVDelta
-      )
+      let centerContribution =
+        (try Interval.scalar(centerU, using: &execution).multiplied(
+          by: endpointVDelta, using: &execution
+        ))
       // The plane-torus section is an algebraic plane curve of degree at
       // most four. This subarc lies in the complete UV rectangle and hence
       // in its half-diagonal disk. Crofton's formula bounds all degree-four
@@ -3239,12 +4050,13 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
       )
     }
 
-    let deltaMinor = minorDeltaEnclosure(
-      lower: lower,
-      upper: upper,
-      configuration: configuration,
-      minorRange: ranges.minor
-    )
+    let deltaMinor =
+      (try minorDeltaEnclosure(
+        lower: lower,
+        upper: upper,
+        configuration: configuration,
+        minorRange: ranges.minor, using: &execution
+      ))
     // The cell's own radial frame usually pins the major angle to a
     // narrow window; only a frame that degenerates on the cell falls
     // back to the whole period.
@@ -3258,7 +4070,7 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
       curve: curve,
       ranges,
       configuration: configuration,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     ) {
       majorAngleRange = localized
     }
@@ -3266,21 +4078,25 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
       lower: (uShift + majorAngleRange.lower).nextDown,
       upper: (uShift + majorAngleRange.upper).nextUp
     )
-    let product = shiftedAngle.multiplied(by: deltaMinor)
+    let product = (try shiftedAngle.multiplied(by: deltaMinor, using: &execution))
     return SurfaceParameterAreaBounds(lower: product.lower, upper: product.upper)
   }
 
   private func geometryJets(
     parameter: Interval,
-    configuration: Configuration
+    configuration: Configuration, using execution: inout OriginalQueryExecution
   ) throws -> GeometryJets {
-    let t = Jet.variable(parameter)
+    try execution.consumeWork(1)
+
+    let t = (try Jet.variable(parameter, using: &execution))
     let minor: Jet
     switch configuration.componentKind {
     case .negativeFullBranch, .positiveFullBranch:
       minor = t
     case .negativeInnerTangencyBranch, .positiveInnerTangencyBranch:
-      minor = t.adding(.constant(configuration.lowerMinorAngle))
+      minor =
+        (try t.adding(
+          .constant(configuration.lowerMinorAngle, using: &execution), using: &execution))
     case .boundedMinorAngle:
       let midpoint =
         configuration.lowerMinorAngle
@@ -3288,25 +4104,32 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
       let halfSpan =
         (configuration.upperMinorAngle
           - configuration.lowerMinorAngle) * 0.5
-      minor = .constant(midpoint).subtracting(
-        t.sineAndCosine().cosine.scaled(by: halfSpan)
-      )
+      minor =
+        (try .constant(midpoint, using: &execution).subtracting(
+          t.sineAndCosine(using: &execution).cosine.scaled(by: halfSpan, using: &execution),
+          using: &execution
+        ))
     }
-    let minorTrigonometry = minor.sineAndCosine()
-    let radialScale = Jet.constant(configuration.majorRadius).adding(
-      minorTrigonometry.cosine.scaled(by: configuration.minorRadius)
-    )
-    let axialTerm = Jet.constant(configuration.centerDistance).adding(
-      minorTrigonometry.sine.scaled(
-        by: configuration.minorRadius * configuration.axialNormal
-      )
-    )
+    let minorTrigonometry = (try minor.sineAndCosine(using: &execution))
+    let radialScale =
+      (try Jet.constant(configuration.majorRadius, using: &execution).adding(
+        minorTrigonometry.cosine.scaled(by: configuration.minorRadius, using: &execution),
+        using: &execution
+      ))
+    let axialTerm =
+      (try Jet.constant(configuration.centerDistance, using: &execution).adding(
+        minorTrigonometry.sine.scaled(
+          by: configuration.minorRadius * configuration.axialNormal, using: &execution
+        ), using: &execution
+      ))
     let discriminant =
-      radialScale
-      .multiplied(by: radialScale)
-      .scaled(by: configuration.radialNormalLength * configuration.radialNormalLength)
-      .subtracting(axialTerm.multiplied(by: axialTerm))
-    let transverseMagnitude = try discriminant.squareRoot()
+      (try radialScale
+        .multiplied(by: radialScale, using: &execution)
+        .scaled(
+          by: configuration.radialNormalLength * configuration.radialNormalLength, using: &execution
+        )
+        .subtracting(axialTerm.multiplied(by: axialTerm, using: &execution), using: &execution))
+    let transverseMagnitude = try discriminant.squareRoot(using: &execution)
     let transverseSign: Double
     switch configuration.componentKind {
     case .negativeFullBranch, .negativeInnerTangencyBranch:
@@ -3321,9 +4144,10 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     }
     let inverseRadialNormal = 1.0 / configuration.radialNormalLength
     return GeometryJets(
-      along: axialTerm.scaled(by: -inverseRadialNormal),
-      across: transverseMagnitude.scaled(by: transverseSign * inverseRadialNormal),
-      height: minorTrigonometry.sine.scaled(by: configuration.minorRadius),
+      along: (try axialTerm.scaled(by: -inverseRadialNormal, using: &execution)),
+      across: (try transverseMagnitude.scaled(
+        by: transverseSign * inverseRadialNormal, using: &execution)),
+      height: (try minorTrigonometry.sine.scaled(by: configuration.minorRadius, using: &execution)),
       minor: minor
     )
   }
@@ -3331,15 +4155,19 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
   private func geometryRanges(
     parameter: Interval,
     configuration: Configuration,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> GeometryRanges {
-    let t = Jet.variable(parameter)
+    try execution.consumeWork(1)
+
+    let t = (try Jet.variable(parameter, using: &execution))
     let minor: Jet
     switch configuration.componentKind {
     case .negativeFullBranch, .positiveFullBranch:
       minor = t
     case .negativeInnerTangencyBranch, .positiveInnerTangencyBranch:
-      minor = t.adding(.constant(configuration.lowerMinorAngle))
+      minor =
+        (try t.adding(
+          .constant(configuration.lowerMinorAngle, using: &execution), using: &execution))
     case .boundedMinorAngle:
       let midpoint =
         configuration.lowerMinorAngle
@@ -3347,24 +4175,31 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
       let halfSpan =
         (configuration.upperMinorAngle
           - configuration.lowerMinorAngle) * 0.5
-      minor = .constant(midpoint).subtracting(
-        t.sineAndCosine().cosine.scaled(by: halfSpan)
-      )
+      minor =
+        (try .constant(midpoint, using: &execution).subtracting(
+          t.sineAndCosine(using: &execution).cosine.scaled(by: halfSpan, using: &execution),
+          using: &execution
+        ))
     }
-    let trigonometry = minor.sineAndCosine()
-    let radialScale = Jet.constant(configuration.majorRadius).adding(
-      trigonometry.cosine.scaled(by: configuration.minorRadius)
-    ).coefficients[0]
-    let axialTerm = Jet.constant(configuration.centerDistance).adding(
-      trigonometry.sine.scaled(
-        by: configuration.minorRadius * configuration.axialNormal
-      )
-    ).coefficients[0]
+    let trigonometry = (try minor.sineAndCosine(using: &execution))
+    let radialScale =
+      (try Jet.constant(configuration.majorRadius, using: &execution).adding(
+        trigonometry.cosine.scaled(by: configuration.minorRadius, using: &execution),
+        using: &execution
+      )).coefficients[0]
+    let axialTerm =
+      (try Jet.constant(configuration.centerDistance, using: &execution).adding(
+        trigonometry.sine.scaled(
+          by: configuration.minorRadius * configuration.axialNormal, using: &execution
+        ), using: &execution
+      )).coefficients[0]
     let discriminant =
-      radialScale
-      .multiplied(by: radialScale)
-      .scaled(by: configuration.radialNormalLength * configuration.radialNormalLength)
-      .subtracting(axialTerm.multiplied(by: axialTerm))
+      (try radialScale
+        .multiplied(by: radialScale, using: &execution)
+        .scaled(
+          by: configuration.radialNormalLength * configuration.radialNormalLength, using: &execution
+        )
+        .subtracting(axialTerm.multiplied(by: axialTerm, using: &execution), using: &execution))
     let classificationTolerance = max(
       tolerance.distance * configuration.characteristicLength * 8.0,
       Double.ulpOfOne * configuration.characteristicLength
@@ -3401,9 +4236,10 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     }
     let inverseRadialNormal = 1.0 / configuration.radialNormalLength
     return GeometryRanges(
-      along: axialTerm.scaled(by: -inverseRadialNormal),
-      across: transverse.scaled(by: inverseRadialNormal),
-      height: trigonometry.sine.coefficients[0].scaled(by: configuration.minorRadius),
+      along: (try axialTerm.scaled(by: -inverseRadialNormal, using: &execution)),
+      across: (try transverse.scaled(by: inverseRadialNormal, using: &execution)),
+      height: (try trigonometry.sine.coefficients[0].scaled(
+        by: configuration.minorRadius, using: &execution)),
       minor: minor.coefficients[0]
     )
   }
@@ -3411,129 +4247,154 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
   private func planeCoordinateJets(
     _ geometry: GeometryJets,
     configuration: Configuration,
-    uShift: Double
-  ) -> (u: Jet, v: Jet) {
+    uShift: Double, using execution: inout OriginalQueryExecution
+  ) throws -> (u: Jet, v: Jet) {
+    try execution.consumeWork(1)
+
     let centerOffset = configuration.torusCenter - configuration.planeOrigin
-    let u = Jet.constant(centerOffset.dot(configuration.planeBasisU) + uShift)
-      .adding(
-        geometry.along.scaled(
-          by: configuration.radialNormal.dot(configuration.planeBasisU)
+    let u =
+      (try Jet.constant(centerOffset.dot(configuration.planeBasisU) + uShift, using: &execution)
+        .adding(
+          geometry.along.scaled(
+            by: configuration.radialNormal.dot(configuration.planeBasisU), using: &execution
+          ), using: &execution
         )
-      )
-      .adding(
-        geometry.across.scaled(
-          by: configuration.radialPerpendicular.dot(configuration.planeBasisU)
+        .adding(
+          geometry.across.scaled(
+            by: configuration.radialPerpendicular.dot(configuration.planeBasisU), using: &execution
+          ), using: &execution
         )
-      )
-      .adding(
-        geometry.height.scaled(
-          by: configuration.torusAxis.dot(configuration.planeBasisU)
-        ))
-    let v = Jet.constant(centerOffset.dot(configuration.planeBasisV))
-      .adding(
-        geometry.along.scaled(
-          by: configuration.radialNormal.dot(configuration.planeBasisV)
+        .adding(
+          geometry.height.scaled(
+            by: configuration.torusAxis.dot(configuration.planeBasisU), using: &execution
+          ), using: &execution))
+    let v =
+      (try Jet.constant(centerOffset.dot(configuration.planeBasisV), using: &execution)
+        .adding(
+          geometry.along.scaled(
+            by: configuration.radialNormal.dot(configuration.planeBasisV), using: &execution
+          ), using: &execution
         )
-      )
-      .adding(
-        geometry.across.scaled(
-          by: configuration.radialPerpendicular.dot(configuration.planeBasisV)
+        .adding(
+          geometry.across.scaled(
+            by: configuration.radialPerpendicular.dot(configuration.planeBasisV), using: &execution
+          ), using: &execution
         )
-      )
-      .adding(
-        geometry.height.scaled(
-          by: configuration.torusAxis.dot(configuration.planeBasisV)
-        ))
+        .adding(
+          geometry.height.scaled(
+            by: configuration.torusAxis.dot(configuration.planeBasisV), using: &execution
+          ), using: &execution))
     return (u, v)
   }
 
   private func planeCoordinateRanges(
     _ geometry: GeometryRanges,
     configuration: Configuration,
-    uShift: Double
-  ) -> (u: Interval, v: Interval) {
+    uShift: Double, using execution: inout OriginalQueryExecution
+  ) throws -> (u: Interval, v: Interval) {
+    try execution.consumeWork(1)
+
     let centerOffset = configuration.torusCenter - configuration.planeOrigin
-    let u = Interval.scalar(centerOffset.dot(configuration.planeBasisU) + uShift)
-      .adding(
-        geometry.along.scaled(
-          by: configuration.radialNormal.dot(configuration.planeBasisU)
+    let u =
+      (try Interval.scalar(centerOffset.dot(configuration.planeBasisU) + uShift, using: &execution)
+        .adding(
+          geometry.along.scaled(
+            by: configuration.radialNormal.dot(configuration.planeBasisU), using: &execution
+          ), using: &execution
         )
-      )
-      .adding(
-        geometry.across.scaled(
-          by: configuration.radialPerpendicular.dot(configuration.planeBasisU)
+        .adding(
+          geometry.across.scaled(
+            by: configuration.radialPerpendicular.dot(configuration.planeBasisU), using: &execution
+          ), using: &execution
         )
-      )
-      .adding(
-        geometry.height.scaled(
-          by: configuration.torusAxis.dot(configuration.planeBasisU)
-        ))
-    let v = Interval.scalar(centerOffset.dot(configuration.planeBasisV))
-      .adding(
-        geometry.along.scaled(
-          by: configuration.radialNormal.dot(configuration.planeBasisV)
+        .adding(
+          geometry.height.scaled(
+            by: configuration.torusAxis.dot(configuration.planeBasisU), using: &execution
+          ), using: &execution))
+    let v =
+      (try Interval.scalar(centerOffset.dot(configuration.planeBasisV), using: &execution)
+        .adding(
+          geometry.along.scaled(
+            by: configuration.radialNormal.dot(configuration.planeBasisV), using: &execution
+          ), using: &execution
         )
-      )
-      .adding(
-        geometry.across.scaled(
-          by: configuration.radialPerpendicular.dot(configuration.planeBasisV)
+        .adding(
+          geometry.across.scaled(
+            by: configuration.radialPerpendicular.dot(configuration.planeBasisV), using: &execution
+          ), using: &execution
         )
-      )
-      .adding(
-        geometry.height.scaled(
-          by: configuration.torusAxis.dot(configuration.planeBasisV)
-        ))
+        .adding(
+          geometry.height.scaled(
+            by: configuration.torusAxis.dot(configuration.planeBasisV), using: &execution
+          ), using: &execution))
     return (u, v)
   }
 
   private func torusAngleJet(
     _ geometry: GeometryJets,
     configuration: Configuration,
-    reference: Double
+    reference: Double, using execution: inout OriginalQueryExecution
   ) throws -> Jet {
-    let x = geometry.along.scaled(
-      by: configuration.radialNormal.dot(configuration.torusBasisU)
-    ).adding(
-      geometry.across.scaled(
-        by: configuration.radialPerpendicular.dot(configuration.torusBasisU)
-      ))
-    let y = geometry.along.scaled(
-      by: configuration.radialNormal.dot(configuration.torusBasisV)
-    ).adding(
-      geometry.across.scaled(
-        by: configuration.radialPerpendicular.dot(configuration.torusBasisV)
-      ))
-    let angle = try angleBounds(x: x.coefficients[0], y: y.coefficients[0], reference: reference)
-    let numerator = x.multiplied(by: y.derivative())
-      .subtracting(y.multiplied(by: x.derivative()))
-    let denominator = x.multiplied(by: x).adding(y.multiplied(by: y))
-    let derivative = try numerator.divided(by: denominator)
-    return Jet.fromCoefficients([
-      angle,
-      derivative.coefficients[0],
-      derivative.coefficients[1].scaled(by: 0.5),
-      derivative.coefficients[2].scaled(by: 1.0 / 3.0),
-    ])
+    try execution.consumeWork(1)
+
+    let x =
+      (try geometry.along.scaled(
+        by: configuration.radialNormal.dot(configuration.torusBasisU), using: &execution
+      ).adding(
+        geometry.across.scaled(
+          by: configuration.radialPerpendicular.dot(configuration.torusBasisU), using: &execution
+        ), using: &execution))
+    let y =
+      (try geometry.along.scaled(
+        by: configuration.radialNormal.dot(configuration.torusBasisV), using: &execution
+      ).adding(
+        geometry.across.scaled(
+          by: configuration.radialPerpendicular.dot(configuration.torusBasisV), using: &execution
+        ), using: &execution))
+    let angle = try angleBounds(
+      x: x.coefficients[0], y: y.coefficients[0], reference: reference, using: &execution)
+    let numerator =
+      (try x.multiplied(by: y.derivative(using: &execution), using: &execution)
+        .subtracting(
+          y.multiplied(by: x.derivative(using: &execution), using: &execution), using: &execution))
+    let denominator =
+      (try x.multiplied(by: x, using: &execution).adding(
+        y.multiplied(by: y, using: &execution), using: &execution))
+    let derivative = try numerator.divided(by: denominator, using: &execution)
+    return
+      (try Jet.fromCoefficients(
+        OriginalParameterQueryStorage.values(count: 4, using: &execution) { execution in
+          [
+            angle,
+            derivative.coefficients[0],
+            (try derivative.coefficients[1].scaled(by: 0.5, using: &execution)),
+            (try derivative.coefficients[2].scaled(by: 1.0 / 3.0, using: &execution)),
+          ]
+        }, using: &execution))
   }
 
   private func torusAngleRange(
     _ geometry: GeometryRanges,
     configuration: Configuration,
-    reference: Double
+    reference: Double, using execution: inout OriginalQueryExecution
   ) throws -> Interval {
-    let x = geometry.along.scaled(
-      by: configuration.radialNormal.dot(configuration.torusBasisU)
-    ).adding(
-      geometry.across.scaled(
-        by: configuration.radialPerpendicular.dot(configuration.torusBasisU)
-      ))
-    let y = geometry.along.scaled(
-      by: configuration.radialNormal.dot(configuration.torusBasisV)
-    ).adding(
-      geometry.across.scaled(
-        by: configuration.radialPerpendicular.dot(configuration.torusBasisV)
-      ))
-    return try angleBounds(x: x, y: y, reference: reference)
+    try execution.consumeWork(1)
+
+    let x =
+      (try geometry.along.scaled(
+        by: configuration.radialNormal.dot(configuration.torusBasisU), using: &execution
+      ).adding(
+        geometry.across.scaled(
+          by: configuration.radialPerpendicular.dot(configuration.torusBasisU), using: &execution
+        ), using: &execution))
+    let y =
+      (try geometry.along.scaled(
+        by: configuration.radialNormal.dot(configuration.torusBasisV), using: &execution
+      ).adding(
+        geometry.across.scaled(
+          by: configuration.radialPerpendicular.dot(configuration.torusBasisV), using: &execution
+        ), using: &execution))
+    return try angleBounds(x: x, y: y, reference: reference, using: &execution)
   }
 
   private func localizedTorusAngleRange(
@@ -3542,21 +4403,23 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     curve: CertifiedAnalyticPairSurfaceParameterCurve,
     _ geometry: GeometryRanges,
     configuration: Configuration,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> Interval? {
+    try execution.consumeWork(1)
+
     let reference = try curve.intersection.internalParameter(
       for: curve.role,
       atNormalizedFraction: wrappedEvaluationFraction(
         (lower + (upper - lower) * 0.5) / (2.0 * Double.pi),
-        curve: curve
+        curve: curve, using: &execution
       ),
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     ).u
     do {
       return try torusAngleRange(
         geometry,
         configuration: configuration,
-        reference: reference
+        reference: reference, using: &execution
       )
     } catch is LocalProofFailure {
       // A singular radial box or a periodic seam cannot certify a
@@ -3569,25 +4432,39 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
   private func angleBounds(
     x: Interval,
     y: Interval,
-    reference: Double
+    reference: Double, using execution: inout OriginalQueryExecution
   ) throws -> Interval {
+    try execution.consumeWork(1)
+
     guard (x.containsZero && y.containsZero) == false else {
       throw LocalProofFailure.intervalSingularity
     }
     let period = 2.0 * Double.pi
-    let corners = [
-      (x.lower, y.lower),
-      (x.lower, y.upper),
-      (x.upper, y.lower),
-      (x.upper, y.upper),
-    ]
-    let values = corners.map { corner -> Double in
-      var angle = atan2(corner.1, corner.0)
-      if angle < 0.0 { angle += period }
-      return angle + (round((reference - angle) / period) * period)
-    }
-    let lower = (values.min() ?? -.infinity).nextDown
-    let upper = (values.max() ?? .infinity).nextUp
+    let corners =
+      (try OriginalParameterQueryStorage.values(count: 4, using: &execution) { execution in
+        [
+          (x.lower, y.lower),
+          (x.lower, y.upper),
+          (x.upper, y.lower),
+          (x.upper, y.upper),
+        ]
+      })
+    let values =
+      (try OriginalParameterQueryStorage.map(
+        corners, using: &execution,
+        transform: { corner, execution -> Double in
+          var angle = atan2(corner.1, corner.0)
+          if angle < 0.0 { angle += period }
+          return angle + (round((reference - angle) / period) * period)
+        }))
+    let lower =
+      ((try OriginalParameterQueryStorage.extrema(
+        values, using: &execution, projection: { element, _ in element }))?.lower ?? -.infinity)
+      .nextDown
+    let upper =
+      ((try OriginalParameterQueryStorage.extrema(
+        values, using: &execution, projection: { element, _ in element }))?.upper ?? .infinity)
+      .nextUp
     let roundoff = Double.ulpOfOne * max(abs(reference), 1.0) * 8_192.0
     // The geometry certificate owns the pcurve's universal-cover sheet.
     // In particular, a nodal plane-torus branch can be continuous around
@@ -3604,8 +4481,10 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
 
   private func wrappedEvaluationFraction(
     _ fraction: Double,
-    curve: CertifiedAnalyticPairSurfaceParameterCurve
-  ) -> Double {
+    curve: CertifiedAnalyticPairSurfaceParameterCurve, using execution: inout OriginalQueryExecution
+  ) throws -> Double {
+    try execution.consumeWork(1)
+
     // Seam-lifted spans carry fractions outside [0, 1]; a closed
     // intersection accepts any periodic representative, so evaluation
     // wraps to the principal one.
@@ -3620,11 +4499,13 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     lower: Double,
     upper: Double,
     configuration: Configuration,
-    minorRange: Interval
-  ) -> Interval {
+    minorRange: Interval, using execution: inout OriginalQueryExecution
+  ) throws -> Interval {
+    try execution.consumeWork(1)
+
     let signedDelta =
-      minorAngle(at: upper, configuration: configuration)
-      - minorAngle(at: lower, configuration: configuration)
+      (try minorAngle(at: upper, configuration: configuration, using: &execution))
+      - (try minorAngle(at: lower, configuration: configuration, using: &execution))
     let monotone: Bool
     switch configuration.componentKind {
     case .negativeFullBranch, .positiveFullBranch,
@@ -3639,7 +4520,7 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
       monotone = upperCell - lowerCell <= 1.0
     }
     if monotone {
-      return .scalar(signedDelta)
+      return (try .scalar(signedDelta, using: &execution))
     }
     let variation = ((minorRange.upper - minorRange.lower) * 2.0).nextUp
     return Interval(
@@ -3650,8 +4531,10 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
 
   private func minorAngle(
     at parameter: Double,
-    configuration: Configuration
-  ) -> Double {
+    configuration: Configuration, using execution: inout OriginalQueryExecution
+  ) throws -> Double {
+    try execution.consumeWork(1)
+
     switch configuration.componentKind {
     case .negativeFullBranch, .positiveFullBranch:
       return parameter
@@ -3670,8 +4553,10 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
 
   private func isPlaneRole(
     _ curve: CertifiedAnalyticPairSurfaceParameterCurve,
-    configuration: Configuration
-  ) -> Bool {
+    configuration: Configuration, using execution: inout OriginalQueryExecution
+  ) throws -> Bool {
+    try execution.consumeWork(1)
+
     guard let planeTorusCurve = curve.intersection.planeTorusCurve else {
       return false
     }
@@ -3681,8 +4566,10 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
 
   private func usesSpecializedPlaneTorusPath(
     _ curve: CertifiedAnalyticPairSurfaceParameterCurve,
-    requireTorusRole: Bool
-  ) -> Bool {
+    requireTorusRole: Bool, using execution: inout OriginalQueryExecution
+  ) throws -> Bool {
+    try execution.consumeWork(1)
+
     guard let source = curve.intersection.planeTorusCurve else {
       return false
     }
@@ -3690,9 +4577,15 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     return curve.intersection.surface(for: curve.role) == source.torusSurface
   }
 
-  private func outwardWidthSum(_ items: [WorkItem]) -> Double {
+  private func outwardWidthSum(_ items: [WorkItem], using execution: inout OriginalQueryExecution)
+    throws -> Double
+  {
+    try execution.consumeWork(1)
+
     var result = 0.0
     for item in items {
+      try execution.consumeWork(1)
+
       result = (result + item.width).nextUp
     }
     return result
@@ -3704,8 +4597,10 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
   private func replacingWidthUpperBound(
     _ total: Double,
     removing removed: Double,
-    addingUpperBound added: Double
-  ) -> Double {
+    addingUpperBound added: Double, using execution: inout OriginalQueryExecution
+  ) throws -> Double {
+    try execution.consumeWork(1)
+
     let remainder = (total - removed).nextUp
     return max((remainder + added).nextUp, 0.0)
   }
@@ -3714,8 +4609,10 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     _ total: Double,
     removing removed: Double,
     addingFirst first: Double,
-    second: Double
-  ) -> Double {
+    second: Double, using execution: inout OriginalQueryExecution
+  ) throws -> Double {
+    try execution.consumeWork(1)
+
     var result = (total - removed).nextUp
     result = (result + first).nextUp
     result = (result + second).nextUp
@@ -3724,8 +4621,10 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
 
   private func makeConfiguration(
     curve: CertifiedAnalyticPairSurfaceParameterCurve,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> Configuration {
+    try execution.consumeWork(1)
+
     guard let source = curve.intersection.planeTorusCurve else {
       throw KernelError(
         phase: .topology,
@@ -3734,8 +4633,10 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
         message: "The specialized analytic-pair path lost its required plane-torus source."
       )
     }
-    let planeData = try planeDefinition(source.planeSurface, tolerance: tolerance)
-    let torusData = try torusDefinition(source.torusSurface, tolerance: tolerance)
+    let planeData = try planeDefinition(
+      source.planeSurface, tolerance: tolerance, using: &execution)
+    let torusData = try torusDefinition(
+      source.torusSurface, tolerance: tolerance, using: &execution)
     let axisProjection = planeData.normal.dot(torusData.axis)
     let projectedNormal = planeData.normal - torusData.axis * axisProjection
     let radialNormalLength = projectedNormal.length
@@ -3778,13 +4679,15 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
 
   private func planeDefinition(
     _ surface: Surface3D,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> (
     origin: Point3D,
     normal: Vector3D,
     basisU: Vector3D,
     basisV: Vector3D
   ) {
+    try execution.consumeWork(1)
+
     switch surface {
     case .plane(let plane):
       let normal = try plane.normal.normalized(tolerance: tolerance.distance)
@@ -3813,7 +4716,7 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
 
   private func torusDefinition(
     _ surface: Surface3D,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> (
     center: Point3D,
     axis: Vector3D,
@@ -3822,6 +4725,8 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     basisU: Vector3D,
     basisV: Vector3D
   ) {
+    try execution.consumeWork(1)
+
     guard
       case .analytic(.torus(let center, let axisValue, let majorRadius, let minorRadius)) = surface
     else {
@@ -3841,7 +4746,11 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
 }
 
 /// Preserves the existing optional numeric diagnostic spelling without reflection.
-private func analyticPairOptionalDiagnostic<Value: CustomStringConvertible>(_ value: Value?) -> String {
-    if let value { return "Optional(" + value.description + ")" }
-    return "nil"
+private func analyticPairOptionalDiagnostic<Value: CustomStringConvertible>(_ value: Value?)
+  -> String
+{
+  if let value { return "Optional(" + value.description + ")" }
+  return "nil"
 }
+
+// Actual typed frontier and coefficient allocation operations share the caller execution.

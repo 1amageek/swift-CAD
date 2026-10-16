@@ -3,9 +3,24 @@ import CADCore
 @testable import CADTopology
 import Foundation
 import Testing
+import Synchronization
 
 @Suite("Original nested offset area and XYZ centroid", .timeLimit(.minutes(1)))
 struct NestedOffsetSurfaceAreaIntegrationTests {
+    private func execution(_ budget: OriginalQueryBudget? = nil) throws -> OriginalQueryExecution {
+        OriginalQueryExecution(budget: try budget ?? OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: Int.max, maximumCoefficientDepth: Int.max))
+    }
+
+    private func retainedKernelFailure(_ error: any Error) -> KernelError? {
+        if let kernel = error as? KernelError { return kernel }
+        if let query = error as? OriginalQueryFailure { return retainedKernelFailure(query.originalError) ?? query.kernelFailure }
+        if let scalar = error as? ExactScalarFailure, case .admissionRejected(let cause) = scalar {
+            return retainedKernelFailure(cause)
+        }
+        return nil
+    }
+
     private let tolerance = ModelingTolerance(distance:1e-6,angle:1e-9,relative:1e-4)
 
     @Test(arguments:[false,true])
@@ -69,6 +84,7 @@ struct NestedOffsetSurfaceAreaIntegrationTests {
 
     @Test
     func validHighDegreeSurfaceIsRefusedBeforeOriginalLowerAllocation() throws {
+        let tolerance = tolerance
         let degree = 32
         let knots = Array(repeating:0.0,count:degree+1)+Array(repeating:1.0,count:degree+1)
         let surface = Surface3D.bSpline(BSplineSurface3D(uDegree:degree,vDegree:degree,
@@ -77,16 +93,24 @@ struct NestedOffsetSurfaceAreaIntegrationTests {
                     y:0.03*Double(row)/Double(degree),z:0) }
             }))
         try surface.validate(tolerance:tolerance)
-        var work = 0
+        let workState = Mutex(0)
+        var work: Int {
+            get { workState.withLock { $0 } }
+            set { workState.withLock { $0 = newValue } }
+        }
         do {
-            _ = try SurfaceAreaNativeOffsetTaylorPartition(surface:nested(surface,distances:[0.001,0.0005]),
-                tolerance:tolerance,consumeWork:{
+            var admitted = try execution(OriginalQueryBudget(consumeWorkUnits: { _ in
+                try workState.withLock { work in
                     work += 1
                     if work > 1024 { throw KernelError(phase:.topology,code:.resourceLimitExceeded,
                         residual:Double(work),tolerance:tolerance,message:"Original work refused lower surface allocation.") }
-                })
+                }
+            }))
+            _ = try SurfaceAreaNativeOffsetTaylorPartition(surface:nested(surface,distances:[0.001,0.0005]),
+                tolerance:tolerance, using: &admitted)
             Issue.record("Valid large original lower allocation must be admitted first.")
-        } catch let error as KernelError {
+        } catch {
+            let error = try #require(retainedKernelFailure(error))
             #expect(error.code == .resourceLimitExceeded)
             #expect(error.residual == 1025)
             #expect(work == 1025)
@@ -101,8 +125,8 @@ struct NestedOffsetSurfaceAreaIntegrationTests {
             return try model.faceAreaMeasurement(of:id,tolerance:tolerance)
         }
         do { _ = try await task.value; Issue.record("Cancelled nested offset query must fail.") }
-        catch let error as KernelError { #expect(error.code == .cancelled) }
         catch is CancellationError { }
+        catch let error as KernelError { #expect(error.code == .cancelled) }
     }
 
     private func graph() -> Surface3D {

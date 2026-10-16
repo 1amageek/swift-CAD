@@ -15,7 +15,7 @@ package struct LoftRingCorrespondenceResolver {
     package func correspondence(
         rings: [[Point3D]], reversalsBySection: [[Bool]],
         lockedSectionIndexes: Set<Int>, closesSectionLoop: Bool,
-        tolerance: ModelingTolerance, allowance: inout LoftCorrespondenceAllowance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> LoftRingCorrespondence {
         guard let count = rings.first?.count, count >= 3,
               rings.count == reversalsBySection.count,
@@ -23,13 +23,13 @@ package struct LoftRingCorrespondenceResolver {
               reversalsBySection.allSatisfy({ !$0.isEmpty }) else {
             throw FeatureEvaluationError.invalidGraph("Loft correspondence requires nonempty equal rings and permitted traversal states.")
         }
-        try allowance.charge(rings.count)
+        try execution.consumeWork(rings.count)
         var states = [[Alignment(offset: 0, reversed: false)]]
         for section in rings.indices.dropFirst() {
             let offsetCount = lockedSectionIndexes.contains(section) ? 1 : count
             let (stateCount, overflow) = offsetCount.multipliedReportingOverflow(by: reversalsBySection[section].count)
             guard !overflow else { throw failure(.resourceLimitExceeded, tolerance, "Loft correspondence state count overflowed.") }
-            try allowance.charge(stateCount)
+            try execution.consumeWork(stateCount)
             var row: [Alignment] = []
             row.reserveCapacity(stateCount)
             for reversed in reversalsBySection[section] {
@@ -44,16 +44,16 @@ package struct LoftRingCorrespondenceResolver {
             return OutwardScalarInterval(lower: max(0, (lower * lower).nextDown),
                 upper: (upper * upper).nextUp)
         }
-        func edgeCosts(_ first: Int, _ second: Int, allowance: inout LoftCorrespondenceAllowance) throws -> [OutwardScalarInterval] {
+        func edgeCosts(_ first: Int, _ second: Int, using execution: inout OriginalQueryExecution) throws -> [OutwardScalarInterval] {
             let (entries, overflow) = count.multipliedReportingOverflow(by: 2)
             guard !overflow else { throw failure(.resourceLimitExceeded, tolerance, "Loft correspondence cost count overflowed.") }
-            try allowance.charge(entries)
+            try execution.consumeWork(entries)
             var costs: [OutwardScalarInterval] = []
             costs.reserveCapacity(entries)
             for reversed in [false, true] {
                 for offset in 0..<count {
                     let alignment = Alignment(offset: offset, reversed: reversed)
-                    try allowance.charge(count)
+                    try execution.consumeWork(count)
                     var score = OutwardScalarInterval.exact(0)
                     for vertex in 0..<count {
                         let a = rings[first][vertex]
@@ -76,11 +76,11 @@ package struct LoftRingCorrespondenceResolver {
             return values[(reversed ? count : 0) + offset]
         }
         var connections: [[OutwardScalarInterval]] = []
-        try allowance.charge(rings.count)
+        try execution.consumeWork(rings.count)
         for section in rings.indices.dropFirst() {
-            connections.append(try edgeCosts(section - 1, section, allowance: &allowance))
+            connections.append(try edgeCosts(section - 1, section, using: &execution))
         }
-        let closingCosts = try closesSectionLoop ? edgeCosts(rings.count - 1, 0, allowance: &allowance) : []
+        let closingCosts = try closesSectionLoop ? edgeCosts(rings.count - 1, 0, using: &execution) : []
         let selected = try LoftCorrespondencePathResolver().resolve(
             stateCounts: states.map(\.count),
             transition: { section, previous, next in
@@ -88,13 +88,13 @@ package struct LoftRingCorrespondenceResolver {
             },
             closing: { state in
                 closesSectionLoop ? cost(states[rings.count - 1][state], states[0][0], values: closingCosts) : .exact(0)
-            }, allowance: &allowance, tolerance: tolerance)
-        for ring in rings { try allowance.charge(ring.count) }
+            }, using: &execution, tolerance: tolerance)
+        for ring in rings { try execution.consumeWork(ring.count) }
         let selectedRings = rings.indices.map { section in
             let alignment = states[section][selected[section]]
             return (0..<count).map { rings[section][alignment.index($0, count: count)] }
         }
-        try allowance.charge(rings.count)
+        try execution.consumeWork(rings.count)
         return LoftRingCorrespondence(rings: selectedRings,
             reversals: rings.indices.map { states[$0][selected[$0]].reversed })
     }

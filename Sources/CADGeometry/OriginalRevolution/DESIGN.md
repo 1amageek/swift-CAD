@@ -41,7 +41,7 @@ representative enclosed by the complete source value, never an incidence proof.
 
 All source and prepared coefficient records are immutable and Sendable. Equality
 and persistence use original public source fields, excluding derived enclosures.
-Preparation consumes caller work/storage; fixed evaluation forwards callback work
+Preparation consumes caller work/storage; fixed evaluation forwards the same caller execution
 and performs no independent root refinement or traversal budget reset.
 
 ## Failure, Concurrency, and Constraints
@@ -56,8 +56,8 @@ After the source phase, verify original interior axis roots, reversed generators
 closed mixed derivatives, arbitrary pole order, signed axis orientation, finite
 partial/full turns, source decoding admission and four boundary publication.
 
-Package point and third-order realization overloads forward the caller work
-callback to retained coefficient evaluation. Modeling boundary realization uses
+Package point and third-order realization overloads forward the same exclusive
+`inout OriginalQueryExecution` to retained coefficient evaluation. Modeling boundary realization uses
 these overloads; ordinary public convenience methods preserve historical fixed
 evaluation while never starting a separate proof traversal.
 
@@ -102,3 +102,14 @@ invalidInput. An exactly entirely axial owning generator reports singularGeometr
 an interval-inconclusive regular factor remains singularSystem for subdivision.
 
 Closed query evaluation forwards caller byte admission and independent source/span/subdivision capabilities into the retained generator owning jet. Fixed Rodrigues scalar/vector fields require no temporary array materialization; generated rail Taylor buffers retain their actual allocation owner.
+
+### Direct Execution Contract
+
+Construction, retained interval and Taylor queries, point realization and pole
+normal production receive one exclusive caller execution. Ordinary query entries
+create one explicit root and delegate to the same body. Root-span preparation
+receipts readmit their original immutable budget contributions; no callback,
+word-to-byte adapter or child total-work counter is retained. Explicit native
+span, source and subdivision policies remain local bounds. Taylor arrays retain
+checked typed byte counts before allocation, and value/coefficient depth visits
+remain independent. Decoder construction uses its existing decoding root owner.

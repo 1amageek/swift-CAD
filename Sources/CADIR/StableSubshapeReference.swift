@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 public struct StableSubshapeReference: Hashable, Sendable {
     public let subshapeID: SubshapeID
@@ -13,6 +14,12 @@ public struct StableSubshapeReference: Hashable, Sendable {
     }
 
     public func validate() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         guard subshapeID.isValid else {
             throw KernelError(
                 phase: .validation,
@@ -22,7 +29,7 @@ public struct StableSubshapeReference: Hashable, Sendable {
                 message: "Stable subshape reference requires a valid identity."
             )
         }
-        try geometrySignature.validate()
+        try geometrySignature.validate(using: &execution)
     }
 
 #if !hasFeature(Embedded)

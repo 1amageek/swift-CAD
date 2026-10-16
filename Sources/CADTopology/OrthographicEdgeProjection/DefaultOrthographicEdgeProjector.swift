@@ -17,7 +17,15 @@ public struct DefaultOrthographicEdgeProjector: OrthographicEdgeProjecting {
         onto frame: OrthographicProjectionFrame,
         tolerance: ModelingTolerance
     ) throws -> OrthographicProjectedEdge {
-        try CurrentTaskCancellationChecker().checkCancellation()
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try project(edgeID: edgeID, in: model, orientation: orientation,
+            onto: frame, tolerance: tolerance, using: &execution)
+    }
+
+    public func project(edgeID: EdgeID, in model: BRepModel, orientation: Orientation = .forward,
+        onto frame: OrthographicProjectionFrame, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> OrthographicProjectedEdge {
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard let edge = model.edges[edgeID], edge.id == edgeID,
               let startVertex = model.vertices[edge.startVertexID],
@@ -29,7 +37,7 @@ public struct DefaultOrthographicEdgeProjector: OrthographicEdgeProjecting {
         guard let source = model.geometry.curves[edge.curveID] else {
             throw TopologyError.missingReference("Missing curve \(edge.curveID).")
         }
-        let projected = try curveProjector.project(source, onto: frame, tolerance: tolerance)
+        let projected = try curveProjector.project(source, onto: frame, tolerance: tolerance, using: &execution)
         try startVertex.point.validate()
         try endVertex.point.validate()
         let trim: CurveTrim
@@ -39,7 +47,7 @@ public struct DefaultOrthographicEdgeProjector: OrthographicEdgeProjecting {
             // An unbounded linear image retains the original affine parameter law.
             // A bounded rational straight-line locus does not establish that law.
             guard case .unbounded = source.parameterDomain,
-                  let line = source.exactLinearLocus else {
+                  let line = try source.exactLinearLocus(using: &execution) else {
                 throw TopologyError.invalidTrim(edgeID)
             }
             let length = line.direction.length
@@ -52,9 +60,12 @@ public struct DefaultOrthographicEdgeProjector: OrthographicEdgeProjecting {
                 endParameter: (endVertex.point - line.origin).dot(direction) / length
             )
         }
-        try trim.validate(on: source, edgeID: edgeID, tolerance: tolerance)
-        let originalStart = try projected.originalPoint(at: trim.startParameter)
-        let originalEnd = try projected.originalPoint(at: trim.endParameter)
+        try trim.validate(on: source, edgeID: edgeID, tolerance: tolerance,
+            remainingSourceDepth: min(16, execution.effectiveLimits.remainingSourceDepth),
+            maximumAlgebraicDepth: min(32, execution.effectiveLimits.maximumValueDepth),
+            maximumSubdivisionDepth: min(32, execution.effectiveLimits.maximumSubdivisionDepth), using: &execution)
+        let originalStart = try projected.originalPoint(at: trim.startParameter, using: &execution)
+        let originalEnd = try projected.originalPoint(at: trim.endParameter, using: &execution)
         let startResidual = (startVertex.point - originalStart).length
         let endResidual = (endVertex.point - originalEnd).length
         let endpointAllowance = tolerance.distance * 8.0
@@ -65,11 +76,11 @@ public struct DefaultOrthographicEdgeProjector: OrthographicEdgeProjecting {
         }
         if (startVertex.point - endVertex.point).length <= tolerance.distance,
            try BRepEdgeGeometryClassifier().kind(curve: source, from: trim.startParameter,
-               to: trim.endParameter, tolerance: tolerance) == .open { throw TopologyError.invalidEdge(edgeID) }
+               to: trim.endParameter, tolerance: tolerance, using: &execution) == .open { throw TopologyError.invalidEdge(edgeID) }
         // Verify finite projection at both published trim endpoints.
         _ = try frame.project(originalStart)
         _ = try frame.project(originalEnd)
-        try CurrentTaskCancellationChecker().checkCancellation()
+        try execution.consumeWork(1)
         let reversed = orientation == .reversed
         return OrthographicProjectedEdge(
             edgeID: edgeID,

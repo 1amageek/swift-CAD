@@ -110,7 +110,7 @@ package struct CurvedSheetBridgeWalls {
         }
         for (p, q) in zip(samples, samples.dropFirst() + samples.prefix(1)) { area += p.u * q.v - q.u * p.v }
         return Sheet(surface: surface, orientation: face.orientation, u: u0...u1, v: v0...v1,
-                     parents: context.subshapeIDs(for: .face(faces[0])), winding: area >= 0 ? 1 : -1)
+                     parents: try context.subshapeIDs(for: .face(faces[0])), winding: area >= 0 ? 1 : -1)
     }
 
     private func sides(of sheet: Sheet) -> [Side] {

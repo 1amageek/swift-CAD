@@ -9,9 +9,9 @@ struct ExactNaturalMagnitude: Equatable, Sendable {
     static let zero = Self([])
     static let one = Self([1])
     var isZero: Bool { words.isEmpty }
-    func admittedBitCount<B: RationalAlgebraAdmitting>(usage: inout B) throws -> Int {
+    func admittedBitCount<B: ExactScalarAdmission & ~Copyable>(usage: inout B) throws -> Int {
         guard let last = words.last else { return 0 }
-        try usage.consumeExactWork(1)
+        try usage.consumeWork(1)
         return try exactScalarCount(exactScalarCount(words.count - 1, 32, multiply: true),
             32 - last.leadingZeroBitCount)
     }
@@ -22,9 +22,9 @@ struct ExactNaturalMagnitude: Equatable, Sendable {
         }
         return 0
     }
-    func adding<B: RationalAlgebraAdmitting>(_ other: Self, usage: inout B) throws -> Self {
+    func adding<B: ExactScalarAdmission & ~Copyable>(_ other: Self, usage: inout B) throws -> Self {
         let count = try exactScalarCount(max(words.count, other.words.count), 1)
-        try usage.consumeExactWork(count); try usage.retainExactStorage(count)
+        try usage.consumeWork(count); try usage.retainStorage(bytes: exactScalarPayloadBytes(count: count, of: UInt32.self))
         var output = [UInt32](repeating: 0, count: count); var carry: UInt64 = 0
         for i in 0..<(count - 1) {
             let sum = UInt64(i < words.count ? words[i] : 0)
@@ -33,10 +33,10 @@ struct ExactNaturalMagnitude: Equatable, Sendable {
         }
         output[count - 1] = UInt32(carry); return Self(consume output)
     }
-    func subtracting<B: RationalAlgebraAdmitting>(_ other: Self, usage: inout B) throws -> Self {
-        try usage.consumeExactWork(max(words.count, other.words.count))
+    func subtracting<B: ExactScalarAdmission & ~Copyable>(_ other: Self, usage: inout B) throws -> Self {
+        try usage.consumeWork(max(words.count, other.words.count))
         guard compared(to: other) >= 0 else { throw exactScalarBackendFailure("Negative exact magnitude subtraction.") }
-        try usage.consumeExactWork(words.count); try usage.retainExactStorage(words.count)
+        try usage.consumeWork(words.count); try usage.retainStorage(bytes: exactScalarPayloadBytes(count: words.count, of: UInt32.self))
         var output = [UInt32](repeating: 0, count: words.count); var borrow: UInt64 = 0
         for i in words.indices {
             let lhs = UInt64(words[i]); let rhs = UInt64(i < other.words.count ? other.words[i] : 0) + borrow
@@ -44,13 +44,14 @@ struct ExactNaturalMagnitude: Equatable, Sendable {
         }
         return Self(consume output)
     }
-    func multiplied<B: RationalAlgebraAdmitting>(by other: Self, usage: inout B) throws -> Self {
+    func multiplied<B: ExactScalarAdmission & ~Copyable>(by other: Self, usage: inout B) throws -> Self {
         if isZero || other.isZero { return .zero }
         let count = try exactScalarCount(words.count, other.words.count)
-        try usage.consumeExactWork(exactScalarCount(words.count, other.words.count, multiply: true))
-        try usage.retainExactStorage(count)
+        try usage.consumeWork(exactScalarCount(words.count, other.words.count, multiply: true))
+        try usage.retainStorage(bytes: exactScalarPayloadBytes(count: count, of: UInt32.self))
         var output = [UInt32](repeating: 0, count: count)
         for i in words.indices {
+            try usage.checkpoint()
             var carry: UInt64 = 0
             for j in other.words.indices {
                 let product = UInt64(words[i]) * UInt64(other.words[j]) + UInt64(output[i+j]) + carry
@@ -60,11 +61,11 @@ struct ExactNaturalMagnitude: Equatable, Sendable {
         }
         return Self(consume output)
     }
-    func shifted<B: RationalAlgebraAdmitting>(by bits: Int, usage: inout B) throws -> Self {
+    func shifted<B: ExactScalarAdmission & ~Copyable>(by bits: Int, usage: inout B) throws -> Self {
         guard bits >= 0 else { throw exactScalarBackendFailure("Negative exact magnitude shift.") }
         if isZero { return .zero }
         let count = try exactScalarCount(try exactScalarCount(words.count, bits / 32), 1)
-        try usage.consumeExactWork(count); try usage.retainExactStorage(count)
+        try usage.consumeWork(count); try usage.retainStorage(bytes: exactScalarPayloadBytes(count: count, of: UInt32.self))
         var output = [UInt32](repeating: 0, count: count); var carry: UInt64 = 0
         for i in words.indices {
             let value = UInt64(words[i]) << (bits % 32) | carry
@@ -72,18 +73,18 @@ struct ExactNaturalMagnitude: Equatable, Sendable {
         }
         output[words.count + bits / 32] = UInt32(carry); return Self(consume output)
     }
-    func quotientAndRemainder<B: RationalAlgebraAdmitting>(dividingBy divisor: Self,
+    func quotientAndRemainder<B: ExactScalarAdmission & ~Copyable>(dividingBy divisor: Self,
                                                           usage: inout B) throws -> (Self, Self) {
         guard !divisor.isZero else { throw exactScalarBackendFailure("Exact integer division by zero.") }
-        try usage.consumeExactWork(max(words.count, divisor.words.count))
+        try usage.consumeWork(max(words.count, divisor.words.count))
         if compared(to: divisor) < 0 { return (.zero, self) }
         if divisor.words.count == 1 {
-            try usage.retainExactStorage(try exactScalarCount(words.count, 1))
+            try usage.retainStorage(bytes: exactScalarPayloadBytes(count: try exactScalarCount(words.count, 1), of: UInt32.self))
             var quotient = [UInt32](repeating: 0, count: words.count)
             let denominator = UInt64(divisor.words[0])
             var remainder: UInt64 = 0
             for index in words.indices.reversed() {
-                try exactScalarTaskCheckpoint(); try usage.consumeExactWork(1)
+                try usage.checkpoint(); try usage.consumeWork(1)
                 // The retained remainder is less than the one-limb divisor,
                 // so this base-2^32 partial numerator fits UInt64 exactly.
                 let partial = (remainder << 32) | UInt64(words[index])
@@ -95,13 +96,13 @@ struct ExactNaturalMagnitude: Equatable, Sendable {
         let bitCount = try admittedBitCount(usage: &usage)
         let divisorBitCount = try divisor.admittedBitCount(usage: &usage)
         let shift = bitCount - divisorBitCount
-        try usage.retainExactStorage(try exactScalarCount(words.count, words.count))
+        try usage.retainStorage(bytes: exactScalarPayloadBytes(count: try exactScalarCount(words.count, words.count), of: UInt32.self))
         var quotient = [UInt32](repeating: 0, count: words.count)
         var remainder = words
         var shiftedDivisor = try divisor.shifted(by: shift, usage: &usage).words
         for bit in (0...shift).reversed() {
-            try exactScalarTaskCheckpoint()
-            try usage.consumeExactWork(words.count)
+            try usage.checkpoint()
+            try usage.consumeWork(words.count)
             var comparison = 0
             for index in words.indices.reversed() {
                 let second = index < shiftedDivisor.count ? shiftedDivisor[index] : 0
@@ -111,7 +112,7 @@ struct ExactNaturalMagnitude: Equatable, Sendable {
                 }
             }
             if comparison >= 0 {
-                try usage.consumeExactWork(words.count)
+                try usage.consumeWork(words.count)
                 var borrow: UInt64 = 0
                 for index in remainder.indices {
                     let first = UInt64(remainder[index])
@@ -122,7 +123,7 @@ struct ExactNaturalMagnitude: Equatable, Sendable {
                 quotient[bit / 32] |= UInt32(1) << (bit % 32)
             }
             if bit > 0 {
-                try usage.consumeExactWork(shiftedDivisor.count)
+                try usage.consumeWork(shiftedDivisor.count)
                 // Each iteration aligns the next quotient bit. No new magnitude
                 // is materialized for a shifted or subtracted intermediate.
                 for index in shiftedDivisor.indices {
@@ -133,31 +134,31 @@ struct ExactNaturalMagnitude: Equatable, Sendable {
         }
         return (Self(consume quotient), Self(consume remainder))
     }
-    func trailingZeroBits<B: RationalAlgebraAdmitting>(usage: inout B) throws -> Int {
+    func trailingZeroBits<B: ExactScalarAdmission & ~Copyable>(usage: inout B) throws -> Int {
         for i in words.indices {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             if words[i] != 0 {
                 return try exactScalarCount(exactScalarCount(i, 32, multiply: true), words[i].trailingZeroBitCount)
             }
         }
         return 0
     }
-    func powerOfTwoExponent<B: RationalAlgebraAdmitting>(usage: inout B) throws -> Int? {
+    func powerOfTwoExponent<B: ExactScalarAdmission & ~Copyable>(usage: inout B) throws -> Int? {
         guard let last = words.last, last.nonzeroBitCount == 1 else { return nil }
         for index in words.indices.dropLast() {
-            try exactScalarTaskCheckpoint(); try usage.consumeExactWork(1)
+            try usage.checkpoint(); try usage.consumeWork(1)
             if words[index] != 0 { return nil }
         }
-        try exactScalarTaskCheckpoint(); try usage.consumeExactWork(1)
+        try usage.checkpoint(); try usage.consumeWork(1)
         return try exactScalarCount(exactScalarCount(words.count - 1, 32, multiply: true),
             last.trailingZeroBitCount)
     }
-    func shiftedRight<B: RationalAlgebraAdmitting>(by bits: Int, usage: inout B) throws -> Self {
+    func shiftedRight<B: ExactScalarAdmission & ~Copyable>(by bits: Int, usage: inout B) throws -> Self {
         guard bits >= 0 else { throw exactScalarBackendFailure("Negative exact magnitude right shift.") }
         let offset = bits / 32
         if offset >= words.count { return .zero }
         let count = words.count - offset
-        try usage.consumeExactWork(count); try usage.retainExactStorage(count)
+        try usage.consumeWork(count); try usage.retainStorage(bytes: exactScalarPayloadBytes(count: count, of: UInt32.self))
         var output = [UInt32](repeating: 0, count: count)
         for i in 0..<count {
             let position = i + offset
@@ -166,27 +167,27 @@ struct ExactNaturalMagnitude: Equatable, Sendable {
         }
         return Self(consume output)
     }
-    static func gcd<B: RationalAlgebraAdmitting>(_ a: Self, _ b: Self, usage: inout B) throws -> Self {
+    static func gcd<B: ExactScalarAdmission & ~Copyable>(_ a: Self, _ b: Self, usage: inout B) throws -> Self {
         if a.isZero { return b }; if b.isZero { return a }
         if a == .one || b == .one {
-            try exactScalarTaskCheckpoint(); try usage.consumeExactWork(1)
+            try usage.checkpoint(); try usage.consumeWork(1)
             return .one
         }
         if a.words.count == 1, b.words.count == 1 {
             var first = a.words[0], second = b.words[0]
             while second != 0 {
-                try exactScalarTaskCheckpoint(); try usage.consumeExactWork(1)
+                try usage.checkpoint(); try usage.consumeWork(1)
                 let remainder = first % second
                 first = second; second = remainder
             }
             if first == 1 { return .one }
-            try usage.retainExactStorage(1)
+            try usage.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: UInt32.self))
             return Self([first])
         }
         var lhs = a, rhs = b
         while !rhs.isZero {
-            try exactScalarTaskCheckpoint()
-            try usage.consumeExactWork(max(lhs.words.count, rhs.words.count))
+            try usage.checkpoint()
+            try usage.consumeWork(max(lhs.words.count, rhs.words.count))
             if rhs == .one { return .one }
             let remainder = try lhs.quotientAndRemainder(dividingBy: rhs, usage: &usage).1
             lhs = rhs; rhs = remainder

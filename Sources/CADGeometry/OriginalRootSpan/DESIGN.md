@@ -64,9 +64,8 @@ layout. Public reads and the existing fallible construction API are preserved.
 
 Every constructor, including retained-native preparation and Native decoding,
 reserves the concrete storage payload stride before creating its immutable owner.
-A supplied byte callback owns that reservation; otherwise the existing UInt32-word
-rational ledger owns it. The explicit slot-stride adapter keeps checked ceiling
-division on the same caller ledger. This is retained payload capacity, excluding
+The original caller execution owns checked payload-byte reservation directly.
+There is no slot-stride adapter or copied admission. This is retained payload capacity, excluding
 allocator metadata, rather than a claim about arbitrary runtime allocation costs.
 Existing source/preparation owners are shared, and their previous admissions are
 not repeated for this copy. Query endpoint/capability rebinding creates and admits
@@ -237,19 +236,15 @@ The provider retains its own explicit refusal for periodic/implicit/lift byte
 families; a root chart cannot turn an unsupported provider into success.
 
 
-The constructor overload accepting an explicit storageByteStride forwards every
-native preparation BYTE reservation into the same generic caller admission by
-checked ceiling division. A scoped synchronous forwarding adapter copies and
-restores the invocation-local admission on both success and failure; its lexical
-closures cannot escape construction. Source/algebra slot reservations stay
-separate from actual coefficient payload bytes, avoiding duplicate preparation
-precharges for that payload.
-
-The first-order rational-ledger overload requires the composing storage slot byte stride. It converts each actual native Taylor or retained traversal query allocation with checked ceiling division and debits the same caller ledger. This publishes piecewise D0/D1 bounds without adding higher join continuity. Query ceilings are bounded by the retained constructor capabilities.
+The constructor and first-order/Taylor query ports pass the original execution
+directly into Native preparation and coefficient arithmetic. Every concrete
+Native/Taylor payload is admitted in bytes on that execution. Query ceilings are
+bounded by retained constructor capabilities; retained coefficients are proof
+inputs rather than a second budget. Piecewise D0/D1 bounds add no join continuity.
 
 Authored endpoint equality may follow exact structural identity of the entire original source, identical finite authored station and identical selected owning side. Both source payloads are charged before value equality. This proof does not evaluate transcendental coordinates and does not equate different native sides or different charts. Domain and selected-side admission remain required.
 
-A normalized native construction traversal may expose its retained closed owning-jet receipt directly only when its raw source has domain [0,1] and its exact authored endpoints are 0 and 1 in that direction. The original parameter law is identity, so per-owner domains, side metadata and piecewise D0-D3 bounds are retained without a smooth join claim. Caller and constructor span/source/subdivision capabilities both apply; actual query bytes use the composing callback.
+A normalized native construction traversal may expose its retained closed owning-jet receipt directly only when its raw source has domain [0,1] and its exact authored endpoints are 0 and 1 in that direction. The original parameter law is identity, so per-owner domains, side metadata and piecewise D0-D3 bounds are retained without a smooth join claim. Caller and constructor span/source/subdivision capabilities both apply; actual query bytes use the same composing execution.
 
 Endpoint connector literal 0/1 stations expose their retained original boundary endpoint, including its original owning side and constructor capabilities. This symbolic incidence is independent of the construction control point and of a numeric position. Exact rational-coordinate consumers peel authored boundary endpoints; algebraic endpoint consumers retain the original root witness and use exact coordinate transport.
 
@@ -336,3 +331,74 @@ relation under the caller's work/storage and independent algebra cap. Canonical
 conic period identity or retained symbolic endpoints can prove positional
 closure; positional closure alone does not declare a repeated surface chart or
 prove draft tangent-dependent seam continuity.
+
+### Direct Execution Ownership
+
+High-level traversal construction, source validation and retained queries receive
+the same original `inout OriginalQueryExecution`. Exact incidence and rational
+endpoint operations retain generic `inout A: ExactScalarAdmission & ~Copyable`.
+No copied allowance, callback forwarding admission or storage-slot conversion
+creates a second budget. Actual payload bytes are admitted before materialization.
+Retained immutable source preparation carries proof and original coefficients;
+a later independent query re-admits its required proof on its own execution.
+
+A source-owned Native-only Taylor port consumes the retained Native coefficients
+with generic A. It preserves the original directed endpoint map, selected owning
+sides, closed cover, derivative scaling and query guards, and exposes no general
+source capability. The high-level port uses the same Native arithmetic.
+
+```text
+OriginalQueryExecution -> high-level construction/query -> retained source law
+generic A -> Native-only source port -> same retained Native coefficients
+```
+
+Success, explicit refusal, independent depth/storage/work limits and cancellation
+must execute through the real constructor and retained query paths. Signatures
+and syntax alone do not establish completion.
+
+The high-level constructor closes its actual common preparation scope before
+creating the one immutable owner. That owner retains the original budget identity
+and actual scalar/source/geometric/transport depth separately from all configured
+capabilities. A standalone traversal is a parameter receipt rooted at its original source;
+a Native leaf has source depth zero. Traversal/parameter transport depth remains
+separate from source nesting. Drafted embedding owns its explicit traversal and
+source edges. A reversed view shares this proof unchanged. High-level
+queries consume the common retained-preparation port; a new execution rechecks
+every depth and pays its actual ownership/verification bookkeeping, without
+recharging historical arithmetic. The Native-only generic port re-admits attained
+scalar and endpoint depth and checks its explicit source/geometric policy against
+the same immutable preparation proof before using cached endpoint bounds.
+
+| State | Native | WASM | Embedded WASM |
+|---|---|---|---|
+| Source/coefficients/depth/budget identity | Immutable Sendable owner | Same | Same |
+| Query admission and local scopes | Exclusive original execution | Same | Same |
+| Retained proof read | Common re-admission or explicit generic Native policy | Same | Same |
+| Owner release | Reference ownership | Same | Same |
+
+Only Native serialization is conditionally present; no mutable storage or
+Sendable/isolation contract is changed by that conditional. Target compilation
+and runtime behavior remain separate verification obligations.
+
+The package-visible `admitPreparation(using:)` operation exposes the existing
+retained preparation readmission body to composing source owners. It checks the
+actual immutable proof receipt and original budget through the common policy;
+it does not reevaluate jets or substitute configured caps. Consumers install
+their actual source-edge offset before calling this operation.
+
+
+Native B-spline authored-station and physical-angular guards compare the complete
+`BSplineCurve3D` payload after both existing structural charges. Its synthesized
+equality includes degree, knots, control points, weights, periodicity and periodic
+origin, exactly as the same `Curve3D.bSpline` enum case did. A private non-inlined
+helper keeps the aggregate enum comparator off this Native worker path; all other
+cases retain full enum equality. Source validation, station/side admission,
+angular ordering and exact coordinate fallback are unchanged. No tolerance or
+geometric equivalence becomes source equality. The ideal-periodic guard remains
+unchanged because it does not return Native B-spline sources.
+
+[Native endpoint equality tests](../../../Tests/CADGeometryTests/OriginalNativeEndpointPositionRelationTests.swift)
+exercise same/unequal Native stations, foreign exact sources, COW lifetime,
+cumulative N/N−1 work and cancellation on actual Swift Testing workers. The
+standalone `OriginalNativeEndpointPositionPortable.swift` exercises the same
+package issuer on ASAN, normal WASM and Embedded from real module products.

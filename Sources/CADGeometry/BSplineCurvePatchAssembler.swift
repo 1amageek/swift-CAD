@@ -12,13 +12,14 @@ import WASILibc
 #endif
 
 struct BSplineCurvePatchAssembler {
-    func trimmedCurve(
+    func trimmedCurve<A: ExactScalarAdmission & ~Copyable>(
         source: BSplineCurve3D,
         lower: Double,
         upper: Double,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout A
     ) throws -> BSplineCurve3D {
-        try source.validate(tolerance: tolerance)
+        try execution.consumeWork(1)
+        try source.validate(tolerance: tolerance, using: &execution)
         guard try source.domain.containsSpan(
             from: lower,
             to: upper,
@@ -38,17 +39,28 @@ struct BSplineCurvePatchAssembler {
         let sourcePatches = try BSplineCurveBezierDecomposer().curvePatches(
             curve: source,
             intersecting: requestedInterval,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
-        let parameterResolution = resolution(
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 2, of: Double.self))
+        let parameterResolution = try resolution(
             values: [lower, upper],
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
-        let breaks = parameterBreaks(
+        let endpointsCount = sourcePatches.count.multipliedReportingOverflow(by: 2)
+        guard !endpointsCount.overflow else { throw ExactScalarFailure.countOverflow }
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: endpointsCount.partialValue, of: Double.self))
+        var sourceValues: [Double] = []
+        sourceValues.reserveCapacity(endpointsCount.partialValue)
+        for patch in sourcePatches {
+            try execution.consumeWork(1)
+            sourceValues.append(patch.lower)
+            sourceValues.append(patch.upper)
+        }
+        let breaks = try parameterBreaks(
             lower: lower,
             upper: upper,
-            sourceValues: sourcePatches.flatMap { [$0.lower, $0.upper] },
-            resolution: parameterResolution
+            sourceValues: sourceValues,
+            resolution: parameterResolution, using: &execution
         )
         let spanCount = breaks.count - 1
         guard spanCount > 0 else {
@@ -60,11 +72,14 @@ struct BSplineCurvePatchAssembler {
             )
         }
         var patches: [RationalBezierCurvePatch3D] = []
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: spanCount, of: RationalBezierCurvePatch3D.self))
         patches.reserveCapacity(spanCount)
         for index in 0..<spanCount {
+            try execution.consumeWork(1)
             let requested = (breaks[index], breaks[index + 1])
-            guard let sourcePatch = sourcePatches.first(where: { patch in
-                patch.lower <= requested.0 + parameterResolution
+            guard let sourcePatch = try sourcePatches.first(where: { patch in
+                try execution.consumeWork(1)
+                return patch.lower <= requested.0 + parameterResolution
                     && patch.upper >= requested.1 - parameterResolution
             }) else {
                 throw KernelError(
@@ -77,16 +92,23 @@ struct BSplineCurvePatchAssembler {
             patches.append(try sourcePatch.trimmed(
                 from: requested.0,
                 to: requested.1,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             ))
         }
 
-        let controlCount = spanCount * source.degree + 1
+        let product = spanCount.multipliedReportingOverflow(by: source.degree)
+        let count = product.partialValue.addingReportingOverflow(1)
+        guard !product.overflow, !count.overflow else { throw ExactScalarFailure.countOverflow }
+        let controlCount = count.partialValue
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: controlCount, of: Point3D?.self))
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: controlCount, of: Double?.self))
         var points = Array<Point3D?>(repeating: nil, count: controlCount)
         var weights = Array<Double?>(repeating: nil, count: controlCount)
         for span in 0..<spanCount {
+            try execution.consumeWork(1)
             let patch = patches[span]
             for localIndex in 0...source.degree {
+                try execution.consumeWork(1)
                 let targetIndex = span * source.degree + localIndex
                 let point = patch.controlPoints[localIndex]
                 let weight = patch.weights[localIndex]
@@ -97,7 +119,7 @@ struct BSplineCurvePatchAssembler {
                         firstWeight: existingWeight,
                         secondPoint: point,
                         secondWeight: weight,
-                        tolerance: tolerance
+                        tolerance: tolerance, using: &execution
                     )
                 } else {
                     points[targetIndex] = point
@@ -105,7 +127,9 @@ struct BSplineCurvePatchAssembler {
                 }
             }
         }
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: controlCount, of: Point3D.self))
         let resolvedPoints = try points.map { value -> Point3D in
+            try execution.consumeWork(1)
             guard let value else {
                 throw KernelError(
                     phase: .geometry,
@@ -116,7 +140,9 @@ struct BSplineCurvePatchAssembler {
             }
             return value
         }
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: controlCount, of: Double.self))
         let resolvedWeights = try weights.map { value -> Double in
+            try execution.consumeWork(1)
             guard let value else {
                 throw KernelError(
                     phase: .geometry,
@@ -129,27 +155,28 @@ struct BSplineCurvePatchAssembler {
         }
         let result = BSplineCurve3D(
             degree: source.degree,
-            knots: knotVector(breaks: breaks, degree: source.degree),
+            knots: try knotVector(breaks: breaks, degree: source.degree, using: &execution),
             controlPoints: resolvedPoints,
             weights: resolvedWeights
         )
-        try result.validate(tolerance: tolerance)
+        try result.validate(tolerance: tolerance, using: &execution)
         try verify(
             result: result,
             source: source,
             breaks: breaks,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         return result
     }
 
-    private func validateSharedControl(
+    private func validateSharedControl<A: ExactScalarAdmission & ~Copyable>(
         firstPoint: Point3D,
         firstWeight: Double,
         secondPoint: Point3D,
         secondWeight: Double,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout A
     ) throws {
+        try execution.consumeWork(1)
         let pointResidual = (firstPoint - secondPoint).length.nextUp
         let weightScale = max(1.0, abs(firstWeight), abs(secondWeight))
         let weightResidual = abs(firstWeight - secondWeight).nextUp
@@ -165,16 +192,18 @@ struct BSplineCurvePatchAssembler {
         }
     }
 
-    private func verify(
+    private func verify<A: ExactScalarAdmission & ~Copyable>(
         result: BSplineCurve3D,
         source: BSplineCurve3D,
         breaks: [Double],
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout A
     ) throws {
+        try execution.consumeWork(1)
         var maximumResidual = 0.0
-        for parameter in samples(from: breaks) {
-            let expected = try source.point(at: parameter, tolerance: tolerance)
-            let actual = try result.point(at: parameter, tolerance: tolerance)
+        for parameter in try samples(from: breaks, using: &execution) {
+            try execution.consumeWork(1)
+            let expected = try source.point(at: parameter, tolerance: tolerance, using: &execution)
+            let actual = try result.point(at: parameter, tolerance: tolerance, using: &execution)
             maximumResidual = max(maximumResidual, (actual - expected).length.nextUp)
         }
         guard maximumResidual <= tolerance.distance else {
@@ -188,50 +217,80 @@ struct BSplineCurvePatchAssembler {
         }
     }
 
-    private func samples(from breaks: [Double]) -> [Double] {
+    private func samples<A: ExactScalarAdmission & ~Copyable>(from breaks: [Double], using execution: inout A) throws -> [Double] {
+        try execution.consumeWork(1)
         var result: [Double] = []
         for index in 0..<(breaks.count - 1) {
+            try execution.consumeWork(1)
             if result.last != breaks[index] {
+                try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: Double.self))
                 result.append(breaks[index])
             }
-            result.append(breaks[index] + (breaks[index + 1] - breaks[index]) * 0.5)
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: Double.self))
+                result.append(breaks[index] + (breaks[index + 1] - breaks[index]) * 0.5)
         }
         if let last = breaks.last {
-            result.append(last)
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: Double.self))
+                result.append(last)
         }
         return result
     }
 
-    private func parameterBreaks(
+    private func parameterBreaks<A: ExactScalarAdmission & ~Copyable>(
         lower: Double,
         upper: Double,
         sourceValues: [Double],
-        resolution: Double
-    ) -> [Double] {
-        let interior = sourceValues
-            .filter { $0 > lower + resolution && $0 < upper - resolution }
-            .sorted()
+        resolution: Double, using execution: inout A
+    ) throws -> [Double] {
+        try execution.consumeWork(1)
+        var interior: [Double] = []
+        for value in sourceValues {
+            try execution.consumeWork(1)
+            if value > lower + resolution && value < upper - resolution {
+                try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: Double.self))
+                interior.append(value)
+            }
+        }
+        try interior.sort { lhs, rhs in try execution.consumeWork(1); return lhs < rhs }
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: Double.self))
         var result = [lower]
         for value in interior where abs(value - (result.last ?? lower)) > resolution {
-            result.append(value)
+            try execution.consumeWork(1)
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: Double.self))
+                result.append(value)
         }
-        result.append(upper)
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: Double.self))
+                result.append(upper)
         return result
     }
 
-    private func knotVector(breaks: [Double], degree: Int) -> [Double] {
-        Array(repeating: breaks[0], count: degree + 1)
-            + breaks.dropFirst().dropLast().flatMap { value in
-                Array(repeating: value, count: degree)
-            }
-            + Array(repeating: breaks[breaks.count - 1], count: degree + 1)
+    private func knotVector<A: ExactScalarAdmission & ~Copyable>(breaks: [Double], degree: Int, using execution: inout A) throws -> [Double] {
+        try execution.consumeWork(1)
+        let product = breaks.count.multipliedReportingOverflow(by: degree)
+        let total = product.partialValue.addingReportingOverflow(2)
+        let endpointCount = degree.addingReportingOverflow(1)
+        guard degree >= 0, !product.overflow, !total.overflow, !endpointCount.overflow else { throw ExactScalarFailure.countOverflow }
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: total.partialValue, of: Double.self))
+        var result: [Double] = []
+        result.reserveCapacity(total.partialValue)
+        for _ in 0..<endpointCount.partialValue { try execution.consumeWork(1); result.append(breaks[0]) }
+        for value in breaks.dropFirst().dropLast() {
+            try execution.consumeWork(1)
+            for _ in 0..<degree { try execution.consumeWork(1); result.append(value) }
+        }
+        for _ in 0..<endpointCount.partialValue { try execution.consumeWork(1); result.append(breaks[breaks.count - 1]) }
+        return result
     }
 
-    private func resolution(
+    private func resolution<A: ExactScalarAdmission & ~Copyable>(
         values: [Double],
-        tolerance: ModelingTolerance
-    ) -> Double {
-        let scale = max(1.0, values.map(abs).max() ?? 1.0)
+        tolerance: ModelingTolerance, using execution: inout A
+    ) throws -> Double {
+        try execution.consumeWork(1)
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: values.count, of: Double.self))
+        let magnitudes = try values.map { try execution.consumeWork(1); return abs($0) }
+        for _ in magnitudes { try execution.consumeWork(1) }
+        let scale = max(1.0, magnitudes.max() ?? 1.0)
         return max(
             tolerance.relative * scale,
             Double.ulpOfOne * scale * 512.0

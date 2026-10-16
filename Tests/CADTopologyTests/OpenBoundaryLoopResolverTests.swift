@@ -11,12 +11,12 @@ struct OpenBoundaryLoopResolverTests {
             (vertices: [1, 2], role: .inner),
         ])
         let resolver = OpenBoundaryLoopResolver()
-        let loops = resolver.loops(in: fixture.body, model: fixture.model)
+        let loops = try resolver.loops(in: fixture.body, model: fixture.model)
         #expect(loops.map(\.traversals.count).sorted() == [1, 2])
         for boundary in loops {
             let seed = try #require(boundary.traversals.first?.edgeID)
-            #expect(resolver.loop(startingAt: seed, in: fixture.body, model: fixture.model) == boundary)
-            #expect(resolver.isFillableSurfaceBoundary(boundary, in: fixture.body, model: fixture.model)
+            #expect(try resolver.loop(startingAt: seed, in: fixture.body, model: fixture.model) == boundary)
+            #expect(try resolver.isFillableSurfaceBoundary(boundary, in: fixture.body, model: fixture.model)
                     == (boundary.traversals.count == 2))
         }
     }
@@ -29,7 +29,7 @@ struct OpenBoundaryLoopResolverTests {
         var loop = try #require(brep.loops[loopID])
         loop.coedges.append(try #require(loop.coedges.first))
         brep.loops[loopID] = loop
-        #expect(OpenBoundaryLoopResolver().loops(in: fixture.body, model: brep).isEmpty)
+        #expect(try OpenBoundaryLoopResolver().loops(in: fixture.body, model: brep).isEmpty)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -43,12 +43,12 @@ struct OpenBoundaryLoopResolverTests {
         )
         let resolver = OpenBoundaryLoopResolver()
 
-        let loops = resolver.loops(in: fixture.body, model: fixture.model)
+        let loops = try resolver.loops(in: fixture.body, model: fixture.model)
 
         #expect(loops.map(\.traversals.count).sorted() == [3, 4, 5])
         for loop in loops {
             let seed = loop.traversals[0].edgeID
-            let seededLoop = try #require(resolver.loop(
+            let seededLoop = try #require(try resolver.loop(
                 startingAt: seed,
                 in: fixture.body,
                 model: fixture.model
@@ -57,7 +57,7 @@ struct OpenBoundaryLoopResolverTests {
         }
 
         let seed = loops[1].traversals[2].edgeID
-        let seeded = try #require(resolver.loop(
+        let seeded = try #require(try resolver.loop(
             startingAt: seed,
             in: fixture.body,
             model: fixture.model
@@ -89,15 +89,15 @@ struct OpenBoundaryLoopResolverTests {
         )
         let resolver = OpenBoundaryLoopResolver()
 
-        let loops = resolver.loops(in: fixture.body, model: fixture.model)
+        let loops = try resolver.loops(in: fixture.body, model: fixture.model)
 
         #expect(loops.map(\.traversals.count).sorted() == [3, 4])
-        #expect(resolver.loop(
+        #expect(try resolver.loop(
             startingAt: fixture.branchSeed,
             in: fixture.body,
             model: fixture.model
         ) == nil)
-        #expect(resolver.loop(
+        #expect(try resolver.loop(
             startingAt: fixture.openChainSeed,
             in: fixture.body,
             model: fixture.model
@@ -111,18 +111,18 @@ struct OpenBoundaryLoopResolverTests {
             (vertices: [4, 5, 6, 7], role: .inner),
         ])
         let resolver = OpenBoundaryLoopResolver()
-        let loops = resolver.loops(in: fixture.body, model: fixture.model)
+        let loops = try resolver.loops(in: fixture.body, model: fixture.model)
 
         #expect(loops.count == 2)
-        #expect(loops.filter {
-            resolver.isFillableSurfaceBoundary($0, in: fixture.body, model: fixture.model)
+        #expect(try loops.filter {
+            try resolver.isFillableSurfaceBoundary($0, in: fixture.body, model: fixture.model)
         }.map(\.traversals.count) == [4])
-        let inner = try #require(loops.first {
-            resolver.isFillableSurfaceBoundary($0, in: fixture.body, model: fixture.model)
+        let inner = try #require(try loops.first {
+            try resolver.isFillableSurfaceBoundary($0, in: fixture.body, model: fixture.model)
         })
-        let outer = try #require(loops.first { $0 != inner })
-        #expect(resolver.isFillableSurfaceBoundary(inner, in: fixture.body, model: fixture.model))
-        #expect(resolver.isFillableSurfaceBoundary(outer, in: fixture.body, model: fixture.model) == false)
+        let outer = try #require(try loops.first { $0 != inner })
+        #expect(try resolver.isFillableSurfaceBoundary(inner, in: fixture.body, model: fixture.model))
+        #expect(try resolver.isFillableSurfaceBoundary(outer, in: fixture.body, model: fixture.model) == false)
     }
 
     private func model(

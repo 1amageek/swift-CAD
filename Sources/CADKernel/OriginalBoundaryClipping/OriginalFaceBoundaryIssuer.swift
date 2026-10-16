@@ -9,7 +9,7 @@ struct OriginalFaceBoundaryIssuer {
     let loops: [Loop]
 
     init(source: OriginalNativeBoundaryDomain.Source, faceID: FaceID,
-        original: ValidatedBRepModel, usage: inout OriginalRelationUsage) throws {
+        original: ValidatedBRepModel, usage: inout OriginalQueryExecution) throws {
         try Self.step(&usage)
         guard original.validationLevel != .modeling,
             let face = original.model.faces[faceID],
@@ -23,12 +23,12 @@ struct OriginalFaceBoundaryIssuer {
         // support buffer is borrowed; no cloned control net or sampled image is used.
         func charge(_ surface: BSplineSurface3D) throws {
             try Self.step(&usage)
-            try usage.consumeExactWork(8)
+            try usage.consumeWork(8)
             for _ in surface.uKnots { try Self.step(&usage) }
             for _ in surface.vKnots { try Self.step(&usage) }
             for row in surface.controlPoints {
                 try Self.step(&usage)
-                for _ in row { try usage.consumeExactWork(3); try Self.step(&usage) }
+                for _ in row { try usage.consumeWork(3); try Self.step(&usage) }
             }
             for row in surface.weights {
                 try Self.step(&usage)
@@ -100,9 +100,9 @@ struct OriginalFaceBoundaryIssuer {
         try CurrentTaskCancellationChecker().checkCancellation()
         self.domain = domain; loops = retained
     }
-    static func step(_ usage: inout OriginalRelationUsage) throws {
+    static func step(_ usage: inout OriginalQueryExecution) throws {
         try CurrentTaskCancellationChecker().checkCancellation()
-        try usage.consumeExactWork(1)
+        try usage.consumeWork(1)
         try CurrentTaskCancellationChecker().checkCancellation()
     }
     private static func failure(_ code: KernelErrorCode, _ tolerance: ModelingTolerance,

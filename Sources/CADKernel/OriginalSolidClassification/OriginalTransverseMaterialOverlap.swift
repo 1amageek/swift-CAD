@@ -41,14 +41,17 @@ package struct OriginalTransverseMaterialOverlap: OriginalMaterialOverlapProving
     }
 
     package func provesOverlap(in prepared: PreparedBooleanIntersectionGraph,
-        firstBodyID: BodyID, secondBodyID: BodyID,
-        maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
-        consumeWork: @escaping @Sendable (Int) throws -> Void,
-        consumeStorage: (@Sendable (Int) throws -> Void)?, maximumAlgebraicDepth: Int = 32) throws -> Bool {
+        firstBodyID: BodyID,
+        secondBodyID: BodyID,
+        maximumSpanCount: Int,
+        maximumSubdivisionDepth: Int,
+        remainingSourceDepth: Int,
+        maximumAlgebraicDepth: Int = 32,
+        using execution: inout OriginalQueryExecution) throws -> Bool {
         var selectedPair = prepared.toolBodyID == nil
         for target in prepared.targetBodyIDs {
             try Task.checkCancellation()
-            try consumeWork(0)
+            try execution.consumeWork(1)
             if (target == firstBodyID && prepared.toolBodyID == secondBodyID)
                 || (target == secondBodyID && prepared.toolBodyID == firstBodyID) { selectedPair = true }
         }
@@ -57,31 +60,47 @@ package struct OriginalTransverseMaterialOverlap: OriginalMaterialOverlapProving
                 tolerance: prepared.validatedModel.tolerance,
                 message: "Original overlap bodies are foreign to the producer-bound operand graph.")
         }
-        return try prove(graph: prepared.intersectionGraph, firstBodyID: firstBodyID,
-            secondBodyID: secondBodyID, validatedModel: prepared.validatedModel, producerBound: true, classifications: nil,
-            maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-            remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork,
-            consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth).provesOverlap
+        return try prove(graph: prepared.intersectionGraph,
+        firstBodyID: firstBodyID,
+        secondBodyID: secondBodyID,
+        validatedModel: prepared.validatedModel,
+        producerBound: true,
+        classifications: nil,
+        maximumSpanCount: maximumSpanCount,
+        maximumSubdivisionDepth: maximumSubdivisionDepth,
+        remainingSourceDepth: remainingSourceDepth,
+        maximumAlgebraicDepth: maximumAlgebraicDepth,
+        using: &execution).provesOverlap
     }
 
     package func provesOverlap(inAdmitted graph: BooleanIntersectionGraph,
-        firstBodyID: BodyID, secondBodyID: BodyID, validatedModel: ValidatedBRepModel,
-        maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
-        consumeWork: @escaping @Sendable (Int) throws -> Void,
-        consumeStorage: (@Sendable (Int) throws -> Void)?, maximumAlgebraicDepth: Int = 32) throws -> Bool {
-        try prove(graph: graph, firstBodyID: firstBodyID, secondBodyID: secondBodyID,
-            validatedModel: validatedModel, producerBound: false, classifications: nil, maximumSpanCount: maximumSpanCount,
-            maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
-            consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth).provesOverlap
+        firstBodyID: BodyID,
+        secondBodyID: BodyID,
+        validatedModel: ValidatedBRepModel,
+        maximumSpanCount: Int,
+        maximumSubdivisionDepth: Int,
+        remainingSourceDepth: Int,
+        maximumAlgebraicDepth: Int = 32,
+        using execution: inout OriginalQueryExecution) throws -> Bool {
+        try prove(graph: graph,
+        firstBodyID: firstBodyID,
+        secondBodyID: secondBodyID,
+        validatedModel: validatedModel,
+        producerBound: false,
+        classifications: nil,
+        maximumSpanCount: maximumSpanCount,
+        maximumSubdivisionDepth: maximumSubdivisionDepth,
+        remainingSourceDepth: remainingSourceDepth,
+        maximumAlgebraicDepth: maximumAlgebraicDepth,
+        using: &execution).provesOverlap
     }
 
     package func interiorWitness(in classifications: PreparedSolidClassificationPair,
         maximumSubdivisionDepth: Int,
-        consumeWork: @escaping @Sendable (Int) throws -> Void,
-        consumeStorage: (@Sendable (Int) throws -> Void)?) throws -> Point3D? {
+        using execution: inout OriginalQueryExecution) throws -> Point3D? {
         try OriginalContainmentMaterialWitness().witness(in: classifications,
-            maximumSubdivisionDepth: maximumSubdivisionDepth,
-            consumeWork: consumeWork, consumeStorage: consumeStorage)
+        maximumSubdivisionDepth: maximumSubdivisionDepth,
+        using: &execution)
     }
 
     // FIXME(INCOMPLETE_IMPLEMENTATION): This Q1/Q2 positive witness route handles
@@ -91,53 +110,68 @@ package struct OriginalTransverseMaterialOverlap: OriginalMaterialOverlapProving
     // Retained classifier lower storage and combined candidate/source depth are
     // separate accounting dependencies before whole-query bounded completion.
     package func interiorWitness(in prepared: PreparedBooleanIntersectionGraph,
-        maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
-        consumeWork: @escaping @Sendable (Int) throws -> Void,
-        consumeStorage: (@Sendable (Int) throws -> Void)?, maximumAlgebraicDepth: Int = 32) throws -> Point3D? {
+        maximumSpanCount: Int,
+        maximumSubdivisionDepth: Int,
+        remainingSourceDepth: Int,
+        maximumAlgebraicDepth: Int = 32,
+        using execution: inout OriginalQueryExecution) throws -> Point3D? {
         try Task.checkCancellation()
-        try consumeWork(0)
+        try execution.consumeWork(1)
         guard let classifications = prepared.classifications else {
             throw KernelError(phase: .classification, code: .invalidInput,
                 tolerance: prepared.validatedModel.tolerance,
                 message: "An original interior witness requires the graph's retained classification-pair owner.")
         }
         let evidence = try prove(graph: prepared.intersectionGraph,
-            firstBodyID: classifications.firstBodyID, secondBodyID: classifications.secondBodyID,
-            validatedModel: classifications.validatedModel, producerBound: true,
-            classifications: classifications, maximumSpanCount: maximumSpanCount,
-            maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
-            consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+        firstBodyID: classifications.firstBodyID,
+        secondBodyID: classifications.secondBodyID,
+        validatedModel: classifications.validatedModel,
+        producerBound: true,
+        classifications: classifications,
+        maximumSpanCount: maximumSpanCount,
+        maximumSubdivisionDepth: maximumSubdivisionDepth,
+        remainingSourceDepth: remainingSourceDepth,
+        maximumAlgebraicDepth: maximumAlgebraicDepth,
+        using: &execution)
         if case .interior(let point) = evidence { return point }
         return nil
     }
 
-    private func prove(graph: BooleanIntersectionGraph, firstBodyID: BodyID, secondBodyID: BodyID,
-        validatedModel: ValidatedBRepModel, producerBound: Bool,
-        classifications: PreparedSolidClassificationPair?, maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
-        consumeWork: @escaping @Sendable (Int) throws -> Void,
-        consumeStorage: (@Sendable (Int) throws -> Void)?, maximumAlgebraicDepth: Int) throws -> Evidence {
+    private func prove(graph: BooleanIntersectionGraph,
+        firstBodyID: BodyID,
+        secondBodyID: BodyID,
+        validatedModel: ValidatedBRepModel,
+        producerBound: Bool,
+        classifications: PreparedSolidClassificationPair?,
+        maximumSpanCount: Int,
+        maximumSubdivisionDepth: Int,
+        remainingSourceDepth: Int,
+        maximumAlgebraicDepth: Int,
+        using execution: inout OriginalQueryExecution) throws -> Evidence {
         let tolerance = validatedModel.tolerance
-        let admission = try BooleanGraphAdmission(maximumSpanCount: maximumSpanCount,
-            maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
-            consumeWork: consumeWork, consumeStorage: consumeStorage, tolerance: tolerance, maximumAlgebraicDepth: maximumAlgebraicDepth)
-        try admission.step()
+        guard maximumSpanCount > 0, (0...32).contains(maximumSubdivisionDepth),
+            remainingSourceDepth >= 0, (0...32).contains(maximumAlgebraicDepth) else {
+            throw KernelError(phase: .validation, code: .invalidInput, tolerance: tolerance,
+                message: "Original material proof requires supported independent caller limits.")
+        }
+        try execution.consumeWork(1)
         let model = validatedModel.model
         guard firstBodyID != secondBodyID, validatedModel.validationLevel != .modeling,
               model.bodies[firstBodyID]?.kind == .solid, model.bodies[secondBodyID]?.kind == .solid else {
             throw KernelError(phase: .classification, code: .invalidInput, tolerance: tolerance,
                 message: "Original material overlap requires two distinct exact solid bodies.")
         }
-        let firstFaces = try faceIDs(firstBodyID, model: model, admission: admission)
-        let secondFaces = try faceIDs(secondBodyID, model: model, admission: admission)
+        let firstFaces = try faceIDs(firstBodyID, model: model, using: &execution)
+        let secondFaces = try faceIDs(secondBodyID, model: model, using: &execution)
         var supports: [FaceID: PreparedSurfaceDifferentialEncloser] = [:]
         for intersection in graph.faceIntersections {
-            try admission.step()
+            try execution.consumeWork(1)
             let pair = intersection.facePair
             guard (firstFaces.contains(pair.targetFaceID) && secondFaces.contains(pair.toolFaceID))
                 || (secondFaces.contains(pair.targetFaceID) && firstFaces.contains(pair.toolFaceID)) else { continue }
             guard case .curve(let curve) = intersection.geometry,
                   case .implicit(let original) = curve.truth else { continue }
-            try admission.step()
+            try execution.consumeWork(1)
             try original.validateCertificationContract(tolerance: tolerance)
             guard let firstFace = model.faces[pair.targetFaceID], let secondFace = model.faces[pair.toolFaceID],
                   let firstSurface = model.geometry.surfaces[firstFace.surfaceID],
@@ -157,42 +191,53 @@ package struct OriginalTransverseMaterialOverlap: OriginalMaterialOverlapProving
             for side in 0..<2 {
                 let faceID = side == 0 ? pair.targetFaceID : pair.toolFaceID
                 guard supports[faceID] == nil else { continue }
-                try admission.reserve(count: 1, stride: MemoryLayout<FaceID>.stride
+                try execution.retainKernelValues(count: 1, stride: MemoryLayout<FaceID>.stride
                     + MemoryLayout<PreparedSurfaceDifferentialEncloser>.stride)
                 guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID] else {
                     throw TopologyError.missingReference("An original overlap support disappeared.")
                 }
                 supports[faceID] = try PreparedSurfaceDifferentialEncloser(surface: surface,
-                    tolerance: tolerance, remainingSourceDepth: remainingSourceDepth,
-                    maximumSubdivisionDepth: maximumSubdivisionDepth,
-                    consumeWork: { try admission.step() }, consumeStorage: consumeStorage,
-                    maximumAlgebraicDepth: maximumAlgebraicDepth)
+        tolerance: tolerance,
+        remainingSourceDepth: remainingSourceDepth,
+        maximumSubdivisionDepth: maximumSubdivisionDepth,
+        maximumAlgebraicDepth: maximumAlgebraicDepth,
+        using: &execution)
             }
             guard let firstPrepared = supports[pair.targetFaceID], let secondPrepared = supports[pair.toolFaceID] else {
                 throw KernelError(phase: .classification, code: .classificationFailure, tolerance: tolerance,
                     message: "Original overlap preparation is missing its retained supports.")
             }
             for (cellIndex, cell) in original.cells.enumerated() {
-                try admission.step()
+                try execution.consumeWork(1)
                 let firstBox = SurfaceParameterBox(u: cell.parameterBox.firstU, v: cell.parameterBox.firstV)
                 let secondBox = SurfaceParameterBox(u: cell.parameterBox.secondU, v: cell.parameterBox.secondV)
-                guard try containment.classify(firstBox, in: pair.targetFaceID,
-                    validatedModel: validatedModel, maximumSubdivisionDepth: maximumSubdivisionDepth,
-                    remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth,
-                    consumeWork: consumeWork, consumeStorage: consumeStorage) == .inside else { continue }
-                guard try containment.classify(secondBox, in: pair.toolFaceID,
-                    validatedModel: validatedModel, maximumSubdivisionDepth: maximumSubdivisionDepth,
-                    remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth,
-                    consumeWork: consumeWork, consumeStorage: consumeStorage) == .inside else { continue }
+                guard try containment.classify(firstBox,
+        in: pair.targetFaceID,
+        validatedModel: validatedModel,
+        maximumSubdivisionDepth: maximumSubdivisionDepth,
+        remainingSourceDepth: remainingSourceDepth,
+        maximumAlgebraicDepth: maximumAlgebraicDepth,
+        using: &execution) == .inside else { continue }
+                guard try containment.classify(secondBox,
+        in: pair.toolFaceID,
+        validatedModel: validatedModel,
+        maximumSubdivisionDepth: maximumSubdivisionDepth,
+        remainingSourceDepth: remainingSourceDepth,
+        maximumAlgebraicDepth: maximumAlgebraicDepth,
+        using: &execution) == .inside else { continue }
                 let firstJet = try firstPrepared.intervalJet(overClosedBox: firstBox,
-                    tolerance: tolerance, maximumSpanCount: maximumSpanCount,
-                    maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
-                    consumeWork: { try admission.step() }, consumeStorage: consumeStorage)
+        tolerance: tolerance,
+        maximumSpanCount: maximumSpanCount,
+        maximumSubdivisionDepth: maximumSubdivisionDepth,
+        remainingSourceDepth: remainingSourceDepth,
+        using: &execution)
                 let secondJet = try secondPrepared.intervalJet(overClosedBox: secondBox,
-                    tolerance: tolerance, maximumSpanCount: maximumSpanCount,
-                    maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
-                    consumeWork: { try admission.step() }, consumeStorage: consumeStorage)
-                try admission.step()
+        tolerance: tolerance,
+        maximumSpanCount: maximumSpanCount,
+        maximumSubdivisionDepth: maximumSubdivisionDepth,
+        remainingSourceDepth: remainingSourceDepth,
+        using: &execution)
+                try execution.consumeWork(1)
                 let firstNormal = VectorBounds(x: firstJet.x.derivativeU, y: firstJet.y.derivativeU,
                     z: firstJet.z.derivativeU).cross(VectorBounds(x: firstJet.x.derivativeV,
                         y: firstJet.y.derivativeV, z: firstJet.z.derivativeV))
@@ -205,7 +250,9 @@ package struct OriginalTransverseMaterialOverlap: OriginalMaterialOverlapProving
                     firstPrepared: firstPrepared, secondPrepared: secondPrepared,
                     firstFace: firstFace, secondFace: secondFace,
                     firstBox: firstBox, secondBox: secondBox, jet: firstJet,
-                    classifications: classifications, tolerance: tolerance, admission: admission) {
+                    classifications: classifications, tolerance: tolerance, maximumSpanCount: maximumSpanCount,
+                    maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
+                    maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution) {
                     return .interior(point)
                 }
             }
@@ -219,33 +266,35 @@ package struct OriginalTransverseMaterialOverlap: OriginalMaterialOverlapProving
         firstFace: Face, secondFace: Face, firstBox: SurfaceParameterBox,
         secondBox: SurfaceParameterBox, jet: SurfaceIntervalVectorJet,
         classifications: PreparedSolidClassificationPair,
-        tolerance: ModelingTolerance, admission: BooleanGraphAdmission) throws -> Point3D? {
-        let sourceAdmission = try SurfaceSurfaceQueryAdmission(
-            maximumSpanCount: admission.maximumSpanCount,
-            maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
-            remainingSourceDepth: admission.remainingSourceDepth,
-            consumeWork: { try admission.step() }, consumeStorage: admission.consumeStorage,
-            maximumAlgebraicDepth: admission.maximumAlgebraicDepth)
-        try admission.step()
+        tolerance: ModelingTolerance, maximumSpanCount: Int, maximumSubdivisionDepth: Int,
+        remainingSourceDepth: Int, maximumAlgebraicDepth: Int,
+        using execution: inout OriginalQueryExecution) throws -> Point3D? {
+        try execution.consumeWork(1)
         let fraction = (Double(cellIndex) + 0.5) / Double(original.cells.count)
         let parameters = try original.parameterPair(atNormalizedFraction: fraction,
             firstSurface: firstPrepared, secondSurface: secondPrepared,
-            tolerance: tolerance, admission: sourceAdmission)
+            tolerance: tolerance, maximumSpanCount: maximumSpanCount,
+            maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
+            maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
         guard firstBox.u.contains(parameters.first.u), firstBox.v.contains(parameters.first.v),
               secondBox.u.contains(parameters.second.u), secondBox.v.contains(parameters.second.v) else { return nil }
         let anchor = try original.point(atNormalizedFraction: fraction,
             firstSurface: firstPrepared, secondSurface: secondPrepared,
-            tolerance: tolerance, admission: sourceAdmission)
-        let first = try firstPrepared.numericalSample(at: parameters.first, tolerance: tolerance,
-            maximumSpanCount: admission.maximumSpanCount,
-            maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
-            remainingSourceDepth: admission.remainingSourceDepth,
-            consumeWork: { try admission.step() }, consumeStorage: admission.consumeStorage)
-        let second = try secondPrepared.numericalSample(at: parameters.second, tolerance: tolerance,
-            maximumSpanCount: admission.maximumSpanCount,
-            maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
-            remainingSourceDepth: admission.remainingSourceDepth,
-            consumeWork: { try admission.step() }, consumeStorage: admission.consumeStorage)
+            tolerance: tolerance, maximumSpanCount: maximumSpanCount,
+            maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
+            maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
+        let first = try firstPrepared.numericalSample(at: parameters.first,
+        tolerance: tolerance,
+        maximumSpanCount: maximumSpanCount,
+        maximumSubdivisionDepth: maximumSubdivisionDepth,
+        remainingSourceDepth: remainingSourceDepth,
+        using: &execution)
+        let second = try secondPrepared.numericalSample(at: parameters.second,
+        tolerance: tolerance,
+        maximumSpanCount: maximumSpanCount,
+        maximumSubdivisionDepth: maximumSubdivisionDepth,
+        remainingSourceDepth: remainingSourceDepth,
+        using: &execution)
         let firstNormal = first.derivativeU.cross(first.derivativeV)
         let secondNormal = second.derivativeU.cross(second.derivativeV)
         let firstLength = firstNormal.length, secondLength = secondNormal.length
@@ -262,13 +311,13 @@ package struct OriginalTransverseMaterialOverlap: OriginalMaterialOverlapProving
         guard reach.isFinite, reach > 0 else { return nil }
         // Numerical source anchors and normals only propose stations. Both complete
         // original material sessions must accept the identical point before publication.
-        for depth in 0...admission.maximumSubdivisionDepth {
+        for depth in 0...maximumSubdivisionDepth {
             try Task.checkCancellation()
-            try admission.consumeWork(depth)
+            try execution.admitGeometricDepth(depth); try execution.consumeWork(1)
             let candidate = anchor + direction * reach
             try candidate.validate()
-            if try classifications.firstClassification.classify(candidate) == .inside,
-               try classifications.secondClassification.classify(candidate) == .inside {
+            if try classifications.firstClassification.classify(candidate, using: &execution) == .inside,
+               try classifications.secondClassification.classify(candidate, using: &execution) == .inside {
                 try Task.checkCancellation()
                 return candidate
             }
@@ -280,14 +329,14 @@ package struct OriginalTransverseMaterialOverlap: OriginalMaterialOverlapProving
     }
 
     private func faceIDs(_ bodyID: BodyID, model: BRepModel,
-        admission: BooleanGraphAdmission) throws -> Set<FaceID> {
+        using execution: inout OriginalQueryExecution) throws -> Set<FaceID> {
         guard let body = model.bodies[bodyID] else { throw TopologyError.missingReference("An original overlap body is missing.") }
         var result: Set<FaceID> = []
         for shellID in body.shellIDs {
-            try admission.step()
+            try execution.consumeWork(1)
             guard let shell = model.shells[shellID] else { throw TopologyError.missingReference("An original overlap shell is missing.") }
             for faceID in shell.faceIDs {
-                try admission.reserve(count: 1, stride: MemoryLayout<FaceID>.stride)
+                try execution.retainKernelValues(count: 1, stride: MemoryLayout<FaceID>.stride)
                 result.insert(faceID)
             }
         }

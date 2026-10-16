@@ -11,7 +11,7 @@ struct SurfaceSilhouetteComponentAssembler {
     }
 
     static func components(curves: [OriginalSurfaceSilhouetteCurve],
-                           usage: inout SurfaceSilhouetteUsage) throws -> [SurfaceSilhouetteComponent] {
+                           usage: inout OriginalQueryExecution) throws -> [SurfaceSilhouetteComponent] {
         guard !curves.isEmpty else { return [] }
         try RationalAlgebraStorage.retain(curves.count, of: Int.self, usage: &usage)
         var parents = Array(0..<curves.count)
@@ -19,12 +19,12 @@ struct SurfaceSilhouetteComponentAssembler {
         var joins: [SurfaceSilhouetteComponent.Join] = []
         var endpointDegree: [Int: Int] = [:]
         var crossingEndpoints: Set<Int> = []
-        func representative(_ value: Int, parents: inout [Int], usage: inout SurfaceSilhouetteUsage) throws -> Int {
+        func representative(_ value: Int, parents: inout [Int], usage: inout OriginalQueryExecution) throws -> Int {
             var root = value
-            while parents[root] != root { try usage.consumeWork(); root = parents[root] }
+            while parents[root] != root { try usage.consumeWork(1); root = parents[root] }
             var current = value
             while parents[current] != current {
-                try usage.consumeWork()
+                try usage.consumeWork(1)
                 let next = parents[current]; parents[current] = root; current = next
             }
             return root
@@ -37,7 +37,7 @@ struct SurfaceSilhouetteComponentAssembler {
                     periodicKey: boundary.periodicKey,
                     point: try curve.boundaryPoint(atUpperEnd: upper, usage: &usage))
                 for prior in endpoints {
-                    try usage.consumeWork()
+                    try usage.consumeWork(1)
                     guard prior.curve != index || prior.upper != upper else { continue }
                     let previous = curves[prior.curve]
                     let originalPeriodic = try previous.boundaryOriginalAtlasPeriodicIsSame(as: curve,
@@ -142,7 +142,7 @@ struct SurfaceSilhouetteComponentAssembler {
             let indices = groups[root, default: []]
             var closed = true
             for index in indices {
-                try usage.consumeWork()
+                try usage.consumeWork(1)
                 guard index < Int.max / 2 else { throw failure("Original silhouette component indices overflow.") }
                 if endpointDegree[index * 2, default: 0] == 0 || endpointDegree[index * 2 + 1, default: 0] == 0 {
                     closed = false

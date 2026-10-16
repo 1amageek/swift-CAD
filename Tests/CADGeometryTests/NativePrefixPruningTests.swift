@@ -4,13 +4,13 @@ import Testing
 
 @Suite("Original native prefix exclusion preserves selected coverage")
 struct NativePrefixPruningTests {
-    private func usage() -> OriginalRelationUsage {
-        .init(consumeWork: { _ in }, retainStorage: { _ in }, visitCell: { _ in }, visitCoefficientCell: { _ in })
+    private func usage() throws -> OriginalQueryExecution {
+        try .independentGeometry()
     }
 
     @Test(.timeLimit(.minutes(1)), arguments: [0,1,2])
     func retainedOriginalDomainsPreservePointEmptyAndPositiveCoverage(mode: Int) throws {
-        var admission = usage()
+        var admission = try usage()
         let surface = BSplineSurface3D(uDegree: 1, vDegree: 1, uKnots: [0,0,1,1], vKnots: [0,0,1,1], controlPoints: [
             [.init(x: 0,y: 0,z: 0), .init(x: 1,y: 0,z: 0)],
             [.init(x: 0,y: 1,z: 0), .init(x: 1,y: 1,z: 0)]])

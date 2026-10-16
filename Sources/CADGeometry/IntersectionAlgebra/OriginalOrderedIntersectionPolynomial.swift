@@ -17,7 +17,7 @@ package struct OriginalOrderedIntersectionPolynomial: Sendable {
     package let inheritedParameterDepth: Int
     package let inheritedCoefficientDepth: Int
 
-    package init<B: RationalAlgebraAdmitting>(variableCount: Int, terms: [Term],
+    package init<B: ExactScalarAdmission & ~Copyable>(variableCount: Int, terms: [Term],
         maximumDepth: Int, maximumCoefficientDepth: Int,
         inheritedParameterDepth: Int = 0, inheritedCoefficientDepth: Int = 0, usage: inout B) throws {
         try intersectionAlgebraStep(&usage)
@@ -38,18 +38,16 @@ package struct OriginalOrderedIntersectionPolynomial: Sendable {
             }
             parameterDepth = max(parameterDepth, term.inheritedParameterDepth)
             coefficientDepth = max(coefficientDepth, term.inheritedCoefficientDepth)
-            var source = OriginalSourceScalarAdmission(base: usage, maximumDepth: maximumDepth,
-                maximumCoefficientDepth: maximumCoefficientDepth, originalParameterDepth: term.coefficient.context.depth,
-                originalCoefficientDepth: term.coefficient.context.coefficientDepth,
-                inheritedParameterDepth: term.inheritedParameterDepth, inheritedCoefficientDepth: term.inheritedCoefficientDepth,
-                parameterDepth: term.inheritedParameterDepth, coefficientDepth: term.inheritedCoefficientDepth)
-            let available = try rationalAlgebraCount(term.coefficient.context.depth, maximumDepth - term.inheritedParameterDepth)
-            let sign: ExactAlgebraicRealRoot.Sign
-            do { sign = try term.coefficient.sign(maximumDepth: available, usage: &source) }
-            catch { usage = source.base; throw error }
-            usage = source.base
-            parameterDepth = max(parameterDepth, source.parameterDepth)
-            coefficientDepth = max(coefficientDepth, source.coefficientDepth)
+            let available=try rationalAlgebraCount(term.coefficient.context.depth,maximumDepth-term.inheritedParameterDepth)
+            let source=try intersectionSourceCalculation(originalParameterDepth:term.coefficient.context.depth,
+                originalCoefficientDepth:term.coefficient.context.coefficientDepth,
+                inheritedParameterDepth:term.inheritedParameterDepth,inheritedCoefficientDepth:term.inheritedCoefficientDepth,
+                maximumDepth:maximumDepth,maximumCoefficientDepth:maximumCoefficientDepth,usage:&usage) { a in
+                try term.coefficient.sign(maximumDepth:available,usage:&a)
+            }
+            let sign=source.value
+            parameterDepth=max(parameterDepth,source.parameterDepth)
+            coefficientDepth=max(coefficientDepth,source.coefficientDepth)
             if sign != .zero {
                 retained.append(.init(power: term.power, coefficient: term.coefficient,
                     inheritedParameterDepth: source.parameterDepth, inheritedCoefficientDepth: source.coefficientDepth))
@@ -59,7 +57,7 @@ package struct OriginalOrderedIntersectionPolynomial: Sendable {
         self.inheritedParameterDepth = parameterDepth; self.inheritedCoefficientDepth = coefficientDepth
     }
 
-    package static func embedding<B: RationalAlgebraAdmitting>(_ original: OriginalSingularFieldPlanePolynomial,
+    package static func embedding<B: ExactScalarAdmission & ~Copyable>(_ original: OriginalSingularFieldPlanePolynomial,
         variableCount: Int, uCoordinate: Int, vCoordinate: Int,
         maximumDepth: Int, maximumCoefficientDepth: Int, usage: inout B) throws -> Self {
         guard uCoordinate >= 0, vCoordinate >= 0, uCoordinate < variableCount,
@@ -79,7 +77,7 @@ package struct OriginalOrderedIntersectionPolynomial: Sendable {
             maximumDepth: maximumDepth, maximumCoefficientDepth: maximumCoefficientDepth, usage: &usage)
     }
 
-    package func differentiated<B: RationalAlgebraAdmitting>(at axis: Int,
+    package func differentiated<B: ExactScalarAdmission & ~Copyable>(at axis: Int,
         maximumDepth: Int, maximumCoefficientDepth: Int, usage: inout B) throws -> Self {
         guard axis >= 0, axis < variableCount else {
             throw rationalAlgebraFailure("An ordered derivative requires its original geometric coordinate.")
@@ -94,19 +92,16 @@ package struct OriginalOrderedIntersectionPolynomial: Sendable {
             guard term.inheritedParameterDepth <= maximumDepth, term.inheritedCoefficientDepth <= maximumCoefficientDepth else {
                 throw rationalAlgebraFailure("An ordered derivative cannot reset its source admission depth.")
             }
-            var source = OriginalSourceScalarAdmission(base: usage, maximumDepth: maximumDepth,
-                maximumCoefficientDepth: maximumCoefficientDepth, originalParameterDepth: term.coefficient.context.depth,
-                originalCoefficientDepth: term.coefficient.context.coefficientDepth,
-                inheritedParameterDepth: term.inheritedParameterDepth, inheritedCoefficientDepth: term.inheritedCoefficientDepth,
-                parameterDepth: term.inheritedParameterDepth, coefficientDepth: term.inheritedCoefficientDepth)
-            let available = try rationalAlgebraCount(term.coefficient.context.depth, maximumDepth - term.inheritedParameterDepth)
-            let scaled: OriginalSingularFieldElement
-            do {
-                let factor = try OriginalSingularFieldElement.constant(.natural(degree, usage: &source),
-                    in: term.coefficient.context, maximumDepth: available, usage: &source)
-                scaled = try term.coefficient.multiplied(by: factor, maximumDepth: available, usage: &source)
-            } catch { usage = source.base; throw error }
-            usage = source.base
+            let available=try rationalAlgebraCount(term.coefficient.context.depth,maximumDepth-term.inheritedParameterDepth)
+            let source=try intersectionSourceCalculation(originalParameterDepth:term.coefficient.context.depth,
+                originalCoefficientDepth:term.coefficient.context.coefficientDepth,
+                inheritedParameterDepth:term.inheritedParameterDepth,inheritedCoefficientDepth:term.inheritedCoefficientDepth,
+                maximumDepth:maximumDepth,maximumCoefficientDepth:maximumCoefficientDepth,usage:&usage) { a in
+                let factor=try OriginalSingularFieldElement.constant(.natural(degree,usage:&a),
+                    in:term.coefficient.context,maximumDepth:available,usage:&a)
+                return try term.coefficient.multiplied(by:factor,maximumDepth:available,usage:&a)
+            }
+            let scaled=source.value
             let power = try term.power.quotient(by: unit, variableCount: variableCount, usage: &usage)
             result.append(.init(power: power, coefficient: scaled,
                 inheritedParameterDepth: source.parameterDepth, inheritedCoefficientDepth: source.coefficientDepth))

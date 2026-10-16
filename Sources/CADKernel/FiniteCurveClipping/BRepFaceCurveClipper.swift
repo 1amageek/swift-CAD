@@ -26,22 +26,38 @@ struct BRepFaceCurveClipper {
         sourceSubshapes: [SubshapeID: TopologyReference],
         alongEdge: AlongEdge = .refuse,
         tolerance: ModelingTolerance
-    ) throws -> [BRepSewingEdge] {
+    , using execution: inout OriginalQueryExecution) throws -> [BRepSewingEdge] {
+        do {
+            let result = try resolve(using: &execution)
+            execution.context = execution.context.at(stage: .publication)
+            try execution.checkpoint()
+            return result
+        } catch {
+            throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance)
+        }
+        func resolve(using execution: inout OriginalQueryExecution) throws -> [BRepSewingEdge] {
+        try execution.consumeWork(1)
         guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID] else {
             throw failure(.missingReference, tolerance, "The face to imprint on is missing.")
         }
         let candidate = try Self.edge(
             parameterCurve, on: surface, stableID: stableID, parentSubshapeIDs: parentSubshapeIDs, tolerance: tolerance
-        )
-        let trimEdges = try SourceBRepFacePatchBuilder().build(
+        , using: &execution)
+        let trimPatch = try SourceBRepFacePatchBuilder().build(
             faceID: faceID, stableID: "\(stableID):face", from: model, sourceSubshapes: sourceSubshapes, tolerance: tolerance
-        ).patch.loops.flatMap(\.edges)
+        , using: &execution).patch
+        var trimEdges: [BRepSewingEdge] = []
+        for loop in trimPatch.loops {
+            try execution.consumeWork(1)
+            try OriginalParameterQueryStorage.append(contentsOf: loop.edges, to: &trimEdges, using: &execution)
+        }
         var crossings: [Point3D] = []
         let intersector = ExactTrimEdgeIntersector()
         for trimEdge in trimEdges {
-            switch try intersector.intersections(candidate, trimEdge, sharedSurface: surface, tolerance: tolerance) {
+            try execution.consumeWork(1)
+            switch try intersector.intersections(candidate, trimEdge, sharedSurface: surface, tolerance: tolerance, using: &execution) {
             case .subdivisionPoints(let points):
-                crossings += points
+                try OriginalParameterQueryStorage.append(contentsOf: points, to: &crossings, using: &execution)
             case .coincident:
                 guard alongEdge == .yieldNothing else {
                     throw failure(.invalidInput, tolerance, "The curve runs along an edge the face already has.")
@@ -52,25 +68,28 @@ struct BRepFaceCurveClipper {
         let tester = DefaultFacePointContainmentTester()
         var preparation = FacePointContainmentPreparationCache()
         var pieces: [BRepSewingEdge] = []
-        for segment in try BRepSewingEdgeSubdivider().subdivide(candidate, at: crossings, tolerance: tolerance) {
-            let middle = try segment.surfaceParameterCurve.parameter(atNormalizedFraction: 0.5, tolerance: tolerance)
-            guard try tester.contains(middle, on: faceID, in: model, preparationCache: &preparation, tolerance: tolerance) else {
+        for segment in try BRepSewingEdgeSubdivider().subdivide(candidate, at: crossings, tolerance: tolerance, using: &execution) {
+            try execution.consumeWork(1)
+            let middle = try segment.surfaceParameterCurve.parameter(atNormalizedFraction: 0.5, tolerance: tolerance, using: &execution)
+            guard try tester.contains(middle, on: faceID, in: model, preparationCache: &preparation, tolerance: tolerance, using: &execution) else {
                 continue
             }
             let kind = try BRepEdgeGeometryClassifier().kind(curve: segment.curve,
-                from: segment.startParameter, to: segment.endParameter, tolerance: tolerance)
+                from: segment.startParameter, to: segment.endParameter, tolerance: tolerance, using: &execution)
             if kind == .closed {
-                pieces += try BRepSewingEdgeSubdivider().subdivide(
+                let halves = try BRepSewingEdgeSubdivider().subdivide(
                     segment,
-                    at: [try surface.point(u: middle.u, v: middle.v, tolerance: tolerance)],
+                    at: [try surface.point(u: middle.u, v: middle.v, tolerance: tolerance, using: &execution)],
                     tolerance: tolerance
-                )
+                , using: &execution)
+                try OriginalParameterQueryStorage.append(contentsOf: halves, to: &pieces, using: &execution)
             } else {
-                pieces.append(segment)
+                try OriginalParameterQueryStorage.append(segment, to: &pieces, using: &execution)
             }
         }
-        return pieces.enumerated().map { index, piece in
-            BRepSewingEdge(
+        return try OriginalParameterQueryStorage.map(pieces.enumerated(), using: &execution) { entry, execution in
+            let (index, piece) = entry
+            return BRepSewingEdge(
                 stableID: "\(stableID):\(index)", curve: piece.curve,
                 startParameter: piece.startParameter, endParameter: piece.endParameter,
                 startPoint: piece.startPoint, endPoint: piece.endPoint,
@@ -79,6 +98,7 @@ struct BRepFaceCurveClipper {
                 endVertexParentSubshapeIDs: piece.endVertexParentSubshapeIDs
             )
         }
+            }
     }
 
     /// The exact edge a parameter curve traces on a surface: the curve's lift onto it.
@@ -88,15 +108,16 @@ struct BRepFaceCurveClipper {
         stableID: String,
         parentSubshapeIDs: [SubshapeID],
         tolerance: ModelingTolerance
-    ) throws -> BRepSewingEdge {
+    , using execution: inout OriginalQueryExecution) throws -> BRepSewingEdge {
+        try execution.consumeWork(1)
         let lift = SurfaceLiftCurve3D(surface: surface, parameterCurve: parameterCurve)
         return BRepSewingEdge(
             stableID: stableID,
             curve: .surfaceLift(lift),
             startParameter: 0.0,
             endParameter: 1.0,
-            startPoint: try lift.point(atNormalizedFraction: 0, tolerance: tolerance),
-            endPoint: try lift.point(atNormalizedFraction: 1, tolerance: tolerance),
+            startPoint: try lift.point(atNormalizedFraction: 0, tolerance: tolerance, using: &execution),
+            endPoint: try lift.point(atNormalizedFraction: 1, tolerance: tolerance, using: &execution),
             surfaceParameterCurve: parameterCurve,
             parentSubshapeIDs: parentSubshapeIDs
         )
@@ -108,12 +129,13 @@ struct BRepFaceCurveClipper {
         model: BRepModel,
         sourceSubshapes: [SubshapeID: TopologyReference],
         tolerance: ModelingTolerance
-    ) throws -> (u: ClosedRange<Double>, v: ClosedRange<Double>) {
+    , using execution: inout OriginalQueryExecution) throws -> (u: ClosedRange<Double>, v: ClosedRange<Double>) {
+        try execution.consumeWork(1)
         guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID] else {
             throw TopologyError.missingReference("Original finite trim bounds require the face's source support.")
         }
         let bounds = try OriginalFaceParameterBounds.resolve(for: faceID,
-            surface: surface, model: model, tolerance: tolerance)
+            surface: surface, model: model, tolerance: tolerance, using: &execution)
         return (bounds.u.lower...bounds.u.upper, bounds.v.lower...bounds.v.upper)
     }
 

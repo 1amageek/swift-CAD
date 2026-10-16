@@ -16,7 +16,7 @@ public struct OriginalBSplineCurveSnapshotProvider: OriginalSourceSnapshotting {
     ) throws(OriginalSourceIssuanceFailure) -> OriginalSourceSnapshot<BSplineCurve3D> {
         do {
             try admission.checkpoint()
-            try input.validate(tolerance: tolerance, consumeWork: { try admission.consumeWork(1) })
+            try input.validate(tolerance: tolerance, using: &admission)
             try admission.checkpoint()
             return .init(original: copy input, sourceDepth: 0)
         } catch let failure as OriginalSourceIssuanceFailure { throw failure }

@@ -1,4 +1,6 @@
 import CADCore
+import CADGeometry
+import CADTopology
 import CADIR
 
 package struct FeatureTopologyLineageValidator: Sendable {
@@ -8,8 +10,20 @@ package struct FeatureTopologyLineageValidator: Sendable {
         _ result: EvaluationResult,
         featureID: FeatureID? = nil
     ) throws {
-        let outputIDs = Set(result.subshapes.keys)
-        let lineageIDs = Set(result.lineage.keys)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(result, featureID: featureID, using: &execution)
+    }
+
+    package func validate(
+        _ result: EvaluationResult,
+        featureID: FeatureID? = nil
+    , using execution: inout OriginalQueryExecution) throws {
+        var outputIDs: Set<SubshapeID> = []
+        for id in result.subshapes.keys { try OriginalParameterQueryStorage.insert(id, in: &outputIDs, using: &execution) }
+        var lineageIDs: Set<SubshapeID> = []
+        for id in result.lineage.keys { try OriginalParameterQueryStorage.insert(id, in: &lineageIDs, using: &execution) }
+        try execution.retainStorage(count: outputIDs.count, stride: MemoryLayout<SubshapeID>.stride)
+        try execution.retainStorage(count: lineageIDs.count, stride: MemoryLayout<SubshapeID>.stride)
         if let featureID,
            let foreignOutput = outputIDs.sorted().first(where: {
                $0.featureID != featureID
@@ -24,7 +38,15 @@ package struct FeatureTopologyLineageValidator: Sendable {
             )
         }
         guard outputIDs == lineageIDs else {
-            let mismatchedID = outputIDs.symmetricDifference(lineageIDs).sorted().first
+            var mismatchedID: SubshapeID?
+            for id in outputIDs {
+                try execution.consumeWork(1)
+                if !lineageIDs.contains(id), mismatchedID.map({ id < $0 }) ?? true { mismatchedID = id }
+            }
+            for id in lineageIDs {
+                try execution.consumeWork(1)
+                if !outputIDs.contains(id), mismatchedID.map({ id < $0 }) ?? true { mismatchedID = id }
+            }
             throw failure(
                 subshapeID: mismatchedID,
                 message: "Feature topology outputs and lineage entries must have one-to-one coverage."
@@ -34,6 +56,7 @@ package struct FeatureTopologyLineageValidator: Sendable {
         var parentUseCount: [SubshapeID: Int] = [:]
         var splitParents = Set<SubshapeID>()
         for outputID in lineageIDs.sorted() {
+            try execution.consumeWork(1)
             guard let entry = result.lineage[outputID],
                   entry.output == outputID,
                   entry.isStructurallyValid else {
@@ -43,10 +66,13 @@ package struct FeatureTopologyLineageValidator: Sendable {
                 )
             }
             for parent in entry.parents {
-                parentUseCount[parent, default: 0] += 1
+                try execution.consumeWork(1)
+                let next = parentUseCount[parent, default: 0].addingReportingOverflow(1)
+                guard !next.overflow else { throw ExactScalarFailure.countOverflow }
+                try OriginalParameterQueryStorage.set(next.partialValue, for: parent, in: &parentUseCount, using: &execution)
             }
             if entry.relation == .split, let parent = entry.parents.first {
-                splitParents.insert(parent)
+                try OriginalParameterQueryStorage.insert(parent, in: &splitParents, using: &execution)
             }
         }
         if let invalidSplit = splitParents.first(where: {

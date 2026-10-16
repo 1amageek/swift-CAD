@@ -14,7 +14,7 @@ public struct DefaultOriginalPeriodicNativeSurfaceLiftGraphPreparer<S: OriginalL
         limits: OriginalSourceIssuanceLimits,using admission: inout A)
         throws(OriginalSourceIssuanceFailure) -> OriginalPeriodicNativeSurfaceLiftGraphs<S> {
         do {
-            return try OriginalSourceProofAdmission<A>.withBorrow(&admission) { a in
+            return try admission.withProofScope { a in
                 try a.checkpoint();try source.require(limits)
                 guard limits.remainingSourceDepth>0 else { throw OriginalSourceIssuanceFailure.sourceDepthLimit }
                 guard source.original.originalSurface.owner === surface.source.owner,

@@ -30,7 +30,7 @@ public final class OriginalCertifiedApexPlaneExclusion: Sendable {
         curveIntervals: borrowing [Interval],planeIntervals: borrowing [[Interval]],
         limits: OriginalDomainIdentityLimits,using a: inout A) throws -> OriginalCertifiedApexPlaneExclusion {
         let curveIntervals=copy curveIntervals,planeIntervals=copy planeIntervals
-        return try OriginalSourceProofAdmission<A>.withBorrow(&a) { a in
+        return try a.withProofScope() { a in
             try a.checkpoint();try exclusion.admitProof(limits:limits.source,using:&a)
             guard limits.maximumCharts >= 1 else { throw OriginalDomainIdentityFailure.chartLimit }
             let f=exclusion.field

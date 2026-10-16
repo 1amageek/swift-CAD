@@ -19,10 +19,10 @@ package struct OriginalAnalyticPoleNormal {
 
     package func panelBounds(of surface:Surface3D,over box:SurfaceParameterBox,
         coneNappe: ConeNappe? = nil, tolerance:ModelingTolerance,
-        consumeWork:()throws->Void) throws -> OriginalSurfacePoleNormalPanel? {
+        using execution: inout OriginalQueryExecution) throws -> OriginalSurfacePoleNormalPanel? {
         guard case .analytic(let analytic) = surface,
-              let differential = try tessellationBounds(of:surface,over:box,tolerance:tolerance,consumeWork:consumeWork) else { return nil }
-        try consumeWork()
+              let differential = try tessellationBounds(of:surface,over:box,tolerance:tolerance,using: &execution) else { return nil }
+        try execution.consumeWork(1)
         let encloser = DefaultSurfaceDifferentialEncloser()
         let field:IntervalVector3DBounds
         func vector(_ jet:SurfaceIntervalVectorJet,_ key:(SurfaceIntervalJet) -> OutwardScalarInterval)->IntervalVector3DBounds {
@@ -30,7 +30,7 @@ package struct OriginalAnalyticPoleNormal {
         }
         switch analytic {
         case .sphere(let center,let radius):
-            guard let jet = try encloser.analyticJet(of:surface,u:.parameterU(box.u),v:.parameterV(box.v),tolerance:tolerance),
+            guard let jet = try encloser.analyticJet(of:surface,u:.parameterU(box.u),v:.parameterV(box.v),tolerance:tolerance, using: &execution),
                   let inverse = OutwardScalarInterval.exact(1).divided(by:.exact(radius)) else {
                 throw GeometryConversionError.resourceLimitExceeded("Original spherical radial normal is nonfinite.")
             }
@@ -45,7 +45,7 @@ package struct OriginalAnalyticPoleNormal {
             if let coneNappe, (coneNappe == .positive ? sign < 0 : sign > 0) {
                 throw GeometryConversionError.invalidInput("Original cone normal receipt conflicts with its owning nappe.")
             }
-            guard let jet = try encloser.analyticJet(of:surface,u:.parameterU(box.u),v:.parameterV(.init(lower:1,upper:1)),tolerance:tolerance) else {
+            guard let jet = try encloser.analyticJet(of:surface,u:.parameterU(box.u),v:.parameterV(.init(lower:1,upper:1)),tolerance:tolerance, using: &execution) else {
                 throw GeometryConversionError.invalidInput("Original cone normal lost its coefficient law.")
             }
             field = vector(jet,{ $0.derivativeU }).cross(vector(jet,{ $0.derivativeV })) * .exact(sign)
@@ -55,12 +55,12 @@ package struct OriginalAnalyticPoleNormal {
     }
 
     package func tessellationBounds(of surface:Surface3D,over box:SurfaceParameterBox,
-        tolerance:ModelingTolerance,consumeWork:()throws->Void) throws -> SurfaceTessellationDifferentialBounds? {
+        tolerance:ModelingTolerance,using execution: inout OriginalQueryExecution) throws -> SurfaceTessellationDifferentialBounds? {
         guard case .analytic(let analytic) = surface else { return nil }
         let normalU:Double, normalV:Double
         let encloser = DefaultSurfaceDifferentialEncloser()
-        try consumeWork(); try surface.validate(tolerance:tolerance)
-        guard let jet = try encloser.analyticJet(of:surface,u:.parameterU(box.u),v:.parameterV(box.v),tolerance:tolerance) else {
+        try execution.consumeWork(1); try surface.validate(tolerance:tolerance, using: &execution)
+        guard let jet = try encloser.analyticJet(of:surface,u:.parameterU(box.u),v:.parameterV(box.v),tolerance:tolerance, using: &execution) else {
             throw GeometryConversionError.invalidInput("Original analytic closed panel lost its source jet.")
         }
         func vector(_ value:SurfaceIntervalVectorJet,_ key:(SurfaceIntervalJet) -> OutwardScalarInterval)->IntervalVector3DBounds {
@@ -79,7 +79,7 @@ package struct OriginalAnalyticPoleNormal {
                 throw GeometryConversionError.invalidInput("Original cone normal panels must own exactly one closed nappe.")
             }
             let unitV = SurfaceIntervalJet.parameterV(try .init(lower:1,upper:1))
-            guard let factoredJet = try encloser.analyticJet(of:surface,u:.parameterU(box.u),v:unitV,tolerance:tolerance) else {
+            guard let factoredJet = try encloser.analyticJet(of:surface,u:.parameterU(box.u),v:unitV,tolerance:tolerance, using: &execution) else {
                 throw GeometryConversionError.invalidInput("Original cone normal factor lost its source law.")
             }
             let su = vector(factoredJet,{ $0.derivativeU }), sv = vector(factoredJet,{ $0.derivativeV })

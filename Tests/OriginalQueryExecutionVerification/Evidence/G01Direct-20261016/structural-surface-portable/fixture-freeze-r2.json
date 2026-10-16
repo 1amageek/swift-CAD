@@ -1,0 +1,29 @@
+{
+  "scope": "Correct only new offset fixture expected debit sequence to original unchanged producer counts; no production change.",
+  "files": {
+    "Tests/CADGeometryTests/StructuralSurfaceMeteringTests.swift": {
+      "beforeSHA256": "07f3af8f29dcd5f869592d19f95f26669394d34532df82260a3d4e7cf453a7fc",
+      "afterSHA256": "71e88abba3ccc955d3690fc634dbbc0349f7d1eaee8cec94e8cf4871ab2b26fe"
+    },
+    "Tests/OriginalQueryExecutionVerification/StructuralSurfaceMeteringPortable.swift": {
+      "beforeSHA256": "979e443690e9dee2e79df1e3a6bf6ec1491bbc3060e2ac3aada946afc6606f32",
+      "afterSHA256": "fe043859ebb6d290c4cc0c85a2d584d4a5c01bca3f139d48bd19df34c7c97bc8"
+    }
+  },
+  "oldExpected": [
+    1,
+    1,
+    1,
+    4,
+    1
+  ],
+  "correctOriginalExpected": [
+    1,
+    1,
+    1,
+    1,
+    4,
+    1
+  ],
+  "reason": "The existing outer Surface discriminator, procedural discriminator, offset discriminator, child Surface discriminator and plane payload, then offset tail must all be counted."
+}

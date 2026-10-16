@@ -21,20 +21,34 @@ struct KernelRollingBallFilletEvaluator: RollingBallFilletEvaluating {
     }
 
     func admits(feature: FeatureNode, context: EvaluationContext) throws -> Bool {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try admits(feature: feature, context: context, using: &execution)
+    }
+
+    func admits(feature: FeatureNode, context: EvaluationContext,
+        using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.checkpoint()
+        let result = try admitsBody(feature: feature, context: context, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+    private func admitsBody(feature: FeatureNode, context: EvaluationContext,
+        using execution: inout OriginalQueryExecution) throws -> Bool {
         guard case .fillet(let fillet) = feature.operation,
               fillet.shape == .round, !fillet.allEdges, fillet.edges.count == 1,
               fillet.endRadius == nil, fillet.limits == nil, fillet.variablePoints.isEmpty,
               fillet.tangentEdges, !fillet.yBlend else { return false }
         try fillet.validate()
         try FeatureEvaluationBoundary.validateExactInput(
-            context, featureID: feature.id, tolerance: context.tolerance)
-        let selection = try selected(fillet, context: context)
+            context, featureID: feature.id, tolerance: context.tolerance, using: &execution)
+        let selection = try selected(fillet, context: context, using: &execution)
         guard let body = context.brep.bodies[selection.bodyID], body.kind == .solid,
               body.shellIDs.count == 1, let shellID = body.shellIDs.first,
               let shell = context.brep.shells[shellID] else { return false }
         var partners: [(FaceID, Surface3D)] = []
         for faceID in shell.faceIDs {
-            try Task.checkCancellation()
+            try execution.consumeWork(1)
             guard let face = context.brep.faces[faceID],
                   let surface = context.brep.geometry.surfaces[face.surfaceID] else {
                 throw failure(.missingReference, feature, context, "Fillet source face is missing.")
@@ -63,18 +77,26 @@ struct KernelRollingBallFilletEvaluator: RollingBallFilletEvaluating {
         }
         let chain = try RollingBallTangentChainResolver().resolve(
             selectedEdge: selection.edgeID, partner: cap, shell: shell,
-            model: context.brep, tolerance: context.tolerance)
+            model: context.brep, tolerance: context.tolerance, using: &execution)
+        try execution.checkpoint()
         return !chain.isEmpty
     }
 
     func evaluate(feature: FeatureNode, context: EvaluationContext) throws -> EvaluationResult {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try evaluate(feature: feature, context: context, using: &execution)
+    }
+
+    func evaluate(feature: FeatureNode, context: EvaluationContext,
+        using execution: inout OriginalQueryExecution) throws -> EvaluationResult {
+        try execution.checkpoint()
         try FeatureEvaluationBoundary.validateExactInput(
-            context, featureID: feature.id, tolerance: context.tolerance)
+            context, featureID: feature.id, tolerance: context.tolerance, using: &execution)
         guard case .fillet(let fillet) = feature.operation else {
             throw failure(.invalidInput, feature, context, "Rolling-ball evaluation requires a fillet.")
         }
         try fillet.validate()
-        let selection = try selected(fillet, context: context)
+        let selection = try selected(fillet, context: context, using: &execution)
         let radius = try resolver.evaluate(fillet.radius, parameters: context.parameters, variables: [:])
         guard radius.kind == .length, radius.value.isFinite,
               radius.value > context.tolerance.distance else {
@@ -86,32 +108,40 @@ struct KernelRollingBallFilletEvaluator: RollingBallFilletEvaluating {
            retained.model == context.brep {
             input = retained
         } else {
-            input = try ValidatedBRepModel(context.brep, tolerance: context.tolerance)
+            input = try ValidatedBRepModel(context.brep, tolerance: context.tolerance,
+                maximumSubdivisionDepth: 32, remainingSourceDepth: 16, using: &execution)
         }
         let request = try RollingBallFilletRequestBuilder(
             input: input, subshapes: context.subshapes.entries).build(
                 featureID: feature.id, bodyID: selection.bodyID,
-                edgeID: selection.edgeID, radius: radius.value)
-        let sewn = try sewer.sew(request, tolerance: context.tolerance)
+                edgeID: selection.edgeID, radius: radius.value, using: &execution)
+        let sewn = try sewer.sew(request, tolerance: context.tolerance, using: &execution)
         let model = try BRepBodyModelReplacer().replacing(
-            bodyID: selection.bodyID, with: sewn.bodyID, from: sewn.brep, in: context.brep)
-        try model.validate(level: .volumetric, tolerance: context.tolerance)
-        let scope = try BodyTopologyScope(bodyID: selection.bodyID, model: context.brep)
+            bodyID: selection.bodyID, with: sewn.bodyID, from: sewn.brep, in: context.brep, using: &execution)
+        try model.validate(level: .volumetric, tolerance: context.tolerance,
+            maximumSubdivisionDepth: 32, remainingSourceDepth: 16, using: &execution)
+        let scope = try BodyTopologyScope(bodyID: selection.bodyID, model: context.brep, using: &execution)
+        let removed = try scope.subshapeIDs(in: context.subshapes, using: &execution)
+        try execution.checkpoint()
         return EvaluationResult(brep: model, subshapes: sewn.subshapes,
-            removedSubshapeIDs: scope.subshapeIDs(in: context.subshapes), lineage: sewn.lineage)
+            removedSubshapeIDs: removed, lineage: sewn.lineage)
     }
 
-    private func selected(_ fillet: FilletFeature, context: EvaluationContext)
+    private func selected(_ fillet: FilletFeature, context: EvaluationContext,
+        using execution: inout OriginalQueryExecution)
         throws -> (bodyID: BodyID, edgeID: EdgeID) {
         let bodyID = try context.bodyID(generatedBy: fillet.target.featureID)
         guard fillet.edges.count == 1, let reference = fillet.edges.first,
               case .edge(let edgeID) = try subshapeResolver.topologyReference(
                 for: reference, model: context.brep, subshapes: context.subshapes,
-                lineage: context.lineage, tolerance: context.tolerance) else {
+                lineage: context.lineage, tolerance: context.tolerance,
+                maximumSubdivisionDepth: min(32, execution.effectiveLimits.maximumSubdivisionDepth),
+                remainingSourceDepth: min(16, execution.effectiveLimits.remainingSourceDepth),
+                maximumAlgebraicDepth: nil, using: &execution) else {
             throw KernelError(phase: .topology, code: .missingReference,
                 tolerance: context.tolerance, message: "Rolling-ball fillet requires one current edge.")
         }
-        let scope = try BodyTopologyScope(bodyID: bodyID, model: context.brep)
+        let scope = try BodyTopologyScope(bodyID: bodyID, model: context.brep, using: &execution)
         guard scope.references.contains(.edge(edgeID)) else {
             throw KernelError(phase: .topology, code: .missingReference,
                 tolerance: context.tolerance, message: "Selected fillet edge belongs to a different body.")

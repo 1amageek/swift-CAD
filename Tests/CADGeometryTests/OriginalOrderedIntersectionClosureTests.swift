@@ -4,28 +4,61 @@ import Testing
 
 @Suite(.timeLimit(.minutes(1)))
 struct OriginalOrderedIntersectionClosureTests {
-    private struct Admission: RationalAlgebraAdmitting {
+    private struct Admission: ~Copyable, GeometryScalarTestAdmission {
+        var proofScopes = ExactScalarProofScopes()
         var work = 0, storage = 0
         var maximumWork = 20_000_000, maximumStorage = 20_000_000
         var maximumParameterDepth = 24, maximumCoefficientDepth = 24
         var coefficientVisits = 0, coefficientDepth = 0
-        mutating func consumeExactWork(_ count: Int) throws {
+        mutating func consumeWork(_ count: Int) throws(ExactScalarFailure) {
+            try checkpoint()
+            try proofScopes.checkWork(count)
+            do {
             guard count >= 0, count <= maximumWork - work else { throw failure("work") }; work += count
+        
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            proofScopes.recordWork(count)
+            try checkpoint()
         }
-        mutating func retainExactStorage(_ count: Int) throws {
+        mutating func retainStorage(bytes: Int) throws(ExactScalarFailure) {
+            try checkpoint()
+            let count = try geometryTestStorageWords(bytes)
+            do {
             guard count >= 0, count <= maximumStorage - storage else { throw failure("storage") }; storage += count
+        
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            try checkpoint()
         }
-        mutating func visitExactCell(depth: Int) throws {
-            guard depth >= 0, depth <= maximumParameterDepth else { throw failure("parameter depth") }
-        }
-        mutating func visitCoefficientCell(depth: Int) throws {
-            guard depth >= 0, depth <= maximumCoefficientDepth else { throw failure("coefficient depth") }
-            coefficientVisits += 1; coefficientDepth = max(coefficientDepth, depth)
-        }
+        
+        
         private func failure(_ domain: String) -> KernelError {
             KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: nil,
                 message: "Original ordered-closure test exhausted \(domain), work \(work), storage \(storage).")
         }
+            mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
+            try admitDepth(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+            let mapped = try proofScopes.mapped(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+            do {
+                switch (axis == .coefficient || proofScopes.exactDepthResource == .coefficientDepth) ? ExactScalarRootAxis.coefficient : .value {
+                case .value:
+                    let depth = mapped.value
+
+            guard depth >= 0, depth <= maximumParameterDepth else { throw failure("parameter depth") }
+        
+                case .coefficient:
+                    let depth = mapped.coefficient
+
+            guard depth >= 0, depth <= maximumCoefficientDepth else { throw failure("coefficient depth") }
+            coefficientVisits += 1; coefficientDepth = max(coefficientDepth, depth)
+        
+                }
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            try checkpoint()
+        }
+        var maximumTestValueDepth: Int { maximumParameterDepth }
     }
 
     private func source(region: Bool, usage: inout Admission) throws -> OriginalOrderedIntersectionCells {
@@ -113,22 +146,22 @@ struct OriginalOrderedIntersectionClosureTests {
         let original = try source(region: false, usage: &preparation)
         let index = try #require(original.partition.solutionCells.first)
         var coefficient = Admission(); coefficient.maximumCoefficientDepth = 0
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try OriginalIntersectionCellClosure.prepare(partition: original.partition, cellIndex: index,
                 allowAffineProofs: false, allowFiniteBranchProofs: false, maximumDepth: 24, usage: &coefficient)
         }
         var parameter = Admission(); parameter.maximumParameterDepth = 0
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try OriginalIntersectionCellClosure.prepare(partition: original.partition, cellIndex: index,
                 allowAffineProofs: false, allowFiniteBranchProofs: false, maximumDepth: 24, usage: &parameter)
         }
         var storage = Admission(); storage.maximumStorage = 0
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try OriginalIntersectionCellClosure.prepare(partition: original.partition, cellIndex: index,
                 allowAffineProofs: false, allowFiniteBranchProofs: false, maximumDepth: 24, usage: &storage)
         }
         var work = Admission(); work.maximumWork = 0
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try OriginalIntersectionCellClosure.prepare(partition: original.partition, cellIndex: index,
                 allowAffineProofs: false, allowFiniteBranchProofs: false, maximumDepth: 24, usage: &work)
         }
@@ -140,7 +173,7 @@ struct OriginalOrderedIntersectionClosureTests {
             domains: [nil, nil], thomEncoding: true, coefficientVariableCount: 1,
             maximumCoefficientDepth: 24, maximumDepth: 24, usage: &usage)
         let index = try #require(partition.solutionCells.first)
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try OriginalIntersectionCellClosure.prepare(partition: partition, cellIndex: index, maximumDepth: 24, usage: &usage)
         }
     }

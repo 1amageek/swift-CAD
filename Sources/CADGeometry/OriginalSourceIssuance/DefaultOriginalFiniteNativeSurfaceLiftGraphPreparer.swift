@@ -12,7 +12,7 @@ public struct DefaultOriginalFiniteNativeSurfaceLiftGraphPreparer<S: OriginalSur
         throws(OriginalSourceIssuanceFailure) -> OriginalFiniteNativeSurfaceLiftGraphs<S> {
         let source=copy source,surface=copy surface,pcurve=copy pcurve
         do {
-            return try OriginalSourceProofAdmission<A>.withBorrow(&admission) { a in
+            return try admission.withProofScope { a in
                 try a.checkpoint(); try source.require(limits)
                 guard limits.remainingSourceDepth > 0 else { throw OriginalSourceIssuanceFailure.sourceDepthLimit }
                 guard maximumCharts >= 0 else { throw OriginalSourceIssuanceFailure.chartLimit }
@@ -25,7 +25,7 @@ public struct DefaultOriginalFiniteNativeSurfaceLiftGraphPreparer<S: OriginalSur
                     !surface.laws.isEmpty,!pcurve.laws.isEmpty else { throw OriginalSourceIssuanceFailure.invalidChart }
                 let f=surface.field, zero=try f.integer(0,using:&a),one=try f.integer(1,using:&a)
                 func validate<C: OriginalBSplineSourceReading>(_ family: OriginalFiniteBSplineCharts<C>,
-                    arity: Int, _ a: inout OriginalSourceProofAdmission<A>) throws {
+                    arity: Int, _ a: inout A) throws {
                     for law in family.laws {
                         try a.consumeWork(1);try law.admitProof(using:&a)
                         guard family.source.owns(law.chart),law.polynomials.variableCount == arity,

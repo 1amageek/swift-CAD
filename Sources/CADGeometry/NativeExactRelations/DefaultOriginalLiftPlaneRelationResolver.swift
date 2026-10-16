@@ -61,7 +61,7 @@ public struct DefaultOriginalLiftPlaneRelationResolver: OriginalLiftPlaneRelatio
     private func restrict<S: OriginalLiftGraphSourceReading,P: OriginalPlaneSourceReading,A: ExactScalarAdmission & ~Copyable>(
         _ binding: OriginalLiftPlaneParameterRestriction<S,P>.Member,plane: OriginalIssuedPlaneGraph<P>,
         limits: OriginalDomainIdentityLimits,using admission: inout A) throws -> OriginalLiftPlaneParameterRestriction<S,P> {
-        try OriginalSourceProofAdmission<A>.withBorrow(&admission) { a in
+        try admission.withProofScope() { a in
             try binding.admitProof(limits:limits,using:&a)
             let g = binding.graph,f = g.field,r = g.polynomials,basis = plane.original.law
             var equation = try r.constant(f.integer(0,using:&a),using:&a)

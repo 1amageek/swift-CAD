@@ -87,6 +87,17 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
         on surface: Surface3D,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterCurve {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try Self.boundary(boundary, on: surface, tolerance: tolerance, using: &execution)
+    }
+
+
+    public static func boundary(
+        _ boundary: SurfaceParameterBoundary,
+        on surface: Surface3D,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceParameterCurve {
+        try execution.consumeWork(1)
         let uBounds = try closedBounds(surface.uDomain, tolerance: tolerance)
         let vBounds = try closedBounds(surface.vDomain, tolerance: tolerance)
         switch boundary {
@@ -105,9 +116,20 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
         on surface: Surface3D,
         tolerance: ModelingTolerance
     ) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try validate(on: surface, tolerance: tolerance, using: &execution)
+    }
+
+
+    public func validate(
+        on surface: Surface3D,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try tolerance.validate()
         switch self {
         case let .affine(origin, direction, startParameter, endParameter):
+            try OriginalCoefficientAllocation.reserve(count: 6, of: Double.self, using: &execution)
             let values = [
                 origin.x, origin.y, direction.x, direction.y,
                 startParameter, endParameter,
@@ -117,7 +139,9 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
                   endParameter - startParameter > tolerance.distance else {
                 throw GeometryError.invalidDistance(endParameter - startParameter)
             }
+            try OriginalCoefficientAllocation.reserve(count: 2, of: Double.self, using: &execution)
             for parameter in [startParameter, endParameter] {
+                try execution.consumeWork(1)
                 try validateParameter(
                     affineParameter(origin: origin, direction: direction, parameter: parameter),
                     on: surface,
@@ -137,6 +161,7 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
                 throw GeometryError.invalidDistance(uEnd - uStart)
             }
         case let .harmonic(center, cosine, sine, startParameter, endParameter):
+            try OriginalCoefficientAllocation.reserve(count: 8, of: Double.self, using: &execution)
             let values = [
                 center.x, center.y, cosine.x, cosine.y, sine.x, sine.y,
                 startParameter, endParameter,
@@ -146,12 +171,13 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
                   abs(endParameter - startParameter) <= 2.0 * Double.pi + tolerance.angle else {
                 throw GeometryError.invalidDistance(endParameter - startParameter)
             }
-            for parameter in harmonicValidationParameters(
+            for parameter in try harmonicValidationParameters(
                 cosine: cosine,
                 sine: sine,
                 startParameter: startParameter,
                 endParameter: endParameter
-            ) {
+            , using: &execution) {
+                try execution.consumeWork(1)
                 try validateParameter(
                     harmonicParameter(
                         center: center,
@@ -180,7 +206,9 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
                   abs(endParameter - startParameter) <= 2.0 * Double.pi + tolerance.angle else {
                 throw GeometryError.invalidDistance(endParameter - startParameter)
             }
+            try OriginalCoefficientAllocation.reserve(count: 2, of: Double.self, using: &execution)
             for parameter in [startParameter, endParameter] {
+                try execution.consumeWork(1)
                 try validateParameter(
                     sphericalParameter(
                         cosine: cosine,
@@ -200,6 +228,7 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
             var totalLength = 0.0
             var previous: SurfaceParameter?
             for point in points {
+                try execution.consumeWork(1)
                 try validateParameter(point, on: surface, tolerance: tolerance)
                 if let previous {
                     totalLength += parameterDistance(from: previous, to: point)
@@ -210,27 +239,27 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
                 throw GeometryError.invalidDistance(totalLength)
             }
         case let .originalBSplineContinuation(curve):
-            try curve.validate(tolerance: tolerance)
-            let jet = try curve.intervalJet(over: ScalarInterval(lower: 0, upper: 1), tolerance: tolerance)
+            try curve.validate(tolerance: tolerance, using: &execution)
+            let jet = try curve.intervalJet(over: ScalarInterval(lower: 0, upper: 1), tolerance: tolerance, using: &execution)
+            try OriginalCoefficientAllocation.reserve(count: 2, of: (OutwardScalarInterval, ParameterDomain).self, using: &execution)
             for (value, domain) in [(jet.u.value, surface.uDomain), (jet.v.value, surface.vDomain)] {
+                try execution.consumeWork(1)
                 if case .closed(let lower, let upper) = domain,
                     value.lower < lower || value.upper > upper {
                     throw GeometryConversionError.invalidInput("An original continuation leaves its complete hosting chart domain.")
                 }
             }
         case let .bSpline(curve):
-            try curve.validate(tolerance: tolerance)
+            try curve.validate(tolerance: tolerance, using: &execution)
             try surface.uDomain.validate(tolerance: tolerance)
             try surface.vDomain.validate(tolerance: tolerance)
-            var usage = OriginalGeometryValidationAdmission(consumeWork: { _ in
-                try CurrentTaskCancellationChecker().checkCancellation()
-            })
             if try OriginalQuadraticPcurveContainment.contains(curve,
-                u: surface.uDomain, v: surface.vDomain, using: &usage) == true {
-                try CurrentTaskCancellationChecker().checkCancellation()
+                u: surface.uDomain, v: surface.vDomain, using: &execution) == true {
+                try execution.checkpoint()
                 return
             }
             for controlPoint in curve.controlPoints {
+                try execution.consumeWork(1)
                 try validateParameter(
                     SurfaceParameter(u: controlPoint.x, v: controlPoint.y),
                     on: surface,
@@ -238,23 +267,23 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
                 )
             }
         case let .certifiedImplicit(curve):
-            try curve.validate(on: surface, tolerance: tolerance)
+            try curve.validate(on: surface, tolerance: tolerance, using: &execution)
         case let .certifiedAnalyticImplicit(curve):
-            try curve.validate(on: surface, tolerance: tolerance)
+            try curve.validate(on: surface, tolerance: tolerance, using: &execution)
         case let .certifiedAnalyticPair(curve):
-            try curve.validate(on: surface, tolerance: tolerance)
+            try curve.validate(on: surface, tolerance: tolerance, using: &execution)
         case let .projectedAnalytic(curve):
-            try curve.validate(on: surface, tolerance: tolerance)
+            try curve.validate(on: surface, tolerance: tolerance, using: &execution)
         case let .originalAffineWord(curve):
-            try curve.validate(on: surface, tolerance: tolerance)
+            try curve.validate(on: surface, tolerance: tolerance, using: &execution)
         case let .originalImage(curve):
-            try curve.validate(on: surface, tolerance: tolerance)
+            try curve.validate(on: surface, tolerance: tolerance, using: &execution)
         case let .rigidImage(curve):
-            try curve.validate(on: surface, tolerance: tolerance)
+            try curve.validate(on: surface, tolerance: tolerance, using: &execution)
         case let .offsetSurfaceImage(curve):
-            try curve.validate(on: surface, tolerance: tolerance)
+            try curve.validate(on: surface, tolerance: tolerance, using: &execution)
         case let .periodicTranslation(base, uShift, vShift):
-            try base.validate(on: surface, tolerance: tolerance)
+            try base.validate(on: surface, tolerance: tolerance, using: &execution)
             try validatePeriodicShift(
                 uShift,
                 domain: surface.uDomain,
@@ -272,6 +301,16 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameter {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try parameter(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+
+    public func parameter(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceParameter {
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard fraction.isFinite,
               fraction >= -tolerance.distance,
@@ -310,62 +349,62 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
                 endParameter: endParameter
             )
         case let .polyline(points):
-            return try polylineParameter(points: points, fraction: clampedFraction)
+            return try polylineParameter(points: points, fraction: clampedFraction, using: &execution)
         case let .originalBSplineContinuation(curve):
-            return try curve.parameter(atNormalizedFraction: clampedFraction, tolerance: tolerance)
+            return try curve.parameter(atNormalizedFraction: clampedFraction, tolerance: tolerance, using: &execution)
         case let .bSpline(curve):
             let bounds = try Self.closedBounds(curve.domain, tolerance: tolerance)
             let parameter = interpolated(bounds.lower, bounds.upper, fraction: clampedFraction)
             let point = try curve.pointAssumingValid(
                 at: parameter,
                 tolerance: tolerance
-            )
+            , using: &execution)
             return SurfaceParameter(u: point.x, v: point.y)
         case let .certifiedImplicit(curve):
             return try curve.parameter(
                 atNormalizedFraction: clampedFraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .certifiedAnalyticImplicit(curve):
             return try curve.parameter(
                 atNormalizedFraction: clampedFraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .certifiedAnalyticPair(curve):
             return try curve.parameter(
                 atNormalizedFraction: clampedFraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .projectedAnalytic(curve):
             return try curve.parameter(
                 atNormalizedFraction: clampedFraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .originalAffineWord(curve):
             return try curve.parameter(
                 atNormalizedFraction: clampedFraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .originalImage(curve):
             return try curve.parameter(
                 atNormalizedFraction: clampedFraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .rigidImage(curve):
             return try curve.parameter(
                 atNormalizedFraction: clampedFraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .offsetSurfaceImage(curve):
             return try curve.parameter(
                 atNormalizedFraction: clampedFraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .periodicTranslation(base, uShift, vShift):
             let parameter = try base.parameter(
                 atNormalizedFraction: clampedFraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
             return SurfaceParameter(
                 u: parameter.u + uShift,
                 v: parameter.v + vShift
@@ -378,6 +417,17 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
         curveDomain: ParameterDomain,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameter {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try self.parameter(atCurveParameter: parameter, curveDomain: curveDomain, tolerance: tolerance, using: &execution)
+    }
+
+
+    public func parameter(
+        atCurveParameter parameter: Double,
+        curveDomain: ParameterDomain,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceParameter {
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard parameter.isFinite else {
             throw GeometryError.invalidDistance(parameter)
@@ -402,7 +452,7 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
             )
         case let .originalBSplineContinuation(curve):
             return try curve.parameter(atNormalizedFraction: (parameter - curve.startParameter)
-                / (curve.endParameter - curve.startParameter), tolerance: tolerance)
+                / (curve.endParameter - curve.startParameter), tolerance: tolerance, using: &execution)
         case let .bSpline(curve):
             let pcurveParameter: Double
             if case .periodic = curveDomain {
@@ -426,7 +476,7 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
             let point = try curve.pointAssumingValid(
                 at: pcurveParameter,
                 tolerance: tolerance
-            )
+            , using: &execution)
             return SurfaceParameter(u: point.x, v: point.y)
         case let .certifiedImplicit(curve):
             return try curve.parameter(
@@ -438,7 +488,7 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
                     tolerance: tolerance
                 ),
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .certifiedAnalyticImplicit(curve):
             return try curve.parameter(
                 atNormalizedFraction: certifiedLocalFraction(
@@ -449,7 +499,7 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
                     tolerance: tolerance
                 ),
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .certifiedAnalyticPair(curve):
             return try curve.parameter(
                 atNormalizedFraction: certifiedLocalFraction(
@@ -460,12 +510,12 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
                     tolerance: tolerance
                 ),
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .projectedAnalytic(curve):
             return try curve.parameter(
                 atCurveParameter: parameter,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .originalAffineWord(curve):
             return try curve.parameter(
                 atNormalizedFraction: normalizedFraction(
@@ -474,7 +524,7 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
                     tolerance: tolerance
                 ),
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .originalImage(curve):
             return try curve.parameter(
                 atNormalizedFraction: normalizedFraction(
@@ -483,7 +533,7 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
                     tolerance: tolerance
                 ),
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .rigidImage(curve):
             return try curve.parameter(
                 atNormalizedFraction: normalizedFraction(
@@ -492,19 +542,19 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
                     tolerance: tolerance
                 ),
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .offsetSurfaceImage(curve):
             return try curve.parameter(
                 atCurveParameter: parameter,
                 curveDomain: curveDomain,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .periodicTranslation(base, uShift, vShift):
             let result = try base.parameter(
                 atCurveParameter: parameter,
                 curveDomain: curveDomain,
                 tolerance: tolerance
-            )
+            , using: &execution)
             return SurfaceParameter(
                 u: result.u + uShift,
                 v: result.v + vShift
@@ -517,19 +567,40 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
                     tolerance: tolerance
                 ),
                 tolerance: tolerance
-            )
+            , using: &execution)
         }
     }
 
     public func startParameter(tolerance: ModelingTolerance) throws -> SurfaceParameter {
-        try parameter(atNormalizedFraction: 0.0, tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try startParameter(tolerance: tolerance, using: &execution)
+    }
+
+
+    public func startParameter(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> SurfaceParameter {
+        try execution.consumeWork(1)
+        return try parameter(atNormalizedFraction: 0.0, tolerance: tolerance, using: &execution)
     }
 
     public func endParameter(tolerance: ModelingTolerance) throws -> SurfaceParameter {
-        try parameter(atNormalizedFraction: 1.0, tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try endParameter(tolerance: tolerance, using: &execution)
+    }
+
+
+    public func endParameter(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> SurfaceParameter {
+        try execution.consumeWork(1)
+        return try parameter(atNormalizedFraction: 1.0, tolerance: tolerance, using: &execution)
     }
 
     public func reversed(tolerance: ModelingTolerance) throws -> SurfaceParameterCurve {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try reversed(tolerance: tolerance, using: &execution)
+    }
+
+
+    public func reversed(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> SurfaceParameterCurve {
+        try execution.consumeWork(1)
         try tolerance.validate()
         switch self {
         case let .affine(origin, direction, startParameter, endParameter):
@@ -562,37 +633,44 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
                 endParameter: startParameter
             )
         case let .polyline(points):
-            return .polyline(Array(points.reversed()))
+            return .polyline(try OriginalCoefficientAllocation.map(elements: points.reversed(), using: &execution) { point, _ in point })
         case let .originalBSplineContinuation(curve):
-            return .originalBSplineContinuation(try curve.reversed(tolerance: tolerance))
+            return .originalBSplineContinuation(try curve.reversed(tolerance: tolerance, using: &execution))
         case let .bSpline(curve):
-            return .bSpline(try curve.reversed(tolerance: tolerance))
+            return .bSpline(try curve.reversed(tolerance: tolerance, using: &execution))
         case let .certifiedImplicit(curve):
-            return .certifiedImplicit(try curve.reversed(tolerance: tolerance))
+            return .certifiedImplicit(try curve.reversed(tolerance: tolerance, using: &execution))
         case let .certifiedAnalyticImplicit(curve):
-            return .certifiedAnalyticImplicit(try curve.reversed(tolerance: tolerance))
+            return .certifiedAnalyticImplicit(try curve.reversed(tolerance: tolerance, using: &execution))
         case let .certifiedAnalyticPair(curve):
-            return .certifiedAnalyticPair(try curve.reversed(tolerance: tolerance))
+            return .certifiedAnalyticPair(try curve.reversed(tolerance: tolerance, using: &execution))
         case let .projectedAnalytic(curve):
-            return .projectedAnalytic(try curve.reversed(tolerance: tolerance))
+            return .projectedAnalytic(try curve.reversed(tolerance: tolerance, using: &execution))
         case let .originalAffineWord(curve):
             return .originalAffineWord(try curve.reversed(tolerance: tolerance))
         case let .originalImage(curve):
             return .originalImage(try curve.reversed(tolerance: tolerance))
         case let .rigidImage(curve):
-            return .rigidImage(try curve.reversed(tolerance: tolerance))
+            return .rigidImage(try curve.reversed(tolerance: tolerance, using: &execution))
         case let .offsetSurfaceImage(curve):
-            return .offsetSurfaceImage(try curve.reversed(tolerance: tolerance))
+            return .offsetSurfaceImage(try curve.reversed(tolerance: tolerance, using: &execution))
         case let .periodicTranslation(base, uShift, vShift):
             return .periodicTranslation(
-                base: try base.reversed(tolerance: tolerance),
+                base: try base.reversed(tolerance: tolerance, using: &execution),
                 uShift: uShift,
                 vShift: vShift
             )
         }
     }
 
-    package func materializingPeriodicTranslation() -> SurfaceParameterCurve {
+    package func materializingPeriodicTranslation() throws -> SurfaceParameterCurve {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try materializingPeriodicTranslation(using: &execution)
+    }
+
+
+    package func materializingPeriodicTranslation(using execution: inout OriginalQueryExecution) throws -> SurfaceParameterCurve {
+        try execution.consumeWork(1)
         guard case let .periodicTranslation(base, uShift, vShift) = self else {
             return self
         }
@@ -625,24 +703,24 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
                 endParameter: endParameter
             )
         case let .polyline(points):
-            return .polyline(points.map {
-                SurfaceParameter(u: $0.u + uShift, v: $0.v + vShift)
+            return .polyline(try OriginalCoefficientAllocation.map(elements: points, using: &execution) { point, _ in
+                SurfaceParameter(u: point.u + uShift, v: point.v + vShift)
             })
         case let .bSpline(spline):
             return .bSpline(BSplineCurve2D(
                 degree: spline.degree,
                 knots: spline.knots,
-                controlPoints: spline.controlPoints.map {
-                    Point2D(x: $0.x + uShift, y: $0.y + vShift)
+                controlPoints: try OriginalCoefficientAllocation.map(elements: spline.controlPoints, using: &execution) { point, _ in
+                    Point2D(x: point.x + uShift, y: point.y + vShift)
                 },
                 weights: spline.weights
             ))
         case let .periodicTranslation(nestedBase, nestedUShift, nestedVShift):
-            return SurfaceParameterCurve.periodicTranslation(
+            return try SurfaceParameterCurve.periodicTranslation(
                 base: nestedBase,
                 uShift: uShift + nestedUShift,
                 vShift: vShift + nestedVShift
-            ).materializingPeriodicTranslation()
+            ).materializingPeriodicTranslation(using: &execution)
         case .sphericalGreatCircle, .certifiedImplicit, .certifiedAnalyticImplicit,
              .certifiedAnalyticPair, .projectedAnalytic, .originalBSplineContinuation, .originalAffineWord, .originalImage, .rigidImage,
              .offsetSurfaceImage:
@@ -660,6 +738,18 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
         curveDomain: ParameterDomain,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterCurve {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try trimmed(from: startParameter, to: endParameter, curveDomain: curveDomain, tolerance: tolerance, using: &execution)
+    }
+
+
+    public func trimmed(
+        from startParameter: Double,
+        to endParameter: Double,
+        curveDomain: ParameterDomain,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceParameterCurve {
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard startParameter.isFinite,
               endParameter.isFinite,
@@ -689,11 +779,11 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
             let start = try parameter(
                 atNormalizedFraction: fractions.start,
                 tolerance: tolerance
-            )
+            , using: &execution)
             let end = try parameter(
                 atNormalizedFraction: fractions.end,
                 tolerance: tolerance
-            )
+            , using: &execution)
             return .constantU(u: u, vStart: start.v, vEnd: end.v)
         case let .constantV(v, _, _):
             let fractions = try trimFractions(
@@ -705,11 +795,11 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
             let start = try parameter(
                 atNormalizedFraction: fractions.start,
                 tolerance: tolerance
-            )
+            , using: &execution)
             let end = try parameter(
                 atNormalizedFraction: fractions.end,
                 tolerance: tolerance
-            )
+            , using: &execution)
             return .constantV(v: v, uStart: start.u, uEnd: end.u)
         case let .harmonic(center, cosine, sine, _, _):
             return .harmonic(
@@ -733,7 +823,7 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
                 to: endParameter,
                 curveDomain: curveDomain,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .originalBSplineContinuation(curve):
             return .originalBSplineContinuation(try OriginalBSplineCurve2DContinuation(original: curve.original,
                 startParameter: startParameter, endParameter: endParameter, tolerance: tolerance))
@@ -750,27 +840,27 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
                 to: endParameter,
                 curveDomain: curveDomain,
                 tolerance: tolerance
-            ))
+            , using: &execution))
         case let .certifiedAnalyticImplicit(curve):
             return .certifiedAnalyticImplicit(try curve.trimmed(
                 from: startParameter,
                 to: endParameter,
                 curveDomain: curveDomain,
                 tolerance: tolerance
-            ))
+            , using: &execution))
         case let .certifiedAnalyticPair(curve):
             return .certifiedAnalyticPair(try curve.trimmed(
                 from: startParameter,
                 to: endParameter,
                 curveDomain: curveDomain,
                 tolerance: tolerance
-            ))
+            , using: &execution))
         case let .projectedAnalytic(curve):
             return .projectedAnalytic(try curve.trimmed(
                 from: startParameter,
                 to: endParameter,
                 tolerance: tolerance
-            ))
+            , using: &execution))
         case let .originalAffineWord(curve):
             let lower = try normalizedFraction(
                 startParameter,
@@ -818,14 +908,14 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
                 fromNormalizedFraction: lower,
                 toNormalizedFraction: upper,
                 tolerance: tolerance
-            ))
+            , using: &execution))
         case let .offsetSurfaceImage(curve):
             return .offsetSurfaceImage(try curve.trimmed(
                 from: startParameter,
                 to: endParameter,
                 curveDomain: curveDomain,
                 tolerance: tolerance
-            ))
+            , using: &execution))
         case let .periodicTranslation(base, uShift, vShift):
             return .periodicTranslation(
                 base: try base.trimmed(
@@ -833,7 +923,7 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
                     to: endParameter,
                     curveDomain: curveDomain,
                     tolerance: tolerance
-                ),
+                , using: &execution),
                 uShift: uShift,
                 vShift: vShift
             )
@@ -1169,7 +1259,8 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
     // Euclidean prefix/total length; this evaluator must use cancellation-checked
     // outward length refinement before it can claim continuous original stations.
     // Exact bounds and trim events consume the separate admitted exact law.
-    private func polylineParameter(points: [SurfaceParameter], fraction: Double) throws -> SurfaceParameter {
+    private func polylineParameter(points: [SurfaceParameter], fraction: Double, using execution: inout OriginalQueryExecution) throws -> SurfaceParameter {
+        try execution.consumeWork(1)
         guard let first = points.first,
               let last = points.last else {
             throw GeometryError.invalidDistance(Double(points.count))
@@ -1181,9 +1272,11 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
             return last
         }
 
-        var segmentLengths: [Double] = []
+        try OriginalCoefficientAllocation.reserve(count: max(0, points.count - 1), of: Double.self, using: &execution)
+        var segmentLengths: [Double] = []; segmentLengths.reserveCapacity(max(0, points.count - 1))
         var totalLength = 0.0
         for index in 1..<points.count {
+            try execution.consumeWork(1)
             let length = parameterDistance(from: points[index - 1], to: points[index])
             segmentLengths.append(length)
             totalLength += length
@@ -1194,6 +1287,7 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
         let targetLength = totalLength * fraction
         var accumulatedLength = 0.0
         for index in 0..<segmentLengths.count {
+            try execution.consumeWork(1)
             let nextLength = accumulatedLength + segmentLengths[index]
             if targetLength <= nextLength || index == segmentLengths.count - 1 {
                 let segmentFraction = (targetLength - accumulatedLength) / segmentLengths[index]
@@ -1391,7 +1485,8 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
         to endParameter: Double,
         curveDomain: ParameterDomain,
         tolerance: ModelingTolerance
-    ) throws -> SurfaceParameterCurve {
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceParameterCurve {
+        try execution.consumeWork(1)
         switch curveDomain {
         case .unbounded:
             throw GeometryError.invalidDistance(endParameter - startParameter)
@@ -1408,7 +1503,7 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
                     tolerance: tolerance
                 ),
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .periodic(period):
             let span = endParameter - startParameter
             guard span <= period + tolerance.relative else {
@@ -1426,7 +1521,7 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
                     fromNormalizedFraction: startFraction,
                     toNormalizedFraction: min(unwrappedEndFraction, 1.0),
                     tolerance: tolerance
-                )
+                , using: &execution)
             }
             guard let first = points.first,
                   let last = points.last,
@@ -1437,17 +1532,23 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
                 fromNormalizedFraction: startFraction,
                 toNormalizedFraction: 1.0,
                 tolerance: tolerance
-            )
+            , using: &execution)
             let head = try subcurve(
                 fromNormalizedFraction: 0.0,
                 toNormalizedFraction: unwrappedEndFraction - 1.0,
                 tolerance: tolerance
-            )
+            , using: &execution)
             guard case let .polyline(tailPoints) = tail,
                   case let .polyline(headPoints) = head else {
                 throw GeometryError.invalidDistance(span)
             }
-            return .polyline(tailPoints + headPoints.dropFirst())
+            let count = tailPoints.count.addingReportingOverflow(max(0, headPoints.count - 1))
+            guard !count.overflow else { throw ExactScalarFailure.countOverflow }
+            try OriginalCoefficientAllocation.reserve(count: count.partialValue, of: SurfaceParameter.self, using: &execution)
+            var result: [SurfaceParameter] = []; result.reserveCapacity(count.partialValue)
+            for point in tailPoints { try execution.consumeWork(1); result.append(point) }
+            for point in headPoints.dropFirst() { try execution.consumeWork(1); result.append(point) }
+            return .polyline(result)
         }
     }
 
@@ -1468,23 +1569,22 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
         sine: Point2D,
         startParameter: Double,
         endParameter: Double
-    ) -> [Double] {
+    , using execution: inout OriginalQueryExecution) throws -> [Double] {
+        try execution.consumeWork(1)
         let lower = min(startParameter, endParameter)
         let upper = max(startParameter, endParameter)
-        var result = [startParameter, endParameter]
-        result.append(contentsOf: harmonicCriticalParameters(
-            cosineCoefficient: cosine.x,
-            sineCoefficient: sine.x,
-            lower: lower,
-            upper: upper
-        ))
-        result.append(contentsOf: harmonicCriticalParameters(
-            cosineCoefficient: cosine.y,
-            sineCoefficient: sine.y,
-            lower: lower,
-            upper: upper
-        ))
+        let uCritical = try harmonicCriticalParameters(cosineCoefficient: cosine.x, sineCoefficient: sine.x,
+            lower: lower, upper: upper, using: &execution)
+        let vCritical = try harmonicCriticalParameters(cosineCoefficient: cosine.y, sineCoefficient: sine.y,
+            lower: lower, upper: upper, using: &execution)
+        let count = try exactScalarCount(2, exactScalarCount(uCritical.count, vCritical.count, multiply: false), multiply: false)
+        try OriginalCoefficientAllocation.reserve(count: count, of: Double.self, using: &execution)
+        var result: [Double] = []; result.reserveCapacity(count)
+        result.append(startParameter); result.append(endParameter)
+        for value in uCritical { try execution.consumeWork(1); result.append(value) }
+        for value in vCritical { try execution.consumeWork(1); result.append(value) }
         return result
+
     }
 
     private func harmonicCriticalParameters(
@@ -1492,7 +1592,8 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
         sineCoefficient: Double,
         lower: Double,
         upper: Double
-    ) -> [Double] {
+    , using execution: inout OriginalQueryExecution) throws -> [Double] {
+        try execution.consumeWork(1)
         guard hypot(cosineCoefficient, sineCoefficient) > Double.leastNonzeroMagnitude else {
             return []
         }
@@ -1503,7 +1604,7 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
         guard firstIndex <= lastIndex else {
             return []
         }
-        return (firstIndex...lastIndex).map { index in
+        return try OriginalCoefficientAllocation.map(elements: firstIndex...lastIndex, using: &execution) { index, _ in
             firstRoot + Double(index) * period
         }
     }

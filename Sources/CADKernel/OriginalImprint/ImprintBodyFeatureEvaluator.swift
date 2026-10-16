@@ -20,39 +20,35 @@ struct ImprintBodyFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
     }
 
     func evaluateValidated(feature: FeatureNode, context: EvaluationContext) throws -> ValidatedFeatureEvaluation {
-        try FeatureEvaluationBoundary.evaluateValidated(featureID: feature.id, tolerance: context.tolerance) {
-            try imprint(feature: feature, context: context)
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try FeatureEvaluationBoundary.evaluateValidated(featureID: feature.id, tolerance: context.tolerance, using: &execution) { execution in
+            try imprint(feature: feature, context: context, using: &execution)
         }
     }
 
-    private func imprint(feature: FeatureNode, context: EvaluationContext) throws -> EvaluationResult {
+    private func imprint(feature: FeatureNode, context: EvaluationContext, using execution: inout OriginalQueryExecution) throws -> EvaluationResult {
         guard case let .imprintBody(imprint) = feature.operation else {
             throw failure(.invalidInput, feature.id, context, "Imprint evaluator requires an imprintBody feature.")
         }
-        try FeatureEvaluationBoundary.validateRequest(featureID: feature.id, tolerance: context.tolerance) {
+        try FeatureEvaluationBoundary.validateRequest(featureID: feature.id, tolerance: context.tolerance, using: &execution) {
             try imprint.validate()
         }
-        try FeatureEvaluationBoundary.validateExactInput(context, featureID: feature.id, tolerance: context.tolerance)
+        try FeatureEvaluationBoundary.validateExactInput(context, featureID: feature.id, tolerance: context.tolerance, using: &execution)
         let targetBodyID = try context.bodyID(generatedBy: imprint.target.featureID)
         let published = Set(context.subshapes.entries.keys)
         var completed: [BRepFaceImprinter.Curve] = []
         for (ordinal, tool) in imprint.tools.enumerated() {
-            var toolBodyID = try context.bodyID(generatedBy: tool.body.featureID)
-            var crossingContext = context
-            if let placement = tool.placement {
-                // The tool crosses the target where it is placed: moved in an unpublished stage.
-                try placement.validate(tolerance: context.tolerance)
-                var stages = FeatureEvaluationStages(context)
-                let stageID = featureEvaluationStageID(featureID: feature.id, domain: .imprintToolPlacement, ordinal: UInt64(ordinal))
-                let moved = try DefaultExactBodyPatternRebuilder(
-                    sewer: DefaultBRepSewer(), unionApplicator: ExactBooleanOperationApplicator(), separationValidator: ExactBodyJoinValidator()
-                ).relocate(featureID: stageID, sourceBodyID: toolBodyID, transform: placement, stablePrefix: "imprint:placedTool:\(ordinal)", context: context)
-                stages.apply(moved)
-                toolBodyID = try stages.publishedBody(of: moved, featureID: feature.id, what: "Moving the tool to imprint")
-                crossingContext = stages.context
+            let toolBodyID = try context.bodyID(generatedBy: tool.body.featureID)
+            let crossingContext = context
+            if tool.placement != nil {
+                // FIXME(INCOMPLETE_IMPLEMENTATION): Imprint Body tool placement needs the ordinary-only pattern producer.
+                // Production placement must refuse until that producer retains original coverage and the caller's execution.
+                try execution.checkpoint()
+                throw failure(.unsupportedCapability, feature.id, context,
+                    "Imprint tool placement has no direct original execution witness.")
             }
             let curves = try Self.crossings(
-                of: targetBodyID, by: toolBodyID, pipeline: pipeline, featureID: feature.id, context: crossingContext
+                of: targetBodyID, by: toolBodyID, pipeline: pipeline, featureID: feature.id, context: crossingContext, using: &execution
             ).enumerated().map { index, curve in
                 // A moved tool is never published: what the crossings trace to it is dropped.
                 let edge = curve.edge
@@ -68,10 +64,10 @@ struct ImprintBodyFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             }
             // Each tool's lines complete among themselves, so they run on across another tool's.
             completed += try BRepImprintCompletion().completed(
-                curves, by: imprint.completion, model: context.brep, sourceSubshapes: context.subshapes.entries, tolerance: context.tolerance
+                curves, by: imprint.completion, model: context.brep, sourceSubshapes: context.subshapes.entries, tolerance: context.tolerance, using: &execution
             )
         }
-        return try BRepFaceImprinter().imprint(completed, on: targetBodyID, featureID: feature.id, context: context)
+        return try BRepFaceImprinter().imprint(completed, on: targetBodyID, featureID: feature.id, context: context, using: &execution)
     }
 
     /// The curves where the tool's faces cross the target's, each on the target face it lies on.
@@ -82,7 +78,19 @@ struct ImprintBodyFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         featureID: FeatureID,
         context: EvaluationContext
     ) throws -> [BRepFaceImprinter.Curve] {
-        try crossingPairs(of: targetBodyID, by: toolBodyID, pipeline: pipeline, featureID: featureID, context: context).map(\.onTarget)
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try crossings(of: targetBodyID, by: toolBodyID, pipeline: pipeline, featureID: featureID, context: context, using: &execution)
+    }
+
+    static func crossings(
+        of targetBodyID: BodyID,
+        by toolBodyID: BodyID,
+        pipeline: BooleanPipeline,
+        featureID: FeatureID,
+        context: EvaluationContext,
+        using execution: inout OriginalQueryExecution
+    ) throws -> [BRepFaceImprinter.Curve] {
+        try crossingPairs(of: targetBodyID, by: toolBodyID, pipeline: pipeline, featureID: featureID, context: context, using: &execution).map(\.onTarget)
     }
 
     /// Each crossing both as a curve on the target face and as the same curve on the tool face.
@@ -93,15 +101,27 @@ struct ImprintBodyFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         featureID: FeatureID,
         context: EvaluationContext
     ) throws -> [(onTarget: BRepFaceImprinter.Curve, onTool: BRepSewingEdge)] {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try crossingPairs(of: targetBodyID, by: toolBodyID, pipeline: pipeline, featureID: featureID, context: context, using: &execution)
+    }
+
+    static func crossingPairs(
+        of targetBodyID: BodyID,
+        by toolBodyID: BodyID,
+        pipeline: BooleanPipeline,
+        featureID: FeatureID,
+        context: EvaluationContext,
+        using execution: inout OriginalQueryExecution
+    ) throws -> [(onTarget: BRepFaceImprinter.Curve, onTool: BRepSewingEdge)] {
         let tolerance = context.tolerance
         let intersections = try pipeline.completeIntersectionGraph(
-            targetBodyIDs: [targetBodyID], toolBodyID: toolBodyID, operation: .region, model: context.brep, tolerance: tolerance
+            targetBodyIDs: [targetBodyID], toolBodyID: toolBodyID, operation: .region, model: context.brep, tolerance: tolerance, using: &execution
         )
-        let splits = try pipeline.uvSplitGraph(intersectionGraph: intersections, model: context.brep, tolerance: tolerance)
+        let splits = try pipeline.uvSplitGraph(intersectionGraph: intersections, model: context.brep, tolerance: tolerance, using: &execution)
         var pairs: [(onTarget: BRepFaceImprinter.Curve, onTool: BRepSewingEdge)] = []
         for split in splits.splits {
             let faceID = split.facePair.targetFaceID
-            let parents = context.subshapeIDs(for: .face(faceID)) + context.subshapeIDs(for: .face(split.facePair.toolFaceID))
+            let parents = try context.subshapeIDs(for: .face(faceID), using: &execution) + context.subshapeIDs(for: .face(split.facePair.toolFaceID), using: &execution)
             for component in split.components {
                 switch component.geometry {
                 case .tangent:
@@ -110,19 +130,19 @@ struct ImprintBodyFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                     let reference = BooleanFaceSplitComponentReference(facePair: split.facePair, componentID: component.id)
                     let outlines = try CoincidentBooleanFaceArrangementBoundaryBuilder().outlineEdges(
                         of: split.facePair.toolFaceID, onto: faceID, reference: reference,
-                        model: context.brep, sourceSubshapes: context.subshapes.entries, tolerance: tolerance)
+                        model: context.brep, sourceSubshapes: context.subshapes.entries, tolerance: tolerance, using: &execution)
                     guard let toolFace = context.brep.faces[split.facePair.toolFaceID],
                           let toolSurface = context.brep.geometry.surfaces[toolFace.surfaceID] else {
                         throw TopologyError.missingReference("A coincident imprint tool support is missing.")
                     }
                     let targetEdges = try SourceBRepFacePatchBuilder().build(faceID: faceID,
                         stableID: "imprint:coincident:target", from: context.brep,
-                        sourceSubshapes: context.subshapes.entries, tolerance: tolerance).patch.loops.flatMap(\.edges)
+                        sourceSubshapes: context.subshapes.entries, tolerance: tolerance, using: &execution).patch.loops.flatMap(\.edges)
                     for edge in outlines {
                         var alreadyBoundsTarget = false
                         for targetEdge in targetEdges {
                             if case .coincident = try ExactTrimEdgeIntersector().intersections(
-                                edge, targetEdge, tolerance: tolerance) {
+                                edge, targetEdge, tolerance: tolerance, using: &execution) {
                                 alreadyBoundsTarget = true
                                 break
                             }
@@ -133,7 +153,7 @@ struct ImprintBodyFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                             startPoint: edge.startPoint, endPoint: edge.endPoint,
                             surfaceParameterCurve: try ExactFacePcurveBuilder().surfaceParameterCurve(
                                 for: edge.curve, startParameter: edge.startParameter,
-                                endParameter: edge.endParameter, on: toolSurface, tolerance: tolerance),
+                                endParameter: edge.endParameter, on: toolSurface, tolerance: tolerance, using: &execution),
                             parentSubshapeIDs: edge.parentSubshapeIDs,
                             startVertexParentSubshapeIDs: edge.startVertexParentSubshapeIDs,
                             endVertexParentSubshapeIDs: edge.endVertexParentSubshapeIDs)
@@ -143,11 +163,11 @@ struct ImprintBodyFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                     let reference = BooleanFaceSplitComponentReference(facePair: split.facePair, componentID: component.id)
                     let onTarget = try BooleanFaceArrangementBoundary.edges(
                         reference: reference, geometry: component.geometry, faceID: faceID,
-                        surfaceSide: .first, parentSubshapeIDs: parents, tolerance: tolerance
+                        surfaceSide: .first, parentSubshapeIDs: parents, tolerance: tolerance, using: &execution
                     )
                     let onTool = try BooleanFaceArrangementBoundary.edges(
                         reference: reference, geometry: component.geometry, faceID: split.facePair.toolFaceID,
-                        surfaceSide: .second, parentSubshapeIDs: parents, tolerance: tolerance
+                        surfaceSide: .second, parentSubshapeIDs: parents, tolerance: tolerance, using: &execution
                     )
                     guard onTarget.count == onTool.count else {
                         throw KernelError(phase: .topology, code: .topologyFailure, featureID: featureID, tolerance: tolerance,

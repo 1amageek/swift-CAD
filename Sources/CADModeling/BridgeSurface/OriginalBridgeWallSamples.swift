@@ -6,7 +6,6 @@ package struct OriginalBridgeWallSamples {
     private let chart: SurfaceAreaParameterChartEncloser
     private let surface: PreparedSurfaceDifferentialEncloser
     private let tolerance: ModelingTolerance
-    private let admission: GeometryConversionAdmission
     private let sourceDepth: Int
 
     package struct Candidate {
@@ -20,32 +19,30 @@ package struct OriginalBridgeWallSamples {
     }
 
     package init(surface: Surface3D, boundary: SurfaceParameterCurve,
-        tolerance: ModelingTolerance, admission: GeometryConversionAdmission) throws {
-        self.tolerance = tolerance; self.admission = admission
-        sourceDepth = min(16, admission.remainingSourceDepth)
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        self.tolerance = tolerance
+        sourceDepth = min(16, execution.effectiveLimits.remainingSourceDepth)
         self.surface = try PreparedSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance,
-            remainingSourceDepth: sourceDepth, maximumSubdivisionDepth: min(20, admission.maximumSubdivisionDepth),
-            consumeWork: { try admission.chargeWork() }, consumeStorage: { try admission.chargeStorage(bytes: $0) },
-            maximumAlgebraicDepth: admission.maximumAlgebraicDepth)
+            remainingSourceDepth: sourceDepth, maximumSubdivisionDepth: min(20, execution.effectiveLimits.maximumSubdivisionDepth),
+            maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth, using: &execution)
         chart = try SurfaceAreaParameterChartEncloser(curve: boundary, on: surface,
-            tolerance: tolerance, maximumSubdivisionDepth: min(20, admission.maximumSubdivisionDepth),
-            remainingSourceDepth: sourceDepth, maximumAlgebraicDepth: admission.maximumAlgebraicDepth ?? 32,
-            consumeWork: { _ in try admission.chargeWork() }, consumeStorage: { try admission.chargeStorage(bytes: $0) })
+            tolerance: tolerance, maximumSubdivisionDepth: min(20, execution.effectiveLimits.maximumSubdivisionDepth),
+            remainingSourceDepth: sourceDepth, maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth,
+            using: &execution)
     }
 
-    package func candidate(atFraction fraction: Double) throws -> Candidate {
-        try admission.chargeWork()
+    package func candidate(atFraction fraction: Double, using execution: inout OriginalQueryExecution) throws -> Candidate {
+        try execution.consumeWork(1)
         let values = try chart.intervalProof(over: .init(lower: fraction, upper: fraction),
-            tolerance: tolerance, consumeWork: { try admission.chargeWork() },
-            consumeStorage: { try admission.chargeStorage(bytes: $0) }).values
+            tolerance: tolerance, using: &execution).values
         let field = try surface.enclosure(over: .init(
             u: .init(lower: values.u.lower, upper: values.u.upper),
             v: .init(lower: values.v.lower, upper: values.v.upper)),
-            tolerance: tolerance, maximumSpanCount: min(4096, admission.maximumSpanCount),
-            maximumSubdivisionDepth: min(20, admission.maximumSubdivisionDepth), remainingSourceDepth: sourceDepth,
-            consumeWork: { try admission.chargeWork() }, consumeStorage: { try admission.chargeStorage(bytes: $0) })
+            tolerance: tolerance, maximumSpanCount: min(4096, execution.effectiveLimits.maximumSpans),
+            maximumSubdivisionDepth: min(20, execution.effectiveLimits.maximumSubdivisionDepth), remainingSourceDepth: sourceDepth,
+            using: &execution)
         func middle(_ value: ScalarInterval) throws -> Double {
-            try admission.chargeWork()
+            try execution.consumeWork(1)
             let candidate = value.lower * 0.5 + value.upper * 0.5
             guard candidate.isFinite else {
                 throw GeometryConversionError.resourceLimitExceeded("Original bridge candidate exceeded finite arithmetic.")

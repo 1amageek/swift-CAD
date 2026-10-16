@@ -1,6 +1,29 @@
 import CADCore
 
 struct ParallelOffsetTorusTorusSurfaceIntersector {
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Ordinary SSI dispatch reaches this direct entry.
+    // The former numerical/tolerance branches did not establish original common-set
+    // authority. U4 must supply complete original source/UV coverage before success.
+    func intersections(
+        first: CanonicalAnalyticSurface.Torus,
+        second: CanonicalAnalyticSurface.Torus,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        options: SurfaceSurfaceIntersectionOptions,
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution
+    ) throws -> [SurfaceSurfaceIntersection] {
+        execution.context = execution.context.at(stage: .relation)
+        do {
+            try execution.checkpoint()
+            throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+                message: "ParallelOffsetTorusTorusSurfaceIntersector requires complete original source relation authority.")
+        } catch { throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance) }
+    }
+
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Existing candidate/source helper methods call
+    // this ordinary publication entry. It performs no numeric solve or fallback;
+    // U4 must provide source-bound relation proof and direct execution before success.
     func intersections(
         first: CanonicalAnalyticSurface.Torus,
         second: CanonicalAnalyticSurface.Torus,
@@ -9,83 +32,9 @@ struct ParallelOffsetTorusTorusSurfaceIntersector {
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
     ) throws -> [SurfaceSurfaceIntersection] {
-        guard AnalyticAxisRelation.areParallel(
-            first.axis,
-            second.axis,
-            tolerance: tolerance
-        ) else {
-            throw KernelError(
-                phase: .geometry,
-                code: .invalidInput,
-                residual: first.axis.cross(second.axis).length,
-                tolerance: tolerance,
-                message: "Offset torus-torus intersection requires parallel axes."
-            )
-        }
-        let proceduralCurves = try CertifiedParallelTorusTorusIntersectionCurve
-            .certifiedCurves(
-                firstTorusSurface: firstSurface,
-                secondTorusSurface: secondSurface,
-                options: options,
-                tolerance: tolerance
-            )
-        guard proceduralCurves.isEmpty == false else { return [] }
-        let builder = SurfaceIntersectionSplineBuilder(
-            firstSurface: firstSurface,
-            secondSurface: secondSurface,
-            options: options,
-            tolerance: tolerance
-        )
-        let segmentCount = min(16, max(1, options.maximumSeedCount))
-        let breaks = (0...segmentCount).map {
-            Double($0) / Double(segmentCount)
-        }
-        var intersections: [SurfaceSurfaceIntersection] = []
-        intersections.reserveCapacity(proceduralCurves.count)
-        for proceduralCurve in proceduralCurves {
-            if proceduralCurve.componentKind == .nearNodalClosedLoop {
-                intersections.append(try exactIntersection(
-                    proceduralCurve: proceduralCurve,
-                    firstSurface: firstSurface,
-                    secondSurface: secondSurface,
-                    tolerance: tolerance
-                ))
-                continue
-            }
-            let kind: CurveSurfaceIntersectionKind =
-                proceduralCurve.componentKind == .nodalSelfLoop
-                    ? .mixed
-                    : .transverse
-            let evaluationContext = SurfaceIntersectionCurveEvaluationContext(
-                curve: proceduralCurve,
-                firstSurface: firstSurface,
-                secondSurface: secondSurface,
-                tolerance: tolerance
-            )
-            let derived = try builder.intersection(
-                parameterRange: 0.0...1.0,
-                initialBreaks: breaks,
-                kind: kind,
-                isClosed: proceduralCurve.componentKind == .regularClosed,
-                firstParameterAt: { fraction in
-                    try evaluationContext.firstParameter(at: fraction)
-                },
-                secondParameterAt: { fraction in
-                    try evaluationContext.secondParameter(at: fraction)
-                },
-                pointAt: { fraction in
-                    try evaluationContext.point(at: fraction)
-                }
-            )
-            intersections.append(try certifiedIntersection(
-                derived,
-                proceduralCurve: proceduralCurve,
-                firstSurface: firstSurface,
-                secondSurface: secondSurface,
-                tolerance: tolerance
-            ))
-        }
-        return intersections
+        try CurrentTaskCancellationChecker().checkCancellation()
+        throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+            message: "ParallelOffsetTorusTorusSurfaceIntersector has no ordinary original-proof publication.")
     }
 
     private func exactIntersection(

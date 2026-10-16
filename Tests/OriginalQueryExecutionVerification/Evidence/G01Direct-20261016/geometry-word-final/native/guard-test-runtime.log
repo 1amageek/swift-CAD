@@ -1,0 +1,21 @@
+􀟈  Test run started.
+􀄵  Swift Standard Library Version: 6.4
+􀄵  Swift Compiler Version: 6.4
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀄵  OS Version: 27.0.1 (26A434)
+􀟈  Suite "Source-bound rational world silhouette authority" (aka 'SurfaceSilhouetteRationalWordAuthorityTests') started.
+􀟈  Test anOffsetWrapperCannotPublishTheRationalWorldCapability() started.
+􀟈  Test worldCoefficientsRetainTheFullOriginalWordAndNativeBasis(_:) started.
+􀟈  Test worldPreparationUsesTheCallerWorkAndRejectsCancellation() started.
+􀟈  Test case passing 1 argument image → .affine (FocusedTests.SurfaceSilhouetteRationalWordAuthorityTests.Image) to worldCoefficientsRetainTheFullOriginalWordAndNativeBasis(_:) started.
+􀟈  Test case passing 1 argument image → .identity (FocusedTests.SurfaceSilhouetteRationalWordAuthorityTests.Image) to worldCoefficientsRetainTheFullOriginalWordAndNativeBasis(_:) started.
+􀟈  Test case passing 1 argument image → .nested (FocusedTests.SurfaceSilhouetteRationalWordAuthorityTests.Image) to worldCoefficientsRetainTheFullOriginalWordAndNativeBasis(_:) started.
+􁁛  Test anOffsetWrapperCannotPublishTheRationalWorldCapability() passed after 0.013 seconds.
+􁁛  Test case passing 1 argument image → .identity (FocusedTests.SurfaceSilhouetteRationalWordAuthorityTests.Image) to worldCoefficientsRetainTheFullOriginalWordAndNativeBasis(_:) passed after 0.017 seconds.
+􁁛  Test case passing 1 argument image → .affine (FocusedTests.SurfaceSilhouetteRationalWordAuthorityTests.Image) to worldCoefficientsRetainTheFullOriginalWordAndNativeBasis(_:) passed after 0.018 seconds.
+􁁛  Test case passing 1 argument image → .nested (FocusedTests.SurfaceSilhouetteRationalWordAuthorityTests.Image) to worldCoefficientsRetainTheFullOriginalWordAndNativeBasis(_:) passed after 0.019 seconds.
+􁁛  Test worldCoefficientsRetainTheFullOriginalWordAndNativeBasis(_:) with 3 test cases passed after 0.020 seconds.
+􁁛  Test worldPreparationUsesTheCallerWorkAndRejectsCancellation() passed after 0.039 seconds.
+􁁛  Suite "Source-bound rational world silhouette authority" (aka 'SurfaceSilhouetteRationalWordAuthorityTests') passed after 0.039 seconds.
+􁁛  Test run with 3 tests in 1 suite passed after 0.039 seconds.

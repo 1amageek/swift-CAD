@@ -4,10 +4,10 @@ import L0
 
 extension ExactPolynomialDomain: ExactPolynomialGCDProducing {
     func gcd<A: ExactScalarAdmission & ~Copyable>(_ first: borrowing Polynomial,
-        _ second: borrowing Polynomial, _ usage: inout ExactPolynomialAdmission<A>) throws -> Polynomial {
+        _ second: borrowing Polynomial, _ usage: inout A) throws -> Polynomial {
         typealias Task = ExactPolynomialGCDTask<F>
         var tasks: [Task] = []
-        func push(_ task: Task, _ usage: inout ExactPolynomialAdmission<A>) throws {
+        func push(_ task: Task, _ usage: inout A) throws {
             try usage.consumeWork(1); try ExactPolynomialAccess.storage(1, Task.self, &usage)
             tasks.append(task)
         }

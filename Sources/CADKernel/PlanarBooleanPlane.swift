@@ -1,4 +1,5 @@
 import CADCore
+import CADTopology
 import CADGeometry
 
 struct PlanarBooleanPlane {
@@ -30,8 +31,9 @@ struct PlanarBooleanPlane {
         front: inout [PlanarBooleanPolygon],
         back: inout [PlanarBooleanPolygon],
         tolerance: ModelingTolerance
-    ) throws {
-        let classifications = polygon.vertices.map { point -> Classification in
+    , using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        let classifications = try OriginalParameterQueryStorage.map(polygon.vertices, using: &execution) { point, execution -> Classification in
             let distance = signedDistance(to: point)
             if distance > tolerance.distance { return .front }
             if distance < -tolerance.distance { return .back }
@@ -41,34 +43,35 @@ struct PlanarBooleanPlane {
         let hasBack = classifications.contains(.back)
         if hasFront == false, hasBack == false {
             if normal.dot(polygon.plane.normal) >= 0.0 {
-                coplanarFront.append(polygon)
+                try OriginalParameterQueryStorage.append(polygon, to: &coplanarFront, using: &execution)
             } else {
-                coplanarBack.append(polygon)
+                try OriginalParameterQueryStorage.append(polygon, to: &coplanarBack, using: &execution)
             }
             return
         }
         if hasBack == false {
-            front.append(polygon)
+            try OriginalParameterQueryStorage.append(polygon, to: &front, using: &execution)
             return
         }
         if hasFront == false {
-            back.append(polygon)
+            try OriginalParameterQueryStorage.append(polygon, to: &back, using: &execution)
             return
         }
 
         var frontVertices: [Point3D] = []
         var backVertices: [Point3D] = []
         for index in polygon.vertices.indices {
+            try execution.consumeWork(1)
             let nextIndex = (index + 1) % polygon.vertices.count
             let current = polygon.vertices[index]
             let next = polygon.vertices[nextIndex]
             let currentType = classifications[index]
             let nextType = classifications[nextIndex]
             if currentType != .back {
-                append(current, to: &frontVertices, tolerance: tolerance.distance)
+                try append(current, to: &frontVertices, tolerance: tolerance.distance, using: &execution)
             }
             if currentType != .front {
-                append(current, to: &backVertices, tolerance: tolerance.distance)
+                try append(current, to: &backVertices, tolerance: tolerance.distance, using: &execution)
             }
             if (currentType == .front && nextType == .back)
                 || (currentType == .back && nextType == .front) {
@@ -84,27 +87,29 @@ struct PlanarBooleanPlane {
                 }
                 let fraction = min(1.0, max(0.0, (offset - normal.dot(current - .origin)) / denominator))
                 let intersection = current + direction * fraction
-                append(intersection, to: &frontVertices, tolerance: tolerance.distance)
-                append(intersection, to: &backVertices, tolerance: tolerance.distance)
+                try append(intersection, to: &frontVertices, tolerance: tolerance.distance, using: &execution)
+                try append(intersection, to: &backVertices, tolerance: tolerance.distance, using: &execution)
             }
         }
         if frontVertices.count >= 3 {
-            front.append(try PlanarBooleanPolygon(
+            let fragment = try PlanarBooleanPolygon(
                 vertices: frontVertices,
                 surface: polygon.surface,
                 surfaceOrientation: polygon.surfaceOrientation,
                 plane: polygon.plane,
                 tolerance: tolerance
-            ))
+            , using: &execution)
+            try OriginalParameterQueryStorage.append(fragment, to: &front, using: &execution)
         }
         if backVertices.count >= 3 {
-            back.append(try PlanarBooleanPolygon(
+            let fragment = try PlanarBooleanPolygon(
                 vertices: backVertices,
                 surface: polygon.surface,
                 surfaceOrientation: polygon.surfaceOrientation,
                 plane: polygon.plane,
                 tolerance: tolerance
-            ))
+            , using: &execution)
+            try OriginalParameterQueryStorage.append(fragment, to: &back, using: &execution)
         }
     }
 
@@ -115,10 +120,11 @@ struct PlanarBooleanPlane {
     private func append(
         _ point: Point3D,
         to points: inout [Point3D],
-        tolerance: Double
-    ) {
+        tolerance: Double,
+        using execution: inout OriginalQueryExecution
+    ) throws {
         if points.last?.isApproximatelyEqual(to: point, tolerance: tolerance) != true {
-            points.append(point)
+            try OriginalParameterQueryStorage.append(point, to: &points, using: &execution)
         }
     }
 

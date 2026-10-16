@@ -5,10 +5,8 @@ import CADGeometry
 package struct OriginalLoftGuideChain: Sendable {
     package let segments: [EvaluatedCurvePathSegment]
     package let tolerance: ModelingTolerance
-    private let conversionAdmission: GeometryConversionAdmission?
 
-    package init(segments: [EvaluatedCurvePathSegment], tolerance: ModelingTolerance,
-        conversionAdmission: GeometryConversionAdmission? = nil) throws {
+    package init(segments: [EvaluatedCurvePathSegment], tolerance: ModelingTolerance) throws {
         guard !segments.isEmpty else { throw FeatureEvaluationError.invalidGraph("A Loft guide requires an original directed chain.") }
         // The chain builder owns adjacency admission. Contact preparation validates
         // each original law under its retained caller ledger instead of replaying it here.
@@ -20,7 +18,6 @@ package struct OriginalLoftGuideChain: Sendable {
         }
         self.segments = segments
         self.tolerance = tolerance
-        self.conversionAdmission = conversionAdmission
     }
 
     package func source(at index: Int, tolerance: ModelingTolerance) throws -> OriginalCurveContactSource {
@@ -73,7 +70,7 @@ package struct OriginalLoftGuideChain: Sendable {
     package func reversed(tolerance: ModelingTolerance) throws -> OriginalLoftGuideChain {
         try OriginalLoftGuideChain(segments: segments.reversed().map {
             EvaluatedCurvePathSegment(curve: $0.curve, isReversed: !$0.isReversed)
-        }, tolerance: tolerance, conversionAdmission: conversionAdmission)
+        }, tolerance: tolerance)
     }
 
     package func reversed(_ contact: OriginalLoftGuideContact) -> OriginalLoftGuideContact {
@@ -83,7 +80,7 @@ package struct OriginalLoftGuideChain: Sendable {
     }
 
     package func connector(from start: OriginalLoftGuideContact, to end: OriginalLoftGuideContact,
-                           tolerance: ModelingTolerance) throws -> BSplineCurve3D {
+                           tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> BSplineCurve3D {
         guard start.segmentIndex <= end.segmentIndex,
               try orderedBounds(start, tolerance: tolerance).upper < orderedBounds(end, tolerance: tolerance).lower else {
             throw KernelError(phase: .geometry, code: .ambiguousSelection, tolerance: tolerance,
@@ -106,12 +103,12 @@ package struct OriginalLoftGuideChain: Sendable {
             var curve = original.curve
             curve.isClosed = false
             curve.exactParameterDomain = .closed(lower, upper)
-            curve.points = [try source.curve.point(at: lower, tolerance: tolerance),
-                try source.curve.point(at: upper, tolerance: tolerance)]
+            curve.points = [try source.curve.point(at: lower, tolerance: tolerance, using: &execution),
+                try source.curve.point(at: upper, tolerance: tolerance, using: &execution)]
             curve.exactPointParameters = [lower, upper]
             pieces.append(EvaluatedCurvePathSegment(curve: curve, isReversed: original.isReversed))
         }
-        let spans = try ExactBSplineCurveSpanBuilder(tolerance: tolerance, admission: conversionAdmission).pathSpans(from: pieces)
-        return try ExactCompositeBSplineCurveBuilder().build(spans: spans.map(\.curve), tolerance: tolerance)
+        let spans = try ExactBSplineCurveSpanBuilder(tolerance: tolerance, using: &execution).pathSpans(from: pieces, using: &execution)
+        return try ExactCompositeBSplineCurveBuilder().build(spans: spans.map(\.curve), tolerance: tolerance, using: &execution)
     }
 }

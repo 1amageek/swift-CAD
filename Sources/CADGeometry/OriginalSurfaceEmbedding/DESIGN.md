@@ -53,7 +53,7 @@ checked M5 authored diagonal. Retain every pair predicate, source/cover owner,
 diagonal receipt and inherited depth. Failure to prove this implication is
 unsupported, never absence or contact. No cell decomposition or new solver is
 added; no scope or allowance is changed.
-The session retains immutable original pair, UV domain, policy and callbacks once. No shared mutable counters are introduced; the composing invocation remains their owner on all targets. The atlas reserves its typed DFS payload before allocation. Intersection temporary accounting remains the lower producer's contract.
+The session retains its immutable original pair, UV domain, policy, attained preparation evidence and cumulative budget. Each composing invocation owns its exclusive execution and proof scopes on all targets. The atlas reserves its typed DFS payload before allocation. Intersection temporary accounting remains the lower producer's contract.
 
 ## Failure, Concurrency, and Constraints
 Original source validation, cancellation, resource exhaustion and unresolved contact authority propagate. Historical surface-intersection per-proof limits remain intact and are tightened by an explicit smaller caller spatial cap. No private aggregate ceiling or tolerance widening is added.
@@ -86,7 +86,7 @@ The checked DI views are the authority for affine words and identity constraints
 | Failure cannot become absence | foreign proof, cancellation and work/storage/depth refusal fixtures |
 | Result owns its source lifetime | query after source value mutation |
 
-The additive exact port depends on [Native Exact Relations](../NativeExactRelations/DESIGN.md), [Original Parameter Identity](../OriginalDomainIdentity/OriginalParameterIdentity/DESIGN.md) and [Original Parameter Transport](../OriginalDomainIdentity/OriginalParameterTransport/DESIGN.md). Existing interval atlas callbacks remain unchanged. Changes to DI views or L4 pullback guarantees require rechecking this exact consumer and its Native behavioral fixtures.
+The additive exact port depends on [Native Exact Relations](../NativeExactRelations/DESIGN.md), [Original Parameter Identity](../OriginalDomainIdentity/OriginalParameterIdentity/DESIGN.md) and [Original Parameter Transport](../OriginalDomainIdentity/OriginalParameterTransport/DESIGN.md). Interval atlas policy callbacks receive the same execution explicitly. Changes to DI views or L4 pullback guarantees require rechecking this exact consumer and its Native behavioral fixtures.
 
 ### Latest-main Native intake verification
 
@@ -376,3 +376,47 @@ renamed port does not discharge the real CADGeometry caller obligation.
 The planar source attains depth zero on both scalar axes; no negative depth is
 invented to claim a one-below refusal. Unchanged lower receipt limits, guards and
 foreign-owner refusals retain their existing verification authority.
+
+## Direct Embedding Execution
+
+The preparer, retained session, source-product atlas and projection contraction
+receive `inout OriginalQueryExecution` directly. The prepared session retains
+its immutable source pair, policy and cumulative `OriginalQueryBudget`; it never
+retains callbacks or a mutable proof-scope stack. A later session query uses a
+query-local execution sharing that budget, or an explicitly supplied independent
+execution when the caller readmits immutable evidence.
+
+```text
+embedding caller -> exclusive execution -> original pair preparation
+                    -> atlas cells -> contraction / cross contact -> publication
+                    -> one retained cumulative budget
+```
+
+Atlas cell visits and geometric depth are local policy. Work and admitted bytes
+are debited from the same cumulative owner before traversal/storage growth.
+Exact drafted exclusion receives the same execution as scalar admission, with
+no reconstruction through an exact-usage callback adapter. Consumer callbacks
+receive that execution explicitly and run outside the budget owner's Mutex.
+Cancellation is checked at entry, each cell and after the final callback.
+The direct migration changes calling contracts, not self-contact predicates,
+original-domain identity or the completeness conditions recorded above.
+
+Verification must execute actual embedding preparation, atlas subdivision and
+retained-session reuse, including exhausted work/bytes/cells/depth and terminal
+cancellation. Source inspection or successful parsing alone cannot close U1.
+
+The private retained session is an immutable reference owner. Its preparation
+scope records only actual scalar/source/geometric/transport depth events from
+that operation. Every explicit query readmits this receipt through the caller
+execution before using cached drafted exclusion or continuity evidence. The
+execution retains the owner while caching admission, so address reuse cannot
+forge a receipt identity. Readmission charges actual fixed metadata checks and
+new cache storage, never past numeric preparation or scratch allocations.
+
+The pair-subdivision pending stack charges each full requested replacement
+capacity before `reserveCapacity`; it does not substitute child tuple counts for
+the retained stack allocation. Checked count growth fails before append.
+
+### Direct retained source consumers
+
+Issued graph identity and predicate simplification observe their actual local scalar decision depths using the caller admission proof scope. Their immutable receipts retain the observed depth after all original operands are readmitted. No OriginalSourceProofAdmission wrapper, copied budget or callback translation remains.

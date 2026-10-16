@@ -7,7 +7,7 @@ import L1
 enum OriginalCurveParameterGraphPullback {
     static func issue<S: Sendable,C: Sendable,F: ExactScalarArithmetic & ExactScalarOrdering & ExactScalarImporting,E: Sendable,A: ExactScalarAdmission & ~Copyable>(
         source: OriginalSourceBinding<S>,child: OriginalParametricGraphReceipt<C,F,E>,gain: F.Value,offset: F.Value,
-        support: OriginalSourceParameterInterval<F.Value>,using a: inout OriginalSourceProofAdmission<A>) throws
+        support: OriginalSourceParameterInterval<F.Value>,using a: inout A) throws
         -> OriginalParametricGraphReceipt<S,F,OriginalCurveParameterGraphEvidence<C,F,E>> where F.Source == F.Value {
         let f=child.field,n=child.layout.variableCount
         try a.admitDepth(value:child.proofDepth.value,coefficient:child.proofDepth.coefficient)
@@ -23,7 +23,7 @@ enum OriginalCurveParameterGraphPullback {
         try a.retainStorage(bytes:exactScalarPayloadBytes(count:n,of:Int.self))
         var map:[Int]=[];map.reserveCapacity(n)
         for index in 0..<n { try a.consumeWork(1);map.append(index+1) }
-        func embedded(_ polynomial: ExactPolynomial<F>,_ mapping: [Int],_ a: inout OriginalSourceProofAdmission<A>) throws -> ExactPolynomial<F> {
+        func embedded(_ polynomial: ExactPolynomial<F>,_ mapping: [Int],_ a: inout A) throws -> ExactPolynomial<F> {
             try OriginalParametricPolynomialEmbedding.applying(polynomial,map:mapping,ring:ring,field:f,using:&a)
         }
         try a.retainStorage(bytes:exactScalarPayloadBytes(count:4,of:ExactPolynomial<F>.self))
@@ -40,7 +40,7 @@ enum OriginalCurveParameterGraphPullback {
         guards.append(.init(try ring.subtracting(ring.constant(hi,using:&a),q,using:&a),child.includesUpperBoundary[0] ? .nonnegative:.positive))
         try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:Int.self))
         let parameterMap=[local]
-        func correspondence(_ polynomial: ExactPolynomial<F>,_ a: inout OriginalSourceProofAdmission<A>) throws -> ExactPolynomial<F> {
+        func correspondence(_ polynomial: ExactPolynomial<F>,_ a: inout A) throws -> ExactPolynomial<F> {
             if polynomial.variableCount==1 { return try embedded(polynomial,parameterMap,&a) }
             guard polynomial.variableCount==n else { throw OriginalSourceIssuanceFailure.invalidChart }
             return try embedded(polynomial,map,&a)

@@ -1,12 +1,12 @@
-// swift-tools-version: 6.3
+// swift-tools-version: 6.4
 import PackageDescription
 
 let package = Package(
   name: "SwiftCAD",
   platforms: [
-    .macOS(.v14),
-    .iOS(.v17),
-    .visionOS(.v1),
+    .macOS("27.0"),
+    .iOS("27.0"),
+    .visionOS("27.0"),
     .custom("wasi", versionString: "0"),
   ],
   products: [

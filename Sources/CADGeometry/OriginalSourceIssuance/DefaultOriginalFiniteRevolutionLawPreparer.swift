@@ -19,7 +19,7 @@ public struct DefaultOriginalFiniteRevolutionLawPreparer<S:OriginalRevolutionSou
         maximumCharts:Int,limits:OriginalSourceIssuanceLimits,using a:inout A) throws(OriginalSourceIssuanceFailure) -> OriginalFiniteRevolutionLawFamily<S,C,F> {
         do {
             let field=copy field,source=copy source,generators=copy generators
-            return try OriginalSourceProofAdmission<A>.withBorrow(&a) { a in
+            return try a.withProofScope { a in
             try a.checkpoint();try source.require(limits)
             guard maximumCharts >= 0 else { throw OriginalSourceIssuanceFailure.invalidChart }
             let zero=try field.integer(0,using:&a),one=try field.integer(1,using:&a)

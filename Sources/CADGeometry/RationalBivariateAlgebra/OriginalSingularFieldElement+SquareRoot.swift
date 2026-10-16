@@ -1,6 +1,6 @@
 /// Shared exact original Euclidean-length authority over a retained ordered field.
 package extension OriginalSingularFieldElement {
-    func nonnegativeSquareRoot<B: RationalAlgebraAdmitting>(inheritedDepth: Int,
+    func nonnegativeSquareRoot<B: ExactScalarAdmission & ~Copyable>(inheritedDepth: Int,
         maximumDepth: Int, admissionDomain: OriginalSingularFieldRoot.AdmissionDomain = .parameter,
         usage: inout B) throws -> Self {
         let parentDepth = max(admissionDomain.inheritedDepth(of: context), inheritedDepth)

@@ -36,7 +36,7 @@ The period is the original wrapping subtraction of stored endpoints and must hav
 
 ## Runtime Flows
 
-The issuer validates the source and finite ordered interval, proves the periodic source, computes outward cycle bounds and enumerates all intersecting source spans. Every source visit, cycle, candidate span, original polynomial operation and retained chart is debited to the caller's RationalAlgebraAdmitting owner. Checked capacity growth charges full retained chart storage before allocation. No private span, work, storage or solver allowance is created. Chart evaluation uses the same original rational selected-interval derivative law at exact originalDouble parameters; it does not subtract a rounded base station.
+The issuer validates the source and finite ordered interval, proves the periodic source, computes outward cycle bounds and enumerates all intersecting source spans. Every source visit, cycle, candidate span, original polynomial operation and retained chart is debited to the caller's ExactScalarAdmission owner. Checked capacity growth charges full retained chart storage before allocation. No private span, work, storage or solver allowance is created. Chart evaluation uses the same original rational selected-interval derivative law at exact originalDouble parameters; it does not subtract a rounded base station.
 
 ## State, Ownership, and Lifecycle
 
@@ -49,3 +49,13 @@ Malformed source, invalid finite bounds, foreign source/tolerance, support viola
 ## Verification and Change Impact
 
 [OriginalNativeCurveChartCoverTests](../../../Tests/CADGeometryTests/OriginalNativeCurveChartCoverTests.swift) verifies literal polynomial and varying-weight rational point/derivative laws, negative/multi-period/reversed/shifted ranges, closed knot/seam owners, retained tuple/cycle metadata, open-domain behavior, malformed/approximate/unrepresentable refusal, foreign authority and independent span/work/storage/cancellation failures. The unchanged prepared closed-native suite owns legacy conservative bounds behavior. Native evidence is limited to this issuer; normal/Embedded WASM and public CS/SSI composition require their own actual runtime evidence.
+
+## Direct Execution Admission
+
+Source arithmetic borrows `A: ExactScalarAdmission & ~Copyable`; composed query
+operations borrow `inout OriginalQueryExecution`. Source validation, native span
+validation, structural comparisons and exact refinement receive that same admission.
+The [execution owner](../OriginalQueryExecution/DESIGN.md) defines cumulative
+work and actual byte accounting, independent depth axes, cancellation and lexical
+proof scopes. Retained geometry and relation evidence stay immutable; no callback
+adapter, copied counter or second allowance supplies arithmetic authority.

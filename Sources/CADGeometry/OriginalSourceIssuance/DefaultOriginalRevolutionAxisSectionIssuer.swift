@@ -16,7 +16,7 @@ public struct DefaultOriginalRevolutionAxisSectionIssuer<S: OriginalRevolutionSo
         throws(OriginalSourceIssuanceFailure) -> OriginalRevolutionAxisSectionReceipt<S,C,F,L> {
         let family=copy family,line=copy line
         do {
-            return try OriginalSourceProofAdmission<A>.withBorrow(&admission) { a in
+            return try admission.withProofScope { a in
                 try a.checkpoint();try family.admitProof(limits:limits,using:&a);try line.require(limits)
                 let f=family.field,zero=try f.integer(0,using:&a)
                 let lineLaw=try DefaultOriginalWholeLinearLawIssuer<L,F>().issue(source:line,field:f,limits:limits,using:&a)
@@ -65,7 +65,7 @@ public struct DefaultOriginalRevolutionAxisSectionIssuer<S: OriginalRevolutionSo
 
     private func graph<A: ExactScalarAdmission & ~Copyable>(law: OriginalRevolutionLawReceipt<S,C,F>,
         line: OriginalWholeLinearLawReceipt<L,F>,origin:[F.Value],axis:[F.Value],axisNorm:F.Value,lineNorm:F.Value,
-        lineResiduals:[F.Value],limits:OriginalSourceIssuanceLimits,using a:inout OriginalSourceProofAdmission<A>)
+        lineResiduals:[F.Value],limits:OriginalSourceIssuanceLimits,using a:inout A)
         throws -> OriginalParametricGraphReceipt<S,F,OriginalRevolutionAxisSectionEvidence<S,C,F,L>> {
         try law.admitProof(limits:limits,using:&a)
         let ring=law.polynomials,f=law.field
@@ -85,7 +85,7 @@ public struct DefaultOriginalRevolutionAxisSectionIssuer<S: OriginalRevolutionSo
         let rho=try ring.substituted(law.radialSquaredNumerator,with:projection,using:&a)
         try a.retainStorage(bytes:exactScalarPayloadBytes(count:13,of:ExactPolynomial<F>.self))
         var residuals:[ExactPolynomial<F>]=[];residuals.reserveCapacity(13)
-        func check(_ residual:ExactPolynomial<F>,_ a:inout OriginalSourceProofAdmission<A>) throws {
+        func check(_ residual:ExactPolynomial<F>,_ a:inout A) throws {
             guard try ring.isZero(residual,using:&a) else { throw OriginalSourceIssuanceFailure.invalidChart }
             residuals.append(residual)
         }
@@ -116,7 +116,7 @@ public struct DefaultOriginalRevolutionAxisSectionIssuer<S: OriginalRevolutionSo
         // prove radial norm preservation; rho=0 forces both sum-of-squares vectors
         // to zero, and rho!=0 cannot meet the axis under the retained W!=0 guard.
         let parameters=try ExactPolynomialDomain(field:f,variableCount:2,using:&a)
-        func reexpress(_ polynomial:ExactPolynomial<F>,_ a:inout OriginalSourceProofAdmission<A>) throws -> ExactPolynomial<F> {
+        func reexpress(_ polynomial:ExactPolynomial<F>,_ a:inout A) throws -> ExactPolynomial<F> {
             try a.admitDepth(value:polynomial.depth.value,coefficient:polynomial.depth.coefficient)
             try a.retainStorage(bytes:exactScalarPayloadBytes(count:polynomial.termCount,of:ExactPolynomialTerm<F.Value>.self))
             var terms:[ExactPolynomialTerm<F.Value>]=[];terms.reserveCapacity(polynomial.termCount)

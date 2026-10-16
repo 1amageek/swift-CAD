@@ -967,7 +967,7 @@ contract, but a general coupled/rational/nonfactorable map supplies no authority
 
 ClosedDomainAuthority owns an immutable separable-or-triangular mapping, not a
 fake coordinate-independence claim. Before minting it, the existing cumulative
-OverlapProofBudget precharges original control scans and all exact arithmetic.
+OverlapProofPolicy attributes the original control-scan fees; direct lower operations admit their own arithmetic and storage on the same execution.
 Bounded exact difference/product/signed-cofactor comparisons prove the complete
 original positive source control hull lies in the target native rectangle under
 the inverse affine map. Positive original source basis/weights and complete
@@ -1001,7 +1001,7 @@ proofs remain available. This family is not full general/periodic G4 completion.
 
 The native-isocurve membership owner may admit one periodic varying target axis and a closed fixed native-endpoint axis when the original periodic source and target varying-axis degree, stored knots, control count and positive homogeneous weights define the same cyclic basis. Exact stored knot translations, finite represented period and original repeated-tail/position continuity are proved by charged original scans, not modeling tolerance. Paid fixed-endpoint basis evaluation and the complete original coefficient/denominator difference prove membership across every native cycle side. The existing exact/error-free reflected-map conditions and full original knot equality govern reversal. That whole-cycle bound extends to the finite requested source interval by the proved original periodic law. It supplies an explicit retained native affine correspondence; it does not claim exclusion of other geometric UV solutions or general periodic regular-graph completeness.
 
-For a periodic requested varying-axis range narrower than one period, correspondence clipping enumerates every boundary copy a+kP incident to the owned finite source interval. Bounded checked enumeration, exact or compensated inverse arithmetic and the existing forward chart residual admission prove each cut. Zero-width requests retain all finite incidences; a target range covering a complete period retains the existing all-representatives policy. Endpoint/interior representatives continue to use SurfaceParameterRangeResolver: explicit requested range when supplied, the existing canonical chart when absent. Original periodic origins must be equal or have proved exact integral-period translation; unsupported origin/translation/finite arithmetic refuses rather than inferring phase. Periodic membership scans and every boundary candidate share one invocation OverlapProofBudget derived from the original options, with storage/work charged before growth or execution and cancellation at scans/cuts. The nonperiodic fee/path contract remains unchanged. No private cut budget, clipped original source or rounded reconstructed curve replaces authority.
+For a periodic requested varying-axis range narrower than one period, correspondence clipping enumerates every boundary copy a+kP incident to the owned finite source interval. Bounded checked enumeration, exact or compensated inverse arithmetic and the existing forward chart residual admission prove each cut. Zero-width requests retain all finite incidences; a target range covering a complete period retains the existing all-representatives policy. Endpoint/interior representatives continue to use SurfaceParameterRangeResolver: explicit requested range when supplied, the existing canonical chart when absent. Original periodic origins must be equal or have proved exact integral-period translation; unsupported origin/translation/finite arithmetic refuses rather than inferring phase. Periodic membership scans and every boundary candidate share one invocation OverlapProofPolicy derived from the original options, with storage/work charged before growth or execution and cancellation at scans/cuts. The nonperiodic fee/path contract remains unchanged. No private cut budget, clipped original source or rounded reconstructed curve replaces authority.
 
 Independent rational diamond-cycle U/V fixtures verify literal native positions, all owning seam sides, source [3.5,4.5] clipped to [3.75,4.25] by target [-.25,.25], periodic singleton incidence, complete/native/negative/shifted cycles, reversal and immutable inputs. A changed interior original control, unproved translated knots/tails/origin, inadequate aggregate work/storage and cancellation must refuse. Existing nonperiodic isocurve/regular graph evidence remains valid unless a touched shared path changes its premise; targeted regressions precede the bounded sprint commit. General periodic graphs/global uniqueness and full G4/portable integration remain open. Shared preparation and selected-span APIs are consumed unchanged and do not depend on PAR.M1PC1.
 
@@ -1306,7 +1306,7 @@ refinement produces only a candidate fixed parameter. Publication still requires
 the existing outward whole-control rational residual on all original varying
 controls, with the original common cycle/origin/reversal and seam-cut authority.
 Every candidate, basis recurrence, original control accumulation and residual
-probe debits the invocation's `OverlapProofBudget`; iteration count comes from
+probe debits the invocation's `OverlapProofPolicy`; iteration count comes from
 `maximumIterations`. No projection helper or independent search budget is used.
 A common positive homogeneous scaling of the source weights is admitted by an
 outward scale interval and is included in the residual bound.
@@ -1481,3 +1481,41 @@ incident, image and fiber exclusion over the effective request. One original
 caller admission remains active through final empty publication and cancellation.
 Verification belongs to the finite closed implicit empty cell and its affected
 ordinary entry/selection/failure/resource/lifetime boundaries.
+
+## Direct retained graph proof execution
+
+The retained closed-rectangle, triangular and periodic verification algorithms
+receive the same `OriginalQueryExecution` through preparation, native interval
+jets, exact expansion predicates, root reproduction and clipping. An immutable
+`OverlapProofPolicy` carries original options and one common-budget contribution
+handle with independent work and retained-record ceilings. The historical work ceiling and retained-cell/cut ceiling remain
+independent; neither is a private mutable counter or a child budget. Actual lower
+arithmetic and allocations are admitted on the caller execution.
+
+The retained verification root authorities prove strict inclusion or complete
+closed-face existence and preserve native knot sides. Their remaining residual
+bounds describe deviation; they do not establish original source equality.
+These algorithms are not selected by the current public original-relation
+producer. Connecting a general graph or periodic correspondence requires a
+whole-domain original source-equality receipt and public success/failure tests;
+direct accounting alone does not complete that capability.
+
+Retained-record admission keeps its original ordering: work is consumed before
+its independent record ceiling is checked. A single contribution scope admits
+both operations, so allocation metadata for nested scopes cannot contaminate the
+historical proof-work ceiling under allocation billing.
+
+### Complete Native Cover Refinement
+
+A broad rational Jacobian enclosure may include singular determinants although
+the original closed rectangle already proves existence. Root localization may
+refine its first derivatives only by covering the entire retained target box
+with closed native interval jets and intersecting their union with the original
+hull. A point Jacobian or sampled grid cannot supply this bound. The same rule
+applies to source positions and first derivatives: every subinterval must cover
+the complete original range before its union is consumed. Refinement uses the
+unchanged iteration, subdivision and cumulative policy ceilings. Original
+source position jets remain authoritative for residual publication; a sharper
+whole-cover position enclosure only improves the Krawczyk candidate image.
+The reversed literal endpoint and broad rational source derivative fixtures
+retain their original exact UV laws and strict interval oracles.

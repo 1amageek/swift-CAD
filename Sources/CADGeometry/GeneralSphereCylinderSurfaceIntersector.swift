@@ -48,6 +48,29 @@ struct GeneralSphereCylinderSurfaceIntersector {
 
     private let verifier = SurfaceSurfaceIntersectionVerifier()
 
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Ordinary SSI dispatch reaches this direct entry.
+    // The former numerical/tolerance branches did not establish original common-set
+    // authority. U4 must supply complete original source/UV coverage before success.
+    func intersections(
+        sphere: CanonicalAnalyticSurface.Sphere,
+        cylinder: CanonicalAnalyticSurface.Cylinder,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        options: SurfaceSurfaceIntersectionOptions,
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution
+    ) throws -> [SurfaceSurfaceIntersection] {
+        execution.context = execution.context.at(stage: .relation)
+        do {
+            try execution.checkpoint()
+            throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+                message: "GeneralSphereCylinderSurfaceIntersector requires complete original source relation authority.")
+        } catch { throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance) }
+    }
+
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Existing candidate/source helper methods call
+    // this ordinary publication entry. It performs no numeric solve or fallback;
+    // U4 must provide source-bound relation proof and direct execution before success.
     func intersections(
         sphere: CanonicalAnalyticSurface.Sphere,
         cylinder: CanonicalAnalyticSurface.Cylinder,
@@ -56,125 +79,9 @@ struct GeneralSphereCylinderSurfaceIntersector {
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
     ) throws -> [SurfaceSurfaceIntersection] {
-        let sphereSurface: Surface3D
-        let cylinderSurface: Surface3D
-        if case .sphere = CanonicalAnalyticSurface(firstSurface) {
-            sphereSurface = firstSurface
-            cylinderSurface = secondSurface
-        } else {
-            sphereSurface = secondSurface
-            cylinderSurface = firstSurface
-        }
-        let canonicalCylinder = try canonicalCylinder(cylinder, tolerance: tolerance)
-        let poleSplitNodes = try CertifiedSphereCylinderIntersectionCurve
-            .poleSplitNodes(
-                sphereSurface: sphereSurface,
-                cylinderSurface: cylinderSurface,
-                tolerance: tolerance
-            )
-        let configuration = try makeConfiguration(
-            sphere: sphere,
-            cylinder: canonicalCylinder,
-            tolerance: tolerance
-        )
-        let roots = boundaryAngles(configuration: configuration, tolerance: tolerance)
-        let builder = SurfaceIntersectionSplineBuilder(
-            firstSurface: firstSurface,
-            secondSurface: secondSurface,
-            options: options,
-            tolerance: tolerance
-        )
-
-        if roots.isEmpty {
-            guard isAllowed(
-                angle: 0.0,
-                configuration: configuration,
-                tolerance: tolerance
-            ) else {
-                return []
-            }
-            if poleSplitNodes.isEmpty == false {
-                return try fullDomainPoleSplitIntersections(
-                    nodes: poleSplitNodes,
-                    builder: builder,
-                    sphereSurface: sphereSurface,
-                    cylinderSurface: cylinderSurface,
-                    firstSurface: firstSurface,
-                    secondSurface: secondSurface,
-                    tolerance: tolerance
-                )
-            }
-            return try fullDomainIntersections(
-                builder: builder,
-                sphereSurface: sphereSurface,
-                cylinderSurface: cylinderSurface,
-                firstSurface: firstSurface,
-                secondSurface: secondSurface,
-                tolerance: tolerance
-            )
-        }
-
-        let intervalStates = elementaryIntervalStates(
-            roots: roots,
-            configuration: configuration,
-            tolerance: tolerance
-        )
-        var results: [SurfaceSurfaceIntersection] = []
-        for index in roots.indices where intervalStates[index] {
-            let lower = roots[index]
-            let upper = index + 1 < roots.count
-                ? roots[index + 1]
-                : roots[0] + 2.0 * Double.pi
-            guard upper - lower > tolerance.angle else { continue }
-            let interval = AngularInterval(lower: lower, upper: upper)
-            let intervalNodes = poleSplitNodes.filter {
-                adjustedAngle($0.angle, inside: interval) >= lower - tolerance.angle
-                    && adjustedAngle($0.angle, inside: interval) <= upper + tolerance.angle
-            }
-            if intervalNodes.isEmpty {
-                results.append(try intervalIntersection(
-                    interval: interval,
-                    builder: builder,
-                    sphereSurface: sphereSurface,
-                    cylinderSurface: cylinderSurface,
-                    firstSurface: firstSurface,
-                    secondSurface: secondSurface,
-                    tolerance: tolerance
-                ))
-            } else {
-                results.append(contentsOf: try poleSplitIntersections(
-                    interval: interval,
-                    nodes: intervalNodes,
-                    kind: .mixed,
-                    builder: builder,
-                    sphereSurface: sphereSurface,
-                    cylinderSurface: cylinderSurface,
-                    firstSurface: firstSurface,
-                    secondSurface: secondSurface,
-                    tolerance: tolerance
-                ))
-            }
-        }
-
-        for index in roots.indices {
-            let before = intervalStates[(index + roots.count - 1) % roots.count]
-            let after = intervalStates[index]
-            if before == false, after == false {
-                let point = try intersectionPoint(
-                    angle: roots[index],
-                    branch: 1.0,
-                    configuration: configuration,
-                    tolerance: tolerance
-                )
-                results.append(try verifier.point(
-                    point,
-                    firstSurface: firstSurface,
-                    secondSurface: secondSurface,
-                    tolerance: tolerance
-                ))
-            }
-        }
-        return results
+        try CurrentTaskCancellationChecker().checkCancellation()
+        throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+            message: "GeneralSphereCylinderSurfaceIntersector has no ordinary original-proof publication.")
     }
 
     private func fullDomainPoleSplitIntersections(

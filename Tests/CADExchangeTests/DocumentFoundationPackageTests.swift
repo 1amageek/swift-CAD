@@ -20,7 +20,7 @@ struct DocumentFoundationPackageTests {
         let records = [parent,
             DocumentAttribute(name: "integer", owner: owner, value: .integer(Int64.max)),
             DocumentAttribute(name: "bytes", owner: .init(documentID: source.id, target: .attribute(parent.id)),
-                value: .bytes(Data([0, 128, 255])))]
+                value: .bytes([0, 128, 255]))]
         source.documentFoundation = DocumentFoundation(attributes: records)
         let sink = DataByteSink()
         try store.writePackage(for: source, to: sink)

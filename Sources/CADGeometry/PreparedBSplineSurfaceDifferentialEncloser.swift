@@ -12,32 +12,23 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
   private let originalSpans: [OriginalNativeSpan]
 
   package init(surface: BSplineSurface3D, tolerance: ModelingTolerance) throws {
-    try self.init(surface: surface, tolerance: tolerance, chargePreparation: false, consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
+    var execution = try Self.independentExecution()
+    try self.init(surface: surface, tolerance: tolerance, using: &execution)
   }
 
-  package init(surface: BSplineSurface3D, tolerance: ModelingTolerance,
-    consumeWork: () throws -> Void, consumeStorage: ((Int) throws -> Void)? = nil) throws {
-    try self.init(surface: surface, tolerance: tolerance, chargePreparation: true,
-      consumeWork: consumeWork, consumeStorage: consumeStorage)
+  private static func independentExecution() throws -> OriginalQueryExecution {
+    OriginalQueryExecution(budget: try OriginalQueryBudget(),
+      limits: try OriginalQueryExecutionLimits(maximumValueDepth: 32, maximumCoefficientDepth: 32))
   }
 
-  package init(surface: BSplineSurface3D, tolerance: ModelingTolerance,
-    consumeWork: () throws -> Void, consumeStorage: (Int) throws -> Void) throws {
-    self = try withoutActuallyEscaping(consumeStorage) { storage in
-      try Self(surface: surface, tolerance: tolerance, chargePreparation: true,
-        consumeWork: consumeWork, consumeStorage: storage)
-    }
-  }
-
-  private init(surface: BSplineSurface3D, tolerance: ModelingTolerance,
-    chargePreparation: Bool, consumeWork: () throws -> Void,
-    consumeStorage: ((Int) throws -> Void)? = nil) throws {
+  package init<A: ExactScalarAdmission & ~Copyable>(surface: BSplineSurface3D, tolerance: ModelingTolerance,
+    using execution: inout A) throws {
     guard surface.uDegree >= 0, surface.vDegree >= 0,
       surface.uDegree < surface.uControlPointCount, surface.vDegree < surface.vControlPointCount else {
       throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
         message: "Original surface degree dimensions do not admit native preparation.")
     }
-    try surface.validate(tolerance: tolerance, consumeWork: consumeWork)
+    try surface.validate(tolerance: tolerance, using: &execution)
     try CurrentTaskCancellationChecker().checkCancellation()
     self.surface = surface
     self.preparationTolerance = tolerance
@@ -46,71 +37,52 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
     let singleBezier = try !surface.isUPeriodic && !surface.isVPeriodic
       && surface.uControlPointCount == surface.uDegree + 1
       && surface.vControlPointCount == surface.vDegree + 1
-      && (try surface.uKnots.prefix(surface.uDegree + 1).allSatisfy({ try consumeWork(); return $0 == surface.uKnots[surface.uDegree] }))
-      && (try surface.uKnots.suffix(surface.uDegree + 1).allSatisfy({ try consumeWork(); return $0 == surface.uKnots[surface.uControlPointCount] }))
-      && (try surface.vKnots.prefix(surface.vDegree + 1).allSatisfy({ try consumeWork(); return $0 == surface.vKnots[surface.vDegree] }))
-      && (try surface.vKnots.suffix(surface.vDegree + 1).allSatisfy({ try consumeWork(); return $0 == surface.vKnots[surface.vControlPointCount] }))
+      && (try surface.uKnots.prefix(surface.uDegree + 1).allSatisfy({ try execution.consumeWork(1); return $0 == surface.uKnots[surface.uDegree] }))
+      && (try surface.uKnots.suffix(surface.uDegree + 1).allSatisfy({ try execution.consumeWork(1); return $0 == surface.uKnots[surface.uControlPointCount] }))
+      && (try surface.vKnots.prefix(surface.vDegree + 1).allSatisfy({ try execution.consumeWork(1); return $0 == surface.vKnots[surface.vDegree] }))
+      && (try surface.vKnots.suffix(surface.vDegree + 1).allSatisfy({ try execution.consumeWork(1); return $0 == surface.vKnots[surface.vControlPointCount] }))
     if singleBezier {
       // These are the stored original controls, not a rounded extraction.
       let patch = RationalBezierSurfacePatch3D(controlPoints: surface.controlPoints, weights: surface.weights,
         uLower: surface.uKnots[surface.uDegree], uUpper: surface.uKnots[surface.uControlPointCount],
         vLower: surface.vKnots[surface.vDegree], vUpper: surface.vKnots[surface.vControlPointCount])
-      try OriginalCoefficientAllocation.reserve(count: 1, of: OriginalNativeSpan.self, consumeStorage: consumeStorage)
+      try OriginalCoefficientAllocation.reserve(count: 1, of: OriginalNativeSpan.self, using: &execution)
       originalSpans = [OriginalNativeSpan(surface: surface, tolerance: tolerance,
         uSpanIndex: surface.uDegree, vSpanIndex: surface.vDegree,
         uBounds: try ScalarInterval(lower: patch.uLower, upper: patch.uUpper),
         vBounds: try ScalarInterval(lower: patch.vLower, upper: patch.vUpper),
-        patch: try encloser.prepare(patch, tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage))]
+        patch: try encloser.prepare(patch, tolerance: tolerance, using: &execution))]
     } else {
       let originals = try decomposer.originalHomogeneousPatches(surface: surface, tolerance: tolerance,
-        consumeWork: consumeWork, consumeStorage: consumeStorage)
-      try OriginalCoefficientAllocation.reserve(count: originals.count, of: OriginalNativeSpan.self, consumeStorage: consumeStorage)
+        using: &execution)
+      try OriginalCoefficientAllocation.reserve(count: originals.count, of: OriginalNativeSpan.self, using: &execution)
       originalSpans = try originals.map {
-        try consumeWork()
+        try execution.consumeWork(1)
         return OriginalNativeSpan(surface: surface, tolerance: tolerance,
           uSpanIndex: $0.uSpanIndex, vSpanIndex: $0.vSpanIndex,
           uBounds: $0.uBounds, vBounds: $0.vBounds,
-          patch: try encloser.prepare(original: $0, tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage))
+          patch: try encloser.prepare(original: $0, tolerance: tolerance, using: &execution))
       }
     }
-  }
 
-  package func originalNativeSpans(over box: SurfaceParameterBox,
-                                  tolerance: ModelingTolerance) throws -> [OriginalNativeSpan] {
-    try originalNativeSpans(over: box, tolerance: tolerance, maximumSpanCount: Self.maximumOriginalNativeSpanCount)
-  }
-
-  /// Q3 preparation and queries pay original cover scans and token storage before allocation.
-  package func originalNativeSpans(over box: SurfaceParameterBox, tolerance: ModelingTolerance,
-                                  consumeWork: () throws -> Void) throws -> [OriginalNativeSpan] {
-    try originalNativeSpans(over:box,tolerance:tolerance,maximumSpanCount:Self.maximumOriginalNativeSpanCount,consumeWork:consumeWork)
-  }
-
-  /// The selected-cover ceiling is shared by all axis lifts, not reset per cycle.
-  func originalNativeSpans(over box: SurfaceParameterBox, tolerance: ModelingTolerance,
-                           maximumSpanCount: Int) throws -> [OriginalNativeSpan] {
-    try originalNativeSpans(over:box,tolerance:tolerance,maximumSpanCount:maximumSpanCount,consumeWork:{})
   }
 
   package func originalNativeSpans(over box: SurfaceParameterBox, tolerance: ModelingTolerance,
-                                  maximumSpanCount: Int, consumeWork: () throws -> Void) throws -> [OriginalNativeSpan] {
-    try selectedOriginalNativeSpans(over: box, tolerance: tolerance, maximumSpanCount: maximumSpanCount,
-      consumeWork: consumeWork, admittingStorage: nil)
+    maximumSpanCount: Int = Self.maximumOriginalNativeSpanCount) throws -> [OriginalNativeSpan] {
+    var execution = try Self.independentExecution()
+    return try originalNativeSpans(over: box, tolerance: tolerance,
+      maximumSpanCount: maximumSpanCount, using: &execution)
   }
 
-  package func originalNativeSpans(over box: SurfaceParameterBox, tolerance: ModelingTolerance,
-    maximumSpanCount: Int, consumeWork: () throws -> Void,
-    consumeStorage: (Int) throws -> Void) throws -> [OriginalNativeSpan] {
-    try withoutActuallyEscaping(consumeStorage) { storage in
-      try selectedOriginalNativeSpans(over: box, tolerance: tolerance, maximumSpanCount: maximumSpanCount,
-        consumeWork: consumeWork, admittingStorage: storage)
-    }
+  package func originalNativeSpans<A: ExactScalarAdmission & ~Copyable>(over box: SurfaceParameterBox, tolerance: ModelingTolerance,
+    maximumSpanCount: Int = Self.maximumOriginalNativeSpanCount,
+    using execution: inout A) throws -> [OriginalNativeSpan] {
+    try selectedOriginalNativeSpans(over: box, tolerance: tolerance,
+      maximumSpanCount: maximumSpanCount, using: &execution)
   }
 
-  func selectedOriginalNativeSpans(over box: SurfaceParameterBox, tolerance: ModelingTolerance,
-    maximumSpanCount: Int, consumeWork: () throws -> Void,
-    admittingStorage consumeStorage: ((Int) throws -> Void)?,
-    permitsMultiplePeriods: Bool = false) throws -> [OriginalNativeSpan] {
+  func selectedOriginalNativeSpans<A: ExactScalarAdmission & ~Copyable>(over box: SurfaceParameterBox, tolerance: ModelingTolerance,
+    maximumSpanCount: Int, permitsMultiplePeriods: Bool = false, using execution: inout A) throws -> [OriginalNativeSpan] {
     try tolerance.validate()
     try CurrentTaskCancellationChecker().checkCancellation()
     guard (1...Self.maximumOriginalNativeSpanCount).contains(maximumSpanCount) else {
@@ -128,7 +100,7 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
       guard next > count else {
         throw GeometryConversionError.resourceLimitExceeded("Original native cover exhausted caller retention.")
       }
-      try OriginalCoefficientAllocation.reserve(count: next, of: OriginalNativeSpan.self, consumeStorage: consumeStorage)
+      try OriginalCoefficientAllocation.reserve(count: next, of: OriginalNativeSpan.self, using: &execution)
       capacity = next
       return next
     }
@@ -136,13 +108,13 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
       var result: [OriginalNativeSpan] = []
       var capacity = 0
       for span in originalSpans {
-        try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
+        try CurrentTaskCancellationChecker().checkCancellation(); try execution.consumeWork(1)
         if max(box.u.lower, span.uBounds.lower) <= min(box.u.upper, span.uBounds.upper),
            max(box.v.lower, span.vBounds.lower) <= min(box.v.upper, span.vBounds.upper) {
           guard result.count < maximumSpanCount else {
             throw Self.liftFailure(.resourceLimitExceeded, "Original native span cover exhausted its aggregate ceiling.", tolerance)
           }
-          try consumeWork()
+          try execution.consumeWork(1)
           if let next = try reserveAppend(result.count, &capacity) { result.reserveCapacity(next) }
           result.append(span)
         }
@@ -150,12 +122,12 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
       try CurrentTaskCancellationChecker().checkCancellation()
       return result
     }
-    let us = try selectedLifts(over: box.u, direction: .u, tolerance: tolerance, maximumSpanCount: maximumSpanCount, consumeWork:consumeWork, consumeStorage: consumeStorage, permitsMultiplePeriods: permitsMultiplePeriods)
-    let vs = try selectedLifts(over: box.v, direction: .v, tolerance: tolerance, maximumSpanCount: maximumSpanCount, consumeWork:consumeWork, consumeStorage: consumeStorage, permitsMultiplePeriods: permitsMultiplePeriods)
+    let us = try selectedLifts(over: box.u, direction: .u, tolerance: tolerance, maximumSpanCount: maximumSpanCount, permitsMultiplePeriods: permitsMultiplePeriods, using: &execution)
+    let vs = try selectedLifts(over: box.v, direction: .v, tolerance: tolerance, maximumSpanCount: maximumSpanCount, permitsMultiplePeriods: permitsMultiplePeriods, using: &execution)
     var result: [OriginalNativeSpan] = []
     var capacity = 0
     for u in us { for v in vs { for span in originalSpans {
-      try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
+      try CurrentTaskCancellationChecker().checkCancellation(); try execution.consumeWork(1)
       let ub = try Self.translated(span.uBounds, by: u.translation, tolerance: tolerance)
       let vb = try Self.translated(span.vBounds, by: v.translation, tolerance: tolerance)
       guard max(box.u.lower, ub.lower) <= min(box.u.upper, ub.upper),
@@ -163,7 +135,7 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
       guard result.count < maximumSpanCount else {
         throw Self.liftFailure(.resourceLimitExceeded, "Original native span cover exhausted its aggregate ceiling.", tolerance)
       }
-      try consumeWork()
+      try execution.consumeWork(1)
       if let next = try reserveAppend(result.count, &capacity) { result.reserveCapacity(next) }
       result.append(OriginalNativeSpan(surface: surface, tolerance: tolerance,
         uSpanIndex: span.uSpanIndex, vSpanIndex: span.vSpanIndex,
@@ -181,10 +153,9 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
     let translation: Double
   }
 
-  private func selectedLifts(over interval: ScalarInterval, direction: SurfaceParameterDirection,
+  private func selectedLifts<A: ExactScalarAdmission & ~Copyable>(over interval: ScalarInterval, direction: SurfaceParameterDirection,
                              tolerance: ModelingTolerance, maximumSpanCount: Int,
-                             consumeWork: () throws -> Void, consumeStorage: ((Int) throws -> Void)? = nil,
-                             permitsMultiplePeriods: Bool = false) throws -> [AxisLift] {
+                             permitsMultiplePeriods: Bool = false, using execution: inout A) throws -> [AxisLift] {
     let periodic = direction == .u ? surface.isUPeriodic : surface.isVPeriodic
     let knots = direction == .u ? surface.uKnots : surface.vKnots
     let degree = direction == .u ? surface.uDegree : surface.vDegree
@@ -199,29 +170,29 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
     guard periodic else {
       var i = degree + 1
       while i < count {
-        try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
+        try CurrentTaskCancellationChecker().checkCancellation(); try execution.consumeWork(1)
         var end = i + 1
-        while end < count, knots[end] == knots[i] { try consumeWork(); end += 1 }
+        while end < count, knots[end] == knots[i] { try execution.consumeWork(1); end += 1 }
         guard end - i <= degree else { throw refusal() }
         i = end
       }
-      try consumeWork()
-      try OriginalCoefficientAllocation.reserve(count: 1, of: AxisLift.self, consumeStorage: consumeStorage)
+      try execution.consumeWork(1)
+      try OriginalCoefficientAllocation.reserve(count: 1, of: AxisLift.self, using: &execution)
       return [AxisLift(cycle: 0, translation: 0)]
     }
     let period = try Self.exactDifference(upper, lower, tolerance: tolerance)
     guard period.head > 0, period.tail == 0 else { throw refusal() }
     let cycleCount = count - degree
     for i in 0..<(knots.count - cycleCount) {
-      try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
+      try CurrentTaskCancellationChecker().checkCancellation(); try execution.consumeWork(1)
       let delta = try Self.exactDifference(knots[i + cycleCount], knots[i], tolerance: tolerance)
       guard delta.head == period.head, delta.tail == 0 else { throw refusal() }
     }
     var i = 0
     while i < knots.count {
-      try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
+      try CurrentTaskCancellationChecker().checkCancellation(); try execution.consumeWork(1)
       var end = i + 1
-      while end < knots.count, knots[end] == knots[i] { try consumeWork(); end += 1 }
+      while end < knots.count, knots[end] == knots[i] { try execution.consumeWork(1); end += 1 }
       guard end - i <= degree else { throw refusal() }
       i = end
     }
@@ -248,7 +219,7 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
     var lifts: [AxisLift] = []
     var capacity = 0
     for cycle in Int(first)...Int(last) {
-      try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
+      try CurrentTaskCancellationChecker().checkCancellation(); try execution.consumeWork(1)
       let translation = Double(cycle) * period.head
       guard translation.isFinite, (-translation).addingProduct(Double(cycle), period.head) == 0 else {
         throw Self.liftFailure(.resourceLimitExceeded, "Original periodic span translation is not exactly representable.", tolerance)
@@ -262,14 +233,14 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
           throw Self.liftFailure(.resourceLimitExceeded,
             "Original periodic axis lifts exhausted the caller's aggregate cover ceiling.", tolerance)
         }
-        try consumeWork()
+        try execution.consumeWork(1)
         if lifts.count == capacity {
           let doubled = capacity.multipliedReportingOverflow(by: 2)
           guard !doubled.overflow else {
             throw GeometryConversionError.resourceLimitExceeded("Original periodic lift storage overflowed.")
           }
           capacity = min(maximumSpanCount, max(1, doubled.partialValue))
-          try OriginalCoefficientAllocation.reserve(count: capacity, of: AxisLift.self, consumeStorage: consumeStorage)
+          try OriginalCoefficientAllocation.reserve(count: capacity, of: AxisLift.self, using: &execution)
           lifts.reserveCapacity(capacity)
         }
         lifts.append(AxisLift(cycle: cycle, translation: translation))
@@ -309,13 +280,21 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
     over parameters: SurfaceParameterBox,
     tolerance: ModelingTolerance
   ) throws -> SurfaceIntervalVectorJet {
+    var execution = try Self.independentExecution()
+    return try intervalJet(over: parameters, tolerance: tolerance, using: &execution)
+  }
+
+  func intervalJet<A: ExactScalarAdmission & ~Copyable>(
+    over parameters: SurfaceParameterBox,
+    tolerance: ModelingTolerance, using execution: inout A
+  ) throws -> SurfaceIntervalVectorJet {
     try parameters.validateAssumingSurfaceValidated(
       for: .bSpline(surface),
       tolerance: tolerance
     )
     return try intervalJetAssumingPrepared(
       over: parameters,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
   }
 
@@ -323,23 +302,31 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
     over parameters: SurfaceParameterBox,
     tolerance: ModelingTolerance
   ) throws -> SurfaceIntervalVectorJet {
+    var execution = try Self.independentExecution()
+    return try intervalJetAssumingPrepared(over: parameters, tolerance: tolerance, using: &execution)
+  }
+
+  func intervalJetAssumingPrepared<A: ExactScalarAdmission & ~Copyable>(
+    over parameters: SurfaceParameterBox,
+    tolerance: ModelingTolerance, using execution: inout A
+  ) throws -> SurfaceIntervalVectorJet {
     try CurrentTaskCancellationChecker().checkCancellation()
     var result: SurfaceIntervalVectorJet?
-    let us = try surface.enclosureIntervals(parameters.u, direction: .u, tolerance: tolerance)
-    let vs = try surface.enclosureIntervals(parameters.v, direction: .v, tolerance: tolerance)
+    let us = try surface.enclosureIntervals(parameters.u, direction: .u, tolerance: tolerance, using: &execution)
+    let vs = try surface.enclosureIntervals(parameters.v, direction: .v, tolerance: tolerance, using: &execution)
     func accumulate(_ patch: RationalBezierSurfaceJetEncloser.PreparedPatch,
-                    u: ScalarInterval, v: ScalarInterval) throws {
+                    u: ScalarInterval, v: ScalarInterval, using execution: inout A) throws {
       let uLower = max(u.lower, patch.uLower), uUpper = min(u.upper, patch.uUpper)
       let vLower = max(v.lower, patch.vLower), vUpper = min(v.upper, patch.vUpper)
       guard uUpper >= uLower, vUpper >= vLower else { return }
       let jet = try Self.selectedJet(of: patch, over: SurfaceParameterBox(
         u: ScalarInterval(lower: uLower, upper: uUpper), v: ScalarInterval(lower: vLower, upper: vUpper)),
-        tolerance: tolerance)
+        tolerance: tolerance, using: &execution)
       result = result.map { $0.union(jet) } ?? jet
     }
     for u in us {
       for v in vs {
-        for span in originalSpans { try accumulate(span.patch, u: u, v: v) }
+        for span in originalSpans { try accumulate(span.patch, u: u, v: v, using: &execution) }
       }
     }
     guard let result else {
@@ -353,8 +340,14 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
   /// weakening the public positive-width surface-box contract.
   func intervalJet(overClosedBox parameters: SurfaceParameterBox,
                    tolerance: ModelingTolerance) throws -> SurfaceIntervalVectorJet {
+    var execution = try Self.independentExecution()
+    return try intervalJet(overClosedBox: parameters, tolerance: tolerance, using: &execution)
+  }
+
+  func intervalJet<A: ExactScalarAdmission & ~Copyable>(overClosedBox parameters: SurfaceParameterBox,
+                   tolerance: ModelingTolerance, using execution: inout A) throws -> SurfaceIntervalVectorJet {
     try validateClosedBox(parameters, tolerance: tolerance)
-    return try intervalJetAssumingPrepared(over:parameters,tolerance:tolerance)
+    return try intervalJetAssumingPrepared(over:parameters,tolerance:tolerance,using:&execution)
   }
 
   private func validateClosedBox(_ parameters: SurfaceParameterBox, tolerance: ModelingTolerance) throws {
@@ -374,29 +367,40 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
   /// A native knot point retains every owning span's one-sided derivative jet.
   func pointJet(u: Double, v: Double,
                 tolerance: ModelingTolerance) throws -> SurfaceIntervalVectorJet {
+    var execution = try Self.independentExecution()
+    return try pointJet(u: u, v: v, tolerance: tolerance, using: &execution)
+  }
+
+  func pointJet<A: ExactScalarAdmission & ~Copyable>(u: Double, v: Double,
+                tolerance: ModelingTolerance, using execution: inout A) throws -> SurfaceIntervalVectorJet {
     guard u.isFinite, v.isFinite else { throw closedBoxFailure(tolerance: tolerance) }
     return try intervalJet(overClosedBox:SurfaceParameterBox(
-      u:ScalarInterval(lower:u,upper:u),v:ScalarInterval(lower:v,upper:v)),tolerance:tolerance)
+      u:ScalarInterval(lower:u,upper:u),v:ScalarInterval(lower:v,upper:v)),tolerance:tolerance,using:&execution)
   }
 
   /// Values retain every original closed owning span and the existing periodic
   /// point lift covers. Unrequested derivatives are never synthesized.
   func pointValue(u: Double, v: Double, tolerance: ModelingTolerance) throws -> IntervalVector3DBounds {
+    var execution = try Self.independentExecution()
+    return try pointValue(u: u, v: v, tolerance: tolerance, using: &execution)
+  }
+
+  func pointValue<A: ExactScalarAdmission & ~Copyable>(u: Double, v: Double, tolerance: ModelingTolerance, using execution: inout A) throws -> IntervalVector3DBounds {
     try CurrentTaskCancellationChecker().checkCancellation()
     guard u.isFinite, v.isFinite, tolerance == preparationTolerance else {
       throw closedBoxFailure(tolerance:tolerance)
     }
     let box = SurfaceParameterBox(u:try ScalarInterval(lower:u,upper:u),v:try ScalarInterval(lower:v,upper:v))
     try validateClosedBox(box,tolerance:tolerance)
-    let us = try surface.enclosureIntervals(box.u,direction:.u,tolerance:tolerance)
-    let vs = try surface.enclosureIntervals(box.v,direction:.v,tolerance:tolerance)
+    let us = try surface.enclosureIntervals(box.u,direction:.u,tolerance:tolerance, using: &execution)
+    let vs = try surface.enclosureIntervals(box.v,direction:.v,tolerance:tolerance, using: &execution)
     var result: IntervalVector3DBounds?
     for u in us { for v in vs { for span in originalSpans {
       let uLower = max(u.lower,span.patch.uLower), uUpper = min(u.upper,span.patch.uUpper)
       let vLower = max(v.lower,span.patch.vLower), vUpper = min(v.upper,span.patch.vUpper)
       guard uLower <= uUpper, vLower <= vUpper else { continue }
       let value = try Self.selectedValue(of:span.patch,over:SurfaceParameterBox(
-        u:ScalarInterval(lower:uLower,upper:uUpper),v:ScalarInterval(lower:vLower,upper:vUpper)),tolerance:tolerance)
+        u:ScalarInterval(lower:uLower,upper:uUpper),v:ScalarInterval(lower:vLower,upper:vUpper)),tolerance:tolerance,using:&execution)
       if let prior = result {
         result = IntervalVector3DBounds(x:prior.x.union(value.x),y:prior.y.union(value.y),z:prior.z.union(value.z))
       } else { result = value }
@@ -410,32 +414,32 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
       message:"A prepared B-spline closed box requires finite ordered UV bounds inside its support domain.")
   }
 
-  static func selectedJet(of patch: RationalBezierSurfaceJetEncloser.PreparedPatch,
+  static func selectedJet<A: ExactScalarAdmission & ~Copyable>(of patch: RationalBezierSurfaceJetEncloser.PreparedPatch,
                                   over box: SurfaceParameterBox,
-                                  tolerance: ModelingTolerance) throws -> SurfaceIntervalVectorJet {
+                                  tolerance: ModelingTolerance, using execution: inout A) throws -> SurfaceIntervalVectorJet {
     try CurrentTaskCancellationChecker().checkCancellation()
     let encloser = RationalBezierSurfaceJetEncloser()
     if box.u.lower == box.u.upper, box.v.lower == box.v.upper {
-      return try encloser.pointEnclosure(of: patch, u: box.u.lower, v: box.v.lower, tolerance: tolerance)
+      return try encloser.pointEnclosure(of: patch, u: box.u.lower, v: box.v.lower, tolerance: tolerance, using: &execution)
     }
     let u = try numericallyStableInterval(box.u, within: (patch.uLower, patch.uUpper), tolerance: tolerance)
     let v = try numericallyStableInterval(box.v, within: (patch.vLower, patch.vUpper), tolerance: tolerance)
-    return try encloser.enclosure(of: patch, u: u, v: v, tolerance: tolerance)
+    return try encloser.enclosure(of: patch, u: u, v: v, tolerance: tolerance, using: &execution)
   }
 
-  static func selectedValue(of patch: RationalBezierSurfaceJetEncloser.PreparedPatch,
+  static func selectedValue<A: ExactScalarAdmission & ~Copyable>(of patch: RationalBezierSurfaceJetEncloser.PreparedPatch,
                                     over box: SurfaceParameterBox,
-                                    tolerance: ModelingTolerance) throws -> IntervalVector3DBounds {
+                                    tolerance: ModelingTolerance, using execution: inout A) throws -> IntervalVector3DBounds {
     try CurrentTaskCancellationChecker().checkCancellation()
     let encloser = RationalBezierSurfaceJetEncloser()
     if box.u.lower == box.u.upper, box.v.lower == box.v.upper {
-      return try encloser.pointValueEnclosure(of:patch,u:box.u.lower,v:box.v.lower,tolerance:tolerance)
+      return try encloser.pointValueEnclosure(of:patch,u:box.u.lower,v:box.v.lower,tolerance:tolerance, using: &execution)
     }
     // A periodic point may own a positive-width outward lift cover. Preserve
     // the full-jet owner's conditioning and localization, evaluating value nets only.
     let u = try numericallyStableInterval(box.u,within:(patch.uLower,patch.uUpper),tolerance:tolerance)
     let v = try numericallyStableInterval(box.v,within:(patch.vLower,patch.vUpper),tolerance:tolerance)
-    return try encloser.valueEnclosure(of:patch,u:u,v:v,tolerance:tolerance)
+    return try encloser.valueEnclosure(of:patch,u:u,v:v,tolerance:tolerance, using: &execution)
   }
 
   private static func numericallyStableInterval(

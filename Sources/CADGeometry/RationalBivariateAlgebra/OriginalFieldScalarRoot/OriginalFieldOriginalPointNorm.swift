@@ -1,6 +1,6 @@
 /// Descends an ORIGINAL two-coordinate field to a rational scalar polynomial.
 struct OriginalFieldOriginalPointNorm {
-    static func descending<B: RationalAlgebraAdmitting>(_ original: OriginalSingularFieldPolynomial,
+    static func descending<B: ExactScalarAdmission & ~Copyable>(_ original: OriginalSingularFieldPolynomial,
         at root: ExactAlgebraicPairAuthority, maximumDepth: Int, usage: inout B) throws -> ExactBivariatePolynomial {
         var fiber = root.fiber
         var projection = root.projectionRoot.polynomial
@@ -76,12 +76,12 @@ struct OriginalFieldOriginalPointNorm {
         return result
     }
 
-    private static func originalNumerator<B: RationalAlgebraAdmitting>(_ fiber: ExactAlgebraicFiberPolynomial,
+    private static func originalNumerator<B: ExactScalarAdmission & ~Copyable>(_ fiber: ExactAlgebraicFiberPolynomial,
         usage: inout B) throws -> ExactBivariatePolynomial {
         var result = ExactBivariatePolynomial.zero
         try RationalAlgebraStorage.retain(fiber.coefficients.count, of: Int.self, usage: &usage)
         let degrees = fiber.coefficients.keys.sorted()
-        try usage.consumeExactWork(try rationalAlgebraCount(degrees.count, max(1, degrees.count), multiply: true))
+        try usage.consumeWork(try rationalAlgebraCount(degrees.count, max(1, degrees.count), multiply: true))
         for degree in degrees {
             guard let coefficient = fiber.coefficients[degree] else { throw rationalAlgebraFailure("Original norm missing fiber coefficient.") }
             var term = coefficient.numerator

@@ -51,6 +51,17 @@ public struct CertifiedAnalyticBSplineTangencyIntersectionCurve: Hashable, Senda
         periodicSeamOffset: Double,
         tolerance: ModelingTolerance
     ) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try self.init(tangencyCurve: tangencyCurve, analyticSurface: analyticSurface, analyticIsFirst: analyticIsFirst, periodicSeamOffset: periodicSeamOffset, tolerance: tolerance, using: &execution)
+    }
+
+    public init(
+        tangencyCurve: CertifiedQuadraticTangencyIntersectionCurve,
+        analyticSurface: Surface3D,
+        analyticIsFirst: Bool,
+        periodicSeamOffset: Double,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+    ) throws {
         self.tangencyCurve = tangencyCurve
         self.analyticSurface = analyticSurface
         self.analyticIsFirst = analyticIsFirst
@@ -60,15 +71,21 @@ public struct CertifiedAnalyticBSplineTangencyIntersectionCurve: Hashable, Senda
             analyticSurface: analyticSurface,
             analyticIsFirst: analyticIsFirst,
             periodicSeamOffset: periodicSeamOffset,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         try validate(tolerance: tolerance)
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try tolerance.validate()
-        try tangencyCurve.validate(tolerance: tolerance)
-        try analyticSurface.validate(tolerance: tolerance)
+        try tangencyCurve.validate(tolerance: tolerance, using: &execution)
+        try analyticSurface.validate(tolerance: tolerance, using: &execution)
         guard certificationTolerance.distance <= tolerance.distance,
               certificationTolerance.angle <= tolerance.angle,
               certificationTolerance.relative <= tolerance.relative,
@@ -82,17 +99,19 @@ public struct CertifiedAnalyticBSplineTangencyIntersectionCurve: Hashable, Senda
         }
         let canonical = try Self.canonicalAnalyticSurface(
             analyticSurface,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         let rebuilt = try AnalyticSurfaceBSplineBuilder().surface(
             for: canonical,
             boundedBy: boundedSurface,
             periodicSeamOffset: periodicSeamOffset,
-            tolerance: certificationTolerance
+            tolerance: certificationTolerance, using: &execution
         )
         let storedAnalytic = analyticIsFirst
             ? tangencyCurve.firstSurface
             : tangencyCurve.secondSurface
+        try GeometryStructuralComparisonWork.charge(surface: .bSpline(rebuilt), using: &execution)
+        try GeometryStructuralComparisonWork.charge(surface: .bSpline(storedAnalytic), using: &execution)
         guard rebuilt == storedAnalytic else {
             throw KernelError(
                 phase: .geometry,
@@ -106,8 +125,10 @@ public struct CertifiedAnalyticBSplineTangencyIntersectionCurve: Hashable, Senda
             analyticSurface: analyticSurface,
             analyticIsFirst: analyticIsFirst,
             periodicSeamOffset: periodicSeamOffset,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
+        try GeometryStructuralComparisonWork.charge(parameterCurve: analyticSurfaceParameterCurve, using: &execution)
+        try GeometryStructuralComparisonWork.charge(parameterCurve: expectedParameterCurve, using: &execution)
         guard analyticSurfaceParameterCurve == expectedParameterCurve else {
             throw KernelError(
                 phase: .geometry,
@@ -124,10 +145,11 @@ public struct CertifiedAnalyticBSplineTangencyIntersectionCurve: Hashable, Senda
         analyticIsFirst: Bool,
         periodicSeamOffset: Double,
         tolerance: ModelingTolerance
-    ) throws -> SurfaceParameterCurve {
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceParameterCurve {
+        try execution.consumeWork(1)
         try tolerance.validate()
-        try tangencyCurve.validate(tolerance: tolerance)
-        try analyticSurface.validate(tolerance: tolerance)
+        try tangencyCurve.validate(tolerance: tolerance, using: &execution)
+        try analyticSurface.validate(tolerance: tolerance, using: &execution)
         guard periodicSeamOffset.isFinite else {
             throw KernelError(
                 phase: .geometry,
@@ -142,7 +164,7 @@ public struct CertifiedAnalyticBSplineTangencyIntersectionCurve: Hashable, Senda
             analyticSurface: analyticSurface,
             analyticIsFirst: analyticIsFirst,
             periodicSeamOffset: periodicSeamOffset,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         let upper = try analyticParameter(
             atNormalizedFraction: 1.0,
@@ -150,8 +172,10 @@ public struct CertifiedAnalyticBSplineTangencyIntersectionCurve: Hashable, Senda
             analyticSurface: analyticSurface,
             analyticIsFirst: analyticIsFirst,
             periodicSeamOffset: periodicSeamOffset,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
+        try execution.retainStorage(count: 4, stride: MemoryLayout<Double>.stride)
+        try execution.retainStorage(count: 2, stride: MemoryLayout<Point2D>.stride)
         let parameterCurve = SurfaceParameterCurve.bSpline(BSplineCurve2D(
             degree: 1,
             knots: [0.0, 0.0, 1.0, 1.0],
@@ -160,7 +184,7 @@ public struct CertifiedAnalyticBSplineTangencyIntersectionCurve: Hashable, Senda
                 Point2D(x: upper.u, y: upper.v),
             ]
         ))
-        try parameterCurve.validate(on: analyticSurface, tolerance: tolerance)
+        try parameterCurve.validate(on: analyticSurface, tolerance: tolerance, using: &execution)
         try DefaultCurveSurfaceCorrespondenceValidator().validate(
             curve: tangencyCurve.curve,
             from: 0.0,
@@ -171,7 +195,7 @@ public struct CertifiedAnalyticBSplineTangencyIntersectionCurve: Hashable, Senda
                 maximumSubdivisionDepth: 32,
                 maximumCellCount: 65_536
             ),
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         return parameterCurve
     }
@@ -183,27 +207,28 @@ public struct CertifiedAnalyticBSplineTangencyIntersectionCurve: Hashable, Senda
         analyticIsFirst: Bool,
         periodicSeamOffset: Double,
         tolerance: ModelingTolerance
-    ) throws -> SurfaceParameter {
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceParameter {
+        try execution.consumeWork(1)
         let point = try tangencyCurve.curve.point(
             at: fraction,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         let internalParameterCurve = analyticIsFirst
             ? tangencyCurve.firstSurfaceParameterCurve
             : tangencyCurve.secondSurfaceParameterCurve
         let internalParameter = try internalParameterCurve.parameter(
             atNormalizedFraction: fraction,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         let result = try AnalyticSurfaceRationalParameterMap(
             surface: analyticSurface,
             periodicSeamOffset: periodicSeamOffset,
-            tolerance: tolerance
-        ).parameter(fromRational: internalParameter, tolerance: tolerance)
+            tolerance: tolerance, using: &execution
+        ).parameter(fromRational: internalParameter, tolerance: tolerance, using: &execution)
         let reconstructed = try analyticSurface.point(
             u: result.u,
             v: result.v,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         let residual = (reconstructed - point).length
         guard residual <= tolerance.distance else {
@@ -221,7 +246,9 @@ public struct CertifiedAnalyticBSplineTangencyIntersectionCurve: Hashable, Senda
     private static func canonicalAnalyticSurface(
         _ surface: Surface3D,
         tolerance: ModelingTolerance
-    ) throws -> CanonicalAnalyticSurface {
+    , using execution: inout OriginalQueryExecution) throws -> CanonicalAnalyticSurface {
+        try execution.consumeWork(1)
+        try GeometryStructuralComparisonWork.charge(surface: surface, using: &execution)
         let canonical = CanonicalAnalyticSurface(surface)
         switch canonical {
         case .plane, .cylinder, .cone, .sphere, .torus:
@@ -247,6 +274,7 @@ public struct CertifiedAnalyticBSplineTangencyIntersectionCurve: Hashable, Senda
 
 #if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
+        var execution = try NativeRationalSourceDecodingContext.validationExecution(from: decoder)
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
             [.tangencyCurve, .analyticSurface, .analyticIsFirst, .periodicSeamOffset],
@@ -261,14 +289,15 @@ public struct CertifiedAnalyticBSplineTangencyIntersectionCurve: Hashable, Senda
             analyticSurface: container.decode(Surface3D.self, forKey: .analyticSurface),
             analyticIsFirst: container.decode(Bool.self, forKey: .analyticIsFirst),
             periodicSeamOffset: container.decode(Double.self, forKey: .periodicSeamOffset),
-            tolerance: tangencyCurve.certificationTolerance
+            tolerance: tangencyCurve.certificationTolerance, using: &execution
         )
     }
 #endif
 
 #if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
-        try validate(tolerance: certificationTolerance)
+        var execution = try NativeOriginalSourceEncodingContext.execution(from: encoder)
+        try validate(tolerance: certificationTolerance, using: &execution)
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(tangencyCurve, forKey: .tangencyCurve)
         try container.encode(analyticSurface, forKey: .analyticSurface)

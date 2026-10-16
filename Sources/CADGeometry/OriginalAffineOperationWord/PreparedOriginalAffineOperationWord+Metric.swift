@@ -2,7 +2,7 @@ import CADCore
 
 extension PreparedOriginalAffineOperationWord {
     /// Proves a physical length threshold for an exact similarity; nil means nonsimilarity.
-    public func similarityScaledLengthIsGreaterThan<B: RationalAlgebraAdmitting>(
+    public func similarityScaledLengthIsGreaterThan<B: ExactScalarAdmission & ~Copyable>(
         originalLength: Double, physicalThreshold: Double, usage: inout B) throws -> Bool? {
         guard originalLength.isFinite, originalLength >= 0,
               physicalThreshold.isFinite, physicalThreshold >= 0 else {
@@ -16,7 +16,7 @@ extension PreparedOriginalAffineOperationWord {
     }
 
     /// Compares the original exact gap; subtraction is never rounded into source.
-    public func similarityScaledDifferenceIsGreaterThan<B: RationalAlgebraAdmitting>(
+    public func similarityScaledDifferenceIsGreaterThan<B: ExactScalarAdmission & ~Copyable>(
         originalLower: Double, originalUpper: Double, physicalThreshold: Double,
         usage: inout B) throws -> Bool? {
         guard originalLower.isFinite, originalLower >= 0, originalUpper.isFinite,
@@ -33,7 +33,7 @@ extension PreparedOriginalAffineOperationWord {
             thresholdSquared: squaredThreshold, usage: &usage)
     }
 
-    private func similarityScaledSquaredLengthIsGreaterThan<B: RationalAlgebraAdmitting>(
+    private func similarityScaledSquaredLengthIsGreaterThan<B: ExactScalarAdmission & ~Copyable>(
         _ lengthSquared: ExactRationalCoefficient, thresholdSquared: ExactRationalCoefficient,
         usage: inout B) throws -> Bool? {
         if source.isRational {
@@ -80,12 +80,12 @@ extension PreparedOriginalAffineOperationWord {
     }
 
     /// Bounds the inverse action without rounding inverse coefficients into source.
-    public func inverseLinearNormUpper<B: RationalAlgebraAdmitting>(usage: inout B) throws -> Double {
+    public func inverseLinearNormUpper<B: ExactScalarAdmission & ~Copyable>(usage: inout B) throws -> Double {
         if source.isRational {
             var sum = ExactRationalCoefficient.zero
             for row in 0..<3 {
                 for column in 0..<3 {
-                    try usage.consumeExactWork(1)
+                    try usage.consumeWork(1)
                     let coefficient = source.cofactorCoefficients[row * 4 + column]
                     sum = try sum.adding(coefficient.multiplied(by: coefficient, usage: &usage), usage: &usage)
                 }
@@ -100,7 +100,7 @@ extension PreparedOriginalAffineOperationWord {
         var sum = try OriginalSingularFieldElement.constant(.zero,
             in: frame.context, maximumDepth: depth, usage: &usage)
         for coefficient in source.normalizedCofactors {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             sum = try sum.adding(coefficient.multiplied(by: coefficient, maximumDepth: depth, usage: &usage),
                 maximumDepth: depth, usage: &usage)
         }
@@ -109,23 +109,23 @@ extension PreparedOriginalAffineOperationWord {
         return try OriginalAffineFieldAction.squareRootUpper(square, maximumDepth: depth, usage: &usage)
     }
 
-    private func rationalGram<B: RationalAlgebraAdmitting>(_ first: Int, _ second: Int,
+    private func rationalGram<B: ExactScalarAdmission & ~Copyable>(_ first: Int, _ second: Int,
         usage: inout B) throws -> ExactRationalCoefficient {
         var sum = ExactRationalCoefficient.zero
         for row in 0..<3 {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             sum = try sum.adding(source.coefficients[row * 4 + first]
                 .multiplied(by: source.coefficients[row * 4 + second], usage: &usage), usage: &usage)
         }
         return sum
     }
-    private func fieldGram<B: RationalAlgebraAdmitting>(_ first: Int, _ second: Int,
+    private func fieldGram<B: ExactScalarAdmission & ~Copyable>(_ first: Int, _ second: Int,
         frame: OriginalRationalNormalizedFrame, usage: inout B) throws -> OriginalSingularFieldElement {
         let depth = source.maximumDepth
         var sum = try OriginalSingularFieldElement.constant(.zero,
             in: frame.context, maximumDepth: depth, usage: &usage)
         for row in 0..<3 {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             let a = try OriginalAffineFieldAction.coefficient(frame, row: row, column: first, maximumDepth: depth, usage: &usage)
             let b = try OriginalAffineFieldAction.coefficient(frame, row: row, column: second, maximumDepth: depth, usage: &usage)
             sum = try sum.adding(a.multiplied(by: b, maximumDepth: depth, usage: &usage), maximumDepth: depth, usage: &usage)

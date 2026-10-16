@@ -4,7 +4,8 @@ import CADGeometry
 @Suite("B-spline sparse basis evaluation")
 struct BSplineBasisSparseEvaluationTests {
     @Test
-    func sparseValuesMatchDenseValuesAndDerivatives() {
+    func sparseValuesMatchDenseValuesAndDerivatives() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
         let degree = 3
         let count = 7
         let knots = [
@@ -14,19 +15,21 @@ struct BSplineBasisSparseEvaluationTests {
         ]
         for parameter in [0.0, 0.125, 0.25, 0.5, 0.875, 1.0] {
             for derivativeOrder in 0...2 {
-                let dense = BSplineBasis.derivativeValues(
+                let dense = try BSplineBasis.derivativeValues(
                     parameter: parameter,
                     degree: degree,
                     derivativeOrder: derivativeOrder,
                     knots: knots,
-                    count: count
+                    count: count,
+                    using: &execution
                 )
-                let sparse = BSplineBasis.nonzeroValues(
+                let sparse = try BSplineBasis.nonzeroValues(
                     parameter: parameter,
                     degree: degree,
                     derivativeOrder: derivativeOrder,
                     knots: knots,
-                    count: count
+                    count: count,
+                    using: &execution
                 )
                 var expanded = Array(repeating: 0.0, count: count)
                 for (offset, value) in sparse.values.enumerated() {

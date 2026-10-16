@@ -30,7 +30,7 @@ public final class OriginalImplicitHostPlaneExclusion: Sendable {
         curveIntervals: borrowing [Interval],planeIntervals: borrowing [[Interval]],
         limits: OriginalDomainIdentityLimits,using a: inout A) throws -> OriginalImplicitHostPlaneExclusion {
         let curveIntervals=copy curveIntervals,planeIntervals=copy planeIntervals
-        return try OriginalSourceProofAdmission<A>.withBorrow(&a) { a in
+        return try a.withProofScope() { a in
             try a.checkpoint();try exclusion.admitProof(maximumCells:limits.maximumCharts,limits:limits.source,using:&a)
             guard limits.maximumCharts >= exclusion.cellCount else { throw OriginalDomainIdentityFailure.chartLimit }
             let f=exclusion.field

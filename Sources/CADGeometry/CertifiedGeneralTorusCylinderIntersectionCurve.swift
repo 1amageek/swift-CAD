@@ -57,7 +57,18 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
                 + cylinder.radialV * -sin(angle)
         }
 
-        func coefficients(at angle: Double) -> [Double] {
+        func coefficients<A: ExactScalarAdmission & ~Copyable>(at angle: Double, using execution: inout A) throws -> [Double] {
+            try execution.checkpoint()
+            let result = try coefficientsImplementation(at: angle, using: &execution)
+            try execution.checkpoint()
+            return result
+        }
+
+
+        private func coefficientsImplementation<A: ExactScalarAdmission & ~Copyable>(at angle: Double, using execution: inout A) throws -> [Double] {
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 5, of: Double.self))
+        try execution.checkpoint()
+        try execution.consumeWork(1)
             let point = generatorPoint(angle: angle, height: 0.0)
             let offset = point - torus.center
             let pointSquared = offset.dot(offset)
@@ -85,6 +96,24 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
     }
 
     private struct Certificate: Hashable, Sendable {
+        let data: CertificateData
+        let receipt: OriginalGeometryPreparationReceipt
+        static func == (lhs: Certificate, rhs: Certificate) -> Bool { lhs.data == rhs.data }
+        func hash(into hasher: inout Hasher) { data.hash(into: &hasher) }
+        var branchCount: Int { data.branchCount }
+        var processedCellCount: Int { data.processedCellCount }
+        var firstDerivativeMagnitudeUpperBound: Double { data.firstDerivativeMagnitudeUpperBound }
+        var secondDerivativeMagnitudeUpperBound: Double { data.secondDerivativeMagnitudeUpperBound }
+        var thirdDerivativeMagnitudeUpperBound: Double { data.thirdDerivativeMagnitudeUpperBound }
+        var traceParameters: [Double] { data.traceParameters }
+        var heightsByBranch: [[Double]] { data.heightsByBranch }
+        func referenceHeight<A: ExactScalarAdmission & ~Copyable>(branchIndex: Int,
+            at angle: Double, using execution: inout A) throws -> Double {
+            try data.referenceHeight(branchIndex: branchIndex, at: angle, using: &execution)
+        }
+    }
+
+    private struct CertificateData: Hashable, Sendable {
         let branchCount: Int
         let processedCellCount: Int
         let firstDerivativeMagnitudeUpperBound: Double
@@ -93,7 +122,7 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
         let traceParameters: [Double]
         let heightsByBranch: [[Double]]
 
-        static func == (lhs: Certificate, rhs: Certificate) -> Bool {
+        static func == (lhs: CertificateData, rhs: CertificateData) -> Bool {
             lhs.branchCount == rhs.branchCount
                 && lhs.processedCellCount == rhs.processedCellCount
                 && lhs.firstDerivativeMagnitudeUpperBound
@@ -119,10 +148,23 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
             hasher.combine(heightsByBranch.last?.last ?? 0.0)
         }
 
-        func referenceHeight(
+        func referenceHeight<A: ExactScalarAdmission & ~Copyable>(
             branchIndex: Int,
             at angle: Double
-        ) -> Double {
+        , using execution: inout A) throws -> Double {
+            try execution.checkpoint()
+            let result = try referenceHeightImplementation(branchIndex: branchIndex, at: angle, using: &execution)
+            try execution.checkpoint()
+            return result
+        }
+
+
+        private func referenceHeightImplementation<A: ExactScalarAdmission & ~Copyable>(
+            branchIndex: Int,
+            at angle: Double
+        , using execution: inout A) throws -> Double {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
             if angle <= traceParameters[0] {
                 return heightsByBranch[branchIndex][0]
             }
@@ -132,6 +174,7 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
             var lower = 0
             var upper = traceParameters.count - 1
             while upper - lower > 1 {
+                try execution.consumeWork(1)
                 let middle = (lower + upper) / 2
                 if traceParameters[middle] <= angle {
                     lower = middle
@@ -199,16 +242,19 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
         }
 
         func multiplied(by other: Interval) -> Interval {
-            let values = [
-                lower * other.lower,
-                lower * other.upper,
-                upper * other.lower,
-                upper * other.upper,
-            ]
-            return Interval(
-                values.min() ?? -.infinity,
-                values.max() ?? .infinity
-            )
+            let first = lower * other.lower
+            let second = lower * other.upper
+            let third = upper * other.lower
+            let fourth = upper * other.upper
+            var minimum = first
+            var maximum = first
+            if second < minimum { minimum = second }
+            if third < minimum { minimum = third }
+            if fourth < minimum { minimum = fourth }
+            if second > maximum { maximum = second }
+            if third > maximum { maximum = third }
+            if fourth > maximum { maximum = fourth }
+            return Interval(minimum, maximum)
         }
 
         func scaled(by scalar: Double) -> Interval {
@@ -238,17 +284,18 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
     public let maximumResidualUpperBound: Double
     private let certificate: Certificate
 
-    package func chargeStructuralComparisonWork(
-        using charge: GeometryStructuralComparisonWork.Charge
+    package func chargeStructuralComparisonWork<A: ExactScalarAdmission & ~Copyable>(
+        using execution: inout A
     ) throws {
         // The three derivative bounds are fixed certificate fields. The
         // trace grid and per-branch heights remain variable equality payload.
-        try charge(5)
-        try charge(certificate.traceParameters.count)
-        try charge(certificate.heightsByBranch.count)
+        try execution.consumeWork(5)
+        try execution.consumeWork(certificate.traceParameters.count)
+        try execution.consumeWork(certificate.heightsByBranch.count)
         for row in certificate.heightsByBranch {
+            try execution.consumeWork(1)
             try CurrentTaskCancellationChecker().checkCancellation()
-            try charge(row.count)
+            try execution.consumeWork(row.count)
         }
     }
 
@@ -260,17 +307,32 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
         maximumCellCount: Int = 65_536,
         tolerance: ModelingTolerance
     ) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try self.init(torusSurface: torusSurface, cylinderSurface: cylinderSurface, branchIndex: branchIndex, maximumSubdivisionDepth: maximumSubdivisionDepth, maximumCellCount: maximumCellCount, tolerance: tolerance, using: &execution)
+    }
+
+
+    public init(
+        torusSurface: Surface3D,
+        cylinderSurface: Surface3D,
+        branchIndex: Int,
+        maximumSubdivisionDepth: Int = 24,
+        maximumCellCount: Int = 65_536,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let configuration = try Self.makeConfiguration(
             torusSurface: torusSurface,
             cylinderSurface: cylinderSurface,
             tolerance: tolerance
-        )
+        , using: &execution)
         let certificate = try Self.makeCertificate(
             configuration: configuration,
             maximumSubdivisionDepth: maximumSubdivisionDepth,
             maximumCellCount: maximumCellCount,
             tolerance: tolerance
-        )
+        , using: &execution)
         try self.init(
             torusSurface: torusSurface,
             cylinderSurface: cylinderSurface,
@@ -280,7 +342,8 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
             tolerance: tolerance,
             configuration: configuration,
             certificate: certificate
-        )
+        , using: &execution)
+            try execution.checkpoint()
     }
 
     private init(
@@ -292,7 +355,9 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
         tolerance: ModelingTolerance,
         configuration: Configuration,
         certificate: Certificate
-    ) throws {
+    , using execution: inout OriginalQueryExecution) throws {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         self.torusSurface = torusSurface
         self.cylinderSurface = cylinderSurface
         self.branchIndex = branchIndex
@@ -303,9 +368,10 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
         maximumResidualUpperBound = try Self.residualUpperBound(
             configuration: configuration,
             tolerance: tolerance
-        )
+        , using: &execution)
         self.certificate = certificate
-        try validate(tolerance: tolerance)
+        try validate(tolerance: tolerance, using: &execution)
+            try execution.checkpoint()
     }
 
     static func certifiedCurves(
@@ -314,6 +380,33 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
     ) throws -> [CertifiedGeneralTorusCylinderIntersectionCurve] {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try certifiedCurves(torusSurface: torusSurface, cylinderSurface: cylinderSurface, options: options, tolerance: tolerance, using: &execution)
+    }
+
+
+    static func certifiedCurves(
+        torusSurface: Surface3D,
+        cylinderSurface: Surface3D,
+        options: SurfaceSurfaceIntersectionOptions,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> [CertifiedGeneralTorusCylinderIntersectionCurve] {
+        try execution.checkpoint()
+        let result = try certifiedCurvesImplementation(torusSurface: torusSurface, cylinderSurface: cylinderSurface, options: options, tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+
+
+    private static func certifiedCurvesImplementation(
+        torusSurface: Surface3D,
+        cylinderSurface: Surface3D,
+        options: SurfaceSurfaceIntersectionOptions,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> [CertifiedGeneralTorusCylinderIntersectionCurve] {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         try options.validate(tolerance: tolerance)
         let maximumSubdivisionDepth = min(
             options.maximumSubdivisionDepth + 12,
@@ -327,14 +420,14 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
             torusSurface: torusSurface,
             cylinderSurface: cylinderSurface,
             tolerance: tolerance
-        )
+        , using: &execution)
         let certificate = try makeCertificate(
             configuration: configuration,
             maximumSubdivisionDepth: maximumSubdivisionDepth,
             maximumCellCount: maximumCellCount,
             tolerance: tolerance
-        )
-        return try (0..<certificate.branchCount).map { branchIndex in
+        , using: &execution)
+        return try (try CertifiedAnalyticCurveEvaluation.map((0..<certificate.branchCount), using: &execution) { branchIndex, execution in
             try CertifiedGeneralTorusCylinderIntersectionCurve(
                 torusSurface: torusSurface,
                 cylinderSurface: cylinderSurface,
@@ -344,11 +437,32 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
                 tolerance: tolerance,
                 configuration: configuration,
                 certificate: certificate
-            )
-        }
+            , using: &execution)
+         })
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.checkpoint()
+        try validateImplementation(tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+    }
+
+
+
+    private func validateImplementation(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try certificate.receipt.withContributionScopes(using: &execution) { execution in
+            try certificate.receipt.admit(tolerance: certificate.receipt.tolerance, using: &execution)
+        }
+        try GeometryStructuralComparisonWork.charge(surface: torusSurface, using: &execution)
+        try GeometryStructuralComparisonWork.charge(surface: cylinderSurface, using: &execution)
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         try tolerance.validate()
         try certificationTolerance.validate()
         guard certificationTolerance.distance <= tolerance.distance,
@@ -365,7 +479,7 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
             torusSurface: torusSurface,
             cylinderSurface: cylinderSurface,
             tolerance: tolerance
-        )
+        , using: &execution)
         guard maximumSubdivisionDepth > 0,
               maximumSubdivisionDepth <= 24,
               maximumCellCount > 0,
@@ -411,16 +525,65 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> Point3D {
-        try differential(
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try point(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+
+    public func point(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> Point3D {
+        try execution.checkpoint()
+        let result = try pointImplementation(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+
+
+    private func pointImplementation(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> Point3D {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
+        return try differential(
             atNormalizedFraction: fraction,
             tolerance: tolerance
-        ).position
+        , using: &execution).position
     }
 
     public func differential(
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> DifferentialGeometry {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try differential(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+
+    public func differential(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> DifferentialGeometry {
+        try execution.checkpoint()
+        let result = try differentialImplementation(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+
+
+    private func differentialImplementation(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> DifferentialGeometry {
+        try certificate.receipt.withContributionScopes(using: &execution) { execution in
+            try certificate.receipt.admit(tolerance: certificate.receipt.tolerance, using: &execution)
+        }
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard fraction.isFinite,
               fraction >= -tolerance.relative,
@@ -433,17 +596,17 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
             torusSurface: torusSurface,
             cylinderSurface: cylinderSurface,
             tolerance: tolerance
-        )
-        let referenceHeight = certificate.referenceHeight(
+        , using: &execution)
+        let referenceHeight = (try certificate.referenceHeight(
             branchIndex: branchIndex,
             at: angle
-        )
+        , using: &execution))
         let height = try Self.refinedRoot(
             angle: angle,
             initialHeight: referenceHeight,
             configuration: configuration,
             tolerance: tolerance
-        )
+        , using: &execution)
         let position = configuration.generatorPoint(angle: angle, height: height)
         let angleTangent = configuration.generatorAngleDerivative(angle: angle)
         let angleSecond = configuration.generatorAngleSecondDerivative(angle: angle)
@@ -515,11 +678,11 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
         let torusProjection = try torusSurface.parameterProjection(
             of: position,
             tolerance: tolerance
-        )
+        , using: &execution)
         let cylinderProjection = try cylinderSurface.parameterProjection(
             of: position,
             tolerance: tolerance
-        )
+        , using: &execution)
         let residual = max(torusProjection.residual, cylinderProjection.residual)
         guard residual <= maximumResidualUpperBound else {
             throw KernelError(
@@ -541,24 +704,47 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> Vector3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try thirdDerivative(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+
+    func thirdDerivative(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> Vector3D {
+        try execution.checkpoint()
+        let result = try thirdDerivativeImplementation(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+
+
+    private func thirdDerivativeImplementation(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> Vector3D {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let lower = try differential(
             atNormalizedFraction: fraction,
             tolerance: tolerance
-        )
+        , using: &execution)
         let configuration = try Self.makeConfiguration(
             torusSurface: torusSurface,
             cylinderSurface: cylinderSurface,
             tolerance: tolerance
-        )
+        , using: &execution)
         let projection = try cylinderSurface.parameterProjection(
             of: lower.position,
             tolerance: tolerance
-        )
+        , using: &execution)
         let surface = try cylinderSurface.parameterDerivativesThroughThirdOrder(
             u: projection.u,
             v: projection.v,
             tolerance: tolerance
-        )
+        , using: &execution)
         let firstParameter = try SurfaceParameterFirstDerivativeSolver().solve(
             tangentU: surface.tangentU,
             tangentV: surface.tangentV,
@@ -570,7 +756,7 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
             u: projection.u,
             v: projection.v,
             tolerance: tolerance
-        )
+        , using: &execution)
         let secondParameter = try SurfaceParameterSecondDerivativeSolver().solve(
             surface: lowerSurface,
             firstParameterDerivative: firstParameter,
@@ -608,7 +794,7 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
             },
             tolerance: tolerance,
             diagnosticContext: "General torus-cylinder curve"
-        )
+        , using: &execution)
         return SurfaceParameterThirdOrderChainRule.thirdDerivative(
             surface: surface,
             firstParameterDerivative: firstParameter,
@@ -622,6 +808,31 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameter {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try parameter(on: surface, atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+
+    public func parameter(
+        on surface: Surface3D,
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceParameter {
+        try execution.checkpoint()
+        let result = try parameterImplementation(on: surface, atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+
+
+    private func parameterImplementation(
+        on surface: Surface3D,
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceParameter {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         guard surface == torusSurface || surface == cylinderSurface else {
             throw KernelError(
                 phase: .geometry,
@@ -633,11 +844,11 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
         let point = try self.point(
             atNormalizedFraction: fraction,
             tolerance: tolerance
-        )
+        , using: &execution)
         let projection = try surface.parameterProjection(
             of: point,
             tolerance: tolerance
-        )
+        , using: &execution)
         return SurfaceParameter(u: projection.u, v: projection.v)
     }
 
@@ -645,13 +856,34 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
         for point: Point3D,
         tolerance: ModelingTolerance
     ) throws -> Double {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try normalizedGeneratorAngle(for: point, tolerance: tolerance, using: &execution)
+    }
+
+
+    func normalizedGeneratorAngle(
+        for point: Point3D,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.checkpoint()
+        let result = try normalizedGeneratorAngleImplementation(for: point, tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+
+    private func normalizedGeneratorAngleImplementation(
+        for point: Point3D,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
         try tolerance.validate()
         try point.validate()
         let configuration = try Self.makeConfiguration(
             torusSurface: torusSurface,
             cylinderSurface: cylinderSurface,
             tolerance: tolerance
-        )
+        , using: &execution)
         let offset = point - configuration.cylinder.origin
         let radialScale = configuration.cylinder.radius
             * configuration.cylinder.radius
@@ -689,11 +921,28 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
     }
 
     public func boundingBox(tolerance: ModelingTolerance) throws -> BoundingBox3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try boundingBox(tolerance: tolerance, using: &execution)
+    }
+
+
+    public func boundingBox(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> BoundingBox3D {
+        try execution.checkpoint()
+        let result = try boundingBoxImplementation(tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+
+
+    private func boundingBoxImplementation(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> BoundingBox3D {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let configuration = try Self.makeConfiguration(
             torusSurface: torusSurface,
             cylinderSurface: cylinderSurface,
             tolerance: tolerance
-        )
+        , using: &execution)
         let radius = configuration.torus.majorRadius
             + configuration.torus.minorRadius
             + tolerance.distance
@@ -714,7 +963,31 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
     func spatialDifferentialMagnitudeBounds(
         tolerance: ModelingTolerance
     ) throws -> SpatialDifferentialMagnitudeBounds {
-        try validate(tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try spatialDifferentialMagnitudeBounds(tolerance: tolerance, using: &execution)
+    }
+
+
+    func spatialDifferentialMagnitudeBounds(
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> SpatialDifferentialMagnitudeBounds {
+        try execution.checkpoint()
+        let result = try spatialDifferentialMagnitudeBoundsImplementation(tolerance: tolerance, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+
+
+    private func spatialDifferentialMagnitudeBoundsImplementation(
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> SpatialDifferentialMagnitudeBounds {
+        try certificate.receipt.withContributionScopes(using: &execution) { execution in
+            try certificate.receipt.admit(tolerance: certificate.receipt.tolerance, using: &execution)
+        }
+        try execution.checkpoint()
+        try execution.consumeWork(1)
+        try validate(tolerance: tolerance, using: &execution)
         return SpatialDifferentialMagnitudeBounds(
             first: certificate.firstDerivativeMagnitudeUpperBound,
             second: certificate.secondDerivativeMagnitudeUpperBound,
@@ -722,13 +995,17 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
         )
     }
 
+
     private static func makeConfiguration(
         torusSurface: Surface3D,
         cylinderSurface: Surface3D,
         tolerance: ModelingTolerance
-    ) throws -> Configuration {
-        try torusSurface.validate(tolerance: tolerance)
-        try cylinderSurface.validate(tolerance: tolerance)
+    , using execution: inout OriginalQueryExecution) throws -> Configuration {
+        try GeometryStructuralComparisonWork.charge(surface: torusSurface, using: &execution)
+        try GeometryStructuralComparisonWork.charge(surface: cylinderSurface, using: &execution)
+        try execution.consumeWork(1)
+        try torusSurface.validate(tolerance: tolerance, using: &execution)
+        try cylinderSurface.validate(tolerance: tolerance, using: &execution)
         guard case let .torus(sourceTorus) = CanonicalAnalyticSurface(torusSurface),
               case let .cylinder(sourceCylinder) = CanonicalAnalyticSurface(
                 cylinderSurface
@@ -802,7 +1079,24 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
         maximumSubdivisionDepth: Int,
         maximumCellCount: Int,
         tolerance: ModelingTolerance
-    ) throws -> Certificate {
+    , using execution: inout OriginalQueryExecution) throws -> Certificate {
+        let prepared = try execution.withPreparationScope { execution in
+            try makeCertificateData(configuration: configuration, maximumSubdivisionDepth: maximumSubdivisionDepth, maximumCellCount: maximumCellCount, tolerance: tolerance, using: &execution)
+        }
+        let data = prepared.result
+        let receipt = try OriginalGeometryPreparationReceipt(tolerance: tolerance,
+            depth: prepared.depth, using: &execution)
+        return Certificate(data: data, receipt: receipt)
+    }
+
+    private static func makeCertificateData(
+        configuration: Configuration,
+        maximumSubdivisionDepth: Int,
+        maximumCellCount: Int,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> CertificateData {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         guard maximumSubdivisionDepth > 0,
               maximumSubdivisionDepth <= 24,
               maximumCellCount > 0,
@@ -814,16 +1108,19 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
                 message: "General torus-cylinder certification limits are outside the supported resource envelope."
             )
         }
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: Cell.self))
         var cells = [Cell(
             angle: Interval(0.0, 2.0 * Double.pi),
             height: Interval(configuration.lowerHeight, configuration.upperHeight),
             depth: 0
         )]
+        var cellsCapacity = cells.count
         var processedCellCount = 0
         var maximumHeightFirstDerivative = 0.0
         var maximumHeightSecondDerivative = 0.0
         var maximumHeightThirdDerivative = 0.0
         while let cell = cells.popLast() {
+            try execution.visitGeometricCell(depth: cell.depth)
             processedCellCount += 1
             guard processedCellCount <= maximumCellCount else {
                 throw KernelError(
@@ -834,11 +1131,11 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
                     message: "Torus-cylinder generator tangency certification exceeded its cell limit."
                 )
             }
-            let values = implicitDifferentialIntervals(
+            let values = (try implicitDifferentialIntervals(
                 angle: cell.angle,
                 height: cell.height,
                 configuration: configuration
-            )
+            , using: &execution))
             if values.implicit.containsZero == false {
                 continue
             }
@@ -870,15 +1167,15 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
                     heightSecondDerivative
                 )
                 let axis = values.axis
-                let spatialFirst = zip(values.angleTangent, axis).map { pair in
+                let spatialFirst = (try CertifiedAnalyticCurveEvaluation.map(zip(values.angleTangent, axis), using: &execution) { pair, execution in
                     pair.0.adding(pair.1.multiplied(by: firstHeight))
-                }
-                let spatialSecond = zip(values.angleSecond, axis).map { pair in
+                 })
+                let spatialSecond = (try CertifiedAnalyticCurveEvaluation.map(zip(values.angleSecond, axis), using: &execution) { pair, execution in
                     pair.0.adding(pair.1.multiplied(by: secondHeight))
-                }
-                let angleThird = values.angleTangent.map {
-                    $0.scaled(by: -1.0)
-                }
+                 })
+                let angleThird = (try CertifiedAnalyticCurveEvaluation.map(values.angleTangent, using: &execution) { element, execution in 
+                    element.scaled(by: -1.0)
+                 })
                 let knownThirdImplicit = torusThirdDifferentialInterval(
                     offset: values.offset,
                     first: spatialFirst,
@@ -921,40 +1218,40 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
             }
             if normalizedAngleWidth >= normalizedHeightWidth {
                 let middle = cell.angle.midpoint
-                cells.append(Cell(
+                try CertifiedAnalyticCurveEvaluation.append(Cell(
                     angle: Interval(middle, cell.angle.upper),
                     height: cell.height,
                     depth: cell.depth + 1
-                ))
-                cells.append(Cell(
+                ), to: &cells, using: &execution, capacity: &cellsCapacity)
+                try CertifiedAnalyticCurveEvaluation.append(Cell(
                     angle: Interval(cell.angle.lower, middle),
                     height: cell.height,
                     depth: cell.depth + 1
-                ))
+                ), to: &cells, using: &execution, capacity: &cellsCapacity)
             } else {
                 let middle = cell.height.midpoint
-                cells.append(Cell(
+                try CertifiedAnalyticCurveEvaluation.append(Cell(
                     angle: cell.angle,
                     height: Interval(middle, cell.height.upper),
                     depth: cell.depth + 1
-                ))
-                cells.append(Cell(
+                ), to: &cells, using: &execution, capacity: &cellsCapacity)
+                try CertifiedAnalyticCurveEvaluation.append(Cell(
                     angle: cell.angle,
                     height: Interval(cell.height.lower, middle),
                     depth: cell.depth + 1
-                ))
+                ), to: &cells, using: &execution, capacity: &cellsCapacity)
             }
         }
         let initialRoots = try certifiedRoots(
             angle: 0.0,
             configuration: configuration,
             tolerance: tolerance
-        )
+        , using: &execution)
         let trace = try makeRootTrace(
-            initialHeights: initialRoots.map({ $0.value }),
+            initialHeights: (try CertifiedAnalyticCurveEvaluation.map(initialRoots, using: &execution) { element, execution in  element.value  }),
             configuration: configuration,
             tolerance: tolerance
-        )
+        , using: &execution)
         let angularScale = (2.0 * Double.pi).nextUp
         let firstDerivativeMagnitudeUpperBound = ((
             configuration.cylinder.radius + maximumHeightFirstDerivative
@@ -965,7 +1262,7 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
         let thirdDerivativeMagnitudeUpperBound = ((
             configuration.cylinder.radius + maximumHeightThirdDerivative
         ).nextUp * angularScale * angularScale * angularScale).nextUp
-        return Certificate(
+        return CertificateData(
             branchCount: initialRoots.count,
             processedCellCount: processedCellCount,
             firstDerivativeMagnitudeUpperBound:
@@ -983,41 +1280,52 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
         initialHeights: [Double],
         configuration: Configuration,
         tolerance: ModelingTolerance
-    ) throws -> (
+    , using execution: inout OriginalQueryExecution) throws -> (
         parameters: [Double],
         heightsByBranch: [[Double]]
     ) {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let period = 2.0 * Double.pi
         let initialSegmentCount = 32
         let maximumDepth = 16
         let maximumSegmentCount = 4_096
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: Double.self))
         var parameters = [0.0]
-        var heightsByBranch = initialHeights.map { [$0] }
+        var parametersCapacity = parameters.count
+        var heightsByBranch = (try CertifiedAnalyticCurveEvaluation.map(initialHeights, using: &execution) { element, execution in try CertifiedAnalyticCurveEvaluation.values(element, using: &execution)  })
+        var heightsByBranchCapacities = try CertifiedAnalyticCurveEvaluation.repeated(1, count: heightsByBranch.count, using: &execution)
         var acceptedSegmentCount = 0
+
+
+
 
         func appendInterval(
             lowerAngle: Double,
             lowerHeights: [Double],
             upperAngle: Double,
             depth: Int
-        ) throws -> [Double] {
-            let refined = try lowerHeights.map {
+        , using execution: inout OriginalQueryExecution) throws -> [Double] {
+            try execution.visitGeometricCell(depth: depth)
+            try execution.checkpoint()
+            try execution.consumeWork(1)
+            let refined = try (try CertifiedAnalyticCurveEvaluation.map(lowerHeights, using: &execution) { element, execution in 
                 try refinedRoot(
                     angle: upperAngle,
-                    initialHeight: $0,
+                    initialHeight: element,
                     configuration: configuration,
                     tolerance: tolerance
-                )
-            }
-            let sorted = refined.sorted()
-            let minimumSeparation = zip(
+                , using: &execution)
+             })
+            let sorted = try CertifiedAnalyticCurveEvaluation.sorted(refined, using: &execution)
+            let minimumSeparation = (try CertifiedAnalyticCurveEvaluation.map(zip(
                 sorted,
                 sorted.dropFirst()
-            ).map { $1 - $0 }.min() ?? .infinity
-            let maximumMovement = zip(
+            ), using: &execution) { element, execution in  element.1 - element.0  }).min() ?? .infinity
+            let maximumMovement = (try CertifiedAnalyticCurveEvaluation.map(zip(
                 lowerHeights,
                 refined
-            ).map { abs($1 - $0) }.max() ?? 0.0
+            ), using: &execution) { element, execution in  abs(element.1 - element.0)  }).max() ?? 0.0
             let movementLimit = min(
                 configuration.characteristicLength * 0.125,
                 minimumSeparation * 0.25
@@ -1042,9 +1350,10 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
                         message: "General torus-cylinder root continuation exceeded its segment budget."
                     )
                 }
-                parameters.append(upperAngle)
+                try CertifiedAnalyticCurveEvaluation.append(upperAngle, to: &parameters, using: &execution, capacity: &parametersCapacity)
                 for branchIndex in heightsByBranch.indices {
-                    heightsByBranch[branchIndex].append(refined[branchIndex])
+                    try execution.consumeWork(1)
+                    try CertifiedAnalyticCurveEvaluation.append(refined[branchIndex], to: &heightsByBranch[branchIndex], using: &execution, capacity: &heightsByBranchCapacities[branchIndex])
                 }
                 return refined
             }
@@ -1063,25 +1372,26 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
                 lowerHeights: lowerHeights,
                 upperAngle: middle,
                 depth: depth + 1
-            )
+            , using: &execution)
             return try appendInterval(
                 lowerAngle: middle,
                 lowerHeights: middleHeights,
                 upperAngle: upperAngle,
                 depth: depth + 1
-            )
+            , using: &execution)
         }
 
         var lowerAngle = 0.0
         var lowerHeights = initialHeights
         for index in 1...initialSegmentCount {
+            try execution.consumeWork(1)
             let upperAngle = period * Double(index) / Double(initialSegmentCount)
             lowerHeights = try appendInterval(
                 lowerAngle: lowerAngle,
                 lowerHeights: lowerHeights,
                 upperAngle: upperAngle,
                 depth: 0
-            )
+            , using: &execution)
             lowerAngle = upperAngle
         }
         let closureTolerance = rootTolerance(
@@ -1094,9 +1404,9 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
             throw KernelError(
                 phase: .geometry,
                 code: .intersectionFailure,
-                residual: zip(lowerHeights, initialHeights).map {
-                    abs($0 - $1)
-                }.max(),
+                residual: (try CertifiedAnalyticCurveEvaluation.map(zip(lowerHeights, initialHeights), using: &execution) { element, execution in 
+                    abs(element.0 - element.1)
+                 }).max(),
                 tolerance: tolerance,
                 message: "General torus-cylinder root continuation did not close over one angular period."
             )
@@ -1104,11 +1414,11 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
         return (parameters, heightsByBranch)
     }
 
-    private static func implicitDifferentialIntervals(
+    private static func implicitDifferentialIntervals<A: ExactScalarAdmission & ~Copyable>(
         angle: Interval,
         height: Interval,
         configuration: Configuration
-    ) -> (
+    , using execution: inout A) throws -> (
         implicit: Interval,
         angleDerivative: Interval,
         heightDerivative: Interval,
@@ -1122,10 +1432,13 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
         angleSecond: [Interval],
         axis: [Interval]
     ) {
-        let cosine = cosineInterval(angle)
-        let sine = sineInterval(angle)
+        try execution.checkpoint()
+        try execution.consumeWork(1)
+        let cosine = (try cosineInterval(angle, using: &execution))
+        let sine = (try sineInterval(angle, using: &execution))
         let centerOffset = configuration.cylinder.origin
             - configuration.torus.center
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 3, of: Interval.self))
         let x = [
             coordinateInterval(
                 center: centerOffset.x,
@@ -1155,6 +1468,7 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
                 height: height
             ),
         ]
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 3, of: Interval.self))
         let angleTangent = [
             sine.scaled(by: -configuration.cylinder.radialU.x)
                 .adding(cosine.scaled(by: configuration.cylinder.radialV.x)),
@@ -1163,6 +1477,7 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
             sine.scaled(by: -configuration.cylinder.radialU.z)
                 .adding(cosine.scaled(by: configuration.cylinder.radialV.z)),
         ]
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 3, of: Interval.self))
         let angleSecond = [
             cosine.scaled(by: -configuration.cylinder.radialU.x)
                 .adding(sine.scaled(by: -configuration.cylinder.radialV.x)),
@@ -1186,6 +1501,7 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
         let implicit = q.squared().subtracting(
             radialSquared.scaled(by: majorFactor)
         )
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 3, of: Interval.self))
         let radial = [
             x[0].subtracting(
                 axialDistance.scaled(by: configuration.torus.axis.x)
@@ -1197,6 +1513,7 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
                 axialDistance.scaled(by: configuration.torus.axis.z)
             ),
         ]
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 3, of: Interval.self))
         let gradient = [
             q.multiplied(by: x[0]).scaled(by: 4.0).subtracting(
                 radial[0].scaled(by: 2.0 * majorFactor)
@@ -1208,6 +1525,7 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
                 radial[2].scaled(by: 2.0 * majorFactor)
             ),
         ]
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 3, of: Interval.self))
         let axisIntervals = [
             Interval.constant(configuration.cylinder.axis.x),
             Interval.constant(configuration.cylinder.axis.y),
@@ -1334,7 +1652,9 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
         angle: Double,
         configuration: Configuration,
         tolerance: ModelingTolerance
-    ) throws -> [CertifiedSimplePolynomialRootSolver.Root] {
+    , using execution: inout OriginalQueryExecution) throws -> [CertifiedSimplePolynomialRootSolver.Root] {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let solver = try CertifiedSimplePolynomialRootSolver(
             rootTolerance: rootTolerance(
                 configuration: configuration,
@@ -1344,15 +1664,16 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
             maximumRefinementIterations: 256,
             tolerance: tolerance
         )
-        let roots = try solver.roots(
-            coefficients: configuration.coefficients(at: angle)
-        ).filter { root in
+        let roots = try (try CertifiedAnalyticCurveEvaluation.filter(solver.roots(
+            coefficients: (try configuration.coefficients(at: angle, using: &execution))
+        , using: &execution), using: &execution) { root, execution in
             root.upper >= configuration.lowerHeight
                 && root.lower <= configuration.upperHeight
-        }
+         })
         for root in roots {
+            try execution.consumeWork(1)
             let derivative = polynomialDerivative(
-                configuration.coefficients(at: angle),
+                (try configuration.coefficients(at: angle, using: &execution)),
                 at: root.value
             )
             guard abs(derivative) > derivativeThreshold(
@@ -1376,8 +1697,10 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
         initialHeight: Double,
         configuration: Configuration,
         tolerance: ModelingTolerance
-    ) throws -> Double {
-        let coefficients = configuration.coefficients(at: angle)
+    , using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
+        let coefficients = (try configuration.coefficients(at: angle, using: &execution))
         let derivativeLowerBound = derivativeThreshold(
             configuration: configuration,
             tolerance: tolerance
@@ -1389,6 +1712,7 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
         var height = initialHeight
         var converged = false
         for _ in 0..<24 {
+            try execution.consumeWork(1)
             let value = polynomialValue(coefficients, at: height)
             let derivative = polynomialDerivative(coefficients, at: height)
             guard value.isFinite,
@@ -1511,7 +1835,9 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
     private static func residualUpperBound(
         configuration: Configuration,
         tolerance: ModelingTolerance
-    ) throws -> Double {
+    , using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let result = rootTolerance(
             configuration: configuration,
             tolerance: tolerance
@@ -1528,18 +1854,24 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
         return result
     }
 
-    private static func cosineInterval(_ angle: Interval) -> Interval {
-        trigonometricInterval(angle, phase: 0.0)
+    private static func cosineInterval<A: ExactScalarAdmission & ~Copyable>(_ angle: Interval, using execution: inout A) throws -> Interval {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
+        return (try trigonometricInterval(angle, phase: 0.0, using: &execution))
     }
 
-    private static func sineInterval(_ angle: Interval) -> Interval {
-        trigonometricInterval(angle, phase: Double.pi * 0.5)
+    private static func sineInterval<A: ExactScalarAdmission & ~Copyable>(_ angle: Interval, using execution: inout A) throws -> Interval {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
+        return (try trigonometricInterval(angle, phase: Double.pi * 0.5, using: &execution))
     }
 
-    private static func trigonometricInterval(
+    private static func trigonometricInterval<A: ExactScalarAdmission & ~Copyable>(
         _ angle: Interval,
         phase: Double
-    ) -> Interval {
+    , using execution: inout A) throws -> Interval {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         guard angle.width < 2.0 * Double.pi else {
             return Interval(-1.0, 1.0)
         }
@@ -1594,6 +1926,8 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
 
 #if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
+        var execution = try NativeRationalSourceDecodingContext.validationExecution(from: decoder)
+
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
             [
@@ -1628,7 +1962,7 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
                 forKey: .maximumCellCount
             ),
             tolerance: tolerance
-        )
+        , using: &execution)
         let storedBranchCount = try container.decode(
             Int.self,
             forKey: .branchCount
@@ -1656,7 +1990,9 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
 
 #if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
-        try validate(tolerance: certificationTolerance)
+        var execution = try NativeOriginalSourceEncodingContext.execution(from: encoder)
+
+        try validate(tolerance: certificationTolerance, using: &execution)
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(torusSurface, forKey: .torusSurface)
         try container.encode(cylinderSurface, forKey: .cylinderSurface)

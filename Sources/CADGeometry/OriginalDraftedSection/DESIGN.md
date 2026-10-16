@@ -43,7 +43,7 @@ original source and this checked projection theorem through publication.
 |---|---|---|---|---|
 | [CADGeometry](../DESIGN.md) | parent | Original geometry value composition | Publishes the persistent source families | Adapters must evaluate this original law |
 | [OriginalRootSpan](../OriginalRootSpan/DESIGN.md) | depends on | Retained directed original closed Taylor law | Keeps exact native/chart endpoints and owning coefficients | A derivative hull does not establish cross-join smoothness |
-| [SurfaceAreaIntegration](../SurfaceAreaIntegration/DESIGN.md) | depends on | Caller-paid interval Taylor arithmetic | Bounds every source and mixed derivative | Forward actual byte callbacks |
+| [SurfaceAreaIntegration](../SurfaceAreaIntegration/DESIGN.md) | depends on | Caller-paid interval Taylor arithmetic | Bounds every source and mixed derivative | Forward original admission and checked payload bytes |
 | [DraftedSection](../../CADModeling/DraftedSection/DESIGN.md) | used by | Original drafted curve and wall | Supplies S1/S2 final source authority | Native candidates require a separate whole-source certificate |
 
 ## Architecture
@@ -105,7 +105,7 @@ remains separate from geometric subdivision and source recursion.
 The value owns one immutable prepared original traversal and fixed direction
 and trigonometric caches. No mutable state or target-specific concurrency
 contract exists. Queries admit Taylor arrays and the bounded depth-first frontier
-before allocation; byte callbacks retain the caller's physical accounting unit.
+before allocation; the original admission retains the caller's physical accounting unit.
 
 ## Failure, Concurrency, and Constraints
 
@@ -166,3 +166,40 @@ and cancellation. Whole original distance/tangent/curvature certificates and
 final sewn/public output must be checked; a native candidate is not completion
 evidence. Geometry dispatch, strict native round trips and exchange source
 fingerprints are affected consumers.
+
+### Direct Execution and Native Source Guard
+
+High-level queries receive the original `inout OriginalQueryExecution`; pure
+construction and coefficient arithmetic retain generic original admission A.
+The general ruling path obtains the admitted generator Taylor law, then calls
+one shared generic ruling calculation. The Native-only projection guard obtains
+the same retained Native generator coefficients and calls that calculation,
+including every speed, normalization, quadratic and selected-root guard. It does
+not acquire a general prepared-geometry capability or copy the source formula.
+The existing exact zero-angle constant-translation branch remains shared.
+
+```text
+General generator query -- OriginalQueryExecution --+
+                                                   +-> common ruling calculation
+Native retained coefficients -- generic A ----------+
+```
+
+Work, actual Taylor/pending payload bytes and local visit ceilings are charged
+to the original caller. Immutable cached source expressions survive publication;
+independent query proof admission belongs to its execution. Existing source/span/
+subdivision guards and explicit unresolved failures remain required behavior.
+
+The ruling driver opens the lower admission's local `maximumWorkUnits: 65_536`
+scope. Every actual lower work debit is observed on that original admission;
+there is no visit callback or copied allowance. All original sub-branches share
+the same local ceiling and original failure cleanup. The RootSpan's attained
+source proof plus the two drafted-to-traversal-to-source edges and one wall edge
+supplies actual query depth;
+retained source capability ceilings remain separate.
+
+Direct `validate(tolerance:using:)` on the drafted curve and ruled wall checks
+retained tolerance and admits their actual authored `sourceProofDepth` on the
+caller execution. The wall delegates to the same curve witness. Fixed tolerance
+binding validation remains pure for scalar-only construction; it creates no
+budget and performs no source recursion. High-level procedural validation and
+wall queries use the direct witness.

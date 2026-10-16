@@ -14,7 +14,7 @@ public struct DefaultOriginalOffsetGraphIssuer<S:OriginalOffsetSourceReading,C:S
         throws(OriginalSourceIssuanceFailure)->OriginalParametricGraphReceipt<S,F,Evidence> {
         let law=copy evidence
         do {
-            return try OriginalSourceProofAdmission<A>.withBorrow(&admission) { a in
+            return try admission.withProofScope { a in
                 try law.admitProof(limits:limits,using:&a)
                 try a.retainStorage(bytes:exactScalarPayloadBytes(count:3,of:Int.self))
                 let layout=try OriginalParametricVariableLayout.checked(variableCount:3,parameters:[0,1],auxiliaries:[2],using:&a)

@@ -74,20 +74,22 @@ struct PeriodicBSplineSurfaceQueryTests {
 
     @Test(.timeLimit(.minutes(1)))
     func shiftedSeamAndMultiCycleBoxesContainAllMixedJetsIncludingEndpoints() throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
         for degree in [2, 3] {
             let source = try torus(degree: degree)
                 .changingPeriodicOrigin(direction: .u, to: 5.25, tolerance: tolerance)
-            let prepared = try PreparedSurfaceDifferentialEncloser(surface: .bSpline(source), tolerance: tolerance)
+            let prepared = try PreparedSurfaceDifferentialEncloser(surface: .bSpline(source), tolerance: tolerance, using: &execution)
             for parameters in [try box(6.75, 7.25, 1.75, 2.25), try box(-9.2, -8.9, 5.1, 5.5),
                                try box(3, 11, -2, 6), try box(6.75, 7, -1.5, -1.25)] {
-                let enclosure = try prepared.enclosure(over: parameters, tolerance: tolerance)
+                let enclosure = try prepared.enclosure(over: parameters, tolerance: tolerance, using: &execution)
                 #expect(try enclosure == DefaultSurfaceDifferentialEncloser().enclosure(
-                    of: .bSpline(source), over: parameters, tolerance: tolerance))
+                    of: .bSpline(source), over: parameters, tolerance: tolerance, using: &execution))
                 for j in 0...8 {
                     for i in 0...8 {
                         let u = parameters.u.lower + parameters.u.width * Double(i) / 8
                         let v = parameters.v.lower + parameters.v.width * Double(j) / 8
-                        expectContains(enclosure, try source.surfaceDerivatives(u: u, v: v, tolerance: tolerance))
+                        expectContains(enclosure, try source.surfaceDerivatives(u: u, v: v, tolerance: tolerance, using: &execution))
                     }
                 }
             }
@@ -113,19 +115,23 @@ struct PeriodicBSplineSurfaceQueryTests {
 
     @Test(.timeLimit(.minutes(1)))
     func cornerCrossingRequiresSubdivisionAtThePeriodicKnot() throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
         let source = try torus(degree: 1, rational: false)
-        let prepared = try PreparedSurfaceDifferentialEncloser(surface: .bSpline(source), tolerance: tolerance)
+        let prepared = try PreparedSurfaceDifferentialEncloser(surface: .bSpline(source), tolerance: tolerance, using: &execution)
         do {
-            _ = try prepared.enclosure(over: box(6.75, 7.25, -1.75, -1.25), tolerance: tolerance)
+            _ = try prepared.enclosure(over: box(6.75, 7.25, -1.75, -1.25), tolerance: tolerance, using: &execution)
             Issue.record("A periodic C0 corner received a smooth derivative certificate.")
         } catch let error as KernelError { #expect(error.code == .singularGeometry) }
         let range = try box(6.75, 7, -1.75, -1.25)
-        let enclosure = try prepared.enclosure(over: range, tolerance: tolerance)
-        expectContains(enclosure, try source.surfaceDerivatives(u: 7, v: -1.5, tolerance: tolerance))
+        let enclosure = try prepared.enclosure(over: range, tolerance: tolerance, using: &execution)
+        expectContains(enclosure, try source.surfaceDerivatives(u: 7, v: -1.5, tolerance: tolerance, using: &execution))
     }
 
     @Test(.timeLimit(.minutes(1)))
     func eitherSinglePeriodicAxisRetainsItsOpenCoordinateInQueries() throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
         let circle: [(Double, Double)] = [(1, 0), (0, 1), (-1, 0), (0, -1)]
         for uPeriodic in [false, true] {
             let points = uPeriodic ? (0..<2).map { j in
@@ -144,13 +150,13 @@ struct PeriodicBSplineSurfaceQueryTests {
             #expect(abs(projection.u - (uPeriodic ? 8.25 : 0.4)) < 1e-7)
             #expect(abs(projection.v - (uPeriodic ? 0.4 : 8.25)) < 1e-7)
             let range = try uPeriodic ? box(6.75, 7.25, 0.25, 0.75) : box(0.25, 0.75, 6.75, 7.25)
-            let enclosure = try DefaultSurfaceDifferentialEncloser().enclosure(of: .bSpline(source), over: range, tolerance: tolerance)
+            let enclosure = try DefaultSurfaceDifferentialEncloser().enclosure(of: .bSpline(source), over: range, tolerance: tolerance, using: &execution)
             expectContains(enclosure, try source.surfaceDerivatives(u: uPeriodic ? 7 : 0.5,
-                v: uPeriodic ? 0.5 : 7, tolerance: tolerance))
+                v: uPeriodic ? 0.5 : 7, tolerance: tolerance, using: &execution))
             if !uPeriodic {
                 #expect(throws: KernelError.self) {
                     try DefaultSurfaceDifferentialEncloser().enclosure(of: .bSpline(source),
-                        over: box(-0.1, 0.5, 6.75, 7.25), tolerance: tolerance)
+                        over: box(-0.1, 0.5, 6.75, 7.25), tolerance: tolerance, using: &execution)
                 }
             }
         }
@@ -158,6 +164,8 @@ struct PeriodicBSplineSurfaceQueryTests {
 
     @Test(.timeLimit(.minutes(1)), arguments: [false, true])
     func uniformNonunitPeriodicStripRetainsLiteralOpenAxisDerivatives(_ uPeriodic: Bool) throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
         let circle: [(Double, Double)] = [(1, 0), (0, 1), (-1, 0), (0, -1)]
         let points = uPeriodic ? (0..<2).map { j in
             circle.map { Point3D(x: $0.0, y: $0.1, z: Double(j)) }
@@ -172,7 +180,7 @@ struct PeriodicBSplineSurfaceQueryTests {
             .changingPeriodicOrigin(direction: uPeriodic ? .u : .v, to: 5.25, tolerance: tolerance)
         let u = uPeriodic ? 7.0 : 0.5, v = uPeriodic ? 0.5 : 7.0
         let point = try source.point(u: u, v: v, tolerance: tolerance)
-        let jet = try source.surfaceDerivatives(u: u, v: v, tolerance: tolerance)
+        let jet = try source.surfaceDerivatives(u: u, v: v, tolerance: tolerance, using: &execution)
         // Uniform cubic basis values at the knot are 1/6, 2/3, 1/6.
         // The independent strip coordinate is exactly linear with unit tangent.
         let expected = Point3D(x: 0, y: 2.0 / 3, z: 0.5)
@@ -184,19 +192,21 @@ struct PeriodicBSplineSurfaceQueryTests {
         #expect((openTangent - Vector3D(x: 0, y: 0, z: 1)).length <= Double.ulpOfOne * 8)
         #expect(openSecond == .zero)
         let range = try uPeriodic ? box(6.75, 7.25, 0.25, 0.75) : box(0.25, 0.75, 6.75, 7.25)
-        let enclosure = try DefaultSurfaceDifferentialEncloser().enclosure(of: .bSpline(source), over: range, tolerance: tolerance)
+        let enclosure = try DefaultSurfaceDifferentialEncloser().enclosure(of: .bSpline(source), over: range, tolerance: tolerance, using: &execution)
         expectContains(enclosure, jet)
     }
 
     @Test(.timeLimit(.minutes(1)))
     func uniformOwningSpanDoesNotEraseUnequalEndpointWeights() throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
         let source = BSplineSurface3D(uDegree: 1, vDegree: 1,
             uKnots: [0, 0, 1, 1], vKnots: [0, 0, 0.5, 1, 1],
             controlPoints: (0..<3).map { j in
                 (0..<2).map { Point3D(x: Double($0), y: Double(j), z: 0) }
             }, weights: [[2, 2], [2, 2], [1, 4]])
         try source.validate(tolerance: tolerance)
-        let polynomial = try source.surfaceDerivatives(u: 0.5, v: 0.25, tolerance: tolerance)
+        let polynomial = try source.surfaceDerivatives(u: 0.5, v: 0.25, tolerance: tolerance, using: &execution)
         #expect(polynomial.position == Point3D(x: 0.5, y: 0.5, z: 0))
         #expect(try source.point(u: 0.5, v: 0.25, tolerance: tolerance) == polynomial.position)
         #expect(polynomial.tangentV == Vector3D(x: 0, y: 2, z: 0))
@@ -204,7 +214,7 @@ struct PeriodicBSplineSurfaceQueryTests {
         // At the knot, the owning right span includes the zero-value basis
         // controls with unequal weights. Its native Y quotient is
         // (1 + 0 * h) / (1 - h), where h = v - 0.5.
-        let rational = try source.surfaceDerivatives(u: 0, v: 0.5, tolerance: tolerance)
+        let rational = try source.surfaceDerivatives(u: 0, v: 0.5, tolerance: tolerance, using: &execution)
         #expect(rational.position == Point3D(x: 0, y: 1, z: 0))
         #expect(rational.tangentV.y == 1)
         #expect(rational.secondDerivativeVV.y == 2)

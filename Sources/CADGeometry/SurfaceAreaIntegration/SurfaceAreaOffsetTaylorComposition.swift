@@ -4,15 +4,15 @@ import CADCore
 struct SurfaceAreaOffsetTaylorComposition: Sendable {
     let distances: [Double]
 
-    func intervalJet(from original: SurfaceAreaIntervalTaylorVectorJet,
-                     consumeWork: () throws -> Void, consumeStorage: ((Int) throws -> Void)? = nil) throws -> SurfaceIntervalVectorJet {
-        try intervalTaylorJet(from:original,translation:nil,consumeWork:consumeWork,consumeStorage:consumeStorage).intervalJet()
+    func intervalJet<A: ExactScalarAdmission & ~Copyable>(from original: SurfaceAreaIntervalTaylorVectorJet,
+                     using execution: inout A) throws -> SurfaceIntervalVectorJet {
+        try intervalTaylorJet(from:original,translation:nil,using: &execution).intervalJet()
     }
 
-    func intervalTaylorJet(from original: SurfaceAreaIntervalTaylorVectorJet,
+    func intervalTaylorJet<A: ExactScalarAdmission & ~Copyable>(from original: SurfaceAreaIntervalTaylorVectorJet,
         translation: SurfaceAreaOffsetTranslationAuthority?, requestedResultOrder: Int = 3,
         originalFirstNormal: SurfaceAreaIntervalTaylorVectorJet? = nil,
-        consumeWork: () throws -> Void, consumeStorage: ((Int) throws -> Void)? = nil) throws
+        using execution: inout A) throws
         -> SurfaceAreaIntervalTaylorVectorJet {
         let required = distances.count.addingReportingOverflow(requestedResultOrder)
         guard requestedResultOrder >= 3, !required.overflow, original.x.order == required.partialValue,
@@ -43,7 +43,7 @@ struct SurfaceAreaOffsetTaylorComposition: Sendable {
         var firstLayer = true
         // Distances follow the original source chain from innermost to outermost.
         for distance in distances {
-            try CurrentTaskCancellationChecker().checkCancellation()
+            try execution.consumeWork(1)
             guard distance.isFinite, distance != 0 else {
                 throw KernelError(phase:.geometry,code:.invalidInput,tolerance:original.x.tolerance,
                     message:"Higher offset composition requires a finite genuine offset distance.")
@@ -51,9 +51,9 @@ struct SurfaceAreaOffsetTaylorComposition: Sendable {
             func constant(_ vector: IntervalVector3DBounds) throws -> SurfaceAreaIntervalTaylorVectorJet {
                 let order = source.x.order-1, axis = source.x.axis
                 return try SurfaceAreaIntervalTaylorVectorJet(
-                    x:.constant(vector.x,order:order,axis:axis,tolerance:source.x.tolerance,consumeWork:consumeWork,consumeStorage:consumeStorage),
-                    y:.constant(vector.y,order:order,axis:axis,tolerance:source.x.tolerance,consumeWork:consumeWork,consumeStorage:consumeStorage),
-                    z:.constant(vector.z,order:order,axis:axis,tolerance:source.x.tolerance,consumeWork:consumeWork,consumeStorage:consumeStorage))
+                    x:.constant(vector.x,order:order,axis:axis,tolerance:source.x.tolerance,using: &execution),
+                    y:.constant(vector.y,order:order,axis:axis,tolerance:source.x.tolerance,using: &execution),
+                    z:.constant(vector.z,order:order,axis:axis,tolerance:source.x.tolerance,using: &execution))
             }
             let normal: SurfaceAreaIntervalTaylorVectorJet
             if firstLayer, let admitted = originalFirstNormal {
@@ -64,13 +64,13 @@ struct SurfaceAreaOffsetTaylorComposition: Sendable {
                 let tangentU: SurfaceAreaIntervalTaylorVectorJet
                 let tangentV: SurfaceAreaIntervalTaylorVectorJet
                 if let translation, translation.direction == .u { tangentU = try constant(translation.translation) }
-                else { tangentU = try source.differentiated(alongU:true,consumeWork:consumeWork,consumeStorage:consumeStorage) }
+                else { tangentU = try source.differentiated(alongU:true,using: &execution) }
                 if let translation, translation.direction == .v { tangentV = try constant(translation.translation) }
-                else { tangentV = try source.differentiated(alongU:false,consumeWork:consumeWork,consumeStorage:consumeStorage) }
-                normal = try tangentU.cross(tangentV,consumeWork:consumeWork,consumeStorage:consumeStorage).normalized(consumeWork:consumeWork,consumeStorage:consumeStorage)
+                else { tangentV = try source.differentiated(alongU:false,using: &execution) }
+                normal = try tangentU.cross(tangentV,using: &execution).normalized(using: &execution)
             }
-            source = try source.truncated(to:source.x.order-1,consumeWork:consumeWork,consumeStorage:consumeStorage)
-                .adding(normal.scaled(by:.exact(distance),consumeWork:consumeWork,consumeStorage:consumeStorage),consumeWork:consumeWork,consumeStorage:consumeStorage)
+            source = try source.truncated(to:source.x.order-1,using: &execution)
+                .adding(normal.scaled(by:.exact(distance),using: &execution),using: &execution)
             firstLayer = false
         }
         return source

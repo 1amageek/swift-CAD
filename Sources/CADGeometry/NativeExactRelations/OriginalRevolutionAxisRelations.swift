@@ -32,7 +32,7 @@ public struct OriginalRevolutionAxisRelations<S: OriginalRevolutionSourceReading
         maximumPairs: Int, maximumPolynomialDegree: Int,
         limits: OriginalDomainIdentityLimits, cellLimits: ExactRealCellLimits,
         topologyLimits: ExactRealTopologyLimits, using a: inout A) throws -> Self {
-        try OriginalSourceProofAdmission<A>.withBorrow(&a) { tracked in
+        try a.withProofScope() { tracked in
             try resolveTracked(first:first,cover:cover,maximumPairs:maximumPairs,maximumPolynomialDegree:maximumPolynomialDegree,
                 limits:limits,cellLimits:cellLimits,topologyLimits:topologyLimits,using:&tracked)
         }
@@ -43,7 +43,7 @@ public struct OriginalRevolutionAxisRelations<S: OriginalRevolutionSourceReading
         cover: OriginalRevolutionDomainCover<S,C,Base>,
         maximumPairs: Int, maximumPolynomialDegree: Int,
         limits: OriginalDomainIdentityLimits, cellLimits: ExactRealCellLimits,
-        topologyLimits: ExactRealTopologyLimits, using a: inout OriginalSourceProofAdmission<A>) throws -> Self {
+        topologyLimits: ExactRealTopologyLimits, using a: inout A) throws -> Self {
         try a.checkpoint();try first.admitProof(limits:limits,using:&a)
         try cover.admitted(limits,&a)
         let sections = try DefaultOriginalRevolutionAxisSectionIssuer<S,C,Base,L>()

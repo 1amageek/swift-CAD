@@ -5,18 +5,18 @@ extension OriginalAffineOperationWord: Codable {
         guard #available(macOS 15.0, iOS 18.0, visionOS 2.0, watchOS 11.0, tvOS 18.0, *) else {
             throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable
         }
-        var usage = try NativeRationalSourceDecodingContext.allowance(from: decoder)
+        var usage = try NativeRationalSourceDecodingContext.execution(from: decoder)
         try OriginalAffineWordDecodingContext.validateSourceNesting(from: decoder)
-        try usage.visitExactCell(depth: 0)
+        try usage.visitCell(axis: .value, depth: 0)
         try NativeOriginalAffineWordCodec.keys(decoder, allowed: ["factors"])
         let object = try decoder.container(keyedBy: Keys.self)
         var source = try object.nestedUnkeyedContainer(forKey: .factors)
         guard let count = source.count else { throw NativeRationalSourceDecodingError.unboundedWordContainer }
-        try usage.consumeExactWork(count)
+        try usage.consumeWork(count)
         try OriginalAffineRationalMatrix.retain(count, of: OriginalAffineOperation.self, usage: &usage)
         var factors: [OriginalAffineOperation] = []; factors.reserveCapacity(count)
         while !source.isAtEnd { factors.append(try source.decode(OriginalAffineOperation.self)) }
-        try usage.consumeExactWork(factors.count)
+        try usage.consumeWork(factors.count)
         let needsNormalized = factors.contains { value in
             switch value { case .normalizedForward, .normalizedInverse: true; default: false }
         }

@@ -442,3 +442,15 @@ This component consumes the unchanged current-task cancellation and direct
 collection import contracts owned by [CADTopology](../DESIGN.md#m6-portable-validation-wiring).
 Its algorithms, budgets, immutable source owners and existing isolation remain
 unchanged on Native, ordinary WASM and Embedded.
+
+### Canonical area API binding
+
+The existing Green/flux callers pass one original inout execution into the
+[Geometry integrand and chart producers](../../CADGeometry/SurfaceAreaIntegration/DESIGN.md).
+Typed temporary/output storage and actual work consume that owner. Original
+formula evaluation, native partitions, orientation and local refinement limits
+remain unchanged. Removed callback proof allowances are not a compatibility path.
+
+Adaptive integration passes its original execution explicitly into the cell
+evaluator alongside the unchanged local work count; the evaluator does not
+capture an outer inout owner or create another allowance.

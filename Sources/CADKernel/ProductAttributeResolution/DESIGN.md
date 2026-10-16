@@ -185,3 +185,11 @@ inconsistent artifact; no geometry retargeting or tolerance-based replacement.
 ### Manufacturing and View Metadata Targets
 
 The same invocation-local paid `localGeometry` map owns PMI, datum, dimension, annotation and validation-value references. Metadata source signatures are admitted before hashing, resolved through the existing stable-source resolver, compared against actual current geometry and retained in the map only on successful correspondence. Producer receipt equality and source fingerprint checks include both source containers. Metadata values do not become appearance precedence candidates. Source validation owns ordered datum and annotation-reference integrity.
+
+## Canonical Geometry Reader Binding
+Product resolution retains the existing ProductAttributeBudget semantic units
+(records, targets, text and work) as a selected contribution on the same original
+execution. Signature/source structural readers, source validation, assembly
+consistency and lookup borrow that execution. No callback adapter, copied
+execution or private root replaces the cumulative owner. Existing applicability,
+override winner, density and layer algorithms remain authoritative.

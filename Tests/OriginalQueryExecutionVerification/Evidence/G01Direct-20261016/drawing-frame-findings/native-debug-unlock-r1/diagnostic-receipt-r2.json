@@ -1,0 +1,20 @@
+{
+  "scope": "First actual debugger launch if command parsing succeeded. Diagnostic only; not acceptance. r1 never launched a process.",
+  "monitorSHA256": "9a290a4391c71a3308753fbefb116d6fb8ed73ba6af679e1ec5d6822cbeab3c6",
+  "commandsSHA256": "5a8513e2d9406663c2b41e55a143dabfaa512dbab5c61560fb7d0f05cf4691a5",
+  "step": {
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/lldb",
+      "--batch",
+      "--source",
+      "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-debug-unlock-r1/commands-r2.lldb"
+    ],
+    "exitCode": 0,
+    "elapsedSeconds": 1.0620295419939794,
+    "peakRSSBytes": 848068608,
+    "rssAccounting": "tracked PPID descendants including separate process groups",
+    "maximumObservedProcessCount": 1,
+    "stopReason": null,
+    "logSHA256": "5c7cfcb35620b8ee3399f294b498aefdfe326da76c2bf07d6098c9525dcde941"
+  }
+}

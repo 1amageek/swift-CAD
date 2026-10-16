@@ -1,6 +1,6 @@
 /// Exact translated coprime-binomial parametrization from original coefficient bits.
 extension OriginalRationalBinomialCusp {
-    static func translatedBinomial<B: RationalAlgebraAdmitting>(original: ExactBivariatePolynomial,
+    static func translatedBinomial<B: ExactScalarAdmission & ~Copyable>(original: ExactBivariatePolynomial,
         usage: inout B) throws -> Self? {
         let m = original.uDegree, n = original.vDegree
         guard m >= 2, n >= 2 else { return nil }
@@ -15,7 +15,7 @@ extension OriginalRationalBinomialCusp {
         let d = try coefficient(n - 1, alongU: false).negated.divided(by:
             b.multiplied(by: .natural(n, usage: &usage), usage: &usage), usage: &usage)
         func power(_ source: ExactBivariatePolynomial, _ degree: Int, usage: inout B) throws -> ExactBivariatePolynomial {
-            try usage.retainExactStorage(1)
+            try RationalAlgebraStorage.retain(1, of: (ExactBivariatePolynomial.Power, ExactRationalCoefficient).self, usage: &usage)
             let term = try ExactBivariatePolynomial([.init(u: degree, v: 0): .one])
             return try term.composed(withU: source, v: .zero, usage: &usage)
         }
@@ -28,7 +28,7 @@ extension OriginalRationalBinomialCusp {
         guard try original.subtracting(reconstructed, usage: &usage).isZero else { return nil }
         var oldR = m, r = n, oldS = 1, s = 0, oldT = 0, t = 1
         while r != 0 {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             let quotient = oldR / r
             func next(_ old: Int, _ current: Int) throws -> Int {
                 let product = quotient.multipliedReportingOverflow(by: current)
@@ -47,7 +47,7 @@ extension OriginalRationalBinomialCusp {
             guard exponent != Int.min else { throw rationalAlgebraFailure("Original binomial signed power exceeds finite index arithmetic.") }
             var count = abs(exponent), factor = g, result = ExactRationalCoefficient.one
             while count > 0 {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 if count % 2 == 1 { result = try result.multiplied(by: factor, usage: &usage) }
                 count /= 2
                 if count > 0 { factor = try factor.multiplied(by: factor, usage: &usage) }
@@ -56,7 +56,7 @@ extension OriginalRationalBinomialCusp {
         }
         guard oldT != Int.min else { throw rationalAlgebraFailure("Original binomial inverse exponent overflows.") }
         let gainU = try rationalPower(oldS, usage: &usage), gainV = try rationalPower(-oldT, usage: &usage)
-        try usage.retainExactStorage(2)
+        try RationalAlgebraStorage.retain(2, of: (ExactBivariatePolynomial.Power, ExactRationalCoefficient).self, usage: &usage)
         let u = try ExactBivariatePolynomial([.init(u: n, v: 0): gainU]).adding(.constant(c, usage: &usage), usage: &usage)
         let v = try ExactBivariatePolynomial([.init(u: m, v: 0): gainV]).adding(.constant(d, usage: &usage), usage: &usage)
         guard try original.composed(withU: u, v: v, usage: &usage).isZero else {

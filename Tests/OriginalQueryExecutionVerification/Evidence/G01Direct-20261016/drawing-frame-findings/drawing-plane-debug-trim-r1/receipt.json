@@ -1,0 +1,21 @@
+{
+  "scope": "Current binary planar case debugger diagnostic, capture all stop frames after missing OS crash report; not suite acceptance.",
+  "binarySHA256": "8911a27cc7402f7f2a1c064a23dab86c16d640b2ed63b7fc8d4bdaf0312d648c",
+  "binaryUnchanged": true,
+  "commandsSHA256": "53a1b79ebef532b99d9ef3b0a631dd51edf26ad69342e683c93f5049649c6215",
+  "step": {
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/lldb",
+      "--batch",
+      "--source",
+      "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-plane-debug-trim-r1/commands.lldb"
+    ],
+    "exitCode": 0,
+    "elapsedSeconds": 3.8724123330030125,
+    "peakRSSBytes": 2951741440,
+    "rssAccounting": "tracked PPID descendants including separate process groups",
+    "maximumObservedProcessCount": 3,
+    "stopReason": null,
+    "logSHA256": "f60e6cfa534ae4c30e7f89085bba9e38fccc9fd6c81909c1b03e4277495ed880"
+  }
+}

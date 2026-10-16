@@ -13,7 +13,7 @@ public struct OriginalApexSphereConeSurfaceValues: Sendable {
     public let proofDepth: ExactScalarDepth
     static func issue<A: ExactScalarAdmission & ~Copyable>(source: OriginalApexSphereConeSurfaceSnapshot,
         chart: Int, halfAngle t: Field.Value, using a: inout A) throws -> Self {
-        try OriginalSourceProofAdmission<A>.withBorrow(&a) { a in
+        try a.withProofScope { a in
             let f = source.field
             let t = try f.importing(t, using: &a)
             let one = try f.integer(1, using: &a), two = try f.integer(2, using: &a)

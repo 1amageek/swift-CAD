@@ -120,6 +120,29 @@ struct GeneralCylinderCylinderSurfaceIntersector {
         return true
     }
 
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Ordinary SSI dispatch reaches this direct entry.
+    // The former numerical/tolerance branches did not establish original common-set
+    // authority. U4 must supply complete original source/UV coverage before success.
+    func intersections(
+        first: CanonicalAnalyticSurface.Cylinder,
+        second: CanonicalAnalyticSurface.Cylinder,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        options: SurfaceSurfaceIntersectionOptions,
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution
+    ) throws -> [SurfaceSurfaceIntersection] {
+        execution.context = execution.context.at(stage: .relation)
+        do {
+            try execution.checkpoint()
+            throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+                message: "GeneralCylinderCylinderSurfaceIntersector requires complete original source relation authority.")
+        } catch { throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance) }
+    }
+
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Existing candidate/source helper methods call
+    // this ordinary publication entry. It performs no numeric solve or fallback;
+    // U4 must provide source-bound relation proof and direct execution before success.
     func intersections(
         first: CanonicalAnalyticSurface.Cylinder,
         second: CanonicalAnalyticSurface.Cylinder,
@@ -128,117 +151,9 @@ struct GeneralCylinderCylinderSurfaceIntersector {
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
     ) throws -> [SurfaceSurfaceIntersection] {
-        let firstAxis = try first.axis.normalized(tolerance: tolerance.distance)
-        let secondAxis = try second.axis.normalized(tolerance: tolerance.distance)
-        let axisCross = firstAxis.cross(secondAxis)
-        guard axisCross.length > tolerance.angle else {
-            throw KernelError(
-                phase: .geometry,
-                code: .invalidInput,
-                tolerance: tolerance,
-                message: "General cylinder intersection requires non-parallel axes."
-            )
-        }
-
-        let axisDistance = abs((second.origin - first.origin).dot(
-            try axisCross.normalized(tolerance: tolerance.angle)
-        ))
-        if abs(first.radius - second.radius) <= tolerance.distance,
-           axisDistance <= tolerance.distance {
-            return try IntersectingEqualRadiusCylinderSurfaceIntersector().intersections(
-                first: first,
-                second: second,
-                firstSurface: firstSurface,
-                secondSurface: secondSurface,
-                tolerance: tolerance
-            )
-        }
-
-        let cylinders = try [
-            (
-                cylinder: canonicalCylinder(first, tolerance: tolerance),
-                surface: firstSurface
-            ),
-            (
-                cylinder: canonicalCylinder(second, tolerance: tolerance),
-                surface: secondSurface
-            ),
-        ].sorted { precedes($0.cylinder, $1.cylinder) }
-        let configuration = try makeConfiguration(
-            first: cylinders[0].cylinder,
-            second: cylinders[1].cylinder,
-            tolerance: tolerance
-        )
-        let roots = boundaryAngles(configuration: configuration, tolerance: tolerance)
-        let builder = SurfaceIntersectionSplineBuilder(
-            firstSurface: firstSurface,
-            secondSurface: secondSurface,
-            options: options,
-            tolerance: tolerance
-        )
-
-        if roots.isEmpty {
-            guard isAllowed(
-                angle: 0.0,
-                configuration: configuration,
-                tolerance: tolerance
-            ) else {
-                return []
-            }
-            return try fullDomainIntersections(
-                configuration: configuration,
-                builder: builder,
-                referenceSurface: cylinders[1].surface,
-                parameterizedSurface: cylinders[0].surface,
-                firstSurface: firstSurface,
-                secondSurface: secondSurface,
-                tolerance: tolerance
-            )
-        }
-
-        let intervalStates = elementaryIntervalStates(
-            roots: roots,
-            configuration: configuration,
-            tolerance: tolerance
-        )
-        var results: [SurfaceSurfaceIntersection] = []
-        for index in roots.indices where intervalStates[index] {
-            let lower = roots[index]
-            let upper = index + 1 < roots.count
-                ? roots[index + 1]
-                : roots[0] + 2.0 * Double.pi
-            guard upper - lower > tolerance.angle else { continue }
-            results.append(try intervalIntersection(
-                interval: AngularInterval(lower: lower, upper: upper),
-                configuration: configuration,
-                builder: builder,
-                referenceSurface: cylinders[1].surface,
-                parameterizedSurface: cylinders[0].surface,
-                firstSurface: firstSurface,
-                secondSurface: secondSurface,
-                tolerance: tolerance
-            ))
-        }
-
-        for index in roots.indices {
-            let before = intervalStates[(index + roots.count - 1) % roots.count]
-            let after = intervalStates[index]
-            if before == false, after == false {
-                let point = try intersectionPoint(
-                    angle: roots[index],
-                    branch: 1.0,
-                    configuration: configuration,
-                    tolerance: tolerance
-                )
-                results.append(try verifier.point(
-                    point,
-                    firstSurface: firstSurface,
-                    secondSurface: secondSurface,
-                    tolerance: tolerance
-                ))
-            }
-        }
-        return results
+        try CurrentTaskCancellationChecker().checkCancellation()
+        throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+            message: "GeneralCylinderCylinderSurfaceIntersector has no ordinary original-proof publication.")
     }
 
     private func fullDomainIntersections(

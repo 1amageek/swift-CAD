@@ -15,9 +15,17 @@ struct ExactPlaneHeightFieldContext: Sendable {
     private let exactU: ExactExpansionArithmetic.Vector3
     private let exactV: ExactExpansionArithmetic.Vector3
 
-    init?(surface: BSplineSurface3D) {
-        guard Self.isSingleSpan(surface),
-              Self.hasConstantWeights(surface),
+    init?(surface: BSplineSurface3D) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try self.init(surface: surface, using: &execution)
+    }
+
+
+    init?(surface: BSplineSurface3D, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+
+        guard try Self.isSingleSpan(surface, using: &execution),
+              try Self.hasConstantWeights(surface, using: &execution),
               surface.uDegree > 0,
               surface.vDegree > 0,
               surface.uDegree <= 2,
@@ -31,34 +39,36 @@ struct ExactPlaneHeightFieldContext: Sendable {
         }
         let u = uEnd - origin
         let v = vEnd - origin
-        let exactU = ExactExpansionArithmetic.difference(uEnd, origin)
-        let exactV = ExactExpansionArithmetic.difference(vEnd, origin)
-        let metricDeterminant = ExactExpansionArithmetic.subtract(
-            ExactExpansionArithmetic.multiply(
-                ExactExpansionArithmetic.dot(exactU, exactU),
-                ExactExpansionArithmetic.dot(exactV, exactV)
-            ),
-            ExactExpansionArithmetic.multiply(
-                ExactExpansionArithmetic.dot(exactU, exactV),
-                ExactExpansionArithmetic.dot(exactU, exactV)
-            )
-        )
-        guard ExactExpansionArithmetic.sign(metricDeterminant) == .positive else {
+        let exactU = try ExactExpansionArithmetic.difference(uEnd, origin, using: &execution)
+        let exactV = try ExactExpansionArithmetic.difference(vEnd, origin, using: &execution)
+        let metricDeterminant = try ExactExpansionArithmetic.subtract(
+            try ExactExpansionArithmetic.multiply(
+                try ExactExpansionArithmetic.dot(exactU, exactU, using: &execution),
+                try ExactExpansionArithmetic.dot(exactV, exactV, using: &execution)
+            , using: &execution),
+            try ExactExpansionArithmetic.multiply(
+                try ExactExpansionArithmetic.dot(exactU, exactV, using: &execution),
+                try ExactExpansionArithmetic.dot(exactU, exactV, using: &execution)
+            , using: &execution)
+        , using: &execution)
+        guard try ExactExpansionArithmetic.sign(metricDeterminant, using: &execution) == .positive else {
             return nil
         }
         for vIndex in surface.controlPoints.indices {
+                try execution.consumeWork(1)
             let vFraction = Double(vIndex) / Double(surface.vDegree)
             for uIndex in surface.controlPoints[vIndex].indices {
+                try execution.consumeWork(1)
                 let uFraction = Double(uIndex) / Double(surface.uDegree)
-                let offset = ExactExpansionArithmetic.offset(
+                let offset = try ExactExpansionArithmetic.offset(
                     surface.controlPoints[vIndex][uIndex],
                     from: origin,
                     exactU: exactU,
                     uFraction: uFraction,
                     exactV: exactV,
                     vFraction: vFraction
-                )
-                guard ExactExpansionArithmetic.isZero(offset) else {
+                , using: &execution)
+                guard try ExactExpansionArithmetic.isZero(offset, using: &execution) else {
                     return nil
                 }
             }
@@ -73,7 +83,17 @@ struct ExactPlaneHeightFieldContext: Sendable {
 
     func exactHeightControls(
         for heightSurface: BSplineSurface3D
-    ) -> [[[Double]]]? {
+    ) throws -> [[[Double]]]? {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try exactHeightControls(for: heightSurface, using: &execution)
+    }
+
+
+    func exactHeightControls(
+        for heightSurface: BSplineSurface3D
+    , using execution: inout OriginalQueryExecution) throws -> [[[Double]]]? {
+        try execution.consumeWork(1)
+
         guard let firstRow = heightSurface.controlPoints.first,
               let lastRow = heightSurface.controlPoints.last,
               let heightOrigin = firstRow.first,
@@ -81,58 +101,62 @@ struct ExactPlaneHeightFieldContext: Sendable {
               let heightVEnd = lastRow.first else {
             return nil
         }
-        let heightExactU = ExactExpansionArithmetic.difference(
+        let heightExactU = try ExactExpansionArithmetic.difference(
             heightUEnd,
             heightOrigin
-        )
-        let heightExactV = ExactExpansionArithmetic.difference(
+        , using: &execution)
+        let heightExactV = try ExactExpansionArithmetic.difference(
             heightVEnd,
             heightOrigin
-        )
-        let projectedDeterminant = ExactExpansionArithmetic.subtract(
-            ExactExpansionArithmetic.multiply(
-                ExactExpansionArithmetic.dot(heightExactU, exactU),
-                ExactExpansionArithmetic.dot(heightExactV, exactV)
-            ),
-            ExactExpansionArithmetic.multiply(
-                ExactExpansionArithmetic.dot(heightExactU, exactV),
-                ExactExpansionArithmetic.dot(heightExactV, exactU)
-            )
-        )
-        guard ExactExpansionArithmetic.sign(projectedDeterminant) != .zero else {
+        , using: &execution)
+        let projectedDeterminant = try ExactExpansionArithmetic.subtract(
+            try ExactExpansionArithmetic.multiply(
+                try ExactExpansionArithmetic.dot(heightExactU, exactU, using: &execution),
+                try ExactExpansionArithmetic.dot(heightExactV, exactV, using: &execution)
+            , using: &execution),
+            try ExactExpansionArithmetic.multiply(
+                try ExactExpansionArithmetic.dot(heightExactU, exactV, using: &execution),
+                try ExactExpansionArithmetic.dot(heightExactV, exactU, using: &execution)
+            , using: &execution)
+        , using: &execution)
+        guard try ExactExpansionArithmetic.sign(projectedDeterminant, using: &execution) != .zero else {
             return nil
         }
 
         var result: [[[Double]]] = []
+        try execution.retainStorage(count: heightSurface.controlPoints.count, stride: MemoryLayout<[[Double]]>.stride)
         result.reserveCapacity(heightSurface.controlPoints.count)
         for vIndex in heightSurface.controlPoints.indices {
+                try execution.consumeWork(1)
             let vFraction = Double(vIndex) / Double(heightSurface.vDegree)
             var row: [[Double]] = []
+            try execution.retainStorage(count: heightSurface.controlPoints[vIndex].count, stride: MemoryLayout<[Double]>.stride)
             row.reserveCapacity(heightSurface.controlPoints[vIndex].count)
             for uIndex in heightSurface.controlPoints[vIndex].indices {
+                try execution.consumeWork(1)
                 let point = heightSurface.controlPoints[vIndex][uIndex]
                 let uFraction = Double(uIndex) / Double(heightSurface.uDegree)
-                let affineResidual = ExactExpansionArithmetic.offset(
+                let affineResidual = try ExactExpansionArithmetic.offset(
                     point,
                     from: heightOrigin,
                     exactU: heightExactU,
                     uFraction: uFraction,
                     exactV: heightExactV,
                     vFraction: vFraction
-                )
-                guard ExactExpansionArithmetic.sign(
-                    ExactExpansionArithmetic.dot(affineResidual, exactU)
-                ) == .zero,
-                ExactExpansionArithmetic.sign(
-                    ExactExpansionArithmetic.dot(affineResidual, exactV)
-                ) == .zero else {
+                , using: &execution)
+                guard try ExactExpansionArithmetic.sign(
+                    try ExactExpansionArithmetic.dot(affineResidual, exactU, using: &execution)
+                , using: &execution) == .zero,
+                try ExactExpansionArithmetic.sign(
+                    try ExactExpansionArithmetic.dot(affineResidual, exactV, using: &execution)
+                , using: &execution) == .zero else {
                     return nil
                 }
-                row.append(ExactExpansionArithmetic.tripleProduct(
+                row.append(try ExactExpansionArithmetic.tripleProduct(
                     exactU,
                     exactV,
-                    ExactExpansionArithmetic.difference(point, origin)
-                ))
+                    try ExactExpansionArithmetic.difference(point, origin, using: &execution)
+                , using: &execution))
             }
             result.append(row)
         }
@@ -146,6 +170,20 @@ struct ExactPlaneHeightFieldContext: Sendable {
         certificateName: String,
         tolerance: ModelingTolerance
     ) throws -> Witness {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try verifiedWitness(on: heightSurface, normalized: normalized, planeIsFirst: planeIsFirst, certificateName: certificateName, tolerance: tolerance, using: &execution)
+    }
+
+
+    func verifiedWitness(
+        on heightSurface: BSplineSurface3D,
+        normalized: Point2D,
+        planeIsFirst: Bool,
+        certificateName: String,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> Witness {
+        try execution.consumeWork(1)
+
         guard case let .closed(heightULower, heightUUpper) = heightSurface.uDomain,
               case let .closed(heightVLower, heightVUpper) = heightSurface.vDomain,
               case let .closed(planeULower, planeUUpper) = surface.uDomain,
@@ -165,7 +203,7 @@ struct ExactPlaneHeightFieldContext: Sendable {
             u: heightU,
             v: heightV,
             tolerance: tolerance
-        )
+        , using: &execution)
         let relative = point - origin
         let metricUU = u.dot(u)
         let metricUV = u.dot(v)
@@ -195,7 +233,7 @@ struct ExactPlaneHeightFieldContext: Sendable {
             u: planeU,
             v: planeV,
             tolerance: tolerance
-        )
+        , using: &execution)
         let residual = (planePoint - point).length
         guard residual.isFinite, residual <= tolerance.distance else {
             throw KernelError(
@@ -225,27 +263,53 @@ struct ExactPlaneHeightFieldContext: Sendable {
         )
     }
 
-    static func isSingleSpan(_ surface: BSplineSurface3D) -> Bool {
-        surface.controlPoints.count == surface.vDegree + 1
-            && surface.controlPoints.allSatisfy {
-                $0.count == surface.uDegree + 1
-            }
-            && isSingleSpan(knots: surface.uKnots, degree: surface.uDegree)
-            && isSingleSpan(knots: surface.vKnots, degree: surface.vDegree)
+    static func isSingleSpan(_ surface: BSplineSurface3D) throws -> Bool {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try isSingleSpan(surface, using: &execution)
     }
 
-    static func hasConstantWeights(_ surface: BSplineSurface3D) -> Bool {
+
+    static func isSingleSpan(_ surface: BSplineSurface3D, using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.consumeWork(1)
+
+        guard surface.controlPoints.count == surface.vDegree + 1 else { return false }
+        for row in surface.controlPoints {
+            try execution.consumeWork(1)
+            if row.count != surface.uDegree + 1 { return false }
+        }
+        return try isSingleSpan(knots: surface.uKnots, degree: surface.uDegree, using: &execution)
+            && isSingleSpan(knots: surface.vKnots, degree: surface.vDegree, using: &execution)
+    }
+
+    static func hasConstantWeights(_ surface: BSplineSurface3D) throws -> Bool {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try hasConstantWeights(surface, using: &execution)
+    }
+
+
+    static func hasConstantWeights(_ surface: BSplineSurface3D, using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.consumeWork(1)
+
         guard let reference = surface.weights.first?.first,
               reference.isFinite,
               reference > 0.0 else {
             return false
         }
-        return surface.weights.flatMap { $0 }.allSatisfy {
-            $0.isFinite && $0 > 0.0 && $0 == reference
+        for row in surface.weights {
+            try execution.consumeWork(1)
+            for weight in row {
+                try execution.consumeWork(1)
+                if !weight.isFinite || weight <= 0.0 || weight != reference { return false }
+            }
         }
+        return true
     }
 
-    private static func isSingleSpan(knots: [Double], degree: Int) -> Bool {
+
+
+    private static func isSingleSpan(knots: [Double], degree: Int, using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.consumeWork(1)
+
         guard knots.count == 2 * (degree + 1),
               let lower = knots.first,
               let upper = knots.last,
@@ -254,7 +318,14 @@ struct ExactPlaneHeightFieldContext: Sendable {
               upper > lower else {
             return false
         }
-        return knots.prefix(degree + 1).allSatisfy { $0 == lower }
-            && knots.suffix(degree + 1).allSatisfy { $0 == upper }
+        for value in knots.prefix(degree + 1) {
+            try execution.consumeWork(1)
+            if value != lower { return false }
+        }
+        for value in knots.suffix(degree + 1) {
+            try execution.consumeWork(1)
+            if value != upper { return false }
+        }
+        return true
     }
 }

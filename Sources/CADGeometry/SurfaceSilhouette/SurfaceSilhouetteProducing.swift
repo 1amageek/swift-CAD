@@ -4,5 +4,5 @@ import CADCore
 public protocol SurfaceSilhouetteProducing: Sendable {
     func silhouette(of surface: Surface3D, over domain: SurfaceParameterBox,
                     view: Vector3D, tolerance: ModelingTolerance,
-                    usage: inout SurfaceSilhouetteUsage) throws -> SurfaceSilhouetteEnvelope
+                    using execution: inout OriginalQueryExecution) throws -> SurfaceSilhouetteEnvelope
 }

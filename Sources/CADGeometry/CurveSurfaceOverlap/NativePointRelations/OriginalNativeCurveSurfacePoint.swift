@@ -17,7 +17,7 @@ public struct OriginalNativeCurveSurfacePoint: Sendable {
     }
 
     /// Coordinate order is original native t, u, v. Foreign receipts are rejected.
-    public func compareParameter<B: RationalAlgebraAdmitting>(axis: Int,
+    public func compareParameter<B: ExactScalarAdmission & ~Copyable>(axis: Int,
         to station: ExactRationalCoefficient, in receipt: OriginalNativeCurveSurfacePoints,
         maximumAlgebraicDepth: Int, usage: inout B) throws -> ExactAlgebraicRealRoot.Sign {
         guard receipt.owns(self), (0..<3).contains(axis), (0...32).contains(maximumAlgebraicDepth) else {

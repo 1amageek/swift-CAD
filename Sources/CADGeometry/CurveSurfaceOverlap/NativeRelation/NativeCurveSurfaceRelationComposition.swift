@@ -23,7 +23,7 @@ package struct NativeCurveSurfaceRelationComposition: Sendable {
     package let finiteCoordinateWitnesses: [Int]
     package let necessaryCoordinateEquations: [ExactIntersectionPolynomial]
 
-    package init<B: RationalAlgebraAdmitting>(charts: [NativeCurveSurfacePointChart],
+    package init<B: ExactScalarAdmission & ~Copyable>(charts: [NativeCurveSurfacePointChart],
         nativeDomains: [OriginalRationalParameterDomain], requestedDomains: [OriginalRationalParameterDomain], effectiveDomains: [OriginalRationalParameterDomain]?,
         maximumCandidateCount: Int, maximumDepth: Int, tolerance: ModelingTolerance,
         usage: inout B) throws {

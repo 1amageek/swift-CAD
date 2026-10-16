@@ -1,0 +1,84 @@
+{
+  "scope": "Finite direct-admission G01 and actual macOS27 Drawing caller only; whole U1-U4 and whole seven requirements remain incomplete. No iOS/visionOS runtime or Kernel Embedded claim.",
+  "sourceRoot": "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD",
+  "productionSourceCount": 4181,
+  "artifacts": {
+    "upper-production-receipt.json": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-partition-owner-upper-r8/receipt.json",
+      "sha256": "cc4b620b3f0bcbeb77e4684c0e4ebdce04b2b89716024ec8d3dd10029bd6cb5d"
+    },
+    "drawing-receipt.json": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-resource-scope-native-r9/receipt.json",
+      "sha256": "1815b6b4073c625d6d6a7abcc3c41504e33251f6f248686eed37f35acc66c4a3"
+    },
+    "drawing-runtime.log": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-resource-scope-native-r9/test-runtime.log",
+      "sha256": "7db30760075b8485ac6d4cc14b9e11757bd9259fe152fbf63fc94906679a20d4"
+    },
+    "drawing-results.xml": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-resource-scope-native-r9/results.xml",
+      "sha256": "16daad8654e8d06220f6b1846d6a2da9ba13fe63c1de9fcc0db21a5667cb7da5"
+    },
+    "drawing-stages.log": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-resource-scope-native-r9-stages.log",
+      "sha256": "ede34d78dd7f52d0a9730e2701f6554c16236efd71ddc1b04558666ba8f5ce7c"
+    },
+    "drawing-resource-fixture-freeze.json": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-resource-scope-fixture-r1/source-freeze.json",
+      "sha256": "6c7a3b32d0e627992a2400260e607f1cfb99f5e11efc5306aee47115686848fb"
+    },
+    "publication-owner-freeze.json": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/projected-partition-owner-source-r1/source-freeze.json",
+      "sha256": "abb198cc84c4f20868cf5257b7e8e294be42dd99d15211204c8180d6da525148"
+    },
+    "publication-ownership-correction.json": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/projected-partition-owner-source-r2/source-freeze.json",
+      "sha256": "7556df5a90ab52d505f2a2e3b0547c84a4e1f0403b9f5e829f951d701871538d"
+    },
+    "publication-final-frames.json": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-projected-partition-owner-r9/ProjectedPartition-nine-entry-frames.json",
+      "sha256": "e800b8a840370903d5bc0fb102927d725871680695009b993e5283b7e59c491e"
+    },
+    "projection-phase-freeze.json": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/projected-pair-phase-source-r1/source-freeze.json",
+      "sha256": "2fb6983fe6cc6d3ac4b867c098b2c725ed4b9d8b4789974042f0c19e04465160"
+    },
+    "resource-diagnostic-receipt.json": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-work-repeat-diagnostic-r1/verification/receipt.json",
+      "sha256": "b5fc1bfdb75ad0b6b45e3c3a5612b62158239e6e575466c9edc0c8b08d24632c"
+    },
+    "resource-diagnostic-runtime.log": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-work-repeat-diagnostic-r1/verification/test-runtime.log",
+      "sha256": "c48bf50284301aecad5c2d392703ea97b9d7cf7abacf7d63bf95e27705c875b7"
+    },
+    "g01-native-receipt.json": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/g01-native-partition-owner-final-r2/receipt.json",
+      "sha256": "776881afb95ff9bf7caffec83373550b13b2309edd2c21fc60dec4d8cb93672e"
+    },
+    "g01-native-ordinary.log": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/g01-native-partition-owner-final-r2/runtime-ordinary.log",
+      "sha256": "7c59dd7c23672804650692152121f621016159fd84f8921e632488434153fc2b"
+    },
+    "g01-native-admitted.log": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/g01-native-partition-owner-final-r2/runtime-admitted.log",
+      "sha256": "7fa68276fb18765ddadfce8e58f636cf57e248a32d7e2fc436b645f42e3fe095"
+    },
+    "g01-native-prepared.log": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/g01-native-partition-owner-final-r2/runtime-prepared.log",
+      "sha256": "00cd7915cb0d14999298238c95733d4e062a4c02fb6913e5c62c00f7b277f795"
+    },
+    "g01-native-readers.log": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/g01-native-partition-owner-final-r2/runtime-readers.log",
+      "sha256": "7061157b4225c3d88d03351aaf39a4fdbf707b445f666a02255f670ae2b858fa"
+    },
+    "g01-native-resources.log": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/g01-native-partition-owner-final-r2/runtime-resources.log",
+      "sha256": "9d95120b75371fdf0d5bc873df811bdc7726530fb2ab0c62201753f38edcfb5b"
+    },
+    "g01-native-full.log": {
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/g01-native-partition-owner-final-r2/runtime-full.log",
+      "sha256": "e4fbc0f2609afcdd8fc87b6776638758676ba0a0f7c03976798d86f935daa6b6"
+    }
+  },
+  "review": "Finding-only Root confirmation: all original source/pair/guard math and fees remain; pair construction/post-body split has whole-body inverse; public Partition views preserve actual original source/span/UV/frame and exact caller outputs; shared budget/contribution ownership remains unchanged. The sole consuming-helper compiler error and variable fresh-dictionary sort-work premise were corrected; diagnostic passes are not acceptance. One prior comprehensive review is reused, not repeated."
+}

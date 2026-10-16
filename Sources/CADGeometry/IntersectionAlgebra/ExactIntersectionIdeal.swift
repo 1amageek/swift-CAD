@@ -21,7 +21,7 @@ package struct ExactIntersectionIdeal: Sendable {
         self.classification = classification
     }
 
-    package static func prepare<B: RationalAlgebraAdmitting>(
+    package static func prepare<B: ExactScalarAdmission & ~Copyable>(
         equations: [ExactIntersectionPolynomial], variableCount: Int, usage: inout B) throws -> Self {
         try intersectionAlgebraStep(&usage)
         _ = try ExactIntersectionPolynomial.zero(variableCount: variableCount)

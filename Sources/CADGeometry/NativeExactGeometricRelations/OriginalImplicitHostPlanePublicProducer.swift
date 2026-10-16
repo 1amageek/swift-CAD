@@ -1,14 +1,15 @@
 import CADCore
 
-/// Publishes checked whole-host exclusion with the original caller's allowance.
+/// Publishes checked whole-host exclusion with the original caller's execution.
 struct OriginalImplicitHostPlanePublicProducer {
     private typealias Base = OriginalExactScalarDomain
-    private typealias Admission = NativeExactPublicAdmission<NativeCurveSurfacePointAllowance>
     private typealias Interval = ExactParameterInterval<Base.Value>
 
     func resolve(curve: Curve3D, surface: Surface3D, options: CurveSurfaceIntersectionOptions,
-        tolerance: ModelingTolerance, invocation: CurveSurfaceQueryInvocation? = nil)
+        tolerance: ModelingTolerance, using a: inout OriginalQueryExecution)
         throws -> CurveSurfaceIntersectionResult? {
+        a.context = a.context.at(stage: .request)
+        try a.checkpoint()
         // FIXME(INCOMPLETE_IMPLEMENTATION): This ordinary implicit exclusion route
         // admits only the source-owned constant-height bilinear Native host capability.
         // Other original implicit host/target laws need whole-support authority before
@@ -16,27 +17,32 @@ struct OriginalImplicitHostPlanePublicProducer {
         guard OriginalImplicitHostExclusionSnapshotProvider.supports(curve: curve, plane: surface) else { return nil }
         do {
             try options.validate(tolerance: tolerance)
-            let usage = try NativeCurveSurfacePointAllowance(options: options, invocation: invocation)
-            let depth = usage.maximumAlgebraicDepth
-            var a = Admission(usage: usage, maximumDepth: depth)
-            try a.checkpoint(); try invocation?.consume(depth: 0)
+            let depth = a.effectiveLimits.maximumValueDepth
+            try a.checkpoint()
+            a.context = a.context.at(stage: .source)
             let sourceLimits = try OriginalSourceIssuanceLimits(
-                remainingSourceDepth: invocation?.remainingSourceDepth ?? options.maximumSubdivisionDepth)
-            let charts = min(invocation?.maximumSpanCount ?? options.maximumSubdivisionCells, options.maximumSubdivisionCells)
+                remainingSourceDepth: a.effectiveLimits.remainingSourceDepth)
+            let charts = min(min(a.effectiveLimits.maximumCharts, a.effectiveLimits.maximumSpans), options.maximumSubdivisionCells)
             let limits = try OriginalDomainIdentityLimits(source: sourceLimits,
-                maximumTransportDepth: depth, maximumCharts: charts, maximumFamilies: 0, maximumIdentityProofs: 0)
-            let field = try Base(maximumValueDepth: depth, maximumCoefficientDepth: depth, using: &a)
+                maximumTransportDepth: a.effectiveLimits.maximumTransportDepth, maximumCharts: charts, maximumFamilies: 0, maximumIdentityProofs: 0)
+            let field = try Base(maximumValueDepth: a.effectiveLimits.maximumValueDepth, maximumCoefficientDepth: a.effectiveLimits.maximumCoefficientDepth, using: &a)
             let source = try DefaultOriginalSourceBindingIssuer(
                 provider: OriginalImplicitHostExclusionSnapshotProvider(tolerance: tolerance))
                 .bind(curve, limits: sourceLimits, using: &a)
+            try a.admitSourceDepth(source.sourceDepth)
+            a.context = a.context.retaining(first: .init(source: source))
             let target = try DefaultOriginalSourceBindingIssuer(provider: OriginalPlaneSnapshotProvider(tolerance: tolerance))
                 .bind(surface, limits: sourceLimits, using: &a)
+            try a.admitSourceDepth(target.sourceDepth)
+            a.context = a.context.retaining(second: .init(source: target))
             let one = try field.integer(1, using: &a)
             let basis = try DefaultOriginalPlaneBasisIssuer<OriginalPlaneSnapshot, Base>()
                 .issue(source: target, field: field, firstLength: one, normalLength: one, limits: sourceLimits, using: &a)
+            a.context = a.context.at(stage: .relation)
             let exclusion = try DefaultOriginalImplicitHostPlaneSeparationIssuer()
                 .issue(source: source, plane: basis, maximumCells: charts, limits: sourceLimits, using: &a)
             try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: Interval.self))
+            a.context = a.context.at(stage: .domain)
             let curveIntervals: [Interval]
             if let range = options.curveRange {
                 curveIntervals = [try interval(range, field: field, using: &a)]
@@ -51,13 +57,14 @@ struct OriginalImplicitHostPlanePublicProducer {
                 [try interval(options.surfaceVRange, field: field, using: &a)]]
             let original = try OriginalImplicitHostPlaneExclusion.resolve(exclusion: exclusion,
                 curveIntervals: curveIntervals, planeIntervals: planeIntervals, limits: limits, using: &a)
+            a.context = a.context.at(stage: .publication)
             try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: CurveSurfaceIntersectionResult.self))
             let result = CurveSurfaceIntersectionResult(points: [], overlaps: [], originalImplicitHostPlaneExclusion: original)
             try a.checkpoint(); return result
-        } catch { throw NativeExactGeometryPublicationFailure.published(error, tolerance: tolerance) }
+        } catch { throw NativeExactGeometryPublicationFailure.published(error, tolerance: tolerance, context: a.context) }
     }
 
-    private func interval(_ range: ScalarInterval?, field: Base, using a: inout Admission) throws -> Interval {
+    private func interval(_ range: ScalarInterval?, field: Base, using a: inout OriginalQueryExecution) throws -> Interval {
         let depth = try ExactScalarDepth(value: 0, coefficient: 0)
         guard let range else {
             return try .checked(field: field, lower: .negativeInfinity, upper: .positiveInfinity, depth: depth, using: &a)

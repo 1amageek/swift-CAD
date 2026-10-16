@@ -87,26 +87,29 @@ struct OriginalTriangularClosedChartTests {
         // each of three pullback controls costs eight bounded exact operations.
         var options = graphOptions()
         options.maximumSubdivisionCells = 66
-        var exact = OverlapProofBudget(options: options, tolerance: .standard)
-        let authority = try #require(OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(source),
-            surface: target, range: axis, pair: .init(first: 0, second: 1), box: box, target: jet, budget: &exact))
+        var exactExecution = try OriginalQueryExecution.independentGeometry()
+        let exact = try OverlapProofPolicy(options: options, tolerance: .standard, using: &exactExecution)
+        let authority = try geometryTestRequire(OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(source),
+            surface: target, range: axis, pair: .init(first: 0, second: 1), box: box, target: jet, policy: exact, using: &exactExecution))
         let triangular: OverlapRegularGraphClosedDomainAuthority.Triangular?
         if case .triangular(let chart) = authority.mapping { triangular = chart } else { triangular = nil }
         let chart = try #require(triangular)
         #expect(chart.primaryCoordinate == 0 && chart.secondaryCoordinate == 1 && chart.primaryVariesU)
-        #expect(FloatingPointExpansion.sign(chart.shear) == .positive)
+        #expect(try FloatingPointExpansion.sign(chart.shear) == .positive)
         #expect(authority.exactEndpoint(at: 0) == SurfaceParameter(u: 0, v: 0))
         #expect(authority.exactEndpoint(at: 1) == SurfaceParameter(u: 1, v: 1))
-        try expectFailure(.resourceLimitExceeded) { try exact.work() }
+        try expectFailure(.resourceLimitExceeded) { try exact.work(using: &exactExecution) }
         options.maximumSubdivisionCells = 65
-        var insufficient = OverlapProofBudget(options: options, tolerance: .standard)
+        var insufficientExecution = try OriginalQueryExecution.independentGeometry()
+        let insufficient = try OverlapProofPolicy(options: options, tolerance: .standard, using: &insufficientExecution)
         try expectFailure(.resourceLimitExceeded) {
             _ = try OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(source),
-                surface: target, range: axis, pair: .init(first: 0, second: 1), box: box, target: jet, budget: &insufficient)
+                surface: target, range: axis, pair: .init(first: 0, second: 1), box: box, target: jet, policy: insufficient, using: &insufficientExecution)
         }
-        var preparation = OverlapProofBudget(options: graphOptions(), tolerance: .standard)
-        let independence = try #require(OverlapRegularGraphClosedDomainAuthority.TargetIndependence.certificate(
-            prepared: prepared, budget: &preparation))
+        var preparationExecution = try OriginalQueryExecution.independentGeometry()
+        let preparation = try OverlapProofPolicy(options: graphOptions(), tolerance: .standard, using: &preparationExecution)
+        let independence = try geometryTestRequire(OverlapRegularGraphClosedDomainAuthority.TargetIndependence.certificate(
+            prepared: prepared, policy: preparation, using: &preparationExecution))
         let retained = try independence.intersecting(jet, tolerance: .standard)
         #expect(retained.y.derivativeU.lower == jet.y.derivativeU.lower && retained.y.derivativeU.upper == jet.y.derivativeU.upper)
     }
@@ -125,9 +128,10 @@ struct OriginalTriangularClosedChartTests {
         for (curve, surface) in [(source, mixed), (source, singular), (outside, target)] {
             let jet = try PreparedBSplineSurfaceDifferentialEncloser(surface: surface, tolerance: .standard)
                 .intervalJet(over: box, tolerance: .standard)
-            var budget = OverlapProofBudget(options: graphOptions(), tolerance: .standard)
+            var budgetExecution = try OriginalQueryExecution.independentGeometry()
+            let budget = try OverlapProofPolicy(options: graphOptions(), tolerance: .standard, using: &budgetExecution)
             #expect(try OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(curve),
-                surface: surface, range: axis, pair: .init(first: 0, second: 1), box: box, target: jet, budget: &budget) == nil)
+                surface: surface, range: axis, pair: .init(first: 0, second: 1), box: box, target: jet, policy: budget, using: &budgetExecution) == nil)
         }
         var options = graphOptions()
         options.curveRange = axis
@@ -149,10 +153,11 @@ struct OriginalTriangularClosedChartTests {
             source.controlPoints = source.controlPoints.map { Point3D(x: $0.x*scale,y: $0.y*scale,z: $0.z) }
             let jet = try PreparedBSplineSurfaceDifferentialEncloser(surface: target, tolerance: .standard)
                 .intervalJet(over: box, tolerance: .standard)
-            var budget = OverlapProofBudget(options: graphOptions(), tolerance: .standard)
+            var budgetExecution = try OriginalQueryExecution.independentGeometry()
+            let budget = try OverlapProofPolicy(options: graphOptions(), tolerance: .standard, using: &budgetExecution)
             try expectFailure(.resourceLimitExceeded) {
                 _ = try OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(source), surface: target,
-                    range: axis, pair: .init(first: 0,second: 1), box: box, target: jet, budget: &budget)
+                    range: axis, pair: .init(first: 0,second: 1), box: box, target: jet, policy: budget, using: &budgetExecution)
             }
         }
     }
@@ -179,14 +184,15 @@ struct OriginalTriangularClosedChartTests {
         let (stream, continuation) = AsyncStream<Void>.makeStream()
         let task = Task {
             for await _ in stream { break }
-            var budget = OverlapProofBudget(options: graphOptions(), tolerance: .standard)
+            var budgetExecution = try OriginalQueryExecution.independentGeometry()
+            let budget = try OverlapProofPolicy(options: graphOptions(), tolerance: .standard, using: &budgetExecution)
             return try OverlapRegularGraphClosedDomainAuthority.certificate(curve: .bSpline(source), surface: target,
-                range: axis, pair: .init(first: 0, second: 1), box: box, target: jet, budget: &budget)
+                range: axis, pair: .init(first: 0, second: 1), box: box, target: jet, policy: budget, using: &budgetExecution)
         }
         task.cancel()
         continuation.yield()
         continuation.finish()
-        await #expect(throws: CancellationError.self) { _ = try await task.value }
+        await geometryTestExpectFailure({ geometryTestIsCancelled($0) }) { _ = try await task.value }
     }
 
     private func sourceCurve(reversed: Bool = false) -> BSplineCurve3D {
@@ -214,6 +220,9 @@ struct OriginalTriangularClosedChartTests {
 
     private func expectFailure(_ code: KernelErrorCode, _ operation: () throws -> Void) throws {
         do { try operation(); Issue.record("The original triangular chart must explicitly refuse this authority.") }
-        catch let error as KernelError { #expect(error.code == code) }
+        catch {
+            let published = OriginalQueryFailure.published(error, context: .unspecified, tolerance: .standard)
+            #expect(OriginalQueryFailure.classification(of: published)?.code == code)
+        }
     }
 }

@@ -20,38 +20,42 @@ package struct OriginalFaceTrimBoxContainment: OriginalFaceTrimBoxContaining {
         self.maximumAlgebraicDepth = maximumAlgebraicDepth
     }
 
-    package func classify(_ box: SurfaceParameterBox, in faceID: FaceID,
-        validatedModel: ValidatedBRepModel, maximumSubdivisionDepth: Int,
-        remainingSourceDepth: Int, maximumAlgebraicDepth: Int,
-        consumeWork: @escaping @Sendable (Int) throws -> Void,
-        consumeStorage: (@Sendable (Int) throws -> Void)?) throws -> OriginalFaceTrimBoxClassification {
+    package func classify(_ box: SurfaceParameterBox,
+        in faceID: FaceID,
+        validatedModel: ValidatedBRepModel,
+        maximumSubdivisionDepth: Int,
+        remainingSourceDepth: Int,
+        maximumAlgebraicDepth: Int,
+        using execution: inout OriginalQueryExecution) throws -> OriginalFaceTrimBoxClassification {
         try Self(remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth)
-            .classifyOriginal(box, faceID: faceID, validatedModel: validatedModel,
-                maximumSubdivisionDepth: maximumSubdivisionDepth,
-                consumeWork: consumeWork, consumeStorage: consumeStorage)
+            .classifyOriginal(box,
+        faceID: faceID,
+        validatedModel: validatedModel,
+        maximumSubdivisionDepth: maximumSubdivisionDepth,
+        using: &execution)
     }
 
-    package func classify(_ box: SurfaceParameterBox, in faceID: FaceID,
-        validatedModel: ValidatedBRepModel, maximumSubdivisionDepth: Int,
-        consumeWork: @escaping @Sendable (Int) throws -> Void) throws -> OriginalFaceTrimBoxClassification {
-        try classifyOriginal(box, faceID: faceID, validatedModel: validatedModel,
-            maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: consumeWork, consumeStorage: nil)
+    package func classify(_ box: SurfaceParameterBox,
+        in faceID: FaceID,
+        validatedModel: ValidatedBRepModel,
+        maximumSubdivisionDepth: Int,
+        using execution: inout OriginalQueryExecution) throws -> OriginalFaceTrimBoxClassification {
+        try classifyOriginal(box,
+        faceID: faceID,
+        validatedModel: validatedModel,
+        maximumSubdivisionDepth: maximumSubdivisionDepth,
+        using: &execution)
     }
 
-    package func classify(_ box: SurfaceParameterBox, in faceID: FaceID,
-        validatedModel: ValidatedBRepModel, maximumSubdivisionDepth: Int,
-        consumeWork: @escaping @Sendable (Int) throws -> Void,
-        consumeStorage: (@Sendable (Int) throws -> Void)?) throws -> OriginalFaceTrimBoxClassification {
-        try classifyOriginal(box, faceID: faceID, validatedModel: validatedModel,
-            maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: consumeWork, consumeStorage: consumeStorage)
-    }
 
-    private func classifyOriginal(_ box: SurfaceParameterBox, faceID: FaceID,
-        validatedModel: ValidatedBRepModel, maximumSubdivisionDepth: Int,
-        consumeWork: @escaping @Sendable (Int) throws -> Void,
-        consumeStorage: (@Sendable (Int) throws -> Void)?) throws -> OriginalFaceTrimBoxClassification {
+
+    private func classifyOriginal(_ box: SurfaceParameterBox,
+        faceID: FaceID,
+        validatedModel: ValidatedBRepModel,
+        maximumSubdivisionDepth: Int,
+        using execution: inout OriginalQueryExecution) throws -> OriginalFaceTrimBoxClassification {
         try Task.checkCancellation()
-        try consumeWork(0)
+        try execution.consumeWork(1)
         let model = validatedModel.model
         let tolerance = validatedModel.tolerance
         guard validatedModel.validationLevel != .modeling, maximumSubdivisionDepth >= 0,
@@ -63,22 +67,28 @@ package struct OriginalFaceTrimBoxContainment: OriginalFaceTrimBoxContaining {
                 "Original face-box classification requires an immutable exact face and finite caller bounds.")
         }
         let depthLimit = min(48, maximumSubdivisionDepth)
-        var pending = try makeBoundaryStack(depthLimit: depthLimit, tolerance: tolerance,
-            consumeWork: consumeWork, consumeStorage: consumeStorage)
+        var pending = try makeBoundaryStack(depthLimit: depthLimit,
+        tolerance: tolerance,
+        using: &execution)
         var outerCount = 0
         for loopID in face.loops {
-            try consumeWork(0)
+            try execution.consumeWork(1)
             guard let loop = model.loops[loopID], !loop.coedges.isEmpty else {
                 throw TopologyError.missingReference("Original face-box classification lost a retained source loop.")
             }
             if loop.role == .outer { outerCount += 1 }
             for coedge in loop.coedges {
-                try consumeWork(0)
+                try execution.consumeWork(1)
                 guard let curve = coedge.surfaceParameterCurve else {
                     throw TopologyError.missingReference("An immutable exact face has a missing original pcurve.")
                 }
-                guard try excludes(box, curve: curve, on: surface, tolerance: tolerance,
-                    maximumDepth: depthLimit, pending: &pending, consumeWork: consumeWork, consumeStorage: consumeStorage) else { return .boundaryOverlap }
+                guard try excludes(box,
+        curve: curve,
+        on: surface,
+        tolerance: tolerance,
+        maximumDepth: depthLimit,
+        pending: &pending,
+        using: &execution) else { return .boundaryOverlap }
             }
         }
         guard outerCount == 1 else {
@@ -91,7 +101,7 @@ package struct OriginalFaceTrimBoxContainment: OriginalFaceTrimBoxContaining {
         }
         var insideOuter = false
         for loopID in face.loops {
-            try consumeWork(0)
+            try execution.consumeWork(1)
             guard let loop = model.loops[loopID] else {
                 throw TopologyError.missingReference("An original face-box loop disappeared.")
             }
@@ -100,11 +110,15 @@ package struct OriginalFaceTrimBoxContainment: OriginalFaceTrimBoxContaining {
             // backing here. Query arrays forward bytes, while specialized lower
             // derivative/chart scratch still prevents complete storage accounting.
             let predicate = try CertifiedSurfaceParameterLoopPredicate(loopID: loopID,
-                validatedModel: validatedModel, maximumSubdivisionDepth: depthLimit,
-                maximumAlgebraicDepth: maximumAlgebraicDepth, remainingSourceDepth: remainingSourceDepth,
-                consumeWork: consumeWork)
-            switch try predicate.signedWinding(center, tolerance: tolerance,
-                consumeWork: consumeWork, consumeStorage: consumeStorage, maximumSubdivisionDepth: depthLimit) {
+        validatedModel: validatedModel,
+        maximumSubdivisionDepth: depthLimit,
+        maximumAlgebraicDepth: maximumAlgebraicDepth,
+        remainingSourceDepth: remainingSourceDepth,
+        using: &execution)
+            switch try predicate.signedWinding(center,
+        tolerance: tolerance,
+        maximumSubdivisionDepth: depthLimit,
+        using: &execution) {
             case .boundary: return .boundaryOverlap
             case let .winding(winding):
                 if loop.role == .outer { insideOuter = winding != 0 }
@@ -115,47 +129,53 @@ package struct OriginalFaceTrimBoxContainment: OriginalFaceTrimBoxContaining {
     }
 
     package func containsStrictly(_ box: SurfaceParameterBox,
-        inAdmitted patch: BRepSewingFacePatch, tolerance: ModelingTolerance,
+        inAdmitted patch: BRepSewingFacePatch,
+        tolerance: ModelingTolerance,
         maximumSubdivisionDepth: Int,
-        consumeWork: @escaping @Sendable (Int) throws -> Void) throws -> Bool {
-        try classify(box, inAdmitted: patch, tolerance: tolerance,
-            maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: consumeWork) == .inside
+        using execution: inout OriginalQueryExecution) throws -> Bool {
+        try classify(box,
+        inAdmitted: patch,
+        tolerance: tolerance,
+        maximumSubdivisionDepth: maximumSubdivisionDepth,
+        using: &execution) == .inside
     }
 
     package func classify(_ box: SurfaceParameterBox,
-        inAdmitted patch: BRepSewingFacePatch, tolerance: ModelingTolerance,
-        maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
+        inAdmitted patch: BRepSewingFacePatch,
+        tolerance: ModelingTolerance,
+        maximumSubdivisionDepth: Int,
+        remainingSourceDepth: Int,
         maximumAlgebraicDepth: Int,
-        consumeWork: @escaping @Sendable (Int) throws -> Void,
-        consumeStorage: (@Sendable (Int) throws -> Void)?) throws -> OriginalFaceTrimBoxClassification {
+        using execution: inout OriginalQueryExecution) throws -> OriginalFaceTrimBoxClassification {
         try Self(remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth)
-            .classifyPatch(box, patch: patch, tolerance: tolerance,
-                maximumSubdivisionDepth: maximumSubdivisionDepth,
-                consumeWork: consumeWork, consumeStorage: consumeStorage)
+            .classifyPatch(box,
+        patch: patch,
+        tolerance: tolerance,
+        maximumSubdivisionDepth: maximumSubdivisionDepth,
+        using: &execution)
     }
 
     package func classify(_ box: SurfaceParameterBox,
-        inAdmitted patch: BRepSewingFacePatch, tolerance: ModelingTolerance,
+        inAdmitted patch: BRepSewingFacePatch,
+        tolerance: ModelingTolerance,
         maximumSubdivisionDepth: Int,
-        consumeWork: @escaping @Sendable (Int) throws -> Void) throws -> OriginalFaceTrimBoxClassification {
-        try classifyPatch(box, patch: patch, tolerance: tolerance,
-            maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: consumeWork, consumeStorage: nil)
+        using execution: inout OriginalQueryExecution) throws -> OriginalFaceTrimBoxClassification {
+        try classifyPatch(box,
+        patch: patch,
+        tolerance: tolerance,
+        maximumSubdivisionDepth: maximumSubdivisionDepth,
+        using: &execution)
     }
 
-    package func classify(_ box: SurfaceParameterBox,
-        inAdmitted patch: BRepSewingFacePatch, tolerance: ModelingTolerance,
-        maximumSubdivisionDepth: Int, consumeWork: @escaping @Sendable (Int) throws -> Void,
-        consumeStorage: (@Sendable (Int) throws -> Void)?) throws -> OriginalFaceTrimBoxClassification {
-        try classifyPatch(box, patch: patch, tolerance: tolerance,
-            maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: consumeWork, consumeStorage: consumeStorage)
-    }
 
-    private func classifyPatch(_ box: SurfaceParameterBox, patch: BRepSewingFacePatch,
-        tolerance: ModelingTolerance, maximumSubdivisionDepth: Int,
-        consumeWork: @escaping @Sendable (Int) throws -> Void,
-        consumeStorage: (@Sendable (Int) throws -> Void)?) throws -> OriginalFaceTrimBoxClassification {
+
+    private func classifyPatch(_ box: SurfaceParameterBox,
+        patch: BRepSewingFacePatch,
+        tolerance: ModelingTolerance,
+        maximumSubdivisionDepth: Int,
+        using execution: inout OriginalQueryExecution) throws -> OriginalFaceTrimBoxClassification {
         try Task.checkCancellation()
-        try consumeWork(0)
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard maximumSubdivisionDepth >= 0,
               remainingSourceDepth >= 0, (0...32).contains(maximumAlgebraicDepth), box.u.width.isFinite, box.v.width.isFinite,
@@ -164,20 +184,25 @@ package struct OriginalFaceTrimBoxContainment: OriginalFaceTrimBoxContaining {
                 "Original trim box containment needs finite original bounds and caller depth.")
         }
         let depthLimit = min(48, maximumSubdivisionDepth)
-        var pending = try makeBoundaryStack(depthLimit: depthLimit, tolerance: tolerance,
-            consumeWork: consumeWork, consumeStorage: consumeStorage)
+        var pending = try makeBoundaryStack(depthLimit: depthLimit,
+        tolerance: tolerance,
+        using: &execution)
         var outerCount = 0
         for loop in patch.loops {
-            try consumeWork(0)
+            try execution.consumeWork(1)
             if loop.role == .outer { outerCount += 1 }
             guard !loop.edges.isEmpty else {
                 throw failure(.invalidInput, tolerance, "An original trim loop has no boundaries.")
             }
             for edge in loop.edges {
-                try consumeWork(0)
-                guard try excludes(box, curve: edge.surfaceParameterCurve, on: patch.surface,
-                    tolerance: tolerance, maximumDepth: depthLimit,
-                    pending: &pending, consumeWork: consumeWork, consumeStorage: consumeStorage) else { return .boundaryOverlap }
+                try execution.consumeWork(1)
+                guard try excludes(box,
+        curve: edge.surfaceParameterCurve,
+        on: patch.surface,
+        tolerance: tolerance,
+        maximumDepth: depthLimit,
+        pending: &pending,
+        using: &execution) else { return .boundaryOverlap }
             }
         }
         guard outerCount == 1 else {
@@ -190,18 +215,18 @@ package struct OriginalFaceTrimBoxContainment: OriginalFaceTrimBoxContaining {
         }
         var insideOuter = false
         for loop in patch.loops {
-            try consumeWork(0)
+            try execution.consumeWork(1)
             var curves: [SurfaceParameterCurve] = []
-            if let consumeStorage {
+
                 let bytes = loop.edges.count.multipliedReportingOverflow(by: MemoryLayout<SurfaceParameterCurve>.stride)
                 guard !bytes.overflow else {
                     throw failure(.resourceLimitExceeded, tolerance, "Original patch curve-copy byte admission overflowed.")
                 }
-                try consumeStorage(bytes.partialValue)
+                try execution.retainStorage(bytes: bytes.partialValue)
                 curves.reserveCapacity(loop.edges.count)
-            }
+
             for edge in loop.edges {
-                try consumeWork(0)
+                try execution.consumeWork(1)
                 curves.append(edge.surfaceParameterCurve)
             }
             // FIXME(INCOMPLETE_IMPLEMENTATION): Original support-bound chart and
@@ -209,12 +234,16 @@ package struct OriginalFaceTrimBoxContainment: OriginalFaceTrimBoxContaining {
             // storage still needs specialized lower derivative/chart scratch producers;
             // modified patch correspondence remains its separate admission premise.
             let predicate = try CertifiedSurfaceParameterLoopPredicate(curves: curves,
-                on: patch.surface, tolerance: tolerance,
-                maximumSubdivisionDepth: depthLimit, remainingSourceDepth: remainingSourceDepth,
-                maximumAlgebraicDepth: maximumAlgebraicDepth,
-                consumeWork: consumeWork, consumeStorage: consumeStorage)
-            switch try predicate.signedWinding(center, tolerance: tolerance,
-                consumeWork: consumeWork, consumeStorage: consumeStorage, maximumSubdivisionDepth: depthLimit) {
+        on: patch.surface,
+        tolerance: tolerance,
+        maximumSubdivisionDepth: depthLimit,
+        remainingSourceDepth: remainingSourceDepth,
+        maximumAlgebraicDepth: maximumAlgebraicDepth,
+        using: &execution)
+            switch try predicate.signedWinding(center,
+        tolerance: tolerance,
+        maximumSubdivisionDepth: depthLimit,
+        using: &execution) {
             case .boundary:
                 return .boundaryOverlap
             case let .winding(winding):
@@ -225,56 +254,58 @@ package struct OriginalFaceTrimBoxContainment: OriginalFaceTrimBoxContaining {
         return insideOuter ? .inside : .outside
     }
 
-    private func makeBoundaryStack(depthLimit: Int, tolerance: ModelingTolerance,
-        consumeWork: @Sendable (Int) throws -> Void,
-        consumeStorage: (@Sendable (Int) throws -> Void)?) throws -> [Cell] {
+    private func makeBoundaryStack(depthLimit: Int,
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> [Cell] {
         try Task.checkCancellation()
-        try consumeWork(0)
+        try execution.consumeWork(1)
         var result: [Cell] = []
-        if let consumeStorage {
+
             let capacity = depthLimit.addingReportingOverflow(1)
             let bytes = capacity.partialValue.multipliedReportingOverflow(by: MemoryLayout<Cell>.stride)
             guard depthLimit >= 0, !capacity.overflow, !bytes.overflow else {
                 throw failure(.resourceLimitExceeded, tolerance, "Original boundary DFS stack byte admission overflowed.")
             }
-            try consumeStorage(bytes.partialValue)
+            try execution.retainStorage(bytes: bytes.partialValue)
             result.reserveCapacity(capacity.partialValue)
-        }
+
         return result
     }
 
-    private func excludes(_ box: SurfaceParameterBox, curve: SurfaceParameterCurve, on surface: Surface3D,
-        tolerance: ModelingTolerance, maximumDepth: Int,
+    private func excludes(_ box: SurfaceParameterBox,
+        curve: SurfaceParameterCurve,
+        on surface: Surface3D,
+        tolerance: ModelingTolerance,
+        maximumDepth: Int,
         pending: inout [Cell],
-        consumeWork: @escaping @Sendable (Int) throws -> Void,
-        consumeStorage: (@Sendable (Int) throws -> Void)?) throws -> Bool {
+        using execution: inout OriginalQueryExecution) throws -> Bool {
         pending.removeAll(keepingCapacity: true)
         pending.append(Cell(lower: 0, upper: 1, depth: 0))
         var visited = 0
         while let cell = pending.popLast() {
             try Task.checkCancellation()
-            try consumeWork(cell.depth)
+            try execution.visitGeometricCell(depth: cell.depth)
             visited += 1
             guard visited <= 131_072, cell.depth <= maximumDepth else {
                 throw failure(.resourceLimitExceeded, tolerance,
                     "Original trim/box separation exhausted its existing cell/depth ceiling.")
             }
             let baseDepth = cell.depth
-            let encloser = CertifiedSurfaceParameterCurveEncloser(
-                maximumSubdivisionDepth: maximumDepth - baseDepth,
-                consumeWork: { depth in try consumeWork(baseDepth + depth) },
-                consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth,
-                remainingSourceDepth: remainingSourceDepth)
-            let bounds = try encloser.enclosures(for: curve, on: surface,
+            let encloser = CertifiedSurfaceParameterCurveEncloser(maximumSubdivisionDepth: maximumDepth - baseDepth,
+        maximumAlgebraicDepth: maximumAlgebraicDepth,
+        remainingSourceDepth: remainingSourceDepth)
+            let bounds = try execution.withGeometricDepthOffset(baseDepth) { execution in
+                try encloser.enclosures(for: curve, on: surface,
                 fromNormalizedFraction: cell.lower, toNormalizedFraction: cell.upper,
-                maximumWidth: Double.greatestFiniteMagnitude, tolerance: tolerance)
+                maximumWidth: Double.greatestFiniteMagnitude, tolerance: tolerance, using: &execution)
+            }
             guard !bounds.isEmpty else {
                 throw failure(.classificationFailure, tolerance,
                     "Original trim/box separation returned empty source coverage.")
             }
             var separated = true
             for bound in bounds {
-                try consumeWork(cell.depth)
+                try execution.admitGeometricDepth(cell.depth); try execution.consumeWork(1)
                 if bound.u.upper < box.u.lower || bound.u.lower > box.u.upper
                     || bound.v.upper < box.v.lower || bound.v.lower > box.v.upper { continue }
                 separated = false

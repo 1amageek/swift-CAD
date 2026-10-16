@@ -23,7 +23,8 @@ struct CoincidentBooleanFaceOwnershipResolver {
         model: BRepModel,
         operands: BooleanOperandContext,
         tolerance: ModelingTolerance
-    ) throws -> Resolution {
+    , using execution: inout OriginalQueryExecution) throws -> Resolution {
+        try execution.consumeWork(1)
         try tolerance.validate()
         let coincidentSplits = uvSplitGraph.splits.filter { split in
             split.components.contains { component in
@@ -58,6 +59,7 @@ struct CoincidentBooleanFaceOwnershipResolver {
             return lhs.facePair.toolFaceID < rhs.facePair.toolFaceID
         }
         for split in orderedSplits {
+            try execution.consumeWork(1)
             guard split.components.allSatisfy({ component in
                 if case .coincident = component.geometry { return true }
                 return false
@@ -76,19 +78,19 @@ struct CoincidentBooleanFaceOwnershipResolver {
                 toolFaceID,
                 model: model,
                 tolerance: tolerance
-            ) else {
+            , using: &execution) else {
                 // Coplanar faces that only touch along a boundary share no area to own.
                 guard try CoincidentFaceOverlapTester(facePointContainment: DefaultFacePointContainmentTester())
-                    .overlapsInArea(targetFaceID, toolFaceID, in: model, tolerance: tolerance) else { continue }
-                partiallyCoincidentPairs.append(PartiallyCoincidentPair(
+                    .overlapsInArea(targetFaceID, toolFaceID, in: model, tolerance: tolerance, using: &execution) else { continue }
+                try OriginalParameterQueryStorage.append(PartiallyCoincidentPair(
                     split: split,
                     sameOutwardDirection: try outwardNormalsHaveSameDirection(
                         targetFaceID,
                         toolFaceID,
                         model: model,
                         tolerance: tolerance
-                    ) != turnsOutward
-                ))
+                    , using: &execution) != turnsOutward
+                ), to: &partiallyCoincidentPairs, using: &execution)
                 continue
             }
             guard resolvedFaces.insert(targetFaceID).inserted,
@@ -105,7 +107,7 @@ struct CoincidentBooleanFaceOwnershipResolver {
                 toolFaceID,
                 model: model,
                 tolerance: tolerance
-            ) != turnsOutward
+            , using: &execution) != turnsOutward
             let actions = actions(
                 operation: operation,
                 sameOutwardDirection: sameOutwardDirection
@@ -117,13 +119,15 @@ struct CoincidentBooleanFaceOwnershipResolver {
         // the face's own boundary (another face meeting it at its edge) leaves it whole.
         var partitionedFaceIDs: Set<FaceID> = []
         for split in uvSplitGraph.splits {
+            try execution.consumeWork(1)
             for (faceID, isTool) in [(split.facePair.targetFaceID, false), (split.facePair.toolFaceID, true)] {
+            try execution.consumeWork(1)
                 let partitions = try split.components.contains { component in
                     switch component.geometry {
                     case .trimmedCurve, .closedCurve:
                         return true
                     case let .transverseSegment(start, end):
-                        return try segmentRunsAlongBoundary(of: faceID, from: start, to: end, isTool: isTool, model: model, tolerance: tolerance) == false
+                        return try segmentRunsAlongBoundary(of: faceID, from: start, to: end, isTool: isTool, model: model, tolerance: tolerance, using: &execution) == false
                     case .tangent, .coincident:
                         return false
                     }
@@ -157,7 +161,8 @@ struct CoincidentBooleanFaceOwnershipResolver {
         isTool: Bool,
         model: BRepModel,
         tolerance: ModelingTolerance
-    ) throws -> Bool {
+    , using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.consumeWork(1)
         guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID] else {
             throw missingReference(tolerance: tolerance)
         }
@@ -174,25 +179,27 @@ struct CoincidentBooleanFaceOwnershipResolver {
             surfaceParameterCurve: .affine(origin: Point2D(x: startUV.u, y: startUV.v),
                 direction: Point2D(x: (endUV.u - startUV.u) / length, y: (endUV.v - startUV.v) / length),
                 startParameter: 0, endParameter: length), parentSubshapeIDs: [])
-        try contact.validate(on: surface, tolerance: tolerance)
+        try contact.validate(on: surface, tolerance: tolerance, using: &execution)
         for loopID in face.loops {
+            try execution.consumeWork(1)
             guard let loop = model.loops[loopID] else { throw missingReference(tolerance: tolerance) }
             for coedge in loop.coedges {
+            try execution.consumeWork(1)
                 guard let edge = model.edges[coedge.edgeID], let curve = model.geometry.curves[edge.curveID], let trim = edge.trim else {
                     throw missingReference(tolerance: tolerance)
                 }
                 let range = try ScalarInterval(lower: min(trim.startParameter, trim.endParameter),
                     upper: max(trim.startParameter, trim.endParameter))
                 let options = CurveParameterProjectionOptions(parameterRange: range)
-                let first = try curve.closestParameterProjection(of: start.point, options: options, tolerance: tolerance)
-                let last = try curve.closestParameterProjection(of: end.point, options: options, tolerance: tolerance)
+                let first = try curve.closestParameterProjection(of: start.point, options: options, tolerance: tolerance, using: &execution)
+                let last = try curve.closestParameterProjection(of: end.point, options: options, tolerance: tolerance, using: &execution)
                 guard first.residual <= tolerance.distance, last.residual <= tolerance.distance,
                       abs(last.parameter - first.parameter) > tolerance.relative else { continue }
                 let existing = CurveSpanDefinition(curve: curve, startParameter: first.parameter,
-                    endParameter: last.parameter, startPoint: try curve.point(at: first.parameter, tolerance: tolerance),
-                    endPoint: try curve.point(at: last.parameter, tolerance: tolerance))
+                    endParameter: last.parameter, startPoint: try curve.point(at: first.parameter, tolerance: tolerance, using: &execution),
+                    endPoint: try curve.point(at: last.parameter, tolerance: tolerance, using: &execution))
                 if try CurveSpanCoincidenceMatcher().matches(CurveSpanDefinition(contact), existing,
-                    orientation: .forward, tolerance: tolerance) { return true }
+                    orientation: .forward, tolerance: tolerance, using: &execution) { return true }
             }
         }
         return false
@@ -219,7 +226,8 @@ struct CoincidentBooleanFaceOwnershipResolver {
         _ toolFaceID: FaceID,
         model: BRepModel,
         tolerance: ModelingTolerance
-    ) throws -> Bool {
+    , using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.consumeWork(1)
         guard let targetFace = model.faces[targetFaceID],
               let toolFace = model.faces[toolFaceID],
               let targetSurface = model.geometry.surfaces[targetFace.surfaceID],
@@ -233,7 +241,7 @@ struct CoincidentBooleanFaceOwnershipResolver {
             toolFaceID,
             in: model,
             tolerance: tolerance
-        ) else {
+        , using: &execution) else {
             throw KernelError(
                 phase: .classification,
                 code: .classificationFailure,
@@ -244,21 +252,21 @@ struct CoincidentBooleanFaceOwnershipResolver {
         let targetParameter = try targetSurface.parameterProjection(
             of: point,
             tolerance: tolerance
-        )
+        , using: &execution)
         let toolParameter = try toolSurface.parameterProjection(
             of: point,
             tolerance: tolerance
-        )
+        , using: &execution)
         var targetNormal = try targetSurface.normal(
             u: targetParameter.u,
             v: targetParameter.v,
             tolerance: tolerance
-        )
+        , using: &execution)
         var toolNormal = try toolSurface.normal(
             u: toolParameter.u,
             v: toolParameter.v,
             tolerance: tolerance
-        )
+        , using: &execution)
         if targetFace.orientation == .reversed { targetNormal = targetNormal * -1.0 }
         if toolFace.orientation == .reversed { toolNormal = toolNormal * -1.0 }
         let alignment = targetNormal.dot(toolNormal)
@@ -279,26 +287,29 @@ struct CoincidentBooleanFaceOwnershipResolver {
         _ secondFaceID: FaceID,
         model: BRepModel,
         tolerance: ModelingTolerance
-    ) throws -> Bool {
+    , using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.consumeWork(1)
         let first = try SourceBRepFacePatchBuilder().build(
             faceID: firstFaceID,
             stableID: "coincident:first",
             from: model,
             sourceSubshapes: [:],
             tolerance: tolerance
-        ).patch
+        , using: &execution).patch
         let second = try SourceBRepFacePatchBuilder().build(
             faceID: secondFaceID,
             stableID: "coincident:second",
             from: model,
             sourceSubshapes: [:],
             tolerance: tolerance
-        ).patch
+        , using: &execution).patch
         guard first.loops.count == second.loops.count else { return false }
         var unmatched = Array(second.loops.indices)
         for firstLoop in first.loops {
+            try execution.consumeWork(1)
             var matchPosition: Int?
             for position in unmatched.indices {
+            try execution.consumeWork(1)
                 let index = unmatched[position]
                 let secondLoop = second.loops[index]
                 guard firstLoop.role == secondLoop.role else { continue }
@@ -306,7 +317,7 @@ struct CoincidentBooleanFaceOwnershipResolver {
                     firstLoop,
                     secondLoop,
                     tolerance: tolerance
-                ) {
+                , using: &execution) {
                     matchPosition = position
                     break
                 }
@@ -323,16 +334,18 @@ struct CoincidentBooleanFaceOwnershipResolver {
         _ first: BRepSewingLoop,
         _ second: BRepSewingLoop,
         tolerance: ModelingTolerance
-    ) throws -> Bool {
+    , using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.consumeWork(1)
         guard first.edges.count == second.edges.count else { return false }
         var unmatched = Array(second.edges.indices)
         for firstEdge in first.edges {
+            try execution.consumeWork(1)
             guard let matchPosition = try unmatched.firstIndex(where: { index in
                 try edgesAreEquivalent(
                     firstEdge,
                     second.edges[index],
                     tolerance: tolerance
-                )
+                , using: &execution)
             }) else {
                 return false
             }
@@ -345,7 +358,8 @@ struct CoincidentBooleanFaceOwnershipResolver {
         _ first: BRepSewingEdge,
         _ second: BRepSewingEdge,
         tolerance: ModelingTolerance
-    ) throws -> Bool {
+    , using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.consumeWork(1)
         let sameDirection = first.startPoint.isApproximatelyEqual(
             to: second.startPoint,
             tolerance: tolerance.distance
@@ -366,11 +380,11 @@ struct CoincidentBooleanFaceOwnershipResolver {
         let firstMiddle = try first.curve.point(
             at: 0.5 * (first.startParameter + first.endParameter),
             tolerance: tolerance
-        )
+        , using: &execution)
         let secondMiddle = try second.curve.point(
             at: 0.5 * (second.startParameter + second.endParameter),
             tolerance: tolerance
-        )
+        , using: &execution)
         return firstMiddle.isApproximatelyEqual(
             to: secondMiddle,
             tolerance: tolerance.distance

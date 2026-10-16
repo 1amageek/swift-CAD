@@ -8,7 +8,7 @@ package struct OriginalSphereCurvePullback: Sendable {
     package let equation: ExactBivariatePolynomial
     package let denominator: ExactBivariatePolynomial
 
-    package init<B: RationalAlgebraAdmitting>(sphere: AnalyticSurface3D,
+    package init<B: ExactScalarAdmission & ~Copyable>(sphere: AnalyticSurface3D,
         curve: OriginalRationalCurvePolynomial, tolerance: ModelingTolerance,
         usage: inout B) throws {
         try intersectionAlgebraStep(&usage)
@@ -16,7 +16,7 @@ package struct OriginalSphereCurvePullback: Sendable {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
                 message: "An original sphere pullback requires a direct authored sphere.")
         }
-        try sphere.validate(tolerance: tolerance)
+        try sphere.validate(tolerance: tolerance, using: &usage)
         guard curve.homogeneous.count == 4 else {
             throw rationalAlgebraFailure("An original sphere pullback requires four homogeneous curve laws.")
         }
@@ -54,7 +54,7 @@ package struct OriginalSphereCurvePullback: Sendable {
     }
 
     /// Binds the raw original equation and denominator to the same source span.
-    package func relation<B: RationalAlgebraAdmitting>(usage: inout B) throws -> OriginalPolynomialRelation {
+    package func relation<B: ExactScalarAdmission & ~Copyable>(usage: inout B) throws -> OriginalPolynomialRelation {
         try intersectionAlgebraStep(&usage)
         let equation = try originalPolynomial(self.equation, usage: &usage)
         let denominator = try originalPolynomial(self.denominator, usage: &usage)
@@ -70,7 +70,7 @@ package struct OriginalSphereCurvePullback: Sendable {
         return relation
     }
 
-    private func originalPolynomial<B: RationalAlgebraAdmitting>(_ source: ExactBivariatePolynomial,
+    private func originalPolynomial<B: ExactScalarAdmission & ~Copyable>(_ source: ExactBivariatePolynomial,
         usage: inout B) throws -> OriginalRationalPolynomial {
         let ordered = try source.orderedTerms(usage: &usage)
         try RationalAlgebraStorage.retain(ordered.count, of: OriginalRationalPolynomial.Term.self, usage: &usage)

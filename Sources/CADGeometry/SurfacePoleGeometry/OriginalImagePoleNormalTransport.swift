@@ -17,13 +17,13 @@ package struct OriginalImagePoleNormalTransport: Sendable {
 
     /// Preserves the original model normal without evaluating a rounded foreign station.
     package func normal(source: OriginalSurfacePoleNormalReceipt, image: OriginalImageSurface3D,
-        tolerance: ModelingTolerance, consumeWork: () throws -> Void) throws -> OriginalSurfacePoleNormalReceipt {
-        try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> OriginalSurfacePoleNormalReceipt {
+        try CurrentTaskCancellationChecker().checkCancellation(); try execution.consumeWork(1)
         guard source.surface == image.source, source.tolerance == tolerance else {
             throw GeometryConversionError.invalidInput("Original image normal belongs to another source or tolerance.")
         }
-        try image.validate(tolerance: tolerance)
-        _ = try image.transform.originalDeterminantSign(consumeWork: consumeWork)
+        try image.validate(tolerance: tolerance, using: &execution)
+        _ = try image.transform.originalDeterminantSign(using: &execution)
         func original(_ vector: Vector3D) -> IntervalVector3DBounds {
             .init(x: .exact(vector.x), y: .exact(vector.y), z: .exact(vector.z))
         }
@@ -54,18 +54,18 @@ package struct OriginalImagePoleNormalTransport: Sendable {
         let nativeU = image.swapAxes ? source.parameters.v : source.parameters.u
         let nativeV = image.swapAxes ? source.parameters.u : source.parameters.v
         let parameters = try SurfaceParameterBox(
-            u: OriginalParameterImageMap.inverseInterval(nativeU, gain: image.uParameterGain, offset: image.uOffset),
-            v: OriginalParameterImageMap.inverseInterval(nativeV, gain: image.vParameterGain, offset: image.vOffset))
+            u: OriginalParameterImageMap.inverseInterval(nativeU, gain: image.uParameterGain, offset: image.uOffset, usage: &execution),
+            v: OriginalParameterImageMap.inverseInterval(nativeV, gain: image.vParameterGain, offset: image.vOffset, usage: &execution))
         return .init(surface: .parameterImage(image), parameters: parameters, normal: normal,
             angularDeviationUpperBound: angle, coefficientBounds: field, tolerance: tolerance)
     }
 
     /// Transports whole original normal derivatives, including source pole factors.
     package func differentialBounds(_ b: SurfaceTessellationDifferentialBounds,
-        through image: OriginalImageSurface3D, consumeWork: () throws -> Void)
+        through image: OriginalImageSurface3D, using execution: inout OriginalQueryExecution)
         throws -> SurfaceTessellationDifferentialBounds {
-        try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
-        _ = try image.transform.originalDeterminantSign(consumeWork: consumeWork)
+        try CurrentTaskCancellationChecker().checkCancellation(); try execution.consumeWork(1)
+        _ = try image.transform.originalDeterminantSign(using: &execution)
         func original(_ column: Vector3D) -> IntervalVector3DBounds {
             .init(x: .exact(column.x), y: .exact(column.y), z: .exact(column.z))
         }
@@ -100,23 +100,23 @@ package struct OriginalImagePoleNormalTransport: Sendable {
 
     package func panelBounds(source: OriginalSurfacePoleNormalPanel, image: OriginalImageSurface3D,
         over parameters: SurfaceParameterBox, tolerance: ModelingTolerance,
-        consumeWork: () throws -> Void) throws -> OriginalSurfacePoleNormalPanel {
-        try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
+        using execution: inout OriginalQueryExecution) throws -> OriginalSurfacePoleNormalPanel {
+        try CurrentTaskCancellationChecker().checkCancellation(); try execution.consumeWork(1)
         guard source.surface == image.source, source.tolerance == tolerance else {
             throw GeometryConversionError.invalidInput("Original pole image receipt belongs to another source or tolerance.")
         }
-        try image.validate(tolerance: tolerance)
-        let native = try image.sourceParameterBounds(over: parameters, tolerance: tolerance)
+        try image.validate(tolerance: tolerance, using: &execution)
+        let native = try image.sourceParameterBounds(over: parameters, tolerance: tolerance, using: &execution)
         guard native.u.lower >= source.parameters.u.lower, native.u.upper <= source.parameters.u.upper,
               native.v.lower >= source.parameters.v.lower, native.v.upper <= source.parameters.v.upper else {
             throw GeometryConversionError.invalidInput("Original image pole query exceeds its retained source panel.")
         }
-        _ = try image.transform.originalDeterminantSign(consumeWork: consumeWork)
+        _ = try image.transform.originalDeterminantSign(using: &execution)
         func original(_ column: Vector3D) -> IntervalVector3DBounds {
             .init(x: .exact(column.x), y: .exact(column.y), z: .exact(column.z))
         }
         let x = original(image.transform.basisX), y = original(image.transform.basisY), z = original(image.transform.basisZ)
-        try consumeWork()
+        try execution.consumeWork(1)
         let bx = y.cross(z), by = z.cross(x), bz = x.cross(y)
         let determinant = x.dot(bx)
         guard determinant.excludesZero, determinant.isFinite else {

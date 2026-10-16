@@ -20,10 +20,77 @@ public struct RuledSurface3D: Hashable, Sendable {
         .closed(0.0, 1.0)
     }
 
+    public func point(
+        u: Double,
+        v: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Point3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try point(u: u, v: v, tolerance: tolerance, using: &execution)
+    }
+
+    public func parameterDerivatives(
+        u: Double,
+        v: Double,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceParameterDerivatives {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try parameterDerivatives(u: u, v: v, tolerance: tolerance, using: &execution)
+    }
+
+    public func parameterDerivativesThroughThirdOrder(
+        u: Double,
+        v: Double,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceParameterThirdOrderDerivatives {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try parameterDerivativesThroughThirdOrder(u: u, v: v, tolerance: tolerance, using: &execution)
+    }
+
+    public func closestParameterProjection(
+        of point: Point3D,
+        options: SurfaceParameterProjectionOptions = .init(),
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceParameterProjection {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try closestParameterProjection(of: point, options: options, tolerance: tolerance, using: &execution)
+    }
+
+    package func exactBSplineRepresentation(
+        tolerance: ModelingTolerance
+    ) throws -> BSplineSurface3D? {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try exactBSplineRepresentation(tolerance: tolerance, using: &execution)
+    }
+
+    func taylorJet(
+        u: Double,
+        v: Double,
+        throughOrder order: Int,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceTaylorVectorJet {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try taylorJet(u: u, v: v, throughOrder: order, tolerance: tolerance, using: &execution)
+    }
+
+    func intervalJet(
+        over parameters: SurfaceParameterBox,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceIntervalVectorJet {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try intervalJet(over: parameters, tolerance: tolerance, using: &execution)
+    }
+
     public func validate(tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try tolerance.validate()
-        try startBoundary.validate(tolerance: tolerance)
-        try endBoundary.validate(tolerance: tolerance)
+        try startBoundary.validate(tolerance: tolerance, using: &execution)
+        try endBoundary.validate(tolerance: tolerance, using: &execution)
         guard case let .closed(lower, upper) = uDomain,
               lower.isFinite,
               upper.isFinite,
@@ -96,10 +163,11 @@ public struct RuledSurface3D: Hashable, Sendable {
         u: Double,
         v: Double,
         tolerance: ModelingTolerance
-    ) throws -> Point3D {
-        try validateParameters(u: u, v: v, tolerance: tolerance)
-        let start = try startBoundary.point(at: u, tolerance: tolerance)
-        let end = try endBoundary.point(at: u, tolerance: tolerance)
+    , using execution: inout OriginalQueryExecution) throws -> Point3D {
+        try execution.consumeWork(1)
+        try validateParameters(u: u, v: v, tolerance: tolerance, using: &execution)
+        let start = try startBoundary.point(at: u, tolerance: tolerance, using: &execution)
+        let end = try endBoundary.point(at: u, tolerance: tolerance, using: &execution)
         return start + (end - start) * v
     }
 
@@ -107,16 +175,17 @@ public struct RuledSurface3D: Hashable, Sendable {
         u: Double,
         v: Double,
         tolerance: ModelingTolerance
-    ) throws -> SurfaceParameterDerivatives {
-        try validateParameters(u: u, v: v, tolerance: tolerance)
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceParameterDerivatives {
+        try execution.consumeWork(1)
+        try validateParameters(u: u, v: v, tolerance: tolerance, using: &execution)
         let start = try startBoundary.differentialGeometry(
             at: u,
             tolerance: tolerance
-        )
+        , using: &execution)
         let end = try endBoundary.differentialGeometry(
             at: u,
             tolerance: tolerance
-        )
+        , using: &execution)
         return SurfaceParameterDerivatives(
             position: start.position + (end.position - start.position) * v,
             tangentU: start.firstDerivative
@@ -133,16 +202,17 @@ public struct RuledSurface3D: Hashable, Sendable {
         u: Double,
         v: Double,
         tolerance: ModelingTolerance
-    ) throws -> SurfaceParameterThirdOrderDerivatives {
-        try validateParameters(u: u, v: v, tolerance: tolerance)
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceParameterThirdOrderDerivatives {
+        try execution.consumeWork(1)
+        try validateParameters(u: u, v: v, tolerance: tolerance, using: &execution)
         let start = try startBoundary.parameterDerivativesThroughThirdOrder(
             at: u,
             tolerance: tolerance
-        )
+        , using: &execution)
         let end = try endBoundary.parameterDerivativesThroughThirdOrder(
             at: u,
             tolerance: tolerance
-        )
+        , using: &execution)
         return SurfaceParameterThirdOrderDerivatives(
             position: start.position + (end.position - start.position) * v,
             tangentU: start.firstDerivative
@@ -165,12 +235,13 @@ public struct RuledSurface3D: Hashable, Sendable {
         of point: Point3D,
         options: SurfaceParameterProjectionOptions = .init(),
         tolerance: ModelingTolerance
-    ) throws -> SurfaceParameterProjection {
-        try ProceduralSurfaceParameterProjector().closestProjection(
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceParameterProjection {
+        try execution.consumeWork(1)
+        return try ProceduralSurfaceParameterProjector().closestProjection(
             of: point,
             on: self,
             options: options,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
     }
 
@@ -178,8 +249,9 @@ public struct RuledSurface3D: Hashable, Sendable {
         u: Double,
         v: Double,
         tolerance: ModelingTolerance
-    ) throws {
-        try validate(tolerance: tolerance)
+    , using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try validate(tolerance: tolerance, using: &execution)
         guard try uDomain.contains(u, tolerance: tolerance),
               try vDomain.contains(v, tolerance: tolerance) else {
             throw GeometryError.invalidDistance(
@@ -194,7 +266,8 @@ extension RuledSurface3D {
     /// both boundary curves have an exact bounded rational representation.
     package func exactBSplineRepresentation(
         tolerance: ModelingTolerance
-    ) throws -> BSplineSurface3D? {
+    , using execution: inout OriginalQueryExecution) throws -> BSplineSurface3D? {
+        try execution.consumeWork(1)
         guard case let .closed(lower, upper) = uDomain else {
             return nil
         }
@@ -205,19 +278,19 @@ extension RuledSurface3D {
             interval: interval,
             maximumSpanCount: 64,
             tolerance: tolerance
-        ), let end = try curveBuilder.boundedCurve(
+        , using: &execution), let end = try curveBuilder.boundedCurve(
             curve: endBoundary,
             interval: interval,
             maximumSpanCount: 64,
             tolerance: tolerance
-        ) else {
+        , using: &execution) else {
             return nil
         }
         return try ExactRuledBSplineSurfaceBuilder().build(
             startBoundary: start,
             endBoundary: end,
             tolerance: tolerance
-        )
+        , using: &execution)
     }
 }
 
@@ -227,7 +300,8 @@ extension RuledSurface3D {
         v: Double,
         throughOrder order: Int,
         tolerance: ModelingTolerance
-    ) throws -> SurfaceTaylorVectorJet {
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceTaylorVectorJet {
+        try execution.consumeWork(1)
         guard order >= 0, order <= 3 else {
             throw KernelError(
                 phase: .geometry,
@@ -241,10 +315,10 @@ extension RuledSurface3D {
             u: u,
             v: v,
             tolerance: tolerance
-        )
-        var x = try SurfaceTaylorScalarJet(order: order)
-        var y = try SurfaceTaylorScalarJet(order: order)
-        var z = try SurfaceTaylorScalarJet(order: order)
+        , using: &execution)
+        var x = try SurfaceTaylorScalarJet(order: order, using: &execution)
+        var y = try SurfaceTaylorScalarJet(order: order, using: &execution)
+        var z = try SurfaceTaylorScalarJet(order: order, using: &execution)
         func assign(
             _ uOrder: Int,
             _ vOrder: Int,
@@ -258,17 +332,17 @@ extension RuledSurface3D {
                 derivative.x / divisor,
                 uOrder: uOrder,
                 vOrder: vOrder
-            )
+            , using: &execution)
             try y.setCoefficient(
                 derivative.y / divisor,
                 uOrder: uOrder,
                 vOrder: vOrder
-            )
+            , using: &execution)
             try z.setCoefficient(
                 derivative.z / divisor,
                 uOrder: uOrder,
                 vOrder: vOrder
-            )
+            , using: &execution)
         }
         try assign(0, 0, Vector3D(
             x: lower.position.x,
@@ -285,7 +359,7 @@ extension RuledSurface3D {
                 u: u,
                 v: v,
                 tolerance: tolerance
-            )
+            , using: &execution)
             try assign(3, 0, third.thirdDerivativeUUU)
             try assign(2, 1, third.thirdDerivativeUUV)
             try assign(1, 2, third.thirdDerivativeUVV)
@@ -297,22 +371,23 @@ extension RuledSurface3D {
     func intervalJet(
         over parameters: SurfaceParameterBox,
         tolerance: ModelingTolerance
-    ) throws -> SurfaceIntervalVectorJet {
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceIntervalVectorJet {
+        try execution.consumeWork(1)
         try parameters.validate(
             for: .procedural(.ruled(self)),
             tolerance: tolerance
-        )
+        , using: &execution)
         let encloser = DefaultCurveDifferentialEncloser()
         let startJet = try encloser.thirdOrderIntervalJet(
             of: startBoundary,
             over: parameters.u,
             tolerance: tolerance
-        )
+        , using: &execution)
         let endJet = try encloser.thirdOrderIntervalJet(
             of: endBoundary,
             over: parameters.u,
             tolerance: tolerance
-        )
+        , using: &execution)
         return startJet + (
             (endJet + (-startJet)) * .parameterV(parameters.v)
         )

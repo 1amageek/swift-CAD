@@ -12,10 +12,12 @@ struct OriginalImplicitCurvePublicProducer {
     private typealias SurfaceCover = OriginalIssuedDomainCover<Surface,SurfaceChart,Base>
 
     func resolve(curve: Curve3D, surface: Surface3D, options: CurveSurfaceIntersectionOptions,
-        tolerance: ModelingTolerance, invocation: CurveSurfaceQueryInvocation? = nil,
+        tolerance: ModelingTolerance, using a: inout OriginalQueryExecution,
         retainingRelations: Bool = false) throws -> CurveSurfaceIntersectionResult? {
+        a.context = a.context.at(stage: .request)
+        try a.checkpoint()
         if let excluded = try OriginalImplicitHostPlanePublicProducer().resolve(
-            curve: curve, surface: surface, options: options, tolerance: tolerance, invocation: invocation) {
+            curve: curve, surface: surface, options: options, tolerance: tolerance, using: &a) {
             return excluded
         }
         // FIXME(INCOMPLETE_IMPLEMENTATION): The ordinary implicit selector consumes
@@ -28,21 +30,23 @@ struct OriginalImplicitCurvePublicProducer {
         guard case .bSpline(let native) = surface, !native.isUPeriodic, !native.isVPeriodic else { return nil }
         do {
             try options.validate(tolerance: tolerance)
-            let usage = try NativeCurveSurfacePointAllowance(options: options, invocation: invocation)
-            let depth = usage.maximumAlgebraicDepth
-            var a = NativeExactPublicAdmission(usage: usage, maximumDepth: depth)
-            try a.checkpoint(); try invocation?.consume(depth: 0)
+            let depth = a.effectiveLimits.maximumValueDepth
+            try a.checkpoint()
+            a.context = a.context.at(stage: .source)
             let sourceLimits = try OriginalSourceIssuanceLimits(
-                remainingSourceDepth: invocation?.remainingSourceDepth ?? options.maximumSubdivisionDepth)
-            let charts = min(invocation?.maximumSpanCount ?? options.maximumSubdivisionCells, options.maximumSubdivisionCells)
-            let limits = try OriginalDomainIdentityLimits(source: sourceLimits, maximumTransportDepth: depth,
-                maximumCharts: charts, maximumFamilies: 2, maximumIdentityProofs: 0)
-            let field = try Base(maximumValueDepth: depth, maximumCoefficientDepth: depth, using: &a)
+                remainingSourceDepth: a.effectiveLimits.remainingSourceDepth)
+            let charts = min(min(a.effectiveLimits.maximumCharts, a.effectiveLimits.maximumSpans), options.maximumSubdivisionCells)
+            let limits = try OriginalDomainIdentityLimits(source: sourceLimits, maximumTransportDepth: a.effectiveLimits.maximumTransportDepth,
+                maximumCharts: charts, maximumFamilies: min(2, a.effectiveLimits.maximumFamilies), maximumIdentityProofs: 0)
+            let field = try Base(maximumValueDepth: a.effectiveLimits.maximumValueDepth, maximumCoefficientDepth: a.effectiveLimits.maximumCoefficientDepth, using: &a)
             let source = try DefaultOriginalSourceBindingIssuer(provider: OriginalImplicitCurveSnapshotProvider(tolerance: tolerance))
                 .bind(curve, limits: sourceLimits, using: &a)
+            try a.admitSourceDepth(source.sourceDepth)
+            a.context = a.context.retaining(first: .init(source: source))
             let family = try DefaultOriginalFiniteImplicitCurveGraphPreparer()
                 .prepare(source: source, field: field, maximumCharts: charts, limits: sourceLimits, using: &a)
             try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: OriginalSourceParameterInterval<OriginalExactScalar>.self))
+            a.context = a.context.at(stage: .domain)
             let curveFrame = try frame(source: source, support: [family.support], inherited: family.proofDepth,
                 field: field, limits: limits, using: &a)
             let curveRequest: OriginalParameterSelection<Curve,Base>
@@ -53,10 +57,15 @@ struct OriginalImplicitCurvePublicProducer {
                     limits: limits, using: &a)
             } else { curveRequest = try curveFrame.fullSelection(limits: limits, using: &a) }
 
+            a.context = a.context.retaining(first: .init(selection: curveRequest))
+            a.context = a.context.at(stage: .source)
             let target = try DefaultOriginalSourceBindingIssuer(provider: OriginalBSplineSurfaceSnapshotProvider(tolerance: tolerance))
                 .bind(native, limits: sourceLimits, using: &a)
+            try a.admitSourceDepth(target.sourceDepth)
+            a.context = a.context.retaining(second: .init(source: target))
             let targetFamily = try DefaultOriginalFiniteBSplineChartPreparer<Surface>()
                 .prepare(source: target, field: field, maximumCharts: charts, limits: sourceLimits, using: &a)
+            a.context = a.context.at(stage: .domain)
             let targetFrame = try frame(source: target, support: targetFamily.support,
                 inherited: ExactScalarDepth(value: 0, coefficient: 0), field: field, limits: limits, using: &a)
             let full = try targetFrame.fullSelection(limits: limits, using: &a)
@@ -78,6 +87,7 @@ struct OriginalImplicitCurvePublicProducer {
                 }
                 targetRequest = try targetFrame.selection(intervals: axes, limits: limits, using: &a)
             } else { targetRequest = full }
+            a.context = a.context.retaining(second: .init(selection: targetRequest))
             let targetCover = try DefaultOriginalIssuedDomainBinder<Surface,SurfaceChart,Base>()
                 .bind(laws: targetFamily.laws, request: targetRequest, limits: limits, using: &a)
             let algebraic = try ExactAlgebraicScalarDomain.base(field: field, maximumExtensionLevel: Int.max, using: &a)
@@ -95,16 +105,17 @@ struct OriginalImplicitCurvePublicProducer {
                     family.coverage.reductions[index].cellOrdinal == index else {
                     throw ExactGeometricRelationFailure.invalidCoverage
                 }
-                try checkDegree(graph, maximum: options.maximumPolynomialDegree, using: &a)
+                try checkDegree(graph, maximum: min(options.maximumPolynomialDegree, a.effectiveLimits.maximumPolynomialDegree), using: &a)
             }
-            for graph in second.graphs { try checkDegree(graph.original.graph, maximum: options.maximumPolynomialDegree, using: &a) }
+            for graph in second.graphs { try checkDegree(graph.original.graph, maximum: min(options.maximumPolynomialDegree, a.effectiveLimits.maximumPolynomialDegree), using: &a) }
             let structural = try NativeExactPublicLimits.unboundedStructure(), topology = structural.topology
             let geometryLimits = try ExactGeometricRelationLimits(cells: structural.cells,
                 topology: .init(maximumGeneratedCells: topology.maximumGeneratedCells,
                     maximumRootsPerStack: topology.maximumRootsPerStack,
-                    maximumClosures: min(topology.maximumClosures, options.maximumCandidateCount),
+                    maximumClosures: min(topology.maximumClosures, min(options.maximumCandidateCount, a.effectiveLimits.maximumResults)),
                     maximumAttachmentPieces: topology.maximumAttachmentPieces, maximumComponents: topology.maximumComponents),
                 maximumStrata: structural.maximumStrata, maximumProjectionSpans: structural.maximumProjectionSpans)
+            a.context = a.context.at(stage: .relation)
             let raw = try DefaultOriginalIssuedGraphRelationResolver<Curve,Evidence,CurveCover,Surface,SurfaceLaw,SurfaceCover>()
                 .resolve(kind: .curveSurface, first: first, second: second, maximumPairs: charts, limits: limits,
                     cellLimits: geometryLimits.cells, topologyLimits: geometryLimits.topology, using: &a)
@@ -113,15 +124,16 @@ struct OriginalImplicitCurvePublicProducer {
                 try a.consumeWork(1)
                 let cells = selected.addingReportingOverflow(pair.relation.selection.cells.count)
                 let connected = components.addingReportingOverflow(pair.relation.components.count)
-                guard !cells.overflow, !connected.overflow, cells.partialValue <= options.maximumCandidateCount,
-                    connected.partialValue <= options.maximumCandidateCount else { throw ExactScalarFailure.resourceLimit(.work) }
+                guard !cells.overflow, !connected.overflow, cells.partialValue <= min(options.maximumCandidateCount, a.effectiveLimits.maximumResults),
+                    connected.partialValue <= min(options.maximumCandidateCount, a.effectiveLimits.maximumResults) else { throw ExactScalarFailure.resourceLimit(.work) }
                 selected = cells.partialValue; components = connected.partialValue
             }
             try raw.admitProof(limits: limits, using: &a)
             try family.coverage.admitProof(limits: sourceLimits, using: &a)
             let retainedRaw = copy raw
+            a.context = a.context.at(stage: .publication)
             let publication = try OriginalIssuedGeometricPublication.resolve(retainedRaw,
-                geometryLimits: geometryLimits, maximumPoints: options.maximumCandidateCount,
+                geometryLimits: geometryLimits, maximumPoints: min(options.maximumCandidateCount, a.effectiveLimits.maximumResults),
                 transports: { pair in
                     (retainedRaw.first.graphs[pair.firstGraphIndex].original.graph.parameterTransport,
                      retainedRaw.second.graphs[pair.secondGraphIndex].original.graph.parameterTransport)
@@ -134,18 +146,20 @@ struct OriginalImplicitCurvePublicProducer {
                 throw KernelError(phase: .geometry, code: .nonDiscreteIntersection, tolerance: tolerance,
                     message: "The original implicit curve relation has positive-dimensional solutions.")
             }
+            a.context = a.context.at(stage: .refinement)
             let numeric = try OriginalImplicitCurvePointPublisher<Surface,SurfaceLaw,SurfaceCover>()
                 .publish(geometry, field: field, options: options, tolerance: tolerance, limits: limits,
                     maximumDepth: depth, using: &a)
             typealias Receipt = OriginalImplicitCurveRelations<Surface,SurfaceLaw,SurfaceCover>
             try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: Receipt.self))
             let retained = Receipt(issuedGeometry: geometry, geometry: numeric.receipt.geometry)
+            a.context = a.context.at(stage: .publication)
             try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: CurveSurfaceIntersectionResult.self))
             let result = CurveSurfaceIntersectionResult(points: numeric.points, overlaps: [],
                 originalIssuedGeometricRelation: numeric.receipt.geometry, originalIssuedNumericalPoints: numeric.receipt,
                 originalImplicitCurveRelation: retained)
             try a.checkpoint(); return result
-        } catch { throw NativeExactGeometryPublicationFailure.published(error, tolerance: tolerance) }
+        } catch { throw NativeExactGeometryPublicationFailure.published(error, tolerance: tolerance, context: a.context) }
     }
 
     private func frame<S: Sendable, A: ExactScalarAdmission & ~Copyable>(source: OriginalSourceBinding<S>,

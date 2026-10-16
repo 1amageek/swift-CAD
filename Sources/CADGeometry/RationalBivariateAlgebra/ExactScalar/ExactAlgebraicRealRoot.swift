@@ -5,7 +5,7 @@ public struct ExactAlgebraicRealRoot: Sendable {
     public let isolation: ExactUnivariateRootIsolator.Root
     private let sequence: ExactUnivariateSturmSequence
 
-    public init<B: RationalAlgebraAdmitting>(polynomial: ExactBivariatePolynomial,
+    public init<B: ExactScalarAdmission & ~Copyable>(polynomial: ExactBivariatePolynomial,
         isolation: ExactUnivariateRootIsolator.Root, usage: inout B) throws {
         sequence = try ExactUnivariateSturmSequence(polynomial, usage: &usage)
         guard try sequence.count(lower: isolation.lower, upper: isolation.upper,
@@ -25,17 +25,17 @@ public struct ExactAlgebraicRealRoot: Sendable {
     }
 
     /// Reuse the retained Sturm authority for a contracted original unique-root bracket.
-    package func retainingIsolation<B: RationalAlgebraAdmitting>(_ bounds: ExactUnivariateRootIsolator.Root,
+    package func retainingIsolation<B: ExactScalarAdmission & ~Copyable>(_ bounds: ExactUnivariateRootIsolator.Root,
         usage: inout B) throws -> Self {
-        try exactScalarTaskCheckpoint()
-        try usage.visitExactCell(depth: bounds.isolationDepth)
+        try usage.checkpoint()
+        try usage.visitCell(axis: .value, depth: bounds.isolationDepth)
         let comparisonWork = try exactScalarCount(
             max(bounds.lower.numerator.words.count, isolation.lower.numerator.words.count),
             max(bounds.lower.denominator.words.count, isolation.lower.denominator.words.count))
         let upperComparisonWork = try exactScalarCount(
             max(bounds.upper.numerator.words.count, isolation.upper.numerator.words.count),
             max(bounds.upper.denominator.words.count, isolation.upper.denominator.words.count))
-        try usage.consumeExactWork(try exactScalarCount(comparisonWork, upperComparisonWork))
+        try usage.consumeWork(try exactScalarCount(comparisonWork, upperComparisonWork))
         if bounds.isolationDepth == isolation.isolationDepth,
             bounds.isRationalStation == isolation.isRationalStation,
             bounds.excludesLowerEndpoint == isolation.excludesLowerEndpoint,
@@ -66,17 +66,17 @@ public struct ExactAlgebraicRealRoot: Sendable {
         return Self(polynomial: polynomial, isolation: station, sequence: sequence)
     }
 
-    public func refined<B: RationalAlgebraAdmitting>(maximumWidth: ExactRationalCoefficient,
+    public func refined<B: ExactScalarAdmission & ~Copyable>(maximumWidth: ExactRationalCoefficient,
         maximumDepth: Int, usage: inout B) throws -> Self {
         try refined(maximumWidth: maximumWidth, maximumDepth: maximumDepth, useIntervalNewton: true, usage: &usage)
     }
 
-    package func refinedForSeparation<B: RationalAlgebraAdmitting>(maximumWidth: ExactRationalCoefficient,
+    package func refinedForSeparation<B: ExactScalarAdmission & ~Copyable>(maximumWidth: ExactRationalCoefficient,
         maximumDepth: Int, usage: inout B) throws -> Self {
         try refined(maximumWidth: maximumWidth, maximumDepth: maximumDepth, useIntervalNewton: false, usage: &usage)
     }
 
-    private func refined<B: RationalAlgebraAdmitting>(maximumWidth: ExactRationalCoefficient,
+    private func refined<B: ExactScalarAdmission & ~Copyable>(maximumWidth: ExactRationalCoefficient,
         maximumDepth: Int, useIntervalNewton: Bool, usage: inout B) throws -> Self {
         guard maximumWidth.isPositive, maximumDepth >= isolation.isolationDepth else {
             throw exactScalarBackendFailure("Exact algebraic refinement needs positive width and caller depth.")
@@ -90,7 +90,7 @@ public struct ExactAlgebraicRealRoot: Sendable {
             lower = upper; excludesLower = false
         }
         if lower != upper, polynomial.uDegree == 1 {
-            try usage.visitExactCell(depth: depth)
+            try usage.visitCell(axis: .value, depth: depth)
             let slope = polynomial.coefficients[try .init(u: 1, v: 0)] ?? .zero
             let constant = polynomial.coefficients[try .init(u: 0, v: 0)] ?? .zero
             guard !slope.isZero else { throw exactScalarBackendFailure("Original degree-one root lost its leading coefficient.") }
@@ -114,7 +114,7 @@ public struct ExactAlgebraicRealRoot: Sendable {
         let derivative = useIntervalNewton ? try polynomial.differentiated(alongU: true, usage: &usage) : nil
         let two = try ExactRationalCoefficient.natural(2, usage: &usage)
         while try upper.subtracting(lower, usage: &usage).subtracting(maximumWidth, usage: &usage).isPositive {
-            try usage.visitExactCell(depth: depth)
+            try usage.visitCell(axis: .value, depth: depth)
             guard depth < maximumDepth else {
                 throw ExactScalarFailure.resourceLimit(usage.exactDepthResource)
             }
@@ -162,14 +162,14 @@ public struct ExactAlgebraicRealRoot: Sendable {
         return Self(polynomial: polynomial, isolation: station, sequence: sequence)
     }
 
-    public func sign<B: RationalAlgebraAdmitting>(of expression: ExactBivariatePolynomial,
+    public func sign<B: ExactScalarAdmission & ~Copyable>(of expression: ExactBivariatePolynomial,
         maximumDepth: Int, usage: inout B) throws -> Sign {
         guard expression.vDegree <= 0, maximumDepth >= isolation.isolationDepth else {
             throw exactScalarBackendFailure("Algebraic source sign needs a univariate expression and caller depth.")
         }
         if expression.isZero { return .zero }
         if expression.uDegree == 1 {
-            try exactScalarTaskCheckpoint(); try usage.visitExactCell(depth: isolation.isolationDepth)
+            try usage.checkpoint(); try usage.visitCell(axis: .value, depth: isolation.isolationDepth)
             let constant = try expression.evaluated(atU: .zero, v: .zero, usage: &usage)
             let leading = try expression.evaluated(atU: .one, v: .zero, usage: &usage)
                 .subtracting(constant, usage: &usage)
@@ -200,7 +200,7 @@ public struct ExactAlgebraicRealRoot: Sendable {
         let two = try ExactRationalCoefficient.natural(2, usage: &usage)
         while true {
             let station = retained.isolation
-            try exactScalarTaskCheckpoint(); try usage.visitExactCell(depth: station.isolationDepth)
+            try usage.checkpoint(); try usage.visitCell(axis: .value, depth: station.isolationDepth)
             let interval = try OriginalRationalPolynomialRange(original: expression,
                 lower: station.lower, upper: station.upper, usage: &usage)
             if interval.lower.isPositive { return .positive }

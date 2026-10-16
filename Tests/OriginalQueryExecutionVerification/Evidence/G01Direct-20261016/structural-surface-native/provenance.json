@@ -1,0 +1,98 @@
+{
+  "production-receipt.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-structural-surface-r1/receipt.json",
+    "sha256": "53a65398fd6a177d3a9e604c743ed8391a0d16ab0c919132b91225e211f5958c"
+  },
+  "upper-receipt.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-structural-surface-upper-r1/receipt.json",
+    "sha256": "d322205299178f6f8b1b5ee34f0073d95d0d53a584e059375caef6bfea3b7570"
+  },
+  "focused-receipt.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/structural-surface-native-focused-r1/receipt.json",
+    "sha256": "faae1c54b0d355c8fa8abe9d03f258c4f6d04b243223f38c44b6c9e6e2f45662"
+  },
+  "g01-receipt.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/g01-native-final-r1/receipt.json",
+    "sha256": "2d535d95f0eae027b988d15ac8109c7c12e2ebcf8f82ed963d6c26c14887ffc8"
+  },
+  "source-freeze.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/structural-surface-work-source-r1/source-freeze.json",
+    "sha256": "86e383a9274c31991e5cb48c0362b53013ce85e96f477b138786fcc912aaad13"
+  },
+  "fixture-freeze-r2.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/structural-surface-work-source-r1/fixture-freeze-r2.json",
+    "sha256": "2ec82f2242b649cb9be19407e8f59ae5d9b3879dee6ba47acbaf39496b7d7759"
+  },
+  "source-only-delta.patch": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/structural-surface-work-source-r1/source-only-delta.patch",
+    "sha256": "351aa34f41f09918c74cd19736fac8e469555c96a798033a8bb1b290ea3d91bb"
+  },
+  "drawing-fixture-freeze.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-fixture-stack/source-freeze.json",
+    "sha256": "b74b6a04450e624c4e8f45a7b2bd902d1c7ede14977d517572d17d00a4b05ef9"
+  },
+  "drawing-failure-receipt.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-meter-r1/receipt.json",
+    "sha256": "126d3d29db55d809240691e4a288b017da99d798f0c91d51674378aad6e458cd"
+  },
+  "drawing-failure-runtime.log": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-meter-r1/test-runtime.log",
+    "sha256": "51687a2cc9b3d5b0c2784ebf8743b299fd5c605d19158d5410d4ea1bce09a050"
+  },
+  "drawing-stages.log": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-meter-r1-stages.log",
+    "sha256": "6f1ebba75defcb33e3b8966e6c304ce0e3a4fffbce0fd317792fa0d2c440f65e"
+  },
+  "actual-frames.json": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-meter-r1/SilhouetteProducer-actual-chain-frames.json",
+    "sha256": "50ba7ebbcb074cd5282bb2b73d01f07dacc64b1f2c12586112c6c0e1141c593b"
+  },
+  "actual-prologues.txt": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-meter-r1/SilhouetteProducer-actual-chain-prologues.txt",
+    "sha256": "341a497f23035c47c8c218fecb2ce18aa04ec45d37dad547148e6ad45076a741"
+  },
+  "g01-runtime-readers.log": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/g01-native-final-r1/runtime-readers.log",
+    "sha256": "7061157b4225c3d88d03351aaf39a4fdbf707b445f666a02255f670ae2b858fa"
+  },
+  "g01-runtime-full.log": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/g01-native-final-r1/runtime-full.log",
+    "sha256": "e4fbc0f2609afcdd8fc87b6776638758676ba0a0f7c03976798d86f935daa6b6"
+  },
+  "g01-runtime-admitted.log": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/g01-native-final-r1/runtime-admitted.log",
+    "sha256": "7fa68276fb18765ddadfce8e58f636cf57e248a32d7e2fc436b645f42e3fe095"
+  },
+  "g01-runtime-prepared.log": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/g01-native-final-r1/runtime-prepared.log",
+    "sha256": "00cd7915cb0d14999298238c95733d4e062a4c02fb6913e5c62c00f7b277f795"
+  },
+  "g01-runtime-ordinary.log": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/g01-native-final-r1/runtime-ordinary.log",
+    "sha256": "7c59dd7c23672804650692152121f621016159fd84f8921e632488434153fc2b"
+  },
+  "g01-runtime-resources.log": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/g01-native-final-r1/runtime-resources.log",
+    "sha256": "9d95120b75371fdf0d5bc873df811bdc7726530fb2ab0c62201753f38edcfb5b"
+  },
+  "g01-compiler-version.log": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/g01-native-final-r1/compiler-version.log",
+    "sha256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c"
+  },
+  "g01-fixture-compile-link.log": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/g01-native-final-r1/fixture-compile-link.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "focused-test-build-and-list.log": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/structural-surface-native-focused-r1/test-build-and-list.log",
+    "sha256": "6a61cf7e0d3c9e24b28bae66bbbfdfbd25f9a109728ff5b9f30271a3f2899a00"
+  },
+  "focused-test-runtime.log": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/structural-surface-native-focused-r1/test-runtime.log",
+    "sha256": "d783807b04d6bb6f7dd0ddbd9dac73f935c81c8c16023fd43f7527d965687bda"
+  },
+  "focused-compiler-version.log": {
+    "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/structural-surface-native-focused-r1/compiler-version.log",
+    "sha256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c"
+  }
+}

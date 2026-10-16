@@ -98,3 +98,13 @@ Status: design only; current implementation guarantees above remain unchanged.
 Affine intersection preparation will consume homogeneous-only child laws and retained exact word fields, including normalized words; no rational rounding or differential preparation is authorized.
 The [common consumer handoff](../OriginalSourceIssuance/DESIGN.md#composition-consumer-handoff-design)
 owns coefficient transport, complete-cover, publication and migration acceptance.
+
+## Direct Execution Admission
+
+Source arithmetic borrows `A: ExactScalarAdmission & ~Copyable`; composed query
+operations borrow `inout OriginalQueryExecution`. Source validation, native span
+validation, structural comparisons and exact refinement receive that same admission.
+The [execution owner](../OriginalQueryExecution/DESIGN.md) defines cumulative
+work and actual byte accounting, independent depth axes, cancellation and lexical
+proof scopes. Retained geometry and relation evidence stay immutable; no callback
+adapter, copied counter or second allowance supplies arithmetic authority.

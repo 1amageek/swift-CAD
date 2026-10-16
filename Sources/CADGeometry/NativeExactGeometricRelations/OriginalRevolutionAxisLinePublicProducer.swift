@@ -6,11 +6,13 @@ struct OriginalRevolutionAxisLinePublicProducer {
     private typealias Surface = OriginalRevolutionAxisGeometricRelations.Surface
     private typealias Selection = OriginalRevolutionAxisGeometricRelations.Selection
     private typealias Line = OriginalLinearCurveSnapshot
-    private typealias Admission = NativeExactPublicAdmission<NativeCurveSurfacePointAllowance>
+
 
     func resolve(curve:Curve3D,surface:Surface3D,options:CurveSurfaceIntersectionOptions,
-        tolerance:ModelingTolerance,invocation:CurveSurfaceQueryInvocation? = nil,
+        tolerance:ModelingTolerance,using a: inout OriginalQueryExecution,
         retainingRelations:Bool = false) throws -> CurveSurfaceIntersectionResult? {
+        a.context = a.context.at(stage: .request)
+        try a.checkpoint()
         let point:Point3D,direction:Vector3D
         switch curve {
         case .line(let line): point=line.origin;direction=line.direction
@@ -27,24 +29,28 @@ struct OriginalRevolutionAxisLinePublicProducer {
             let length=coordinateAxisLength(shape:shape,point:point,direction:direction) else { return nil }
         do {
             try options.validate(tolerance:tolerance)
-            let usage=try NativeCurveSurfacePointAllowance(options:options,invocation:invocation)
-            let depth=usage.maximumAlgebraicDepth
-            var a=NativeExactPublicAdmission(usage:usage,maximumDepth:depth)
-            try a.checkpoint();try invocation?.consume(depth:0)
+            let depth=a.effectiveLimits.maximumValueDepth
+            try a.checkpoint()
+            a.context = a.context.at(stage: .source)
             let sourceLimits=try OriginalSourceIssuanceLimits(
-                remainingSourceDepth:invocation?.remainingSourceDepth ?? options.maximumSubdivisionDepth)
+                remainingSourceDepth: a.effectiveLimits.remainingSourceDepth)
             guard sourceLimits.remainingSourceDepth >= 2 else { throw OriginalSourceIssuanceFailure.sourceDepthLimit }
-            let charts=min(invocation?.maximumSpanCount ?? options.maximumSubdivisionCells,options.maximumSubdivisionCells)
-            let limits=try OriginalDomainIdentityLimits(source:sourceLimits,maximumTransportDepth:depth,
-                maximumCharts:charts,maximumFamilies:2,maximumIdentityProofs:0)
-            let f=try Base(maximumValueDepth:depth,maximumCoefficientDepth:depth,using:&a)
+            let charts=min(min(a.effectiveLimits.maximumCharts, a.effectiveLimits.maximumSpans),options.maximumSubdivisionCells)
+            let limits=try OriginalDomainIdentityLimits(source:sourceLimits,maximumTransportDepth: a.effectiveLimits.maximumTransportDepth,
+                maximumCharts:charts,maximumFamilies: min(2, a.effectiveLimits.maximumFamilies),maximumIdentityProofs:0)
+            let f=try Base(maximumValueDepth: a.effectiveLimits.maximumValueDepth, maximumCoefficientDepth: a.effectiveLimits.maximumCoefficientDepth,using:&a)
             let line=try DefaultOriginalSourceBindingIssuer(provider:OriginalLinearCurveSnapshotProvider(tolerance:tolerance))
                 .bind(curve,limits:sourceLimits,using:&a)
+            try a.admitSourceDepth(line.sourceDepth)
+            a.context = a.context.retaining(first: .init(source: line))
+            a.context = a.context.at(stage: .domain)
             let lineDomain=DefaultOriginalLinearDomainIssuer<Line,Base>()
             let lineFrame=try lineDomain.frame(source:line,field:f,limits:limits,using:&a)
             try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:[ExactParameterInterval<OriginalExactScalar>].self))
             try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:ExactParameterInterval<OriginalExactScalar>.self))
             let lineRequest=try lineFrame.selection(intervals:[[interval(range,field:f,using:&a)]],limits:limits,using:&a)
+            a.context = a.context.retaining(first: .init(selection: lineRequest))
+            a.context = a.context.at(stage: .source)
             let lineChart=try line.chart(OriginalLinearChartSelection(lower:range.lower,upper:range.upper),limits:sourceLimits,using:&a)
             let lineLaw=try DefaultOriginalLinearChartIssuer<Line,Base>()
                 .issue(source:line,chart:lineChart,field:f,limits:sourceLimits,using:&a)
@@ -55,9 +61,12 @@ struct OriginalRevolutionAxisLinePublicProducer {
             let first=try DefaultOriginalRationalGraphFamilyPreparer<Line,OriginalLinearChartSelection>()
                 .prepare(cover:lineCover,field:field,maximumGraphs:charts,limits:limits,using:&a)
 
+            a.context = a.context.at(stage: .source)
             let source=try DefaultOriginalSourceBindingIssuer(provider:OriginalRevolutionSnapshotProvider(
                 child:OriginalNativeCurveFamilySnapshotProvider(tolerance:tolerance),field:f,tolerance:tolerance))
                 .bind(shape,limits:sourceLimits,using:&a)
+            try a.admitSourceDepth(source.sourceDepth)
+            a.context = a.context.retaining(second: .init(source: source))
             let generator=source.original.originalGenerator
             let child=try DefaultOriginalFiniteBSplineChartPreparer<BSplineCurve3D>()
                 .prepare(source:generator.original.originalChild,field:f,maximumCharts:charts,
@@ -68,6 +77,7 @@ struct OriginalRevolutionAxisLinePublicProducer {
             let family=try DefaultOriginalFiniteRevolutionLawPreparer<Surface,Selection,Base>()
                 .prepare(source:source,generators:directed,field:f,axisLength:f.binary64(exactly:length,using:&a),
                     maximumCharts:charts,limits:sourceLimits,using:&a)
+            a.context = a.context.at(stage: .domain)
             let issuer=DefaultOriginalRevolutionDomainIssuer<Surface,Selection,Base>()
             let frame=try issuer.frame(family:family,limits:limits,using:&a)
             let full=try frame.fullSelection(limits:limits,using:&a)
@@ -87,28 +97,31 @@ struct OriginalRevolutionAxisLinePublicProducer {
                 }
                 request=try frame.selection(intervals:axes,limits:limits,using:&a)
             } else { request=full }
+            a.context = a.context.retaining(second: .init(selection: request))
             let cover=try issuer.issue(request:request,family:family,limits:limits,using:&a)
-            for graph in first.graphs { try checkDegree(graph.original.graph,maximum:options.maximumPolynomialDegree,using:&a) }
+            for graph in first.graphs { try checkDegree(graph.original.graph,maximum:min(options.maximumPolynomialDegree, a.effectiveLimits.maximumPolynomialDegree),using:&a) }
             let unbounded=try NativeExactPublicLimits.unboundedStructure(),topology=unbounded.topology
             let geometryLimits=try ExactGeometricRelationLimits(cells:unbounded.cells,
                 topology:.init(maximumGeneratedCells:topology.maximumGeneratedCells,maximumRootsPerStack:topology.maximumRootsPerStack,
-                    maximumClosures:min(topology.maximumClosures,options.maximumCandidateCount),
+                    maximumClosures:min(topology.maximumClosures,min(options.maximumCandidateCount, a.effectiveLimits.maximumResults)),
                     maximumAttachmentPieces:topology.maximumAttachmentPieces,maximumComponents:topology.maximumComponents),
                 maximumStrata:unbounded.maximumStrata,maximumProjectionSpans:unbounded.maximumProjectionSpans)
+            a.context = a.context.at(stage: .relation)
             let relation=try OriginalRevolutionAxisGeometricRelations.Original.resolve(first:first,cover:cover,
-                maximumPairs:charts,maximumPolynomialDegree:options.maximumPolynomialDegree,limits:limits,cellLimits:geometryLimits.cells,
+                maximumPairs:charts,maximumPolynomialDegree:min(options.maximumPolynomialDegree, a.effectiveLimits.maximumPolynomialDegree),limits:limits,cellLimits:geometryLimits.cells,
                 topologyLimits:geometryLimits.topology,using:&a)
             var selected=0,components=0
             for pair in relation.pairs {
                 try a.consumeWork(1)
                 let cells=selected.addingReportingOverflow(pair.relation.selection.cells.count)
                 let connected=components.addingReportingOverflow(pair.relation.components.count)
-                guard !cells.overflow,!connected.overflow,cells.partialValue <= options.maximumCandidateCount,
-                    connected.partialValue <= options.maximumCandidateCount else { throw ExactScalarFailure.resourceLimit(.work) }
+                guard !cells.overflow,!connected.overflow,cells.partialValue <= min(options.maximumCandidateCount, a.effectiveLimits.maximumResults),
+                    connected.partialValue <= min(options.maximumCandidateCount, a.effectiveLimits.maximumResults) else { throw ExactScalarFailure.resourceLimit(.work) }
                 selected=cells.partialValue;components=connected.partialValue
             }
+            a.context = a.context.at(stage: .publication)
             let geometry=try OriginalRevolutionAxisGeometricRelations.resolve(relation,limits:limits,
-                geometryLimits:geometryLimits,maximumPoints:options.maximumCandidateCount,using:&a)
+                geometryLimits:geometryLimits,maximumPoints:min(options.maximumCandidateCount, a.effectiveLimits.maximumResults),using:&a)
             if !retainingRelations && geometry.hasPositiveDimensionalSolutions {
                 throw KernelError(phase:.geometry,code:.nonDiscreteIntersection,tolerance:tolerance,
                     message:"The original axis query retains a positive-dimensional parameter relation.")
@@ -120,11 +133,12 @@ struct OriginalRevolutionAxisLinePublicProducer {
                 throw KernelError(phase:.geometry,code:.unsupportedCapability,tolerance:tolerance,
                     message:"Isolated original axis contacts require certified numerical publication.")
             }
+            a.context = a.context.at(stage: .publication)
             try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:CurveSurfaceIntersectionResult.self))
             let result=CurveSurfaceIntersectionResult(points:[],overlaps:[],originalIssuedGeometricRelation:geometry,
                 originalRevolutionAxisRelation:geometry)
             try a.checkpoint();return result
-        } catch { throw NativeExactGeometryPublicationFailure.published(error,tolerance:tolerance) }
+        } catch { throw NativeExactGeometryPublicationFailure.published(error,tolerance:tolerance,context:a.context) }
     }
 
     private func coordinateAxisLength(shape:OriginalRevolutionSurface3D,point:Point3D,direction:Vector3D) -> Double? {

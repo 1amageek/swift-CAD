@@ -16,7 +16,7 @@ public struct DefaultOriginalAnalyticCosineZeroIssuer<S: OriginalAnalyticCoordin
     ) throws(OriginalSourceIssuanceFailure) -> OriginalAnalyticCosineZeroReceipt<S,F> {
         let law = copy law
         do {
-            return try OriginalSourceProofAdmission<A>.withBorrow(&admission) { a in
+            return try admission.withProofScope { a in
                 try a.checkpoint(); try law.admitProof(limits: limits, using: &a)
                 // FIXME(INCOMPLETE_IMPLEMENTATION): The public source issuer supports only
                 // finite physical circle C/S laws in the proved window below. General

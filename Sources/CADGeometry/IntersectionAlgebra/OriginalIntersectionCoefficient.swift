@@ -18,7 +18,7 @@ package struct OriginalIntersectionCoefficient: Sendable {
         self.coefficientAdmissionDepth = coefficientAdmissionDepth
     }
 
-    package static func prepare<B: RationalAlgebraAdmitting>(original: OriginalSingularFieldElement,
+    package static func prepare<B: ExactScalarAdmission & ~Copyable>(original: OriginalSingularFieldElement,
         maximumDepth: Int, maximumCoefficientDepth: Int,
         inheritedParameterDepth: Int = 0, inheritedCoefficientDepth: Int = 0, usage: inout B) throws -> Self {
         let parameterBaseline = max(inheritedParameterDepth, original.context.depth)
@@ -29,18 +29,18 @@ package struct OriginalIntersectionCoefficient: Sendable {
             original.context.coefficientDepth <= maximumCoefficientDepth else {
             throw rationalAlgebraFailure("Original coefficient transport exceeds its independent retained depth domains.")
         }
-        var admission = OriginalSourceScalarAdmission(base: usage, maximumDepth: maximumDepth,
-            maximumCoefficientDepth: maximumCoefficientDepth,
-            originalParameterDepth: original.context.depth, originalCoefficientDepth: original.context.coefficientDepth,
-            inheritedParameterDepth: parameterBaseline, inheritedCoefficientDepth: coefficientBaseline,
-            parameterDepth: parameterBaseline, coefficientDepth: coefficientBaseline)
-        let internalMaximumDepth = try rationalAlgebraCount(original.context.depth, maximumDepth - parameterBaseline)
-        defer { usage = admission.base }
+        let internalMaximumDepth=try rationalAlgebraCount(original.context.depth,maximumDepth-parameterBaseline)
+        return try usage.withProofScope(inherited:try .init(value:parameterBaseline,coefficient:coefficientBaseline),
+            maximum:try .init(value:maximumDepth,coefficient:maximumCoefficientDepth)) { observation in
+            let prepared=try intersectionSourceCalculation(originalParameterDepth:original.context.depth,
+                originalCoefficientDepth:original.context.coefficientDepth,inheritedParameterDepth:parameterBaseline,
+                inheritedCoefficientDepth:coefficientBaseline,maximumDepth:maximumDepth,
+                maximumCoefficientDepth:maximumCoefficientDepth,usage:&observation) { admission
+                -> (ExactRationalCoefficient?,ExactBivariatePolynomial?,OriginalSingularFieldPolynomial?) in
         try intersectionAlgebraStep(&admission)
         if let rational = try original.rationalValue(usage: &admission) {
             try RationalAlgebraStorage.retain(1, of: Self.self, usage: &admission)
-            return Self(original: original, representation: .rational(rational),
-                parameterAdmissionDepth: admission.parameterDepth, coefficientAdmissionDepth: admission.coefficientDepth)
+            return (rational,nil,nil)
         }
         let negative = try original.negated(maximumDepth: internalMaximumDepth, usage: &admission)
         let one = try OriginalSingularFieldElement.constant(.one, in: original.context,
@@ -75,11 +75,25 @@ package struct OriginalIntersectionCoefficient: Sendable {
         }
         let law = try OriginalSingularFieldPolynomial(context: rational, coefficients: coefficients,
             maximumDepth: internalMaximumDepth, usage: &admission)
-        admission.mapsOriginalCoefficientDepth = false
-        let roots = try OriginalSingularFieldRoot.allRealRoots(law, inheritedDepth: admission.coefficientDepth,
-            maximumDepth: internalMaximumDepth, admissionDomain: .coefficient(maximumDepth: maximumCoefficientDepth),
-            usage: &admission)
-        admission.mapsOriginalCoefficientDepth = true
+        return (nil,annihilator,law)
+            }
+            if let rational=prepared.value.0 {
+                let depth=try observation.depth
+                return Self(original:original,representation:.rational(rational),
+                    parameterAdmissionDepth:depth.value,coefficientAdmissionDepth:depth.coefficient)
+            }
+            guard let annihilator=prepared.value.1,let law=prepared.value.2 else { throw ExactScalarFailure.invalidEvidence }
+            let isolated=try intersectionSourceCalculation(originalParameterDepth:original.context.depth,
+                originalCoefficientDepth:0,inheritedParameterDepth:parameterBaseline,inheritedCoefficientDepth:0,
+                maximumDepth:maximumDepth,maximumCoefficientDepth:maximumCoefficientDepth,usage:&observation) { admission in
+                try OriginalSingularFieldRoot.allRealRoots(law,inheritedDepth:prepared.coefficientDepth,
+                    maximumDepth:internalMaximumDepth,admissionDomain:.coefficient(maximumDepth:maximumCoefficientDepth),usage:&admission)
+            }
+            let roots=isolated.value
+            let chosen=try intersectionSourceCalculation(originalParameterDepth:original.context.depth,
+                originalCoefficientDepth:original.context.coefficientDepth,inheritedParameterDepth:parameterBaseline,
+                inheritedCoefficientDepth:coefficientBaseline,maximumDepth:maximumDepth,
+                maximumCoefficientDepth:maximumCoefficientDepth,usage:&observation) { admission in
         var selected: OriginalSingularFieldRoot?
         for root in roots {
             try intersectionAlgebraStep(&admission)
@@ -101,14 +115,18 @@ package struct OriginalIntersectionCoefficient: Sendable {
         guard let root = selected else {
             throw rationalAlgebraFailure("Original coefficient has no selected root in the complete real norm coverage.")
         }
-        let depth = max(admission.coefficientDepth, root.isolation.depth)
-        let retained = OriginalSingularFieldRoot(polynomial: root.polynomial,
-            isolation: .init(lower: root.isolation.lower, upper: root.isolation.upper,
-                excludesLower: root.isolation.excludesLower, excludesUpper: root.isolation.excludesUpper, depth: depth),
-            admissionDomain: root.admissionDomain)
-        try RationalAlgebraStorage.retain(1, of: Self.self, usage: &admission)
-        return Self(original: original, representation: .algebraic(annihilator: annihilator, root: retained),
-            parameterAdmissionDepth: admission.parameterDepth, coefficientAdmissionDepth: depth)
+        return root
+            }
+            let root=chosen.value,observed=try observation.depth
+            let depth=max(observed.coefficient,root.isolation.depth)
+            let retained=OriginalSingularFieldRoot(polynomial:root.polynomial,
+                isolation:.init(lower:root.isolation.lower,upper:root.isolation.upper,
+                    excludesLower:root.isolation.excludesLower,excludesUpper:root.isolation.excludesUpper,depth:depth),
+                admissionDomain:root.admissionDomain)
+            try RationalAlgebraStorage.retain(1,of:Self.self,usage:&observation)
+            return Self(original:original,representation:.algebraic(annihilator:annihilator,root:retained),
+                parameterAdmissionDepth:observed.value,coefficientAdmissionDepth:depth)
+        }
     }
 
 }

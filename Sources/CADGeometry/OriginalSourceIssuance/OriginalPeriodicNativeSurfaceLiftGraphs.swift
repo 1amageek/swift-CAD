@@ -48,7 +48,7 @@ public struct OriginalPeriodicNativeSurfaceLiftGraphs<S: OriginalLiftSourceReadi
         throws(OriginalSourceIssuanceFailure) -> Graph {
         let cycles=copy cycles
         do {
-            return try OriginalSourceProofAdmission<A>.withBorrow(&admission) { a in
+            return try admission.withProofScope { a in
                 try admitProof(maximumCharts:maximumCharts,limits:limits,using:&a)
                 guard (0..<templateCount).contains(template),cycles.count==2 else { throw OriginalSourceIssuanceFailure.invalidChart }
                 try a.retainStorage(bytes:exactScalarPayloadBytes(count:2,of:OriginalExactScalar.self))

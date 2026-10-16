@@ -8,7 +8,7 @@ package struct OriginalRationalParameterComponents: Sendable {
 
     private init(components: [Component]) { self.components = components }
 
-    package static func prepare<B: RationalAlgebraAdmitting>(
+    package static func prepare<B: ExactScalarAdmission & ~Copyable>(
         incidence: OriginalRationalIntersectionIncidence, usage: inout B) throws -> Self {
         try intersectionAlgebraStep(&usage)
         let selected = incidence.partition.solutionCells
@@ -74,7 +74,7 @@ package struct OriginalRationalParameterComponents: Sendable {
         return Self(components: result)
     }
 
-    private static func root<B: RationalAlgebraAdmitting>(_ index: Int,
+    private static func root<B: ExactScalarAdmission & ~Copyable>(_ index: Int,
         parents: inout [Int], usage: inout B) throws -> Int {
         var current = index
         while parents[current] != current {

@@ -55,3 +55,24 @@ Status: design only; current implementation guarantees above remain unchanged.
 Coons intersection preparation will consume retained endpoint coefficients and selected local laws. The existing differential atlas remains on its current path until separately verified delegation.
 The [common consumer handoff](../OriginalSourceIssuance/DESIGN.md#composition-consumer-handoff-design)
 owns coefficient transport, complete-cover, publication and migration acceptance.
+
+
+### Direct Shared Position Formula
+
+`OriginalCoonsHomogeneousAtlas.prepared` borrows the original generic
+`ExactScalarAdmission & ~Copyable`. It readmits the Coons constructor's attained
+scalar proof before consuming retained source authority; the source binding owns
+actual source-tree depth. The existing exact Coons formula, complete positive
+common-cell cover and original denominator guards remain unchanged. Scalar cell
+visits and checked typed buffer growth debit that same owner directly. The
+intersection adapter's remaining migration is owned separately by the parent.
+
+## Direct Execution Admission
+
+Source arithmetic borrows `A: ExactScalarAdmission & ~Copyable`; composed query
+operations borrow `inout OriginalQueryExecution`. Source validation, native span
+validation, structural comparisons and exact refinement receive that same admission.
+The [execution owner](../OriginalQueryExecution/DESIGN.md) defines cumulative
+work and actual byte accounting, independent depth axes, cancellation and lexical
+proof scopes. Retained geometry and relation evidence stay immutable; no callback
+adapter, copied counter or second allowance supplies arithmetic authority.

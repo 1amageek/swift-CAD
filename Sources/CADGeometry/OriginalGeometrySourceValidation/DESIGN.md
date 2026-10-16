@@ -39,7 +39,7 @@ Existing cache policy is never promoted to a stronger selected capability.
 ## Purpose and Scope
 
 Child of [CADGeometry](../DESIGN.md). Composes actual original native B-spline
-structural validation under a caller work callback; no children.
+structural validation under a caller direct execution; no children.
 
 ## Responsibilities and Boundaries
 
@@ -109,9 +109,9 @@ actual proof loops forward the caller ledger; outer phase charging is insufficie
 Periodic pcurve translations require exact membership in the original support
 period lattice, including native knot endpoint differences and image gains/axis
 permutations. An approximate zero or approximate integer period is not a source
-validity witness. The scoped exact-algebra adapter borrows the same work callback;
+validity witness. The direct exact-algebra execution borrows the same direct execution;
 its word counts do not establish a separate complete byte admission receipt.
-An optional byte callback is forwarded unchanged through every descendant.
+An actual byte owner is forwarded through every descendant.
 When present, exact-word revalidation and period proofs admit each actual
 UInt32 buffer count with checked multiplication by four before allocation.
 The existing work debit remains independent; a work-only invocation does not
@@ -124,7 +124,7 @@ the current tolerance and the same work ledger without granting new limits.
 
 Flat original affine-word curve and support images retain the original source
 parameter domains and one descendant. Their immutable word receives bounded
-raw-factor validation under this same callback; no rounded representative
+raw-factor validation under this same execution; no rounded representative
 transform can replace it. Directed word-image pcurves bind the complete source
 lift and unchanged support chart to the exact retained target image.
 Generated endpoint connectors retain their construction and both original
@@ -135,7 +135,7 @@ original boundary expressions or certify a connector's closure.
 Original guide traversal chains retain their exact station partition and each
 directed root traversal. Their immutable constructor owns positional join and
 derivative authority; bounded family admission checks the current tolerance and
-descends into every retained original source with unchanged optional bytes and
+descends into every retained original source with unchanged actual bytes and
 independent source, spatial and algebra ceilings. Construction or display points
 cannot replace those traversal sources or authorize untrimmed membership.
 Guide endpoint corrections retain the original guide traversal and both original
@@ -157,22 +157,21 @@ The optional algebra-depth ceiling is forwarded unchanged through every curve,
 support, lift and pcurve descendant, including the sources retained by immutable
 procedural witnesses. It never reuses source nesting or subdivision depth. A
 missing algebra ceiling preserves the retained construction authority; supplying
-one can only tighten admission under the same work and optional byte callbacks.
+one can only tighten admission under the same work and actual byte owners.
 
 Persistent construction charts retain a normalized root traversal or exact
 directed rational parameter law. Bounded admission consumes the immutable chart
-contract and descends into its retained original source under the same callback
+contract and descends into its retained original source under the same execution
 and independent algebra ceiling. Normalized chart curves require directed B-rep
 trims; fitted or rounded endpoint images cannot authorize untrimmed membership.
 
 Original boundary-corrected supports retain both the native construction and
 the original Coons boundary receipt. Family admission descends into each under
-the unchanged work, optional byte and independent algebra-depth policy. The
+the unchanged work, actual byte and independent algebra-depth policy. The
 immutable correction receipt establishes construction provenance; it never
 replaces admission of either retained source or establishes embedding by itself.
 Original angular transports validate their retained intrinsic/physical-radian
-descriptor and complete primitive relation with the same work/byte algebra
-adapter. Standalone admission establishes the identity-action physical metric;
+descriptor and complete primitive relation with the same direct scalar execution. Standalone admission establishes the identity-action physical metric;
 an outer original word owns its complete world metric separately. The transport
 adds one source level, and an explicitly selected algebra ceiling constrains
 its exact normalization independently from source descent and subdivision.
@@ -180,7 +179,7 @@ its exact normalization independently from source descent and subdivision.
 Plane derivative carriers retain their original construction/traversal, final
 four boundary sources and every requested supporting source. Bounded admission
 visits each constraint before descending into its support and admits all retained
-curve/surface descendants with the same optional byte callback and independent
+curve/surface descendants with the same actual byte owner and independent
 source, spatial and algebra ceilings. Immutable projection provenance does not
 replace validation of a retained support or prove the final surface is regular.
 Original drafted curves retain their raw generator traversal, directions,
@@ -188,3 +187,87 @@ physical angle and height. Family admission consumes immutable construction
 provenance and descends into the generator; a drafted ruled support descends
 through its retained start curve. Final embedding and correspondence remain
 separate contracts and cannot be inherited from a fitted native candidate.
+
+## Direct Execution Admission
+
+Family validation receives the caller's `inout OriginalQueryExecution` directly.
+Native source loops, exact scalar predicates and recursively retained sources
+borrow that same execution; no callback-to-rational admission is constructed.
+Remaining source depth and geometric subdivision policy retain explicit source
+meaning. An optional stricter algebra ceiling bounds each scalar proof axis
+independently through the execution's local proof scope. All allocation bytes
+and actual work reach its sole cumulative owner.
+
+```text
+original source -> family validation -> retained descendants / native loops
+                 -> direct execution -> scalar proof and cumulative owner
+```
+
+The execution records attained source and scalar depths at the actual validation
+boundary. Immutable preparation receipts can be readmitted under a different
+execution without rebuilding source decomposition. Existing unsupported source
+branches remain explicit failures with their existing completion gates.
+
+## Immutable Preparation Evidence
+
+`OriginalGeometryPreparationReceipt` binds the actual operation-local scalar, source, transport and geometric depths, original cumulative budget and immutable tolerance. Prepared curve/surface owners and native conversion adapters retain it beside their immutable original source and coefficients. Every direct reader checks the retained tolerance and re-admits that evidence through the supplied execution. Foreign executions perform fixed metadata verification and retain the receipt cache owner; historical preparation arithmetic and scratch are never replayed or recharged. Query-local scopes and counters are not retained.
+
+```text
+original preparation -> operation-local attained depth -> immutable receipt
+reader execution -> receipt verification -> retained original coefficient query
+```
+
+The optional explicit algebra ceiling is an additional proof-scope maximum over the independent value and coefficient axes. Omitting it preserves the execution's distinct axis limits.
+
+Preparation ownership review (source contract; target compile/runtime evidence remains pending):
+
+| Logical state | Native / WASM / Embedded storage | Isolation | Read entry | Mutation entry | Release |
+|---|---|---|---|---|---|
+| Preparation evidence | Immutable `let` fields in `OriginalGeometryPreparationReceipt` | Immutable Sendable owner | `admit` | Constructor only | Strong owner release |
+| Original coefficient buffers | Immutable COW values in prepared source | Immutable retained source | Direct prepared query | Constructor only | Retained source release |
+| Cumulative charges | Shared `OriginalQueryBudget` | Same common Mutex contract | Budget snapshot | Direct execution budget methods | Budget owner release |
+| Proof scopes and receipt cache | Exclusive noncopyable execution | Caller-exclusive query lifetime | Direct query | Same execution only | Query end |
+
+No target-conditional state or Sendable conformance is introduced by these preparation ports. The common budget owner design owns synchronization implementation and its portable behavioral evidence.
+
+
+### Immutable Preparation Receipt Lifecycle
+
+The retained preparation receipt owns its common budget, effective immutable
+policy and ordered active contribution handles together with attained proof
+depths and tolerance. Later ordinary queries create one execution from that
+owner. Same-budget direct queries temporarily enter the retained contribution
+ancestry on the original execution; independent executions readmit the actual
+proof without importing foreign spend authority. The common execution owns
+scope cleanup and all mutable counters. No callback or query-local scope is
+stored in the receipt.
+
+## Certified Family Direct Validation
+
+The bounded curve and pcurve dispatcher invokes the genuine certified-family
+validation loops through the same execution and current source-depth offset.
+These validators retain their existing source/domain/residual meaning and
+propagate unavailable lower producers. They do not issue original intersection
+coverage or an exact-coincidence receipt; that separate migration remains with
+the certified source families. Actual dispatch success/failure and cumulative
+resource tests are required before its resource-port marker can be removed.
+
+
+## Bounded Native and Lift Validation Frame Boundary
+
+The native surface/curve dispatch and the curve surface-lift validation path
+must not reserve unrelated procedural-family temporary frames. Private
+`@inline(never)` helpers isolate those original family bodies. The public/package
+signatures, existing proof scope, source-depth admission, one entry work visit,
+cancellation/tolerance order, child depth mapping and actual family validation
+remain unchanged. Native controls and lifted pcurves still receive every original
+validation; no retained metadata or sampled result replaces it.
+
+The concrete Native worker-stack counterexample is the authored unit-rectangle
+Face Rebuild input (IPS `991975f72c78dab01bd6c7fdf0597b52d61c079a3273d5dfa37e967617fc557f`).
+Its source validation occurs inside prepared correspondence. Verification owns
+original-body/debit comparison, actual fixed-toolchain frame prologues and the
+same genuine caller positive/refusal controls. A smaller source form is not
+runtime success; caller stack limits and cancellation/resource contracts stay
+fixed. Preparation frame ownership is documented by
+[Geometry conversion](../GeometryConversion/DESIGN.md).

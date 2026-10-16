@@ -1,33 +1,9 @@
 import CADCore
 
-/// Reservations derived from the original homogeneous preparation and localization loops.
-/// Scalar slots include generated numeric arrays; work counts scalar arithmetic/comparisons.
+/// Structural scalar-slot reservations for native position policy.
+/// Actual native arithmetic and byte allocations are charged by their direct owners.
 struct PreparedBSplineSurfaceDifferentialCost {
-    struct Budget {
-        let limits: NativeSurfacePositionCertificationLimits
-        private(set) var scalars = 0
-        private(set) var work = 0
-        private(set) var boxes = 0
-
-        mutating func charge(scalars count: Int = 0, work units: Int = 0) throws {
-            try CurrentTaskCancellationChecker().checkCancellation()
-            let nextScalars = try Self.sum(scalars, count)
-            let nextWork = try Self.sum(work, units)
-            guard nextScalars <= limits.maximumScalarCount, nextWork <= limits.maximumWorkUnits else {
-                throw GeometryConversionError.resourceLimitExceeded("Native position certification exhausted its cumulative storage or work allowance.")
-            }
-            scalars = nextScalars
-            work = nextWork
-        }
-
-        mutating func visit() throws {
-            try CurrentTaskCancellationChecker().checkCancellation()
-            guard boxes < limits.maximumCertificationBoxes else {
-                throw GeometryConversionError.resourceLimitExceeded("Native position certification exhausted its cell allowance.")
-            }
-            boxes += 1
-        }
-
+    enum Arithmetic {
         static func sum(_ a: Int, _ b: Int, _ c: Int = 0, _ d: Int = 0, _ e: Int = 0, _ f: Int = 0) throws -> Int {
             try adding(adding(adding(adding(adding(a, b), c), d), e), f)
         }
@@ -53,7 +29,6 @@ struct PreparedBSplineSurfaceDifferentialCost {
         }
     }
 
-    private typealias Arithmetic = Budget
     private let surface: BSplineSurface3D
     private let spanCount: Int
     private let n: Int
@@ -62,33 +37,25 @@ struct PreparedBSplineSurfaceDifferentialCost {
     private let groups: Int
 
     /// Charge row metadata before walking even malformed/ragged input, then complete validation.
-    static func chargeValidation(of surface: BSplineSurface3D, budget: inout Budget) throws -> Int {
+    static func chargeValidation(of surface: BSplineSurface3D, using execution: inout OriginalQueryExecution) throws -> Int {
         let rows = try Arithmetic.sum(surface.controlPoints.count, surface.weights.count)
-        try budget.charge(work: Arithmetic.product(rows, 4))
+        try execution.charge(work: Arithmetic.product(rows, 4))
         var controls = 0, weights = 0
         for row in surface.controlPoints { controls = try Arithmetic.sum(controls, row.count) }
         for row in surface.weights { weights = try Arithmetic.sum(weights, row.count) }
         let knots = try Arithmetic.sum(surface.uKnots.count, surface.vKnots.count)
-        // Point validation: three coordinates; weight validation: finite and positive;
-        // knot validation: finite, sorted and complete multiplicity scan.
-        let scan = try Arithmetic.sum(Arithmetic.product(controls, 3), Arithmetic.product(weights, 2),
-            Arithmetic.product(knots, 4), rows)
-        // A periodic validation also compares every repeated Cartesian/weight tail
-        // and checks translated knot axes. Charge conservative complete-net/axis
-        // scans before validation, including both axes when both are periodic.
         let periodicAxes = (surface.isUPeriodic ? 1 : 0) + (surface.isVPeriodic ? 1 : 0)
         let periodicScan = try Arithmetic.product(periodicAxes,
             Arithmetic.sum(Arithmetic.product(controls, 4), Arithmetic.product(knots, 64), 128))
-        try budget.charge(work: Arithmetic.sum(scan, periodicScan, 12))
         return try Arithmetic.sum(Arithmetic.product(controls, 3), weights, knots, rows,
             periodicScan, 12)
     }
 
-    init(surface: BSplineSurface3D, budget: inout Budget) throws {
+    init(surface: BSplineSurface3D, using execution: inout OriginalQueryExecution) throws {
         self.surface = surface
         n = try Arithmetic.sum(surface.uDegree, 1)
         m = try Arithmetic.sum(surface.vDegree, 1)
-        try budget.charge(work: Arithmetic.sum(Arithmetic.product(2, surface.uKnots.count), Arithmetic.product(2, surface.vKnots.count),
+        try execution.charge(work: Arithmetic.sum(Arithmetic.product(2, surface.uKnots.count), Arithmetic.product(2, surface.vKnots.count),
             Arithmetic.product(surface.uControlPointCount, surface.vControlPointCount)))
         var us = 0, vs = 0
         for i in surface.uDegree..<surface.uControlPointCount where surface.uKnots[i] < surface.uKnots[i + 1] { us += 1 }
@@ -103,10 +70,7 @@ struct PreparedBSplineSurfaceDifferentialCost {
         groups = singleBezier && !surface.weights.allSatisfy({ $0.allSatisfy { $0 == 1 } }) ? 4 : 1
     }
 
-    func chargePreparation(budget: inout Budget) throws {
-        // Preparation validates once, and general original decomposition validates again.
-        _ = try Self.chargeValidation(of: surface, budget: &budget)
-        if !singleBezier { _ = try Self.chargeValidation(of: surface, budget: &budget) }
+    func chargePreparation(using execution: inout OriginalQueryExecution) throws {
         let net = try Arithmetic.product(n, m)
         var scalars = 0, work = 0
         if singleBezier {
@@ -134,6 +98,7 @@ struct PreparedBSplineSurfaceDifferentialCost {
         // Ten stored derivative tensors, including nine differentiated tensors.
         for uOrder in 0...3 {
             for vOrder in 0...(3 - uOrder) {
+                try execution.consumeWork(1)
                 let count = try Arithmetic.product(max(1, n - uOrder), max(1, m - vOrder))
                 scalars = try Arithmetic.sum(scalars, Arithmetic.product(count, 8, groups))
                 if uOrder + vOrder > 0 {
@@ -145,26 +110,24 @@ struct PreparedBSplineSurfaceDifferentialCost {
         // Span-index lists and metadata in both original and prepared patch records:
         // original origin/weight/indices/bounds (10), prepared indices/bounds (6),
         // tolerance (3), patch origin/weight/domain (8), source degrees/origins (4).
-        try budget.charge(scalars: Arithmetic.sum(Arithmetic.product(scalars, spanCount),
+        try execution.charge(scalars: Arithmetic.sum(Arithmetic.product(scalars, spanCount),
             surface.uControlPointCount, surface.vControlPointCount, Arithmetic.product(spanCount, 10 + 6 + 3 + 8 + 4)),
-            work: Arithmetic.sum(Arithmetic.product(work, spanCount),
-                Arithmetic.product(surface.uControlPointCount, surface.vControlPointCount, 4),
-                surface.uKnots.count, surface.vKnots.count))
+            work: 0)
     }
 
-    func chargeProbe(over box: SurfaceParameterBox, pointOnly: Bool, budget: inout Budget) throws {
+    func chargeProbe(over box: SurfaceParameterBox, pointOnly: Bool, using execution: inout OriginalQueryExecution) throws {
         guard !surface.isUPeriodic, !surface.isVPeriodic else {
             throw GeometryConversionError.invalidInput("A periodic original probe reservation requires its actual preparation tolerance and fundamental cover.")
         }
-        try chargeProbe(over: box, pointOnly: pointOnly, periodicCover: false, budget: &budget)
+        try chargeProbe(over: box, pointOnly: pointOnly, periodicCover: false, using: &execution)
     }
 
     /// Reserves the actual original periodic cover without replacing its chart or controls.
     /// The prepared visitor consumes the same deterministic cover law and tolerance.
     func chargeProbe(over box: SurfaceParameterBox, pointOnly: Bool,
-        tolerance: ModelingTolerance, budget: inout Budget) throws {
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
         guard surface.isUPeriodic || surface.isVPeriodic else {
-            try chargeProbe(over: box, pointOnly: pointOnly, budget: &budget)
+            try chargeProbe(over: box, pointOnly: pointOnly, using: &execution)
             return
         }
         // Cost inspection and the actual query each form at most two intervals
@@ -174,24 +137,24 @@ struct PreparedBSplineSurfaceDifferentialCost {
         let knotWork = try Arithmetic.sum(
             Arithmetic.product(surface.uKnots.count, surface.uKnots.count),
             Arithmetic.product(surface.vKnots.count, surface.vKnots.count))
-        try budget.charge(scalars: 64, work: Arithmetic.sum(Arithmetic.product(knotWork, 8), 512))
-        let us = try surface.enclosureIntervals(box.u, direction: .u, tolerance: tolerance)
-        let vs = try surface.enclosureIntervals(box.v, direction: .v, tolerance: tolerance)
+        try execution.charge(scalars: 64, work: Arithmetic.sum(Arithmetic.product(knotWork, 4), 256))
+        let us = try surface.enclosureIntervals(box.u, direction: .u, tolerance: tolerance, using: &execution)
+        let vs = try surface.enclosureIntervals(box.v, direction: .v, tolerance: tolerance, using: &execution)
         guard us.count <= 2, vs.count <= 2 else {
             throw GeometryConversionError.resourceLimitExceeded("The original periodic query exceeded its proved fundamental-cover count.")
         }
         for u in us {
             for v in vs {
                 try chargeProbe(over: SurfaceParameterBox(u: u, v: v),
-                    pointOnly: pointOnly, periodicCover: true, budget: &budget)
+                    pointOnly: pointOnly, periodicCover: true, using: &execution)
             }
         }
     }
 
     private func chargeProbe(over box: SurfaceParameterBox, pointOnly: Bool,
-        periodicCover: Bool, budget: inout Budget) throws {
+        periodicCover: Bool, using execution: inout OriginalQueryExecution) throws {
         // Both cost inspection and the actual prepared query scan the entire retained span set.
-        try budget.charge(work: Arithmetic.sum(Arithmetic.product(spanCount, 2, 8),
+        try execution.charge(work: Arithmetic.sum(Arithmetic.product(spanCount, 8),
             surface.uKnots.count, surface.vKnots.count))
         for j in surface.vDegree..<surface.vControlPointCount where surface.vKnots[j] < surface.vKnots[j + 1] {
             for i in surface.uDegree..<surface.uControlPointCount where surface.uKnots[i] < surface.uKnots[i + 1] {
@@ -202,6 +165,7 @@ struct PreparedBSplineSurfaceDifferentialCost {
                 let orders = pointOnly ? 0 : 3
                 for uOrder in 0...orders {
                     for vOrder in 0...(orders - uOrder) {
+                        try execution.consumeWork(1)
                         let a = max(1, n - uOrder), b = max(1, m - vOrder)
                         let count = try Arithmetic.product(a, b)
                         // Every scalar hull allocates its component array plus lower/upper arrays.
@@ -240,7 +204,7 @@ struct PreparedBSplineSurfaceDifferentialCost {
                 let fields = pointOnly ? 1 : 10
                 scalars = try Arithmetic.sum(scalars, Arithmetic.product(4, fields, 6, 3, 4), Arithmetic.product(4, fields, 2))
                 work = try Arithmetic.sum(work, Arithmetic.product(4, fields, 6, 3 * 12 + 4), Arithmetic.product(4, fields, 4))
-                try budget.charge(scalars: scalars, work: work)
+                try execution.charge(scalars: scalars)
             }
         }
     }

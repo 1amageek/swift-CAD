@@ -60,7 +60,8 @@ struct CertifiedSimplePolynomialRootSolverTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func reusableHornerBuffersPreserveExpansionSigns() {
+    func reusableHornerBuffersPreserveExpansionSigns() throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
         let coefficientSets = [
             [4.0, 0.0, -5.0, 0.0, 1.0],
             [1.0, -4.0, 6.0, -4.0, 1.0],
@@ -83,16 +84,17 @@ struct CertifiedSimplePolynomialRootSolverTests {
             for value in values {
                 var reference: [Double] = []
                 for coefficient in coefficients.reversed() {
-                    reference = FloatingPointExpansion.sum(
-                        FloatingPointExpansion.product(reference, [value]),
-                        [coefficient]
+                    reference = try FloatingPointExpansion.sum(
+                        try FloatingPointExpansion.product(reference, [value], using: &execution),
+                        [coefficient], using: &execution
                     )
                 }
                 #expect(
-                    FloatingPointExpansion.hornerSign(
+                    try FloatingPointExpansion.hornerSign(
                         coefficients: coefficients,
-                        at: value
-                    ) == FloatingPointExpansion.sign(reference)
+                        at: value,
+                        using: &execution
+                    ) == FloatingPointExpansion.sign(reference, using: &execution)
                 )
             }
         }

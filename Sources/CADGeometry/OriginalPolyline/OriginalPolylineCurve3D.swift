@@ -11,7 +11,7 @@ public struct OriginalPolylineCurve3D: Hashable, Sendable {
     package var maximumSpanCount: Int { law.segments.count }
     private let law: OriginalEuclideanPolyline3DParameterLaw
 
-    public init<B: RationalAlgebraAdmitting>(points: [Point3D], isClosed: Bool,
+    public init<B: ExactScalarAdmission & ~Copyable>(points: [Point3D], isClosed: Bool,
         tolerance: ModelingTolerance, remainingSourceDepth: Int,
         maximumSubdivisionDepth: Int, maximumAlgebraicDepth: Int, usage: inout B) throws {
         try tolerance.validate()
@@ -46,31 +46,7 @@ public struct OriginalPolylineCurve3D: Hashable, Sendable {
         package let jet: IntervalVectorDerivativeJet
     }
 
-    private struct Usage: RationalAlgebraAdmitting {
-        let work: () throws -> Void
-        let storage: ((Int) throws -> Void)?
-        let algebraDepth: Int
-        mutating func consumeExactWork(_ count: Int) throws {
-            guard count >= 0 else { throw GeometryConversionError.invalidInput("Original polyline work is negative.") }
-            for _ in 0..<count { try CurrentTaskCancellationChecker().checkCancellation(); try work() }
-        }
-        mutating func retainExactStorage(_ count: Int) throws {
-            let bytes = count.multipliedReportingOverflow(by: MemoryLayout<UInt32>.stride)
-            guard count >= 0, !bytes.overflow else {
-                throw GeometryConversionError.resourceLimitExceeded("Original polyline storage bytes overflow.")
-            }
-            try storage?(bytes.partialValue)
-        }
-        mutating func visitExactCell(depth: Int) throws {
-            guard depth >= 0, depth <= algebraDepth else {
-                throw GeometryConversionError.resourceLimitExceeded("Original polyline exceeds caller algebra depth.")
-            }
-            try consumeExactWork(1)
-        }
-        mutating func visitCoefficientCell(depth: Int) throws { try visitExactCell(depth: depth) }
-    }
-
-    private func selectedLaw<B: RationalAlgebraAdmitting>(maximumAlgebraicDepth requested: Int?,
+    private func selectedLaw<B: ExactScalarAdmission & ~Copyable>(maximumAlgebraicDepth requested: Int?,
         usage: inout B) throws -> OriginalEuclideanPolyline3DParameterLaw {
         guard requested.map({ (0...32).contains($0) }) ?? true else {
             throw GeometryConversionError.invalidInput("Original polyline algebra cap is outside zero through 32.")
@@ -83,10 +59,9 @@ public struct OriginalPolylineCurve3D: Hashable, Sendable {
         return law
     }
 
-    package func owningDerivativeJets(over parameters: ScalarInterval, throughOrder order: Int,
+    package func owningDerivativeJets<A: ExactScalarAdmission & ~Copyable>(over parameters: ScalarInterval, throughOrder order: Int,
         tolerance: ModelingTolerance, maximumSpanCount: Int, maximumSubdivisionDepth: Int,
-        remainingSourceDepth: Int, consumeWork: () throws -> Void,
-        consumeStorage: ((Int) throws -> Void)? = nil, maximumAlgebraicDepth requested: Int? = nil) throws -> [OwningJet] {
+        remainingSourceDepth: Int, maximumAlgebraicDepth requested: Int? = nil, using execution: inout A) throws -> [OwningJet] {
         try validate(tolerance: tolerance)
         guard (0...3).contains(order), maximumSpanCount > 0, maximumSubdivisionDepth >= 0,
             remainingSourceDepth >= 0, parameters.lower.isFinite, parameters.upper.isFinite,
@@ -94,9 +69,8 @@ public struct OriginalPolylineCurve3D: Hashable, Sendable {
             requested.map({ (0...32).contains($0) }) ?? true else {
             throw GeometryConversionError.invalidInput("Original polyline requires a closed normalized owning query.")
         }
-        return try withoutActuallyEscaping(consumeWork) { work in
-            let depth = min(requested ?? self.maximumAlgebraicDepth, self.maximumAlgebraicDepth)
-            var usage = Usage(work: work, storage: consumeStorage, algebraDepth: depth)
+        let depth = min(requested ?? self.maximumAlgebraicDepth, self.maximumAlgebraicDepth)
+        return try execution.withProofScope(maximum: .init(value: depth, coefficient: depth)) { usage in
             let original = try selectedLaw(maximumAlgebraicDepth: requested, usage: &usage)
             let lower = try OriginalSingularFieldElement.constant(.originalDouble(parameters.lower, usage: &usage),
                 in: original.context, maximumDepth: depth, usage: &usage)
@@ -109,7 +83,7 @@ public struct OriginalPolylineCurve3D: Hashable, Sendable {
             var output: [OwningJet] = []; output.reserveCapacity(original.segments.count)
             let width = try ExactRationalCoefficient.originalDouble(tolerance.distance, usage: &usage)
             for segment in original.segments {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 let lowerBefore = try lower.subtracting(segment.lowerFraction, maximumDepth: depth, usage: &usage)
                     .sign(maximumDepth: depth, usage: &usage)
                 let upperAfter = try upper.subtracting(segment.upperFraction, maximumDepth: depth, usage: &usage)
@@ -122,12 +96,12 @@ public struct OriginalPolylineCurve3D: Hashable, Sendable {
                 let last = try segment.originalXYZ(atOriginalFraction: b, maximumAlgebraicDepth: depth, usage: &usage)
                 let derivative = try segment.originalFirstDerivative(maximumAlgebraicDepth: depth, usage: &usage)
                 func axis(_ first: OriginalSingularFieldElement, _ last: OriginalSingularFieldElement,
-                    _ derivative: OriginalSingularFieldElement, usage: inout Usage) throws -> IntervalDerivativeJet {
+                    _ derivative: OriginalSingularFieldElement, usage: inout A) throws -> IntervalDerivativeJet {
                     try RationalAlgebraStorage.retain(order + 1, of: OutwardScalarInterval.self, usage: &usage)
                     var values: [OutwardScalarInterval] = []; values.reserveCapacity(order + 1)
                     let x = try first.enclosure(maximumWidth: width, maximumDepth: depth, usage: &usage)
                     let y = try last.enclosure(maximumWidth: width, maximumDepth: depth, usage: &usage)
-                    values.append(x.union(y)); try usage.consumeExactWork(1)
+                    values.append(x.union(y)); try usage.consumeWork(1)
                     if order > 0 { values.append(try derivative.enclosure(maximumWidth: width,
                         maximumDepth: depth, usage: &usage)) }
                     if order > 1 { for _ in 2...order { values.append(.exact(0)) } }
@@ -149,35 +123,30 @@ public struct OriginalPolylineCurve3D: Hashable, Sendable {
         }
     }
 
-    package func preparedFirstOrder(over parameters: ScalarInterval, tolerance: ModelingTolerance,
+    package func preparedFirstOrder<A: ExactScalarAdmission & ~Copyable>(over parameters: ScalarInterval, tolerance: ModelingTolerance,
         maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
-        consumeWork: () throws -> Void, consumeStorage: ((Int) throws -> Void)? = nil,
-        maximumAlgebraicDepth: Int? = nil) throws -> OriginalCurveFirstOrderJet {
+        maximumAlgebraicDepth: Int? = nil, using execution: inout A) throws -> OriginalCurveFirstOrderJet {
         let owners = try owningDerivativeJets(over: parameters, throughOrder: 1, tolerance: tolerance,
             maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-            remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork,
-            consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+            remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
         var position = IntervalVector3DBounds(x: owners[0].jet.x.derivatives[0], y: owners[0].jet.y.derivatives[0], z: owners[0].jet.z.derivatives[0])
         var derivative = IntervalVector3DBounds(x: owners[0].jet.x.derivatives[1], y: owners[0].jet.y.derivatives[1], z: owners[0].jet.z.derivatives[1])
         for owner in owners.dropFirst() {
-            for _ in 0..<6 { try consumeWork() }
+            for _ in 0..<6 { try execution.consumeWork(1) }
             position = .init(x: position.x.union(owner.jet.x.derivatives[0]), y: position.y.union(owner.jet.y.derivatives[0]), z: position.z.union(owner.jet.z.derivatives[0]))
             derivative = .init(x: derivative.x.union(owner.jet.x.derivatives[1]), y: derivative.y.union(owner.jet.y.derivatives[1]), z: derivative.z.union(owner.jet.z.derivatives[1]))
         }
         return .init(position: position, firstDerivative: derivative)
     }
 
-    package func hasSmoothNativeInterval(over parameters: ScalarInterval, tolerance: ModelingTolerance,
+    package func hasSmoothNativeInterval<A: ExactScalarAdmission & ~Copyable>(over parameters: ScalarInterval, tolerance: ModelingTolerance,
         maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
-        consumeWork: () throws -> Void, consumeStorage: ((Int) throws -> Void)? = nil,
-        maximumAlgebraicDepth requested: Int? = nil) throws -> Bool {
+        maximumAlgebraicDepth requested: Int? = nil, using execution: inout A) throws -> Bool {
         let owners = try owningDerivativeJets(over: parameters, throughOrder: 1, tolerance: tolerance,
             maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-            remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork,
-            consumeStorage: consumeStorage, maximumAlgebraicDepth: requested)
-        return try withoutActuallyEscaping(consumeWork) { work in
-            let depth = min(requested ?? self.maximumAlgebraicDepth, self.maximumAlgebraicDepth)
-            var usage = Usage(work: work, storage: consumeStorage, algebraDepth: depth)
+            remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: requested, using: &execution)
+        let depth = min(requested ?? self.maximumAlgebraicDepth, self.maximumAlgebraicDepth)
+        return try execution.withProofScope(maximum: .init(value: depth, coefficient: depth)) { usage in
             let original = try selectedLaw(maximumAlgebraicDepth: requested, usage: &usage)
             var previous: (x: OriginalSingularFieldElement, y: OriginalSingularFieldElement, z: OriginalSingularFieldElement)?
             for owner in owners {
@@ -185,7 +154,7 @@ public struct OriginalPolylineCurve3D: Hashable, Sendable {
                     .sign(maximumDepth: depth, usage: &usage) != .positive { continue }
                 var selected: OriginalEuclideanPolyline3DParameterLaw.Segment?
                 for candidate in original.segments {
-                    try usage.consumeExactWork(1)
+                    try usage.consumeWork(1)
                     if candidate.originalPointIndex == owner.originalPointIndex { selected = candidate; break }
                 }
                 guard let segment = selected else {
@@ -203,23 +172,20 @@ public struct OriginalPolylineCurve3D: Hashable, Sendable {
         }
     }
 
-    package func derivatives(over parameters: ScalarInterval, throughOrder order: Int,
+    package func derivatives<A: ExactScalarAdmission & ~Copyable>(over parameters: ScalarInterval, throughOrder order: Int,
         tolerance: ModelingTolerance, maximumSpanCount: Int, maximumSubdivisionDepth: Int,
-        remainingSourceDepth: Int, consumeWork: () throws -> Void,
-        consumeStorage: ((Int) throws -> Void)? = nil, maximumAlgebraicDepth: Int? = nil) throws -> IntervalVectorDerivativeJet {
+        remainingSourceDepth: Int, maximumAlgebraicDepth: Int? = nil, using execution: inout A) throws -> IntervalVectorDerivativeJet {
         if order > 1, parameters.lower < parameters.upper {
             guard try hasSmoothNativeInterval(over: parameters, tolerance: tolerance,
                 maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-                remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork,
-                consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth) else {
+                remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution) else {
                 throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
                     message: "Original polyline corner has no whole higher differential law.")
             }
         }
         let owners = try owningDerivativeJets(over: parameters, throughOrder: order, tolerance: tolerance,
             maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-            remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork,
-            consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+            remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
         if parameters.lower == parameters.upper { return owners[0].jet }
         func axis(_ index: Int) throws -> IntervalDerivativeJet {
             func coordinate(_ owner: OwningJet) -> IntervalDerivativeJet {
@@ -227,61 +193,63 @@ public struct OriginalPolylineCurve3D: Hashable, Sendable {
             }
             let bytes = (order + 1).multipliedReportingOverflow(by: MemoryLayout<OutwardScalarInterval>.stride)
             guard !bytes.overflow else { throw GeometryConversionError.resourceLimitExceeded("Original polyline jet bytes overflow.") }
-            try consumeStorage?(bytes.partialValue)
+            try execution.retainStorage(bytes: bytes.partialValue)
             var values = coordinate(owners[0]).derivatives
             for owner in owners.dropFirst() {
-                for k in 0...order { try consumeWork(); values[k] = values[k].union(coordinate(owner).derivatives[k]) }
+                for k in 0...order { try execution.consumeWork(1); values[k] = values[k].union(coordinate(owner).derivatives[k]) }
             }
             return .init(derivatives: values)
         }
         return try .init(x: axis(0), y: axis(1), z: axis(2))
     }
 
-    package func intervalTaylorJet(over parameters: ScalarInterval, throughOrder order: Int,
+    package func intervalTaylorJet<A: ExactScalarAdmission & ~Copyable>(over parameters: ScalarInterval, throughOrder order: Int,
         tolerance: ModelingTolerance, maximumSpanCount: Int, maximumSubdivisionDepth: Int,
-        remainingSourceDepth: Int, consumeWork: () throws -> Void,
-        consumeStorage: ((Int) throws -> Void)? = nil, maximumAlgebraicDepth: Int? = nil) throws -> SurfaceAreaIntervalTaylorVectorJet {
+        remainingSourceDepth: Int, maximumAlgebraicDepth: Int? = nil, using execution: inout A) throws -> SurfaceAreaIntervalTaylorVectorJet {
         let original = try derivatives(over: parameters, throughOrder: order, tolerance: tolerance,
             maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-            remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork,
-            consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+            remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
         func axis(_ source: IntervalDerivativeJet) throws -> SurfaceAreaIntervalTaylorScalarJet {
             var output = try SurfaceAreaIntervalTaylorScalarJet(order: order, axis: .u,
-                tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage)
+                tolerance: tolerance, using: &execution)
             var factorial = 1.0
             for k in 0...order {
-                if k > 0 { try consumeWork(); factorial *= Double(k) }
+                if k > 0 { try execution.consumeWork(1); factorial *= Double(k) }
                 guard let value = source.derivatives[k].divided(by: .exact(factorial)) else {
                     throw GeometryConversionError.invalidInput("Original polyline Taylor factorial is singular.")
                 }
-                try consumeWork(); try output.set(value, k, 0)
+                try execution.consumeWork(1); try output.set(value, k, 0)
             }
             return output
         }
         return try .init(x: axis(original.x), y: axis(original.y), z: axis(original.z))
     }
 
-    package func positionBounds(over parameters: ScalarInterval, tolerance: ModelingTolerance,
+    package func positionBounds<A: ExactScalarAdmission & ~Copyable>(over parameters: ScalarInterval, tolerance: ModelingTolerance,
         maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
-        consumeWork: () throws -> Void, consumeStorage: ((Int) throws -> Void)? = nil,
-        maximumAlgebraicDepth: Int? = nil) throws -> IntervalVector3DBounds {
+        maximumAlgebraicDepth: Int? = nil, using execution: inout A) throws -> IntervalVector3DBounds {
         let owners = try owningDerivativeJets(over: parameters, throughOrder: 0, tolerance: tolerance,
             maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
-            remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork,
-            consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+            remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
         var value = IntervalVector3DBounds(x: owners[0].jet.x.value, y: owners[0].jet.y.value, z: owners[0].jet.z.value)
         for owner in owners.dropFirst() {
-            for _ in 0..<3 { try consumeWork() }
+            for _ in 0..<3 { try execution.consumeWork(1) }
             value = .init(x: value.x.union(owner.jet.x.value), y: value.y.union(owner.jet.y.value), z: value.z.union(owner.jet.z.value))
         }
         return value
     }
 
     public func point(at parameter: Double, tolerance: ModelingTolerance) throws -> Point3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try point(at: parameter, tolerance: tolerance, using: &execution)
+    }
+
+    public func point<A: ExactScalarAdmission & ~Copyable>(at parameter: Double,
+        tolerance: ModelingTolerance, using execution: inout A) throws -> Point3D {
         let position = try positionBounds(over: ScalarInterval(lower: parameter, upper: parameter),
             tolerance: tolerance, maximumSpanCount: maximumSpanCount,
             maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
-            consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
+            using: &execution)
         let candidate = Point3D(x: position.x.midpoint, y: position.y.midpoint, z: position.z.midpoint)
         guard IntervalVector3DBounds(x: position.x - .exact(candidate.x),
             y: position.y - .exact(candidate.y), z: position.z - .exact(candidate.z))

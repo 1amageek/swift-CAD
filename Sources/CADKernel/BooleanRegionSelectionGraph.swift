@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 import CADIR
 
 public struct BooleanRegionSelectionGraph: Hashable, Sendable {
@@ -27,7 +28,26 @@ public struct BooleanRegionSelectionGraph: Hashable, Sendable {
         rule: BooleanRegionSelectionRule,
         tolerance: ModelingTolerance
     ) throws {
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        try validate(operation: operation, classificationGraph: classificationGraph, rule: rule, tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(
+        operation: BooleanOperation,
+        classificationGraph: BooleanClassificationGraph,
+        rule: BooleanRegionSelectionRule,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution
+    ) throws {
+        try execution.checkpoint()
         try tolerance.validate()
+        try execution.consumeWork(decisions.count)
+        try execution.consumeWork(classificationGraph.samples.count)
+        try execution.retainKernelValues(count: decisions.count,
+            stride: 2 * MemoryLayout<BooleanClassificationGraph.Sample>.stride + MemoryLayout<Decision>.stride)
+        try execution.retainKernelValues(count: classificationGraph.samples.count,
+            stride: MemoryLayout<BooleanClassificationGraph.Sample>.stride)
         guard decisions.count == classificationGraph.samples.count,
               Set(decisions.map(\.sample)) == Set(classificationGraph.samples),
               Set(decisions).count == decisions.count,

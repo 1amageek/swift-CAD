@@ -6,7 +6,7 @@ package struct OriginalFieldHomogeneousImage: Sendable {
     package let homogeneous: [OriginalSingularFieldPlanePolynomial]
     package let maximumAlgebraicDepth: Int
 
-    package init<B: RationalAlgebraAdmitting>(original: [ExactBivariatePolynomial],
+    package init<B: ExactScalarAdmission & ~Copyable>(original: [ExactBivariatePolynomial],
         prepared: PreparedOriginalAffineOperationWord, into destination: OriginalSingularFieldContext,
         transport: inout OriginalSingularFieldTransport, maximumDepth: Int, usage: inout B) throws {
         guard original.count == 4, !original[3].isZero, maximumDepth >= 0 else {
@@ -39,7 +39,7 @@ package struct OriginalFieldHomogeneousImage: Sendable {
             var coordinate = try OriginalSingularFieldPlanePolynomial(context: target,
                 coefficients: [:], maximumDepth: depth, usage: &usage)
             for column in 0..<4 {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 let coefficient: OriginalSingularFieldElement
                 if let frame {
                     let source: OriginalSingularFieldElement
@@ -69,7 +69,7 @@ package struct OriginalFieldHomogeneousImage: Sendable {
     }
 
     /// Embeds an earlier image after another original word extends the shared tower.
-    package func embedded<B: RationalAlgebraAdmitting>(in target: OriginalSingularFieldContext,
+    package func embedded<B: ExactScalarAdmission & ~Copyable>(in target: OriginalSingularFieldContext,
         maximumDepth: Int, usage: inout B) throws -> [OriginalSingularFieldPlanePolynomial] {
         var result: [OriginalSingularFieldPlanePolynomial] = []
         try RationalAlgebraStorage.retain(homogeneous.count, of: OriginalSingularFieldPlanePolynomial.self, usage: &usage)
@@ -82,7 +82,7 @@ package struct OriginalFieldHomogeneousImage: Sendable {
     }
 
     /// Composes another immutable original word without reconstructing prior source coefficients.
-    package static func applying<B: RationalAlgebraAdmitting>(prepared: PreparedOriginalAffineOperationWord,
+    package static func applying<B: ExactScalarAdmission & ~Copyable>(prepared: PreparedOriginalAffineOperationWord,
         to original: [OriginalSingularFieldPlanePolynomial], transport: inout OriginalSingularFieldTransport,
         maximumDepth: Int, usage: inout B) throws -> [OriginalSingularFieldPlanePolynomial] {
         guard original.count == 4, let first = original.first, !original[3].isZero else {
@@ -100,7 +100,7 @@ package struct OriginalFieldHomogeneousImage: Sendable {
             target: target, transport: &transport, maximumDepth: coefficientDepth, usage: &usage)
     }
 
-    private static func action<B: RationalAlgebraAdmitting>(prepared: PreparedOriginalAffineOperationWord,
+    private static func action<B: ExactScalarAdmission & ~Copyable>(prepared: PreparedOriginalAffineOperationWord,
         frame: OriginalRationalNormalizedFrame?, original: [OriginalSingularFieldPlanePolynomial],
         target: OriginalSingularFieldContext, transport: inout OriginalSingularFieldTransport,
         maximumDepth: Int, usage: inout B) throws -> [OriginalSingularFieldPlanePolynomial] {
@@ -117,7 +117,7 @@ package struct OriginalFieldHomogeneousImage: Sendable {
             var coordinate = try OriginalSingularFieldPlanePolynomial(context: target,
                 coefficients: [:], maximumDepth: maximumDepth, usage: &usage)
             for column in 0..<4 {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 let coefficient: OriginalSingularFieldElement
                 if let frame {
                     let raw: OriginalSingularFieldElement
@@ -143,7 +143,7 @@ package struct OriginalFieldHomogeneousImage: Sendable {
         result.append(lifted[3]); return result
     }
 
-    package static func lift<B: RationalAlgebraAdmitting>(_ original: ExactBivariatePolynomial,
+    package static func lift<B: ExactScalarAdmission & ~Copyable>(_ original: ExactBivariatePolynomial,
         into context: OriginalSingularFieldContext, maximumDepth: Int,
         usage: inout B) throws -> OriginalSingularFieldPlanePolynomial {
         var values: [ExactBivariatePolynomial.Power: OriginalSingularFieldElement] = [:]

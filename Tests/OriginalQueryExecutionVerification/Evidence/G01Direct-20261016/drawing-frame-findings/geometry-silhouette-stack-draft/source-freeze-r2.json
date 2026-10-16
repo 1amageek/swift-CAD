@@ -1,0 +1,24 @@
+{
+  "status": "source-ready-frozen-no-compiler",
+  "sourceRoots": [
+    "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD"
+  ],
+  "files": {
+    "Sources/CADGeometry/SurfaceSilhouette/DefaultSurfaceSilhouetteProducer.swift": "94e334f7d9dbcf2e7a1b9082dd9225632968dabfbbd6ba0cb1bebe9cdd8e6a64",
+    "Sources/CADGeometry/SurfaceSilhouette/DESIGN.md": "e41eb7cae13f0c02ff8af1a949df284257c69d4f7e9d7152c7ba1b6bc71b6132"
+  },
+  "previousSourceSHA256": "3865a56dc120c28019ee49cf7a2c116c756cb1ffa309f0c4992742b86b2cb633",
+  "mechanicalPatchSHA256": "006d5ca783363fc9ca716e7b5fdace7794f87dfa6ea86467ddf0100f43fe4dc0",
+  "changedOriginalCallSites": 4,
+  "originalProcessCellBodyEqualsAfterOnlyChildPairHelperInverse": true,
+  "allOtherOriginalFunctionsExactTextEqual": true,
+  "helperBody": "let children = try subdivision(cell, tolerance: tolerance, using: &execution); pending.append(children.0); pending.append(children.1)",
+  "sameExecutionCellPendingAndDynamicOperationOrder": true,
+  "beforeProcessCellSPBytes": 351808,
+  "beforeDeduplicatedActualChainBytes": 582432,
+  "pending": [
+    "actual fresh Native frames",
+    "unchanged Drawing3 runtime"
+  ]
+}

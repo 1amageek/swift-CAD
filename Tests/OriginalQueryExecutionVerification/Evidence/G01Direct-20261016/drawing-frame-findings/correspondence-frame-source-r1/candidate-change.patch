@@ -1,0 +1,88 @@
+--- candidate-before.swift
++++ Sources/CADGeometry/OriginalCurveSurfaceCorrespondence/OriginalBoundedCurveSurfaceCorrespondence.swift
+@@ -13,6 +13,7 @@
+     // Nonlinear correspondence and critical/global branch coverage, along with
+     // required nonlinear source laws, must close before full-family
+     // accounting or correspondence completeness can be reported.
++    @inline(never)
+     static func deviationBound(curve: Curve3D, from start: Double, to end: Double,
+         surface: Surface3D, parameterCurve: SurfaceParameterCurve,
+         options: CurveSurfaceCorrespondenceValidationOptions, tolerance: ModelingTolerance,
+@@ -34,6 +35,26 @@
+         try parameterCurve.validateOriginalSource(on: surface, tolerance: tolerance,
+             remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: depthLimit,
+             maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
++        if let bound = try exactSourceBound(curve: curve, from: start, to: end,
++            surface: surface, parameterCurve: parameterCurve, using: &execution) { return bound }
++        if let bound = try wordTransportBound(curve: curve, from: start, to: end,
++            surface: surface, parameterCurve: parameterCurve, options: options, tolerance: tolerance,
++            maximumSpanCount: maximumSpanCount, depthLimit: depthLimit, remainingSourceDepth: remainingSourceDepth,
++            maximumAlgebraicDepth: maximumAlgebraicDepth, acceptance: acceptance, using: &execution) { return bound }
++        if let bound = try affineTransportBound(curve: curve, from: start, to: end,
++            surface: surface, parameterCurve: parameterCurve, options: options, tolerance: tolerance,
++            maximumSpanCount: maximumSpanCount, depthLimit: depthLimit, remainingSourceDepth: remainingSourceDepth,
++            maximumAlgebraicDepth: maximumAlgebraicDepth, acceptance: acceptance, using: &execution) { return bound }
++        return try residualBound(curve: curve, from: start, to: end,
++            surface: surface, parameterCurve: parameterCurve, options: options, tolerance: tolerance,
++            maximumSpanCount: maximumSpanCount, depthLimit: depthLimit, remainingSourceDepth: remainingSourceDepth,
++            maximumAlgebraicDepth: maximumAlgebraicDepth, acceptance: acceptance, using: &execution)
++    }
++
++    @inline(never)
++    private static func exactSourceBound(curve: Curve3D, from start: Double, to end: Double,
++        surface: Surface3D, parameterCurve: SurfaceParameterCurve,
++        using execution: inout OriginalQueryExecution) throws -> Double? {
+         if case .bSpline(let nativeCurve) = curve,
+            case .bSpline(let nativeSurface) = surface,
+            try hasExactUnitNativeBoundaryLaw(curve: nativeCurve, from: start, to: end,
+@@ -48,6 +69,16 @@
+             try GeometryStructuralComparisonWork.charge(parameterCurve: parameterCurve, using: &execution)
+             if hosted.surface == surface, hosted.parameterCurve == parameterCurve { return 0 }
+         }
++        return nil
++    }
++
++    @inline(never)
++    private static func wordTransportBound(curve: Curve3D, from start: Double, to end: Double,
++        surface: Surface3D, parameterCurve: SurfaceParameterCurve,
++        options: CurveSurfaceCorrespondenceValidationOptions, tolerance: ModelingTolerance,
++        maximumSpanCount: Int, depthLimit: Int, remainingSourceDepth: Int,
++        maximumAlgebraicDepth: Int?, acceptance: Double, using execution: inout OriginalQueryExecution)
++        throws -> Double? {
+         if case .originalAffineWord(let spatial) = curve,
+            case .procedural(.originalAffineWord(let support)) = surface,
+            case .originalAffineWord(let chart) = parameterCurve,
+@@ -87,6 +118,16 @@
+                 return transported
+             }
+         }
++        return nil
++    }
++
++    @inline(never)
++    private static func affineTransportBound(curve: Curve3D, from start: Double, to end: Double,
++        surface: Surface3D, parameterCurve: SurfaceParameterCurve,
++        options: CurveSurfaceCorrespondenceValidationOptions, tolerance: ModelingTolerance,
++        maximumSpanCount: Int, depthLimit: Int, remainingSourceDepth: Int,
++        maximumAlgebraicDepth: Int?, acceptance: Double, using execution: inout OriginalQueryExecution)
++        throws -> Double? {
+         if case .affineImage(let spatial) = curve,
+            case .procedural(.originalImage(let support)) = surface,
+            case .originalImage(let chart) = parameterCurve,
+@@ -125,6 +166,16 @@
+                 return transported
+             }
+         }
++        return nil
++    }
++
++    @inline(never)
++    private static func residualBound(curve: Curve3D, from start: Double, to end: Double,
++        surface: Surface3D, parameterCurve: SurfaceParameterCurve,
++        options: CurveSurfaceCorrespondenceValidationOptions, tolerance: ModelingTolerance,
++        maximumSpanCount: Int, depthLimit: Int, remainingSourceDepth: Int,
++        maximumAlgebraicDepth: Int?, acceptance: Double, using execution: inout OriginalQueryExecution)
++        throws -> Double {
+         guard remainingSourceDepth > 0 else {
+             throw GeometryConversionError.resourceLimitExceeded("Original correspondence lift exhausted source depth.")
+         }

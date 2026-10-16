@@ -42,19 +42,12 @@ extension PreparedBSplineSurfaceDifferentialEncloser {
       self.patch = patch
     }
 
-    package func validate(on source: BSplineSurface3D, over box: SurfaceParameterBox,
-                  tolerance callerTolerance: ModelingTolerance,
-                  consumeWork: (() throws -> Void)? = nil) throws {
+    package func validate<A: ExactScalarAdmission & ~Copyable>(on source: BSplineSurface3D, over box: SurfaceParameterBox,
+                  tolerance callerTolerance: ModelingTolerance, using execution: inout A) throws {
       try callerTolerance.validate()
-      try CurrentTaskCancellationChecker().checkCancellation()
-      if let consumeWork {
-        func charge(_ count: Int) throws {
-          for _ in 0..<count { try consumeWork(); try CurrentTaskCancellationChecker().checkCancellation() }
-        }
-        try GeometryStructuralComparisonWork.charge(surface: .bSpline(source), using: charge)
-        try GeometryStructuralComparisonWork.charge(surface: .bSpline(surface), using: charge)
-        try consumeWork()
-      }
+      try GeometryStructuralComparisonWork.charge(surface: .bSpline(source), using: &execution)
+      try GeometryStructuralComparisonWork.charge(surface: .bSpline(surface), using: &execution)
+      try execution.consumeWork(1)
       guard source == surface, callerTolerance == tolerance,
         box.u.lower.isFinite, box.u.upper.isFinite,
         box.v.lower.isFinite, box.v.upper.isFinite,
@@ -66,26 +59,14 @@ extension PreparedBSplineSurfaceDifferentialEncloser {
           message: "A selected native span requires its original source, preparation tolerance, and closed native support.")
       }
     }
-
-    package func validate(on source: BSplineSurface3D, over box: SurfaceParameterBox,
-        tolerance: ModelingTolerance, consumeWork: () throws -> Void) throws {
-      try withoutActuallyEscaping(consumeWork) { borrowed in
-        try validate(on: source, over: box, tolerance: tolerance,
-          consumeWork: Optional(borrowed))
-      }
-    }
-
     /// Retains the original homogeneous value net after this token admits the
     /// original closed query and its exact periodic one-sided lift.
-    package func originalCoefficientReceipt(overClosedBox box: SurfaceParameterBox,
+    package func originalCoefficientReceipt<A: ExactScalarAdmission & ~Copyable>(overClosedBox box: SurfaceParameterBox,
         on source: BSplineSurface3D, tolerance callerTolerance: ModelingTolerance,
-        consumeWork: () throws -> Void,
-        consumeStorage: ((Int) throws -> Void)? = nil) throws -> SurfaceAreaOriginalCoefficientReceipt {
-      try withoutActuallyEscaping(consumeWork) { work in
-        try validate(on:source,over:box,tolerance:callerTolerance,consumeWork:work)
-      }
-      try consumeWork()
-      let cover = try baseBox(box,tolerance:callerTolerance)
+        using execution: inout A) throws -> SurfaceAreaOriginalCoefficientReceipt {
+      try validate(on: source, over: box, tolerance: callerTolerance, using: &execution)
+      try execution.consumeWork(1)
+      let cover = try baseBox(box,tolerance:callerTolerance, using: &execution)
       func station(_ query: ScalarInterval, translation: Double,
                    cover: ScalarInterval) throws -> ScalarInterval {
         guard query.lower == query.upper else { return cover }
@@ -99,65 +80,30 @@ extension PreparedBSplineSurfaceDifferentialEncloser {
       let base = SurfaceParameterBox(
         u:try station(box.u,translation:uTranslation,cover:cover.u),
         v:try station(box.v,translation:vTranslation,cover:cover.v))
-      try OriginalCoefficientAllocation.reserve(count: 1,
-        of: SurfaceAreaOriginalCoefficientReceipt.self, consumeStorage: consumeStorage)
       return try RationalBezierSurfaceJetEncloser().originalCoefficientReceipt(of:patch,
         source:source,tolerance:callerTolerance,query:box,
-        baseQuery:base,uSpanIndex:uSpanIndex,vSpanIndex:vSpanIndex)
+        baseQuery:base,uSpanIndex:uSpanIndex,vSpanIndex:vSpanIndex, using: &execution)
     }
 
-    package func originalCoefficientReceipt(overClosedBox box: SurfaceParameterBox,
-        on source: BSplineSurface3D, tolerance callerTolerance: ModelingTolerance,
-        consumeWork: () throws -> Void, consumeStorage: (Int) throws -> Void)
-        throws -> SurfaceAreaOriginalCoefficientReceipt {
-      try withoutActuallyEscaping(consumeStorage) { storage in
-        let optionalStorage: ((Int) throws -> Void)? = storage
-        return try originalCoefficientReceipt(overClosedBox: box, on: source,
-          tolerance: callerTolerance, consumeWork: consumeWork,
-          consumeStorage: optionalStorage)
-      }
-    }
-
-    package func intervalJet(overClosedBox box: SurfaceParameterBox, on source: BSplineSurface3D,
-      tolerance callerTolerance: ModelingTolerance) throws -> SurfaceIntervalVectorJet {
-      try validate(on: source, over: box, tolerance: callerTolerance)
-      return try PreparedBSplineSurfaceDifferentialEncloser.selectedJet(
-        of: patch, over: try baseBox(box, tolerance: callerTolerance), tolerance: callerTolerance)
-    }
-
-    package func intervalJet(overClosedBox box: SurfaceParameterBox, on source: BSplineSurface3D,
-      tolerance callerTolerance: ModelingTolerance,
-      consumeWork: () throws -> Void) throws -> SurfaceIntervalVectorJet {
+    package func intervalJet<A: ExactScalarAdmission & ~Copyable>(overClosedBox box: SurfaceParameterBox, on source: BSplineSurface3D,
+      tolerance callerTolerance: ModelingTolerance, using execution: inout A) throws -> SurfaceIntervalVectorJet {
       let receipt = try originalCoefficientReceipt(overClosedBox: box, on: source,
-        tolerance: callerTolerance, consumeWork: consumeWork)
+        tolerance: callerTolerance, using: &execution)
       let original = try SurfaceAreaHigherCoefficientTaylorEncloser(receipt: receipt,
-        order: 3, consumeWork: consumeWork)
-      return try original.intervalTaylorJet(using: receipt, consumeWork: consumeWork).intervalJet()
+        order: 3, using: &execution)
+      return try original.intervalTaylorJet(using: receipt, admission: &execution).intervalJet()
     }
 
-    package func intervalJet(overClosedBox box: SurfaceParameterBox, on source: BSplineSurface3D,
-      tolerance callerTolerance: ModelingTolerance, consumeWork: () throws -> Void,
-      consumeStorage: (Int) throws -> Void) throws -> SurfaceIntervalVectorJet {
-      try withoutActuallyEscaping(consumeStorage) { storage in
-        let receipt = try originalCoefficientReceipt(overClosedBox: box, on: source,
-          tolerance: callerTolerance, consumeWork: consumeWork,
-          consumeStorage: storage)
-        let original = try SurfaceAreaHigherCoefficientTaylorEncloser(receipt: receipt,
-          order: 3, consumeWork: consumeWork, consumeStorage: storage)
-        return try original.intervalTaylorJet(using: receipt, consumeWork: consumeWork,
-          consumeStorage: storage).intervalJet()
-      }
-    }
-
-    func pointJet(u: Double, v: Double, on source: BSplineSurface3D,
-                  tolerance callerTolerance: ModelingTolerance) throws -> SurfaceIntervalVectorJet {
+    func pointJet<A: ExactScalarAdmission & ~Copyable>(u: Double, v: Double, on source: BSplineSurface3D,
+                  tolerance callerTolerance: ModelingTolerance, using execution: inout A) throws -> SurfaceIntervalVectorJet {
+      try execution.consumeWork(1)
       guard u.isFinite, v.isFinite else {
         throw KernelError(phase: .geometry, code: .invalidInput, tolerance: callerTolerance,
           message: "A selected native-span point requires finite UV coordinates.")
       }
       return try intervalJet(overClosedBox: SurfaceParameterBox(
         u: ScalarInterval(lower: u, upper: u), v: ScalarInterval(lower: v, upper: v)),
-        on: source, tolerance: callerTolerance)
+        on: source, tolerance: callerTolerance, using: &execution)
     }
 
     package struct RowEvaluator: Sendable {
@@ -173,8 +119,9 @@ extension PreparedBSplineSurfaceDifferentialEncloser {
       }
 
       /// The immutable token retains source, tolerance, selected side and U.
-      func materialize(v: Double, overClosedV interval: ScalarInterval,
-                       pointCandidate: Point3D? = nil) throws -> Materialization {
+      func materialize<A: ExactScalarAdmission & ~Copyable>(v: Double, overClosedV interval: ScalarInterval,
+                       pointCandidate: Point3D? = nil, using execution: inout A) throws -> Materialization {
+      try execution.consumeWork(1)
         guard v.isFinite, interval.lower.isFinite, interval.upper.isFinite,
               interval.lower <= v, v <= interval.upper,
               interval.lower >= span.vBounds.lower, interval.upper <= span.vBounds.upper else {
@@ -187,67 +134,71 @@ extension PreparedBSplineSurfaceDifferentialEncloser {
               message: "A retained mesh station candidate must have finite coordinates.")
           }
         }
-        try CurrentTaskCancellationChecker().checkCancellation()
-        let base = try span.basePointAssumingValidated(u: u, v: v, tolerance: span.tolerance)
+        try execution.checkpoint()
+        let base = try span.basePointAssumingValidated(u: u, v: v, tolerance: span.tolerance, using: &execution)
         let box = SurfaceParameterBox(u: try ScalarInterval(lower: u, upper: u), v: interval)
-        let baseInterval = try span.baseBox(box, tolerance: span.tolerance).v
-        let point = try pointCandidate ?? numeric.point(v: v)
-        let normal = try numeric.normal(baseV: base.v)
+        let baseInterval = try span.baseBox(box, tolerance: span.tolerance, using: &execution).v
+        let point = try pointCandidate ?? numeric.point(v: v, using: &execution)
+        let normal = try numeric.normal(baseV: base.v, using: &execution)
         let enclosure = try RationalBezierSurfaceJetEncloser().firstOrderEnclosure(
-          row: firstOrder, overClosedV: baseInterval, tolerance: span.tolerance)
-        try CurrentTaskCancellationChecker().checkCancellation()
+          row: firstOrder, overClosedV: baseInterval, tolerance: span.tolerance, using: &execution)
+        try execution.checkpoint()
         return Materialization(point: point, normal: normal, enclosure: enclosure)
       }
     }
 
     /// Original U preparation is immutable and paid by the consumer's existing usage.
-    package func prepareStationRow(u: Double, on source: BSplineSurface3D,
+    package func prepareStationRow<A: ExactScalarAdmission & ~Copyable>(u: Double, on source: BSplineSurface3D,
                                    tolerance callerTolerance: ModelingTolerance,
-                                   consumeWork: () throws -> Void) throws -> RowEvaluator {
-      for _ in 0..<8 { try consumeWork() }
+                                   using execution: inout A) throws -> RowEvaluator {
+      try execution.consumeWork(8)
       let uInterval = try ScalarInterval(lower: u, upper: u)
-      try validate(on: source, over: SurfaceParameterBox(u: uInterval, v: vBounds), tolerance: callerTolerance)
-      let base = try basePointAssumingValidated(u: u, v: vBounds.lower, tolerance: callerTolerance)
+      try validate(on: source, over: SurfaceParameterBox(u: uInterval, v: vBounds), tolerance: callerTolerance, using: &execution)
+      let base = try basePointAssumingValidated(u: u, v: vBounds.lower, tolerance: callerTolerance, using: &execution)
       let numeric = try source.prepareStationNumericRow(u: u, baseU: base.u,
         owningUSpan: uSpanIndex, owningVSpan: vSpanIndex, tolerance: callerTolerance,
-        consumeWork: consumeWork)
+        using: &execution)
       let row = try RationalBezierSurfaceJetEncloser().prepareFirstOrderRow(
-        of: patch, u: base.u, tolerance: callerTolerance, consumeWork: consumeWork)
-      try CurrentTaskCancellationChecker().checkCancellation()
+        of: patch, u: base.u, tolerance: callerTolerance, using: &execution)
+      try execution.checkpoint()
       return RowEvaluator(span: self, u: u, numeric: numeric, firstOrder: row)
     }
 
-    func firstOrderEnclosure(overClosedBox box: SurfaceParameterBox, on source: BSplineSurface3D,
-                             tolerance callerTolerance: ModelingTolerance) throws
+    func firstOrderEnclosure<A: ExactScalarAdmission & ~Copyable>(overClosedBox box: SurfaceParameterBox, on source: BSplineSurface3D,
+                             tolerance callerTolerance: ModelingTolerance, using execution: inout A) throws
       -> RationalBezierSurfaceJetEncloser.FirstOrderEnclosure {
-      try validate(on: source, over: box, tolerance: callerTolerance)
-      let base = try baseBox(box, tolerance: callerTolerance)
+      try execution.consumeWork(1)
+      try validate(on: source, over: box, tolerance: callerTolerance, using: &execution)
+      let base = try baseBox(box, tolerance: callerTolerance, using: &execution)
       return try RationalBezierSurfaceJetEncloser().firstOrderEnclosure(of: patch, u: base.u, v: base.v,
-                                                                      tolerance: callerTolerance)
+                                                                      tolerance: callerTolerance, using: &execution)
     }
 
-    func pointValue(u: Double, v: Double, on source: BSplineSurface3D,
-                    tolerance callerTolerance: ModelingTolerance) throws -> IntervalVector3DBounds {
+    func pointValue<A: ExactScalarAdmission & ~Copyable>(u: Double, v: Double, on source: BSplineSurface3D,
+                    tolerance callerTolerance: ModelingTolerance, using execution: inout A) throws -> IntervalVector3DBounds {
+      try execution.consumeWork(1)
       guard u.isFinite, v.isFinite else {
         throw KernelError(phase:.geometry,code:.invalidInput,tolerance:callerTolerance,
           message:"An original native-span point value requires finite UV coordinates.")
       }
       let box = SurfaceParameterBox(u:try ScalarInterval(lower:u,upper:u),v:try ScalarInterval(lower:v,upper:v))
-      try validate(on:source,over:box,tolerance:callerTolerance)
-      return try PreparedBSplineSurfaceDifferentialEncloser.selectedValue(of:patch,over:try baseBox(box,tolerance:callerTolerance),tolerance:callerTolerance)
+      try validate(on:source,over:box,tolerance:callerTolerance, using: &execution)
+      return try PreparedBSplineSurfaceDifferentialEncloser.selectedValue(of:patch,over:try baseBox(box,tolerance:callerTolerance, using: &execution),tolerance:callerTolerance, using: &execution)
     }
 
     /// Exact scalar stations retain their selected side, including a cycle's upper endpoint.
-    func basePoint(u: Double, v: Double, on source: BSplineSurface3D,
-                   tolerance callerTolerance: ModelingTolerance) throws -> (u: Double, v: Double) {
+    func basePoint<A: ExactScalarAdmission & ~Copyable>(u: Double, v: Double, on source: BSplineSurface3D,
+                   tolerance callerTolerance: ModelingTolerance, using execution: inout A) throws -> (u: Double, v: Double) {
+      try execution.consumeWork(1)
       let box = SurfaceParameterBox(u: try ScalarInterval(lower: u, upper: u),
                                     v: try ScalarInterval(lower: v, upper: v))
-      try validate(on: source, over: box, tolerance: callerTolerance)
-      return try basePointAssumingValidated(u: u, v: v, tolerance: callerTolerance)
+      try validate(on: source, over: box, tolerance: callerTolerance, using: &execution)
+      return try basePointAssumingValidated(u: u, v: v, tolerance: callerTolerance, using: &execution)
     }
 
-    private func basePointAssumingValidated(u: Double, v: Double,
-                                           tolerance callerTolerance: ModelingTolerance) throws -> (u: Double, v: Double) {
+    private func basePointAssumingValidated<A: ExactScalarAdmission & ~Copyable>(u: Double, v: Double,
+                                           tolerance callerTolerance: ModelingTolerance, using execution: inout A) throws -> (u: Double, v: Double) {
+      try execution.consumeWork(1)
       func station(_ value: Double, translation: Double, base: ScalarInterval) throws -> Double {
         let difference = try PreparedBSplineSurfaceDifferentialEncloser.exactDifference(value, translation,
                                                                                       tolerance: callerTolerance)
@@ -261,7 +212,8 @@ extension PreparedBSplineSurfaceDifferentialEncloser {
               try station(v, translation: vTranslation, base: baseVBounds))
     }
 
-    private func baseBox(_ box: SurfaceParameterBox, tolerance: ModelingTolerance) throws -> SurfaceParameterBox {
+    private func baseBox<A: ExactScalarAdmission & ~Copyable>(_ box: SurfaceParameterBox, tolerance: ModelingTolerance, using execution: inout A) throws -> SurfaceParameterBox {
+        try execution.consumeWork(1)
       func interval(_ requested: ScalarInterval, translation: Double, base: ScalarInterval) throws -> ScalarInterval {
         guard translation != 0 else { return requested }
         let lower = OutwardScalarInterval.exact(requested.lower) - .exact(translation)
@@ -282,12 +234,13 @@ extension PreparedBSplineSurfaceDifferentialEncloser {
   }
 
 
-  static func selectOriginalNativeSpans(from originalSpans: [OriginalNativeSpan],
+  static func selectOriginalNativeSpans<A: ExactScalarAdmission & ~Copyable>(from originalSpans: [OriginalNativeSpan],
     surface: BSplineSurface3D, preparationTolerance: ModelingTolerance,
     over box: SurfaceParameterBox, tolerance: ModelingTolerance,
-    maximumSpanCount: Int) throws -> [OriginalNativeSpan] {
+    maximumSpanCount: Int, using execution: inout A) throws -> [OriginalNativeSpan] {
+      try execution.consumeWork(1)
     try tolerance.validate()
-    try CurrentTaskCancellationChecker().checkCancellation()
+    try execution.checkpoint()
     guard (1...262_144).contains(maximumSpanCount), tolerance == preparationTolerance,
       box.u.lower.isFinite, box.u.upper.isFinite, box.v.lower.isFinite, box.v.upper.isFinite,
       box.u.lower <= box.u.upper, box.v.lower <= box.v.upper,
@@ -300,13 +253,14 @@ extension PreparedBSplineSurfaceDifferentialEncloser {
     }
     var result: [OriginalNativeSpan] = []
     for span in originalSpans {
-      try CurrentTaskCancellationChecker().checkCancellation()
+        try execution.consumeWork(1)
       guard max(box.u.lower, span.uBounds.lower) <= min(box.u.upper, span.uBounds.upper),
         max(box.v.lower, span.vBounds.lower) <= min(box.v.upper, span.vBounds.upper) else { continue }
       guard result.count < maximumSpanCount else {
         throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
           message: "Original native span cover exhausted its aggregate ceiling.")
       }
+      try execution.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: OriginalNativeSpan.self))
       result.append(span)
     }
     return result

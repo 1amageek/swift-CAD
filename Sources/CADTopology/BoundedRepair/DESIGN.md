@@ -156,3 +156,43 @@ resource exhaustion is explicit. S-TRIMMED-FOLD-01 owns the actual previous
 invalidEdge counterexample and exact folded-face model admission. Native lifted
 closure is a prerequisite; both material predicates and actual offset feasibility
 remain separate uncompleted parts of that cell.
+
+### Canonical geometry API binding
+
+The original edge-kind and repair callers borrow the same
+[execution](../../CADGeometry/OriginalQueryExecution/DESIGN.md) through source
+validation, retained endpoint/period proofs and existing repair decisions.
+Removed source-proof callback adapters are not retained. The existing local
+source/algebra/subdivision ceilings and classification branches are unchanged;
+resource and cancellation failures propagate. This integration adds no repair law.
+
+### Classifier stack lifetime boundary
+
+The Native placed-drawing execution observed in crash report `142748` retained
+one whole classifier frame per spatial wrapper while the selected Native endpoint
+proof executed. `classifiedKind` therefore owns only the existing charge, finite
+parameter guard, and four transparent wrapper selections. Its non-wrapper
+continuation lives in a separate non-inlined function, so parameter-image range,
+surface-lift, whole-domain, and retained-endpoint locals are not allocated in each
+transparent wrapper recursion frame.
+
+```text
+classifiedKind: charge / finite guard / transparent wrapper recursion
+    -> classifiedSourceKind: unchanged remaining classification body
+        -> original endpoint proof
+```
+
+The boundary changes stack lifetime only. World-source validation still occurs
+once at the public admitted entry; every recursive classification retains the
+same charge and finite guard before the original branch selection. The continuation
+adds no admission, validation, budget, depth step, source conversion, or fallback.
+All existing result branches, original parameter/tolerance values, local ceilings,
+short-circuit order and typed failures remain unchanged. Non-inlining keeps the
+boundary effective on optimized targets as well as Native debug builds.
+
+Verification compares the extracted continuation byte-for-byte with the original
+suffix and reconstructs the previous classifier body from the unchanged prefix
+and extracted suffix. This source proof is not stack-size or runtime proof. The
+shared verification owner must measure actual Native frames and execute the
+same placed-drawing path against the new frozen production products; no prior
+receipt or target-specific compile success is generalized to that observation.

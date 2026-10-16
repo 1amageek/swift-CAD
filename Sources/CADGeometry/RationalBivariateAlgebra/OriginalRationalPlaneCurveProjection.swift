@@ -22,7 +22,7 @@ package struct OriginalRationalPlaneCurveProjection: Sendable {
     package let stations: [Station]
     package let sectors: [Sector]
 
-    package init<B: RationalAlgebraAdmitting>(original: OriginalRationalZeroSetAuthority,
+    package init<B: ExactScalarAdmission & ~Copyable>(original: OriginalRationalZeroSetAuthority,
         over domain: SurfaceParameterBox, maximumDepth: Int, inheritedDepth: Int = 0, usage: inout B) throws {
         guard !original.squareFree.isZero, domain.u.width > 0, domain.v.width > 0,
               inheritedDepth >= 0, maximumDepth >= inheritedDepth else {
@@ -40,7 +40,7 @@ package struct OriginalRationalPlaneCurveProjection: Sendable {
         if content.uDegree > 0 {
             for root in try Self.sliceRoots(content, lower: u0, upper: u1,
                 parentDepth: inheritedDepth, maximumDepth: maximumDepth, usage: &usage) {
-                try usage.retainExactStorage(1)
+                try RationalAlgebraStorage.retain(1, of: ExactMonotoneGraphEndpoint.self, usage: &usage)
                 vertical.append(root)
             }
         }
@@ -51,7 +51,7 @@ package struct OriginalRationalPlaneCurveProjection: Sendable {
                 let factor = try ExactBivariatePolynomial.coordinate(alongU: false, usage: &usage)
                     .subtracting(.constant(boundary, usage: &usage), usage: &usage)
                 remaining = try remaining.dividedExactly(by: factor, usage: &usage)
-                try usage.retainExactStorage(1); horizontal.append(boundary)
+                try RationalAlgebraStorage.retain(1, of: ExactRationalCoefficient.self, usage: &usage); horizontal.append(boundary)
             }
         }
         horizontalComponents = horizontal; primitive = remaining
@@ -78,12 +78,12 @@ package struct OriginalRationalPlaneCurveProjection: Sendable {
         let eventDerivative = try events.differentiated(alongU: true, usage: &usage)
         let repeated = try gcd.univariateGCD(events, eventDerivative, usage: &usage)
         projection = try events.dividedExactly(by: repeated, usage: &usage).normalized(usage: &usage)
+        try RationalAlgebraStorage.retain(2, of: ExactMonotoneGraphEndpoint.self, usage: &usage)
         var endpoints: [ExactMonotoneGraphEndpoint] = [.authored(u0), .authored(u1)]
-        try usage.retainExactStorage(2)
         if projection.uDegree > 0 {
             for root in try Self.sliceRoots(projection, lower: u0, upper: u1,
                 parentDepth: inheritedDepth, maximumDepth: maximumDepth, usage: &usage) {
-                try usage.retainExactStorage(1)
+                try RationalAlgebraStorage.retain(1, of: ExactMonotoneGraphEndpoint.self, usage: &usage)
                 endpoints.append(root)
             }
         }
@@ -99,7 +99,8 @@ package struct OriginalRationalPlaneCurveProjection: Sendable {
             let ordered = try Self.sliceRoots(fiber, lower: v0, upper: v1,
                 parentDepth: max(inheritedDepth, max(lower.depth, upper.depth)), maximumDepth: maximumDepth, usage: &usage)
             var retained: [ExactAlgebraicRealRoot] = []
-            try usage.retainExactStorage(ordered.count + 1)
+            try RationalAlgebraStorage.retain(ordered.count, of: ExactAlgebraicRealRoot.self, usage: &usage)
+            try RationalAlgebraStorage.retain(1, of: Sector.self, usage: &usage)
             for endpoint in ordered {
                 guard case .algebraic(let value) = endpoint else { throw rationalAlgebraFailure("Original regular fiber lost its root authority.") }
                 retained.append(value)
@@ -119,60 +120,54 @@ package struct OriginalRationalPlaneCurveProjection: Sendable {
                     lower: v0, upper: v1, maximumDepth: maximumDepth, usage: &usage) {
                     let multiplicity = try ExactBivariateSystemSolver.multiplicity(fiber,
                         at: isolation, maximumDepth: maximumDepth, usage: &usage)
-                    try usage.retainExactStorage(1)
+                    try RationalAlgebraStorage.retain(1, of: ExactBivariateSystemRoot.self, usage: &usage)
+                    try RationalAlgebraStorage.retain(1, of: ExactBivariatePolynomial.self, usage: &usage)
                     values.append(ExactBivariateSystemRoot(equations: [original.squareFree], projectionRoot: base,
                         fiber: fiber, fiberRoot: isolation, sourceDomain: domain,
                         projectionMultiplicity: 1, fiberMultiplicity: multiplicity))
                 }
             }
-            try usage.retainExactStorage(1); fibers.append(Station(endpoint: endpoint, roots: values))
+            try RationalAlgebraStorage.retain(1, of: Station.self, usage: &usage); fibers.append(Station(endpoint: endpoint, roots: values))
         }
         stations = fibers; sectors = strips
     }
 
     /// Non-nil only when the complete original real locus in this rectangle is finite.
-    package func finiteOriginalRoots<B: RationalAlgebraAdmitting>(usage: inout B) throws -> [ExactBivariateSystemRoot]? {
+    package func finiteOriginalRoots<B: ExactScalarAdmission & ~Copyable>(usage: inout B) throws -> [ExactBivariateSystemRoot]? {
         if !verticalComponents.isEmpty || !horizontalComponents.isEmpty { return nil }
-        for sector in sectors { try usage.consumeExactWork(1); if !sector.fiberRoots.isEmpty { return nil } }
+        for sector in sectors { try usage.consumeWork(1); if !sector.fiberRoots.isEmpty { return nil } }
         var values: [ExactBivariateSystemRoot] = []
         for station in stations {
-            try usage.retainExactStorage(station.roots.count)
+            try RationalAlgebraStorage.retain(station.roots.count, of: ExactBivariateSystemRoot.self, usage: &usage)
             values.append(contentsOf: station.roots)
         }
         return values
     }
 
-    private struct SliceUsage<B: RationalAlgebraAdmitting>: RationalAlgebraAdmitting {
-        var original: B
-        let parentDepth: Int
-        mutating func consumeExactWork(_ count: Int) throws { try original.consumeExactWork(count) }
-        mutating func retainExactStorage(_ count: Int) throws { try original.retainExactStorage(count) }
-        mutating func visitExactCell(depth: Int) throws {
-            try original.visitExactCell(depth: rationalAlgebraCount(parentDepth, depth))
-        }
-    }
-
-    static func sliceRoots<B: RationalAlgebraAdmitting>(_ source: ExactBivariatePolynomial,
+    static func sliceRoots<B: ExactScalarAdmission & ~Copyable>(_ source: ExactBivariatePolynomial,
         lower: ExactRationalCoefficient, upper: ExactRationalCoefficient, parentDepth: Int,
         maximumDepth: Int, usage: inout B) throws -> [ExactMonotoneGraphEndpoint] {
         guard maximumDepth >= parentDepth else {
             throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: nil,
                 message: "Original regular fiber inherited projection depth beyond caller admission.")
         }
-        var retained: [ExactMonotoneGraphEndpoint] = []
-        var forwarded = SliceUsage(original: usage, parentDepth: parentDepth)
-        defer { usage = forwarded.original }
-        let roots = try ExactUnivariateRootIsolator().isolate(source, lower: lower, upper: upper,
-            maximumDepth: maximumDepth - parentDepth, usage: &forwarded)
-        for isolation in roots {
-            let root = try ExactAlgebraicRealRoot(polynomial: source, isolation: isolation, usage: &forwarded)
-                .retainingDepth(rationalAlgebraCount(parentDepth, isolation.isolationDepth))
-            try forwarded.retainExactStorage(1); retained.append(.algebraic(root))
+        let retained = try usage.withProofScope(original: .init(value: 0, coefficient: 0),
+            inherited: .init(value: parentDepth, coefficient: 0)) { usage in
+            var retained: [ExactMonotoneGraphEndpoint] = []
+            let roots = try ExactUnivariateRootIsolator().isolate(source, lower: lower, upper: upper,
+                maximumDepth: maximumDepth - parentDepth, usage: &usage)
+            for isolation in roots {
+                let root = try ExactAlgebraicRealRoot(polynomial: source, isolation: isolation, usage: &usage)
+                    .retainingDepth(rationalAlgebraCount(parentDepth, isolation.isolationDepth))
+                try RationalAlgebraStorage.retain(1, of: ExactMonotoneGraphEndpoint.self, usage: &usage)
+                retained.append(.algebraic(root))
+            }
+            return retained
         }
-        return try ExactOrderedRealEndpoints.ordered(retained, maximumDepth: maximumDepth, usage: &forwarded.original)
+        return try ExactOrderedRealEndpoints.ordered(retained, maximumDepth: maximumDepth, usage: &usage)
     }
 
-    private static func root<B: RationalAlgebraAdmitting>(_ endpoint: ExactMonotoneGraphEndpoint, inheritedDepth: Int,
+    private static func root<B: ExactScalarAdmission & ~Copyable>(_ endpoint: ExactMonotoneGraphEndpoint, inheritedDepth: Int,
         usage: inout B) throws -> ExactAlgebraicRealRoot {
         switch endpoint {
         case .algebraic(let root): return try root.retainingDepth(max(inheritedDepth, root.isolation.isolationDepth))

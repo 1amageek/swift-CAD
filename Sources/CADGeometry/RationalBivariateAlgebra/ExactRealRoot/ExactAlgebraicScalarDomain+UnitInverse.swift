@@ -5,8 +5,8 @@ import L1
 
 extension ExactAlgebraicScalarDomain {
     /// Issues an inverse only when exact Euclidean evidence proves a unit modulo the retained law.
-    func unitInverse(_ denominator: ExactPolynomial<Self>, modulo law: ExactPolynomial<Self>,
-        _ a: inout ExactRootBorrowedAdmission) throws -> ExactPolynomial<Self>? {
+    func unitInverse<A: ExactScalarAdmission & ~Copyable>(_ denominator: ExactPolynomial<Self>, modulo law: ExactPolynomial<Self>,
+        _ a: inout A) throws -> ExactPolynomial<Self>? {
         guard let root = context.root, let parentContext = context.parent else {
             throw ExactScalarFailure.invalidEvidence
         }

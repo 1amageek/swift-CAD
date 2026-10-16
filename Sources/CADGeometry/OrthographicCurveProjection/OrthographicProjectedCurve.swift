@@ -22,23 +22,41 @@ public struct OrthographicProjectedCurve: Sendable {
     }
 
     public func point(at parameter: Double) throws -> Point2D {
-        let result = try frame.project(originalPoint(at: parameter))
+        var execution = try validatedSource.originalExecution()
+        return try point(at: parameter, using: &execution)
+    }
+
+    public func point(at parameter: Double, using execution: inout OriginalQueryExecution) throws -> Point2D {
+        try execution.consumeWork(1)
+        let result = try frame.project(originalPoint(at: parameter, using: &execution))
         try CurrentTaskCancellationChecker().checkCancellation()
         return result
     }
 
     /// Original spatial correspondence at the identical retained parameter.
     public func originalPoint(at parameter: Double) throws -> Point3D {
+        var execution = try validatedSource.originalExecution()
+        return try originalPoint(at: parameter, using: &execution)
+    }
+
+    public func originalPoint(at parameter: Double, using execution: inout OriginalQueryExecution) throws -> Point3D {
+        try execution.consumeWork(1)
         try CurrentTaskCancellationChecker().checkCancellation()
-        let result = try validatedSource.point(at: parameter)
+        let result = try validatedSource.point(at: parameter, using: &execution)
         try result.validate()
         try CurrentTaskCancellationChecker().checkCancellation()
         return result
     }
 
     public func differentialGeometry(at parameter: Double) throws -> DifferentialGeometry {
+        var execution = try validatedSource.originalExecution()
+        return try differentialGeometry(at: parameter, using: &execution)
+    }
+
+    public func differentialGeometry(at parameter: Double, using execution: inout OriginalQueryExecution) throws -> DifferentialGeometry {
+        try execution.consumeWork(1)
         try CurrentTaskCancellationChecker().checkCancellation()
-        let source = try validatedSource.differentialGeometry(at: parameter)
+        let source = try validatedSource.differentialGeometry(at: parameter, using: &execution)
         let result = DifferentialGeometry(
             position: try frame.project(source.position),
             firstDerivative: try frame.project(source.firstDerivative),
@@ -50,9 +68,15 @@ public struct OrthographicProjectedCurve: Sendable {
 
     /// Outward complete-domain bounds, preserving the original native parameter.
     public func enclosure(over parameters: ScalarInterval) throws -> OrthographicCurveEnclosure {
+        var execution = try validatedSource.originalExecution()
+        return try enclosure(over: parameters, using: &execution)
+    }
+
+    public func enclosure(over parameters: ScalarInterval, using execution: inout OriginalQueryExecution) throws -> OrthographicCurveEnclosure {
+        try execution.consumeWork(1)
         try CurrentTaskCancellationChecker().checkCancellation()
         let original = try DefaultCurveDifferentialEncloser().enclosure(of: source,
-            over: parameters, tolerance: validatedSource.tolerance)
+            over: parameters, tolerance: validatedSource.tolerance, using: &execution)
         func projected(_ input: CoordinateEnclosure3D, isPosition: Bool) throws -> CoordinateEnclosure2D {
             var x = OutwardScalarInterval(lower: input.x.lower, upper: input.x.upper)
             var y = OutwardScalarInterval(lower: input.y.lower, upper: input.y.upper)

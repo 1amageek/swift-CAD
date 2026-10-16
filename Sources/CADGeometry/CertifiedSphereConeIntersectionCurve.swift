@@ -304,6 +304,20 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         upperAngle: Double,
         tolerance: ModelingTolerance
     ) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try self.init(sphereSurface: sphereSurface, coneSurface: coneSurface, componentKind: componentKind, lowerAngle: lowerAngle, upperAngle: upperAngle, tolerance: tolerance, using: &execution)
+    }
+
+    public init(
+        sphereSurface: Surface3D,
+        coneSurface: Surface3D,
+        componentKind: ComponentKind,
+        lowerAngle: Double,
+        upperAngle: Double,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         originalNodeTraversal=nil
         self.sphereSurface = sphereSurface
         self.coneSurface = coneSurface
@@ -315,15 +329,15 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             sphereSurface: sphereSurface,
             coneSurface: coneSurface,
             tolerance: tolerance
-        )
+        , using: &execution)
         maximumResidualUpperBound = try Self.residualUpperBound(
             componentKind: componentKind,
             lowerAngle: lowerAngle,
             upperAngle: upperAngle,
             configuration: configuration,
             tolerance: tolerance
-        )
-        try validate(tolerance: tolerance)
+        , using: &execution)
+        try validate(tolerance: tolerance, using: &execution)
     }
 
     init<A:ExactScalarAdmission & ~Copyable>(node:OriginalSphereConeNodeTraversal,tolerance:ModelingTolerance,
@@ -337,9 +351,9 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         certificationTolerance=tolerance;originalNodeTraversal=node
         // Reuse fixed numerical metadata; the retained source theorem owns equality.
         try a.consumeWork(1)
-        let configuration=try Self.makeConfiguration(sphereSurface:sphereSurface,coneSurface:coneSurface,tolerance:tolerance)
+        let configuration=try Self.makeConfiguration(sphereSurface:sphereSurface,coneSurface:coneSurface,tolerance:tolerance,using:&a)
         maximumResidualUpperBound=try Self.residualUpperBound(componentKind:componentKind,lowerAngle:lowerAngle,
-            upperAngle:upperAngle,configuration:configuration,tolerance:tolerance)
+            upperAngle:upperAngle,configuration:configuration,tolerance:tolerance,using:&a)
         try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:Self.self));try a.checkpoint()
     }
 
@@ -348,19 +362,30 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         coneSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws -> [(angle: Double, branch: Double)] {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try poleSplitNodes(sphereSurface: sphereSurface, coneSurface: coneSurface, tolerance: tolerance, using: &execution)
+    }
+
+    static func poleSplitNodes(
+        sphereSurface: Surface3D,
+        coneSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> [(angle: Double, branch: Double)] {
+        try execution.consumeWork(1)
         let configuration = try makeConfiguration(
             sphereSurface: sphereSurface,
             coneSurface: coneSurface,
             tolerance: tolerance
-        )
+        , using: &execution)
         try rejectConeApexContact(
             configuration: configuration,
             tolerance: tolerance
-        )
-        return try spherePoleContacts(
+        , using: &execution)
+        return try CertifiedAnalyticCurveEvaluation.map(spherePoleContacts(
             configuration: configuration,
             tolerance: tolerance
-        ).map { (angle: $0.angle, branch: $0.branch) }
+        , using: &execution), using: &execution) {element, execution in (angle: element.angle, branch: element.branch) }
     }
 
     static func apexContactTopology(
@@ -368,25 +393,36 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         coneSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws -> ApexContactTopology? {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try apexContactTopology(sphereSurface: sphereSurface, coneSurface: coneSurface, tolerance: tolerance, using: &execution)
+    }
+
+    static func apexContactTopology(
+        sphereSurface: Surface3D,
+        coneSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> ApexContactTopology? {
+        try execution.consumeWork(1)
         let configuration = try makeConfiguration(
             sphereSurface: sphereSurface,
             coneSurface: coneSurface,
             tolerance: tolerance
-        )
-        let residualBound = apexReductionResidualUpperBound(
+        , using: &execution)
+        let residualBound = try apexReductionResidualUpperBound(
             configuration: configuration
-        )
+        , using: &execution)
         guard residualBound <= tolerance.distance else {
             return nil
         }
-        let boundaries = apexBoundaryAngles(
+        let boundaries = try apexBoundaryAngles(
             configuration: configuration,
             tolerance: tolerance
-        )
+        , using: &execution)
         guard boundaries.isEmpty == false else {
             return .isolatedPointAndLoop
         }
-        let intervals = boundaries.indices.map { index in
+        let intervals = try CertifiedAnalyticCurveEvaluation.map(boundaries.indices, using: &execution) {index, execution in
             let lower = boundaries[index]
             let upper = index + 1 < boundaries.count
                 ? boundaries[index + 1]
@@ -397,6 +433,13 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try tolerance.validate()
         try certificationTolerance.validate()
         guard certificationTolerance.distance <= tolerance.distance,
@@ -424,12 +467,12 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             sphereSurface: sphereSurface,
             coneSurface: coneSurface,
             tolerance: tolerance
-        )
+        , using: &execution)
         if componentKind != .apexReducedAngularInterval {
             try Self.rejectConeApexContact(
                 configuration: configuration,
                 tolerance: tolerance
-            )
+            , using: &execution)
         }
         guard lowerAngle.isFinite,
               upperAngle.isFinite,
@@ -437,22 +480,22 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
               upperAngle - lowerAngle <= 2.0 * Double.pi + tolerance.angle else {
             throw GeometryError.invalidAngle(upperAngle - lowerAngle)
         }
-        let classificationTolerance = Self.classificationTolerance(
+        let classificationTolerance = try Self.classificationTolerance(
             configuration: configuration,
             tolerance: tolerance
-        )
-        let boundaries = Self.boundaryAngles(
+        , using: &execution)
+        let boundaries = try Self.boundaryAngles(
             configuration: configuration,
             tolerance: tolerance
-        )
+        , using: &execution)
         switch componentKind {
         case .negativeFullBranch, .positiveFullBranch:
             let branch = componentKind == .negativeFullBranch ? -1.0 : 1.0
             let hasSpherePoleContact = try Self.spherePoleContacts(
                 configuration: configuration,
                 tolerance: tolerance
-            ).contains { $0.branch == branch }
-            let minimumRadicand = Self.minimumRadicand(configuration: configuration)
+            , using: &execution).contains { $0.branch == branch }
+            let minimumRadicand = try Self.minimumRadicand(configuration: configuration, using: &execution)
             guard abs(lowerAngle) <= tolerance.angle,
                   abs(upperAngle - 2.0 * Double.pi) <= tolerance.angle,
                   boundaries.isEmpty,
@@ -467,11 +510,11 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
                 )
             }
         case .boundedAngularInterval:
-            let validIntervals = Self.validIntervals(
+            let validIntervals = try Self.validIntervals(
                 boundaries: boundaries,
                 configuration: configuration,
                 classificationTolerance: classificationTolerance
-            )
+            , using: &execution)
             let matchesCompleteInterval = validIntervals.contains { interval in
                 abs(interval.lower - lowerAngle) <= tolerance.angle
                     && abs(interval.upper - upperAngle) <= tolerance.angle
@@ -483,11 +526,11 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             let containsSpherePole = try Self.spherePoleContacts(
                 configuration: configuration,
                 tolerance: tolerance
-            ).contains { contact in
-                let adjusted = Self.adjustedAngle(
+            , using: &execution).contains { contact in
+                let adjusted = try Self.adjustedAngle(
                     contact.angle,
                     inside: lowerAngle...upperAngle
-                )
+                , using: &execution)
                 return adjusted >= lowerAngle - tolerance.angle
                     && adjusted <= upperAngle + tolerance.angle
             }
@@ -508,33 +551,33 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         case .negativeOpenAngularInterval,
              .positiveOpenAngularInterval:
             let branch = componentKind == .negativeOpenAngularInterval ? -1.0 : 1.0
-            let contacts = try Self.spherePoleContacts(
+            let contacts = try CertifiedAnalyticCurveEvaluation.filter(Self.spherePoleContacts(
                 configuration: configuration,
                 tolerance: tolerance
-            ).filter { $0.branch == branch }
-            let lowerIsPole = contacts.contains {
-                Self.angularDistance($0.angle, lowerAngle) <= tolerance.angle
+            , using: &execution), using: &execution) {element, execution in element.branch == branch }
+            let lowerIsPole = try contacts.contains {
+                try Self.angularDistance($0.angle, lowerAngle, using: &execution) <= tolerance.angle
             }
-            let upperIsPole = contacts.contains {
-                Self.angularDistance($0.angle, upperAngle) <= tolerance.angle
+            let upperIsPole = try contacts.contains {
+                try Self.angularDistance($0.angle, upperAngle, using: &execution) <= tolerance.angle
             }
             let lowerResidual = abs(configuration.radicand(at: lowerAngle))
             let upperResidual = abs(configuration.radicand(at: upperAngle))
             let lowerIsRoot = lowerResidual <= classificationTolerance * 16.0
             let upperIsRoot = upperResidual <= classificationTolerance * 16.0
-            let hasInteriorPole = contacts.contains { contact in
-                let adjusted = Self.adjustedAngle(
+            let hasInteriorPole = try contacts.contains { contact in
+                let adjusted = try Self.adjustedAngle(
                     contact.angle,
                     inside: lowerAngle...upperAngle
-                )
+                , using: &execution)
                 return adjusted > lowerAngle + tolerance.angle
                     && adjusted < upperAngle - tolerance.angle
             }
-            let minimumRadicand = Self.minimumRadicand(
+            let minimumRadicand = try Self.minimumRadicand(
                 from: lowerAngle,
                 to: upperAngle,
                 configuration: configuration
-            )
+            , using: &execution)
             guard lowerIsPole || lowerIsRoot,
                   upperIsPole || upperIsRoot,
                   hasInteriorPole == false,
@@ -550,10 +593,10 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
                     message: "An open sphere-cone branch is not one complete nonnegative interval between consecutive certified graph nodes."
                 )
             }
-            let endpointStructure = openEndpointStructure(
+            let endpointStructure = try openEndpointStructure(
                 configuration: configuration,
                 tolerance: tolerance
-            )
+            , using: &execution)
             guard endpointStructure != .twoDoubleRoots,
                   endpointStructure != .lowerSimpleUpperDouble,
                   endpointStructure != .lowerDoubleUpperSimple else {
@@ -569,13 +612,13 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
                 sphereSurface: sphereSurface,
                 coneSurface: coneSurface,
                 tolerance: tolerance
-            ) else {
+            , using: &execution) else {
                 throw KernelError(
                     phase: .geometry,
                     code: .intersectionFailure,
-                    residual: Self.apexReductionResidualUpperBound(
+                    residual: try Self.apexReductionResidualUpperBound(
                         configuration: configuration
-                    ),
+                    , using: &execution),
                     tolerance: tolerance,
                     message: "An apex-reduced sphere-cone component requires a certified cone-apex contact."
                 )
@@ -586,7 +629,7 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
                 matchesTopology = abs(lowerAngle) <= tolerance.angle
                     && abs(upperAngle - 2.0 * Double.pi) <= tolerance.angle
             case let .nodeIntervals(intervals):
-                matchesTopology = intervals.contains { interval in
+                matchesTopology = try intervals.contains { interval in
                     abs(interval.lowerBound - lowerAngle) <= tolerance.angle
                         && abs(interval.upperBound - upperAngle) <= tolerance.angle
                 }
@@ -607,7 +650,7 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             upperAngle: upperAngle,
             configuration: configuration,
             tolerance: tolerance
-        )
+        , using: &execution)
         guard maximumResidualUpperBound.isFinite,
               maximumResidualUpperBound >= reproducedBound,
               maximumResidualUpperBound <= tolerance.distance else {
@@ -619,19 +662,21 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
                 message: "A sphere-cone curve exceeded its certified geometric residual."
             )
         }
+        try execution.retainStorage(count: 4, stride: MemoryLayout<Double>.stride)
         for fraction in [0.0, 0.25, 0.5, 0.75] {
+            try execution.consumeWork(1)
             let point = try self.point(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
             let sphereProjection = try sphereSurface.parameterProjection(
                 of: point,
                 tolerance: tolerance
-            )
+            , using: &execution)
             let coneProjection = try coneSurface.parameterProjection(
                 of: point,
                 tolerance: tolerance
-            )
+            , using: &execution)
             let residual = max(sphereProjection.residual, coneProjection.residual)
             guard residual <= maximumResidualUpperBound else {
                 throw KernelError(
@@ -649,20 +694,40 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> Point3D {
-        try differential(
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try point(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+    public func point(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Point3D {
+        try execution.consumeWork(1)
+        return try differential(
             atNormalizedFraction: fraction,
             tolerance: tolerance
-        ).position
+        , using: &execution).position
     }
 
     public func differential(
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> DifferentialGeometry {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try differential(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+    public func differential(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> DifferentialGeometry {
+        try execution.consumeWork(1)
         let geometry = try derivativesThroughThirdOrder(
             atNormalizedFraction: fraction,
             tolerance: tolerance
-        )
+        , using: &execution)
         return DifferentialGeometry(
             position: geometry.position,
             firstDerivative: geometry.firstDerivative,
@@ -674,16 +739,30 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> Vector3D {
-        try derivativesThroughThirdOrder(
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try thirdDerivative(atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+    func thirdDerivative(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Vector3D {
+        try execution.consumeWork(1)
+        return try derivativesThroughThirdOrder(
             atNormalizedFraction: fraction,
             tolerance: tolerance
-        ).thirdDerivative
+        , using: &execution).thirdDerivative
     }
+
+
 
     private func derivativesThroughThirdOrder(
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
-    ) throws -> ThirdOrderDifferentialGeometry {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> ThirdOrderDifferentialGeometry {
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard fraction.isFinite,
               fraction >= -tolerance.relative,
@@ -695,18 +774,18 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             sphereSurface: sphereSurface,
             coneSurface: coneSurface,
             tolerance: tolerance
-        )
-        let angle = angleDifferential(
+        , using: &execution)
+        let angle = try angleDifferential(
             at: normalizedFraction,
             configuration: configuration,
             tolerance: tolerance
-        )
+        , using: &execution)
         let slant = try slantDifferential(
             angle: angle,
             fraction: normalizedFraction,
             configuration: configuration,
             tolerance: tolerance
-        )
+        , using: &execution)
         guard componentKind == .apexReducedAngularInterval
                 || abs(slant.value) > tolerance.distance else {
             throw KernelError(
@@ -779,6 +858,17 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameter {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try parameter(on: surface, atNormalizedFraction: fraction, tolerance: tolerance, using: &execution)
+    }
+
+    public func parameter(
+        on surface: Surface3D,
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> SurfaceParameter {
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard fraction.isFinite,
               fraction >= -tolerance.relative,
@@ -799,30 +889,30 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
                 sphereSurface: sphereSurface,
                 coneSurface: coneSurface,
                 tolerance: tolerance
-            )
-            let angle = angleDifferential(
+            , using: &execution)
+            let angle = try angleDifferential(
                 at: normalizedFraction,
                 configuration: configuration,
                 tolerance: tolerance
-            )
+            , using: &execution)
             let slant = try slantDifferential(
                 angle: angle,
                 fraction: normalizedFraction,
                 configuration: configuration,
                 tolerance: tolerance
-            )
+            , using: &execution)
             return SurfaceParameter(u: angle.value, v: slant.value)
         }
         let point = try self.point(
             atNormalizedFraction: fraction,
             tolerance: tolerance
-        )
+        , using: &execution)
         if surface == sphereSurface {
             return try sphereParameter(
                 for: point,
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            )
+            , using: &execution)
         }
         throw KernelError(
             phase: .geometry,
@@ -833,11 +923,18 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
     }
 
     public func boundingBox(tolerance: ModelingTolerance) throws -> BoundingBox3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try boundingBox(tolerance: tolerance, using: &execution)
+    }
+
+    public func boundingBox(tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> BoundingBox3D {
+        try execution.consumeWork(1)
         let configuration = try Self.makeConfiguration(
             sphereSurface: sphereSurface,
             coneSurface: coneSurface,
             tolerance: tolerance
-        )
+        , using: &execution)
         let radius = configuration.sphere.radius + tolerance.distance
         return try BoundingBox3D(
             minimum: Point3D(
@@ -856,7 +953,16 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
     func fullBranchSpatialDifferentialMagnitudeBounds(
         tolerance: ModelingTolerance
     ) throws -> SpatialDifferentialMagnitudeBounds {
-        try validate(tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try fullBranchSpatialDifferentialMagnitudeBounds(tolerance: tolerance, using: &execution)
+    }
+
+    func fullBranchSpatialDifferentialMagnitudeBounds(
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> SpatialDifferentialMagnitudeBounds {
+        try execution.consumeWork(1)
+        try validate(tolerance: tolerance, using: &execution)
         guard componentKind == .negativeFullBranch
                 || componentKind == .positiveFullBranch else {
             throw KernelError(
@@ -870,13 +976,13 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             sphereSurface: sphereSurface,
             coneSurface: coneSurface,
             tolerance: tolerance
-        )
-        let arithmeticEnvelope = Self.classificationTolerance(
+        , using: &execution)
+        let arithmeticEnvelope = try Self.classificationTolerance(
             configuration: configuration,
             tolerance: tolerance
-        )
+        , using: &execution)
         let minimumRadicand = (
-            Self.minimumRadicand(configuration: configuration)
+            try Self.minimumRadicand(configuration: configuration, using: &execution)
                 - arithmeticEnvelope
         ).nextDown
         guard minimumRadicand > 0.0 else {
@@ -891,35 +997,35 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             abs(configuration.slope),
             amplitude,
             tolerance: tolerance
-        )
+        , using: &execution)
         let halfLinearMagnitude = try upperSum(
             abs(configuration.axialCenter),
             harmonicMagnitude,
             tolerance: tolerance
-        )
+        , using: &execution)
         let radicandConstantMagnitude = try upperProduct(
             configuration.quadraticA,
             abs(configuration.quadraticC),
             tolerance: tolerance
-        )
+        , using: &execution)
         let maximumRadicand = try upperSum(
             try upperProduct(
                 halfLinearMagnitude,
                 halfLinearMagnitude,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             radicandConstantMagnitude,
             tolerance: tolerance
-        )
+        , using: &execution)
         let radicandFirst = try upperProduct(
             2.0,
             try upperProduct(
                 halfLinearMagnitude,
                 harmonicMagnitude,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             tolerance: tolerance
-        )
+        , using: &execution)
         let radicandSecond = try upperProduct(
             2.0,
             try upperSum(
@@ -927,16 +1033,16 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
                     harmonicMagnitude,
                     harmonicMagnitude,
                     tolerance: tolerance
-                ),
+                , using: &execution),
                 try upperProduct(
                     halfLinearMagnitude,
                     harmonicMagnitude,
                     tolerance: tolerance
-                ),
+                , using: &execution),
                 tolerance: tolerance
-            ),
+            , using: &execution),
             tolerance: tolerance
-        )
+        , using: &execution)
         let radicandThird = (
             2.0 * (
                 3.0 * harmonicMagnitude * harmonicMagnitude
@@ -955,7 +1061,7 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             radicandFirst,
             (2.0 * rootLower).nextDown,
             tolerance: tolerance
-        )
+        , using: &execution)
         let rootCubedLower = (
             (rootLower * rootLower).nextDown * rootLower
         ).nextDown
@@ -964,18 +1070,18 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
                 radicandSecond,
                 (2.0 * rootLower).nextDown,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             try upperQuotient(
                 try upperProduct(
                     radicandFirst,
                     radicandFirst,
                     tolerance: tolerance
-                ),
+                , using: &execution),
                 (4.0 * rootCubedLower).nextDown,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             tolerance: tolerance
-        )
+        , using: &execution)
         let rootFifthLower = (
             minimumRadicand * minimumRadicand * rootLower
         ).nextDown
@@ -1007,37 +1113,37 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
                 halfLinearMagnitude,
                 rootUpper,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             denominatorLower,
             tolerance: tolerance
-        )
+        , using: &execution)
         let slantFirst = try upperQuotient(
             try upperSum(
                 harmonicMagnitude,
                 rootFirst,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             denominatorLower,
             tolerance: tolerance
-        )
+        , using: &execution)
         let slantSecond = try upperQuotient(
             try upperSum(
                 harmonicMagnitude,
                 rootSecond,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             denominatorLower,
             tolerance: tolerance
-        )
+        , using: &execution)
         let slantThird = try upperQuotient(
             try upperSum(
                 harmonicMagnitude,
                 rootThird,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             denominatorLower,
             tolerance: tolerance
-        )
+        , using: &execution)
 
         let sine = sin(configuration.cone.halfAngle).nextUp
         let angularFirst = hypot(
@@ -1045,7 +1151,7 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
                 sine,
                 slantMagnitude,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             slantFirst
         ).nextUp
         let angularSecond = try upperSum(
@@ -1053,18 +1159,18 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
                 sine,
                 slantMagnitude,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             try upperSum(
                 try upperProduct(
                     2.0 * sine,
                     slantFirst,
                     tolerance: tolerance
-                ),
+                , using: &execution),
                 slantSecond,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             tolerance: tolerance
-        )
+        , using: &execution)
         let angularThird = (
             sine * slantMagnitude
                 + 3.0 * sine * slantFirst
@@ -1076,28 +1182,28 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             period,
             period,
             tolerance: tolerance
-        )
+        , using: &execution)
         let periodCubed = try upperProduct(
             periodSquared,
             period,
             tolerance: tolerance
-        )
+        , using: &execution)
         return SpatialDifferentialMagnitudeBounds(
             first: try upperProduct(
                 period,
                 angularFirst,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             second: try upperProduct(
                 periodSquared,
                 angularSecond,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             third: try upperProduct(
                 periodCubed,
                 angularThird,
                 tolerance: tolerance
-            )
+            , using: &execution)
         )
     }
 
@@ -1106,7 +1212,18 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         toNormalizedFraction upperFraction: Double,
         tolerance: ModelingTolerance
     ) throws -> SpatialDifferentialMagnitudeBounds {
-        try validate(tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try boundedBranchSpatialDifferentialMagnitudeBounds(fromNormalizedFraction: lowerFraction, toNormalizedFraction: upperFraction, tolerance: tolerance, using: &execution)
+    }
+
+    func boundedBranchSpatialDifferentialMagnitudeBounds(
+        fromNormalizedFraction lowerFraction: Double,
+        toNormalizedFraction upperFraction: Double,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> SpatialDifferentialMagnitudeBounds {
+        try execution.consumeWork(1)
+        try validate(tolerance: tolerance, using: &execution)
         guard componentKind == .boundedAngularInterval,
               lowerFraction.isFinite,
               upperFraction.isFinite,
@@ -1124,7 +1241,7 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             sphereSurface: sphereSurface,
             coneSurface: coneSurface,
             tolerance: tolerance
-        )
+        , using: &execution)
         let radicand = configuration.radicandPolynomial
         let arithmeticEnvelope = (
             Double.ulpOfOne * radicand.coefficientScale * 131_072.0
@@ -1136,12 +1253,12 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         let periodCubed = (periodSquared * period).nextUp
         let phaseLower = period * lower
         let phaseUpper = period * upper
-        let angleRange = Self.boundedAngleRange(
+        let angleRange = try Self.boundedAngleRange(
             phaseLower: phaseLower,
             phaseUpper: phaseUpper,
             lowerAngle: lowerAngle,
             upperAngle: upperAngle
-        )
+        , using: &execution)
         let factor = try EndpointRegularizedFactorBounder().bounds(
             componentLower: lowerAngle,
             componentUpper: upperAngle,
@@ -1160,17 +1277,17 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             fourthDerivativeMagnitudeUpperBound:
                 radicand.fourthDerivativeAbsoluteUpperBound,
             arithmeticEnvelope: arithmeticEnvelope,
-            valueRange: { rangeLower, rangeUpper in
-                Self.radicandRange(
+            valueRange: { rangeLower, rangeUpper, execution in
+                try Self.radicandRange(
                     configuration: configuration,
                     lower: rangeLower,
                     upper: rangeUpper,
                     arithmeticEnvelope: arithmeticEnvelope
-                )
+                , using: &execution)
             },
             tolerance: tolerance,
             label: "Sphere-cone bounded branch"
-        )
+        , using: &execution)
         let rootLower = sqrt(factor.lower).nextDown
         let rootUpper = sqrt(factor.upper).nextUp
         guard rootLower > 0.0, rootUpper.isFinite else {
@@ -1183,25 +1300,25 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             factor.first,
             (2.0 * rootLower).nextDown,
             tolerance: tolerance
-        )
+        , using: &execution)
         let rootCubedLower = (factor.lower * rootLower).nextDown
         let rootSecondByAngle = try upperSum(
             try upperQuotient(
                 factor.second,
                 (2.0 * rootLower).nextDown,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             try upperQuotient(
                 try upperProduct(
                     factor.first,
                     factor.first,
                     tolerance: tolerance
-                ),
+                , using: &execution),
                 (4.0 * rootCubedLower).nextDown,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             tolerance: tolerance
-        )
+        , using: &execution)
         let rootFifthLower = (
             factor.lower * factor.lower * rootLower
         ).nextDown
@@ -1213,16 +1330,16 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
                     / (8.0 * rootFifthLower).nextDown
         ).nextUp
         let halfSpan = ((upperAngle - lowerAngle) * 0.5).nextUp
-        let sineMagnitude = Self.maximumAbsoluteTrigonometricValue(
+        let sineMagnitude = try Self.maximumAbsoluteTrigonometricValue(
             lower: phaseLower,
             upper: phaseUpper,
             phase: Double.pi * 0.5
-        )
-        let cosineMagnitude = Self.maximumAbsoluteTrigonometricValue(
+        , using: &execution)
+        let cosineMagnitude = try Self.maximumAbsoluteTrigonometricValue(
             lower: phaseLower,
             upper: phaseUpper,
             phase: 0.0
-        )
+        , using: &execution)
         let angleFirst = (
             halfSpan * period * sineMagnitude
         ).nextUp
@@ -1303,43 +1420,43 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         let denominatorLower = try slantDenominatorLowerBound(
             configuration: configuration,
             tolerance: tolerance
-        )
+        , using: &execution)
         let slantMagnitude = try upperQuotient(
             try upperSum(
                 halfLinearMagnitude,
                 signedRootMagnitude,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             denominatorLower,
             tolerance: tolerance
-        )
+        , using: &execution)
         let slantFirst = try upperQuotient(
             try upperSum(
                 halfLinearFirst,
                 signedRootFirst,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             denominatorLower,
             tolerance: tolerance
-        )
+        , using: &execution)
         let slantSecond = try upperQuotient(
             try upperSum(
                 halfLinearSecond,
                 signedRootSecond,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             denominatorLower,
             tolerance: tolerance
-        )
+        , using: &execution)
         let slantThird = try upperQuotient(
             try upperSum(
                 halfLinearThird,
                 signedRootThird,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             denominatorLower,
             tolerance: tolerance
-        )
+        , using: &execution)
         return try spatialBounds(
             angleFirst: angleFirst,
             angleSecond: angleSecond,
@@ -1350,13 +1467,22 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             slantThird: slantThird,
             configuration: configuration,
             tolerance: tolerance
-        )
+        , using: &execution)
     }
 
     func apexReducedBranchSpatialDifferentialMagnitudeBounds(
         tolerance: ModelingTolerance
     ) throws -> SpatialDifferentialMagnitudeBounds {
-        try validate(tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try apexReducedBranchSpatialDifferentialMagnitudeBounds(tolerance: tolerance, using: &execution)
+    }
+
+    func apexReducedBranchSpatialDifferentialMagnitudeBounds(
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> SpatialDifferentialMagnitudeBounds {
+        try execution.consumeWork(1)
+        try validate(tolerance: tolerance, using: &execution)
         guard componentKind == .apexReducedAngularInterval else {
             throw KernelError(
                 phase: .geometry,
@@ -1369,7 +1495,7 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             sphereSurface: sphereSurface,
             coneSurface: coneSurface,
             tolerance: tolerance
-        )
+        , using: &execution)
         let angleFirst = (upperAngle - lowerAngle).nextUp
         let harmonicMagnitude = (
             abs(configuration.slope) * configuration.radialAmplitude
@@ -1389,12 +1515,12 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         let denominatorLower = try slantDenominatorLowerBound(
             configuration: configuration,
             tolerance: tolerance
-        )
+        , using: &execution)
         let scale = try upperQuotient(
             2.0,
             denominatorLower,
             tolerance: tolerance
-        )
+        , using: &execution)
         return try spatialBounds(
             angleFirst: angleFirst,
             angleSecond: 0.0,
@@ -1403,25 +1529,25 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
                 scale,
                 halfLinearMagnitude,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             slantFirst: try upperProduct(
                 scale,
                 halfLinearFirst,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             slantSecond: try upperProduct(
                 scale,
                 halfLinearSecond,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             slantThird: try upperProduct(
                 scale,
                 halfLinearThird,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             configuration: configuration,
             tolerance: tolerance
-        )
+        , using: &execution)
     }
 
     func openBranchSpatialDifferentialMagnitudeBounds(
@@ -1429,7 +1555,18 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         toNormalizedFraction upperFraction: Double,
         tolerance: ModelingTolerance
     ) throws -> SpatialDifferentialMagnitudeBounds {
-        try validate(tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try openBranchSpatialDifferentialMagnitudeBounds(fromNormalizedFraction: lowerFraction, toNormalizedFraction: upperFraction, tolerance: tolerance, using: &execution)
+    }
+
+    func openBranchSpatialDifferentialMagnitudeBounds(
+        fromNormalizedFraction lowerFraction: Double,
+        toNormalizedFraction upperFraction: Double,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> SpatialDifferentialMagnitudeBounds {
+        try execution.consumeWork(1)
+        try validate(tolerance: tolerance, using: &execution)
         guard componentKind == .negativeOpenAngularInterval
                 || componentKind == .positiveOpenAngularInterval,
               lowerFraction.isFinite,
@@ -1448,20 +1585,20 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             sphereSurface: sphereSurface,
             coneSurface: coneSurface,
             tolerance: tolerance
-        )
+        , using: &execution)
         let lower = max(lowerFraction, 0.0)
         let upper = min(upperFraction, 1.0)
-        switch openEndpointStructure(
+        switch try openEndpointStructure(
             configuration: configuration,
             tolerance: tolerance
-        ) {
+        , using: &execution) {
         case .rootFree:
             return try rootFreeOpenSpatialDifferentialMagnitudeBounds(
                 fromNormalizedFraction: lower,
                 toNormalizedFraction: upper,
                 configuration: configuration,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case .lowerSimpleRoot:
             return try oneSidedSimpleRootOpenSpatialDifferentialMagnitudeBounds(
                 rootAtLower: true,
@@ -1469,7 +1606,7 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
                 toNormalizedFraction: upper,
                 configuration: configuration,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case .upperSimpleRoot:
             return try oneSidedSimpleRootOpenSpatialDifferentialMagnitudeBounds(
                 rootAtLower: false,
@@ -1477,14 +1614,14 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
                 toNormalizedFraction: upper,
                 configuration: configuration,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case .twoSimpleRoots:
             return try twoSimpleRootOpenSpatialDifferentialMagnitudeBounds(
                 fromNormalizedFraction: lower,
                 toNormalizedFraction: upper,
                 configuration: configuration,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case .lowerDoubleRoot:
             return try oneSidedDoubleRootOpenSpatialDifferentialMagnitudeBounds(
                 rootAtLower: true,
@@ -1492,7 +1629,7 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
                 toNormalizedFraction: upper,
                 configuration: configuration,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case .upperDoubleRoot:
             return try oneSidedDoubleRootOpenSpatialDifferentialMagnitudeBounds(
                 rootAtLower: false,
@@ -1500,7 +1637,7 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
                 toNormalizedFraction: upper,
                 configuration: configuration,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case .twoDoubleRoots, .lowerSimpleUpperDouble,
              .lowerDoubleUpperSimple:
             throw KernelError(
@@ -1512,25 +1649,29 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         }
     }
 
+
+
     private func rootFreeOpenSpatialDifferentialMagnitudeBounds(
         fromNormalizedFraction lowerFraction: Double,
         toNormalizedFraction upperFraction: Double,
         configuration: Configuration,
         tolerance: ModelingTolerance
-    ) throws -> SpatialDifferentialMagnitudeBounds {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> SpatialDifferentialMagnitudeBounds {
+        try execution.consumeWork(1)
         let span = (upperAngle - lowerAngle).nextUp
         let requestedLower = lowerAngle + span * lowerFraction
         let requestedUpper = lowerAngle + span * upperFraction
-        let envelope = Self.classificationTolerance(
+        let envelope = try Self.classificationTolerance(
             configuration: configuration,
             tolerance: tolerance
-        )
+        , using: &execution)
         let minimum = (
-            Self.minimumRadicand(
+            try Self.minimumRadicand(
                 from: requestedLower,
                 to: requestedUpper,
                 configuration: configuration
-            ) - envelope
+            , using: &execution) - envelope
         ).nextDown
         let radicand = configuration.radicandPolynomial
         let maximum = (
@@ -1548,25 +1689,25 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             radicand.firstDerivativeAbsoluteUpperBound,
             (2.0 * rootLower).nextDown,
             tolerance: tolerance
-        )
+        , using: &execution)
         let rootCubedLower = (minimum * rootLower).nextDown
         let rootSecondByAngle = try upperSum(
             try upperQuotient(
                 radicand.secondDerivativeAbsoluteUpperBound,
                 (2.0 * rootLower).nextDown,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             try upperQuotient(
                 try upperProduct(
                     radicand.firstDerivativeAbsoluteUpperBound,
                     radicand.firstDerivativeAbsoluteUpperBound,
                     tolerance: tolerance
-                ),
+                , using: &execution),
                 (4.0 * rootCubedLower).nextDown,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             tolerance: tolerance
-        )
+        , using: &execution)
         let rootFifthLower = (
             minimum * minimum * rootLower
         ).nextDown
@@ -1590,19 +1731,21 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
                 rootFirstByAngle,
                 span,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             rootSecond: try upperProduct(
                 rootSecondByAngle,
-                try upperProduct(span, span, tolerance: tolerance),
+                try upperProduct(span, span, tolerance: tolerance, using: &execution),
                 tolerance: tolerance
-            ),
+            , using: &execution),
             rootThird: (
                 rootThirdByAngle * span * span * span
             ).nextUp,
             configuration: configuration,
             tolerance: tolerance
-        )
+        , using: &execution)
     }
+
+
 
     private func oneSidedDoubleRootOpenSpatialDifferentialMagnitudeBounds(
         rootAtLower: Bool,
@@ -1610,7 +1753,9 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         toNormalizedFraction upperFraction: Double,
         configuration: Configuration,
         tolerance: ModelingTolerance
-    ) throws -> SpatialDifferentialMagnitudeBounds {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> SpatialDifferentialMagnitudeBounds {
+        try execution.consumeWork(1)
         let span = (upperAngle - lowerAngle).nextUp
         let requestedLower = lowerAngle + span * lowerFraction
         let requestedUpper = lowerAngle + span * upperFraction
@@ -1642,17 +1787,17 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
                 fifthDerivativeMagnitudeUpperBound:
                     radicand.fifthDerivativeAbsoluteUpperBound,
                 arithmeticEnvelope: arithmeticEnvelope,
-                valueRange: { rangeLower, rangeUpper in
-                    Self.radicandRange(
+                valueRange: { rangeLower, rangeUpper, execution in
+                    try Self.radicandRange(
                         configuration: configuration,
                         lower: rangeLower,
                         upper: rangeUpper,
                         arithmeticEnvelope: arithmeticEnvelope
-                    )
+                    , using: &execution)
                 },
                 tolerance: tolerance,
                 label: "Sphere-cone double-root open branch"
-            )
+            , using: &execution)
         let rootLower = sqrt(factor.lower).nextDown
         let rootUpper = sqrt(factor.upper).nextUp
         guard rootLower > 0.0, rootUpper.isFinite else {
@@ -1665,25 +1810,25 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             factor.first,
             (2.0 * rootLower).nextDown,
             tolerance: tolerance
-        )
+        , using: &execution)
         let rootCubedLower = (factor.lower * rootLower).nextDown
         let rootSecondByAngle = try upperSum(
             try upperQuotient(
                 factor.second,
                 (2.0 * rootLower).nextDown,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             try upperQuotient(
                 try upperProduct(
                     factor.first,
                     factor.first,
                     tolerance: tolerance
-                ),
+                , using: &execution),
                 (4.0 * rootCubedLower).nextDown,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             tolerance: tolerance
-        )
+        , using: &execution)
         let rootFifthLower = (
             factor.lower * factor.lower * rootLower
         ).nextDown
@@ -1726,8 +1871,10 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             rootThird: signedRootThird,
             configuration: configuration,
             tolerance: tolerance
-        )
+        , using: &execution)
     }
+
+
 
     private func oneSidedSimpleRootOpenSpatialDifferentialMagnitudeBounds(
         rootAtLower: Bool,
@@ -1735,17 +1882,19 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         toNormalizedFraction upperFraction: Double,
         configuration: Configuration,
         tolerance: ModelingTolerance
-    ) throws -> SpatialDifferentialMagnitudeBounds {
-        let lowerDifferential = angleDifferential(
+    ,
+        using execution: inout OriginalQueryExecution) throws -> SpatialDifferentialMagnitudeBounds {
+        try execution.consumeWork(1)
+        let lowerDifferential = try angleDifferential(
             at: lowerFraction,
             configuration: configuration,
             tolerance: tolerance
-        )
-        let upperDifferential = angleDifferential(
+        , using: &execution)
+        let upperDifferential = try angleDifferential(
             at: upperFraction,
             configuration: configuration,
             tolerance: tolerance
-        )
+        , using: &execution)
         let requestedLower = min(
             lowerDifferential.value,
             upperDifferential.value
@@ -1776,18 +1925,18 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             fourthDerivativeMagnitudeUpperBound:
                 radicand.fourthDerivativeAbsoluteUpperBound,
             arithmeticEnvelope: arithmeticEnvelope,
-            orientedValueRange: { rangeLower, rangeUpper in
-                let range = Self.radicandRange(
+            orientedValueRange: { rangeLower, rangeUpper, execution in
+                let range = try Self.radicandRange(
                     configuration: configuration,
                     lower: rangeLower,
                     upper: rangeUpper,
                     arithmeticEnvelope: arithmeticEnvelope
-                )
+                , using: &execution)
                 return range
             },
             tolerance: tolerance,
             label: "Sphere-cone one-sided open branch"
-        )
+        , using: &execution)
         let rootLower = sqrt(factor.lower).nextDown
         let rootUpper = sqrt(factor.upper).nextUp
         guard rootLower > 0.0, rootUpper.isFinite else {
@@ -1800,25 +1949,25 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             factor.first,
             (2.0 * rootLower).nextDown,
             tolerance: tolerance
-        )
+        , using: &execution)
         let rootCubedLower = (factor.lower * rootLower).nextDown
         let rootSecondByAngle = try upperSum(
             try upperQuotient(
                 factor.second,
                 (2.0 * rootLower).nextDown,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             try upperQuotient(
                 try upperProduct(
                     factor.first,
                     factor.first,
                     tolerance: tolerance
-                ),
+                , using: &execution),
                 (4.0 * rootCubedLower).nextDown,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             tolerance: tolerance
-        )
+        , using: &execution)
         let rootFifthLower = (
             factor.lower * factor.lower * rootLower
         ).nextDown
@@ -1832,16 +1981,16 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         let phaseScale = (Double.pi * 0.5).nextUp
         let phaseLower = phaseScale * lowerFraction
         let phaseUpper = phaseScale * upperFraction
-        let sineMagnitude = Self.maximumAbsoluteTrigonometricValue(
+        let sineMagnitude = try Self.maximumAbsoluteTrigonometricValue(
             lower: phaseLower,
             upper: phaseUpper,
             phase: Double.pi * 0.5
-        )
-        let cosineMagnitude = Self.maximumAbsoluteTrigonometricValue(
+        , using: &execution)
+        let cosineMagnitude = try Self.maximumAbsoluteTrigonometricValue(
             lower: phaseLower,
             upper: phaseUpper,
             phase: 0.0
-        )
+        , using: &execution)
         let span = (upperAngle - lowerAngle).nextUp
         let angleFirst = rootAtLower
             ? (span * phaseScale * sineMagnitude).nextUp
@@ -1909,29 +2058,33 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             rootThird: signedRootThird,
             configuration: configuration,
             tolerance: tolerance
-        )
+        , using: &execution)
     }
+
+
 
     private func twoSimpleRootOpenSpatialDifferentialMagnitudeBounds(
         fromNormalizedFraction lowerFraction: Double,
         toNormalizedFraction upperFraction: Double,
         configuration: Configuration,
         tolerance: ModelingTolerance
-    ) throws -> SpatialDifferentialMagnitudeBounds {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> SpatialDifferentialMagnitudeBounds {
+        try execution.consumeWork(1)
         let radicand = configuration.radicandPolynomial
         let arithmeticEnvelope = (
             Double.ulpOfOne * radicand.coefficientScale * 131_072.0
         ).nextUp
-        let requestedLower = angleDifferential(
+        let requestedLower = try angleDifferential(
             at: lowerFraction,
             configuration: configuration,
             tolerance: tolerance
-        ).value
-        let requestedUpper = angleDifferential(
+        , using: &execution).value
+        let requestedUpper = try angleDifferential(
             at: upperFraction,
             configuration: configuration,
             tolerance: tolerance
-        ).value
+        , using: &execution).value
         let factor = try EndpointRegularizedFactorBounder().bounds(
             componentLower: lowerAngle,
             componentUpper: upperAngle,
@@ -1950,17 +2103,17 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             fourthDerivativeMagnitudeUpperBound:
                 radicand.fourthDerivativeAbsoluteUpperBound,
             arithmeticEnvelope: arithmeticEnvelope,
-            valueRange: { rangeLower, rangeUpper in
-                Self.radicandRange(
+            valueRange: { rangeLower, rangeUpper, execution in
+                try Self.radicandRange(
                     configuration: configuration,
                     lower: rangeLower,
                     upper: rangeUpper,
                     arithmeticEnvelope: arithmeticEnvelope
-                )
+                , using: &execution)
             },
             tolerance: tolerance,
             label: "Sphere-cone two-root open branch"
-        )
+        , using: &execution)
         let rootLower = sqrt(factor.lower).nextDown
         let rootUpper = sqrt(factor.upper).nextUp
         guard rootLower > 0.0, rootUpper.isFinite else {
@@ -1973,25 +2126,25 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             factor.first,
             (2.0 * rootLower).nextDown,
             tolerance: tolerance
-        )
+        , using: &execution)
         let rootCubedLower = (factor.lower * rootLower).nextDown
         let rootSecondByAngle = try upperSum(
             try upperQuotient(
                 factor.second,
                 (2.0 * rootLower).nextDown,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             try upperQuotient(
                 try upperProduct(
                     factor.first,
                     factor.first,
                     tolerance: tolerance
-                ),
+                , using: &execution),
                 (4.0 * rootCubedLower).nextDown,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             tolerance: tolerance
-        )
+        , using: &execution)
         let rootFifthLower = (
             factor.lower * factor.lower * rootLower
         ).nextDown
@@ -2005,16 +2158,16 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         let phaseScale = Double.pi.nextUp
         let phaseLower = phaseScale * lowerFraction
         let phaseUpper = phaseScale * upperFraction
-        let sineMagnitude = Self.maximumAbsoluteTrigonometricValue(
+        let sineMagnitude = try Self.maximumAbsoluteTrigonometricValue(
             lower: phaseLower,
             upper: phaseUpper,
             phase: Double.pi * 0.5
-        )
-        let cosineMagnitude = Self.maximumAbsoluteTrigonometricValue(
+        , using: &execution)
+        let cosineMagnitude = try Self.maximumAbsoluteTrigonometricValue(
             lower: phaseLower,
             upper: phaseUpper,
             phase: 0.0
-        )
+        , using: &execution)
         let halfSpan = ((upperAngle - lowerAngle) * 0.5).nextUp
         let angleFirst = (
             halfSpan * phaseScale * sineMagnitude
@@ -2083,24 +2236,34 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             rootThird: signedRootThird,
             configuration: configuration,
             tolerance: tolerance
-        )
+        , using: &execution)
     }
 
     func normalizedFractionCandidates(
         forConeAngle angle: Double,
         tolerance: ModelingTolerance
     ) throws -> [Double] {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try normalizedFractionCandidates(forConeAngle: angle, tolerance: tolerance, using: &execution)
+    }
+
+    func normalizedFractionCandidates(
+        forConeAngle angle: Double,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> [Double] {
+        try execution.consumeWork(1)
         let period = 2.0 * Double.pi
         switch componentKind {
         case .negativeFullBranch, .positiveFullBranch:
-            let normalized = Self.normalizedAngle(angle)
+            let normalized = try Self.normalizedAngle(angle, using: &execution)
             let fraction = normalized / period
-            return normalized == 0.0 ? [0.0, 1.0] : [fraction]
+            return normalized == 0.0 ? try CertifiedAnalyticCurveEvaluation.values(0.0, 1.0, using: &execution) : try CertifiedAnalyticCurveEvaluation.values(fraction, using: &execution)
         case .boundedAngularInterval:
-            let adjusted = Self.adjustedAngle(
+            let adjusted = try Self.adjustedAngle(
                 angle,
                 inside: lowerAngle...upperAngle
-            )
+            , using: &execution)
             guard adjusted <= upperAngle + tolerance.angle else { return [] }
             let normalized = min(
                 max((adjusted - lowerAngle) / (upperAngle - lowerAngle), 0.0),
@@ -2108,13 +2271,13 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             )
             let phase = acos(1.0 - 2.0 * normalized)
             let fraction = phase / period
-            return [fraction, 1.0 - fraction]
+            return try CertifiedAnalyticCurveEvaluation.values(fraction, 1.0 - fraction, using: &execution)
         case .negativeOpenAngularInterval,
              .positiveOpenAngularInterval:
-            let adjusted = Self.adjustedAngle(
+            let adjusted = try Self.adjustedAngle(
                 angle,
                 inside: lowerAngle...upperAngle
-            )
+            , using: &execution)
             guard adjusted <= upperAngle + tolerance.angle else { return [] }
             let normalized = min(
                 max((adjusted - lowerAngle) / (upperAngle - lowerAngle), 0.0),
@@ -2124,41 +2287,45 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
                 sphereSurface: sphereSurface,
                 coneSurface: coneSurface,
                 tolerance: tolerance
-            )
-            switch openEndpointStructure(
+            , using: &execution)
+            switch try openEndpointStructure(
                 configuration: configuration,
                 tolerance: tolerance
-            ) {
+            , using: &execution) {
             case .twoSimpleRoots:
-                return [acos(1.0 - 2.0 * normalized) / Double.pi]
+                return try CertifiedAnalyticCurveEvaluation.values(acos(1.0 - 2.0 * normalized) / Double.pi, using: &execution)
             case .lowerSimpleRoot, .lowerSimpleUpperDouble:
-                return [acos(1.0 - normalized) / (Double.pi * 0.5)]
+                return try CertifiedAnalyticCurveEvaluation.values(acos(1.0 - normalized) / (Double.pi * 0.5), using: &execution)
             case .upperSimpleRoot, .lowerDoubleUpperSimple:
-                return [asin(normalized) / (Double.pi * 0.5)]
+                return try CertifiedAnalyticCurveEvaluation.values(asin(normalized) / (Double.pi * 0.5), using: &execution)
             case .rootFree, .lowerDoubleRoot, .upperDoubleRoot,
                  .twoDoubleRoots:
-                return [normalized]
+                return try CertifiedAnalyticCurveEvaluation.values(normalized, using: &execution)
             }
         case .apexReducedAngularInterval:
-            let adjusted = Self.adjustedAngle(
+            let adjusted = try Self.adjustedAngle(
                 angle,
                 inside: lowerAngle...upperAngle
-            )
+            , using: &execution)
             guard adjusted <= upperAngle + tolerance.angle else { return [] }
-            return [(adjusted - lowerAngle) / (upperAngle - lowerAngle)]
+            return try CertifiedAnalyticCurveEvaluation.values((adjusted - lowerAngle) / (upperAngle - lowerAngle), using: &execution)
         }
     }
+
+
 
     private func sphereParameter(
         for point: Point3D,
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
-    ) throws -> SurfaceParameter {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> SurfaceParameter {
+        try execution.consumeWork(1)
         let configuration = try Self.makeConfiguration(
             sphereSurface: sphereSurface,
             coneSurface: coneSurface,
             tolerance: tolerance
-        )
+        , using: &execution)
         let offset = point - configuration.sphere.center
         let axial = offset.dot(.unitZ)
         let horizontal = offset - Vector3D.unitZ * axial
@@ -2170,23 +2337,23 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             let projection = try sphereSurface.parameterProjection(
                 of: point,
                 tolerance: tolerance
-            )
+            , using: &execution)
             return SurfaceParameter(u: projection.u, v: projection.v)
         }
-        let endpointTolerance = Self.endpointFractionTolerance(
+        let endpointTolerance = try Self.endpointFractionTolerance(
             tolerance: tolerance
-        )
+        , using: &execution)
         let direction: Vector3D
         if fraction <= endpointTolerance {
             direction = try differential(
                 atNormalizedFraction: 0.0,
                 tolerance: tolerance
-            ).firstDerivative
+            , using: &execution).firstDerivative
         } else if fraction >= 1.0 - endpointTolerance {
             direction = -(try differential(
                 atNormalizedFraction: 1.0,
                 tolerance: tolerance
-            ).firstDerivative)
+            , using: &execution).firstDerivative)
         } else {
             throw KernelError(
                 phase: .geometry,
@@ -2203,19 +2370,23 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         )
         let basis = try analyticOrthonormalBasis(.unitZ, tolerance: tolerance)
         return SurfaceParameter(
-            u: Self.normalizedAngle(atan2(
+            u: try Self.normalizedAngle(atan2(
                 normalized.dot(basis.v),
                 normalized.dot(basis.u)
-            )),
+            ), using: &execution),
             v: axial >= 0.0 ? Double.pi * 0.5 : -Double.pi * 0.5
         )
     }
+
+
 
     private func upperProduct(
         _ first: Double,
         _ second: Double,
         tolerance: ModelingTolerance
-    ) throws -> Double {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
         guard first.isFinite,
               second.isFinite,
               first >= 0.0,
@@ -2235,11 +2406,15 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         return result
     }
 
+
+
     private func upperQuotient(
         _ numerator: Double,
         _ denominator: Double,
         tolerance: ModelingTolerance
-    ) throws -> Double {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
         guard numerator.isFinite,
               denominator.isFinite,
               numerator >= 0.0,
@@ -2259,11 +2434,15 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         return result
     }
 
+
+
     private func upperSum(
         _ first: Double,
         _ second: Double,
         tolerance: ModelingTolerance
-    ) throws -> Double {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
         guard first.isFinite,
               second.isFinite,
               first >= 0.0,
@@ -2283,10 +2462,14 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         return result
     }
 
+
+
     private func slantDenominatorLowerBound(
         configuration: Configuration,
         tolerance: ModelingTolerance
-    ) throws -> Double {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
         let raw = abs(
             configuration.quadraticA * cos(configuration.cone.halfAngle)
         )
@@ -2304,6 +2487,8 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         return result
     }
 
+
+
     private func spatialBounds(
         angleFirst: Double,
         angleSecond: Double,
@@ -2314,7 +2499,9 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         slantThird: Double,
         configuration: Configuration,
         tolerance: ModelingTolerance
-    ) throws -> SpatialDifferentialMagnitudeBounds {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> SpatialDifferentialMagnitudeBounds {
+        try execution.consumeWork(1)
         let sine = sin(configuration.cone.halfAngle).nextUp
         let first = try upperSum(
             try upperProduct(
@@ -2322,13 +2509,13 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
                     sine,
                     angleFirst,
                     tolerance: tolerance
-                ),
+                , using: &execution),
                 slantMagnitude,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             slantFirst,
             tolerance: tolerance
-        )
+        , using: &execution)
         let generatorSecond = try upperProduct(
             sine,
             try upperSum(
@@ -2336,33 +2523,33 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
                     angleFirst,
                     angleFirst,
                     tolerance: tolerance
-                ),
+                , using: &execution),
                 angleSecond,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             tolerance: tolerance
-        )
+        , using: &execution)
         let second = try upperSum(
             try upperProduct(
                 generatorSecond,
                 slantMagnitude,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             try upperSum(
                 try upperProduct(
                     try upperProduct(
                         2.0 * sine,
                         angleFirst,
                         tolerance: tolerance
-                    ),
+                    , using: &execution),
                     slantFirst,
                     tolerance: tolerance
-                ),
+                , using: &execution),
                 slantSecond,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             tolerance: tolerance
-        )
+        , using: &execution)
         let generatorThird = (
             sine * (
                 angleFirst * angleFirst * angleFirst
@@ -2383,6 +2570,8 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         )
     }
 
+
+
     private func spatialBoundsFromSignedRoot(
         angleFirst: Double,
         angleSecond: Double,
@@ -2393,22 +2582,24 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         rootThird: Double,
         configuration: Configuration,
         tolerance: ModelingTolerance
-    ) throws -> SpatialDifferentialMagnitudeBounds {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> SpatialDifferentialMagnitudeBounds {
+        try execution.consumeWork(1)
         let harmonicMagnitude = try upperProduct(
             abs(configuration.slope),
             configuration.radialAmplitude.nextUp,
             tolerance: tolerance
-        )
+        , using: &execution)
         let halfLinearMagnitude = try upperSum(
             abs(configuration.axialCenter),
             harmonicMagnitude,
             tolerance: tolerance
-        )
+        , using: &execution)
         let halfLinearFirst = try upperProduct(
             harmonicMagnitude,
             angleFirst,
             tolerance: tolerance
-        )
+        , using: &execution)
         let halfLinearSecond = try upperProduct(
             harmonicMagnitude,
             try upperSum(
@@ -2416,12 +2607,12 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
                     angleFirst,
                     angleFirst,
                     tolerance: tolerance
-                ),
+                , using: &execution),
                 angleSecond,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             tolerance: tolerance
-        )
+        , using: &execution)
         let halfLinearThird = (
             harmonicMagnitude * (
                 angleFirst * angleFirst * angleFirst
@@ -2432,7 +2623,7 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         let denominatorLower = try slantDenominatorLowerBound(
             configuration: configuration,
             tolerance: tolerance
-        )
+        , using: &execution)
         return try spatialBounds(
             angleFirst: angleFirst,
             angleSecond: angleSecond,
@@ -2442,40 +2633,40 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
                     halfLinearMagnitude,
                     rootMagnitude,
                     tolerance: tolerance
-                ),
+                , using: &execution),
                 denominatorLower,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             slantFirst: try upperQuotient(
                 try upperSum(
                     halfLinearFirst,
                     rootFirst,
                     tolerance: tolerance
-                ),
+                , using: &execution),
                 denominatorLower,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             slantSecond: try upperQuotient(
                 try upperSum(
                     halfLinearSecond,
                     rootSecond,
                     tolerance: tolerance
-                ),
+                , using: &execution),
                 denominatorLower,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             slantThird: try upperQuotient(
                 try upperSum(
                     halfLinearThird,
                     rootThird,
                     tolerance: tolerance
-                ),
+                , using: &execution),
                 denominatorLower,
                 tolerance: tolerance
-            ),
+            , using: &execution),
             configuration: configuration,
             tolerance: tolerance
-        )
+        , using: &execution)
     }
 
     private func resourceFailure(
@@ -2490,14 +2681,18 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         )
     }
 
+
+
     private func openEndpointStructure(
         configuration: Configuration,
         tolerance: ModelingTolerance
-    ) -> OpenEndpointStructure {
-        let classificationTolerance = Self.classificationTolerance(
+    ,
+        using execution: inout OriginalQueryExecution) throws -> OpenEndpointStructure {
+        try execution.consumeWork(1)
+        let classificationTolerance = try Self.classificationTolerance(
             configuration: configuration,
             tolerance: tolerance
-        )
+        , using: &execution)
         let lowerIsRoot = abs(configuration.radicand(at: lowerAngle))
             <= classificationTolerance * 16.0
         let upperIsRoot = abs(configuration.radicand(at: upperAngle))
@@ -2529,11 +2724,15 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         return .twoDoubleRoots
     }
 
+
+
     private func angleDifferential(
         at fraction: Double,
         configuration: Configuration,
         tolerance: ModelingTolerance
-    ) -> ScalarDifferential {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> ScalarDifferential {
+        try execution.consumeWork(1)
         let period = 2.0 * Double.pi
         switch componentKind {
         case .negativeFullBranch, .positiveFullBranch:
@@ -2556,10 +2755,10 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         case .negativeOpenAngularInterval,
              .positiveOpenAngularInterval:
             let normalized: ScalarDifferential
-            switch openEndpointStructure(
+            switch try openEndpointStructure(
                 configuration: configuration,
                 tolerance: tolerance
-            ) {
+            , using: &execution) {
             case .twoSimpleRoots:
                 let phase = Double.pi * fraction
                 normalized = ScalarDifferential(
@@ -2611,11 +2810,15 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         }
     }
 
+
+
     private func angleFourthDerivative(
         at fraction: Double,
         configuration: Configuration,
         tolerance: ModelingTolerance
-    ) -> Double {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
         let period = 2.0 * Double.pi
         switch componentKind {
         case .negativeFullBranch, .positiveFullBranch,
@@ -2627,10 +2830,10 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         case .negativeOpenAngularInterval,
              .positiveOpenAngularInterval:
             let normalizedFourth: Double
-            switch openEndpointStructure(
+            switch try openEndpointStructure(
                 configuration: configuration,
                 tolerance: tolerance
-            ) {
+            , using: &execution) {
             case .twoSimpleRoots:
                 normalizedFourth = -0.5 * pow(Double.pi, 4.0)
                     * cos(Double.pi * fraction)
@@ -2650,22 +2853,26 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         }
     }
 
+
+
     private func radicandFourthDerivative(
         angle: ScalarDifferential,
         fraction: Double,
         configuration: Configuration,
         tolerance: ModelingTolerance
-    ) -> Double {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
         let polynomial = configuration.radicandPolynomial
         let firstAngular = polynomial.derivative(at: angle.value)
         let secondAngular = polynomial.secondDerivative(at: angle.value)
-        let thirdAngular = polynomial.thirdDerivative(at: angle.value)
+        let thirdAngular = try polynomial.thirdDerivative(at: angle.value)
         let fourthAngular = polynomial.derivative(order: 4, at: angle.value)
-        let angleFourth = angleFourthDerivative(
+        let angleFourth = try angleFourthDerivative(
             at: fraction,
             configuration: configuration,
             tolerance: tolerance
-        )
+        , using: &execution)
         return fourthAngular * pow(angle.first, 4.0)
             + 6.0 * thirdAngular * angle.first * angle.first * angle.second
             + 3.0 * secondAngular * angle.second * angle.second
@@ -2673,12 +2880,16 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             + firstAngular * angleFourth
     }
 
+
+
     private func slantDifferential(
         angle: ScalarDifferential,
         fraction: Double,
         configuration: Configuration,
         tolerance: ModelingTolerance
-    ) throws -> ScalarDifferential {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> ScalarDifferential {
+        try execution.consumeWork(1)
         let halfLinearAngularFirst = configuration.halfLinearFirstDerivative(
             at: angle.value
         )
@@ -2726,7 +2937,7 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             fraction: fraction,
             configuration: configuration,
             tolerance: tolerance
-        )
+        , using: &execution)
         return ScalarDifferential(
             value: (halfLinear.value + root.value) * inverseQuadraticCosine,
             first: (halfLinear.first + root.first) * inverseQuadraticCosine,
@@ -2735,17 +2946,21 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         )
     }
 
+
+
     private func signedSquareRootDifferential(
         _ radicand: ScalarDifferential,
         angle: ScalarDifferential,
         fraction: Double,
         configuration: Configuration,
         tolerance: ModelingTolerance
-    ) throws -> ScalarDifferential {
-        let algebraicTolerance = Self.classificationTolerance(
+    ,
+        using execution: inout OriginalQueryExecution) throws -> ScalarDifferential {
+        try execution.consumeWork(1)
+        let algebraicTolerance = try Self.classificationTolerance(
             configuration: configuration,
             tolerance: tolerance
-        )
+        , using: &execution)
         let branchSign: Double
         switch componentKind {
         case .negativeFullBranch:
@@ -2771,7 +2986,7 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
                 at: angle.value,
                 configuration: configuration,
                 tolerance: tolerance
-            )
+            , using: &execution)
             guard factor.value > 0.0, factor.value.isFinite else {
                 throw KernelError(
                     phase: .geometry,
@@ -2811,10 +3026,10 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
                 second: -4.0 * Double.pi * Double.pi * sin(phase),
                 third: -8.0 * pow(Double.pi, 3.0) * cos(phase)
             )
-            let result = Self.product(
+            let result = try Self.product(
                 sine,
                 rootByFraction
-            ).scaled(by: (upperAngle - lowerAngle) * 0.5)
+            , using: &execution).scaled(by: (upperAngle - lowerAngle) * 0.5)
             guard result.value.isFinite,
                   result.first.isFinite,
                   result.second.isFinite,
@@ -2828,10 +3043,10 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         }
         if componentKind == .negativeOpenAngularInterval
             || componentKind == .positiveOpenAngularInterval {
-            let structure = openEndpointStructure(
+            let structure = try openEndpointStructure(
                 configuration: configuration,
                 tolerance: tolerance
-            )
+            , using: &execution)
             switch structure {
             case .lowerSimpleRoot, .upperSimpleRoot, .twoSimpleRoots,
                  .lowerDoubleRoot, .upperDoubleRoot:
@@ -2842,15 +3057,15 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
                     branchSign: branchSign,
                     configuration: configuration,
                     tolerance: tolerance
-                )
+                , using: &execution)
             case .rootFree, .twoDoubleRoots, .lowerSimpleUpperDouble,
                  .lowerDoubleUpperSimple:
                 break
             }
         }
-        let endpointTolerance = Self.endpointFractionTolerance(
+        let endpointTolerance = try Self.endpointFractionTolerance(
             tolerance: tolerance
-        )
+        , using: &execution)
         let isLowerEndpoint = fraction <= endpointTolerance
         let isUpperEndpoint = fraction >= 1.0 - endpointTolerance
         let isCertifiedRootEndpoint: Bool
@@ -2897,12 +3112,12 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
                 : branchSign * endpointDirection
             let signedFirst = signedEndpointDirection * sqrt(squaredSlope)
             let second = radicand.third / (6.0 * signedFirst)
-            let fourth = radicandFourthDerivative(
+            let fourth = try radicandFourthDerivative(
                 angle: angle,
                 fraction: fraction,
                 configuration: configuration,
                 tolerance: tolerance
-            )
+            , using: &execution)
             let third = (fourth - 6.0 * second * second)
                 / (8.0 * signedFirst)
             return ScalarDifferential(
@@ -2946,6 +3161,8 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         )
     }
 
+
+
     private func openRegularizedSquareRootDifferential(
         structure: OpenEndpointStructure,
         angle: ScalarDifferential,
@@ -2953,17 +3170,19 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         branchSign: Double,
         configuration: Configuration,
         tolerance: ModelingTolerance
-    ) throws -> ScalarDifferential {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> ScalarDifferential {
+        try execution.consumeWork(1)
         let factor: ScalarDifferential
         let distanceRoot: ScalarDifferential
         switch structure {
         case .lowerSimpleRoot, .upperSimpleRoot:
             let rootAtLower = structure == .lowerSimpleRoot
-            let dividedDifference = Self.trigonometricDividedDifference(
+            let dividedDifference = try Self.trigonometricDividedDifference(
                 configuration.radicandPolynomial,
                 value: angle.value,
                 endpoint: rootAtLower ? lowerAngle : upperAngle
-            )
+            , using: &execution)
             factor = rootAtLower
                 ? dividedDifference
                 : dividedDifference.scaled(by: -1.0)
@@ -2991,7 +3210,7 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
                 at: angle.value,
                 configuration: configuration,
                 tolerance: tolerance
-            )
+            , using: &execution)
             let phase = Double.pi * fraction
             let halfSpan = (upperAngle - lowerAngle) * 0.5
             distanceRoot = ScalarDifferential(
@@ -3002,11 +3221,11 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             )
         case .lowerDoubleRoot, .upperDoubleRoot:
             let rootAtLower = structure == .lowerDoubleRoot
-            factor = Self.trigonometricSecondDividedDifference(
+            factor = try Self.trigonometricSecondDividedDifference(
                 configuration.radicandPolynomial,
                 value: angle.value,
                 endpoint: rootAtLower ? lowerAngle : upperAngle
-            )
+            , using: &execution)
             let span = upperAngle - lowerAngle
             distanceRoot = ScalarDifferential(
                 value: rootAtLower
@@ -3057,10 +3276,10 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
                 + 3.0 * rootByAngle.second * angle.first * angle.second
                 + rootByAngle.first * angle.third
         )
-        let result = Self.product(
+        let result = try Self.product(
             distanceRoot,
             rootByFraction
-        ).scaled(by: branchSign)
+        , using: &execution).scaled(by: branchSign)
         guard result.value.isFinite,
               result.first.isFinite,
               result.second.isFinite,
@@ -3073,11 +3292,15 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         return result
     }
 
+
+
     private func regularizedRadicandFactorDifferential(
         at angle: Double,
         configuration: Configuration,
         tolerance: ModelingTolerance
-    ) throws -> ScalarDifferential {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> ScalarDifferential {
+        try execution.consumeWork(1)
         let span = upperAngle - lowerAngle
         let lowerDistance = angle - lowerAngle
         let upperDistance = upperAngle - angle
@@ -3098,11 +3321,11 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         let correctionSlope = (upperValue - lowerValue) / span
         let usesLowerEndpoint = lowerDistance <= upperDistance
         let endpoint = usesLowerEndpoint ? lowerAngle : upperAngle
-        let dividedDifference = Self.trigonometricDividedDifference(
+        let dividedDifference = try Self.trigonometricDividedDifference(
             radicand,
             value: angle,
             endpoint: endpoint
-        )
+        , using: &execution)
         let numerator = usesLowerEndpoint
             ? dividedDifference.adding(.constant(-correctionSlope))
             : ScalarDifferential.constant(correctionSlope)
@@ -3125,15 +3348,20 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             denominator,
             tolerance: tolerance,
             message: "A bounded sphere-cone regularized factor lost its opposite-endpoint denominator."
-        )
+        , using: &execution)
     }
+
+
 
     private static func trigonometricDividedDifference(
         _ polynomial: TrigonometricPolynomial,
         value: Double,
         endpoint: Double
-    ) -> ScalarDifferential {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> ScalarDifferential {
+        try execution.consumeWork(1)
         var result = ScalarDifferential.constant(0.0)
+        try execution.retainStorage(count: 2, stride: MemoryLayout<(order: Double, cosine: Double, sine: Double)>.stride)
         for harmonic in [
             (
                 order: 1.0,
@@ -3146,13 +3374,14 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
                 sine: polynomial.sineDouble
             ),
         ] {
+            try execution.consumeWork(1)
             let halfOrder = harmonic.order * 0.5
             let difference = value - endpoint
             let midpoint = (value + endpoint) * halfOrder
-            let sinc = sincDifferential(
+            let sinc = try sincDifferential(
                 at: difference * halfOrder,
                 derivativeScale: halfOrder
-            )
+            , using: &execution)
             let amplitude = ScalarDifferential(
                 value: -harmonic.cosine * sin(midpoint)
                     + harmonic.sine * cos(midpoint),
@@ -3170,17 +3399,21 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
                 )
             )
             result = result.adding(
-                product(sinc, amplitude).scaled(by: harmonic.order)
+                try product(sinc, amplitude, using: &execution).scaled(by: harmonic.order)
             )
         }
         return result
     }
 
+
+
     private static func trigonometricSecondDividedDifference(
         _ polynomial: TrigonometricPolynomial,
         value: Double,
         endpoint: Double
-    ) -> ScalarDifferential {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> ScalarDifferential {
+        try execution.consumeWork(1)
         let difference = value - endpoint
         if abs(difference) <= 0.25 {
             var result = 0.0
@@ -3189,6 +3422,7 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             var third = 0.0
             var factorial = 1.0
             for order in 1...24 {
+                try execution.consumeWork(1)
                 factorial *= Double(order)
                 guard order >= 2 else { continue }
                 let coefficient = polynomial.derivative(
@@ -3229,7 +3463,7 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         let numeratorFirst = polynomial.derivative(at: value)
             - endpointFirst
         let numeratorSecond = polynomial.secondDerivative(at: value)
-        let numeratorThird = polynomial.thirdDerivative(at: value)
+        let numeratorThird = try polynomial.thirdDerivative(at: value)
         let squared = difference * difference
         let cubed = squared * difference
         let fourth = squared * squared
@@ -3247,10 +3481,14 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         )
     }
 
+
+
     private static func sincDifferential(
         at value: Double,
         derivativeScale: Double
-    ) -> ScalarDifferential {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> ScalarDifferential {
+        try execution.consumeWork(1)
         let valueResult: Double
         let firstByValue: Double
         let secondByValue: Double
@@ -3262,6 +3500,7 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             var accumulatedThird = 0.0
             var coefficient = 1.0
             for index in 0...12 {
+                try execution.consumeWork(1)
                 let exponent = index * 2
                 accumulatedValue += coefficient
                     * pow(value, Double(exponent))
@@ -3310,11 +3549,15 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         )
     }
 
+
+
     private static func product(
         _ first: ScalarDifferential,
         _ second: ScalarDifferential
-    ) -> ScalarDifferential {
-        ScalarDifferential(
+    ,
+        using execution: inout OriginalQueryExecution) throws -> ScalarDifferential {
+        try execution.consumeWork(1)
+        return ScalarDifferential(
             value: first.value * second.value,
             first: first.first * second.value
                 + first.value * second.first,
@@ -3328,12 +3571,16 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         )
     }
 
+
+
     private static func quotient(
         _ numerator: ScalarDifferential,
         _ denominator: ScalarDifferential,
         tolerance: ModelingTolerance,
         message: String
-    ) throws -> ScalarDifferential {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> ScalarDifferential {
+        try execution.consumeWork(1)
         guard abs(denominator.value) > tolerance.angle else {
             throw KernelError(
                 phase: .geometry,
@@ -3353,7 +3600,7 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             + 6.0 * denominator.first * denominator.second
                 * inverse * inverse * inverse
             - denominator.third * inverse * inverse
-        return product(
+        return try product(
             numerator,
             ScalarDifferential(
                 value: inverse,
@@ -3361,24 +3608,32 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
                 second: inverseSecond,
                 third: inverseThird
             )
-        )
+        , using: &execution)
     }
+
+
 
     private static func endpointFractionTolerance(
         tolerance: ModelingTolerance
-    ) -> Double {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
         // Root-regularizing angular maps move by O(fraction squared), so values
         // within sqrt(ulp) of an endpoint can round to the endpoint exactly.
-        max(tolerance.relative, 2.0 * sqrt(Double.ulpOfOne))
+        return max(tolerance.relative, 2.0 * sqrt(Double.ulpOfOne))
     }
+
+
 
     private static func makeConfiguration(
         sphereSurface: Surface3D,
         coneSurface: Surface3D,
         tolerance: ModelingTolerance
-    ) throws -> Configuration {
-        try sphereSurface.validate(tolerance: tolerance)
-        try coneSurface.validate(tolerance: tolerance)
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Configuration {
+        try execution.consumeWork(1)
+        try sphereSurface.validate(tolerance: tolerance, using: &execution)
+        try coneSurface.validate(tolerance: tolerance, using: &execution)
         guard case let .sphere(sphere) = CanonicalAnalyticSurface(sphereSurface),
               case let .cone(coneCanonical) = CanonicalAnalyticSurface(coneSurface) else {
             throw KernelError(
@@ -3388,7 +3643,7 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
                 message: "A certified sphere-cone curve requires exact sphere and cone surfaces."
             )
         }
-        let cone = try canonicalCone(coneCanonical, tolerance: tolerance)
+        let cone = try canonicalCone(coneCanonical, tolerance: tolerance, using: &execution)
         let centerOffset = sphere.center - cone.apex
         let axialCenter = centerOffset.dot(cone.axis)
         let radialCenter = centerOffset - cone.axis * axialCenter
@@ -3396,12 +3651,12 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             u: 0.0,
             v: 1.0,
             tolerance: tolerance
-        )
+        , using: &execution)
         let quarterPoint = try cone.surface.point(
             u: Double.pi * 0.5,
             v: 1.0,
             tolerance: tolerance
-        )
+        , using: &execution)
         let axialStep = cone.axis * cos(cone.halfAngle)
         let sine = sin(cone.halfAngle)
         let zeroRadial = (zeroPoint - cone.apex - axialStep) / sine
@@ -3419,36 +3674,102 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         )
     }
 
-    private static func canonicalCone(
+    private static func makeConfiguration<A: ExactScalarAdmission & ~Copyable>(
+        sphereSurface: Surface3D,
+        coneSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout A) throws -> Configuration {
+        try execution.consumeWork(1)
+        guard case let .analytic(spherePrimitive) = sphereSurface,
+              case let .analytic(conePrimitive) = coneSurface else {
+            throw OriginalSourceIssuanceFailure.invalidSource
+        }
+        try spherePrimitive.validate(tolerance: tolerance, using: &execution)
+        try conePrimitive.validate(tolerance: tolerance, using: &execution)
+        guard case let .sphere(sphere) = CanonicalAnalyticSurface(sphereSurface),
+              case let .cone(coneCanonical) = CanonicalAnalyticSurface(coneSurface) else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "A certified sphere-cone curve requires exact sphere and cone surfaces."
+            )
+        }
+        let cone = try canonicalCone(coneCanonical, tolerance: tolerance, using: &execution)
+        let centerOffset = sphere.center - cone.apex
+        let axialCenter = centerOffset.dot(cone.axis)
+        let radialCenter = centerOffset - cone.axis * axialCenter
+        guard case let .analytic(canonicalConePrimitive) = cone.surface else {
+            throw OriginalSourceIssuanceFailure.invalidSource
+        }
+        let zeroPoint = try canonicalConePrimitive.point(
+            u: 0.0,
+            v: 1.0,
+            tolerance: tolerance
+        , using: &execution)
+        let quarterPoint = try canonicalConePrimitive.point(
+            u: Double.pi * 0.5,
+            v: 1.0,
+            tolerance: tolerance
+        , using: &execution)
+        let axialStep = cone.axis * cos(cone.halfAngle)
+        let sine = sin(cone.halfAngle)
+        let zeroRadial = (zeroPoint - cone.apex - axialStep) / sine
+        let quarterRadial = (quarterPoint - cone.apex - axialStep) / sine
+        let slope = tan(cone.halfAngle)
+        return Configuration(
+            sphere: sphere,
+            cone: cone,
+            axialCenter: axialCenter,
+            radialCosine: radialCenter.dot(zeroRadial),
+            radialSine: radialCenter.dot(quarterRadial),
+            quadraticA: 1.0 + slope * slope,
+            quadraticC: centerOffset.dot(centerOffset)
+                - sphere.radius * sphere.radius
+        )
+    }
+
+
+
+    private static func canonicalCone<A: ExactScalarAdmission & ~Copyable>(
         _ cone: CanonicalAnalyticSurface.Cone,
         tolerance: ModelingTolerance
-    ) throws -> Cone {
+    ,
+        using execution: inout A) throws -> Cone {
+        try execution.consumeWork(1)
         var axis = try cone.axis.normalized(tolerance: tolerance.distance)
         if isNegative(axis) { axis = -axis }
         return Cone(apex: cone.apex, axis: axis, halfAngle: cone.halfAngle)
     }
 
+
+
     private static func boundaryAngles(
         configuration: Configuration,
         tolerance: ModelingTolerance
-    ) -> [Double] {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> [Double] {
+        try execution.consumeWork(1)
         let product = configuration.quadraticA * configuration.quadraticC
-        let numericalThreshold = classificationTolerance(
+        let numericalThreshold = try classificationTolerance(
             configuration: configuration,
             tolerance: tolerance
-        )
+        , using: &execution)
         guard product >= -numericalThreshold else { return [] }
         let root = sqrt(max(0.0, product))
         let linearThreshold = sqrt(numericalThreshold)
         let targets = root <= linearThreshold
-            ? [0.0]
-            : [root, -root]
+            ? try CertifiedAnalyticCurveEvaluation.values(0.0, using: &execution)
+            : try CertifiedAnalyticCurveEvaluation.values(root, -root, using: &execution)
         let harmonicAmplitude = abs(configuration.slope)
             * configuration.radialAmplitude
         guard harmonicAmplitude > tolerance.distance else { return [] }
         let phase = atan2(configuration.radialSine, configuration.radialCosine)
         var values: [Double] = []
+        var valuesCapacity = values.count
         for target in targets {
+            try execution.consumeWork(1)
             let ratio = (target - configuration.axialCenter) / harmonicAmplitude
             let ratioTolerance = linearThreshold / harmonicAmplitude
             guard ratio >= -1.0 - ratioTolerance,
@@ -3456,47 +3777,61 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
                 continue
             }
             let offset = acos(min(max(ratio, -1.0), 1.0))
-            values.append(normalizedAngle(phase - offset))
-            values.append(normalizedAngle(phase + offset))
+            try CertifiedAnalyticCurveEvaluation.append(try normalizedAngle(phase - offset, using: &execution), to: &values, using: &execution, capacity: &valuesCapacity)
+            try CertifiedAnalyticCurveEvaluation.append(try normalizedAngle(phase + offset, using: &execution), to: &values, using: &execution, capacity: &valuesCapacity)
         }
-        values = values.map { refinedBoundaryAngle(
-            $0,
+        values = try CertifiedAnalyticCurveEvaluation.sorted(CertifiedAnalyticCurveEvaluation.map(values, using: &execution) {element, execution in try refinedBoundaryAngle(
+            element,
             configuration: configuration,
             tolerance: tolerance
-        ) }.sorted()
+        , using: &execution) }, using: &execution)
         var result: [Double] = []
-        for value in values where
-            result.last.map({ angularDistance($0, value) <= tolerance.angle }) != true {
-            result.append(value)
+        var resultCapacity = result.count
+        for value in values {
+            try execution.consumeWork(1)
+            if let last = result.last, try angularDistance(last, value, using: &execution) <= tolerance.angle { continue }
+            try CertifiedAnalyticCurveEvaluation.append(value, to: &result, using: &execution, capacity: &resultCapacity)
         }
         if result.count > 1,
            let first = result.first,
            let last = result.last,
-           angularDistance(first, last) <= tolerance.angle {
+           try angularDistance(first, last, using: &execution) <= tolerance.angle {
             result.removeLast()
         }
         return result
     }
 
+
+
     private static func validIntervals(
         boundaries: [Double],
         configuration: Configuration,
         classificationTolerance: Double
-    ) -> [(lower: Double, upper: Double)] {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> [(lower: Double, upper: Double)] {
+        try execution.consumeWork(1)
         guard boundaries.isEmpty == false else { return [] }
-        return boundaries.indices.compactMap { index in
+        var result: [(lower: Double, upper: Double)] = []
+        var capacity = 0
+        for index in boundaries.indices {
+            try execution.consumeWork(1)
             let lower = boundaries[index]
             let upper = index + 1 < boundaries.count
                 ? boundaries[index + 1]
                 : boundaries[0] + 2.0 * Double.pi
-            return configuration.radicand(at: lower + (upper - lower) * 0.5)
-                > classificationTolerance
-                ? (lower, upper)
-                : nil
+            if configuration.radicand(at: lower + (upper - lower) * 0.5) > classificationTolerance {
+                try CertifiedAnalyticCurveEvaluation.append((lower, upper), to: &result,
+                    using: &execution, capacity: &capacity)
+            }
         }
+        return result
     }
 
-    private static func minimumRadicand(configuration: Configuration) -> Double {
+
+
+    private static func minimumRadicand(configuration: Configuration,
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
         let lower = configuration.axialCenter
             - abs(configuration.slope) * configuration.radialAmplitude
         let upper = configuration.axialCenter
@@ -3511,22 +3846,29 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             - configuration.quadraticA * configuration.quadraticC
     }
 
+
+
     private static func boundedAngleRange(
         phaseLower: Double,
         phaseUpper: Double,
         lowerAngle: Double,
         upperAngle: Double
-    ) -> (lower: Double, upper: Double) {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> (lower: Double, upper: Double) {
+        try execution.consumeWork(1)
         let midpoint = lowerAngle + (upperAngle - lowerAngle) * 0.5
         let halfSpan = (upperAngle - lowerAngle) * 0.5
+        try execution.retainStorage(count: 2, stride: MemoryLayout<Double>.stride)
         var values = [
             midpoint - halfSpan * cos(phaseLower),
             midpoint - halfSpan * cos(phaseUpper),
         ]
+        var valuesCapacity = values.count
         for index in 0...2 {
+            try execution.consumeWork(1)
             let phase = Double(index) * Double.pi
             if phase > phaseLower, phase < phaseUpper {
-                values.append(midpoint - halfSpan * cos(phase))
+                try CertifiedAnalyticCurveEvaluation.append(midpoint - halfSpan * cos(phase), to: &values, using: &execution, capacity: &valuesCapacity)
             }
         }
         return (
@@ -3535,12 +3877,16 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         )
     }
 
+
+
     private static func radicandRange(
         configuration: Configuration,
         lower: Double,
         upper: Double,
         arithmeticEnvelope: Double
-    ) -> (lower: Double, upper: Double) {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> (lower: Double, upper: Double) {
+        try execution.consumeWork(1)
         let rawAmplitude = abs(configuration.slope)
             * configuration.radialAmplitude
         let amplitudeLower = max(0.0, rawAmplitude.nextDown)
@@ -3549,10 +3895,12 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             configuration.radialSine,
             configuration.radialCosine
         )
+        try execution.retainStorage(count: 2, stride: MemoryLayout<Double>.stride)
         var cosineValues = [
             cos(lower - phase),
             cos(upper - phase),
         ]
+        var cosineValuesCapacity = cosineValues.count
         let firstExtremum = Int(
             floor((lower - phase) / Double.pi)
         ) - 1
@@ -3560,9 +3908,10 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             ceil((upper - phase) / Double.pi)
         ) + 1
         for index in firstExtremum...lastExtremum {
+            try execution.consumeWork(1)
             let angle = phase + Double(index) * Double.pi
             if angle > lower, angle < upper {
-                cosineValues.append(index.isMultiple(of: 2) ? 1.0 : -1.0)
+                try CertifiedAnalyticCurveEvaluation.append(index.isMultiple(of: 2) ? 1.0 : -1.0, to: &cosineValues, using: &execution, capacity: &cosineValuesCapacity)
             }
         }
         let cosineLower = cosineValues.min() ?? -1.0
@@ -3603,16 +3952,21 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         )
     }
 
+
+
     private static func maximumAbsoluteTrigonometricValue(
         lower: Double,
         upper: Double,
         phase: Double
-    ) -> Double {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
         var result = max(
             abs(cos(lower - phase)),
             abs(cos(upper - phase))
         )
         for index in -2...4 {
+            try execution.consumeWork(1)
             let extremum = phase + Double(index) * Double.pi
             if extremum > lower, extremum < upper {
                 result = 1.0
@@ -3621,19 +3975,23 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         return result.nextUp
     }
 
-    private static func residualUpperBound(
+
+
+    private static func residualUpperBound<A: ExactScalarAdmission & ~Copyable>(
         componentKind: ComponentKind,
         lowerAngle: Double,
         upperAngle: Double,
         configuration: Configuration,
         tolerance: ModelingTolerance
-    ) throws -> Double {
+    ,
+        using execution: inout A) throws -> Double {
+        try execution.consumeWork(1)
         let machineBound = Double.ulpOfOne
             * configuration.characteristicLength * 131_072.0
         if componentKind == .apexReducedAngularInterval {
-            let result = apexReductionResidualUpperBound(
+            let result = try apexReductionResidualUpperBound(
                 configuration: configuration
-            ) + machineBound
+            , using: &execution) + machineBound
             guard result <= tolerance.distance else {
                 throw KernelError(
                     phase: .geometry,
@@ -3659,10 +4017,10 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         guard hasBoundaryRoots else {
             return machineBound
         }
-        let classificationTolerance = classificationTolerance(
+        let classificationTolerance = try classificationTolerance(
             configuration: configuration,
             tolerance: tolerance
-        )
+        , using: &execution)
         let lowerResidual = abs(configuration.radicand(at: lowerAngle))
         let upperResidual = abs(configuration.radicand(at: upperAngle))
         let rootResidual = max(
@@ -3685,10 +4043,14 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         return result
     }
 
-    private static func classificationTolerance(
+
+
+    private static func classificationTolerance<A: ExactScalarAdmission & ~Copyable>(
         configuration: Configuration,
         tolerance: ModelingTolerance
-    ) -> Double {
+    ,
+        using execution: inout A) throws -> Double {
+        try execution.consumeWork(1)
         let scale = configuration.characteristicLength
         return max(
             Double.ulpOfOne * scale * scale * 4_096.0,
@@ -3696,26 +4058,34 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         )
     }
 
-    private static func apexReductionResidualUpperBound(
+
+
+    private static func apexReductionResidualUpperBound<A: ExactScalarAdmission & ~Copyable>(
         configuration: Configuration
-    ) -> Double {
-        abs(configuration.quadraticC) / configuration.sphere.radius
+    ,
+        using execution: inout A) throws -> Double {
+        try execution.consumeWork(1)
+        return abs(configuration.quadraticC) / configuration.sphere.radius
     }
+
+
 
     private static func apexBoundaryAngles(
         configuration: Configuration,
         tolerance: ModelingTolerance
-    ) -> [Double] {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> [Double] {
+        try execution.consumeWork(1)
         let harmonicAmplitude = abs(configuration.slope)
             * configuration.radialAmplitude
         guard harmonicAmplitude > tolerance.distance else {
             return []
         }
         let ratio = -configuration.axialCenter / harmonicAmplitude
-        let ratioTolerance = classificationTolerance(
+        let ratioTolerance = try classificationTolerance(
             configuration: configuration,
             tolerance: tolerance
-        ).squareRoot() / harmonicAmplitude
+        , using: &execution).squareRoot() / harmonicAmplitude
         guard ratio >= -1.0 - ratioTolerance,
               ratio <= 1.0 + ratioTolerance else {
             return []
@@ -3725,34 +4095,44 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             configuration.radialCosine
         )
         let offset = acos(min(max(ratio, -1.0), 1.0))
-        let candidates = [
-            normalizedAngle(phase - offset),
-            normalizedAngle(phase + offset),
-        ].map {
-            refinedApexBoundaryAngle(
-                $0,
+        let candidates = try CertifiedAnalyticCurveEvaluation.sorted(CertifiedAnalyticCurveEvaluation.map([
+            try normalizedAngle(phase - offset, using: &execution),
+            try normalizedAngle(phase + offset, using: &execution),
+        ], using: &execution) {element, execution in
+            try refinedApexBoundaryAngle(
+                element,
                 configuration: configuration,
                 tolerance: tolerance
-            )
-        }.sorted()
+            , using: &execution)
+        }, using: &execution)
         var result: [Double] = []
-        for candidate in candidates where result.contains(where: {
-            angularDistance($0, candidate) <= tolerance.angle
-        }) == false {
-            result.append(candidate)
+        var resultCapacity = result.count
+        for candidate in candidates {
+            try execution.consumeWork(1)
+            let duplicate = try result.contains { existing in
+                try execution.consumeWork(1)
+                return try angularDistance(existing, candidate, using: &execution) <= tolerance.angle
+            }
+            guard !duplicate else { continue }
+            try CertifiedAnalyticCurveEvaluation.append(candidate, to: &result, using: &execution, capacity: &resultCapacity)
         }
         return result
     }
+
+
 
     private static func refinedApexBoundaryAngle(
         _ initial: Double,
         configuration: Configuration,
         tolerance: ModelingTolerance
-    ) -> Double {
-        var angle = normalizedAngle(initial)
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
+        var angle = try normalizedAngle(initial, using: &execution)
         let proofTolerance = Double.ulpOfOne
             * configuration.characteristicLength * 128.0
         for _ in 0..<64 {
+            try execution.consumeWork(1)
             let value = configuration.halfLinear(at: angle)
             if abs(value) <= proofTolerance {
                 break
@@ -3765,17 +4145,21 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             guard step.isFinite, abs(step) <= Double.pi * 0.5 else {
                 break
             }
-            angle = normalizedAngle(angle - step)
+            angle = try normalizedAngle(angle - step, using: &execution)
         }
         return angle
     }
+
+
 
     private static func refinedBoundaryAngle(
         _ initial: Double,
         configuration: Configuration,
         tolerance: ModelingTolerance
-    ) -> Double {
-        var angle = normalizedAngle(initial)
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
+        var angle = try normalizedAngle(initial, using: &execution)
         let proofResidualTolerance = max(
             Double.leastNonzeroMagnitude,
             Double.ulpOfOne
@@ -3783,13 +4167,14 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
                 * configuration.characteristicLength * 128.0
         )
         for _ in 0..<64 {
+            try execution.consumeWork(1)
             let value = configuration.radicand(at: angle)
             if abs(value) <= proofResidualTolerance { break }
             let derivative = configuration.radicandFirstDerivative(at: angle)
             guard abs(derivative) > tolerance.angle else { break }
             let step = value / derivative
             guard step.isFinite, abs(step) <= Double.pi * 0.5 else { break }
-            angle = normalizedAngle(angle - step)
+            angle = try normalizedAngle(angle - step, using: &execution)
             if abs(step) <= Double.ulpOfOne * max(abs(angle), 1.0) * 128.0 {
                 break
             }
@@ -3797,10 +4182,14 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         return angle
     }
 
+
+
     private static func rejectConeApexContact(
         configuration: Configuration,
         tolerance: ModelingTolerance
-    ) throws {
+    ,
+        using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         let apexResidual = abs(
             (configuration.sphere.center - configuration.cone.apex).length
                 - configuration.sphere.radius
@@ -3816,18 +4205,25 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         }
     }
 
+
+
     private static func spherePoleContacts(
         configuration: Configuration,
         tolerance: ModelingTolerance
-    ) throws -> [PoleContact] {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> [PoleContact] {
+        try execution.consumeWork(1)
         var result: [PoleContact] = []
+        var resultCapacity = result.count
         let cosine = cos(configuration.cone.halfAngle)
         let sine = sin(configuration.cone.halfAngle)
         let basis = try analyticOrthonormalBasis(
             configuration.cone.axis,
             tolerance: tolerance
         )
+        try execution.retainStorage(count: 2, stride: MemoryLayout<Double>.stride)
         for sign in [-1.0, 1.0] {
+            try execution.consumeWork(1)
             let pole = configuration.sphere.center
                 + Vector3D.unitZ * (sign * configuration.sphere.radius)
             let offset = pole - configuration.cone.apex
@@ -3843,104 +4239,123 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
                 continue
             }
             let signedRadial = radial / (slant * sine)
-            let angle = normalizedAngle(atan2(
+            let angle = try normalizedAngle(atan2(
                 signedRadial.dot(basis.v),
                 signedRadial.dot(basis.u)
-            ))
+            ), using: &execution)
             let signedRoot = configuration.quadraticA * cosine * slant
                 - configuration.halfLinear(at: angle)
             let branches: [Double]
             if signedRoot > tolerance.distance {
-                branches = [1.0]
+                branches = try CertifiedAnalyticCurveEvaluation.values(1.0, using: &execution)
             } else if signedRoot < -tolerance.distance {
-                branches = [-1.0]
+                branches = try CertifiedAnalyticCurveEvaluation.values(-1.0, using: &execution)
             } else {
-                branches = [-1.0, 1.0]
+                branches = try CertifiedAnalyticCurveEvaluation.values(-1.0, 1.0, using: &execution)
             }
-            for branch in branches where result.contains(where: {
-                $0.branch == branch
-                    && angularDistance($0.angle, angle) <= tolerance.angle
-            }) == false {
-                result.append(PoleContact(
+            for branch in branches {
+                try execution.consumeWork(1)
+                let duplicate = try result.contains { existing in
+                    try execution.consumeWork(1)
+                    return try existing.branch == branch
+                        && (angularDistance(existing.angle, angle, using: &execution)) <= tolerance.angle
+                }
+                guard !duplicate else { continue }
+                try CertifiedAnalyticCurveEvaluation.append(PoleContact(
                     angle: angle,
                     branch: branch
-                ))
+                ), to: &result, using: &execution, capacity: &resultCapacity)
             }
         }
         return result
     }
 
+
+
     private static func minimumRadicand(
         from lower: Double,
         to upper: Double,
         configuration: Configuration
-    ) -> Double {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
+        try execution.retainStorage(count: 2, stride: MemoryLayout<Double>.stride)
         var candidateAngles = [lower, upper]
+        var candidateAnglesCapacity = candidateAngles.count
         let phase = atan2(
             configuration.radialSine,
             configuration.radialCosine
         )
-        appendPeriodicAngle(
+        try appendPeriodicAngle(
             phase,
             from: lower,
             to: upper,
-            result: &candidateAngles
-        )
-        appendPeriodicAngle(
+            result: &candidateAngles, capacity: &candidateAnglesCapacity
+        , using: &execution)
+        try appendPeriodicAngle(
             phase + Double.pi,
             from: lower,
             to: upper,
-            result: &candidateAngles
-        )
+            result: &candidateAngles, capacity: &candidateAnglesCapacity
+        , using: &execution)
         let harmonicAmplitude = configuration.slope
             * configuration.radialAmplitude
         if abs(harmonicAmplitude) > Double.leastNonzeroMagnitude {
             let ratio = -configuration.axialCenter / harmonicAmplitude
             if ratio >= -1.0, ratio <= 1.0 {
                 let offset = acos(ratio)
-                appendPeriodicAngle(
+                try appendPeriodicAngle(
                     phase - offset,
                     from: lower,
                     to: upper,
-                    result: &candidateAngles
-                )
-                appendPeriodicAngle(
+                    result: &candidateAngles, capacity: &candidateAnglesCapacity
+                , using: &execution)
+                try appendPeriodicAngle(
                     phase + offset,
                     from: lower,
                     to: upper,
-                    result: &candidateAngles
-                )
+                    result: &candidateAngles, capacity: &candidateAnglesCapacity
+                , using: &execution)
             }
         }
-        return candidateAngles
-            .map { configuration.radicand(at: $0) }
+        return try CertifiedAnalyticCurveEvaluation.map(candidateAngles, using: &execution) {element, execution in configuration.radicand(at: element) }
             .min() ?? -.infinity
     }
+
+
 
     private static func appendPeriodicAngle(
         _ angle: Double,
         from lower: Double,
         to upper: Double,
         result: inout [Double]
-    ) {
+    ,
+        capacity: inout Int, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         let period = 2.0 * Double.pi
         let firstIndex = ceil((lower - angle) / period)
         let adjusted = angle + firstIndex * period
         if adjusted >= lower, adjusted <= upper {
-            result.append(adjusted)
+            try CertifiedAnalyticCurveEvaluation.append(adjusted, to: &result, using: &execution, capacity: &capacity)
         }
     }
+
+
 
     private static func adjustedAngle(
         _ angle: Double,
         inside interval: ClosedRange<Double>
-    ) -> Double {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
         let period = 2.0 * Double.pi
-        var adjusted = normalizedAngle(angle)
+        var adjusted = try normalizedAngle(angle, using: &execution)
         while adjusted < interval.lowerBound - period * 0.5 {
+            try execution.consumeWork(1)
             adjusted += period
         }
         while adjusted > interval.upperBound + period * 0.5 {
+            try execution.consumeWork(1)
             adjusted -= period
         }
         if adjusted < interval.lowerBound {
@@ -3949,13 +4364,21 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
         return adjusted
     }
 
-    private static func normalizedAngle(_ angle: Double) -> Double {
+
+
+    private static func normalizedAngle(_ angle: Double,
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
         let period = 2.0 * Double.pi
         let remainder = angle.truncatingRemainder(dividingBy: period)
         return remainder >= 0.0 ? remainder : remainder + period
     }
 
-    private static func angularDistance(_ first: Double, _ second: Double) -> Double {
+
+
+    private static func angularDistance(_ first: Double, _ second: Double,
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
         let period = 2.0 * Double.pi
         let difference = abs(first - second).truncatingRemainder(dividingBy: period)
         return min(difference, period - difference)
@@ -3981,6 +4404,7 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
 
 #if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
+        var execution = try NativeRationalSourceDecodingContext.validationExecution(from: decoder)
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
             [
@@ -4005,7 +4429,7 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
             lowerAngle: container.decode(Double.self, forKey: .lowerAngle),
             upperAngle: container.decode(Double.self, forKey: .upperAngle),
             tolerance: tolerance
-        )
+        , using: &execution)
         let storedBound = try container.decode(
             Double.self,
             forKey: .maximumResidualUpperBound
@@ -4022,10 +4446,11 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
 
 #if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
+        var execution = try NativeOriginalSourceEncodingContext.execution(from: encoder)
         guard originalNodeTraversal == nil else {
             throw EncodingError.invalidValue(self,.init(codingPath:encoder.codingPath,debugDescription:"Generated node traversal authority cannot be discarded by the legacy curve codec."))
         }
-        try validate(tolerance: certificationTolerance)
+        try validate(tolerance: certificationTolerance, using: &execution)
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(sphereSurface, forKey: .sphereSurface)
         try container.encode(coneSurface, forKey: .coneSurface)
@@ -4048,6 +4473,14 @@ extension CertifiedSphereConeIntersectionCurve {
     /// The caller owns admission and retains the immutable original component and surfaces.
     func originalApexReducedSourceSnapshot(field: OriginalPhysicalAngleScalarDomain,
         tolerance: ModelingTolerance) throws -> OriginalCertifiedSphereConeApexSnapshot {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try originalApexReducedSourceSnapshot(field: field, tolerance: tolerance, using: &execution)
+    }
+
+    func originalApexReducedSourceSnapshot(field: OriginalPhysicalAngleScalarDomain,
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> OriginalCertifiedSphereConeApexSnapshot {
+        try execution.consumeWork(1)
         // FIXME(INCOMPLETE_IMPLEMENTATION): Other apex intervals have no source snapshot
         // contract here. Public source preparation supports only the retained [0,binary pi]
         // branch until its full interpolation and denominator guards are certified.
@@ -4056,7 +4489,7 @@ extension CertifiedSphereConeIntersectionCurve {
             throw OriginalSourceIssuanceFailure.unsupportedRepresentation
         }
         let configuration = try Self.makeConfiguration(
-            sphereSurface: sphereSurface, coneSurface: coneSurface, tolerance: tolerance)
+            sphereSurface: sphereSurface, coneSurface: coneSurface, tolerance: tolerance, using: &execution)
         let basis = try analyticOrthonormalBasis(configuration.cone.axis, tolerance: tolerance)
         let cosine = cos(configuration.cone.halfAngle)
         let sine = sin(configuration.cone.halfAngle)

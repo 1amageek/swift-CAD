@@ -7,12 +7,11 @@ package struct PlanarOffsetCollocation: Sendable {
     private let factors: [Double]
     private let count: Int
     private let tolerance: ModelingTolerance
-    private let admission: GeometryConversionAdmission?
     private static let halfBandwidth = 3
     private static let rowWidth = 7
 
     package init(knots: [Double], parameters: [Double], tolerance: ModelingTolerance,
-        admission: GeometryConversionAdmission? = nil) throws {
+        using execution: inout OriginalQueryExecution) throws {
         try tolerance.validate()
         let count = parameters.count
         let scalarCount = count.multipliedReportingOverflow(by: Self.rowWidth)
@@ -24,7 +23,7 @@ package struct PlanarOffsetCollocation: Sendable {
         guard count >= 4, knots.count == count + 4 else {
             throw GeometryConversionError.invalidInput("Offset collocation requires its original cubic knot count.")
         }
-        try admission?.chargeWork(2 * knots.count + 2 * parameters.count)
+        try execution.consumeWork(2 * knots.count + 2 * parameters.count)
         guard
               knots.allSatisfy({ $0.isFinite }),
               zip(knots, knots.dropFirst()).allSatisfy({ $0 <= $1 }),
@@ -34,17 +33,17 @@ package struct PlanarOffsetCollocation: Sendable {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
                 message: "Offset collocation requires a finite increasing cubic Greville basis within its unchanged storage budget.")
         }
-        try admission?.chargeStorage(bytes: scalarCount.partialValue * MemoryLayout<Double>.stride)
+        try execution.retainStorage(bytes: scalarCount.partialValue * MemoryLayout<Double>.stride)
         var factors = Array(repeating: 0.0, count: scalarCount.partialValue)
         func index(_ row: Int, _ column: Int) -> Int {
             row * Self.rowWidth + column - row + Self.halfBandwidth
         }
         for (row, parameter) in parameters.enumerated() {
             try CurrentTaskCancellationChecker().checkCancellation()
-            try admission?.chargeWork()
-            let basis = try Self.cubicValues(parameter: parameter, knots: knots, count: count, admission: admission)
+            try execution.consumeWork(1)
+            let basis = try Self.cubicValues(parameter: parameter, knots: knots, count: count, using: &execution)
             for offset in 0..<4 {
-                try admission?.chargeWork()
+                try execution.consumeWork(1)
                 let value: Double
                 switch offset { case 0: value = basis.0; case 1: value = basis.1; case 2: value = basis.2; default: value = basis.3 }
                 let column = basis.start + offset
@@ -60,7 +59,7 @@ package struct PlanarOffsetCollocation: Sendable {
         // No row exchange or unbounded fill is used; every pivot is checked.
         for pivot in 0..<count {
             try CurrentTaskCancellationChecker().checkCancellation()
-            try admission?.chargeWork()
+            try execution.consumeWork(1)
             let diagonal = factors[index(pivot, pivot)]
             let last = min(count - 1, pivot + Self.halfBandwidth)
             let rowMagnitude = (pivot...last).reduce(0.0) {
@@ -73,7 +72,7 @@ package struct PlanarOffsetCollocation: Sendable {
             }
             if pivot == last { continue }
             for row in (pivot + 1)...last {
-                try admission?.chargeWork()
+                try execution.consumeWork(1)
                 let multiplier = factors[index(row, pivot)] / diagonal
                 guard multiplier.isFinite else {
                     throw KernelError(phase: .geometry, code: .singularSystem, tolerance: tolerance,
@@ -81,7 +80,7 @@ package struct PlanarOffsetCollocation: Sendable {
                 }
                 factors[index(row, pivot)] = multiplier
                 for column in (pivot + 1)...last {
-                    try admission?.chargeWork()
+                    try execution.consumeWork(1)
                     factors[index(row, column)] -= multiplier * factors[index(pivot, column)]
                 }
             }
@@ -93,17 +92,16 @@ package struct PlanarOffsetCollocation: Sendable {
         self.factors = factors
         self.count = count
         self.tolerance = tolerance
-        self.admission = admission
     }
 
-    package func solve(_ targets: [Point3D]) throws -> [Point3D] {
+    package func solve(_ targets: [Point3D], using execution: inout OriginalQueryExecution) throws -> [Point3D] {
         guard targets.count == count else {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
                 message: "Offset collocation requires one target per retained Greville station.")
         }
-        try admission?.chargeStorage(bytes: count * (MemoryLayout<Vector3D>.stride + MemoryLayout<Point3D>.stride))
+        try execution.retainStorage(bytes: count * (MemoryLayout<Vector3D>.stride + MemoryLayout<Point3D>.stride))
         var solution = try targets.map { point -> Vector3D in
-            try admission?.chargeWork()
+            try execution.consumeWork(1)
             try point.validate()
             return Vector3D(x: point.x, y: point.y, z: point.z)
         }
@@ -112,36 +110,36 @@ package struct PlanarOffsetCollocation: Sendable {
         }
         for row in 0..<count {
             try CurrentTaskCancellationChecker().checkCancellation()
-            try admission?.chargeWork()
+            try execution.consumeWork(1)
             for column in max(0, row - Self.halfBandwidth)..<row {
-                try admission?.chargeWork()
+                try execution.consumeWork(1)
                 solution[row] = solution[row] - solution[column] * factor(row, column)
             }
         }
         for row in stride(from: count - 1, through: 0, by: -1) {
             try CurrentTaskCancellationChecker().checkCancellation()
-            try admission?.chargeWork()
+            try execution.consumeWork(1)
             let last = min(count - 1, row + Self.halfBandwidth)
             if row < last {
                 for column in (row + 1)...last {
-                    try admission?.chargeWork()
+                    try execution.consumeWork(1)
                     solution[row] = solution[row] - solution[column] * factor(row, column)
                 }
             }
             solution[row] = solution[row] / factor(row, row)
             try solution[row].validate()
         }
-        return try solution.map { try admission?.chargeWork(); return Point3D(x: $0.x, y: $0.y, z: $0.z) }
+        return try solution.map { try execution.consumeWork(1); return Point3D(x: $0.x, y: $0.y, z: $0.z) }
     }
 
     /// Fixed-degree recurrence has no scratch arrays or dynamically guessed bytes.
     private static func cubicValues(parameter t: Double, knots: [Double], count: Int,
-        admission: GeometryConversionAdmission?) throws -> (Double, Double, Double, Double, start: Int) {
+        using execution: inout OriginalQueryExecution) throws -> (Double, Double, Double, Double, start: Int) {
         var span = count - 1
         if t != knots[count] {
             var lower = 3, upper = count
             while lower < upper {
-                try admission?.chargeWork()
+                try execution.consumeWork(1)
                 let middle = lower + (upper - lower) / 2
                 if t < knots[middle] { upper = middle }
                 else if t >= knots[middle + 1] { lower = middle + 1 }
@@ -155,7 +153,7 @@ package struct PlanarOffsetCollocation: Sendable {
         let l1 = t - knots[span], l2 = t - knots[span - 1], l3 = t - knots[span - 2]
         let r1 = knots[span + 1] - t, r2 = knots[span + 2] - t, r3 = knots[span + 3] - t
         func quotient(_ value: Double, _ denominator: Double) throws -> Double {
-            try admission?.chargeWork()
+            try execution.consumeWork(1)
             guard denominator.isFinite, denominator > 0 else {
                 throw GeometryConversionError.resourceLimitExceeded("Offset candidate basis denominator is not finite and positive.")
             }

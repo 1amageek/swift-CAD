@@ -31,22 +31,22 @@ package enum IndependentShapeMapCoding {
             throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable
         }
         try OriginalAffineWordDecodingContext.validateSourceNesting(from: decoder)
-        let allowance = try NativeRationalSourceDecodingContext.allowance(from: decoder)
-        try allowance.visitExactCell(depth: 0)
+        var allowance = try NativeRationalSourceDecodingContext.execution(from: decoder)
+        try allowance.visitCell(axis: .value, depth: 0)
         var c = try decoder.unkeyedContainer()
         guard let count = c.count, count.isMultiple(of: 2) else {
             throw DecodingError.dataCorrupted(.init(codingPath: c.codingPath, debugDescription: "Expected complete original key/value pairs."))
         }
-        try allowance.consumeExactWork(count)
+        try allowance.consumeWork(count)
         let bytes = (count / 2).multipliedReportingOverflow(by: MemoryLayout<(Key, Value)>.stride)
         guard !bytes.overflow else { throw IndependentShapeSourceError.resourceLimitExceeded("Original source pair storage overflow.") }
         let stride = MemoryLayout<UInt32>.stride
-        try allowance.retainExactStorage(bytes.partialValue / stride + (bytes.partialValue % stride == 0 ? 0 : 1))
+        try RationalAlgebraStorage.retain(bytes.partialValue / stride + (bytes.partialValue % stride == 0 ? 0 : 1), of: UInt32.self, usage: &allowance)
         var result: [Key: Value] = [:]
         result.reserveCapacity(count / 2)
         while !c.isAtEnd {
             try CurrentTaskCancellationChecker().checkCancellation()
-            try allowance.visitExactCell(depth: 0)
+            try allowance.visitCell(axis: .value, depth: 0)
             let id = try c.decode(Key.self)
             guard result[id] == nil else {
                 throw DecodingError.dataCorrupted(.init(codingPath: c.codingPath, debugDescription: "Duplicate original source map key."))

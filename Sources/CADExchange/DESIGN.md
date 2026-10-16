@@ -344,3 +344,24 @@ visits. Compressed size and aggregate uncompressed payload ceilings retain their
 existing meaning. Budget and cancellation failures remain typed across ZIP
 syntax translation. Borrowed compressed pointers remain scoped to the synchronous
 ByteSource visit; callbacks receive counts, never pointers.
+
+
+The isolated canonical API extraction records its concrete forced caller edges in [delivery bindings](DELIVERY_BINDINGS.md). That inventory is traceability only; its own candidate compile/runtime gate remains required. Child designs own the actual admission/owner contracts.
+
+
+### Required neutral chart bindings
+
+The internal exact surface-parameter codec propagates typed unsupported failures
+for original angular-transport, boundary-corrected, plane-derivative, and drafted
+surface laws until their original chart has a faithful neutral-schema carrier.
+Its encode and encoded-tolerance operations are fallible; existing public
+STEP/IGES reader and writer signatures already propagate failure. Such a source
+must not use an unrelated primitive chart or lose its retained law on output.
+
+The projected analytic p-curve transfer helper borrows the caller's execution
+through its existing bounded analytic conversion, reversal, projection, and
+endpoint validation. Its existing 4,096-span ceiling and mathematical transfer
+are unchanged. Newly introduced p-curve wrappers are explicit unsupported
+frontiers until faithful representation exists; unwrapping them is not proof of
+legacy certified-implicit provenance. Verification belongs to the existing
+neutral exchange regression target and the actual caller composition gate.

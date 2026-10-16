@@ -43,19 +43,25 @@ public indirect enum SurfaceSurfaceIntersectionCurveTruth: Hashable, Sendable {
   }
 
   public func validate(tolerance: ModelingTolerance) throws {
+    var execution = try OriginalQueryExecution.independentGeometry()
+    try validate(tolerance: tolerance, using: &execution)
+  }
+
+  public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+    try execution.consumeWork(1)
     switch self {
     case .parametric(let curve):
-      try curve.validate(tolerance: tolerance)
+      try curve.validate(tolerance: tolerance, using: &execution)
     case .implicit(let curve):
-      try curve.validate(tolerance: tolerance)
+      try curve.validate(tolerance: tolerance, using: &execution)
     case .analyticBSpline(let curve):
-      try curve.validate(tolerance: tolerance)
+      try curve.validate(tolerance: tolerance, using: &execution)
     case .analyticBSplineTangency(let curve):
-      try curve.validate(tolerance: tolerance)
+      try curve.validate(tolerance: tolerance, using: &execution)
     case .analyticAnalytic(let curve):
-      try curve.validate(tolerance: tolerance)
+      try curve.validate(tolerance: tolerance, using: &execution)
     case .quadraticTangency(let curve):
-      try curve.validate(tolerance: tolerance)
+      try curve.validate(tolerance: tolerance, using: &execution)
     }
   }
 

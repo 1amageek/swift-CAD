@@ -19,7 +19,7 @@ package struct ExactIntersectionJacobian: Sendable {
         self.entries = entries; self.minors = minors
     }
 
-    package static func prepare<B: RationalAlgebraAdmitting>(equations: [ExactIntersectionPolynomial],
+    package static func prepare<B: ExactScalarAdmission & ~Copyable>(equations: [ExactIntersectionPolynomial],
         variableCount: Int, usage: inout B) throws -> Self {
         guard (1...ExactIntersectionPolynomial.maximumVariableCount).contains(variableCount) else {
             throw rationalAlgebraFailure("Original Jacobian requires a bound coordinate ring.")
@@ -67,7 +67,7 @@ package struct ExactIntersectionJacobian: Sendable {
         return Self(equations: equations, variableCount: variableCount, entries: entries, minors: minors)
     }
 
-    private static func combinations<B: RationalAlgebraAdmitting>(count: Int, order: Int,
+    private static func combinations<B: ExactScalarAdmission & ~Copyable>(count: Int, order: Int,
         usage: inout B) throws -> [[Int]] {
         guard order > 0, order <= count else {
             throw rationalAlgebraFailure("Original minor combinations require valid dimensions.")

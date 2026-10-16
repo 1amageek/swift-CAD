@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 /// A topological body with explicit solid-component or sheet-shell ownership.
 public struct Body: Equatable, Sendable {
@@ -53,6 +54,25 @@ public struct Body: Equatable, Sendable {
 
     public var shellIDs: [ShellID] {
         topology.shellIDs
+    }
+
+    package func originalShellIDs(using execution: inout OriginalQueryExecution) throws -> [ShellID] {
+        switch topology {
+        case .sheet(let ids):
+            for _ in ids { try execution.consumeWork(1) }
+            return ids
+        case .solid(let components):
+            var result: [ShellID] = []
+            for component in components {
+                try execution.consumeWork(1)
+                try OriginalParameterQueryStorage.append(component.outerShellID, to: &result, using: &execution)
+                for id in component.voidShellIDs {
+                    try execution.consumeWork(1)
+                    try OriginalParameterQueryStorage.append(id, to: &result, using: &execution)
+                }
+            }
+            return result
+        }
     }
 
     public var solidComponents: [SolidShellComponent]? {

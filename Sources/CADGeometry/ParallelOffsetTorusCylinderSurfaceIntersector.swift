@@ -54,6 +54,29 @@ struct ParallelOffsetTorusCylinderSurfaceIntersector {
 
     private let verifier = SurfaceSurfaceIntersectionVerifier()
 
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Ordinary SSI dispatch reaches this direct entry.
+    // The former numerical/tolerance branches did not establish original common-set
+    // authority. U4 must supply complete original source/UV coverage before success.
+    func intersections(
+        torus: CanonicalAnalyticSurface.Torus,
+        cylinder: CanonicalAnalyticSurface.Cylinder,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        options: SurfaceSurfaceIntersectionOptions,
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution
+    ) throws -> [SurfaceSurfaceIntersection] {
+        execution.context = execution.context.at(stage: .relation)
+        do {
+            try execution.checkpoint()
+            throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+                message: "ParallelOffsetTorusCylinderSurfaceIntersector requires complete original source relation authority.")
+        } catch { throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance) }
+    }
+
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Existing candidate/source helper methods call
+    // this ordinary publication entry. It performs no numeric solve or fallback;
+    // U4 must provide source-bound relation proof and direct execution before success.
     func intersections(
         torus: CanonicalAnalyticSurface.Torus,
         cylinder: CanonicalAnalyticSurface.Cylinder,
@@ -62,121 +85,9 @@ struct ParallelOffsetTorusCylinderSurfaceIntersector {
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
     ) throws -> [SurfaceSurfaceIntersection] {
-        let torusSurface: Surface3D
-        let cylinderSurface: Surface3D
-        if case .torus = CanonicalAnalyticSurface(firstSurface) {
-            torusSurface = firstSurface
-            cylinderSurface = secondSurface
-        } else {
-            torusSurface = secondSurface
-            cylinderSurface = firstSurface
-        }
-        guard AnalyticAxisRelation.areParallel(torus.axis, cylinder.axis, tolerance: tolerance) else {
-            throw KernelError(
-                phase: .geometry,
-                code: .invalidInput,
-                tolerance: tolerance,
-                message: "Parallel-offset torus-cylinder intersection requires parallel axes."
-            )
-        }
-        let canonicalCylinder = try canonicalCylinder(
-            cylinder,
-            torus: torus,
-            tolerance: tolerance
-        )
-        let configuration = try makeConfiguration(
-            torus: torus,
-            cylinder: canonicalCylinder,
-            tolerance: tolerance
-        )
-        let roots = boundaryAngles(configuration: configuration, tolerance: tolerance)
-        let builder = SurfaceIntersectionSplineBuilder(
-            firstSurface: firstSurface,
-            secondSurface: secondSurface,
-            options: options,
-            tolerance: tolerance
-        )
-
-        if roots.isEmpty {
-            guard isAllowed(
-                angle: 0.0,
-                configuration: configuration,
-                tolerance: tolerance
-            ) else {
-                return []
-            }
-            return try fullDomainIntersections(
-                configuration: configuration,
-                builder: builder,
-                torusSurface: torusSurface,
-                cylinderSurface: cylinderSurface,
-                firstSurface: firstSurface,
-                secondSurface: secondSurface,
-                tolerance: tolerance
-            )
-        }
-
-        let intervalStates = elementaryIntervalStates(
-            roots: roots,
-            configuration: configuration,
-            tolerance: tolerance
-        )
-
-        var results: [SurfaceSurfaceIntersection] = []
-        for index in roots.indices where intervalStates[index] {
-            let lower = roots[index]
-            let upper = index + 1 < roots.count
-                ? roots[index + 1]
-                : roots[0] + 2.0 * Double.pi
-            guard upper - lower > tolerance.angle else { continue }
-            let previousIndex = (index + roots.count - 1) % roots.count
-            let nextIndex = (index + 1) % roots.count
-            let lowerIsInternalTangency = intervalStates[previousIndex]
-            let upperIsInternalTangency = intervalStates[nextIndex]
-            let interval = AngularInterval(lower: lower, upper: upper)
-            if lowerIsInternalTangency || upperIsInternalTangency {
-                results.append(contentsOf: try internalTangencyIntervalIntersections(
-                    interval: interval,
-                    builder: builder,
-                    torusSurface: torusSurface,
-                    cylinderSurface: cylinderSurface,
-                    firstSurface: firstSurface,
-                    secondSurface: secondSurface,
-                    tolerance: tolerance
-                ))
-            } else {
-                results.append(try intervalIntersection(
-                    interval: interval,
-                    configuration: configuration,
-                    builder: builder,
-                    torusSurface: torusSurface,
-                    cylinderSurface: cylinderSurface,
-                    firstSurface: firstSurface,
-                    secondSurface: secondSurface,
-                    tolerance: tolerance
-                ))
-            }
-        }
-
-        for index in roots.indices {
-            let before = intervalStates[(index + roots.count - 1) % roots.count]
-            let after = intervalStates[index]
-            if before == false, after == false {
-                let point = try intersectionPoint(
-                    angle: roots[index],
-                    branch: 1.0,
-                    configuration: configuration,
-                    tolerance: tolerance
-                )
-                results.append(try verifier.point(
-                    point,
-                    firstSurface: firstSurface,
-                    secondSurface: secondSurface,
-                    tolerance: tolerance
-                ))
-            }
-        }
-        return results
+        try CurrentTaskCancellationChecker().checkCancellation()
+        throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+            message: "ParallelOffsetTorusCylinderSurfaceIntersector has no ordinary original-proof publication.")
     }
 
     private func fullDomainIntersections(

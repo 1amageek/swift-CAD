@@ -10,33 +10,60 @@ public struct AssemblyEvaluator: AssemblyEvaluating {
     public func evaluate(_ assembly: DocumentAssembly, in graph: DesignGraph,
                          local: AssemblyLocalEvaluationBase, tolerance: ModelingTolerance,
                          limits: AssemblyResourceLimits = .standard) throws -> AssemblyEvaluationResult {
+        try limits.validate()
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(workLimit: limits.maximumWork,
+            sourceTextByteLimit: limits.maximumTextBytes), limits: try .init(
+                maximumValueDepth: limits.maximumAlgebraicDepth,
+                maximumCoefficientDepth: limits.maximumAlgebraicDepth,
+                remainingSourceDepth: limits.maximumDepth,
+                maximumSubdivisionDepth: min(32, limits.maximumDepth)))
+        return try evaluate(assembly, in: graph, local: local, tolerance: tolerance,
+            limits: limits, using: &execution)
+    }
+
+    public func evaluate(_ assembly: DocumentAssembly, in graph: DesignGraph,
+        local: AssemblyLocalEvaluationBase, tolerance: ModelingTolerance,
+        limits: AssemblyResourceLimits = .standard, using execution: inout OriginalQueryExecution) throws -> AssemblyEvaluationResult {
+        try limits.validate()
+        let contribution = try execution.makeContributionHandle(workLimit: limits.maximumWork,
+            sourceTextByteLimit: limits.maximumTextBytes,
+            executionLimits: .init(maximumValueDepth: limits.maximumAlgebraicDepth,
+                maximumCoefficientDepth: limits.maximumAlgebraicDepth,
+                remainingSourceDepth: limits.maximumDepth,
+                maximumSubdivisionDepth: min(32, limits.maximumDepth)))
+        return try execution.withContributionScope(contribution) { execution in
+            try evaluateBody(assembly, in: graph, local: local, tolerance: tolerance, limits: limits, using: &execution)
+        }
+    }
+
+    private func evaluateBody(_ assembly: DocumentAssembly, in graph: DesignGraph,
+        local: AssemblyLocalEvaluationBase, tolerance: ModelingTolerance,
+        limits: AssemblyResourceLimits, using execution: inout OriginalQueryExecution) throws -> AssemblyEvaluationResult {
+        let initialWork = execution.localWork
         let expansion = try DocumentAssemblyValidator().expand(assembly, in: graph,
-            tolerance: tolerance, limits: limits)
+            tolerance: tolerance, limits: limits, using: &execution)
         let expanded = expansion.occurrences
-        let usage = try AssemblyEvaluationUsage(maximumWork: limits.maximumWork,
-            consumedWork: expansion.consumedWork)
         let sourceDepth = min(16, limits.maximumDepth)
         let subdivisionDepth = min(32, limits.maximumDepth)
-        func certificate(_ model: BRepModel) throws -> ValidatedBRepModel {
+        func certificate(_ model: BRepModel, using execution: inout OriginalQueryExecution) throws -> ValidatedBRepModel {
             try ValidatedBRepModel(model, tolerance: tolerance, validationLevel: .exact,
-                maximumSubdivisionDepth: subdivisionDepth, remainingSourceDepth: sourceDepth,
-                consumeWork: { try usage.consume() }, consumeStorage: { try usage.consume($0) })
+                maximumSubdivisionDepth: subdivisionDepth, remainingSourceDepth: sourceDepth, using: &execution)
         }
         // FIXME(INCOMPLETE_IMPLEMENTATION): This public assembly path consumes the
         // bounded original BRep receipt; its lower correspondence/seam/chart-lift
         // callbacks must be complete before all original affine families are admitted.
-        _ = try certificate(local.model)
-        try usage.consume(local.subshapes.entries.count)
-        try usage.consume(local.lineage.count)
-        try local.subshapes.validate(against: local.model, lineage: local.lineage)
+        _ = try certificate(local.model, using: &execution)
+        try execution.consumeWork(local.subshapes.entries.count)
+        try execution.consumeWork(local.lineage.count)
+        try local.subshapes.validate(against: local.model, lineage: local.lineage, using: &execution)
         let definitions = Dictionary(uniqueKeysWithValues: assembly.definitions.map { ($0.id, $0) })
         var models: [FeatureID: ValidatedBRepModel] = [:]
         var geometryCosts: [FeatureID: Int] = [:]
         var accountedBodies = Set<BodyID>()
-        func chargeWork(_ count: Int) throws { try usage.consume(count) }
+        func chargeWork(_ count: Int, using execution: inout OriginalQueryExecution) throws { try execution.consumeWork(count) }
         for featureID in Set(assembly.definitions.flatMap(\.features)).sorted() {
             try Task.checkCancellation()
-            try chargeWork(local.subshapes.entries.count)
+            try chargeWork(local.subshapes.entries.count, using: &execution)
             let bodyIDs = Set(local.subshapes.entries.compactMap { key, value -> BodyID? in
                 guard key.featureID == featureID, case let .body(id) = value else { return nil }; return id
             })
@@ -47,20 +74,20 @@ public struct AssemblyEvaluator: AssemblyEvaluating {
             var extractionRecords = 0
             for records in [local.model.bodies.count, local.model.shells.count, local.model.faces.count,
                             local.model.loops.count, local.model.edges.count, local.model.vertices.count] {
-                guard records <= usage.remainingWork - extractionRecords else {
+                guard records <= execution.availableWork - extractionRecords else {
                     throw AssemblyError.resourceLimitExceeded("local extraction records")
                 }
                 extractionRecords += records
             }
-            guard extractionRecords <= usage.remainingWork / 16 else {
+            guard extractionRecords <= execution.availableWork / 16 else {
                 throw AssemblyError.resourceLimitExceeded("local extraction traversal/storage")
             }
-            try chargeWork(extractionRecords * 16)
-            let model = try BRepBodySubmodelExtractor().extract(bodyIDs: bodyIDs, from: local.model)
-            let cost = try AssemblyGeometryCounter.count(model, maximum: usage.remainingWork, maximumDepth: limits.maximumDepth)
-            try chargeWork(cost)
+            try chargeWork(extractionRecords * 16, using: &execution)
+            let model = try BRepBodySubmodelExtractor().extract(bodyIDs: bodyIDs, from: local.model, using: &execution)
+            let cost = try AssemblyGeometryCounter.count(model, maximum: execution.availableWork, maximumDepth: limits.maximumDepth)
+            try chargeWork(cost, using: &execution)
             geometryCosts[featureID] = cost
-            models[featureID] = try certificate(model)
+            models[featureID] = try certificate(model, using: &execution)
         }
         guard accountedBodies == Set(local.model.bodies.keys) else {
             throw AssemblyError.inconsistentArtifact("Assembly source does not account for every live local body.")
@@ -76,9 +103,8 @@ public struct AssemblyEvaluator: AssemblyEvaluating {
             guard let definition = definitions[occurrence.definitionID] else {
                 throw AssemblyError.missingDefinition(occurrence.definitionID)
             }
-            var algebra = AssemblyOriginalAlgebraAdmission(usage: usage, maximumDepth: limits.maximumAlgebraicDepth)
             let originalWord = try occurrence.placement.originalOperationWord(tolerance: tolerance,
-                maximumDepth: limits.maximumAlgebraicDepth, maximumSourceDepth: limits.maximumDepth, usage: &algebra)
+                maximumDepth: limits.maximumAlgebraicDepth, maximumSourceDepth: limits.maximumDepth, using: &execution)
             var features: [AssemblyFeatureCorrespondence] = []
             for featureID in definition.features.sorted() {
                 guard let sourceCertificate = models[featureID] else { throw AssemblyError.unresolvedOutput(featureID) }
@@ -97,32 +123,26 @@ public struct AssemblyEvaluator: AssemblyEvaluating {
                 guard let geometryCost = geometryCosts[featureID] else {
                     throw AssemblyError.inconsistentArtifact("Missing admitted local geometry cost.")
                 }
-                guard geometryCost <= (usage.remainingWork) / 16 else {
+                guard geometryCost <= (execution.availableWork) / 16 else {
                     throw AssemblyError.resourceLimitExceeded("world geometry work/storage")
                 }
-                try chargeWork(geometryCost * 16)
-                guard count <= (usage.remainingWork) / 16 else {
+                try chargeWork(geometryCost * 16, using: &execution)
+                guard count <= (execution.availableWork) / 16 else {
                     throw AssemblyError.resourceLimitExceeded("world topology work")
                 }
-                try chargeWork(count * 16)
+                try chargeWork(count * 16, using: &execution)
                 let seed = namespace(path: occurrence.path, definition: definition.id, feature: featureID)
                 guard namespaces.insert(seed).inserted else { throw AssemblyError.identityCollision }
                 let placedModel = try shapeOperator.transformed(validatedModel: sourceCertificate,
                     by: originalWord, maximumSubdivisionDepth: subdivisionDepth,
-                    remainingSourceDepth: sourceDepth,
-                    consumeWork: { depth in
-                        guard depth >= 0, depth <= subdivisionDepth else {
-                            throw AssemblyError.resourceLimitExceeded("original affine subdivision depth")
-                        }
-                        try usage.consume()
-                    }, consumeStorage: { try usage.consume($0) })
-                _ = try certificate(placedModel)
-                let image = try ImportedBRepTopologyReidentifier().reidentify(placedModel, featureID: seed)
+                    remainingSourceDepth: sourceDepth, using: &execution)
+                _ = try certificate(placedModel, using: &execution)
+                let image = try ImportedBRepTopologyReidentifier().reidentify(placedModel, featureID: seed, using: &execution)
                 worldModels.append(image.model)
                 let correspondence = AssemblyFeatureCorrespondence(featureID: featureID, bodies: image.bodyIDs,
                     faces: image.faceIDs, edges: image.edgeIDs, vertices: image.vertexIDs)
                 features.append(correspondence)
-                try chargeWork(local.subshapes.entries.count)
+                try chargeWork(local.subshapes.entries.count, using: &execution)
                 for (sourceID, reference) in local.subshapes.entries {
                     let target: TopologyReference?
                     switch reference {
@@ -132,11 +152,11 @@ public struct AssemblyEvaluator: AssemblyEvaluating {
                     case .vertex(let id): target = image.vertexIDs[id].map(TopologyReference.vertex)
                     }
                     guard let target else { continue }
-                    guard occurrence.path.components.count <= (usage.remainingWork) / 37 else {
+                    guard occurrence.path.components.count <= (execution.availableWork) / 37 else {
                         throw AssemblyError.resourceLimitExceeded("occurrence role text")
                     }
-                    try chargeWork(occurrence.path.components.count * 37)
-                    try chargeWork(sourceID.role.utf8.count)
+                    try chargeWork(occurrence.path.components.count * 37, using: &execution)
+                    try chargeWork(sourceID.role.utf8.count, using: &execution)
                     let output = SubshapeID(featureID: sourceID.featureID,
                         role: "assembly/" + occurrence.path.description + "/" + sourceID.role, ordinal: sourceID.ordinal)
                     guard outputs.updateValue(target, forKey: output) == nil else { throw AssemblyError.identityCollision }
@@ -146,14 +166,14 @@ public struct AssemblyEvaluator: AssemblyEvaluating {
             occurrences.append(AssemblyOccurrenceCorrespondence(path: occurrence.path, definitionID: definition.id,
                 placement: occurrence.placement, features: features))
         }
-        let world = try BRepModelCombiner().combined(worldModels)
-        _ = try certificate(world)
+        let world = try BRepModelCombiner().combined(worldModels, using: &execution)
+        _ = try certificate(world, using: &execution)
         let index = SubshapeIndex(outputs)
-        try usage.consume(outputs.count)
-        try usage.consume(lineage.count)
-        try index.validate(against: world, lineage: lineage)
+        try execution.consumeWork(outputs.count)
+        try execution.consumeWork(lineage.count)
+        try index.validate(against: world, lineage: lineage, using: &execution)
         return AssemblyEvaluationResult(model: world, subshapes: index, lineage: lineage,
-            artifact: AssemblyEvaluationArtifact(local: local, occurrences: occurrences, limits: limits), consumedWork: usage.consumedWork)
+            artifact: AssemblyEvaluationArtifact(local: local, occurrences: occurrences, limits: limits), consumedWork: execution.localWork - initialWork)
     }
     private func namespace(path: AssemblyOccurrencePath, definition: AssemblyDefinitionID, feature: FeatureID) -> FeatureID {
         // Fixed unsigned hashing is independent of Swift Hasher randomization and sibling order.

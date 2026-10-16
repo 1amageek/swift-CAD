@@ -1,0 +1,4 @@
+NATIVE_CORRESPONDENCE_STAGE main=false setup.begin
+NATIVE_CORRESPONDENCE_STAGE main=false setup.end work=107 bytes=128
+NATIVE_CORRESPONDENCE_STAGE main=false bound.begin
+NATIVE_CORRESPONDENCE_STAGE main=false bound.end deviation=0.0 work=254 bytes=296

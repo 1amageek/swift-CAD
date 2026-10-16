@@ -4,19 +4,17 @@ import CADGeometry
 /// Exact original Green flux for authored piecewise linear UV paths.
 struct OriginalLinearPcurveFluxIntegrator {
     func bounds(for curve: SurfaceParameterCurve, uShift: Double, requestedWidth: Double,
-        tolerance: ModelingTolerance, consumeWork: (@Sendable (Int) throws -> Void)?,
-        consumeStorage: (@Sendable (Int) throws -> Void)?) throws -> SurfaceParameterAreaBounds? {
-        var usage = OriginalSourceProofAdmission(consumeWork: consumeWork, consumeStorage: consumeStorage)
+        tolerance: ModelingTolerance, using usage: inout OriginalQueryExecution) throws -> SurfaceParameterAreaBounds? {
         let shift = try ExactRationalCoefficient.originalDouble(uShift, usage: &usage)
         func coordinate(_ origin: Double, _ direction: Double, _ parameter: Double,
-            usage: inout OriginalSourceProofAdmission) throws -> ExactRationalCoefficient {
+            usage: inout OriginalQueryExecution) throws -> ExactRationalCoefficient {
             try ExactRationalCoefficient.originalDouble(origin, usage: &usage)
                 .adding(.originalDouble(direction, usage: &usage)
                     .multiplied(by: .originalDouble(parameter, usage: &usage), usage: &usage), usage: &usage)
         }
         func segment(_ u0: ExactRationalCoefficient, _ v0: ExactRationalCoefficient,
             _ u1: ExactRationalCoefficient, _ v1: ExactRationalCoefficient,
-            usage: inout OriginalSourceProofAdmission) throws -> ExactRationalCoefficient {
+            usage: inout OriginalQueryExecution) throws -> ExactRationalCoefficient {
             let sum = try u0.adding(shift, usage: &usage).adding(u1, usage: &usage)
                 .adding(shift, usage: &usage)
             let difference = try v1.subtracting(v0, usage: &usage)
@@ -40,7 +38,7 @@ struct OriginalLinearPcurveFluxIntegrator {
             guard points.count >= 2 else { throw GeometryError.invalidDistance(Double(points.count)) }
             var sum = ExactRationalCoefficient.zero
             for index in 1..<points.count {
-                try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork?(0)
+                try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeWork(1)
                 let first = points[index - 1], last = points[index]
                 let contribution = try segment(.originalDouble(first.u, usage: &usage),
                     .originalDouble(first.v, usage: &usage), .originalDouble(last.u, usage: &usage),

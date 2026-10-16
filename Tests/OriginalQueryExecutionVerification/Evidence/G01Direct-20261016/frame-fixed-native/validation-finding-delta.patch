@@ -1,0 +1,344 @@
+--- accepted/Sources/CADGeometry/OriginalGeometrySourceValidation/Surface3D+BoundedValidation.swift
+
++++ current/Sources/CADGeometry/OriginalGeometrySourceValidation/Surface3D+BoundedValidation.swift
+
+@@ -18,4 +18,24 @@
+
+         try execution.admitSourceDepth(sourceDepth)
+         try execution.consumeWork(1); try CurrentTaskCancellationChecker().checkCancellation(); try tolerance.validate()
++        switch self {
++        case .plane(let value): try value.validate(tolerance: tolerance)
++        case .cylinder(let value): try value.validate(tolerance: tolerance)
++        case .analytic(let value): try value.validate(tolerance: tolerance, using: &execution)
++        case .bSpline(let value):
++            try OriginalGeometrySourceValidation.validate(value, tolerance: tolerance,
++                using: &execution)
++        case .procedural(let original):
++            try Self.validateProceduralOriginalSource(original, tolerance: tolerance,
++                remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth,
++                maximumAlgebraicDepth: maximumAlgebraicDepth, atSourceDepth: sourceDepth, using: &execution)
++        }
++        }
++    }
++
++    @inline(never)
++    private static func validateProceduralOriginalSource(_ original: ProceduralSurface3D,
++        tolerance: ModelingTolerance, remainingSourceDepth: Int, maximumSubdivisionDepth: Int,
++        maximumAlgebraicDepth: Int?, atSourceDepth sourceDepth: Int,
++        using execution: inout OriginalQueryExecution) throws {
+         func surface(_ source: Surface3D) throws {
+             guard remainingSourceDepth > 0 else {
+@@ -32,19 +52,13 @@
+
+                 maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, atSourceDepth: sourceDepth + 1, using: &execution)
+         }
+-        switch self {
+-        case .plane(let value): try value.validate(tolerance: tolerance)
+-        case .cylinder(let value): try value.validate(tolerance: tolerance)
+-        case .analytic(let value): try value.validate(tolerance: tolerance, using: &execution)
+-        case .bSpline(let value):
+-            try OriginalGeometrySourceValidation.validate(value, tolerance: tolerance,
+-                using: &execution)
+-        case .procedural(.offset(let value)):
++        switch original {
++        case .offset(let value):
+             guard value.distance.isFinite else { throw GeometryError.invalidDistance(value.distance) }
+             try surface(value.source)
+-        case .procedural(.originalAffineWord(let image)):
++        case .originalAffineWord(let image):
+             try image.validateOriginalRelation(tolerance: tolerance,
+                 remainingSourceDepth: remainingSourceDepth,
+                 maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
+-        case .procedural(.originalAngularTransport(let image)):
++        case .originalAngularTransport(let image):
+             guard remainingSourceDepth > 0 else {
+                 throw GeometryConversionError.resourceLimitExceeded("Original angular support exhausted source depth.")
+@@ -53,5 +67,5 @@
+
+                 try image.validateOriginalRelation(tolerance: tolerance, usage: &execution)
+ 
+-        case .procedural(.originalImage(let image)):
++        case .originalImage(let image):
+             try image.transform.validate()
+             guard image.uOffset.isFinite, image.vOffset.isFinite else {
+@@ -62,5 +76,5 @@
+
+             try surface(image.source)
+             try image.uDomain.validate(tolerance: tolerance); try image.vDomain.validate(tolerance: tolerance)
+-        case .procedural(.ruled(let value)):
++        case .ruled(let value):
+             try curve(value.startBoundary, at: tolerance); try curve(value.endBoundary, at: tolerance)
+             guard case .closed(let lower, let upper) = value.uDomain,
+@@ -71,5 +85,5 @@
+
+                 throw GeometryConversionError.invalidInput("Original ruled support requires both complete finite rails.")
+             }
+-        case .procedural(.rollingBall(let value)):
++        case .rollingBall(let value):
+             try value.tolerance.validate()
+             guard value.radius.isFinite, value.radius > value.tolerance.distance,
+@@ -81,5 +95,5 @@
+
+             try curve(value.centerSpine, at: value.tolerance)
+             try curve(value.firstContact, at: value.tolerance); try curve(value.secondContact, at: value.tolerance)
+-        case .procedural(.originalCoons(let value)):
++        case .originalCoons(let value):
+             // Corner and traversal source witnesses were admitted by the only
+             // immutable constructors/decoders, with their exact caller ledger.
+@@ -91,5 +105,5 @@
+
+             try curve(value.uMinimumBoundary.source, at: tolerance)
+             try curve(value.uMaximumBoundary.source, at: tolerance)
+-        case .procedural(.originalBoundaryCorrected(let value)):
++        case .originalBoundaryCorrected(let value):
+             try execution.withSourceDepthOffset(sourceDepth) { execution in
+                 try value.validate(tolerance: tolerance, using: &execution)
+@@ -97,5 +111,5 @@
+
+             try surface(.bSpline(value.construction))
+             try surface(.procedural(.originalCoons(value.boundaries)))
+-        case .procedural(.originalPlaneDerivative(let value)):
++        case .originalPlaneDerivative(let value):
+             try execution.withSourceDepthOffset(sourceDepth) { execution in
+                 try value.validate(tolerance: tolerance, using: &execution)
+@@ -110,8 +124,8 @@
+
+             }
+             try supports(value.startConstraints); try supports(value.endConstraints)
+-        case .procedural(.originalDrafted(let value)):
++        case .originalDrafted(let value):
+             try value.validate(tolerance: tolerance)
+             try curve(.originalDrafted(value.start), at: tolerance)
+-        case .procedural(.originalRevolution(let value)):
++        case .originalRevolution(let value):
+             // The immutable root span constructor/decoder already proves its
+             // exact endpoint order, owning source coefficients and root cache.
+@@ -121,5 +135,4 @@
+
+             }
+         }
+-        }
+     }
+ }
+--- accepted/Sources/CADGeometry/OriginalGeometrySourceValidation/Curve3D+BoundedValidation.swift
+
++++ current/Sources/CADGeometry/OriginalGeometrySourceValidation/Curve3D+BoundedValidation.swift
+
+@@ -18,4 +18,51 @@
+
+         try execution.admitSourceDepth(sourceDepth)
+         try execution.consumeWork(1); try CurrentTaskCancellationChecker().checkCancellation(); try tolerance.validate()
++        switch self {
++        case .line(let value): try value.validate(tolerance: tolerance)
++        case .circle(let value): try value.validate(tolerance: tolerance)
++        case .analytic(let value): try value.validate(tolerance: tolerance, using: &execution)
++        case .bSpline(let value):
++            try OriginalGeometrySourceValidation.validate(value, tolerance: tolerance,
++                using: &execution)
++        case .surfaceLift(let lift):
++            try Self.validateLiftOriginalSource(lift, tolerance: tolerance,
++                remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth,
++                maximumAlgebraicDepth: maximumAlgebraicDepth, atSourceDepth: sourceDepth, using: &execution)
++        default:
++            try Self.validateOtherOriginalSource(self, tolerance: tolerance,
++                remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth,
++                maximumAlgebraicDepth: maximumAlgebraicDepth, atSourceDepth: sourceDepth, using: &execution)
++        }
++        }
++    }
++
++    @inline(never)
++    private static func validateLiftOriginalSource(_ lift: SurfaceLiftCurve3D,
++        tolerance: ModelingTolerance, remainingSourceDepth: Int, maximumSubdivisionDepth: Int,
++        maximumAlgebraicDepth: Int?, atSourceDepth sourceDepth: Int,
++        using execution: inout OriginalQueryExecution) throws {
++            guard remainingSourceDepth > 0 else {
++                throw GeometryConversionError.resourceLimitExceeded("Original lift validation exhausted source depth.")
++            }
++            try lift.surface.validateOriginalSource(tolerance: tolerance, remainingSourceDepth: remainingSourceDepth - 1,
++                maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, atSourceDepth: sourceDepth + 1, using: &execution)
++            try lift.parameterCurve.validateOriginalSource(on: lift.surface, tolerance: tolerance,
++                remainingSourceDepth: remainingSourceDepth - 1,
++                maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, atSourceDepth: sourceDepth + 1, using: &execution)
++            if let image = lift.exactBSplineImage {
++                try OriginalGeometrySourceValidation.validate(image, tolerance: tolerance,
++                    using: &execution)
++                guard case .closed(let lower, let upper) = image.domain,
++                      abs(lower) <= tolerance.relative, abs(upper - 1) <= tolerance.relative else {
++                    throw GeometryConversionError.invalidInput("Original lift image needs its normalized native domain.")
++                }
++            }
++    }
++
++    @inline(never)
++    private static func validateOtherOriginalSource(_ original: Curve3D,
++        tolerance: ModelingTolerance, remainingSourceDepth: Int, maximumSubdivisionDepth: Int,
++        maximumAlgebraicDepth: Int?, atSourceDepth sourceDepth: Int,
++        using execution: inout OriginalQueryExecution) throws {
+         func descendant(_ source: Curve3D) throws {
+             guard remainingSourceDepth > 0 else {
+@@ -47,11 +94,5 @@
+
+             }
+         }
+-        switch self {
+-        case .line(let value): try value.validate(tolerance: tolerance)
+-        case .circle(let value): try value.validate(tolerance: tolerance)
+-        case .analytic(let value): try value.validate(tolerance: tolerance, using: &execution)
+-        case .bSpline(let value):
+-            try OriginalGeometrySourceValidation.validate(value, tolerance: tolerance,
+-                using: &execution)
++        switch original {
+         case .originalPolyline(let value):
+             try value.validate(tolerance: tolerance)
+@@ -150,21 +191,4 @@
+
+                     maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, atSourceDepth: sourceDepth + 1, using: &execution)
+             }
+-        case .surfaceLift(let lift):
+-            guard remainingSourceDepth > 0 else {
+-                throw GeometryConversionError.resourceLimitExceeded("Original lift validation exhausted source depth.")
+-            }
+-            try lift.surface.validateOriginalSource(tolerance: tolerance, remainingSourceDepth: remainingSourceDepth - 1,
+-                maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, atSourceDepth: sourceDepth + 1, using: &execution)
+-            try lift.parameterCurve.validateOriginalSource(on: lift.surface, tolerance: tolerance,
+-                remainingSourceDepth: remainingSourceDepth - 1,
+-                maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, atSourceDepth: sourceDepth + 1, using: &execution)
+-            if let image = lift.exactBSplineImage {
+-                try OriginalGeometrySourceValidation.validate(image, tolerance: tolerance,
+-                    using: &execution)
+-                guard case .closed(let lower, let upper) = image.domain,
+-                      abs(lower) <= tolerance.relative, abs(upper - 1) <= tolerance.relative else {
+-                    throw GeometryConversionError.invalidInput("Original lift image needs its normalized native domain.")
+-                }
+-            }
+         case .certifiedIntersection(let certified):
+             // FIXME(INCOMPLETE_IMPLEMENTATION): Direct certificate proof loops now
+@@ -175,5 +199,6 @@
+
+                 try certified.validate(tolerance: tolerance, using: &execution)
+             }
+-        }
++        case .line, .circle, .analytic, .bSpline, .surfaceLift:
++            throw GeometryConversionError.invalidInput("Original curve family dispatch requires a non-native non-lift source.")
+         }
+     }
+--- accepted/Sources/CADGeometry/PreparedCurveDifferentialEncloser.swift
+
++++ current/Sources/CADGeometry/PreparedCurveDifferentialEncloser.swift
+
+@@ -161,4 +161,5 @@
+
+   }
+ 
++  @inline(never)
+   private static func makeStorage(curve: Curve3D, tolerance: ModelingTolerance,
+     remainingSourceDepth: Int, maximumSubdivisionDepth: Int, maximumAlgebraicDepth: Int?,
+@@ -168,37 +169,34 @@
+
+     try curve.validateOriginalSource(tolerance: tolerance, remainingSourceDepth: remainingSourceDepth,
+       maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
++    switch curve {
++    case .bSpline(let original):
++      return try makeNativeStorage(original, tolerance: tolerance, using: &execution)
++    case .surfaceLift(let lift):
++      return try makeLiftStorage(lift, tolerance: tolerance, remainingSourceDepth: remainingSourceDepth,
++        maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
++    case .implicit, .rigidImage, .parameterImage, .originalAffineWord, .affineImage:
++      return try makePreparedFamilyStorage(curve: curve, tolerance: tolerance, remainingSourceDepth: remainingSourceDepth,
++        maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
++    default:
++      return .direct(curve)
++    }
++  }
++
++  @inline(never)
++  private static func makeNativeStorage(_ original: BSplineCurve3D, tolerance: ModelingTolerance,
++    using execution: inout OriginalQueryExecution) throws -> Storage {
++      let spans = try RationalBezierCurveJetEncloser().originalNativeSpans(of: original,
++        tolerance: tolerance, using: &execution)
++      return original.isPeriodic ? .periodicNativeBSpline(spans) : .nativeBSpline(spans)
++  }
++
++  @inline(never)
++  private static func makeLiftStorage(_ lift: SurfaceLiftCurve3D, tolerance: ModelingTolerance,
++    remainingSourceDepth: Int, maximumSubdivisionDepth: Int, maximumAlgebraicDepth: Int?,
++    using execution: inout OriginalQueryExecution) throws -> Storage {
+     func childDepth() throws -> Int {
+       guard remainingSourceDepth > 0 else { throw GeometryConversionError.resourceLimitExceeded("Original curve preparation exhausted caller source depth.") }
+       return remainingSourceDepth - 1
+     }
+-    switch curve {
+-    case .bSpline(let original):
+-      let spans = try RationalBezierCurveJetEncloser().originalNativeSpans(of: original,
+-        tolerance: tolerance, using: &execution)
+-      return original.isPeriodic ? .periodicNativeBSpline(spans) : .nativeBSpline(spans)
+-    case .implicit(let original):
+-      let depth = try childDepth()
+-      return .callerImplicit(original,
+-        try ImplicitCurveIntervalJetEncloser(localizing: original, tolerance: tolerance,
+-          maximumSpanCount: Int.max, maximumSubdivisionDepth: maximumSubdivisionDepth,
+-          remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution),
+-        try PreparedSurfaceDifferentialEncloser(surface: original.firstSurface, tolerance: tolerance,
+-          remainingSourceDepth: depth, maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution))
+-    case .rigidImage(let image):
+-      return .rigid(image.transform, source: try Self(curve: image.source, tolerance: tolerance,
+-        remainingSourceDepth: childDepth(), maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution))
+-    case .parameterImage(let image):
+-      return .parameterImage(image, source: try Self(curve: image.source, tolerance: tolerance,
+-        remainingSourceDepth: childDepth(), maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution))
+-    case .originalAffineWord(let image):
+-      if case .some = image.circularCoefficients { return .direct(curve) }
+-      else { return .originalAffineWord(image, source: try Self(curve: image.source,
+-        tolerance: try image.sourceCalculationTolerance(tolerance: tolerance, using: &execution), remainingSourceDepth: childDepth(),
+-        maximumSubdivisionDepth: maximumSubdivisionDepth,
+-        maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)) }
+-    case .affineImage(let image):
+-      return .affine(image.transform, source: try Self(curve: image.source, tolerance: tolerance,
+-        remainingSourceDepth: childDepth(), maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution))
+-    case .surfaceLift(let lift):
+       let depth = try childDepth()
+       if case .originalAffineWord(let image) = lift.parameterCurve {
+@@ -238,6 +236,40 @@
+
+           localizer: localizer, uShift: uShift, vShift: vShift))
+       }
++  }
++
++  @inline(never)
++  private static func makePreparedFamilyStorage(curve: Curve3D, tolerance: ModelingTolerance,
++    remainingSourceDepth: Int, maximumSubdivisionDepth: Int, maximumAlgebraicDepth: Int?,
++    using execution: inout OriginalQueryExecution) throws -> Storage {
++    func childDepth() throws -> Int {
++      guard remainingSourceDepth > 0 else { throw GeometryConversionError.resourceLimitExceeded("Original curve preparation exhausted caller source depth.") }
++      return remainingSourceDepth - 1
++    }
++    switch curve {
++    case .implicit(let original):
++      let depth = try childDepth()
++      return .callerImplicit(original,
++        try ImplicitCurveIntervalJetEncloser(localizing: original, tolerance: tolerance,
++          maximumSpanCount: Int.max, maximumSubdivisionDepth: maximumSubdivisionDepth,
++          remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution),
++        try PreparedSurfaceDifferentialEncloser(surface: original.firstSurface, tolerance: tolerance,
++          remainingSourceDepth: depth, maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution))
++    case .rigidImage(let image):
++      return .rigid(image.transform, source: try Self(curve: image.source, tolerance: tolerance,
++        remainingSourceDepth: childDepth(), maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution))
++    case .parameterImage(let image):
++      return .parameterImage(image, source: try Self(curve: image.source, tolerance: tolerance,
++        remainingSourceDepth: childDepth(), maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution))
++    case .originalAffineWord(let image):
++      if case .some = image.circularCoefficients { return .direct(curve) }
++      else { return .originalAffineWord(image, source: try Self(curve: image.source,
++        tolerance: try image.sourceCalculationTolerance(tolerance: tolerance, using: &execution), remainingSourceDepth: childDepth(),
++        maximumSubdivisionDepth: maximumSubdivisionDepth,
++        maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)) }
++    case .affineImage(let image):
++      return .affine(image.transform, source: try Self(curve: image.source, tolerance: tolerance,
++        remainingSourceDepth: childDepth(), maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution))
+     default:
+-      return .direct(curve)
++      throw GeometryConversionError.invalidInput("Original curve preparation family dispatch requires its selected family.")
+     }
+   }

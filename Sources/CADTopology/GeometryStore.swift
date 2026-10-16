@@ -42,30 +42,28 @@ public struct GeometryStore: Equatable, Sendable {
     #endif
 
     public func validate(tolerance: ModelingTolerance) throws {
-        try tolerance.validate()
-        for curve in curves.values {
-            try curve.validate(tolerance: tolerance)
-        }
-        for surface in surfaces.values {
-            try surface.validate(tolerance: tolerance)
-        }
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32,
+                remainingSourceDepth: 16, maximumSubdivisionDepth: 32))
+        try validate(tolerance: tolerance, remainingSourceDepth: 16,
+            maximumSubdivisionDepth: 32, using: &execution)
     }
+
     public func validate(tolerance: ModelingTolerance, remainingSourceDepth: Int,
-        maximumSubdivisionDepth: Int, consumeWork: @Sendable (Int) throws -> Void,
-        consumeStorage: (@Sendable (Int) throws -> Void)? = nil,
-        maximumAlgebraicDepth: Int? = nil) throws {
+        maximumSubdivisionDepth: Int, maximumAlgebraicDepth: Int? = nil,
+        using execution: inout OriginalQueryExecution) throws {
         try tolerance.validate()
         for curve in curves.values {
-            try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork(0)
+            try execution.consumeWork(1)
             try curve.validate(tolerance: tolerance, remainingSourceDepth: remainingSourceDepth,
-                maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: consumeWork,
-                consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+                maximumSubdivisionDepth: maximumSubdivisionDepth,
+                maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
         }
         for surface in surfaces.values {
-            try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork(0)
+            try execution.consumeWork(1)
             try surface.validate(tolerance: tolerance, remainingSourceDepth: remainingSourceDepth,
-                maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: consumeWork,
-                consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+                maximumSubdivisionDepth: maximumSubdivisionDepth,
+                maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
         }
     }
 

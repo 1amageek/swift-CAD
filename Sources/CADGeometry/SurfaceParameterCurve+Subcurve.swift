@@ -19,24 +19,34 @@ public extension SurfaceParameterCurve {
         toNormalizedFraction upper: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterCurve {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try subcurveForParameterBounds(fromNormalizedFraction: lower, toNormalizedFraction: upper, tolerance: tolerance, using: &execution)
+    }
+
+    internal func subcurveForParameterBounds(
+        fromNormalizedFraction lower: Double,
+        toNormalizedFraction upper: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceParameterCurve {
+        try execution.consumeWork(1)
         switch self {
         case let .offsetSurfaceImage(image):
             return try image.source.subcurveForParameterBounds(
                 fromNormalizedFraction: lower, toNormalizedFraction: upper,
                 tolerance: tolerance
-            )
+            , using: &execution)
         case let .periodicTranslation(base, uShift, vShift):
             return .periodicTranslation(
                 base: try base.subcurveForParameterBounds(
                     fromNormalizedFraction: lower, toNormalizedFraction: upper,
                     tolerance: tolerance
-                ), uShift: uShift, vShift: vShift
+                , using: &execution), uShift: uShift, vShift: vShift
             )
         default:
             return try subcurve(
                 fromNormalizedFraction: lower, toNormalizedFraction: upper,
                 tolerance: tolerance
-            )
+            , using: &execution)
         }
     }
 
@@ -45,6 +55,17 @@ public extension SurfaceParameterCurve {
         toNormalizedFraction endFraction: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterCurve {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try subcurve(fromNormalizedFraction: startFraction, toNormalizedFraction: endFraction, tolerance: tolerance, using: &execution)
+    }
+
+
+    func subcurve(
+        fromNormalizedFraction startFraction: Double,
+        toNormalizedFraction endFraction: Double,
+        tolerance: ModelingTolerance
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceParameterCurve {
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard startFraction.isFinite,
               endFraction.isFinite,
@@ -123,7 +144,7 @@ public extension SurfaceParameterCurve {
                 lowerFraction: lowerFraction,
                 upperFraction: upperFraction,
                 tolerance: tolerance
-            ))
+            , using: &execution))
         case let .bSpline(curve):
             guard case let .closed(lower, upper) = curve.domain else {
                 throw KernelError(
@@ -137,34 +158,34 @@ public extension SurfaceParameterCurve {
                 from: interpolated(lower, upper, fraction: lowerFraction),
                 to: interpolated(lower, upper, fraction: upperFraction),
                 tolerance: tolerance
-            ))
+            , using: &execution))
         case let .certifiedImplicit(curve):
             return .certifiedImplicit(try curve.subcurve(
                 fromNormalizedFraction: lowerFraction,
                 toNormalizedFraction: upperFraction,
                 tolerance: tolerance
-            ))
+            , using: &execution))
         case let .certifiedAnalyticImplicit(curve):
             return .certifiedAnalyticImplicit(try curve.subcurve(
                 fromNormalizedFraction: lowerFraction,
                 toNormalizedFraction: upperFraction,
                 tolerance: tolerance
-            ))
+            , using: &execution))
         case let .certifiedAnalyticPair(curve):
             return .certifiedAnalyticPair(try curve.subcurve(
                 fromNormalizedFraction: lowerFraction,
                 toNormalizedFraction: upperFraction,
                 tolerance: tolerance
-            ))
+            , using: &execution))
         case let .originalBSplineContinuation(curve):
             return .originalBSplineContinuation(try curve.subcurve(fromNormalizedFraction: lowerFraction,
-                toNormalizedFraction: upperFraction, tolerance: tolerance))
+                toNormalizedFraction: upperFraction, tolerance: tolerance, using: &execution))
         case let .projectedAnalytic(curve):
             return .projectedAnalytic(try curve.subcurve(
                 fromNormalizedFraction: lowerFraction,
                 toNormalizedFraction: upperFraction,
                 tolerance: tolerance
-            ))
+            , using: &execution))
         case let .originalAffineWord(curve):
             return .originalAffineWord(try curve.subcurve(fromNormalizedFraction: lowerFraction,
                 toNormalizedFraction: upperFraction, tolerance: tolerance))
@@ -179,20 +200,20 @@ public extension SurfaceParameterCurve {
                 fromNormalizedFraction: lowerFraction,
                 toNormalizedFraction: upperFraction,
                 tolerance: tolerance
-            ))
+            , using: &execution))
         case let .offsetSurfaceImage(curve):
             return .offsetSurfaceImage(try curve.subcurve(
                 fromNormalizedFraction: lowerFraction,
                 toNormalizedFraction: upperFraction,
                 tolerance: tolerance
-            ))
+            , using: &execution))
         case let .periodicTranslation(base, uShift, vShift):
             return .periodicTranslation(
                 base: try base.subcurve(
                     fromNormalizedFraction: lowerFraction,
                     toNormalizedFraction: upperFraction,
                     tolerance: tolerance
-                ),
+                , using: &execution),
                 uShift: uShift,
                 vShift: vShift
             )
@@ -204,12 +225,16 @@ public extension SurfaceParameterCurve {
         lowerFraction: Double,
         upperFraction: Double,
         tolerance: ModelingTolerance
-    ) throws -> [SurfaceParameter] {
+    , using execution: inout OriginalQueryExecution) throws -> [SurfaceParameter] {
+        try execution.consumeWork(1)
         guard points.count >= 2 else {
             throw GeometryError.invalidDistance(Double(points.count))
         }
-        var cumulativeLengths = [0.0]
+        try OriginalCoefficientAllocation.reserve(count: points.count, of: Double.self, using: &execution)
+        var cumulativeLengths: [Double] = []; cumulativeLengths.reserveCapacity(points.count)
+        cumulativeLengths.append(0)
         for index in 1..<points.count {
+            try execution.consumeWork(1)
             cumulativeLengths.append(
                 cumulativeLengths[index - 1]
                     + hypot(
@@ -224,15 +249,18 @@ public extension SurfaceParameterCurve {
         }
         let lowerLength = totalLength * lowerFraction
         let upperLength = totalLength * upperFraction
-        var result = [try polylinePoint(
+        try OriginalCoefficientAllocation.reserve(count: points.count, of: SurfaceParameter.self, using: &execution)
+        var result: [SurfaceParameter] = []; result.reserveCapacity(points.count)
+        result.append(try polylinePoint(
             points,
             cumulativeLengths: cumulativeLengths,
             distance: lowerLength,
             tolerance: tolerance
-        )]
+        , using: &execution))
         for index in 1..<(points.count - 1) where
             cumulativeLengths[index] > lowerLength + tolerance.distance
                 && cumulativeLengths[index] < upperLength - tolerance.distance {
+            try execution.consumeWork(1)
             result.append(points[index])
         }
         result.append(try polylinePoint(
@@ -240,7 +268,7 @@ public extension SurfaceParameterCurve {
             cumulativeLengths: cumulativeLengths,
             distance: upperLength,
             tolerance: tolerance
-        ))
+        , using: &execution))
         guard hypot(
             result[0].u - result[result.count - 1].u,
             result[0].v - result[result.count - 1].v
@@ -255,8 +283,10 @@ public extension SurfaceParameterCurve {
         cumulativeLengths: [Double],
         distance: Double,
         tolerance: ModelingTolerance
-    ) throws -> SurfaceParameter {
+    , using execution: inout OriginalQueryExecution) throws -> SurfaceParameter {
+        try execution.consumeWork(1)
         for index in 1..<points.count where distance <= cumulativeLengths[index] + tolerance.distance {
+            try execution.consumeWork(1)
             let lower = cumulativeLengths[index - 1]
             let upper = cumulativeLengths[index]
             guard upper - lower > tolerance.distance else { continue }

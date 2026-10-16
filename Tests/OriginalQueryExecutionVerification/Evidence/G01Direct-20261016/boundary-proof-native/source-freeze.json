@@ -1,0 +1,80 @@
+{
+  "status": "source-ready/frozen; actual compile/runtime pending",
+  "scope": "Only exact unit-clamped degree1or2 x degree1 nonperiodic Native boundary zero theorem; no whole Native/M4/U1 claim",
+  "sourceRoot": "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD",
+  "files": [
+    {
+      "path": "Sources/CADGeometry/OriginalCurveSurfaceCorrespondence/OriginalBoundedCurveSurfaceCorrespondence.swift",
+      "sha256": "d4cd41feff1309ab155c0739ea41176c5929f8b10f8a5290118b0f8d028025a4"
+    },
+    {
+      "path": "Sources/CADGeometry/OriginalCurveSurfaceCorrespondence/DESIGN.md",
+      "sha256": "ebabe7d50171e3ccd6f067c0358ca523ad0e4e4b051f4a800410b13b555bd93d"
+    },
+    {
+      "path": "Tests/CADGeometryTests/OriginalNativeBoundaryCorrespondenceTests.swift",
+      "sha256": "c7573e6b7eac575e869c31a53f5c453a48a69d94a9d0c135d3781f76b5508744"
+    }
+  ],
+  "causalRed": {
+    "receipt": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-native-correspondence-stage-20261016-r1/run/receipt.json",
+    "sha256": "852c3125db5a0336898f3e7d854b2bf91035b63621d36d0451481b48c180283c",
+    "stages": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-native-correspondence-stage-20261016-r1/stages.log",
+    "stagesSHA256": "08cebdc8f4959a2a33ec0d28c63c62f4d5e8e39b01dd67c1a5b0bdf66115b665",
+    "actualSetup": {
+      "work": 107,
+      "storageBytes": 128
+    },
+    "actualBoundFailure": {
+      "resourceAxis": "work",
+      "used": 8388608,
+      "limit": 8388608,
+      "requested": 2,
+      "storageBytes": 117647596
+    }
+  },
+  "baseline": {
+    "path": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-native-frame-fixed-20261016-r1/snapshot/Sources/CADGeometry/OriginalCurveSurfaceCorrespondence/OriginalBoundedCurveSurfaceCorrespondence.swift",
+    "sha256": "cb830fec4bb6bb525cf7b6617e18f4049dbcc8d1c842c42dc801039d19b62d89"
+  },
+  "existingBodyComparison": "Removing only the seven-line new selected branch and adjacent new private helper reconstructs accepted baseline byte-for-byte. All original source validation, fallback formulas, scopes, depth maps, resource/cancel/order and markers unchanged.",
+  "delta": {
+    "path": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-native-boundary-correspondence-fix-20261016/source-delta.patch",
+    "sha256": "3773f18592ffbdfe51fac08762be629caa6218314cf41c4ab0ccd8aa1600bb59"
+  },
+  "guards": [
+    "Native Udegree1or2/Vdegree1, single0/1 clamped patch",
+    "bothsurfaceperiodicflagsfalse/originsnil;curveflagfalse/originnil",
+    "allU/Vknots, allsurfaceweights exactly1 and originaldomains0..1",
+    "selectedfullcurve degree/knots/controlpoints/weights/domain",
+    "spatialtrim andconstantU/V original boundary/fraction endpoints exactly0or1",
+    "bothstoredcontrol orders and independently directed traversal",
+    "allpreexisting source validation before comparison and final checkpoint beforezero"
+  ],
+  "allocations": "No new array or coefficient buffers; row/column indexes borrow original payload. Existing proof-scope metadata remains admitted.",
+  "work": "All comparisons use same composing execution; no child allowance or callback reconstruction.",
+  "stateReview": {
+    "productionNewSharedMutableState": false,
+    "targetConditionalStorageChanges": false,
+    "testCheckpointCounter": "Same Mutex across target source; external cancellation callback runs after lock exits."
+  },
+  "testCoverage": [
+    "Causal actual bottom iso diagnostic now requires exact0",
+    "all4boundaries x bothstoredorders x bothdirectedtrims for Udegree1and2",
+    "8valid nearpayload/foreignmap/domain/trim cases cannot issuezero under exact structural workN",
+    "cold work+bytes N/N-1 andsamebudgetcumulativefailure",
+    "retainedinputCOW aftercaller mutation andsameexecutionwarmzeroadditionalpayload",
+    "sourceDepth0nativepositive andmappedSourceDepth1refusal",
+    "entry and terminal typedcancellation with actualresource snapshots"
+  ],
+  "checks": {
+    "gitDiffCheck": true,
+    "compilerStarted": false,
+    "runtimeStarted": false
+  },
+  "remainingEvidence": [
+    "Root fresh accepted Native Geometry2170 authority",
+    "Focused Native boundary tests and actual Drawing preparation/caller acceptance",
+    "Source portable3fresh lanes against new authority; no lower235/common90 regeneration as Root verified ownerfile absent"
+  ]
+}

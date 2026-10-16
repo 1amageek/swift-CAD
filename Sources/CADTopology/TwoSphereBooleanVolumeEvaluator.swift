@@ -13,16 +13,22 @@ import CADGeometry
 
 /// Evaluates supported exact two-sphere Boolean volumes.
 struct TwoSphereBooleanVolumeEvaluator {
+    func volume(of shell: Shell, in model: BRepModel, tolerance: ModelingTolerance) throws -> Double? {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try volume(of: shell, in: model, tolerance: tolerance, using: &execution)
+    }
+
     func volume(
         of shell: Shell,
         in model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Double? {
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard let groups = try sphereGroups(
             of: shell,
             in: model,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         ), groups.count == 2 else {
             return nil
         }
@@ -38,14 +44,14 @@ struct TwoSphereBooleanVolumeEvaluator {
             of: first,
             relativeTo: second,
             in: model,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         ), let secondSide = try selectedSide(
             of: second,
             relativeTo: first,
             in: model,
-            tolerance: tolerance
-        ), let firstOrientation = uniformOrientation(first.faces),
-           let secondOrientation = uniformOrientation(second.faces) else {
+            tolerance: tolerance, using: &execution
+        ), let firstOrientation = try uniformOrientation(first.faces, using: &execution),
+           let secondOrientation = try uniformOrientation(second.faces, using: &execution) else {
             return nil
         }
 
@@ -73,10 +79,12 @@ struct TwoSphereBooleanVolumeEvaluator {
     private func sphereGroups(
         of shell: Shell,
         in model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> [SphereGroup]? {
+        try execution.consumeWork(1)
         var groups: [SphereGroup] = []
-        for faceID in shell.faceIDs.sorted() {
+        for faceID in try OriginalParameterQueryStorage.ordered(shell.faceIDs, using: &execution, less: <) {
+            try execution.consumeWork(1)
             guard let face = model.faces[faceID],
                   let surface = model.geometry.surfaces[face.surfaceID] else {
                 throw TopologyError.missingReference(
@@ -86,23 +94,23 @@ struct TwoSphereBooleanVolumeEvaluator {
             guard case let .analytic(.sphere(center, radius)) = surface else {
                 return nil
             }
-            if let index = groups.firstIndex(where: {
-                $0.center.isApproximatelyEqual(
+            if let index = (try OriginalParameterQueryStorage.firstIndex(groups, using: &execution) { item, execution in
+                item.center.isApproximatelyEqual(
                     to: center,
                     tolerance: tolerance.distance
-                ) && abs($0.radius - radius) <= tolerance.distance
+                ) && abs(item.radius - radius) <= tolerance.distance
             }) {
-                groups[index].faces.append(face)
+                try OriginalParameterQueryStorage.append(face, to: &groups[index].faces, using: &execution)
             } else {
-                groups.append(SphereGroup(
+                try OriginalParameterQueryStorage.append(SphereGroup(
                     center: center,
                     radius: radius,
-                    faces: [face]
-                ))
+                    faces: try OriginalParameterQueryStorage.repeated(face, count: 1, using: &execution)
+                ), to: &groups, using: &execution)
             }
         }
         guard groups.count == 2,
-              groups.allSatisfy({ $0.faces.isEmpty == false }) else {
+              (try OriginalParameterQueryStorage.allSatisfy(groups, using: &execution) { item, execution in item.faces.isEmpty == false }) else {
             return nil
         }
         return groups
@@ -112,18 +120,22 @@ struct TwoSphereBooleanVolumeEvaluator {
         of group: SphereGroup,
         relativeTo other: SphereGroup,
         in model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> RegionSide? {
+        try execution.consumeWork(1)
         let boundaryTolerance = tolerance.distance * 4.0
         var sides = Set<RegionSide>()
         for face in group.faces {
+            try execution.consumeWork(1)
             for loopID in face.loops {
+                try execution.consumeWork(1)
                 guard let loop = model.loops[loopID] else {
                     throw TopologyError.missingReference(
                         "Two-sphere volume references a missing loop."
                     )
                 }
                 for coedge in loop.coedges {
+                    try execution.consumeWork(1)
                     guard let edge = model.edges[coedge.edgeID],
                           let start = model.vertices[edge.startVertexID]?.point,
                           let end = model.vertices[edge.endVertexID]?.point,
@@ -132,26 +144,26 @@ struct TwoSphereBooleanVolumeEvaluator {
                             "Two-sphere volume references missing boundary geometry."
                         )
                     }
-                    recordSide(
+                    try recordSide(
                         of: start,
                         relativeTo: other,
                         boundaryTolerance: boundaryTolerance,
-                        in: &sides
+                        in: &sides, using: &execution
                     )
-                    recordSide(
+                    try recordSide(
                         of: end,
                         relativeTo: other,
                         boundaryTolerance: boundaryTolerance,
-                        in: &sides
+                        in: &sides, using: &execution
                     )
                     if let trim = edge.trim {
                         let midpoint = (trim.startParameter + trim.endParameter) * 0.5
-                        let point = try curve.point(at: midpoint, tolerance: tolerance)
-                        recordSide(
+                        let point = try curve.point(at: midpoint, tolerance: tolerance, using: &execution)
+                        try recordSide(
                             of: point,
                             relativeTo: other,
                             boundaryTolerance: boundaryTolerance,
-                            in: &sides
+                            in: &sides, using: &execution
                         )
                     }
                 }
@@ -165,20 +177,22 @@ struct TwoSphereBooleanVolumeEvaluator {
         of point: Point3D,
         relativeTo sphere: SphereGroup,
         boundaryTolerance: Double,
-        in sides: inout Set<RegionSide>
-    ) {
+        in sides: inout Set<RegionSide>, using execution: inout OriginalQueryExecution
+    ) throws {
+        try execution.consumeWork(1)
         let signedDistance = (point - sphere.center).length - sphere.radius
         if signedDistance < -boundaryTolerance {
-            sides.insert(.inside)
+            try OriginalParameterQueryStorage.insert(.inside, in: &sides, using: &execution)
         } else if signedDistance > boundaryTolerance {
-            sides.insert(.outside)
+            try OriginalParameterQueryStorage.insert(.outside, in: &sides, using: &execution)
         }
     }
 
-    private func uniformOrientation(_ faces: [Face]) -> Orientation? {
-        let orientations = Set(faces.map({ $0.orientation }))
-        guard orientations.count == 1 else { return nil }
-        return orientations.first
+    private func uniformOrientation(_ faces: [Face], using execution: inout OriginalQueryExecution) throws -> Orientation? {
+        try execution.consumeWork(1)
+        guard let reference = faces.first,
+              try OriginalParameterQueryStorage.allSatisfy(faces, using: &execution, predicate: { face, execution in face.orientation == reference.orientation }) else { return nil }
+        return reference.orientation
     }
 
     private func sphereVolume(radius: Double) -> Double {

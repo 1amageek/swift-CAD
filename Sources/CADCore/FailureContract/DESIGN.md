@@ -28,6 +28,7 @@ ranges; this component classifies their reported failures.
 ```text
 Domain failure -> KernelError.wrapping -> immutable code and diagnostic context
                                       -> KernelFailureCategory -> caller policy
+Geometry retained failure -> KernelFailureClassifying -> the same classification
 ```
 
 ## Contracts and Invariants
@@ -46,6 +47,19 @@ Domain failure -> KernelError.wrapping -> immutable code and diagnostic context
 - Every KernelErrorCode has one explicit cause category. Non-discrete results
   remain distinct from numerical indeterminacy and unsupported domains.
 - Classification operates on typed causes. Diagnostic wording is not a predicate.
+- `KernelFailureClassifying` exposes only a `kernelFailure: KernelError`
+  requirement. `KernelError` conforms by returning itself; Geometry-owned failures
+  retain their original error and immutable query context outside Core.
+- The `KernelError.wrapping(any KernelFailureClassifying)` overload reads
+  this requirement directly, without a runtime protocol cast. Its `any Error`
+  overload recognizes Core-owned `KernelError` and Core domain errors. Owners
+  of erased foreign failures expose a concrete classification reader at their
+  own module boundary; arbitrary erased protocol conformers cannot be recognized
+  by Embedded Swift. This is an explicit migration of the erased-error contract.
+  Its returned value is a classification snapshot, not an ownership transfer of
+  the original failure. Throwing consumers preserve the original classified error.
+- Adding the classification protocol changes neither stored `KernelError` fields
+  nor its equality, Native/normal Codable or Embedded codec boundary.
 - Portable source encoding exhaustion retains resourceLimitExceeded; malformed
   limits, nonfinite scalars and canonical key collisions retain invalidInput.
   Embedded presents each original encoding cause explicitly without reflection.
@@ -61,7 +75,7 @@ Core-owned domain enum using an exhaustive case switch and all actual associated
 values. Tagged IDs use their existing canonical description; quantity/resource
 kinds use their raw values; schema/vector fields and scalars are explicit. Array
 values retain order and duplicates. This is diagnostic text, not a wire codec or
-an input admission authority. No new public protocol or state owner is added.
+an input admission authority. Diagnostic presentation adds no protocol or state owner.
 
 The earlier `KernelError` branch preserves its message and complete context on
 every target. Classification and cancellation are unchanged. An unknown foreign
@@ -75,7 +89,8 @@ Verification uses the actual complete CADCore product to test known associated
 values (including structured values/IDs/arrays), unknown foreign errors and an
 existing fully populated KernelError. Embedded compile/link/runtime remain
 required. Adding a Core domain error case requires updating its exhaustive
-structural presentation and affected behavioral fixtures.
+structural presentation and affected behavioral fixtures. The classification
+protocol is source-independent and imports no Geometry or scalar-domain types.
 
 
 ## State, Ownership, and Lifecycle
@@ -109,3 +124,13 @@ require exhaustive category handling and downstream capability review.
 
 
 PAR.G6POS1 adds approximationToleranceRejected to KernelErrorCode's numericalIndeterminacy category for an original-source approximation candidate that fails a requested complete-domain position allowance. It does not assert absence of another candidate; geometry consumers own mapping and feature/tolerance context. CADCore does not import CADGeometry.
+
+The erased `any Error` normalization entry and Embedded concrete diagnostic
+discovery emit into the caller. Fixed Embedded error-box metadata is owned by
+the boxing compilation boundary; a cast inside the separately compiled Core
+module can otherwise miss an actual `KernelError`. Concrete associated-value
+presentation helpers keep internal serialized visibility, while their typed
+arguments avoid erased-error discovery. Runtime verification checks erased
+Core errors, known classified witnesses, opaque foreign errors and retained
+Geometry errors across the real module boundaries. No synchronization or
+classification semantics are conditionalized.

@@ -4,15 +4,15 @@ import CADCore
 struct SurfaceSilhouettePlanarZeroAuthority {
     static func classification(surface: Surface3D, view: Vector3D,
                                tolerance: ModelingTolerance,
-                               usage: inout SurfaceSilhouetteUsage) throws -> RobustSign? {
+                               usage: inout OriginalQueryExecution) throws -> RobustSign? {
         typealias Vector = (x: ExactRationalCoefficient, y: ExactRationalCoefficient, z: ExactRationalCoefficient)
-        func exact(_ value: Vector3D, usage: inout SurfaceSilhouetteUsage) throws -> Vector {
+        func exact(_ value: Vector3D, usage: inout OriginalQueryExecution) throws -> Vector {
             let x = try ExactRationalCoefficient.originalDouble(value.x, usage: &usage)
             let y = try ExactRationalCoefficient.originalDouble(value.y, usage: &usage)
             let z = try ExactRationalCoefficient.originalDouble(value.z, usage: &usage)
             return (x, y, z)
         }
-        func cross(_ a: Vector, _ b: Vector, usage: inout SurfaceSilhouetteUsage) throws -> Vector {
+        func cross(_ a: Vector, _ b: Vector, usage: inout OriginalQueryExecution) throws -> Vector {
             let x = try a.y.multiplied(by: b.z, usage: &usage)
                 .subtracting(a.z.multiplied(by: b.y, usage: &usage), usage: &usage)
             let y = try a.z.multiplied(by: b.x, usage: &usage)

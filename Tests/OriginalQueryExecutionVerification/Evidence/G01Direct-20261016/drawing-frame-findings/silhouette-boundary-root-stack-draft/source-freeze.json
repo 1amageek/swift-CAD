@@ -1,0 +1,40 @@
+{
+  "status": "source-ready-frozen-no-compiler",
+  "sourceRoots": [
+    "/Users/1amageek/.codex/worktrees/g01-direct-delivery-20261016/swift-CAD",
+    "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD"
+  ],
+  "files": {
+    "Sources/CADGeometry/SurfaceSilhouette/OriginalSurfaceSilhouetteCurve.swift": "0e88c63677950c373a947ad2107ce5fbad775411ed921d64bd23bde99080bac4",
+    "Sources/CADGeometry/SurfaceSilhouette/DESIGN.md": "fa13d57def4b4e944aa7945b28589a5b8d52db0f9f61b5363c3535455464fd8e"
+  },
+  "wholeOriginalFunctionBodyEqualsAfterOnlyHelperCallsInverseIgnoringWhitespace": true,
+  "originalWholeBodySHA256": "a4ad97da2e2878037915efe76d97686cfa1fb044ed2540ec40e8a3c8727a85e4",
+  "familyComparisons": [
+    {
+      "name": "fieldAtlasBoundaryIsSame",
+      "bodyEqualIgnoringWhitespace": true,
+      "bodySHA256": "adbdcff5ac51a2ad51af0c00cac01d189fc20990a6ff5477f25039a891c4d4c2"
+    },
+    {
+      "name": "rationalAtlasBoundaryIsSame",
+      "bodyEqualIgnoringWhitespace": true,
+      "bodySHA256": "c7b77c2ef42aa989ff14b2edd18b3e4b485d17e35105a21da37ca0f83fe2efee"
+    },
+    {
+      "name": "regularBoundaryIsSame",
+      "bodyEqualIgnoringWhitespace": true,
+      "bodySHA256": "2a925f0ac5721436a5dd757df270bd52588a9608b53b2d0d9d3f9afc0e4e41ba"
+    }
+  ],
+  "allOtherOriginalFunctionsExactTextEqual": true,
+  "sameSourceQueryOperationOccurrenceCounts": true,
+  "mechanicalPatchSHA256": "ebfd6c522c208b57e257209a29ba1f60f846093270732cc8eb3bc5e4f0323339",
+  "actualBeforeBoundaryFrameBytes": 256496,
+  "actualBeforeDeduplicatedChainBytes": 597280,
+  "actualOperandKind": "not established: fault is entry initialization before branch selection; arch rational is source inference only",
+  "pending": [
+    "new Native semantic/frame measurements",
+    "same real Drawing3 worker runtime"
+  ]
+}

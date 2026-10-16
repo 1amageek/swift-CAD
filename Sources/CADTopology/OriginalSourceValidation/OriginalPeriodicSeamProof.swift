@@ -10,15 +10,12 @@ struct OriginalPeriodicSeamProof {
 
     static func proves(first: SurfaceParameterCurve, second: SurfaceParameterCurve,
         on surface: Surface3D, tolerance: ModelingTolerance, remainingSourceDepth: Int,
-        maximumSubdivisionDepth: Int, consumeWork: @Sendable (Int) throws -> Void,
-        consumeStorage: (@Sendable (Int) throws -> Void)? = nil, maximumAlgebraicDepth: Int? = nil,
-        secondIsReversed: Bool = true) throws -> Bool {
-        return try withoutActuallyEscaping(consumeWork) { consumeWork in
+        maximumSubdivisionDepth: Int, maximumAlgebraicDepth: Int? = nil,
+        secondIsReversed: Bool = true, using usage: inout OriginalQueryExecution) throws -> Bool {
             try first.validate(on: surface, tolerance: tolerance, remainingSourceDepth: remainingSourceDepth,
-                maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+                maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &usage)
             try second.validate(on: surface, tolerance: tolerance, remainingSourceDepth: remainingSourceDepth,
-                maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
-            var usage = OriginalSourceProofAdmission(consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+                maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, using: &usage)
             func original(_ value: Double) throws -> ExactRationalCoefficient {
                 try .originalDouble(value, usage: &usage)
             }
@@ -36,7 +33,7 @@ struct OriginalPeriodicSeamProof {
                 return try (station(start), station(end))
             }
             func linearEnds(_ curve: SurfaceParameterCurve, depth: Int) throws -> (UV, UV)? {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 switch curve {
                 case .constantU(let u, let start, let end):
                     return try (uv(u, start), uv(u, end))
@@ -102,9 +99,16 @@ struct OriginalPeriodicSeamProof {
                 let final = try difference(firstEnds.1, secondIsReversed ? secondEnds.0 : secondEnds.1)
                 guard displacement.u == final.u, displacement.v == final.v else { return false }
             } else if case .bSpline(let a) = first, case .bSpline(let b) = second {
+                // FIXME(INCOMPLETE_IMPLEMENTATION): Production repeated-edge validation
+                // uses sufficient native coefficient identity. Degree elevation, knot
+                // insertion or cancelled homogeneous factors can preserve the whole UV
+                // law when it differs; a normalized-law producer must resolve these
+                // cases before they become valid/invalid topology findings.
                 guard a.degree == b.degree, a.controlPoints.count == b.controlPoints.count,
                     a.knots.count == b.knots.count, let firstPoint = a.controlPoints.first,
-                    let secondPoint = secondIsReversed ? b.controlPoints.last : b.controlPoints.first else { return false }
+                    let secondPoint = secondIsReversed ? b.controlPoints.last : b.controlPoints.first else {
+                    throw nativeLawCapabilityFailure(tolerance: tolerance)
+                }
                 let aLower = try original(a.knots[a.degree])
                 let aUpper = try original(a.knots[a.controlPoints.count])
                 let bLower = try original(b.knots[b.degree])
@@ -112,25 +116,29 @@ struct OriginalPeriodicSeamProof {
                 let aWidth = try aUpper.subtracting(aLower, usage: &usage)
                 let bWidth = try bUpper.subtracting(bLower, usage: &usage)
                 for index in a.knots.indices {
-                    try usage.consumeExactWork(1)
+                    try usage.consumeWork(1)
                     let ak = try original(a.knots[index]).subtracting(aLower, usage: &usage)
                     let bk = try secondIsReversed
                         ? bUpper.subtracting(original(b.knots[b.knots.count - index - 1]), usage: &usage)
                         : original(b.knots[index]).subtracting(bLower, usage: &usage)
                     guard try ak.multiplied(by: bWidth, usage: &usage)
-                        == bk.multiplied(by: aWidth, usage: &usage) else { return false }
+                        == bk.multiplied(by: aWidth, usage: &usage) else {
+                        throw nativeLawCapabilityFailure(tolerance: tolerance)
+                    }
                 }
                 displacement = try difference(uv(firstPoint.x, firstPoint.y), uv(secondPoint.x, secondPoint.y))
                 let wa = try original(a.weights[0])
                 let wb = try original(b.weights[secondIsReversed ? b.weights.count - 1 : 0])
                 for index in a.controlPoints.indices {
-                    try usage.consumeExactWork(1)
+                    try usage.consumeWork(1)
                     let counterpart = secondIsReversed ? b.controlPoints.count - index - 1 : index
                     let delta = try difference(uv(a.controlPoints[index].x, a.controlPoints[index].y),
                         uv(b.controlPoints[counterpart].x, b.controlPoints[counterpart].y))
                     guard delta.u == displacement.u, delta.v == displacement.v,
                         try original(a.weights[index]).multiplied(by: wb, usage: &usage)
-                            == original(b.weights[counterpart]).multiplied(by: wa, usage: &usage) else { return false }
+                            == original(b.weights[counterpart]).multiplied(by: wa, usage: &usage) else {
+                        throw nativeLawCapabilityFailure(tolerance: tolerance)
+                    }
                 }
             } else {
                 // FIXME(INCOMPLETE_IMPLEMENTATION): Bounded periodic BRep seams
@@ -143,7 +151,11 @@ struct OriginalPeriodicSeamProof {
             guard !displacement.u.isZero || !displacement.v.isZero else { return false }
             return try OriginalSurfacePeriodShift.proves(on: surface, u: displacement.u, v: displacement.v,
                 remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth,
-                tolerance: tolerance, usage: &usage)
-        }
+                tolerance: tolerance, using: &usage)
     }
+    private static func nativeLawCapabilityFailure(tolerance: ModelingTolerance) -> KernelError {
+        KernelError(phase: .topology, code: .unsupportedCapability, tolerance: tolerance,
+            message: "Native seam source coefficients differ without a complete normalized-law inequality proof.")
+    }
+
 }

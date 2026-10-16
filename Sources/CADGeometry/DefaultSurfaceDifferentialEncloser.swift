@@ -14,29 +14,59 @@ import WASILibc
 public struct DefaultSurfaceDifferentialEncloser: SurfaceDifferentialEnclosing, Sendable {
   public init() {}
 
+  public func enclosure(of surface: Surface3D, over parameters: SurfaceParameterBox,
+    tolerance: ModelingTolerance) throws -> SurfaceDifferentialEnclosure {
+    var execution = try OriginalQueryExecution.independentGeometry()
+    return try enclosure(of: surface, over: parameters, tolerance: tolerance, using: &execution)
+  }
+
+  func intervalJet(of surface: Surface3D, over parameters: SurfaceParameterBox,
+    tolerance: ModelingTolerance) throws -> SurfaceIntervalVectorJet {
+    var execution = try OriginalQueryExecution.independentGeometry()
+    return try intervalJet(of: surface, over: parameters, tolerance: tolerance, using: &execution)
+  }
+
+  func intervalJetAssumingSurfaceValidated(of surface: Surface3D, over parameters: SurfaceParameterBox,
+    tolerance: ModelingTolerance) throws -> SurfaceIntervalVectorJet {
+    var execution = try OriginalQueryExecution.independentGeometry()
+    return try intervalJetAssumingSurfaceValidated(of: surface, over: parameters, tolerance: tolerance, using: &execution)
+  }
+
+  func analyticJet(of surface: Surface3D, u: SurfaceIntervalJet, v: SurfaceIntervalJet,
+    tolerance: ModelingTolerance) throws -> SurfaceIntervalVectorJet? {
+    var execution = try OriginalQueryExecution.independentGeometry()
+    return try analyticJet(of: surface, u: u, v: v, tolerance: tolerance, using: &execution)
+  }
+
+
   public func enclosure(
     of surface: Surface3D,
     over parameters: SurfaceParameterBox,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> SurfaceDifferentialEnclosure {
     let jet = try intervalJet(
       of: surface,
       over: parameters,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
-    return try publicEnclosure(jet, tolerance: tolerance)
+    let result = try publicEnclosure(jet, tolerance: tolerance)
+    try execution.checkpoint()
+    return result
   }
 
   func intervalJet(
     of surface: Surface3D,
     over parameters: SurfaceParameterBox,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> SurfaceIntervalVectorJet {
-    try parameters.validate(for: surface, tolerance: tolerance)
+    try surface.validateOriginalSource(tolerance: tolerance,
+      remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+      maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth, using: &execution)
+    try parameters.validateAssumingSurfaceValidated(for: surface, tolerance: tolerance)
     return try intervalJetAssumingSurfaceValidated(
       of: surface,
       over: parameters,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
   }
 
@@ -45,11 +75,11 @@ public struct DefaultSurfaceDifferentialEncloser: SurfaceDifferentialEnclosing, 
   func intervalJetAssumingSurfaceValidated(
     of surface: Surface3D,
     over parameters: SurfaceParameterBox,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> SurfaceIntervalVectorJet {
     if let analytic = try analyticJet(
       of: surface, u: .parameterU(parameters.u), v: .parameterV(parameters.v),
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     ) {
       return analytic
     }
@@ -60,9 +90,9 @@ public struct DefaultSurfaceDifferentialEncloser: SurfaceDifferentialEnclosing, 
         message: "The analytic surface has no interval jet representation."
       )
     case .bSpline(let bSpline):
-      return try bSplineJet(bSpline, parameters: parameters, tolerance: tolerance)
+      return try bSplineJet(bSpline, parameters: parameters, tolerance: tolerance, using: &execution)
     case .procedural(let procedural):
-      return try procedural.intervalJet(over: parameters, tolerance: tolerance)
+      return try procedural.intervalJet(over: parameters, tolerance: tolerance, using: &execution)
     }
   }
 
@@ -72,15 +102,15 @@ public struct DefaultSurfaceDifferentialEncloser: SurfaceDifferentialEnclosing, 
     of surface: Surface3D,
     u: SurfaceIntervalJet,
     v: SurfaceIntervalJet,
-    tolerance: ModelingTolerance,
-    consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() }
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> SurfaceIntervalVectorJet? {
+    try execution.consumeWork(1)
     switch surface {
     case .plane(let plane):
       if let direction = plane.uDirection {
         func exact(_ value: Double) -> SurfaceIntervalJet { .constant(value) }
         func originalCross(_ a: Double, _ b: Double, _ c: Double, _ d: Double) throws -> SurfaceIntervalJet {
-          try consumeWork()
+          try execution.consumeWork(1)
           let value = OutwardScalarInterval.exact(a) * .exact(b) - .exact(c) * .exact(d)
           return .init(value: value, derivativeU: .exact(0), derivativeV: .exact(0),
             secondDerivativeUU: .exact(0), secondDerivativeUV: .exact(0), secondDerivativeVV: .exact(0),
@@ -106,25 +136,25 @@ public struct DefaultSurfaceDifferentialEncloser: SurfaceDifferentialEnclosing, 
         normal: cylinder.axis,
         tolerance: tolerance
       )
-      return cylinderJet(
+      return try cylinderJet(
         origin: cylinder.origin,
         axis: cylinder.axis,
         radius: cylinder.radius,
         basisU: basis.u,
         basisV: basis.v,
-        u: u, v: v
+        u: u, v: v, using: &execution
       )
     case .analytic(let analytic):
       return try analyticJet(
         analytic,
         u: u, v: v,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
     case .procedural(.offset(let offset)):
       guard let equivalent = try offset.exactChartPreservingSurface(tolerance: tolerance) else {
         return nil
       }
-      return try analyticJet(of: equivalent, u: u, v: v, tolerance: tolerance)
+      return try analyticJet(of: equivalent, u: u, v: v, tolerance: tolerance, using: &execution)
     case .bSpline, .procedural:
       return nil
     }
@@ -134,8 +164,9 @@ public struct DefaultSurfaceDifferentialEncloser: SurfaceDifferentialEnclosing, 
     _ surface: AnalyticSurface3D,
     u: SurfaceIntervalJet,
     v: SurfaceIntervalJet,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> SurfaceIntervalVectorJet {
+    try execution.consumeWork(1)
     switch surface {
     case .plane(let origin, let normal):
       let basis = try OriginalStoredPlaneBasis.basis(normal,tolerance:tolerance)
@@ -147,41 +178,41 @@ public struct DefaultSurfaceDifferentialEncloser: SurfaceDifferentialEnclosing, 
       )
     case .cylinder(let origin, let axis, let radius):
       let basis = try analyticOrthonormalBasis(axis, tolerance: tolerance)
-      return cylinderJet(
+      return try cylinderJet(
         origin: origin,
         axis: axis,
         radius: radius,
         basisU: basis.u,
         basisV: basis.v,
-        u: u, v: v
+        u: u, v: v, using: &execution
       )
     case .cone(let apex, let axis, let halfAngle):
       let basis = try analyticOrthonormalBasis(axis, tolerance: tolerance)
-      let radial = radialJet(basis: basis, parameter: u)
+      let radial = try radialJet(basis: basis, parameter: u, using: &execution)
       return SurfaceIntervalVectorJet.constant(apex)
         + SurfaceIntervalVectorJet.constant(axis)
         * (v * .constant(cos(halfAngle)))
         + radial * (v * .constant(sin(halfAngle)))
     case .sphere(let center, let radius):
       let basis = try analyticOrthonormalBasis(.unitZ, tolerance: tolerance)
-      let radial = SurfaceIntervalVectorJet.constant(basis.u)
-        * CanonicalSphereAngularPhase.harmonic(of: u, cosine: true)
+      let radial = try SurfaceIntervalVectorJet.constant(basis.u)
+        * CanonicalSphereAngularPhase.harmonic(of: u, cosine: true, using: &execution)
         + SurfaceIntervalVectorJet.constant(basis.v)
-        * CanonicalSphereAngularPhase.harmonic(of: u, cosine: false)
-      let direction = radial * CanonicalSphereAngularPhase.harmonic(of: v, cosine: true)
+        * CanonicalSphereAngularPhase.harmonic(of: u, cosine: false, using: &execution)
+      let direction = try radial * CanonicalSphereAngularPhase.harmonic(of: v, cosine: true, using: &execution)
         + SurfaceIntervalVectorJet.constant(Vector3D.unitZ)
-        * CanonicalSphereAngularPhase.harmonic(of: v, cosine: false)
+        * CanonicalSphereAngularPhase.harmonic(of: v, cosine: false, using: &execution)
       return SurfaceIntervalVectorJet.constant(center) + direction * .constant(radius)
     case .torus(let center, let axis, let majorRadius, let minorRadius):
       let basis = try analyticOrthonormalBasis(axis, tolerance: tolerance)
-      let radial = radialJet(basis: basis, parameter: u)
-      let radialDistance =
+      let radial = try radialJet(basis: basis, parameter: u, using: &execution)
+      let radialDistance = try
         SurfaceIntervalJet.constant(majorRadius)
-        + .constant(minorRadius) * CanonicalSphereAngularPhase.harmonic(of: v, cosine: true)
-      return SurfaceIntervalVectorJet.constant(center)
+        + .constant(minorRadius) * CanonicalSphereAngularPhase.harmonic(of: v, cosine: true, using: &execution)
+      return try SurfaceIntervalVectorJet.constant(center)
         + radial * radialDistance
         + SurfaceIntervalVectorJet.constant(axis)
-        * (.constant(minorRadius) * CanonicalSphereAngularPhase.harmonic(of: v, cosine: false))
+        * (.constant(minorRadius) * CanonicalSphereAngularPhase.harmonic(of: v, cosine: false, using: &execution))
     }
   }
 
@@ -206,11 +237,11 @@ public struct DefaultSurfaceDifferentialEncloser: SurfaceDifferentialEnclosing, 
     basisU: Vector3D,
     basisV: Vector3D,
     u: SurfaceIntervalJet,
-    v: SurfaceIntervalJet
-  ) -> SurfaceIntervalVectorJet {
-    let radial = radialJet(
+    v: SurfaceIntervalJet, using execution: inout OriginalQueryExecution
+  ) throws -> SurfaceIntervalVectorJet {
+    let radial = try radialJet(
       basis: (u: basisU, v: basisV),
-      parameter: u
+      parameter: u, using: &execution
     )
     return SurfaceIntervalVectorJet.constant(origin)
       + radial * .constant(radius)
@@ -220,23 +251,23 @@ public struct DefaultSurfaceDifferentialEncloser: SurfaceDifferentialEnclosing, 
 
   private func radialJet(
     basis: (u: Vector3D, v: Vector3D),
-    parameter: SurfaceIntervalJet
-  ) -> SurfaceIntervalVectorJet {
-    SurfaceIntervalVectorJet.constant(basis.u) * CanonicalSphereAngularPhase.harmonic(of: parameter, cosine: true)
-      + SurfaceIntervalVectorJet.constant(basis.v) * CanonicalSphereAngularPhase.harmonic(of: parameter, cosine: false)
+    parameter: SurfaceIntervalJet, using execution: inout OriginalQueryExecution
+  ) throws -> SurfaceIntervalVectorJet {
+    try SurfaceIntervalVectorJet.constant(basis.u) * CanonicalSphereAngularPhase.harmonic(of: parameter, cosine: true, using: &execution)
+      + SurfaceIntervalVectorJet.constant(basis.v) * CanonicalSphereAngularPhase.harmonic(of: parameter, cosine: false, using: &execution)
   }
 
   private func bSplineJet(
     _ surface: BSplineSurface3D,
     parameters: SurfaceParameterBox,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> SurfaceIntervalVectorJet {
     try PreparedBSplineSurfaceDifferentialEncloser(
       surface: surface,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     ).intervalJet(
       over: parameters,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
   }
 

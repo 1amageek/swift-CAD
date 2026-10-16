@@ -11,10 +11,10 @@ import CADTopology
 package struct OriginalRevolutionSheetBuilder: Sendable {
     package init() {}
 
-    package func build<B: RationalAlgebraAdmitting>(
+    package func build(
         admission: OriginalRevolutionOrbitAdmitter.Admission, angularBreaks: [Double],
         featureID: FeatureID, context: EvaluationContext,
-        sewer: any BRepSewing, usage: inout B
+        sewer: any BRepSewing, usage: inout OriginalQueryExecution
     ) throws -> EvaluationResult {
         guard angularBreaks.count >= 2, angularBreaks.count <= 5,
               angularBreaks.allSatisfy(\.isFinite), angularBreaks.first == 0,
@@ -34,37 +34,38 @@ package struct OriginalRevolutionSheetBuilder: Sendable {
                 let upper = max(startAngle, endAngle)
                 let original = try OriginalRevolutionSurface3D(generator: span.chart,
                     axisOrigin: span.originalAxisOrigin, axisDirection: span.originalAxisDirection,
-                    uDomain: .closed(lower, upper), tolerance: context.tolerance, usage: &usage)
+                    uDomain: .closed(lower, upper), tolerance: context.tolerance, using: &usage)
                 let surface = Surface3D.procedural(.originalRevolution(original))
                 let prefix = "revolve:side:\(chartIndex):\(intervalIndex)"
                 let lowerRole = startAngle < endAngle ? "startProfile" : "endProfile"
                 let upperRole = startAngle < endAngle ? "endProfile" : "startProfile"
                 let lowerStart = try original.point(u: lower, v: 0, tolerance: context.tolerance,
-                    consumeWork: { try usage.consumeExactWork(1) })
+                    using: &usage)
                 let upperStart = try original.point(u: upper, v: 0, tolerance: context.tolerance,
-                    consumeWork: { try usage.consumeExactWork(1) })
+                    using: &usage)
                 let upperEnd = try original.point(u: upper, v: 1, tolerance: context.tolerance,
-                    consumeWork: { try usage.consumeExactWork(1) })
+                    using: &usage)
                 let lowerEnd = try original.point(u: lower, v: 1, tolerance: context.tolerance,
-                    consumeWork: { try usage.consumeExactWork(1) })
+                    using: &usage)
                 let boundaries: [(String, SurfaceParameterCurve, Point3D, Point3D)] = [
                     ("startRotation", .constantV(v: 0, uStart: lower, uEnd: upper), lowerStart, upperStart),
                     (upperRole, .constantU(u: upper, vStart: 0, vEnd: 1), upperStart, upperEnd),
                     ("endRotation", .constantV(v: 1, uStart: upper, uEnd: lower), upperEnd, lowerEnd),
                     (lowerRole, .constantU(u: lower, vStart: 1, vEnd: 0), lowerEnd, lowerStart),
                 ]
-                try usage.retainExactStorage(4)
+                try RationalAlgebraStorage.retain(4, of: BRepSewingEdge.self, usage: &usage)
                 var edges: [BRepSewingEdge] = []
                 edges.reserveCapacity(4)
                 for (role, pcurve, start, end) in boundaries {
-                    try usage.consumeExactWork(1)
+                    try usage.consumeWork(1)
                     let lift = SurfaceLiftCurve3D(surface: surface, parameterCurve: pcurve)
                     let curve = Curve3D.surfaceLift(lift)
                     edges.append(BRepSewingEdge(stableID: "\(prefix):\(role)", curve: curve,
                         startParameter: 0, endParameter: 1, startPoint: start, endPoint: end,
                         surfaceParameterCurve: pcurve))
                 }
-                try usage.retainExactStorage(2)
+                try RationalAlgebraStorage.retain(1, of: BRepSewingFacePatch.self, usage: &usage)
+                try RationalAlgebraStorage.retain(1, of: BRepSewingLoop.self, usage: &usage)
                 patches.append(BRepSewingFacePatch(stableID: prefix, surface: surface,
                     orientation: .forward, loops: [BRepSewingLoop(stableID: "\(prefix):loop",
                         role: .outer, edges: edges)]))

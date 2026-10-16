@@ -23,7 +23,7 @@ cell authority and exact image evidence; no numerical image merge establishes id
 | [Source zero set](../NativeSurfaceSourceZeroSet/DESIGN.md) | depends on | retained original coefficient/domain zero evidence | Common coverage consumes necessary laws or bounded branch equivalence | Raw three equations and Jacobian remain authoritative |
 | [SSI points](../NativeSurfaceSurfacePointRelations/DESIGN.md) | depends on | exact tuple publication | Same representative guarantee | Positive components reject arrays atomically |
 | [Intersection algebra](../IntersectionAlgebra/DESIGN.md) | depends on | cells, selecting, incidence | One complete original refinement | No new solver or rank approximation |
-| [Query admission](../SurfaceSurfaceQueryAdmission/DESIGN.md) | depends on | cumulative work, storage and source/span admission | One caller ledger | No per-chart allowance reset |
+| [Query admission](../OriginalQueryExecution/DESIGN.md) | depends on | cumulative work, storage and source/span admission | One caller ledger | No per-chart budget reset |
 
 ## Architecture
 ```text
@@ -63,7 +63,7 @@ owners and independent depths. There is no shared mutable state or target-depend
 
 ## Failure, Concurrency, and Constraints
 Existing `maximumSeedCount` counts connected components. Span admission separately
-limits each cover and the checked tensor product; the existing allowance charges all
+limits each cover and the checked tensor product; the original execution charges all
 exact cells, work and bytes cumulatively. No caps, tolerances or representative criteria
 are widened. Source, span, work, storage, cell, algebra/coefficient depth, component,
 refinement and cancellation failures are atomic.

@@ -4,11 +4,11 @@ import L0
 
 extension ExactPolynomialDomain {
     func adding<A: ExactScalarAdmission & ~Copyable>(_ lhs: borrowing Polynomial, _ rhs: borrowing Polynomial,
-        _ usage: inout ExactPolynomialAdmission<A>) throws -> Polynomial {
+        _ usage: inout A) throws -> Polynomial {
         try merged(lhs, rhs, subtract: false, &usage)
     }
     func merged<A: ExactScalarAdmission & ~Copyable>(_ lhs: borrowing Polynomial, _ rhs: borrowing Polynomial,
-        subtract: Bool, _ usage: inout ExactPolynomialAdmission<A>) throws -> Polynomial {
+        subtract: Bool, _ usage: inout A) throws -> Polynomial {
         let count = try ExactPolynomialAccess.count(lhs.terms.count, rhs.terms.count)
         try ExactPolynomialAccess.storage(count, ExactPolynomialTerm<Coefficient>.self, &usage)
         var terms: [ExactPolynomialTerm<Coefficient>] = []; terms.reserveCapacity(count)
@@ -36,7 +36,7 @@ extension ExactPolynomialDomain {
         return try wrap(terms, &usage)
     }
     func negated<A: ExactScalarAdmission & ~Copyable>(_ value: borrowing Polynomial,
-        _ usage: inout ExactPolynomialAdmission<A>) throws -> Polynomial {
+        _ usage: inout A) throws -> Polynomial {
         try ExactPolynomialAccess.storage(value.terms.count, ExactPolynomialTerm<Coefficient>.self, &usage)
         var terms: [ExactPolynomialTerm<Coefficient>] = []; terms.reserveCapacity(value.terms.count)
         for term in value.terms { try usage.consumeWork(1); terms.append(.init(powers: term.powers,
@@ -44,11 +44,11 @@ extension ExactPolynomialDomain {
         return try wrap(terms, &usage)
     }
     func subtracting<A: ExactScalarAdmission & ~Copyable>(_ lhs: borrowing Polynomial, _ rhs: borrowing Polynomial,
-        _ usage: inout ExactPolynomialAdmission<A>) throws -> Polynomial {
+        _ usage: inout A) throws -> Polynomial {
         try merged(lhs, rhs, subtract: true, &usage)
     }
     func multiplying<A: ExactScalarAdmission & ~Copyable>(_ lhs: borrowing Polynomial, _ rhs: borrowing Polynomial,
-        _ usage: inout ExactPolynomialAdmission<A>) throws -> Polynomial {
+        _ usage: inout A) throws -> Polynomial {
         if lhs.terms.isEmpty || rhs.terms.isEmpty { return try wrap([], &usage) }
         if lhs.terms.count > 1 && rhs.terms.count > 1 {
             if let direct = try separatedProduct(lhs, rhs, &usage) { return direct }
@@ -70,7 +70,7 @@ extension ExactPolynomialDomain {
         return try ordered ? wrap(terms, &usage) : canonical(terms, &usage)
     }
     func scaled<A: ExactScalarAdmission & ~Copyable>(_ value: borrowing Polynomial, _ coefficient: borrowing Coefficient,
-        _ usage: inout ExactPolynomialAdmission<A>) throws -> Polynomial {
+        _ usage: inout A) throws -> Polynomial {
         if try field.sign(of: coefficient, using: &usage) == .zero { return try wrap([], &usage) }
         try ExactPolynomialAccess.storage(value.terms.count, ExactPolynomialTerm<Coefficient>.self, &usage)
         var terms: [ExactPolynomialTerm<Coefficient>] = []; terms.reserveCapacity(value.terms.count)
@@ -84,7 +84,7 @@ extension ExactPolynomialDomain {
         return try wrap(terms, &usage)
     }
     func power<A: ExactScalarAdmission & ~Copyable>(_ value: borrowing Polynomial, _ exponent: Int,
-        _ usage: inout ExactPolynomialAdmission<A>) throws -> Polynomial {
+        _ usage: inout A) throws -> Polynomial {
         guard exponent >= 0 else { throw ExactPolynomialFailure.invalidExponent }
         var n = exponent, factor = copy value, result = try constant(context.one, &usage)
         while n > 0 {
@@ -105,7 +105,26 @@ extension ExactPolynomialDomain {
     }
     public func multiplying<A: ExactScalarAdmission & ~Copyable>(_ lhs: borrowing Polynomial, _ rhs: borrowing Polynomial,
         using admission: inout A) throws(ExactPolynomialFailure) -> Polynomial {
-        try query(&admission, copy lhs, copy rhs) { try multiplying(copy lhs, copy rhs, &$0) }
+        // The exact zero-product law needs no numerical scope or payload allocation.
+        // Both original owners and all inherited depths remain mandatory evidence.
+        if lhs.terms.isEmpty || rhs.terms.isEmpty {
+            do {
+                try admission.checkpoint()
+                try admission.admitDepth(value: context.depth.value, coefficient: context.depth.coefficient)
+                try admission.consumeWork(1)
+                try admission.consumeWork(1); try require(lhs)
+                try admission.admitDepth(value: lhs.depth.value, coefficient: lhs.depth.coefficient)
+                try admission.consumeWork(1); try require(rhs)
+                try admission.admitDepth(value: rhs.depth.value, coefficient: rhs.depth.coefficient)
+                let depth = try ExactPolynomialAccess.merged(context.depth,
+                    ExactPolynomialAccess.merged(lhs.depth, rhs.depth))
+                try admission.checkpoint()
+                return Polynomial(context: context, terms: [], depth: depth)
+            } catch let failure as ExactPolynomialFailure { throw failure }
+            catch let failure as ExactScalarFailure { throw .scalar(failure) }
+            catch { throw .operationRejected(error) }
+        }
+        return try query(&admission, copy lhs, copy rhs) { try multiplying(copy lhs, copy rhs, &$0) }
     }
     public func negated<A: ExactScalarAdmission & ~Copyable>(_ value: borrowing Polynomial,
         using admission: inout A) throws(ExactPolynomialFailure) -> Polynomial {

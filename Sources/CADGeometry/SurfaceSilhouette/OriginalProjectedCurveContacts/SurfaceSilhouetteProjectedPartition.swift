@@ -7,22 +7,21 @@ public struct SurfaceSilhouetteProjectedPartition: Sendable {
         public let upper: SurfaceSilhouetteTrimEndpoint
         public let originalInteriorWitness: ExactRationalCoefficient
     }
-    public let originalEdge: Curve3D
-    public let originalSpanIndex: Int
-    public let nativeRange: ScalarInterval
-    public let silhouette: OriginalSurfaceSilhouetteTrimmedCurve
-    public let frame: OrthographicProjectionFrame
+    public var originalEdge: Curve3D { originalEquations.edge.originalCurve }
+    public var originalSpanIndex: Int { originalEquations.edge.spanIndex }
+    public var nativeRange: ScalarInterval { originalEquations.edgeRange }
+    public var silhouette: OriginalSurfaceSilhouetteTrimmedCurve { originalEquations.silhouette }
+    public var frame: OrthographicProjectionFrame { originalEquations.frame }
     public let contacts: [SurfaceSilhouetteProjectedContact]
     public let cuts: [SurfaceSilhouetteTrimEndpoint]
     public let eventFreeSectors: [Sector]
     public let hasWholeRangeProjectedOverlap: Bool
     private let originalEquations: OriginalProjectedNativePolynomialPair
 
-    init(edge: Curve3D, spanIndex: Int, original: OriginalProjectedNativePolynomialPair,
-        contacts: [SurfaceSilhouetteProjectedContact], cuts: [SurfaceSilhouetteTrimEndpoint],
-        sectors: [Sector], wholeRange: Bool) {
-        originalEdge = edge; originalSpanIndex = spanIndex; nativeRange = original.edgeRange
-        silhouette = original.silhouette; frame = original.frame; self.contacts = contacts
+    init(original: consuming OriginalProjectedNativePolynomialPair,
+        contacts: consuming [SurfaceSilhouetteProjectedContact], cuts: consuming [SurfaceSilhouetteTrimEndpoint],
+        sectors: consuming [Sector], wholeRange: Bool) {
+        self.contacts = contacts
         self.cuts = cuts; eventFreeSectors = sectors; hasWholeRangeProjectedOverlap = wholeRange
         originalEquations = original
     }

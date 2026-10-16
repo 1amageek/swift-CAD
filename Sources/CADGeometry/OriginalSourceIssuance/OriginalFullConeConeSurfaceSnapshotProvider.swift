@@ -23,7 +23,7 @@ public struct OriginalFullConeConeSurfaceSnapshotProvider: OriginalSourceSnapsho
         throws(OriginalSourceIssuanceFailure) -> OriginalSourceSnapshot<OriginalFullConeConeSurfaceSnapshot> {
         let input = copy input
         do {
-            return try OriginalSourceProofAdmission<A>.withBorrow(&a) { a in
+            return try a.withProofScope { a in
                 try a.checkpoint(); try a.consumeWork(1)
                 guard limits.remainingSourceDepth >= 1 else { throw OriginalSourceIssuanceFailure.sourceDepthLimit }
                 guard let pair = Self.pair(input), case .analytic(.cone(_, _, let alpha)) = pair.reference,

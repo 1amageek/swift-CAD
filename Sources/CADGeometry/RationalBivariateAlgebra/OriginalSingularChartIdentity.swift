@@ -13,7 +13,7 @@ package struct OriginalSingularChartIdentity: Hashable, Sendable {
     package let halfBranchOrdinal: Int
     package let halfBranchSide: Int
 
-    package init<B: RationalAlgebraAdmitting>(resolution: OriginalSingularResolution,
+    package init<B: ExactScalarAdmission & ~Copyable>(resolution: OriginalSingularResolution,
         germOrdinal: Int, clip: OriginalSingularRegularChartClip, spanOrdinal: Int, usage: inout B) throws {
         guard germOrdinal >= 0, germOrdinal < resolution.germs.count,
             spanOrdinal >= 0, spanOrdinal < clip.spans.count,
@@ -28,7 +28,7 @@ package struct OriginalSingularChartIdentity: Hashable, Sendable {
         start = clip.stations[span.lowerStation].endpoint; end = clip.stations[span.upperStation].endpoint
         originalAnchor = nil; halfBranchSector = -1; halfBranchOrdinal = -1; halfBranchSide = -1
     }
-    package init<B: RationalAlgebraAdmitting>(resolution: OriginalSingularResolution, germOrdinal: Int,
+    package init<B: ExactScalarAdmission & ~Copyable>(resolution: OriginalSingularResolution, germOrdinal: Int,
         attachment: OriginalSingularHalfBranchAttachment, chart: OriginalSingularRegularChart,
         sourceDomain: SurfaceParameterBox, usage: inout B) throws {
         guard germOrdinal == attachment.chartIndex, germOrdinal >= 0, germOrdinal < resolution.germs.count,

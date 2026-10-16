@@ -5,7 +5,7 @@ import L0
 extension ExactPolynomialDomain {
     func principalDeterminant<A: ExactScalarAdmission & ~Copyable>(
         _ ac: [ExactPolynomialDegreeCoefficient<F>], _ bc: [ExactPolynomialDegreeCoefficient<F>],
-        m: Int, n: Int, index: Int, _ usage: inout ExactPolynomialAdmission<A>) throws -> Polynomial {
+        m: Int, n: Int, index: Int, _ usage: inout A) throws -> Polynomial {
         let sum = try ExactPolynomialAccess.count(m,n), twice = try ExactPolynomialAccess.count(index,index)
         let size = sum - twice, highest = sum - index - 1
         let slots = try ExactPolynomialAccess.count(size,size,multiply:true)

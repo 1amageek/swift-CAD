@@ -13,6 +13,7 @@ struct ParametricCurveSurfaceRootCertifierTests {
 
   @Test(.timeLimit(.minutes(1)))
   func proceduralRootOnSharedCellBoundariesIsNotExcluded() throws {
+    var execution = try OriginalQueryExecution.independentGeometry()
     let surface = Surface3D.procedural(
       .offset(
         OffsetSurface3D(
@@ -45,19 +46,17 @@ struct ParametricCurveSurfaceRootCertifierTests {
       iterations: 1
     )
     let certifier = DefaultParametricCurveSurfaceRootCertifier()
-    let session = try certifier.prepare(
-      curve: curve,
-      surface: surface,
-      preparedCurve: PreparedCurveDifferentialEncloser(
-        curve: curve,
-        tolerance: tolerance
-      ),
-      preparedSurface: PreparedSurfaceDifferentialEncloser(
-        surface: surface,
-        tolerance: tolerance
-      ),
-      tolerance: tolerance
-    )
+    let preparedCurve = try PreparedCurveDifferentialEncloser(
+      curve: curve, tolerance: tolerance, using: &execution)
+    let preparedSurface = try PreparedSurfaceDifferentialEncloser(
+      surface: surface, tolerance: tolerance, using: &execution)
+    let domain = ParametricCurveSurfaceRootCell(
+      curve: try ScalarInterval(lower: 0.08, upper: 0.12),
+      surfaceU: try ScalarInterval(lower: -0.02, upper: 0.02),
+      surfaceV: try ScalarInterval(lower: 0.48, upper: 0.52), surfacePatches: [])
+    let session = try certifier.prepare(preparedCurve: preparedCurve,
+      preparedSurface: preparedSurface, domain: domain,
+      tolerance: tolerance, using: &execution)
     let curveIntervals = [
       try ScalarInterval(lower: 0.08, upper: 0.1),
       try ScalarInterval(lower: 0.1, upper: 0.12),
@@ -82,14 +81,17 @@ struct ParametricCurveSurfaceRootCertifierTests {
           )
           let certificate = try session.certificate(
             cell: cell,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
           )
           var preparedCell = cell
-          preparedCell.curveDerivative = try PreparedCurveDifferentialEncloser(
-            curve: curve, tolerance: tolerance
-          ).derivativeRange(over: curveInterval, tolerance: tolerance)
+          let derivativeJet = try preparedCurve.thirdOrderIntervalJet(
+            over: curveInterval, tolerance: tolerance, using: &execution)
+          preparedCell.curveDerivative = try CurveSpatialDerivativeRange(
+            x: ScalarInterval(lower: derivativeJet.x.derivativeU.lower, upper: derivativeJet.x.derivativeU.upper),
+            y: ScalarInterval(lower: derivativeJet.y.derivativeU.lower, upper: derivativeJet.y.derivativeU.upper),
+            z: ScalarInterval(lower: derivativeJet.z.derivativeU.lower, upper: derivativeJet.z.derivativeU.upper))
           let reusedCertificate = try session.certificate(
-            cell: preparedCell, tolerance: tolerance)
+            cell: preparedCell, tolerance: tolerance, using: &execution)
           switch (certificate, reusedCertificate) {
           case (.excluded, .excluded), (.unique, .unique), (.unresolved, .unresolved):
             break
@@ -104,10 +106,10 @@ struct ParametricCurveSurfaceRootCertifierTests {
           let boundaryCertificate = try session.boundaryCertificate(
             cell: cell,
             witness: witness,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
           )
           let reusedBoundary = try session.boundaryCertificate(
-            cell: preparedCell, witness: witness, tolerance: tolerance)
+            cell: preparedCell, witness: witness, tolerance: tolerance, using: &execution)
           if case .unique = reusedBoundary {} else {
             Issue.record("Reusing the derivative lost the certified boundary root.")
           }

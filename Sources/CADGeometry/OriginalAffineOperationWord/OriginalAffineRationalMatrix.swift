@@ -2,19 +2,19 @@ import CADCore
 
 /// Exact row-major 3x4 affine cache operations; no floating matrix is manufactured.
 enum OriginalAffineRationalMatrix {
-    static func retain<T, B: RationalAlgebraAdmitting>(_ count: Int, of type: T.Type,
+    static func retain<T, B: ExactScalarAdmission & ~Copyable>(_ count: Int, of type: T.Type,
                                                      usage: inout B) throws {
         let bytes = try rationalAlgebraCount(count, MemoryLayout<T>.stride, multiply: true)
         let words = try rationalAlgebraCount(bytes, MemoryLayout<UInt32>.stride - 1) / MemoryLayout<UInt32>.stride
-        try usage.retainExactStorage(words)
+        try usage.retainStorage(bytes: exactScalarPayloadBytes(count: words, of: UInt32.self))
     }
-    static func identity<B: RationalAlgebraAdmitting>(usage: inout B) throws -> [ExactRationalCoefficient] {
+    static func identity<B: ExactScalarAdmission & ~Copyable>(usage: inout B) throws -> [ExactRationalCoefficient] {
         try retain(12, of: ExactRationalCoefficient.self, usage: &usage)
         return [.one, .zero, .zero, .zero, .zero, .one, .zero, .zero, .zero, .zero, .one, .zero]
     }
-    static func original<B: RationalAlgebraAdmitting>(_ source: AffineTransform3D,
+    static func original<B: ExactScalarAdmission & ~Copyable>(_ source: AffineTransform3D,
                                                      usage: inout B) throws -> [ExactRationalCoefficient] {
-        try source.validate(); try usage.consumeExactWork(12)
+        try source.validate(); try usage.consumeWork(12)
         try retain(12, of: ExactRationalCoefficient.self, usage: &usage)
         let x = source.basisX, y = source.basisY, z = source.basisZ, t = source.translation
         // Fixed-size original scalars remain on the stack; each rational limb is
@@ -34,7 +34,7 @@ enum OriginalAffineRationalMatrix {
         result.append(try .originalDouble(t.z, usage: &usage))
         return result
     }
-    static func original<B: RationalAlgebraAdmitting>(_ operation: OriginalAffineOperation,
+    static func original<B: ExactScalarAdmission & ~Copyable>(_ operation: OriginalAffineOperation,
         usage: inout B) throws -> [ExactRationalCoefficient]? {
         switch operation {
         case .forward(let transform), .inverse(let transform):
@@ -46,7 +46,7 @@ enum OriginalAffineRationalMatrix {
         }
     }
 
-    static func minor<B: RationalAlgebraAdmitting>(_ a: [ExactRationalCoefficient],
+    static func minor<B: ExactScalarAdmission & ~Copyable>(_ a: [ExactRationalCoefficient],
         excludingRow row: Int, column: Int, usage: inout B) throws -> ExactRationalCoefficient {
         let r0 = row == 0 ? 1 : 0, r1 = row == 2 ? 1 : 2
         let c0 = column == 0 ? 1 : 0, c1 = column == 2 ? 1 : 2
@@ -54,44 +54,44 @@ enum OriginalAffineRationalMatrix {
         let second = try a[r0 * 4 + c1].multiplied(by: a[r1 * 4 + c0], usage: &usage)
         return try first.subtracting(second, usage: &usage)
     }
-    static func determinant<B: RationalAlgebraAdmitting>(_ a: [ExactRationalCoefficient],
+    static func determinant<B: ExactScalarAdmission & ~Copyable>(_ a: [ExactRationalCoefficient],
                                                         usage: inout B) throws -> ExactRationalCoefficient {
         var value = ExactRationalCoefficient.zero
         for column in 0..<3 {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             let cofactor = try minor(a, excludingRow: 0, column: column, usage: &usage)
             let product = try a[column].multiplied(by: column == 1 ? cofactor.negated : cofactor, usage: &usage)
             value = try value.adding(product, usage: &usage)
         }
         return value
     }
-    static func cofactors<B: RationalAlgebraAdmitting>(_ a: [ExactRationalCoefficient],
+    static func cofactors<B: ExactScalarAdmission & ~Copyable>(_ a: [ExactRationalCoefficient],
         usage: inout B) throws -> [ExactRationalCoefficient] {
         try retain(12, of: ExactRationalCoefficient.self, usage: &usage)
         var result = Array(repeating: ExactRationalCoefficient.zero, count: 12)
         for row in 0..<3 {
             for column in 0..<3 {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 let value = try minor(a, excludingRow: row, column: column, usage: &usage)
                 result[row * 4 + column] = (row + column) % 2 == 0 ? value : value.negated
             }
         }
         return result
     }
-    static func inverse<B: RationalAlgebraAdmitting>(_ a: [ExactRationalCoefficient],
+    static func inverse<B: ExactScalarAdmission & ~Copyable>(_ a: [ExactRationalCoefficient],
         determinant: ExactRationalCoefficient, usage: inout B) throws -> [ExactRationalCoefficient] {
         try retain(12, of: ExactRationalCoefficient.self, usage: &usage)
         var result = Array(repeating: ExactRationalCoefficient.zero, count: 12)
         for row in 0..<3 {
             for column in 0..<3 {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 let cofactor = try minor(a, excludingRow: column, column: row, usage: &usage)
                 result[row * 4 + column] = try ((row + column) % 2 == 0 ? cofactor : cofactor.negated)
                     .divided(by: determinant, usage: &usage)
             }
             var translation = ExactRationalCoefficient.zero
             for column in 0..<3 {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 translation = try translation.adding(result[row * 4 + column]
                     .multiplied(by: a[column * 4 + 3], usage: &usage), usage: &usage)
             }
@@ -99,7 +99,7 @@ enum OriginalAffineRationalMatrix {
         }
         return result
     }
-    static func compose<B: RationalAlgebraAdmitting>(_ a: [ExactRationalCoefficient],
+    static func compose<B: ExactScalarAdmission & ~Copyable>(_ a: [ExactRationalCoefficient],
         after b: [ExactRationalCoefficient], usage: inout B) throws -> [ExactRationalCoefficient] {
         try retain(12, of: ExactRationalCoefficient.self, usage: &usage)
         var result = Array(repeating: ExactRationalCoefficient.zero, count: 12)
@@ -107,7 +107,7 @@ enum OriginalAffineRationalMatrix {
             for column in 0..<4 {
                 var value: ExactRationalCoefficient = column == 3 ? a[row * 4 + 3] : .zero
                 for k in 0..<3 {
-                    try usage.consumeExactWork(1)
+                    try usage.consumeWork(1)
                     value = try value.adding(a[row * 4 + k].multiplied(by: b[k * 4 + column], usage: &usage), usage: &usage)
                 }
                 result[row * 4 + column] = value
@@ -115,7 +115,7 @@ enum OriginalAffineRationalMatrix {
         }
         return result
     }
-    static func squareRootUpper<B: RationalAlgebraAdmitting>(_ value: ExactRationalCoefficient,
+    static func squareRootUpper<B: ExactScalarAdmission & ~Copyable>(_ value: ExactRationalCoefficient,
         usage: inout B) throws -> Double {
         guard !value.isNegative else { throw rationalAlgebraFailure("Original squared norm is negative.") }
         if value.isZero { return 0 }
@@ -125,7 +125,7 @@ enum OriginalAffineRationalMatrix {
         if difference.isZero { return Double.greatestFiniteMagnitude }
         var lower: UInt64 = 0, upper = Double.greatestFiniteMagnitude.bitPattern
         while upper - lower > 1 {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             let middle = lower + (upper - lower) / 2
             let candidate = try ExactRationalCoefficient.originalDouble(Double(bitPattern: middle), usage: &usage)
             let comparison = try value.subtracting(candidate.multiplied(by: candidate, usage: &usage), usage: &usage)
@@ -134,7 +134,7 @@ enum OriginalAffineRationalMatrix {
         }
         return Double(bitPattern: upper)
     }
-    static func rounded<B: RationalAlgebraAdmitting>(_ value: ExactRationalCoefficient,
+    static func rounded<B: ExactScalarAdmission & ~Copyable>(_ value: ExactRationalCoefficient,
                                                     usage: inout B) throws -> Double {
         let interval = try value.outwardInterval(usage: &usage)
         if interval.lower == interval.upper { return interval.lower }

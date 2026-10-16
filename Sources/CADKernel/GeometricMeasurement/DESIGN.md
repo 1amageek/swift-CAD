@@ -207,3 +207,42 @@ Topology scaled norm before comparing to its unchanged physical localization
 allowance. A raw squared coordinate sum is not the error authority for tiny or
 large finite source positions. Mesh station-discrepancy admission consumes the
 same primitive with its separate mesh allocation.
+
+## Canonical Caller Binding
+Selection distance uses one OriginalQueryExecution created by the ordinary
+Topology distance entry, or borrowed by the direct entry. The unchanged option
+ceilings attach as a contribution before selection resolution. Native trim
+ratios, original differential bounds, boundary extrema and material classifiers
+receive that same execution. Removed callback/budget adapters are not retained.
+The existing unsupported selectors and classification conditions remain; this
+binding does not add a measurement family or certify unimplemented coverage.
+
+
+### Canonical Angle Caller Binding
+
+The angle API borrows one `OriginalQueryExecution`; its ordinary entry creates one root and delegates. Explicit bounded ceilings restrict that execution through its existing contribution mechanism. OriginalSelectionAngleBounds consumes that same execution at the original arithmetic operations. Prepared curve/surface jets, unit-normal fields, image-chart bounds, face extents and source lookup receive the same exclusive execution instead of removed OriginalSourceProofAdmission or callbacks.
+
+The ordinary selector path remains separate from the bounded resolver: whole curves retain their original Euclidean-clock midpoint, including the existing unbounded-output selector, whole faces retain centroid projection with the existing parameter fallback, and trim/span/knot selectors retain their original station formulas. Existing bounded unsupported branches remain explicit. Angle preparation does not use representative samples as original direction proof. Ordinary query-helper direct overloads preserve existing validation, source identity and projection algorithms, including display-only selector proposals and existing numeric fallback semantics; they forward actual source proof through the retained lower owner.
+
+The extracted candidate must compile and verify its own angle call chain. Existing worktree receipts are not proof of this integration. Distance prefix and other measurement algorithms are owned separately and unchanged by this angle binding.
+
+
+| Extracted angle source | Forced concrete call edge |
+|---|---|
+| `../SelectionMeasurementEvaluator.swift` angle suffix only | Ordinary station selectors -> direct query helpers -> prepared owning curve/surface jets/unit normals; bounded resolver retains explicit unsupported cases |
+| `OriginalBoundedSelectionAngleResolver.swift` | OriginalGeometryQuery lookup, PreparedCurve/SurfaceDifferentialEncloser, FaceParameterExtentResolver and image bounds -> same execution |
+| `OriginalSelectionAngleBounds.swift` | Original interval dot/cross/acos/atan2 math -> direct canonical work admission; ordinary one-root wrappers |
+| `../SelectionAngleMeasurement.swift` | representative/measure/coherence validation -> same execution |
+| `../CurveQueryEvaluator.swift` | resolve/midpoint/point/span/knot and required polyline/B-spline helpers -> EvaluatedCurve validation and original Geometry direct calls |
+| `../EdgeQueryEvaluator.swift` | resolve/midpoint/frame + edgeParameterRange -> original topology/source validation and Curve differential direct calls |
+| `../SurfaceQueryEvaluator.swift` | resolve/frame/closestPoint/span/knot/trimCurve and their existing projection/trim helpers -> direct original source/projection calls |
+
+The general legacy point-selector helper closure used by distance fallback is not converted by this angle scope. No direct general point(for:in:using:) is introduced. Lower query methods retain their previous branches, station formulas, trim approximation selectors and supported inputs; no new geometry case or success branch is imported.
+
+The Mass native API binding uses the original volume-moment execution factory
+and one selected maximumWork/depth contribution across attributes, moments and
+affine determinant proof. Remaining work is a view of that contribution, not a
+resettable counter. Existing tensor composition, Jacobi iterations and outward
+formula order are preserved; this does not add a Mass algorithm or performance
+change. Transport validation forwards the same execution at each public/codec
+entry and retains its original failure conditions.

@@ -110,13 +110,13 @@ public struct SurfaceTrimFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                     surface: source.surface,
                     orientation: source.orientation,
                     loops: sewingLoops,
-                    parentSubshapeIDs: context.subshapeIDs(
+                    parentSubshapeIDs: try context.subshapeIDs(
                         for: .face(source.faceID)
                     )
                 )],
                 orientation: source.shellOrientation
             )],
-            bodyParentSubshapeIDs: context.subshapeIDs(
+            bodyParentSubshapeIDs: try context.subshapeIDs(
                 for: .body(sourceBodyID)
             )
         ), tolerance: context.tolerance)

@@ -3,15 +3,14 @@ import CADCore
 /// Complete isolated original Native curve/Coons publication before legacy dispatch.
 struct OriginalCoonsCurveSurfacePointProducer {
     func resolve(curve: Curve3D, surface: Surface3D, options: CurveSurfaceIntersectionOptions,
-        tolerance: ModelingTolerance, invocation: CurveSurfaceQueryInvocation? = nil)
+        tolerance: ModelingTolerance, using usage: inout OriginalQueryExecution)
         throws -> CurveSurfaceIntersectionResult? {
         guard case .bSpline(let curveSource) = curve,
             case .procedural(.originalCoons(let surfaceSource)) = surface else { return nil }
         try options.validate(tolerance: tolerance)
-        var usage = try NativeCurveSurfacePointAllowance(options: options, invocation: invocation)
-        try usage.consumeExactWork(1)
-        try invocation?.consume(depth: 0)
-        let sourceDepth = invocation?.remainingSourceDepth ?? 1
+        usage.context = usage.context.at(stage: .source)
+        try usage.consumeWork(1)
+        let sourceDepth = min(1, usage.effectiveLimits.remainingSourceDepth)
         guard sourceDepth > 0 else {
             throw failure(.resourceLimitExceeded, "Original curve/Coons preparation exhausted surface-to-boundary source depth.", tolerance)
         }
@@ -22,10 +21,10 @@ struct OriginalCoonsCurveSurfacePointProducer {
         guard !curveSource.isPeriodic else {
             throw failure(.unsupportedCapability, "Original curve/Coons points require an aperiodic single-span Native curve.", tolerance)
         }
-        try curveSource.validate(tolerance: tolerance, consumeWork: { try usage.consumeExactWork(1) })
+        try curveSource.validate(tolerance: tolerance, using: &usage)
         var span: Int?
         for index in curveSource.degree..<curveSource.controlPointCount {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             if curveSource.knots[index] < curveSource.knots[index + 1] {
                 guard span == nil else {
                     throw failure(.unsupportedCapability, "Original curve/Coons points require one complete Native curve span.", tolerance)
@@ -45,11 +44,12 @@ struct OriginalCoonsCurveSurfacePointProducer {
         let coons = try OriginalCoonsSurfacePolynomial(source: surfaceSource, over: .init(u: u, v: v),
             remainingSourceDepth: sourceDepth, tolerance: tolerance, usage: &usage)
         for boundary in coons.boundaries {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             guard boundary.source.degree <= options.maximumPolynomialDegree else {
                 throw failure(.resourceLimitExceeded, "Original Coons boundary degree exceeds the admitted ceiling.", tolerance)
             }
         }
+        try usage.admitSourceDepth(1)
         try RationalAlgebraStorage.retain(9, of: OriginalRationalParameterDomain.self, usage: &usage)
         let native = try [OriginalRationalParameterDomain(t, usage: &usage),
             OriginalRationalParameterDomain(u, usage: &usage), OriginalRationalParameterDomain(v, usage: &usage)]
@@ -63,6 +63,7 @@ struct OriginalCoonsCurveSurfacePointProducer {
                 effective?.append(selected)
             } else { effective = nil }
         }
+        usage.context = usage.context.at(stage: .relation)
         let binding = try coons.curveRelation(curve: curveLaw, curveDomain: native[0], usage: &usage)
         var incidence: OriginalRationalIntersectionIncidence?
         var components: OriginalRationalParameterComponents?
@@ -78,17 +79,17 @@ struct OriginalCoonsCurveSurfacePointProducer {
             var equations: [ExactIntersectionPolynomial] = []; equations.reserveCapacity(3)
             var guards: [ExactIntersectionPolynomial] = []; guards.reserveCapacity(2)
             for ordinal in original.indices {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 if ordinal < 3 { equations.append(original[ordinal].original) }
                 else { guards.append(original[ordinal].original) }
             }
             let partition = try OriginalRationalIntersectionCells.prepare(equations: equations,
                 variableCount: 3, exactDomains: effective, nonzeroPolynomials: guards,
                 thomEncoding: true, pruneExcludedPrefixes: true,
-                maximumDepth: usage.maximumAlgebraicDepth, usage: &usage)
+                maximumDepth: usage.effectiveLimits.maximumValueDepth, usage: &usage)
             // Inspect the entire selected relation before publishing any tuple.
             for index in partition.solutionCells {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 guard partition.cells[index].dimension == 0 else {
                     throw failure(.nonDiscreteIntersection,
                         "The original curve/Coons requested product contains a positive-dimensional intersection.", tolerance)
@@ -98,7 +99,7 @@ struct OriginalCoonsCurveSurfacePointProducer {
                 throw failure(.resourceLimitExceeded, "Original curve/Coons tuple count exceeds the admitted candidate ceiling.", tolerance)
             }
             let proved = try OriginalRationalIntersectionIncidence.prepare(partition: partition,
-                maximumDepth: usage.maximumAlgebraicDepth, usage: &usage)
+                maximumDepth: usage.effectiveLimits.maximumValueDepth, usage: &usage)
             components = try proved.connectedComponents(usage: &usage)
             incidence = proved
             // The existing cylindrical partition emits original tuples in T/U/V order.
@@ -111,7 +112,7 @@ struct OriginalCoonsCurveSurfacePointProducer {
             points.reserveCapacity(count); parameters.reserveCapacity(scalarCount); localizations.reserveCapacity(scalarCount)
             let normal = try OriginalPolynomialCurveSurfaceNormal.prepare(homogeneous: coons.homogeneous, usage: &usage)
             for index in indexes {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 points.append(try NativeCurveSurfacePointPublisher().publish(cell: partition.cells[index],
                     partition: partition, cellIndex: index, effectiveDomains: effective,
                     curve: curveLaw, surfaceHomogeneous: coons.homogeneous, surfaceNormalNumerators: normal,
@@ -119,14 +120,15 @@ struct OriginalCoonsCurveSurfacePointProducer {
                     retainingParameters: &parameters, retainingLocalizations: &localizations, usage: &usage))
             }
         }
+        usage.context = usage.context.at(stage: .publication)
         try OriginalCoonsCurveSurfacePoints.admitStorage(usage: &usage)
         let receipt = OriginalCoonsCurveSurfacePoints(curve: curveSource, source: binding, tolerance: tolerance,
             nativeDomains: native, requestedDomains: requested, effectiveDomains: effective,
             incidence: incidence, components: components, cellIndexes: indexes,
             parameterIsolations: parameters, parameterLocalizations: localizations)
         try RationalAlgebraStorage.retain(1, of: CurveSurfaceIntersectionResult.self, usage: &usage)
-        try usage.consumeExactWork(0)
-        try CurrentTaskCancellationChecker().checkCancellation()
+        try usage.consumeWork(0)
+        try usage.checkpoint()
         return .init(points: points, overlaps: [], originalCoonsPoints: receipt)
     }
 

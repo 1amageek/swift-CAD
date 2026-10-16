@@ -6,7 +6,7 @@ package struct OriginalFieldZeroSetAuthority: Sendable {
     package let maximumAlgebraicDepth: Int
     private let derivatives: [[OriginalSingularFieldPlanePolynomial]]
 
-    package init<B: RationalAlgebraAdmitting>(original: OriginalSingularFieldPlanePolynomial,
+    package init<B: ExactScalarAdmission & ~Copyable>(original: OriginalSingularFieldPlanePolynomial,
         maximumAlgebraicDepth: Int, usage: inout B) throws {
         self.original = original; self.maximumAlgebraicDepth = maximumAlgebraicDepth
         if original.isZero { repeatedFactor = original; squareFree = original; derivatives = []; return }
@@ -43,7 +43,7 @@ package struct OriginalFieldZeroSetAuthority: Sendable {
         derivatives = rows
     }
 
-    package init<B: RationalAlgebraAdmitting>(retaining source: OriginalRationalZeroSetAuthority,
+    package init<B: ExactScalarAdmission & ~Copyable>(retaining source: OriginalRationalZeroSetAuthority,
         into context: OriginalSingularFieldContext, maximumAlgebraicDepth: Int, usage: inout B) throws {
         guard maximumAlgebraicDepth >= 0 else { throw rationalAlgebraFailure("Original coefficient lifting needs an admitted algebraic depth.") }
         self.maximumAlgebraicDepth = maximumAlgebraicDepth
@@ -70,7 +70,7 @@ package struct OriginalFieldZeroSetAuthority: Sendable {
         derivatives = rows
     }
 
-    package func scalarJet<B: RationalAlgebraAdmitting>(over box: SurfaceParameterBox,
+    package func scalarJet<B: ExactScalarAdmission & ~Copyable>(over box: SurfaceParameterBox,
         inheritedDepth: Int, usage: inout B) throws -> OriginalRationalScalarDerivativeBounds {
         func value(_ u: Int, _ v: Int, usage: inout B) throws -> OutwardScalarInterval {
             if squareFree.isZero { return .exact(0) }

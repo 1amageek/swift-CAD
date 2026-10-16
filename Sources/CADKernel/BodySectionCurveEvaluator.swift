@@ -27,7 +27,7 @@ public struct BodySectionCurveEvaluator: Sendable {
                            in model: BRepModel) throws -> [BooleanSectionComponent] {
         let prepared = try BooleanPipeline(evaluator: ExactBRepBooleanEvaluator()).prepare(
             targetBodyIDs: [first], toolBodyID: second, model: model, tolerance: tolerance)
-        return prepared.sections
+        return try prepared.sections
     }
 
     /// The pieces, in the graph's face-pair order; empty when the bodies do not meet. A tangent

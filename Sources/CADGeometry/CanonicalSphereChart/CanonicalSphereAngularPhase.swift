@@ -18,29 +18,32 @@ package enum CanonicalSphereAngularPhase {
     package static let scaleBounds = OutwardScalarInterval(
         lower: 1, upper: (0x1.921fb54442d19p+1 / Double.pi).nextUp)
 
-    package static func candidate(at label: Double, cosine: Bool) -> Double {
-        valueBounds(at: label, cosine: cosine).midpoint
+    package static func candidate(at label: Double, cosine: Bool) throws -> Double {
+        var a = try OriginalQueryExecution.independentGeometry()
+        return try candidate(at: label, cosine: cosine, using: &a)
     }
 
-    package static func valueBounds(at label: Double, cosine: Bool) -> OutwardScalarInterval {
-        harmonic(of: .constant(label), cosine: cosine).value
+    package static func candidate<A: ExactScalarAdmission & ~Copyable>(at label: Double,
+        cosine: Bool, using a: inout A) throws -> Double {
+        try valueBounds(at: label, cosine: cosine, using: &a).midpoint
     }
 
-    package static func valueBounds(at label: Double, cosine: Bool,
-        consumeWork: () throws -> Void) rethrows -> OutwardScalarInterval {
-        try harmonic(of: .constant(label), cosine: cosine, consumeWork: consumeWork).value
+    package static func valueBounds(at label: Double, cosine: Bool) throws -> OutwardScalarInterval {
+        var a = try OriginalQueryExecution.independentGeometry()
+        return try valueBounds(at: label, cosine: cosine, using: &a)
+    }
+
+    package static func valueBounds<A: ExactScalarAdmission & ~Copyable>(at label: Double,
+        cosine: Bool, using a: inout A) throws -> OutwardScalarInterval {
+        try harmonic(of: .constant(label), cosine: cosine, using: &a).value
     }
 
     /// Exact remainder of the original dyadic label by the original label period.
     /// Modular operands stay below 2^53, so their full-width product divided by
     /// the modulus has a representable UInt64 quotient and remainder.
-    private static func originalRemainder(of label: Double) -> Double {
-        originalRemainder(of: label, consumeWork: {})
-    }
-
-    private static func originalRemainder(of label: Double,
-        consumeWork: () throws -> Void) rethrows -> Double {
-        try consumeWork()
+    private static func originalRemainder<A: ExactScalarAdmission & ~Copyable>(of label: Double,
+        using a: inout A) throws -> Double {
+        try a.consumeWork(1)
         let period = 2 * Double.pi
         guard label.isFinite, abs(label) >= period else { return label }
         let significandMask: UInt64 = 0x000f_ffff_ffff_ffff
@@ -56,7 +59,7 @@ package enum CanonicalSphereAngularPhase {
         var power: UInt64 = 2
         // At most eleven iterations for any finite binary64 source label.
         while exponent > 0 {
-            try consumeWork()
+            try a.consumeWork(1)
             if exponent & 1 != 0 {
                 remainder = modulus.dividingFullWidth(remainder.multipliedFullWidth(by: power)).remainder
             }
@@ -81,13 +84,14 @@ package enum CanonicalSphereAngularPhase {
         return nil
     }
 
-    package static func harmonic(of label: SurfaceIntervalJet, cosine: Bool) -> SurfaceIntervalJet {
-        harmonic(of: label, cosine: cosine, consumeWork: {})
+    package static func harmonic(of label: SurfaceIntervalJet, cosine: Bool) throws -> SurfaceIntervalJet {
+        var a = try OriginalQueryExecution.independentGeometry()
+        return try harmonic(of: label, cosine: cosine, using: &a)
     }
 
-    package static func harmonic(of label: SurfaceIntervalJet, cosine: Bool,
-        consumeWork: () throws -> Void) rethrows -> SurfaceIntervalJet {
-        try consumeWork()
+    package static func harmonic<A: ExactScalarAdmission & ~Copyable>(of label: SurfaceIntervalJet, cosine: Bool,
+        using a: inout A) throws -> SurfaceIntervalJet {
+        try a.consumeWork(1)
         let scale = SurfaceIntervalJet(value: scaleBounds,
             derivativeU: .exact(0), derivativeV: .exact(0),
             secondDerivativeUU: .exact(0), secondDerivativeUV: .exact(0), secondDerivativeVV: .exact(0),
@@ -101,8 +105,8 @@ package enum CanonicalSphereAngularPhase {
             return SurfaceIntervalJet.applyingUnaryFunction(to: originalPhase,
                 value: full, firstDerivative: full, secondDerivative: full, thirdDerivative: full)
         }
-        let first = try originalRemainder(of: label.value.lower, consumeWork: consumeWork)
-        let last = try originalRemainder(of: label.value.upper, consumeWork: consumeWork)
+        let first = try originalRemainder(of: label.value.lower, using: &a)
+        let last = try originalRemainder(of: label.value.upper, using: &a)
         let range: OutwardScalarInterval
         if first <= last {
             range = .init(lower: first, upper: last)
@@ -127,19 +131,27 @@ package enum CanonicalSphereAngularPhase {
                 secondDerivative: .exact(cosine ? -cos : -sine),
                 thirdDerivative: .exact(cosine ? sine : -cos))
         }
-        return try cosine ? .cosine(of: phase, consumeWork: consumeWork) : .sine(of: phase, consumeWork: consumeWork)
+        return try cosine ? .cosine(of: phase, using: &a) : .sine(of: phase, using: &a)
     }
 
     static func candidateTaylor(at label: Double, alongU: Bool, cosine: Bool,
         order: Int) throws -> SurfaceTaylorScalarJet {
-        let sine = candidate(at: label, cosine: false), cos = candidate(at: label, cosine: true)
+        var a = try OriginalQueryExecution.independentGeometry()
+        return try candidateTaylor(at: label, alongU: alongU, cosine: cosine, order: order, using: &a)
+    }
+
+    static func candidateTaylor<A: ExactScalarAdmission & ~Copyable>(at label: Double,
+        alongU: Bool, cosine: Bool, order: Int, using a: inout A) throws -> SurfaceTaylorScalarJet {
+        let sine = try candidate(at: label, cosine: false, using: &a), cos = try candidate(at: label, cosine: true, using: &a)
+        try a.retainStorage(bytes: exactScalarPayloadBytes(count: 4, of: Double.self))
         let cycle = cosine ? [cos, -sine, -cos, sine] : [sine, cos, -sine, -cos]
-        var result = try SurfaceTaylorScalarJet(order: order)
+        var result = try SurfaceTaylorScalarJet(order: order, using: &a)
         var scale = 1.0
         for index in 0...order {
+            try a.consumeWork(1)
             if index > 0 { scale *= scaleBounds.midpoint / Double(index) }
             try result.setCoefficient(cycle[index % 4] * scale,
-                uOrder: alongU ? index : 0, vOrder: alongU ? 0 : index)
+                uOrder: alongU ? index : 0, vOrder: alongU ? 0 : index, using: &a)
         }
         return result
     }

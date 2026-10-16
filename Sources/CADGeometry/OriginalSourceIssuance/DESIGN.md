@@ -364,13 +364,10 @@ non-affine transport, tighter source/scalar depths, exhaustion and final cancel
 fail before publication under one caller admission. The receipt's optional proofDepth retains causal decision depths beyond coefficient
 payloads. All derived ruled, spatial and parameter-image issuers admit and propagate
 it. Endpoint receipts retain every decision depth, including endpoint membership and
-corner comparisons. A private noncopyable forwarding admission borrows the existing
-exclusive ledger only inside a synchronous scoped stack-pointer closure. It owns no
-allocation, shared state or allowance; initialized/aligned A is never rebound,
-deallocated or accessed concurrently, and its pointer never crosses the closure or
-Sendable boundary. Native, WASM and Embedded use the identical declaration/access
-path. Endpoint/coons success, limits/cancel and ASAN checks own this narrow unsafe
-boundary. Existing Coons construction
+corner comparisons. The original noncopyable caller admission records these
+local decisions in its own exclusive observation scope and passes directly into
+source helpers. Native, WASM and Embedded use the same state/access contract.
+Endpoint/Coons success, limits/cancel and ASAN checks verify this direct boundary. Existing Coons construction
 and traversal authorities remain with their source providers; the generic
 formula alone does not complete those providers or consuming migration.
 
@@ -2059,8 +2056,8 @@ retention. Neither position transport nor source coverage creates parameter iden
 A single immutable coverage owner retains the whole child family and word binding;
 parent graph evidence refers to that owner and the original child ordinal. Its
 object header/payload and all new graph/output storage are admitted before creation.
-Nested child preparation recurses through one concrete admission borrow rather than
-creating deeper generic admission types. No source is re-extracted for each graph.
+Nested child preparation passes the same original native inout admission rather than
+creating forwarding admission types. No source is re-extracted for each graph.
 The stored descendant calculation tolerance is retained; world coefficient validation
 uses the original caller tolerance and field depth ceilings. Foreign coefficient
 fields fail without numerical rounding, field extension or solver switching.
@@ -3328,3 +3325,55 @@ must not bypass this receipt. Behavioral verification owns endpoint/interior,
 translated/scaled source, swapped hosts, singleton, outside/cycle/branch and
 resource/cancellation failures through the actual source/DI/public path. This
 strict finite capability leaves general boundary-root clipping unconverted.
+
+
+### Direct Source Proof Recording
+
+Original source issuers pass the original generic `inout A: ExactScalarAdmission
+& ~Copyable` directly through every helper and original numeric producer.
+The admission owns exclusive nested observation scopes; no source forwarding
+admission or raw caller pointer remains. Receipts read the current local scope's
+reached depth, including comparison/sign decisions not present in scalar payloads.
+The cumulative caller maximum from preceding unrelated work cannot contaminate
+that receipt. Nested source scopes observe mapped child events at their own
+boundary and never map them a second time. Close is a resource-free state change;
+throw preserves the original failure and all cumulative work/storage.
+
+```text
+Original caller admission -> source observation scope -> child source/numeric owner
+    -> same native inout admission -> local decision depths -> immutable receipt
+```
+
+The scalar owner defines numeric mapping and axis routing in
+[direct local proof scopes](../RationalBivariateAlgebra/ExactScalar/DESIGN.md#direct-local-proof-scopes).
+Verification is owned by `EndpointDepthFixtures.endpointDecisionDepths` and
+`DirectScopeFixtures.directProofScopes`, together with existing Coons, traversal,
+scalar transport, retained-root and physical-angle source fixtures. Actual full
+Native/ASAN/WASM/Embedded source execution is required before claiming migration
+complete; the local scope fixture alone proves no whole-source capability.
+
+## Original Bounded Sphere-Cone Boundary Law
+
+The internal boundary-jet provider retains the original bounded sphere/cone pair
+and its analytic child bindings. It consumes the existing rational coordinate
+laws and [physical-angle evidence](OriginalPhysicalAngle/DESIGN.md); it owns no
+second construction of sphere/cone equations. Its exclusive query session owns
+coefficient continuation and holds no caller execution, budget or callback.
+Returned jets retain original order, raw closed box and attained proof depth.
+Singleton raw axes use the same source law. The integration issuer re-admits
+independent source depth and checks every jet owner/order/box before consumption.
+
+The source guard issuer supplies local selected/excluded/single-active-guard
+receipts for the existing constructed bounded family. It retains the original
+quadratic, principal inverse-chart guards, branch, period lifts and full scalar
+depth. Candidate necessary slant and latitude bounds preserve every original
+candidate; they do not replace its domain predicate. Contiguous proof unions
+verify owner/branch/period/scope without repeating the original decision.
+Coefficient scheduling reuses the existing comparison of normalized cell width
+and the attained trigonometric enclosure width.
+
+[Native mathematical relations](../NativeExactRelations/DESIGN.md#retained-bounded-sphere-cone-finite-cuts)
+own complete requested coverage, boundary-root issuance and cut composition.
+They consume the [existing gauge contract](../SurfaceSurfaceQueryAdmission/DESIGN.md#original-source-boundary-gauges).
+Source issuance neither calls that solver nor publishes a root or whole-query
+coverage. Its local guard receipts alone cannot establish public SSI completion.

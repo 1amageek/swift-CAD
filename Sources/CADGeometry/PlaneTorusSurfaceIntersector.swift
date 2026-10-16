@@ -14,6 +14,29 @@ import CADCore
 struct PlaneTorusSurfaceIntersector {
     private let verifier = SurfaceSurfaceIntersectionVerifier()
 
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Ordinary SSI dispatch reaches this direct entry.
+    // The former numerical/tolerance branches did not establish original common-set
+    // authority. U4 must supply complete original source/UV coverage before success.
+    func intersections(
+        plane: CanonicalAnalyticSurface.Plane,
+        torus: CanonicalAnalyticSurface.Torus,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        options: SurfaceSurfaceIntersectionOptions,
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution
+    ) throws -> [SurfaceSurfaceIntersection] {
+        execution.context = execution.context.at(stage: .relation)
+        do {
+            try execution.checkpoint()
+            throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+                message: "PlaneTorusSurfaceIntersector requires complete original source relation authority.")
+        } catch { throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance) }
+    }
+
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Existing candidate/source helper methods call
+    // this ordinary publication entry. It performs no numeric solve or fallback;
+    // U4 must provide source-bound relation proof and direct execution before success.
     func intersections(
         plane: CanonicalAnalyticSurface.Plane,
         torus: CanonicalAnalyticSurface.Torus,
@@ -22,66 +45,9 @@ struct PlaneTorusSurfaceIntersector {
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
     ) throws -> [SurfaceSurfaceIntersection] {
-        try plane.requireLegacyUnitNormal(tolerance: tolerance)
-        let axisProjection = plane.normal.dot(torus.axis)
-        let radialNormal = plane.normal - torus.axis * axisProjection
-        let radialNormalLength = radialNormal.length
-        let centerDistance = (torus.center - plane.origin).dot(plane.normal)
-
-        if radialNormalLength <= tolerance.angle {
-            return try axialSection(
-                plane: plane,
-                torus: torus,
-                firstSurface: firstSurface,
-                secondSurface: secondSurface,
-                tolerance: tolerance
-            )
-        }
-
-        if abs(axisProjection) <= tolerance.angle,
-           abs(centerDistance) <= tolerance.distance {
-            let radialDirection = try torus.axis.cross(plane.normal).normalized(
-                tolerance: tolerance.distance
-            )
-            return try [-1.0, 1.0].map { sign in
-                try verifier.curve(
-                    .circle(Circle3D(
-                        center: torus.center + radialDirection * (sign * torus.majorRadius),
-                        normal: plane.normal,
-                        radius: torus.minorRadius
-                    )),
-                    kind: .transverse,
-                    firstSurface: firstSurface,
-                    secondSurface: secondSurface,
-                    sampleParameters: SurfaceSurfaceIntersectionVerifier.closedCurveSamples,
-                    tolerance: tolerance
-                )
-            }
-        }
-
-        let support = torus.majorRadius * radialNormalLength + torus.minorRadius
-        let absoluteDistance = abs(centerDistance)
-        guard absoluteDistance <= support + tolerance.distance else { return [] }
-        if abs(absoluteDistance - support) <= tolerance.distance {
-            let targetSign = centerDistance > 0.0 ? -1.0 : 1.0
-            let radialDirection = try radialNormal.normalized(tolerance: tolerance.distance)
-            let point = torus.center
-                + radialDirection * (targetSign * torus.majorRadius)
-                + plane.normal * (targetSign * torus.minorRadius)
-            return [try verifier.point(
-                point,
-                firstSurface: firstSurface,
-                secondSurface: secondSurface,
-                tolerance: tolerance
-            )]
-        }
-
-        return try generalSection(
-            firstSurface: firstSurface,
-            secondSurface: secondSurface,
-            options: options,
-            tolerance: tolerance
-        )
+        try CurrentTaskCancellationChecker().checkCancellation()
+        throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+            message: "PlaneTorusSurfaceIntersector has no ordinary original-proof publication.")
     }
 
     private func generalSection(

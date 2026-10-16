@@ -12,7 +12,7 @@ public struct DefaultOriginalCertifiedSphereConeApexPlaneSeparationIssuer:
     ) throws(OriginalSourceIssuanceFailure) -> OriginalCertifiedSphereConeApexPlaneSeparationReceipt {
         do {
             let retainedSource = copy source, retainedPlane = copy plane
-            return try OriginalSourceProofAdmission.withBorrow(&admission) { usage in
+            return try admission.withProofScope { usage in
                 try usage.checkpoint(); try usage.consumeWork(1)
                 try retainedSource.require(limits); try retainedPlane.source.require(limits)
                 let s = retainedSource.original, f = s.field

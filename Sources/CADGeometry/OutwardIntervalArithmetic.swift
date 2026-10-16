@@ -242,31 +242,36 @@ package struct IntervalVector3DBounds: Sendable {
     }
 
     /// Encloses the original direction after a positive common scale cancels.
-    package func normalized(consumeWork: () throws -> Void = {}) throws -> Self? {
+    package func normalized() throws -> Self? {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try normalized(using: &execution)
+    }
+
+    package func normalized<A: ExactScalarAdmission & ~Copyable>(using execution: inout A) throws -> Self? {
         let scale = max(x.absoluteUpperBound, y.absoluteUpperBound, z.absoluteUpperBound)
         guard scale.isFinite, scale > 0 else { return nil }
         let divisor = OutwardScalarInterval.exact(scale)
-        try consumeWork()
+        try execution.consumeWork(1)
         guard let a = x.divided(by: divisor) else { return nil }
-        try consumeWork()
+        try execution.consumeWork(1)
         guard let b = y.divided(by: divisor) else { return nil }
-        try consumeWork()
+        try execution.consumeWork(1)
         guard let c = z.divided(by: divisor) else { return nil }
-        try consumeWork(); let aa = a * a
-        try consumeWork(); let bb = b * b
-        try consumeWork(); let cc = c * c
-        try consumeWork(); let first = aa + bb
-        try consumeWork(); let squared = first + cc
+        try execution.consumeWork(1); let aa = a * a
+        try execution.consumeWork(1); let bb = b * b
+        try execution.consumeWork(1); let cc = c * c
+        try execution.consumeWork(1); let first = aa + bb
+        try execution.consumeWork(1); let squared = first + cc
         guard squared.isFinite, squared.lower > 0 else { return nil }
-        try consumeWork(); let lowerLength = squared.lower.squareRoot().nextDown
-        try consumeWork(); let upperLength = squared.upper.squareRoot().nextUp
+        try execution.consumeWork(1); let lowerLength = squared.lower.squareRoot().nextDown
+        try execution.consumeWork(1); let upperLength = squared.upper.squareRoot().nextUp
         let length = OutwardScalarInterval(lower: lowerLength, upper: upperLength)
         guard length.lower > 0, length.isFinite else { return nil }
-        try consumeWork()
+        try execution.consumeWork(1)
         guard let nx = a.divided(by: length) else { return nil }
-        try consumeWork()
+        try execution.consumeWork(1)
         guard let ny = b.divided(by: length) else { return nil }
-        try consumeWork()
+        try execution.consumeWork(1)
         guard let nz = c.divided(by: length), nx.isFinite, ny.isFinite, nz.isFinite else { return nil }
         return .init(x: nx, y: ny, z: nz)
     }

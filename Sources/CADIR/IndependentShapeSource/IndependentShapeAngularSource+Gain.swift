@@ -7,13 +7,13 @@ extension IndependentShapeAngularSource {
         case canonicalGain(OriginalParameterGain)
         case physicalRadians(ExactRationalCoefficient)
     }
-    public func originalCoordinateLaw<Usage: RationalAlgebraAdmitting>(maximumSourceDepth: Int,
-        usage: inout Usage) throws -> CoordinateLaw {
+    public func originalCoordinateLaw(maximumSourceDepth: Int,
+        using execution: inout OriginalQueryExecution) throws -> CoordinateLaw {
         var current = self, degreeCount = 0, depth = 0
         while true {
             depth += 1
             guard depth <= maximumSourceDepth else { throw IndependentShapeSourceError.resourceLimitExceeded("Original angular coordinate source depth.") }
-            try usage.visitExactCell(depth: 0); try usage.consumeExactWork(1)
+            try execution.visitCell(axis: .value, depth: 0); try execution.consumeWork(1)
             switch current.law {
             case .radian: break
             case .conversion(let conversion):
@@ -23,17 +23,17 @@ extension IndependentShapeAngularSource {
             break
         }
         if degreeCount == 0 {
-            return .physicalRadians(try originalCoefficient(maximumSourceDepth: maximumSourceDepth, usage: &usage))
+            return .physicalRadians(try originalCoefficient(maximumSourceDepth: maximumSourceDepth, using: &execution))
         }
-        return .canonicalGain(try originalParameterGain(maximumSourceDepth: maximumSourceDepth, usage: &usage))
+        return .canonicalGain(try originalParameterGain(maximumSourceDepth: maximumSourceDepth, using: &execution))
     }
     /// Produces the original coefficient product without collapsing its source factors.
-    public func originalParameterGain<Usage: RationalAlgebraAdmitting>(maximumSourceDepth: Int, usage: inout Usage) throws -> OriginalParameterGain {
+    public func originalParameterGain(maximumSourceDepth: Int, using execution: inout OriginalQueryExecution) throws -> OriginalParameterGain {
         var current = self, degreeCount = 0, depth = 0
         while true {
             depth += 1
             guard depth <= maximumSourceDepth else { throw IndependentShapeSourceError.resourceLimitExceeded("Original angular coordinate source depth.") }
-            try usage.visitExactCell(depth: 0); try usage.consumeExactWork(1)
+            try execution.visitCell(axis: .value, depth: 0); try execution.consumeWork(1)
             switch current.law {
             case .radian: break
             case .conversion(let conversion):
@@ -48,30 +48,30 @@ extension IndependentShapeAngularSource {
         guard degreeCount == 1 else {
             throw IndependentShapeSourceError.unprovedAngularCoordinateLaw(id)
         }
-        let factors = try originalFactors(maximumSourceDepth: maximumSourceDepth, usage: &usage)
+        let factors = try originalFactors(maximumSourceDepth: maximumSourceDepth, using: &execution)
         if factors.isEmpty { return .binary(1) }
         if factors.count == 1 { return factors[0] }
-        return try OriginalParameterGain.originalProduct(factors: factors, usage: &usage)
+        return try OriginalParameterGain.originalProduct(factors: factors, usage: &execution)
     }
     /// Compares coordinate meaning without requiring a finite binary64 gain estimate.
-    public func isCoordinateLawEquivalent<Usage: RationalAlgebraAdmitting>(to other: Self, maximumSourceDepth: Int, usage: inout Usage) throws -> Bool {
-        let first = try originalCoordinateLaw(maximumSourceDepth: maximumSourceDepth, usage: &usage)
-        let second = try other.originalCoordinateLaw(maximumSourceDepth: maximumSourceDepth, usage: &usage)
+    public func isCoordinateLawEquivalent(to other: Self, maximumSourceDepth: Int, using execution: inout OriginalQueryExecution) throws -> Bool {
+        let first = try originalCoordinateLaw(maximumSourceDepth: maximumSourceDepth, using: &execution)
+        let second = try other.originalCoordinateLaw(maximumSourceDepth: maximumSourceDepth, using: &execution)
         switch (first, second) {
-        case let (.canonicalGain(a), .canonicalGain(b)): return try a.isEquivalent(to: b, usage: &usage)
-        case let (.physicalRadians(a), .physicalRadians(b)): return try a.subtracting(b, usage: &usage).isZero
+        case let (.canonicalGain(a), .canonicalGain(b)): return try a.isEquivalent(to: b, usage: &execution)
+        case let (.physicalRadians(a), .physicalRadians(b)): return try a.subtracting(b, usage: &execution).isZero
         default: return false
         }
     }
-    private func originalCoefficient<Usage: RationalAlgebraAdmitting>(maximumSourceDepth: Int, usage: inout Usage) throws -> ExactRationalCoefficient {
-        let factors = try originalFactors(maximumSourceDepth: maximumSourceDepth, usage: &usage)
+    private func originalCoefficient(maximumSourceDepth: Int, using execution: inout OriginalQueryExecution) throws -> ExactRationalCoefficient {
+        let factors = try originalFactors(maximumSourceDepth: maximumSourceDepth, using: &execution)
         var coefficient = ExactRationalCoefficient.one
         for factor in factors {
-            coefficient = try coefficient.multiplied(by: factor.exactCoefficient(usage: &usage), usage: &usage)
+            coefficient = try coefficient.multiplied(by: factor.exactCoefficient(usage: &execution), usage: &execution)
         }
         return coefficient
     }
-    private func originalFactors<Usage: RationalAlgebraAdmitting>(maximumSourceDepth: Int, usage: inout Usage) throws -> [OriginalParameterGain] {
+    private func originalFactors(maximumSourceDepth: Int, using execution: inout OriginalQueryExecution) throws -> [OriginalParameterGain] {
         var current = self
         var depth = 0
         var factors: [OriginalParameterGain] = []
@@ -79,9 +79,9 @@ extension IndependentShapeAngularSource {
         while true {
             depth += 1
             guard depth <= maximumSourceDepth else { throw IndependentShapeSourceError.resourceLimitExceeded("Original angular source nesting exceeds its caller ceiling.") }
-            try usage.visitExactCell(depth: 0)
-            try usage.consumeExactWork(8)
-            try usage.retainExactStorage(1)
+            try execution.visitCell(axis: .value, depth: 0)
+            try execution.consumeWork(8)
+            try RationalAlgebraStorage.retain(1, of: UInt32.self, usage: &execution)
             guard visited.insert(current.id).inserted else {
                 throw IndependentShapeSourceError.invalidSource("Original angular conversion chain is cyclic.")
             }

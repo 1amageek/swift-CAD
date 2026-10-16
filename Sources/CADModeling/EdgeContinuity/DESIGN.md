@@ -81,6 +81,26 @@ that witness for this family, then evaluates its actual final first-order law
 for regularity. It does not require the uncorrected native candidate's transverse
 rows to satisfy the final equation, or inherit its normal certificate.
 
+### Main Construction Execution Binding
+
+Hermite candidate construction borrows one `OriginalQueryExecution` through
+normal/projection/curvature reads, leaving and carried row interpolation,
+rational basis evaluation, QR and the existing native construction-stage
+certificate. Ordinary helper entries create one execution and delegate to those
+same bodies. The original 32-station fitted chart, tolerance multipliers,
+4096 certificate intervals, depth 24, QR rank threshold and coefficient ceiling
+remain unchanged; this mechanical port does not introduce the independent
+stronger native construction proof. Final corrected-source planar certification
+uses the same execution through the existing original planar certifier. Curved
+final-source certification retains its explicit unsupported result. No candidate
+chart or accounting/context flag gains source publication authority.
+
+Hermite and continuity construction share one module-internal checked element
+count operation. It rejects negative operands and Int addition/multiplication
+overflow with `ExactScalarFailure.countOverflow` before storage admission. Counts
+remain element counts; the caller supplies the unchanged element stride to the
+same execution. This helper does not depend on Geometry-internal declarations.
+
 ## State, Ownership, and Lifecycle
 
 Supports and source values are immutable Sendable values. The composing feature

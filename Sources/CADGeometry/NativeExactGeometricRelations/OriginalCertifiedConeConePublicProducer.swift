@@ -2,9 +2,10 @@ import CADCore
 
 /// Publishes complete original contacts before the unconverted numerical reducer.
 struct OriginalCertifiedConeConePublicProducer {
-    private typealias Admission = NativeExactPublicAdmission<NativeCurveSurfacePointAllowance>
     func resolve(curve: Curve3D, surface: Surface3D, options: CurveSurfaceIntersectionOptions,
-        tolerance: ModelingTolerance, invocation: CurveSurfaceQueryInvocation? = nil) throws -> CurveSurfaceIntersectionResult? {
+        tolerance: ModelingTolerance, using a: inout OriginalQueryExecution) throws -> CurveSurfaceIntersectionResult? {
+        a.context = a.context.at(stage: .request)
+        try a.checkpoint()
         // FIXME(INCOMPLETE_IMPLEMENTATION): This ordinary/callback public route owns
         // only the two declared full branches of the frozen cardinal cone pair and
         // planeX0/uZ. Other targets/branches need complete original source/UV owners
@@ -16,23 +17,26 @@ struct OriginalCertifiedConeConePublicProducer {
             case .analytic(.cone(_, _, let beta)) = original.parameterizedSurface else { return nil }
         do {
             try options.validate(tolerance: tolerance)
-            let usage = try NativeCurveSurfacePointAllowance(options: options, invocation: invocation)
-            var a = Admission(usage: usage, maximumDepth: usage.maximumAlgebraicDepth)
-            try a.checkpoint(); try invocation?.consume(depth: 0)
-            let sourceLimits = try OriginalSourceIssuanceLimits(remainingSourceDepth:
-                invocation?.remainingSourceDepth ?? options.maximumSubdivisionDepth)
-            let charts = min(invocation?.maximumSpanCount ?? options.maximumSubdivisionCells, options.maximumSubdivisionCells)
+            try a.checkpoint()
+            a.context = a.context.at(stage: .source)
+            let sourceLimits = try OriginalSourceIssuanceLimits(remainingSourceDepth: a.effectiveLimits.remainingSourceDepth)
+            let charts = min(min(a.effectiveLimits.maximumCharts, a.effectiveLimits.maximumSpans), options.maximumSubdivisionCells)
             let limits = try OriginalDomainIdentityLimits(source: sourceLimits,
-                maximumTransportDepth: usage.maximumAlgebraicDepth, maximumCharts: charts,
-                maximumFamilies: charts, maximumIdentityProofs: 0)
+                maximumTransportDepth: a.effectiveLimits.maximumTransportDepth, maximumCharts: charts,
+                maximumFamilies: min(charts, a.effectiveLimits.maximumFamilies), maximumIdentityProofs: 0)
             let reference = try OriginalPhysicalAngleScalarDomain(originalRadians: alpha, using: &a)
             let parameterized = try OriginalPhysicalAngleScalarDomain(originalRadians: beta, using: &a)
             let phase = try OriginalPiScalarDomain(using: &a)
             let source = try DefaultOriginalSourceBindingIssuer(provider: OriginalCertifiedConeConeFullSnapshotProvider(
                 reference: reference, parameterized: parameterized, phase: phase, tolerance: tolerance))
                 .bind(curve, limits: sourceLimits, using: &a)
+            try a.admitSourceDepth(source.sourceDepth)
+            a.context = a.context.retaining(first: .init(source: source))
             let target = try DefaultOriginalSourceBindingIssuer(provider: OriginalCertifiedConeConeTargetSnapshotProvider(tolerance: tolerance))
                 .bind(surface, limits: sourceLimits, using: &a)
+            try a.admitSourceDepth(target.sourceDepth)
+            a.context = a.context.retaining(second: .init(source: target))
+            a.context = a.context.at(stage: .domain)
             let span: ExactParameterInterval<OriginalPiValue>
             if let range = options.curveRange {
                 span = try .checked(field: phase, lower: .finite(phase.binary64(exactly: range.lower, using: &a)),
@@ -42,9 +46,11 @@ struct OriginalCertifiedConeConePublicProducer {
             try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: [ExactParameterInterval<OriginalPiValue>].self))
             try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: ExactParameterInterval<OriginalPiValue>.self))
             try a.retainStorage(bytes: exactScalarPayloadBytes(count: 2, of: ScalarInterval?.self))
+            a.context = a.context.at(stage: .relation)
             let relation = try OriginalCertifiedConeConePlaneRelation.resolve(source: source, target: target,
                 curveIntervals: [[span]], planeRanges: [options.surfaceURange, options.surfaceVRange],
-                maximumPoints: options.maximumCandidateCount, limits: limits, tolerance: tolerance, using: &a)
+                maximumPoints: min(options.maximumCandidateCount, a.effectiveLimits.maximumResults), limits: limits, tolerance: tolerance, using: &a)
+            a.context = a.context.at(stage: .publication)
             try a.retainStorage(bytes: exactScalarPayloadBytes(count: relation.phaseOrdinals.count, of: CurveSurfaceIntersection.self))
             var points: [CurveSurfaceIntersection] = []; points.reserveCapacity(relation.phaseOrdinals.count)
             for ordinal in relation.phaseOrdinals {
@@ -65,10 +71,11 @@ struct OriginalCertifiedConeConePublicProducer {
                 points.append(try .init(point: .init(x: 0, y: -v, z: u), curveParameter: t,
                     surfaceU: u, surfaceV: v, kind: .transverse, residual: residual, iterations: 1))
             }
+            a.context = a.context.at(stage: .publication)
             try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: CurveSurfaceIntersectionResult.self))
             let result = CurveSurfaceIntersectionResult(points: points, overlaps: [], originalCertifiedConeConeRelation: relation)
             try a.checkpoint(); return result
-        } catch { throw NativeExactGeometryPublicationFailure.published(error, tolerance: tolerance) }
+        } catch { throw NativeExactGeometryPublicationFailure.published(error, tolerance: tolerance, context: a.context) }
     }
     private func representative(_ bounds: OutwardScalarInterval, request: ScalarInterval?) throws -> Double {
         var value = bounds.lower * 0.5 + bounds.upper * 0.5

@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 struct ExchangeResourceAccountant: Sendable {
     let limits: ExchangeResourceLimits
@@ -14,6 +15,11 @@ struct ExchangeResourceAccountant: Sendable {
         self.limits = limits
         self.format = format
         budget = processingBudget ?? ExchangeProcessingBudget(maximumDuration: limits.maximumProcessingDuration)
+    }
+
+    init(snapshot: OriginalQueryBudgetSnapshot, template: ExchangeResourceAccountant, byteCount wireByteCount: Int? = nil) {
+        limits = template.limits; format = template.format; budget = template.budget
+        entityCount = snapshot.records; iterationCount = snapshot.work; byteCount = wireByteCount ?? snapshot.storageBytes
     }
 
     func validateInputByteCount(_ byteCount: Int) throws {

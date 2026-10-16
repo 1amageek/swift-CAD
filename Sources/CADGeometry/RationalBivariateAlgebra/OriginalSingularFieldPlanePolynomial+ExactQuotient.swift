@@ -1,5 +1,5 @@
 extension OriginalSingularFieldPlanePolynomial {
-    package func quotientAndRemainder<B: RationalAlgebraAdmitting>(dividingBy divisor: Self,
+    package func quotientAndRemainder<B: ExactScalarAdmission & ~Copyable>(dividingBy divisor: Self,
         maximumDepth: Int, usage: inout B) throws -> (quotient: Self, remainder: Self) {
         guard context === divisor.context, let leading = try divisor.leading(usage: &usage) else {
             throw rationalAlgebraFailure("Original plane division needs one field and nonzero divisor.")
@@ -8,7 +8,7 @@ extension OriginalSingularFieldPlanePolynomial {
         var quotient = try Self(context: context, coefficients: [:], maximumDepth: maximumDepth, usage: &usage)
         var remainder = quotient
         while let next = try pending.leading(usage: &usage) {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             if next.key.u >= leading.key.u, next.key.v >= leading.key.v {
                 let term = try Self.monomial(u: next.key.u - leading.key.u, v: next.key.v - leading.key.v,
                     coefficient: next.value.divided(by: leading.value, maximumDepth: maximumDepth, usage: &usage),
@@ -32,7 +32,7 @@ extension OriginalSingularFieldPlanePolynomial {
         return (quotient, remainder)
     }
 
-    package func dividedExactly<B: RationalAlgebraAdmitting>(by divisor: Self,
+    package func dividedExactly<B: ExactScalarAdmission & ~Copyable>(by divisor: Self,
         maximumDepth: Int, usage: inout B) throws -> Self {
         let division = try quotientAndRemainder(dividingBy: divisor, maximumDepth: maximumDepth, usage: &usage)
         guard division.remainder.isZero else {

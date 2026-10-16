@@ -1,0 +1,59 @@
+error: Process '/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/libexec/swift/pm/swiftpm-testing-helper --test-bundle-path /Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-boundary-root-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests --package-path /Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-boundary-root-r1/swift-cad --scratch-path /Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-boundary-root-r1/build --jobs 1 --triple arm64-apple-macosx27.0 --sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk -Xswiftc -I -Xswiftc /Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-boundary-root-r1/accepted/modules --enable-swift-testing --disable-xctest --disable-index-store --verbose --skip-build --filter DocumentDrawingCanonicalAdmissionTests --xunit-output /Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-boundary-root-r1/results.xml /Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-boundary-root-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests --testing-library swift-testing' exited with unexpected signal code 11
+􀟈  Test run started.
+􀄵  Swift Standard Library Version: 6.4
+􀄵  Swift Compiler Version: 6.4
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀄵  OS Version: 27.0.1 (26A434)
+􀟈  Suite "Document drawing canonical admission" (aka 'DocumentDrawingCanonicalAdmissionTests') started.
+􀟈  Test originalArchAndProjectedEndpointContactsShareExactResourceBoundaries() started.
+􀟈  Test planarWholeExclusionUsesTheRealDrawingWitnesses() started.
+􀟈  Test drawingWitnessesPreserveTheCallerCancellationCause() started.
+DRAWING_STAGE curved=false main=false test.begin
+DRAWING_STAGE curved=true main=false test.begin
+DRAWING_STAGE curved=false main=false test.begin
+DRAWING_STAGE curved=false main=true source.builder.begin
+DRAWING_STAGE curved=false main=true source.builder.end
+DRAWING_STAGE curved=false main=true source.bSplineSurface.begin
+DRAWING_STAGE curved=false main=true source.bSplineSurface.end
+DRAWING_STAGE curved=false main=true source.build.begin
+DRAWING_STAGE curved=false main=true source.build.end
+DRAWING_STAGE curved=false main=true source.evaluateExact.begin
+DRAWING_STAGE curved=false main=true source.evaluateExact.end
+DRAWING_STAGE curved=false main=true source.builder.begin
+DRAWING_STAGE curved=false main=false query.projectEdges.begin
+DRAWING_STAGE curved=false main=true source.builder.end
+DRAWING_STAGE curved=false main=true source.bSplineSurface.begin
+DRAWING_STAGE curved=false main=true source.bSplineSurface.end
+DRAWING_STAGE curved=false main=true source.build.begin
+DRAWING_STAGE curved=false main=true source.build.end
+DRAWING_STAGE curved=false main=true source.evaluateExact.begin
+DRAWING_STAGE curved=false main=false query.projectEdges.end
+DRAWING_STAGE curved=false main=false query.place.begin
+DRAWING_STAGE curved=false main=false query.place.end
+DRAWING_STAGE curved=false main=false query.unplacedSilhouettes.begin
+DRAWING_STAGE curved=false main=false query.unplacedSilhouettes.end
+DRAWING_STAGE curved=false main=false query.placedSilhouettes.begin
+DRAWING_STAGE curved=false main=true source.evaluateExact.end
+DRAWING_STAGE curved=true main=true source.builder.begin
+DRAWING_STAGE curved=false main=false query.projectEdges.begin
+DRAWING_STAGE curved=true main=true source.builder.end
+DRAWING_STAGE curved=true main=true source.bSplineSurface.begin
+DRAWING_STAGE curved=true main=true source.bSplineSurface.end
+DRAWING_STAGE curved=true main=true source.build.begin
+DRAWING_STAGE curved=true main=true source.build.end
+DRAWING_STAGE curved=true main=true source.evaluateExact.begin
+DRAWING_STAGE curved=false main=false query.projectEdges.end
+DRAWING_STAGE curved=false main=false query.place.begin
+DRAWING_STAGE curved=false main=false query.place.end
+DRAWING_STAGE curved=false main=false query.unplacedSilhouettes.begin
+DRAWING_STAGE curved=false main=false query.unplacedSilhouettes.end
+DRAWING_STAGE curved=false main=false query.placedSilhouettes.begin
+DRAWING_STAGE curved=true main=true source.evaluateExact.end
+DRAWING_STAGE curved=true main=false query.projectEdges.begin
+DRAWING_STAGE curved=true main=false query.projectEdges.end
+DRAWING_STAGE curved=true main=false query.place.begin
+DRAWING_STAGE curved=true main=false query.place.end
+DRAWING_STAGE curved=true main=false query.unplacedSilhouettes.begin
+Note: Some test targets reported failures:
+  - FocusedTests (Swift Testing)

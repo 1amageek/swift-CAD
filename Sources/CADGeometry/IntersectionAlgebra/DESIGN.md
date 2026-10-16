@@ -362,11 +362,11 @@ membership is checked against original cell conditions; callers can inspect
 zero-dimensional or positive-dimensional components without converting complex
 ideal classification or original Jacobian rank into image dimension.
 
-`OriginalRelationUsage` forwards all work, UInt32-word retention, geometric-cell
-and coefficient-cell admission to the composing callbacks. Its copies retain
-the same callback owners; no private quota or mutable shared state is introduced.
-Non-generic protocol requirements remain usable through Native/WASM/Embedded
-existentials. Invalid rings/programs, foreign cell identifiers, cancellation,
+The original `inout A: ExactScalarAdmission & ~Copyable` receives all work,
+checked payload-byte retention, geometric-cell and coefficient-cell admission.
+Invocation-local proof scopes retain independent ceilings and causal depth;
+there is no copied allowance or forwarding admission. The same direct generic
+contract is used on Native, WASM and Embedded WASM. Invalid rings/programs, foreign cell identifiers, cancellation,
 overflow and independent limits fail before atomic result publication.
 
 Atomic public publication and membership check current-task cancellation after
@@ -380,7 +380,7 @@ this guarantee independently of pre-cancelled entry tests and upper wrappers.
 | Changed state/boundary | Native | WASM | Embedded WASM |
 |---|---|---|---|
 | Published source/cells/components | Same immutable retained owners | Same | Same |
-| Invocation admission | Local value forwarding caller callbacks | Same | Same |
+| Invocation admission | Original inout admission and its local scopes | Same | Same |
 | Terminal cancellation | Current-task checker, no new callback | Same | Same |
 | Test callback counters | Mutex; forwarding/cancellation outside lock | Same proof driver contract | Same proof driver contract |
 
@@ -498,8 +498,8 @@ are invocation-local; there is no shared mutable state or target-specific isolat
 
 ## Failure, Concurrency, and Constraints
 
-The same RationalAlgebraAdmitting owner pays all original preparation, arithmetic
-and payload storage through RationalAlgebraStorage. Admission precedes growth.
+The same ExactScalarAdmission owner pays all original preparation, arithmetic
+and checked payload-byte storage through RationalAlgebraStorage. Admission precedes growth.
 Cancellation is checked during preparation/reduction. Overflow, invalid binding,
 exhaustion and failed ideal identities propagate typed errors. A partial basis
 is never published after failure. Parameter, geometric and coefficient depth
@@ -559,10 +559,9 @@ verified original ideal
 One caller ledger owns all stages, root visits, field allocations and final
 tuples. Its parameter-root depth is passed unchanged; coefficient-root depth is
 not invented for original rational coefficients. Failure in any stage discards
-the whole publication. A cancellation-checking adapter holds the exclusively
-borrowed ledger value during lifting and restores it on both return and throw;
-it forwards all four admission operations without creating or resetting an
-allowance. Tests must cover irrational towers, distinct roots with
+the whole publication. Lifting receives the same original inout admission;
+local proof scopes close on both return and throw without creating or resetting
+an allowance. Tests must cover irrational towers, distinct roots with
 the same preceding coordinate, repeated roots, complex-only fibers, exact closed
 endpoint inclusion, excluded domains, cancellation and root/work/storage limits.
 
@@ -1222,8 +1221,8 @@ fibers remain in the full projection. This reduction is selected before work,
 uses the same caller ledger and never erases the guard equations themselves.
 
 All Boolean, derivative, remapping, projection, lifting, reduction and retained
-payload work uses the unchanged composing RationalAlgebraAdmitting invocation.
-Cancellation is checked through the same admission adapter. Failure discards
+payload work uses the same original inout ExactScalarAdmission invocation.
+Cancellation is checked through that same admission. Failure discards
 the whole publication. There are no mutable globals, new target isolation
 branches, numerical-distance joins or tolerance-based root identities.
 
@@ -1488,3 +1487,27 @@ identity; scalar failures follow Geometry normalization. Cancellation remains ex
 The independent L0-L5 APIs continue publishing their own typed failures. This is
 an error translation only, with no retry, empty substitution or budget change.
 The original public portability proof retains its independent-depth assertions.
+
+
+### Direct Relation Admission
+
+Every polynomial, projection, real decomposition and coordinate reader receives
+the original `inout A: ExactScalarAdmission & ~Copyable` under its existing
+`usage` label. The relation owns no copied callback allowance or source-forwarding
+admission. Independent value/coefficient ceilings and causal mappings use the
+existing admission's local scopes. Coefficient construction, rational-root
+isolation and source-root selection retain their original mapping phases;
+already-causal coefficient isolation is not mapped a second time. Whole solutions,
+guards, source owners and selected real components remain unchanged.
+
+```text
+Original caller admission -> relation depth scope -> original source/coefficient scope
+    -> unchanged polynomial/decomposition owner -> retained complete relation
+```
+
+Work units reach that same object directly. Existing allocation owners perform
+checked payload-byte admission before materialization. Failure closes local
+scopes without refunding work/storage; public classification retains the original
+cause through OriginalQueryFailure. Actual mathematical compile/runtime and
+independent resource/cancellation fixtures are required before migration is
+complete. Signature/syntax checks alone are not completion evidence.

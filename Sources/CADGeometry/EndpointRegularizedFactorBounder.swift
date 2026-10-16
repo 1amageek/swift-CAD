@@ -19,7 +19,7 @@ struct EndpointRegularizedFactorBounder {
         }
     }
 
-    func bounds(
+    private func boundsImplementation(
         componentLower: Double,
         componentUpper: Double,
         requestedLower: Double,
@@ -33,13 +33,15 @@ struct EndpointRegularizedFactorBounder {
         thirdDerivativeMagnitudeUpperBound: Double,
         fourthDerivativeMagnitudeUpperBound: Double,
         arithmeticEnvelope: Double,
-        valueRange: (Double, Double) throws -> (
+        valueRange: (Double, Double, inout OriginalQueryExecution) throws -> (
             lower: Double,
             upper: Double
         ),
         tolerance: ModelingTolerance,
-        label: String
-    ) throws -> Bounds {
+        label: String,
+    using execution: inout OriginalQueryExecution) throws -> Bounds {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let span = componentUpper - componentLower
         guard span > tolerance.angle else {
             throw failure(
@@ -101,8 +103,8 @@ struct EndpointRegularizedFactorBounder {
                     fourthDerivativeMagnitudeUpperBound,
                 arithmeticEnvelope: arithmeticEnvelope,
                 tolerance: tolerance,
-                label: label
-            )
+                label: label,
+                using: &execution)
         }
         if requestedUpper > componentUpper - upperWidth {
             let upper = try endpointBounds(
@@ -118,8 +120,8 @@ struct EndpointRegularizedFactorBounder {
                     fourthDerivativeMagnitudeUpperBound,
                 arithmeticEnvelope: arithmeticEnvelope,
                 tolerance: tolerance,
-                label: label
-            )
+                label: label,
+                using: &execution)
             result = result?.merged(with: upper) ?? upper
         }
         let interiorLower = max(
@@ -150,8 +152,8 @@ struct EndpointRegularizedFactorBounder {
                 arithmeticEnvelope: arithmeticEnvelope,
                 valueRange: valueRange,
                 tolerance: tolerance,
-                label: label
-            )
+                label: label,
+                using: &execution)
             result = result?.merged(with: interior) ?? interior
         }
         guard let result,
@@ -170,7 +172,7 @@ struct EndpointRegularizedFactorBounder {
         return result
     }
 
-    func oneSidedBounds(
+    private func oneSidedBoundsImplementation(
         componentLower: Double,
         componentUpper: Double,
         requestedLower: Double,
@@ -183,13 +185,15 @@ struct EndpointRegularizedFactorBounder {
         thirdDerivativeMagnitudeUpperBound: Double,
         fourthDerivativeMagnitudeUpperBound: Double,
         arithmeticEnvelope: Double,
-        orientedValueRange: (Double, Double) throws -> (
+        orientedValueRange: (Double, Double, inout OriginalQueryExecution) throws -> (
             lower: Double,
             upper: Double
         ),
         tolerance: ModelingTolerance,
-        label: String
-    ) throws -> Bounds {
+        label: String,
+    using execution: inout OriginalQueryExecution) throws -> Bounds {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let span = componentUpper - componentLower
         let endpointSlope = rootAtLower
             ? endpointDerivative
@@ -279,8 +283,8 @@ struct EndpointRegularizedFactorBounder {
                 arithmeticEnvelope: arithmeticEnvelope,
                 orientedValueRange: orientedValueRange,
                 tolerance: tolerance,
-                label: label
-            )
+                label: label,
+                using: &execution)
             result = result?.merged(with: interior) ?? interior
         }
         guard let result,
@@ -299,7 +303,7 @@ struct EndpointRegularizedFactorBounder {
         return result
     }
 
-    func oneSidedDoubleRootBounds(
+    private func oneSidedDoubleRootBoundsImplementation(
         componentLower: Double,
         componentUpper: Double,
         requestedLower: Double,
@@ -314,13 +318,15 @@ struct EndpointRegularizedFactorBounder {
         fourthDerivativeMagnitudeUpperBound: Double,
         fifthDerivativeMagnitudeUpperBound: Double,
         arithmeticEnvelope: Double,
-        valueRange: (Double, Double) throws -> (
+        valueRange: (Double, Double, inout OriginalQueryExecution) throws -> (
             lower: Double,
             upper: Double
         ),
         tolerance: ModelingTolerance,
-        label: String
-    ) throws -> Bounds {
+        label: String,
+    using execution: inout OriginalQueryExecution) throws -> Bounds {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let span = componentUpper - componentLower
         let endpointFactor = endpointSecondDerivative * 0.5
         let factorFirstBound = (
@@ -417,8 +423,8 @@ struct EndpointRegularizedFactorBounder {
                 arithmeticEnvelope: arithmeticEnvelope,
                 valueRange: valueRange,
                 tolerance: tolerance,
-                label: label
-            )
+                label: label,
+                using: &execution)
             result = result?.merged(with: interior) ?? interior
         }
         guard let result,
@@ -437,7 +443,7 @@ struct EndpointRegularizedFactorBounder {
         return result
     }
 
-    func mixedDoubleSimpleBounds(
+    private func mixedDoubleSimpleBoundsImplementation(
         componentLower: Double,
         componentUpper: Double,
         requestedLower: Double,
@@ -455,13 +461,15 @@ struct EndpointRegularizedFactorBounder {
         fifthDerivativeMagnitudeUpperBound: Double,
         sixthDerivativeMagnitudeUpperBound: Double,
         arithmeticEnvelope: Double,
-        valueRange: (Double, Double) throws -> (
+        valueRange: (Double, Double, inout OriginalQueryExecution) throws -> (
             lower: Double,
             upper: Double
         ),
         tolerance: ModelingTolerance,
-        label: String
-    ) throws -> Bounds {
+        label: String,
+    using execution: inout OriginalQueryExecution) throws -> Bounds {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let span = componentUpper - componentLower
         guard span > tolerance.angle,
               requestedLower >= componentLower - tolerance.angle,
@@ -605,6 +613,7 @@ struct EndpointRegularizedFactorBounder {
         )
         var remainingCells = 4_096
         while coordinateLower < coordinateUpper {
+            try execution.consumeWork(1)
             guard remainingCells > 0 else {
                 throw failure(
                     residual: coordinateUpper - coordinateLower,
@@ -614,6 +623,7 @@ struct EndpointRegularizedFactorBounder {
                 )
             }
             remainingCells -= 1
+            try execution.visitGeometricCell(depth: 0)
             let simpleDistance = span - coordinateLower
             let step = max(
                 min(coordinateLower, simpleDistance) * 0.25,
@@ -644,7 +654,7 @@ struct EndpointRegularizedFactorBounder {
                 angleLower = componentUpper - coordinateCellUpper
                 angleUpper = componentUpper - coordinateLower
             }
-            let raw = try valueRange(angleLower, angleUpper)
+            let raw = try valueRange(angleLower, angleUpper, &execution)
             let numeratorLower = (
                 raw.lower - correctionMagnitude
             ).nextDown
@@ -742,7 +752,7 @@ struct EndpointRegularizedFactorBounder {
         return result
     }
 
-    func doubleDoubleBounds(
+    private func doubleDoubleBoundsImplementation(
         componentLower: Double,
         componentUpper: Double,
         requestedLower: Double,
@@ -760,13 +770,15 @@ struct EndpointRegularizedFactorBounder {
         sixthDerivativeMagnitudeUpperBound: Double,
         seventhDerivativeMagnitudeUpperBound: Double,
         arithmeticEnvelope: Double,
-        valueRange: (Double, Double) throws -> (
+        valueRange: (Double, Double, inout OriginalQueryExecution) throws -> (
             lower: Double,
             upper: Double
         ),
         tolerance: ModelingTolerance,
-        label: String
-    ) throws -> Bounds {
+        label: String,
+    using execution: inout OriginalQueryExecution) throws -> Bounds {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let span = componentUpper - componentLower
         guard span > tolerance.angle,
               requestedLower >= componentLower - tolerance.angle,
@@ -911,6 +923,7 @@ struct EndpointRegularizedFactorBounder {
         )
         var remainingCells = 4_096
         while cellLower < interiorUpper {
+            try execution.consumeWork(1)
             guard remainingCells > 0 else {
                 throw failure(
                     residual: interiorUpper - cellLower,
@@ -920,6 +933,7 @@ struct EndpointRegularizedFactorBounder {
                 )
             }
             remainingCells -= 1
+            try execution.visitGeometricCell(depth: 0)
             let lowerDistance = cellLower - componentLower
             let upperDistance = componentUpper - cellLower
             let step = max(
@@ -939,7 +953,7 @@ struct EndpointRegularizedFactorBounder {
                 upperProduct(xUpper, xUpper),
                 upperProduct(yUpper, yUpper)
             )
-            let raw = try valueRange(cellLower, cellUpper)
+            let raw = try valueRange(cellLower, cellUpper, &execution)
             let numeratorLower = (
                 raw.lower - correctionMagnitude
             ).nextDown
@@ -1054,17 +1068,20 @@ struct EndpointRegularizedFactorBounder {
         secondDerivativeBound: Double,
         thirdDerivativeBound: Double,
         arithmeticEnvelope: Double,
-        valueRange: (Double, Double) throws -> (
+        valueRange: (Double, Double, inout OriginalQueryExecution) throws -> (
             lower: Double,
             upper: Double
         ),
         tolerance: ModelingTolerance,
-        label: String
-    ) throws -> Bounds {
+        label: String,
+    using execution: inout OriginalQueryExecution) throws -> Bounds {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         var cellLower = lower
         var result: Bounds?
         var remainingCells = 2_048
         while cellLower < upper {
+            try execution.consumeWork(1)
             guard remainingCells > 0 else {
                 throw failure(
                     residual: upper - cellLower,
@@ -1074,6 +1091,7 @@ struct EndpointRegularizedFactorBounder {
                 )
             }
             remainingCells -= 1
+            try execution.visitGeometricCell(depth: 0)
             let endpointDistance = rootAtLower
                 ? cellLower - componentLower
                 : componentUpper - cellLower
@@ -1092,7 +1110,7 @@ struct EndpointRegularizedFactorBounder {
                 : componentUpper - cellLower
             let denominatorLower = lowerDistance.nextDown
             let denominatorUpper = upperDistance.nextUp
-            let raw = try valueRange(cellLower, cellUpper)
+            let raw = try valueRange(cellLower, cellUpper, &execution)
             let endpointCorrection = (
                 abs(endpointValue)
                     + abs(endpointDerivative) * denominatorUpper
@@ -1210,17 +1228,20 @@ struct EndpointRegularizedFactorBounder {
         secondDerivativeBound: Double,
         thirdDerivativeBound: Double,
         arithmeticEnvelope: Double,
-        orientedValueRange: (Double, Double) throws -> (
+        orientedValueRange: (Double, Double, inout OriginalQueryExecution) throws -> (
             lower: Double,
             upper: Double
         ),
         tolerance: ModelingTolerance,
-        label: String
-    ) throws -> Bounds {
+        label: String,
+    using execution: inout OriginalQueryExecution) throws -> Bounds {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         var cellLower = lower
         var result: Bounds?
         var remainingCells = 2_048
         while cellLower < upper {
+            try execution.consumeWork(1)
             guard remainingCells > 0 else {
                 throw failure(
                     residual: upper - cellLower,
@@ -1230,6 +1251,7 @@ struct EndpointRegularizedFactorBounder {
                 )
             }
             remainingCells -= 1
+            try execution.visitGeometricCell(depth: 0)
             let endpointDistance = rootAtLower
                 ? cellLower - componentLower
                 : componentUpper - cellLower
@@ -1248,7 +1270,7 @@ struct EndpointRegularizedFactorBounder {
                 : componentUpper - cellLower
             let denominatorLower = lowerDistance.nextDown
             let denominatorUpper = upperDistance.nextUp
-            let raw = try orientedValueRange(cellLower, cellUpper)
+            let raw = try orientedValueRange(cellLower, cellUpper, &execution)
             let valueLower = (
                 raw.lower
                     - endpointResidualMagnitude
@@ -1363,8 +1385,10 @@ struct EndpointRegularizedFactorBounder {
         fourthDerivativeBound: Double,
         arithmeticEnvelope: Double,
         tolerance: ModelingTolerance,
-        label: String
-    ) throws -> Bounds {
+        label: String,
+    using execution: inout OriginalQueryExecution) throws -> Bounds {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let denominatorLower = (span - width).nextDown
         let averagedSlopeLower = (
             endpointSlope
@@ -1518,18 +1542,21 @@ struct EndpointRegularizedFactorBounder {
         thirdDerivativeBound: Double,
         fourthDerivativeBound: Double,
         arithmeticEnvelope: Double,
-        valueRange: (Double, Double) throws -> (
+        valueRange: (Double, Double, inout OriginalQueryExecution) throws -> (
             lower: Double,
             upper: Double
         ),
         tolerance: ModelingTolerance,
-        label: String
-    ) throws -> Bounds {
+        label: String,
+    using execution: inout OriginalQueryExecution) throws -> Bounds {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let span = componentUpper - componentLower
         var cellLower = lower
         var result: Bounds?
         var remainingCells = 2_048
         while cellLower < upper {
+            try execution.consumeWork(1)
             guard remainingCells > 0 else {
                 throw failure(
                     residual: upper - cellLower,
@@ -1539,6 +1566,7 @@ struct EndpointRegularizedFactorBounder {
                 )
             }
             remainingCells -= 1
+            try execution.visitGeometricCell(depth: 0)
             let offset = cellLower - componentLower
             let endpointDistance = min(offset, span - offset)
             let step = max(
@@ -1559,8 +1587,8 @@ struct EndpointRegularizedFactorBounder {
                 arithmeticEnvelope: arithmeticEnvelope,
                 valueRange: valueRange,
                 tolerance: tolerance,
-                label: label
-            )
+                label: label,
+                using: &execution)
             result = result?.merged(with: cell) ?? cell
             cellLower = cellUpper
         }
@@ -1586,13 +1614,15 @@ struct EndpointRegularizedFactorBounder {
         thirdDerivativeBound: Double,
         fourthDerivativeBound: Double,
         arithmeticEnvelope: Double,
-        valueRange: (Double, Double) throws -> (
+        valueRange: (Double, Double, inout OriginalQueryExecution) throws -> (
             lower: Double,
             upper: Double
         ),
         tolerance: ModelingTolerance,
-        label: String
-    ) throws -> Bounds {
+        label: String,
+    using execution: inout OriginalQueryExecution) throws -> Bounds {
+        try execution.checkpoint()
+        try execution.consumeWork(1)
         let span = componentUpper - componentLower
         let lowerOffset = lower - componentLower
         let upperOffset = upper - componentLower
@@ -1619,7 +1649,7 @@ struct EndpointRegularizedFactorBounder {
                 upperOffset * (span - upperOffset)
             ).nextUp
         }
-        let raw = try valueRange(lower, upper)
+        let raw = try valueRange(lower, upper, &execution)
         let rawLower = (
             raw.lower
                 - endpointResidualMagnitude
@@ -1801,4 +1831,281 @@ struct EndpointRegularizedFactorBounder {
     private func lowerProduct(_ first: Double, _ second: Double) -> Double {
         (first * second).nextDown
     }
+
+    func bounds(
+        componentLower: Double,
+        componentUpper: Double,
+        requestedLower: Double,
+        requestedUpper: Double,
+        lowerValue: Double,
+        upperValue: Double,
+        lowerDerivative: Double,
+        upperDerivative: Double,
+        firstDerivativeMagnitudeUpperBound: Double,
+        secondDerivativeMagnitudeUpperBound: Double,
+        thirdDerivativeMagnitudeUpperBound: Double,
+        fourthDerivativeMagnitudeUpperBound: Double,
+        arithmeticEnvelope: Double,
+        valueRange: (Double, Double, inout OriginalQueryExecution) throws -> (
+            lower: Double,
+            upper: Double
+        ),
+        tolerance: ModelingTolerance,
+        label: String
+    ) throws -> Bounds {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try bounds(componentLower: componentLower, componentUpper: componentUpper, requestedLower: requestedLower, requestedUpper: requestedUpper, lowerValue: lowerValue, upperValue: upperValue, lowerDerivative: lowerDerivative, upperDerivative: upperDerivative, firstDerivativeMagnitudeUpperBound: firstDerivativeMagnitudeUpperBound, secondDerivativeMagnitudeUpperBound: secondDerivativeMagnitudeUpperBound, thirdDerivativeMagnitudeUpperBound: thirdDerivativeMagnitudeUpperBound, fourthDerivativeMagnitudeUpperBound: fourthDerivativeMagnitudeUpperBound, arithmeticEnvelope: arithmeticEnvelope, valueRange: valueRange, tolerance: tolerance, label: label, using: &execution)
+    }
+
+    func bounds(
+        componentLower: Double,
+        componentUpper: Double,
+        requestedLower: Double,
+        requestedUpper: Double,
+        lowerValue: Double,
+        upperValue: Double,
+        lowerDerivative: Double,
+        upperDerivative: Double,
+        firstDerivativeMagnitudeUpperBound: Double,
+        secondDerivativeMagnitudeUpperBound: Double,
+        thirdDerivativeMagnitudeUpperBound: Double,
+        fourthDerivativeMagnitudeUpperBound: Double,
+        arithmeticEnvelope: Double,
+        valueRange: (Double, Double, inout OriginalQueryExecution) throws -> (
+            lower: Double,
+            upper: Double
+        ),
+        tolerance: ModelingTolerance,
+        label: String,
+    using execution: inout OriginalQueryExecution) throws -> Bounds {
+        try execution.checkpoint()
+        let result = try boundsImplementation(componentLower: componentLower, componentUpper: componentUpper, requestedLower: requestedLower, requestedUpper: requestedUpper, lowerValue: lowerValue, upperValue: upperValue, lowerDerivative: lowerDerivative, upperDerivative: upperDerivative, firstDerivativeMagnitudeUpperBound: firstDerivativeMagnitudeUpperBound, secondDerivativeMagnitudeUpperBound: secondDerivativeMagnitudeUpperBound, thirdDerivativeMagnitudeUpperBound: thirdDerivativeMagnitudeUpperBound, fourthDerivativeMagnitudeUpperBound: fourthDerivativeMagnitudeUpperBound, arithmeticEnvelope: arithmeticEnvelope, valueRange: valueRange, tolerance: tolerance, label: label, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+    func oneSidedBounds(
+        componentLower: Double,
+        componentUpper: Double,
+        requestedLower: Double,
+        requestedUpper: Double,
+        rootAtLower: Bool,
+        endpointValue: Double,
+        endpointDerivative: Double,
+        firstDerivativeMagnitudeUpperBound: Double,
+        secondDerivativeMagnitudeUpperBound: Double,
+        thirdDerivativeMagnitudeUpperBound: Double,
+        fourthDerivativeMagnitudeUpperBound: Double,
+        arithmeticEnvelope: Double,
+        orientedValueRange: (Double, Double, inout OriginalQueryExecution) throws -> (
+            lower: Double,
+            upper: Double
+        ),
+        tolerance: ModelingTolerance,
+        label: String
+    ) throws -> Bounds {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try oneSidedBounds(componentLower: componentLower, componentUpper: componentUpper, requestedLower: requestedLower, requestedUpper: requestedUpper, rootAtLower: rootAtLower, endpointValue: endpointValue, endpointDerivative: endpointDerivative, firstDerivativeMagnitudeUpperBound: firstDerivativeMagnitudeUpperBound, secondDerivativeMagnitudeUpperBound: secondDerivativeMagnitudeUpperBound, thirdDerivativeMagnitudeUpperBound: thirdDerivativeMagnitudeUpperBound, fourthDerivativeMagnitudeUpperBound: fourthDerivativeMagnitudeUpperBound, arithmeticEnvelope: arithmeticEnvelope, orientedValueRange: orientedValueRange, tolerance: tolerance, label: label, using: &execution)
+    }
+
+    func oneSidedBounds(
+        componentLower: Double,
+        componentUpper: Double,
+        requestedLower: Double,
+        requestedUpper: Double,
+        rootAtLower: Bool,
+        endpointValue: Double,
+        endpointDerivative: Double,
+        firstDerivativeMagnitudeUpperBound: Double,
+        secondDerivativeMagnitudeUpperBound: Double,
+        thirdDerivativeMagnitudeUpperBound: Double,
+        fourthDerivativeMagnitudeUpperBound: Double,
+        arithmeticEnvelope: Double,
+        orientedValueRange: (Double, Double, inout OriginalQueryExecution) throws -> (
+            lower: Double,
+            upper: Double
+        ),
+        tolerance: ModelingTolerance,
+        label: String,
+    using execution: inout OriginalQueryExecution) throws -> Bounds {
+        try execution.checkpoint()
+        let result = try oneSidedBoundsImplementation(componentLower: componentLower, componentUpper: componentUpper, requestedLower: requestedLower, requestedUpper: requestedUpper, rootAtLower: rootAtLower, endpointValue: endpointValue, endpointDerivative: endpointDerivative, firstDerivativeMagnitudeUpperBound: firstDerivativeMagnitudeUpperBound, secondDerivativeMagnitudeUpperBound: secondDerivativeMagnitudeUpperBound, thirdDerivativeMagnitudeUpperBound: thirdDerivativeMagnitudeUpperBound, fourthDerivativeMagnitudeUpperBound: fourthDerivativeMagnitudeUpperBound, arithmeticEnvelope: arithmeticEnvelope, orientedValueRange: orientedValueRange, tolerance: tolerance, label: label, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+    func oneSidedDoubleRootBounds(
+        componentLower: Double,
+        componentUpper: Double,
+        requestedLower: Double,
+        requestedUpper: Double,
+        rootAtLower: Bool,
+        endpointValue: Double,
+        endpointDerivative: Double,
+        endpointSecondDerivative: Double,
+        firstDerivativeMagnitudeUpperBound: Double,
+        secondDerivativeMagnitudeUpperBound: Double,
+        thirdDerivativeMagnitudeUpperBound: Double,
+        fourthDerivativeMagnitudeUpperBound: Double,
+        fifthDerivativeMagnitudeUpperBound: Double,
+        arithmeticEnvelope: Double,
+        valueRange: (Double, Double, inout OriginalQueryExecution) throws -> (
+            lower: Double,
+            upper: Double
+        ),
+        tolerance: ModelingTolerance,
+        label: String
+    ) throws -> Bounds {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try oneSidedDoubleRootBounds(componentLower: componentLower, componentUpper: componentUpper, requestedLower: requestedLower, requestedUpper: requestedUpper, rootAtLower: rootAtLower, endpointValue: endpointValue, endpointDerivative: endpointDerivative, endpointSecondDerivative: endpointSecondDerivative, firstDerivativeMagnitudeUpperBound: firstDerivativeMagnitudeUpperBound, secondDerivativeMagnitudeUpperBound: secondDerivativeMagnitudeUpperBound, thirdDerivativeMagnitudeUpperBound: thirdDerivativeMagnitudeUpperBound, fourthDerivativeMagnitudeUpperBound: fourthDerivativeMagnitudeUpperBound, fifthDerivativeMagnitudeUpperBound: fifthDerivativeMagnitudeUpperBound, arithmeticEnvelope: arithmeticEnvelope, valueRange: valueRange, tolerance: tolerance, label: label, using: &execution)
+    }
+
+    func oneSidedDoubleRootBounds(
+        componentLower: Double,
+        componentUpper: Double,
+        requestedLower: Double,
+        requestedUpper: Double,
+        rootAtLower: Bool,
+        endpointValue: Double,
+        endpointDerivative: Double,
+        endpointSecondDerivative: Double,
+        firstDerivativeMagnitudeUpperBound: Double,
+        secondDerivativeMagnitudeUpperBound: Double,
+        thirdDerivativeMagnitudeUpperBound: Double,
+        fourthDerivativeMagnitudeUpperBound: Double,
+        fifthDerivativeMagnitudeUpperBound: Double,
+        arithmeticEnvelope: Double,
+        valueRange: (Double, Double, inout OriginalQueryExecution) throws -> (
+            lower: Double,
+            upper: Double
+        ),
+        tolerance: ModelingTolerance,
+        label: String,
+    using execution: inout OriginalQueryExecution) throws -> Bounds {
+        try execution.checkpoint()
+        let result = try oneSidedDoubleRootBoundsImplementation(componentLower: componentLower, componentUpper: componentUpper, requestedLower: requestedLower, requestedUpper: requestedUpper, rootAtLower: rootAtLower, endpointValue: endpointValue, endpointDerivative: endpointDerivative, endpointSecondDerivative: endpointSecondDerivative, firstDerivativeMagnitudeUpperBound: firstDerivativeMagnitudeUpperBound, secondDerivativeMagnitudeUpperBound: secondDerivativeMagnitudeUpperBound, thirdDerivativeMagnitudeUpperBound: thirdDerivativeMagnitudeUpperBound, fourthDerivativeMagnitudeUpperBound: fourthDerivativeMagnitudeUpperBound, fifthDerivativeMagnitudeUpperBound: fifthDerivativeMagnitudeUpperBound, arithmeticEnvelope: arithmeticEnvelope, valueRange: valueRange, tolerance: tolerance, label: label, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+    func mixedDoubleSimpleBounds(
+        componentLower: Double,
+        componentUpper: Double,
+        requestedLower: Double,
+        requestedUpper: Double,
+        doubleRootAtLower: Bool,
+        doubleRootValue: Double,
+        doubleRootFirstDerivative: Double,
+        doubleRootSecondDerivative: Double,
+        simpleRootValue: Double,
+        simpleRootFirstDerivative: Double,
+        firstDerivativeMagnitudeUpperBound: Double,
+        secondDerivativeMagnitudeUpperBound: Double,
+        thirdDerivativeMagnitudeUpperBound: Double,
+        fourthDerivativeMagnitudeUpperBound: Double,
+        fifthDerivativeMagnitudeUpperBound: Double,
+        sixthDerivativeMagnitudeUpperBound: Double,
+        arithmeticEnvelope: Double,
+        valueRange: (Double, Double, inout OriginalQueryExecution) throws -> (
+            lower: Double,
+            upper: Double
+        ),
+        tolerance: ModelingTolerance,
+        label: String
+    ) throws -> Bounds {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try mixedDoubleSimpleBounds(componentLower: componentLower, componentUpper: componentUpper, requestedLower: requestedLower, requestedUpper: requestedUpper, doubleRootAtLower: doubleRootAtLower, doubleRootValue: doubleRootValue, doubleRootFirstDerivative: doubleRootFirstDerivative, doubleRootSecondDerivative: doubleRootSecondDerivative, simpleRootValue: simpleRootValue, simpleRootFirstDerivative: simpleRootFirstDerivative, firstDerivativeMagnitudeUpperBound: firstDerivativeMagnitudeUpperBound, secondDerivativeMagnitudeUpperBound: secondDerivativeMagnitudeUpperBound, thirdDerivativeMagnitudeUpperBound: thirdDerivativeMagnitudeUpperBound, fourthDerivativeMagnitudeUpperBound: fourthDerivativeMagnitudeUpperBound, fifthDerivativeMagnitudeUpperBound: fifthDerivativeMagnitudeUpperBound, sixthDerivativeMagnitudeUpperBound: sixthDerivativeMagnitudeUpperBound, arithmeticEnvelope: arithmeticEnvelope, valueRange: valueRange, tolerance: tolerance, label: label, using: &execution)
+    }
+
+    func mixedDoubleSimpleBounds(
+        componentLower: Double,
+        componentUpper: Double,
+        requestedLower: Double,
+        requestedUpper: Double,
+        doubleRootAtLower: Bool,
+        doubleRootValue: Double,
+        doubleRootFirstDerivative: Double,
+        doubleRootSecondDerivative: Double,
+        simpleRootValue: Double,
+        simpleRootFirstDerivative: Double,
+        firstDerivativeMagnitudeUpperBound: Double,
+        secondDerivativeMagnitudeUpperBound: Double,
+        thirdDerivativeMagnitudeUpperBound: Double,
+        fourthDerivativeMagnitudeUpperBound: Double,
+        fifthDerivativeMagnitudeUpperBound: Double,
+        sixthDerivativeMagnitudeUpperBound: Double,
+        arithmeticEnvelope: Double,
+        valueRange: (Double, Double, inout OriginalQueryExecution) throws -> (
+            lower: Double,
+            upper: Double
+        ),
+        tolerance: ModelingTolerance,
+        label: String,
+    using execution: inout OriginalQueryExecution) throws -> Bounds {
+        try execution.checkpoint()
+        let result = try mixedDoubleSimpleBoundsImplementation(componentLower: componentLower, componentUpper: componentUpper, requestedLower: requestedLower, requestedUpper: requestedUpper, doubleRootAtLower: doubleRootAtLower, doubleRootValue: doubleRootValue, doubleRootFirstDerivative: doubleRootFirstDerivative, doubleRootSecondDerivative: doubleRootSecondDerivative, simpleRootValue: simpleRootValue, simpleRootFirstDerivative: simpleRootFirstDerivative, firstDerivativeMagnitudeUpperBound: firstDerivativeMagnitudeUpperBound, secondDerivativeMagnitudeUpperBound: secondDerivativeMagnitudeUpperBound, thirdDerivativeMagnitudeUpperBound: thirdDerivativeMagnitudeUpperBound, fourthDerivativeMagnitudeUpperBound: fourthDerivativeMagnitudeUpperBound, fifthDerivativeMagnitudeUpperBound: fifthDerivativeMagnitudeUpperBound, sixthDerivativeMagnitudeUpperBound: sixthDerivativeMagnitudeUpperBound, arithmeticEnvelope: arithmeticEnvelope, valueRange: valueRange, tolerance: tolerance, label: label, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
+    func doubleDoubleBounds(
+        componentLower: Double,
+        componentUpper: Double,
+        requestedLower: Double,
+        requestedUpper: Double,
+        lowerValue: Double,
+        lowerFirstDerivative: Double,
+        lowerSecondDerivative: Double,
+        upperValue: Double,
+        upperFirstDerivative: Double,
+        upperSecondDerivative: Double,
+        firstDerivativeMagnitudeUpperBound: Double,
+        secondDerivativeMagnitudeUpperBound: Double,
+        thirdDerivativeMagnitudeUpperBound: Double,
+        fifthDerivativeMagnitudeUpperBound: Double,
+        sixthDerivativeMagnitudeUpperBound: Double,
+        seventhDerivativeMagnitudeUpperBound: Double,
+        arithmeticEnvelope: Double,
+        valueRange: (Double, Double, inout OriginalQueryExecution) throws -> (
+            lower: Double,
+            upper: Double
+        ),
+        tolerance: ModelingTolerance,
+        label: String
+    ) throws -> Bounds {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try doubleDoubleBounds(componentLower: componentLower, componentUpper: componentUpper, requestedLower: requestedLower, requestedUpper: requestedUpper, lowerValue: lowerValue, lowerFirstDerivative: lowerFirstDerivative, lowerSecondDerivative: lowerSecondDerivative, upperValue: upperValue, upperFirstDerivative: upperFirstDerivative, upperSecondDerivative: upperSecondDerivative, firstDerivativeMagnitudeUpperBound: firstDerivativeMagnitudeUpperBound, secondDerivativeMagnitudeUpperBound: secondDerivativeMagnitudeUpperBound, thirdDerivativeMagnitudeUpperBound: thirdDerivativeMagnitudeUpperBound, fifthDerivativeMagnitudeUpperBound: fifthDerivativeMagnitudeUpperBound, sixthDerivativeMagnitudeUpperBound: sixthDerivativeMagnitudeUpperBound, seventhDerivativeMagnitudeUpperBound: seventhDerivativeMagnitudeUpperBound, arithmeticEnvelope: arithmeticEnvelope, valueRange: valueRange, tolerance: tolerance, label: label, using: &execution)
+    }
+
+    func doubleDoubleBounds(
+        componentLower: Double,
+        componentUpper: Double,
+        requestedLower: Double,
+        requestedUpper: Double,
+        lowerValue: Double,
+        lowerFirstDerivative: Double,
+        lowerSecondDerivative: Double,
+        upperValue: Double,
+        upperFirstDerivative: Double,
+        upperSecondDerivative: Double,
+        firstDerivativeMagnitudeUpperBound: Double,
+        secondDerivativeMagnitudeUpperBound: Double,
+        thirdDerivativeMagnitudeUpperBound: Double,
+        fifthDerivativeMagnitudeUpperBound: Double,
+        sixthDerivativeMagnitudeUpperBound: Double,
+        seventhDerivativeMagnitudeUpperBound: Double,
+        arithmeticEnvelope: Double,
+        valueRange: (Double, Double, inout OriginalQueryExecution) throws -> (
+            lower: Double,
+            upper: Double
+        ),
+        tolerance: ModelingTolerance,
+        label: String,
+    using execution: inout OriginalQueryExecution) throws -> Bounds {
+        try execution.checkpoint()
+        let result = try doubleDoubleBoundsImplementation(componentLower: componentLower, componentUpper: componentUpper, requestedLower: requestedLower, requestedUpper: requestedUpper, lowerValue: lowerValue, lowerFirstDerivative: lowerFirstDerivative, lowerSecondDerivative: lowerSecondDerivative, upperValue: upperValue, upperFirstDerivative: upperFirstDerivative, upperSecondDerivative: upperSecondDerivative, firstDerivativeMagnitudeUpperBound: firstDerivativeMagnitudeUpperBound, secondDerivativeMagnitudeUpperBound: secondDerivativeMagnitudeUpperBound, thirdDerivativeMagnitudeUpperBound: thirdDerivativeMagnitudeUpperBound, fifthDerivativeMagnitudeUpperBound: fifthDerivativeMagnitudeUpperBound, sixthDerivativeMagnitudeUpperBound: sixthDerivativeMagnitudeUpperBound, seventhDerivativeMagnitudeUpperBound: seventhDerivativeMagnitudeUpperBound, arithmeticEnvelope: arithmeticEnvelope, valueRange: valueRange, tolerance: tolerance, label: label, using: &execution)
+        try execution.checkpoint()
+        return result
+    }
+
 }

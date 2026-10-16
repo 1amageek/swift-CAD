@@ -1,0 +1,218 @@
+{
+  "ipsSHA256": "fd3e7d41aa370b61f110c0826541c2ced505ad8748c90111974309226938432d",
+  "exception": {
+    "codes": "0x0000000000000002, 0x000000016fee7208",
+    "message": "Could not determine thread index for stack guard region",
+    "rawCodes": [
+      2,
+      6172865032
+    ],
+    "type": "EXC_BAD_ACCESS",
+    "signal": "SIGBUS",
+    "subtype": "KERN_PROTECTION_FAILURE at 0x000000016fee7208"
+  },
+  "faultingThread": 4,
+  "frames": [
+    {
+      "imageOffset": 15100,
+      "symbol": "_platform_memset",
+      "symbolLocation": 108,
+      "imageIndex": 34
+    },
+    {
+      "imageOffset": 80554180,
+      "symbol": "BRepDrawingSilhouetteProducer.extract(_:in:placement:onto:maximumSourceFaces:maximumProjectedSpans:maximumControlPointCount:maximumBoundaryCurveCount:using:)",
+      "symbolLocation": 1048,
+      "imageIndex": 1
+    },
+    {
+      "imageOffset": 80553028,
+      "symbol": "BRepDrawingSilhouetteProducer.silhouettes(in:onto:maximumSourceFaces:maximumProjectedSpans:maximumControlPointCount:maximumBoundaryCurveCount:using:)",
+      "symbolLocation": 248,
+      "imageIndex": 1
+    },
+    {
+      "imageOffset": 80655128,
+      "symbol": "protocol witness for BRepDrawingSilhouetteProducing.silhouettes(in:onto:maximumSourceFaces:maximumProjectedSpans:maximumControlPointCount:maximumBoundaryCurveCount:using:) in conformance BRepDrawingSilhouetteProducer",
+      "symbolLocation": 28,
+      "imageIndex": 1
+    },
+    {
+      "imageOffset": 103425316,
+      "symbol": "DocumentDrawingSilhouetteProducer.silhouettes(document:currentEvaluation:onto:maximumSourceFaces:maximumProjectedSpans:maximumControlPointCount:maximumBoundaryCurveCount:using:)",
+      "symbolLocation": 360,
+      "imageIndex": 1
+    },
+    {
+      "imageOffset": 103425876,
+      "symbol": "protocol witness for DocumentDrawingSilhouetteProducing.silhouettes(document:currentEvaluation:onto:maximumSourceFaces:maximumProjectedSpans:maximumControlPointCount:maximumBoundaryCurveCount:using:) in conformance DocumentDrawingSilhouetteProducer",
+      "symbolLocation": 28,
+      "imageIndex": 1
+    },
+    {
+      "imageOffset": 27888,
+      "sourceLine": 95,
+      "sourceFile": "DocumentDrawingCanonicalAdmissionTests.swift",
+      "symbol": "DocumentDrawingCanonicalAdmissionTests.query(_:curved:using:)",
+      "imageIndex": 1,
+      "symbolLocation": 2628
+    },
+    {
+      "imageOffset": 80256,
+      "sourceLine": 232,
+      "sourceFile": "DocumentDrawingCanonicalAdmissionTests.swift",
+      "symbol": "DocumentDrawingCanonicalAdmissionTests.drawingWitnessesPreserveTheCallerCancellationCause()",
+      "imageIndex": 1,
+      "symbolLocation": 540
+    },
+    {
+      "imageOffset": 78241,
+      "sourceLine": 4,
+      "sourceFile": "@__swiftmacro_12FocusedTests033DocumentDrawingCanonicalAdmissionB0V50drawingWitnessesPreserveTheCallerCancellationCause4TestfMp_.swift",
+      "symbol": "static DocumentDrawingCanonicalAdmissionTests.$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V50drawingWitnessesPreserveTheCallerCancellationCause4TestfMp_17Z2b6447f60d7b29e9fMu_@Sendable ()",
+      "imageIndex": 1,
+      "symbolLocation": 1
+    },
+    {
+      "imageOffset": 89073,
+      "sourceFile": "@__swiftmacro_12FocusedTests033DocumentDrawingCanonicalAdmissionB0V50drawingWitnessesPreserveTheCallerCancellationCause4TestfMp_.swift",
+      "symbol": "implicit closure #1 in static DocumentDrawingCanonicalAdmissionTests.$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V50drawingWitnessesPreserveTheCallerCancellationCause4TestfMp_25generator2b6447f60d7b29e9fMu_@Sendable ()",
+      "symbolLocation": 1,
+      "imageIndex": 1
+    },
+    {
+      "imageOffset": 485457,
+      "sourceFile": "/<compiler-generated>",
+      "symbol": "partial apply for implicit closure #1 in static DocumentDrawingCanonicalAdmissionTests.$s12FocusedTests033DocumentDrawingCanonicalAdmissionB0V50drawingWitnessesPreserveTheCallerCancellationCause4TestfMp_25generator2b6447f60d7b29e9fMu_@Sendable ()",
+      "symbolLocation": 1,
+      "imageIndex": 1
+    },
+    {
+      "imageOffset": 314545,
+      "symbol": "<deduplicated_symbol>",
+      "symbolLocation": 1,
+      "imageIndex": 4
+    }
+  ],
+  "registers": {
+    "x": [
+      {
+        "value": 6172865032
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 9304
+      },
+      {
+        "value": 6172865032
+      },
+      {
+        "value": 6172874432
+      },
+      {
+        "value": 4
+      },
+      {
+        "value": 6
+      },
+      {
+        "value": 4
+      },
+      {
+        "value": 9304
+      },
+      {
+        "value": 6172554456
+      },
+      {
+        "value": 6172940344
+      },
+      {
+        "value": 6172966912
+      },
+      {
+        "value": 6172995096
+      },
+      {
+        "value": 6173003264
+      },
+      {
+        "value": 4633966208,
+        "symbolLocation": 0,
+        "symbol": "type metadata for Parameter"
+      },
+      {
+        "value": 17592186044416
+      },
+      {
+        "value": 6621280816,
+        "symbolLocation": 0,
+        "symbol": "__bzero"
+      },
+      {
+        "value": 8589934592,
+        "objc-selector": "etSessionEndPolicy:"
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 6173259072
+      },
+      {
+        "value": 523407446736
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 523415584816
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 21
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 6173405408
+      },
+      {
+        "value": 0
+      },
+      {
+        "value": 0
+      }
+    ],
+    "flavor": "ARM_THREAD_STATE64",
+    "lr": {
+      "value": 4604487876
+    },
+    "cpsr": {
+      "value": 2147483648
+    },
+    "fp": {
+      "value": 6173248720
+    },
+    "sp": {
+      "value": 6172552864
+    },
+    "esr": {
+      "value": 2449473607,
+      "description": "(Data Abort) byte write Translation fault"
+    },
+    "pc": {
+      "value": 6621281020,
+      "matchesCrashFrame": 1
+    },
+    "far": {
+      "value": 6172865032
+    }
+  },
+  "behavior": "ProjectEdges and placement completed on actual plane worker; unplaced silhouette entry crashed before result; no Drawing success claim."
+}

@@ -1,0 +1,290 @@
+{
+  "predicate": "axis=geometricDepth(19), requested=33, limit=32, additive=false",
+  "registers": {
+    "x0": 19,
+    "x1": 32,
+    "x2": 33,
+    "x3": 32,
+    "x4": 0,
+    "x20": 500653936424,
+    "sp": 6102632752,
+    "fp": 6102633360,
+    "pc": 4591022720
+  },
+  "threadID": 64424509456,
+  "frames": [
+    {
+      "index": 0,
+      "function": "CADGeometry.OriginalQueryExecution.require(axis: CADGeometry.OriginalQueryResourceAxis, used: Swift.Int, requested: Swift.Int, limit: Swift.Int, additive: Swift.Bool) throws(CADGeometry.ExactScalarFailure) -> ()",
+      "pc": 4591022720,
+      "file": "",
+      "line": 4294967295
+    },
+    {
+      "index": 1,
+      "function": "CADGeometry.OriginalQueryExecution.admitGeometricDepth(Swift.Int) throws(CADGeometry.ExactScalarFailure) -> ()",
+      "pc": 4575210164,
+      "file": "",
+      "line": 4294967295
+    },
+    {
+      "index": 2,
+      "function": "CADGeometry.OriginalQueryExecution.visitGeometricCell(depth: Swift.Int) throws(CADGeometry.ExactScalarFailure) -> ()",
+      "pc": 4574986360,
+      "file": "",
+      "line": 4294967295
+    },
+    {
+      "index": 3,
+      "function": "CADGeometry.ProceduralSurfaceParameterProjector.boundedProjectionResult(of: CADCore.Point3D, on: CADGeometry.Surface3D, uBounds: Swift.ClosedRange<Swift.Double>, vBounds: Swift.ClosedRange<Swift.Double>, options: CADGeometry.SurfaceParameterProjectionOptions, tolerance: CADCore.ModelingTolerance, using: inout CADGeometry.OriginalQueryExecution) throws -> CADGeometry.SurfaceParameterProjectionResult",
+      "pc": 4595085712,
+      "file": "",
+      "line": 4294967295
+    },
+    {
+      "index": 4,
+      "function": "CADGeometry.DefaultSurfaceParameterProjector.projectionResult(of: CADCore.Point3D, on: CADGeometry.Surface3D, over: CADGeometry.SurfaceParameterBox, options: CADGeometry.SurfaceParameterProjectionOptions, tolerance: CADCore.ModelingTolerance, maximumSubdivisionDepth: Swift.Int, remainingSourceDepth: Swift.Int, maximumAlgebraicDepth: Swift.Int, using: inout CADGeometry.OriginalQueryExecution) throws -> CADGeometry.SurfaceParameterProjectionResult",
+      "pc": 4600014320,
+      "file": "",
+      "line": 4294967295
+    },
+    {
+      "index": 5,
+      "function": "closure #1 (inout CADGeometry.OriginalQueryExecution) throws -> Swift.Bool in CADKernel.DefaultFacePointContainmentTester.contains(_: CADCore.Point3D, on: CADKernel.FacePointContainmentPreparationCache.PreparedFace, tolerance: CADCore.ModelingTolerance, using: inout CADGeometry.OriginalQueryExecution) throws -> Swift.Bool",
+      "pc": 4652532440,
+      "file": "",
+      "line": 4294967295
+    },
+    {
+      "index": 6,
+      "function": "partial apply forwarder for closure #1 (inout CADGeometry.OriginalQueryExecution) throws -> Swift.Bool in CADKernel.DefaultFacePointContainmentTester.contains(_: CADCore.Point3D, on: CADKernel.FacePointContainmentPreparationCache.PreparedFace, tolerance: CADCore.ModelingTolerance, using: inout CADGeometry.OriginalQueryExecution) throws -> Swift.Bool",
+      "pc": 4658311108,
+      "file": "",
+      "line": 4294967295
+    },
+    {
+      "index": 7,
+      "function": "CADGeometry.ExactScalarAdmission< where \u03c4_0_0: ~Swift.Copyable>.withProofScope<\u03c4_0_0>(original: Swift.Optional<CADGeometry.ExactScalarDepth>, inherited: Swift.Optional<CADGeometry.ExactScalarDepth>, maximum: Swift.Optional<CADGeometry.ExactScalarDepth>, valueAxis: CADGeometry.ExactScalarRootAxis, maximumWorkUnits: Swift.Optional<Swift.Int>, _: (inout \u03c4_0_0) throws -> \u03c4_1_0) throws -> \u03c4_1_0",
+      "pc": 4575482976,
+      "file": "",
+      "line": 4294967295
+    },
+    {
+      "index": 8,
+      "function": "CADKernel.DefaultFacePointContainmentTester.contains(_: CADCore.Point3D, on: CADKernel.FacePointContainmentPreparationCache.PreparedFace, tolerance: CADCore.ModelingTolerance, using: inout CADGeometry.OriginalQueryExecution) throws -> Swift.Bool",
+      "pc": 4652531124,
+      "file": "",
+      "line": 4294967295
+    },
+    {
+      "index": 9,
+      "function": "CADKernel.DefaultFacePointContainmentTester.contains(_: CADCore.Point3D, on: CADCore.TaggedID<CADCore.FaceTag>, in: CADTopology.BRepModel, preparationCache: inout CADKernel.FacePointContainmentPreparationCache, tolerance: CADCore.ModelingTolerance, using: inout CADGeometry.OriginalQueryExecution) throws -> Swift.Bool",
+      "pc": 4651421888,
+      "file": "",
+      "line": 4294967295
+    },
+    {
+      "index": 10,
+      "function": "CADKernel.DefaultFacePointContainmentTester.contains(_: CADCore.Point3D, on: CADCore.TaggedID<CADCore.FaceTag>, in: CADTopology.BRepModel, tolerance: CADCore.ModelingTolerance, using: inout CADGeometry.OriginalQueryExecution) throws -> Swift.Bool",
+      "pc": 4651420640,
+      "file": "",
+      "line": 4294967295
+    },
+    {
+      "index": 11,
+      "function": "protocol witness for CADKernel.FacePointContainmentTesting.contains(_: CADCore.Point3D, on: CADCore.TaggedID<CADCore.FaceTag>, in: CADTopology.BRepModel, tolerance: CADCore.ModelingTolerance, using: inout CADGeometry.OriginalQueryExecution) throws -> Swift.Bool in conformance CADKernel.DefaultFacePointContainmentTester : CADKernel.FacePointContainmentTesting in CADKernel",
+      "pc": 4652594232,
+      "file": "",
+      "line": 4294967295
+    },
+    {
+      "index": 12,
+      "function": "CADKernel.BRepFaceInteriorPointSampler.interiorPoint(near: Swift.Double, pcurve: CADGeometry.SurfaceParameterCurve, faceID: CADCore.TaggedID<CADCore.FaceTag>, surface: CADGeometry.Surface3D, model: CADTopology.BRepModel, tolerance: CADCore.ModelingTolerance, using: inout CADGeometry.OriginalQueryExecution) throws -> Swift.Optional<CADKernel.BRepFaceInteriorPointSampler.Sample>",
+      "pc": 4650626024,
+      "file": "",
+      "line": 4294967295
+    },
+    {
+      "index": 13,
+      "function": "CADKernel.BRepFaceInteriorPointSampler.sample(on: CADCore.TaggedID<CADCore.FaceTag>, in: CADTopology.BRepModel, tolerance: CADCore.ModelingTolerance, using: inout CADGeometry.OriginalQueryExecution) throws -> CADKernel.BRepFaceInteriorPointSampler.Sample",
+      "pc": 4650106164,
+      "file": "",
+      "line": 4294967295
+    },
+    {
+      "index": 14,
+      "function": "CADKernel.FaceRebuildFeatureEvaluator.give(_: CADGeometry.BSplineSurface3D, to: CADCore.TaggedID<CADCore.FaceTag>, bodyID: CADCore.TaggedID<CADCore.BodyTag>, scope: CADModeling.BodyTopologyScope, feature: CADIR.FeatureNode, context: CADModeling.EvaluationContext, using: inout CADGeometry.OriginalQueryExecution) throws -> CADModeling.EvaluationResult",
+      "pc": 4656572692,
+      "file": "",
+      "line": 4294967295
+    },
+    {
+      "index": 15,
+      "function": "CADKernel.FaceRebuildFeatureEvaluator.rebuild(feature: CADIR.FeatureNode, context: CADModeling.EvaluationContext, using: inout CADGeometry.OriginalQueryExecution) throws -> CADModeling.EvaluationResult",
+      "pc": 4656536080,
+      "file": "",
+      "line": 4294967295
+    },
+    {
+      "index": 16,
+      "function": "closure #1 (inout CADGeometry.OriginalQueryExecution) throws -> CADModeling.EvaluationResult in CADKernel.FaceRebuildFeatureEvaluator.evaluateValidated(feature: CADIR.FeatureNode, context: CADModeling.EvaluationContext, using: inout CADGeometry.OriginalQueryExecution) throws -> CADModeling.ValidatedFeatureEvaluation",
+      "pc": 4656532616,
+      "file": "",
+      "line": 4294967295
+    },
+    {
+      "index": 17,
+      "function": "partial apply forwarder for closure #1 (inout CADGeometry.OriginalQueryExecution) throws -> CADModeling.EvaluationResult in CADKernel.FaceRebuildFeatureEvaluator.evaluateValidated(feature: CADIR.FeatureNode, context: CADModeling.EvaluationContext, using: inout CADGeometry.OriginalQueryExecution) throws -> CADModeling.ValidatedFeatureEvaluation",
+      "pc": 4659812612,
+      "file": "",
+      "line": 4294967295
+    },
+    {
+      "index": 18,
+      "function": "static CADModeling.FeatureEvaluationBoundary.evaluateValidated(featureID: CADCore.TaggedID<CADCore.FeatureTag>, tolerance: CADCore.ModelingTolerance, using: inout CADGeometry.OriginalQueryExecution, operation: (inout CADGeometry.OriginalQueryExecution) throws -> CADModeling.EvaluationResult) throws -> CADModeling.ValidatedFeatureEvaluation",
+      "pc": 4641696696,
+      "file": "",
+      "line": 4294967295
+    },
+    {
+      "index": 19,
+      "function": "CADKernel.FaceRebuildFeatureEvaluator.evaluateValidated(feature: CADIR.FeatureNode, context: CADModeling.EvaluationContext, using: inout CADGeometry.OriginalQueryExecution) throws -> CADModeling.ValidatedFeatureEvaluation",
+      "pc": 4656532388,
+      "file": "",
+      "line": 4294967295
+    },
+    {
+      "index": 20,
+      "function": "CADKernel.FaceRebuildFeatureEvaluator.evaluate(feature: CADIR.FeatureNode, context: CADModeling.EvaluationContext, using: inout CADGeometry.OriginalQueryExecution) throws -> CADModeling.EvaluationResult",
+      "pc": 4656532036,
+      "file": "",
+      "line": 4294967295
+    },
+    {
+      "index": 21,
+      "function": "(3) suspend resume partial function for FocusedTests.FaceRebuildDirectExecutionTests.nativeGivenKeepsItsEdgesUnderTheIncomingExecution() async throws -> ()",
+      "pc": 4573611732,
+      "file": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-face-rebuild-frame-fixed-native-20261016-r1/swift-cad/Tests/FocusedTests/CADKernelTests/FaceRebuildDirectExecutionTests.swift",
+      "line": 115
+    },
+    {
+      "index": 22,
+      "function": "(4) await resume partial function for static FocusedTests.FaceRebuildDirectExecutionTests.$s12FocusedTests026FaceRebuildDirectExecutionB0V040nativeGivenKeepsItsEdgesUnderTheIncomingF04TestfMp_16d7ed2deff4d35091fMu_@Sendable () async throws -> ()",
+      "pc": 4573609688,
+      "file": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-face-rebuild-frame-fixed-native-20261016-r1/@__swiftmacro_12FocusedTests026FaceRebuildDirectExecutionB0V040nativeGivenKeepsItsEdgesUnderTheIncomingF04TestfMp_.swift",
+      "line": 4
+    },
+    {
+      "index": 23,
+      "function": "(1) await resume partial function for implicit closure #1 @Sendable () async throws -> () in static FocusedTests.FaceRebuildDirectExecutionTests.$s12FocusedTests026FaceRebuildDirectExecutionB0V040nativeGivenKeepsItsEdgesUnderTheIncomingF04TestfMp_25generatord7ed2deff4d35091fMu_@Sendable () async -> Testing.Test",
+      "pc": 4573627128,
+      "file": "/Users/1amageek/.codex/worktrees/m4-m8-completion-recovered/swift-CAD/.build/g01-face-rebuild-frame-fixed-native-20261016-r1/@__swiftmacro_12FocusedTests026FaceRebuildDirectExecutionB0V040nativeGivenKeepsItsEdgesUnderTheIncomingF04TestfMp_.swift",
+      "line": 0
+    },
+    {
+      "index": 24,
+      "function": "(1) await resume partial function for partial apply forwarder for implicit closure #1 @Sendable () async throws -> () in static FocusedTests.FaceRebuildDirectExecutionTests.$s12FocusedTests026FaceRebuildDirectExecutionB0V040nativeGivenKeepsItsEdgesUnderTheIncomingF04TestfMp_25generatord7ed2deff4d35091fMu_@Sendable () async -> Testing.Test",
+      "pc": 4573838692,
+      "file": "/<compiler-generated>",
+      "line": 0
+    },
+    {
+      "index": 25,
+      "function": "(1) await resume partial function for closure #1 () async throws -> sending \u03c4_0_1 in Testing.__checkClosureCall<\u03c4_0_0, \u03c4_0_1 where \u03c4_0_0: Swift.Equatable, \u03c4_0_0: Swift.Error>(throws: \u03c4_0_0, performing: () async throws -> \u03c4_0_1, expression: Testing.__Expression, comments: @autoclosure () -> Swift.Array<Testing.Comment>, isRequired: Swift.Bool, sourceLocation: Testing.SourceLocation) async -> Swift.Result<(), Swift.Error>",
+      "pc": 4443081904,
+      "file": "",
+      "line": 4294967295
+    },
+    {
+      "index": 26,
+      "function": "(1) await resume partial function for partial apply forwarder for closure #1 () async throws -> sending \u03c4_0_1 in Testing.__checkClosureCall<\u03c4_0_0, \u03c4_0_1 where \u03c4_0_0: Swift.Equatable, \u03c4_0_0: Swift.Error>(throws: \u03c4_0_0, performing: () async throws -> \u03c4_0_1, expression: Testing.__Expression, comments: @autoclosure () -> Swift.Array<Testing.Comment>, isRequired: Swift.Bool, sourceLocation: Testing.SourceLocation) async -> Swift.Result<(), Swift.Error>",
+      "pc": 4443081908,
+      "file": "",
+      "line": 4294967295
+    },
+    {
+      "index": 27,
+      "function": "(1) await resume partial function for closure #1 () async throws -> sending \u03c4_0_1 in Testing.__checkClosureCall<\u03c4_0_0, \u03c4_0_1 where \u03c4_0_0: Swift.Equatable, \u03c4_0_0: Swift.Error>(throws: \u03c4_0_0, performing: () async throws -> \u03c4_0_1, expression: Testing.__Expression, comments: @autoclosure () -> Swift.Array<Testing.Comment>, isRequired: Swift.Bool, sourceLocation: Testing.SourceLocation) async -> Swift.Result<(), Swift.Error>",
+      "pc": 4443081904,
+      "file": "",
+      "line": 4294967295
+    },
+    {
+      "index": 28,
+      "function": "(1) await resume partial function for partial apply forwarder for closure #1 () async throws -> sending \u03c4_0_1 in Testing.__checkClosureCall<\u03c4_0_0, \u03c4_0_1 where \u03c4_0_0: Swift.Equatable, \u03c4_0_0: Swift.Error>(throws: \u03c4_0_0, performing: () async throws -> \u03c4_0_1, expression: Testing.__Expression, comments: @autoclosure () -> Swift.Array<Testing.Comment>, isRequired: Swift.Bool, sourceLocation: Testing.SourceLocation) async -> Swift.Result<(), Swift.Error>",
+      "pc": 4443081908,
+      "file": "",
+      "line": 4294967295
+    },
+    {
+      "index": 29,
+      "function": "(5) await resume partial function for function signature specialization <Arg[2] = Dead> of function signature specialization <Arg[2] = [Escaping Closure Propagated : $s7Testing6RunnerV27_runSingleTestCaseIteration33_E393D8EDD5AFFA0BF3AEFD347B81DFDFLL_6withinyAA0E0V0F0V_AC4PlanV4StepVtYaFZyyYaXEfU_yyYaKXEfU_yyYaYbKcfU_yyYaYbKcfU_, Argument Types : [Testing.Test.Case]> of static Testing.Runner._applyScopingTraits(for: Testing.Test, testCase: Swift.Optional<Testing.Test.Case>, _: @Sendable () async throws -> ()) async throws -> ()",
+      "pc": 4443828324,
+      "file": "",
+      "line": 4294967295
+    },
+    {
+      "index": 30,
+      "function": "(2) await resume partial function for function signature specialization <Arg[0] = Dead> of closure #1 @Sendable () async throws -> () in closure #1 () async throws -> () in closure #1 () async -> () in static Testing.Runner._runSingleTestCaseIteration(_: Testing.Test.Case, within: Testing.Runner.Plan.Step) async -> ()",
+      "pc": 4443836296,
+      "file": "",
+      "line": 4294967295
+    },
+    {
+      "index": 31,
+      "function": "(1) await resume partial function for closure #1 () async throws -> sending \u03c4_0_1 in Testing.__checkClosureCall<\u03c4_0_0, \u03c4_0_1 where \u03c4_0_0: Swift.Equatable, \u03c4_0_0: Swift.Error>(throws: \u03c4_0_0, performing: () async throws -> \u03c4_0_1, expression: Testing.__Expression, comments: @autoclosure () -> Swift.Array<Testing.Comment>, isRequired: Swift.Bool, sourceLocation: Testing.SourceLocation) async -> Swift.Result<(), Swift.Error>",
+      "pc": 4443081904,
+      "file": "",
+      "line": 4294967295
+    },
+    {
+      "index": 32,
+      "function": "(1) await resume partial function for partial apply forwarder for closure #1 () async throws -> sending \u03c4_0_1 in Testing.__checkClosureCall<\u03c4_0_0, \u03c4_0_1 where \u03c4_0_0: Swift.Equatable, \u03c4_0_0: Swift.Error>(throws: \u03c4_0_0, performing: () async throws -> \u03c4_0_1, expression: Testing.__Expression, comments: @autoclosure () -> Swift.Array<Testing.Comment>, isRequired: Swift.Bool, sourceLocation: Testing.SourceLocation) async -> Swift.Result<(), Swift.Error>",
+      "pc": 4443081908,
+      "file": "",
+      "line": 4294967295
+    },
+    {
+      "index": 33,
+      "function": "(1) await resume partial function for static Testing.Configuration.withCurrentForXCTest<\u03c4_0_0>(_: Testing.Configuration, perform: () async throws -> \u03c4_0_0) async throws -> \u03c4_0_0",
+      "pc": 4443078036,
+      "file": "",
+      "line": 4294967295
+    },
+    {
+      "index": 34,
+      "function": "(1) await resume partial function for partial apply forwarder for closure #1 () async throws -> sending \u03c4_0_0 in Testing.__checkClosureCall<\u03c4_0_0>(performing: () async throws -> \u03c4_0_0, throws: (Swift.Error) async throws -> Swift.Bool, mismatchExplanation: Swift.Optional<(Swift.Error) -> Swift.String>, expression: Testing.__Expression, comments: @autoclosure () -> Swift.Array<Testing.Comment>, isRequired: Swift.Bool, sourceLocation: Testing.SourceLocation) async -> Swift.Result<(), Swift.Error>",
+      "pc": 4442978940,
+      "file": "",
+      "line": 4294967295
+    },
+    {
+      "index": 35,
+      "function": "(1) await resume partial function for closure #1 () async throws -> sending \u03c4_0_1 in Testing.__checkClosureCall<\u03c4_0_0, \u03c4_0_1 where \u03c4_0_0: Swift.Equatable, \u03c4_0_0: Swift.Error>(throws: \u03c4_0_0, performing: () async throws -> \u03c4_0_1, expression: Testing.__Expression, comments: @autoclosure () -> Swift.Array<Testing.Comment>, isRequired: Swift.Bool, sourceLocation: Testing.SourceLocation) async -> Swift.Result<(), Swift.Error>",
+      "pc": 4443081904,
+      "file": "",
+      "line": 4294967295
+    },
+    {
+      "index": 36,
+      "function": "(1) await resume partial function for partial apply forwarder for closure #1 () async throws -> sending \u03c4_0_1 in Testing.__checkClosureCall<\u03c4_0_0, \u03c4_0_1 where \u03c4_0_0: Swift.Equatable, \u03c4_0_0: Swift.Error>(throws: \u03c4_0_0, performing: () async throws -> \u03c4_0_1, expression: Testing.__Expression, comments: @autoclosure () -> Swift.Array<Testing.Comment>, isRequired: Swift.Bool, sourceLocation: Testing.SourceLocation) async -> Swift.Result<(), Swift.Error>",
+      "pc": 4443081908,
+      "file": "",
+      "line": 4294967295
+    },
+    {
+      "index": 37,
+      "function": "(1) await resume partial function for closure #1 () async throws -> sending \u03c4_0_1 in Testing.__checkClosureCall<\u03c4_0_0, \u03c4_0_1 where \u03c4_0_0: Swift.Equatable, \u03c4_0_0: Swift.Error>(throws: \u03c4_0_0, performing: () async throws -> \u03c4_0_1, expression: Testing.__Expression, comments: @autoclosure () -> Swift.Array<Testing.Comment>, isRequired: Swift.Bool, sourceLocation: Testing.SourceLocation) async -> Swift.Result<(), Swift.Error>",
+      "pc": 4443081904,
+      "file": "",
+      "line": 4294967295
+    },
+    {
+      "index": 38,
+      "function": "(1) await resume partial function for partial apply forwarder for closure #1 () async throws -> sending \u03c4_0_1 in Testing.__checkClosureCall<\u03c4_0_0, \u03c4_0_1 where \u03c4_0_0: Swift.Equatable, \u03c4_0_0: Swift.Error>(throws: \u03c4_0_0, performing: () async throws -> \u03c4_0_1, expression: Testing.__Expression, comments: @autoclosure () -> Swift.Array<Testing.Comment>, isRequired: Swift.Bool, sourceLocation: Testing.SourceLocation) async -> Swift.Result<(), Swift.Error>",
+      "pc": 4443081908,
+      "file": "",
+      "line": 4294967295
+    }
+  ]
+}

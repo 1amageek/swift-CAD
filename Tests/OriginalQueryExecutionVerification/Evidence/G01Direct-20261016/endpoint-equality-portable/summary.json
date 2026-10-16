@@ -1,0 +1,217 @@
+{
+  "status": "passed",
+  "scope": "Changed Native endpoint equality and Native boundary correspondence target behavior; no G01 runtime replay and no whole-U1/U4 claim.",
+  "nativeAuthority": {
+    "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-production-r1/receipt.json",
+    "sha256": "7432d8f66382f64727a09d00855477623f40099f337b0b8992e37995365b4041"
+  },
+  "sourceCount": {
+    "CADCore": 65,
+    "CADGeometry": 2170
+  },
+  "geometryFreshCompileCount": 3,
+  "coreFreshCompileCount": 0,
+  "g01RuntimeReplayCount": 0,
+  "results": [
+    {
+      "family": "endpoint",
+      "lane": "asan",
+      "receipt": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/endpoint-portable-asan-r1/receipt.json",
+      "receiptSHA256": "150f9a63ff88277aeb5bd5a1219b675bf21e63b8f806ec38e14976388ba1572a",
+      "packaged": "endpoint-asan",
+      "matchedOracleLines": [
+        "PASS Native endpoint exact positions and lifetime",
+        "PASS Native endpoint exact source and cumulative work",
+        "PASS Native endpoint cancellation"
+      ],
+      "elapsedSeconds": 126.8305100830039,
+      "phases": [
+        {
+          "name": "asan-compile",
+          "elapsedSeconds": 121.47832924999966,
+          "peakRSSBytes": 6967459840,
+          "wallLimitSeconds": 1199.9999936660024
+        },
+        {
+          "name": "asan-link",
+          "elapsedSeconds": 2.303230583005643,
+          "peakRSSBytes": 785809408,
+          "wallLimitSeconds": 1077.8362697910052
+        },
+        {
+          "name": "asan-runtime",
+          "elapsedSeconds": 1.1590562090059393,
+          "peakRSSBytes": 933888,
+          "wallLimitSeconds": 120
+        }
+      ]
+    },
+    {
+      "family": "endpoint",
+      "lane": "wasm",
+      "receipt": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/endpoint-portable-wasm-r1/receipt.json",
+      "receiptSHA256": "dab51f7a1e652a25a91c5144c6fe8f55ac504ce03f30ea462b835135a2e047ff",
+      "packaged": "endpoint-wasm",
+      "matchedOracleLines": [
+        "PASS Native endpoint exact positions and lifetime",
+        "PASS Native endpoint exact source and cumulative work",
+        "PASS Native endpoint cancellation"
+      ],
+      "elapsedSeconds": 187.8612144170038,
+      "phases": [
+        {
+          "name": "wasm-compile",
+          "elapsedSeconds": 172.72581774999708,
+          "peakRSSBytes": 5425790976,
+          "wallLimitSeconds": 1199.9999947500037
+        },
+        {
+          "name": "wasm-link",
+          "elapsedSeconds": 4.9299948749976465,
+          "peakRSSBytes": 817643520,
+          "wallLimitSeconds": 1025.421943292
+        },
+        {
+          "name": "wasm-runtime",
+          "elapsedSeconds": 0.8346555410025758,
+          "peakRSSBytes": 445251584,
+          "wallLimitSeconds": 120
+        }
+      ]
+    },
+    {
+      "family": "endpoint",
+      "lane": "embedded",
+      "receipt": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/endpoint-portable-embedded-r1/receipt.json",
+      "receiptSHA256": "f8154601c51b314a85e2f87755c8571c17cb30b2fb765fcc9f580a9716849fef",
+      "packaged": "endpoint-embedded",
+      "matchedOracleLines": [
+        "PASS Native endpoint exact positions and lifetime",
+        "PASS Native endpoint exact source and cumulative work",
+        "PASS Native endpoint cancellation"
+      ],
+      "elapsedSeconds": 426.6133719999998,
+      "phases": [
+        {
+          "name": "embedded-compile",
+          "elapsedSeconds": 295.01075308299914,
+          "peakRSSBytes": 3258777600,
+          "wallLimitSeconds": 1199.9999591670057
+        },
+        {
+          "name": "embedded-link",
+          "elapsedSeconds": 126.6705742080012,
+          "peakRSSBytes": 3518709760,
+          "wallLimitSeconds": 902.876560167002
+        },
+        {
+          "name": "embedded-runtime",
+          "elapsedSeconds": 0.24982104099763092,
+          "peakRSSBytes": 950272,
+          "wallLimitSeconds": 120
+        }
+      ]
+    },
+    {
+      "family": "boundary",
+      "lane": "asan",
+      "receipt": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/boundary-portable-asan-r1/receipt.json",
+      "receiptSHA256": "2787c9a4a556596ed42517359ea11e31dd02430ae391fb4e484ae97b3c9a50df",
+      "packaged": "boundary-asan",
+      "matchedOracleLines": [
+        "PASS native boundary whole closed laws",
+        "PASS native boundary exact payload and map refusal",
+        "PASS native boundary caller resources and lifetime",
+        "PASS native boundary cancellation",
+        "PASS native boundary portable all"
+      ],
+      "elapsedSeconds": 8.352260291998391,
+      "phases": [
+        {
+          "name": "asan-link",
+          "elapsedSeconds": 4.012912458005303,
+          "peakRSSBytes": 765100032,
+          "wallLimitSeconds": 1199.8181500830033
+        },
+        {
+          "name": "asan-runtime",
+          "elapsedSeconds": 2.0376647079974646,
+          "peakRSSBytes": 933888,
+          "wallLimitSeconds": 120
+        }
+      ]
+    },
+    {
+      "family": "boundary",
+      "lane": "wasm",
+      "receipt": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/boundary-portable-wasm-r1/receipt.json",
+      "receiptSHA256": "39d045452616bad6868bc1c4175057a7f9eddd57619013c198d95fbe46325f56",
+      "packaged": "boundary-wasm",
+      "matchedOracleLines": [
+        "PASS native boundary whole closed laws",
+        "PASS native boundary exact payload and map refusal",
+        "PASS native boundary caller resources and lifetime",
+        "PASS native boundary cancellation",
+        "PASS native boundary portable all"
+      ],
+      "elapsedSeconds": 3.052402291999897,
+      "phases": [
+        {
+          "name": "wasm-link",
+          "elapsedSeconds": 1.6072610830015037,
+          "peakRSSBytes": 766328832,
+          "wallLimitSeconds": 1199.891006083999
+        },
+        {
+          "name": "wasm-runtime",
+          "elapsedSeconds": 0.23037374999694293,
+          "peakRSSBytes": 950272,
+          "wallLimitSeconds": 120
+        }
+      ]
+    },
+    {
+      "family": "boundary",
+      "lane": "embedded",
+      "receipt": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/boundary-portable-embedded-r1/receipt.json",
+      "receiptSHA256": "49d97164554c2b18b2b2a73fafbb14f1cb2d991bc3ef1e2bb462ae0888977076",
+      "packaged": "boundary-embedded",
+      "matchedOracleLines": [
+        "PASS native boundary whole closed laws",
+        "PASS native boundary exact payload and map refusal",
+        "PASS native boundary caller resources and lifetime",
+        "PASS native boundary cancellation",
+        "PASS native boundary portable all"
+      ],
+      "elapsedSeconds": 95.52701320800406,
+      "phases": [
+        {
+          "name": "embedded-link",
+          "elapsedSeconds": 92.60517724999954,
+          "peakRSSBytes": 3291037696,
+          "wallLimitSeconds": 1199.8880569999965
+        },
+        {
+          "name": "embedded-runtime",
+          "elapsedSeconds": 0.2547760829984327,
+          "peakRSSBytes": 983040,
+          "wallLimitSeconds": 120
+        }
+      ]
+    }
+  ],
+  "finalIntegrity": {
+    "inputCount": 2247,
+    "snapshotCount": 13476,
+    "productCount": 46,
+    "logCount": 15,
+    "drift": []
+  },
+  "bounds": {
+    "compileLinkSecondsPerLane": 1200,
+    "runtimeSeconds": 120,
+    "aggregateRSSBytes": 10737418240,
+    "compilerProcessesAtOnce": 1
+  },
+  "historicalLostArtifacts": "The prior .build c8d666 public and c9554 boundary portable artifacts were not packaged before deletion; this package does not reconstruct them."
+}

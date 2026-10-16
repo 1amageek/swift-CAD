@@ -35,23 +35,58 @@ package struct DefaultOriginalRationalGraphBandCertifier: OriginalRationalGraphB
     package init() {}
 
     package func certify(input: OriginalGraphBandInput, fidelity: OriginalGraphBandInput.Fidelity,
-                         tolerance: ModelingTolerance, proofUsage: inout OriginalTessellationProofUsage)
-      throws -> OriginalGraphBandReceipt {
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> OriginalGraphBandReceipt {
+        let contribution = try execution.makeContributionHandle(workLimit: 262_144, cellLimit: 262_144,
+            allocationPolicy: execution.effectiveAllocationPolicy, executionLimits: try .init(maximumValueDepth: Int.max, maximumCoefficientDepth: Int.max,
+                maximumCells: 262_144, maximumSubdivisionDepth: 32))
+        return try certify(input: input, fidelity: fidelity, tolerance: tolerance,
+            contribution: contribution, using: &execution)
+    }
+
+    package func certify(input: OriginalGraphBandInput, fidelity: OriginalGraphBandInput.Fidelity,
+        tolerance: ModelingTolerance, contribution: OriginalQueryContributionHandle,
+        using execution: inout OriginalQueryExecution) throws -> OriginalGraphBandReceipt {
+        guard contribution.budget === execution.budget,
+            contribution.workLimit.map({ $0 <= 262_144 }) == true,
+            let limits = contribution.executionLimits, limits.maximumCells <= 262_144,
+            limits.maximumSubdivisionDepth <= 32 else {
+            throw GeometryConversionError.invalidInput("Graph preparation requires its original bounded contribution.")
+        }
+        return try execution.withContributionScope(contribution) { execution in
+            let prepared = try execution.withPreparationScope { execution in
+                try prepareOriginal(input: input, fidelity: fidelity, tolerance: tolerance, using: &execution)
+            }
+            let receipt = try OriginalGeometryPreparationReceipt(tolerance: tolerance,
+                depth: prepared.depth, using: &execution)
+            return Receipt(input: input, fidelity: fidelity, tolerance: tolerance,
+                winding: prepared.result.winding, referenceCells: prepared.result.cells,
+                joinCells: prepared.result.joins, originalBoundaryIntervals: prepared.result.intervals,
+                preparation: receipt, contribution: contribution)
+        }
+    }
+
+    private func prepareOriginal(input: OriginalGraphBandInput, fidelity: OriginalGraphBandInput.Fidelity,
+                         tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution)
+      throws -> (cells: [Receipt.ReferenceCell], joins: [Receipt.JoinCell], intervals: [Receipt.OriginalBoundaryInterval], winding: Int) {
         try tolerance.validate()
         try fidelity.validate(tolerance: tolerance)
         try CurrentTaskCancellationChecker().checkCancellation()
         let count = input.boundaries.count
-        guard count <= proofUsage.remainingCellCount else {
+        guard count <= 262_144, count <= execution.availableWork else {
             throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
                               message: "Original graph boundaries exceed the shared proof cell budget.")
         }
         guard count >= 2, input.lowerChain.count <= count, input.upperChain.count <= count else {
             throw invalid(tolerance, "Original graph-band chains require a bounded complete original boundary.")
         }
+        let useCount = try exactScalarCount(input.lowerChain.count, input.upperChain.count)
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: useCount, of: OriginalGraphBandInput.Use.self))
         let uses = input.lowerChain + input.upperChain
+        var seen = Set<Int>()
+        for use in uses { try OriginalGraphBandStorage.insert(use.boundaryIndex, in: &seen, using: &execution) }
         guard input.sharedVertices.count == count, uses.count == count,
               input.lowerChain.isEmpty == false, input.upperChain.isEmpty == false,
-              Set(uses.map({ $0.boundaryIndex })) == Set(0..<count),
+              seen.count == count && seen.allSatisfy({ (0..<count).contains($0) }),
               input.sharedVertices.allSatisfy({ $0.x.isFinite && $0.y.isFinite && $0.z.isFinite }) else {
             throw invalid(tolerance, "Original graph-band input requires a complete ordered boundary and actual shared vertices.")
         }
@@ -63,7 +98,7 @@ package struct DefaultOriginalRationalGraphBandCertifier: OriginalRationalGraphB
               input.surface.vDegree == 1, input.surface.vControlPointCount == 2 else {
             throw unsupported(tolerance, "Original graph-band tessellation requires a nonperiodic single linear V span.")
         }
-        try input.surface.validate(tolerance: tolerance)
+        try input.surface.validate(tolerance: tolerance, using: &execution)
         let degree = input.surface.uDegree
         let knots = input.surface.uKnots
         guard degree >= 1,
@@ -73,8 +108,9 @@ package struct DefaultOriginalRationalGraphBandCertifier: OriginalRationalGraphB
         }
         var knotIndex = degree + 1
         while knotIndex < input.surface.uControlPointCount {
+            try execution.consumeWork(1)
             var end = knotIndex + 1
-            while end < input.surface.uControlPointCount, knots[end] == knots[knotIndex] { end += 1 }
+            while end < input.surface.uControlPointCount, knots[end] == knots[knotIndex] { try execution.consumeWork(1); end += 1 }
             guard end - knotIndex <= degree else {
                 throw unsupported(tolerance, "Original graph-band support requires at least C0 native continuity.")
             }
@@ -82,28 +118,33 @@ package struct DefaultOriginalRationalGraphBandCertifier: OriginalRationalGraphB
         }
         var boundaries: [[Piece]] = []
         for (index, curve) in input.boundaries.enumerated() {
-            boundaries.append(try originalPieces(curve, boundaryIndex: index,
-                                                  tolerance: tolerance, proofUsage: &proofUsage))
+            try execution.consumeWork(1)
+            try OriginalGraphBandStorage.append(try originalPieces(curve, boundaryIndex: index,
+                                                  tolerance: tolerance, using: &execution), to: &boundaries, using: &execution)
         }
-        let lower = try chain(input.lowerChain, boundaries: boundaries, tolerance: tolerance)
-        let upper = try chain(input.upperChain, boundaries: boundaries, tolerance: tolerance)
+        let lower = try chain(input.lowerChain, boundaries: boundaries, tolerance: tolerance, using: &execution)
+        let upper = try chain(input.upperChain, boundaries: boundaries, tolerance: tolerance, using: &execution)
         let reversed = lower.uses[0].reversed
         guard lower.uses.allSatisfy({ $0.reversed == reversed }),
               upper.uses.allSatisfy({ $0.reversed != reversed }) else {
             throw invalid(tolerance, "Original graph chains do not retain a single directed loop winding.")
         }
-        try validateChainVertices(lower, count: count, tolerance: tolerance)
-        try validateChainVertices(upper, count: count, tolerance: tolerance)
+        try validateChainVertices(lower, count: count, tolerance: tolerance, using: &execution)
+        try validateChainVertices(upper, count: count, tolerance: tolerance, using: &execution)
         guard startVertex(lower.uses[0], count: count) == startVertex(upper.uses[0], count: count),
               endVertex(lower.uses[lower.uses.count - 1], count: count)
                 == endVertex(upper.uses[upper.uses.count - 1], count: count) else {
             throw invalid(tolerance, "Original graph chains must retain the same two topological tip vertices.")
         }
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: exactScalarCount(lower.pieces.count, upper.pieces.count), of: Piece.self))
         let pieces = lower.pieces + upper.pieces
-        let uLower = try pieces.map { try $0.uBounds.lower }.min()!
-        let uUpper = try pieces.map { try $0.uBounds.upper }.max()!
-        let vLower = pieces.flatMap({ $0.points }).map({ $0.y }).min()!
-        let vUpper = pieces.flatMap({ $0.points }).map({ $0.y }).max()!
+        let uLower = try OriginalGraphBandStorage.map(pieces, using: &execution) { piece, execution in try piece.uBounds.lower }.min()!
+        let uUpper = try OriginalGraphBandStorage.map(pieces, using: &execution) { piece, execution in try piece.uBounds.upper }.max()!
+        var vLower = Double.infinity, vUpper = -Double.infinity
+        for piece in pieces {
+           try execution.consumeWork(1)
+            for point in piece.points { try execution.consumeWork(1); vLower = min(vLower, point.y); vUpper = max(vUpper, point.y) }
+        }
         let domain = try SurfaceParameterBox(u: ScalarInterval(lower: uLower, upper: uUpper),
                                              v: ScalarInterval(lower: vLower, upper: vUpper))
         guard case let .closed(surfaceULower, surfaceUUpper) = input.surface.uDomain,
@@ -113,35 +154,40 @@ package struct DefaultOriginalRationalGraphBandCertifier: OriginalRationalGraphB
             throw unsupported(tolerance, "Original graph coefficient hulls do not certify closed support-domain coverage.")
         }
         let panels = try DefaultSurfaceDifferentialEncloser().originalNativeSpanTessellationBounds(
-            of: input.surface, over: domain, tolerance: tolerance, proofUsage: &proofUsage)
+            of: input.surface, over: domain, tolerance: tolerance, using: &execution)
         try validateOriginalEndpoints(boundaries: boundaries, input: input, panels: panels,
                                       fidelity: fidelity, tolerance: tolerance,
-                                      proofUsage: &proofUsage)
+                                      using: &execution)
         var joins: [Join] = []
-        joins.append(try tipJoin(isLeft: true, lower: lower, upper: upper, input: input,
+        try OriginalGraphBandStorage.append(try tipJoin(isLeft: true, lower: lower, upper: upper, input: input,
                                  panels: panels, fidelity: fidelity, tolerance: tolerance,
-                                 proofUsage: &proofUsage))
-        joins.append(try tipJoin(isLeft: false, lower: lower, upper: upper, input: input,
+                                 using: &execution), to: &joins, using: &execution)
+        try OriginalGraphBandStorage.append(try tipJoin(isLeft: false, lower: lower, upper: upper, input: input,
                                  panels: panels, fidelity: fidelity, tolerance: tolerance,
-                                 proofUsage: &proofUsage))
+                                 using: &execution), to: &joins, using: &execution)
+        try execution.retainStorage(bytes: 2 * MemoryLayout<(Bool, Chain)>.stride)
         for (isLower, selected) in [(true, lower), (false, upper)] {
+            try execution.consumeWork(1)
             if selected.uses.count > 1 {
                 for index in 1..<selected.uses.count {
+                    try execution.consumeWork(1)
                     let before = selected.uses[index - 1]
                     let after = selected.uses[index]
                     let a = try endPiece(before, boundaries: boundaries)
                     let b = try startPiece(after, boundaries: boundaries)
-                    joins.append(try internalJoin(a: a, b: b, isLower: isLower,
+                    try OriginalGraphBandStorage.append(try internalJoin(a: a, b: b, isLower: isLower,
                         other: isLower ? upper : lower,
                         vertex: input.sharedVertices[endVertex(before, count: count)],
                         input: input, panels: panels, fidelity: fidelity, tolerance: tolerance,
-                        proofUsage: &proofUsage))
+                        using: &execution), to: &joins, using: &execution)
                 }
             }
         }
         for i in joins.indices {
+            try execution.consumeWork(1)
             for j in joins.indices where j > i {
-                try proofUsage.consume(depth: 0, tolerance: tolerance)
+               try execution.consumeWork(1)
+                try execution.visitGeometricCell(depth: 0)
                 let a = joins[i]
                 let b = joins[j]
                 if a.box.u.upper <= b.box.u.lower || b.box.u.upper <= a.box.u.lower {
@@ -163,47 +209,48 @@ package struct DefaultOriginalRationalGraphBandCertifier: OriginalRationalGraphB
         }
         let cells = try referenceCells(lower: lower, upper: upper, joins: joins,
                                        input: input, panels: panels, tolerance: tolerance,
-                                       proofUsage: &proofUsage)
+                                       using: &execution)
         guard cells.isEmpty == false else {
             throw unsupported(tolerance, "Original graph-band reference cover has no certified nonempty interior.")
         }
         // Full original intervals remain retained even where reference connectors
         // replace crossing tails. No interval is discarded to manufacture closure.
-        let intervals = try pieces.map { piece in
+        let intervals = try OriginalGraphBandStorage.map(pieces, using: &execution) { piece, execution in
             Receipt.OriginalBoundaryInterval(boundaryIndex: piece.boundaryIndex,
                 nativeParameters: piece.nativeParameters,
                 normalizedParameters: try ScalarInterval(lower: 0, upper: 1), joinIndex: nil)
         }
         try CurrentTaskCancellationChecker().checkCancellation()
-        return Receipt(input: input, fidelity: fidelity, tolerance: tolerance, winding: reversed ? -1 : 1,
-                       referenceCells: cells, joinCells: joins.map({ $0.receipt }),
-                       originalBoundaryIntervals: intervals)
+        try execution.retainStorage(bytes: 2 * MemoryLayout<UInt>.stride)
+        return (cells, try OriginalGraphBandStorage.map(joins, using: &execution) { join, execution in join.receipt }, intervals, reversed ? -1 : 1)
     }
 
     private func originalPieces(_ curve: SurfaceParameterCurve, boundaryIndex: Int,
                                 tolerance: ModelingTolerance,
-                                proofUsage: inout OriginalTessellationProofUsage) throws -> [Piece] {
+                                using execution: inout OriginalQueryExecution) throws -> [Piece] {
         switch curve {
         case let .constantV(v, start, end):
-            try proofUsage.consume(depth: 0, tolerance: tolerance)
-            try Piece.chargeDerivativePreparation(degree: 1, tolerance: tolerance, proofUsage: &proofUsage)
+            try execution.visitGeometricCell(depth: 0)
+            try execution.retainStorage(bytes: MemoryLayout<Piece>.stride)
+            try execution.retainStorage(bytes: 2 * MemoryLayout<Point2D>.stride)
+            try execution.retainStorage(bytes: 2 * MemoryLayout<Double>.stride)
             return [try Piece(boundaryIndex: boundaryIndex, nativeIndex: 0,
                 nativeParameters: ScalarInterval(lower: 0, upper: 1),
                 points: [Point2D(x: start, y: v), Point2D(x: end, y: v)],
-                weights: [1, 1], tolerance: tolerance)]
+                weights: [1, 1], tolerance: tolerance, using: &execution)]
         case let .bSpline(source):
             guard (1...4).contains(source.degree), source.controlPoints.count >= source.degree + 1,
                   (source.controlPoints.count - 1) % source.degree == 0 else {
                 throw unsupported(tolerance, "Original graph curves require a native degree-at-most-four Bezier chain.")
             }
             let count = (source.controlPoints.count - 1) / source.degree
-            guard count <= proofUsage.remainingCellCount else {
+            guard count <= 262_144, count <= execution.availableWork else {
                 throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
                                   message: "Original graph coefficients exceed the shared proof cell budget.")
             }
             // Precharge native work before source scanning or child allocations.
-            for _ in 0..<count { try proofUsage.consume(depth: 0, tolerance: tolerance) }
-            try source.validate(tolerance: tolerance)
+            for _ in 0..<count { try execution.visitGeometricCell(depth: 0) }
+            try source.validate(tolerance: tolerance, using: &execution)
             let first = source.knots[source.degree]
             let last = source.knots[source.controlPointCount]
             guard source.knots.prefix(source.degree + 1).allSatisfy({ $0 == first }),
@@ -212,6 +259,7 @@ package struct DefaultOriginalRationalGraphBandCertifier: OriginalRationalGraphB
             }
             var result: [Piece] = []
             for index in 0..<count {
+                try execution.consumeWork(1)
                 try CurrentTaskCancellationChecker().checkCancellation()
                 let span = source.degree + index * source.degree
                 let a = source.knots[span]
@@ -221,13 +269,13 @@ package struct DefaultOriginalRationalGraphBandCertifier: OriginalRationalGraphB
                         .allSatisfy({ $0 == a }) else {
                     throw unsupported(tolerance, "Original graph interior knots must retain full native Bezier multiplicity.")
                 }
-                try Piece.chargeDerivativePreparation(degree: source.degree, tolerance: tolerance,
-                                                      proofUsage: &proofUsage)
                 let range = (index * source.degree)...(index * source.degree + source.degree)
-                result.append(try Piece(boundaryIndex: boundaryIndex, nativeIndex: index,
+                try execution.retainStorage(bytes: exactScalarPayloadBytes(count: range.count, of: Point2D.self))
+                try execution.retainStorage(bytes: exactScalarPayloadBytes(count: range.count, of: Double.self))
+                try OriginalGraphBandStorage.append(try Piece(boundaryIndex: boundaryIndex, nativeIndex: index,
                     nativeParameters: ScalarInterval(lower: a, upper: b),
                     points: Array(source.controlPoints[range]), weights: Array(source.weights[range]),
-                    tolerance: tolerance))
+                    tolerance: tolerance, using: &execution), to: &result, using: &execution)
             }
             return result
         default:
@@ -236,21 +284,27 @@ package struct DefaultOriginalRationalGraphBandCertifier: OriginalRationalGraphB
     }
 
     private func chain(_ uses: [OriginalGraphBandInput.Use], boundaries: [[Piece]],
-                       tolerance: ModelingTolerance) throws -> Chain {
+                       tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Chain {
         var result: [Piece] = []
         for use in uses {
+            try execution.consumeWork(1)
             let source = boundaries[use.boundaryIndex]
             guard source.allSatisfy({ $0.uDirection == (use.reversed ? -1 : 1) }) else {
                 throw unsupported(tolerance, "Original graph use orientation does not certify increasing U.")
             }
-            result.append(contentsOf: use.reversed ? Array(source.reversed()) : source)
+            if use.reversed {
+                for piece in source.reversed() { try execution.consumeWork(1); try OriginalGraphBandStorage.append(piece, to: &result, using: &execution) }
+            } else {
+                for piece in source { try execution.consumeWork(1); try OriginalGraphBandStorage.append(piece, to: &result, using: &execution) }
+            }
         }
         return Chain(pieces: result, uses: uses)
     }
 
-    private func validateChainVertices(_ chain: Chain, count: Int, tolerance: ModelingTolerance) throws {
+    private func validateChainVertices(_ chain: Chain, count: Int, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
         if chain.uses.count > 1 {
             for index in 1..<chain.uses.count {
+                try execution.consumeWork(1)
                 guard endVertex(chain.uses[index - 1], count: count)
                     == startVertex(chain.uses[index], count: count) else {
                     throw invalid(tolerance, "Original graph-chain uses do not retain their shared ordered join vertex.")
@@ -278,22 +332,25 @@ package struct DefaultOriginalRationalGraphBandCertifier: OriginalRationalGraphB
     }
 
     private func cover(_ piece: Piece, u: ScalarInterval, tolerance: ModelingTolerance,
-                       proofUsage: inout OriginalTessellationProofUsage) throws -> Interval {
-        let a = try piece.inverse(u: u.lower, tolerance: tolerance, proofUsage: &proofUsage)
-        let b = try piece.inverse(u: u.upper, tolerance: tolerance, proofUsage: &proofUsage)
+                       using execution: inout OriginalQueryExecution) throws -> Interval {
+        let a = try piece.inverse(u: u.lower, tolerance: tolerance, using: &execution)
+        let b = try piece.inverse(u: u.upper, tolerance: tolerance, using: &execution)
         return try piece.value(over: ScalarInterval(lower: min(a.lower, b.lower),
-                                                    upper: max(a.upper, b.upper)), tolerance: tolerance).v
+                                                    upper: max(a.upper, b.upper)), tolerance: tolerance, using: &execution).v
     }
 
     private func validateOriginalEndpoints(boundaries: [[Piece]], input: OriginalGraphBandInput,
                                           panels: [Panel], fidelity: OriginalGraphBandInput.Fidelity,
                                           tolerance: ModelingTolerance,
-                                          proofUsage: inout OriginalTessellationProofUsage) throws {
+                                          using execution: inout OriginalQueryExecution) throws {
         for index in boundaries.indices {
+            try execution.consumeWork(1)
             let pieces = boundaries[index]
+            try execution.retainStorage(bytes: 2 * MemoryLayout<Point2D>.stride)
             let endpoints = [pieces[0].points[0], pieces[pieces.count - 1].points.last!]
             for (endpointIndex, point) in endpoints.enumerated() {
-                try proofUsage.consume(depth: 0, tolerance: tolerance)
+               try execution.consumeWork(1)
+                try execution.visitGeometricCell(depth: 0)
                 let vertex = input.sharedVertices[(index + endpointIndex) % boundaries.count]
                 guard let panel = panels.first(where: {
                     $0.parameters.u.contains(point.x) && $0.parameters.v.contains(point.y)
@@ -301,7 +358,7 @@ package struct DefaultOriginalRationalGraphBandCertifier: OriginalRationalGraphB
                     throw unsupported(tolerance, "An original boundary endpoint lacks a retained closed native support owner.")
                 }
                 let value = try panel.span.pointValue(u: point.x, v: point.y,
-                                                      on: input.surface, tolerance: tolerance)
+                                                      on: input.surface, tolerance: tolerance, using: &execution)
                 let distance = IntervalVector3DBounds(x: value.x - .exact(vertex.x),
                     y: value.y - .exact(vertex.y), z: value.z - .exact(vertex.z))
                 if distance.lengthLowerBound > fidelity.linearTolerance {
@@ -314,15 +371,16 @@ package struct DefaultOriginalRationalGraphBandCertifier: OriginalRationalGraphB
     }
 
     private func chainCover(_ chain: Chain, u: ScalarInterval, tolerance: ModelingTolerance,
-                            proofUsage: inout OriginalTessellationProofUsage) throws -> Interval {
+                            using execution: inout OriginalQueryExecution) throws -> Interval {
         var result: Interval?
         for piece in chain.pieces {
+            try execution.consumeWork(1)
             let bounds = try piece.uBounds
             let lower = max(bounds.lower, u.lower)
             let upper = min(bounds.upper, u.upper)
             if upper >= lower {
                 let value = try cover(piece, u: ScalarInterval(lower: lower, upper: upper),
-                                      tolerance: tolerance, proofUsage: &proofUsage)
+                                      tolerance: tolerance, using: &execution)
                 result = result.map { $0.union(value) } ?? value
             }
         }
@@ -333,18 +391,19 @@ package struct DefaultOriginalRationalGraphBandCertifier: OriginalRationalGraphB
     }
 
     private func retainedPanels(_ box: SurfaceParameterBox, panels: [Panel],
-                                tolerance: ModelingTolerance) throws -> [Panel] {
+                                tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> [Panel] {
         var result: [Panel] = []
         for panel in panels {
+            try execution.consumeWork(1)
             let uLower = max(box.u.lower, panel.parameters.u.lower)
             let uUpper = min(box.u.upper, panel.parameters.u.upper)
             let vLower = max(box.v.lower, panel.parameters.v.lower)
             let vUpper = min(box.v.upper, panel.parameters.v.upper)
             if uUpper >= uLower, vUpper >= vLower {
-                result.append(Panel(span: panel.span,
+                try OriginalGraphBandStorage.append(Panel(span: panel.span,
                     parameters: try SurfaceParameterBox(u: ScalarInterval(lower: uLower, upper: uUpper),
                                                         v: ScalarInterval(lower: vLower, upper: vUpper)),
-                    bounds: panel.bounds))
+                    bounds: panel.bounds), to: &result, using: &execution)
             }
         }
         guard result.isEmpty == false else {
@@ -357,22 +416,21 @@ package struct DefaultOriginalRationalGraphBandCertifier: OriginalRationalGraphB
                              entry: SurfaceParameterBox, exit: SurfaceParameterBox,
                              input: OriginalGraphBandInput, panels: [Panel],
                              tolerance: ModelingTolerance,
-                             proofUsage: inout OriginalTessellationProofUsage) throws -> Receipt.JoinCell {
-        let selected = try retainedPanels(box, panels: panels, tolerance: tolerance)
+                             using execution: inout OriginalQueryExecution) throws -> Receipt.JoinCell {
+        let selected = try retainedPanels(box, panels: panels, tolerance: tolerance, using: &execution)
         var error = 0.0
         var originalJets: [SurfaceIntervalVectorJet] = []
         for panel in selected {
-            // Pay one preparation operation, sixty original scalar endpoints
-            // (three coordinates, ten interval fields), and one retained entry
-            // before work or storage, using the caller's unchanged shared ledger.
-            for _ in 0..<62 { try proofUsage.consume(depth: 0, tolerance: tolerance) }
+            try execution.consumeWork(1)
+            // Native preparation owns its numeric bytes; this owner admits the retained jet array.
+            try execution.visitGeometricCell(depth: 0)
             // The full closed jet retains every original parameter and owning side.
             let jet = try panel.span.intervalJet(overClosedBox: panel.parameters,
-                                                 on: input.surface, tolerance: tolerance)
+                                                 on: input.surface, tolerance: tolerance, using: &execution)
             let distance = IntervalVector3DBounds(x: jet.x.value - .exact(vertex.x),
                 y: jet.y.value - .exact(vertex.y), z: jet.z.value - .exact(vertex.z)).lengthUpperBound
             error = max(error, distance)
-            originalJets.append(jet)
+            try OriginalGraphBandStorage.append(jet, to: &originalJets, using: &execution)
         }
         guard error.isFinite else {
             throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
@@ -384,9 +442,9 @@ package struct DefaultOriginalRationalGraphBandCertifier: OriginalRationalGraphB
     }
 
     private func inversePoint(_ piece: Piece, u: Double, tolerance: ModelingTolerance,
-                              proofUsage: inout OriginalTessellationProofUsage) throws -> SurfaceParameterBox {
+                              using execution: inout OriginalQueryExecution) throws -> SurfaceParameterBox {
         let value = try cover(piece, u: ScalarInterval(lower: u, upper: u),
-                              tolerance: tolerance, proofUsage: &proofUsage)
+                              tolerance: tolerance, using: &execution)
         return try SurfaceParameterBox(u: ScalarInterval(lower: u, upper: u),
                                         v: ScalarInterval(lower: value.lower, upper: value.upper))
     }
@@ -394,7 +452,7 @@ package struct DefaultOriginalRationalGraphBandCertifier: OriginalRationalGraphB
     private func internalJoin(a: Piece, b: Piece, isLower: Bool, other: Chain,
                               vertex: Point3D, input: OriginalGraphBandInput, panels: [Panel],
                               fidelity: OriginalGraphBandInput.Fidelity, tolerance: ModelingTolerance,
-                              proofUsage: inout OriginalTessellationProofUsage) throws -> Join {
+                              using execution: inout OriginalQueryExecution) throws -> Join {
         let aBounds = try a.uBounds
         let bBounds = try b.uBounds
         let minimumEndpoint = min(aBounds.upper, bBounds.lower)
@@ -405,20 +463,21 @@ package struct DefaultOriginalRationalGraphBandCertifier: OriginalRationalGraphB
             throw unsupported(tolerance, "Original graph joins have no ordered incident tail neighborhood.")
         }
         for depth in 0...32 {
-            try proofUsage.consume(depth: depth, tolerance: tolerance)
+           try execution.consumeWork(1)
+            try execution.visitGeometricCell(depth: depth)
             let aRange = try ScalarInterval(lower: lower, upper: aBounds.upper)
             let bRange = try ScalarInterval(lower: bBounds.lower, upper: upper)
-            let v = try cover(a, u: aRange, tolerance: tolerance, proofUsage: &proofUsage)
-                .union(cover(b, u: bRange, tolerance: tolerance, proofUsage: &proofUsage))
+            let v = try cover(a, u: aRange, tolerance: tolerance, using: &execution)
+                .union(cover(b, u: bRange, tolerance: tolerance, using: &execution))
             let box = try SurfaceParameterBox(u: ScalarInterval(lower: lower, upper: upper),
                                               v: ScalarInterval(lower: v.lower, upper: v.upper))
-            let otherV = try chainCover(other, u: box.u, tolerance: tolerance, proofUsage: &proofUsage)
+            let otherV = try chainCover(other, u: box.u, tolerance: tolerance, using: &execution)
             let separated = isLower ? v.upper < otherV.lower : otherV.upper < v.lower
-            let entry = try inversePoint(a, u: lower, tolerance: tolerance, proofUsage: &proofUsage)
-            let exit = try inversePoint(b, u: upper, tolerance: tolerance, proofUsage: &proofUsage)
+            let entry = try inversePoint(a, u: lower, tolerance: tolerance, using: &execution)
+            let exit = try inversePoint(b, u: upper, tolerance: tolerance, using: &execution)
             let receipt = try joinReceipt(box: box, vertex: vertex, entry: entry, exit: exit,
                                           input: input, panels: panels, tolerance: tolerance,
-                                          proofUsage: &proofUsage)
+                                          using: &execution)
             let error = (Interval.exact(2) * .exact(receipt.originalPositionErrorUpperBound)).upper
             let tangentV = receipt.panels.map { $0.bounds.tangentVMagnitudeUpperBound }.max()!
             let stripUncertainty = (Interval.exact(tangentV)
@@ -446,7 +505,7 @@ package struct DefaultOriginalRationalGraphBandCertifier: OriginalRationalGraphB
     private func tipJoin(isLeft: Bool, lower: Chain, upper: Chain,
                          input: OriginalGraphBandInput, panels: [Panel],
                          fidelity: OriginalGraphBandInput.Fidelity, tolerance: ModelingTolerance,
-                         proofUsage: inout OriginalTessellationProofUsage) throws -> Join {
+                         using execution: inout OriginalQueryExecution) throws -> Join {
         let a = isLeft ? lower.pieces[0] : lower.pieces[lower.pieces.count - 1]
         let b = isLeft ? upper.pieces[0] : upper.pieces[upper.pieces.count - 1]
         let aBounds = try a.uBounds
@@ -459,22 +518,23 @@ package struct DefaultOriginalRationalGraphBandCertifier: OriginalRationalGraphB
             : endVertex(use, count: input.boundaries.count)
         let vertex = input.sharedVertices[index]
         for depth in 0...32 {
-            try proofUsage.consume(depth: depth, tolerance: tolerance)
+           try execution.consumeWork(1)
+            try execution.visitGeometricCell(depth: depth)
             guard isLeft ? station > incidentEnd : station < incidentEnd else { break }
             let ar = try ScalarInterval(lower: isLeft ? aBounds.lower : station,
                                         upper: isLeft ? station : aBounds.upper)
             let br = try ScalarInterval(lower: isLeft ? bBounds.lower : station,
                                         upper: isLeft ? station : bBounds.upper)
-            let v = try cover(a, u: ar, tolerance: tolerance, proofUsage: &proofUsage)
-                .union(cover(b, u: br, tolerance: tolerance, proofUsage: &proofUsage))
+            let v = try cover(a, u: ar, tolerance: tolerance, using: &execution)
+                .union(cover(b, u: br, tolerance: tolerance, using: &execution))
             let box = try SurfaceParameterBox(
                 u: ScalarInterval(lower: isLeft ? endpoint : station, upper: isLeft ? station : endpoint),
                 v: ScalarInterval(lower: v.lower, upper: v.upper))
-            let entry = try inversePoint(a, u: station, tolerance: tolerance, proofUsage: &proofUsage)
-            let exit = try inversePoint(b, u: station, tolerance: tolerance, proofUsage: &proofUsage)
+            let entry = try inversePoint(a, u: station, tolerance: tolerance, using: &execution)
+            let exit = try inversePoint(b, u: station, tolerance: tolerance, using: &execution)
             let receipt = try joinReceipt(box: box, vertex: vertex, entry: entry, exit: exit,
                                           input: input, panels: panels, tolerance: tolerance,
-                                          proofUsage: &proofUsage)
+                                          using: &execution)
             let error = (Interval.exact(2) * .exact(receipt.originalPositionErrorUpperBound)).upper
             if entry.v.upper < exit.v.lower, error < fidelity.linearTolerance {
                 return Join(box: box, vertex: vertex, lowerConnector: nil, upperConnector: nil,
@@ -492,23 +552,27 @@ package struct DefaultOriginalRationalGraphBandCertifier: OriginalRationalGraphB
     private func referenceCells(lower: Chain, upper: Chain, joins: [Join],
                                 input: OriginalGraphBandInput, panels: [Panel],
                                 tolerance: ModelingTolerance,
-                                proofUsage: inout OriginalTessellationProofUsage) throws -> [Receipt.ReferenceCell] {
+                                using execution: inout OriginalQueryExecution) throws -> [Receipt.ReferenceCell] {
         let left = joins[0].box.u.upper
         let right = joins[1].box.u.lower
         guard right > left else {
             throw unsupported(tolerance, "Original tip uncertainty does not leave a separated graph-band interior.")
         }
-        let stationCount = (lower.pieces.count + upper.pieces.count + panels.count + joins.count)
-            .multipliedReportingOverflow(by: 2)
-        guard stationCount.overflow == false, stationCount.partialValue <= proofUsage.remainingCellCount else {
+        let chainCount = try exactScalarCount(lower.pieces.count, upper.pieces.count)
+        let ownerCount = try exactScalarCount(panels.count, joins.count)
+        let stationCount = try exactScalarCount(chainCount, ownerCount).multipliedReportingOverflow(by: 2)
+        guard stationCount.overflow == false, stationCount.partialValue <= execution.availableWork else {
             throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
                               message: "Original graph reference stations exceed the shared proof budget.")
         }
-        var stations: Set<Double> = [left, right]
-        func retain(_ value: Double) {
-            if value > left, value < right { stations.insert(value) }
+        var stations = Set<Double>()
+        try OriginalGraphBandStorage.insert(left, in: &stations, using: &execution)
+        try OriginalGraphBandStorage.insert(right, in: &stations, using: &execution)
+        func retain(_ value: Double, using execution: inout OriginalQueryExecution) throws {
+            if value > left, value < right { try OriginalGraphBandStorage.insert(value, in: &stations, using: &execution) }
         }
-        func retainOriginalBreak(_ value: Double, isLower: Bool) {
+        func retainOriginalBreak(_ value: Double, isLower: Bool, using execution: inout OriginalQueryExecution) throws {
+            try execution.consumeWork(joins.count)
             // Source tails remain retained separately. A break hidden by this
             // chain's connector does not change its active reference law.
             let hidden = joins.contains { join in
@@ -517,39 +581,49 @@ package struct DefaultOriginalRationalGraphBandCertifier: OriginalRationalGraphB
                 guard case let .connector(domain, _, _, _)? = reference else { return false }
                 return value > domain.lower && value < domain.upper
             }
-            if hidden == false { retain(value) }
+            if hidden == false { try retain(value, using: &execution) }
         }
+        try execution.retainStorage(bytes: 2 * MemoryLayout<(Chain, Bool)>.stride)
         for (chain, isLower) in [(lower, true), (upper, false)] {
+            try execution.consumeWork(1)
             for piece in chain.pieces {
+                try execution.consumeWork(1)
                 let bounds = try piece.uBounds
-                retainOriginalBreak(bounds.lower, isLower: isLower)
-                retainOriginalBreak(bounds.upper, isLower: isLower)
+                try retainOriginalBreak(bounds.lower, isLower: isLower, using: &execution)
+                try retainOriginalBreak(bounds.upper, isLower: isLower, using: &execution)
             }
         }
         for panel in panels {
-            retain(panel.parameters.u.lower)
-            retain(panel.parameters.u.upper)
+            try execution.consumeWork(1)
+            try retain(panel.parameters.u.lower, using: &execution)
+            try retain(panel.parameters.u.upper, using: &execution)
         }
         for join in joins {
-            retain(join.box.u.lower)
-            retain(join.box.u.upper)
+            try execution.consumeWork(1)
+            try retain(join.box.u.lower, using: &execution)
+            try retain(join.box.u.upper, using: &execution)
         }
-        let ordered = stations.sorted()
+        let ordered = try OriginalGraphBandStorage.ordered(stations, using: &execution, less: <)
         struct Cell {
             let u: ScalarInterval
             let depth: Int
         }
         var pending: [Cell] = []
         for index in 1..<ordered.count {
-            pending.append(Cell(u: try ScalarInterval(lower: ordered[index - 1], upper: ordered[index]), depth: 0))
+            try execution.consumeWork(1)
+            try OriginalGraphBandStorage.append(Cell(u: try ScalarInterval(lower: ordered[index - 1], upper: ordered[index]), depth: 0), to: &pending, using: &execution)
         }
         var result: [Receipt.ReferenceCell] = []
         while let cell = pending.popLast() {
-            try proofUsage.consume(depth: cell.depth, tolerance: tolerance)
-            let lowerReference = try reference(lower, isLower: true, over: cell.u, joins: joins, tolerance: tolerance)
-            let upperReference = try reference(upper, isLower: false, over: cell.u, joins: joins, tolerance: tolerance)
-            let lowerJet = try lowerReference.graphJet(over: cell.u, tolerance: tolerance, proofUsage: &proofUsage)
-            let upperJet = try upperReference.graphJet(over: cell.u, tolerance: tolerance, proofUsage: &proofUsage)
+            try execution.visitGeometricCell(depth: cell.depth)
+            let lowerReference = try reference(lower, isLower: true, over: cell.u, joins: joins, tolerance: tolerance, using: &execution)
+            let upperReference = try reference(upper, isLower: false, over: cell.u, joins: joins, tolerance: tolerance, using: &execution)
+            let lowerJet = try execution.withGeometricDepthOffset(cell.depth) { execution in
+                try lowerReference.graphJet(over: cell.u, tolerance: tolerance, using: &execution)
+            }
+            let upperJet = try execution.withGeometricDepthOffset(cell.depth) { execution in
+                try upperReference.graphJet(over: cell.u, tolerance: tolerance, using: &execution)
+            }
             let originalLower = lowerReference.originalValueCover(reference: lowerJet.v)
             let originalUpper = upperReference.originalValueCover(reference: upperJet.v)
             guard let panel = panels.first(where: {
@@ -577,11 +651,11 @@ package struct DefaultOriginalRationalGraphBandCertifier: OriginalRationalGraphB
                     throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
                                       message: "Original full-strip uncertainty exceeded finite fidelity arithmetic.")
                 }
-                result.append(Receipt.ReferenceCell(u: cell.u, parameters: parameters,
+                try OriginalGraphBandStorage.append(Receipt.ReferenceCell(u: cell.u, parameters: parameters,
                     nativePanel: Panel(span: panel.span, parameters: parameters, bounds: panel.bounds),
                     bounds: bounds, boundaryUncertaintyUpperBound: uncertainty,
                     boundaryNormalUncertaintyUpperBound: normalUncertainty,
-                    lowerPiece: lowerReference, upperPiece: upperReference))
+                    lowerPiece: lowerReference, upperPiece: upperReference), to: &result, using: &execution)
                 continue
             }
             guard cell.depth < 32 else {
@@ -593,21 +667,23 @@ package struct DefaultOriginalRationalGraphBandCertifier: OriginalRationalGraphB
                 throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
                                   message: "Original graph separation exhausted representable U subdivision.")
             }
-            pending.append(Cell(u: try ScalarInterval(lower: cell.u.lower, upper: midpoint), depth: cell.depth + 1))
-            pending.append(Cell(u: try ScalarInterval(lower: midpoint, upper: cell.u.upper), depth: cell.depth + 1))
+            try OriginalGraphBandStorage.append(Cell(u: try ScalarInterval(lower: cell.u.lower, upper: midpoint), depth: cell.depth + 1), to: &pending, using: &execution)
+            try OriginalGraphBandStorage.append(Cell(u: try ScalarInterval(lower: midpoint, upper: cell.u.upper), depth: cell.depth + 1), to: &pending, using: &execution)
         }
-        return result.sorted { $0.u.lower < $1.u.lower }
+        return try OriginalGraphBandStorage.ordered(result, using: &execution, less: { $0.u.lower < $1.u.lower })
     }
 
     private func reference(_ chain: Chain, isLower: Bool, over u: ScalarInterval,
-                           joins: [Join], tolerance: ModelingTolerance) throws -> OriginalGraphBandReference {
+                           joins: [Join], tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> OriginalGraphBandReference {
         for join in joins where join.isTip == false {
+            try execution.consumeWork(1)
             if u.lower >= join.box.u.lower, u.upper <= join.box.u.upper,
                let connector = isLower ? join.lowerConnector : join.upperConnector {
                 return connector
             }
         }
         for piece in chain.pieces {
+            try execution.consumeWork(1)
             let bounds = try piece.uBounds
             if u.lower >= bounds.lower, u.upper <= bounds.upper { return .original(piece) }
         }

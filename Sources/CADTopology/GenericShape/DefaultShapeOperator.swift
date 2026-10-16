@@ -70,12 +70,12 @@ public struct DefaultShapeOperator: ShapeOperating {
         by transforms: [AffineTransform3D],
         maximumSubdivisionDepth: Int,
         remainingSourceDepth: Int,
-        consumeWork: @escaping @Sendable (Int) throws -> Void
+        using execution: inout OriginalQueryExecution
     ) throws -> BRepModel {
         try ShapeAffineImageBuilder().transform(validatedModel.model,
             by: transforms, tolerance: validatedModel.tolerance,
             maximumSubdivisionDepth: maximumSubdivisionDepth,
-            remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork)
+            remainingSourceDepth: remainingSourceDepth, using: &execution)
     }
 
     public func transformed(
@@ -83,13 +83,12 @@ public struct DefaultShapeOperator: ShapeOperating {
         by operationWord: OriginalAffineOperationWord,
         maximumSubdivisionDepth: Int,
         remainingSourceDepth: Int,
-        consumeWork: @escaping @Sendable (Int) throws -> Void,
-        consumeStorage: (@Sendable (Int) throws -> Void)? = nil
+        using execution: inout OriginalQueryExecution
     ) throws -> BRepModel {
         try ShapeAffineWordImageBuilder().transform(validatedModel.model,
             by: operationWord, tolerance: validatedModel.tolerance,
             maximumSubdivisionDepth: maximumSubdivisionDepth,
             remainingSourceDepth: remainingSourceDepth,
-            consumeWork: consumeWork, consumeStorage: consumeStorage)
+            using: &execution)
     }
 }

@@ -11,5 +11,5 @@ public struct OriginalRootSpanDrawingPath: Sendable {
     public let operationWord: OriginalAffineOperationWord
     public let maximumDeviation: Double
     public let samples: [Sample]
-    let accountingOwner: DrawingExchangeUsage
+    let accountingOwner: DrawingExchangeOwner
 }

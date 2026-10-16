@@ -23,7 +23,7 @@ public struct OriginalCertifiedConeConeFullSnapshotProvider: OriginalSourceSnaps
         throws(OriginalSourceIssuanceFailure) -> OriginalSourceSnapshot<OriginalCertifiedConeConeFullSnapshot> {
         let input = copy input
         do {
-            return try OriginalSourceProofAdmission<A>.withBorrow(&a) { a in
+            return try a.withProofScope { a in
                 try a.checkpoint(); try a.consumeWork(1)
                 guard Self.supports(input), case .certifiedIntersection(.coneCone(let original)) = input,
                     case .analytic(.cone(_, _, let alpha)) = original.referenceSurface,

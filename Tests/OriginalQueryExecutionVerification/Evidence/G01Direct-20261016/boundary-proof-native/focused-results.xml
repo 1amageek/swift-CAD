@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="TestResults" errors="0" tests="5" failures="0" skipped="0" time="0.006449958">
+    <testcase classname="FocusedTests.OriginalNativeBoundaryCorrespondenceTests" name="nearPayloadAndForeignDirectedMapsCannotMintTheZeroProof(_:)" time="0.003301167" />
+    <testcase classname="FocusedTests.OriginalNativeBoundaryCorrespondenceTests" name="exactCallerWorkAndBytesAndRetainedInputLifetimeRemainObservable()" time="0.003479125" />
+    <testcase classname="FocusedTests.OriginalNativeBoundaryCorrespondenceTests" name="allFourBoundariesAndBothStoredAndTraversalDirectionsAreExactlyZero(_:)" time="0.00619525" />
+    <testcase classname="FocusedTests.OriginalNativeBoundaryCorrespondenceTests" name="nativeArchBottomIsoUsesActualBoundedCorrespondence()" time="0.002524375" />
+    <testcase classname="FocusedTests.OriginalNativeBoundaryCorrespondenceTests" name="entryAndTerminalCancellationCannotPublishZero()" time="0.002832541" />
+  </testsuite>
+</testsuites>

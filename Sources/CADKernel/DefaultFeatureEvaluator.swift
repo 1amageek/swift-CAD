@@ -63,7 +63,8 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         naturalSheetExtensionLimits: NaturalSheetExtensionLimits = NaturalSheetExtensionLimits(),
         offsetFeasibilityLimits: OffsetFeasibilityLimits = OffsetFeasibilityLimits(),
         edgeOffsetConversionLimits: EdgeOffsetConversionLimits? = nil,
-        bridgeSourceAdmission: GeometryConversionAdmission? = nil
+        bridgeSourceBudget: OriginalQueryBudget? = nil,
+        bridgeSourceLimits: OriginalQueryExecutionLimits? = nil
     ) {
         self.nativeSurfacePositionCertificationLimits = nativeSurfacePositionCertificationLimits
         let offsetFeasibilityValidator = DefaultOffsetResultValidator(limits: offsetFeasibilityLimits)
@@ -213,7 +214,7 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         self.bridgeCurveEvaluator = BridgeCurveFeatureEvaluator()
         self.bridgeSurfaceEvaluator = BridgeSurfaceFeatureEvaluator(
             wallTrimmer: DefaultBridgeSurfaceWallTrimmer(sewer: sewer),
-            sourceAdmission: bridgeSourceAdmission
+            sourceBudget: bridgeSourceBudget, sourceLimits: bridgeSourceLimits
         )
         self.curveEditEvaluator = CurveEditFeatureEvaluator()
         self.curveOffsetEvaluator = CurveOffsetFeatureEvaluator(resolver: resolver)

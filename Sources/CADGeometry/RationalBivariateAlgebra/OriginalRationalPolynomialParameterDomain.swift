@@ -17,7 +17,7 @@ package struct OriginalRationalPolynomialParameterDomain: Sendable {
     package let spans: [Span]
     package let isolatedStationIndices: [Int]
 
-    package static func clipped<B: RationalAlgebraAdmitting>(u: ExactBivariatePolynomial,
+    package static func clipped<B: ExactScalarAdmission & ~Copyable>(u: ExactBivariatePolynomial,
         v: ExactBivariatePolynomial, originalDomain: SurfaceParameterBox,
         lower: ExactRationalCoefficient, upper: ExactRationalCoefficient,
         maximumDepth: Int, usage: inout B, interiorStations: [ExactRationalCoefficient] = []) throws -> Self {
@@ -25,7 +25,7 @@ package struct OriginalRationalPolynomialParameterDomain: Sendable {
               try upper.subtracting(lower, usage: &usage).isPositive else {
             throw rationalAlgebraFailure("Original polynomial parameter clipping needs a univariate map and increasing exact cover.")
         }
-        try usage.retainExactStorage(4)
+        try RationalAlgebraStorage.retain(4, of: ExactBivariatePolynomial.self, usage: &usage)
         let boundaries = try [u.subtracting(.constant(.originalDouble(originalDomain.u.lower, usage: &usage), usage: &usage), usage: &usage),
             u.subtracting(.constant(.originalDouble(originalDomain.u.upper, usage: &usage), usage: &usage), usage: &usage),
             v.subtracting(.constant(.originalDouble(originalDomain.v.lower, usage: &usage), usage: &usage), usage: &usage),
@@ -34,7 +34,7 @@ package struct OriginalRationalPolynomialParameterDomain: Sendable {
         for boundary in boundaries where boundary.uDegree > 0 {
             product = try product.multiplied(by: boundary, usage: &usage)
         }
-        try usage.retainExactStorage(2)
+        try RationalAlgebraStorage.retain(2, of: ExactMonotoneGraphEndpoint.self, usage: &usage)
         var endpoints: [ExactMonotoneGraphEndpoint] = [.authored(lower), .authored(upper)]
         if product.uDegree > 0 {
             for isolation in try ExactUnivariateRootIsolator().isolate(product, lower: lower,
@@ -43,11 +43,11 @@ package struct OriginalRationalPolynomialParameterDomain: Sendable {
                     polynomial: product, isolation: isolation, usage: &usage))
                 if try endpoint.hasSameValue(as: .authored(lower), maximumDepth: maximumDepth, usage: &usage)
                     || endpoint.hasSameValue(as: .authored(upper), maximumDepth: maximumDepth, usage: &usage) { continue }
-                try usage.retainExactStorage(1); endpoints.append(endpoint)
+                try RationalAlgebraStorage.retain(1, of: ExactMonotoneGraphEndpoint.self, usage: &usage); endpoints.append(endpoint)
             }
         }
         for station in interiorStations {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             guard try station.subtracting(lower, usage: &usage).isPositive,
                 try upper.subtracting(station, usage: &usage).isPositive else { continue }
             let endpoint = ExactMonotoneGraphEndpoint.authored(station)
@@ -57,7 +57,7 @@ package struct OriginalRationalPolynomialParameterDomain: Sendable {
                     exists = true; break
                 }
             }
-            if !exists { try usage.retainExactStorage(1); endpoints.append(endpoint) }
+            if !exists { try RationalAlgebraStorage.retain(1, of: ExactMonotoneGraphEndpoint.self, usage: &usage); endpoints.append(endpoint) }
         }
         for i in 1..<endpoints.count {
             var j = i
@@ -66,7 +66,7 @@ package struct OriginalRationalPolynomialParameterDomain: Sendable {
                 let before = order.isNegative || order.isZero && endpoints[j].lower == endpoints[j].upper
                     && endpoints[j - 1].lower != endpoints[j - 1].upper
                 if !before { break }
-                try usage.consumeExactWork(1); endpoints.swapAt(j, j - 1); j -= 1
+                try usage.consumeWork(1); endpoints.swapAt(j, j - 1); j -= 1
             }
         }
         let two = try ExactRationalCoefficient.natural(2, usage: &usage)
@@ -91,10 +91,10 @@ package struct OriginalRationalPolynomialParameterDomain: Sendable {
             }
             return true
         }
-        try usage.retainExactStorage(endpoints.count)
+        try RationalAlgebraStorage.retain(endpoints.count, of: Station.self, usage: &usage)
         var stations: [Station] = []
         for endpoint in endpoints { stations.append(try .init(parameter: endpoint, isInside: inside(endpoint, usage: &usage))) }
-        try usage.retainExactStorage(stations.count)
+        try RationalAlgebraStorage.retain(stations.count, of: Bool.self, usage: &usage)
         var incident = [Bool](repeating: false, count: stations.count)
         var spans: [Span] = []
         for index in 0..<(stations.count - 1) {
@@ -104,13 +104,13 @@ package struct OriginalRationalPolynomialParameterDomain: Sendable {
                 guard stations[index].isInside, stations[index + 1].isInside else {
                     throw rationalAlgebraFailure("Original closed polynomial parameter sector lost its endpoint incidence.")
                 }
-                try usage.retainExactStorage(1); spans.append(.init(first: index, last: index + 1))
+                try RationalAlgebraStorage.retain(1, of: Span.self, usage: &usage); spans.append(.init(first: index, last: index + 1))
                 incident[index] = true; incident[index + 1] = true
             }
         }
         var isolated: [Int] = []
         for index in stations.indices where stations[index].isInside && !incident[index] {
-            try usage.retainExactStorage(1); isolated.append(index)
+            try RationalAlgebraStorage.retain(1, of: Station.self, usage: &usage); isolated.append(index)
         }
         return Self(u: u, v: v, originalDomain: originalDomain, stations: stations,
             spans: spans, isolatedStationIndices: isolated)

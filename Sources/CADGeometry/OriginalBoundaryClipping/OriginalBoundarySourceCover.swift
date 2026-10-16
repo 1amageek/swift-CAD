@@ -13,8 +13,8 @@ struct OriginalBoundarySourceCover {
     let parameterDepth: Int
     let coefficientDepth: Int
 
-    init(_ source: OriginalNativeBoundaryDomain.Source, maximumDepth: Int,
-        maximumCoefficientDepth: Int, usage: inout OriginalRelationUsage) throws {
+    init<A: ExactScalarAdmission & ~Copyable>(_ source: OriginalNativeBoundaryDomain.Source, maximumDepth: Int,
+        maximumCoefficientDepth: Int, usage: inout A) throws {
         try intersectionAlgebraStep(&usage)
         let partition: OriginalRationalIntersectionCells?
         var rawLaws: [ExactIntersectionPolynomial] = []
@@ -25,9 +25,11 @@ struct OriginalBoundarySourceCover {
         case .curveSurface(let raw):
             partition = raw.partition
             for chart in raw.charts {
+                try intersectionAlgebraStep(&usage)
                 try RationalAlgebraStorage.retain(try rationalAlgebraCount(chart.system.equations.count, chart.system.denominatorGuards.count),
                     of: ExactIntersectionPolynomial.self, usage: &usage)
-                rawLaws.append(contentsOf: chart.system.equations); rawLaws.append(contentsOf: chart.system.denominatorGuards)
+                for law in chart.system.equations { try intersectionAlgebraStep(&usage); rawLaws.append(law) }
+                for law in chart.system.denominatorGuards { try intersectionAlgebraStep(&usage); rawLaws.append(law) }
             }
             try RationalAlgebraStorage.retain(raw.cells.count, of: Identifier.self, usage: &usage)
             try RationalAlgebraStorage.retain(raw.cells.count, of: OriginalRationalIntersectionSystem.self, usage: &usage)
@@ -39,6 +41,7 @@ struct OriginalBoundarySourceCover {
                 systems.append(raw.charts[cell.sourceChartIndex].system)
                 owners.append(.curveSurface(cell.identifier))
                 for value in cell.sample {
+                    try intersectionAlgebraStep(&usage)
                     depth = max(depth, value.inheritedDepth, value.original.context.depth)
                     coefficientDepth = max(coefficientDepth, value.inheritedCoefficientDepth, value.original.context.coefficientDepth)
                 }
@@ -50,10 +53,11 @@ struct OriginalBoundarySourceCover {
                 let system = proof.system
                 try RationalAlgebraStorage.retain(try rationalAlgebraCount(system.equations.count, system.denominatorGuards.count),
                     of: ExactIntersectionPolynomial.self, usage: &usage)
-                rawLaws.append(contentsOf: system.equations); rawLaws.append(contentsOf: system.denominatorGuards)
+                for law in system.equations { try intersectionAlgebraStep(&usage); rawLaws.append(law) }
+                for law in system.denominatorGuards { try intersectionAlgebraStep(&usage); rawLaws.append(law) }
             case .common(let proof):
                 try RationalAlgebraStorage.retain(proof.originalLaws.count, of: ExactIntersectionPolynomial.self, usage: &usage)
-                rawLaws.append(contentsOf: proof.originalLaws)
+                for law in proof.originalLaws { try intersectionAlgebraStep(&usage); rawLaws.append(law) }
             }
             depth = try raw.retainedParameterDepth(usage: &usage)
             try RationalAlgebraStorage.retain(raw.cellCount, of: Identifier.self, usage: &usage)
@@ -72,6 +76,7 @@ struct OriginalBoundarySourceCover {
                     systems.append(proof.charts[chart].system)
                 }
                 for value in cell.parameterSample {
+                    try intersectionAlgebraStep(&usage)
                     depth = max(depth, value.inheritedDepth, value.original.context.depth)
                     coefficientDepth = max(coefficientDepth, value.inheritedCoefficientDepth, value.original.context.coefficientDepth)
                 }

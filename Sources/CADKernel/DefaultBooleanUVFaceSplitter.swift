@@ -32,13 +32,33 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
     )
   }
 
+  public func splitGraph(intersectionGraph: BooleanIntersectionGraph,
+    model: BRepModel, tolerance: ModelingTolerance) throws -> BooleanUVSplitGraph {
+    var execution = try OriginalQueryExecution.kernelOriginal()
+    return try splitGraph(intersectionGraph: intersectionGraph, model: model,
+      tolerance: tolerance, using: &execution)
+  }
+
   public func splitGraph(
     intersectionGraph: BooleanIntersectionGraph,
     model: BRepModel,
     tolerance: ModelingTolerance
+  ,
+    using execution: inout OriginalQueryExecution
   ) throws -> BooleanUVSplitGraph {
     do {
-      try intersectionGraph.validate(in: model, tolerance: tolerance)
+      execution.context = execution.context.at(stage: .refinement)
+      let graph = try resolve(using: &execution)
+      execution.context = execution.context.at(stage: .publication)
+      try execution.checkpoint()
+      return graph
+    } catch {
+      throw OriginalQueryFailure.published(error, context: execution.context, tolerance: tolerance)
+    }
+    func resolve(using execution: inout OriginalQueryExecution) throws -> BooleanUVSplitGraph {
+    try execution.consumeWork(1)
+    do {
+      try intersectionGraph.validate(in: model, tolerance: tolerance, using: &execution)
     } catch {
       throw contextualized(
         error,
@@ -68,15 +88,15 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         try planeGeometry(
           targetSurface,
           tolerance: tolerance
-        ) == nil
+        , using: &execution) == nil
           || planeGeometry(
             toolSurface,
             tolerance: tolerance
-          ) == nil
+          , using: &execution) == nil
       else {
         continue
       }
-      let pairContacts = contacts(for: pair, in: intersectionGraph)
+      let pairContacts = try contacts(for: pair, in: intersectionGraph, using: &execution)
       for intersection in intersectionGraph.faceIntersections
       where intersection.facePair == pair {
         guard case .curve(let curveIntersection) = intersection.geometry else {
@@ -97,7 +117,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
             contactRegistry: &contactRegistry,
             registeredPairCurves: &registeredPairCurves,
             tolerance: tolerance
-          )
+          , using: &execution)
         } catch {
           throw contextualized(
             error,
@@ -117,7 +137,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
       model: model,
       contactRegistry: &contactRegistry,
       tolerance: tolerance
-    )
+    , using: &execution)
     for pair in intersectionGraph.facePairs {
       guard let targetFace = model.faces[pair.targetFaceID],
         let toolFace = model.faces[pair.toolFaceID],
@@ -135,11 +155,11 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         let targetPlane = try planeGeometry(
           targetSurface,
           tolerance: tolerance
-        ),
+        , using: &execution),
         let toolPlane = try planeGeometry(
           toolSurface,
           tolerance: tolerance
-        )
+        , using: &execution)
       else {
         do {
           if let curvedSplit = try curvedSplit(
@@ -155,8 +175,8 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
             contactRegistry: &contactRegistry,
             registeredPairCurves: &registeredPairCurves,
             tolerance: tolerance
-          ) {
-            splits.append(curvedSplit)
+          , using: &execution) {
+            try OriginalParameterQueryStorage.append(curvedSplit, to: &splits, using: &execution)
           }
         } catch {
           throw contextualized(
@@ -168,7 +188,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         continue
       }
       let lineDirection = targetPlane.normal.cross(toolPlane.normal)
-      let contacts = contacts(for: pair, in: intersectionGraph)
+      let contacts = try contacts(for: pair, in: intersectionGraph, using: &execution)
       if lineDirection.length <= tolerance.angle {
         let separation = abs((toolPlane.origin - targetPlane.origin).dot(targetPlane.normal))
         if separation <= tolerance.distance,
@@ -181,14 +201,14 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
             pair.toolFaceID,
             in: model,
             tolerance: tolerance
-          )
+          , using: &execution)
         {
-          splits.append(
+          try OriginalParameterQueryStorage.append(
             try split(
               facePair: pair,
               geometries: [.coincident],
               tolerance: tolerance
-            ))
+            , using: &execution), to: &splits, using: &execution)
         }
         continue
       }
@@ -201,7 +221,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         containmentCache: &containmentCache,
         containmentPreparationCache: &containmentPreparationCache,
         tolerance: tolerance
-      )
+      , using: &execution)
       guard points.isEmpty == false else { continue }
       let direction = try lineDirection.normalized(tolerance: tolerance.distance)
       let ordered = points.sorted {
@@ -218,56 +238,57 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         // is constant on each open interval, including intervals across holes.
         if try contains(midpoint, faceID: pair.targetFaceID, surface: targetSurface,
             model: model, cache: &containmentCache, preparationCache: &containmentPreparationCache,
-            tolerance: tolerance),
+            tolerance: tolerance, using: &execution),
            try contains(midpoint, faceID: pair.toolFaceID, surface: toolSurface,
             model: model, cache: &containmentCache, preparationCache: &containmentPreparationCache,
-            tolerance: tolerance) {
-          geometries.append(.transverseSegment(start: first, end: last))
+            tolerance: tolerance, using: &execution) {
+          try OriginalParameterQueryStorage.append(.transverseSegment(start: first, end: last), to: &geometries, using: &execution)
           incident[index] = true
           incident[index + 1] = true
         }
       }
       for index in ordered.indices where !incident[index] {
-        geometries.append(.tangent(ordered[index]))
+        try OriginalParameterQueryStorage.append(.tangent(ordered[index]), to: &geometries, using: &execution)
       }
       if !geometries.isEmpty {
-        splits.append(try split(facePair: pair, geometries: geometries, tolerance: tolerance))
+        try OriginalParameterQueryStorage.append(try split(facePair: pair, geometries: geometries, tolerance: tolerance, using: &execution), to: &splits, using: &execution)
       }
     }
     let graph = BooleanUVSplitGraph(splits: splits)
-    try graph.validate(intersectionGraph: intersectionGraph, model: model, tolerance: tolerance)
+    try graph.validate(intersectionGraph: intersectionGraph, model: model, tolerance: tolerance, using: &execution)
     return graph
+      }
   }
 
   private func contextualized(
-    _ error: Error,
-    stage: String,
-    tolerance: ModelingTolerance
-  ) -> KernelError {
-    let wrapped = KernelError.wrapping(
-      error,
-      phase: .topology,
-      tolerance: tolerance
-    )
-    return KernelError(
-      phase: wrapped.phase,
-      code: wrapped.code,
-      featureID: wrapped.featureID,
-      subshapeID: wrapped.subshapeID,
-      residual: wrapped.residual,
-      tolerance: wrapped.tolerance ?? tolerance,
-      message: "Boolean UV face splitting \(stage) failed: \(wrapped.message)"
-    )
+      _ error: any Error,
+      stage: String,
+      tolerance: ModelingTolerance
+  ) -> any Error {
+      let wrapped = KernelError.wrapping(error, phase: .topology, tolerance: tolerance)
+      let classification = KernelError(
+          phase: wrapped.phase,
+          code: wrapped.code,
+          featureID: wrapped.featureID,
+          subshapeID: wrapped.subshapeID,
+          residual: wrapped.residual,
+          tolerance: wrapped.tolerance ?? tolerance,
+          message: "Boolean UV face splitting \(stage) failed: \(wrapped.message)"
+      )
+      return OriginalQueryFailure.contextualizing(error, classification: classification)
   }
 
   private func planeGeometry(
     _ surface: Surface3D,
     tolerance: ModelingTolerance
+  ,
+    using execution: inout OriginalQueryExecution
   ) throws -> (origin: Point3D, normal: Vector3D)? {
+    try execution.consumeWork(1)
     guard
       let plane = try DefaultPlanarSurfaceResolver().exactPlane(
         for: surface,
-        tolerance: tolerance
+        tolerance: tolerance, using: &execution
       )
     else {
       return nil
@@ -278,8 +299,14 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
   private func contacts(
     for pair: BooleanFacePairCandidate,
     in graph: BooleanIntersectionGraph
-  ) -> [BooleanBoundaryContact] {
-    graph.boundaryContacts.filter { contact in
+  ,
+    using execution: inout OriginalQueryExecution
+  ) throws -> [BooleanBoundaryContact] {
+    try execution.consumeWork(1)
+    try execution.consumeWork(graph.boundaryContacts.count)
+    try execution.retainKernelValues(count: graph.boundaryContacts.count,
+      stride: MemoryLayout<BooleanBoundaryContact>.stride)
+    return graph.boundaryContacts.filter { contact in
       (contact.curveFaceID == pair.targetFaceID && contact.surfaceFaceID == pair.toolFaceID)
         || (contact.curveFaceID == pair.toolFaceID && contact.surfaceFaceID == pair.targetFaceID)
     }
@@ -298,7 +325,10 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
     contactRegistry: inout [ExactCurveIdentity: [ClipContact]],
     registeredPairCurves: inout Set<RegisteredPairCurve>,
     tolerance: ModelingTolerance
+  ,
+    using execution: inout OriginalQueryExecution
   ) throws -> BooleanFaceSplit? {
+    try execution.consumeWork(1)
     let intersections = intersectionGraph.faceIntersections.filter { $0.facePair == pair }
     guard intersections.isEmpty == false else { return nil }
     if intersections.contains(where: {
@@ -319,7 +349,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
           pair.toolFaceID,
           in: model,
           tolerance: tolerance
-        )
+        , using: &execution)
       else {
         return nil
       }
@@ -327,10 +357,10 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         facePair: pair,
         geometries: [.coincident],
         tolerance: tolerance
-      )
+      , using: &execution)
     }
 
-    let pairContacts = contacts(for: pair, in: intersectionGraph)
+    let pairContacts = try contacts(for: pair, in: intersectionGraph, using: &execution)
     var geometries: [BooleanFaceSplitComponentGeometry] = []
     for intersection in intersections {
       switch intersection.geometry {
@@ -357,7 +387,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
               cache: &containmentCache,
               preparationCache: &containmentPreparationCache,
               tolerance: tolerance
-            ),
+            , using: &execution),
             try containsSurfaceParameter(
               SurfaceParameter(
                 u: point.secondSurfaceParameter.u,
@@ -370,18 +400,18 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
               cache: &containmentCache,
               preparationCache: &containmentPreparationCache,
               tolerance: tolerance
-            )
+            , using: &execution)
           else {
             continue
           }
-          geometries.append(
+          try OriginalParameterQueryStorage.append(
             .tangent(
               try booleanUVPoint(
                 point,
                 targetSurface: targetSurface,
                 toolSurface: toolSurface,
                 tolerance: tolerance
-              )))
+              , using: &execution)), to: &geometries, using: &execution)
         } catch {
           throw contextualized(
             error,
@@ -406,7 +436,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
             contactRegistry: &contactRegistry,
             registeredPairCurves: &registeredPairCurves,
             tolerance: tolerance
-          )
+          , using: &execution)
         } catch {
           throw contextualized(
             error,
@@ -418,9 +448,9 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         case .empty:
           break
         case .closed(let value):
-          geometries.append(.closedCurve(value))
+          try OriginalParameterQueryStorage.append(.closedCurve(value), to: &geometries, using: &execution)
         case .trimmed(let values):
-          geometries.append(contentsOf: values.map(BooleanFaceSplitComponentGeometry.trimmedCurve))
+          try OriginalParameterQueryStorage.append(contentsOf: values.map(BooleanFaceSplitComponentGeometry.trimmedCurve), to: &geometries, using: &execution)
         }
       }
     }
@@ -429,14 +459,17 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
       facePair: pair,
       geometries: geometries,
       tolerance: tolerance
-    )
+    , using: &execution)
   }
 
   private func split(
     facePair: BooleanFacePairCandidate,
     geometries: [BooleanFaceSplitComponentGeometry],
     tolerance: ModelingTolerance
+  ,
+    using execution: inout OriginalQueryExecution
   ) throws -> BooleanFaceSplit {
+    try execution.consumeWork(1)
     guard geometries.isEmpty == false else {
       throw KernelError(
         phase: .topology,
@@ -529,7 +562,10 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
     model: BRepModel,
     contactRegistry: inout [ExactCurveIdentity: [ClipContact]],
     tolerance: ModelingTolerance
+  ,
+    using execution: inout OriginalQueryExecution
   ) throws {
+    try execution.consumeWork(1)
     let snapDistance = tolerance.distance * 8.0
     var vertexPoints: [Point3D] = []
     var boundaryEdges: [(curve: Curve3D, lower: Double, upper: Double)] = []
@@ -548,18 +584,18 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
               continue
             }
             if let start = model.vertices[edge.startVertexID] {
-              vertexPoints.append(start.point)
+              try OriginalParameterQueryStorage.append(start.point, to: &vertexPoints, using: &execution)
             }
             if let end = model.vertices[edge.endVertexID] {
-              vertexPoints.append(end.point)
+              try OriginalParameterQueryStorage.append(end.point, to: &vertexPoints, using: &execution)
             }
             guard let trim = edge.trim else { continue }
-            boundaryEdges.append(
+            try OriginalParameterQueryStorage.append(
               (
                 curve: curve,
                 lower: min(trim.startParameter, trim.endParameter),
                 upper: max(trim.startParameter, trim.endParameter)
-              ))
+              ), to: &boundaryEdges, using: &execution)
           }
         }
       }
@@ -604,11 +640,11 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
               angle: tolerance.angle,
               relative: tolerance.relative
             )
-          )
+          , using: &execution)
           foot = try boundary.curve.point(
             at: projection.parameter,
             tolerance: tolerance
-          )
+          , using: &execution)
         } catch let error as KernelError where error.code == .intersectionFailure {
           continue
         }
@@ -630,13 +666,13 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
     var entries: [(key: ExactCurveIdentity, index: Int, point: Point3D, isRecovered: Bool)] = []
     for (key, contacts) in contactRegistry {
       for (index, contact) in contacts.enumerated() {
-        entries.append(
+        try OriginalParameterQueryStorage.append(
           (
             key: key,
             index: index,
             point: contact.point,
             isRecovered: contact.isRecovered
-          ))
+          ), to: &entries, using: &execution)
       }
     }
     entries.sort { lhs, rhs in
@@ -665,10 +701,14 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
       if let clusterIndex {
         resolvedIndex = clusterIndex
       } else {
-        representatives.append(entry.point)
+        try OriginalParameterQueryStorage.append(entry.point, to: &representatives, using: &execution)
         resolvedIndex = representatives.count - 1
       }
-      clusterMembers[resolvedIndex, default: []].append(entry)
+      if clusterMembers[resolvedIndex] == nil {
+        try OriginalParameterQueryStorage.set([], for: resolvedIndex, in: &clusterMembers, using: &execution)
+      }
+      try OriginalParameterQueryStorage.append(entry,
+        to: &clusterMembers[resolvedIndex, default: []], using: &execution)
     }
     for (clusterIndex, members) in clusterMembers.sorted(by: { $0.key < $1.key }) {
       guard members.contains(where: \.isRecovered) else { continue }
@@ -742,9 +782,12 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
     contactRegistry: inout [ExactCurveIdentity: [ClipContact]],
     registeredPairCurves: inout Set<RegisteredPairCurve>,
     tolerance: ModelingTolerance
+  ,
+    using execution: inout OriginalQueryExecution
   ) throws -> [ClipContact] {
+    try execution.consumeWork(1)
     let curve = intersection.curve
-    let registryKey = curveIdentityRegistry.identity(for: curve)
+    let registryKey = try curveIdentityRegistry.identity(for: curve, using: &execution)
     let pairCurveKey = RegisteredPairCurve(pair: pair, curveID: registryKey)
     if registeredPairCurves.contains(pairCurveKey) {
       return contactRegistry[registryKey] ?? []
@@ -768,7 +811,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
             let projection = try curve.parameterProjection(
               of: point,
               tolerance: tolerance
-            )
+            , using: &execution)
             contactProjectionCache[key] = .parameter(projection.parameter)
             projectedParameter = projection.parameter
           } catch let error as KernelError where error.code == .intersectionFailure {
@@ -780,13 +823,14 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
               phase: .geometry,
               tolerance: tolerance
             )
-            throw KernelError(
+            let classification = KernelError(
               phase: wrapped.phase,
               code: wrapped.code,
               residual: wrapped.residual,
               tolerance: wrapped.tolerance ?? tolerance,
               message: "Boolean intersection contact projection failed: \(wrapped.message)"
             )
+            throw OriginalQueryFailure.contextualizing(error, classification: classification)
           }
         }
         if let refined = try contactRefiner.refine(
@@ -797,26 +841,26 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
           pair: pair,
           model: model,
           tolerance: tolerance
-        ) {
-          contacts.append(
+        , using: &execution) {
+          try OriginalParameterQueryStorage.append(
             ClipContact(
               parameter: refined.parameter,
               point: refined.point
-            ))
+            ), to: &contacts, using: &execution)
         } else {
-          contacts.append(
+          try OriginalParameterQueryStorage.append(
             ClipContact(
               parameter: projectedParameter,
               point: point
-            ))
+            ), to: &contacts, using: &execution)
         }
       }
     }
-    contacts = deduplicatedContacts(
+    contacts = try deduplicatedContacts(
       contacts,
       domain: curve.parameterDomain,
       tolerance: tolerance
-    )
+    , using: &execution)
     // Boundary contacts are certified curve-surface events produced by
     // BooleanPipeline. A containment-state scan is neither a completeness
     // proof nor a valid source of topology: it can miss a narrow interval
@@ -824,12 +868,12 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
     // Merge with the cross-pair registry so every pair splits this
     // curve at the identical canonical contact set.
     var merged = contactRegistry[registryKey] ?? []
-    merged.append(contentsOf: contacts)
-    merged = deduplicatedContacts(
+    try OriginalParameterQueryStorage.append(contentsOf: contacts, to: &merged, using: &execution)
+    merged = try deduplicatedContacts(
       merged,
       domain: curve.parameterDomain,
       tolerance: tolerance
-    ).sorted { $0.parameter < $1.parameter }
+    , using: &execution).sorted { $0.parameter < $1.parameter }
     contactRegistry[registryKey] = merged
     registeredPairCurves.insert(pairCurveKey)
     return merged
@@ -849,7 +893,10 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
     contactRegistry: inout [ExactCurveIdentity: [ClipContact]],
     registeredPairCurves: inout Set<RegisteredPairCurve>,
     tolerance: ModelingTolerance
+  ,
+    using execution: inout OriginalQueryExecution
   ) throws -> CurvedClipResult {
+    try execution.consumeWork(1)
     let curve = intersection.curve
     let contacts: [ClipContact]
     do {
@@ -867,7 +914,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         contactRegistry: &contactRegistry,
         registeredPairCurves: &registeredPairCurves,
         tolerance: tolerance
-      )
+      , using: &execution)
     } catch {
       throw contextualized(
         error,
@@ -889,14 +936,14 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
           containmentCache: &containmentCache,
           containmentPreparationCache: &containmentPreparationCache,
           tolerance: tolerance
-        )
+        , using: &execution)
       case .closed(let lower, let upper):
         if try closesAtBoundedDomainBoundary(
           intersection,
           lower: lower,
           upper: upper,
           tolerance: tolerance
-        ) {
+        , using: &execution) {
           return try completeClosedClip(
             intersection,
             lowerParameter: lower,
@@ -908,7 +955,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
             containmentCache: &containmentCache,
             containmentPreparationCache: &containmentPreparationCache,
             tolerance: tolerance
-          )
+          , using: &execution)
         }
       case .unbounded:
         break
@@ -918,15 +965,15 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
     var boundaries = contacts.map(\.parameter)
     switch curve.parameterDomain {
     case .closed(let lower, let upper):
-      boundaries.append(contentsOf: [lower, upper])
+      try OriginalParameterQueryStorage.append(contentsOf: [lower, upper], to: &boundaries, using: &execution)
     case .periodic, .unbounded:
       break
     }
-    boundaries = deduplicatedParameters(
+    boundaries = try deduplicatedParameters(
       boundaries,
       domain: curve.parameterDomain,
       tolerance: tolerance
-    ).sorted()
+    , using: &execution).sorted()
     guard boundaries.count >= 2 else { return .empty }
 
     var intervals = Array(zip(boundaries, boundaries.dropFirst()))
@@ -934,7 +981,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
       let first = boundaries.first,
       let last = boundaries.last
     {
-      intervals.append((last, first + period))
+      try OriginalParameterQueryStorage.append((last, first + period), to: &intervals, using: &execution)
     }
     var result: [TrimmedIntervalRecord] = []
     for (intervalOrdinal, interval) in intervals.enumerated() {
@@ -960,7 +1007,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
           cache: &containmentCache,
           preparationCache: &containmentPreparationCache,
           tolerance: tolerance
-        )
+        , using: &execution)
       } catch {
         throw contextualized(
           error,
@@ -975,13 +1022,13 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         contacts: contacts,
         domain: curve.parameterDomain,
         tolerance: tolerance
-      )
+      , using: &execution)
       let endContact = try contactPoint(
         at: upper,
         contacts: contacts,
         domain: curve.parameterDomain,
         tolerance: tolerance
-      )
+      , using: &execution)
       let startPoint: Point3D
       if let startContact {
         startPoint = startContact
@@ -989,7 +1036,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         startPoint = try curve.pointAssumingValid(
           at: lower,
           tolerance: tolerance
-        )
+        , using: &execution)
       }
       let endPoint: Point3D
       if let endContact {
@@ -998,10 +1045,10 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         endPoint = try curve.pointAssumingValid(
           at: upper,
           tolerance: tolerance
-        )
+        , using: &execution)
       }
       do {
-        result.append(
+        try OriginalParameterQueryStorage.append(
           TrimmedIntervalRecord(
             ordinal: intervalOrdinal,
             segment: try BooleanTrimmedFaceIntersection(
@@ -1015,7 +1062,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
                 targetSurface: targetSurface,
                 toolSurface: toolSurface,
                 tolerance: tolerance
-              ),
+              , using: &execution),
               end: try booleanUVPoint(
                 endPoint,
                 atCurveParameter: upper,
@@ -1023,10 +1070,10 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
                 targetSurface: targetSurface,
                 toolSurface: toolSurface,
                 tolerance: tolerance
-              ),
+              , using: &execution),
               tolerance: tolerance
             )
-          ))
+          ), to: &result, using: &execution)
       } catch {
         throw contextualized(
           error,
@@ -1053,7 +1100,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         lower: domainLower,
         upper: domainUpper,
         tolerance: tolerance
-      )
+      , using: &execution)
     {
       let keptOrdinals = Set(result.map(\.ordinal))
       let lastOrdinal = intervals.count - 1
@@ -1063,7 +1110,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
       {
         let (lower, upper) = intervals[missing]
         guard upper - lower > tolerance.angle else { continue }
-        result.append(
+        try OriginalParameterQueryStorage.append(
           TrimmedIntervalRecord(
             ordinal: missing,
             segment: try BooleanTrimmedFaceIntersection(
@@ -1076,37 +1123,37 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
                   contacts: contacts,
                   domain: curve.parameterDomain,
                   tolerance: tolerance
-                )
+                , using: &execution)
                   ?? curve.pointAssumingValid(
                     at: lower,
                     tolerance: tolerance
-                  ),
+                  , using: &execution),
                 atCurveParameter: lower,
                 intersection: intersection,
                 targetSurface: targetSurface,
                 toolSurface: toolSurface,
                 tolerance: tolerance
-              ),
+              , using: &execution),
               end: try booleanUVPoint(
                 contactPoint(
                   at: upper,
                   contacts: contacts,
                   domain: curve.parameterDomain,
                   tolerance: tolerance
-                )
+                , using: &execution)
                   ?? curve.pointAssumingValid(
                     at: upper,
                     tolerance: tolerance
-                  ),
+                  , using: &execution),
                 atCurveParameter: upper,
                 intersection: intersection,
                 targetSurface: targetSurface,
                 toolSurface: toolSurface,
                 tolerance: tolerance
-              ),
+              , using: &execution),
               tolerance: tolerance
             )
-          ))
+          ), to: &result, using: &execution)
       }
       result.sort { $0.ordinal < $1.ordinal }
     }
@@ -1121,7 +1168,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         lower: lower,
         upper: upper,
         tolerance: tolerance
-      )
+      , using: &execution)
     case .unbounded:
       joinsDomainSeam = false
     }
@@ -1132,7 +1179,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
           intervalCount: intervals.count,
           joinsDomainSeam: joinsDomainSeam,
           tolerance: tolerance
-        ))
+        , using: &execution))
     } catch {
       throw contextualized(
         error,
@@ -1147,7 +1194,10 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
     intervalCount: Int,
     joinsDomainSeam: Bool,
     tolerance: ModelingTolerance
+  ,
+    using execution: inout OriginalQueryExecution
   ) throws -> [BooleanTrimmedFaceIntersectionChain] {
+    try execution.consumeWork(1)
     var remaining = records
     var result: [BooleanTrimmedFaceIntersectionChain] = []
     if joinsDomainSeam,
@@ -1157,19 +1207,19 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
     {
       let first = remaining.removeFirst().segment
       let last = remaining.removeLast().segment
-      result.append(
+      try OriginalParameterQueryStorage.append(
         try BooleanTrimmedFaceIntersectionChain(
           segments: [last, first],
           tolerance: tolerance
-        ))
+        ), to: &result, using: &execution)
     }
-    result.append(
+    try OriginalParameterQueryStorage.append(
       contentsOf: try remaining.map {
         try BooleanTrimmedFaceIntersectionChain(
           segments: [$0.segment],
           tolerance: tolerance
         )
-      })
+      }, to: &result, using: &execution)
     return result
   }
 
@@ -1178,18 +1228,21 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
     lower: Double,
     upper: Double,
     tolerance: ModelingTolerance
+  ,
+    using execution: inout OriginalQueryExecution
   ) throws -> Bool {
+    try execution.consumeWork(1)
     if let certifiedClosure = intersection.truth.certifiedComponentClosure {
       return certifiedClosure
     }
     let start = try intersection.curve.pointAssumingValid(
       at: lower,
       tolerance: tolerance
-    )
+    , using: &execution)
     let end = try intersection.curve.pointAssumingValid(
       at: upper,
       tolerance: tolerance
-    )
+    , using: &execution)
     return start.isApproximatelyEqual(to: end, tolerance: tolerance.distance)
   }
 
@@ -1204,7 +1257,10 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
     containmentCache: inout [FacePointContainmentCacheKey: Bool],
     containmentPreparationCache: inout FacePointContainmentPreparationCache,
     tolerance: ModelingTolerance
+  ,
+    using execution: inout OriginalQueryExecution
   ) throws -> CurvedClipResult {
+    try execution.consumeWork(1)
     // Fewer than two contacts on a closed component means the complete
     // curve-surface event sets contain no transverse boundary crossing.
     // These samples materialize a secondary parameter-space index; they
@@ -1236,7 +1292,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
           cache: &containmentCache,
           preparationCache: &containmentPreparationCache,
           tolerance: tolerance
-        )
+        , using: &execution)
         if let certifiedContainment,
           certifiedContainment != isContained
         {
@@ -1249,12 +1305,12 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
           )
         }
         certifiedContainment = isContained
-        samples.append(
+        try OriginalParameterQueryStorage.append(
           try BooleanCurveUVSample(
             curveParameter: parameter,
-            uvPoint: booleanUVPoint(evaluation, tolerance: tolerance),
+            uvPoint: booleanUVPoint(evaluation, tolerance: tolerance, using: &execution),
             tolerance: tolerance
-          ))
+          ), to: &samples, using: &execution)
       } catch {
         throw contextualized(
           error,
@@ -1281,7 +1337,10 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
     cache: inout [FacePointContainmentCacheKey: Bool],
     preparationCache: inout FacePointContainmentPreparationCache,
     tolerance: ModelingTolerance
+  ,
+    using execution: inout OriginalQueryExecution
   ) throws -> Bool {
+    try execution.consumeWork(1)
     if let parameterContainment =
       facePointContainment as? any FaceParameterContainmentPreparationCaching
     {
@@ -1292,7 +1351,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
           in: model,
           preparationCache: &preparationCache,
           tolerance: tolerance
-        )
+        , using: &execution)
       else {
         return false
       }
@@ -1302,7 +1361,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         in: model,
         preparationCache: &preparationCache,
         tolerance: tolerance
-      )
+      , using: &execution)
     }
     guard
       try contains(
@@ -1313,7 +1372,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         cache: &cache,
         preparationCache: &preparationCache,
         tolerance: tolerance
-      )
+      , using: &execution)
     else {
       return false
     }
@@ -1325,14 +1384,17 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
       cache: &cache,
       preparationCache: &preparationCache,
       tolerance: tolerance
-    )
+    , using: &execution)
   }
 
   private func booleanUVPoint(
     _ evaluation: SurfaceSurfaceIntersectionCurveEvaluation,
     tolerance: ModelingTolerance
+  ,
+    using execution: inout OriginalQueryExecution
   ) throws -> BooleanUVPoint {
-    try BooleanUVPoint(
+    try execution.consumeWork(1)
+    return try BooleanUVPoint(
       point: evaluation.point,
       targetU: evaluation.parameters.first.u,
       targetV: evaluation.parameters.first.v,
@@ -1347,7 +1409,10 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
     _ parameters: [Double],
     domain: ParameterDomain,
     tolerance: ModelingTolerance
-  ) -> [Double] {
+  ,
+    using execution: inout OriginalQueryExecution
+  ) throws -> [Double] {
+    try execution.consumeWork(1)
     let canonical: [Double]
     if case .periodic(let period) = domain {
       canonical = parameters.map { parameter in
@@ -1361,7 +1426,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
     var result: [Double] = []
     for parameter in canonical.sorted() {
       if result.last.map({ abs($0 - parameter) <= threshold }) != true {
-        result.append(parameter)
+        try OriginalParameterQueryStorage.append(parameter, to: &result, using: &execution)
       }
     }
     if case .periodic(let period) = domain,
@@ -1378,7 +1443,10 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
     _ contacts: [ClipContact],
     domain: ParameterDomain,
     tolerance: ModelingTolerance
-  ) -> [ClipContact] {
+  ,
+    using execution: inout OriginalQueryExecution
+  ) throws -> [ClipContact] {
+    try execution.consumeWork(1)
     let canonical = contacts.map { contact in
       ClipContact(
         parameter: canonicalParameter(contact.parameter, domain: domain),
@@ -1409,7 +1477,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         }
         continue
       }
-      result.append(contact)
+      try OriginalParameterQueryStorage.append(contact, to: &result, using: &execution)
     }
     if case .periodic(let period) = domain,
       let first = result.first,
@@ -1431,7 +1499,10 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
     contacts: [ClipContact],
     domain: ParameterDomain,
     tolerance: ModelingTolerance
+  ,
+    using execution: inout OriginalQueryExecution
   ) throws -> Point3D? {
+    try execution.consumeWork(1)
     let canonical = canonicalParameter(parameter, domain: domain)
     let threshold = max(tolerance.angle, tolerance.distance)
     let matches = contacts.filter {
@@ -1464,20 +1535,17 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
     targetSurface: Surface3D,
     toolSurface: Surface3D,
     tolerance: ModelingTolerance
+  ,
+    using execution: inout OriginalQueryExecution
   ) throws -> BooleanUVPoint {
+    try execution.consumeWork(1)
     let target: SurfaceParameter
     let tool: SurfaceParameter
     do {
-      target = try intersection.surfaceParameter(
-        on: .first,
-        atCurveParameter: parameter,
-        tolerance: tolerance
-      )
-      tool = try intersection.surfaceParameter(
-        on: .second,
-        atCurveParameter: parameter,
-        tolerance: tolerance
-      )
+      let pair = try intersection.surfaceParameterPair(
+        atCurveParameter: parameter, tolerance: tolerance, using: &execution)
+      target = pair.first
+      tool = pair.second
     } catch {
       throw contextualized(
         error,
@@ -1492,7 +1560,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         u: target.u,
         v: target.v,
         tolerance: tolerance
-      )
+      , using: &execution)
     } catch {
       throw contextualized(
         error,
@@ -1506,7 +1574,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         u: tool.u,
         v: tool.v,
         tolerance: tolerance
-      )
+      , using: &execution)
     } catch {
       throw contextualized(
         error,
@@ -1544,19 +1612,22 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
     targetSurface: Surface3D,
     toolSurface: Surface3D,
     tolerance: ModelingTolerance
+  ,
+    using execution: inout OriginalQueryExecution
   ) throws -> BooleanUVPoint {
+    try execution.consumeWork(1)
     let target = intersection.firstSurfaceParameter
     let tool = intersection.secondSurfaceParameter
     let targetPoint = try targetSurface.point(
       u: target.u,
       v: target.v,
       tolerance: tolerance
-    )
+    , using: &execution)
     let toolPoint = try toolSurface.point(
       u: tool.u,
       v: tool.v,
       tolerance: tolerance
-    )
+    , using: &execution)
     let residual = max(
       intersection.residual,
       max(
@@ -1584,7 +1655,10 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
     cache: inout [FacePointContainmentCacheKey: Bool],
     preparationCache: inout FacePointContainmentPreparationCache,
     tolerance: ModelingTolerance
+  ,
+    using execution: inout OriginalQueryExecution
   ) throws -> Bool {
+    try execution.consumeWork(1)
     if let parameterContainment =
       facePointContainment as? any FaceParameterContainmentPreparationCaching
     {
@@ -1594,7 +1668,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         in: model,
         preparationCache: &preparationCache,
         tolerance: tolerance
-      )
+      , using: &execution)
     }
     return try contains(
       fallbackPoint,
@@ -1604,7 +1678,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
       cache: &cache,
       preparationCache: &preparationCache,
       tolerance: tolerance
-    )
+    , using: &execution)
   }
 
   private func clippedPoints(
@@ -1616,7 +1690,10 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
     containmentCache: inout [FacePointContainmentCacheKey: Bool],
     containmentPreparationCache: inout FacePointContainmentPreparationCache,
     tolerance: ModelingTolerance
+  ,
+    using execution: inout OriginalQueryExecution
   ) throws -> [BooleanUVPoint] {
+    try execution.consumeWork(1)
     var points: [BooleanUVPoint] = []
     for contact in contacts {
       let candidates: [(point: Point3D, residual: Double)]
@@ -1628,8 +1705,8 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
               let curve = model.geometry.curves[edge.curveID], let trim = edge.trim else {
           throw TopologyError.missingReference("A coincident planar boundary lacks original geometry.")
         }
-        candidates = [(try curve.point(at: trim.startParameter, tolerance: tolerance), 0),
-                      (try curve.point(at: trim.endParameter, tolerance: tolerance), 0)]
+        candidates = [(try curve.point(at: trim.startParameter, tolerance: tolerance, using: &execution), 0),
+                      (try curve.point(at: trim.endParameter, tolerance: tolerance, using: &execution), 0)]
       }
       for intersection in candidates {
         guard
@@ -1641,7 +1718,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
             cache: &containmentCache,
             preparationCache: &containmentPreparationCache,
             tolerance: tolerance
-          ),
+          , using: &execution),
           try contains(
             intersection.point,
             faceID: pair.toolFaceID,
@@ -1650,13 +1727,13 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
             cache: &containmentCache,
             preparationCache: &containmentPreparationCache,
             tolerance: tolerance
-          )
+          , using: &execution)
         else {
           continue
         }
         let target = try targetSurface.parameterProjection(
-          of: intersection.point, tolerance: tolerance)
-        let tool = try toolSurface.parameterProjection(of: intersection.point, tolerance: tolerance)
+          of: intersection.point, tolerance: tolerance, using: &execution)
+        let tool = try toolSurface.parameterProjection(of: intersection.point, tolerance: tolerance, using: &execution)
         let point = try BooleanUVPoint(
           point: intersection.point,
           targetU: target.u,
@@ -1669,7 +1746,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         if points.contains(where: { ($0.point - point.point).length <= tolerance.distance })
           == false
         {
-          points.append(point)
+          try OriginalParameterQueryStorage.append(point, to: &points, using: &execution)
         }
       }
     }
@@ -1684,7 +1761,10 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
     cache: inout [FacePointContainmentCacheKey: Bool],
     preparationCache: inout FacePointContainmentPreparationCache,
     tolerance: ModelingTolerance
+  ,
+    using execution: inout OriginalQueryExecution
   ) throws -> Bool {
+    try execution.consumeWork(1)
     _ = surface
     let key = FacePointContainmentCacheKey(faceID: faceID, point: point)
     if let cached = cache[key] {
@@ -1698,14 +1778,14 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         in: model,
         preparationCache: &preparationCache,
         tolerance: tolerance
-      )
+      , using: &execution)
     } else {
       result = try facePointContainment.contains(
         point,
         on: faceID,
         in: model,
         tolerance: tolerance
-      )
+      , using: &execution)
     }
     cache[key] = result
     return result

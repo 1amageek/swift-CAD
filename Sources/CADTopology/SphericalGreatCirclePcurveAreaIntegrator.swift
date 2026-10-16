@@ -45,16 +45,10 @@ struct SphericalGreatCirclePcurveAreaIntegrator {
         }
 
         func multiplied(by other: Interval) -> Interval {
-            let products = [
-                lower * other.lower,
-                lower * other.upper,
-                upper * other.lower,
-                upper * other.upper,
-            ]
-            return Interval(
-                lower: (products.min() ?? -.infinity).nextDown,
-                upper: (products.max() ?? .infinity).nextUp
-            )
+            let a = lower * other.lower, b = lower * other.upper
+            let c = upper * other.lower, d = upper * other.upper
+            return Interval(lower: min(min(a, b), min(c, d)).nextDown,
+                upper: max(max(a, b), max(c, d)).nextUp)
         }
 
         func scaled(by value: Double) -> Interval {
@@ -94,15 +88,21 @@ struct SphericalGreatCirclePcurveAreaIntegrator {
     private let maximumSubdivisionDepth = 48
     private let maximumCellCount = 131_072
 
-    func bounds(
-        cosine: Vector3D,
-        sine: Vector3D,
-        startParameter: Double,
-        endParameter: Double,
-        uShift: Double,
-        requestedWidth: Double,
-        tolerance: ModelingTolerance
-    ) throws -> SurfaceParameterAreaBounds {
+    func bounds(cosine: Vector3D, sine: Vector3D, startParameter: Double,
+        endParameter: Double, uShift: Double, requestedWidth: Double,
+        tolerance: ModelingTolerance) throws -> SurfaceParameterAreaBounds {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32,
+                remainingSourceDepth: 16, maximumSubdivisionDepth: maximumSubdivisionDepth))
+        return try bounds(cosine: cosine, sine: sine, startParameter: startParameter,
+            endParameter: endParameter, uShift: uShift, requestedWidth: requestedWidth,
+            tolerance: tolerance, using: &execution)
+    }
+
+    func bounds(cosine: Vector3D, sine: Vector3D, startParameter: Double,
+        endParameter: Double, uShift: Double, requestedWidth: Double,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> SurfaceParameterAreaBounds {
+        try execution.consumeWork(1)
         try tolerance.validate()
         try cosine.validateUnitLength(tolerance: tolerance)
         try sine.validateUnitLength(tolerance: tolerance)
@@ -131,13 +131,14 @@ struct SphericalGreatCirclePcurveAreaIntegrator {
             )
         }
 
-        if let meridian = meridianBounds(
+        if let meridian = try meridianBounds(
             cosine: cosine,
             sine: sine,
             lower: ascendingLower,
             upper: ascendingUpper,
-            uShift: uShift
-        ) {
+            uShift: uShift,
+            using: &execution) {
+            try execution.checkpoint()
             guard startParameter <= endParameter else {
                 return SurfaceParameterAreaBounds(
                     lower: (-meridian.upper).nextDown,
@@ -146,31 +147,38 @@ struct SphericalGreatCirclePcurveAreaIntegrator {
             }
             return meridian
         }
-        let breakpoints = [ascendingLower]
-            + seamParameters(
+        let seams = try seamParameters(
                 cosine: cosine,
                 sine: sine,
                 lower: ascendingLower,
                 upper: ascendingUpper,
-                tolerance: tolerance
-            )
-            + [ascendingUpper]
+                tolerance: tolerance,
+                using: &execution)
+        var breakpoints: [Double] = []
+        let breakpointCount = seams.count.addingReportingOverflow(2)
+        guard !breakpointCount.overflow else { throw ExactScalarFailure.countOverflow }
+        try OriginalParameterQueryStorage.reserve(breakpointCount.partialValue, in: &breakpoints, using: &execution)
+        breakpoints.append(ascendingLower)
+        for seam in seams { try execution.consumeWork(1); breakpoints.append(seam) }
+        breakpoints.append(ascendingUpper)
         let totalSpan = ascendingUpper - ascendingLower
         var pending: [WorkItem] = []
         for index in 1..<breakpoints.count {
+            try execution.consumeWork(1)
             let lower = breakpoints[index - 1]
             let upper = breakpoints[index]
             guard upper > lower else { continue }
-            pending.append(WorkItem(
+            try OriginalParameterQueryStorage.append(WorkItem(
                 lower: lower,
                 upper: upper,
                 requestedWidth: requestedWidth * (upper - lower) / totalSpan,
                 depth: 0
-            ))
+            ), to: &pending, using: &execution)
         }
         var result = SurfaceParameterAreaBounds.zero
         var processedCellCount = 0
         while let item = pending.popLast() {
+            try execution.visitGeometricCell(depth: item.depth)
             processedCellCount += 1
             guard processedCellCount <= maximumCellCount else {
                 throw KernelError(
@@ -180,14 +188,14 @@ struct SphericalGreatCirclePcurveAreaIntegrator {
                     message: "Great-circle pcurve area integration exceeded its certified cell budget."
                 )
             }
-            if let contribution = contributionBounds(
+            if let contribution = try contributionBounds(
                 cosine: cosine,
                 sine: sine,
                 lower: item.lower,
                 upper: item.upper,
                 uShift: uShift,
-                tolerance: tolerance
-            ), contribution.width <= item.requestedWidth {
+                tolerance: tolerance,
+                using: &execution), contribution.width <= item.requestedWidth {
                 result = result.adding(contribution)
                 continue
             }
@@ -209,19 +217,20 @@ struct SphericalGreatCirclePcurveAreaIntegrator {
                 )
             }
             let childWidth = item.requestedWidth * 0.5
-            pending.append(WorkItem(
+            try OriginalParameterQueryStorage.append(WorkItem(
                 lower: midpoint,
                 upper: item.upper,
                 requestedWidth: childWidth,
                 depth: item.depth + 1
-            ))
-            pending.append(WorkItem(
+            ), to: &pending, using: &execution)
+            try OriginalParameterQueryStorage.append(WorkItem(
                 lower: item.lower,
                 upper: midpoint,
                 requestedWidth: childWidth,
                 depth: item.depth + 1
-            ))
+            ), to: &pending, using: &execution)
         }
+        try execution.checkpoint()
         guard startParameter <= endParameter else {
             return SurfaceParameterAreaBounds(
                 lower: (-result.upper).nextDown,
@@ -231,13 +240,20 @@ struct SphericalGreatCirclePcurveAreaIntegrator {
         return result
     }
 
+    private func criticalIndex(_ value: Double) throws -> Int {
+        guard let index = Int(exactly: value) else {
+            throw GeometryConversionError.resourceLimitExceeded("Great-circle critical index is not representable.")
+        }
+        return index
+    }
+
     private func meridianBounds(
         cosine: Vector3D,
         sine: Vector3D,
         lower: Double,
         upper: Double,
-        uShift: Double
-    ) -> SurfaceParameterAreaBounds? {
+        uShift: Double,
+        using execution: inout OriginalQueryExecution) throws -> SurfaceParameterAreaBounds? {
         let radius = hypot(cosine.z, sine.z)
         let longitudeNumerator = cosine.x * sine.y - cosine.y * sine.x
         let machineTolerance = Double.ulpOfOne * 16_384.0
@@ -246,26 +262,29 @@ struct SphericalGreatCirclePcurveAreaIntegrator {
             return nil
         }
         let phase = atan2(cosine.z, sine.z)
-        var breakpoints = [lower]
-        let firstIndex = Int(ceil(
+        var breakpoints: [Double] = []
+        try OriginalParameterQueryStorage.append(lower, to: &breakpoints, using: &execution)
+        let firstIndex = try criticalIndex(ceil(
             (lower + phase - Double.pi * 0.5) / Double.pi
         ))
-        let lastIndex = Int(floor(
+        let lastIndex = try criticalIndex(floor(
             (upper + phase - Double.pi * 0.5) / Double.pi
         ))
         if firstIndex <= lastIndex {
             for index in firstIndex ... lastIndex {
+                try execution.consumeWork(1)
                 let parameter = Double.pi * 0.5 - phase + Double(index) * Double.pi
                 if parameter > lower, parameter < upper {
-                    breakpoints.append(parameter)
+                    try OriginalParameterQueryStorage.append(parameter, to: &breakpoints, using: &execution)
                 }
             }
         }
-        breakpoints.append(upper)
-        breakpoints.sort()
+        try OriginalParameterQueryStorage.append(upper, to: &breakpoints, using: &execution)
+        try OriginalParameterQueryStorage.sort(&breakpoints, using: &execution, less: <)
 
         var result = SurfaceParameterAreaBounds.zero
         for index in 1..<breakpoints.count {
+            try execution.visitGeometricCell(depth: 0)
             let segmentLower = breakpoints[index - 1]
             let segmentUpper = breakpoints[index]
             let midpoint = segmentLower + (segmentUpper - segmentLower) * 0.5
@@ -303,16 +322,17 @@ struct SphericalGreatCirclePcurveAreaIntegrator {
         sine: Vector3D,
         lower: Double,
         upper: Double,
-        tolerance: ModelingTolerance
-    ) -> [Double] {
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> [Double] {
         let horizontalScale = hypot(cosine.x, sine.x)
         guard horizontalScale > tolerance.angle else { return [] }
         let base = atan2(-cosine.x, sine.x)
-        let firstIndex = Int(ceil((lower - base) / Double.pi))
-        let lastIndex = Int(floor((upper - base) / Double.pi))
+        let firstIndex = try criticalIndex(ceil((lower - base) / Double.pi))
+        let lastIndex = try criticalIndex(floor((upper - base) / Double.pi))
         guard firstIndex <= lastIndex else { return [] }
         var result: [Double] = []
         for index in firstIndex ... lastIndex {
+                try execution.consumeWork(1)
             let parameter = base + Double(index) * Double.pi
             guard parameter > lower + tolerance.angle,
                   parameter < upper - tolerance.angle else {
@@ -320,10 +340,11 @@ struct SphericalGreatCirclePcurveAreaIntegrator {
             }
             let y = cosine.y * cos(parameter) + sine.y * sin(parameter)
             if y > tolerance.angle {
-                result.append(parameter)
+                try OriginalParameterQueryStorage.append(parameter, to: &result, using: &execution)
             }
         }
-        return result.sorted()
+        try OriginalParameterQueryStorage.sort(&result, using: &execution, less: <)
+        return result
     }
 
     private func contributionBounds(
@@ -332,14 +353,14 @@ struct SphericalGreatCirclePcurveAreaIntegrator {
         lower: Double,
         upper: Double,
         uShift: Double,
-        tolerance: ModelingTolerance
-    ) -> SurfaceParameterAreaBounds? {
-        let horizontalSquared = horizontalSquaredBounds(
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> SurfaceParameterAreaBounds? {
+        let horizontalSquared = try horizontalSquaredBounds(
             cosine: cosine,
             sine: sine,
             lower: lower,
-            upper: upper
-        )
+            upper: upper,
+            using: &execution)
         let denominatorFloor = max(
             tolerance.angle * tolerance.angle,
             Double.ulpOfOne * 4_096.0
@@ -352,14 +373,14 @@ struct SphericalGreatCirclePcurveAreaIntegrator {
               ).divided(byPositive: horizontalSquared) else {
             return nil
         }
-        guard let latitudeDerivatives = latitudeDerivativeBounds(
+        guard let latitudeDerivatives = try latitudeDerivativeBounds(
                   cosine: cosine,
                   sine: sine,
                   lower: lower,
                   upper: upper,
                   denominatorFloor: denominatorFloor,
                   tolerance: tolerance
-              ) else {
+              , using: &execution) else {
             return nil
         }
 
@@ -419,8 +440,8 @@ struct SphericalGreatCirclePcurveAreaIntegrator {
         cosine: Vector3D,
         sine: Vector3D,
         lower: Double,
-        upper: Double
-    ) -> Interval {
+        upper: Double,
+        using execution: inout OriginalQueryExecution) throws -> Interval {
         let cosineSquared = cosine.x * cosine.x + cosine.y * cosine.y
         let sineSquared = sine.x * sine.x + sine.y * sine.y
         let cross = cosine.x * sine.x + cosine.y * sine.y
@@ -428,23 +449,28 @@ struct SphericalGreatCirclePcurveAreaIntegrator {
         let cosineCoefficient = (cosineSquared - sineSquared) * 0.5
         let sineCoefficient = cross
         let phase = atan2(sineCoefficient, cosineCoefficient)
-        var parameters = [lower, upper]
-        let firstIndex = Int(ceil((2.0 * lower - phase) / Double.pi))
-        let lastIndex = Int(floor((2.0 * upper - phase) / Double.pi))
+        var parameters: [Double] = []
+        try OriginalParameterQueryStorage.reserve(2, in: &parameters, using: &execution)
+        parameters.append(lower); parameters.append(upper)
+        let firstIndex = try criticalIndex(ceil((2.0 * lower - phase) / Double.pi))
+        let lastIndex = try criticalIndex(floor((2.0 * upper - phase) / Double.pi))
         if firstIndex <= lastIndex {
             for index in firstIndex ... lastIndex {
-                parameters.append((phase + Double(index) * Double.pi) * 0.5)
+                try execution.consumeWork(1)
+                try OriginalParameterQueryStorage.append((phase + Double(index) * Double.pi) * 0.5, to: &parameters, using: &execution)
             }
         }
-        let values = parameters.map { parameter in
+        let values = try OriginalParameterQueryStorage.map(parameters, using: &execution) { parameter, execution in
             constant
                 + cosineCoefficient * cos(2.0 * parameter)
                 + sineCoefficient * sin(2.0 * parameter)
         }
-        return Interval(
-            lower: (values.min() ?? 0.0).nextDown,
-            upper: (values.max() ?? 1.0).nextUp
-        )
+        var minimum = Double.infinity, maximum = -Double.infinity
+        for value in values {
+            try execution.consumeWork(1)
+            minimum = min(minimum, value); maximum = max(maximum, value)
+        }
+        return Interval(lower: minimum.nextDown, upper: maximum.nextUp)
     }
 
     private func latitudeDerivativeBounds(
@@ -453,21 +479,21 @@ struct SphericalGreatCirclePcurveAreaIntegrator {
         lower: Double,
         upper: Double,
         denominatorFloor: Double,
-        tolerance: ModelingTolerance
-    ) -> (first: Interval, second: Interval)? {
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> (first: Interval, second: Interval)? {
         let radius = hypot(cosine.z, sine.z)
         guard radius <= 1.0 + tolerance.angle else { return nil }
         let phase = atan2(cosine.z, sine.z)
-        let sineBounds = trigonometricBounds(
+        let sineBounds = try trigonometricBounds(
             lower: lower,
             upper: upper,
-            phase: phase - Double.pi * 0.5
-        )
-        let cosineBounds = trigonometricBounds(
+            phase: phase - Double.pi * 0.5,
+            using: &execution)
+        let cosineBounds = try trigonometricBounds(
             lower: lower,
             upper: upper,
-            phase: phase
-        )
+            phase: phase,
+            using: &execution)
         let sineSquared = sineBounds.squared()
         let denominatorSquared = Interval(
             lower: (1.0 - radius * radius * sineSquared.upper).nextDown,
@@ -509,24 +535,29 @@ struct SphericalGreatCirclePcurveAreaIntegrator {
     private func trigonometricBounds(
         lower: Double,
         upper: Double,
-        phase: Double
-    ) -> Interval {
+        phase: Double,
+        using execution: inout OriginalQueryExecution) throws -> Interval {
         let shiftedLower = lower + phase
         let shiftedUpper = upper + phase
         if shiftedUpper - shiftedLower >= 2.0 * Double.pi {
             return Interval(lower: -1.0, upper: 1.0)
         }
-        var values = [cos(shiftedLower), cos(shiftedUpper)]
-        let firstCriticalIndex = Int(ceil(shiftedLower / Double.pi))
-        let lastCriticalIndex = Int(floor(shiftedUpper / Double.pi))
+        var values: [Double] = []
+        try OriginalParameterQueryStorage.reserve(2, in: &values, using: &execution)
+        values.append(cos(shiftedLower)); values.append(cos(shiftedUpper))
+        let firstCriticalIndex = try criticalIndex(ceil(shiftedLower / Double.pi))
+        let lastCriticalIndex = try criticalIndex(floor(shiftedUpper / Double.pi))
         if firstCriticalIndex <= lastCriticalIndex {
             for index in firstCriticalIndex ... lastCriticalIndex {
-                values.append(index.isMultiple(of: 2) ? 1.0 : -1.0)
+                try execution.consumeWork(1)
+                try OriginalParameterQueryStorage.append(index.isMultiple(of: 2) ? 1.0 : -1.0, to: &values, using: &execution)
             }
         }
-        return Interval(
-            lower: (values.min() ?? -1.0).nextDown,
-            upper: (values.max() ?? 1.0).nextUp
-        )
+        var minimum = Double.infinity, maximum = -Double.infinity
+        for value in values {
+            try execution.consumeWork(1)
+            minimum = min(minimum, value); maximum = max(maximum, value)
+        }
+        return Interval(lower: minimum.nextDown, upper: maximum.nextUp)
     }
 }

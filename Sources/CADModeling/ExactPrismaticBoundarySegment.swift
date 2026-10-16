@@ -45,6 +45,18 @@ package struct ExactPrismaticBoundarySegment: Sendable {
         endParameter: Double,
         tolerance: ModelingTolerance
     ) throws -> ExactPrismaticBoundarySegment {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try circularArc(circle: circle, startParameter: startParameter, endParameter: endParameter, tolerance: tolerance, using: &execution)
+    }
+
+    package static func circularArc(
+        circle: Circle3D,
+        startParameter: Double,
+        endParameter: Double,
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution
+    ) throws -> ExactPrismaticBoundarySegment {
+        try execution.consumeWork(1)
         try circle.validate(tolerance: tolerance)
         let sweep = endParameter - startParameter
         guard startParameter.isFinite,
@@ -60,8 +72,8 @@ package struct ExactPrismaticBoundarySegment: Sendable {
         }
         let curve = Curve3D.circle(circle)
         return ExactPrismaticBoundarySegment(
-            startPoint: try curve.point(at: startParameter, tolerance: tolerance),
-            endPoint: try curve.point(at: endParameter, tolerance: tolerance),
+            startPoint: try curve.point(at: startParameter, tolerance: tolerance, using: &execution),
+            endPoint: try curve.point(at: endParameter, tolerance: tolerance, using: &execution),
             geometry: .circularArc(
                 circle: circle,
                 startParameter: startParameter,
@@ -74,7 +86,17 @@ package struct ExactPrismaticBoundarySegment: Sendable {
         _ curve: BSplineCurve3D,
         tolerance: ModelingTolerance
     ) throws -> ExactPrismaticBoundarySegment {
-        try curve.validate(tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try bSpline(curve, tolerance: tolerance, using: &execution)
+    }
+
+    package static func bSpline(
+        _ curve: BSplineCurve3D,
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution
+    ) throws -> ExactPrismaticBoundarySegment {
+        try execution.consumeWork(1)
+        try curve.validate(tolerance: tolerance, using: &execution)
         guard case let .closed(lower, upper) = curve.domain else {
             throw KernelError(
                 phase: .geometry,
@@ -83,8 +105,8 @@ package struct ExactPrismaticBoundarySegment: Sendable {
                 message: "Exact prismatic B-spline boundary requires a bounded curve."
             )
         }
-        let startPoint = try curve.point(at: lower, tolerance: tolerance)
-        let endPoint = try curve.point(at: upper, tolerance: tolerance)
+        let startPoint = try curve.point(at: lower, tolerance: tolerance, using: &execution)
+        let endPoint = try curve.point(at: upper, tolerance: tolerance, using: &execution)
         guard startPoint.isApproximatelyEqual(
             to: endPoint,
             tolerance: tolerance.distance

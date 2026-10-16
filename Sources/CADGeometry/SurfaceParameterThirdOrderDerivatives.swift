@@ -65,19 +65,26 @@ public extension Surface3D {
         v: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterThirdOrderDerivatives {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try parameterDerivativesThroughThirdOrder(u: u, v: v, tolerance: tolerance, using: &execution)
+    }
+
+    func parameterDerivativesThroughThirdOrder(u: Double, v: Double, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> SurfaceParameterThirdOrderDerivatives {
+        try execution.consumeWork(1)
         switch self {
         case .plane:
             let lowerOrder = try parameterDerivatives(
                 u: u,
                 v: v,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
             return lowerOrder.withZeroThirdDerivatives()
         case .cylinder:
             let lowerOrder = try parameterDerivatives(
                 u: u,
                 v: v,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
             return SurfaceParameterThirdOrderDerivatives(
                 lowerOrder: lowerOrder,
@@ -90,19 +97,19 @@ public extension Surface3D {
             return try surface.parameterDerivativesThroughThirdOrder(
                 u: u,
                 v: v,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         case let .bSpline(surface):
             return try surface.parameterDerivativesThroughThirdOrder(
                 u: u,
                 v: v,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         case let .procedural(surface):
             return try surface.parameterDerivativesThroughThirdOrder(
                 u: u,
                 v: v,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         }
     }
@@ -114,10 +121,17 @@ public extension AnalyticSurface3D {
         v: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterThirdOrderDerivatives {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try parameterDerivativesThroughThirdOrder(u: u, v: v, tolerance: tolerance, using: &execution)
+    }
+
+    func parameterDerivativesThroughThirdOrder(u: Double, v: Double, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> SurfaceParameterThirdOrderDerivatives {
+        try execution.consumeWork(1)
         let lowerOrder = try parameterDerivatives(
             u: u,
             v: v,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         switch self {
         case .plane:
@@ -135,7 +149,7 @@ public extension AnalyticSurface3D {
                 axis,
                 tolerance: tolerance
             )
-            let radial = basis.u * CanonicalSphereAngularPhase.candidate(at: u, cosine: true) + basis.v * CanonicalSphereAngularPhase.candidate(at: u, cosine: false)
+            let radial = basis.u * (try CanonicalSphereAngularPhase.candidate(at: u, cosine: true, using: &execution)) + basis.v * (try CanonicalSphereAngularPhase.candidate(at: u, cosine: false, using: &execution))
             return SurfaceParameterThirdOrderDerivatives(
                 lowerOrder: lowerOrder,
                 thirdDerivativeUUU: -lowerOrder.tangentU * (CanonicalSphereAngularPhase.scaleBounds.midpoint * CanonicalSphereAngularPhase.scaleBounds.midpoint),
@@ -148,11 +162,11 @@ public extension AnalyticSurface3D {
                 .unitZ,
                 tolerance: tolerance
             )
-            let radialU = basis.u * CanonicalSphereAngularPhase.candidate(at: u, cosine: true) + basis.v * CanonicalSphereAngularPhase.candidate(at: u, cosine: false)
+            let radialU = basis.u * (try CanonicalSphereAngularPhase.candidate(at: u, cosine: true, using: &execution)) + basis.v * (try CanonicalSphereAngularPhase.candidate(at: u, cosine: false, using: &execution))
             return SurfaceParameterThirdOrderDerivatives(
                 lowerOrder: lowerOrder,
                 thirdDerivativeUUU: -lowerOrder.tangentU * (CanonicalSphereAngularPhase.scaleBounds.midpoint * CanonicalSphereAngularPhase.scaleBounds.midpoint),
-                thirdDerivativeUUV: radialU * (radius * CanonicalSphereAngularPhase.candidate(at: v, cosine: false)) * (CanonicalSphereAngularPhase.scaleBounds.midpoint * CanonicalSphereAngularPhase.scaleBounds.midpoint * CanonicalSphereAngularPhase.scaleBounds.midpoint),
+                thirdDerivativeUUV: radialU * (radius * (try CanonicalSphereAngularPhase.candidate(at: v, cosine: false, using: &execution))) * (CanonicalSphereAngularPhase.scaleBounds.midpoint * CanonicalSphereAngularPhase.scaleBounds.midpoint * CanonicalSphereAngularPhase.scaleBounds.midpoint),
                 thirdDerivativeUVV: -lowerOrder.tangentU * (CanonicalSphereAngularPhase.scaleBounds.midpoint * CanonicalSphereAngularPhase.scaleBounds.midpoint),
                 thirdDerivativeVVV: -lowerOrder.tangentV * (CanonicalSphereAngularPhase.scaleBounds.midpoint * CanonicalSphereAngularPhase.scaleBounds.midpoint)
             )
@@ -161,13 +175,13 @@ public extension AnalyticSurface3D {
                 axis,
                 tolerance: tolerance
             )
-            let radial = basis.u * CanonicalSphereAngularPhase.candidate(at: u, cosine: true) + basis.v * CanonicalSphereAngularPhase.candidate(at: u, cosine: false)
-            let tangent = -basis.u * CanonicalSphereAngularPhase.candidate(at: u, cosine: false) + basis.v * CanonicalSphereAngularPhase.candidate(at: u, cosine: true)
+            let radial = basis.u * (try CanonicalSphereAngularPhase.candidate(at: u, cosine: true, using: &execution)) + basis.v * (try CanonicalSphereAngularPhase.candidate(at: u, cosine: false, using: &execution))
+            let tangent = -basis.u * (try CanonicalSphereAngularPhase.candidate(at: u, cosine: false, using: &execution)) + basis.v * (try CanonicalSphereAngularPhase.candidate(at: u, cosine: true, using: &execution))
             return SurfaceParameterThirdOrderDerivatives(
                 lowerOrder: lowerOrder,
                 thirdDerivativeUUU: -lowerOrder.tangentU * (CanonicalSphereAngularPhase.scaleBounds.midpoint * CanonicalSphereAngularPhase.scaleBounds.midpoint),
-                thirdDerivativeUUV: radial * (minorRadius * CanonicalSphereAngularPhase.candidate(at: v, cosine: false)) * (CanonicalSphereAngularPhase.scaleBounds.midpoint * CanonicalSphereAngularPhase.scaleBounds.midpoint * CanonicalSphereAngularPhase.scaleBounds.midpoint),
-                thirdDerivativeUVV: tangent * (-minorRadius * CanonicalSphereAngularPhase.candidate(at: v, cosine: true)) * (CanonicalSphereAngularPhase.scaleBounds.midpoint * CanonicalSphereAngularPhase.scaleBounds.midpoint * CanonicalSphereAngularPhase.scaleBounds.midpoint),
+                thirdDerivativeUUV: radial * (minorRadius * (try CanonicalSphereAngularPhase.candidate(at: v, cosine: false, using: &execution))) * (CanonicalSphereAngularPhase.scaleBounds.midpoint * CanonicalSphereAngularPhase.scaleBounds.midpoint * CanonicalSphereAngularPhase.scaleBounds.midpoint),
+                thirdDerivativeUVV: tangent * (-minorRadius * (try CanonicalSphereAngularPhase.candidate(at: v, cosine: true, using: &execution))) * (CanonicalSphereAngularPhase.scaleBounds.midpoint * CanonicalSphereAngularPhase.scaleBounds.midpoint * CanonicalSphereAngularPhase.scaleBounds.midpoint),
                 thirdDerivativeVVV: -lowerOrder.tangentV * (CanonicalSphereAngularPhase.scaleBounds.midpoint * CanonicalSphereAngularPhase.scaleBounds.midpoint)
             )
         }
@@ -181,7 +195,14 @@ public extension BSplineSurface3D {
         v: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterThirdOrderDerivatives {
-        try validate(tolerance: tolerance)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try parameterDerivativesThroughThirdOrder(u: u, v: v, tolerance: tolerance, using: &execution)
+    }
+
+    func parameterDerivativesThroughThirdOrder(u: Double, v: Double, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> SurfaceParameterThirdOrderDerivatives {
+        try execution.consumeWork(1)
+        try validate(tolerance: tolerance, using: &execution)
         guard try uDomain.contains(u, tolerance: tolerance),
               try vDomain.contains(v, tolerance: tolerance) else {
             throw GeometryError.invalidDistance(0.0)
@@ -189,32 +210,36 @@ public extension BSplineSurface3D {
 
         let clampedU = try basisParameter(u, direction: .u, tolerance: tolerance)
         let clampedV = try basisParameter(v, direction: .v, tolerance: tolerance)
-        let uBasis = (0...3).map { order in
-            BSplineBasis.derivativeValues(
+        let uBasis = try CertifiedAnalyticCurveEvaluation.map(0...3, using: &execution) { order, execution in
+            try BSplineBasis.derivativeValues(
                 parameter: clampedU,
                 degree: uDegree,
                 derivativeOrder: order,
                 knots: uKnots,
-                count: uControlPointCount
+                count: uControlPointCount, using: &execution
             )
         }
-        let vBasis = (0...3).map { order in
-            BSplineBasis.derivativeValues(
+        let vBasis = try CertifiedAnalyticCurveEvaluation.map(0...3, using: &execution) { order, execution in
+            try BSplineBasis.derivativeValues(
                 parameter: clampedV,
                 degree: vDegree,
                 derivativeOrder: order,
                 knots: vKnots,
-                count: vControlPointCount
+                count: vControlPointCount, using: &execution
             )
         }
 
+        try execution.retainStorage(count: 10, stride: MemoryLayout<(Int, HomogeneousSurfaceDerivative)>.stride)
         var homogeneous: [Int: HomogeneousSurfaceDerivative] = [:]
+        homogeneous.reserveCapacity(10)
         for totalOrder in 0...3 {
+                try execution.consumeWork(1)
             for uOrder in 0...totalOrder {
+                try execution.consumeWork(1)
                 let vOrder = totalOrder - uOrder
-                homogeneous[derivativeKey(uOrder, vOrder)] = homogeneousDerivative(
+                homogeneous[derivativeKey(uOrder, vOrder)] = try homogeneousDerivative(
                     uBasis: uBasis[uOrder],
-                    vBasis: vBasis[vOrder]
+                    vBasis: vBasis[vOrder], using: &execution
                 )
             }
         }
@@ -233,10 +258,22 @@ public extension BSplineSurface3D {
         // A uniform original weight makes the denominator constant. Its higher
         // derivatives vanish exactly; numerical quotient residues are candidates only.
         let firstWeight = weights.first?.first
-        let isPolynomial = weights.allSatisfy { row in row.allSatisfy { $0 == firstWeight } }
+        var isPolynomial = true
+        for row in weights {
+            try execution.consumeWork(1)
+            for weight in row {
+                try execution.consumeWork(1)
+                if weight != firstWeight { isPolynomial = false; break }
+            }
+            if !isPolynomial { break }
+        }
+        try execution.retainStorage(count: 10, stride: MemoryLayout<(Int, Vector3D)>.stride)
         var euclidean: [Int: Vector3D] = [:]
+        euclidean.reserveCapacity(10)
         for totalOrder in 0...3 {
+                try execution.consumeWork(1)
             for uOrder in 0...totalOrder {
+                try execution.consumeWork(1)
                 let vOrder = totalOrder - uOrder
                 guard let source = homogeneous[derivativeKey(uOrder, vOrder)] else {
                     throw KernelError(
@@ -248,7 +285,9 @@ public extension BSplineSurface3D {
                 }
                 var numerator = source.vector
                 for weightUOrder in 0...uOrder {
+                try execution.consumeWork(1)
                     for weightVOrder in 0...vOrder {
+                try execution.consumeWork(1)
                         guard weightUOrder + weightVOrder > 0, !isPolynomial else {
                             continue
                         }
@@ -317,12 +356,15 @@ public extension BSplineSurface3D {
 
     private func homogeneousDerivative(
         uBasis: [Double],
-        vBasis: [Double]
-    ) -> HomogeneousSurfaceDerivative {
+        vBasis: [Double], using execution: inout OriginalQueryExecution
+    ) throws -> HomogeneousSurfaceDerivative {
+        try execution.consumeWork(1)
         var vector = Vector3D.zero
         var weight = 0.0
         for vIndex in 0..<vControlPointCount {
+                try execution.consumeWork(1)
             for uIndex in 0..<uControlPointCount {
+                try execution.consumeWork(1)
                 let basisValue = uBasis[uIndex] * vBasis[vIndex]
                 guard basisValue != 0.0 else {
                     continue

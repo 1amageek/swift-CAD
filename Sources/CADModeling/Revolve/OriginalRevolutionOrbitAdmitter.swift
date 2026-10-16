@@ -38,11 +38,11 @@ package struct OriginalRevolutionOrbitAdmitter: Sendable {
     package init() {}
 
     /// Proves whole original generator orbit injectivity without fitted image authority.
-    package func validate<B: RationalAlgebraAdmitting>(
+    package func validate(
         _ spans: [OriginalRevolveGeneratorResolver.Span], angle: Double,
         isClosed: Bool, maximumSpanCount: Int,
         maximumSubdivisionDepth: Int, maximumPairVisits: Int,
-        tolerance: ModelingTolerance, usage: inout B
+        tolerance: ModelingTolerance, usage: inout OriginalQueryExecution
     ) throws -> Admission {
         guard let first = spans.first, angle.isFinite, angle != 0,
               abs(angle) <= 2 * Double.pi, maximumSpanCount > 0, maximumSpanCount <= 65_536,
@@ -58,13 +58,13 @@ package struct OriginalRevolutionOrbitAdmitter: Sendable {
             throw GeometryConversionError.invalidInput("Original revolution orbit charts must retain one source axis and preparation tolerance.")
         }
         let full = try ScalarInterval(lower: 0, upper: 1)
-        try usage.consumeExactWork(1)
+        try usage.consumeWork(1)
         let cosineLower = abs(angle) < Double.pi
-            ? CanonicalSphereAngularPhase.harmonic(of: .constant(abs(angle)), cosine: true).value.lower
+            ? try CanonicalSphereAngularPhase.harmonic(of: .constant(abs(angle)), cosine: true, using: &usage).value.lower
             : nil
-        try usage.retainExactStorage(spans.count)
+        try RationalAlgebraStorage.retain(spans.count, of: Optional<OriginalRevolutionMonotonicityProof>.self, usage: &usage)
         var originalSigns = [OriginalRevolutionMonotonicityProof?](repeating: nil, count: spans.count)
-        func exactSigns(_ index: Int, usage: inout B) throws -> OriginalRevolutionMonotonicityProof {
+        func exactSigns(_ index: Int, usage: inout OriginalQueryExecution) throws -> OriginalRevolutionMonotonicityProof {
             if let retained = originalSigns[index] { return retained }
             let prepared = try OriginalRevolutionMonotonicityProof.prepare(for: spans[index],
                 maximumSubdivisionDepth: maximumSubdivisionDepth, tolerance: tolerance, usage: &usage)
@@ -72,10 +72,13 @@ package struct OriginalRevolutionOrbitAdmitter: Sendable {
             return prepared
         }
         func cell(chartIndex: Int, parameters: ScalarInterval, depth: Int,
-            usage: inout B) throws -> Cell {
-            try usage.visitExactCell(depth: depth)
+            usage: inout OriginalQueryExecution) throws -> Cell {
+            guard depth >= 0, depth <= maximumSubdivisionDepth else {
+                throw GeometryConversionError.resourceLimitExceeded("Original revolution geometric depth is exhausted.")
+            }
+            try usage.visitGeometricCell(depth: depth)
             let original = try spans[chartIndex].chart.preparedDerivatives(over: parameters,
-                tolerance: tolerance, consumeWork: { try usage.consumeExactWork(1) })
+                tolerance: tolerance, using: &usage)
             // Fixed scalar fields avoid temporary vector-jet arrays for every
             // retained pair cell. Only the lower original jet owns its buffers.
             let x = original.x.value - .exact(origin.x)
@@ -97,20 +100,20 @@ package struct OriginalRevolutionOrbitAdmitter: Sendable {
             let heightDerivative = dx * axisX + dy * axisY + dz * axisZ
             let radius = crossX * crossX + crossY * crossY + crossZ * crossZ
             let radiusDerivative = (crossX * crossDX + crossY * crossDY + crossZ * crossDZ) * .exact(2)
-            try usage.consumeExactWork(7)
+            try usage.consumeWork(7)
             guard height.isFinite, radius.isFinite, crossX.isFinite,
                   crossY.isFinite, crossZ.isFinite, heightDerivative.isFinite,
                   radiusDerivative.isFinite else {
                 throw GeometryConversionError.resourceLimitExceeded("Original revolution orbit bounds are nonfinite.")
             }
-            try usage.retainExactStorage(1)
+            try RationalAlgebraStorage.retain(1, of: Cell.self, usage: &usage)
             return Cell(chartIndex: chartIndex, parameters: parameters, depth: depth,
                 axial: height, radial: radius, crossX: crossX,
                 crossY: crossY, crossZ: crossZ,
                 axialDerivative: heightDerivative, radialDerivative: radiusDerivative)
         }
-        func monotone(_ a: Cell, _ b: Cell, usage: inout B) throws -> Bool {
-            try usage.consumeExactWork(1)
+        func monotone(_ a: Cell, _ b: Cell, usage: inout OriginalQueryExecution) throws -> Bool {
+            try usage.consumeWork(1)
             let axial = a.axialDerivative.union(b.axialDerivative)
             let radial = a.radialDerivative.union(b.radialDerivative)
             if axial.excludesZero || radial.excludesZero { return true }
@@ -136,8 +139,8 @@ package struct OriginalRevolutionOrbitAdmitter: Sendable {
             return isClosed && a.chartIndex == 0 && b.chartIndex == spans.count - 1
                 && a.parameters.lower == 0 && b.parameters.upper == 1
         }
-        func angularlySeparated(_ a: Cell, _ b: Cell, usage: inout B) throws -> Bool {
-            try usage.consumeExactWork(1)
+        func angularlySeparated(_ a: Cell, _ b: Cell, usage: inout OriginalQueryExecution) throws -> Bool {
+            try usage.consumeWork(1)
             guard let cosineLower, a.radial.lower > 0, b.radial.lower > 0 else { return false }
             let radiusA = OutwardScalarInterval(lower: a.radial.lower.squareRoot().nextDown,
                 upper: a.radial.upper.squareRoot().nextUp)
@@ -147,7 +150,7 @@ package struct OriginalRevolutionOrbitAdmitter: Sendable {
             guard let cosine = dot.divided(by: radiusA * radiusB), cosine.isFinite else { return false }
             return cosine.upper < cosineLower
         }
-        func split(_ source: Cell, usage: inout B) throws -> (Cell, Cell) {
+        func split(_ source: Cell, usage: inout OriginalQueryExecution) throws -> (Cell, Cell) {
             let middle = source.parameters.midpoint
             guard source.depth < maximumSubdivisionDepth,
                   middle > source.parameters.lower, middle < source.parameters.upper else {
@@ -170,19 +173,19 @@ package struct OriginalRevolutionOrbitAdmitter: Sendable {
         var remainingPairs = maximumPairVisits
         for firstIndex in initial.indices {
             for secondIndex in firstIndex..<initial.count {
-                try usage.retainExactStorage(1)
+                try RationalAlgebraStorage.retain(1, of: (Cell, Cell).self, usage: &usage)
                 var pending = [(initial[firstIndex], initial[secondIndex])]
                 while let (a, b) = pending.popLast() {
                     guard remainingPairs > 0 else {
                         throw GeometryConversionError.resourceLimitExceeded("Original revolution exhausted its cumulative orbit-pair visits.")
                     }
                     remainingPairs -= 1
-                    try usage.consumeExactWork(1)
+                    try usage.consumeWork(1)
                     let diagonal = a.chartIndex == b.chartIndex && a.parameters == b.parameters
                     if diagonal {
                         if try monotone(a, a, usage: &usage) { continue }
                         let (left, right) = try split(a, usage: &usage)
-                        try usage.retainExactStorage(3)
+                        try RationalAlgebraStorage.retain(3, of: (Cell, Cell).self, usage: &usage)
                         pending.append((left, left))
                         pending.append((left, right))
                         pending.append((right, right))
@@ -190,7 +193,7 @@ package struct OriginalRevolutionOrbitAdmitter: Sendable {
                         if !a.axial.intersects(b.axial) || !a.radial.intersects(b.radial) { continue }
                         if adjacent(a, b), try monotone(a, b, usage: &usage) { continue }
                         if try angularlySeparated(a, b, usage: &usage) { continue }
-                        try usage.retainExactStorage(2)
+                        try RationalAlgebraStorage.retain(2, of: (Cell, Cell).self, usage: &usage)
                         if a.parameters.width >= b.parameters.width {
                             let (left, right) = try split(a, usage: &usage)
                             pending.append((left, b))

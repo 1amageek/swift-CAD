@@ -107,7 +107,7 @@ dimensional complex ideal. Any positive-dimensional real cell selects full
 original rank partition and incidence. The positive preferred path retains an
 unpruned full partition to satisfy the existing finite-branch closure theorem;
 initial isolated pruning remains unchanged. There is no failed-solver retry. Fiber queries use caller-provided
-OriginalRelationUsage and independent parameter/coefficient depth. No private quota. Multi-chart rich queries use the same admission ledger for chart
+the original scalar admission and independent parameter/coefficient depth. No private quota. Multi-chart rich queries use the same admission ledger for chart
 source binding preparation, the selected complete decomposition, closure and final publication. The discrete N2
 path remains isolated-only and keeps its existing exact closed-boundary ownership
 proof. Source validation retains its existing rejection of position discontinuities;
@@ -122,3 +122,13 @@ NativePeriodicCurveSurfaceRelationTests exercise full overlap, multiple UV, coll
 images/fibers, mixed components, exact membership/projection, foreign handles and
 independent admitted failure. Changes to decomposition or incidence require this
 owner's full relation evidence; isolated fast-path evidence remains separate.
+
+## Direct Execution Admission
+
+Source arithmetic borrows `A: ExactScalarAdmission & ~Copyable`; composed query
+operations borrow `inout OriginalQueryExecution`. Source validation, native span
+validation, structural comparisons and exact refinement receive that same admission.
+The [execution owner](../../OriginalQueryExecution/DESIGN.md) defines cumulative
+work and actual byte accounting, independent depth axes, cancellation and lexical
+proof scopes. Retained geometry and relation evidence stay immutable; no callback
+adapter, copied counter or second allowance supplies arithmetic authority.

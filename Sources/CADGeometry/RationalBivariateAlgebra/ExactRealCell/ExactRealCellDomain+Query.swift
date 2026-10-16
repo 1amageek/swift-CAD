@@ -5,7 +5,7 @@ import L2
 #endif
 
 extension ExactRealCellDomain: ExactRealCellQuerying {
- func validate(_ cell: ExactRealCellID<Base>, partition: ExactRealCellPartition<Base>, _ a: inout ExactCellBorrowedAdmission) throws {
+ func validate<A: ExactScalarAdmission & ~Copyable>(_ cell: ExactRealCellID<Base>, partition: ExactRealCellPartition<Base>, _ a: inout A) throws {
   try require(partition.source,&a); try ExactCellAccess.admit(partition.depth,&a)
   guard cell.owner === partition.owner,cell.index >= 0,cell.index < partition.owner.records.count else { throw ExactRealCellFailure.invalidCell }
  }
@@ -29,7 +29,7 @@ extension ExactRealCellDomain: ExactRealCellQuerying {
     try a.consumeWork(1); branches[axis]=partition.owner.records[index].branch; index=partition.owner.records[index].parent
    }
    guard index == 0 else { throw ExactRealCellFailure.invalidCoverage }
-   return .init(cell:cell,branches:branches,depth:a.depth)
+   return .init(cell:cell,branches:branches,depth:(try a.depth))
   }
  }
  public func point<A: ExactScalarAdmission & ~Copyable>(field: Field, coordinates: [Field.Value],
@@ -46,11 +46,11 @@ extension ExactRealCellDomain: ExactRealCellQuerying {
    return try preparedPoint(field:field,coordinates:coordinates,&a)
   }
  }
- func preparedPoint(field:Field,coordinates:[Field.Value],_ a:inout ExactCellBorrowedAdmission) throws -> ExactRealCellSample<Base> {
+ func preparedPoint<A: ExactScalarAdmission & ~Copyable>(field:Field,coordinates:[Field.Value],_ a:inout A) throws -> ExactRealCellSample<Base> {
   _ = try field.importing(context.field.integer(1,using:&a),using:&a)
   for value in coordinates { _ = try field.sign(of:value,using:&a) }
   // Retain the caller's COW array without rebuilding or importing its coordinates.
-  return .init(field:field,coordinates:coordinates,depth:a.depth)
+  return .init(field:field,coordinates:coordinates,depth:(try a.depth))
  }
  public func locate<A: ExactScalarAdmission & ~Copyable>(_ point: borrowing ExactRealCellSample<Base>, in partition: borrowing ExactRealCellPartition<Base>,
   limits: ExactRealRootLimits, using admission: inout A) throws(ExactRealCellFailure) -> ExactRealCellID<Base>? {
@@ -62,8 +62,8 @@ extension ExactRealCellDomain: ExactRealCellQuerying {
   let point=copy point,partition=copy partition
   return try ExactCellAccess.run(&admission,inherited:partition.depth) { try located(point,partition:partition,limits:limits,prefix:true,&$0) }
  }
- func located(_ point: ExactRealCellSample<Base>, partition: ExactRealCellPartition<Base>, limits: ExactRealRootLimits, prefix: Bool = false,
-  _ a: inout ExactCellBorrowedAdmission) throws -> ExactRealCellID<Base>? {
+ func located<A: ExactScalarAdmission & ~Copyable>(_ point: ExactRealCellSample<Base>, partition: ExactRealCellPartition<Base>, limits: ExactRealRootLimits, prefix: Bool = false,
+  _ a: inout A) throws -> ExactRealCellID<Base>? {
   try require(partition.source,&a); try ExactCellAccess.admit(partition.depth,&a); try ExactCellAccess.admit(point.depth,&a)
   let field=point.field,source=partition.source
   _ = try field.importing(context.field.integer(1,using:&a),using:&a)

@@ -41,6 +41,17 @@ package struct AnalyticSurfaceRationalParameterMap: Sendable {
         periodicSeamOffset: Double,
         tolerance: ModelingTolerance
     ) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try self.init(surface: surface, periodicSeamOffset: periodicSeamOffset, tolerance: tolerance, using: &execution)
+    }
+
+    package init(
+        surface: Surface3D,
+        periodicSeamOffset: Double,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard periodicSeamOffset.isFinite else {
             throw KernelError(
@@ -54,13 +65,23 @@ package struct AnalyticSurfaceRationalParameterMap: Sendable {
             for: surface,
             periodicSeamOffset: periodicSeamOffset,
             tolerance: tolerance
-        )
+        , using: &execution)
     }
 
     package func parameter(
         fromRational parameter: SurfaceParameter,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameter {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try self.parameter(fromRational: parameter, tolerance: tolerance, using: &execution)
+    }
+
+    package func parameter(
+        fromRational parameter: SurfaceParameter,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> SurfaceParameter {
+        try execution.consumeWork(1)
         try tolerance.validate()
         switch mapping {
         case let .plane(uFromU, uFromV, vFromU, vFromV):
@@ -74,7 +95,7 @@ package struct AnalyticSurfaceRationalParameterMap: Sendable {
                     at: parameter.u,
                     upperBound: 4.0,
                     tolerance: tolerance
-                ) + uOffset,
+                , using: &execution) + uOffset,
                 v: parameter.v
             )
         case let .sphere(uOffset):
@@ -83,12 +104,12 @@ package struct AnalyticSurfaceRationalParameterMap: Sendable {
                     at: parameter.u,
                     upperBound: 4.0,
                     tolerance: tolerance
-                ) + uOffset,
+                , using: &execution) + uOffset,
                 v: try rationalCircleAngle(
                     at: parameter.v,
                     upperBound: 2.0,
                     tolerance: tolerance
-                ) - Double.pi * 0.5
+                , using: &execution) - Double.pi * 0.5
             )
         case let .torus(uOffset, vOffset):
             return SurfaceParameter(
@@ -96,12 +117,12 @@ package struct AnalyticSurfaceRationalParameterMap: Sendable {
                     at: parameter.u,
                     upperBound: 4.0,
                     tolerance: tolerance
-                ) + uOffset,
+                , using: &execution) + uOffset,
                 v: try rationalCircleAngle(
                     at: parameter.v,
                     upperBound: 4.0,
                     tolerance: tolerance
-                ) + vOffset
+                , using: &execution) + vOffset
             )
         }
     }
@@ -113,6 +134,19 @@ package struct AnalyticSurfaceRationalParameterMap: Sendable {
         rationalVDerivative: ScalarInterval,
         tolerance: ModelingTolerance
     ) throws -> Enclosure {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try enclosure(rationalU: rationalU, rationalV: rationalV, rationalUDerivative: rationalUDerivative, rationalVDerivative: rationalVDerivative, tolerance: tolerance, using: &execution)
+    }
+
+    package func enclosure(
+        rationalU: ScalarInterval,
+        rationalV: ScalarInterval,
+        rationalUDerivative: ScalarInterval,
+        rationalVDerivative: ScalarInterval,
+        tolerance: ModelingTolerance
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Enclosure {
+        try execution.consumeWork(1)
         try tolerance.validate()
         switch mapping {
         case let .plane(uFromU, uFromV, vFromU, vFromV):
@@ -122,25 +156,25 @@ package struct AnalyticSurfaceRationalParameterMap: Sendable {
                     multipliedBy: uFromU,
                     plus: rationalV,
                     multipliedBy: uFromV
-                ),
+                , using: &execution),
                 v: try linearCombination(
                     rationalU,
                     multipliedBy: vFromU,
                     plus: rationalV,
                     multipliedBy: vFromV
-                ),
+                , using: &execution),
                 uDerivative: try linearCombination(
                     rationalUDerivative,
                     multipliedBy: uFromU,
                     plus: rationalVDerivative,
                     multipliedBy: uFromV
-                ),
+                , using: &execution),
                 vDerivative: try linearCombination(
                     rationalUDerivative,
                     multipliedBy: vFromU,
                     plus: rationalVDerivative,
                     multipliedBy: vFromV
-                )
+                , using: &execution)
             )
         case let .cylinder(uOffset), let .cone(uOffset):
             return Enclosure(
@@ -149,11 +183,11 @@ package struct AnalyticSurfaceRationalParameterMap: Sendable {
                     offset: uOffset,
                     upperBound: 4.0,
                     tolerance: tolerance
-                ),
+                , using: &execution),
                 v: rationalV,
                 uDerivative: try rationalCircleAngleDerivativeBounds(
                     rationalUDerivative
-                ),
+                , using: &execution),
                 vDerivative: rationalVDerivative
             )
         case let .sphere(uOffset):
@@ -163,19 +197,19 @@ package struct AnalyticSurfaceRationalParameterMap: Sendable {
                     offset: uOffset,
                     upperBound: 4.0,
                     tolerance: tolerance
-                ),
+                , using: &execution),
                 v: try rationalCircleAngleBounds(
                     rationalV,
                     offset: -Double.pi * 0.5,
                     upperBound: 2.0,
                     tolerance: tolerance
-                ),
+                , using: &execution),
                 uDerivative: try rationalCircleAngleDerivativeBounds(
                     rationalUDerivative
-                ),
+                , using: &execution),
                 vDerivative: try rationalCircleAngleDerivativeBounds(
                     rationalVDerivative
-                )
+                , using: &execution)
             )
         case let .torus(uOffset, vOffset):
             return Enclosure(
@@ -184,19 +218,19 @@ package struct AnalyticSurfaceRationalParameterMap: Sendable {
                     offset: uOffset,
                     upperBound: 4.0,
                     tolerance: tolerance
-                ),
+                , using: &execution),
                 v: try rationalCircleAngleBounds(
                     rationalV,
                     offset: vOffset,
                     upperBound: 4.0,
                     tolerance: tolerance
-                ),
+                , using: &execution),
                 uDerivative: try rationalCircleAngleDerivativeBounds(
                     rationalUDerivative
-                ),
+                , using: &execution),
                 vDerivative: try rationalCircleAngleDerivativeBounds(
                     rationalVDerivative
-                )
+                , using: &execution)
             )
         }
     }
@@ -205,6 +239,16 @@ package struct AnalyticSurfaceRationalParameterMap: Sendable {
         surfaceU: ScalarInterval?,
         surfaceV: ScalarInterval?
     ) throws -> (u: ScalarInterval?, v: ScalarInterval?)? {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try rationalSearchRanges(surfaceU: surfaceU, surfaceV: surfaceV, using: &execution)
+    }
+
+    package func rationalSearchRanges(
+        surfaceU: ScalarInterval?,
+        surfaceV: ScalarInterval?
+    ,
+        using execution: inout OriginalQueryExecution) throws -> (u: ScalarInterval?, v: ScalarInterval?)? {
+        try execution.consumeWork(1)
         switch mapping {
         case let .plane(uFromU, uFromV, vFromU, vFromV):
             guard let surfaceU, let surfaceV else {
@@ -216,46 +260,51 @@ package struct AnalyticSurfaceRationalParameterMap: Sendable {
                     multipliedBy: uFromU,
                     plus: surfaceV,
                     multipliedBy: vFromU
-                ),
+                , using: &execution),
                 v: try linearCombination(
                     surfaceU,
                     multipliedBy: uFromV,
                     plus: surfaceV,
                     multipliedBy: vFromV
-                )
+                , using: &execution)
             )
         case let .cylinder(uOffset), let .cone(uOffset):
             guard let u = try periodicRationalRange(
                 requested: surfaceU,
                 surfaceOffset: uOffset
-            ) else { return nil }
+            , using: &execution) else { return nil }
             return (u: u, v: surfaceV)
         case let .sphere(uOffset):
             guard let u = try periodicRationalRange(
                 requested: surfaceU,
                 surfaceOffset: uOffset
-            ) else { return nil }
+            , using: &execution) else { return nil }
             return (
                 u: u,
-                v: try sphericalMeridianRationalRange(requested: surfaceV)
+                v: try sphericalMeridianRationalRange(requested: surfaceV, using: &execution)
             )
         case let .torus(uOffset, vOffset):
             guard let u = try periodicRationalRange(
                 requested: surfaceU,
                 surfaceOffset: uOffset
-            ), let v = try periodicRationalRange(
+            , using: &execution), let v = try periodicRationalRange(
                 requested: surfaceV,
                 surfaceOffset: vOffset
-            ) else { return nil }
+            , using: &execution) else { return nil }
             return (u: u, v: v)
         }
     }
+
+
 
     private static func mapping(
         for surface: Surface3D,
         periodicSeamOffset: Double,
         tolerance: ModelingTolerance
-    ) throws -> Mapping {
+    ,
+        sourceDepth: Int = 0, using execution: inout OriginalQueryExecution) throws -> Mapping {
+        try execution.consumeWork(1)
+        try execution.admitSourceDepth(sourceDepth)
         switch surface {
         case let .plane(plane):
             let target = try plane.parameterBasis(tolerance: tolerance)
@@ -263,7 +312,7 @@ package struct AnalyticSurfaceRationalParameterMap: Sendable {
                 plane.normal,
                 tolerance: tolerance
             )
-            return planeMapping(rational: rational, target: target)
+            return try planeMapping(rational: rational, target: target, using: &execution)
         case let .cylinder(cylinder):
             let target = try circleOrthonormalBasis(
                 cylinder.axis,
@@ -285,7 +334,7 @@ package struct AnalyticSurfaceRationalParameterMap: Sendable {
                     normal,
                     tolerance: tolerance
                 )
-                return planeMapping(rational: basis, target: basis)
+                return try planeMapping(rational: basis, target: basis, using: &execution)
             case .cylinder:
                 return .cylinder(uOffset: periodicSeamOffset)
             case .cone:
@@ -299,11 +348,11 @@ package struct AnalyticSurfaceRationalParameterMap: Sendable {
                 )
             }
         case let .procedural(.offset(offset)):
+            let nextDepth = try exactScalarCount(sourceDepth, 1)
             return try mapping(
                 for: offset.source,
                 periodicSeamOffset: periodicSeamOffset,
-                tolerance: tolerance
-            )
+                tolerance: tolerance, sourceDepth: nextDepth, using: &execution)
         // FIXME(INCOMPLETE_IMPLEMENTATION): Original procedural sources have no
         // certified analytic-chart reduction in this rational-map entry point.
         // They must fail until source-preserving chart equivalence is proved.
@@ -317,11 +366,15 @@ package struct AnalyticSurfaceRationalParameterMap: Sendable {
         }
     }
 
+
+
     private static func planeMapping(
         rational: (u: Vector3D, v: Vector3D),
         target: (u: Vector3D, v: Vector3D)
-    ) -> Mapping {
-        .plane(
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Mapping {
+        try execution.consumeWork(1)
+        return .plane(
             uFromU: rational.u.dot(target.u),
             uFromV: rational.v.dot(target.u),
             vFromU: rational.u.dot(target.v),
@@ -329,22 +382,26 @@ package struct AnalyticSurfaceRationalParameterMap: Sendable {
         )
     }
 
+
+
     private func rationalCircleAngleBounds(
         _ parameter: ScalarInterval,
         offset: Double,
         upperBound: Double,
         tolerance: ModelingTolerance
-    ) throws -> ScalarInterval {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> ScalarInterval {
+        try execution.consumeWork(1)
         let lower = try rationalCircleAngle(
             at: parameter.lower,
             upperBound: upperBound,
             tolerance: tolerance
-        ) + offset
+        , using: &execution) + offset
         let upper = try rationalCircleAngle(
             at: parameter.upper,
             upperBound: upperBound,
             tolerance: tolerance
-        ) + offset
+        , using: &execution) + offset
         guard lower.isFinite, upper.isFinite, lower <= upper else {
             throw KernelError(
                 phase: .geometry,
@@ -356,11 +413,15 @@ package struct AnalyticSurfaceRationalParameterMap: Sendable {
         return try ScalarInterval(lower: lower.nextDown, upper: upper.nextUp)
     }
 
+
+
     private func rationalCircleAngle(
         at parameter: Double,
         upperBound: Double,
         tolerance: ModelingTolerance
-    ) throws -> Double {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
         guard parameter.isFinite,
               parameter >= -tolerance.relative,
               parameter <= upperBound + tolerance.relative else {
@@ -383,29 +444,35 @@ package struct AnalyticSurfaceRationalParameterMap: Sendable {
         return Double(segment) * Double.pi * 0.5 + atan2(y, x)
     }
 
+
+
     private func rationalCircleAngleDerivativeBounds(
         _ derivative: ScalarInterval
-    ) throws -> ScalarInterval {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> ScalarInterval {
+        try execution.consumeWork(1)
         // Every rational quadratic quarter-circle span has a positive angle
         // derivative within this outward-conservative scale enclosure.
         let lowerScale = 1.0.nextDown
         let upperScale = 2.0.nextUp
-        let products = [
-            derivative.lower * lowerScale,
-            derivative.lower * upperScale,
-            derivative.upper * lowerScale,
-            derivative.upper * upperScale,
-        ]
+        let first = derivative.lower * lowerScale
+        let second = derivative.lower * upperScale
+        let third = derivative.upper * lowerScale
+        let fourth = derivative.upper * upperScale
         return try ScalarInterval(
-            lower: (products.min() ?? -.infinity).nextDown,
-            upper: (products.max() ?? .infinity).nextUp
+            lower: min(first, second, third, fourth).nextDown,
+            upper: max(first, second, third, fourth).nextUp
         )
     }
+
+
 
     private func periodicRationalRange(
         requested: ScalarInterval?,
         surfaceOffset: Double
-    ) throws -> ScalarInterval? {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> ScalarInterval? {
+        try execution.consumeWork(1)
         guard let requested else {
             return try ScalarInterval(lower: 0.0, upper: 4.0)
         }
@@ -421,12 +488,12 @@ package struct AnalyticSurfaceRationalParameterMap: Sendable {
               upper <= period + boundaryEnvelope else {
             return nil
         }
-        let internalLower = rationalCircleParameter(
+        let internalLower = try rationalCircleParameter(
             angle: max(lower, 0.0)
-        ).nextDown
-        let internalUpper = rationalCircleParameter(
+        , using: &execution).nextDown
+        let internalUpper = try rationalCircleParameter(
             angle: min(upper, period)
-        ).nextUp
+        , using: &execution).nextUp
         guard internalLower < internalUpper else { return nil }
         return try ScalarInterval(
             lower: max(0.0, internalLower),
@@ -434,9 +501,13 @@ package struct AnalyticSurfaceRationalParameterMap: Sendable {
         )
     }
 
+
+
     private func sphericalMeridianRationalRange(
         requested: ScalarInterval?
-    ) throws -> ScalarInterval? {
+    ,
+        using execution: inout OriginalQueryExecution) throws -> ScalarInterval? {
+        try execution.consumeWork(1)
         guard let requested else {
             return try ScalarInterval(lower: 0.0, upper: 2.0)
         }
@@ -448,12 +519,16 @@ package struct AnalyticSurfaceRationalParameterMap: Sendable {
             return try ScalarInterval(lower: 0.0, upper: 0.0)
         }
         return try ScalarInterval(
-            lower: rationalCircleParameter(angle: lower - lowerLatitude).nextDown,
-            upper: rationalCircleParameter(angle: upper - lowerLatitude).nextUp
+            lower: try rationalCircleParameter(angle: lower - lowerLatitude, using: &execution).nextDown,
+            upper: try rationalCircleParameter(angle: upper - lowerLatitude, using: &execution).nextUp
         )
     }
 
-    private func rationalCircleParameter(angle: Double) -> Double {
+
+
+    private func rationalCircleParameter(angle: Double,
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
         let period = 2.0 * Double.pi
         if angle <= 0.0 { return 0.0 }
         if angle >= period { return 4.0 }
@@ -463,8 +538,9 @@ package struct AnalyticSurfaceRationalParameterMap: Sendable {
         var lower = 0.0
         var upper = 1.0
         for _ in 0..<64 {
+            try execution.consumeWork(1)
             let parameter = (lower + upper) * 0.5
-            if rationalQuarterCircleAngle(parameter: parameter) < localAngle {
+            if try rationalQuarterCircleAngle(parameter: parameter, using: &execution) < localAngle {
                 lower = parameter
             } else {
                 upper = parameter
@@ -473,7 +549,11 @@ package struct AnalyticSurfaceRationalParameterMap: Sendable {
         return Double(quarter) + (lower + upper) * 0.5
     }
 
-    private func rationalQuarterCircleAngle(parameter: Double) -> Double {
+
+
+    private func rationalQuarterCircleAngle(parameter: Double,
+        using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
         let oneMinusParameter = 1.0 - parameter
         let weightedProduct =
             2.0 * sqrt(0.5) * oneMinusParameter * parameter
@@ -482,19 +562,25 @@ package struct AnalyticSurfaceRationalParameterMap: Sendable {
         return atan2(y, x)
     }
 
+
+
     private func linearCombination(
         _ first: ScalarInterval,
         multipliedBy firstScale: Double,
         plus second: ScalarInterval,
         multipliedBy secondScale: Double
-    ) throws -> ScalarInterval {
-        let firstProducts = [first.lower * firstScale, first.upper * firstScale]
-        let secondProducts = [second.lower * secondScale, second.upper * secondScale]
+    ,
+        using execution: inout OriginalQueryExecution) throws -> ScalarInterval {
+        try execution.consumeWork(1)
+        let firstLower = first.lower * firstScale
+        let firstUpper = first.upper * firstScale
+        let secondLower = second.lower * secondScale
+        let secondUpper = second.upper * secondScale
         return try ScalarInterval(
-            lower: ((firstProducts.min() ?? -.infinity)
-                + (secondProducts.min() ?? -.infinity)).nextDown,
-            upper: ((firstProducts.max() ?? .infinity)
-                + (secondProducts.max() ?? .infinity)).nextUp
+            lower: (min(firstLower, firstUpper)
+                + min(secondLower, secondUpper)).nextDown,
+            upper: (max(firstLower, firstUpper)
+                + max(secondLower, secondUpper)).nextUp
         )
     }
 }

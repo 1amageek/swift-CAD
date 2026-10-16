@@ -8,6 +8,7 @@ import CADCore
 struct BSplineCurveSegmentExtractorTests {
     @Test(arguments: [(0.0, 1.0), (0.2, 0.8), (0.0, 0.5), (0.5, 1.0), (0.25, 0.75)])
     func aRationalArcsPieceIsTheArcThere(bounds: (Double, Double)) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
         // A quarter of the unit circle and a cubic with an interior knot, rational both.
         let arc = BSplineCurve3D(degree: 2, knots: [0, 0, 0, 1, 1, 1],
                                  controlPoints: [Point3D(x: 1, y: 0, z: 0), Point3D(x: 1, y: 1, z: 0), Point3D(x: 0, y: 1, z: 0)],
@@ -17,7 +18,7 @@ struct BSplineCurveSegmentExtractorTests {
                                                    Point3D(x: 3, y: 1, z: 0), Point3D(x: 4, y: 0, z: 2)],
                                    weights: [1, 2, 0.5, 1.5, 1])
         for curve in [arc, cubic] {
-            let piece = try BSplineCurveSegmentExtractor().segment(of: curve, from: bounds.0, to: bounds.1, tolerance: .standard)
+            let piece = try BSplineCurveSegmentExtractor().segment(of: curve, from: bounds.0, to: bounds.1, tolerance: .standard, using: &execution)
             #expect(piece.knots.first == bounds.0 && piece.knots.last == bounds.1)
             #expect(piece.weights.allSatisfy { $0 > 0 })
             for k in 0...20 {

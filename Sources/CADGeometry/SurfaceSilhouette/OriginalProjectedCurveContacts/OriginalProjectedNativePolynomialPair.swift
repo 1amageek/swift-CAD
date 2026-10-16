@@ -14,11 +14,11 @@ struct OriginalProjectedNativePolynomialPair: Sendable {
 
     init(edge original: Curve3D, spanIndex: Int, over range: ScalarInterval,
         silhouette: OriginalSurfaceSilhouetteTrimmedCurve,
-        frame: OrthographicProjectionFrame, usage: inout SurfaceSilhouetteUsage) throws {
-        try usage.consumeSourceVisit(depth: 1)
+        frame: OrthographicProjectionFrame, usage: inout OriginalQueryExecution) throws {
+        try usage.visitSilhouetteSource(depth: 1)
         let originalEdge = try OriginalRationalCurvePolynomial(source: original, spanIndex: spanIndex,
             tolerance: silhouette.original.certificationTolerance,
-            remainingSourceDepth: usage.maximumSourceDepth, usage: &usage)
+            remainingSourceDepth: usage.effectiveLimits.remainingSourceDepth, usage: &usage)
         let first = try ExactRationalCoefficient.originalDouble(range.lower, usage: &usage)
         let last = try ExactRationalCoefficient.originalDouble(range.upper, usage: &usage)
         guard range.width > 0,
@@ -57,7 +57,7 @@ struct OriginalProjectedNativePolynomialPair: Sendable {
 
     private static func equality(edge: OriginalRationalCurvePolynomial,
         surface: OriginalRationalSurfacePolynomial, direction: Vector3D,
-        usage: inout SurfaceSilhouetteUsage) throws -> ExactSurfaceCoefficientPolynomial {
+        usage: inout OriginalQueryExecution) throws -> ExactSurfaceCoefficientPolynomial {
         guard edge.homogeneous.count == 4, surface.homogeneous.count == 4, direction.isFinite else {
             throw rationalAlgebraFailure("Original projected equality lacks complete source homogeneous coordinates.")
         }
@@ -77,7 +77,7 @@ struct OriginalProjectedNativePolynomialPair: Sendable {
         try RationalAlgebraStorage.retain(count, of: ExactBivariatePolynomial.self, usage: &usage)
         var values: [ExactBivariatePolynomial] = []; values.reserveCapacity(count)
         for index in 0..<count {
-            try usage.consumeWork()
+            try usage.consumeWork(1)
             let power = try ExactBivariatePolynomial.Power(u: index, v: 0)
             let numerator = curve.originalCoefficients[power] ?? .zero
             let denominator = weight.originalCoefficients[power] ?? .zero

@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 import CADIR
 import CADModeling
 import CADTopology
@@ -16,52 +17,58 @@ package struct ImportedBRepTopologyReidentifier: Sendable {
         _ source: BRepModel,
         featureID: FeatureID
     ) throws -> ImportedBRepTopologyReidentification {
-        try Task.checkCancellation()
+        var execution = try OriginalQueryExecution.kernelOriginal()
+        return try reidentify(source, featureID: featureID, using: &execution)
+    }
+
+    package func reidentify(_ source: BRepModel, featureID: FeatureID,
+        using execution: inout OriginalQueryExecution) throws -> ImportedBRepTopologyReidentification {
+        try execution.checkpoint()
         var allocator = FeatureTopologyIDAllocator(featureID: featureID)
         var bodyIDs: [BodyID: BodyID] = [:]
         for sourceID in source.bodies.keys.sorted() {
-            try Task.checkCancellation()
+            try execution.consumeWork(1)
             bodyIDs[sourceID] = allocator.nextBodyID()
         }
         var shellIDs: [ShellID: ShellID] = [:]
         for sourceID in source.shells.keys.sorted() {
-            try Task.checkCancellation()
+            try execution.consumeWork(1)
             shellIDs[sourceID] = allocator.nextShellID()
         }
         var faceIDs: [FaceID: FaceID] = [:]
         for sourceID in source.faces.keys.sorted() {
-            try Task.checkCancellation()
+            try execution.consumeWork(1)
             faceIDs[sourceID] = allocator.nextFaceID()
         }
         var loopIDs: [LoopID: LoopID] = [:]
         for sourceID in source.loops.keys.sorted() {
-            try Task.checkCancellation()
+            try execution.consumeWork(1)
             loopIDs[sourceID] = allocator.nextLoopID()
         }
         var edgeIDs: [EdgeID: EdgeID] = [:]
         for sourceID in source.edges.keys.sorted() {
-            try Task.checkCancellation()
+            try execution.consumeWork(1)
             edgeIDs[sourceID] = allocator.nextEdgeID()
         }
         var vertexIDs: [VertexID: VertexID] = [:]
         for sourceID in source.vertices.keys.sorted() {
-            try Task.checkCancellation()
+            try execution.consumeWork(1)
             vertexIDs[sourceID] = allocator.nextVertexID()
         }
         var curveIDs: [CurveID: CurveID] = [:]
         for sourceID in source.geometry.curves.keys.sorted() {
-            try Task.checkCancellation()
+            try execution.consumeWork(1)
             curveIDs[sourceID] = allocator.nextCurveID()
         }
         var surfaceIDs: [SurfaceID: SurfaceID] = [:]
         for sourceID in source.geometry.surfaces.keys.sorted() {
-            try Task.checkCancellation()
+            try execution.consumeWork(1)
             surfaceIDs[sourceID] = allocator.nextSurfaceID()
         }
 
         var geometry = GeometryStore()
         for sourceID in source.geometry.curves.keys.sorted() {
-            try Task.checkCancellation()
+            try execution.consumeWork(1)
             guard let curve = source.geometry.curves[sourceID],
                   let targetID = curveIDs[sourceID] else {
                 throw TopologyError.missingReference(
@@ -71,7 +78,7 @@ package struct ImportedBRepTopologyReidentifier: Sendable {
             geometry.curves[targetID] = curve
         }
         for sourceID in source.geometry.surfaces.keys.sorted() {
-            try Task.checkCancellation()
+            try execution.consumeWork(1)
             guard let surface = source.geometry.surfaces[sourceID],
                   let targetID = surfaceIDs[sourceID] else {
                 throw TopologyError.missingReference(
@@ -83,7 +90,7 @@ package struct ImportedBRepTopologyReidentifier: Sendable {
 
         var vertices: [VertexID: Vertex] = [:]
         for sourceID in source.vertices.keys.sorted() {
-            try Task.checkCancellation()
+            try execution.consumeWork(1)
             guard let vertex = source.vertices[sourceID],
                   let targetID = vertexIDs[sourceID] else {
                 throw TopologyError.missingReference(
@@ -95,7 +102,7 @@ package struct ImportedBRepTopologyReidentifier: Sendable {
 
         var edges: [EdgeID: Edge] = [:]
         for sourceID in source.edges.keys.sorted() {
-            try Task.checkCancellation()
+            try execution.consumeWork(1)
             guard let edge = source.edges[sourceID],
                   let targetID = edgeIDs[sourceID],
                   let curveID = curveIDs[edge.curveID],
@@ -116,7 +123,7 @@ package struct ImportedBRepTopologyReidentifier: Sendable {
 
         var loops: [LoopID: Loop] = [:]
         for sourceID in source.loops.keys.sorted() {
-            try Task.checkCancellation()
+            try execution.consumeWork(1)
             guard let loop = source.loops[sourceID],
                   let targetID = loopIDs[sourceID] else {
                 throw TopologyError.missingReference(
@@ -127,7 +134,7 @@ package struct ImportedBRepTopologyReidentifier: Sendable {
                 id: targetID,
                 role: loop.role,
                 coedges: try loop.coedges.map { coedge in
-                    try Task.checkCancellation()
+                    try execution.consumeWork(1)
                     guard let edgeID = edgeIDs[coedge.edgeID] else {
                         throw TopologyError.missingReference(
                             "Imported B-rep coedge \(coedge.edgeID) references missing edge."
@@ -144,7 +151,7 @@ package struct ImportedBRepTopologyReidentifier: Sendable {
 
         var faces: [FaceID: Face] = [:]
         for sourceID in source.faces.keys.sorted() {
-            try Task.checkCancellation()
+            try execution.consumeWork(1)
             guard let face = source.faces[sourceID],
                   let targetID = faceIDs[sourceID],
                   let surfaceID = surfaceIDs[face.surfaceID] else {
@@ -156,7 +163,7 @@ package struct ImportedBRepTopologyReidentifier: Sendable {
                 id: targetID,
                 surfaceID: surfaceID,
                 loops: try face.loops.map { loopID in
-                    try Task.checkCancellation()
+                    try execution.consumeWork(1)
                     guard let targetLoopID = loopIDs[loopID] else {
                         throw TopologyError.missingReference(
                             "Imported B-rep face \(sourceID) references missing loop \(loopID)."
@@ -170,7 +177,7 @@ package struct ImportedBRepTopologyReidentifier: Sendable {
 
         var shells: [ShellID: Shell] = [:]
         for sourceID in source.shells.keys.sorted() {
-            try Task.checkCancellation()
+            try execution.consumeWork(1)
             guard let shell = source.shells[sourceID],
                   let targetID = shellIDs[sourceID] else {
                 throw TopologyError.missingReference(
@@ -180,7 +187,7 @@ package struct ImportedBRepTopologyReidentifier: Sendable {
             shells[targetID] = Shell(
                 id: targetID,
                 faceIDs: try shell.faceIDs.map { faceID in
-                    try Task.checkCancellation()
+                    try execution.consumeWork(1)
                     guard let targetFaceID = faceIDs[faceID] else {
                         throw TopologyError.missingReference(
                             "Imported B-rep shell \(sourceID) references missing face \(faceID)."
@@ -194,7 +201,7 @@ package struct ImportedBRepTopologyReidentifier: Sendable {
 
         var bodies: [BodyID: Body] = [:]
         for sourceID in source.bodies.keys.sorted() {
-            try Task.checkCancellation()
+            try execution.consumeWork(1)
             guard let body = source.bodies[sourceID],
                   let targetID = bodyIDs[sourceID] else {
                 throw TopologyError.missingReference(
@@ -205,7 +212,7 @@ package struct ImportedBRepTopologyReidentifier: Sendable {
             switch body.topology {
             case let .solid(components):
                 topology = .solid(components: try components.map { component in
-                    try Task.checkCancellation()
+                    try execution.consumeWork(1)
                     guard let outerShellID = shellIDs[component.outerShellID] else {
                         throw TopologyError.missingReference(
                             "Imported B-rep body \(sourceID) references missing outer shell \(component.outerShellID)."
@@ -214,7 +221,7 @@ package struct ImportedBRepTopologyReidentifier: Sendable {
                     return SolidShellComponent(
                         outerShellID: outerShellID,
                         voidShellIDs: try component.voidShellIDs.map { shellID in
-                            try Task.checkCancellation()
+                            try execution.consumeWork(1)
                             guard let targetShellID = shellIDs[shellID] else {
                                 throw TopologyError.missingReference(
                                     "Imported B-rep body \(sourceID) references missing void shell \(shellID)."
@@ -226,7 +233,7 @@ package struct ImportedBRepTopologyReidentifier: Sendable {
                 })
             case let .sheet(sourceShellIDs):
                 topology = .sheet(shellIDs: try sourceShellIDs.map { shellID in
-                    try Task.checkCancellation()
+                    try execution.consumeWork(1)
                     guard let targetShellID = shellIDs[shellID] else {
                         throw TopologyError.missingReference(
                             "Imported B-rep body \(sourceID) references missing sheet shell \(shellID)."
@@ -243,6 +250,7 @@ package struct ImportedBRepTopologyReidentifier: Sendable {
             )
         }
 
+        try execution.checkpoint()
         return ImportedBRepTopologyReidentification(
             model: BRepModel(
                 geometry: geometry,

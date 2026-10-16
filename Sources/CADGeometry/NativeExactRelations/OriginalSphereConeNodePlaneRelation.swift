@@ -28,7 +28,7 @@ public final class OriginalSphereConeNodePlaneRelation: Sendable {
     }
     public static func resolve<A:ExactScalarAdmission & ~Copyable>(source:OriginalSourceBinding<Source>,target:OriginalSourceBinding<Surface3D>,
         options:CurveSurfaceIntersectionOptions,limits:OriginalDomainIdentityLimits,using a:inout A) throws -> OriginalSphereConeNodePlaneRelation {
-        try OriginalSourceProofAdmission<A>.withBorrow(&a) { a in
+        try a.withProofScope() { a in
             try source.require(limits.source);try target.require(limits.source);try requireLimits(limits)
             guard OriginalCertifiedCoaxialTargetSnapshotProvider.isPlane(target.original) else { throw OriginalDomainIdentityFailure.foreignOwner }
             let s=source.original,f=s.field,zero=try f.integer(0,using:&a),one=try f.integer(1,using:&a)
@@ -76,7 +76,7 @@ public final class OriginalSphereConeNodePlaneRelation: Sendable {
     }
     public func member<A:ExactScalarAdmission & ~Copyable>(ordinal:Int,coneU:Field.Value?,coneCycle:OriginalParameterCycle,
         sphereCycle:OriginalParameterCycle,limits:OriginalDomainIdentityLimits,using a:inout A) throws -> OriginalSphereConeNodeContact {
-        try OriginalSourceProofAdmission<A>.withBorrow(&a) { a in
+        try a.withProofScope() { a in
             try admitProof(limits:limits,using:&a)
             guard storage.contains(ordinal) else { throw OriginalDomainIdentityFailure.outsideSupport }
             let s=source.original,f=s.field,root=try s.critical(ordinal:ordinal,using:&a),period=s.traversal.source.labelPeriod

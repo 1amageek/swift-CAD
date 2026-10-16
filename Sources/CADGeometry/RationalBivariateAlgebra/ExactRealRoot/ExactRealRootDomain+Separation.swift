@@ -30,7 +30,7 @@ extension ExactRealRootDomain {
                         axis: lhs.source.refinementAxis, &a)
                     if try sign(of: source, at: left, using: &a) == .negative,
                         try sign(of: source, at: right, using: &a) == .positive {
-                        return .init(left: left, right: right, value: candidate, depth: a.depth)
+                        return .init(left: left, right: right, value: candidate, depth: (try a.depth))
                     }
                 }
                 // A singleton is already exact. Refining it cannot create a strict gap.
@@ -38,11 +38,11 @@ extension ExactRealRootDomain {
                 let refineRight = try context.field.compare(rightLower, rightUpper, using: &a) != .equal
                 guard refineLeft || refineRight else { throw ExactRealRootFailure.invalidEvidence }
                 if refineLeft {
-                    left = replaced(left, try contracted(left.proof, left.isolation,
+                    left = try replaced(left, try contracted(left.proof, left.isolation,
                         axis: left.source.refinementAxis, &a), &a)
                 }
                 if refineRight {
-                    right = replaced(right, try contracted(right.proof, right.isolation,
+                    right = try replaced(right, try contracted(right.proof, right.isolation,
                         axis: right.source.refinementAxis, &a), &a)
                 }
             }

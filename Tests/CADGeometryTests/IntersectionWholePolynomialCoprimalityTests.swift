@@ -6,24 +6,56 @@ import Testing
 struct IntersectionWholePolynomialCoprimalityTests {
     private typealias Polynomial = ExactIntersectionPolynomial
     private enum AdmissionFailure: Error, Equatable { case work, storage, unexpectedDepth }
-    private struct Admission: RationalAlgebraAdmitting {
+    private struct Admission: ~Copyable, GeometryScalarTestAdmission {
+        var proofScopes = ExactScalarProofScopes()
         var maximumWork = 80_000_000
         var maximumStorage = 268_435_456
         var work = 0
         var storage = 0
         var cancelAtWork: Int?
         var cancelAtStorage: Int?
-        mutating func consumeExactWork(_ count: Int) throws {
+        mutating func consumeWork(_ count: Int) throws(ExactScalarFailure) {
+            try checkpoint()
+            try proofScopes.checkWork(count)
+            do {
             guard count >= 0, count <= maximumWork - work else { throw AdmissionFailure.work }
             work += count
             if work == cancelAtWork { withUnsafeCurrentTask { $0?.cancel() } }
+        
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            proofScopes.recordWork(count)
+            try checkpoint()
         }
-        mutating func retainExactStorage(_ count: Int) throws {
+        mutating func retainStorage(bytes: Int) throws(ExactScalarFailure) {
+            try checkpoint()
+            let count = try geometryTestStorageWords(bytes)
+            do {
             guard count >= 0, count <= maximumStorage - storage else { throw AdmissionFailure.storage }
             storage += count
             if storage == cancelAtStorage { withUnsafeCurrentTask { $0?.cancel() } }
+        
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            try checkpoint()
         }
-        mutating func visitExactCell(depth: Int) throws { throw AdmissionFailure.unexpectedDepth }
+        
+            mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
+            try admitDepth(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+            let mapped = try proofScopes.mapped(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+            do {
+                switch (axis == .coefficient || proofScopes.exactDepthResource == .coefficientDepth) ? ExactScalarRootAxis.coefficient : .value {
+                case .value:
+                    let depth = mapped.value
+ throw AdmissionFailure.unexpectedDepth 
+                case .coefficient:
+                    let depth = mapped.coefficient
+ throw ExactScalarFailure.resourceLimit(.coefficientDepth) 
+                }
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            try checkpoint()
+        }
     }
     private struct Pair: Sendable {
         let first: Polynomial
@@ -169,20 +201,20 @@ struct IntersectionWholePolynomialCoprimalityTests {
         #expect(complete.isConstant && !complete.isZero)
         for allowance in [0, measured.work - 1] {
             var usage = Admission(); usage.maximumWork = allowance
-            #expect(throws: AdmissionFailure.work) {
+            geometryTestExpectFailure({ if case .work? = geometryTestOriginalFailure($0) as? AdmissionFailure { true } else { false } }) {
                 try ExactIntersectionPolynomialGCD.gcd(pair.first, pair.second, usage: &usage)
             }
             #expect(usage.work <= allowance)
         }
         for allowance in [0, measured.storage - 1] {
             var usage = Admission(); usage.maximumStorage = allowance
-            #expect(throws: AdmissionFailure.storage) {
+            geometryTestExpectFailure({ if case .storage? = geometryTestOriginalFailure($0) as? AdmissionFailure { true } else { false } }) {
                 try ExactIntersectionPolynomialGCD.gcd(pair.first, pair.second, usage: &usage)
             }
             #expect(usage.storage <= allowance)
         }
         let wrongRing = try Polynomial.zero(variableCount: 2)
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try ExactIntersectionPolynomialGCD.gcd(pair.first, wrongRing, usage: &preparation)
         }
     }
@@ -203,7 +235,7 @@ struct IntersectionWholePolynomialCoprimalityTests {
                 _ = try ExactIntersectionPolynomialGCD.gcd(pair.first, pair.second, usage: &usage)
                 Issue.record("A cancelled whole-polynomial unit certificate published a GCD.")
                 return false
-            } catch is CancellationError {
+            } catch let error where geometryTestIsCancelled(error) {
                 if callback == 0 { return usage.work == 0 && usage.storage == 0 }
                 return callback == 1 ? usage.work == finalWork : usage.storage == finalStorage
             }

@@ -4,7 +4,8 @@ import Testing
 
 @Suite(.timeLimit(.minutes(1)))
 struct OriginalIntersectionCoefficientTests {
-    private struct Admission: RationalAlgebraAdmitting {
+    private struct Admission: ~Copyable, GeometryScalarTestAdmission {
+        var proofScopes = ExactScalarProofScopes()
         var maximumWork = 20_000_000
         var maximumStorage = 20_000_000
         var maximumParameterDepth = 24
@@ -15,24 +16,57 @@ struct OriginalIntersectionCoefficientTests {
         var coefficientVisits = 0
         var parameterDepth = 0
         var coefficientDepth = 0
-        mutating func consumeExactWork(_ count: Int) throws {
+        mutating func consumeWork(_ count: Int) throws(ExactScalarFailure) {
+            try checkpoint()
+            try proofScopes.checkWork(count)
+            do {
             guard count >= 0, count <= maximumWork - work else { throw failure("work") }; work += count
+        
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            proofScopes.recordWork(count)
+            try checkpoint()
         }
-        mutating func retainExactStorage(_ count: Int) throws {
+        mutating func retainStorage(bytes: Int) throws(ExactScalarFailure) {
+            try checkpoint()
+            let count = try geometryTestStorageWords(bytes)
+            do {
             guard count >= 0, count <= maximumStorage - storage else { throw failure("storage") }; storage += count
+        
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            try checkpoint()
         }
-        mutating func visitExactCell(depth: Int) throws {
-            guard depth >= 0, depth <= maximumParameterDepth else { throw failure("parameter depth") }
-            parameterVisits += 1; parameterDepth = max(parameterDepth, depth)
-        }
-        mutating func visitCoefficientCell(depth: Int) throws {
-            guard depth >= 0, depth <= maximumCoefficientDepth else { throw failure("coefficient depth") }
-            coefficientVisits += 1; coefficientDepth = max(coefficientDepth, depth)
-        }
+        
+        
         private func failure(_ domain: String) -> KernelError {
             KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: nil,
                 message: "Original coefficient test exhausted independent \(domain).")
         }
+            mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
+            try admitDepth(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+            let mapped = try proofScopes.mapped(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+            do {
+                switch (axis == .coefficient || proofScopes.exactDepthResource == .coefficientDepth) ? ExactScalarRootAxis.coefficient : .value {
+                case .value:
+                    let depth = mapped.value
+
+            guard depth >= 0, depth <= maximumParameterDepth else { throw failure("parameter depth") }
+            parameterVisits += 1; parameterDepth = max(parameterDepth, depth)
+        
+                case .coefficient:
+                    let depth = mapped.coefficient
+
+            guard depth >= 0, depth <= maximumCoefficientDepth else { throw failure("coefficient depth") }
+            coefficientVisits += 1; coefficientDepth = max(coefficientDepth, depth)
+        
+                }
+            } catch let error as ExactScalarFailure { throw error }
+            catch { throw .admissionRejected(error) }
+            try checkpoint()
+        }
+        var maximumTestValueDepth: Int { maximumParameterDepth }
+        var maximumTestCoefficientDepth: Int { maximumCoefficientDepth }
     }
 
     private func squareRoot(_ value: Int, coefficient: Bool, usage: inout Admission) throws -> OriginalSingularFieldElement {
@@ -111,7 +145,7 @@ struct OriginalIntersectionCoefficientTests {
         #expect(retained.parameterAdmissionDepth >= value.context.depth)
         #expect(usage.parameterVisits > 0)
         #expect(usage.coefficientVisits > 0)
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try OriginalIntersectionCoefficient.prepare(original: value,
                 maximumDepth: 0, maximumCoefficientDepth: 24, usage: &usage)
         }
@@ -153,7 +187,7 @@ struct OriginalIntersectionCoefficientTests {
         #expect(annihilator.uDegree == 2)
         #expect(try root.value(maximumDepth: 0, usage: &usage).sign(maximumDepth: 0, usage: &usage) == .negative)
         let zero = try value.subtracting(value, maximumDepth: 0, usage: &usage)
-        #expect(throws: KernelError.self) { try one.divided(by: zero, maximumDepth: 0, usage: &usage) }
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) { try one.divided(by: zero, maximumDepth: 0, usage: &usage) }
     }
 
     @Test func cancellationCannotPublishAnOriginalCoefficientOrSpendNewWork() async throws {
@@ -166,7 +200,7 @@ struct OriginalIntersectionCoefficientTests {
                 _ = try OriginalIntersectionCoefficient.prepare(original: value,
                     maximumDepth: 0, maximumCoefficientDepth: 24, usage: &usage)
                 Issue.record("Cancelled coefficient transport published a replacement.")
-            } catch is CancellationError { return usage.work }
+            } catch let error where geometryTestIsCancelled(error) { return usage.work }
             return -1
         }.value
         #expect(charged == 0)
@@ -176,17 +210,17 @@ struct OriginalIntersectionCoefficientTests {
         var preparation = Admission()
         let value = try squareRoot(2, coefficient: true, usage: &preparation)
         var usage = Admission()
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try OriginalIntersectionCoefficient.prepare(original: value,
                 maximumDepth: 24, maximumCoefficientDepth: 0, usage: &usage)
         }
         var work = Admission(); work.maximumWork = 0
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try OriginalIntersectionCoefficient.prepare(original: value,
                 maximumDepth: 24, maximumCoefficientDepth: 24, usage: &work)
         }
         var storage = Admission(); storage.maximumStorage = 0
-        #expect(throws: KernelError.self) {
+        geometryTestExpectFailure({ geometryTestOriginalFailure($0) is KernelError }) {
             try OriginalIntersectionCoefficient.prepare(original: value,
                 maximumDepth: 24, maximumCoefficientDepth: 24, usage: &storage)
         }

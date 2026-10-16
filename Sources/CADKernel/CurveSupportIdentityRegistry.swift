@@ -2,6 +2,7 @@ import Foundation
 import CADCore
 import CADGeometry
 import CADModeling
+import CADTopology
 
 /// Groups curves by certified geometric support when subdivision junctions
 /// must be shared across independently authored topology.
@@ -13,29 +14,31 @@ struct CurveSupportIdentityRegistry: Sendable {
 
     private var records: [Record] = []
 
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Production Boolean arrangement support
+    // identity still uses angular/distance proximity for linear proposals.
+    // Original support equality must replace this gate before exact identity.
     mutating func identity(
         for edge: BRepSewingEdge,
         tolerance: ModelingTolerance
-    ) -> ExactCurveIdentity {
+    , using execution: inout OriginalQueryExecution) throws -> ExactCurveIdentity {
+        try execution.consumeWork(1)
         if let line = exactLinearSupport(of: edge, tolerance: tolerance) {
-            if let index = records.firstIndex(where: {
-                matches(line, record: $0, tolerance: tolerance)
-            }) {
-                return ExactCurveIdentity(ordinal: index)
+            for (index, record) in records.enumerated() {
+                try execution.consumeWork(1)
+                if matches(line, record: record, tolerance: tolerance) { return ExactCurveIdentity(ordinal: index) }
             }
-            records.append(.exactLinear(
+            try OriginalParameterQueryStorage.append(.exactLinear(
                 origin: line.origin,
                 direction: line.direction
-            ))
+            ), to: &records, using: &execution)
             return ExactCurveIdentity(ordinal: records.count - 1)
         }
-        if let index = records.firstIndex(where: { record in
-            guard case let .exactCurve(curve) = record else { return false }
-            return curve == edge.curve
-        }) {
-            return ExactCurveIdentity(ordinal: index)
+        for (index, record) in records.enumerated() {
+            try execution.consumeWork(1)
+            guard case let .exactCurve(curve) = record else { continue }
+            if curve == edge.curve { return ExactCurveIdentity(ordinal: index) }
         }
-        records.append(.exactCurve(edge.curve))
+        try OriginalParameterQueryStorage.append(.exactCurve(edge.curve), to: &records, using: &execution)
         return ExactCurveIdentity(ordinal: records.count - 1)
     }
 

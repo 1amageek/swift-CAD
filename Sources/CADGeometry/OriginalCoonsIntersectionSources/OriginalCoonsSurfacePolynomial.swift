@@ -19,11 +19,11 @@ package struct OriginalCoonsSurfacePolynomial: Sendable {
     package var homogeneous: [ExactBivariatePolynomial] { originalAtlas.cells[0].homogeneous }
     package var denominator: ExactBivariatePolynomial { homogeneous[3] }
 
-    package init<B: RationalAlgebraAdmitting>(source: OriginalCoonsSurface3D,
+    package init(source: OriginalCoonsSurface3D,
         over domain: SurfaceParameterBox, remainingSourceDepth: Int,
-        tolerance: ModelingTolerance, usage: inout B) throws {
+        tolerance: ModelingTolerance, usage: inout OriginalQueryExecution) throws {
         try intersectionAlgebraStep(&usage)
-        try source.validate(tolerance: tolerance)
+        try source.validate(tolerance: tolerance, using: &usage)
         guard remainingSourceDepth >= 1 else {
             throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
                 message: "Original Coons source exhausted surface-to-boundary source depth.")
@@ -45,7 +45,7 @@ package struct OriginalCoonsSurfacePolynomial: Sendable {
         let unit = try OriginalRationalParameterDomain(lower: .zero, upper: .one, usage: &usage)
         try OriginalRuledRelationEquations.requireContained(uDomain, in: unit, tolerance: tolerance, usage: &usage)
         try OriginalRuledRelationEquations.requireContained(vDomain, in: unit, tolerance: tolerance, usage: &usage)
-        try usage.consumeExactWork(4)
+        try usage.consumeWork(4)
         guard let original = try OriginalCoonsHomogeneousAtlas.prepared(source, usage: &usage),
             original.cells.count == 1, original.boundaryPieces.allSatisfy({ $0.count == 1 }),
             let cell = original.cells.first,
@@ -59,7 +59,7 @@ package struct OriginalCoonsSurfacePolynomial: Sendable {
         self.domain = domain; self.uDomain = uDomain; self.vDomain = vDomain
     }
 
-    private static func boundary<B: RationalAlgebraAdmitting>(_ traversal: OriginalCurveRootSpan3D,
+    private static func boundary<B: ExactScalarAdmission & ~Copyable>(_ traversal: OriginalCurveRootSpan3D,
         tolerance: ModelingTolerance, usage: inout B) throws -> NativeBoundary {
         try intersectionAlgebraStep(&usage)
         // FIXME(INCOMPLETE_IMPLEMENTATION): The procedural CS/SSI Coons issuer
@@ -71,7 +71,7 @@ package struct OriginalCoonsSurfacePolynomial: Sendable {
             case .authored(let first) = traversal.start, case .authored(let last) = traversal.end else {
             throw unsupported(tolerance)
         }
-        try native.validate(tolerance: tolerance, consumeWork: { try usage.consumeExactWork(1) })
+        try native.validate(tolerance: tolerance, using: &usage)
         var selected: Int?
         for index in native.degree..<native.controlPoints.count {
             try intersectionAlgebraStep(&usage)

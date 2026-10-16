@@ -10,13 +10,15 @@ struct BRepDisjointUnionEvaluator: Sendable {
         model: BRepModel,
         tolerance: ModelingTolerance,
         separation: BRepBodySeparation? = nil
-    ) throws -> BRepDisjointUnionPlan {
+    , using execution: inout OriginalQueryExecution) throws -> BRepDisjointUnionPlan {
+        try execution.consumeWork(1)
         try tolerance.validate()
-        let operands = targetBodyIDs.enumerated().map { index, bodyID in
-            BRepDisjointUnionOperand(role: .target(index), bodyID: bodyID)
-        } + [
-            BRepDisjointUnionOperand(role: .tool, bodyID: toolBodyID),
-        ]
+        var operands: [BRepDisjointUnionOperand] = []
+        for (index, bodyID) in targetBodyIDs.enumerated() {
+            try execution.consumeWork(1)
+            try OriginalParameterQueryStorage.append(BRepDisjointUnionOperand(role: .target(index), bodyID: bodyID), to: &operands, using: &execution)
+        }
+        try OriginalParameterQueryStorage.append(BRepDisjointUnionOperand(role: .tool, bodyID: toolBodyID), to: &operands, using: &execution)
         try validateSeparatedSolidOperands(
             operands,
             in: model,
@@ -24,8 +26,8 @@ struct BRepDisjointUnionEvaluator: Sendable {
             separation: separation,
             targetBodyIDs: targetBodyIDs,
             toolBodyID: toolBodyID
-        )
-        let topology = try topologySummary(for: operands, in: model)
+        , using: &execution)
+        let topology = try topologySummary(for: operands, in: model, using: &execution)
         return BRepDisjointUnionPlan(
             operands: operands,
             summary: BRepBooleanPlan(
@@ -45,12 +47,13 @@ struct BRepDisjointUnionEvaluator: Sendable {
         plan: BRepDisjointUnionPlan,
         featureID: FeatureID,
         to model: inout BRepModel
-    ) throws -> [SubshapeID: TopologyReference] {
+    , using execution: inout OriginalQueryExecution) throws -> [SubshapeID: TopologyReference] {
+        try execution.consumeWork(1)
         var copier = BRepDisjointUnionTopologyCopier(
             sourceModel: model,
             featureID: featureID
         )
-        let result = try copier.copy(operands: plan.operands)
+        let result = try copier.copy(operands: plan.operands, using: &execution)
         model = result.model
         return result.subshapes
     }
@@ -62,11 +65,13 @@ struct BRepDisjointUnionEvaluator: Sendable {
         separation: BRepBodySeparation?,
         targetBodyIDs: [BodyID],
         toolBodyID: BodyID
-    ) throws {
+    , using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         guard operands.count >= 2 else {
             throw FeatureEvaluationError.invalidGraph("Disjoint B-rep union requires at least two operands.")
         }
         for operand in operands {
+            try execution.consumeWork(1)
             guard let body = model.bodies[operand.bodyID] else {
                 throw TopologyError.missingReference("Missing boolean body \(operand.bodyID).")
             }
@@ -85,15 +90,17 @@ struct BRepDisjointUnionEvaluator: Sendable {
             )
             return
         }
-        let bounds = try operands.map { operand in
+        let bounds = try OriginalParameterQueryStorage.map(operands, using: &execution) { operand, execution in
             try BRepBodyBoundingBoxBuilder().bounds(
                 for: operand.bodyID,
                 in: model,
                 tolerance: tolerance
-            )
+            , using: &execution)
         }
         for firstIndex in bounds.indices {
+            try execution.consumeWork(1)
             for secondIndex in bounds.indices where secondIndex > firstIndex {
+            try execution.consumeWork(1)
                 guard bounds[firstIndex].intersects(
                     bounds[secondIndex],
                     tolerance: tolerance.distance
@@ -109,8 +116,10 @@ struct BRepDisjointUnionEvaluator: Sendable {
     private func topologySummary(
         for operands: [BRepDisjointUnionOperand],
         in model: BRepModel
-    ) throws -> BRepDisjointUnionTopologySummary {
-        var slots = [BooleanEvaluationTopologySlot(role: .body)]
+    , using execution: inout OriginalQueryExecution) throws -> BRepDisjointUnionTopologySummary {
+        try execution.consumeWork(1)
+        var slots: [BooleanEvaluationTopologySlot] = []
+        try OriginalParameterQueryStorage.append(BooleanEvaluationTopologySlot(role: .body), to: &slots, using: &execution)
         var shellCount = 0
         var faceCount = 0
         var loopCount = 0
@@ -118,33 +127,41 @@ struct BRepDisjointUnionEvaluator: Sendable {
         var vertexIDs = Set<VertexID>()
 
         for operand in operands {
+            try execution.consumeWork(1)
             let references = try BRepDisjointUnionOperandTopologyReferences(
                 operand: operand,
                 model: model
-            )
-            shellCount += references.shellIDs.count
-            faceCount += references.faceIDs.count
-            loopCount += references.loopIDs.count
-            edgeIDs.formUnion(references.edgeIDs)
-            vertexIDs.formUnion(references.vertexIDs)
-            slots.append(contentsOf: references.vertexIDs.enumerated().map { index, _ in
-                BooleanEvaluationTopologySlot(
-                    role: .vertex,
-                    subshape: operand.subshape("vertex", index: index)
-                )
-            })
-            slots.append(contentsOf: references.edgeIDs.enumerated().map { index, _ in
-                BooleanEvaluationTopologySlot(
-                    role: .edge,
-                    subshape: operand.subshape("edge", index: index)
-                )
-            })
-            slots.append(contentsOf: references.faceIDs.enumerated().map { index, _ in
-                BooleanEvaluationTopologySlot(
-                    role: .sideFace,
-                    subshape: operand.subshape("face", index: index)
-                )
-            })
+            , using: &execution)
+            let shellCountNext = shellCount.addingReportingOverflow(references.shellIDs.count)
+            guard !shellCountNext.overflow else { throw ExactScalarFailure.countOverflow }
+            shellCount = shellCountNext.partialValue
+            let faceCountNext = faceCount.addingReportingOverflow(references.faceIDs.count)
+            guard !faceCountNext.overflow else { throw ExactScalarFailure.countOverflow }
+            faceCount = faceCountNext.partialValue
+            let loopCountNext = loopCount.addingReportingOverflow(references.loopIDs.count)
+            guard !loopCountNext.overflow else { throw ExactScalarFailure.countOverflow }
+            loopCount = loopCountNext.partialValue
+            for id in references.edgeIDs {
+            try execution.consumeWork(1)
+            try OriginalParameterQueryStorage.insert(id, in: &edgeIDs, using: &execution) }
+            for id in references.vertexIDs {
+            try execution.consumeWork(1)
+            try OriginalParameterQueryStorage.insert(id, in: &vertexIDs, using: &execution) }
+            for index in references.vertexIDs.indices {
+            try execution.consumeWork(1)
+                try OriginalParameterQueryStorage.append(BooleanEvaluationTopologySlot(role: .vertex,
+                    subshape: operand.subshape("vertex", index: index)), to: &slots, using: &execution)
+            }
+            for index in references.edgeIDs.indices {
+            try execution.consumeWork(1)
+                try OriginalParameterQueryStorage.append(BooleanEvaluationTopologySlot(role: .edge,
+                    subshape: operand.subshape("edge", index: index)), to: &slots, using: &execution)
+            }
+            for index in references.faceIDs.indices {
+            try execution.consumeWork(1)
+                try OriginalParameterQueryStorage.append(BooleanEvaluationTopologySlot(role: .sideFace,
+                    subshape: operand.subshape("face", index: index)), to: &slots, using: &execution)
+            }
         }
 
         return BRepDisjointUnionTopologySummary(
@@ -202,7 +219,8 @@ private struct BRepDisjointUnionOperandTopologyReferences: Sendable {
     var edgeIDs: [EdgeID]
     var vertexIDs: [VertexID]
 
-    init(operand: BRepDisjointUnionOperand, model: BRepModel) throws {
+    init(operand: BRepDisjointUnionOperand, model: BRepModel, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         guard let body = model.bodies[operand.bodyID] else {
             throw TopologyError.missingReference("Missing boolean body \(operand.bodyID).")
         }
@@ -221,26 +239,30 @@ private struct BRepDisjointUnionOperandTopologyReferences: Sendable {
         var edgeIDs: [EdgeID] = []
         var vertexIDs: [VertexID] = []
         for shellID in body.shellIDs {
+            try execution.consumeWork(1)
             guard let shell = model.shells[shellID] else {
                 throw TopologyError.missingReference("Missing boolean shell \(shellID).")
             }
             for faceID in shell.faceIDs {
+            try execution.consumeWork(1)
                 guard let face = model.faces[faceID] else {
                     throw TopologyError.missingReference("Missing boolean face \(faceID).")
                 }
-                faceIDs.append(faceID)
+                try OriginalParameterQueryStorage.append(faceID, to: &faceIDs, using: &execution)
                 for loopID in face.loops {
+            try execution.consumeWork(1)
                     guard let loop = model.loops[loopID] else {
                         throw TopologyError.missingReference("Missing boolean loop \(loopID).")
                     }
-                    loopIDs.append(loopID)
+                    try OriginalParameterQueryStorage.append(loopID, to: &loopIDs, using: &execution)
                     for orientedEdge in loop.edges {
-                        Self.appendUnique(orientedEdge.edgeID, to: &edgeIDs)
+            try execution.consumeWork(1)
+                        try Self.appendUnique(orientedEdge.edgeID, to: &edgeIDs, using: &execution)
                         guard let edge = model.edges[orientedEdge.edgeID] else {
                             throw TopologyError.missingReference("Missing boolean edge \(orientedEdge.edgeID).")
                         }
-                        Self.appendUnique(edge.startVertexID, to: &vertexIDs)
-                        Self.appendUnique(edge.endVertexID, to: &vertexIDs)
+                        try Self.appendUnique(edge.startVertexID, to: &vertexIDs, using: &execution)
+                        try Self.appendUnique(edge.endVertexID, to: &vertexIDs, using: &execution)
                     }
                 }
             }
@@ -251,26 +273,31 @@ private struct BRepDisjointUnionOperandTopologyReferences: Sendable {
         self.vertexIDs = vertexIDs
     }
 
-    static func vertexIDs(for body: Body, model: BRepModel) throws -> [VertexID] {
+    static func vertexIDs(for body: Body, model: BRepModel, using execution: inout OriginalQueryExecution) throws -> [VertexID] {
+        try execution.consumeWork(1)
         var vertexIDs: [VertexID] = []
         for shellID in body.shellIDs {
+            try execution.consumeWork(1)
             guard let shell = model.shells[shellID] else {
                 throw TopologyError.missingReference("Missing boolean shell \(shellID).")
             }
             for faceID in shell.faceIDs {
+            try execution.consumeWork(1)
                 guard let face = model.faces[faceID] else {
                     throw TopologyError.missingReference("Missing boolean face \(faceID).")
                 }
                 for loopID in face.loops {
+            try execution.consumeWork(1)
                     guard let loop = model.loops[loopID] else {
                         throw TopologyError.missingReference("Missing boolean loop \(loopID).")
                     }
                     for orientedEdge in loop.edges {
+            try execution.consumeWork(1)
                         guard let edge = model.edges[orientedEdge.edgeID] else {
                             throw TopologyError.missingReference("Missing boolean edge \(orientedEdge.edgeID).")
                         }
-                        appendUnique(edge.startVertexID, to: &vertexIDs)
-                        appendUnique(edge.endVertexID, to: &vertexIDs)
+                        try appendUnique(edge.startVertexID, to: &vertexIDs, using: &execution)
+                        try appendUnique(edge.endVertexID, to: &vertexIDs, using: &execution)
                     }
                 }
             }
@@ -278,11 +305,12 @@ private struct BRepDisjointUnionOperandTopologyReferences: Sendable {
         return vertexIDs
     }
 
-    private static func appendUnique<T: Equatable>(_ value: T, to values: inout [T]) {
+    private static func appendUnique<T: Equatable>(_ value: T, to values: inout [T], using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         guard values.contains(value) == false else {
             return
         }
-        values.append(value)
+        try OriginalParameterQueryStorage.append(value, to: &values, using: &execution)
     }
 }
 
@@ -304,33 +332,34 @@ private struct BRepDisjointUnionTopologyCopier {
 
     mutating func copy(
         operands: [BRepDisjointUnionOperand]
-    ) throws -> BRepDisjointUnionTopologyCopyResult {
+    , using execution: inout OriginalQueryExecution) throws -> BRepDisjointUnionTopologyCopyResult {
+        try execution.consumeWork(1)
         let bodyID = BodyID()
         var solidComponents: [SolidShellComponent] = []
-        var subshapes: [SubshapeID: TopologyReference] = [
-            SubshapeID(
-                featureID: featureID,
-                role: GeneratedSubshapeRole.body.rawValue,
-                ordinal: 0
-            ): .body(bodyID),
-        ]
+        var subshapes: [SubshapeID: TopologyReference] = [:]
+        try OriginalParameterQueryStorage.set(TopologyReference.body(bodyID),
+            for: SubshapeID(featureID: featureID, role: GeneratedSubshapeRole.body.rawValue, ordinal: 0),
+            in: &subshapes, using: &execution)
         for operand in operands {
+            try execution.consumeWork(1)
             let references = try BRepDisjointUnionOperandTopologyReferences(
                 operand: operand,
                 model: sourceModel
-            )
+            , using: &execution)
             for component in references.solidComponents {
-                solidComponents.append(SolidShellComponent(
-                    outerShellID: try copyShell(component.outerShellID),
-                    voidShellIDs: try component.voidShellIDs.map { try copyShell($0) }
-                ))
+            try execution.consumeWork(1)
+                try OriginalParameterQueryStorage.append(SolidShellComponent(
+                    outerShellID: try copyShell(component.outerShellID, using: &execution),
+                    voidShellIDs: try OriginalParameterQueryStorage.map(component.voidShellIDs, using: &execution) { id, execution in try copyShell(id, using: &execution) }
+                ), to: &solidComponents, using: &execution)
             }
             try recordSubshapes(
                 references: references,
                 operand: operand,
                 subshapes: &subshapes
-            )
+            , using: &execution)
         }
+        try execution.retainKernelValues(count: 1, stride: MemoryLayout<(BodyID, Body)>.stride)
         resultModel.bodies[bodyID] = Body(
             id: bodyID,
             solidComponents: solidComponents
@@ -343,12 +372,14 @@ private struct BRepDisjointUnionTopologyCopier {
 
     private mutating func copyShell(
         _ sourceShellID: ShellID,
-    ) throws -> ShellID {
+     using execution: inout OriginalQueryExecution) throws -> ShellID {
+        try execution.consumeWork(1)
         guard let sourceShell = sourceModel.shells[sourceShellID] else {
             throw TopologyError.missingReference("Missing boolean shell \(sourceShellID).")
         }
         let shellID = ShellID()
-        let faceIDs = try sourceShell.faceIDs.map { try copyFace($0) }
+        let faceIDs = try OriginalParameterQueryStorage.map(sourceShell.faceIDs, using: &execution) { id, execution in try copyFace(id, using: &execution) }
+        try execution.retainKernelValues(count: 1, stride: MemoryLayout<(ShellID, Shell)>.stride)
         resultModel.shells[shellID] = Shell(
             id: shellID,
             faceIDs: faceIDs,
@@ -359,7 +390,8 @@ private struct BRepDisjointUnionTopologyCopier {
 
     private mutating func copyFace(
         _ sourceFaceID: FaceID
-    ) throws -> FaceID {
+    , using execution: inout OriginalQueryExecution) throws -> FaceID {
+        try execution.consumeWork(1)
         if let faceID = faceIDs[sourceFaceID] {
             return faceID
         }
@@ -367,9 +399,10 @@ private struct BRepDisjointUnionTopologyCopier {
             throw TopologyError.missingReference("Missing boolean face \(sourceFaceID).")
         }
         let faceID = FaceID()
-        faceIDs[sourceFaceID] = faceID
-        let surfaceID = try copySurface(sourceFace.surfaceID)
-        let loopIDs = try sourceFace.loops.map { try copyLoop($0) }
+        try OriginalParameterQueryStorage.set(faceID, for: sourceFaceID, in: &faceIDs, using: &execution)
+        let surfaceID = try copySurface(sourceFace.surfaceID, using: &execution)
+        let loopIDs = try OriginalParameterQueryStorage.map(sourceFace.loops, using: &execution) { id, execution in try copyLoop(id, using: &execution) }
+        try execution.retainKernelValues(count: 1, stride: MemoryLayout<(FaceID, Face)>.stride)
         resultModel.faces[faceID] = Face(
             id: faceID,
             surfaceID: surfaceID,
@@ -379,17 +412,19 @@ private struct BRepDisjointUnionTopologyCopier {
         return faceID
     }
 
-    private mutating func copyLoop(_ sourceLoopID: LoopID) throws -> LoopID {
+    private mutating func copyLoop(_ sourceLoopID: LoopID, using execution: inout OriginalQueryExecution) throws -> LoopID {
+        try execution.consumeWork(1)
         guard let sourceLoop = sourceModel.loops[sourceLoopID] else {
             throw TopologyError.missingReference("Missing boolean loop \(sourceLoopID).")
         }
         let loopID = LoopID()
+        try execution.retainKernelValues(count: 1, stride: MemoryLayout<(LoopID, Loop)>.stride)
         resultModel.loops[loopID] = Loop(
             id: loopID,
             role: sourceLoop.role,
-            edges: try sourceLoop.edges.map { orientedEdge in
+            edges: try OriginalParameterQueryStorage.map(sourceLoop.edges, using: &execution) { orientedEdge, execution in
                 Coedge(
-                    edgeID: try copyEdge(orientedEdge.edgeID),
+                    edgeID: try copyEdge(orientedEdge.edgeID, using: &execution),
                     orientation: orientedEdge.orientation,
                     surfaceParameterCurve: orientedEdge.surfaceParameterCurve
                 )
@@ -398,7 +433,8 @@ private struct BRepDisjointUnionTopologyCopier {
         return loopID
     }
 
-    private mutating func copyEdge(_ sourceEdgeID: EdgeID) throws -> EdgeID {
+    private mutating func copyEdge(_ sourceEdgeID: EdgeID, using execution: inout OriginalQueryExecution) throws -> EdgeID {
+        try execution.consumeWork(1)
         if let edgeID = edgeIDs[sourceEdgeID] {
             return edgeID
         }
@@ -406,18 +442,20 @@ private struct BRepDisjointUnionTopologyCopier {
             throw TopologyError.missingReference("Missing boolean edge \(sourceEdgeID).")
         }
         let edgeID = EdgeID()
-        edgeIDs[sourceEdgeID] = edgeID
+        try OriginalParameterQueryStorage.set(edgeID, for: sourceEdgeID, in: &edgeIDs, using: &execution)
+        try execution.retainKernelValues(count: 1, stride: MemoryLayout<(EdgeID, Edge)>.stride)
         resultModel.edges[edgeID] = Edge(
             id: edgeID,
-            curveID: try copyCurve(sourceEdge.curveID),
-            startVertexID: try copyVertex(sourceEdge.startVertexID),
-            endVertexID: try copyVertex(sourceEdge.endVertexID),
+            curveID: try copyCurve(sourceEdge.curveID, using: &execution),
+            startVertexID: try copyVertex(sourceEdge.startVertexID, using: &execution),
+            endVertexID: try copyVertex(sourceEdge.endVertexID, using: &execution),
             trim: sourceEdge.trim
         )
         return edgeID
     }
 
-    private mutating func copyVertex(_ sourceVertexID: VertexID) throws -> VertexID {
+    private mutating func copyVertex(_ sourceVertexID: VertexID, using execution: inout OriginalQueryExecution) throws -> VertexID {
+        try execution.consumeWork(1)
         if let vertexID = vertexIDs[sourceVertexID] {
             return vertexID
         }
@@ -425,12 +463,14 @@ private struct BRepDisjointUnionTopologyCopier {
             throw TopologyError.missingReference("Missing boolean vertex \(sourceVertexID).")
         }
         let vertexID = VertexID()
-        vertexIDs[sourceVertexID] = vertexID
+        try OriginalParameterQueryStorage.set(vertexID, for: sourceVertexID, in: &vertexIDs, using: &execution)
+        try execution.retainKernelValues(count: 1, stride: MemoryLayout<(VertexID, Vertex)>.stride)
         resultModel.vertices[vertexID] = Vertex(id: vertexID, point: sourceVertex.point)
         return vertexID
     }
 
-    private mutating func copyCurve(_ sourceCurveID: CurveID) throws -> CurveID {
+    private mutating func copyCurve(_ sourceCurveID: CurveID, using execution: inout OriginalQueryExecution) throws -> CurveID {
+        try execution.consumeWork(1)
         if let curveID = curveIDs[sourceCurveID] {
             return curveID
         }
@@ -438,12 +478,14 @@ private struct BRepDisjointUnionTopologyCopier {
             throw TopologyError.missingReference("Missing boolean curve \(sourceCurveID).")
         }
         let curveID = CurveID()
-        curveIDs[sourceCurveID] = curveID
+        try OriginalParameterQueryStorage.set(curveID, for: sourceCurveID, in: &curveIDs, using: &execution)
+        try execution.retainKernelValues(count: 1, stride: MemoryLayout<(CurveID, Curve3D)>.stride)
         resultModel.geometry.curves[curveID] = curve
         return curveID
     }
 
-    private mutating func copySurface(_ sourceSurfaceID: SurfaceID) throws -> SurfaceID {
+    private mutating func copySurface(_ sourceSurfaceID: SurfaceID, using execution: inout OriginalQueryExecution) throws -> SurfaceID {
+        try execution.consumeWork(1)
         if let surfaceID = surfaceIDs[sourceSurfaceID] {
             return surfaceID
         }
@@ -451,7 +493,8 @@ private struct BRepDisjointUnionTopologyCopier {
             throw TopologyError.missingReference("Missing boolean surface \(sourceSurfaceID).")
         }
         let surfaceID = SurfaceID()
-        surfaceIDs[sourceSurfaceID] = surfaceID
+        try OriginalParameterQueryStorage.set(surfaceID, for: sourceSurfaceID, in: &surfaceIDs, using: &execution)
+        try execution.retainKernelValues(count: 1, stride: MemoryLayout<(SurfaceID, Surface3D)>.stride)
         resultModel.geometry.surfaces[surfaceID] = surface
         return surfaceID
     }
@@ -460,8 +503,10 @@ private struct BRepDisjointUnionTopologyCopier {
         references: BRepDisjointUnionOperandTopologyReferences,
         operand: BRepDisjointUnionOperand,
         subshapes: inout [SubshapeID: TopologyReference]
-    ) throws {
+    , using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         for (index, sourceVertexID) in references.vertexIDs.enumerated() {
+            try execution.consumeWork(1)
             guard let vertexID = vertexIDs[sourceVertexID] else {
                 throw TopologyError.missingReference("Missing copied boolean vertex \(sourceVertexID).")
             }
@@ -470,9 +515,10 @@ private struct BRepDisjointUnionTopologyCopier {
                 subshape: operand.subshape("vertex", index: index),
                 reference: .vertex(vertexID),
                 subshapes: &subshapes
-            )
+            , using: &execution)
         }
         for (index, sourceEdgeID) in references.edgeIDs.enumerated() {
+            try execution.consumeWork(1)
             guard let edgeID = edgeIDs[sourceEdgeID] else {
                 throw TopologyError.missingReference("Missing copied boolean edge \(sourceEdgeID).")
             }
@@ -481,9 +527,10 @@ private struct BRepDisjointUnionTopologyCopier {
                 subshape: operand.subshape("edge", index: index),
                 reference: .edge(edgeID),
                 subshapes: &subshapes
-            )
+            , using: &execution)
         }
         for (index, sourceFaceID) in references.faceIDs.enumerated() {
+            try execution.consumeWork(1)
             guard let faceID = faceIDs[sourceFaceID] else {
                 throw TopologyError.missingReference("Missing copied boolean face \(sourceFaceID).")
             }
@@ -492,7 +539,7 @@ private struct BRepDisjointUnionTopologyCopier {
                 subshape: operand.subshape("face", index: index),
                 reference: .face(faceID),
                 subshapes: &subshapes
-            )
+            , using: &execution)
         }
     }
 
@@ -501,7 +548,8 @@ private struct BRepDisjointUnionTopologyCopier {
         subshape: String,
         reference: TopologyReference,
         subshapes: inout [SubshapeID: TopologyReference]
-    ) throws {
+    , using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         let subshapeID = SubshapeID(
             featureID: featureID,
             role: SubshapeIdentityRole.compose(
@@ -513,7 +561,7 @@ private struct BRepDisjointUnionTopologyCopier {
         guard subshapes[subshapeID] == nil else {
             throw FeatureEvaluationError.invalidGraph("Disjoint B-rep union generated subshape collision.")
         }
-        subshapes[subshapeID] = reference
+        try OriginalParameterQueryStorage.set(reference, for: subshapeID, in: &subshapes, using: &execution)
     }
 }
 

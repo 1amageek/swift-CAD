@@ -9,10 +9,15 @@ package struct OriginalAffineWordDifferentialTransport: Sendable {
   private let source: Source
   private let linearNormUpper: Double
   private let cofactorConditionUpper: Double
+  private let proofDepth: ExactScalarDepth
 
-  package init<B: RationalAlgebraAdmitting>(image: OriginalAffineWordSurface3D, usage: inout B) throws {
+  package init<B: ExactScalarAdmission & ~Copyable>(image: OriginalAffineWordSurface3D, usage: inout B) throws {
     source = .word(image)
-    let q = try image.preparedWord.conditionBounds(usage: &usage)
+    let calculation = try ExactScalarNumericAccess.withAdmission(&usage) { usage in
+      try image.preparedWord.conditionBounds(usage: &usage)
+    }
+    proofDepth = calculation.depth
+    let q = calculation.value
     guard q.linearNormUpper.isFinite, q.linearNormUpper > 0,
       q.cofactorConditionUpper.isFinite, q.cofactorConditionUpper > 0 else {
       throw GeometryConversionError.resourceLimitExceeded("Original word has no finite quantitative differential action.")
@@ -21,7 +26,7 @@ package struct OriginalAffineWordDifferentialTransport: Sendable {
   }
 
   /// The caller retains the same original native owner and unchanged UV box.
-  package init<B: RationalAlgebraAdmitting>(image: OriginalImageSurface3D,
+  package init<B: ExactScalarAdmission & ~Copyable>(image: OriginalImageSurface3D,
     tolerance: ModelingTolerance, usage: inout B) throws {
     guard image.uParameterGain == .binary(1), image.vParameterGain == .binary(1),
       image.uOffset == 0, image.vOffset == 0, !image.swapAxes else {
@@ -32,7 +37,11 @@ package struct OriginalAffineWordDifferentialTransport: Sendable {
     let word = try OriginalAffineOperationWord(operation: .forward(image.transform),
       tolerance: tolerance, maximumDepth: 0, usage: &usage)
     let prepared = try word.prepared(usage: &usage)
-    let q = try prepared.conditionBounds(usage: &usage)
+    let calculation = try ExactScalarNumericAccess.withAdmission(&usage) { usage in
+      try prepared.conditionBounds(usage: &usage)
+    }
+    proofDepth = calculation.depth
+    let q = calculation.value
     guard q.linearNormUpper.isFinite, q.linearNormUpper > 0,
       q.cofactorConditionUpper.isFinite, q.cofactorConditionUpper > 0 else {
       throw GeometryConversionError.resourceLimitExceeded("Original image has no finite quantitative native-panel action.")
@@ -40,10 +49,11 @@ package struct OriginalAffineWordDifferentialTransport: Sendable {
     linearNormUpper = q.linearNormUpper; cofactorConditionUpper = q.cofactorConditionUpper
   }
 
-  package func bounds(_ original: SurfaceTessellationDifferentialBounds,
-    consumeWork: () throws -> Void) throws -> SurfaceTessellationDifferentialBounds {
+  package func bounds<A: ExactScalarAdmission & ~Copyable>(_ original: SurfaceTessellationDifferentialBounds,
+    using execution: inout A) throws -> SurfaceTessellationDifferentialBounds {
+    try execution.admitDepth(value: proofDepth.value, coefficient: proofDepth.coefficient)
     func scaled(_ value: Double, by scale: Double) throws -> Double {
-      try consumeWork()
+      try execution.consumeWork(1)
       guard value.isFinite, value >= 0 else {
         throw GeometryConversionError.invalidInput("Original word derivative bound is not finite and nonnegative.")
       }

@@ -1,0 +1,14 @@
+# Diagnostic preparation only. Root owns one 120-second bounded launch.
+# Capture commands execute only on this exact abort-entry breakpoint.
+settings set interpreter.stop-command-source-on-error false
+settings set auto-confirm true
+target create --arch arm64 "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/libexec/swift/pm/swiftpm-testing-helper"
+settings set target.disable-aslr false
+settings set -- target.env-vars "DYLD_FRAMEWORK_PATH=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks:/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks" "DYLD_LIBRARY_PATH=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib"
+settings set -- target.run-args "--test-bundle-path" "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-native-after-trim-r1/build/out/Products/Debug/FocusedTests.xctest/Contents/MacOS/FocusedTests" "--testing-library" "swift-testing" "--filter" "DocumentDrawingCanonicalAdmissionTests.planarWholeExclusionUsesTheRealDrawingWitnesses" "--xunit-output" "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/drawing-plane-debug-trim-r1/results.xml"
+run
+process status
+thread backtrace --count 50 all
+register read sp fp pc lr x0 x19 x20
+process kill
+quit

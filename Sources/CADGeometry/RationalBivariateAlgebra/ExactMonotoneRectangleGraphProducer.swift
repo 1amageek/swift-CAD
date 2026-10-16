@@ -2,7 +2,7 @@ import CADCore
 
 /// Original exact clipped regular graphs, including adjacent-edge branch domains.
 package struct ExactMonotoneRectangleGraphProducer {
-    package static func graph<B: RationalAlgebraAdmitting>(of original: ExactBivariatePolynomial,
+    package static func graph<B: ExactScalarAdmission & ~Copyable>(of original: ExactBivariatePolynomial,
         over domain: SurfaceParameterBox, freeAlongU: Bool, maximumDepth: Int,
         usage: inout B, additionalStations: [ExactMonotoneGraphEndpoint] = []) throws -> ExactMonotoneRectangleGraph? {
         guard maximumDepth >= 0, domain.u.width > 0, domain.v.width > 0 else {
@@ -23,7 +23,7 @@ package struct ExactMonotoneRectangleGraphProducer {
         var projection = try ExactBivariatePolynomial.constant(.one, usage: &usage)
         if !low.isZero { projection = try projection.multiplied(by: low, usage: &usage) }
         if !high.isZero { projection = try projection.multiplied(by: high, usage: &usage) }
-        try usage.retainExactStorage(2)
+        try RationalAlgebraStorage.retain(2, of: ExactMonotoneGraphEndpoint.self, usage: &usage)
         var endpoints: [ExactMonotoneGraphEndpoint] = [.authored(lower), .authored(upper)]
         if projection.uDegree > 0 {
             let roots = try ExactUnivariateRootIsolator().isolate(projection, lower: lower, upper: upper,
@@ -35,7 +35,7 @@ package struct ExactMonotoneRectangleGraphProducer {
                 let atUpper = try u.subtracting(.constant(upper, usage: &usage), usage: &usage)
                 if case .zero = try value.sign(of: atLower, maximumDepth: maximumDepth, usage: &usage) { continue }
                 if case .zero = try value.sign(of: atUpper, maximumDepth: maximumDepth, usage: &usage) { continue }
-                try usage.retainExactStorage(1); endpoints.append(.algebraic(value))
+                try RationalAlgebraStorage.retain(1, of: ExactMonotoneGraphEndpoint.self, usage: &usage); endpoints.append(.algebraic(value))
             }
         }
         for endpoint in additionalStations {
@@ -50,11 +50,11 @@ package struct ExactMonotoneRectangleGraphProducer {
                     duplicate = true; break
                 }
             }
-            if !duplicate { try usage.retainExactStorage(1); endpoints.append(endpoint) }
+            if !duplicate { try RationalAlgebraStorage.retain(1, of: ExactMonotoneGraphEndpoint.self, usage: &usage); endpoints.append(endpoint) }
         }
         // Order by exact lower bounds, then authored point before an open root
         // interval at the same bound. Each distinct original root is retained once.
-        try usage.consumeExactWork(try rationalAlgebraCount(endpoints.count, endpoints.count, multiply: true))
+        try usage.consumeWork(try rationalAlgebraCount(endpoints.count, endpoints.count, multiply: true))
         for i in 1..<endpoints.count {
             var j = i
             while j > 0 {
@@ -68,7 +68,7 @@ package struct ExactMonotoneRectangleGraphProducer {
         let two = try ExactRationalCoefficient.natural(2, usage: &usage)
         for i in 0..<(endpoints.count - 1) {
             while !(try endpoints[i + 1].lower.subtracting(endpoints[i].upper, usage: &usage)).isPositive {
-                try usage.visitExactCell(depth: max(endpoints[i].depth, endpoints[i + 1].depth))
+                try usage.visitCell(axis: .value, depth: max(endpoints[i].depth, endpoints[i + 1].depth))
                 var refined = false
                 for index in [i, i + 1] {
                     let width = try endpoints[index].upper.subtracting(endpoints[index].lower, usage: &usage)
@@ -84,12 +84,12 @@ package struct ExactMonotoneRectangleGraphProducer {
         for endpoint in endpoints {
             let a = try endpoint.sign(of: low, maximumDepth: maximumDepth, usage: &usage)
             let b = try endpoint.sign(of: high, maximumDepth: maximumDepth, usage: &usage)
-            try usage.retainExactStorage(1)
+            try RationalAlgebraStorage.retain(1, of: ExactMonotoneRectangleGraph.Station.self, usage: &usage)
             stations.append(.init(endpoint: endpoint, containsRoot: brackets(a, b)))
         }
         var spans: [ExactMonotoneRectangleGraph.Span] = []
         var incident: [Bool] = []
-        try usage.retainExactStorage(stations.count)
+        try RationalAlgebraStorage.retain(stations.count, of: Bool.self, usage: &usage)
         incident = [Bool](repeating: false, count: stations.count)
         for i in 0..<(stations.count - 1) {
             let middle = try endpoints[i].upper.adding(endpoints[i + 1].lower, usage: &usage)
@@ -106,13 +106,13 @@ package struct ExactMonotoneRectangleGraphProducer {
                 guard stations[i].containsRoot, stations[i + 1].containsRoot else {
                     throw rationalAlgebraFailure("Closed original regular graph sector lost endpoint incidence.")
                 }
-                try usage.retainExactStorage(1); spans.append(.init(lowerStation: i, upperStation: i + 1))
+                try RationalAlgebraStorage.retain(1, of: ExactMonotoneRectangleGraph.Span.self, usage: &usage); spans.append(.init(lowerStation: i, upperStation: i + 1))
                 incident[i] = true; incident[i + 1] = true
             }
         }
         var isolated: [Int] = []
         for index in stations.indices where stations[index].containsRoot && !incident[index] {
-            try usage.retainExactStorage(1); isolated.append(index)
+            try RationalAlgebraStorage.retain(1, of: Int.self, usage: &usage); isolated.append(index)
         }
         return ExactMonotoneRectangleGraph(original: original, sourceDomain: domain, freeAlongU: freeAlongU,
             transverseDerivative: derivative, stations: stations, spans: spans, isolatedStationIndices: isolated)

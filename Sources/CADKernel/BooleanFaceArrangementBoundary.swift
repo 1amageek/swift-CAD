@@ -33,7 +33,8 @@ struct BooleanFaceArrangementBoundary: Sendable {
     regionSelectionGraph: BooleanRegionSelectionGraph,
     parentSubshapeIDs: [SubshapeID],
     tolerance: ModelingTolerance
-  ) throws -> [BooleanFaceArrangementBoundary] {
+  , using execution: inout OriginalQueryExecution) throws -> [BooleanFaceArrangementBoundary] {
+        try execution.consumeWork(1)
     try tolerance.validate()
     if case .tangent = geometry { return [] }
     if case .coincident = geometry {
@@ -49,11 +50,12 @@ struct BooleanFaceArrangementBoundary: Sendable {
       face: face,
       regionSelectionGraph: regionSelectionGraph,
       tolerance: tolerance
-    )
+    , using: &execution)
     let edges = try edges(reference: reference, geometry: geometry, faceID: face.id,
-      surfaceSide: surfaceSide, parentSubshapeIDs: parentSubshapeIDs, tolerance: tolerance)
-    return edges.enumerated().map { segmentOrdinal, edge in
-      BooleanFaceArrangementBoundary(
+      surfaceSide: surfaceSide, parentSubshapeIDs: parentSubshapeIDs, tolerance: tolerance, using: &execution)
+    return try OriginalParameterQueryStorage.map(edges.enumerated(), using: &execution) { entry, execution in
+      let (segmentOrdinal, edge) = entry
+      return BooleanFaceArrangementBoundary(
         reference: reference,
         segmentOrdinal: segmentOrdinal,
         faceID: face.id,
@@ -76,7 +78,8 @@ struct BooleanFaceArrangementBoundary: Sendable {
     surfaceSide: SurfaceSide,
     parentSubshapeIDs: [SubshapeID],
     tolerance: ModelingTolerance
-  ) throws -> [BRepSewingEdge] {
+  , using execution: inout OriginalQueryExecution) throws -> [BRepSewingEdge] {
+        try execution.consumeWork(1)
     let edges: [BRepSewingEdge]
     switch geometry {
     case .transverseSegment(let start, let end):
@@ -88,11 +91,13 @@ struct BooleanFaceArrangementBoundary: Sendable {
           stableID: stableID(reference, faceID: faceID, segmentOrdinal: 0),
           parentSubshapeIDs: parentSubshapeIDs,
           tolerance: tolerance
-        )
+        , using: &execution)
       ]
     case .trimmedCurve(let chain):
-      edges = try chain.segments.enumerated().map { segmentOrdinal, intersection in
-        try trimmedIntersectionEdge(
+      try execution.retainKernelValues(count: chain.segments.count, stride: MemoryLayout<(Int, BooleanTrimmedFaceIntersection)>.stride)
+      edges = try OriginalParameterQueryStorage.map(Array(chain.segments.enumerated()), using: &execution) { entry, execution in
+        let (segmentOrdinal, intersection) = entry
+        return try trimmedIntersectionEdge(
           intersection,
           surfaceSide: surfaceSide,
           stableID: stableID(
@@ -102,7 +107,7 @@ struct BooleanFaceArrangementBoundary: Sendable {
           ),
           parentSubshapeIDs: parentSubshapeIDs,
           tolerance: tolerance
-        )
+        , using: &execution)
       }
     case .closedCurve(let intersection):
       edges = try closedIntersectionEdges(
@@ -112,7 +117,7 @@ struct BooleanFaceArrangementBoundary: Sendable {
         faceID: faceID,
         parentSubshapeIDs: parentSubshapeIDs,
         tolerance: tolerance
-      )
+      , using: &execution)
     case .tangent, .coincident:
       return []
     }
@@ -124,11 +129,14 @@ struct BooleanFaceArrangementBoundary: Sendable {
     face: Face,
     regionSelectionGraph: BooleanRegionSelectionGraph,
     tolerance: ModelingTolerance
-  ) throws -> (negative: BooleanRegionSelectionAction, positive: BooleanRegionSelectionAction) {
-    let decisions = regionSelectionGraph.decisions.filter {
-      $0.sample.facePair == reference.facePair
-        && $0.sample.componentID == reference.componentID
-        && $0.sample.sourceFaceID == face.id
+  , using execution: inout OriginalQueryExecution) throws -> (negative: BooleanRegionSelectionAction, positive: BooleanRegionSelectionAction) {
+        try execution.consumeWork(1)
+    var decisions: [BooleanRegionSelectionGraph.Decision] = []
+    for decision in regionSelectionGraph.decisions {
+      try execution.consumeWork(1)
+      if decision.sample.facePair == reference.facePair && decision.sample.componentID == reference.componentID && decision.sample.sourceFaceID == face.id {
+        try OriginalParameterQueryStorage.append(decision, to: &decisions, using: &execution)
+      }
     }
     guard decisions.count == 2,
       Set(decisions.map(\.sample.side)) == Set([.negative, .positive]),
@@ -158,7 +166,8 @@ struct BooleanFaceArrangementBoundary: Sendable {
     stableID: String,
     parentSubshapeIDs: [SubshapeID],
     tolerance: ModelingTolerance
-  ) throws -> BRepSewingEdge {
+  , using execution: inout OriginalQueryExecution) throws -> BRepSewingEdge {
+        try execution.consumeWork(1)
     let offset = end.point - start.point
     let length = offset.length
     let direction = try offset.normalized(tolerance: tolerance.distance)
@@ -199,7 +208,8 @@ struct BooleanFaceArrangementBoundary: Sendable {
     stableID: String,
     parentSubshapeIDs: [SubshapeID],
     tolerance: ModelingTolerance
-  ) throws -> BRepSewingEdge {
+  , using execution: inout OriginalQueryExecution) throws -> BRepSewingEdge {
+        try execution.consumeWork(1)
     let pcurve = surfaceParameterCurve(
       intersection.intersection,
       side: surfaceSide
@@ -226,7 +236,7 @@ struct BooleanFaceArrangementBoundary: Sendable {
         to: endParameter,
         curveDomain: curveDomain,
         tolerance: tolerance
-      ),
+      , using: &execution),
       parentSubshapeIDs: parentSubshapeIDs
     )
   }
@@ -238,26 +248,27 @@ struct BooleanFaceArrangementBoundary: Sendable {
     faceID: FaceID,
     parentSubshapeIDs: [SubshapeID],
     tolerance: ModelingTolerance
-  ) throws -> [BRepSewingEdge] {
+  , using execution: inout OriginalQueryExecution) throws -> [BRepSewingEdge] {
+        try execution.consumeWork(1)
     let bounds = try parameterBounds(
       intersection.intersection.curve.parameterDomain,
       tolerance: tolerance
-    )
+    , using: &execution)
     let midpoint = bounds.lower + (bounds.upper - bounds.lower) * 0.5
     let curve = intersection.intersection.curve
     let pcurve = surfaceParameterCurve(intersection.intersection, side: surfaceSide)
     let firstPoint = try curve.pointAssumingValid(
       at: bounds.lower,
       tolerance: tolerance
-    )
+    , using: &execution)
     let midpointPoint = try curve.pointAssumingValid(
       at: midpoint,
       tolerance: tolerance
-    )
+    , using: &execution)
     let evaluatedEndPoint = try curve.pointAssumingValid(
       at: bounds.upper,
       tolerance: tolerance
-    )
+    , using: &execution)
     let endPoint =
       intersection.intersection.truth
         .certifiedComponentClosure == true
@@ -267,7 +278,9 @@ struct BooleanFaceArrangementBoundary: Sendable {
       (bounds.lower, midpoint, firstPoint, midpointPoint),
       (midpoint, bounds.upper, midpointPoint, endPoint),
     ]
-    return try segments.enumerated().map { segmentOrdinal, segment in
+    try execution.retainKernelValues(count: segments.count, stride: MemoryLayout<(Int, (Double, Double, Point3D, Point3D))>.stride)
+    return try OriginalParameterQueryStorage.map(Array(segments.enumerated()), using: &execution) { entry, execution in
+      let (segmentOrdinal, segment) = entry
       return BRepSewingEdge(
         stableID: stableID(
           reference,
@@ -284,7 +297,7 @@ struct BooleanFaceArrangementBoundary: Sendable {
           to: segment.1,
           curveDomain: curve.parameterDomain,
           tolerance: tolerance
-        ),
+        , using: &execution),
         parentSubshapeIDs: parentSubshapeIDs
       )
     }
@@ -317,7 +330,8 @@ struct BooleanFaceArrangementBoundary: Sendable {
   private static func parameterBounds(
     _ domain: ParameterDomain,
     tolerance: ModelingTolerance
-  ) throws -> (lower: Double, upper: Double) {
+  , using execution: inout OriginalQueryExecution) throws -> (lower: Double, upper: Double) {
+        try execution.consumeWork(1)
     switch domain {
     case .closed(let lower, let upper):
       return (lower, upper)

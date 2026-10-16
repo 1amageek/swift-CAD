@@ -5,15 +5,15 @@ import CADIR
 /// Selects the original directed guide interval joining all section events.
 package struct OriginalLoftGuideResolver {
     package func resolve(chain: OriginalLoftGuideChain, sections: [ExactLoftGuideSection],
-                         featureID: FeatureID, allowance: inout OriginalCurveContactAllowance,
+                         featureID: FeatureID, using execution: inout OriginalQueryExecution,
                          tolerance: ModelingTolerance) throws -> ExactLoftGuideCurve {
         var events: [OriginalLoftGuideContact] = []
         let resolver = OriginalLoftGuideContactResolver()
-        try allowance.reserveEntries(sections.count)
-        try allowance.reserveStorage(sections.count, of: OriginalLoftGuideContact.self)
+        try execution.consumeWork(sections.count)
+        try RationalAlgebraStorage.retain(sections.count, of: OriginalLoftGuideContact.self, usage: &execution)
         events.reserveCapacity(sections.count)
         for (index, section) in sections.enumerated() {
-            let contacts = try resolver.contacts(chain: chain, section: section, allowance: &allowance, tolerance: tolerance)
+            let contacts = try resolver.contacts(chain: chain, section: section, using: &execution, tolerance: tolerance)
             guard contacts.count == 1, let contact = contacts.first else {
                 throw KernelError(phase: .geometry,
                     code: contacts.isEmpty ? .intersectionFailure : .ambiguousSelection,
@@ -35,11 +35,11 @@ package struct OriginalLoftGuideResolver {
             oriented = chain
             contacts = events
         } else if lastOrder.upper < firstOrder.lower {
-            try allowance.reserveStorage(chain.segments.count, of: EvaluatedCurvePathSegment.self)
-            try allowance.reserveEntries(chain.segments.count)
+            try RationalAlgebraStorage.retain(chain.segments.count, of: EvaluatedCurvePathSegment.self, usage: &execution)
+            try execution.consumeWork(chain.segments.count)
             oriented = try chain.reversed(tolerance: tolerance)
-            try allowance.reserveEntries(events.count)
-            try allowance.reserveStorage(events.count, of: OriginalLoftGuideContact.self)
+            try execution.consumeWork(events.count)
+            try RationalAlgebraStorage.retain(events.count, of: OriginalLoftGuideContact.self, usage: &execution)
             contacts = events.map { chain.reversed($0) }
         } else {
             throw KernelError(phase: .geometry, code: .ambiguousSelection, featureID: featureID,
@@ -52,10 +52,10 @@ package struct OriginalLoftGuideResolver {
                     tolerance: tolerance, message: "Original Loft guide event intervals do not establish the section order.")
             }
         }
-        try allowance.reserveEntries(contacts.count)
-        try allowance.reserveEntries(contacts.count)
-        try allowance.reserveStorage(contacts.count, of: Point3D.self)
-        try allowance.reserveStorage(contacts.count, of: Int.self)
+        try execution.consumeWork(contacts.count)
+        try execution.consumeWork(contacts.count)
+        try RationalAlgebraStorage.retain(contacts.count, of: Point3D.self, usage: &execution)
+        try RationalAlgebraStorage.retain(contacts.count, of: Int.self, usage: &execution)
         return ExactLoftGuideCurve(originalChain: oriented, sectionContacts: contacts,
             boundaryLoopIndex: contacts[0].boundaryLoopIndex,
             sectionPoints: contacts.map(\.point), sectionBoundaryLoopIndexes: contacts.map(\.boundaryLoopIndex))

@@ -36,6 +36,12 @@ extension OriginalPhysicalAngleScalarDomain {
         }
     }
 
+    /// Creates one exclusive continuation for this source's physical sin/cos expressions.
+    func makeSineCosineEnclosure<A: ExactScalarAdmission & ~Copyable>(using admission: inout A)
+        throws(ExactScalarFailure) -> OriginalPhysicalAngleEnclosure {
+        try OriginalPhysicalAngleEnclosure(domain: self, using: &admission)
+    }
+
     static func publishedBounds<A: ExactScalarAdmission & ~Copyable>(
         _ interval: OriginalPhysicalAngleInterval, _ a: inout A) throws -> OriginalPhysicalAngleRationalBounds {
         try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: OriginalPhysicalAngleRationalBounds.self))

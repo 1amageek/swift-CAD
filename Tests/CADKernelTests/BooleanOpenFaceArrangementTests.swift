@@ -12,6 +12,7 @@ struct BooleanOpenFaceArrangementTests {
 
     @Test(.timeLimit(.minutes(1)))
     func transverseSegmentSplitsSourceEdgesAndSelectsOneExactCycle() throws {
+        var execution = try OriginalQueryExecution.kernelOriginal()
         let source = try PlanarSheetTestFixture.make(featureID: FeatureID(), tolerance: .standard)
         let body = try #require(source.brep.bodies.values.first)
         let shell = try #require(source.brep.shells[body.shellIDs[0]])
@@ -71,7 +72,7 @@ struct BooleanOpenFaceArrangementTests {
                 action: .keep
             ),
         ])
-        let boundary = try #require(BooleanFaceArrangementBoundary.make(
+        let boundaryCandidates = try BooleanFaceArrangementBoundary.make(
             reference: BooleanFaceSplitComponentReference(
                 facePair: pair,
                 componentID: componentID
@@ -83,15 +84,18 @@ struct BooleanOpenFaceArrangementTests {
             parentSubshapeIDs: source.subshapes.entries.compactMap {
                 $0.value == .face(face.id) ? $0.key : nil
             },
-            tolerance: tolerance
-        ).first)
+            tolerance: tolerance,
+            using: &execution
+        )
+        let boundary = try #require(boundaryCandidates.first)
 
         let result = try BooleanOpenFaceArrangementBuilder().build(
             faceID: face.id,
             boundaries: [boundary],
             model: source.brep,
             sourceSubshapes: source.subshapes.entries,
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
         )
 
         #expect(result.isPartitioned)
@@ -110,6 +114,7 @@ struct BooleanOpenFaceArrangementTests {
 
     @Test(.timeLimit(.minutes(1)))
     func transverseSegmentPreservesNestedSourceHoleInSelectedCell() throws {
+        var execution = try OriginalQueryExecution.kernelOriginal()
         let source = try planarSheetWithRectangularHole()
         let body = try #require(source.brep.bodies.values.first)
         let shell = try #require(source.brep.shells[body.shellIDs[0]])
@@ -122,14 +127,14 @@ struct BooleanOpenFaceArrangementTests {
             toolFaceID: FaceID()
         )
         let componentID = BooleanFaceSplitComponentID(ordinal: 0)
-        let boundary = try #require(BooleanFaceArrangementBoundary.make(
+        let boundaryCandidates = try BooleanFaceArrangementBoundary.make(
             reference: BooleanFaceSplitComponentReference(
                 facePair: pair,
                 componentID: componentID
             ),
             geometry: .transverseSegment(
-                start: try uvPoint(startPoint, surface: surface),
-                end: try uvPoint(endPoint, surface: surface)
+                start: try uvPoint(startPoint, surface: surface, using: &execution),
+                end: try uvPoint(endPoint, surface: surface, using: &execution)
             ),
             face: face,
             surfaceSide: .first,
@@ -154,15 +159,18 @@ struct BooleanOpenFaceArrangementTests {
                 ),
             ]),
             parentSubshapeIDs: [],
-            tolerance: tolerance
-        ).first)
+            tolerance: tolerance,
+            using: &execution
+        )
+        let boundary = try #require(boundaryCandidates.first)
 
         let result = try BooleanOpenFaceArrangementBuilder().build(
             faceID: face.id,
             boundaries: [boundary],
             model: source.brep,
             sourceSubshapes: source.subshapes.entries,
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
         )
 
         #expect(result.isPartitioned)
@@ -176,6 +184,7 @@ struct BooleanOpenFaceArrangementTests {
 
     @Test(.timeLimit(.minutes(1)))
     func disconnectedIntersectionNetworkProducesExactInnerLoop() throws {
+        var execution = try OriginalQueryExecution.kernelOriginal()
         let source = try PlanarSheetTestFixture.make(featureID: FeatureID(), tolerance: .standard)
         let body = try #require(source.brep.bodies.values.first)
         let shell = try #require(source.brep.shells[body.shellIDs[0]])
@@ -195,8 +204,8 @@ struct BooleanOpenFaceArrangementTests {
         let boundaries = try points.indices.map { index in
             let startPoint = points[index]
             let endPoint = points[(index + 1) % points.count]
-            let start = try uvPoint(startPoint, surface: surface)
-            let end = try uvPoint(endPoint, surface: surface)
+            let start = try uvPoint(startPoint, surface: surface, using: &execution)
+            let end = try uvPoint(endPoint, surface: surface, using: &execution)
             let pair = BooleanFacePairCandidate(
                 targetFaceID: face.id,
                 toolFaceID: FaceID()
@@ -221,7 +230,7 @@ struct BooleanOpenFaceArrangementTests {
                     action: .discard
                 ),
             ])
-            return try #require(BooleanFaceArrangementBoundary.make(
+            let boundaryCandidates = try BooleanFaceArrangementBoundary.make(
                 reference: BooleanFaceSplitComponentReference(
                     facePair: pair,
                     componentID: componentID
@@ -231,8 +240,10 @@ struct BooleanOpenFaceArrangementTests {
                 surfaceSide: .first,
                 regionSelectionGraph: decisions,
                 parentSubshapeIDs: parentSubshapeIDs,
-                tolerance: tolerance
-            ).first)
+                tolerance: tolerance,
+                using: &execution
+            )
+            return try #require(boundaryCandidates.first)
         }
 
         let result = try BooleanOpenFaceArrangementBuilder().build(
@@ -240,7 +251,8 @@ struct BooleanOpenFaceArrangementTests {
             boundaries: boundaries,
             model: source.brep,
             sourceSubshapes: source.subshapes.entries,
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
         )
 
         #expect(result.isPartitioned)
@@ -258,6 +270,7 @@ struct BooleanOpenFaceArrangementTests {
 
     @Test(.timeLimit(.minutes(1)))
     func translatedBoxesMaterializeThroughGeneralOpenArrangement() throws {
+        var execution = try OriginalQueryExecution.kernelOriginal()
         let target = try DocumentEvaluator(tolerance: .standard).evaluate(makeRectangleExtrudeDocument(
             width: 40.0,
             height: 40.0,
@@ -323,7 +336,8 @@ struct BooleanOpenFaceArrangementTests {
             uvSplitGraph: uvSplitGraph,
             regionSelectionGraph: selectionGraph,
             operands: .volumes(targetBodyIDs: [targetBodyID], toolBodyID: toolBodyID),
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
         )
 
         try request.validate(tolerance: tolerance)
@@ -337,6 +351,7 @@ struct BooleanOpenFaceArrangementTests {
 
     @Test(.timeLimit(.minutes(1)))
     func trimmedExactCurvesComposeDisconnectedInnerLoop() throws {
+        var execution = try OriginalQueryExecution.kernelOriginal()
         let source = try PlanarSheetTestFixture.make(featureID: FeatureID(), tolerance: .standard)
         let body = try #require(source.brep.bodies.values.first)
         let shell = try #require(source.brep.shells[body.shellIDs[0]])
@@ -428,11 +443,11 @@ struct BooleanOpenFaceArrangementTests {
                 intersection: intersection,
                 startParameter: lower,
                 endParameter: upper,
-                start: uvPoint(startPoint, surface: surface),
-                end: uvPoint(endPoint, surface: surface),
+                start: uvPoint(startPoint, surface: surface, using: &execution),
+                end: uvPoint(endPoint, surface: surface, using: &execution),
                 tolerance: tolerance
             )
-            return try #require(BooleanFaceArrangementBoundary.make(
+            let boundaryCandidates = try BooleanFaceArrangementBoundary.make(
                 reference: BooleanFaceSplitComponentReference(
                     facePair: pair,
                     componentID: componentID
@@ -445,8 +460,10 @@ struct BooleanOpenFaceArrangementTests {
                 surfaceSide: .first,
                 regionSelectionGraph: decisions,
                 parentSubshapeIDs: [],
-                tolerance: tolerance
-            ).first)
+                tolerance: tolerance,
+                using: &execution
+            )
+            return try #require(boundaryCandidates.first)
         }
 
         let result = try BooleanOpenFaceArrangementBuilder().build(
@@ -454,7 +471,8 @@ struct BooleanOpenFaceArrangementTests {
             boundaries: boundaries,
             model: source.brep,
             sourceSubshapes: source.subshapes.entries,
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
         )
 
         let patch = try #require(result.patches.first)
@@ -470,6 +488,7 @@ struct BooleanOpenFaceArrangementTests {
 
     @Test(.timeLimit(.minutes(1)))
     func closedExactCurveNormalizesIntoTwoArrangementHalfEdges() throws {
+        var execution = try OriginalQueryExecution.kernelOriginal()
         let source = try PlanarSheetTestFixture.make(featureID: FeatureID(), tolerance: .standard)
         let body = try #require(source.brep.bodies.values.first)
         let shell = try #require(source.brep.shells[body.shellIDs[0]])
@@ -480,7 +499,8 @@ struct BooleanOpenFaceArrangementTests {
             radius: 0.005,
             face: face,
             surface: surface,
-            componentOrdinal: 0
+            componentOrdinal: 0,
+            using: &execution
         )
 
         #expect(boundaries.count == 2)
@@ -490,7 +510,8 @@ struct BooleanOpenFaceArrangementTests {
             boundaries: boundaries,
             model: source.brep,
             sourceSubshapes: source.subshapes.entries,
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
         )
 
         let patch = try #require(result.patches.first)
@@ -506,6 +527,7 @@ struct BooleanOpenFaceArrangementTests {
 
     @Test(.timeLimit(.minutes(1)))
     func connectedOpenCellComposesWithDisconnectedClosedCell() throws {
+        var execution = try OriginalQueryExecution.kernelOriginal()
         let source = try PlanarSheetTestFixture.make(featureID: FeatureID(), tolerance: .standard)
         let body = try #require(source.brep.bodies.values.first)
         let shell = try #require(source.brep.shells[body.shellIDs[0]])
@@ -513,14 +535,14 @@ struct BooleanOpenFaceArrangementTests {
         let surface = try #require(source.brep.geometry.surfaces[face.surfaceID])
         let startPoint = Point3D(x: 0.0, y: -0.010, z: 0.0)
         let endPoint = Point3D(x: 0.0, y: 0.010, z: 0.0)
-        let start = try uvPoint(startPoint, surface: surface)
-        let end = try uvPoint(endPoint, surface: surface)
+        let start = try uvPoint(startPoint, surface: surface, using: &execution)
+        let end = try uvPoint(endPoint, surface: surface, using: &execution)
         let pair = BooleanFacePairCandidate(
             targetFaceID: face.id,
             toolFaceID: FaceID()
         )
         let componentID = BooleanFaceSplitComponentID(ordinal: 0)
-        let openBoundary = try #require(BooleanFaceArrangementBoundary.make(
+        let openBoundaryCandidates = try BooleanFaceArrangementBoundary.make(
             reference: BooleanFaceSplitComponentReference(
                 facePair: pair,
                 componentID: componentID
@@ -549,14 +571,17 @@ struct BooleanOpenFaceArrangementTests {
                 ),
             ]),
             parentSubshapeIDs: [],
-            tolerance: tolerance
-        ).first)
+            tolerance: tolerance,
+            using: &execution
+        )
+        let openBoundary = try #require(openBoundaryCandidates.first)
         let closedBoundaries = try closedCircleBoundaries(
             center: Point3D(x: -0.008, y: 0.0, z: 0.0),
             radius: 0.003,
             face: face,
             surface: surface,
-            componentOrdinal: 1
+            componentOrdinal: 1,
+            using: &execution
         )
 
         let result = try BooleanOpenFaceArrangementBuilder().build(
@@ -564,7 +589,8 @@ struct BooleanOpenFaceArrangementTests {
             boundaries: [openBoundary] + closedBoundaries,
             model: source.brep,
             sourceSubshapes: source.subshapes.entries,
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
         )
 
         #expect(result.patches.count == 1)
@@ -576,6 +602,7 @@ struct BooleanOpenFaceArrangementTests {
 
     @Test(.timeLimit(.minutes(1)))
     func nestedClosedCellsPreserveAlternatingRegionSelection() throws {
+        var execution = try OriginalQueryExecution.kernelOriginal()
         let source = try PlanarSheetTestFixture.make(featureID: FeatureID(), tolerance: .standard)
         let body = try #require(source.brep.bodies.values.first)
         let shell = try #require(source.brep.shells[body.shellIDs[0]])
@@ -586,7 +613,8 @@ struct BooleanOpenFaceArrangementTests {
             radius: 0.008,
             face: face,
             surface: surface,
-            componentOrdinal: 0
+            componentOrdinal: 0,
+            using: &execution
         )
         let innerBoundaries = try closedCircleBoundaries(
             center: .origin,
@@ -595,7 +623,8 @@ struct BooleanOpenFaceArrangementTests {
             surface: surface,
             componentOrdinal: 1,
             exteriorAction: .discard,
-            interiorAction: .keep
+            interiorAction: .keep,
+            using: &execution
         )
 
         let result = try BooleanOpenFaceArrangementBuilder().build(
@@ -603,7 +632,8 @@ struct BooleanOpenFaceArrangementTests {
             boundaries: outerBoundaries + innerBoundaries,
             model: source.brep,
             sourceSubshapes: source.subshapes.entries,
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
         )
 
         #expect(result.patches.count == 2)
@@ -616,6 +646,7 @@ struct BooleanOpenFaceArrangementTests {
 
     @Test(.timeLimit(.minutes(1)))
     func periodicCylinderArrangementUnwrapsAcrossSeam() throws {
+        var execution = try OriginalQueryExecution.kernelOriginal()
         let source = try periodicCylinderSheet()
         let body = try #require(source.brep.bodies.values.first)
         let shell = try #require(source.brep.shells[body.shellIDs[0]])
@@ -646,7 +677,7 @@ struct BooleanOpenFaceArrangementTests {
             toolFaceID: FaceID()
         )
         let componentID = BooleanFaceSplitComponentID(ordinal: 0)
-        let boundary = try #require(BooleanFaceArrangementBoundary.make(
+        let boundaryCandidates = try BooleanFaceArrangementBoundary.make(
             reference: BooleanFaceSplitComponentReference(
                 facePair: pair,
                 componentID: componentID
@@ -675,15 +706,18 @@ struct BooleanOpenFaceArrangementTests {
                 ),
             ]),
             parentSubshapeIDs: [],
-            tolerance: tolerance
-        ).first)
+            tolerance: tolerance,
+            using: &execution
+        )
+        let boundary = try #require(boundaryCandidates.first)
 
         let result = try BooleanOpenFaceArrangementBuilder().build(
             faceID: face.id,
             boundaries: [boundary],
             model: source.brep,
             sourceSubshapes: source.subshapes.entries,
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
         )
 
         #expect(result.patches.count == 1)
@@ -694,18 +728,20 @@ struct BooleanOpenFaceArrangementTests {
 
     @Test(.timeLimit(.minutes(1)))
     func periodicCylinderEssentialCurveMaterializesFiniteStripCell() throws {
+        var execution = try OriginalQueryExecution.kernelOriginal()
         let source = try fullPeriodicCylinderSheet()
         let body = try #require(source.brep.bodies.values.first)
         let shell = try #require(source.brep.shells[body.shellIDs[0]])
         let face = try #require(source.brep.faces[shell.faceIDs[0]])
-        let boundaries = try periodicCylinderCircleBoundaries(face: face)
+        let boundaries = try periodicCylinderCircleBoundaries(face: face, using: &execution)
 
         let result = try BooleanOpenFaceArrangementBuilder().build(
             faceID: face.id,
             boundaries: boundaries,
             model: source.brep,
             sourceSubshapes: source.subshapes.entries,
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
         )
 
         #expect(result.isPartitioned)
@@ -770,11 +806,13 @@ struct BooleanOpenFaceArrangementTests {
 
     private func uvPoint(
         _ point: Point3D,
-        surface: Surface3D
+        surface: Surface3D,
+        using execution: inout OriginalQueryExecution
     ) throws -> BooleanUVPoint {
         let parameter = try surface.parameterProjection(
             of: point,
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
         )
         return try BooleanUVPoint(
             point: point,
@@ -794,7 +832,8 @@ struct BooleanOpenFaceArrangementTests {
         surface: Surface3D,
         componentOrdinal: Int,
         exteriorAction: BooleanRegionSelectionAction = .keep,
-        interiorAction: BooleanRegionSelectionAction = .discard
+        interiorAction: BooleanRegionSelectionAction = .discard,
+        using execution: inout OriginalQueryExecution
     ) throws -> [BooleanFaceArrangementBoundary] {
         let curve = Curve3D.circle(Circle3D(
             center: center,
@@ -803,15 +842,18 @@ struct BooleanOpenFaceArrangementTests {
         ))
         let centerParameter = try surface.parameterProjection(
             of: center,
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
         )
         let cosine = try surface.parameterProjection(
             of: Point3D(x: center.x + radius, y: center.y, z: center.z),
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
         )
         let sine = try surface.parameterProjection(
             of: Point3D(x: center.x, y: center.y + radius, z: center.z),
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
         )
         let pcurve = SurfaceParameterCurve.harmonic(
             center: Point2D(x: centerParameter.u, y: centerParameter.v),
@@ -826,7 +868,7 @@ struct BooleanOpenFaceArrangementTests {
             startParameter: 0.0,
             endParameter: 2.0 * Double.pi
         )
-        let anchorPoint = try curve.point(at: 0.0, tolerance: tolerance)
+        let anchorPoint = try curve.point(at: 0.0, tolerance: tolerance, using: &execution)
         let anchor = try SurfaceParameterProjection(
             u: cosine.u,
             v: cosine.v,
@@ -849,11 +891,12 @@ struct BooleanOpenFaceArrangementTests {
         )
         let samples = try (0..<32).map { index in
             let parameter = 2.0 * Double.pi * Double(index) / 32.0
-            let point = try curve.point(at: parameter, tolerance: tolerance)
+            let point = try curve.point(at: parameter, tolerance: tolerance, using: &execution)
             let surfaceParameter = try pcurve.parameter(
                 atCurveParameter: parameter,
                 curveDomain: curve.parameterDomain,
-                tolerance: tolerance
+                tolerance: tolerance,
+                using: &execution
             )
             return try BooleanCurveUVSample(
                 curveParameter: parameter,
@@ -908,7 +951,8 @@ struct BooleanOpenFaceArrangementTests {
                 ),
             ]),
             parentSubshapeIDs: [],
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
         )
     }
 
@@ -1154,7 +1198,8 @@ struct BooleanOpenFaceArrangementTests {
     }
 
     private func periodicCylinderCircleBoundaries(
-        face: Face
+        face: Face,
+        using execution: inout OriginalQueryExecution
     ) throws -> [BooleanFaceArrangementBoundary] {
         let period = 2.0 * Double.pi
         let circle = Curve3D.circle(Circle3D(
@@ -1167,7 +1212,7 @@ struct BooleanOpenFaceArrangementTests {
             uStart: 0.0,
             uEnd: period
         )
-        let anchorPoint = try circle.point(at: 0.0, tolerance: tolerance)
+        let anchorPoint = try circle.point(at: 0.0, tolerance: tolerance, using: &execution)
         let anchor = try SurfaceParameterProjection(
             u: 0.0,
             v: 0.0,
@@ -1190,7 +1235,7 @@ struct BooleanOpenFaceArrangementTests {
         )
         let samples = try (0..<32).map { index in
             let parameter = period * Double(index) / 32.0
-            let point = try circle.point(at: parameter, tolerance: tolerance)
+            let point = try circle.point(at: parameter, tolerance: tolerance, using: &execution)
             return try BooleanCurveUVSample(
                 curveParameter: parameter,
                 uvPoint: BooleanUVPoint(
@@ -1244,7 +1289,8 @@ struct BooleanOpenFaceArrangementTests {
                 ),
             ]),
             parentSubshapeIDs: [],
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
         )
     }
 

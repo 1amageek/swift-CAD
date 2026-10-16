@@ -10,7 +10,7 @@ package struct ExactSurfaceLocusCommonFiber: Sendable {
     }
     package let components: [Component]
 
-    package init<B: RationalAlgebraAdmitting>(locus: ExactBivariatePolynomial,
+    package init<B: ExactScalarAdmission & ~Copyable>(locus: ExactBivariatePolynomial,
         horizontal: ExactSurfaceCoefficientPolynomial, vertical: ExactSurfaceCoefficientPolynomial,
         usage: inout B) throws {
         guard !locus.isZero, locus.uDegree > 0 || locus.vDegree > 0 else {
@@ -22,7 +22,7 @@ package struct ExactSurfaceLocusCommonFiber: Sendable {
         pending.append(authority.squareFree)
         var result: [Component] = []
         while let factor = pending.popLast() {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             let content = try ExactBivariateGCD().content(factor, usage: &usage)
             if content.uDegree > 0, factor.vDegree > 0 {
                 let remaining = try factor.dividedExactly(by: content, usage: &usage)
@@ -74,12 +74,12 @@ package struct ExactSurfaceLocusCommonFiber: Sendable {
     }
 
     /// Splits original zero divisors before issuing square-free generic parameter fibers.
-    package static func squareFreeParameters<B: RationalAlgebraAdmitting>(component: Component,
+    package static func squareFreeParameters<B: ExactScalarAdmission & ~Copyable>(component: Component,
         usage: inout B) throws -> [Component] {
         try RationalAlgebraStorage.retain(1, of: Component.self, usage: &usage)
         var pending = [component], output: [Component] = []
         while let current = pending.popLast() {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             do {
                 let value = try squareFreeParameter(component: current, usage: &usage)
                 try RationalAlgebraStorage.retain(1, of: Component.self, usage: &usage)
@@ -104,7 +104,7 @@ package struct ExactSurfaceLocusCommonFiber: Sendable {
     }
 
     /// Removes repeated edge-parameter factors in the ORIGINAL locus quotient.
-    private static func squareFreeParameter<B: RationalAlgebraAdmitting>(component: Component,
+    private static func squareFreeParameter<B: ExactScalarAdmission & ~Copyable>(component: Component,
         usage: inout B) throws -> Component {
         if component.common.degree <= 0 { return component }
         let exchanged = component.originalLocus.vDegree <= 0
@@ -147,7 +147,7 @@ package struct ExactSurfaceLocusCommonFiber: Sendable {
             vertical: component.vertical, common: output, exceptionalCoefficients: exceptional)
     }
 
-    private static func divided<B: RationalAlgebraAdmitting>(_ original: [Residue], by divisor: [Residue],
+    private static func divided<B: ExactScalarAdmission & ~Copyable>(_ original: [Residue], by divisor: [Residue],
         modulo locus: ExactBivariatePolynomial, exceptional: inout [ExactBivariatePolynomial],
         usage: inout B) throws -> [Residue] {
         guard let lead = divisor.last, !lead.isZero, original.count >= divisor.count else {
@@ -197,7 +197,7 @@ package struct ExactSurfaceLocusCommonFiber: Sendable {
         let denominator: ExactBivariatePolynomial
         var isZero: Bool { numerator.isZero }
     }
-    private static func exchanged<B: RationalAlgebraAdmitting>(_ source: ExactSurfaceCoefficientPolynomial,
+    private static func exchanged<B: ExactScalarAdmission & ~Copyable>(_ source: ExactSurfaceCoefficientPolynomial,
         usage: inout B) throws -> ExactSurfaceCoefficientPolynomial {
         try RationalAlgebraStorage.retain(source.coefficients.count, of: ExactBivariatePolynomial.self, usage: &usage)
         var values: [ExactBivariatePolynomial] = []; values.reserveCapacity(source.coefficients.count)
@@ -205,7 +205,7 @@ package struct ExactSurfaceLocusCommonFiber: Sendable {
         return try .init(coefficients: values, usage: &usage)
     }
 
-    private static func reduced<B: RationalAlgebraAdmitting>(_ numerator: ExactBivariatePolynomial,
+    private static func reduced<B: ExactScalarAdmission & ~Copyable>(_ numerator: ExactBivariatePolynomial,
         denominator: ExactBivariatePolynomial, modulo locus: ExactBivariatePolynomial,
         exceptional: inout [ExactBivariatePolynomial], usage: inout B) throws -> Residue {
         var n = numerator, d = denominator
@@ -234,7 +234,7 @@ package struct ExactSurfaceLocusCommonFiber: Sendable {
         }
         return .init(numerator: n, denominator: d)
     }
-    private static func residues<B: RationalAlgebraAdmitting>(_ source: ExactSurfaceCoefficientPolynomial,
+    private static func residues<B: ExactScalarAdmission & ~Copyable>(_ source: ExactSurfaceCoefficientPolynomial,
         modulo locus: ExactBivariatePolynomial, exceptional: inout [ExactBivariatePolynomial],
         usage: inout B) throws -> [Residue] {
         let one = try ExactBivariatePolynomial.constant(.one, usage: &usage)
@@ -248,14 +248,14 @@ package struct ExactSurfaceLocusCommonFiber: Sendable {
         try trim(&values, usage: &usage)
         return values
     }
-    private static func multiplied<B: RationalAlgebraAdmitting>(_ a: Residue, _ b: Residue,
+    private static func multiplied<B: ExactScalarAdmission & ~Copyable>(_ a: Residue, _ b: Residue,
         modulo locus: ExactBivariatePolynomial, exceptional: inout [ExactBivariatePolynomial],
         usage: inout B) throws -> Residue {
         try reduced(a.numerator.multiplied(by: b.numerator, usage: &usage),
             denominator: a.denominator.multiplied(by: b.denominator, usage: &usage),
             modulo: locus, exceptional: &exceptional, usage: &usage)
     }
-    private static func subtracted<B: RationalAlgebraAdmitting>(_ a: Residue, _ b: Residue,
+    private static func subtracted<B: ExactScalarAdmission & ~Copyable>(_ a: Residue, _ b: Residue,
         modulo locus: ExactBivariatePolynomial, exceptional: inout [ExactBivariatePolynomial],
         usage: inout B) throws -> Residue {
         try reduced(a.numerator.multiplied(by: b.denominator, usage: &usage)
@@ -263,10 +263,10 @@ package struct ExactSurfaceLocusCommonFiber: Sendable {
             denominator: a.denominator.multiplied(by: b.denominator, usage: &usage),
             modulo: locus, exceptional: &exceptional, usage: &usage)
     }
-    private static func trim<B: RationalAlgebraAdmitting>(_ values: inout [Residue], usage: inout B) throws {
-        while let value = values.last { try usage.consumeExactWork(1); if value.isZero { values.removeLast() } else { break } }
+    private static func trim<B: ExactScalarAdmission & ~Copyable>(_ values: inout [Residue], usage: inout B) throws {
+        while let value = values.last { try usage.consumeWork(1); if value.isZero { values.removeLast() } else { break } }
     }
-    private static func remainder<B: RationalAlgebraAdmitting>(_ numerator: [Residue], by divisor: [Residue],
+    private static func remainder<B: ExactScalarAdmission & ~Copyable>(_ numerator: [Residue], by divisor: [Residue],
         modulo locus: ExactBivariatePolynomial, exceptional: inout [ExactBivariatePolynomial],
         usage: inout B) throws -> [Residue] {
         guard let lead = divisor.last, !lead.isZero else { throw rationalAlgebraFailure("Original quotient parameter divisor is zero.") }
@@ -294,7 +294,7 @@ package struct ExactSurfaceLocusCommonFiber: Sendable {
         }
         return values
     }
-    private static func cleared<B: RationalAlgebraAdmitting>(_ source: [Residue],
+    private static func cleared<B: ExactScalarAdmission & ~Copyable>(_ source: [Residue],
         usage: inout B) throws -> ExactSurfaceCoefficientPolynomial {
         var values: [ExactBivariatePolynomial] = []
         try RationalAlgebraStorage.retain(source.count, of: ExactBivariatePolynomial.self, usage: &usage)
@@ -302,7 +302,7 @@ package struct ExactSurfaceLocusCommonFiber: Sendable {
         for index in source.indices {
             var numerator = source[index].numerator
             for other in source.indices where other != index {
-                try usage.consumeExactWork(1)
+                try usage.consumeWork(1)
                 numerator = try numerator.multiplied(by: source[other].denominator, usage: &usage)
             }
             values.append(numerator)

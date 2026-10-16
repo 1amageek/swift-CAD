@@ -1,0 +1,7 @@
+(node:98929) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS native boundary whole closed laws
+PASS native boundary exact payload and map refusal
+PASS native boundary caller resources and lifetime
+PASS native boundary cancellation
+PASS native boundary portable all

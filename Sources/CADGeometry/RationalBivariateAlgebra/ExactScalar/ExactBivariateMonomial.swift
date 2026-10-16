@@ -1,14 +1,14 @@
 public extension ExactBivariatePolynomial {
-    static func monomial<B: RationalAlgebraAdmitting>(u: Int, v: Int,
+    static func monomial<B: ExactScalarAdmission & ~Copyable>(u: Int, v: Int,
         coefficient: ExactRationalCoefficient, usage: inout B) throws -> Self {
         let power = try Power(u: u, v: v)
         if coefficient.isZero { return .zero }
-        try usage.consumeExactWork(1)
+        try usage.consumeWork(1)
         try RationalAlgebraStorage.retain(1, of: (Power, ExactRationalCoefficient).self, usage: &usage)
         return Self([power: coefficient])
     }
 
-    func exchangedAxes<B: RationalAlgebraAdmitting>(usage: inout B) throws -> Self {
+    func exchangedAxes<B: ExactScalarAdmission & ~Copyable>(usage: inout B) throws -> Self {
         try RationalAlgebraStorage.retain(coefficients.count, of: (Power, ExactRationalCoefficient).self, usage: &usage)
         var result: [Power: ExactRationalCoefficient] = [:]
         for term in try orderedTerms(usage: &usage) {

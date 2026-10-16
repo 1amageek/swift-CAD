@@ -13,72 +13,78 @@ import CADGeometry
 
 /// Evaluates exact volume contributions for supported analytic shell arrangements.
 struct AnalyticPrismaticVolumeEvaluator {
+    func volume(of shell: Shell, in model: BRepModel, tolerance: ModelingTolerance) throws -> Double? {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try volume(of: shell, in: model, tolerance: tolerance, using: &execution)
+    }
+
     func volume(
         of shell: Shell,
         in model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Double? {
+        try execution.consumeWork(1)
         try tolerance.validate()
         if let revolutionVolume = try RationalRevolutionVolumeEvaluator().volume(
             of: shell,
             in: model,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         ) {
             return revolutionVolume
         }
         if let translationalPrismVolume = try TranslationalPrismVolumeEvaluator().volume(
             of: shell,
             in: model,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         ) {
             return translationalPrismVolume
         }
         if let rationalPrismVolume = try RationalBSplinePrismaticVolumeEvaluator().volume(
             of: shell,
             in: model,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         ) {
             return rationalPrismVolume
         }
         if let sphereBooleanVolume = try TwoSphereBooleanVolumeEvaluator().volume(
             of: shell,
             in: model,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         ) {
             return sphereBooleanVolume
         }
         if let sphereConeBooleanVolume = try SphereConeBooleanVolumeEvaluator().volume(
             of: shell,
             in: model,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         ) {
             return sphereConeBooleanVolume
         }
         if let torusTorusBooleanVolume = try TorusTorusBooleanVolumeEvaluator().volume(
             of: shell,
             in: model,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         ) {
             return torusTorusBooleanVolume
         }
         if let sphereTorusBooleanVolume = try SphereTorusBooleanVolumeEvaluator().volume(
             of: shell,
             in: model,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         ) {
             return sphereTorusBooleanVolume
         }
         if let sphereCylinderBooleanVolume = try SphereCylinderBooleanVolumeEvaluator().volume(
             of: shell,
             in: model,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         ) {
             return sphereCylinderBooleanVolume
         }
         if let torusCylinderBooleanVolume = try TorusCylinderBooleanVolumeEvaluator().volume(
             of: shell,
             in: model,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         ) {
             return torusCylinderBooleanVolume
         }
@@ -89,52 +95,53 @@ struct AnalyticPrismaticVolumeEvaluator {
         var tori: [TorusFace] = []
         var planeNormals: [Vector3D] = []
         for faceID in shell.faceIDs {
+            try execution.consumeWork(1)
             guard let face = model.faces[faceID],
                   let surface = model.geometry.surfaces[face.surfaceID] else {
                 throw TopologyError.missingReference("Analytic volume references missing face geometry.")
             }
             let classifiedSurface = try exactAnalyticReduction(
                 of: surface,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
             switch classifiedSurface {
             case let .cylinder(cylinder):
-                cylinders.append(CylinderFace(
+                try OriginalParameterQueryStorage.append(CylinderFace(
                     face: face,
                     origin: cylinder.origin,
                     axis: cylinder.axis,
                     radius: cylinder.radius
-                ))
+                ), to: &cylinders, using: &execution)
             case let .analytic(.cylinder(origin, axis, radius)):
-                cylinders.append(CylinderFace(
+                try OriginalParameterQueryStorage.append(CylinderFace(
                     face: face,
                     origin: origin,
                     axis: axis,
                     radius: radius
-                ))
+                ), to: &cylinders, using: &execution)
             case let .analytic(.cone(apex, axis, halfAngle)):
-                cones.append(ConeFace(
+                try OriginalParameterQueryStorage.append(ConeFace(
                     face: face,
                     apex: apex,
                     axis: axis,
                     halfAngle: halfAngle
-                ))
+                ), to: &cones, using: &execution)
             case let .plane(plane):
-                planeNormals.append(plane.normal)
+                try OriginalParameterQueryStorage.append(plane.normal, to: &planeNormals, using: &execution)
             case let .analytic(.plane(_, normal)):
-                planeNormals.append(normal)
+                try OriginalParameterQueryStorage.append(normal, to: &planeNormals, using: &execution)
             case let .analytic(.sphere(center, radius)):
-                spheres.append(SphereFace(face: face, center: center, radius: radius))
+                try OriginalParameterQueryStorage.append(SphereFace(face: face, center: center, radius: radius), to: &spheres, using: &execution)
             case let .analytic(.torus(center, axis, majorRadius, minorRadius)):
-                tori.append(TorusFace(
+                try OriginalParameterQueryStorage.append(TorusFace(
                     face: face,
                     center: center,
                     axis: axis,
                     majorRadius: majorRadius,
                     minorRadius: minorRadius
-                ))
+                ), to: &tori, using: &execution)
             case let .bSpline(surface):
-                bSplineFaces.append(BSplineFace(face: face, surface: surface))
+                try OriginalParameterQueryStorage.append(BSplineFace(face: face, surface: surface), to: &bSplineFaces, using: &execution)
             case .analytic:
                 return nil
             case .procedural:
@@ -149,7 +156,7 @@ struct AnalyticPrismaticVolumeEvaluator {
                 shell: shell,
                 planeNormals: planeNormals,
                 model: model,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         }
         if cylinders.isEmpty,
@@ -158,7 +165,7 @@ struct AnalyticPrismaticVolumeEvaluator {
            tori.isEmpty,
            planeNormals.isEmpty,
            spheres.isEmpty == false {
-            return try completeSphereVolume(spheres, tolerance: tolerance)
+            return try completeSphereVolume(spheres, tolerance: tolerance, using: &execution)
         }
         if cylinders.isEmpty,
            cones.isEmpty,
@@ -166,7 +173,7 @@ struct AnalyticPrismaticVolumeEvaluator {
            spheres.isEmpty,
            planeNormals.isEmpty,
            tori.isEmpty == false {
-            return try completeTorusVolume(tori, tolerance: tolerance)
+            return try completeTorusVolume(tori, tolerance: tolerance, using: &execution)
         }
         if cylinders.count == 3,
            spheres.count == 1,
@@ -178,7 +185,7 @@ struct AnalyticPrismaticVolumeEvaluator {
                 shell: shell,
                 planeNormals: planeNormals,
                 model: model,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         }
         // A frustum of cones and planes only: a round between them (a torus) bounds a region
@@ -193,7 +200,7 @@ struct AnalyticPrismaticVolumeEvaluator {
                 shell: shell,
                 planeNormals: planeNormals,
                 model: model,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             )
         }
         guard cones.isEmpty else { return nil }
@@ -203,6 +210,7 @@ struct AnalyticPrismaticVolumeEvaluator {
         guard let reference = cylinders.first else { return nil }
         let axis = try reference.axis.normalized(tolerance: tolerance.distance)
         for cylinder in cylinders {
+            try execution.consumeWork(1)
             let candidateAxis = try cylinder.axis.normalized(tolerance: tolerance.distance)
             let offset = cylinder.origin - reference.origin
             let radialOffset = offset - axis * offset.dot(axis)
@@ -213,20 +221,22 @@ struct AnalyticPrismaticVolumeEvaluator {
             }
         }
 
-        let points = try shellPoints(shell, model: model)
-        guard let lower = points.map({ vector($0).dot(axis) }).min(),
-              let upper = points.map({ vector($0).dot(axis) }).max() else {
+        let points = try shellPoints(shell, model: model, using: &execution)
+        guard let axialBounds = try OriginalParameterQueryStorage.extrema(points, using: &execution, projection: { point, execution in vector(point).dot(axis) }) else {
             return nil
         }
+        let lower = axialBounds.lower
+        let upper = axialBounds.upper
         let height = upper - lower
         guard height > tolerance.distance else { return nil }
 
         var parameterArea = 0.0
         for cylinder in cylinders {
+            try execution.consumeWork(1)
             guard let area = try rectangularParameterArea(
                 of: cylinder.face,
                 model: model,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             ) else {
                 return nil
             }
@@ -241,7 +251,7 @@ struct AnalyticPrismaticVolumeEvaluator {
             cylinders: cylinders,
             axis: axis,
             model: model,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         let hasVerifiedFullCylinderCoverage = coverageIntervals?.count == 1
             && abs((coverageIntervals?[0].lower ?? lower) - lower) <= tolerance.distance
@@ -249,31 +259,31 @@ struct AnalyticPrismaticVolumeEvaluator {
         let hasFullCylinderCoverage = hasVerifiedFullCylinderCoverage
             || abs(parameterArea - expectedParameterArea) <= coverageTolerance
 
-        let normalizedPlaneNormals = try planeNormals.map {
-            try $0.normalized(tolerance: tolerance.distance)
+        let normalizedPlaneNormals = try OriginalParameterQueryStorage.map(planeNormals, using: &execution) { item, execution in
+            try item.normalized(tolerance: tolerance.distance)
         }
-        let capCount = normalizedPlaneNormals.filter {
-            abs(abs($0.dot(axis)) - 1.0) <= tolerance.angle
-        }.count
-        let sidePlaneCount = normalizedPlaneNormals.filter {
-            abs($0.dot(axis)) <= tolerance.angle
-        }.count
-        let capAlignments = normalizedPlaneNormals.map { $0.dot(axis) }.filter {
-            abs(abs($0) - 1.0) <= tolerance.angle
-        }
+        let capCount = (try OriginalParameterQueryStorage.filter(normalizedPlaneNormals, using: &execution) { item, execution in
+            abs(abs(item.dot(axis)) - 1.0) <= tolerance.angle
+        }).count
+        let sidePlaneCount = (try OriginalParameterQueryStorage.filter(normalizedPlaneNormals, using: &execution) { item, execution in
+            abs(item.dot(axis)) <= tolerance.angle
+        }).count
+        let capAlignments = try OriginalParameterQueryStorage.filter(
+            OriginalParameterQueryStorage.map(normalizedPlaneNormals, using: &execution) { item, execution in item.dot(axis) },
+            using: &execution) { item, execution in abs(abs(item) - 1.0) <= tolerance.angle }
         if capCount == 2,
            capCount + sidePlaneCount == normalizedPlaneNormals.count,
-           capAlignments.contains(where: { $0 < 0.0 }),
-           capAlignments.contains(where: { $0 > 0.0 }),
+           (try OriginalParameterQueryStorage.contains(capAlignments, using: &execution) { item, execution in item < 0.0 }),
+           (try OriginalParameterQueryStorage.contains(capAlignments, using: &execution) { item, execution in item > 0.0 }),
            let capArea = try exactAxialCapArea(
                shell: shell,
                axis: axis,
                model: model,
-               tolerance: tolerance
+               tolerance: tolerance, using: &execution
            ) {
             return capArea * height
         }
-        let reversedCylinderCount = cylinders.filter { $0.face.orientation == .reversed }.count
+        let reversedCylinderCount = (try OriginalParameterQueryStorage.filter(cylinders, using: &execution) { item, execution in item.face.orientation == .reversed }).count
         if capCount >= 3,
            sidePlaneCount >= 4,
            reversedCylinderCount == cylinders.count,
@@ -283,7 +293,7 @@ struct AnalyticPrismaticVolumeEvaluator {
                shell: shell,
                axis: axis,
                model: model,
-               tolerance: tolerance
+               tolerance: tolerance, using: &execution
            ) {
             let interval = intervals[0]
             let attachesLower = abs(interval.lower - outer.lowerCoordinate) <= tolerance.distance
@@ -303,7 +313,7 @@ struct AnalyticPrismaticVolumeEvaluator {
                shell: shell,
                axis: axis,
                model: model,
-               tolerance: tolerance
+               tolerance: tolerance, using: &execution
            ) {
             let exteriorHeight = height - outer.height
             let expectedExteriorParameterArea = 2.0 * Double.pi * exteriorHeight
@@ -324,7 +334,7 @@ struct AnalyticPrismaticVolumeEvaluator {
             axis: axis,
             height: height,
             model: model,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         ) else {
             return nil
         }
@@ -354,12 +364,15 @@ struct AnalyticPrismaticVolumeEvaluator {
 
     private func completeSphereVolume(
         _ faces: [SphereFace],
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Double? {
+        try execution.consumeWork(1)
         guard let reference = faces.first else { return nil }
-        let orientations = Set(faces.map({ $0.face.orientation }))
-        guard orientations.count == 1 else { return nil }
+        guard try OriginalParameterQueryStorage.allSatisfy(faces, using: &execution, predicate: { face, execution in
+            face.face.orientation == reference.face.orientation
+        }) else { return nil }
         for face in faces.dropFirst() {
+            try execution.consumeWork(1)
             guard face.center.isApproximatelyEqual(
                 to: reference.center,
                 tolerance: tolerance.distance
@@ -373,13 +386,16 @@ struct AnalyticPrismaticVolumeEvaluator {
 
     private func completeTorusVolume(
         _ faces: [TorusFace],
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Double? {
+        try execution.consumeWork(1)
         guard let reference = faces.first else { return nil }
         let referenceAxis = try reference.axis.normalized(tolerance: tolerance.distance)
-        let orientations = Set(faces.map({ $0.face.orientation }))
-        guard orientations.count == 1 else { return nil }
+        guard try OriginalParameterQueryStorage.allSatisfy(faces, using: &execution, predicate: { face, execution in
+            face.face.orientation == reference.face.orientation
+        }) else { return nil }
         for face in faces.dropFirst() {
+            try execution.consumeWork(1)
             let axis = try face.axis.normalized(tolerance: tolerance.distance)
             guard face.center.isApproximatelyEqual(
                 to: reference.center,
@@ -399,9 +415,11 @@ struct AnalyticPrismaticVolumeEvaluator {
         shell: Shell,
         axis: Vector3D,
         model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Double? {
+        try execution.consumeWork(1)
         for faceID in shell.faceIDs {
+            try execution.consumeWork(1)
             guard let face = model.faces[faceID],
                   let surface = model.geometry.surfaces[face.surfaceID] else {
                 throw TopologyError.missingReference(
@@ -409,7 +427,7 @@ struct AnalyticPrismaticVolumeEvaluator {
                 )
             }
             let normal: Vector3D
-            switch try exactAnalyticReduction(of: surface, tolerance: tolerance) {
+            switch try exactAnalyticReduction(of: surface, tolerance: tolerance, using: &execution) {
             case let .plane(plane):
                 normal = plane.normal
             case let .analytic(.plane(_, planeNormal)):
@@ -433,6 +451,7 @@ struct AnalyticPrismaticVolumeEvaluator {
             let reference = referenceVertex.point
             var area = 0.0
             for loopID in face.loops {
+                try execution.consumeWork(1)
                 guard let loop = model.loops[loopID] else {
                     throw TopologyError.missingReference(
                         "Analytic cap area references a missing loop."
@@ -440,6 +459,7 @@ struct AnalyticPrismaticVolumeEvaluator {
                 }
                 var loopSignedDoubleArea = 0.0
                 for coedge in loop.coedges {
+                    try execution.consumeWork(1)
                     guard let edge = model.edges[coedge.edgeID],
                           let curve = model.geometry.curves[edge.curveID],
                           let trim = edge.trim else {
@@ -459,7 +479,7 @@ struct AnalyticPrismaticVolumeEvaluator {
                         endParameter: endParameter,
                         reference: reference,
                         axis: axis,
-                        tolerance: tolerance
+                        tolerance: tolerance, using: &execution
                     ) else {
                         return nil
                     }
@@ -482,10 +502,11 @@ struct AnalyticPrismaticVolumeEvaluator {
         endParameter: Double,
         reference: Point3D,
         axis: Vector3D,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Double? {
-        let startPoint = try curve.point(at: startParameter, tolerance: tolerance)
-        let endPoint = try curve.point(at: endParameter, tolerance: tolerance)
+        try execution.consumeWork(1)
+        let startPoint = try curve.point(at: startParameter, tolerance: tolerance, using: &execution)
+        let endPoint = try curve.point(at: endParameter, tolerance: tolerance, using: &execution)
         switch curve {
         case .line, .analytic(.line):
             return (startPoint - reference).cross(endPoint - reference).dot(axis)
@@ -560,13 +581,13 @@ struct AnalyticPrismaticVolumeEvaluator {
             ).dot(axis)
         case let .parameterImage(image):
             let first = try image.sourceParameterBounds(over: ScalarInterval(lower: startParameter,
-                upper: startParameter), tolerance: tolerance)
+                upper: startParameter), tolerance: tolerance, using: &execution)
             let last = try image.sourceParameterBounds(over: ScalarInterval(lower: endParameter,
-                upper: endParameter), tolerance: tolerance)
+                upper: endParameter), tolerance: tolerance, using: &execution)
             guard first.lower == first.upper, last.lower == last.upper else { return nil }
             return try exactSignedDoubleAreaContribution(curve: image.source,
                 startParameter: first.lower, endParameter: last.lower,
-                reference: reference, axis: axis, tolerance: tolerance)
+                reference: reference, axis: axis, tolerance: tolerance, using: &execution)
         case let .rigidImage(image):
             let inverse = image.transform.inverted()
             guard let source = try exactSignedDoubleAreaContribution(
@@ -575,7 +596,7 @@ struct AnalyticPrismaticVolumeEvaluator {
                 endParameter: endParameter,
                 reference: inverse.applying(to: reference),
                 axis: inverse.applying(to: axis),
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             ) else {
                 return nil
             }
@@ -645,13 +666,15 @@ struct AnalyticPrismaticVolumeEvaluator {
         shell: Shell,
         planeNormals: [Vector3D],
         model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Double? {
+        try execution.consumeWork(1)
         guard let reference = cones.first else {
             return nil
         }
         let axis = try reference.axis.normalized(tolerance: tolerance.distance)
         for cone in cones {
+            try execution.consumeWork(1)
             let candidateAxis = try cone.axis.normalized(tolerance: tolerance.distance)
             let apexOffset = cone.apex - reference.apex
             let radialApexOffset = apexOffset - axis * apexOffset.dot(axis)
@@ -662,16 +685,16 @@ struct AnalyticPrismaticVolumeEvaluator {
                 return nil
             }
         }
-        let normalizedPlaneNormals = try planeNormals.map {
-            try $0.normalized(tolerance: tolerance.distance)
+        let normalizedPlaneNormals = try OriginalParameterQueryStorage.map(planeNormals, using: &execution) { item, execution in
+            try item.normalized(tolerance: tolerance.distance)
         }
-        let planeAlignments = normalizedPlaneNormals.map { $0.dot(axis) }
-        let capAlignments = planeAlignments.filter {
-            abs(abs($0) - 1.0) <= tolerance.angle
-        }
-        let sidePlaneCount = planeAlignments.filter {
-            abs($0) <= tolerance.angle
-        }.count
+        let planeAlignments = try OriginalParameterQueryStorage.map(normalizedPlaneNormals, using: &execution) { item, execution in item.dot(axis) }
+        let capAlignments = (try OriginalParameterQueryStorage.filter(planeAlignments, using: &execution) { item, execution in
+            abs(abs(item) - 1.0) <= tolerance.angle
+        })
+        let sidePlaneCount = (try OriginalParameterQueryStorage.filter(planeAlignments, using: &execution) { item, execution in
+            abs(item) <= tolerance.angle
+        }).count
         guard capAlignments.count + sidePlaneCount == planeAlignments.count else {
             return nil
         }
@@ -682,37 +705,37 @@ struct AnalyticPrismaticVolumeEvaluator {
             cones: cones,
             axis: axis,
             model: model,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         ) else {
             return nil
         }
-        let intervalVolumes = intervals.map {
+        let intervalVolumes = try OriginalParameterQueryStorage.map(intervals, using: &execution) { item, execution in
             conicalFrustumVolume(
-                lower: $0.lower,
-                upper: $0.upper,
+                lower: item.lower,
+                upper: item.upper,
                 apexCoordinate: apexCoordinate,
                 tangent: tangent
             )
         }
-        if cones.allSatisfy({ $0.face.orientation == .forward }),
+        if (try OriginalParameterQueryStorage.allSatisfy(cones, using: &execution) { item, execution in item.face.orientation == .forward }),
            sidePlaneCount == 0,
            intervals.count == 1 {
             let interval = intervals[0]
             let reachesApex = abs(interval.lower - apexCoordinate) <= tolerance.distance
                 || abs(interval.upper - apexCoordinate) <= tolerance.distance
-            let hasLowerCap = capAlignments.contains { $0 < 0.0 }
-            let hasUpperCap = capAlignments.contains { $0 > 0.0 }
+            let hasLowerCap = (try OriginalParameterQueryStorage.contains(capAlignments, using: &execution) { item, execution in item < 0.0 })
+            let hasUpperCap = (try OriginalParameterQueryStorage.contains(capAlignments, using: &execution) { item, execution in item > 0.0 })
             guard reachesApex ? hasLowerCap != hasUpperCap : hasLowerCap && hasUpperCap else {
                 return nil
             }
             return intervalVolumes[0]
         }
         guard capAlignments.count >= 2,
-              capAlignments.contains(where: { $0 < 0.0 }),
-              capAlignments.contains(where: { $0 > 0.0 }) else {
+              (try OriginalParameterQueryStorage.contains(capAlignments, using: &execution) { item, execution in item < 0.0 }),
+              (try OriginalParameterQueryStorage.contains(capAlignments, using: &execution) { item, execution in item > 0.0 }) else {
             return nil
         }
-        if cones.allSatisfy({ $0.face.orientation == .forward }),
+        if (try OriginalParameterQueryStorage.allSatisfy(cones, using: &execution) { item, execution in item.face.orientation == .forward }),
            sidePlaneCount >= 4,
            capAlignments.count >= 3,
            (1...2).contains(intervals.count),
@@ -720,9 +743,9 @@ struct AnalyticPrismaticVolumeEvaluator {
                shell: shell,
                axis: axis,
                model: model,
-               tolerance: tolerance
+               tolerance: tolerance, using: &execution
            ) {
-            let sorted = intervals.sorted { $0.lower < $1.lower }
+            let sorted = try OriginalParameterQueryStorage.ordered(intervals, using: &execution) { $0.lower < $1.lower }
             if sorted.count == 1 {
                 let attachesLower = abs(sorted[0].upper - outer.lowerCoordinate) <= tolerance.distance
                 let attachesUpper = abs(sorted[0].lower - outer.upperCoordinate) <= tolerance.distance
@@ -733,9 +756,9 @@ struct AnalyticPrismaticVolumeEvaluator {
                     return nil
                 }
             }
-            return outer.volume + intervalVolumes.reduce(0.0, +)
+            return outer.volume + (try OriginalParameterQueryStorage.reduce(intervalVolumes, initial: 0.0, using: &execution) { total, volume, execution in total + volume })
         }
-        if cones.allSatisfy({ $0.face.orientation == .reversed }),
+        if (try OriginalParameterQueryStorage.allSatisfy(cones, using: &execution) { item, execution in item.face.orientation == .reversed }),
            sidePlaneCount >= 4,
            capAlignments.count >= 3,
            intervals.count == 1,
@@ -743,7 +766,7 @@ struct AnalyticPrismaticVolumeEvaluator {
                shell: shell,
                axis: axis,
                model: model,
-               tolerance: tolerance
+               tolerance: tolerance, using: &execution
            ) {
             let interval = intervals[0]
             let attachesLower = abs(interval.lower - outer.lowerCoordinate) <= tolerance.distance
@@ -757,14 +780,14 @@ struct AnalyticPrismaticVolumeEvaluator {
         guard intervals.count == 1 else { return nil }
         let frustumVolume = intervalVolumes[0]
         let height = intervals[0].upper - intervals[0].lower
-        guard cones.allSatisfy({ $0.face.orientation == .reversed }),
+        guard (try OriginalParameterQueryStorage.allSatisfy(cones, using: &execution) { item, execution in item.face.orientation == .reversed }),
               sidePlaneCount >= 4,
               let outerVolume = try outerPrismaticVolume(
                   shell: shell,
                   axis: axis,
                   height: height,
                   model: model,
-                  tolerance: tolerance
+                  tolerance: tolerance, using: &execution
               ),
               outerVolume > frustumVolume + pow(tolerance.distance, 3.0) else {
             return nil
@@ -776,43 +799,45 @@ struct AnalyticPrismaticVolumeEvaluator {
         cones: [ConeFace],
         axis: Vector3D,
         model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> [AxialCoverageInterval]? {
+        try execution.consumeWork(1)
         var intervals: [AxialCoverageInterval] = []
         for cone in cones {
+            try execution.consumeWork(1)
             guard let bounds = try faceAxialBounds(
                 cone.face,
                 axis: axis,
-                model: model
+                model: model, using: &execution
             ),
             bounds.upper - bounds.lower > tolerance.distance,
             let angle = try circularCoverageAngle(
                 of: cone.face,
                 model: model,
                 tolerance: tolerance,
-                allowsSingleBoundary: true
+                allowsSingleBoundary: true, using: &execution
             ) else {
                 return nil
             }
-            if let index = intervals.firstIndex(where: {
-                abs($0.lower - bounds.lower) <= tolerance.distance
-                    && abs($0.upper - bounds.upper) <= tolerance.distance
-            }) {
+            if let index = try OriginalParameterQueryStorage.firstIndex(intervals, using: &execution) { item, execution in
+                abs(item.lower - bounds.lower) <= tolerance.distance
+                    && abs(item.upper - bounds.upper) <= tolerance.distance
+            } {
                 intervals[index].angularCoverage += angle
             } else {
-                intervals.append(AxialCoverageInterval(
+                try OriginalParameterQueryStorage.append(AxialCoverageInterval(
                     lower: bounds.lower,
                     upper: bounds.upper,
                     angularCoverage: angle
-                ))
+                ), to: &intervals, using: &execution)
             }
         }
         let coverageTolerance = max(
             tolerance.angle * Double(cones.count) * 16.0,
             Double.ulpOfOne * 64.0
         )
-        guard intervals.allSatisfy({
-            abs($0.angularCoverage - 2.0 * Double.pi) <= coverageTolerance
+        guard (try OriginalParameterQueryStorage.allSatisfy(intervals, using: &execution) { item, execution in
+            abs(item.angularCoverage - 2.0 * Double.pi) <= coverageTolerance
         }) else {
             return nil
         }
@@ -823,42 +848,44 @@ struct AnalyticPrismaticVolumeEvaluator {
         cylinders: [CylinderFace],
         axis: Vector3D,
         model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> [AxialCoverageInterval]? {
+        try execution.consumeWork(1)
         var intervals: [AxialCoverageInterval] = []
         for cylinder in cylinders {
+            try execution.consumeWork(1)
             guard let bounds = try faceAxialBounds(
                 cylinder.face,
                 axis: axis,
-                model: model
+                model: model, using: &execution
             ),
             bounds.upper - bounds.lower > tolerance.distance,
             let angle = try circularCoverageAngle(
                 of: cylinder.face,
                 model: model,
-                tolerance: tolerance
+                tolerance: tolerance, using: &execution
             ) else {
                 return nil
             }
-            if let index = intervals.firstIndex(where: {
-                abs($0.lower - bounds.lower) <= tolerance.distance
-                    && abs($0.upper - bounds.upper) <= tolerance.distance
-            }) {
+            if let index = try OriginalParameterQueryStorage.firstIndex(intervals, using: &execution) { item, execution in
+                abs(item.lower - bounds.lower) <= tolerance.distance
+                    && abs(item.upper - bounds.upper) <= tolerance.distance
+            } {
                 intervals[index].angularCoverage += angle
             } else {
-                intervals.append(AxialCoverageInterval(
+                try OriginalParameterQueryStorage.append(AxialCoverageInterval(
                     lower: bounds.lower,
                     upper: bounds.upper,
                     angularCoverage: angle
-                ))
+                ), to: &intervals, using: &execution)
             }
         }
         let coverageTolerance = max(
             tolerance.angle * Double(cylinders.count) * 16.0,
             Double.ulpOfOne * 64.0
         )
-        guard intervals.allSatisfy({
-            abs($0.angularCoverage - 2.0 * Double.pi) <= coverageTolerance
+        guard (try OriginalParameterQueryStorage.allSatisfy(intervals, using: &execution) { item, execution in
+            abs(item.angularCoverage - 2.0 * Double.pi) <= coverageTolerance
         }) else {
             return nil
         }
@@ -868,19 +895,15 @@ struct AnalyticPrismaticVolumeEvaluator {
     private func faceAxialBounds(
         _ face: Face,
         axis: Vector3D,
-        model: BRepModel
+        model: BRepModel, using execution: inout OriginalQueryExecution
     ) throws -> (lower: Double, upper: Double)? {
+        try execution.consumeWork(1)
         var coordinates: [Double] = []
         for loopID in face.loops {
-            coordinates.append(contentsOf: try model.orderedPoints(for: loopID).map {
-                vector($0).dot(axis)
-            })
+            try execution.consumeWork(1)
+            try OriginalParameterQueryStorage.append(contentsOf: try OriginalParameterQueryStorage.map(model.orderedPoints(for: loopID, using: &execution), using: &execution) { item, execution in vector(item).dot(axis) }, to: &coordinates, using: &execution)
         }
-        guard let lower = coordinates.min(),
-              let upper = coordinates.max() else {
-            return nil
-        }
-        return (lower, upper)
+        return try OriginalParameterQueryStorage.extrema(coordinates, using: &execution) { value, execution in value }
     }
 
     private func conicalFrustumVolume(
@@ -901,13 +924,14 @@ struct AnalyticPrismaticVolumeEvaluator {
         axis: Vector3D,
         height: Double,
         model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Double? {
+        try execution.consumeWork(1)
         guard let metrics = try outerPrismaticMetrics(
             shell: shell,
             axis: axis,
             model: model,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         ),
         abs(metrics.height - height) <= tolerance.distance else {
             return nil
@@ -919,16 +943,18 @@ struct AnalyticPrismaticVolumeEvaluator {
         shell: Shell,
         axis: Vector3D,
         model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> OuterPrismaticMetrics? {
+        try execution.consumeWork(1)
         var caps: [(area: Double, coordinate: Double)] = []
         for faceID in shell.faceIDs {
+            try execution.consumeWork(1)
             guard let face = model.faces[faceID],
                   let surface = model.geometry.surfaces[face.surfaceID] else {
                 throw TopologyError.missingReference("Prismatic volume references missing face geometry.")
             }
             let normal: Vector3D
-            switch try exactAnalyticReduction(of: surface, tolerance: tolerance) {
+            switch try exactAnalyticReduction(of: surface, tolerance: tolerance, using: &execution) {
             case let .plane(plane):
                 normal = plane.normal
             case let .analytic(.plane(_, planeNormal)):
@@ -938,41 +964,44 @@ struct AnalyticPrismaticVolumeEvaluator {
             }
             let normalized = try normal.normalized(tolerance: tolerance.distance)
             guard abs(abs(normalized.dot(axis)) - 1.0) <= tolerance.angle,
-                  let outerLoopID = face.loops.first(where: { loopID in
+                  let outerLoopID = try OriginalParameterQueryStorage.first(face.loops, using: &execution, predicate: { loopID, execution in
                       model.loops[loopID]?.role == .outer
                   }) else {
                 continue
             }
-            let points = try model.orderedPoints(for: outerLoopID)
+            let points = try model.orderedPoints(for: outerLoopID, using: &execution)
             guard points.count >= 3 else { continue }
             let origin = points[0]
             var signedDoubleArea = 0.0
             for index in points.indices {
+                try execution.consumeWork(1)
                 let current = points[index] - origin
                 let next = points[(index + 1) % points.count] - origin
                 signedDoubleArea += current.cross(next).dot(axis)
             }
             let area = abs(signedDoubleArea) * 0.5
             if area > tolerance.distance * tolerance.distance {
-                let coordinate = points.map { vector($0).dot(axis) }.reduce(0.0, +)
+                let coordinate = try OriginalParameterQueryStorage.reduce(points, initial: 0.0, using: &execution) { total, point, execution in total + vector(point).dot(axis) }
                     / Double(points.count)
-                caps.append((area: area, coordinate: coordinate))
+                try OriginalParameterQueryStorage.append((area: area, coordinate: coordinate), to: &caps, using: &execution)
             }
         }
-        guard let area = caps.map({ $0.area }).max() else {
+        guard let capAreas = try OriginalParameterQueryStorage.extrema(caps, using: &execution, projection: { item, execution in item.area }) else {
             return nil
         }
+        let area = capAreas.upper
         let areaTolerance = max(
             tolerance.distance * tolerance.distance * 16.0,
             area * tolerance.distance
         )
-        let outerCaps = caps.filter { abs($0.area - area) <= areaTolerance }
-        guard let lower = outerCaps.map({ $0.coordinate }).min(),
-              let upper = outerCaps.map({ $0.coordinate }).max(),
+        let outerCaps = (try OriginalParameterQueryStorage.filter(caps, using: &execution) { item, execution in abs(item.area - area) <= areaTolerance })
+        guard let capBounds = try OriginalParameterQueryStorage.extrema(outerCaps, using: &execution, projection: { item, execution in item.coordinate }),
               outerCaps.count >= 2,
-              upper - lower > tolerance.distance else {
+              capBounds.upper - capBounds.lower > tolerance.distance else {
             return nil
         }
+        let lower = capBounds.lower
+        let upper = capBounds.upper
         let height = upper - lower
         return OuterPrismaticMetrics(
             volume: area * height,
@@ -988,21 +1017,25 @@ struct AnalyticPrismaticVolumeEvaluator {
         shell: Shell,
         planeNormals: [Vector3D],
         model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Double? {
+        try execution.consumeWork(1)
         let radius = sphere.radius
         guard sphere.face.orientation == .forward,
-              cylinders.allSatisfy({
-                  $0.face.orientation == .forward
-                      && abs($0.radius - radius) <= tolerance.distance
+              (try OriginalParameterQueryStorage.allSatisfy(cylinders, using: &execution) { item, execution in
+                  item.face.orientation == .forward
+                      && abs(item.radius - radius) <= tolerance.distance
               }) else {
             return nil
         }
-        let axes = try cylinders.map {
-            try $0.axis.normalized(tolerance: tolerance.distance)
+        let axes = try OriginalParameterQueryStorage.map(cylinders, using: &execution) { item, execution in
+            try item.axis.normalized(tolerance: tolerance.distance)
         }
         for first in axes.indices {
-            for second in axes.indices where second > first {
+            try execution.consumeWork(1)
+            for second in axes.indices {
+                try execution.consumeWork(1)
+                guard second > first else { continue }
                 guard abs(axes[first].dot(axes[second])) <= tolerance.angle else {
                     return nil
                 }
@@ -1014,22 +1047,22 @@ struct AnalyticPrismaticVolumeEvaluator {
                 return nil
             }
         }
-        let normalizedPlaneNormals = try planeNormals.map {
-            try $0.normalized(tolerance: tolerance.distance)
+        let normalizedPlaneNormals = try OriginalParameterQueryStorage.map(planeNormals, using: &execution) { item, execution in
+            try item.normalized(tolerance: tolerance.distance)
         }
         guard normalizedPlaneNormals.count == 6 else { return nil }
-        let points = try shellPoints(shell, model: model)
-        let lengths = axes.map { axis -> Double in
-            let parameters = points.map { vector($0).dot(axis) }
-            return (parameters.max() ?? 0.0) - (parameters.min() ?? 0.0)
+        let points = try shellPoints(shell, model: model, using: &execution)
+        let lengths = try OriginalParameterQueryStorage.map(axes, using: &execution) { axis, execution -> Double in
+            let bounds = try OriginalParameterQueryStorage.extrema(points, using: &execution) { point, execution in vector(point).dot(axis) }
+            return (bounds?.upper ?? 0.0) - (bounds?.lower ?? 0.0)
         }
-        guard lengths.allSatisfy({ $0 > radius + tolerance.distance }) else { return nil }
-        let outerVolume = lengths.reduce(1.0, *)
+        guard (try OriginalParameterQueryStorage.allSatisfy(lengths, using: &execution) { item, execution in item > radius + tolerance.distance }) else { return nil }
+        let outerVolume = try OriginalParameterQueryStorage.reduce(lengths, initial: 1.0, using: &execution) { total, length, execution in total * length }
         let centralRemoved = radius * radius * radius * (1.0 - Double.pi / 6.0)
         let edgeRemovedArea = radius * radius * (1.0 - Double.pi / 4.0)
-        let edgeRemoved = edgeRemovedArea * lengths.reduce(0.0) {
-            $0 + ($1 - radius)
-        }
+        let edgeRemoved = edgeRemovedArea * (try OriginalParameterQueryStorage.reduce(lengths, initial: 0.0, using: &execution) { total, length, execution in
+            total + (length - radius)
+        })
         let removedVolume = centralRemoved + edgeRemoved
         guard outerVolume > removedVolume + tolerance.distance * tolerance.distance * tolerance.distance else {
             return nil
@@ -1042,14 +1075,15 @@ struct AnalyticPrismaticVolumeEvaluator {
         shell: Shell,
         planeNormals: [Vector3D],
         model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Double? {
+        try execution.consumeWork(1)
         let surface = blend.surface
         guard surface.uDegree == 5,
               surface.vDegree == 1,
               surface.controlPoints.count == 2,
-              surface.controlPoints.allSatisfy({ $0.count == 6 }),
-              surface.weights.allSatisfy({ $0.allSatisfy { abs($0 - 1.0) <= tolerance.distance } }) else {
+              (try OriginalParameterQueryStorage.allSatisfy(surface.controlPoints, using: &execution) { item, execution in item.count == 6 }),
+              (try OriginalParameterQueryStorage.allSatisfy(surface.weights, using: &execution) { item, execution in try OriginalParameterQueryStorage.allSatisfy(item, using: &execution) { weight, execution in abs(weight - 1.0) <= tolerance.distance } }) else {
             return nil
         }
         let lower = surface.controlPoints[0]
@@ -1059,20 +1093,21 @@ struct AnalyticPrismaticVolumeEvaluator {
         guard height > tolerance.distance else { return nil }
         let axis = try translation.normalized(tolerance: tolerance.distance)
         for index in lower.indices {
+            try execution.consumeWork(1)
             let candidate = upper[index] - lower[index]
             guard (candidate + translation * -1.0).length <= tolerance.distance else {
                 return nil
             }
         }
-        let normalizedPlaneNormals = try planeNormals.map {
-            try $0.normalized(tolerance: tolerance.distance)
+        let normalizedPlaneNormals = try OriginalParameterQueryStorage.map(planeNormals, using: &execution) { item, execution in
+            try item.normalized(tolerance: tolerance.distance)
         }
-        let capCount = normalizedPlaneNormals.filter {
-            abs(abs($0.dot(axis)) - 1.0) <= tolerance.angle
-        }.count
-        let sidePlaneCount = normalizedPlaneNormals.filter {
-            abs($0.dot(axis)) <= tolerance.angle
-        }.count
+        let capCount = (try OriginalParameterQueryStorage.filter(normalizedPlaneNormals, using: &execution) { item, execution in
+            abs(abs(item.dot(axis)) - 1.0) <= tolerance.angle
+        }).count
+        let sidePlaneCount = (try OriginalParameterQueryStorage.filter(normalizedPlaneNormals, using: &execution) { item, execution in
+            abs(item.dot(axis)) <= tolerance.angle
+        }).count
         guard capCount == 2, sidePlaneCount >= 4 else { return nil }
         let endpointDistance = (lower[5] - lower[0]).length
         let setback = endpointDistance / sqrt(2.0)
@@ -1083,17 +1118,19 @@ struct AnalyticPrismaticVolumeEvaluator {
         guard firstCorner.isApproximatelyEqual(to: secondCorner, tolerance: tolerance.distance) else {
             return nil
         }
-        let localControlPoints = lower.map { point in
+        let localControlPoints = try OriginalParameterQueryStorage.map(lower, using: &execution) { point, execution in
             Point3D(
                 x: point.x - firstCorner.x,
                 y: point.y - firstCorner.y,
                 z: point.z - firstCorner.z
             )
         }
-        let power = bezierPowerCoefficients(localControlPoints)
+        let power = try bezierPowerCoefficients(localControlPoints, using: &execution)
         var curveIntegral = Vector3D.zero
         for firstIndex in power.indices {
+            try execution.consumeWork(1)
             for secondIndex in 1..<power.count {
+                try execution.consumeWork(1)
                 let scale = Double(secondIndex) / Double(firstIndex + secondIndex)
                 curveIntegral = curveIntegral + power[firstIndex].cross(power[secondIndex]) * scale
             }
@@ -1106,9 +1143,11 @@ struct AnalyticPrismaticVolumeEvaluator {
             + cornerVector.cross(startVector)
         let removedArea = abs(closedIntegral.dot(axis)) * 0.5
         guard removedArea > tolerance.distance * tolerance.distance else { return nil }
-        let points = try shellPoints(shell, model: model)
-        let bounds = try BoundingBox3D(points: points)
-        let size = bounds.size
+        let points = try shellPoints(shell, model: model, using: &execution)
+        guard let x = try OriginalParameterQueryStorage.extrema(points, using: &execution, projection: { point, execution in point.x }),
+              let y = try OriginalParameterQueryStorage.extrema(points, using: &execution, projection: { point, execution in point.y }),
+              let z = try OriginalParameterQueryStorage.extrema(points, using: &execution, projection: { point, execution in point.z }) else { return nil }
+        let size = Vector3D(x: x.upper - x.lower, y: y.upper - y.lower, z: z.upper - z.lower)
         let outerVolume = size.x * size.y * size.z
         let removedVolume = removedArea * height
         guard outerVolume > removedVolume + tolerance.distance * tolerance.distance * tolerance.distance else {
@@ -1117,12 +1156,14 @@ struct AnalyticPrismaticVolumeEvaluator {
         return outerVolume - removedVolume
     }
 
-    private func bezierPowerCoefficients(_ controlPoints: [Point3D]) -> [Vector3D] {
+    private func bezierPowerCoefficients(_ controlPoints: [Point3D], using execution: inout OriginalQueryExecution) throws -> [Vector3D] {
+        try execution.consumeWork(1)
         let degree = controlPoints.count - 1
-        return (0...degree).map { power in
+        return try OriginalParameterQueryStorage.map(0...degree, using: &execution) { power, execution in
             var coefficient = Vector3D.zero
             for index in 0...power {
-                let magnitude = binomial(degree, index) * binomial(degree - index, power - index)
+                try execution.consumeWork(1)
+                let magnitude = try binomial(degree, index, using: &execution) * binomial(degree - index, power - index, using: &execution)
                 let sign = (power - index).isMultiple(of: 2) ? 1.0 : -1.0
                 coefficient = coefficient + vector(controlPoints[index]) * (sign * magnitude)
             }
@@ -1130,10 +1171,11 @@ struct AnalyticPrismaticVolumeEvaluator {
         }
     }
 
-    private func binomial(_ n: Int, _ k: Int) -> Double {
+    private func binomial(_ n: Int, _ k: Int, using execution: inout OriginalQueryExecution) throws -> Double {
+        try execution.consumeWork(1)
         guard k > 0, k < n else { return 1.0 }
         let reduced = min(k, n - k)
-        return (1...reduced).reduce(1.0) { result, index in
+        return try OriginalParameterQueryStorage.reduce(1...reduced, initial: 1.0, using: &execution) { result, index, execution in
             result * Double(n - reduced + index) / Double(index)
         }
     }
@@ -1141,8 +1183,9 @@ struct AnalyticPrismaticVolumeEvaluator {
     private func rectangularParameterArea(
         of face: Face,
         model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Double? {
+        try execution.consumeWork(1)
         guard face.loops.count == 1,
               let loopID = face.loops.first,
               let loop = model.loops[loopID],
@@ -1150,20 +1193,21 @@ struct AnalyticPrismaticVolumeEvaluator {
             return nil
         }
         var parameters: [SurfaceParameter] = []
-        parameters.reserveCapacity(loop.coedges.count * 2)
+        let parameterCount = loop.coedges.count.multipliedReportingOverflow(by: 2)
+        guard !parameterCount.overflow else { throw ExactScalarFailure.countOverflow }
+        try OriginalParameterQueryStorage.reserve(parameterCount.partialValue, in: &parameters, using: &execution)
         for coedge in loop.coedges {
+            try execution.consumeWork(1)
             guard let pcurve = coedge.surfaceParameterCurve else { return nil }
-            parameters.append(try pcurve.startParameter(tolerance: tolerance))
-            parameters.append(try pcurve.endParameter(tolerance: tolerance))
+            try OriginalParameterQueryStorage.append(try pcurve.startParameter(tolerance: tolerance, using: &execution), to: &parameters, using: &execution)
+            try OriginalParameterQueryStorage.append(try pcurve.endParameter(tolerance: tolerance, using: &execution), to: &parameters, using: &execution)
         }
-        guard let minimumU = parameters.map({ $0.u }).min(),
-              let maximumU = parameters.map({ $0.u }).max(),
-              let minimumV = parameters.map({ $0.v }).min(),
-              let maximumV = parameters.map({ $0.v }).max() else {
+        guard let uBounds = try OriginalParameterQueryStorage.extrema(parameters, using: &execution, projection: { item, execution in item.u }),
+              let vBounds = try OriginalParameterQueryStorage.extrema(parameters, using: &execution, projection: { item, execution in item.v }) else {
             return nil
         }
-        let uSpan = maximumU - minimumU
-        let vSpan = maximumV - minimumV
+        let uSpan = uBounds.upper - uBounds.lower
+        let vSpan = vBounds.upper - vBounds.lower
         guard uSpan > tolerance.angle,
               vSpan > tolerance.distance else {
             return nil
@@ -1175,8 +1219,9 @@ struct AnalyticPrismaticVolumeEvaluator {
         of face: Face,
         model: BRepModel,
         tolerance: ModelingTolerance,
-        allowsSingleBoundary: Bool = false
+        allowsSingleBoundary: Bool = false, using execution: inout OriginalQueryExecution
     ) throws -> Double? {
+        try execution.consumeWork(1)
         guard face.loops.count == 1,
               let loopID = face.loops.first,
               let loop = model.loops[loopID],
@@ -1185,6 +1230,7 @@ struct AnalyticPrismaticVolumeEvaluator {
         }
         var spans: [Double] = []
         for coedge in loop.coedges {
+            try execution.consumeWork(1)
             guard let edge = model.edges[coedge.edgeID],
                   let curve = model.geometry.curves[edge.curveID],
                   let trim = edge.trim else {
@@ -1195,7 +1241,7 @@ struct AnalyticPrismaticVolumeEvaluator {
             case .circle, .analytic(.circle), .analytic(.arc):
                 isCircular = true
             case let .rigidImage(image):
-                isCircular = isCircularCurve(image.source)
+                isCircular = try isCircularCurve(image.source, using: &execution)
             case .line, .analytic, .bSpline, .implicit, .surfaceLift,
                  .certifiedIntersection, .affineImage, .parameterImage, .originalAffineWord, .originalConstructionChart, .originalEndpointConnector, .originalPlaneDerivative,
                  .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline,
@@ -1203,7 +1249,7 @@ struct AnalyticPrismaticVolumeEvaluator {
                 isCircular = false
             }
             if isCircular {
-                spans.append(abs(trim.endParameter - trim.startParameter))
+                try OriginalParameterQueryStorage.append(abs(trim.endParameter - trim.startParameter), to: &spans, using: &execution)
             }
         }
         let supportedCount = spans.count == 2
@@ -1211,18 +1257,19 @@ struct AnalyticPrismaticVolumeEvaluator {
         guard supportedCount,
               let reference = spans.first,
               reference > tolerance.angle,
-              spans.allSatisfy({ abs($0 - reference) <= tolerance.angle }) else {
+              (try OriginalParameterQueryStorage.allSatisfy(spans, using: &execution) { item, execution in abs(item - reference) <= tolerance.angle }) else {
             return nil
         }
         return reference
     }
 
-    private func isCircularCurve(_ curve: Curve3D) -> Bool {
+    private func isCircularCurve(_ curve: Curve3D, using execution: inout OriginalQueryExecution) throws -> Bool {
+        try execution.consumeWork(1)
         switch curve {
         case .circle, .analytic(.circle), .analytic(.arc):
             return true
         case let .rigidImage(image):
-            return isCircularCurve(image.source)
+            return try isCircularCurve(image.source, using: &execution)
         case .line, .analytic, .bSpline, .implicit, .surfaceLift,
              .certifiedIntersection, .affineImage, .parameterImage, .originalAffineWord, .originalConstructionChart, .originalEndpointConnector, .originalPlaneDerivative,
                  .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline,
@@ -1233,27 +1280,32 @@ struct AnalyticPrismaticVolumeEvaluator {
 
     private func shellPoints(
         _ shell: Shell,
-        model: BRepModel
+        model: BRepModel, using execution: inout OriginalQueryExecution
     ) throws -> [Point3D] {
+        try execution.consumeWork(1)
         var vertexIDs = Set<VertexID>()
         for faceID in shell.faceIDs {
+            try execution.consumeWork(1)
             guard let face = model.faces[faceID] else {
                 throw TopologyError.missingReference("Analytic volume references a missing face.")
             }
             for loopID in face.loops {
+                try execution.consumeWork(1)
                 guard let loop = model.loops[loopID] else {
                     throw TopologyError.missingReference("Analytic volume references a missing loop.")
                 }
                 for coedge in loop.coedges {
+                    try execution.consumeWork(1)
                     guard let edge = model.edges[coedge.edgeID] else {
                         throw TopologyError.missingReference("Analytic volume references a missing edge.")
                     }
-                    vertexIDs.insert(edge.startVertexID)
-                    vertexIDs.insert(edge.endVertexID)
+                    try OriginalParameterQueryStorage.insert(edge.startVertexID, in: &vertexIDs, using: &execution)
+                    try OriginalParameterQueryStorage.insert(edge.endVertexID, in: &vertexIDs, using: &execution)
                 }
             }
         }
-        return try vertexIDs.sorted().map { vertexID in
+        let sorted = try OriginalParameterQueryStorage.ordered(vertexIDs, using: &execution, less: <)
+        return try OriginalParameterQueryStorage.map(sorted, using: &execution) { vertexID, execution in
             guard let vertex = model.vertices[vertexID] else {
                 throw TopologyError.missingReference("Analytic volume references a missing vertex.")
             }
@@ -1267,12 +1319,13 @@ struct AnalyticPrismaticVolumeEvaluator {
 
     private func exactAnalyticReduction(
         of surface: Surface3D,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Surface3D {
+        try execution.consumeWork(1)
         guard case let .procedural(.offset(offset)) = surface else {
             return surface
         }
-        return try offset.exactChartPreservingSurface(tolerance: tolerance)
+        return try offset.exactChartPreservingSurface(tolerance: tolerance, using: &execution)
             ?? surface
     }
 

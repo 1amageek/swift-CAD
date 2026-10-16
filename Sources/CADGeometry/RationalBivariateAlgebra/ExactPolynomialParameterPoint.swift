@@ -7,11 +7,11 @@ package struct ExactPolynomialParameterPoint: Sendable {
     package let parameter: ExactMonotoneGraphEndpoint
     package let originalDomain: SurfaceParameterBox
 
-    package func hasSameCoordinates<B: RationalAlgebraAdmitting>(as other: Self,
+    package func hasSameCoordinates<B: ExactScalarAdmission & ~Copyable>(as other: Self,
         maximumDepth: Int, usage: inout B) throws -> Bool {
-        try usage.retainExactStorage(2)
+        try RationalAlgebraStorage.retain(2, of: (ExactBivariatePolynomial, ExactBivariatePolynomial).self, usage: &usage)
         for (first, second) in [(u, other.u), (v, other.v)] {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             let a = try OriginalPolynomialCoordinateRoot.coordinate(first, at: parameter,
                 maximumDepth: maximumDepth, usage: &usage)
             let b = try OriginalPolynomialCoordinateRoot.coordinate(second, at: other.parameter,
@@ -21,13 +21,13 @@ package struct ExactPolynomialParameterPoint: Sendable {
         return true
     }
 
-    package func sign<B: RationalAlgebraAdmitting>(of original: ExactBivariatePolynomial,
+    package func sign<B: ExactScalarAdmission & ~Copyable>(of original: ExactBivariatePolynomial,
         maximumDepth: Int, usage: inout B) throws -> ExactAlgebraicRealRoot.Sign {
         try parameter.sign(of: original.composed(withU: u, v: v, usage: &usage),
             maximumDepth: maximumDepth, usage: &usage)
     }
 
-    package func coordinateIs<B: RationalAlgebraAdmitting>(_ endpoint: ExactMonotoneGraphEndpoint,
+    package func coordinateIs<B: ExactScalarAdmission & ~Copyable>(_ endpoint: ExactMonotoneGraphEndpoint,
         alongU: Bool, maximumDepth: Int, usage: inout B) throws -> Bool {
         let coordinate = try ExactBivariatePolynomial.coordinate(alongU: alongU, usage: &usage)
         switch endpoint {
@@ -54,7 +54,7 @@ package struct ExactPolynomialParameterPoint: Sendable {
         }
     }
 
-    package func isInside<B: RationalAlgebraAdmitting>(_ domain: SurfaceParameterBox,
+    package func isInside<B: ExactScalarAdmission & ~Copyable>(_ domain: SurfaceParameterBox,
         maximumDepth: Int, usage: inout B) throws -> Bool {
         for alongU in [true, false] {
             let bounds = alongU ? domain.u : domain.v
@@ -67,7 +67,7 @@ package struct ExactPolynomialParameterPoint: Sendable {
         return true
     }
 
-    package func enclosure<B: RationalAlgebraAdmitting>(usage: inout B) throws -> SurfaceParameterBox {
+    package func enclosure<B: ExactScalarAdmission & ~Copyable>(usage: inout B) throws -> SurfaceParameterBox {
         let low = try parameter.lower.outwardInterval(usage: &usage)
         let high = try parameter.upper.outwardInterval(usage: &usage)
         let free = try ScalarInterval(lower: low.lower, upper: high.upper)
@@ -79,7 +79,7 @@ package struct ExactPolynomialParameterPoint: Sendable {
             v: ScalarInterval(lower: max(originalDomain.v.lower, vb.lower), upper: min(originalDomain.v.upper, vb.upper)))
     }
 
-    package func refined<B: RationalAlgebraAdmitting>(maximumUWidth: Double, maximumVWidth: Double,
+    package func refined<B: ExactScalarAdmission & ~Copyable>(maximumUWidth: Double, maximumVWidth: Double,
         maximumDepth: Int, usage: inout B) throws -> Self {
         guard maximumUWidth.isFinite, maximumVWidth.isFinite, maximumUWidth > 0, maximumVWidth > 0 else {
             throw rationalAlgebraFailure("Original polynomial point refinement needs positive native widths.")

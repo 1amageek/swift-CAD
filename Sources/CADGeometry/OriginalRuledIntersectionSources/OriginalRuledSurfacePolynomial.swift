@@ -11,7 +11,7 @@ package struct OriginalRuledSurfacePolynomial: Sendable {
     package let homogeneous: [ExactBivariatePolynomial]
     package var denominator: ExactBivariatePolynomial { homogeneous[3] }
 
-    package init<B: RationalAlgebraAdmitting>(source: RuledSurface3D,
+    package init<B: ExactScalarAdmission & ~Copyable>(source: RuledSurface3D,
         over domain: SurfaceParameterBox, remainingSourceDepth: Int,
         tolerance: ModelingTolerance, usage: inout B) throws {
         try intersectionAlgebraStep(&usage)
@@ -58,7 +58,7 @@ package struct OriginalRuledSurfacePolynomial: Sendable {
         self.uDomain = uDomain; self.vDomain = vDomain; homogeneous = h
     }
 
-    private static func boundary<B: RationalAlgebraAdmitting>(_ source: Curve3D,
+    private static func boundary<B: ExactScalarAdmission & ~Copyable>(_ source: Curve3D,
         tolerance: ModelingTolerance, usage: inout B) throws -> OriginalRationalCurvePolynomial {
         try intersectionAlgebraStep(&usage)
         // FIXME(INCOMPLETE_IMPLEMENTATION): Procedural CS/SSI source composition
@@ -68,7 +68,7 @@ package struct OriginalRuledSurfacePolynomial: Sendable {
         guard case .bSpline(let native) = source, !native.isPeriodic else {
             throw unsupported(tolerance)
         }
-        try native.validate(tolerance: tolerance, consumeWork: { try usage.consumeExactWork(1) })
+        try native.validate(tolerance: tolerance, using: &usage)
         var selected: Int?
         for index in native.degree..<native.controlPoints.count {
             try intersectionAlgebraStep(&usage)
@@ -86,7 +86,7 @@ package struct OriginalRuledSurfacePolynomial: Sendable {
             message: "Original ruled intersection source requires two direct aperiodic single-span Native rational boundaries.")
     }
 
-    private static func requireContained<B: RationalAlgebraAdmitting>(_ domain: OriginalRationalParameterDomain,
+    private static func requireContained<B: ExactScalarAdmission & ~Copyable>(_ domain: OriginalRationalParameterDomain,
         in curve: OriginalRationalCurvePolynomial, tolerance: ModelingTolerance, usage: inout B) throws {
         let native = try OriginalRationalParameterDomain(lower: curve.lowerParameter,
             upper: curve.upperParameter, usage: &usage)

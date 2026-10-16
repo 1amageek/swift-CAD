@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 public struct ProductGeometricTolerance: Equatable, Sendable {
     public enum Kind: String, Hashable, Sendable {
@@ -24,9 +25,25 @@ public struct ProductGeometricTolerance: Equatable, Sendable {
         self.magnitude = magnitude; self.target = target; self.datumIDs = datumIDs; self.modifiers = modifiers
     }
     public func validate() throws {
-        try target.validate()
-        guard magnitude.isFinite, magnitude >= 0, Set(datumIDs).count == datumIDs.count,
-              Set(modifiers.map(\.rawValue)).count == modifiers.count else {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(using: &execution)
+    }
+
+    public func validate(using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try target.validate(using: &execution)
+        guard magnitude.isFinite, magnitude >= 0 else {
+            throw ProductAttributeError.invalidSource("Invalid geometric tolerance magnitude, datum order or modifiers.")
+        }
+        try execution.consumeWork(datumIDs.count)
+        try execution.retainStorage(count: datumIDs.count, stride: MemoryLayout<ProductMetadataID>.stride)
+        guard Set(datumIDs).count == datumIDs.count else {
+            throw ProductAttributeError.invalidSource("Invalid geometric tolerance magnitude, datum order or modifiers.")
+        }
+        try execution.consumeWork(modifiers.count)
+        try execution.retainStorage(count: modifiers.count, stride: MemoryLayout<String>.stride)
+        try execution.retainStorage(count: modifiers.count, stride: MemoryLayout<String>.stride)
+        guard Set(modifiers.map(\.rawValue)).count == modifiers.count else {
             throw ProductAttributeError.invalidSource("Invalid geometric tolerance magnitude, datum order or modifiers.")
         }
     }

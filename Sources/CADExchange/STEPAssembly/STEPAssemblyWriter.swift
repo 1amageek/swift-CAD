@@ -41,7 +41,8 @@ public struct STEPAssemblyWriter: STEPAssemblyWriting {
         var transfer = STEPAttributeWriteTransfer()
         let budget = processingBudgetOverride ?? ExchangeProcessingBudget(maximumDuration: resourceLimits.maximumProcessingDuration)
         let writer = ExactSTEPWriter(resourceLimits: resourceLimits, tolerance: tolerance, surfaceOverrides: surfaceOverrides, curveConversions: curveConversions, processingBudget: budget, allowsGroupSemanticLoss: allowsGroupSemanticLoss)
-        var table = ExactSTEPWriter.EntityTable(maximumEntities: resourceLimits.maximumEntities, tolerance: tolerance, maximumBytes: resourceLimits.maximumBytes, maximumStringWork: resourceLimits.maximumIterations, maximumSourceDepth: resourceLimits.maximumNesting, maximumAlgebraicDepth: resourceLimits.maximumAlgebraicDepth, processingBudget: budget)
+        var table = try ExactSTEPWriter.EntityTable(maximumEntities: resourceLimits.maximumEntities, tolerance: tolerance, maximumBytes: resourceLimits.maximumBytes, maximumStringWork: resourceLimits.maximumIterations, maximumSourceDepth: resourceLimits.maximumNesting, maximumAlgebraicDepth: resourceLimits.maximumAlgebraicDepth, processingBudget: budget, maximumSubdivisionDepth: resourceLimits.maximumCurveSubdivisionDepth)
+            var execution = try table.execution()
         let identityWriter: any STEPSourceIdentityWriting = STEPSourceIdentityWriter()
         var sharingBudget = try ProductAttributeBudget(limits: attributeLimits)
         try sharingBudget.charge(work: resolved?.consumedWork ?? 0)
@@ -112,24 +113,25 @@ public struct STEPAssemblyWriter: STEPAssemblyWriting {
         var featureGeometry: [FeatureID: ExactSTEPWriter.WrittenGeometry] = [:]
         var geometryContext: ExactSTEPWriter.WrittenGeometryContext?
         if evaluated.document.independentShapes != nil {
-            table.independentUsage = try IndependentShapeExchangeUsage(limits: resourceLimits, format: .step, processing: budget,
-                consumedEntities: 0, consumedWork: sharingBudget.consumedWork, consumedBytes: 0)
+            table.independentUsage = try IndependentShapeExchangeOwner(limits: resourceLimits, format: .step, processing: budget,
+                originalBudget: table.originalBudget)
+                try table.independentUsage!.charge(work: sharingBudget.consumedWork, using: &execution)
         }
         let paidSharingWork = sharingBudget.consumedWork
         var products: [AssemblyProductID: Int] = [:]
         for product in source.products.sorted(by: { $0.id < $1.id }) {
             try budget.check(format: .step)
-            let entity = try writer.appendProduct(product, table: &table)
+            let entity = try writer.appendProduct(product, table: &table, using: &execution)
             products[product.id] = entity
-            try identityWriter.append(uuid: product.id.description, role: .product, target: entity, table: &table)
+            try identityWriter.append(uuid: product.id.description, role: .product, target: entity, table: &table, using: &execution)
         }
         var formations: [AssemblyProductFormationID: Int] = [:]
         for formation in source.formations.sorted(by: { $0.id < $1.id }) {
             try budget.check(format: .step)
             guard let product = products[formation.productID] else { throw AssemblyError.invalidSource("Missing exported product.") }
-            let entity = try writer.appendFormation(formation, product: product, table: &table)
+            let entity = try writer.appendFormation(formation, product: product, table: &table, using: &execution)
             formations[formation.id] = entity
-            try identityWriter.append(uuid: formation.id.description, role: .formation, target: entity, table: &table)
+            try identityWriter.append(uuid: formation.id.description, role: .formation, target: entity, table: &table, using: &execution)
         }
         var written: [AssemblyDefinitionID: ExactSTEPWriter.WrittenDefinition] = [:]
         var axes: [AssemblyOccurrenceID: Int] = [:]
@@ -140,7 +142,7 @@ public struct STEPAssemblyWriter: STEPAssemblyWriting {
             switch occurrence.placement {
             case .rigid, .affine, .step:
                 axes[occurrence.id] = try writer.assemblyPlacementItem(occurrence.placement,
-                    units: units.length, table: &table)
+                    units: units.length, table: &table, using: &execution)
             case .word(let word):
                 // FIXME(INCOMPLETE_IMPLEMENTATION): This standard IDT transport retains
                 // exactly the original target/reference word. Other original operation
@@ -151,8 +153,8 @@ public struct STEPAssemblyWriter: STEPAssemblyWriting {
                     throw IndependentShapeExchangeError.metadataLoss("STEP has no admitted carrier for this original placement word.")
                 }
                 try sharingBudget.charge(work: 2, targets: 2)
-                let targetID = try writer.assemblyPlacementItem(target, units: units.length, table: &table)
-                let originID = try writer.assemblyPlacementItem(origin, units: units.length, table: &table)
+                let targetID = try writer.assemblyPlacementItem(target, units: units.length, table: &table, using: &execution)
+                let originID = try writer.assemblyPlacementItem(origin, units: units.length, table: &table, using: &execution)
                 axes[occurrence.id] = targetID; referenceAxes[occurrence.id] = originID
                 referenceItems[occurrence.definitionID, default: []].append(originID)
             }
@@ -192,11 +194,11 @@ public struct STEPAssemblyWriter: STEPAssemblyWriting {
                 }
                 product = try writer.appendSharedDefinition(geometry: geometry, retainedFormation: formation,
                     identifier: definition.identifier, description: definition.definitionDescription,
-                    placementItems: items, wholePartCarrier: carrier, units: units, table: &table)
+                    placementItems: items, wholePartCarrier: carrier, units: units, table: &table, using: &execution)
             } else if key.isEmpty {
                 product = try writer.appendDefinition(brep: BRepModel(), units: units,
                     identifier: "", name: "", definitionDescription: definition.definitionDescription, additionalItems: items,
-                    retainedFormation: formation, definitionIdentifier: definition.identifier, table: &table)
+                    retainedFormation: formation, definitionIdentifier: definition.identifier, table: &table, using: &execution)
             } else {
                 var geometries: [ExactSTEPWriter.WrittenGeometry] = []
                 try sharingBudget.charge(work: key.count, targets: key.count)
@@ -227,11 +229,11 @@ public struct STEPAssemblyWriter: STEPAssemblyWriting {
                         if let retained = geometryContext { context = retained }
                         else {
                             try sharingBudget.charge(work: 1, targets: 1)
-                            context = try writer.appendGeometryContext(units: units, table: &table)
+                            context = try writer.appendGeometryContext(units: units, table: &table, using: &execution)
                             geometryContext = context
                         }
                         let geometry = try writer.appendGeometry(brep: model, units: units, geometryContext: context,
-                            bodyNames: names?.bodies ?? [:], faceNames: names?.faces ?? [:], table: &table)
+                            bodyNames: names?.bodies ?? [:], faceNames: names?.faces ?? [:], table: &table, using: &execution)
                         // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP modular export cannot yet reconstruct one Body owning several emitted solid components.
                         // Preserve component-to-source body grouping through a standard transport before publishing multiple items as one feature.
                         guard geometry.bodies.count == 1, geometry.items.count == 1 else {
@@ -248,13 +250,13 @@ public struct STEPAssemblyWriter: STEPAssemblyWriting {
                 try sharingBudget.charge(work: items.count, targets: items.count)
                 product = try writer.appendModularDefinition(geometries: geometries, retainedFormation: formation,
                     identifier: definition.identifier, description: definition.definitionDescription,
-                    placementItems: items, wholePartCarrier: carrier, units: units, processing: budget, table: &table)
+                    placementItems: items, wholePartCarrier: carrier, units: units, processing: budget, table: &table, using: &execution)
                 try sharingBudget.charge(work: key.count, targets: 1)
                 sharedGeometry[key] = product
             }
-            try identityWriter.append(uuid: definition.id.description, role: .definition, target: product.definition, table: &table)
+            try identityWriter.append(uuid: definition.id.description, role: .definition, target: product.definition, table: &table, using: &execution)
             if key.isEmpty {
-                try identityWriter.append(uuid: definition.id.description, role: .representationCarrier, target: product.representation, table: &table)
+                try identityWriter.append(uuid: definition.id.description, role: .representationCarrier, target: product.representation, table: &table, using: &execution)
             }
             written[definition.id] = product
             transfer.products[definition.id] = STEPAttributeProductRepresentation(definition: product.definition,
@@ -271,19 +273,19 @@ public struct STEPAssemblyWriter: STEPAssemblyWriting {
         }
         let envelope = try writer.appendDefinition(brep: BRepModel(), units: units,
             identifier: "swiftcad.assembly.roots", name: "swiftcad.assembly.roots",
-            additionalItems: rootAxes, table: &table)
-        try identityWriter.append(uuid: AssemblyDefinitionID().description, role: .representationCarrier, target: envelope.representation, table: &table)
+            additionalItems: rootAxes, table: &table, using: &execution)
+        try identityWriter.append(uuid: AssemblyDefinitionID().description, role: .representationCarrier, target: envelope.representation, table: &table, using: &execution)
         func appendUsage(_ occurrence: AssemblyOccurrence, parent: ExactSTEPWriter.WrittenDefinition) throws {
             try budget.check(format: .step)
             guard let child = written[occurrence.definitionID], let axis = axes[occurrence.id] else {
                 throw AssemblyError.missingDefinition(occurrence.definitionID)
             }
-            let usage = try table.add("NEXT_ASSEMBLY_USAGE_OCCURRENCE(\(try table.quotedString(occurrence.id.description)),\(try table.quotedString(occurrence.name)),'',#\(parent.definition),#\(child.definition),$)")
-            let shape = try table.add("PRODUCT_DEFINITION_SHAPE('','',#\(usage))")
+            let usage = try table.add("NEXT_ASSEMBLY_USAGE_OCCURRENCE(\(try table.quotedString(occurrence.id.description, using: &execution)),\(try table.quotedString(occurrence.name, using: &execution)),'',#\(parent.definition),#\(child.definition),$)", using: &execution)
+            let shape = try table.add("PRODUCT_DEFINITION_SHAPE('','',#\(usage))", using: &execution)
             let reference = referenceAxes[occurrence.id] ?? child.origin
-            let transform = try table.add("ITEM_DEFINED_TRANSFORMATION('','',#\(reference),#\(axis))")
-            let relationship = try table.add("(REPRESENTATION_RELATIONSHIP('','',#\(child.representation),#\(parent.representation)) REPRESENTATION_RELATIONSHIP_WITH_TRANSFORMATION(#\(transform)) SHAPE_REPRESENTATION_RELATIONSHIP())")
-            let context = try table.add("CONTEXT_DEPENDENT_SHAPE_REPRESENTATION(#\(relationship),#\(shape))")
+            let transform = try table.add("ITEM_DEFINED_TRANSFORMATION('','',#\(reference),#\(axis))", using: &execution)
+            let relationship = try table.add("(REPRESENTATION_RELATIONSHIP('','',#\(child.representation),#\(parent.representation)) REPRESENTATION_RELATIONSHIP_WITH_TRANSFORMATION(#\(transform)) SHAPE_REPRESENTATION_RELATIONSHIP())", using: &execution)
+            let context = try table.add("CONTEXT_DEPENDENT_SHAPE_REPRESENTATION(#\(relationship),#\(shape))", using: &execution)
             try budget.check(format: .step); try sharingBudget.charge(work: 1, targets: 1)
             transfer.usages[occurrence.id] = usage; transfer.relationships[occurrence.id] = relationship
             transfer.usageContexts[occurrence.id] = context
@@ -297,18 +299,18 @@ public struct STEPAssemblyWriter: STEPAssemblyWriting {
         if let resolved {
             let records = try attributes.records(for: evaluated, resolved: resolved, transfer: transfer,
                 startingAt: table.entities.count + 1, limits: resourceLimits)
-            for record in records { _ = try table.add(record) }
+            for record in records { _ = try table.add(record, using: &execution) }
         }
         if let independent = evaluated.document.independentShapes {
             guard var usage = table.independentUsage else { throw IndependentShapeExchangeError.invalidAssociation("Missing assembly/independent caller ledger.") }
-            try usage.charge(work: sharingBudget.consumedWork - paidSharingWork)
-            try usage.validateDocument(evaluated.document, tolerance: tolerance)
-            try usage.charge(entities: written.count, work: written.count)
+            try usage.charge(work: sharingBudget.consumedWork - paidSharingWork, using: &execution)
+            try usage.validateDocument(evaluated.document, tolerance: tolerance, using: &execution)
+            try usage.charge(entities: written.count, work: written.count, using: &execution)
             var definitionEntities: [AssemblyDefinitionID: Int] = [:]
             for (id, definition) in written { definitionEntities[id] = definition.definition }
             var bodyBindings: [SubshapeID: IndependentSTEPBodyBinding] = [:]
             for (selector, reference) in artifact.local.subshapes.entries {
-                try usage.charge(entities: 1, work: 1)
+                try usage.charge(entities: 1, work: 1, using: &execution)
                 guard case .body(let id) = reference, let geometry = featureGeometry[selector.featureID] else { continue }
                 guard let entities = geometry.bodies[id], entities.count == 1, let entity = entities.first else {
                     throw IndependentShapeExchangeError.invalidAssociation("Original mixed Body selector has no sole emitted source entity.")
@@ -316,8 +318,8 @@ public struct STEPAssemblyWriter: STEPAssemblyWriting {
                 bodyBindings[selector] = try IndependentSTEPBodyBinding(entityID: entity, lengthUnit: units.length)
             }
             try writer.appendIndependent(independent, units: units, table: &table, productDefinitions: definitionEntities,
-                bodyBindings: bodyBindings, bodySourceGraph: evaluated.document.designGraph, usage: &usage)
+                bodyBindings: bodyBindings, bodySourceGraph: evaluated.document.designGraph, usage: usage, using: &execution)
         }
-        try writer.publish(table: table, to: sink)
+        try writer.publish(table: table, to: sink, using: &execution)
     }
 }

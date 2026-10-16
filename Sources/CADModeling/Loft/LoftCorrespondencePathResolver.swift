@@ -15,13 +15,13 @@ package struct LoftCorrespondencePathResolver {
         stateCounts: [Int], transitionWork: Int = 1, closingWork: Int = 1,
         transition: (Int, Int, Int) throws -> OutwardScalarInterval,
         closing: (Int) throws -> OutwardScalarInterval,
-        allowance: inout LoftCorrespondenceAllowance,
+        using execution: inout OriginalQueryExecution,
         tolerance: ModelingTolerance
     ) throws -> [Int] {
         guard stateCounts.first == 1, stateCounts.allSatisfy({ $0 > 0 }), transitionWork > 0, closingWork > 0 else {
             throw failure(.invalidInput, tolerance, "Loft correspondence requires a fixed first state and nonempty candidate rows.")
         }
-        try allowance.charge(stateCounts.count)
+        try execution.consumeWork(stateCounts.count)
         func append(_ path: Path, to paths: inout [Path], discardedLower: inout Double) {
             // Keep two distinct predecessor paths. The lower bound of every
             // omitted path survives all later transitions, so interval ordering
@@ -40,16 +40,16 @@ package struct LoftCorrespondencePathResolver {
         var layers: [[[Path]]] = [[[Path(score: .exact(0), previousState: 0, previousRank: 0)]]]
         var previousDiscarded = [Double.infinity]
         for section in stateCounts.indices.dropFirst() {
-            try allowance.charge(stateCounts[section])
-            try allowance.charge(stateCounts[section])
+            try execution.consumeWork(stateCounts[section])
+            try execution.consumeWork(stateCounts[section])
             var nextLayer = Array(repeating: [Path](), count: stateCounts[section])
             var nextDiscarded = Array(repeating: Double.infinity, count: stateCounts[section])
             for next in 0..<stateCounts[section] {
-                try allowance.charge(3)
+                try execution.consumeWork(3)
                 nextLayer[next].reserveCapacity(3)
                 for previous in 0..<stateCounts[section - 1] {
-                    try allowance.charge(transitionWork)
-                    try allowance.charge(layers[section - 1][previous].count)
+                    try execution.consumeWork(transitionWork)
+                    try execution.consumeWork(layers[section - 1][previous].count)
                     let transition = try transition(section, previous, next)
                     nextDiscarded[next] = min(nextDiscarded[next], lowerSum(previousDiscarded[previous], transition))
                     for rank in layers[section - 1][previous].indices {
@@ -68,13 +68,13 @@ package struct LoftCorrespondencePathResolver {
         let last = stateCounts.count - 1
         var finalists: [(state: Int, rank: Int, score: OutwardScalarInterval)] = []
         var discardedLower = Double.infinity
-        try allowance.charge(stateCounts[last])
+        try execution.consumeWork(stateCounts[last])
         for state in 0..<stateCounts[last] {
-            try allowance.charge(closingWork)
+            try execution.consumeWork(closingWork)
             let closing = try closing(state)
             discardedLower = min(discardedLower, lowerSum(previousDiscarded[state], closing))
             for rank in layers[last][state].indices {
-                try allowance.charge(1)
+                try execution.consumeWork(1)
                 let score = layers[last][state][rank].score + closing
                 guard score.lower.isFinite, score.upper.isFinite else {
                     throw failure(.invalidInput, tolerance, "Loft closed correspondence score exceeds its finite numeric range.")
@@ -96,7 +96,7 @@ package struct LoftCorrespondencePathResolver {
             throw failure(.ambiguousSelection, tolerance,
                 "Loft section seams or traversal admit more than one correspondence within the declared distance allowance.")
         }
-        try allowance.charge(stateCounts.count)
+        try execution.consumeWork(stateCounts.count)
         var selected = Array(repeating: 0, count: stateCounts.count)
         var selectedState = winner.state
         var selectedRank = winner.rank

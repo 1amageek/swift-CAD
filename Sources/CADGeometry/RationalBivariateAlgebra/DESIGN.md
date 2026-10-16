@@ -41,6 +41,27 @@ finite original Double bits -> exact integer ratio
  -> caller-owned algebraic fiber / real branch certification
 ```
 
+## Direct Numeric Calling Migration
+
+The approved [module direct execution contract](../DESIGN.md#direct-original-query-execution)
+requires these numeric callers to receive the original native inout
+ExactScalarAdmission, including noncopyable admissions. ExactScalar owns work,
+byte units, local proof recording and causal depth mappings; this parent does not
+introduce another allowance or numeric solver. Domain/field/root laws, selected
+conjugates, original guards and exact branch authority remain unchanged.
+
+Legacy word-storage calls are translated once at the allocation owner into
+checked admitted bytes with their declared payload policy. Coefficient and value
+visits stay distinct. Copies of usage followed by deferred writeback and private
+forwarding depth wrappers are replaced by scopes on the same admission. Independent
+root decoder budgets retain their actual root authority; local algorithm/output
+ceilings never become independently spendable child work/storage quota.
+
+Changed-source behavioral verification must cover exact rational/algebraic laws,
+root/field guards and resource/cancel/lifetime behavior before old calling types
+are removed from the completed production path. Source-only edits are not runtime
+acceptance, and historical numeric receipts cannot prove changed calling inputs.
+
 ## Contracts and Invariants
 
 Original uniquely isolated roots compare a linear expression by exact Sturm
@@ -170,17 +191,13 @@ Portable exact endpoint source identity uses canonical sign and little-endian
 UInt32 numerator/denominator words. The caller-admitted original-parts initializer
 rejects noncanonical signs, trailing zero limbs, unreduced fractions and zero
 with a nonunit denominator; reconstruction uses the same composing algebra
-ledger. Native decoding forwards its owned ledger through
-`NativeRationalSourceDecodingContext.key` in Decoder.userInfo into this initializer.
-The available Native-only `NativeRationalSourceAllowance` reference owns exactly
-one Mutex<State>; work, cells and retained source storage use the original caller
-limits. It has no default/private allowance. The immutable required operationCheck callback enforces the composing caller deadline
-before every admission; it and cancellation run outside the mutex,
-and locked sections perform only counter checks/mutations. Missing context and
-unavailable Synchronization capability are typed failures. The fixed Swift6.4.0
-Apple interface makes this adapter available on macOS15/iOS18/visionOS2; earlier
-Apple targets cannot decode this new exact-root capability via a raw/no-op lock.
-Common exact source values and portable identity do not change across targets.
+ledger. Native decoding binds the immutable caller context through
+`NativeRationalSourceDecodingContext.key` in Decoder.userInfo. The
+[Native coding execution binding](#native-coding-execution-binding) and composed
+Native decoding contract below own this binding; the common budget alone owns
+synchronized cumulative state. The current stable Apple baseline supports the
+Native adapter directly. Common exact source values and portable identity do
+not change across targets.
 Canonical `orderedTerms` is a package source-value contract, admitting its sort
 and retained term array before publication. Every polynomial stores only nonzero coefficients;
 monomial exponents are checked for overflow. Polynomial equality is exact.
@@ -335,13 +352,13 @@ Values are immutable Sendable values. Intermediate arrays/maps and counters are
 invocation-local exclusive values. No shared mutable cache or platform-specific
 synchronization exists. Admission remains one inout caller owner. The Native codec reference owner is
 retained by its decoder userInfo and shared by every nested source value until
-decoding ends. It releases its Mutex storage with that reference lifetime.
+decoding ends. The context retains immutable contribution handles; the common
+budget owns the shared Mutex state for the lifetime of its remaining owners.
 
 | Target | Storage | Read | Mutation | Release |
 |---|---|---|---|---|
-| Available Native/normal WASM codec | Mutex<State> | Immutable limit fields | Same three admission methods withLock | Decoder context reference lifetime |
-| Embedded common source | Original injected caller ledger | Protocol requirements | Same caller admission methods | Original caller lifetime |
-| Earlier Apple Native codec | Capability unavailable | Typed failure | No alternative mutable state | No context created |
+| Native/normal WASM codec | Common budget Mutex<State> | Immutable context and atomic budget snapshot | Actual execution admission | Shared budget owner lifetime |
+| Embedded common source | Same common budget Mutex<State> | Protocol requirements | Same actual execution admission | Shared budget owner lifetime |
 
 ## Failure, Concurrency, and Constraints
 
@@ -558,16 +575,16 @@ or missing normal is created from the formal coefficient recurrence.
 
 ### Native Decoding Admission Snapshot
 
-`NativeRationalSourceAllowance.snapshot()` checks the original operation deadline
+`NativeRationalSourceDecodingContext.snapshot()` checks the original operation deadline
 and task cancellation outside the critical section, then returns one atomic
 immutable snapshot of consumed work, visited cells and retained storage together
 with their original maximum values and maximum source depth. Remaining counts
 are exact subtraction in those original units. Depth is a path bound, not a
 cumulative counter and has no invented remaining-depth interpretation. A snapshot
 does not reserve or reset resources. Concurrent or subsequent validation keeps
-the same reference admission owner; post-decode consumers can carry remaining
-counts only at an established decoding-to-validation ownership handoff. The same
-Mutex continues to protect every Native and normal WASM codec access.
+the same common budget owner. Post-decode source continuation retains the original
+caller handles and leaves only the decoder word scope; no snapshot reconstructs
+a new total budget. The same budget Mutex protects cumulative admission.
 
 ### Original Plane Curve Projection Atlas
 
@@ -1167,3 +1184,54 @@ See [Native consumption](../NativeExactRelations/DESIGN.md) and
 The [L0 transfer contract](ExactScalar/DESIGN.md#explicit-original-scalar-transport)
 owns checked original field transport. Existing monotone-endpoint convenience
 delegates to this same algorithm; scalar values use its explicit transfer receipt.
+
+The decoder context configures one common root and retains an immutable decoder contribution handle. An injected package root may admit full package bytes while the decoder handle retains the original floor(bytes/4) word ceiling. Every nested Codable execution attaches that same handle; source validation continues on the same root outside the decoder handle and applies its own source contribution ceilings and cell billing policy. Metadata and actual decoder/source allocations debit the same root. No remaining-count snapshot creates a child total budget.
+
+### Native coding execution binding
+
+Canonical Native encoders inject an immutable binding of the original common
+budget, execution limits and charged retained contribution handles into every
+`Encoder.userInfo`. Nested validating codecs select that binding; they never
+create independent roots. Missing binding at an ordinary standalone codec
+boundary creates one ordinary root for the same validation body. An installed
+value of the wrong context type fails explicitly. Required field and source
+validation remain mandatory. Decoder validation follows the same selection
+rule while exact word decoding retains its required bounded decoder context.
+
+Composed Native decoding captures immutable root limits and all original caller
+contribution handles directly from the inout execution. Every nested codec
+attaches those handles plus the decoder-only floor(bytes/4) word handle. Source
+continuation leaves only the decoder handle and retains the original source,
+subdivision and parent resource policies. The source and decoder contexts never
+copy a remaining total into a replacement budget or write back snapshots.
+Native package reading and writing both accept the actual execution. Source-text
+bytes, wire bytes and numeric allocation remain separate cumulative axes.
+
+
+### Exact Rational Native Spatial-Word Surface Law
+
+`OriginalRationalSurfacePolynomial.applying(prepared:view:usage:)` consumes only a
+prepared original word whose existing `exactRationalCoefficients` producer admits
+all twelve exact rational L/t coefficients. On the same execution it constructs
+`H'row = sum(Lrow,column * Hcolumn) + trow * W` and retains `W' = W`, then uses the
+same quotient-partial, cross-normal and view-dot implementation as native source
+construction. Chained image owners apply their words from inner to outer. No
+rounded control net, inverse XYZ query, identity shortcut or new root solver is
+part of this coefficient operation.
+
+The returned `source` remains the original Native basis provenance, and domain
+and U/V owning spans are unchanged. It does not assert that world XYZ equals that
+Native source. The composing silhouette field retains the actual world surface,
+all original image owners, its unchanged base polynomial and a separate world
+polynomial capability. That field owns eligibility (no offset or collapsed pole
+in this finite route), unchanged UV correspondence and projected-contact binding;
+nonrational words retain the ordered-field route. Every new polynomial buffer
+and coefficient operation uses the original admission. Existing provenance emits
+the Native basis and the actual homogeneous/normal equations; the enclosing field
+retains the world source and word chain.
+
+Verification compares nonidentity rational-word XYZ/W and a two-coordinate normal
+law against independently derived authored formulas, including reversed word
+composition, exact source/span retention and unchanged base coefficients. Actual
+placed silhouette and projected-contact consumers must use the same world law;
+unplaced success cannot establish this connection.

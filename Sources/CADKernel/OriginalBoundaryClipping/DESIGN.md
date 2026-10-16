@@ -29,7 +29,7 @@ The selected face must exist in an exact/volumetric immutable model and its stor
 ConstantU/V, affine and authored polyline pcurves are forwarded in their original directed order. Outer and inner roles are forwarded from the original Loop. Coedge orientation remains metadata; it does not reverse an authored pcurve again. Exact closure and nondegenerate segments are checked by the Geometry issuer. Unsupported families are explicit failures, not reconstructed polygons. Strict/closed/boundary selection is an explicit query policy and never a modeling tolerance.
 
 ## Runtime Flows
-The public entry prepares a boundary with the original caller admission, invokes the Geometry consumer, then retains a face-bound result. The same owners receive all work/storage/cell callbacks. Cancellation is checked after final callbacks before every success publication.
+The public entry prepares a boundary with the original caller admission, invokes the Geometry consumer, then retains a face-bound result. The public protocol requires an inout OriginalQueryExecution. The issuer and Geometry consumer borrow that same canonical execution for every work/storage/cell admission; the removed OriginalRelationUsage is not retained as an adapter. Cancellation is checked after final callbacks before every success publication.
 
 ## State, Ownership, and Lifecycle
 The result retains the immutable validated model, original face and loops, and the complete Geometry parameter receipt. No mutable state, cache, model edit or platform-specific isolation exists.

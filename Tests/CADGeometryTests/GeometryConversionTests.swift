@@ -153,7 +153,7 @@ struct GeometryConversionTests {
         let converter: any GeometryConverting = CertifiedGeometryConverter()
         let limits = GeometryConversionRequirements(maximumPositionError: 0.01, maximumTangentAngle: 0.1, maximumCurvatureError: 0.1)
         let box = try rectangle()
-        #expect(throws: ConversionSourceFailure.expected) {
+        geometryTestExpectFailure({ if case .expected? = geometryTestOriginalFailure($0) as? ConversionSourceFailure { true } else { false } }) {
             _ = try converter.approximateSurface(source: FailingSurface(), over: box, requirements: limits, tolerance: tolerance)
         }
         let source = try NativeSurfaceConversionSource(.analytic(.plane(origin: .origin, normal: .unitZ)), tolerance: tolerance)
@@ -162,7 +162,7 @@ struct GeometryConversionTests {
             return try converter.approximateSurface(source: source, over: box, requirements: limits, tolerance: tolerance)
         }
         do { _ = try await task.value; Issue.record("Cancelled conversion published a surface.") }
-        catch is CancellationError { }
+        catch where geometryTestIsCancelled(error) { }
         catch { Issue.record("Cancellation became \(error).") }
     }
 
@@ -222,9 +222,14 @@ struct GeometryConversionTests {
             Issue.record("High-degree triangular split exceeded its admitted scalar budget.")
         } catch GeometryConversionError.resourceLimitExceeded { }
         // One 17+...+1 homogeneous split alone generates 153*8 = 1,224 slots.
-        var budget = GeometryConversionBudget(limits)
+        var execution = try OriginalQueryExecution.independentGeometry()
         do {
-            try GeometryConversionTargetCost.curve(candidate).chargeProbe(over: interval, tolerance: tolerance, budget: &budget)
+            try execution.withConversionScope(maximumWorkUnits: limits.maximumWorkUnits,
+                maximumScalarCount: limits.maximumScalarCount,
+                maximumCertificationBoxes: limits.maximumCertificationBoxes) { execution in
+                try GeometryConversionTargetCost.curve(candidate).chargeProbe(over: interval,
+                    tolerance: tolerance, using: &execution)
+            }
             Issue.record("Native probe cost did not account for degree-dependent levels.")
         } catch GeometryConversionError.resourceLimitExceeded { }
         #expect(try (candidate.point(at: 0.37, tolerance: tolerance) - source.pointAndDerivative(at: 0.37, tolerance: tolerance).point).length < 1e-12)
@@ -292,11 +297,28 @@ struct GeometryConversionTests {
 }
 
 private struct SampledAliasSurface: GeometrySurfaceConversionSource {
-    func validate(over parameters: SurfaceParameterBox, tolerance: ModelingTolerance) throws { }
+    func validate(over parameters: SurfaceParameterBox, tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(over: parameters, tolerance: tolerance, using: &execution)
+    }
+    func validate(over parameters: SurfaceParameterBox, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1) 
+    }
     func point(u: Double, v: Double, tolerance: ModelingTolerance) throws -> Point3D {
-        .init(x: u, y: v, z: sin(12 * Double.pi * u))
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try point(u: u, v: v, tolerance: tolerance, using: &execution)
+    }
+    func point(u: Double, v: Double, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Point3D {
+        try execution.consumeWork(6)
+        return .init(x: u, y: v, z: sin(12 * Double.pi * u))
+    
     }
     func enclosure(over p: SurfaceParameterBox, tolerance: ModelingTolerance) throws -> SurfaceDifferentialEnclosure {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try enclosure(over: p, tolerance: tolerance, using: &execution)
+    }
+    func enclosure(over p: SurfaceParameterBox, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> SurfaceDifferentialEnclosure {
+        try execution.consumeWork(24)
         func vector(_ x: ScalarInterval, _ y: ScalarInterval, _ z: ScalarInterval) -> CoordinateEnclosure3D { .init(x: x, y: y, z: z) }
         let zero = try ScalarInterval(lower: 0, upper: 0), one = try ScalarInterval(lower: 1, upper: 1)
         // Broad, valid continuous bounds deliberately reveal the sampled alias.
@@ -305,34 +327,92 @@ private struct SampledAliasSurface: GeometrySurfaceConversionSource {
             tangentU: vector(one, zero, ScalarInterval(lower: -frequency, upper: frequency)), tangentV: vector(zero, one, zero),
             secondDerivativeUU: vector(zero, zero, ScalarInterval(lower: -(frequency * frequency).nextUp, upper: (frequency * frequency).nextUp)),
             secondDerivativeUV: vector(zero, zero, zero), secondDerivativeVV: vector(zero, zero, zero))
+    
     }
 }
 private enum ConversionSourceFailure: Error, Equatable { case expected }
 private struct FailingSurface: GeometrySurfaceConversionSource {
-    func validate(over parameters: SurfaceParameterBox, tolerance: ModelingTolerance) throws { }
-    func point(u: Double, v: Double, tolerance: ModelingTolerance) throws -> Point3D { throw ConversionSourceFailure.expected }
-    func enclosure(over parameters: SurfaceParameterBox, tolerance: ModelingTolerance) throws -> SurfaceDifferentialEnclosure { throw ConversionSourceFailure.expected }
+    func validate(over parameters: SurfaceParameterBox, tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(over: parameters, tolerance: tolerance, using: &execution)
+    }
+    func validate(over parameters: SurfaceParameterBox, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1) 
+    }
+    func point(u: Double, v: Double, tolerance: ModelingTolerance) throws -> Point3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try point(u: u, v: v, tolerance: tolerance, using: &execution)
+    }
+    func point(u: Double, v: Double, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Point3D {
+        try execution.consumeWork(1)
+        throw ConversionSourceFailure.expected 
+    }
+    func enclosure(over parameters: SurfaceParameterBox, tolerance: ModelingTolerance) throws -> SurfaceDifferentialEnclosure {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try enclosure(over: parameters, tolerance: tolerance, using: &execution)
+    }
+    func enclosure(over parameters: SurfaceParameterBox, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> SurfaceDifferentialEnclosure {
+        try execution.consumeWork(1)
+        throw ConversionSourceFailure.expected 
+    }
 }
 
 @available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, *)
 private final class AdmissionFailingCurve: GeometryCurveConversionSource {
     let calls = Mutex(0)
-    func validate(over parameters: ScalarInterval, tolerance: ModelingTolerance) throws { }
+    func validate(over parameters: ScalarInterval, tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(over: parameters, tolerance: tolerance, using: &execution)
+    }
+    func validate(over parameters: ScalarInterval, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1) 
+    }
     func pointAndDerivative(at parameter: Double, tolerance: ModelingTolerance) throws -> (point: Point3D, derivative: Vector3D) {
-        (.init(x: parameter, y: 0, z: 0), .unitX)
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try pointAndDerivative(at: parameter, tolerance: tolerance, using: &execution)
+    }
+    func pointAndDerivative(at parameter: Double, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> (point: Point3D, derivative: Vector3D) {
+        try execution.consumeWork(1)
+        return (.init(x: parameter, y: 0, z: 0), .unitX)
+    
     }
     func enclosure(over parameters: ScalarInterval, tolerance: ModelingTolerance) throws -> CurveDifferentialEnclosure {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try enclosure(over: parameters, tolerance: tolerance, using: &execution)
+    }
+    func enclosure(over parameters: ScalarInterval, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> CurveDifferentialEnclosure {
+        try execution.consumeWork(1)
         calls.withLock { $0 += 1 }
         throw GeometryConversionError.toleranceRejected
+    
     }
 }
 @available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, *)
 private final class AdmissionFailingSurface: GeometrySurfaceConversionSource {
     let calls = Mutex(0)
-    func validate(over parameters: SurfaceParameterBox, tolerance: ModelingTolerance) throws { }
-    func point(u: Double, v: Double, tolerance: ModelingTolerance) throws -> Point3D { .init(x: u, y: v, z: 0) }
+    func validate(over parameters: SurfaceParameterBox, tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(over: parameters, tolerance: tolerance, using: &execution)
+    }
+    func validate(over parameters: SurfaceParameterBox, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1) 
+    }
+    func point(u: Double, v: Double, tolerance: ModelingTolerance) throws -> Point3D {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try point(u: u, v: v, tolerance: tolerance, using: &execution)
+    }
+    func point(u: Double, v: Double, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Point3D {
+        try execution.consumeWork(1)
+        return .init(x: u, y: v, z: 0) 
+    }
     func enclosure(over parameters: SurfaceParameterBox, tolerance: ModelingTolerance) throws -> SurfaceDifferentialEnclosure {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try enclosure(over: parameters, tolerance: tolerance, using: &execution)
+    }
+    func enclosure(over parameters: SurfaceParameterBox, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> SurfaceDifferentialEnclosure {
+        try execution.consumeWork(1)
         calls.withLock { $0 += 1 }
         throw GeometryConversionError.toleranceRejected
+    
     }
 }

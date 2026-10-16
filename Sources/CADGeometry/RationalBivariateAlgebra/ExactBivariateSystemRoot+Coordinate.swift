@@ -1,10 +1,10 @@
 /// Exact coordinate transport retaining an already proved original system point.
 package extension ExactBivariateSystemRoot {
-    func originalFiberNumerator<B: RationalAlgebraAdmitting>(usage: inout B) throws -> ExactBivariatePolynomial {
+    func originalFiberNumerator<B: ExactScalarAdmission & ~Copyable>(usage: inout B) throws -> ExactBivariatePolynomial {
         try scalarAuthority.originalFiberNumerator(usage: &usage)
     }
 
-    func originalCoordinate<B: RationalAlgebraAdmitting>(alongU: Bool, maximumDepth: Int,
+    func originalCoordinate<B: ExactScalarAdmission & ~Copyable>(alongU: Bool, maximumDepth: Int,
         usage: inout B) throws -> ExactMonotoneGraphEndpoint {
         if alongU { return .algebraic(projectionRoot) }
         let gcd = ExactBivariateGCD()

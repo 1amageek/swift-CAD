@@ -14,12 +14,12 @@ import WASILibc
 /// Exact original tuple localization and numerical publication shared by genuine coverage.
 struct NativeSurfaceSurfacePointPublisher {
     private static func value(_ polynomial: ExactBivariatePolynomial, first: Bool,
-        cell: OriginalRationalIntersectionCells.Cell, usage: inout NativeSurfaceSurfacePointAllowance)
+        cell: OriginalRationalIntersectionCells.Cell, usage: inout OriginalQueryExecution)
         throws -> OriginalSingularFieldElement {
         let embedded = try ExactIntersectionPolynomial.embedding(polynomial, variableCount: 4,
             uCoordinate: first ? 0 : 2, vCoordinate: first ? 1 : 3, usage: &usage)
         return try OriginalIntersectionFieldEvaluation.evaluated(embedded, context: cell.context,
-            coordinates: cell.coordinates, maximumDepth: usage.maximumAlgebraicDepth, usage: &usage)
+            coordinates: cell.coordinates, maximumDepth: usage.effectiveLimits.maximumValueDepth, usage: &usage)
     }
 
     static func publish(cell: OriginalRationalIntersectionCells.Cell,
@@ -29,8 +29,8 @@ struct NativeSurfaceSurfacePointPublisher {
         nativeDomains: [ScalarInterval], requestedDomains: [ScalarInterval],
         retainingParameters: inout [OriginalSingularFieldValueIsolation],
         retainingLocalizations: inout [NativeCurveSurfaceScalarLocalization?],
-        usage: inout NativeSurfaceSurfacePointAllowance) throws -> SurfaceSurfaceIntersectionPoint {
-        let depth = usage.maximumAlgebraicDepth
+        usage: inout OriginalQueryExecution) throws -> SurfaceSurfaceIntersectionPoint {
+        let depth = usage.effectiveLimits.maximumValueDepth
         let weight = try value(first.homogeneous[3], first: true, cell: cell, usage: &usage)
         try RationalAlgebraStorage.retain(7, of: OriginalSingularFieldValueIsolation.self, usage: &usage)
         var isolations: [OriginalSingularFieldValueIsolation] = []; isolations.reserveCapacity(7)
@@ -65,7 +65,7 @@ struct NativeSurfaceSurfacePointPublisher {
         // at the exact root, even if outward parameter endpoints leave the domain.
         var minimumWeight = Double.infinity, maximumWeight = 0.0
         for weight in first.source.weights.joined() {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             minimumWeight = min(minimumWeight, weight); maximumWeight = max(maximumWeight, weight)
         }
         let intervalWeight = OutwardScalarInterval(lower: minimumWeight, upper: maximumWeight)
@@ -106,7 +106,7 @@ struct NativeSurfaceSurfacePointPublisher {
         try RationalAlgebraStorage.retain(7, of: OutwardScalarInterval.self, usage: &usage)
         var bounds: [OutwardScalarInterval] = []; bounds.reserveCapacity(7)
         for iteration in 0..<options.maximumIterations {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             bounds.removeAll(keepingCapacity: true)
             for index in isolations.indices {
                 if index < 4, let localization = localizations[index] {
@@ -146,7 +146,7 @@ struct NativeSurfaceSurfacePointPublisher {
                 bounds[2].upper - bounds[2].lower <= tolerance.distance,
                 bounds[3].upper - bounds[3].lower <= tolerance.distance {
                 for axis in 0..<4 {
-                    try usage.consumeExactWork(1); retainingParameters.append(isolations[axis])
+                    try usage.consumeWork(1); retainingParameters.append(isolations[axis])
                     retainingLocalizations.append(localizations[axis])
                 }
                 return try .init(point: point,
@@ -161,7 +161,7 @@ struct NativeSurfaceSurfacePointPublisher {
     }
 
     private static func rationalPosition(_ homogeneous: [ExactBivariatePolynomial], u: Double, v: Double,
-        usage: inout NativeSurfaceSurfacePointAllowance) throws -> (OutwardScalarInterval, OutwardScalarInterval, OutwardScalarInterval) {
+        usage: inout OriginalQueryExecution) throws -> (OutwardScalarInterval, OutwardScalarInterval, OutwardScalarInterval) {
         let a = try ExactRationalCoefficient.originalDouble(u, usage: &usage)
         let b = try ExactRationalCoefficient.originalDouble(v, usage: &usage)
         let weight = try homogeneous[3].evaluated(atU: a, v: b, usage: &usage)

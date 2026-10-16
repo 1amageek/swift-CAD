@@ -10,12 +10,27 @@ extension BSplineSurface3D {
         expansionOptions: PeriodicBSplineExpansionOptions = .init(),
         tolerance: ModelingTolerance
     ) throws -> BSplineSurface3D {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try OriginalQueryExecutionLimits(maximumValueDepth: 32, maximumCoefficientDepth: 32))
+        return try periodic(uDegree: uDegree, vDegree: vDegree, uKnots: uKnots, vKnots: vKnots,
+            controlPoints: controlPoints, weights: weights, isUPeriodic: isUPeriodic, isVPeriodic: isVPeriodic,
+            expansionOptions: expansionOptions, tolerance: tolerance, using: &execution)
+    }
+
+    public static func periodic<A: ExactScalarAdmission & ~Copyable>(
+        uDegree: Int, vDegree: Int, uKnots: [Double], vKnots: [Double],
+        controlPoints: [[Point3D]], weights: [[Double]]? = nil,
+        isUPeriodic: Bool, isVPeriodic: Bool,
+        expansionOptions: PeriodicBSplineExpansionOptions = .init(),
+        tolerance: ModelingTolerance, using execution: inout A
+    ) throws -> BSplineSurface3D {
+        try execution.consumeWork(1)
         try expansionOptions.validate(tolerance: tolerance)
         let vCount = controlPoints.count
         let uCount = controlPoints.first?.count ?? 0
         guard isUPeriodic || isVPeriodic, uDegree >= 1, vDegree >= 1,
               uCount > 0, vCount > 0,
-              controlPoints.allSatisfy({ $0.count == uCount }),
+              try controlPoints.allSatisfy({ try execution.consumeWork(1); return $0.count == uCount }),
               isUPeriodic || uDegree < uCount, isVPeriodic || vDegree < vCount else {
             throw invalidPeriodicSurface(tolerance)
         }
@@ -27,28 +42,46 @@ extension BSplineSurface3D {
             throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
                 message: "Periodic tensor expansion exceeds its total control-net budget.")
         }
-        let cycleWeights = weights ?? controlPoints.map { Array(repeating: 1.0, count: $0.count) }
-        guard cycleWeights.count == vCount, cycleWeights.allSatisfy({ $0.count == uCount }) else {
+        let cycleWeights: [[Double]]
+        if let weights { cycleWeights = weights }
+        else {
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: controlPoints.count, of: [Double].self))
+            cycleWeights = try controlPoints.map {
+                try execution.retainStorage(bytes: exactScalarPayloadBytes(count: $0.count, of: Double.self))
+                return Array(repeating: 1.0, count: $0.count)
+            }
+        }
+        guard cycleWeights.count == vCount, try cycleWeights.allSatisfy({ try execution.consumeWork(1); return $0.count == uCount }) else {
             throw invalidPeriodicSurface(tolerance)
         }
         let uCurve = isUPeriodic ? try BSplineCurve3D.periodic(
             degree: uDegree, cycleKnots: uKnots, controlPoints: controlPoints[0],
-            weights: cycleWeights[0], tolerance: tolerance
+            weights: cycleWeights[0], tolerance: tolerance, using: &execution
         ) : nil
+        if isVPeriodic {
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: vCount, of: Point3D.self))
+            try execution.retainStorage(bytes: exactScalarPayloadBytes(count: vCount, of: Double.self))
+        }
         let vCurve = isVPeriodic ? try BSplineCurve3D.periodic(
-            degree: vDegree, cycleKnots: vKnots, controlPoints: controlPoints.map { $0[0] },
-            weights: cycleWeights.map { $0[0] }, tolerance: tolerance
+            degree: vDegree, cycleKnots: vKnots, controlPoints: try controlPoints.map { try execution.consumeWork(1); return $0[0] },
+            weights: try cycleWeights.map { try execution.consumeWork(1); return $0[0] }, tolerance: tolerance, using: &execution
         ) : nil
         var points: [[Point3D]] = []
         var expandedWeights: [[Double]] = []
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: extendedV, of: [Point3D].self))
         points.reserveCapacity(extendedV)
+        try execution.retainStorage(bytes: exactScalarPayloadBytes(count: extendedV, of: [Double].self))
         expandedWeights.reserveCapacity(extendedV)
         for j in 0..<extendedV {
+            try execution.consumeWork(1)
             var row = controlPoints[j % vCount]
             var weightRow = cycleWeights[j % vCount]
+            if extendedU > uCount { try execution.retainStorage(bytes: exactScalarPayloadBytes(count: extendedU, of: Point3D.self)) }
             row.reserveCapacity(extendedU)
+            if extendedU > uCount { try execution.retainStorage(bytes: exactScalarPayloadBytes(count: extendedU, of: Double.self)) }
             weightRow.reserveCapacity(extendedU)
             for i in uCount..<extendedU {
+                try execution.consumeWork(1)
                 row.append(controlPoints[j % vCount][i % uCount])
                 weightRow.append(cycleWeights[j % vCount][i % uCount])
             }
@@ -62,7 +95,7 @@ extension BSplineSurface3D {
             isUPeriodic: isUPeriodic, isVPeriodic: isVPeriodic,
             uPeriodicOrigin: uCurve?.periodicOrigin, vPeriodicOrigin: vCurve?.periodicOrigin
         )
-        try surface.validate(tolerance: tolerance)
+        try surface.validate(tolerance: tolerance, using: &execution)
         return surface
     }
 
@@ -77,10 +110,10 @@ extension BSplineSurface3D {
         return degree - knots.filter { $0 == knots[degree] }.count
     }
 
-    package func periodicSeamContinuityOrder(direction: SurfaceParameterDirection,
-        consumeWork: () throws -> Void) throws -> Int? {
+    package func periodicSeamContinuityOrder<A: ExactScalarAdmission & ~Copyable>(direction: SurfaceParameterDirection,
+        using execution: inout A) throws -> Int? {
         try CurrentTaskCancellationChecker().checkCancellation()
-        try consumeWork()
+        try execution.consumeWork(1)
         let degree = direction == .u ? uDegree : vDegree
         let knots = direction == .u ? uKnots : vKnots
         let periodic = direction == .u ? isUPeriodic : isVPeriodic
@@ -89,7 +122,7 @@ extension BSplineSurface3D {
         var multiplicity = 0
         for knot in knots {
             try CurrentTaskCancellationChecker().checkCancellation()
-            try consumeWork()
+            try execution.consumeWork(1)
             if knot == seam { multiplicity += 1 }
         }
         return degree - multiplicity
@@ -154,19 +187,19 @@ extension BSplineSurface3D {
             period: knots[knots.count - degree - 1] - lower, tolerance: tolerance)
     }
 
-    func validatePeriodicity(tolerance: ModelingTolerance,
-        consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() }) throws {
-        try consumeWork()
+    func validatePeriodicity<A: ExactScalarAdmission & ~Copyable>(tolerance: ModelingTolerance,
+        using execution: inout A) throws {
+        try execution.consumeWork(1)
         // Full knot/net validity is proved by the caller before indexing. Both axes
         // and every repeated tail are checked in place without temporary control lines.
         if isUPeriodic {
             try BSplineCurve3D.validatePeriodicAxis(degree: uDegree, knots: uKnots,
-                controlPointCount: uControlPointCount, origin: uPeriodicOrigin, tolerance: tolerance, consumeWork: consumeWork)
+                controlPointCount: uControlPointCount, origin: uPeriodicOrigin, tolerance: tolerance, using: &execution)
             let count = uControlPointCount - uDegree
             for j in controlPoints.indices {
-                try consumeWork()
+                try execution.consumeWork(1)
                 for i in count..<uControlPointCount {
-                    try consumeWork(); try consumeWork(); try consumeWork(); try consumeWork()
+                    try execution.consumeWork(1); try execution.consumeWork(1); try execution.consumeWork(1); try execution.consumeWork(1)
                     guard controlPoints[j][i] == controlPoints[j][i % count],
                           weights[j][i] == weights[j][i % count] else {
                         throw Self.invalidPeriodicSurface(tolerance)
@@ -178,12 +211,12 @@ extension BSplineSurface3D {
         }
         if isVPeriodic {
             try BSplineCurve3D.validatePeriodicAxis(degree: vDegree, knots: vKnots,
-                controlPointCount: vControlPointCount, origin: vPeriodicOrigin, tolerance: tolerance, consumeWork: consumeWork)
+                controlPointCount: vControlPointCount, origin: vPeriodicOrigin, tolerance: tolerance, using: &execution)
             let count = vControlPointCount - vDegree
             for j in count..<vControlPointCount {
-                try consumeWork()
+                try execution.consumeWork(1)
                 for i in 0..<uControlPointCount {
-                    try consumeWork(); try consumeWork(); try consumeWork(); try consumeWork()
+                    try execution.consumeWork(1); try execution.consumeWork(1); try execution.consumeWork(1); try execution.consumeWork(1)
                     guard controlPoints[j][i] == controlPoints[j % count][i],
                         weights[j][i] == weights[j % count][i] else {
                         throw Self.invalidPeriodicSurface(tolerance)

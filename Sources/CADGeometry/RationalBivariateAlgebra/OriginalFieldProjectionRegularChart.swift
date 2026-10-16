@@ -6,7 +6,7 @@ package struct OriginalFieldProjectionRegularChart: Sendable {
     package let originalTransverseDerivative: OriginalSingularFieldPlanePolynomial
     package let criticalPreimages: [OriginalSingularFieldSystemRoot]
 
-    package init<B: RationalAlgebraAdmitting>(germ: OriginalSingularResolution.Germ,
+    package init<B: ExactScalarAdmission & ~Copyable>(germ: OriginalSingularResolution.Germ,
         primitive: OriginalSingularFieldPlanePolynomial, maximumDepth: Int, usage: inout B) throws {
         let derivative = try primitive.differentiated(alongU: false, maximumDepth: maximumDepth, usage: &usage)
         let critical = try derivative.embedded(in: germ.strictTransform.context,

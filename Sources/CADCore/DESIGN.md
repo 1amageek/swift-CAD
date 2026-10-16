@@ -67,6 +67,20 @@ CurrentTask -> CurrentTaskCancellationChecker -> bounded Core consumers
 
 ## Contracts and Invariants
 
+`TopologyLineage` retains canonical parent identities in original strict order.
+The package initializer accepting `canonicalParents` validates every identity,
+strict ordering, output exclusion and relation cardinality without constructing a
+set or sorting. It retains the supplied immutable array through COW ownership.
+Invalid canonical input returns `nil`; it is never silently repaired. A caller
+performing admitted canonicalization owns its traversal/comparison cost before
+entering this finite validation boundary. `isStructurallyValid` performs the same
+allocation-free canonical check for both ordinary and admitted construction.
+The caller also admits the boundary's linear visits and variable role comparisons;
+this metadata contract grants no original-geometry identity or correspondence.
+
+The unchanged canonical constructor and check are verified by
+[TopologyLineageCanonicalTests](../../Tests/CADCoreTests/TopologyLineageCanonicalTests.swift).
+
 `hypot(left, right)` accepts two quantities of the same kind and returns their
 nonnegative Euclidean magnitude in that kind. It uses native hypot to avoid
 intermediate square overflow. Incompatible kinds and nonfinite results fail

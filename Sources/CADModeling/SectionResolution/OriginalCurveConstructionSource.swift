@@ -6,27 +6,33 @@ package struct OriginalCurveConstructionSource: GeometryCurveConversionSource {
     private let chart: OriginalCurveSpanParameterChart
     private let domain: ScalarInterval
     private let original: PreparedCurveDifferentialEncloser
-    private let admission: GeometryConversionAdmission
+    private let budget: OriginalQueryBudget
+    private let limits: OriginalQueryExecutionLimits
+    private let contributions: [OriginalQueryContributionHandle]
     private let tolerance: ModelingTolerance
 
     package init(chart: OriginalCurveSpanParameterChart, domain: ScalarInterval,
-        tolerance: ModelingTolerance, admission: GeometryConversionAdmission) throws {
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
         self.chart = chart; self.domain = domain
-        self.tolerance = tolerance; self.admission = admission
+        self.tolerance = tolerance; budget = execution.budget; limits = execution.effectiveLimits; contributions = try execution.retainActiveContributionHandles()
         if let prepared = chart.source.prepared, chart.source.preparationTolerance == tolerance {
             original = prepared
         } else {
             original = try PreparedCurveDifferentialEncloser(curve: chart.curve,
-                tolerance: tolerance, remainingSourceDepth: admission.remainingSourceDepth,
-                maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
-                consumeWork: { try admission.chargeWork() },
-                consumeStorage: { try admission.chargeStorage(bytes: $0) },
-                maximumAlgebraicDepth: admission.maximumAlgebraicDepth)
+                tolerance: tolerance, remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+                maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth,
+                maximumAlgebraicDepth: execution.effectiveLimits.maximumValueDepth, using: &execution)
         }
     }
 
     package func validate(over parameters: ScalarInterval, tolerance: ModelingTolerance) throws {
-        try admission.chargeWork()
+        var execution = try OriginalQueryExecution(budget: budget, limits: limits, contributions: contributions)
+        try validate(over: parameters, tolerance: tolerance, using: &execution)
+    }
+
+    package func validate(over parameters: ScalarInterval, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         guard tolerance == self.tolerance, domain.width > 0,
               parameters.lower >= domain.lower, parameters.upper <= domain.upper else {
             throw GeometryConversionError.invalidInput("Original construction certification requires its retained candidate domain and tolerance.")
@@ -34,7 +40,13 @@ package struct OriginalCurveConstructionSource: GeometryCurveConversionSource {
     }
 
     package func pointAndDerivative(at parameter: Double, tolerance: ModelingTolerance) throws -> (point: Point3D, derivative: Vector3D) {
-        try validate(over: ScalarInterval(lower: parameter, upper: parameter), tolerance: tolerance)
+        var execution = try OriginalQueryExecution(budget: budget, limits: limits, contributions: contributions)
+        return try pointAndDerivative(at: parameter, tolerance: tolerance, using: &execution)
+    }
+
+    package func pointAndDerivative(at parameter: Double, tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> (point: Point3D, derivative: Vector3D) {
+        try validate(over: ScalarInterval(lower: parameter, upper: parameter), tolerance: tolerance, using: &execution)
         let fraction = (.exact(parameter) - OutwardScalarInterval.exact(domain.lower))
             .divided(by: .exact(domain.upper) - .exact(domain.lower))
         guard let fraction, fraction.lower == fraction.upper else {
@@ -42,29 +54,24 @@ package struct OriginalCurveConstructionSource: GeometryCurveConversionSource {
         }
         let jet = try chart.parameterJet(overNormalizedFraction: ScalarInterval(lower: fraction.lower, upper: fraction.upper),
             throughOrder: 1, tolerance: tolerance,
-            consumeWork: { try admission.chargeWork() }, consumeStorage: { try admission.chargeStorage(bytes: $0) })
+            using: &execution)
         guard jet.value.lower == jet.value.upper,
               let gain = jet.derivatives[1].divided(by: .exact(domain.upper) - .exact(domain.lower)),
               gain.lower == gain.upper else {
             throw GeometryConversionError.resourceLimitExceeded("Original construction point has no exact native scalar chart value.")
         }
-        let source = try chart.curve.differentialGeometry(at: jet.value.lower, tolerance: tolerance)
+        let source = try chart.curve.differentialGeometry(at: jet.value.lower, tolerance: tolerance, using: &execution)
         return (source.position, source.firstDerivative * gain.lower)
     }
 
-    package func validate(over parameters: ScalarInterval, tolerance: ModelingTolerance,
-        admission: GeometryConversionAdmission) throws {
-        try admission.chargeWork()
-        try validate(over: parameters, tolerance: tolerance)
-    }
-
     package func enclosure(over parameters: ScalarInterval, tolerance: ModelingTolerance) throws -> CurveDifferentialEnclosure {
-        try enclosure(over: parameters, tolerance: tolerance, admission: admission)
+        var execution = try OriginalQueryExecution(budget: budget, limits: limits, contributions: contributions)
+        return try enclosure(over: parameters, tolerance: tolerance, using: &execution)
     }
 
     package func enclosure(over parameters: ScalarInterval, tolerance: ModelingTolerance,
-        admission: GeometryConversionAdmission) throws -> CurveDifferentialEnclosure {
-        try validate(over: parameters, tolerance: tolerance)
+        using execution: inout OriginalQueryExecution) throws -> CurveDifferentialEnclosure {
+        try validate(over: parameters, tolerance: tolerance, using: &execution)
         let native: ScalarInterval
         let gain: OutwardScalarInterval
         let secondGain: OutwardScalarInterval
@@ -79,7 +86,7 @@ package struct OriginalCurveConstructionSource: GeometryCurveConversionSource {
         }
         let label = try chart.parameterJet(overNormalizedFraction: ScalarInterval(lower: clipped.lower, upper: clipped.upper),
             throughOrder: 2, tolerance: tolerance,
-            consumeWork: { try admission.chargeWork() }, consumeStorage: { try admission.chargeStorage(bytes: $0) })
+            using: &execution)
         guard let first = label.derivatives[1].divided(by: width),
               let second = label.derivatives[2].divided(by: width * width) else {
             throw GeometryConversionError.resourceLimitExceeded("Original construction derivative gain is unresolved.")
@@ -89,9 +96,9 @@ package struct OriginalCurveConstructionSource: GeometryCurveConversionSource {
         gain = first; secondGain = second
         }
         let receipt = try original.closedNativeJets(over: native, tolerance: tolerance,
-            maximumSpanCount: admission.maximumSpanCount, maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
-            remainingSourceDepth: admission.remainingSourceDepth,
-            consumeWork: { try admission.chargeWork() }, consumeStorage: { try admission.chargeStorage(bytes: $0) })
+            maximumSpanCount: execution.effectiveLimits.maximumSpans, maximumSubdivisionDepth: execution.effectiveLimits.maximumSubdivisionDepth,
+            remainingSourceDepth: execution.effectiveLimits.remainingSourceDepth,
+            using: &execution)
         var px: OutwardScalarInterval?, py: OutwardScalarInterval?, pz: OutwardScalarInterval?
         var dx: OutwardScalarInterval?, dy: OutwardScalarInterval?, dz: OutwardScalarInterval?
         var ax: OutwardScalarInterval?, ay: OutwardScalarInterval?, az: OutwardScalarInterval?
@@ -99,7 +106,7 @@ package struct OriginalCurveConstructionSource: GeometryCurveConversionSource {
             current = current.map { .init(lower: min($0.lower, value.lower), upper: max($0.upper, value.upper)) } ?? value
         }
         for span in receipt.spans {
-            try admission.chargeWork()
+            try execution.consumeWork(1)
             let jet = span.jet
             merge(&px, jet.x.value); merge(&py, jet.y.value); merge(&pz, jet.z.value)
             merge(&dx, jet.x.derivativeU * gain); merge(&dy, jet.y.derivativeU * gain); merge(&dz, jet.z.derivativeU * gain)

@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 import CADIR
 import CADTopology
 
@@ -19,6 +20,16 @@ public struct BRepSewingShell: Sendable {
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
+        var execution = OriginalQueryExecution(budget: try OriginalQueryBudget(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32))
+        return try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
+        try execution.consumeWork(patches.count)
+        try execution.retainStorage(count: patches.count, stride: MemoryLayout<String>.stride)
+        try execution.retainStorage(count: patches.count, stride: MemoryLayout<String>.stride)
         guard stableID.isEmpty == false,
               patches.isEmpty == false,
               Set(patches.map { $0.stableID }).count == patches.count else {
@@ -30,33 +41,15 @@ public struct BRepSewingShell: Sendable {
             )
         }
         for patch in patches {
+            try execution.consumeWork(1)
             do {
-                try patch.validate(tolerance: tolerance)
-            } catch let error as KernelError {
-                throw KernelError(
-                    phase: error.phase,
-                    code: error.code,
-                    residual: error.residual,
-                    tolerance: tolerance,
-                    message: "B-rep sewing shell \(stableID) contains invalid patch \(patch.stableID). \(error.message)"
-                )
+                try patch.validate(tolerance: tolerance, using: &execution)
             } catch {
-                throw KernelError(
-                    phase: .topology,
-                    code: .topologyFailure,
-                    tolerance: tolerance,
-                    message: "B-rep sewing shell \(stableID) contains invalid patch \(patch.stableID). \(sewingFailureDescription(error))"
-                )
+                throw contextualizedSewingFailure(error, tolerance: tolerance,
+                    context: execution.context, message: "B-rep sewing shell \(stableID) contains invalid patch \(patch.stableID).")
             }
         }
     }
-    private func sewingFailureDescription(_ error: any Error) -> String {
-#if hasFeature(Embedded)
-        if let kernel = error as? KernelError { return kernel.message }
-        return "Original sewing producer failed."
-#else
-        return String(describing:error)
-#endif
-    }
+
 
 }

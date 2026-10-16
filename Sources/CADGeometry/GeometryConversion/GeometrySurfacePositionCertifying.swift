@@ -11,4 +11,9 @@ public protocol GeometrySurfacePositionCertifying: Sendable {
         over parameters: SurfaceParameterBox, maximumPositionError: Double,
         limits: NativeSurfacePositionCertificationLimits,
         tolerance: ModelingTolerance) throws -> NativeSurfacePositionCertificate
+
+    func certifyPosition(source: BSplineSurface3D, candidate: BSplineSurface3D,
+        over parameters: SurfaceParameterBox, maximumPositionError: Double,
+        limits: NativeSurfacePositionCertificationLimits,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> NativeSurfacePositionCertificate
 }

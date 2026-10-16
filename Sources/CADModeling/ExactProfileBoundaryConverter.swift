@@ -14,31 +14,44 @@ package struct ExactProfileBoundaryConverter: Sendable {
         self.tolerance = tolerance
     }
 
+    package func segments(from profile: Profile, offset: Vector3D,
+        extrusionAxis: Vector3D) throws -> [ExactPrismaticBoundarySegment] {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try segments(from: profile, offset: offset, extrusionAxis: extrusionAxis, using: &execution)
+    }
+
+    package func boundaries(from profile: Profile, offset: Vector3D,
+        extrusionAxis: Vector3D) throws -> [[ExactPrismaticBoundarySegment]] {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try boundaries(from: profile, offset: offset, extrusionAxis: extrusionAxis, using: &execution)
+    }
+
     package func segments(
         from profile: Profile,
         offset: Vector3D,
         extrusionAxis: Vector3D
-    ) throws -> [ExactPrismaticBoundarySegment] {
+    , using execution: inout OriginalQueryExecution) throws -> [ExactPrismaticBoundarySegment] {
         try segments(
             from: profile.outerLoop,
             on: profile.plane,
             offset: offset,
             extrusionAxis: extrusionAxis
-        )
+        , using: &execution)
     }
 
     package func boundaries(
         from profile: Profile,
         offset: Vector3D,
         extrusionAxis: Vector3D
-    ) throws -> [[ExactPrismaticBoundarySegment]] {
-        try ([profile.outerLoop] + profile.innerLoops).map { loop in
+    , using execution: inout OriginalQueryExecution) throws -> [[ExactPrismaticBoundarySegment]] {
+        try execution.retainStorage(count: profile.innerLoops.count + 1, stride: MemoryLayout<ProfileLoop>.stride + MemoryLayout<[ExactPrismaticBoundarySegment]>.stride)
+        return try ([profile.outerLoop] + profile.innerLoops).map { loop in
             try segments(
                 from: loop,
                 on: profile.plane,
                 offset: offset,
                 extrusionAxis: extrusionAxis
-            )
+            , using: &execution)
         }
     }
 
@@ -47,16 +60,18 @@ package struct ExactProfileBoundaryConverter: Sendable {
         on plane: SketchPlane,
         offset: Vector3D,
         extrusionAxis: Vector3D
-    ) throws -> [ExactPrismaticBoundarySegment] {
+    , using execution: inout OriginalQueryExecution) throws -> [ExactPrismaticBoundarySegment] {
         try tolerance.validate()
         let axis = try extrusionAxis.normalized(tolerance: tolerance.distance)
-        let profilePlane = try self.plane(for: plane)
+        let profilePlane = try self.plane(for: plane, using: &execution)
         var result: [ExactPrismaticBoundarySegment] = []
         for boundary in loop.boundarySegments {
+            try execution.consumeWork(1)
             switch boundary {
             case let .line(line):
-                try validate(point: line.start, on: profilePlane)
-                try validate(point: line.end, on: profilePlane)
+                try validate(point: line.start, on: profilePlane, using: &execution)
+                try validate(point: line.end, on: profilePlane, using: &execution)
+                try execution.retainStorage(count: 1, stride: MemoryLayout<ExactPrismaticBoundarySegment>.stride)
                 result.append(try .line(
                     from: line.start + offset,
                     to: line.end + offset,
@@ -68,19 +83,19 @@ package struct ExactProfileBoundaryConverter: Sendable {
                     offset: offset,
                     extrusionAxis: axis,
                     profilePlane: profilePlane
-                ))
+                , using: &execution))
             case let .spline(spline):
                 result.append(contentsOf: try splineSegments(
                     spline.curve,
                     offset: offset,
                     profilePlane: profilePlane
-                ))
+                , using: &execution))
             }
         }
         guard result.count >= 2 else {
             throw SketchError.openProfile
         }
-        try validateClosure(result)
+        try validateClosure(result, using: &execution)
         return result
     }
 
@@ -89,10 +104,10 @@ package struct ExactProfileBoundaryConverter: Sendable {
         offset: Vector3D,
         extrusionAxis: Vector3D,
         profilePlane: Plane3D
-    ) throws -> [ExactPrismaticBoundarySegment] {
-        try validate(point: arc.center, on: profilePlane)
-        try validate(point: arc.start, on: profilePlane)
-        try validate(point: arc.end, on: profilePlane)
+    , using execution: inout OriginalQueryExecution) throws -> [ExactPrismaticBoundarySegment] {
+        try validate(point: arc.center, on: profilePlane, using: &execution)
+        try validate(point: arc.start, on: profilePlane, using: &execution)
+        try validate(point: arc.end, on: profilePlane, using: &execution)
         let normal = try arc.normal.normalized(tolerance: tolerance.distance)
         guard abs(abs(normal.dot(profilePlane.normal)) - 1.0) <= tolerance.angle else {
             throw KernelError(
@@ -113,13 +128,14 @@ package struct ExactProfileBoundaryConverter: Sendable {
         let startParameter = try exactCircle.parameterProjection(
             of: arc.start + offset,
             tolerance: tolerance
-        ).parameter
+        , using: &execution).parameter
         let segmentCount = max(
             1,
             Int(ceil(abs(arc.sweepAngle) / (0.5 * Double.pi)))
         )
         let useAnalyticCylinder = abs(abs(normal.dot(extrusionAxis)) - 1.0)
             <= tolerance.angle
+        try execution.retainStorage(count: segmentCount, stride: MemoryLayout<ExactPrismaticBoundarySegment>.stride)
         return try (0..<segmentCount).map { index in
             let lower = startParameter
                 + arc.sweepAngle * Double(index) / Double(segmentCount)
@@ -131,16 +147,16 @@ package struct ExactProfileBoundaryConverter: Sendable {
                     startParameter: lower,
                     endParameter: upper,
                     tolerance: tolerance
-                )
+                , using: &execution)
             }
             return try .bSpline(
                 rationalCircularSpan(
                     circle: circle,
                     startParameter: lower,
                     endParameter: upper
-                ),
+                , using: &execution),
                 tolerance: tolerance
-            )
+            , using: &execution)
         }
     }
 
@@ -148,7 +164,7 @@ package struct ExactProfileBoundaryConverter: Sendable {
         circle: Circle3D,
         startParameter: Double,
         endParameter: Double
-    ) throws -> BSplineCurve3D {
+    , using execution: inout OriginalQueryExecution) throws -> BSplineCurve3D {
         let curve = Curve3D.circle(circle)
         let middleParameter = 0.5 * (startParameter + endParameter)
         let middleWeight = cos(0.5 * (endParameter - startParameter))
@@ -163,18 +179,20 @@ package struct ExactProfileBoundaryConverter: Sendable {
         let middlePoint = try curve.point(
             at: middleParameter,
             tolerance: tolerance
-        )
+        , using: &execution)
+        try execution.retainStorage(count: 9, stride: MemoryLayout<Double>.stride)
+        try execution.retainStorage(count: 3, stride: MemoryLayout<Point3D>.stride)
         let result = BSplineCurve3D(
             degree: 2,
             knots: [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
             controlPoints: [
-                try curve.point(at: startParameter, tolerance: tolerance),
+                try curve.point(at: startParameter, tolerance: tolerance, using: &execution),
                 circle.center + (middlePoint - circle.center) / middleWeight,
-                try curve.point(at: endParameter, tolerance: tolerance),
+                try curve.point(at: endParameter, tolerance: tolerance, using: &execution),
             ],
             weights: [1.0, middleWeight, 1.0]
         )
-        try result.validate(tolerance: tolerance)
+        try result.validate(tolerance: tolerance, using: &execution)
         return result
     }
 
@@ -182,10 +200,11 @@ package struct ExactProfileBoundaryConverter: Sendable {
         _ source: BSplineCurve3D,
         offset: Vector3D,
         profilePlane: Plane3D
-    ) throws -> [ExactPrismaticBoundarySegment] {
-        try source.validate(tolerance: tolerance)
+    , using execution: inout OriginalQueryExecution) throws -> [ExactPrismaticBoundarySegment] {
+        try source.validate(tolerance: tolerance, using: &execution)
         for point in source.controlPoints {
-            try validate(point: point, on: profilePlane)
+            try execution.consumeWork(1)
+            try validate(point: point, on: profilePlane, using: &execution)
         }
         guard case let .closed(lower, upper) = source.domain else {
             throw KernelError(
@@ -195,6 +214,7 @@ package struct ExactProfileBoundaryConverter: Sendable {
                 message: "Extrude spline profile requires a bounded exact curve."
             )
         }
+        try execution.retainStorage(count: source.knots.count + 3, stride: MemoryLayout<Double>.stride)
         var breaks = [lower]
         for knot in source.knots where knot > lower + tolerance.distance
             && knot < upper - tolerance.distance {
@@ -203,32 +223,35 @@ package struct ExactProfileBoundaryConverter: Sendable {
             }
         }
         breaks.append(upper)
-        let start = try source.point(at: lower, tolerance: tolerance)
-        let end = try source.point(at: upper, tolerance: tolerance)
+        let start = try source.point(at: lower, tolerance: tolerance, using: &execution)
+        let end = try source.point(at: upper, tolerance: tolerance, using: &execution)
         if breaks.count == 2,
            start.isApproximatelyEqual(to: end, tolerance: tolerance.distance) {
             breaks.insert(0.5 * (lower + upper), at: 1)
         }
+        try execution.retainStorage(count: breaks.count - 1, stride: MemoryLayout<ExactPrismaticBoundarySegment>.stride)
         return try (0..<(breaks.count - 1)).map { index in
             let span = try source.trimmed(
                 from: breaks[index],
                 to: breaks[index + 1],
                 tolerance: tolerance
-            )
+            , using: &execution)
+            try execution.retainStorage(count: span.controlPointCount, stride: MemoryLayout<Point3D>.stride)
             let translated = BSplineCurve3D(
                 degree: span.degree,
                 knots: span.knots,
                 controlPoints: span.controlPoints.map { $0 + offset },
                 weights: span.weights
             )
-            return try .bSpline(translated, tolerance: tolerance)
+            return try .bSpline(translated, tolerance: tolerance, using: &execution)
         }
     }
 
     private func validateClosure(
         _ segments: [ExactPrismaticBoundarySegment]
-    ) throws {
+    , using execution: inout OriginalQueryExecution) throws {
         for index in segments.indices {
+            try execution.consumeWork(1)
             let next = segments[(index + 1) % segments.count]
             guard segments[index].endPoint.isApproximatelyEqual(
                 to: next.startPoint,
@@ -241,7 +264,7 @@ package struct ExactProfileBoundaryConverter: Sendable {
 
     private func validate(
         point: Point3D,
-        on plane: Plane3D
+        on plane: Plane3D, using execution: inout OriginalQueryExecution
     ) throws {
         try point.validate()
         let residual = abs((point - plane.origin).dot(plane.normal))
@@ -256,7 +279,7 @@ package struct ExactProfileBoundaryConverter: Sendable {
         }
     }
 
-    private func plane(for sketchPlane: SketchPlane) throws -> Plane3D {
+    private func plane(for sketchPlane: SketchPlane, using execution: inout OriginalQueryExecution) throws -> Plane3D {
         let plane: Plane3D
         switch sketchPlane {
         case .xy:

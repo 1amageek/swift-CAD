@@ -15,24 +15,37 @@ package struct SurfaceFluxDifferentialEnclosure: Sendable, Hashable {
 package struct SurfaceFluxDifferentialEncloser: Sendable {
   private let prepared: PreparedSurfaceDifferentialEncloser
 
+  package init(surface: Surface3D, tolerance: ModelingTolerance) throws {
+    var execution = try OriginalQueryExecution.independentGeometry()
+    try self.init(surface: surface, tolerance: tolerance, using: &execution)
+  }
+
   package init(
     surface: Surface3D,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws {
+    try execution.consumeWork(1)
     prepared = try PreparedSurfaceDifferentialEncloser(
       surface: surface,
-      tolerance: tolerance
+      tolerance: tolerance, using: &execution
     )
+  }
+
+  package func enclosure(over parameters: SurfaceParameterBox, relativeTo reference: Point3D,
+    tolerance: ModelingTolerance) throws -> SurfaceFluxDifferentialEnclosure {
+    var execution = try OriginalQueryExecution.independentGeometry()
+    return try enclosure(over: parameters, relativeTo: reference, tolerance: tolerance, using: &execution)
   }
 
   package func enclosure(
     over parameters: SurfaceParameterBox,
     relativeTo reference: Point3D,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
   ) throws -> SurfaceFluxDifferentialEnclosure {
+    try execution.consumeWork(1)
     let surfaceJet = try prepared.intervalJet(
-      over: parameters,
-      tolerance: tolerance
+      overClosedBox: parameters,
+      tolerance: tolerance, using: &execution
     )
     let relativePosition =
       surfaceJet

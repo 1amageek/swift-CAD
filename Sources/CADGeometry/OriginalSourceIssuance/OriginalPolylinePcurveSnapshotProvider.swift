@@ -18,7 +18,7 @@ public struct OriginalPolylinePcurveSnapshotProvider: OriginalSourceSnapshotting
         throws(OriginalSourceIssuanceFailure) -> OriginalSourceSnapshot<OriginalPolylinePcurveSnapshot> {
         let original=copy input
         do {
-            return try OriginalSourceProofAdmission<A>.withBorrow(&admission) { a in
+            return try admission.withProofScope { a in
                 try a.checkpoint(); try a.consumeWork(1)
                 guard maximumValueDepth >= 0, maximumCoefficientDepth >= 0,
                     case .polyline(let points) = original else { throw OriginalSourceIssuanceFailure.invalidSource }

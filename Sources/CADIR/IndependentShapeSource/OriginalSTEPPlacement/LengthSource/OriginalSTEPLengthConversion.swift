@@ -27,15 +27,15 @@ extension OriginalSTEPLengthConversion: Codable {
     private enum Keys: String, CodingKey { case name, dimensionsID, dimensions, measureID, measureKind, factorLiteral, base }
     public init(from decoder: Decoder) throws {
         guard #available(macOS 15.0, iOS 18.0, visionOS 2.0, watchOS 11.0, tvOS 18.0, *) else { throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable }
-        var usage = try NativeRationalSourceDecodingContext.allowance(from: decoder)
+        var usage = try NativeRationalSourceDecodingContext.execution(from: decoder)
         try OriginalAffineWordDecodingContext.validateSourceNesting(from: decoder)
-        try usage.visitExactCell(depth: 0)
+        try usage.visitCell(axis: .value, depth: 0)
         let c = try decoder.container(keyedBy: Keys.self)
         try c.validateOnlyExpectedKeys([.name, .dimensionsID, .dimensions, .measureID, .measureKind, .factorLiteral, .base], in: decoder)
         name = try c.decode(String.self, forKey: .name); dimensionsID = try OriginalSTEPIdentityCoding.decode(from: c.superDecoder(forKey: .dimensionsID))
         var source = try c.nestedUnkeyedContainer(forKey: .dimensions)
         guard source.count == 7 else { throw IndependentShapeSourceError.invalidSource("Original length dimensions require seven exponents.") }
-        try usage.consumeExactWork(7); try usage.retainExactStorage(7 * MemoryLayout<String>.stride / MemoryLayout<UInt32>.stride)
+        try usage.consumeWork(7); try RationalAlgebraStorage.retain(7 * MemoryLayout<String>.stride / MemoryLayout<UInt32>.stride, of: UInt32.self, usage: &usage)
         var values: [String] = []; values.reserveCapacity(7)
         while !source.isAtEnd { values.append(try source.decode(String.self)) }
         dimensions = values; measureID = try OriginalSTEPIdentityCoding.decode(from: c.superDecoder(forKey: .measureID))

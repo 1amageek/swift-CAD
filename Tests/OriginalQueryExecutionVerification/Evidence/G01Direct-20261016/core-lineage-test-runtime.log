@@ -1,0 +1,15 @@
+􀟈  Test run started.
+􀄵  Swift Standard Library Version: 6.4
+􀄵  Swift Compiler Version: 6.4
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀄵  OS Version: 27.0.1 (26A434)
+􀟈  Suite TopologyLineageCanonicalTests started.
+􀟈  Test canonicalConstructionRetainsOriginalIdentityAndCardinality() started.
+􀟈  Test callerMutationPreservesRetainedParents() started.
+􀟈  Test invalidCanonicalInputIsRefusedWithoutRepair() started.
+􁁛  Test invalidCanonicalInputIsRefusedWithoutRepair() passed after 0.001 seconds.
+􁁛  Test callerMutationPreservesRetainedParents() passed after 0.001 seconds.
+􁁛  Test canonicalConstructionRetainsOriginalIdentityAndCardinality() passed after 0.001 seconds.
+􁁛  Suite TopologyLineageCanonicalTests passed after 0.001 seconds.
+􁁛  Test run with 3 tests in 1 suite passed after 0.001 seconds.

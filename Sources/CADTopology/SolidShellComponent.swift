@@ -1,5 +1,6 @@
 import HashTreeCollections
 import CADCore
+import CADGeometry
 
 /// One connected solid region represented by an outer shell and its owned void shells.
 public struct SolidShellComponent: Equatable, Sendable {
@@ -13,6 +14,16 @@ public struct SolidShellComponent: Equatable, Sendable {
 
     public var shellIDs: [ShellID] {
         [outerShellID] + voidShellIDs
+    }
+
+    package func originalShellIDs(using execution: inout OriginalQueryExecution) throws -> [ShellID] {
+        var result: [ShellID] = []
+        let capacity = voidShellIDs.count.addingReportingOverflow(1)
+        guard !capacity.overflow else { throw ExactScalarFailure.countOverflow }
+        try OriginalParameterQueryStorage.reserve(capacity.partialValue, in: &result, using: &execution)
+        result.append(outerShellID)
+        for id in voidShellIDs { try execution.consumeWork(1); result.append(id) }
+        return result
     }
 
     #if !hasFeature(Embedded)
@@ -41,11 +52,15 @@ public struct SolidShellComponent: Equatable, Sendable {
 }
 
 public extension BRepModel {
+    func solidShellComponents(for bodyID: BodyID, tolerance: ModelingTolerance) throws -> [SolidShellComponent] {
+        var execution = try Self.originalValidationExecution()
+        return try solidShellComponents(for: bodyID, tolerance: tolerance, using: &execution)
+    }
+
     /// Returns the explicit material components owned by a solid body.
     func solidShellComponents(
         for bodyID: BodyID,
-        tolerance: ModelingTolerance,
-        consumeWork: (@Sendable (Int) throws -> Void)? = nil
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> [SolidShellComponent] {
         try tolerance.validate()
         guard let body = bodies[bodyID] else {
@@ -68,8 +83,7 @@ public extension BRepModel {
             )
         }
         for component in components {
-            try CurrentTaskCancellationChecker().checkCancellation()
-            try consumeWork?(0)
+            try execution.consumeWork(1)
             guard let outerShell = shells[component.outerShellID] else {
                 throw TopologyError.missingReference(
                     "Missing solid outer shell \(component.outerShellID)."
@@ -84,8 +98,7 @@ public extension BRepModel {
                 )
             }
             for voidShellID in component.voidShellIDs {
-                try CurrentTaskCancellationChecker().checkCancellation()
-                try consumeWork?(0)
+                try execution.consumeWork(1)
                 guard let voidShell = shells[voidShellID] else {
                     throw TopologyError.missingReference(
                         "Missing solid void shell \(voidShellID)."

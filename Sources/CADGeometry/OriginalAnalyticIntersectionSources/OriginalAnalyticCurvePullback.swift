@@ -10,11 +10,11 @@ package struct OriginalAnalyticCurvePullback: Sendable {
     package let originalFrame: AffineTransform3D?
     package let exactInverseFrame: [ExactRationalCoefficient]?
 
-    package init<B: RationalAlgebraAdmitting>(surface: AnalyticSurface3D,
+    package init<B: ExactScalarAdmission & ~Copyable>(surface: AnalyticSurface3D,
         curve: OriginalRationalCurvePolynomial, tolerance: ModelingTolerance,
         usage: inout B) throws {
         try intersectionAlgebraStep(&usage)
-        try surface.validate(tolerance: tolerance)
+        try surface.validate(tolerance: tolerance, using: &usage)
         switch surface {
         case .plane, .cylinder, .torus: break
         case .cone:
@@ -116,7 +116,7 @@ package struct OriginalAnalyticCurvePullback: Sendable {
     }
 
     /// Retains the original multiplicity and explicit W!=0 source guard.
-    package func relation<B: RationalAlgebraAdmitting>(usage: inout B) throws -> OriginalPolynomialRelation {
+    package func relation<B: ExactScalarAdmission & ~Copyable>(usage: inout B) throws -> OriginalPolynomialRelation {
         try intersectionAlgebraStep(&usage)
         let equation = try originalPolynomial(self.equation, usage: &usage)
         let denominator = try originalPolynomial(self.denominator, usage: &usage)
@@ -131,7 +131,7 @@ package struct OriginalAnalyticCurvePullback: Sendable {
         return relation
     }
 
-    private func originalPolynomial<B: RationalAlgebraAdmitting>(_ source: ExactBivariatePolynomial,
+    private func originalPolynomial<B: ExactScalarAdmission & ~Copyable>(_ source: ExactBivariatePolynomial,
         usage: inout B) throws -> OriginalRationalPolynomial {
         let ordered = try source.orderedTerms(usage: &usage)
         try RationalAlgebraStorage.retain(ordered.count, of: OriginalRationalPolynomial.Term.self, usage: &usage)

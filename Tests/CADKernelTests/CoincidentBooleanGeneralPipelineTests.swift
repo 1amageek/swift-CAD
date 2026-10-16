@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 import CADIR
 import CADModeling
 import CADTopology
@@ -11,6 +12,7 @@ struct CoincidentBooleanGeneralPipelineTests {
 
     @Test(.timeLimit(.minutes(1)))
     func partiallyOverlappingCoplanarBoxesProduceValidatedExactIntersection() throws {
+        var execution = try OriginalQueryExecution.kernelOriginal()
         let target = try box(
             origin: .origin,
             width: 0.040,
@@ -23,7 +25,7 @@ struct CoincidentBooleanGeneralPipelineTests {
             depth: 0.010,
             height: 0.010
         )
-        let sewn = try evaluate(.intersect, target: target, tool: tool)
+        let sewn = try evaluate(.intersect, target: target, tool: tool, using: &execution)
 
         try sewn.brep.validate(level: .exact, tolerance: tolerance)
         #expect(sewn.brep.bodies.count == 1)
@@ -33,6 +35,7 @@ struct CoincidentBooleanGeneralPipelineTests {
 
     @Test(.timeLimit(.minutes(1)))
     func partiallyOverlappingCoplanarBoxesProduceValidatedUnionAndDifference() throws {
+        var execution = try OriginalQueryExecution.kernelOriginal()
         let target = try box(
             origin: .origin,
             width: 0.040,
@@ -45,8 +48,8 @@ struct CoincidentBooleanGeneralPipelineTests {
             depth: 0.010,
             height: 0.010
         )
-        let union = try evaluate(.union, target: target, tool: tool)
-        let difference = try evaluate(.difference, target: target, tool: tool)
+        let union = try evaluate(.union, target: target, tool: tool, using: &execution)
+        let difference = try evaluate(.difference, target: target, tool: tool, using: &execution)
 
         try union.brep.validate(level: .exact, tolerance: tolerance)
         try difference.brep.validate(level: .exact, tolerance: tolerance)
@@ -68,6 +71,7 @@ struct CoincidentBooleanGeneralPipelineTests {
 
     @Test(.timeLimit(.minutes(1)))
     func differenceVolumeIsInvariantToShellFaceStorageOrder() throws {
+        var execution = try OriginalQueryExecution.kernelOriginal()
         let target = try box(
             origin: .origin,
             width: 0.040,
@@ -80,7 +84,7 @@ struct CoincidentBooleanGeneralPipelineTests {
             depth: 0.010,
             height: 0.010
         )
-        let difference = try evaluate(.difference, target: target, tool: tool)
+        let difference = try evaluate(.difference, target: target, tool: tool, using: &execution)
         let shellID = try #require(difference.brep.shells.keys.first)
         let originalFaceIDs = try #require(difference.brep.shells[shellID]?.faceIDs)
 
@@ -104,11 +108,12 @@ struct CoincidentBooleanGeneralPipelineTests {
     private func evaluate(
         _ operation: BooleanOperation,
         target: EvaluationResult,
-        tool: EvaluationResult
+        tool: EvaluationResult,
+        using execution: inout OriginalQueryExecution
     ) throws -> BRepSewingResult {
         let targetBodyID = try #require(target.brep.bodies.keys.first)
         let toolBodyID = try #require(tool.brep.bodies.keys.first)
-        let model = try BRepModelCombiner().combined([target.brep, tool.brep])
+        let model = try BRepModelCombiner().combined([target.brep, tool.brep], using: &execution)
         let sourceSubshapes = target.subshapes.merging(tool.subshapes) { current, _ in current }
         let pipeline = BooleanPipeline(evaluator: ExactBRepBooleanEvaluator())
         let intersectionGraph = try pipeline.intersectionGraph(
@@ -116,24 +121,28 @@ struct CoincidentBooleanGeneralPipelineTests {
             toolBodyID: toolBodyID,
             operation: operation,
             model: model,
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
         )
         let uvSplitGraph = try pipeline.uvSplitGraph(
             intersectionGraph: intersectionGraph,
             model: model,
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
         )
         let classificationGraph = try pipeline.classificationGraph(
             uvSplitGraph: uvSplitGraph,
             targetBodyIDs: [targetBodyID],
             toolBodyID: toolBodyID,
             model: model,
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
         )
         let selectionGraph = try pipeline.regionSelectionGraph(
             operation: operation,
             classificationGraph: classificationGraph,
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
         )
         let request = try ExactIntersectionFacePatchMaterializer().materialize(
             operation: operation,
@@ -145,9 +154,10 @@ struct CoincidentBooleanGeneralPipelineTests {
             uvSplitGraph: uvSplitGraph,
             regionSelectionGraph: selectionGraph,
             operands: .volumes(targetBodyIDs: [targetBodyID], toolBodyID: toolBodyID),
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
         )
-        return try DefaultBRepSewer().sew(request, tolerance: tolerance)
+        return try DefaultBRepSewer().sew(request, tolerance: tolerance, using: &execution)
     }
 
     private func box(

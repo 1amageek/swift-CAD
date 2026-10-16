@@ -54,4 +54,59 @@ extension Curve3D {
         }
         return candidate
     }
+    package func exactLinearLocus(using execution: inout OriginalQueryExecution) throws -> Line3D? {
+        try execution.consumeWork(1)
+        try execution.admitSourceDepth(0)
+        let candidate: Line3D?
+        switch self {
+        case let .line(line):
+            candidate = line
+        case let .analytic(.line(origin, direction)):
+            candidate = Line3D(origin: origin, direction: direction)
+        case let .bSpline(curve):
+            guard curve.degree == 1, curve.controlPoints.count == 2 else {
+                return nil
+            }
+            candidate = Line3D(
+                origin: curve.controlPoints[0],
+                direction: curve.controlPoints[1] - curve.controlPoints[0]
+            )
+        case let .rigidImage(image):
+            guard let source = (try execution.withSourceDepthOffset(1) { execution in
+                try image.source.exactLinearLocus(using: &execution)
+            }) else {
+                return nil
+            }
+            candidate = Line3D(
+                origin: image.transform.applying(to: source.origin),
+                direction: image.transform.applying(to: source.direction)
+            )
+        case let .parameterImage(image):
+            return try execution.withSourceDepthOffset(1) { execution in
+                try image.source.exactLinearLocus(using: &execution)
+            }
+        case let .affineImage(image):
+            guard let source = (try execution.withSourceDepthOffset(1) { execution in
+                try image.source.exactLinearLocus(using: &execution)
+            }) else {
+                return nil
+            }
+            candidate = Line3D(
+                origin: image.transform.applying(to: source.origin),
+                direction: image.transform.applying(to: source.direction)
+            )
+        case .originalAngularTransport, .originalAffineWord, .originalEndpointConnector, .originalConstructionChart, .originalPlaneDerivative, .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline, .originalDrafted:
+            // Original image and endpoint-corrected laws require a complete
+            // source-locus proof; their construction cache is not that proof.
+            return nil
+        case .circle, .analytic, .implicit, .surfaceLift,
+             .certifiedIntersection:
+            return nil
+        }
+        guard let candidate, candidate.direction.length > 0.0 else {
+            return nil
+        }
+        return candidate
+    }
+
 }

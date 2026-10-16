@@ -42,7 +42,7 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
             upper = value.nextUp
         }
 
-        private init(lower: Double, upper: Double) {
+        fileprivate init(lower: Double, upper: Double) {
             self.lower = lower
             self.upper = upper
         }
@@ -71,16 +71,13 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
             lhs: OutwardInterval,
             rhs: OutwardInterval
         ) -> OutwardInterval {
-            let products = [
-                lhs.lower * rhs.lower,
-                lhs.lower * rhs.upper,
-                lhs.upper * rhs.lower,
-                lhs.upper * rhs.upper,
-            ]
-            return OutwardInterval(
-                lower: (products.min() ?? -.infinity).nextDown,
-                upper: (products.max() ?? .infinity).nextUp
-            )
+            let p0 = lhs.lower * rhs.lower, p1 = lhs.lower * rhs.upper
+            let p2 = lhs.upper * rhs.lower, p3 = lhs.upper * rhs.upper
+            var lower = p0, upper = p0
+            if p1 < lower { lower = p1 }; if p1 > upper { upper = p1 }
+            if p2 < lower { lower = p2 }; if p2 > upper { upper = p2 }
+            if p3 < lower { lower = p3 }; if p3 > upper { upper = p3 }
+            return OutwardInterval(lower: lower.nextDown, upper: upper.nextUp)
         }
 
         func divided(by divisor: OutwardInterval) -> OutwardInterval? {
@@ -114,10 +111,9 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
         }
 
         static func enclosing(_ values: [OutwardInterval]) -> OutwardInterval {
-            guard let lower = values.map({ $0.lower }).min(),
-                  let upper = values.map({ $0.upper }).max() else {
-                return OutwardInterval(0.0)
-            }
+            guard let first = values.first else { return OutwardInterval(0.0) }
+            var lower = first.lower, upper = first.upper
+            for value in values.dropFirst() { lower = min(lower, value.lower); upper = max(upper, value.upper) }
             return OutwardInterval(lower: lower, upper: upper)
         }
 
@@ -187,12 +183,21 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
         }
 
         static func enclosing(_ values: [IntervalVector]) -> IntervalVector {
-            IntervalVector(
-                x: OutwardInterval.enclosing(values.map({ $0.x })),
-                y: OutwardInterval.enclosing(values.map({ $0.y })),
-                z: OutwardInterval.enclosing(values.map({ $0.z }))
-            )
+            guard let first = values.first else {
+                let zero = OutwardInterval(0.0); return IntervalVector(x: zero, y: zero, z: zero)
+            }
+            var xl = first.x.lower, xu = first.x.upper
+            var yl = first.y.lower, yu = first.y.upper
+            var zl = first.z.lower, zu = first.z.upper
+            for value in values.dropFirst() {
+                xl = min(xl, value.x.lower); xu = max(xu, value.x.upper)
+                yl = min(yl, value.y.lower); yu = max(yu, value.y.upper)
+                zl = min(zl, value.z.lower); zu = max(zu, value.z.upper)
+            }
+            return IntervalVector(x: OutwardInterval(lower: xl, upper: xu),
+                y: OutwardInterval(lower: yl, upper: yu), z: OutwardInterval(lower: zl, upper: zu))
         }
+
     }
 
     private let controlNet: [[[[IntervalVector]]]]
@@ -206,27 +211,29 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
     let secondVLower: Double
     let secondVUpper: Double
 
-    init(originalFirst first: NativeSurfaceOriginalCoefficientNet,
+    init<A: ExactScalarAdmission & ~Copyable>(originalFirst first: NativeSurfaceOriginalCoefficientNet,
         originalSecond second: NativeSurfaceOriginalCoefficientNet,
-        tolerance: ModelingTolerance, admission: NativeSurfaceEmbeddingAdmission) throws {
+        tolerance: ModelingTolerance, using execution: inout A) throws {
         let a = first.controls, b = second.controls
         guard !a.isEmpty, !b.isEmpty, !a[0].isEmpty, !b[0].isEmpty else {
             throw GeometryConversionError.invalidInput("Original surface difference requires nonempty original coefficient nets.")
         }
-        let count = try NativeSurfaceEmbeddingPreparationReservation.product([a.count, a[0].count, b.count, b[0].count])
-        try admission.storage(NativeSurfaceEmbeddingPreparationReservation.product([count, 8]))
-        var result: [[[[IntervalVector]]]] = []
+        try OriginalCoefficientAllocation.reserve(count: a.count, of: [[[IntervalVector]]].self, using: &execution)
+        var result: [[[[IntervalVector]]]] = []; result.reserveCapacity(a.count)
         var firstWeight = 0.0, secondWeight = 0.0
-        for row in a { for value in row { try admission.work(1); firstWeight = max(firstWeight, value.weight.upper) } }
-        for row in b { for value in row { try admission.work(1); secondWeight = max(secondWeight, value.weight.upper) } }
+        for row in a { for value in row { try execution.consumeWork(1); firstWeight = max(firstWeight, value.weight.upper) } }
+        for row in b { for value in row { try execution.consumeWork(1); secondWeight = max(secondWeight, value.weight.upper) } }
         for row in a {
-            var slab: [[[IntervalVector]]] = []
+            try OriginalCoefficientAllocation.reserve(count: row.count, of: [[IntervalVector]].self, using: &execution)
+            var slab: [[[IntervalVector]]] = []; slab.reserveCapacity(row.count)
             for firstControl in row {
-                var plane: [[IntervalVector]] = []
+                try OriginalCoefficientAllocation.reserve(count: b.count, of: [IntervalVector].self, using: &execution)
+                var plane: [[IntervalVector]] = []; plane.reserveCapacity(b.count)
                 for secondRow in b {
-                    var line: [IntervalVector] = []
+                    try OriginalCoefficientAllocation.reserve(count: secondRow.count, of: IntervalVector.self, using: &execution)
+                    var line: [IntervalVector] = []; line.reserveCapacity(secondRow.count)
                     for secondControl in secondRow {
-                        try admission.work(1)
+                        try execution.consumeWork(1)
                         func coordinate(_ x: OutwardScalarInterval, _ y: OutwardScalarInterval) -> OutwardInterval {
                             let value = x * secondControl.weight - y * firstControl.weight
                             return .enclosing(value.lower, value.upper)
@@ -256,26 +263,23 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
     }
 
     init(first: RationalBezierSurfacePatch3D, second: RationalBezierSurfacePatch3D,
-        tolerance: ModelingTolerance, admission: NativeSurfaceEmbeddingAdmission) throws {
-        let firstCount = try NativeSurfaceEmbeddingPreparationReservation.net(first.controlPoints, admission: admission)
-        let secondCount = try NativeSurfaceEmbeddingPreparationReservation.net(second.controlPoints, admission: admission)
-        let count = try NativeSurfaceEmbeddingPreparationReservation.product([firstCount, secondCount])
-        try admission.work(NativeSurfaceEmbeddingPreparationReservation.sum([firstCount, secondCount, try NativeSurfaceEmbeddingPreparationReservation.product([count, 2])]))
-        try admission.storage(NativeSurfaceEmbeddingPreparationReservation.product([count, 10]))
-        try self.init(first: first, second: second, tolerance: tolerance)
+        tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try self.init(first: first, second: second, tolerance: tolerance, using: &execution)
     }
 
-    init(
+    init<A: ExactScalarAdmission & ~Copyable>(
         first: RationalBezierSurfacePatch3D,
         second: RationalBezierSurfacePatch3D,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout A
     ) throws {
+        try execution.checkpoint()
         try Self.validate(patch: first, tolerance: tolerance)
         try Self.validate(patch: second, tolerance: tolerance)
-        let result = first.controlPoints.indices.map { firstVIndex in
-            first.controlPoints[firstVIndex].indices.map { firstUIndex in
-                second.controlPoints.indices.map { secondVIndex in
-                    second.controlPoints[secondVIndex].indices.map { secondUIndex in
+        let result = try OriginalCoefficientAllocation.map(elements: first.controlPoints.indices, using: &execution) { firstVIndex, execution in
+            try OriginalCoefficientAllocation.map(elements: first.controlPoints[firstVIndex].indices, using: &execution) { firstUIndex, execution in
+                try OriginalCoefficientAllocation.map(elements: second.controlPoints.indices, using: &execution) { secondVIndex, execution in
+                    try OriginalCoefficientAllocation.map(elements: second.controlPoints[secondVIndex].indices, using: &execution) { secondUIndex, execution in
                         Self.differenceCoefficient(
                             firstPoint: first.controlPoints[firstVIndex][firstUIndex],
                             firstWeight: first.weights[firstVIndex][firstUIndex],
@@ -286,8 +290,7 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
                 }
             }
         }
-        guard result.flatMap({ $0 }).flatMap({ $0 }).flatMap({ $0 })
-            .allSatisfy({ $0.isFinite }) else {
+        guard result.allSatisfy({ $0.allSatisfy({ $0.allSatisfy({ $0.allSatisfy({ $0.isFinite }) }) }) }) else {
             throw KernelError(
                 phase: .geometry,
                 code: .resourceLimitExceeded,
@@ -296,8 +299,8 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
             )
         }
         controlNet = result
-        let firstWeightUpperBound = first.weights.flatMap { $0 }.max() ?? .infinity
-        let secondWeightUpperBound = second.weights.flatMap { $0 }.max() ?? .infinity
+        let firstWeightUpperBound = try OriginalCoefficientAllocation.flatten(rows: first.weights, using: &execution).max() ?? .infinity
+        let secondWeightUpperBound = try OriginalCoefficientAllocation.flatten(rows: second.weights, using: &execution).max() ?? .infinity
         let denominator = (
             firstWeightUpperBound.nextUp * secondWeightUpperBound.nextUp
         ).nextUp
@@ -340,39 +343,56 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
         secondVUpper = secondVBounds.1
     }
 
-    func excludesZero(admission: NativeSurfaceEmbeddingAdmission) throws -> Bool {
-        let count = try NativeSurfaceEmbeddingPreparationReservation.product(
-            [controlNet.count, controlNet[0].count, controlNet[0][0].count, controlNet[0][0][0].count])
-        try admission.work(NativeSurfaceEmbeddingPreparationReservation.product([count, 3]))
-        return excludesZero()
+    func excludesZero<A: ExactScalarAdmission & ~Copyable>(using execution: inout A) throws -> Bool {
+        // Streaming the same three coefficient hulls avoids temporary flatten buffers.
+        for axis in 0..<3 {
+            var minimum = Double.infinity, maximum = -Double.infinity
+            for slab in controlNet { for plane in slab { for row in plane { for coefficient in row {
+                try execution.consumeWork(1)
+                let value = axis == 0 ? coefficient.x : (axis == 1 ? coefficient.y : coefficient.z)
+                minimum = min(minimum, value.lower); maximum = max(maximum, value.upper)
+            } } } }
+            if minimum > 0 || maximum < 0 { try execution.checkpoint(); return true }
+        }
+        try execution.checkpoint(); return false
     }
-    func excludesZeroAlongSurfaceDirections(allowedCornerContacts: [(first: Point2D, second: Point2D)],
-        admission: NativeSurfaceEmbeddingAdmission) throws -> Bool {
-        let count = try NativeSurfaceEmbeddingPreparationReservation.product(
-            [controlNet.count, controlNet[0].count, controlNet[0][0].count, controlNet[0][0][0].count])
-        try admission.work(NativeSurfaceEmbeddingPreparationReservation.product([count, 44]))
-        try admission.storage(NativeSurfaceEmbeddingPreparationReservation.sum([try NativeSurfaceEmbeddingPreparationReservation.product([count, 16]), 88]))
-        return excludesZeroAlongSurfaceDirections(allowedCornerContacts: allowedCornerContacts)
-    }
-    func subdivided(parameterIndex: Int, admission: NativeSurfaceEmbeddingAdmission) throws -> [Self] {
+
+    func subdivided<A: ExactScalarAdmission & ~Copyable>(parameterIndex: Int,
+        using execution: inout A) throws -> [Self] {
         guard (0..<4).contains(parameterIndex) else {
             throw GeometryConversionError.invalidInput("Native pair subdivision needs an original parameter axis.")
         }
         let shape = [controlNet[0].count, controlNet.count, controlNet[0][0][0].count, controlNet[0][0].count]
         let count = try NativeSurfaceEmbeddingPreparationReservation.product(shape)
-        let levels = try NativeSurfaceEmbeddingPreparationReservation.product([count, shape[parameterIndex] + 1]) / 2
-        try admission.work(NativeSurfaceEmbeddingPreparationReservation.sum([levels, count]))
-        try admission.storage(NativeSurfaceEmbeddingPreparationReservation.sum([try NativeSurfaceEmbeddingPreparationReservation.product([levels, 3]), try NativeSurfaceEmbeddingPreparationReservation.product([count, 8])]))
-        return subdivided(parameterIndex: parameterIndex)
+        let levels = try NativeSurfaceEmbeddingPreparationReservation.product([count, try exactScalarCount(shape[parameterIndex], 1, multiply: false)]) / 2
+        // Conservative bound for this unchanged de Casteljau kernel: each line
+        // owns its triangular levels, lower/upper outputs and extracted input;
+        // both result nets copy every mutated level of the four-dimensional COW net.
+        let firstHeaders = controlNet.count
+        let secondHeaders = try NativeSurfaceEmbeddingPreparationReservation.product([controlNet.count, controlNet[0].count])
+        let thirdHeaders = try NativeSurfaceEmbeddingPreparationReservation.product([controlNet.count, controlNet[0].count, controlNet[0][0].count])
+        try OriginalCoefficientAllocation.reserve(count: try NativeSurfaceEmbeddingPreparationReservation.sum([levels, try NativeSurfaceEmbeddingPreparationReservation.product([count, 5])]), of: IntervalVector.self, using: &execution)
+        try OriginalCoefficientAllocation.reserve(count: try exactScalarCount(firstHeaders, 2, multiply: true), of: [[[IntervalVector]]].self, using: &execution)
+        try OriginalCoefficientAllocation.reserve(count: try exactScalarCount(secondHeaders, 2, multiply: true), of: [[IntervalVector]].self, using: &execution)
+        try OriginalCoefficientAllocation.reserve(count: try NativeSurfaceEmbeddingPreparationReservation.sum([try exactScalarCount(thirdHeaders, 2, multiply: true), count]), of: [IntervalVector].self, using: &execution)
+        try OriginalCoefficientAllocation.reserve(count: 2, of: Self.self, using: &execution)
+        try execution.consumeWork(NativeSurfaceEmbeddingPreparationReservation.sum([levels, try NativeSurfaceEmbeddingPreparationReservation.product([count, 4])]))
+        let result = subdividedKernel(parameterIndex: parameterIndex)
+        for patch in result { for slab in patch.controlNet { for plane in slab { for row in plane { for value in row {
+            try execution.consumeWork(1)
+            guard value.isFinite else {
+                throw GeometryConversionError.resourceLimitExceeded("Native pair subdivision exceeds finite interval arithmetic.")
+            }
+        } } } } }
+        try execution.checkpoint(); return result
     }
 
-    func excludesZero() -> Bool {
-        excludesZero { $0.x }
-            || excludesZero { $0.y }
-            || excludesZero { $0.z }
+    func excludesZero() throws -> Bool {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try excludesZero(using: &execution)
     }
 
-    func excludesZero(tolerance: ModelingTolerance) -> Bool {
+    func excludesZero(tolerance: ModelingTolerance) throws -> Bool {
         let scaledTolerance = (
             tolerance.distance.nextUp * denominatorUpperBound.nextUp
         ).nextUp
@@ -390,7 +410,7 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
                 }
             }
         }
-        return ConvexHullSeparation3D.provesSeparated(
+        return try ConvexHullSeparation3D.provesSeparated(
             first: corners,
             second: [.origin],
             tolerance: scaledTolerance
@@ -399,16 +419,23 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
 
     /// Candidate directions are heuristic; every coefficient box must prove its sign.
     /// The caller establishes exact equality and one-to-one source corner pairs.
-    func excludesZeroAlongSurfaceDirections(
-        allowedCornerContacts: [(first: Point2D, second: Point2D)] = []
-    ) -> Bool {
+    func excludesZeroAlongSurfaceDirections(allowedCornerContacts: [(first: Point2D, second: Point2D)] = []) throws -> Bool {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try excludesZeroAlongSurfaceDirections(allowedCornerContacts: allowedCornerContacts, using: &execution)
+    }
+
+    func excludesZeroAlongSurfaceDirections<A: ExactScalarAdmission & ~Copyable>(
+        allowedCornerContacts: [(first: Point2D, second: Point2D)] = [], using execution: inout A
+    ) throws -> Bool {
         func endpoint(_ value: Double, _ lower: Double, _ upper: Double, _ degree: Int) -> Int? {
             if value == lower { return 0 }
             if value == upper { return degree }
             return nil
         }
-        var corners: [(Int, Int, Int, Int)] = []
+        try OriginalCoefficientAllocation.reserve(count: allowedCornerContacts.count, of: (Int, Int, Int, Int).self, using: &execution)
+        var corners: [(Int, Int, Int, Int)] = []; corners.reserveCapacity(allowedCornerContacts.count)
         for contact in allowedCornerContacts {
+            try execution.consumeWork(1)
             guard let av = endpoint(contact.first.y, firstVLower, firstVUpper, controlNet.count - 1),
                   let au = endpoint(contact.first.x, firstULower, firstUUpper, controlNet[0].count - 1),
                   let bv = endpoint(contact.second.y, secondVLower, secondVUpper, controlNet[0][0].count - 1),
@@ -420,23 +447,32 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
             for plane in slab {
                 for row in plane {
                     for coefficient in row {
+                        try execution.consumeWork(1)
                         direction = direction + Vector3D(x: coefficient.x.midpoint,
                             y: coefficient.y.midpoint, z: coefficient.z.midpoint)
                     }
                 }
             }
         }
-        if provesSeparation(along: direction, excludingCorners: corners) { return true }
-        let columns = derivativeColumns().map { Vector3D(x: $0.x.midpoint, y: $0.y.midpoint, z: $0.z.midpoint) }
+        if try provesSeparation(along: direction, excludingCorners: corners, using: &execution) { return true }
+        let count = try NativeSurfaceEmbeddingPreparationReservation.product([controlNet.count, controlNet[0].count, controlNet[0][0].count, controlNet[0][0][0].count])
+        // Four finite-difference nets contain at most count coefficients each.
+        // Each helper reserves that capacity once; enclosing scans without copies.
+        try OriginalCoefficientAllocation.reserve(count: try exactScalarCount(count, 4, multiply: true), of: IntervalVector.self, using: &execution)
+        try OriginalCoefficientAllocation.reserve(count: 4, of: IntervalVector.self, using: &execution)
+        try execution.consumeWork(try exactScalarCount(count, 4, multiply: true))
+        let columns = try OriginalCoefficientAllocation.map(elements: derivativeColumns(maximumCoefficientCount: count), using: &execution) { value, _ in
+            Vector3D(x: value.x.midpoint, y: value.y.midpoint, z: value.z.midpoint)
+        }
         for first in columns.indices {
             for second in (first + 1)..<columns.count {
-                if provesSeparation(along: columns[first].cross(columns[second]), excludingCorners: corners) { return true }
+                if try provesSeparation(along: columns[first].cross(columns[second]), excludingCorners: corners, using: &execution) { return true }
             }
         }
         return false
     }
 
-    private func provesSeparation(along direction: Vector3D, excludingCorners: [(Int, Int, Int, Int)]) -> Bool {
+    private func provesSeparation<A: ExactScalarAdmission & ~Copyable>(along direction: Vector3D, excludingCorners: [(Int, Int, Int, Int)], using execution: inout A) throws -> Bool {
         guard direction.x.isFinite, direction.y.isFinite, direction.z.isFinite else { return false }
         let x = OutwardInterval(direction.x), y = OutwardInterval(direction.y), z = OutwardInterval(direction.z)
         var positive = true, negative = true
@@ -445,6 +481,7 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
             for (au, plane) in slab.enumerated() {
                 for (bv, row) in plane.enumerated() {
                     for (bu, coefficient) in row.enumerated() {
+                        try execution.consumeWork(try exactScalarCount(excludingCorners.count, 1, multiply: false))
                         if excludingCorners.contains(where: {
                             av == $0.0 && au == $0.1 && bv == $0.2 && bu == $0.3
                         }) { continue }
@@ -573,7 +610,7 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
         freeParameterIndex: Int,
         lowerAnchor: [Double],
         upperAnchor: [Double]
-    ) -> String {
+    ) throws -> String {
         let allColumns = derivativeColumns()
         guard allColumns.indices.contains(freeParameterIndex) else {
             return "invalid free parameter"
@@ -825,7 +862,7 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
         fixedParameterIndex: Int,
         side: BoundarySide,
         tolerance: ModelingTolerance
-    ) -> BoundaryRootCertificate {
+    ) throws -> BoundaryRootCertificate {
         guard parameterCounts.indices.contains(fixedParameterIndex) else {
             return .unresolved
         }
@@ -836,7 +873,7 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
         let scaledTolerance = (
             tolerance.distance.nextUp * denominatorUpperBound.nextUp
         ).nextUp
-        if coefficientsExcludeZero(
+        if try coefficientsExcludeZero(
             coefficients,
             tolerance: scaledTolerance
         ) {
@@ -972,7 +1009,7 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
         fixedParameterIndex: Int,
         side: BoundarySide,
         tolerance: ModelingTolerance
-    ) -> String {
+    ) throws -> String {
         guard parameterCounts.indices.contains(fixedParameterIndex) else {
             return "invalid fixed parameter"
         }
@@ -983,7 +1020,7 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
         let scaledTolerance = (
             tolerance.distance.nextUp * denominatorUpperBound.nextUp
         ).nextUp
-        if coefficientsExcludeZero(
+        if try coefficientsExcludeZero(
             coefficients,
             tolerance: scaledTolerance
         ) {
@@ -1029,7 +1066,12 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
         return "dependent minor=[\(minor.lower), \(minor.upper)], box=\(box.map { [$0.lower, $0.upper] })"
     }
 
-    func subdivided(parameterIndex: Int) -> [RationalBezierSurfaceSurfaceDifferencePatch] {
+    func subdivided(parameterIndex: Int) throws -> [Self] {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try subdivided(parameterIndex: parameterIndex, using: &execution)
+    }
+
+    private func subdividedKernel(parameterIndex: Int) -> [RationalBezierSurfaceSurfaceDifferencePatch] {
         let direction: SplitDirection
         switch parameterIndex {
         case 0: direction = .firstU
@@ -1042,12 +1084,12 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
         return [halves.lower, halves.upper]
     }
 
-    private func derivativeColumns() -> [IntervalVector] {
+    private func derivativeColumns(maximumCoefficientCount: Int? = nil) -> [IntervalVector] {
         [
-            derivativeBounds(direction: .firstU),
-            derivativeBounds(direction: .firstV),
-            derivativeBounds(direction: .secondU),
-            derivativeBounds(direction: .secondV),
+            derivativeBounds(direction: .firstU, maximumCoefficientCount: maximumCoefficientCount),
+            derivativeBounds(direction: .firstV, maximumCoefficientCount: maximumCoefficientCount),
+            derivativeBounds(direction: .secondU, maximumCoefficientCount: maximumCoefficientCount),
+            derivativeBounds(direction: .secondV, maximumCoefficientCount: maximumCoefficientCount),
         ]
     }
 
@@ -1163,7 +1205,7 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
     private func coefficientsExcludeZero(
         _ coefficients: [IntervalVector],
         tolerance: Double
-    ) -> Bool {
+    ) throws -> Bool {
         let componentIntervals = [
             coefficients.map({ $0.x }),
             coefficients.map({ $0.y }),
@@ -1185,7 +1227,7 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
                 }
             }
         }
-        return ConvexHullSeparation3D.provesSeparated(
+        return try ConvexHullSeparation3D.provesSeparated(
             first: corners,
             second: [.origin],
             tolerance: tolerance
@@ -1396,8 +1438,9 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
         return minimum > radius || maximum < -radius
     }
 
-    private func derivativeBounds(direction: SplitDirection) -> IntervalVector {
+    private func derivativeBounds(direction: SplitDirection, maximumCoefficientCount: Int? = nil) -> IntervalVector {
         var derivatives: [IntervalVector] = []
+        if let maximumCoefficientCount { derivatives.reserveCapacity(maximumCoefficientCount) }
         switch direction {
         case .firstU:
             let degree = controlNet[0].count - 1
@@ -1982,7 +2025,7 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
         _ values: [IntervalVector]
     ) -> (lower: [IntervalVector], upper: [IntervalVector]) {
         guard values.count > 1 else { return (values, values) }
-        var levels = [values]
+        var levels: [[IntervalVector]] = []; levels.reserveCapacity(values.count); levels.append(values)
         while let previous = levels.last, previous.count > 1 {
             levels.append((0..<(previous.count - 1)).map { index in
                 previous[index].midpoint(with: previous[index + 1])

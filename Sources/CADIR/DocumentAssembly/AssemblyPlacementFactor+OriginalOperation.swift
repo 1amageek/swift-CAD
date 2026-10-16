@@ -3,16 +3,16 @@ import CADGeometry
 
 extension AssemblyPlacementFactor {
     /// Retains the authored direct operation, including its original inverse tag.
-    public func originalOperation<B: RationalAlgebraAdmitting>(tolerance: ModelingTolerance,
-        maximumSourceDepth: Int, usage: inout B) throws -> OriginalAffineOperation {
+    public func originalOperation(tolerance: ModelingTolerance,
+        maximumSourceDepth: Int, using execution: inout OriginalQueryExecution) throws -> OriginalAffineOperation {
         try tolerance.validate()
         guard maximumSourceDepth > 0 else { throw AssemblyError.invalidSource("Original placement source depth must be positive.") }
-        try usage.consumeExactWork(1)
+        try execution.consumeWork(1)
         let inverse: Bool
         switch self { case .forward: inverse = false; case .inverse: inverse = true }
         switch originalPlacement {
         case .rigid(let frame):
-            try usage.consumeExactWork(12)
+            try execution.consumeWork(12)
             try frame.validate(tolerance: tolerance)
             guard !frame.reversesOrientation else { throw AssemblyError.invalidPlacement }
             let transform = try originalPlacement.affineTransform
@@ -20,26 +20,26 @@ extension AssemblyPlacementFactor {
         case .affine(let transform):
             return inverse ? .inverse(transform) : .forward(transform)
         case .step(let source):
-            let law = try source.originalNormalizedAffineSource(usage: &usage, maximumSourceDepth: maximumSourceDepth)
+            let law = try source.originalNormalizedAffineSource(using: &execution, maximumSourceDepth: maximumSourceDepth)
             return inverse ? .normalizedInverse(law) : .normalizedForward(law)
         case .word:
             throw AssemblyError.invalidSource("A placement factor cannot contain a nested word.")
         }
     }
-    public func originalOperationWord<B: RationalAlgebraAdmitting>(tolerance: ModelingTolerance,
-        maximumDepth: Int, maximumSourceDepth: Int, usage: inout B) throws -> OriginalAffineOperationWord {
-        let operation = try originalOperation(tolerance: tolerance, maximumSourceDepth: maximumSourceDepth, usage: &usage)
+    public func originalOperationWord(tolerance: ModelingTolerance,
+        maximumDepth: Int, maximumSourceDepth: Int, using execution: inout OriginalQueryExecution) throws -> OriginalAffineOperationWord {
+        let operation = try originalOperation(tolerance: tolerance, maximumSourceDepth: maximumSourceDepth, using: &execution)
         return try OriginalAffineOperationWord(operation: operation,
-            tolerance: tolerance, maximumDepth: maximumDepth, usage: &usage)
+            tolerance: tolerance, maximumDepth: maximumDepth, usage: &execution)
     }
-    public func applying<B: RationalAlgebraAdmitting>(to point: Point3D, tolerance: ModelingTolerance,
-        maximumDepth: Int, maximumSourceDepth: Int, usage: inout B) throws -> Point3D {
-        let word = try originalOperationWord(tolerance: tolerance, maximumDepth: maximumDepth, maximumSourceDepth: maximumSourceDepth, usage: &usage)
-        return try word.prepared(usage: &usage).applying(to: point, usage: &usage)
+    public func applying(to point: Point3D, tolerance: ModelingTolerance,
+        maximumDepth: Int, maximumSourceDepth: Int, using execution: inout OriginalQueryExecution) throws -> Point3D {
+        let word = try originalOperationWord(tolerance: tolerance, maximumDepth: maximumDepth, maximumSourceDepth: maximumSourceDepth, using: &execution)
+        return try word.prepared(usage: &execution).applying(to: point, usage: &execution)
     }
-    public func applying<B: RationalAlgebraAdmitting>(to vector: Vector3D, tolerance: ModelingTolerance,
-        maximumDepth: Int, maximumSourceDepth: Int, usage: inout B) throws -> Vector3D {
-        let word = try originalOperationWord(tolerance: tolerance, maximumDepth: maximumDepth, maximumSourceDepth: maximumSourceDepth, usage: &usage)
-        return try word.prepared(usage: &usage).applying(to: vector, usage: &usage)
+    public func applying(to vector: Vector3D, tolerance: ModelingTolerance,
+        maximumDepth: Int, maximumSourceDepth: Int, using execution: inout OriginalQueryExecution) throws -> Vector3D {
+        let word = try originalOperationWord(tolerance: tolerance, maximumDepth: maximumDepth, maximumSourceDepth: maximumSourceDepth, using: &execution)
+        return try word.prepared(usage: &execution).applying(to: vector, usage: &execution)
     }
 }

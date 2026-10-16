@@ -2,7 +2,7 @@ import CADCore
 
 /// Complete finite-ideal lifting; positive-dimensional real loci retain explicit refusal.
 package struct ExactBivariateSystemSolver {
-    package static func isolatedRoots<B: RationalAlgebraAdmitting>(
+    package static func isolatedRoots<B: ExactScalarAdmission & ~Copyable>(
         of equations: [ExactBivariatePolynomial], over domain: SurfaceParameterBox,
         maximumDepth: Int, usage: inout B) throws -> [ExactBivariateSystemRoot] {
         guard !equations.isEmpty, maximumDepth >= 0, domain.u.width > 0, domain.v.width > 0 else {
@@ -13,7 +13,7 @@ package struct ExactBivariateSystemSolver {
         var candidate: ExactBivariatePolynomial?
         var pureVLeadingPower = false
         for value in basis {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             guard let leading = value.leading else { continue }
             if leading.key.v == 0, leading.key.u > 0 { candidate = value }
             if leading.key.u == 0, leading.key.v > 0 { pureVLeadingPower = true }
@@ -65,7 +65,7 @@ package struct ExactBivariateSystemSolver {
         return result
     }
 
-    private static func multiplicity<B: RationalAlgebraAdmitting>(_ source: ExactBivariatePolynomial,
+    private static func multiplicity<B: ExactScalarAdmission & ~Copyable>(_ source: ExactBivariatePolynomial,
         at root: ExactAlgebraicRealRoot, maximumDepth: Int, usage: inout B) throws -> Int {
         var value = source, result = 0
         while !value.isZero {
@@ -78,7 +78,7 @@ package struct ExactBivariateSystemSolver {
         return result
     }
 
-    static func multiplicity<B: RationalAlgebraAdmitting>(_ source: ExactAlgebraicFiberPolynomial,
+    static func multiplicity<B: ExactScalarAdmission & ~Copyable>(_ source: ExactAlgebraicFiberPolynomial,
         at root: ExactAlgebraicFiberRootIsolator.Root, maximumDepth: Int, usage: inout B) throws -> Int {
         var value = source, result = 0
         while !value.isZero {

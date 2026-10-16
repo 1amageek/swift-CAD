@@ -213,7 +213,7 @@ package struct XNurbsSurfaceFitter {
                 let n = reference.uControlPointCount
                 try rows.addAreaFairness(uBasis: basis, vBasis: basis) { u, v in
                     guard inside(u, v) else { return nil }
-                    let bu = basis.derivatives(at: u, order: 1), bv = basis.derivatives(at: v, order: 1)
+                    let bu = try basis.derivatives(at: u, order: 1), bv = try basis.derivatives(at: v, order: 1)
                     func sum(_ du: Int, _ dv: Int) -> Vector3D {
                         FairSurfaceSystem.product(bu, bv, du: du, dv: dv, nu: n).reduce(Vector3D.zero) {
                             $0 + (reference.controlPoints[$1.0 / n][$1.0 % n] - .origin) * $1.1
@@ -227,7 +227,7 @@ package struct XNurbsSurfaceFitter {
             }
             for station in stations {
                 let scale = (weight * station.weight).squareRoot()
-                let bu = basis.derivatives(at: station.uv.x, order: 2), bv = basis.derivatives(at: station.uv.y, order: 2)
+                let bu = try basis.derivatives(at: station.uv.x, order: 2), bv = try basis.derivatives(at: station.uv.y, order: 2)
                 rows.addScalar(FairSurfaceSystem.product(bu, bv, du: 0, dv: 0, nu: n).map { ($0.0, $0.1 * scale) },
                                target: [station.point.x * scale, station.point.y * scale, station.point.z * scale])
                 guard pass > 0, let support = station.support, let last = previous else { continue }
@@ -254,7 +254,7 @@ package struct XNurbsSurfaceFitter {
             if guides.isEmpty == false {
                 let scale = (weight / Double(guides.count)).squareRoot()
                 for (point, uv) in guides {
-                    rows.addScalar(FairSurfaceSystem.product(basis.derivatives(at: uv.x, order: 0), basis.derivatives(at: uv.y, order: 0),
+                    rows.addScalar(FairSurfaceSystem.product(try basis.derivatives(at: uv.x, order: 0), try basis.derivatives(at: uv.y, order: 0),
                                                              du: 0, dv: 0, nu: n).map { ($0.0, $0.1 * scale) },
                                    target: [point.x * scale, point.y * scale, point.z * scale])
                 }
@@ -288,7 +288,7 @@ package struct XNurbsSurfaceFitter {
                     if u < p.x + (v - p.y) * (q.x - p.x) / (q.y - p.y) { inside.toggle() }
                 }
                 guard inside else { continue }
-                let bu = basis.derivatives(at: u, order: 1), bv = basis.derivatives(at: v, order: 1)
+                let bu = try basis.derivatives(at: u, order: 1), bv = try basis.derivatives(at: v, order: 1)
                 func sum(_ du: Int, _ dv: Int) -> Vector3D {
                     FairSurfaceSystem.product(bu, bv, du: du, dv: dv, nu: n).reduce(Vector3D.zero) {
                         $0 + (surface.controlPoints[$1.0 / n][$1.0 % n] - .origin) * $1.1
@@ -330,7 +330,7 @@ package struct XNurbsSurfaceFitter {
         -> (position: Point3D, tangentU: Vector3D, tangentV: Vector3D, secondDerivativeUU: Vector3D, secondDerivativeUV: Vector3D,
             secondDerivativeVV: Vector3D, normal: Vector3D) {
         let n = surface.uControlPointCount
-        let bu = basis.derivatives(at: u, order: 2), bv = basis.derivatives(at: v, order: 2)
+        let bu = try basis.derivatives(at: u, order: 2), bv = try basis.derivatives(at: v, order: 2)
         func sum(_ du: Int, _ dv: Int) -> Vector3D {
             FairSurfaceSystem.product(bu, bv, du: du, dv: dv, nu: n).reduce(Vector3D.zero) {
                 $0 + (surface.controlPoints[$1.0 / n][$1.0 % n] - .origin) * $1.1

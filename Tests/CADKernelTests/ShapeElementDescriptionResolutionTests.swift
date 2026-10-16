@@ -42,7 +42,13 @@ struct ShapeElementDescriptionResolutionTests {
         var stale = EvaluatedDocument(document: document, parameters: old.parameters, brep: old.brep, meshes: old.meshes,
             curves: old.curves, caches: old.caches, subshapes: old.subshapes, lineage: old.lineage, configuration: old.configuration,
             assembly: old.assembly, evaluationMetrics: old.evaluationMetrics)
-        stale.validatedSourceReceipt = oldReceipt; stale.validatedBRep = oldBRep
+        let bound = try EvaluatedDocument(validatedSourceReceipt: oldReceipt,
+            parameters: old.parameters, brep: old.brep, meshes: old.meshes, curves: old.curves,
+            caches: old.caches, subshapes: old.subshapes, lineage: old.lineage,
+            configuration: old.configuration, assembly: old.assembly, evaluationMetrics: old.evaluationMetrics)
+        #expect(bound.document == old.document)
+        #expect(stale.document == document && stale.validatedSourceReceipt == nil)
+        stale.validatedBRep = oldBRep
         #expect(throws: ProductAttributeError.inconsistentArtifact("Missing or stale producer source/exact B-rep association.")) { _ = try resolver.resolve(stale) }
         let current = try evaluator.evaluateExact(document), after = try resolver.resolve(current)
         #expect(current.brep == old.brep && current.subshapes == old.subshapes && current.lineage == old.lineage)

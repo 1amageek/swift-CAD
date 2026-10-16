@@ -11,7 +11,7 @@ package struct OriginalAffineSurfaceIntersectionSource: Sendable {
     package let vDomain: OriginalRationalParameterDomain
     package var denominator: ExactBivariatePolynomial { homogeneous[3] }
 
-    package init<B: RationalAlgebraAdmitting>(image: OriginalAffineWordSurface3D,
+    package init<B: ExactScalarAdmission & ~Copyable>(image: OriginalAffineWordSurface3D,
         nativeSpan: PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan,
         domain: SurfaceParameterBox, tolerance: ModelingTolerance,
         remainingSourceDepth: Int, maximumAlgebraicDepth: Int, usage: inout B) throws {
@@ -37,7 +37,7 @@ package struct OriginalAffineSurfaceIntersectionSource: Sendable {
             throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
                 message: "Original normalized words require ordered-field homogeneous source authority.")
         }
-        try surface.validate(tolerance: tolerance, consumeWork: { try usage.consumeExactWork(1) })
+        try surface.validate(tolerance: tolerance, using: &usage)
         let native = try OriginalRationalSurfacePolynomial(source: surface, native: nativeSpan,
             domain: domain, view: .unitZ, tolerance: tolerance, usage: &usage)
         let coefficients = try image.preparedWord.exactRationalCoefficients(usage: &usage)
@@ -59,7 +59,7 @@ package struct OriginalAffineSurfaceIntersectionSource: Sendable {
         let u = try OriginalRationalParameterDomain(domain.u, usage: &usage)
         let v = try OriginalRationalParameterDomain(domain.v, usage: &usage)
         try RationalAlgebraStorage.retain(1, of: Self.self, usage: &usage)
-        try usage.consumeExactWork(0)
+        try usage.consumeWork(0)
         try CurrentTaskCancellationChecker().checkCancellation()
         self.image = image; preparedWord = image.preparedWord; self.nativeSpan = nativeSpan
         nativeLaw = native; homogeneous = transformed; uDomain = u; vDomain = v

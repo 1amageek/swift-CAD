@@ -194,3 +194,31 @@ The concrete regression is the generalized bounded section's repeated nested
 critical comparison exhausting work inside four-corner rational comparison.
 An independent integer four-corner oracle covers every sign pair and zero
 singletons; public new/legacy bounded sections remain the acceptance gate.
+
+### Query-Local Paired Enclosure
+
+`OriginalPhysicalAngleEnclosure` is an exclusive noncopyable query-local value
+retaining one immutable coefficient domain, its physical sine/cosine rational
+expressions and the existing `OriginalPhysicalAngleRefinement`. It advances
+from its attained coefficient depth to a nondecreasing requested depth, retaining
+the latest certified T enclosure. Both physical expressions are evaluated by
+the existing Horner/rational enclosure operations at that same T. It retains no
+admission, budget or shared mutable cache. Repeated depth requests reuse the
+series state; lower-cap admissions must still admit its attained depth and
+retained value depths. Unresolved poles, cancellation and all actual resource
+failures retain their typed cause.
+
+The first consumer is `OriginalBoundedSphereConeFiniteArcCertifier.certify`: one
+local enclosure survives that invocation's coefficient refinement steps. Its
+source field, physical angle, finite cuts, branch equations, root identities and
+all intrinsic value/coefficient/geometry ceilings are unchanged. Label-period
+pi and positive-radical continuation remain separate work; this local physical
+coefficient reuse does not complete their contracts or G01 runtime acceptance.
+
+[OriginalPhysicalAnglePairedEnclosureTests](../../../../Tests/CADGeometryTests/OriginalPhysicalAnglePairedEnclosureTests.swift)
+compares both physical expressions with independent existing enclosures at the
+same requested depths, checks new-term-only cell visits and repeated-depth reuse,
+and rejects lower coefficient capability, cumulative work/storage exhaustion and
+cancellation. Graph root/correspondence regression tests own the separate
+whole-cover changes. Mandatory G01 empty/nonempty finite cuts and target runtime
+evidence remain required; these scalar fixtures do not replace them.

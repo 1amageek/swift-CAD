@@ -9,53 +9,36 @@ enum OriginalParameterImageMap {
         }
     }
 
-    private struct BorrowedWork: RationalAlgebraAdmitting {
-        let consume: () throws -> Void
-        mutating func visitExactCell(depth: Int) throws { try consume() }
-        mutating func consumeExactWork(_ count: Int) throws {
-            guard count >= 0 else { throw GeometryConversionError.invalidInput("Original chart work count is negative.") }
-            for _ in 0..<count { try CurrentTaskCancellationChecker().checkCancellation(); try consume() }
-        }
-        mutating func retainExactStorage(_ count: Int) throws {
-            // Original word allocation is admitted before allocation by the same
-            // caller operation; no separate work or storage allowance is created.
-            try consumeExactWork(count)
-        }
-    }
-
-    private static func mappedComparison(_ foreign: Double, native: Double,
-        gain: OriginalParameterGain, offset: Double, consumeWork: () throws -> Void) throws -> RobustSign {
+    private static func mappedComparison<A: ExactScalarAdmission & ~Copyable>(_ foreign: Double, native: Double,
+        gain: OriginalParameterGain, offset: Double, using usage: inout A) throws -> RobustSign {
         switch gain {
         case .product, .difference:
-            return try withoutActuallyEscaping(consumeWork) { work in
-                var usage = BorrowedWork(consume: work)
                 let mapped = try gain.exactCoefficient(usage: &usage)
                     .multiplied(by: .originalDouble(foreign, usage: &usage), usage: &usage)
                     .adding(.originalDouble(offset, usage: &usage), usage: &usage)
                 let difference = try mapped.subtracting(.originalDouble(native, usage: &usage), usage: &usage)
                 return difference.isZero ? .zero : difference.isPositive ? .positive : .negative
-            }
         case .binary, .ratio: break
         }
         let pair = gain.coefficients
-        let original = FloatingPointExpansion.sum(
-            FloatingPointExpansion.product([offset], [pair.denominator]),
-            FloatingPointExpansion.product([pair.numerator], [foreign]))
-        return FloatingPointExpansion.sign(FloatingPointExpansion.subtract(original,
-            FloatingPointExpansion.product([native], [pair.denominator])))
+        // Six fixed scalar input buffers feed the shared exact expansion core.
+        try OriginalCoefficientAllocation.reserve(count: 6, of: Double.self, using: &usage)
+        let original = try FloatingPointExpansion.sum(
+            FloatingPointExpansion.product([offset], [pair.denominator], using: &usage),
+            FloatingPointExpansion.product([pair.numerator], [foreign], using: &usage), using: &usage)
+        return try FloatingPointExpansion.sign(FloatingPointExpansion.subtract(original,
+            FloatingPointExpansion.product([native], [pair.denominator], using: &usage), using: &usage), using: &usage)
     }
 
-    static func originalSpanFitsPeriod(_ interval: ScalarInterval,
+    static func originalSpanFitsPeriod<A: ExactScalarAdmission & ~Copyable>(_ interval: ScalarInterval,
         gain: OriginalParameterGain, originalSourcePeriod: Double,
-        consumeWork: () throws -> Void) throws -> Bool {
+        using usage: inout A) throws -> Bool {
         try gain.validate()
         guard interval.lower.isFinite, interval.upper.isFinite,
               interval.lower <= interval.upper, originalSourcePeriod.isFinite,
               originalSourcePeriod > 0 else {
             throw GeometryConversionError.invalidInput("Original periodic span requires finite ordered endpoints and a positive native period.")
         }
-        return try withoutActuallyEscaping(consumeWork) { work in
-            var usage = BorrowedWork(consume: work)
             let difference = try ExactRationalCoefficient.originalDouble(interval.upper, usage: &usage)
                 .subtracting(.originalDouble(interval.lower, usage: &usage), usage: &usage)
             let directedSpan = try gain.exactCoefficient(usage: &usage)
@@ -64,7 +47,6 @@ enum OriginalParameterImageMap {
             let excess = try span.subtracting(.originalDouble(originalSourcePeriod, usage: &usage),
                 usage: &usage)
             return !excess.isPositive
-        }
     }
 
     static func domain(_ source: ParameterDomain, gain: OriginalParameterGain, offset: Double) -> ParameterDomain {
@@ -88,10 +70,10 @@ enum OriginalParameterImageMap {
         return result
     }
 
-    static func interval<B: RationalAlgebraAdmitting>(_ value: ScalarInterval,
+    static func interval<B: ExactScalarAdmission & ~Copyable>(_ value: ScalarInterval,
         gain: OriginalParameterGain, offset: Double, sourceDomain: ParameterDomain,
         usage: inout B) throws -> ScalarInterval {
-        try usage.visitExactCell(depth: 0)
+        try usage.visitCell(axis: .value, depth: 0)
         let coefficient = try gain.exactCoefficient(usage: &usage)
         guard !coefficient.isZero, offset.isFinite,
             value.lower.isFinite, value.upper.isFinite, value.lower <= value.upper else {
@@ -129,9 +111,9 @@ enum OriginalParameterImageMap {
         return try ScalarInterval(lower: lowerBound, upper: upperBound)
     }
 
-    static func inverseInterval<B: RationalAlgebraAdmitting>(_ native: ScalarInterval,
+    static func inverseInterval<B: ExactScalarAdmission & ~Copyable>(_ native: ScalarInterval,
         gain: OriginalParameterGain, offset: Double, usage: inout B) throws -> ScalarInterval {
-        try usage.visitExactCell(depth: 0)
+        try usage.visitCell(axis: .value, depth: 0)
         let coefficient = try gain.exactCoefficient(usage: &usage)
         guard !coefficient.isZero, offset.isFinite,
             native.lower.isFinite, native.upper.isFinite, native.lower <= native.upper else {
@@ -157,8 +139,8 @@ enum OriginalParameterImageMap {
         return try ScalarInterval(lower: lowerBound, upper: upperBound)
     }
 
-    static func inverseInterval(_ native: ScalarInterval, gain: OriginalParameterGain,
-        offset: Double, consumeWork: () throws -> Void = {}) throws -> ScalarInterval {
+    static func inverseInterval<A: ExactScalarAdmission & ~Copyable>(_ native: ScalarInterval, gain: OriginalParameterGain,
+        offset: Double, using usage: inout A) throws -> ScalarInterval {
         try validate(gain: gain, offset: offset)
         let pair = gain.coefficients
         let difference = OutwardScalarInterval(lower: native.lower, upper: native.upper) - .exact(offset)
@@ -174,7 +156,7 @@ enum OriginalParameterImageMap {
             let candidate = ((native.lower - offset) / pair.numerator) * pair.denominator
             if candidate.isFinite {
                 if try mappedComparison(candidate, native: native.lower, gain: gain,
-                    offset: offset, consumeWork: consumeWork) == .zero {
+                    offset: offset, using: &usage) == .zero {
                     return try ScalarInterval(lower: candidate, upper: candidate)
                 }
             }
@@ -182,8 +164,8 @@ enum OriginalParameterImageMap {
         return try ScalarInterval(lower: bounds.lower, upper: bounds.upper)
     }
 
-    static func interval(_ value: ScalarInterval, gain: OriginalParameterGain, offset: Double,
-        sourceDomain: ParameterDomain, consumeWork: () throws -> Void = {}) throws -> ScalarInterval {
+    static func interval<A: ExactScalarAdmission & ~Copyable>(_ value: ScalarInterval, gain: OriginalParameterGain, offset: Double,
+        sourceDomain: ParameterDomain, using usage: inout A) throws -> ScalarInterval {
         let mapped = OutwardScalarInterval.exact(offset)
             + (try gain.interval()) * OutwardScalarInterval(lower: value.lower, upper: value.upper)
         guard mapped.isFinite else {
@@ -192,7 +174,7 @@ enum OriginalParameterImageMap {
         if value.lower == value.upper {
             let candidate = try parameter(value.lower, gain: gain, offset: offset)
             if try mappedComparison(value.lower, native: candidate, gain: gain, offset: offset,
-                consumeWork: consumeWork) == .zero {
+                using: &usage) == .zero {
                 if case .closed(let lower, let upper) = sourceDomain,
                     candidate < lower || candidate > upper {
                     throw GeometryConversionError.invalidInput("Original singleton image exceeds its native source domain.")
@@ -202,11 +184,11 @@ enum OriginalParameterImageMap {
         }
         if case .closed(let lower, let upper) = sourceDomain {
             for endpoint in [value.lower, value.upper] {
-                try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
+                try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeWork(1)
                 let low = try mappedComparison(endpoint, native: lower, gain: gain,
-                    offset: offset, consumeWork: consumeWork)
+                    offset: offset, using: &usage)
                 let high = try mappedComparison(endpoint, native: upper, gain: gain,
-                    offset: offset, consumeWork: consumeWork)
+                    offset: offset, using: &usage)
                 if value.lower == value.upper {
                     if low == .zero { return try ScalarInterval(lower: lower, upper: lower) }
                     if high == .zero { return try ScalarInterval(lower: upper, upper: upper) }

@@ -94,7 +94,7 @@ public struct SurfaceAlignFeatureEvaluator: FeatureEvaluating, ValidatedFeatureE
             tolerance: tolerance
         )
         // The sheet sewn anew on the aligned surface, bounded by its parameter lines.
-        let parents = context.subshapeIDs(for: .face(faceID))
+        let parents = try context.subshapeIDs(for: .face(faceID))
         let patch = try BSplineParameterRectanglePatchBuilder().patch(
             aligned, stableID: "surface-align:face", orientation: face.orientation, parentSubshapeIDs: parents, tolerance: tolerance
         )
@@ -107,7 +107,7 @@ public struct SurfaceAlignFeatureEvaluator: FeatureEvaluating, ValidatedFeatureE
         return EvaluationResult(
             brep: replaced,
             subshapes: sewn.subshapes,
-            removedSubshapeIDs: scope.subshapeIDs(in: context.subshapes)
+            removedSubshapeIDs: try scope.subshapeIDs(in: context.subshapes)
                 .union(context.subshapes.entries.filter { $0.value == .body(bodyID) }.map(\.key)),
             lineage: sewn.lineage
         )

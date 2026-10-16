@@ -1,0 +1,32 @@
+{
+  "scope": "Only original scalar projection work avoidance inside existing Newton loop; no solver or final spatial query change. No compiler run.",
+  "files": {
+    "Sources/CADGeometry/SurfaceSilhouette/OriginalSurfaceSilhouetteField.swift": {
+      "beforeSHA256": "b39af647069368f01568a977abb77fc162e94a297bd14ad00af84c0c6f82b8d1",
+      "afterSHA256": "8c5f28479a1986b5944b3209ecfcb04fb66e7c05d37c68e50d32bdb7b45f204b"
+    },
+    "Sources/CADGeometry/SurfaceSilhouette/OriginalSurfaceSilhouetteCurve.swift": {
+      "beforeSHA256": "6744337417f13e9f2a014903766ccf6595cad98a63a233752c48f48c6e2ff96c",
+      "afterSHA256": "642b054f4272046464499bd8041f1665d3e92ffb34628d3641d9d7ced4e2eafe"
+    },
+    "Sources/CADGeometry/SurfaceSilhouette/DESIGN.md": {
+      "afterSHA256": "9306c1b631fe5bc5db24064e238da1abf5e6afb79ad698977a0c0e7d69cce389"
+    }
+  },
+  "microdiagnostic": {
+    "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/silhouette-scalar-phase-native-r2/receipt.json",
+    "sha256": "704d6e547c5069d91dcc705b9b0ca1ec810238ca166b42fa83ae63db257c9f1a",
+    "scalarWork": 90,
+    "scalarBytes": 216,
+    "fullWork": 1746426,
+    "fullBytes": 186072,
+    "D0D3ScalarIntervals": "All ten lower/upper pairs bit-identical on admitted shear whole box."
+  },
+  "sourceDefinedness": "The fast reader requires existing rational polynomial capability, original Native span/source, no offsets/pole. It enters existing budget/context and exact same containment/cancellation guards, then native.validate preserves source/tolerance/closed owning box. Original Native source preparation validates positive weights on B-spline partition-of-unity spans; all complete spatial word actions preserve W and UV.",
+  "inverseProof": "Removing exactly the new scalarJet reader reconstructs the entire previous field file. Reversing exactly the two Newton scalar-only call replacements reconstructs the entire previous Curve file. Full evaluate body and final field.evaluate(over:parameters) are unchanged.",
+  "runtime": "Root owns fresh Native Geometry, seven-oracle client and actual Drawing validation.",
+  "guardFixtureCorrection": {
+    "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/silhouette-word-depth-fixture-r3/fixture-freeze.json",
+    "sha256": "206390dbaffd530ba766b5dc2f1245b9f0dd9ff26224df0647068b61da45e500"
+  }
+}

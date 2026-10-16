@@ -4,7 +4,7 @@ import L0
 
 extension ExactPolynomialDomain {
     func scalarPower<A: ExactScalarAdmission & ~Copyable>(_ value: borrowing Coefficient, _ exponent: Int,
-        _ usage: inout ExactPolynomialAdmission<A>) throws -> Coefficient {
+        _ usage: inout A) throws -> Coefficient {
         var n = exponent, result = context.one, factor = copy value
         while n > 0 {
             try usage.consumeWork(1)
@@ -33,7 +33,7 @@ extension ExactPolynomialDomain {
         }
     }
     func differentiated<A: ExactScalarAdmission & ~Copyable>(_ value: borrowing Polynomial, _ variable: Int,
-        _ usage: inout ExactPolynomialAdmission<A>) throws -> Polynomial {
+        _ usage: inout A) throws -> Polynomial {
         try requireVariable(variable)
         try ExactPolynomialAccess.storage(value.terms.count, ExactPolynomialTerm<Coefficient>.self, &usage)
         var terms: [ExactPolynomialTerm<Coefficient>] = []; terms.reserveCapacity(value.terms.count)

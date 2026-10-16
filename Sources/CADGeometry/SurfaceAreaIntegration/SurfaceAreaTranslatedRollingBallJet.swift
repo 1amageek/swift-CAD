@@ -7,28 +7,23 @@ struct SurfaceAreaTranslatedRollingBallJet: Sendable {
     private let section: SurfaceAreaRollingBallSectionJet
 
     init?(_ blend: RollingBallBlendSurface3D, maximumSubdivisionDepth: Int? = nil,
-        remainingSourceDepth: Int = 16, maximumAlgebraicDepth: Int? = nil,
-        consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() },
-        consumeStorage: ((Int) throws -> Void)? = nil) throws {
+        remainingSourceDepth: Int = 16, maximumAlgebraicDepth: Int? = nil, using execution: inout OriginalQueryExecution) throws {
         guard try SurfaceAreaTranslationCertificate.direction(of: .procedural(.rollingBall(blend)),
-                remainingSourceDepth:remainingSourceDepth,maximumAlgebraicDepth:maximumAlgebraicDepth,
-                consumeWork:consumeWork,consumeStorage:consumeStorage) == .u,
+                remainingSourceDepth:remainingSourceDepth,maximumAlgebraicDepth:maximumAlgebraicDepth, using: &execution) == .u,
               case .bSpline(let center) = blend.centerSpine,
               case .bSpline(let a) = blend.firstContact,
               case .bSpline(let b) = blend.secondContact else { return nil }
         if let maximumSubdivisionDepth {
             try Surface3D.procedural(.rollingBall(blend)).validateOriginalSource(tolerance:blend.tolerance,
-                remainingSourceDepth:remainingSourceDepth,maximumSubdivisionDepth:maximumSubdivisionDepth,
-                consumeWork:{ _ in try consumeWork() },consumeStorage:consumeStorage,maximumAlgebraicDepth:maximumAlgebraicDepth)
-        } else { try blend.validate() }
+                remainingSourceDepth:remainingSourceDepth,maximumSubdivisionDepth:maximumSubdivisionDepth,maximumAlgebraicDepth:maximumAlgebraicDepth, using: &execution)
+        } else { try blend.validate(using: &execution) }
         origin = Self.exact(center.controlPoints[0])
         displacement = Self.exact(center.controlPoints[1]) - origin
         section = try SurfaceAreaRollingBallSectionJet(blend:blend,center:center.controlPoints[0],
-            first:a.controlPoints[0],second:b.controlPoints[0],consumeWork:consumeWork)
+            first:a.controlPoints[0],second:b.controlPoints[0], using: &execution)
     }
 
-    func intervalJet(over box: SurfaceParameterBox, tolerance: ModelingTolerance,
-        consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() }) throws -> SurfaceIntervalVectorJet {
+    func intervalJet(over box: SurfaceParameterBox, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> SurfaceIntervalVectorJet {
         guard !Task.isCancelled else {
             throw KernelError(phase:.geometry,code:.cancelled,tolerance:tolerance,
                 message:"Translated rolling-ball area enclosure was cancelled.")
@@ -37,12 +32,12 @@ struct SurfaceAreaTranslatedRollingBallJet: Sendable {
             throw KernelError(phase:.geometry,code:.invalidInput,tolerance:tolerance,
                 message:"Translated rolling-ball area enclosures require the original normalized chart.")
         }
-        let section = try section.intervalJet(over:box.v,tolerance:tolerance,consumeWork:consumeWork)
+        let section = try section.intervalJet(over:box.v,tolerance:tolerance, using: &execution)
         let u = OutwardScalarInterval(lower:box.u.lower,upper:box.u.upper)
         func coordinate(_ origin: OutwardScalarInterval, _ delta: OutwardScalarInterval,
                         _ section: SurfaceIntervalJet) throws -> SurfaceIntervalJet {
             let position = origin+delta*u+section.value
-            try consumeWork()
+            try execution.consumeWork(1)
             guard position.isFinite, delta.isFinite, section.derivativeV.isFinite,
                 section.secondDerivativeVV.isFinite, section.thirdDerivativeVVV.isFinite else {
                 throw KernelError(phase:.geometry,code:.resourceLimitExceeded,tolerance:tolerance,

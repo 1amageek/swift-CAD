@@ -7,7 +7,7 @@ public struct OriginalAffineWordPoint3D: Hashable, Sendable {
     private let prepared: PreparedOriginalAffineOperationWord
     private let algebraDepth: Int
 
-    public init<B: RationalAlgebraAdmitting>(point: Point3D, word: OriginalAffineOperationWord,
+    public init<B: ExactScalarAdmission & ~Copyable>(point: Point3D, word: OriginalAffineOperationWord,
         tolerance: ModelingTolerance, remainingSourceDepth: Int, maximumSubdivisionDepth: Int,
         maximumAlgebraicDepth: Int, usage: inout B) throws {
         try tolerance.validate()
@@ -15,7 +15,7 @@ public struct OriginalAffineWordPoint3D: Hashable, Sendable {
             (0...32).contains(maximumAlgebraicDepth), point.x.isFinite, point.y.isFinite, point.z.isFinite else {
             throw GeometryConversionError.invalidInput("Original spatial point requires finite coordinates and independent caller capabilities.")
         }
-        try usage.consumeExactWork(3)
+        try usage.consumeWork(3)
         let selected = try OriginalAffineOperationWord(factors: word.factors,
             tolerance: tolerance, maximumDepth: maximumAlgebraicDepth, usage: &usage)
         try selected.validateOriginal(tolerance: tolerance, maximumDepth: maximumAlgebraicDepth, usage: &usage)
@@ -26,7 +26,7 @@ public struct OriginalAffineWordPoint3D: Hashable, Sendable {
     public static func == (a: Self, b: Self) -> Bool { a.point == b.point && a.word == b.word }
     public func hash(into hasher: inout Hasher) { hasher.combine(point); hasher.combine(word) }
 
-    public func enclosure<B: RationalAlgebraAdmitting>(tolerance: ModelingTolerance,
+    public func enclosure<B: ExactScalarAdmission & ~Copyable>(tolerance: ModelingTolerance,
         remainingSourceDepth: Int, maximumSubdivisionDepth: Int,
         maximumAlgebraicDepth: Int, usage: inout B) throws -> CoordinateEnclosure3D {
         try tolerance.validate()
@@ -44,20 +44,20 @@ public struct OriginalAffineWordPoint3D: Hashable, Sendable {
             try word.validateOriginal(tolerance: tolerance, maximumDepth: maximumAlgebraicDepth, usage: &usage)
             action = prepared
         }
-        try usage.consumeExactWork(3)
+        try usage.consumeWork(3)
         let original = try CoordinateEnclosure3D(x: .init(lower: point.x, upper: point.x),
             y: .init(lower: point.y, upper: point.y), z: .init(lower: point.z, upper: point.z))
         return try action.enclosure(of: original, isPosition: true, usage: &usage)
     }
 
-    public func localization<B: RationalAlgebraAdmitting>(tolerance: ModelingTolerance,
+    public func localization<B: ExactScalarAdmission & ~Copyable>(tolerance: ModelingTolerance,
         remainingSourceDepth: Int, maximumSubdivisionDepth: Int,
         maximumAlgebraicDepth: Int, usage: inout B) throws -> Point3D {
         let box = try enclosure(tolerance: tolerance, remainingSourceDepth: remainingSourceDepth,
             maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, usage: &usage)
         let candidate = Point3D(x: box.x.lower * 0.5 + box.x.upper * 0.5,
             y: box.y.lower * 0.5 + box.y.upper * 0.5, z: box.z.lower * 0.5 + box.z.upper * 0.5)
-        try usage.consumeExactWork(9)
+        try usage.consumeWork(9)
         let error = IntervalVector3DBounds(
             x: OutwardScalarInterval(lower: box.x.lower, upper: box.x.upper) - .exact(candidate.x),
             y: OutwardScalarInterval(lower: box.y.lower, upper: box.y.upper) - .exact(candidate.y),
@@ -66,7 +66,7 @@ public struct OriginalAffineWordPoint3D: Hashable, Sendable {
         return candidate
     }
 
-    public func appending<B: RationalAlgebraAdmitting>(_ operation: OriginalAffineOperation,
+    public func appending<B: ExactScalarAdmission & ~Copyable>(_ operation: OriginalAffineOperation,
         tolerance: ModelingTolerance, remainingSourceDepth: Int, maximumSubdivisionDepth: Int,
         maximumAlgebraicDepth: Int, usage: inout B) throws -> Self {
         let selected = try OriginalAffineOperationWord(factors: word.factors, tolerance: tolerance,

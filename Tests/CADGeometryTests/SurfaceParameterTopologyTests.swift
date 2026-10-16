@@ -5,9 +5,9 @@ import CADCore
 @Suite("Surface parameter topology")
 struct SurfaceParameterTopologyTests {
     @Test
-    func analyticAndOffsetChartsSharePeriodicityAndSingularities() {
+    func analyticAndOffsetChartsSharePeriodicityAndSingularities() throws {
         let sphere = Surface3D.analytic(.sphere(center: .origin, radius: 2.0))
-        let sphereTopology = SurfaceParameterTopology(surface: sphere)
+        let sphereTopology = try SurfaceParameterTopology(surface: sphere)
         #expect(sphereTopology.uPeriod == 2.0 * Double.pi)
         #expect(sphereTopology.vPeriod == nil)
         #expect(sphereTopology.uSingularVValues == [
@@ -15,7 +15,7 @@ struct SurfaceParameterTopologyTests {
             Double.pi * 0.5,
         ])
 
-        let offsetTopology = SurfaceParameterTopology(
+        let offsetTopology = try SurfaceParameterTopology(
             surface: .procedural(.offset(OffsetSurface3D(
                 source: sphere,
                 distance: 0.25
@@ -25,8 +25,8 @@ struct SurfaceParameterTopologyTests {
     }
 
     @Test
-    func torusRetainsTwoPeriodicDirectionsWithoutChartPoles() {
-        let topology = SurfaceParameterTopology(surface: .analytic(.torus(
+    func torusRetainsTwoPeriodicDirectionsWithoutChartPoles() throws {
+        let topology = try SurfaceParameterTopology(surface: .analytic(.torus(
             center: .origin,
             axis: .unitZ,
             majorRadius: 3.0,

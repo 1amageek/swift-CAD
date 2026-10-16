@@ -1,0 +1,21 @@
+{
+  "scope": "First query diagnostic after matching actual SwiftPM runtime dependencies. Diagnostic only; not acceptance. r1/r2 never reached the query.",
+  "monitorSHA256": "9a290a4391c71a3308753fbefb116d6fb8ed73ba6af679e1ec5d6822cbeab3c6",
+  "commandsSHA256": "3157ba522a51626d4fc87f98eff1d9590faac3d33e359f18d850d22d801ba98d",
+  "environmentSHA256": "3ebd705ea0c85378b3da9bda0a1e2423630fbf8981b9275a78a07866113768ca",
+  "step": {
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/lldb",
+      "--batch",
+      "--source",
+      "/Users/1amageek/.codex/verification-artifacts/swift-CAD/g01-direct-20261016/native-debug-unlock-r1/commands-r3.lldb"
+    ],
+    "exitCode": 0,
+    "elapsedSeconds": 2.6836717080004746,
+    "peakRSSBytes": 3180412928,
+    "rssAccounting": "tracked PPID descendants including separate process groups",
+    "maximumObservedProcessCount": 3,
+    "stopReason": null,
+    "logSHA256": "7087cf22b6edb6f6344d78929a8bf90ecb6de41dd9169a2e72bb2e5f04a012f9"
+  }
+}

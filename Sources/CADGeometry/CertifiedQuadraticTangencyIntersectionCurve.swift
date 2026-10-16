@@ -40,11 +40,21 @@ public struct CertifiedQuadraticTangencyIntersectionCurve: Hashable, Sendable {
         componentIndex: Int,
         tolerance: ModelingTolerance
     ) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try self.init(firstSurface: firstSurface, secondSurface: secondSurface, componentIndex: componentIndex, tolerance: tolerance, using: &execution)
+    }
+
+    public init(
+        firstSurface: BSplineSurface3D,
+        secondSurface: BSplineSurface3D,
+        componentIndex: Int,
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
+    ) throws {
         let built = try Self.build(
             firstSurface: firstSurface,
             secondSurface: secondSurface,
             componentIndex: componentIndex,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         self.firstSurface = firstSurface
         self.secondSurface = secondSurface
@@ -60,6 +70,12 @@ public struct CertifiedQuadraticTangencyIntersectionCurve: Hashable, Sendable {
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(tolerance: tolerance, using: &execution)
+    }
+
+    public func validate(tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         try tolerance.validate()
         try certificationTolerance.validate()
         guard certificationTolerance.distance <= tolerance.distance,
@@ -76,8 +92,11 @@ public struct CertifiedQuadraticTangencyIntersectionCurve: Hashable, Sendable {
             firstSurface: firstSurface,
             secondSurface: secondSurface,
             componentIndex: componentIndex,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
+        try GeometryStructuralComparisonWork.charge(curve: curve, using: &execution)
+        try GeometryStructuralComparisonWork.charge(parameterCurve: firstSurfaceParameterCurve, using: &execution)
+        try GeometryStructuralComparisonWork.charge(parameterCurve: secondSurfaceParameterCurve, using: &execution)
         guard curve == rebuilt.curve,
               firstSurfaceParameterCurve == rebuilt.firstParameterCurve,
               secondSurfaceParameterCurve == rebuilt.secondParameterCurve,
@@ -106,6 +125,7 @@ public struct CertifiedQuadraticTangencyIntersectionCurve: Hashable, Sendable {
 
 #if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
+        var execution = try NativeRationalSourceDecodingContext.validationExecution(from: decoder)
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
             [.firstSurface, .secondSurface, .componentIndex, .certificationTolerance],
@@ -115,14 +135,15 @@ public struct CertifiedQuadraticTangencyIntersectionCurve: Hashable, Sendable {
             firstSurface: container.decode(BSplineSurface3D.self, forKey: .firstSurface),
             secondSurface: container.decode(BSplineSurface3D.self, forKey: .secondSurface),
             componentIndex: container.decode(Int.self, forKey: .componentIndex),
-            tolerance: container.decode(ModelingTolerance.self, forKey: .certificationTolerance)
+            tolerance: container.decode(ModelingTolerance.self, forKey: .certificationTolerance), using: &execution
         )
     }
 #endif
 
 #if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
-        try validate(tolerance: certificationTolerance)
+        var execution = try NativeOriginalSourceEncodingContext.execution(from: encoder)
+        try validate(tolerance: certificationTolerance, using: &execution)
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(firstSurface, forKey: .firstSurface)
         try container.encode(secondSurface, forKey: .secondSurface)
@@ -136,10 +157,16 @@ public struct CertifiedQuadraticTangencyIntersectionCurve: Hashable, Sendable {
         secondSurface: BSplineSurface3D,
         tolerance: ModelingTolerance
     ) throws -> Int {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        return try componentCount(firstSurface: firstSurface, secondSurface: secondSurface, tolerance: tolerance, using: &execution)
+    }
+
+    static func componentCount(firstSurface: BSplineSurface3D, secondSurface: BSplineSurface3D, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> Int {
+        try execution.consumeWork(1)
         guard let certificate = try QuadraticHeightFieldTangencyCertificate.certified(
             first: firstSurface,
             second: secondSurface,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         ) else {
             return 0
         }
@@ -158,12 +185,13 @@ public struct CertifiedQuadraticTangencyIntersectionCurve: Hashable, Sendable {
         secondSurface: BSplineSurface3D,
         componentIndex: Int,
         tolerance: ModelingTolerance
-    ) throws -> BuiltComponent {
+    , using execution: inout OriginalQueryExecution) throws -> BuiltComponent {
+        try execution.consumeWork(1)
         try tolerance.validate()
         guard let certificate = try QuadraticHeightFieldTangencyCertificate.certified(
             first: firstSurface,
             second: secondSurface,
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         ) else {
             throw certificateFailure(
                 tolerance: tolerance,
@@ -175,11 +203,12 @@ public struct CertifiedQuadraticTangencyIntersectionCurve: Hashable, Sendable {
         case .isolated:
             components = []
         case let .contact(segment):
-            components = [(canonical(segment), .tangent)]
+            components = try CertifiedAnalyticCurveEvaluation.values((canonical(segment), .tangent), using: &execution)
         case let .branching(segments):
-            components = segments.map { (canonical($0), .mixed) }.sorted {
-                segmentPrecedes($0.0, $1.0)
-            }
+            components = try CertifiedAnalyticCurveEvaluation.sorted(
+                CertifiedAnalyticCurveEvaluation.map(segments, using: &execution) { segment, _ in (canonical(segment), .mixed) },
+                using: &execution
+            ) { segmentPrecedes($0.0, $1.0) }
         }
         guard components.indices.contains(componentIndex) else {
             throw certificateFailure(
@@ -235,6 +264,9 @@ public struct CertifiedQuadraticTangencyIntersectionCurve: Hashable, Sendable {
                 message: "A quadratic tangency locus does not have certified affine source-surface parameters."
             )
         }
+        try execution.retainStorage(count: 4, stride: MemoryLayout<Double>.stride)
+        try execution.retainStorage(count: 2, stride: MemoryLayout<Point3D>.stride)
+        try execution.retainStorage(count: 4, stride: MemoryLayout<Point2D>.stride)
         let knots = [0.0, 0.0, 1.0, 1.0]
         let curve = Curve3D.bSpline(BSplineCurve3D(
             degree: 1,
@@ -253,19 +285,19 @@ public struct CertifiedQuadraticTangencyIntersectionCurve: Hashable, Sendable {
         ))
         let fractions = [0.0, 1.0 / 3.0, 2.0 / 3.0, 1.0]
         let residualCertificate = try CubicSurfaceResidualCertifier().certify(
-            pointControls: fractions.map {
-                interpolate(segment.lower, segment.upper, fraction: $0)
+            pointControls: CertifiedAnalyticCurveEvaluation.map(fractions, using: &execution) { fraction, _ in
+                interpolate(segment.lower, segment.upper, fraction: fraction)
             },
-            firstControls: fractions.map {
-                interpolate(firstLowerPoint, firstUpperPoint, fraction: $0)
+            firstControls: CertifiedAnalyticCurveEvaluation.map(fractions, using: &execution) { fraction, _ in
+                interpolate(firstLowerPoint, firstUpperPoint, fraction: fraction)
             },
-            secondControls: fractions.map {
-                interpolate(secondLowerPoint, secondUpperPoint, fraction: $0)
+            secondControls: CertifiedAnalyticCurveEvaluation.map(fractions, using: &execution) { fraction, _ in
+                interpolate(secondLowerPoint, secondUpperPoint, fraction: fraction)
             },
             first: firstSurface,
             second: secondSurface,
             options: SurfaceSurfaceIntersectionOptions(),
-            tolerance: tolerance
+            tolerance: tolerance, using: &execution
         )
         return BuiltComponent(
             curve: curve,

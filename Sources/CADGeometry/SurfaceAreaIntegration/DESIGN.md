@@ -908,3 +908,53 @@ product, sum, quotient and coordinate read invokes the composing work owner
 before evaluation; the fixed value composition has no dynamic scratch BYTE
 request. Original graph/source admission and complete non-affine, closed or
 mixed-coordinate graph charts remain separate producer obligations.
+
+## Direct Coefficient Execution
+
+Native higher coefficient preparation, finite differences, Bernstein restriction
+and requested-order evaluation consume the original generic scalar admission.
+Every owned tensor, row and scratch/output array is charged before allocation;
+actual arithmetic traversals use explicit work units and caller cancellation.
+The existing immutable coefficient receipt remains source/branch/domain
+provenance. The same prepared nets serve later direct queries without rebuilding
+the original coefficient problem. No work/storage callback reconstructs an
+admission, and numerical hulls do not add continuity or parameter identity.
+
+## Direct Integration Execution
+
+Preparation, original UV chart solving, native rectangle/fan partitioning and
+area/volume flux evaluation receive one exclusive `inout OriginalQueryExecution`.
+The integration facade forwards this owner through every actual lower operation;
+work/storage callbacks do not reconstruct scalar admission or spendable budgets.
+Scalar-only coefficient operations retain generic `ExactScalarAdmission & ~Copyable`
+borrows. Source recursion, geometric subdivision and value/coefficient depth keep
+their independent caller ceilings. Immutable prepared geometry retains no mutable
+execution or callback. Query-local scratch and all result buffers are admitted
+before allocation, and terminal cancellation is checked before publication.
+
+```text
+Topology integration -> exclusive execution -> original geometry preparation
+                       -> native chart/domain ownership -> flux/Taylor evaluation
+                       -> caller-admitted immutable bounds
+```
+
+Actual rectangle/fan volume moment callers and area callers share these concrete
+paths. Verification must exercise their mathematical bounds and resource/cancel
+failures on the fixed supported targets; parsing is diagnostic evidence only.
+
+Prepared integrand/chart owners capture operation-local attained scalar, source,
+geometric and transport depth with the existing preparation receipt. Independent
+later executions readmit that immutable history before using cached translation,
+continuity or chart decisions; unrelated earlier depth never enters the receipt.
+`Tests/CADGeometryTests/SurfaceAreaDirectExecutionTests.swift` owns the exact ten
+flux oracle, complete native rectangle/fan correspondence and N/N-1 work/bytes.
+
+### Direct original iso-image binding validation
+
+`IsoBoundaryImage.validate(for:on:tolerance:using:)` re-admits the chart's original
+preparation receipt and charges the original stored pcurve/support scans on the
+same caller execution before applying its unchanged exact binding, tolerance and
+strict monotonicity guards. The ordinary entry creates one execution and delegates
+to this direct body. Topology's iso-rectangle intake and Geometry's endpoint-fan
+correction pass their existing execution; no numeric root or sampled agreement
+replaces the retained original image authority.

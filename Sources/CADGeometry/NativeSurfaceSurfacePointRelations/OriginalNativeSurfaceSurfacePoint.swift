@@ -10,7 +10,7 @@ public struct OriginalNativeSurfaceSurfacePoint: Sendable {
     }
 
     /// Coordinate order is original native u1, v1, u2, v2. Foreign receipts are rejected.
-    public func compareParameter<B: RationalAlgebraAdmitting>(axis: Int,
+    public func compareParameter<B: ExactScalarAdmission & ~Copyable>(axis: Int,
         to station: ExactRationalCoefficient, in receipt: OriginalNativeSurfaceSurfacePoints,
         maximumAlgebraicDepth: Int, usage: inout B) throws -> ExactAlgebraicRealRoot.Sign {
         guard receipt.owns(self), (0..<4).contains(axis), (0...32).contains(maximumAlgebraicDepth) else {

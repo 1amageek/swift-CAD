@@ -39,6 +39,11 @@ struct ExactImplicitIntersectionTransferSource: Sendable {
             continue
           case .periodicTranslation:
             continue
+          // FIXME(INCOMPLETE_IMPLEMENTATION): These retained pcurve wrappers have no certified-implicit neutral transfer provenance.
+          // STEP/IGES transfer must refuse until source/host/chart correspondence survives the complete wrapper law.
+          case .originalBSplineContinuation, .originalAffineWord, .originalImage:
+            throw KernelError(phase: .exchange, code: .unsupportedCapability, tolerance: tolerance,
+              message: "Original pcurve wrappers have no faithful certified-implicit exchange transfer.")
           }
         }
       }

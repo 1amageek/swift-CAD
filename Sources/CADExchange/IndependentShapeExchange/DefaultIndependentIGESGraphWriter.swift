@@ -10,7 +10,8 @@ public struct DefaultIndependentIGESGraphWriter: IndependentIGESGraphWriting {
     public init() { allowsReportedPlacementProjection = false; allowsReportedGroupProjection = false }
     init(allowsReportedPlacementProjection: Bool, allowsReportedGroupProjection: Bool = false) { self.allowsReportedPlacementProjection = allowsReportedPlacementProjection; self.allowsReportedGroupProjection = allowsReportedGroupProjection }
     public func write(_ source: IndependentShapeSource, units: UnitSystem, tolerance: ModelingTolerance,
-                      producer: inout any IndependentIGESGeometryWriting, usage: inout IndependentShapeExchangeUsage) throws -> Data {
+                      producer: inout any IndependentIGESGeometryWriting, usage: IndependentShapeExchangeOwner, using execution: inout OriginalQueryExecution) throws -> Data {
+        try usage.requireExecution(execution)
         try units.validate(); try tolerance.validate()
         // FIXME(INCOMPLETE_IMPLEMENTATION): Public IGES graph export has no product-definition association carrier.
         // Preserve actual source owners through a legal property transport or an explicit reported loss policy before admission.
@@ -27,7 +28,7 @@ public struct DefaultIndependentIGESGraphWriter: IndependentIGESGraphWriting {
             throw ExchangePreservationError.emptyRetainedSource
         }
         for context in source.contexts {
-            try usage.charge(work: 1)
+            try usage.charge(work: 1, using: &execution)
             guard context.originalAngularSource == nil else {
                 throw IndependentShapeExchangeError.metadataLoss("Original context angular chain requires IGES property transport.")
             }
@@ -35,23 +36,31 @@ public struct DefaultIndependentIGESGraphWriter: IndependentIGESGraphWriting {
         let remainingRecords = usage.limits.maximumEntities - usage.consumedEntities
         let remainingWork = usage.limits.maximumIterations - usage.consumedWork
         guard remainingRecords > 0, remainingWork > 0 else { throw IndependentShapeExchangeError.resourceLimitExceeded("No IGES source-validation allowance.") }
-        let deadline = usage
-        let result = try DefaultIndependentShapeSourceValidator().validate(source, tolerance: tolerance,
-            limits: .init(maximumRecords: remainingRecords, maximumTextBytes: usage.limits.maximumBytes - usage.consumedBytes,
-                          maximumDepth: usage.limits.maximumNesting, maximumWork: remainingWork, maximumCurveSubdivisionDepth: usage.limits.maximumCurveSubdivisionDepth, maximumAlgebraicDepth: usage.limits.maximumAlgebraicDepth), check: { try deadline.check() })
-        try usage.charge(entities: result.consumedRecords, work: result.consumedWork, bytes: result.consumedTextBytes)
-        var builder = Builder(source: source, units: units, tolerance: tolerance, allowsReportedPlacementProjection: allowsReportedPlacementProjection, allowsReportedGroupProjection: allowsReportedGroupProjection, producer: producer, usage: usage)
-        defer { producer = builder.producer; usage = builder.usage }
-        return try builder.write()
+        _ = try DefaultIndependentShapeSourceValidator().validate(source, tolerance: tolerance,
+            limits: .init(maximumRecords: remainingRecords, maximumTextBytes: usage.limits.maximumBytes - usage.consumedSourceTextBytes,
+                          maximumDepth: usage.limits.maximumNesting, maximumWork: remainingWork, maximumCurveSubdivisionDepth: usage.limits.maximumCurveSubdivisionDepth, maximumAlgebraicDepth: usage.limits.maximumAlgebraicDepth), using: &execution)
+        var builder = Builder(source: source, units: units, tolerance: tolerance, allowsReportedPlacementProjection: allowsReportedPlacementProjection, allowsReportedGroupProjection: allowsReportedGroupProjection, producer: producer, usage: usage, execution: consume execution)
+        let result: Data
+        do {
+            result = try builder.write()
+        } catch {
+            producer = builder.producer
+            execution = consume builder.execution
+            throw error
+        }
+        producer = builder.producer
+        execution = consume builder.execution
+        return result
     }
-    private struct Builder {
+    private struct Builder: ~Copyable {
         let source: IndependentShapeSource
         let units: UnitSystem
         let tolerance: ModelingTolerance
         let allowsReportedPlacementProjection: Bool
         let allowsReportedGroupProjection: Bool
         var producer: any IndependentIGESGeometryWriting
-        var usage: IndependentShapeExchangeUsage
+        let usage: IndependentShapeExchangeOwner
+        var execution: OriginalQueryExecution
         var representations: [IndependentShapeRepresentationID: IndependentShapeRepresentation] = [:]
         var definitions: [IndependentShapeDefinitionID: IndependentShapeDefinition] = [:]
         var definitionByRepresentation: [IndependentShapeRepresentationID: IndependentShapeDefinitionID] = [:]
@@ -67,16 +76,16 @@ public struct DefaultIndependentIGESGraphWriter: IndependentIGESGraphWriting {
         mutating func write() throws -> Data {
             try preflight()
             for frame in source.frames {
-                let pointer = try producer.frame(frame, units: units, usage: &usage)
-                try usage.charge(entities: 1); wireFrames[frame.id] = pointer
+                let pointer = try producer.frame(frame, units: units, usage: usage, using: &execution)
+                try usage.charge(entities: 1, using: &execution); wireFrames[frame.id] = pointer
             }
             for item in source.items {
                 let entity: Int
                 switch item.geometry {
-                case .curve: entity = try producer.curve(item, source: source, units: units, usage: &usage)
-                case .surface: entity = try producer.surface(item, source: source, units: units, usage: &usage)
+                case .curve: entity = try producer.curve(item, source: source, units: units, usage: usage, using: &execution)
+                case .surface: entity = try producer.surface(item, source: source, units: units, usage: usage, using: &execution)
                 }
-                try usage.charge(entities: 1); wireItems[item.id] = entity
+                try usage.charge(entities: 1, using: &execution); wireItems[item.id] = entity
             }
             for definition in source.definitions { _ = try definitionEntity(definition.id, depth: 1) }
             for instance in source.instances { _ = try instanceEntity(instance.id, depth: 1) }
@@ -86,40 +95,40 @@ public struct DefaultIndependentIGESGraphWriter: IndependentIGESGraphWriting {
                 guard let groupPointer = wireGroups[group.id] else { throw invalid("Missing emitted original group.") }
                 for member in group.backPointerMembers {
                     let memberPointer = try reference(member, depth: 1)
-                    try producer.appendGroupBackPointer(groupPointer: groupPointer, memberPointer: memberPointer, usage: &usage)
+                    try producer.appendGroupBackPointer(groupPointer: groupPointer, memberPointer: memberPointer, usage: usage, using: &execution)
                 }
             }
-            return try producer.finish(units: units, usage: &usage)
+            return try producer.finish(units: units, usage: usage, using: &execution)
         }
         mutating func preflight() throws {
             // FIXME(INCOMPLETE_IMPLEMENTATION): Original STEP-normalized frame laws
             // have no legal IGES source carrier here. The public IGES graph writer
             // must preserve the raw ratios/defaults/operation sequence before success.
             for frame in source.frames {
-                try usage.charge(work: 1)
+                try usage.charge(work: 1, using: &execution)
                 guard frame.originalSTEPPlacement == nil else { throw loss("Original normalized STEP frame source is not retained by the IGES producer.") }
             }
             for instance in source.instances {
-                try usage.charge(work: 1)
+                try usage.charge(work: 1, using: &execution)
                 guard instance.originalSTEPPlacement == nil else { throw loss("Original normalized STEP target source is not retained by the IGES producer.") }
             }
-            try usage.charge(work: source.curvePositionFrames.count + source.surfacePositionFrames.count)
+            try usage.charge(work: source.curvePositionFrames.count + source.surfacePositionFrames.count, using: &execution)
             // FIXME(INCOMPLETE_IMPLEMENTATION): Independent public IGES export has no proven entity-identity carrier for retained STEP primitive AXIS2 positions.
             // Preserve the original shared position entity and label before these source associations can succeed; never emit an unrelated Type124 placeholder.
             for association in source.curvePositionFrames.values {
-                try usage.charge(work: source.frames.count)
+                try usage.charge(work: source.frames.count, using: &execution)
                 guard source.frames.first(where: { $0.id == association.frameID })?.originalIGES != nil else {
                     throw IndependentShapeExchangeError.metadataLoss("Original STEP primitive position identity has no faithful IGES transport.")
                 }
             }
             for association in source.surfacePositionFrames.values {
-                try usage.charge(work: source.frames.count)
+                try usage.charge(work: source.frames.count, using: &execution)
                 guard source.frames.first(where: { $0.id == association.frameID })?.originalIGES != nil else {
                     throw IndependentShapeExchangeError.metadataLoss("Original STEP surface position identity has no faithful IGES transport.")
                 }
             }
             for context in source.contexts {
-                try usage.charge(work: context.identifier.utf8.count + context.type.utf8.count + 1)
+                try usage.charge(work: context.identifier.utf8.count + context.type.utf8.count + 1, using: &execution)
                 // FIXME(INCOMPLETE_IMPLEMENTATION): Public independent IGES egress cannot retain separately named representation contexts.
                 // Prove a legal standard owner for distinct context identities/labels before several or named Native contexts succeed.
                 guard source.contexts.count == 1, context.identifier.isEmpty, context.type.isEmpty, context.units == units else {
@@ -129,10 +138,10 @@ public struct DefaultIndependentIGESGraphWriter: IndependentIGESGraphWriting {
             // IGES402 is a logical group, not a separately typed STEP geometric-set selection owner.
             guard source.geometricSets.isEmpty else { throw loss("IGES has no retained distinct geometric-set selection owner in this profile.") }
             for representation in source.representations {
-                try usage.charge(entities: 1, work: 1); representations[representation.id] = representation
+                try usage.charge(entities: 1, work: 1, using: &execution); representations[representation.id] = representation
             }
             for definition in source.definitions {
-                try usage.charge(entities: 2, work: 1)
+                try usage.charge(entities: 2, work: 1, using: &execution)
                 // FIXME(INCOMPLETE_IMPLEMENTATION): Public independent IGES export has no faithful separate explicit mapping-origin law transport yet.
                 // Retain its original frame, scope and inverse-origin semantics before accepting a nonnil originFrameID.
                 guard definition.originFrameID == nil else { throw unsupported("IGES explicit definition origin is not retained.") }
@@ -143,15 +152,15 @@ public struct DefaultIndependentIGESGraphWriter: IndependentIGESGraphWriting {
                 definitionByRepresentation[definition.representationID] = definition.id; definitions[definition.id] = definition
             }
             guard definitionByRepresentation.count == representations.count else { throw loss("A representation without a real IGES template definition is not retained.") }
-            for instance in source.instances { try usage.charge(entities: 1, work: 1); instances[instance.id] = instance }
+            for instance in source.instances { try usage.charge(entities: 1, work: 1, using: &execution); instances[instance.id] = instance }
             for group in source.groups {
-                try usage.charge(entities: 1, work: group.name.utf8.count + 1)
+                try usage.charge(entities: 1, work: group.name.utf8.count + 1, using: &execution)
                 // Form7 has a directory label and memberships, but no nullable description field.
                 guard group.description == nil || allowsReportedGroupProjection else { throw loss("IGES original group has no description transport without admitted information loss.") }
                 groups[group.id] = group
             }
             for item in source.items {
-                try usage.charge(work: item.name.utf8.count + 1)
+                try usage.charge(work: item.name.utf8.count + 1, using: &execution)
                 let name: String?
                 switch item.geometry { case .curve(let id, _): name = source.curveNames[id]; case .surface(let id): name = source.surfaceNames[id] }
                 guard let name, name.utf8.elementsEqual(item.name.utf8) else { throw loss("IGES directory label cannot retain distinct or absent basis/selection names.") }
@@ -160,32 +169,32 @@ public struct DefaultIndependentIGESGraphWriter: IndependentIGESGraphWriting {
         }
         mutating func validateRoots() throws {
             var incoming = Set<IndependentShapeReference>()
-            for representation in source.representations { for member in representation.members { try usage.charge(entities: 1, work: 1); incoming.insert(member) } }
+            for representation in source.representations { for member in representation.members { try usage.charge(entities: 1, work: 1, using: &execution); incoming.insert(member) } }
             for instance in source.instances {
                 guard let definition = definitions[instance.target] else { throw invalid("Missing actual IGES instance definition.") }
-                try usage.charge(entities: 1, work: 1); incoming.insert(.representation(definition.representationID))
+                try usage.charge(entities: 1, work: 1, using: &execution); incoming.insert(.representation(definition.representationID))
             }
-            for association in source.curvePositionFrames.values { try usage.charge(entities: 1, work: 1); incoming.insert(.frame(association.frameID)) }
-            for association in source.surfacePositionFrames.values { try usage.charge(entities: 1, work: 1); incoming.insert(.frame(association.frameID)) }
+            for association in source.curvePositionFrames.values { try usage.charge(entities: 1, work: 1, using: &execution); incoming.insert(.frame(association.frameID)) }
+            for association in source.surfacePositionFrames.values { try usage.charge(entities: 1, work: 1, using: &execution); incoming.insert(.frame(association.frameID)) }
             for instance in source.instances {
-                if let frameID = instance.originalIGES?.matrixFrameID { try usage.charge(entities: 1, work: 1); incoming.insert(.frame(frameID)) }
+                if let frameID = instance.originalIGES?.matrixFrameID { try usage.charge(entities: 1, work: 1, using: &execution); incoming.insert(.frame(frameID)) }
             }
             for definition in source.definitions {
-                if let frameID = definition.originalIGES?.definingFrameID { try usage.charge(entities: 1, work: 1); incoming.insert(.frame(frameID)) }
+                if let frameID = definition.originalIGES?.definingFrameID { try usage.charge(entities: 1, work: 1, using: &execution); incoming.insert(.frame(frameID)) }
             }
-            for group in source.groups { for member in group.members { try usage.charge(entities: 1, work: 1); incoming.insert(member) } }
-            try usage.charge(entities: source.roots.count, work: source.roots.count)
+            for group in source.groups { for member in group.members { try usage.charge(entities: 1, work: 1, using: &execution); incoming.insert(member) } }
+            try usage.charge(entities: source.roots.count, work: source.roots.count, using: &execution)
             let roots = Set(source.roots)
             func check(_ reference: IndependentShapeReference) throws {
                 // FIXME(INCOMPLETE_IMPLEMENTATION): Independent public IGES export has no retained additional-root selector owner.
                 // Retain a root also selected by another association before accepting extra Native root metadata.
                 guard roots.contains(reference) == !incoming.contains(reference) else { throw IndependentShapeExchangeError.metadataLoss("Explicit source roots differ from IGES association roots.") }
             }
-            for frame in source.frames { try usage.charge(work: 1); try check(.frame(frame.id)) }
-            for item in source.items { try usage.charge(work: 1); try check(.item(item.id)) }
-            for representation in source.representations { try usage.charge(work: 1); try check(.representation(representation.id)) }
-            for instance in source.instances { try usage.charge(work: 1); try check(.instance(instance.id)) }
-            for group in source.groups { try usage.charge(work: 1); try check(.group(group.id)) }
+            for frame in source.frames { try usage.charge(work: 1, using: &execution); try check(.frame(frame.id)) }
+            for item in source.items { try usage.charge(work: 1, using: &execution); try check(.item(item.id)) }
+            for representation in source.representations { try usage.charge(work: 1, using: &execution); try check(.representation(representation.id)) }
+            for instance in source.instances { try usage.charge(work: 1, using: &execution); try check(.instance(instance.id)) }
+            for group in source.groups { try usage.charge(work: 1, using: &execution); try check(.group(group.id)) }
         }
         mutating func definitionEntity(_ id: IndependentShapeDefinitionID, depth: Int) throws -> Int {
             try checkDepth(depth)
@@ -194,7 +203,7 @@ public struct DefaultIndependentIGESGraphWriter: IndependentIGESGraphWriting {
             var members: [String] = []
             var childDepth: Int?
             for member in representation.members {
-                try usage.charge(entities: 1, work: 1)
+                try usage.charge(entities: 1, work: 1, using: &execution)
                 members.append(String(try reference(member, depth: depth + 1)))
                 if let actual = try descendantTemplateDepth(member, depth: depth + 1) {
                     childDepth = max(childDepth ?? actual, actual)
@@ -205,25 +214,25 @@ public struct DefaultIndependentIGESGraphWriter: IndependentIGESGraphWriting {
                 let next = childDepth.addingReportingOverflow(1)
                 guard !next.overflow else { throw resource("IGES template depth overflow.") }; actualDepth = next.partialValue
             } else { actualDepth = 0 }
-            let name = try producer.string(representation.name, usage: &usage)
-            try usage.charge(entities: members.count + 4, work: members.count + 4)
+            let name = try producer.string(representation.name, usage: usage, using: &execution)
+            try usage.charge(entities: members.count + 4, work: members.count + 4, using: &execution)
             let parameters = ["308", String(actualDepth), name, String(members.count)] + members
             let definingPointer: Int
             if let original = definition.originalIGES, !original.adjustments.isEmpty {
                 guard allowsReportedPlacementProjection else { throw loss("Original IGES definition adjustment order/shared frame requires an admitted placement projection.") }
                 let matrix = original.definingFrameID.flatMap { id in source.frames.first(where: { $0.id == id })?.originalIGES }
-                try usage.charge(work: source.frames.count)
+                try usage.charge(work: source.frames.count, using: &execution)
                 let word = try original.originalOperationWord(frame: matrix, tolerance: tolerance,
-                    maximumAlgebraicDepth: usage.limits.maximumAlgebraicDepth, usage: &usage)
-                definingPointer = try appendExactMatrix(word, label: "", unit: units.length, usage: &usage, producer: &producer)
+                    maximumAlgebraicDepth: usage.limits.maximumAlgebraicDepth, using: &execution)
+                definingPointer = try appendExactMatrix(word, label: "", unit: units.length, usage: usage, using: &execution, producer: &producer)
             } else if let frameID = definition.originalIGES?.definingFrameID {
                 guard let pointer = wireFrames[frameID] else { throw invalid("Missing original IGES definition forward frame.") }
                 definingPointer = pointer
             } else { definingPointer = 0 }
             let entity = try producer.appendEntity(type: 308, form: 0,
                 label: definition.originalIGES?.directoryLabel ?? "", transformationPointer: definingPointer,
-                parameters: parameters, usage: &usage)
-            try usage.charge(entities: 2); wireDefinitions[id] = entity; definitionDepths[id] = actualDepth
+                parameters: parameters, usage: usage, using: &execution)
+            try usage.charge(entities: 2, using: &execution); wireDefinitions[id] = entity; definitionDepths[id] = actualDepth
             return entity
         }
         mutating func instanceEntity(_ id: IndependentShapeInstanceID, depth: Int) throws -> Int {
@@ -235,7 +244,7 @@ public struct DefaultIndependentIGESGraphWriter: IndependentIGESGraphWriting {
             if let original = instance.originalIGES {
                 guard original.lengthUnit == units.length else { throw loss("Original IGES instance unit must retain the actual global unit.") }
                 let matrixFrame = original.matrixFrameID.flatMap { id in source.frames.first(where: { $0.id == id }) }
-                try usage.charge(work: source.frames.count)
+                try usage.charge(work: source.frames.count, using: &execution)
                 let matrix = matrixFrame?.originalIGES
                 let matrixPointer: Int
                 if let frameID = original.matrixFrameID {
@@ -250,31 +259,31 @@ public struct DefaultIndependentIGESGraphWriter: IndependentIGESGraphWriting {
                 if !original.adjustments.isEmpty {
                     guard allowsReportedPlacementProjection else { throw loss("Original IGES instance adjustment order requires an admitted placement projection.") }
                     let word = try original.originalOperationWord(matrix: matrix, tolerance: tolerance,
-                        maximumAlgebraicDepth: usage.limits.maximumAlgebraicDepth, usage: &usage)
-                    let prepared = try word.prepared(usage: &usage)
-                    let coefficients = try prepared.exactRationalCoefficients(usage: &usage)
+                        maximumAlgebraicDepth: usage.limits.maximumAlgebraicDepth, using: &execution)
+                    let prepared = try word.prepared(usage: &execution)
+                    let coefficients = try prepared.exactRationalCoefficients(usage: &execution)
                     let matrixCoefficients: [ExactRationalCoefficient]?
                     if let matrix {
                         let word = try matrix.originalOperationWord(tolerance: tolerance,
-                            maximumAlgebraicDepth: usage.limits.maximumAlgebraicDepth, usage: &usage)
-                        matrixCoefficients = try word.prepared(usage: &usage).exactRationalCoefficients(usage: &usage)
+                            maximumAlgebraicDepth: usage.limits.maximumAlgebraicDepth, using: &execution)
+                        matrixCoefficients = try word.prepared(usage: &execution).exactRationalCoefficients(usage: &execution)
                     } else { matrixCoefficients = nil }
-                    let gain = try OriginalIGESScalarSource.lengthGain(units.length, usage: &usage)
-                    try usage.charge(bytes: 3 * MemoryLayout<String>.stride)
+                    let gain = try OriginalIGESScalarSource.lengthGain(units.length, using: &execution)
+                    try usage.charge(bytes: 3 * MemoryLayout<String>.stride, using: &execution)
                     translation = []
                     for row in 0..<3 {
                         let originalTranslation = matrixCoefficients?[row * 4 + 3] ?? .zero
-                        let parameter = try coefficients[row * 4 + 3].subtracting(originalTranslation, usage: &usage).divided(by: gain, usage: &usage)
-                        translation.append(try OriginalIGESDecimalWriting.literal(parameter, usage: &usage))
+                        let parameter = try coefficients[row * 4 + 3].subtracting(originalTranslation, usage: &execution).divided(by: gain, usage: &execution)
+                        translation.append(try OriginalIGESDecimalWriting.literal(parameter, usage: usage, using: &execution))
                     }
                 }
-                try usage.charge(bytes: 6 * MemoryLayout<String>.stride, work: 6)
+                try usage.charge(work: 6, bytes: 6 * MemoryLayout<String>.stride, using: &execution)
                 entity = try producer.appendEntity(type: 408, form: 0, label: instance.name, transformationPointer: matrixPointer,
-                    parameters: ["408", String(definition), translation[0], translation[1], translation[2], original.scale], usage: &usage)
+                    parameters: ["408", String(definition), translation[0], translation[1], translation[2], original.scale], usage: usage, using: &execution)
             } else {
-                entity = try producer.instancePlacement(instance, definitionPointer: definition, units: units, usage: &usage)
+                entity = try producer.instancePlacement(instance, definitionPointer: definition, units: units, usage: usage, using: &execution)
             }
-            try usage.charge(entities: 1); wireInstances[id] = entity
+            try usage.charge(entities: 1, using: &execution); wireInstances[id] = entity
             return entity
         }
         mutating func groupEntity(_ id: IndependentShapeGroupID, depth: Int) throws -> Int {
@@ -285,8 +294,8 @@ public struct DefaultIndependentIGESGraphWriter: IndependentIGESGraphWriting {
                 throw loss("IGES group projection requires admitted loss of original STEP GROUP-owner sharing.")
             }
             var members: [String] = []
-            for member in group.members { try usage.charge(entities: 1, work: 1); members.append(String(try reference(member, depth: depth + 1))) }
-            try usage.charge(entities: members.count + 2, work: members.count + 2)
+            for member in group.members { try usage.charge(entities: 1, work: 1, using: &execution); members.append(String(try reference(member, depth: depth + 1))) }
+            try usage.charge(entities: members.count + 2, work: members.count + 2, using: &execution)
             let parameters = ["402", String(members.count)] + members
             let form: Int
             switch group.family {
@@ -295,8 +304,8 @@ public struct DefaultIndependentIGESGraphWriter: IndependentIGESGraphWriting {
             case .ordered: form = 15
             case .orderedWithBackPointers: form = 14
             }
-            let entity = try producer.appendEntity(type: 402, form: form, label: group.name, transformationPointer: 0, parameters: parameters, usage: &usage)
-            try usage.charge(entities: 1); wireGroups[id] = entity
+            let entity = try producer.appendEntity(type: 402, form: form, label: group.name, transformationPointer: 0, parameters: parameters, usage: usage, using: &execution)
+            try usage.charge(entities: 1, using: &execution); wireGroups[id] = entity
             return entity
         }
         mutating func reference(_ value: IndependentShapeReference, depth: Int) throws -> Int {
@@ -331,7 +340,7 @@ public struct DefaultIndependentIGESGraphWriter: IndependentIGESGraphWriting {
             }
         }
         mutating func checkDepth(_ depth: Int) throws {
-            try usage.charge(work: 1)
+            try usage.charge(work: 1, using: &execution)
             guard depth <= usage.limits.maximumNesting else { throw resource("IGES graph writer nesting ceiling.") }
         }
         func invalid(_ message: String) -> IndependentShapeExchangeError { .invalidAssociation(message) }
@@ -342,15 +351,15 @@ public struct DefaultIndependentIGESGraphWriter: IndependentIGESGraphWriting {
 }
 
 private func appendExactMatrix(_ word: OriginalAffineOperationWord, label: String, unit: LengthUnit,
-    usage: inout IndependentShapeExchangeUsage, producer: inout any IndependentIGESGeometryWriting) throws -> Int {
-    let coefficients = try word.prepared(usage: &usage).exactRationalCoefficients(usage: &usage)
-    let gain = try OriginalIGESScalarSource.lengthGain(unit, usage: &usage)
-    try usage.charge(bytes: 13 * MemoryLayout<String>.stride, work: 13)
+    usage: IndependentShapeExchangeOwner, using execution: inout OriginalQueryExecution, producer: inout any IndependentIGESGeometryWriting) throws -> Int {
+    let coefficients = try word.prepared(usage: &execution).exactRationalCoefficients(usage: &execution)
+    let gain = try OriginalIGESScalarSource.lengthGain(unit, using: &execution)
+    try usage.charge(work: 13, bytes: 13 * MemoryLayout<String>.stride, using: &execution)
     var parameters = ["124"]; parameters.reserveCapacity(13)
     for index in coefficients.indices {
-        let value = index % 4 == 3 ? try coefficients[index].divided(by: gain, usage: &usage) : coefficients[index]
-        parameters.append(try OriginalIGESDecimalWriting.literal(value, usage: &usage))
+        let value = index % 4 == 3 ? try coefficients[index].divided(by: gain, usage: &execution) : coefficients[index]
+        parameters.append(try OriginalIGESDecimalWriting.literal(value, usage: usage, using: &execution))
     }
     return try producer.appendEntity(type: 124, form: word.orientationSign > 0 ? 0 : 1,
-        label: label, transformationPointer: 0, parameters: parameters, usage: &usage)
+        label: label, transformationPointer: 0, parameters: parameters, usage: usage, using: &execution)
 }

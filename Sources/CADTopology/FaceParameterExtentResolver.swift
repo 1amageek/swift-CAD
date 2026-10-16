@@ -24,33 +24,36 @@ package struct FaceParameterExtentResolver: FaceParameterBoundsResolving {
     private let resolution = 1.0e-7
     private let maximumCellCount = 65_536
     private let maximumSubdivisionDepth: Int
-    private let consumeWork: (@Sendable (Int) throws -> Void)?
-    private let consumeStorage: (@Sendable (Int) throws -> Void)?
     private let remainingSourceDepth: Int
     private let maximumAlgebraicDepth: Int
 
     package init(maximumSubdivisionDepth: Int = 48,
-        consumeWork: (@Sendable (Int) throws -> Void)? = nil,
-        consumeStorage: (@Sendable (Int) throws -> Void)? = nil,
         remainingSourceDepth: Int = 16, maximumAlgebraicDepth: Int = 32) {
         self.maximumSubdivisionDepth = min(48, maximumSubdivisionDepth)
-        self.consumeWork = consumeWork
-        self.consumeStorage = consumeStorage
         self.remainingSourceDepth = min(16, remainingSourceDepth)
         self.maximumAlgebraicDepth = maximumAlgebraicDepth
+    }
+
+    package func bounds(for faceID: FaceID, in model: BRepModel, tolerance: ModelingTolerance) throws -> SurfaceParameterBox {
+        let budget = try OriginalQueryBudget()
+        var execution = OriginalQueryExecution(budget: budget,
+            limits: try .init(maximumValueDepth: maximumAlgebraicDepth,
+                maximumCoefficientDepth: maximumAlgebraicDepth,
+                remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth))
+        return try bounds(for: faceID, in: model, tolerance: tolerance, using: &execution)
     }
 
     package func bounds(
         for faceID: FaceID,
         in model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> SurfaceParameterBox {
         try tolerance.validate()
         guard maximumSubdivisionDepth >= 0, remainingSourceDepth > 0,
             (0...32).contains(maximumAlgebraicDepth) else {
             throw failure(.invalidInput, tolerance, "Face extent requires a nonnegative proof depth.")
         }
-        try consumeWork?(0)
+        try execution.consumeWork(1)
         guard let face = model.faces[faceID],
             let surface = model.geometry.surfaces[face.surfaceID] else {
             throw failure(.missingReference, tolerance, "Face parameter extent references a missing face or support.")
@@ -58,8 +61,7 @@ package struct FaceParameterExtentResolver: FaceParameterBoundsResolving {
         // An untrimmed face spans its support's whole domain, which the default resolver reads.
         guard face.loops.isEmpty == false else {
             return try DefaultFaceParameterBoundsResolver(maximumSubdivisionDepth: maximumSubdivisionDepth,
-                consumeWork: consumeWork, consumeStorage: consumeStorage,
-                remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth).bounds(for: faceID, in: model, tolerance: tolerance)
+                        remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth).bounds(for: faceID, in: model, tolerance: tolerance, using: &execution)
         }
         var curves: [SurfaceParameterCurve] = []
         for loopID in face.loops {
@@ -67,26 +69,25 @@ package struct FaceParameterExtentResolver: FaceParameterBoundsResolving {
                 throw failure(.missingReference, tolerance, "Face parameter extent references a missing loop.")
             }
             for coedge in loop.coedges {
-                try consumeWork?(0)
+                try execution.consumeWork(1)
                 guard let pcurve = coedge.surfaceParameterCurve else {
                     throw failure(.topologyFailure, tolerance, "A bounded face requires an exact pcurve on every coedge.")
                 }
                 guard curves.count < maximumCellCount else {
                     throw failure(.resourceLimitExceeded, tolerance, "Face extent exceeded its original curve/cell admission.")
                 }
-                try OriginalParameterQueryStorage.append(pcurve, to: &curves,
-                    consumeStorage: consumeStorage)
+                try OriginalParameterQueryStorage.append(pcurve, to: &curves, using: &execution)
             }
         }
         var inner = Extent()
         var cells: [Cell] = []
         for (index, curve) in curves.enumerated() {
-            try consumeWork?(0)
-            inner.includeWitness(try witnessBox(curve, on: surface, at: 0, depth: 0, tolerance: tolerance))
-            try consumeWork?(0)
-            inner.includeWitness(try witnessBox(curve, on: surface, at: 1, depth: 0, tolerance: tolerance))
-            let original = try cell(index, curve, on: surface, 0, 1, depth: 0, tolerance)
-            try OriginalParameterQueryStorage.append(original, to: &cells, consumeStorage: consumeStorage)
+            try execution.consumeWork(1)
+            inner.includeWitness(try witnessBox(curve, on: surface, at: 0, depth: 0, tolerance: tolerance, using: &execution))
+            try execution.consumeWork(1)
+            inner.includeWitness(try witnessBox(curve, on: surface, at: 1, depth: 0, tolerance: tolerance, using: &execution))
+            let original = try cell(index, curve, on: surface, 0, 1, depth: 0, tolerance, using: &execution)
+            try OriginalParameterQueryStorage.append(original, to: &cells, using: &execution)
         }
         var cellCount = cells.count
         while true {
@@ -96,11 +97,10 @@ package struct FaceParameterExtentResolver: FaceParameterBoundsResolving {
             var refined: [Cell] = []
             var didSplit = false
             for cell in cells {
-                try consumeWork?(cell.depth)
+                try execution.visitGeometricCell(depth: cell.depth)
                 guard cell.u.upper > inner.u.upper + slackU || cell.u.lower < inner.u.lower - slackU
                         || cell.v.upper > inner.v.upper + slackV || cell.v.lower < inner.v.lower - slackV else {
-                    try OriginalParameterQueryStorage.append(cell, to: &refined,
-                        consumeStorage: consumeStorage)
+                    try OriginalParameterQueryStorage.append(cell, to: &refined, using: &execution)
                     continue
                 }
                 let middle = cell.lower + (cell.upper - cell.lower) * 0.5
@@ -110,13 +110,13 @@ package struct FaceParameterExtentResolver: FaceParameterBoundsResolving {
                         "A face's trimming curves could not be enclosed within \(resolution) of their extent.")
                 }
                 let curve = curves[cell.curve]
-                try consumeWork?(cell.depth + 1)
+                try execution.visitGeometricCell(depth: cell.depth + 1)
                 inner.includeWitness(try witnessBox(curve, on: surface, at: middle,
-                    depth: cell.depth + 1, tolerance: tolerance))
-                let left = try self.cell(cell.curve, curve, on: surface, cell.lower, middle, depth: cell.depth + 1, tolerance)
-                try OriginalParameterQueryStorage.append(left, to: &refined, consumeStorage: consumeStorage)
-                let right = try self.cell(cell.curve, curve, on: surface, middle, cell.upper, depth: cell.depth + 1, tolerance)
-                try OriginalParameterQueryStorage.append(right, to: &refined, consumeStorage: consumeStorage)
+                    depth: cell.depth + 1, tolerance: tolerance, using: &execution))
+                let left = try self.cell(cell.curve, curve, on: surface, cell.lower, middle, depth: cell.depth + 1, tolerance, using: &execution)
+                try OriginalParameterQueryStorage.append(left, to: &refined, using: &execution)
+                let right = try self.cell(cell.curve, curve, on: surface, middle, cell.upper, depth: cell.depth + 1, tolerance, using: &execution)
+                try OriginalParameterQueryStorage.append(right, to: &refined, using: &execution)
                 didSplit = true
             }
             cells = refined
@@ -124,7 +124,7 @@ package struct FaceParameterExtentResolver: FaceParameterBoundsResolving {
         }
         var outer = Extent()
         for cell in cells {
-            try consumeWork?(cell.depth)
+            try execution.visitGeometricCell(depth: cell.depth)
             outer.include(u: cell.u, v: cell.v)
         }
         guard outer.u.upper > outer.u.lower, outer.v.upper > outer.v.lower else {
@@ -137,13 +137,12 @@ package struct FaceParameterExtentResolver: FaceParameterBoundsResolving {
     }
 
     private func witnessBox(_ curve: SurfaceParameterCurve, on surface: Surface3D, at fraction: Double,
-        depth: Int, tolerance: ModelingTolerance) throws -> SurfaceParameterBox {
+        depth: Int, tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution) throws -> SurfaceParameterBox {
         try curve.originalParameterBounds(on: surface, over: ScalarInterval(lower: fraction, upper: fraction),
             tolerance: tolerance, maximumSpanCount: maximumCellCount,
             maximumSubdivisionDepth: min(32, maximumSubdivisionDepth - depth),
             remainingSourceDepth: remainingSourceDepth,
-            consumeWork: { try consumeWork?(depth) }, consumeStorage: consumeStorage,
-            maximumAlgebraicDepth: maximumAlgebraicDepth)
+            maximumAlgebraicDepth: maximumAlgebraicDepth, using: &execution)
     }
 
     /// The certified enclosure of `curve` over the fractions from `lower` to `upper`, as one box.
@@ -154,27 +153,25 @@ package struct FaceParameterExtentResolver: FaceParameterBoundsResolving {
         _ lower: Double,
         _ upper: Double,
         depth: Int,
-        _ tolerance: ModelingTolerance
+        _ tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution
     ) throws -> Cell {
-        try consumeWork?(depth)
+        try execution.visitGeometricCell(depth: depth)
         let enclosures = try CertifiedSurfaceParameterCurveEncloser(
             maximumSubdivisionDepth: maximumSubdivisionDepth - depth,
-            consumeWork: { try consumeWork?(depth + $0) }, consumeStorage: consumeStorage,
-            maximumAlgebraicDepth: maximumAlgebraicDepth, remainingSourceDepth: remainingSourceDepth
+                maximumAlgebraicDepth: maximumAlgebraicDepth, remainingSourceDepth: remainingSourceDepth
         ).enclosures(
             for: curve,
             on: surface,
             fromNormalizedFraction: lower,
             toNormalizedFraction: upper,
             maximumWidth: .greatestFiniteMagnitude,
-            tolerance: tolerance
-        )
+            tolerance: tolerance, using: &execution)
         guard enclosures.isEmpty == false else {
             throw failure(.topologyFailure, tolerance, "A face pcurve produced no certified parameter enclosure.")
         }
         var extent = Extent()
         for enclosure in enclosures {
-            try consumeWork?(depth)
+            try execution.visitGeometricCell(depth: depth)
             extent.include(u: enclosure.u, v: enclosure.v)
         }
         return Cell(

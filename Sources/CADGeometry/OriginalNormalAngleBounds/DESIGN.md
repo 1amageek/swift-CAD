@@ -50,3 +50,13 @@ determined by actual representability; there is no separate arbitrary ceiling.
 After the source phase verify zero/two chord endpoints, tiny physical angles,
 binary pi and pi upper-bound behavior, conservative roundtrip admission and
 lowered caller budgets through the public boundary continuity evaluator.
+
+## Direct Execution Admission
+
+Source arithmetic borrows `A: ExactScalarAdmission & ~Copyable`; composed query
+operations borrow `inout OriginalQueryExecution`. Source validation, native span
+validation, structural comparisons and exact refinement receive that same admission.
+The [execution owner](../OriginalQueryExecution/DESIGN.md) defines cumulative
+work and actual byte accounting, independent depth axes, cancellation and lexical
+proof scopes. Retained geometry and relation evidence stay immutable; no callback
+adapter, copied counter or second allowance supplies arithmetic authority.

@@ -15,8 +15,8 @@ extension ExactRealCellDomain: ExactRealCellProducing {
    } }
    let levels = try projection(source,&a)
    guard limits.maximumStoredCells > 0 else { throw ExactRealCellFailure.cellLimit }
-   try a.visitCell(axis: .value, depth: a.depth.value)
-   let origin = ExactRealCellSample(field:context.field,coordinates:[],depth:a.depth)
+   try a.visitCell(axis: .value, depth: (try a.depth).value)
+   let origin = ExactRealCellSample(field:context.field,coordinates:[],depth:(try a.depth))
    try ExactCellAccess.storage(1,ExactRealCellRecord<Base>.self,&a)
    var records = [ExactRealCellRecord(sample:origin,parent:-1,branch:0,dimension:0,projectionSigns:[],signs:[],stack:-1)]
    var stacks: [ExactRealCellStack<Base>] = []
@@ -135,11 +135,11 @@ extension ExactRealCellDomain: ExactRealCellProducing {
       }
       if try !inside(value,field:childField,domain:source.domains[level.axis],&a) { continue }
       guard records.count < limits.maximumStoredCells else { throw ExactRealCellFailure.cellLimit }
-      try a.visitCell(axis: .value, depth: a.depth.value)
+      try a.visitCell(axis: .value, depth: (try a.depth).value)
       try ExactCellAccess.storage(ExactCellAccess.add(prefix.coordinates.count,1),Field.Value.self,&a)
       var coordinates: [Field.Value] = []; coordinates.reserveCapacity(prefix.coordinates.count+1)
       for earlier in prefix.coordinates { coordinates.append(try childField.importing(earlier,using:&a)) }; coordinates.append(value)
-      let sample = ExactRealCellSample(field:childField,coordinates:coordinates,depth:a.depth)
+      let sample = ExactRealCellSample(field:childField,coordinates:coordinates,depth:(try a.depth))
       try ExactCellAccess.storage(level.laws.count,ExactSign.self,&a)
       var projectionSigns: [ExactSign] = []
       for law in level.laws { projectionSigns.append(try childField.sign(of:evaluate(law,at:sample,&a),using:&a)) }
@@ -166,9 +166,9 @@ extension ExactRealCellDomain: ExactRealCellProducing {
    return try partition(source,levels:levels,records:records,stacks:stacks,leaves:leaves,&a)
   }
  }
- func partition(_ source: ExactRealCellSource<Base>, levels: [ExactRealCellProjectionLevel<Base>], records: [ExactRealCellRecord<Base>],
-  stacks: [ExactRealCellStack<Base>], leaves: [Int], _ a: inout ExactCellBorrowedAdmission) throws -> ExactRealCellPartition<Base> {
+ func partition<A: ExactScalarAdmission & ~Copyable>(_ source: ExactRealCellSource<Base>, levels: [ExactRealCellProjectionLevel<Base>], records: [ExactRealCellRecord<Base>],
+  stacks: [ExactRealCellStack<Base>], leaves: [Int], _ a: inout A) throws -> ExactRealCellPartition<Base> {
   try ExactCellAccess.owner((ExactRealCellSource<Base>,[ExactRealCellProjectionLevel<Base>],[ExactRealCellRecord<Base>],[ExactRealCellStack<Base>],[Int],ExactScalarDepth).self,&a)
-  return .init(owner:.init(source:source,levels:levels,records:records,stacks:stacks,leaves:leaves,depth:a.depth))
+  return .init(owner:.init(source:source,levels:levels,records:records,stacks:stacks,leaves:leaves,depth:(try a.depth)))
  }
 }

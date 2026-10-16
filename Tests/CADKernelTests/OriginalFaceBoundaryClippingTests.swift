@@ -8,25 +8,18 @@ import Testing
 @Suite("Original face-issued Native parameter clipping", .serialized)
 struct OriginalFaceBoundaryClippingTests {
     private let tolerance = ModelingTolerance.standard
-    private func usage(work: Int = 80_000_000, words: Int = 268_435_456, cells: Int = 262_144,
-        coefficientCells: Int = 262_144) -> OriginalRelationUsage {
-        let workOwner = Mutex(work), storageOwner = Mutex(words), cellOwner = Mutex(cells), coefficientOwner = Mutex(coefficientCells)
-        return .init(consumeWork: { count in try workOwner.withLock { value in
-            guard count <= value else { throw GeometryConversionError.resourceLimitExceeded("Boundary caller work exhausted.") }
-            value -= count
-        } }, retainStorage: { count in try storageOwner.withLock { value in
-            guard count <= value else { throw GeometryConversionError.resourceLimitExceeded("Boundary caller storage exhausted.") }
-            value -= count
-        } }, visitCell: { _ in try cellOwner.withLock { value in
-            guard value > 0 else { throw GeometryConversionError.resourceLimitExceeded("Boundary caller cells exhausted.") }
-            value -= 1
-        } }, visitCoefficientCell: { _ in try coefficientOwner.withLock { value in
-            guard value > 0 else { throw GeometryConversionError.resourceLimitExceeded("Boundary caller coefficient cells exhausted.") }
-            value -= 1
-        } })
+    private func usage(work: Int = 80_000_000, words: Int = 268_435_456,
+        cells: Int = 262_144) throws -> OriginalQueryBudget {
+        try OriginalQueryBudget(workLimit: work,
+            storageByteLimit: exactScalarPayloadBytes(count: words, of: UInt32.self), cellLimit: cells)
+    }
+    private func execution(_ budget: OriginalQueryBudget? = nil) throws -> OriginalQueryExecution {
+        OriginalQueryExecution(budget: try budget ?? usage(),
+            limits: try .init(maximumValueDepth: 32, maximumCoefficientDepth: 32,
+                remainingSourceDepth: 16, maximumSubdivisionDepth: 32))
     }
     private func q(_ value: Double) throws -> ExactRationalCoefficient {
-        var owner = usage(); return try .originalDouble(value, usage: &owner)
+        var owner = try execution(); return try .originalDouble(value, usage: &owner)
     }
     private func plane(z: Double = 0) -> BSplineSurface3D {
         .init(uDegree: 1, vDegree: 1, uKnots: [0,0,1,1], vKnots: [0,0,1,1], controlPoints: [
@@ -81,22 +74,24 @@ struct OriginalFaceBoundaryClippingTests {
         return (try ValidatedBRepModel(model,tolerance: tolerance,validationLevel: .exact), face.id)
     }
     private func clip(_ raw: OriginalNativeCurveSurfaceRelation, _ original: (ValidatedBRepModel, FaceID),
-        selection: OriginalNativeBoundaryDomain.Selection = .closed, budget: OriginalRelationUsage? = nil,
+        selection: OriginalNativeBoundaryDomain.Selection = .closed, budget: OriginalQueryBudget? = nil,
         maximumDepth: Int = 32) throws -> OriginalFaceClippedParameters {
-        try DefaultOriginalFaceBoundaryClipper().clip(.curveSurface(raw),to: original.1,in: original.0,
-            selection: selection, maximumDepth: maximumDepth,maximumCoefficientDepth: 0,usage: budget ?? usage())
+        var directExecution = try execution(budget)
+        return try DefaultOriginalFaceBoundaryClipper().clip(.curveSurface(raw),to: original.1,in: original.0,
+            selection: selection, maximumDepth: maximumDepth,maximumCoefficientDepth: 0,using: &directExecution)
     }
     private func contains(_ result: OriginalFaceClippedParameters, _ t: Double, v: Double = 0.5) throws -> Bool {
-        try result.parameters.contains(rationalParameters: [q(t),q(t),q(v)],
-            maximumDepth: 32,maximumCoefficientDepth: 0,usage: usage())
+        var directExecution = try execution()
+        return try result.parameters.contains(rationalParameters: [q(t),q(t),q(v)],
+            maximumDepth: 32,maximumCoefficientDepth: 0,using: &directExecution)
     }
     private func expectFailure(_ label: String = "original boundary evidence", _ body: () throws -> Void) throws {
         do { try body(); Issue.record("Incomplete \(label) was published as success.") }
-        catch let error as KernelError {
-            #expect(error.code == .invalidInput || error.code == .intersectionFailure || error.code == .resourceLimitExceeded)
-        }
-        catch let error as GeometryConversionError {
-            guard case .resourceLimitExceeded = error else { throw error }
+        catch {
+            let published = OriginalQueryFailure.published(error,
+                context: .init(operation: .boundary, entry: .admitted, stage: .publication), tolerance: tolerance)
+            guard let classified = OriginalQueryFailure.classification(of: published) else { throw error }
+            #expect(classified.code == .invalidInput || classified.code == .intersectionFailure || classified.code == .resourceLimitExceeded)
         }
     }
 
@@ -163,6 +158,7 @@ struct OriginalFaceBoundaryClippingTests {
 
     @Test(.timeLimit(.minutes(3)))
     func bothSSISurfaceRolesBindActualOriginalUVSources() throws {
+        var directExecution = try execution()
         let first = plane()
         let second = BSplineSurface3D(uDegree: 1,vDegree: 1,uKnots: [0,0,1,1],vKnots: [0,0,1,1],controlPoints: [
             [.init(x: 0,y: 0.5,z: -0.5),.init(x: 1,y: 0.5,z: -0.5)],
@@ -172,20 +168,22 @@ struct OriginalFaceBoundaryClippingTests {
         let one = try face(surface: first,loops: [(.outer,rectangle(0.25,0.75))])
         let two = try face(surface: second,loops: [(.outer,rectangle(0.25,0.75))])
         let clipper = DefaultOriginalFaceBoundaryClipper()
-        let a = try clipper.clip(.firstSurface(raw),to: one.1,in: one.0,maximumDepth: 32,maximumCoefficientDepth: 0,usage: usage())
-        let b = try clipper.clip(.secondSurface(raw),to: two.1,in: two.0,maximumDepth: 32,maximumCoefficientDepth: 0,usage: usage())
+        let a = try clipper.clip(.firstSurface(raw),to: one.1,in: one.0,maximumDepth: 32,maximumCoefficientDepth: 0,using: &directExecution)
+        let b = try clipper.clip(.secondSurface(raw),to: two.1,in: two.0,maximumDepth: 32,maximumCoefficientDepth: 0,using: &directExecution)
         #expect(a.parameters.components.count == 1 && b.parameters.components.count == 1)
         #expect(try a.parameters.contains(rationalParameters: [q(0.25),q(0.5),q(0.25),q(0.5)],
-            maximumDepth: 32,maximumCoefficientDepth: 0,usage: usage()))
+            maximumDepth: 32,maximumCoefficientDepth: 0,using: &directExecution))
         #expect(try !b.parameters.contains(rationalParameters: [q(0.125),q(0.5),q(0.125),q(0.5)],
-            maximumDepth: 32,maximumCoefficientDepth: 0,usage: usage()))
+            maximumDepth: 32,maximumCoefficientDepth: 0,using: &directExecution))
         try expectFailure { _ = try clipper.clip(.firstSurface(raw),to: two.1,in: two.0,
-            maximumDepth: 32,maximumCoefficientDepth: 0,usage: usage()) }
+            maximumDepth: 32,maximumCoefficientDepth: 0,using: &directExecution) }
     }
 
     @Test(.timeLimit(.minutes(3)))
     func commonSSIJoinClippingRetainsBothSurfaceRolesAndOriginalSeamOwner() throws {
+        var directExecution = try execution()
         func released() throws -> (OriginalFaceClippedParameters, OriginalFaceClippedParameters) {
+            var directExecution = try execution()
             let first = BSplineSurface3D(uDegree: 1,vDegree: 1,uKnots: [0,0,1,2,2],vKnots: [0,0,1,1],controlPoints: [
                 [.init(x: 0,y: 0,z: 0),.init(x: 1,y: 0,z: 0),.init(x: 2,y: 0,z: 0)],
                 [.init(x: 0,y: 1,z: 0),.init(x: 1,y: 1,z: 0),.init(x: 2,y: 1,z: 0)]])
@@ -201,9 +199,9 @@ struct OriginalFaceBoundaryClippingTests {
             let two = try face(surface: second,loops: [(.outer,rectangle(0.5,1.5))])
             let clipper = DefaultOriginalFaceBoundaryClipper()
             return (try clipper.clip(.firstSurface(raw),to: one.1,in: one.0,
-                maximumDepth: 32,maximumCoefficientDepth: 0,usage: usage()),
+                maximumDepth: 32,maximumCoefficientDepth: 0,using: &directExecution),
                 try clipper.clip(.secondSurface(raw),to: two.1,in: two.0,
-                    maximumDepth: 32,maximumCoefficientDepth: 0,usage: usage()))
+                    maximumDepth: 32,maximumCoefficientDepth: 0,using: &directExecution))
         }
         // Only clipped owners escape: both raw receipt and original face input
         // scopes have ended before the following membership and owner queries.
@@ -220,14 +218,14 @@ struct OriginalFaceBoundaryClippingTests {
             #expect(!result.parameters.attachments.isEmpty)
             for u in [0.5,1,1.5] {
                 #expect(try result.parameters.contains(rationalParameters: [q(u),q(0.5),q(u),q(0.5)],
-                    maximumDepth: 32,maximumCoefficientDepth: 0,usage: usage()))
+                    maximumDepth: 32,maximumCoefficientDepth: 0,using: &directExecution))
             }
             for u in [0.25,1.75] {
                 #expect(try !result.parameters.contains(rationalParameters: [q(u),q(0.5),q(u),q(0.5)],
-                    maximumDepth: 32,maximumCoefficientDepth: 0,usage: usage()))
+                    maximumDepth: 32,maximumCoefficientDepth: 0,using: &directExecution))
             }
             #expect(try !result.parameters.contains(rationalParameters: [q(1),q(0.625),q(1),q(0.5)],
-                maximumDepth: 32,maximumCoefficientDepth: 0,usage: usage()))
+                maximumDepth: 32,maximumCoefficientDepth: 0,using: &directExecution))
             var seamOwners = 0
             for cell in result.parameters.cells {
                 guard case .surfaceSurface(let identifier) = cell.originalRawCell else {
@@ -236,26 +234,26 @@ struct OriginalFaceBoundaryClippingTests {
                 let originalCell = try raw.cell(at: identifier.ordinal)
                 #expect(originalCell.identifier == identifier)
                 if try result.parameters.contains(rationalParameters: seam,inCell: cell.identifier,
-                    maximumDepth: 32,maximumCoefficientDepth: 0,usage: usage()) {
+                    maximumDepth: 32,maximumCoefficientDepth: 0,using: &directExecution) {
                     seamOwners += 1
                     #expect(originalCell.sourceChartIndex == 1)
                     let chart = try raw.sourceChart(at: originalCell.sourceChartIndex)
                     #expect(chart.firstUSpanIndex == 2 && chart.secondUSpanIndex == 1)
                     #expect(try chart.domains[0].lower == q(1) && chart.domains[0].upper == q(2))
-                    var admission = usage()
+                    var admission = try execution()
                     #expect(try raw.contains(parameters: seam,inCell: identifier,maximumAlgebraicDepth: 32,usage: &admission))
                 }
             }
             #expect(seamOwners == 1)
             let sample = try #require(result.parameters.cells.first?.sample.first)
-            let enclosure = try sample.enclosed(maximumDepth: 32,maximumCoefficientDepth: 0,usage: usage())
+            let enclosure = try sample.enclosed(maximumDepth: 32,maximumCoefficientDepth: 0,usage: &directExecution)
             let refined = try enclosure.refined(maximumWidth: q(1.0 / 1024),
-                maximumDepth: 32,maximumCoefficientDepth: 0,usage: usage())
+                maximumDepth: 32,maximumCoefficientDepth: 0,usage: &directExecution)
             #expect(refined.sourceDepth >= enclosure.sourceDepth)
         }
         #expect(throws: GeometryConversionError.self) {
             _ = try first.parameters.contains(rationalParameters: seam,inCell: second.parameters.cells[0].identifier,
-                maximumDepth: 32,maximumCoefficientDepth: 0,usage: usage())
+                maximumDepth: 32,maximumCoefficientDepth: 0,using: &directExecution)
         }
     }
 
@@ -303,6 +301,7 @@ struct OriginalFaceBoundaryClippingTests {
 
     @Test(.timeLimit(.minutes(3)))
     func originalOwnersSurviveSourceReleaseAndRejectForeignCells() throws {
+        var directExecution = try execution()
         func released() throws -> OriginalFaceClippedParameters {
             let source = try raw(), original = try face(surface: source.surface,loops: [(.outer,rectangle(0.25,0.75))])
             return try clip(source,original)
@@ -311,23 +310,24 @@ struct OriginalFaceBoundaryClippingTests {
         #expect(try contains(first,0.5))
         #expect(first.original.model.faces[first.faceID] != nil)
         let sample = try #require(first.parameters.cells.first?.sample.first)
-        let enclosure = try sample.enclosed(maximumDepth: 32,maximumCoefficientDepth: 0,usage: usage())
-        let refined = try enclosure.refined(maximumWidth: q(1.0 / 1024),maximumDepth: 32,maximumCoefficientDepth: 0,usage: usage())
+        let enclosure = try sample.enclosed(maximumDepth: 32,maximumCoefficientDepth: 0,usage: &directExecution)
+        let refined = try enclosure.refined(maximumWidth: q(1.0 / 1024),maximumDepth: 32,maximumCoefficientDepth: 0,usage: &directExecution)
         #expect(refined.sourceDepth >= enclosure.sourceDepth)
         #expect(throws: GeometryConversionError.self) {
             _ = try first.parameters.contains(rationalParameters: [q(0.5),q(0.5),q(0.5)],
-                inCell: second.parameters.cells[0].identifier,maximumDepth: 32,maximumCoefficientDepth: 0,usage: usage())
+                inCell: second.parameters.cells[0].identifier,maximumDepth: 32,maximumCoefficientDepth: 0,using: &directExecution)
         }
     }
 
     @Test(.timeLimit(.minutes(3)))
     func originalIrrationalBoundaryCrossingRetainsTupleAndIndependentDepth() throws {
+        var directExecution = try execution()
         let linearSource = try raw()
         let linearFace = try face(surface: linearSource.surface,loops: [(.outer,rectangle(0.25,0.75))])
         let linear = try clip(linearSource,linearFace,maximumDepth: 0)
         #expect(linear.parameters.components.count == 1 && linear.parameters.components[0].dimension == 1)
         #expect(try linear.parameters.contains(rationalParameters: [q(0.5),q(0.5),q(0.5)],
-            maximumDepth: 0,maximumCoefficientDepth: 0,usage: usage()))
+            maximumDepth: 0,maximumCoefficientDepth: 0,using: &directExecution))
 
         // These original Bernstein coefficients give u=t and v=t^2 exactly.
         // The authored v=3/4 boundary requires the irreducible section 4*t^2-3=0,
@@ -348,16 +348,16 @@ struct OriginalFaceBoundaryClippingTests {
         var retainedIrrationalEndpoint = false
         for cell in selected.parameters.cells where cell.dimension == 0 && !cell.boundarySpans.isEmpty {
             let coordinate = try #require(cell.sample.first)
-            let originalEnclosure = try coordinate.enclosed(maximumDepth: 32,maximumCoefficientDepth: 0,usage: usage())
+            let originalEnclosure = try coordinate.enclosed(maximumDepth: 32,maximumCoefficientDepth: 0,usage: &directExecution)
             let enclosure = try originalEnclosure.refined(maximumWidth: q(1.0 / 1024),
-                maximumDepth: 32,maximumCoefficientDepth: 0,usage: usage())
+                maximumDepth: 32,maximumCoefficientDepth: 0,usage: &directExecution)
             if enclosure.lower == enclosure.upper { continue }
             #expect(enclosure.sourceDepth > 0 && enclosure.coefficientAdmissionDepth == 0)
-            var arithmetic = usage()
+            var arithmetic = try execution()
             #expect(try q(0.75).subtracting(enclosure.lower,usage: &arithmetic).isNegative)
             #expect(try enclosure.upper.subtracting(q(1),usage: &arithmetic).isNegative)
             #expect(throws: KernelError.self) {
-                _ = try coordinate.enclosed(maximumDepth: 0,maximumCoefficientDepth: 0,usage: usage())
+                _ = try coordinate.enclosed(maximumDepth: 0,maximumCoefficientDepth: 0,usage: &directExecution)
             }
             guard case .curveSurface(let owner) = cell.originalRawCell else {
                 Issue.record("The irrational trim endpoint lost its original CS owner."); continue
@@ -370,34 +370,36 @@ struct OriginalFaceBoundaryClippingTests {
 
     @Test(.timeLimit(.minutes(3)))
     func independentRefusalAndFinalNormalReturnCancellationRemainFailures() async throws {
+        var directExecution = try execution()
         let raw = try raw(), original = try face(surface: raw.surface,loops: [(.outer,rectangle(0.25,0.75))])
-        try expectFailure("work=0 boundary evidence") { _ = try clip(raw,original,budget: usage(work: 0)) }
-        try expectFailure("storage=0 boundary evidence") { _ = try clip(raw,original,budget: usage(words: 0)) }
-        try expectFailure("cells=0 boundary evidence") { _ = try clip(raw,original,budget: usage(cells: 0)) }
+        try expectFailure("work=0 boundary evidence") { _ = try clip(raw,original,budget: try usage(work: 0)) }
+        try expectFailure("storage=0 boundary evidence") { _ = try clip(raw,original,budget: try usage(words: 0)) }
+        try expectFailure("cells=0 boundary evidence") { _ = try clip(raw,original,budget: try usage(cells: 0)) }
         try expectFailure("maximumCoefficientDepth=-1 boundary evidence") { _ = try DefaultOriginalFaceBoundaryClipper().clip(.curveSurface(raw),
-            to: original.1,in: original.0,maximumDepth: 32,maximumCoefficientDepth: -1,usage: usage()) }
+            to: original.1,in: original.0,maximumDepth: 32,maximumCoefficientDepth: -1,using: &directExecution) }
         let entry = Task { () throws -> Bool in
             withUnsafeCurrentTask { $0?.cancel() }
             do { _ = try clip(raw,original); return false }
             catch is CancellationError { return true }
+            catch ExactScalarFailure.cancelled { return true }
         }
         #expect(try await entry.value)
         let empty = try face(surface: raw.surface,loops: [(.outer,rectangle(vLower: 0.75,vUpper: 1))])
         for target in [original,empty] {
             let words = Mutex(0)
-            let measured = OriginalRelationUsage(consumeWork: { _ in },retainStorage: { _ in words.withLock { $0 += 1 } },
-                visitCell: { _ in },visitCoefficientCell: { _ in })
+            let measured = try OriginalQueryBudget(consumeStorageBytes: { _ in words.withLock { $0 += 1 } })
             _ = try clip(raw,target,budget: measured)
             let last = words.withLock { $0 }
             #expect(last > 0)
             let operation = Task { () throws -> Bool in
                 let calls = Mutex(0)
-                let cancelled = OriginalRelationUsage(consumeWork: { _ in },retainStorage: { _ in
+                let cancelled = try OriginalQueryBudget(consumeStorageBytes: { _ in
                     let final = calls.withLock { count in count += 1; return count == last }
                     if final { withUnsafeCurrentTask { $0?.cancel() } }
-                },visitCell: { _ in },visitCoefficientCell: { _ in })
+                })
                 do { _ = try clip(raw,target,budget: cancelled); return false }
                 catch is CancellationError { return true }
+                catch ExactScalarFailure.cancelled { return true }
             }
             #expect(try await operation.value)
         }

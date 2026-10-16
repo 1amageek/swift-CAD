@@ -8,11 +8,11 @@ package struct OriginalRationalSurfaceHomogeneous: Sendable {
     package let vSpanIndex: Int
     package let homogeneous: [ExactBivariatePolynomial]
 
-    package init<B: RationalAlgebraAdmitting>(source: BSplineSurface3D,
+    package init<B: ExactScalarAdmission & ~Copyable>(source: BSplineSurface3D,
         uSpanIndex: Int, vSpanIndex: Int, tolerance: ModelingTolerance,
         usage: inout B) throws {
-        try source.validate(tolerance: tolerance, consumeWork: { try usage.consumeExactWork(1) })
-        try usage.consumeExactWork(1)
+        try source.validate(tolerance: tolerance, using: &usage)
+        try usage.consumeWork(1)
         guard !source.isUPeriodic, !source.isVPeriodic,
             uSpanIndex >= source.uDegree, uSpanIndex < source.uControlPointCount,
             vSpanIndex >= source.vDegree, vSpanIndex < source.vControlPointCount,
@@ -27,17 +27,17 @@ package struct OriginalRationalSurfaceHomogeneous: Sendable {
             vSpanIndex: vSpanIndex, uTranslation: 0, vTranslation: 0, usage: &usage)
     }
 
-    package init<B: RationalAlgebraAdmitting>(source: BSplineSurface3D,
+    package init<B: ExactScalarAdmission & ~Copyable>(source: BSplineSurface3D,
         native: PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan,
         domain: SurfaceParameterBox, tolerance: ModelingTolerance, usage: inout B) throws {
         try native.validate(on: source, over: domain, tolerance: tolerance,
-            consumeWork: { try usage.consumeExactWork(1) })
+            using: &usage)
         try self.init(validatedSource: source, domain: domain, uSpanIndex: native.uSpanIndex,
             vSpanIndex: native.vSpanIndex, uTranslation: native.originalUTranslation,
             vTranslation: native.originalVTranslation, usage: &usage)
     }
 
-    private init<B: RationalAlgebraAdmitting>(validatedSource source: BSplineSurface3D,
+    private init<B: ExactScalarAdmission & ~Copyable>(validatedSource source: BSplineSurface3D,
         domain: SurfaceParameterBox, uSpanIndex: Int, vSpanIndex: Int,
         uTranslation: Double, vTranslation: Double, usage: inout B) throws {
         try RationalAlgebraStorage.retain(1, of: Self.self, usage: &usage)

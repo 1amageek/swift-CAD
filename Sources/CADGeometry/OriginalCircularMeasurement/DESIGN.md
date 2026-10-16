@@ -19,7 +19,7 @@ paper precision, dimension layout and current scene/evaluation freshness.
 | [CADGeometry](../DESIGN.md) | parent | original curve laws | Supplies common source families | No shared enum change |
 | [OriginalAffineOperationWord](../OriginalAffineOperationWord/DESIGN.md) | depends on | exact retained action and field | Transports original circle plane | Do not flatten source matrices |
 | [RationalBivariateAlgebra](../RationalBivariateAlgebra/DESIGN.md) | depends on | exact Gram/sign/square root | Proves circularity and radius | Independent coefficient depth |
-| [OriginalGeometrySourceValidation](../OriginalGeometrySourceValidation/DESIGN.md) | depends on | bounded source preparation | Admits singleton original jets | Same callbacks, no display replay |
+| [OriginalGeometrySourceValidation](../OriginalGeometrySourceValidation/DESIGN.md) | depends on | bounded source preparation | Admits singleton original jets | Same exclusive execution, no display replay |
 
 ## Architecture
 ```text
@@ -41,8 +41,10 @@ Boundary position is the original full curve law at the supplied native station;
 no chord midpoint or computed analytic phase is substituted.
 
 ## State, Ownership, and Lifecycle
-Inputs and receipt are immutable Sendable. Scoped algebra adapters hold the same
-caller work/optional-byte callbacks; every typed buffer is admitted before creation.
+Inputs and receipt are immutable Sendable. Both protocol operations require the
+original exclusive execution. Their source descent, exact scalar work, typed
+buffer capacities, preparation and final publication debit that same owner.
+Every typed buffer is admitted before creation.
 Outer image groups use explicitly grown typed capacity, paid before reservation.
 Physical radius admission compares the exact squared radius with the original
 physical threshold squared; an outward lower endpoint is never that predicate.
@@ -54,9 +56,18 @@ Invalid source/station, noncircular image, nonfinite bounds, cancellation and ca
 source/geometric/algebra exhaustion fail before receipt publication. Source descent
 and geometric queries use separate explicit capabilities. Exact coefficient work
 reports structural depth zero; no algebra depth is charged as source nesting.
-Legacy nil byte policy remains nil; it is not a fabricated byte receipt.
+The original global and lexical byte policies remain binding; no child ledger
+or byte-policy substitution is created. The explicit source, geometric and
+algebraic capabilities intersect the actual execution limits independently.
+Ordinary convenience methods create one execution and invoke the direct core.
 
 ## Verification and Change Impact
+
+[OriginalCircularDirectExecutionTests](../../../Tests/CADGeometryTests/OriginalCircularDirectExecutionTests.swift)
+checks the actual authored circle, retained source after input replacement,
+center/radius/boundary enclosures, cumulative independent query costs, inner byte
+refusal, malformed selection and cancellation. Its runtime execution remains a
+required integration gate; source authorship is not success evidence.
 Deferred until SOURCE87: public Native radial dimension/export paths for circle,
 arc, reflected/nonuniform plane-preserving scale, parameter chains, an actual
 ellipse refusal, tiny raw radius under large legal scale, source changes, same

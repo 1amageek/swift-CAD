@@ -6,6 +6,12 @@ public protocol BRepVolumeMomentMeasuring: Sendable {
         options: BRepVolumeMomentOptions) throws -> BRepVolumeMoments
     func moments(of bodyID: BodyID, in model: BRepModel, options: BRepVolumeMomentOptions,
         tolerance: ModelingTolerance) throws -> BRepVolumeMoments
+    func moments(of bodyID: BodyID, in validatedModel: ValidatedBRepModel,
+        options: BRepVolumeMomentOptions,
+        using execution: inout OriginalQueryExecution) throws -> BRepVolumeMoments
+    func moments(of bodyID: BodyID, in model: BRepModel, options: BRepVolumeMomentOptions,
+        tolerance: ModelingTolerance,
+        using execution: inout OriginalQueryExecution) throws -> BRepVolumeMoments
 }
 
 public extension BRepVolumeMomentMeasuring {

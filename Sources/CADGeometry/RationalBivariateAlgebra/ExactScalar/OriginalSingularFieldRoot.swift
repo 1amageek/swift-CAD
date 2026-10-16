@@ -11,16 +11,20 @@ package struct OriginalSingularFieldRoot: Sendable {
         case parameter
         case coefficient(maximumDepth: Int)
 
+        var axis: ExactScalarRootAxis {
+            switch self { case .parameter: .value; case .coefficient: .coefficient }
+        }
+
         func limit(_ parameterLimit: Int) -> Int {
             switch self { case .parameter: parameterLimit; case .coefficient(let limit): limit }
         }
         func inheritedDepth(of context: OriginalSingularFieldContext) -> Int {
             switch self { case .parameter: context.depth; case .coefficient: context.coefficientDepth }
         }
-        func visit<B: RationalAlgebraAdmitting>(_ depth: Int, usage: inout B) throws {
+        func visit<B: ExactScalarAdmission & ~Copyable>(_ depth: Int, usage: inout B) throws {
             switch self {
-            case .parameter: try usage.visitExactCell(depth: depth)
-            case .coefficient: try usage.visitCoefficientCell(depth: depth)
+            case .parameter: try usage.visitCell(axis: .value, depth: depth)
+            case .coefficient: try usage.visitCell(axis: .coefficient, depth: depth)
             }
         }
     }
@@ -76,7 +80,7 @@ package struct OriginalSingularFieldRoot: Sendable {
     }
 
     /// Count this original law only in an admitted subset of its retained isolation.
-    package func countOriginalRoots<B: RationalAlgebraAdmitting>(in bounds: Isolation,
+    package func countOriginalRoots<B: ExactScalarAdmission & ~Copyable>(in bounds: Isolation,
         maximumDepth: Int, usage: inout B) throws -> Int {
         let maximumDepth = admissionDomain.limit(maximumDepth)
         guard bounds.depth >= isolation.depth, bounds.depth <= maximumDepth,
@@ -97,7 +101,7 @@ package struct OriginalSingularFieldRoot: Sendable {
         return count
     }
 
-    package func value<B: RationalAlgebraAdmitting>(maximumDepth: Int, usage: inout B) throws -> OriginalSingularFieldElement {
+    package func value<B: ExactScalarAdmission & ~Copyable>(maximumDepth: Int, usage: inout B) throws -> OriginalSingularFieldElement {
         let maximumDepth = admissionDomain.limit(maximumDepth)
         guard isolation.depth <= maximumDepth else { throw exactScalarBackendFailure("Original scalar value exceeds its retained admission domain.") }
         try admissionDomain.visit(isolation.depth, usage: &usage)
@@ -112,7 +116,7 @@ package struct OriginalSingularFieldRoot: Sendable {
         return OriginalSingularFieldElement(context: context, storage: .extended(numerator, denominator))
     }
 
-    package func sign<B: RationalAlgebraAdmitting>(of expression: OriginalSingularFieldPolynomial,
+    package func sign<B: ExactScalarAdmission & ~Copyable>(of expression: OriginalSingularFieldPolynomial,
         maximumDepth: Int, usage: inout B) throws -> ExactAlgebraicRealRoot.Sign {
         let maximumDepth = admissionDomain.limit(maximumDepth)
         guard isolation.depth <= maximumDepth else { throw exactScalarBackendFailure("Original scalar sign exceeds retained admission depth.") }
@@ -136,7 +140,7 @@ package struct OriginalSingularFieldRoot: Sendable {
         let roots = try OriginalSingularFieldSturm(expression, maximumDepth: maximumDepth, usage: &usage)
         var retained = self
         while true {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             let first = try roots.sign(expression, at: retained.isolation.lower, maximumDepth: maximumDepth, usage: &usage)
             let second = try roots.sign(expression, at: retained.isolation.upper, maximumDepth: maximumDepth, usage: &usage)
             let noZero = try roots.count(lower: retained.isolation.lower, upper: retained.isolation.upper,
@@ -150,7 +154,7 @@ package struct OriginalSingularFieldRoot: Sendable {
         }
     }
 
-    private func linearSign<B: RationalAlgebraAdmitting>(_ expression: OriginalSingularFieldPolynomial,
+    private func linearSign<B: ExactScalarAdmission & ~Copyable>(_ expression: OriginalSingularFieldPolynomial,
         maximumDepth: Int, usage: inout B) throws -> ExactAlgebraicRealRoot.Sign {
         if polynomial.degree == 1 {
             // Both values belong to the retained parent field. Cross multiplication
@@ -199,7 +203,7 @@ package struct OriginalSingularFieldRoot: Sendable {
         return left == 0 ? orientation : reversed
     }
 
-    package func refinedOnce<B: RationalAlgebraAdmitting>(maximumDepth: Int, forSeparation: Bool = false, usage: inout B) throws -> Self {
+    package func refinedOnce<B: ExactScalarAdmission & ~Copyable>(maximumDepth: Int, forSeparation: Bool = false, usage: inout B) throws -> Self {
         let maximumDepth = admissionDomain.limit(maximumDepth)
         let bounds = isolation
         if try bounds.upper.subtracting(bounds.lower, usage: &usage).isZero { return self }
@@ -234,7 +238,7 @@ package struct OriginalSingularFieldRoot: Sendable {
             excludesLower: true, excludesUpper: bounds.excludesUpper, depth: depth), admissionDomain: admissionDomain, retainedSturm: sequence, retainedRationalRoot: retainedRationalRoot)
     }
 
-    package func refined<B: RationalAlgebraAdmitting>(maximumWidth: ExactRationalCoefficient,
+    package func refined<B: ExactScalarAdmission & ~Copyable>(maximumWidth: ExactRationalCoefficient,
         maximumDepth: Int, usage: inout B) throws -> Self {
         let maximumDepth = admissionDomain.limit(maximumDepth)
         guard maximumWidth.isPositive, maximumDepth >= isolation.depth else {
@@ -248,7 +252,7 @@ package struct OriginalSingularFieldRoot: Sendable {
         return retained
     }
 
-    package static func allRealRoots<B: RationalAlgebraAdmitting>(_ original: OriginalSingularFieldPolynomial,
+    package static func allRealRoots<B: ExactScalarAdmission & ~Copyable>(_ original: OriginalSingularFieldPolynomial,
         inheritedDepth: Int, maximumDepth: Int, admissionDomain: AdmissionDomain = .parameter,
         usage: inout B) throws -> [Self] {
         let maximumDepth = admissionDomain.limit(maximumDepth)
@@ -259,7 +263,7 @@ package struct OriginalSingularFieldRoot: Sendable {
         guard let lead = source.coefficients.last else { throw exactScalarBackendFailure("Original tangent polynomial lost its leading coefficient.") }
         var bound = ExactRationalCoefficient.one
         while true {
-            try usage.consumeExactWork(1)
+            try usage.consumeWork(1)
             bound = try bound.multiplied(by: .natural(2, usage: &usage), usage: &usage)
             let margin = try OriginalSingularFieldElement.constant(bound.subtracting(.one, usage: &usage),
                 in: source.context, maximumDepth: maximumDepth, usage: &usage)

@@ -17,7 +17,7 @@ extension NativeSurfaceSurfaceCommonCoverage {
         let finalUpper: [Bool]
         let excludedByUpperBoundary: Bool
     }
-    package static func prepare<B: RationalAlgebraAdmitting>(charts: [NativeSurfaceSurfaceSourceChart],
+    package static func prepare<B: ExactScalarAdmission & ~Copyable>(charts: [NativeSurfaceSurfaceSourceChart],
         nativeDomains: [OriginalRationalParameterDomain], requestedDomains: [OriginalRationalParameterDomain], effectiveDomains: [OriginalRationalParameterDomain]?,
         maximumComponentCount: Int, maximumDepth: Int, tolerance: ModelingTolerance,
         usage: inout B) throws -> Self {
@@ -39,14 +39,14 @@ extension NativeSurfaceSurfaceCommonCoverage {
                 rationalAlgebraCount(sourceZeroSet?.consequences.count ?? 0, sourceCornerZeroSet?.consequences.count ?? 0))
             try RationalAlgebraStorage.retain(equationCount, of: ExactIntersectionPolynomial.self, usage: &usage)
             var chartEquations: [ExactIntersectionPolynomial] = []; chartEquations.reserveCapacity(equationCount)
-            try usage.consumeExactWork(guarded.normalizedEquations.count)
+            try usage.consumeWork(guarded.normalizedEquations.count)
             chartEquations.append(contentsOf: guarded.normalizedEquations)
             if let sourceZeroSet {
-                try usage.consumeExactWork(sourceZeroSet.consequences.count)
+                try usage.consumeWork(sourceZeroSet.consequences.count)
                 chartEquations.append(contentsOf: sourceZeroSet.consequences)
             }
             if let sourceCornerZeroSet {
-                try usage.consumeExactWork(sourceCornerZeroSet.consequences.count)
+                try usage.consumeWork(sourceCornerZeroSet.consequences.count)
                 chartEquations.append(contentsOf: sourceCornerZeroSet.consequences)
             }
             let ideal = try ExactIntersectionIdeal.prepare(equations: chartEquations, variableCount: 4, usage: &usage)
@@ -113,7 +113,7 @@ extension NativeSurfaceSurfaceCommonCoverage {
             for axis in 0..<3 {
                 if let corner = binding.sourceCornerZeroSet, corner.equationIndex == axis {
                     for factor in corner.consequences.indices {
-                        try usage.consumeExactWork(2)
+                        try usage.consumeWork(2)
                         instructions.append(.sign(polynomial: binding.cornerStart + factor, .zero)); instructions.append(.and)
                     }
                 } else {
@@ -141,13 +141,13 @@ extension NativeSurfaceSurfaceCommonCoverage {
             }
             polynomials.append(contentsOf: binding.guardedRankWitnesses.normalizedEquations)
             if let corner = binding.sourceCornerZeroSet {
-                try usage.consumeExactWork(corner.consequences.count)
+                try usage.consumeWork(corner.consequences.count)
                 polynomials.append(contentsOf: corner.consequences)
             }
             instructions.append(.or)
         }
         try RationalAlgebraStorage.retain(lawCount, of: Bool.self, usage: &usage)
-        try usage.consumeExactWork(lawCount)
+        try usage.consumeWork(lawCount)
         var boundedZeroEquations = Array(repeating: false, count: lawCount)
         for binding in bindings {
             try intersectionAlgebraStep(&usage)
@@ -226,14 +226,14 @@ extension NativeSurfaceSurfaceCommonCoverage {
         if !finite { witnesses.removeAll(keepingCapacity: true); necessary.removeAll(keepingCapacity: true) }
         let commonNecessary = try commonNecessaryEquations(bindings: bindings, usage: &usage)
         let commonNecessaryStart = necessary.count
-        try usage.consumeExactWork(commonNecessary.equations.count)
+        try usage.consumeWork(commonNecessary.equations.count)
         necessary.append(contentsOf: commonNecessary.equations)
         let necessaryIdeal = try ExactIntersectionIdeal.prepare(equations: necessary, variableCount: 4, usage: &usage)
         try RationalAlgebraStorage.retain(issued.count, of: Int.self, usage: &usage)
         try RationalAlgebraStorage.retain(issued.count, of: OriginalPolynomialPredicate.Sign.self, usage: &usage)
         try RationalAlgebraStorage.retain(lawCount, of: OriginalPolynomialPredicate.Sign.self, usage: &usage)
         try RationalAlgebraStorage.retain(issued.count, of: ExactIntersectionPolynomial.self, usage: &usage)
-        try usage.consumeExactWork(try rationalAlgebraCount(rationalAlgebraCount(issued.count, 2, multiply: true), lawCount))
+        try usage.consumeWork(try rationalAlgebraCount(rationalAlgebraCount(issued.count, 2, multiply: true), lawCount))
         var issuedToPhysical = Array(repeating: -1, count: issued.count)
         var issuedFixedSigns = Array(repeating: OriginalPolynomialPredicate.Sign.zero, count: issued.count)
         var fixedSigns = Array(repeating: OriginalPolynomialPredicate.Sign.zero, count: lawCount)
@@ -350,7 +350,7 @@ extension NativeSurfaceSurfaceCommonCoverage {
         try CurrentTaskCancellationChecker().checkCancellation()
         return result
     }
-    private static func commonNecessaryEquations<B: RationalAlgebraAdmitting>(bindings: [Binding],
+    private static func commonNecessaryEquations<B: ExactScalarAdmission & ~Copyable>(bindings: [Binding],
         usage: inout B) throws -> (equations: [ExactIntersectionPolynomial], witnesses: [[Int]]) {
         try RationalAlgebraStorage.retain(5, of: ExactIntersectionPolynomial.self, usage: &usage)
         try RationalAlgebraStorage.retain(5, of: [Int].self, usage: &usage)
@@ -384,7 +384,7 @@ extension NativeSurfaceSurfaceCommonCoverage {
             }
             if duplicate { continue }
             try RationalAlgebraStorage.retain(bindings.count, of: Int.self, usage: &usage)
-            try usage.consumeExactWork(bindings.count)
+            try usage.consumeWork(bindings.count)
             var row = Array(repeating: -1, count: bindings.count)
             var common = true
             for index in bindings.indices {

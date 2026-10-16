@@ -1,7 +1,10 @@
 #if hasFeature(Embedded)
 /// Structural diagnostics for Core-owned errors when runtime reflection is unavailable.
 /// This presentation does not classify failures or change their associated values.
+@usableFromInline
 enum KernelDomainErrorPresentation {
+    @usableFromInline
+    @_alwaysEmitIntoClient
     static func message(for error: Error) -> String {
         switch error {
         case let value as SchemaError: schema(value)
@@ -24,7 +27,8 @@ enum KernelDomainErrorPresentation {
         }
     }
 
-    private static func sourceEncoding(_ value: PortableSourceEncodingError) -> String {
+    @usableFromInline
+    static func sourceEncoding(_ value: PortableSourceEncodingError) -> String {
         switch value {
         case .invalidLimits: "PortableSourceEncodingError.invalidLimits"
         case let .resourceLimitExceeded(message):
@@ -34,9 +38,11 @@ enum KernelDomainErrorPresentation {
         }
     }
 
-    private static func quoted(_ value: String) -> String { "\"" + value + "\"" }
+    @usableFromInline
+    static func quoted(_ value: String) -> String { "\"" + value + "\"" }
 
-    private static func schema(_ value: SchemaError) -> String {
+    @usableFromInline
+    static func schema(_ value: SchemaError) -> String {
         switch value {
         case let .unsupportedVersion(version):
             "SchemaError.unsupportedVersion(major: \(version.major), minor: \(version.minor), patch: \(version.patch))"
@@ -48,7 +54,8 @@ enum KernelDomainErrorPresentation {
         }
     }
 
-    private static func unit(_ value: UnitError) -> String {
+    @usableFromInline
+    static func unit(_ value: UnitError) -> String {
         switch value {
         case let .incompatibleQuantity(operation, lhs, rhs):
             "UnitError.incompatibleQuantity(operation: \(quoted(operation)), lhs: \(lhs.rawValue), rhs: \(rhs.rawValue))"
@@ -60,7 +67,8 @@ enum KernelDomainErrorPresentation {
         }
     }
 
-    private static func parameter(_ value: ParameterError) -> String {
+    @usableFromInline
+    static func parameter(_ value: ParameterError) -> String {
         switch value {
         case let .invalidName(name): "ParameterError.invalidName(\(quoted(name)))"
         case let .duplicateName(name): "ParameterError.duplicateName(\(quoted(name)))"
@@ -75,7 +83,8 @@ enum KernelDomainErrorPresentation {
         }
     }
 
-    private static func geometry(_ value: GeometryError) -> String {
+    @usableFromInline
+    static func geometry(_ value: GeometryError) -> String {
         switch value {
         case let .invalidCoordinate(number): "GeometryError.invalidCoordinate(\(number))"
         case let .invalidVectorLength(number): "GeometryError.invalidVectorLength(\(number))"
@@ -90,7 +99,8 @@ enum KernelDomainErrorPresentation {
         }
     }
 
-    private static func sketch(_ value: SketchError) -> String {
+    @usableFromInline
+    static func sketch(_ value: SketchError) -> String {
         switch value {
         case let .unsupportedEntity(text): "SketchError.unsupportedEntity(\(quoted(text)))"
         case let .unsupportedProfile(text): "SketchError.unsupportedProfile(\(quoted(text)))"
@@ -103,7 +113,8 @@ enum KernelDomainErrorPresentation {
         }
     }
 
-    private static func feature(_ value: FeatureEvaluationError) -> String {
+    @usableFromInline
+    static func feature(_ value: FeatureEvaluationError) -> String {
         switch value {
         case let .invalidGraph(text): "FeatureEvaluationError.invalidGraph(\(quoted(text)))"
         case let .missingInput(text): "FeatureEvaluationError.missingInput(\(quoted(text)))"
@@ -115,7 +126,8 @@ enum KernelDomainErrorPresentation {
         }
     }
 
-    private static func cache(_ value: CacheValidationError) -> String {
+    @usableFromInline
+    static func cache(_ value: CacheValidationError) -> String {
         switch value {
         case .missingBRepCache: "CacheValidationError.missingBRepCache"
         case let .staleBRepCache(text): "CacheValidationError.staleBRepCache(\(quoted(text)))"
@@ -128,7 +140,8 @@ enum KernelDomainErrorPresentation {
         }
     }
 
-    private static func topology(_ value: TopologyError) -> String {
+    @usableFromInline
+    static func topology(_ value: TopologyError) -> String {
         switch value {
         case let .missingReference(text): "TopologyError.missingReference(\(quoted(text)))"
         case let .duplicateTopologyReference(text): "TopologyError.duplicateTopologyReference(\(quoted(text)))"
@@ -146,20 +159,23 @@ enum KernelDomainErrorPresentation {
         }
     }
 
-    private static func material(_ value: MaterialError) -> String {
+    @usableFromInline
+    static func material(_ value: MaterialError) -> String {
         switch value {
         case let .valueOutOfRange(field, number): "MaterialError.valueOutOfRange(field: \(quoted(field)), value: \(number))"
         }
     }
 
-    private static func purpose(_ value: MeshArtifactPurposeError) -> String {
+    @usableFromInline
+    static func purpose(_ value: MeshArtifactPurposeError) -> String {
         switch value {
         case .emptyPurpose: "MeshArtifactPurposeError.emptyPurpose"
         case let .whitespaceInPurpose(text): "MeshArtifactPurposeError.whitespaceInPurpose(\(quoted(text)))"
         }
     }
 
-    private static func tessellation(_ value: TessellationError) -> String {
+    @usableFromInline
+    static func tessellation(_ value: TessellationError) -> String {
         switch value {
         case .invalidTolerance: "TessellationError.invalidTolerance"
         case let .unsupportedFace(id): "TessellationError.unsupportedFace(\(id.description))"
@@ -173,7 +189,8 @@ enum KernelDomainErrorPresentation {
         }
     }
 
-    private static func export(_ value: ExportError) -> String {
+    @usableFromInline
+    static func export(_ value: ExportError) -> String {
         switch value {
         case .emptyMesh: "ExportError.emptyMesh"
         case let .invalidMesh(text): "ExportError.invalidMesh(\(quoted(text)))"
@@ -186,7 +203,8 @@ enum KernelDomainErrorPresentation {
         }
     }
 
-    private static func importError(_ value: ImportError) -> String {
+    @usableFromInline
+    static func importError(_ value: ImportError) -> String {
         switch value {
         case let .unsupportedFormat(text): "ImportError.unsupportedFormat(\(quoted(text)))"
         case let .unsupportedFeature(text): "ImportError.unsupportedFeature(\(quoted(text)))"
@@ -202,7 +220,8 @@ enum KernelDomainErrorPresentation {
         }
     }
 
-    private static func identity(_ value: PortableIdentityError) -> String {
+    @usableFromInline
+    static func identity(_ value: PortableIdentityError) -> String {
         switch value {
         case .invalidCanonicalString: "PortableIdentityError.invalidCanonicalString"
         }

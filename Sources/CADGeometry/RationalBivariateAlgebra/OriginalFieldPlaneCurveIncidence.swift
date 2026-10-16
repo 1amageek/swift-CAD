@@ -18,7 +18,7 @@ package struct OriginalFieldPlaneCurveIncidence: Sendable {
     package let projection: OriginalSingularFieldPlaneProjection
     package let halfBranches: [HalfBranch]
 
-    package init<B: RationalAlgebraAdmitting>(projection: OriginalSingularFieldPlaneProjection,
+    package init<B: ExactScalarAdmission & ~Copyable>(projection: OriginalSingularFieldPlaneProjection,
         maximumDepth: Int, usage: inout B) throws {
         self.projection = projection
         var published: [HalfBranch] = []
@@ -107,7 +107,7 @@ package struct OriginalFieldPlaneCurveIncidence: Sendable {
         halfBranches = published
     }
 
-    private static func ordered<B: RationalAlgebraAdmitting>(_ input: [OriginalSingularFieldSystemRoot],
+    private static func ordered<B: ExactScalarAdmission & ~Copyable>(_ input: [OriginalSingularFieldSystemRoot],
         maximumDepth: Int, usage: inout B) throws -> [OriginalSingularFieldSystemRoot] {
         try RationalAlgebraStorage.retain(input.count, of: OriginalSingularFieldSystemRoot.self, usage: &usage)
         var values: [OriginalSingularFieldSystemRoot] = []
@@ -124,13 +124,13 @@ package struct OriginalFieldPlaneCurveIncidence: Sendable {
                 values[i] = retained
                 if index == i { break }
             }
-            try usage.consumeExactWork(values.count - index)
+            try usage.consumeWork(values.count - index)
             values.insert(root, at: index)
         }
         return values
     }
 
-    private static func refine<B: RationalAlgebraAdmitting>(_ root: OriginalSingularFieldSystemRoot,
+    private static func refine<B: ExactScalarAdmission & ~Copyable>(_ root: OriginalSingularFieldSystemRoot,
         maximumDepth: Int, usage: inout B) throws -> OriginalSingularFieldSystemRoot {
         let width = try root.fiberRoot.isolation.upper.subtracting(root.fiberRoot.isolation.lower, usage: &usage)
         if width.isZero { return root }

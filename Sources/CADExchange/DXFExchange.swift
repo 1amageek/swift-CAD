@@ -1,5 +1,6 @@
 import Foundation
 import CADCore
+import CADGeometry
 import CADIR
 import CADKernel
 
@@ -16,9 +17,9 @@ public struct DXFExchange: Sendable {
     }
 
     public func write(_ page: DrawingExchangePage, outputUnit: LengthUnit = .millimeter,
-                      usage: inout DrawingExchangeUsage, to sink: any ByteSink) throws {
+                      usage: DrawingExchangeOwner, using execution: inout OriginalQueryExecution, to sink: any ByteSink) throws {
         try BRepDrawingExchange(resourceLimits: resourceLimits).write(page, as: .dxf,
-            outputUnit: outputUnit, usage: &usage, to: sink)
+            outputUnit: outputUnit, usage: usage, using: &execution, to: sink)
     }
 
     public func write(_ section: BRepDrawingSection, in evaluated: EvaluatedDocument,

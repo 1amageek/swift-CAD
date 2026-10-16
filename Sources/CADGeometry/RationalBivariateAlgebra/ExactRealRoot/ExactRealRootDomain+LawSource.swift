@@ -4,8 +4,8 @@ import L1
 #endif
 
 extension ExactRealRootDomain {
-    func sourceForLaw(_ law: ExactPolynomial<F>, variable: Int, axis: ExactScalarRootAxis,
-        _ a: inout ExactRootBorrowedAdmission) throws -> ExactRealRootSource<F> {
+    func sourceForLaw<A: ExactScalarAdmission & ~Copyable>(_ law: ExactPolynomial<F>, variable: Int, axis: ExactScalarRootAxis,
+        _ a: inout A) throws -> ExactRealRootSource<F> {
         _ = try context.univariate.isZero(law, using: &a)
         guard variable >= 0, variable < polynomials.variableCount else { throw ExactRealRootFailure.invalidVariable }
         try ExactRootAccess.storage(law.termCount, ExactPolynomialTerm<F.Value>.self, &a)
@@ -19,6 +19,6 @@ extension ExactRealRootDomain {
         }
         let original = try polynomials.polynomial(terms: terms, using: &a)
         return .init(context: context, original: original, variable: variable,
-            refinementAxis: axis, law: law, depth: a.depth)
+            refinementAxis: axis, law: law, depth: (try a.depth))
     }
 }

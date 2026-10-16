@@ -1,65 +1,76 @@
 import CADCore
 
-/// Publishes retained original families under the existing SSI caller allowance.
+/// Publishes retained original families under the shared original execution.
 struct OriginalCommonApexConePublicProducer {
-    private typealias Admission = NativeExactPublicAdmission<NativeSurfaceSurfacePointAllowance>
     typealias Source = OriginalCommonApexConeSnapshot
     func prepare(first: Surface3D, second: Surface3D, options: SurfaceSurfaceIntersectionOptions,
-        tolerance: ModelingTolerance, admission: SurfaceSurfaceQueryAdmission) throws -> OriginalCommonApexConeRelation? {
+        tolerance: ModelingTolerance, using a: inout OriginalQueryExecution) throws -> OriginalCommonApexConeRelation? {
+        a.context = a.context.at(stage: .source)
+        try a.checkpoint()
         let input = OriginalCommonApexConeInput(first: first, second: second)
         guard OriginalCommonApexConeSnapshotProvider.pair(input) != nil else { return nil }
-        let usage = try NativeSurfaceSurfacePointAllowance(options: options, admission: admission)
-        var a = Admission(usage: usage, maximumDepth: usage.maximumAlgebraicDepth)
-        let bound = try source(input, options: options, tolerance: tolerance, admission: admission, using: &a)
-        return try OriginalCommonApexConeRelation.resolve(source: bound, firstBox: nil, secondBox: nil,
-            maximumComponents: options.maximumSeedCount, limits: limits(options: options, admission: admission), using: &a)
+        let bound = try source(input, options: options, tolerance: tolerance, using: &a)
+        try a.admitSourceDepth(bound.sourceDepth)
+        a.context = a.context.retaining(first: .init(source: bound), second: .init(source: bound))
+        a.context = a.context.at(stage: .relation)
+        let prepared = try OriginalCommonApexConeRelation.resolve(source: bound, firstBox: nil, secondBox: nil,
+            maximumComponents: min(options.maximumSeedCount, a.effectiveLimits.maximumResults), limits: limits(options: options, executionLimits: a.effectiveLimits), using: &a)
+        try a.checkpoint()
+        return prepared
     }
     func resolve(first: Surface3D, second: Surface3D, firstBox: SurfaceParameterBox? = nil,
         secondBox: SurfaceParameterBox? = nil, options: SurfaceSurfaceIntersectionOptions,
-        tolerance: ModelingTolerance, includeRelations: Bool = false, admission: SurfaceSurfaceQueryAdmission = .legacy,
+        tolerance: ModelingTolerance, includeRelations: Bool = false, using a: inout OriginalQueryExecution,
         retained: OriginalCommonApexConeRelation? = nil) throws -> SurfaceSurfaceIntersectionResult? {
+        a.context = a.context.at(stage: .request)
+        try a.checkpoint()
         let input = OriginalCommonApexConeInput(first: first, second: second)
         guard OriginalCommonApexConeSnapshotProvider.pair(input) != nil else { return nil }
         do {
             try options.validate(tolerance: tolerance)
-            let usage = try NativeSurfaceSurfacePointAllowance(options: options, admission: admission)
-            var a = Admission(usage: usage, maximumDepth: usage.maximumAlgebraicDepth)
             let bound: OriginalSourceBinding<Source>
+            a.context = a.context.at(stage: .domain)
             if let retained {
                 guard retained.source.original.original.first == first, retained.source.original.original.second == second else {
                     throw OriginalDomainIdentityFailure.foreignOwner
                 }
                 bound = retained.source
-            } else { bound = try source(input, options: options, tolerance: tolerance, admission: admission, using: &a) }
+            } else { bound = try source(input, options: options, tolerance: tolerance, using: &a) }
+            try a.admitSourceDepth(bound.sourceDepth)
+            a.context = a.context.retaining(first: .init(source: bound), second: .init(source: bound))
+            a.context = a.context.at(stage: .relation)
             let relation = try OriginalCommonApexConeRelation.resolve(source: bound, firstBox: firstBox,
-                secondBox: secondBox, maximumComponents: options.maximumSeedCount,
-                limits: limits(options: options, admission: admission), prepared: retained, using: &a)
+                secondBox: secondBox, maximumComponents: min(options.maximumSeedCount, a.effectiveLimits.maximumResults),
+                limits: limits(options: options, executionLimits: a.effectiveLimits), prepared: retained, using: &a)
+            a.context = a.context.at(stage: .publication)
             let count = relation.isEmpty ? 0 : 1
             try a.retainStorage(bytes: exactScalarPayloadBytes(count: count, of: SurfaceSurfaceIntersection.self))
             var components: [SurfaceSurfaceIntersection] = []; components.reserveCapacity(count)
             if !relation.isEmpty {
                 components.append(.originalCommonApexCone(.init(relation: relation)))
             }
+            a.context = a.context.at(stage: .publication)
             try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: SurfaceSurfaceIntersectionResult.self))
             let result = SurfaceSurfaceIntersectionResult(intersections: components, originalCommonApexConeRelation: relation)
             try a.checkpoint(); return result
-        } catch { throw NativeExactGeometryPublicationFailure.published(error, tolerance: tolerance) }
+        } catch { throw NativeExactGeometryPublicationFailure.published(error, tolerance: tolerance, context: a.context) }
     }
-    private func limits(options: SurfaceSurfaceIntersectionOptions, admission: SurfaceSurfaceQueryAdmission) throws -> OriginalDomainIdentityLimits {
-        try .init(source: .init(remainingSourceDepth: min(options.maximumSubdivisionDepth, admission.remainingSourceDepth)),
-            maximumTransportDepth: admission.maximumAlgebraicDepth ?? 32,
-            maximumCharts: min(admission.maximumSpanCount, options.maximumSubdivisionCells), maximumFamilies: 2, maximumIdentityProofs: 2)
+    private func limits(options: SurfaceSurfaceIntersectionOptions, executionLimits: OriginalQueryExecutionLimits) throws -> OriginalDomainIdentityLimits {
+        try .init(source: .init(remainingSourceDepth: executionLimits.remainingSourceDepth),
+            maximumTransportDepth: executionLimits.maximumTransportDepth,
+            maximumCharts: min(min(executionLimits.maximumCharts, executionLimits.maximumSpans), options.maximumSubdivisionCells), maximumFamilies: min(2, executionLimits.maximumFamilies), maximumIdentityProofs: 2)
     }
     private func source(_ input: OriginalCommonApexConeInput, options: SurfaceSurfaceIntersectionOptions,
-        tolerance: ModelingTolerance, admission: SurfaceSurfaceQueryAdmission, using a: inout Admission)
+        tolerance: ModelingTolerance, using a: inout OriginalQueryExecution)
         throws -> OriginalSourceBinding<Source> {
+        a.context = a.context.at(stage: .source)
         guard let pair=OriginalCommonApexConeSnapshotProvider.pair(input),
             case .analytic(.cone(_,_,let firstAngle))=pair.reference,
             case .analytic(.cone(_,_,let secondAngle))=pair.parameterized else { throw OriginalSourceIssuanceFailure.unsupportedRepresentation }
         let alpha=try OriginalPhysicalAngleScalarDomain(originalRadians:firstAngle,using:&a)
         let beta=try OriginalPhysicalAngleScalarDomain(originalRadians:secondAngle,using:&a)
         return try DefaultOriginalSourceBindingIssuer(provider:OriginalCommonApexConeSnapshotProvider(reference:alpha,
-            parameterized:beta,maximumExtensionLevel:a.usage.maximumAlgebraicDepth,tolerance:tolerance))
-            .bind(input,limits:limits(options:options,admission:admission).source,using:&a)
+            parameterized:beta,maximumExtensionLevel:a.effectiveLimits.maximumValueDepth,tolerance:tolerance))
+            .bind(input,limits:limits(options:options,executionLimits: a.effectiveLimits).source,using:&a)
     }
 }

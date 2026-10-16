@@ -12,6 +12,12 @@ public struct LoopGeometrySignature: Hashable, Sendable {
     }
 
     public func validate(on surface: Surface3D) throws {
+        var execution = try OriginalQueryExecution.independentGeometry()
+        try validate(on: surface, using: &execution)
+    }
+
+    public func validate(on surface: Surface3D, using execution: inout OriginalQueryExecution) throws {
+        try execution.consumeWork(1)
         guard coedges.isEmpty == false else {
             throw KernelError(
                 phase: .validation,
@@ -21,7 +27,7 @@ public struct LoopGeometrySignature: Hashable, Sendable {
             )
         }
         for coedge in coedges {
-            try coedge.validate(on: surface)
+            try coedge.validate(on: surface, using: &execution)
         }
     }
 

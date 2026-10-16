@@ -106,7 +106,7 @@ public struct SurfaceFillFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             )
         }
 
-        guard let loop = boundaryLoopResolver.loop(
+        guard let loop = try boundaryLoopResolver.loop(
             startingAt: seedEdgeID,
             in: body,
             model: context.brep
@@ -119,7 +119,7 @@ public struct SurfaceFillFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                 message: "Surface fill requires a closed, non-branching open-boundary loop."
             )
         }
-        guard boundaryLoopResolver.isFillableSurfaceBoundary(
+        guard try boundaryLoopResolver.isFillableSurfaceBoundary(
             loop,
             in: body,
             model: context.brep
@@ -199,8 +199,8 @@ public struct SurfaceFillFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         ) else { return nil }
         let plane = Surface3D.plane(Plane3D(origin: geometry.origin, normal: geometry.normal))
 
-        let faceParentSubshapeIDs = loop.traversals.flatMap { traversal in
-            context.subshapeIDs(for: .edge(traversal.edgeID))
+        let faceParentSubshapeIDs = try loop.traversals.flatMap { traversal in
+            try context.subshapeIDs(for: .edge(traversal.edgeID))
         }
         let sewingEdges = try zip(loop.traversals, curves).enumerated().map {
             index, pair -> BRepSewingEdge in
@@ -226,7 +226,7 @@ public struct SurfaceFillFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             )
             let startPoint = try curve.point(at: lower, tolerance: context.tolerance)
             let endPoint = try curve.point(at: upper, tolerance: context.tolerance)
-            let edgeParentSubshapeIDs = context.subshapeIDs(for: .edge(traversal.edgeID))
+            let edgeParentSubshapeIDs = try context.subshapeIDs(for: .edge(traversal.edgeID))
             return BRepSewingEdge(
                 stableID: "surfaceFill:boundary:\(index)",
                 curve: .bSpline(curve),
@@ -257,7 +257,7 @@ public struct SurfaceFillFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                     parentSubshapeIDs: faceParentSubshapeIDs
                 )]
             )],
-            bodyParentSubshapeIDs: context.subshapeIDs(for: .body(bodyID))
+            bodyParentSubshapeIDs: try context.subshapeIDs(for: .body(bodyID))
         ), tolerance: context.tolerance)
         var fillBrep = sewn.brep
         if var fillBody = fillBrep.bodies[sewn.bodyID] {
@@ -323,7 +323,7 @@ public struct SurfaceFillFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             regions.append(run(j, i) + [Piece(curve: guide, guide: index)])
         }
         var patches: [BRepSewingFacePatch] = []
-        let faceParents = context.subshapeIDs(for: .body(bodyID))
+        let faceParents = try context.subshapeIDs(for: .body(bodyID))
         for (regionIndex, region) in regions.enumerated() {
             // Runs of the opening's curves between guides, in order round the region.
             let guideCount = region.filter { $0.guide != nil }.count

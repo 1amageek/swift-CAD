@@ -198,8 +198,8 @@ public struct SurfaceExtendFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             featureID: featureID,
             tolerance: context.tolerance
         )
-        let bodyParents = context.subshapeIDs(for: .body(target.bodyID))
-        let faceParents = context.subshapeIDs(for: .face(target.faceID))
+        let bodyParents = try context.subshapeIDs(for: .body(target.bodyID))
+        let faceParents = try context.subshapeIDs(for: .face(target.faceID))
         guard bodyParents.isEmpty == false, faceParents.isEmpty == false else {
             throw kernelError(
                 .missingReference,
@@ -240,9 +240,9 @@ public struct SurfaceExtendFeatureEvaluator: FeatureEvaluating, ValidatedFeature
                     startVertexID = edge.endVertexID
                     endVertexID = edge.startVertexID
                 }
-                let edgeParents = context.subshapeIDs(for: .edge(edge.id))
-                let startParents = context.subshapeIDs(for: .vertex(startVertexID))
-                let endParents = context.subshapeIDs(for: .vertex(endVertexID))
+                let edgeParents = try context.subshapeIDs(for: .edge(edge.id))
+                let startParents = try context.subshapeIDs(for: .vertex(startVertexID))
+                let endParents = try context.subshapeIDs(for: .vertex(endVertexID))
                 guard edgeParents.isEmpty == false,
                       startParents.isEmpty == false,
                       endParents.isEmpty == false else {

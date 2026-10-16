@@ -7,6 +7,15 @@ import CADTopology
 
 @Suite("Product attribute local/world resolution")
 struct ProductAttributeResolutionTests {
+    private func receiptBoundEvaluation(_ original: EvaluatedDocument) throws -> EvaluatedDocument {
+        let receipt = try #require(original.validatedSourceReceipt)
+        return try EvaluatedDocument(validatedSourceReceipt: receipt,
+            parameters: original.parameters, brep: original.brep, meshes: original.meshes,
+            curves: original.curves, caches: original.caches, subshapes: original.subshapes,
+            lineage: original.lineage, configuration: original.configuration,
+            assembly: original.assembly, evaluationMetrics: original.evaluationMetrics)
+    }
+
     private func sharedGeometryFixture() -> (CADDocument, AssemblyDefinitionID, AssemblyDefinitionID) {
         let featureID = FeatureID()
         let feature = FeatureNode(id: featureID, operation: .primitive(PrimitiveFeature(definition: .box(BoxPrimitive(
@@ -113,7 +122,10 @@ struct ProductAttributeResolutionTests {
         var stale = EvaluatedDocument(document: changed, parameters: fresh.parameters, brep: fresh.brep,
             meshes: fresh.meshes, caches: fresh.caches, subshapes: fresh.subshapes, lineage: fresh.lineage,
             configuration: fresh.configuration, assembly: fresh.assembly)
-        stale.validatedSourceReceipt = fresh.validatedSourceReceipt; stale.validatedBRep = fresh.validatedBRep
+        let bound = try receiptBoundEvaluation(fresh)
+        #expect(bound.document == fresh.document)
+        #expect(stale.document == changed && stale.validatedSourceReceipt == nil)
+        stale.validatedBRep = try #require(fresh.validatedBRep)
         #expect(throws: ProductAttributeError.inconsistentArtifact("Missing or stale producer source/exact B-rep association.")) {
             _ = try resolver.resolve(stale)
         }
@@ -244,17 +256,20 @@ struct ProductAttributeResolutionTests {
         var stale = EvaluatedDocument(document: changed, parameters: exact.parameters, brep: exact.brep,
             meshes: exact.meshes, caches: exact.caches, subshapes: exact.subshapes, lineage: exact.lineage,
             configuration: exact.configuration, assembly: exact.assembly)
-        // Test-only retained receipt copying proves that source equality is checked even when
-        // a stale artifact accidentally carries an otherwise genuine producer receipt.
-        stale.validatedSourceReceipt = exact.validatedSourceReceipt; stale.validatedBRep = exact.validatedBRep
+        // A receipt-derived value retains the old source; public construction of changed source is unbound.
+        let bound = try receiptBoundEvaluation(exact)
+        #expect(bound.document == exact.document)
+        #expect(stale.document == changed && stale.validatedSourceReceipt == nil)
+        stale.validatedBRep = try #require(exact.validatedBRep)
         #expect(throws: ProductAttributeError.self) { _ = try ProductAttributeResolver().resolve(stale) }
         var described = document
         described.assembly?.products[0].description = "Changed product authority"
         var staleDescription = EvaluatedDocument(document: described, parameters: exact.parameters, brep: exact.brep,
             meshes: exact.meshes, caches: exact.caches, subshapes: exact.subshapes, lineage: exact.lineage,
             configuration: exact.configuration, assembly: exact.assembly)
-        staleDescription.validatedSourceReceipt = exact.validatedSourceReceipt
-        staleDescription.validatedBRep = exact.validatedBRep
+        #expect(bound.document == exact.document)
+        #expect(staleDescription.document == described && staleDescription.validatedSourceReceipt == nil)
+        staleDescription.validatedBRep = try #require(exact.validatedBRep)
         #expect(throws: ProductAttributeError.self) { _ = try ProductAttributeResolver().resolve(staleDescription) }
         _ = try ProductAttributeResolver().resolve(evaluator.evaluateExact(described))
         let materialized = try evaluator.evaluate(document)
@@ -291,7 +306,10 @@ struct ProductAttributeResolutionTests {
             var stale = EvaluatedDocument(document: changed, parameters: exact.parameters, brep: exact.brep,
                 meshes: exact.meshes, caches: exact.caches, subshapes: exact.subshapes, lineage: exact.lineage,
                 configuration: exact.configuration, assembly: exact.assembly)
-            stale.validatedSourceReceipt = exact.validatedSourceReceipt; stale.validatedBRep = exact.validatedBRep
+            let bound = try receiptBoundEvaluation(exact)
+            #expect(bound.document == exact.document)
+            #expect(stale.document == changed && stale.validatedSourceReceipt == nil)
+            stale.validatedBRep = try #require(exact.validatedBRep)
             #expect(throws: ProductAttributeError.self) { _ = try resolver.resolve(stale) }
             _ = try resolver.resolve(evaluator.evaluateExact(changed))
         }
@@ -324,7 +342,10 @@ struct ProductAttributeResolutionTests {
             var stale = EvaluatedDocument(document: changed, parameters: exact.parameters, brep: exact.brep,
                 meshes: exact.meshes, caches: exact.caches, subshapes: exact.subshapes, lineage: exact.lineage,
                 configuration: exact.configuration, assembly: exact.assembly)
-            stale.validatedSourceReceipt = exact.validatedSourceReceipt; stale.validatedBRep = exact.validatedBRep
+            let bound = try receiptBoundEvaluation(exact)
+            #expect(bound.document == exact.document)
+            #expect(stale.document == changed && stale.validatedSourceReceipt == nil)
+            stale.validatedBRep = try #require(exact.validatedBRep)
             #expect(throws: ProductAttributeError.inconsistentArtifact("Missing or stale producer source/exact B-rep association.")) {
                 _ = try resolver.resolve(stale)
             }

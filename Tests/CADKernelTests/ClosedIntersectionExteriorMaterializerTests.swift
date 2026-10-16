@@ -12,6 +12,7 @@ struct ClosedIntersectionExteriorMaterializerTests {
 
     @Test(.timeLimit(.minutes(1)))
     func exteriorRegionPreservesSourceOuterLoopAndAddsExactInnerLoop() throws {
+        var execution = try OriginalQueryExecution.kernelOriginal()
         let targetFeatureID = FeatureID()
         let target = try PlanarSheetTestFixture.make(featureID: targetFeatureID, tolerance: .standard)
         var model = target.brep
@@ -135,7 +136,8 @@ struct ClosedIntersectionExteriorMaterializerTests {
             )]),
             regionSelectionGraph: decisions,
             operands: BooleanOperandContext(solidities: .volumes, pointClassifier: ConstantPointClassifier(classification: .outside)),
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
         )
 
         try request.validate(tolerance: tolerance)
@@ -209,6 +211,7 @@ struct ClosedIntersectionExteriorMaterializerTests {
 
     @Test(.timeLimit(.minutes(1)))
     func disjointClosedComponentsProduceOneExteriorFaceWithTwoExactInnerLoops() throws {
+        var execution = try OriginalQueryExecution.kernelOriginal()
         let target = try PlanarSheetTestFixture.make(featureID: FeatureID(), tolerance: .standard)
         var model = target.brep
         let targetBody = try #require(model.bodies.values.first)
@@ -347,7 +350,8 @@ struct ClosedIntersectionExteriorMaterializerTests {
             uvSplitGraph: BooleanUVSplitGraph(splits: splits),
             regionSelectionGraph: BooleanRegionSelectionGraph(decisions: decisions),
             operands: BooleanOperandContext(solidities: .volumes, pointClassifier: ConstantPointClassifier(classification: .outside)),
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
         )
 
         let targetPatch = try #require(request.shells.flatMap(\.patches).first { patch in
@@ -363,6 +367,7 @@ struct ClosedIntersectionExteriorMaterializerTests {
 
     @Test(.timeLimit(.minutes(1)))
     func nestedClosedPcurvesProduceDeterministicContainmentParent() throws {
+        var execution = try OriginalQueryExecution.kernelOriginal()
         let target = try PlanarSheetTestFixture.make(featureID: FeatureID(), tolerance: .standard)
         let body = try #require(target.brep.bodies.values.first)
         let shell = try #require(target.brep.shells[body.shellIDs[0]])
@@ -401,17 +406,20 @@ struct ClosedIntersectionExteriorMaterializerTests {
                     closedIntersection: innerClosed,
                     surfaceSide: .first,
                     surface: surface,
-                    tolerance: tolerance
+                    tolerance: tolerance,
+                    using: &execution
                 ),
                 BooleanClosedPcurveRegion(
                     reference: outerReference,
                     closedIntersection: outerClosed,
                     surfaceSide: .first,
                     surface: surface,
-                    tolerance: tolerance
+                    tolerance: tolerance,
+                    using: &execution
                 ),
             ],
-            tolerance: tolerance
+            tolerance: tolerance,
+            using: &execution
         )
 
         #expect(tree.roots == [outerReference])
@@ -643,6 +651,39 @@ struct ClosedIntersectionExteriorMaterializerTests {
                 )
             }
             return classification
+        }
+
+        func classify(_ point: Point3D, in bodyID: BodyID, model: BRepModel,
+            tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution)
+            throws -> SolidPointClassification {
+            try execution.consumeWork(1)
+            return try classify(point, in: bodyID, model: model, tolerance: tolerance)
+        }
+
+        func preparedClassificationSession(in bodyID: BodyID, model: BRepModel,
+            tolerance: ModelingTolerance, using execution: inout OriginalQueryExecution)
+            throws -> any SolidPointClassificationSession {
+            try execution.checkpoint()
+            return ControlledClassificationSession(classifier: self, bodyID: bodyID,
+                model: model, tolerance: tolerance)
+        }
+    }
+
+    private struct ControlledClassificationSession<Classifier: SolidPointClassifying>:
+        SolidPointClassificationSession {
+        let classifier: Classifier
+        let bodyID: BodyID
+        let model: BRepModel
+        let tolerance: ModelingTolerance
+
+        func classify(_ point: Point3D) throws -> SolidPointClassification {
+            try classifier.classify(point, in: bodyID, model: model, tolerance: tolerance)
+        }
+
+        func classify(_ point: Point3D, using execution: inout OriginalQueryExecution)
+            throws -> SolidPointClassification {
+            try classifier.classify(point, in: bodyID, model: model,
+                tolerance: tolerance, using: &execution)
         }
     }
 }

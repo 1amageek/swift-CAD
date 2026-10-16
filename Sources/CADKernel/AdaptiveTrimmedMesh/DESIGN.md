@@ -61,7 +61,7 @@ triangle plane determines the native index order; exact face/shell orientation
 selects its reversal. The original mesh area/adoption gate still refuses invalid
 triangles before indices are retained, without sampled normal votes changing the
 source winding or adding unplanned duplicate corners.
-Every retained triangle passes position, angular and all-edge bounds. A conforming refinement wave shares midpoints by original indexed edge; no hanging vertex is introduced inside a face. Curvilinear boundary fidelity remains the original complete-interval sampling owner. Every active face preflight shares one invocation-owned `TessellationProofBudget`, with the same Mutex state on Native/WASM/Embedded. Closed original station inverse receipts bind the directed curve trim and original pcurve; normalized fractions must progress in one connected directed order. A singular homogeneous pole uses its structural direct chart law. Original tensor pole normals are prepared before output admission, using the exact clamped coefficient row/column and the one-sided original normal-coefficient receipt. Emission consumes retained normals; it never selects a nearby regular parameter as a pole normal. Higher-order vanishing normal coefficients and whole-facet factored normal bounds remain Geometry-owned required ports. One invocation retains each edge's forward spatial station buffer once, under the strict incident-edge policy. Every directed use consumes that retained canonical buffer; reverse uses reverse the stored coordinates rather than reevaluating opposite floating-point parameter arithmetic. Line and circular stations also honor the caller maximum edge length under the original 65536-segment ceiling. Face overrides are resolved before preparation, unknown face IDs fail, and interior refinement retains that face's own requested geometric setting. Canonical spatial edge sampling joins only the linear tolerance, angular tolerance and maximum edge length of that edge's incident faces. Rectangular/native graph plans still require propagation of canonical edge station partitions; their independent interior counts do not establish shared-edge conformity.
+Every retained triangle passes position, angular and all-edge bounds. A conforming refinement wave shares midpoints by original indexed edge; no hanging vertex is introduced inside a face. Curvilinear boundary fidelity remains the original complete-interval sampling owner. Every active face preflight shares one invocation-owned `OriginalQueryExecution` under retained contributions, with the same common Mutex-owned budget state on Native/WASM/Embedded. Closed original station inverse receipts bind the directed curve trim and original pcurve; normalized fractions must progress in one connected directed order. A singular homogeneous pole uses its structural direct chart law. Original tensor pole normals are prepared before output admission, using the exact clamped coefficient row/column and the one-sided original normal-coefficient receipt. Emission consumes retained normals; it never selects a nearby regular parameter as a pole normal. Higher-order vanishing normal coefficients and whole-facet factored normal bounds remain Geometry-owned required ports. One invocation retains each edge's forward spatial station buffer once, under the strict incident-edge policy. Every directed use consumes that retained canonical buffer; reverse uses reverse the stored coordinates rather than reevaluating opposite floating-point parameter arithmetic. Line and circular stations also honor the caller maximum edge length under the original 65536-segment ceiling. Face overrides are resolved before preparation, unknown face IDs fail, and interior refinement retains that face's own requested geometric setting. Canonical spatial edge sampling joins only the linear tolerance, angular tolerance and maximum edge length of that edge's incident faces. Rectangular/native graph plans still require propagation of canonical edge station partitions; their independent interior counts do not establish shared-edge conformity.
 
 ## Failure, Concurrency, and Constraints
 Original source, finite arithmetic, shared proof/work/depth and storage bounds retain explicit failures and cancellation. A partial mesh map is never published.
@@ -81,7 +81,7 @@ Analytic rectangular charts use the same complete seven-field facet policy as or
 
 Analytic sphere/cone pole stations retain the complete original normal field through the same generic panel receipt and nested image cofactor transport. A cone apex selects a nappe from the retained face plan whose complete facet boxes already satisfy the one-sided chart contract; a plan using both nappes cannot authorize one shared apex normal. This selection is a source chart decision, without a nearby normal sample.
 
-The exact pole-factor adapter admits original rational algebra through the same invocation proof budget. Exact cell depth is the intrinsic ordered-field/root depth, capped at 32 independently of original source nesting and facet subdivision. Its visit debits work at the current proof owner without interpreting algebra depth as a geometric descendant. Facet and original source walkers retain their own explicit depth ceilings. Requested exact work and retained temporary storage debit the existing 262144-unit ledger before computation or retention. Original factor polynomials are retained per owning native span, boundary and direction and reused for stations. A native grid passes its owning token so C0 knot sides cannot be mixed into one normal authority.
+Exact pole-factor calls admit original rational algebra directly through the same invocation execution. Exact cell depth is the intrinsic ordered-field/root depth, capped at 32 independently of original source nesting and facet subdivision. Its visit debits work at the current proof owner without interpreting algebra depth as a geometric descendant. Facet and original source walkers retain their own explicit depth ceilings. Requested exact work and retained temporary storage debit the existing 262144-unit ledger before computation or retention. Original factor polynomials are retained per owning native span, boundary and direction and reused for stations. A native grid passes its owning token so C0 knot sides cannot be mixed into one normal authority.
 
 A trimmed pole station on a native join retains every source-owning panel and normalizes their bound-checked union. That union asserts a complete normal cone at the station, not smoothness across the join. Complete trimmed triangle bounds use the original seven-field support producer for every surface family, including analytic sphere/cone frames.
 
@@ -221,3 +221,33 @@ allocation is checked after restoring the original magnitude.
 Native trim partitioning asks the existing exact RobustPredicates orientation contract with determinant tolerance zero. Work and exact coefficient bytes consume the same invocation TessellationProofBudget before triangle retention; a limit failure propagates atomically. It does not import or duplicate the Geometry-owned expansion engine. Checked interval-to-coordinate adapters retain both outward endpoints. Verification distinguishes exact nonzero tiny/overflow-prone determinants from zero and exercises independent work/storage refusal.
 
 Focused prerequisite contract tests: [KernelIntersectionPrerequisiteTests](../../../Tests/CADKernelTests/KernelIntersectionPrerequisiteTests.swift).
+
+
+### Candidate same-execution API closure
+
+The candidate binds existing mesh algorithms to the canonical direct Geometry
+interfaces. One ordinary entry creates one OriginalQueryExecution; direct entries
+borrow their caller's execution. The former invocation proof allowance becomes
+one retained contribution on that execution, preserving 262144 work units,
+UInt32-word storage accounting, source depth16 and independent algebraic/geometric
+depth32. No callback adapter, second ledger or budget reset remains.
+
+| File | Actual callee edges | Required binding |
+|---|---|---|
+| MeshTessellator.swift | ValidatedBRepModel; curve/surface preparation and bounds; exact rectangular pcurves; differential/native panel bounds; pole normal factors/receipts; original affine transport; exact predicates; graph assembler | Forward the same inout execution through selected original branches and their private helpers. Preserve original grids, fan/trim selection, tolerances and rejection paths. |
+| TrimmedNativePartition.swift | retained native spans and robust original orientation2D | Replace the invocation proof callback with direct execution through partition/crossing/nonzero helpers. Preserve knot clipping and native owner selection. |
+| TessellationExactProofAdmission.swift / TessellationProofBudget.swift | removed legacy adapters | Delete after all actual callers use canonical direct APIs. Output TessellationBudget counters remain unchanged. |
+
+This compile-binding batch preserves the original collection algorithms and
+output resource counters. It does not import unrelated generic collection
+accounting helpers from the working reference. Existing local cell ceilings
+remain contributions on the same owner; failed source proof never selects a
+fallback mesh route. Root owns aggregate compiler/runtime evidence after source
+freeze; source/lexical checks alone do not establish tessellation completion.
+
+Direct Tessellating operations are protocol requirements for existential dispatch
+on Native, WASM and Embedded. The base direct default fails explicitly; derived
+direct defaults call direct requirements on the same execution. Ordinary methods
+remain public operation entries. KernelProtocols.swift changes are limited to
+that protocol and its extension; unrelated Boolean/publication contracts are
+owned separately.
