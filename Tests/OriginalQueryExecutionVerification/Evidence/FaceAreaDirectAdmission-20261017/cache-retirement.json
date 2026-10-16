@@ -1,0 +1,17 @@
+{
+  "status": "deleted-and-protected-content-verified",
+  "audit": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/storage-completed-face-area-clients-cleanup-20261017.json",
+  "auditSHA256": "ff554ead5366499bab9b71c47dbfcc753db151f6f3695b20cc2002aadb8d99c2",
+  "unlinkedAllocatedBytes": 671952896,
+  "protectedFiles": 118,
+  "removedDirectories": [
+    "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/face-area-native-client-r1/accepted",
+    "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/face-area-native-client-r1/build",
+    "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/face-area-native-client-r2/accepted",
+    "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/face-area-native-client-r2/build",
+    "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/main-face-area-integration-r2/accepted",
+    "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/main-face-area-integration-r2/build"
+  ],
+  "originalProductsAndHistoricalExecutionEvidenceRetained": true,
+  "exactClientReplayCachesRetired": true
+}

@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 1,
+  "scope": "Fresh Main public-consumer integration of the finite direct face-area unit; no production regeneration or broader Topology/U1 acceptance.",
+  "mainSourceCommit": "eac34452",
+  "sourceRoot": "/Users/1amageek/Desktop/3D/swift-CAD",
+  "status": "passed",
+  "originalEvidence": {
+    "indexSHA256": "372d0337cd8202133d0ce2dcf238b0362196902758bcbc9d32b55554fae8f48e",
+    "verificationSHA256": "df2c9d858eda1fd5ad179269958dea2aa827075a8d80872343990456ca4454ab",
+    "unchanged": true
+  },
+  "nativeAuthority": {
+    "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/face-area-native-r1/receipt.json",
+    "sha256": "6f59ddcf5c36e971e73e589a4f79ef4d84f406e93f8213731b99018847b6697c"
+  },
+  "sourceEquivalentBinding": {
+    "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/main-face-area-binding-r1/receipt.json",
+    "sha256": "05d52a9c1c483bdf8178d9737e8680157547ae1934cfbba562b80eaf0ebe1320",
+    "status": "reuse-bound",
+    "compiledHere": false,
+    "originalCompilerStepsUnchanged": true,
+    "normalizedFreshOrigins": {
+      "CADCore": {
+        "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-core-r1/receipt.json",
+        "sha256": "899f5626c9fa4f595ea1be6d52ed137b40cd515d961dc114538e5a83c1d24952",
+        "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "commandSHA256": "b34af80b273f514468938937c87617720369ac4191224fb70b72da2f8489395a",
+        "responseFile": "Not used: actual compiler command explicitly lists the whole source inventory."
+      },
+      "CADGeometry": {
+        "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/native-current-geometry-r2/receipt.json",
+        "sha256": "e204846e7c7cab172f79257ef812847d774ffcc6c6369c86639da1a613a8d4d8",
+        "logSHA256": "bcd5feb1ed0af63d28f4b52759999cf60a73748c204f7ed56e4642198a97c671",
+        "commandSHA256": "df342140233a8de96f245b0dd217481b2c3e67668002c29552648d27b3980fa0",
+        "responseFile": "Not used: actual compiler command explicitly lists the whole source inventory."
+      },
+      "CADTopology": {
+        "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/face-area-native-r1/receipt.json",
+        "sha256": "6f59ddcf5c36e971e73e589a4f79ef4d84f406e93f8213731b99018847b6697c",
+        "logSHA256": "2e36d0b7e004b459c1bb0df2b9bd734a37ec2cb4e94b0b2675cd342f9267f5bc",
+        "commandSHA256": "e247a5beb4ff967288c55bc3753283c504b9dc4921cb63fb74c8c6af73b1957e",
+        "responseFile": "Not used: actual compiler command explicitly lists the whole source inventory."
+      }
+    },
+    "beforeAfterDrift": []
+  },
+  "productionSources": 2380,
+  "moduleSourceCounts": {
+    "CADCore": 67,
+    "CADGeometry": 2171,
+    "CADTopology": 142
+  },
+  "productionRegeneration": 0,
+  "fixtureSHA256": "2130bf119946e4e60260a4b865068a01bb5190fe34ac24b9c8f26ace0a812bb4",
+  "initialPreflightRefusal": {
+    "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/main-face-area-integration-r1/receipt.json",
+    "sha256": "f605019afe49c0e6c6388bee0a2939f943d19ffa2061787b263895b0cd8dd8d8",
+    "cause": "The production receipt belongs to a different source checkout.",
+    "compilerRuntimeSteps": 0
+  },
+  "acceptedReceipt": {
+    "path": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/main-face-area-integration-r2/receipt.json",
+    "sha256": "af883a6aa01f8fa722621db99b83af54219fd929249359db576bc72c6a722e55",
+    "executedTestCases": 4,
+    "sourcesAndProductsUnchanged": true
+  },
+  "steps": {
+    "compiler-version": {
+      "exitCode": 0,
+      "elapsedSeconds": 0.4651891250105109,
+      "sampledPeakProcessTreeRSSBytes": 5488640,
+      "stopReason": null
+    },
+    "test-build-and-list": {
+      "exitCode": 0,
+      "elapsedSeconds": 10.704458624997642,
+      "sampledPeakProcessTreeRSSBytes": 727580672,
+      "stopReason": null
+    },
+    "test-runtime": {
+      "exitCode": 0,
+      "elapsedSeconds": 0.7002232910017483,
+      "sampledPeakProcessTreeRSSBytes": 93306880,
+      "stopReason": null
+    }
+  },
+  "files": {
+    "main-integration/main-face-area-integration-r1/receipt.json.gz": {
+      "sha256": "91c8a0dc390f359df5346f407a93833b9870a178d3d53560580490dc7fc72685",
+      "rawSHA256": "f605019afe49c0e6c6388bee0a2939f943d19ffa2061787b263895b0cd8dd8d8",
+      "bytes": 306,
+      "rawBytes": 572,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/main-face-area-integration-r1/receipt.json",
+      "encoding": "gzip"
+    },
+    "main-integration/main-face-area-integration-r2/compiler-version.log.gz": {
+      "sha256": "b6524373dc005cdb1fe16a933bd67e4fa44458a0c3b9f6e40aeee5efc52681f9",
+      "rawSHA256": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c",
+      "bytes": 91,
+      "rawBytes": 77,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/main-face-area-integration-r2/compiler-version.log",
+      "encoding": "gzip"
+    },
+    "main-integration/main-face-area-integration-r2/receipt.json.gz": {
+      "sha256": "e639c0c4d55b5b133fda0f62e0a5d6c99d59cdaefbe1c0a34a7da1a19f70ca35",
+      "rawSHA256": "af883a6aa01f8fa722621db99b83af54219fd929249359db576bc72c6a722e55",
+      "bytes": 119591,
+      "rawBytes": 386195,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/main-face-area-integration-r2/receipt.json",
+      "encoding": "gzip"
+    },
+    "main-integration/main-face-area-integration-r2/results.xml.gz": {
+      "sha256": "42b384e782a685f6694b6522284536f8293ffaa3737e5102de965ee2b57207b5",
+      "rawSHA256": "2b15ebae131f8671c118d43c079316cbd33d589793435028944675d4ec9a0d6b",
+      "bytes": 361,
+      "rawBytes": 776,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/main-face-area-integration-r2/results.xml",
+      "encoding": "gzip"
+    },
+    "main-integration/main-face-area-integration-r2/test-build-and-list.log.gz": {
+      "sha256": "1b6ff1270893069e19e4505637e13acca30dc3610b6620078ee1c863dedd3a01",
+      "rawSHA256": "e2e03e4773741283f8fb73344cfc318d6a4fe4689317a05c8f55e11ae31d697d",
+      "bytes": 4247,
+      "rawBytes": 45055,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/main-face-area-integration-r2/test-build-and-list.log",
+      "encoding": "gzip"
+    },
+    "main-integration/main-face-area-integration-r2/test-runtime.log.gz": {
+      "sha256": "532c28de8f42d4c99b7687a044b2b651d1fbf54180a38fe62cbe6ae3f9d3b0cf",
+      "rawSHA256": "e67a8711d7a407eda9dde315f5cd785b7f7fa4feceeea069a891b04a49d14b19",
+      "bytes": 506,
+      "rawBytes": 1259,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/main-face-area-integration-r2/test-runtime.log",
+      "encoding": "gzip"
+    },
+    "main-integration/source-equivalent-binding/receipt.json.gz": {
+      "sha256": "7646ba5c5b58f8fcb71b240b0a888eb087bad874cb789268c31ae8b46b41ab67",
+      "rawSHA256": "05d52a9c1c483bdf8178d9737e8680157547ae1934cfbba562b80eaf0ebe1320",
+      "bytes": 282902,
+      "rawBytes": 2064272,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/main-face-area-binding-r1/receipt.json",
+      "encoding": "gzip"
+    },
+    "main-integration/source-equivalent-binding/before.json.gz": {
+      "sha256": "147f1b0122d9eea563ce182fec36cb4b54842b8c49325a8be9ba2803ec703e29",
+      "rawSHA256": "6053339cd03803e49d93bbeacf224dc531fbe025277e30fca45b3fb1378a9e9d",
+      "bytes": 925,
+      "rawBytes": 2191,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/main-face-area-binding-r1/before.json",
+      "encoding": "gzip"
+    },
+    "main-integration/source-equivalent-binding/after.json.gz": {
+      "sha256": "e23ccfe992baac0f734e9d3614d35443f2748f02d6167f6f22ecd90a69337ca6",
+      "rawSHA256": "30d7d2e1980b1148e4bc4d513b03e6a60ea48d5cc7ad42e37322a6a44ef6b5d5",
+      "bytes": 924,
+      "rawBytes": 2190,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/main-face-area-binding-r1/after.json",
+      "encoding": "gzip"
+    },
+    "main-integration/source-equivalent-binding/bind.py.gz": {
+      "sha256": "de819c2a30685062b02ff841cdd3c30c8acabb9cdc922a40d01d0647f7a81cd6",
+      "rawSHA256": "2c28226525c8cb8e214b476a4f2a6198a82b63a72c09c36f1073e5b7b550a680",
+      "bytes": 2258,
+      "rawBytes": 5931,
+      "origin": "/Users/1amageek/.codex/verification-artifacts/swift-CAD/u1-direct-gaps-green-20261017/main-face-area-binding-r1/bind.py",
+      "encoding": "gzip"
+    }
+  },
+  "appendix": "main-integration/VERIFICATION.md",
+  "limits": "Original Native execution bounds: 1200s build/list aggregate, 10GiB process tree, runtime120s, jobs1. No ceiling or source/math changes.",
+  "appendixSHA256": "15b3c251eed405599f1cbe35950f324b9f0d5e9701a9060629e84abdf7b75056"
+}
